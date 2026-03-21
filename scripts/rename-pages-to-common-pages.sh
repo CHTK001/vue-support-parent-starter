@@ -1,7 +1,7 @@
 #!/bin/bash
-# 批量更新 @repo/pages 为 @repo/common-pages
+# 批量更新 @repo/common 为 @repo/common
 
-echo "开始更新所有 @repo/pages 引用为 @repo/common-pages..."
+echo "开始更新所有 @repo/common 引用为 @repo/common..."
 
 # 更新所有 .ts .vue .json 文件中的引用
 find . -type f \( -name "*.ts" -o -name "*.vue" -o -name "*.json" \) \

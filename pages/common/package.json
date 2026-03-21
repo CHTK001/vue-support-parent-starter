@@ -1,5 +1,5 @@
 {
-  "name": "@repo/common-pages",
+  "name": "@pages/common",
   "version": "1.0.0",
   "description": "通用页面组件（error、game、loading、login 等）",
   "main": "index.ts",

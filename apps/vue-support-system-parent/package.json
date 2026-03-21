@@ -24,7 +24,7 @@
   "dependencies": {
     "@layout/default": "workspace:^",
     "@repo/core": "workspace:^",
-    "@repo/pages": "workspace:^",
+    "@pages/common": "workspace:^",
     "@element-plus/icons-vue": "catalog:",
     "@microsoft/fetch-event-source": "catalog:",
     "@pureadmin/descriptions": "catalog:",

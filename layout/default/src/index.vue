@@ -17,8 +17,8 @@ import { useResponsiveLayout } from "./hooks/useResponsiveLayout";
 import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 import { useDebugMode } from "./hooks/useDebugMode";
 import { setType } from "./types";
-import { ScDebugConsole } from "@repo/components"
-import { CoolLoading } from "@pages/common/login";
+import { ScDebugConsole } from "@repo/components";
+import { CoolLoading } from "@repo/commonn";
 
 import { useGlobal } from "@pureadmin/utils";
 import { storeToRefs } from "pinia";
@@ -145,13 +145,22 @@ const aiChatHeaders = computed(() => {
 });
 
 // 向子组件注入 AI 配置（HeatmapOverlay 等通过 inject 获取）
-provide("heatmapAiConfig", computed(() => ({
-  mode: $storage?.configure?.aiChatMode,
-  vendor: $storage?.configure?.aiChatVendor,
-  apiKey: aesDecrypt($storage?.configure?.aiChatApiKey ?? "", getConfig().StorageKey),
-  apiUrl: aesDecrypt($storage?.configure?.aiChatApiUrl ?? "", getConfig().StorageKey),
-  model: $storage?.configure?.aiChatModel,
-})));
+provide(
+  "heatmapAiConfig",
+  computed(() => ({
+    mode: $storage?.configure?.aiChatMode,
+    vendor: $storage?.configure?.aiChatVendor,
+    apiKey: aesDecrypt(
+      $storage?.configure?.aiChatApiKey ?? "",
+      getConfig().StorageKey,
+    ),
+    apiUrl: aesDecrypt(
+      $storage?.configure?.aiChatApiUrl ?? "",
+      getConfig().StorageKey,
+    ),
+    model: $storage?.configure?.aiChatModel,
+  })),
+);
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();
@@ -525,7 +534,9 @@ const LayHeader = defineComponent({
         <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
         <NavDrawer v-if="!pureSetting.hiddenSideBar && layout === 'drawer'" />
         <!-- 卡片导航模式 -->
-        <CardNavigation v-if="!pureSetting.hiddenSideBar && layout === 'card'" />
+        <CardNavigation
+          v-if="!pureSetting.hiddenSideBar && layout === 'card'"
+        />
         <div
           :class="[
             'main-container',

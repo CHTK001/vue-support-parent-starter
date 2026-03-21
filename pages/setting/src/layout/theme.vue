@@ -1,4 +1,4 @@
-﻿<!--
+<!--
  * 登录主题管理
  * @author CH
  * @date 2025-12-12
@@ -179,8 +179,8 @@ import {
   getThemeConfig,
   saveThemeConfig,
   resetThemeConfig,
-} from "@pages/common/login/utils/themeConfig";
-import type { ThemeConfig } from "@pages/common/login/utils/themeConfig";
+} from "@repo/commonn/utils/themeConfig";
+import type { ThemeConfig } from "@repo/commonn/utils/themeConfig";
 
 /**
  * @author CH
