@@ -25,9 +25,9 @@ import { defaultRouterArrays } from "@repo/config";
 import { type MenuType } from "../types";
 import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
-const IFrame = () => import("@repo/pages/layout/frame.vue");
+const IFrame = () => import("@pages/system/layout/frame.vue");
 const Layout = () => import("@layout/default");
-const MissingRouteView = () => import("@repo/pages/error/404.vue");
+const MissingRouteView = () => import("@pages/system/error/404.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 //@ts-ignore
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
