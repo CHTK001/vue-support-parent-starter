@@ -20,7 +20,6 @@
     "@repo/app-root": "workspace:^",
     "@repo/assets": "workspace:^",
     "@repo/core": "workspace:^",
-    "@pages/sync": "workspace:^",
     "@repo/plugins": "workspace:^",
     "@repo/scReteEditor": "workspace:^",
     "axios": "catalog:",

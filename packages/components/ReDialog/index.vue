@@ -10,6 +10,7 @@ import { ref, computed } from "vue";
 import { isFunction } from "@pureadmin/utils";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
+import { ScPopconfirm } from "../ScPopconfirm/index.ts";
 
 defineOptions({
   name: "ReDialog"

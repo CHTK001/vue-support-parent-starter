@@ -129,6 +129,4 @@ const themeClass = computed(() => {
   }
 }
 
-  }
-}
 </style>

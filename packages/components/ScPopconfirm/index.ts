@@ -1,7 +1,6 @@
 import { withInstall } from "@repo/utils";
-import ScPopconfirm from "./src/index.vue";
+import ScPopconfirmComponent from "./src/index.vue";
 
-export const ScPopconfirmComponent = withInstall(ScPopconfirm);
+export const ScPopconfirm = withInstall(ScPopconfirmComponent);
 
-export { ScPopconfirm };
-export default ScPopconfirmComponent;
+export default ScPopconfirm;

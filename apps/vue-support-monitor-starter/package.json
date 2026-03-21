@@ -24,7 +24,6 @@
   "dependencies": {
     "@layout/default": "workspace:^",
     "@mlc-ai/web-llm": "catalog:",
-    "@repo/pages-sync": "workspace:^",
     "@ant-design/icons-vue": "catalog:",
     "@antv/g6": "catalog:",
     "@codemirror/lang-javascript": "catalog:",
@@ -121,7 +120,7 @@
     "@pages/system": "workspace:^",
     "@pages/project": "workspace:^",
     "@pages/video": "workspace:^",
-    "@repo/pages-pay": "workspace:^",
+    "@pages/pay": "workspace:^",
     "@pages/doc": "workspace:^"
   },
   "devDependencies": {

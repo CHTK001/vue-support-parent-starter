@@ -33,26 +33,20 @@ export function loadPixeliumFont(): void {
     return;
   }
 
-  // 检查是否已存在相同的样式链接
-  if (existingLink) {
-    pixeliumFontLink = existingLink;
-    pixeliumFontLink.setAttribute(pixelUiGlobalAttr, "true");
-    return;
-  }
-
   try {
+    loadOptionalCssUrl(pixeliumFontSpecifier).then((cssUrl) => {
+      if (!cssUrl) return;
 
-        // 创建 link 标签
-        const styleLink = document.createElement("link");
-        styleLink.rel = "stylesheet";
-        styleLink.href = cssUrl;
-        styleLink.id = pixelUiStyleId;
-        styleLink.setAttribute(pixelUiGlobalAttr, "true");
-        document.head.appendChild(styleLink);
+      // 创建 link 标签
+      const styleLink = document.createElement("link");
+      styleLink.rel = "stylesheet";
+      styleLink.href = cssUrl;
+      styleLink.id = pixelUiStyleId;
+      styleLink.setAttribute(pixelUiGlobalAttr, "true");
+      document.head.appendChild(styleLink);
 
-        pixeliumFontLink = styleLink;
-      })
-      .catch(() => {});
+      pixeliumFontLink = styleLink;
+    }).catch(() => {});
   } catch {
     // ignore optional theme font load failures
   }
