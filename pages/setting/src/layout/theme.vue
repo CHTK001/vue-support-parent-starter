@@ -179,8 +179,8 @@ import {
   getThemeConfig,
   saveThemeConfig,
   resetThemeConfig,
-} from "@repo/common-pages/login/utils/themeConfig";
-import type { ThemeConfig } from "@repo/common-pages/login/utils/themeConfig";
+} from "@pages/common/login/utils/themeConfig";
+import type { ThemeConfig } from "@pages/common/login/utils/themeConfig";
 
 /**
  * @author CH
