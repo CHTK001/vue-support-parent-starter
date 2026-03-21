@@ -1026,7 +1026,7 @@ importers:
       "@repo/codec-wasm":
         specifier: workspace:^
         version: link:packages/codec-wasm
-      "@repo/common":
+      "@pages/common":
         specifier: workspace:^
         version: link:packages/common-pages
       "@repo/components":
@@ -2475,7 +2475,7 @@ importers:
       "@pureadmin/utils":
         specifier: "catalog:"
         version: 2.6.4(echarts@5.6.0)(vue@3.5.29(typescript@5.9.3))
-      "@repo/common":
+      "@pages/common":
         specifier: workspace:^
         version: link:../../packages/common-pages
       "@repo/core":

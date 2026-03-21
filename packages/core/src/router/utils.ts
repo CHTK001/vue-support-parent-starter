@@ -25,9 +25,9 @@ import { defaultRouterArrays } from "@repo/config";
 import { type MenuType } from "../types";
 import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
-const IFrame = () => import("@repo/common-pages/layout/frame.vue");
+const IFrame = () => import("@pages/common/layout/frame.vue");
 const Layout = () => import("@layout/default");
-const MissingRouteView = () => import("@repo/common-pages/error/404.vue");
+const MissingRouteView = () => import("@pages/common/error/404.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 //@ts-ignore
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
@@ -81,7 +81,10 @@ function normalizeAsyncRoutePayload(result: any) {
   return [];
 }
 
-function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: string[]) {
+function resolveAsyncRouteComponent(
+  route: RouteRecordRaw,
+  modulesRoutesKeys: string[],
+) {
   if (route.meta?.frameSrc) {
     return IFrame;
   }
@@ -94,11 +97,12 @@ function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: st
   ].filter(Boolean) as string[];
 
   const matchedKey = componentCandidates
-    .map(candidate =>
-      modulesRoutesKeys.find(ev => include(ev, candidate)) ||
-      modulesRoutesKeys.find(ev =>
-        include(ev, candidate.replace(/^@repo\/pages\//, "/pages/")),
-      ),
+    .map(
+      (candidate) =>
+        modulesRoutesKeys.find((ev) => include(ev, candidate)) ||
+        modulesRoutesKeys.find((ev) =>
+          include(ev, candidate.replace(/^@repo\/pages\//, "/pages/")),
+        ),
     )
     .find(Boolean);
 
@@ -248,7 +252,7 @@ function addPathMatch() {
 
 function getDynamicRouteContainer() {
   const rootRoute = router.options.routes.find(
-    route => route.path === "/" && Array.isArray(route.children),
+    (route) => route.path === "/" && Array.isArray(route.children),
   );
   if (rootRoute) {
     rootRoute.children = rootRoute.children || [];
@@ -282,7 +286,9 @@ function handleAsyncRoutes(routeList) {
           if (!v?.name || !router.hasRoute(v.name)) {
             router.addRoute(v);
           }
-          const flattenRouters: any = router.getRoutes().find((n) => n.path === "/");
+          const flattenRouters: any = router
+            .getRoutes()
+            .find((n) => n.path === "/");
           if (flattenRouters) {
             router.addRoute(flattenRouters);
           }
@@ -293,7 +299,9 @@ function handleAsyncRoutes(routeList) {
       addAsyncRoutes(cloneDeep(EXTRA_DYNAMIC_ROUTES)) || [],
     ).forEach((route: RouteRecordRaw) => {
       if (
-        dynamicRouteContainer.findIndex(value => value.path === route.path) !== -1
+        dynamicRouteContainer.findIndex(
+          (value) => value.path === route.path,
+        ) !== -1
       ) {
         return;
       }
@@ -566,10 +574,10 @@ function handleTopMenu(route) {
 function findFirstAvailableMenu(routes: MenuType[] = []): MenuType | undefined {
   const routeGroups = [
     routes.filter(
-      route => route?.meta?.backstage && route?.meta?.showLink !== false,
+      (route) => route?.meta?.backstage && route?.meta?.showLink !== false,
     ),
     routes.filter(
-      route =>
+      (route) =>
         route?.meta?.showLink !== false &&
         route?.path !== "/login" &&
         !String(route?.path || "").startsWith("/error"),

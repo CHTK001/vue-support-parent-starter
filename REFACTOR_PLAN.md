@@ -39,7 +39,7 @@
 
    ```
    packages/pages → packages/common-pages
-   @repo/common → @repo/common
+   @pages/common → @pages/common
    ```
 
 2. **更新所有引用**
@@ -130,7 +130,7 @@ pages/[module-name]/
 
 1. ✅ 修正模块位置（sync、pay 移回 pages/）
 2. 🔄 重命名 packages/pages → packages/common-pages
-3. 🔄 更新所有 @repo/common 引用
+3. 🔄 更新所有 @pages/common 引用
 
 ### 中优先级（本周完成）
 
