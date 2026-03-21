@@ -268,7 +268,7 @@ import { fetchUpdateUser, fetchSaveUser, fetchUploadAvatar } from "@repo/core";
 import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components";
 import { Md5 } from "ts-md5";
-import { REGEXP_PWD } from "@repo/common-pages/login/utils/rule";
+import { REGEXP_PWD } from "@pages/common/login/utils/rule";
 import { $t, transformI18n } from "@repo/config";
 import { fetchListRole } from "@/api/manage/role";
 import Segmented from "@repo/components/ReSegmented";

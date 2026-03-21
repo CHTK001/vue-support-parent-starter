@@ -7,7 +7,7 @@ export default [
   {
     path: "/login",
     name: "Login",
-    component: () => import("@repo/common-pages/login/index.vue"),
+    component: () => import("@pages/common/login/index.vue"),
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,
@@ -17,7 +17,7 @@ export default [
   {
     path: "/bindSuccess",
     name: "bindSuccess",
-    component: () => import("@repo/common-pages/page/bindSuccess.vue"),
+    component: () => import("@pages/common/page/bindSuccess.vue"),
     meta: {
       title: $t("buttons.bindSuccess"),
       showLink: false,
@@ -27,7 +27,7 @@ export default [
     path: "/remaining-component/:componentPath",
     name: "RemainingComponent",
     component: () =>
-      import("@repo/common-pages/page/remaining/RemainingComponentPage.vue"),
+      import("@pages/common/page/remaining/RemainingComponentPage.vue"),
     meta: {
       title: "组件页面",
       showLink: false,
@@ -48,7 +48,7 @@ export default [
   {
     path: "/message/center",
     name: "MessageCenter",
-    component: () => import("@repo/common-pages/page/message/MessageCenter.vue"),
+    component: () => import("@pages/common/page/message/MessageCenter.vue"),
     meta: {
       title: "消息中心",
       showLink: false,
@@ -66,7 +66,7 @@ export default [
       {
         path: "/redirect/:path(.*)",
         name: "Redirect",
-        component: () => import("@repo/common-pages/layout/redirect.vue"),
+        component: () => import("@pages/common/layout/redirect.vue"),
       },
     ],
   },
@@ -74,7 +74,7 @@ export default [
   {
     path: "/error/403",
     name: "Error403",
-    component: () => import("@repo/common-pages/error/403.vue"),
+    component: () => import("@pages/common/error/403.vue"),
     meta: {
       title: $t("menus.pureFourZeroOne"),
       showLink: false,
@@ -83,7 +83,7 @@ export default [
   {
     path: "/error/404",
     name: "Error404",
-    component: () => import("@repo/common-pages/error/404.vue"),
+    component: () => import("@pages/common/error/404.vue"),
     meta: {
       title: $t("menus.pureFourZeroFour"),
       showLink: false,
@@ -92,7 +92,7 @@ export default [
   {
     path: "/error/500",
     name: "Error500",
-    component: () => import("@repo/common-pages/error/500.vue"),
+    component: () => import("@pages/common/error/500.vue"),
     meta: {
       title: $t("menus.pureFive"),
       showLink: false,

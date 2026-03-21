@@ -24,7 +24,7 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 // @ts-ignore
-import { CoolLoading } from "@repo/common-pages/login";
+import { CoolLoading } from "@pages/common/login";
 /**
  * 组件页面
  * @author CH
