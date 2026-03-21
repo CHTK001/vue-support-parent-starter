@@ -21,6 +21,8 @@
     "lib": ["ESNext", "DOM", "ES2022"],
     "paths": {
       "@/*": ["src/*"]
+      "@pages/common": ["../../pages/common"],
+      "@pages/common/*": ["../../pages/common/*"],
     },
     "types": ["node", "vite/client", "element-plus/global"]
   },
