@@ -22,7 +22,9 @@
     "paths": {
       "@/*": ["src/*"],
       "@build/*": ["build/*"],
-      "@repo/codec-wasm": ["../../packages/codec-wasm/src/index.js"]
+      "@repo/codec-wasm": ["../../packages/codec-wasm/src/index.js"],
+      "@pages/common": ["../../pages/common"],
+      "@pages/common/*": ["../../pages/common/*"]
     },
     "types": [
       "node",

@@ -18,7 +18,7 @@ import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 import { useDebugMode } from "./hooks/useDebugMode";
 import { setType } from "./types";
 import { ScDebugConsole } from "@repo/components";
-import { CoolLoading } from "@repo/commonn";
+import { CoolLoading } from "@pages/common/loading";
 
 import { useGlobal } from "@pureadmin/utils";
 import { storeToRefs } from "pinia";

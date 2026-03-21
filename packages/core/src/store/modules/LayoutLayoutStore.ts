@@ -11,9 +11,7 @@ import { defineAsyncComponent, markRaw } from "vue";
 import * as _ from "lodash-es";
 
 // 404 组件的异步加载
-const _NOT_FOUND = defineAsyncComponent(
-  () => import("@repo/common-pages/error/404.vue"),
-);
+const _NOT_FOUND = defineAsyncComponent(() => import("@pages/common/error/404.vue"));
 
 export const useLayoutLayoutStore = defineStore({
   id: "useLayoutLayoutStore",
@@ -387,8 +385,7 @@ export const useLayoutLayoutStore = defineStore({
       return this.allCompsList().filter((item) => {
         const comp = Array.isArray(this.component) ? this.component : [];
         return (
-          !item.disabled &&
-          comp.filter((i) => i.id === item.key).length === 0
+          !item.disabled && comp.filter((i) => i.id === item.key).length === 0
         );
       });
     },
@@ -573,7 +570,11 @@ export const useLayoutLayoutStore = defineStore({
 
       // component 可能是字符串（JSON）或数组，独立解析
       if (typeof data?.component === "string") {
-        try { this.component = JSON.parse(data.component || "[]"); } catch { this.component = []; }
+        try {
+          this.component = JSON.parse(data.component || "[]");
+        } catch {
+          this.component = [];
+        }
       } else {
         this.component = Array.isArray(data?.component) ? data.component : [];
       }
