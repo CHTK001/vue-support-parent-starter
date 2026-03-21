@@ -11,7 +11,8 @@ import { defineAsyncComponent, markRaw } from "vue";
 import * as _ from "lodash-es";
 
 // 404 组件的异步加载
-const _NOT_FOUND = defineAsyncComponent(() => import("@pages/common/error/404.vue"));
+// @ts-ignore
+const _NOT_FOUND = defineAsyncComponent(() => import("../../../pages/common/error/404.vue"));
 
 export const useLayoutLayoutStore = defineStore({
   id: "useLayoutLayoutStore",
