@@ -34,6 +34,7 @@ import { getLoginTheme as getLoginThemeComponent } from "./themes";
 import { getThemeConfig } from "./utils/themeConfig";
 
 import globalization from "@repo/assets/svg/globalization.svg?component";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 defineOptions({
   name: "Login",

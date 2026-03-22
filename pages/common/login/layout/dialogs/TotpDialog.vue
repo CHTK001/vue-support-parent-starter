@@ -5,7 +5,7 @@
  * @date 2025-12-02
  */
 import { ref } from "vue";
-import { ScCode } from "@repo/components"
+import { ScCode } from "@repo/components/ScCode"
 import Motion from "../../utils/motion";
 
 const props = defineProps({

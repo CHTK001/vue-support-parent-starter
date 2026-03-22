@@ -317,11 +317,20 @@ export async function createStandardApp(
   const Table = (await import("@pureadmin/table")).default;
   const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
-  const {
-    ScTable, ScTableColumn, ScButton, ScSelect, ScSwitch,
-    ScText, ScDrawer, ScDialog, ScTooltip, ScDropdown,
-    ScDropdownItem, ScTag, ScDropdownMenu, ScFormItem,
-  } = await import("@repo/components");
+  const ScTable = (await import("@repo/components/ScTable")).default;
+  const { ScTableColumn } = await import("@repo/components/ScTableColumn");
+  const { ScButton } = await import("@repo/components/ScButton");
+  const { ScSelect } = await import("@repo/components/ScSelect");
+  const ScSwitch = (await import("@repo/components/ScSwitch")).default;
+  const { ScText } = await import("@repo/components/ScText");
+  const { ScDrawer } = await import("@repo/components/ScDrawer");
+  const { ScDialog } = await import("@repo/components/ScDialog");
+  const { ScTooltip } = await import("@repo/components/ScTooltip");
+  const { ScDropdown } = await import("@repo/components/ScDropdown");
+  const { ScDropdownItem } = await import("@repo/components/ScDropdownItem");
+  const { ScTag } = await import("@repo/components/ScTag");
+  const { ScDropdownMenu } = await import("@repo/components/ScDropdownMenu");
+  const { ScFormItem } = await import("@repo/components/ScFormItem");
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
