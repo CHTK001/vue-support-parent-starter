@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import TypeIt from "@repo/components/ReTypeit";
-import { ScCode } from "@repo/components"
+import { ScCode } from "@repo/components/ScCode"
 import { $t, getConfig, transformI18n } from "@repo/config";
 import {
   fetchSendSmsCode,
