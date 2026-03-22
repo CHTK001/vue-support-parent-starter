@@ -10,6 +10,10 @@
       </div>
 
       <el-menu :default-active="activeMenu" router class="nav">
+        <el-menu-item index="/home">
+          <el-icon><House /></el-icon>
+          <span>总览首页</span>
+        </el-menu-item>
         <el-menu-item index="/merchants">
           <el-icon><Shop /></el-icon>
           <span>商户与支付方式</span>
@@ -55,13 +59,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { CreditCard, Shop, Tickets } from "@element-plus/icons-vue";
+import { CreditCard, House, Shop, Tickets } from "@element-plus/icons-vue";
 
 const route = useRoute();
 
 const activeMenu = computed(() => route.path);
 
 const pageTitle = computed(() => {
+  if (route.path.startsWith("/home")) {
+    return "支付中台总览";
+  }
   if (route.path.startsWith("/orders")) {
     return "订单状态与退款执行台";
   }
