@@ -60,7 +60,9 @@ console.debug(
   currentTheme.key || currentTheme.name,
 );
 
-const ThemeComponent = defineAsyncComponent(currentTheme.component);
+const ThemeComponent = defineAsyncComponent(
+  currentTheme?.component || (() => import("./themes/modern/index.vue"))
+);
 type LoginMode = "base" | "tenant" | "sms";
 type LoginOption = {
   key: LoginMode | "static";
