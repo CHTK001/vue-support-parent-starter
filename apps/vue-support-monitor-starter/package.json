@@ -114,6 +114,7 @@
     "xterm-addon-fit": "catalog:",
     "@xterm/addon-unicode11": "catalog:",
     "xterm-addon-web-links": "catalog:",
+    "@pages/common": "workspace:^",
     "@pages/example": "workspace:^",
     "@pages/setting": "workspace:^",
     "@pages/dict": "workspace:^",

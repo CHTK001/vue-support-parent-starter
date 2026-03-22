@@ -287,7 +287,7 @@ function resolveWasmEnabled(mode: WasmMode): boolean {
 
 export function createStandardApp(
   options: StandardAppOptions = {},
-): Promise<AppBootstrap> {
+): AppBootstrap {
   const {
     enableWasm = "AUTO",
     enableTippy = true,
@@ -308,7 +308,7 @@ export function createStandardApp(
     setup,
   } = options;
 
-  // 1. 异步初始化 WASM（不阻塞 app 启动，后台加载）
+  // 1. 异步初始化 WASM（后台加载，不阻塞）
   if (resolveWasmEnabled(enableWasm)) {
     import("@repo/codec-wasm")
       .then(({ initializeWasmModule }) => initializeWasmModule())
@@ -317,8 +317,8 @@ export function createStandardApp(
       );
   }
 
-  // 2. 导入必要依赖
-  return Promise.all([
+  // 2. 导入必要依赖（异步，在后台进行）
+  const importsPromise = Promise.all([
     import("vue"),
     import("@repo/app-root"),
     import("@repo/config"),
@@ -329,8 +329,21 @@ export function createStandardApp(
     import("@repo/components/ReIcon"),
     import("@repo/components/ReAuth"),
     import("@repo/components"),
-  ]).then(
-    ([
+  ]);
+
+  // 3. 创建应用实例（同步）
+  let app: any;
+  let bootstrap: AppBootstrap;
+
+  // 使用同步的 createApp（从 vue 模块）
+  // 我们需要在导入完成后才能创建应用，所以先创建一个临时的 bootstrap
+  // 然后在异步操作中更新它
+  const tempApp = { _context: {} } as any;
+  bootstrap = new AppBootstrap(tempApp);
+
+  // 4. 异步处理所有初始化逻辑
+  bootstrap.use(async () => {
+    const [
       vueModule,
       appRootModule,
       configModule,
@@ -341,263 +354,250 @@ export function createStandardApp(
       reIconModule,
       reAuthModule,
       componentsModule,
-    ]) => {
-      const { createApp } = vueModule;
-      const AppRoot = appRootModule.default;
-      const { getPlatformConfig, injectResponsiveStorage, useI18n } =
-        configModule;
-      const { router, setupStore, menu, Ripple } = coreModule;
-      const { useElementPlus } = pluginsModule;
-      const { MotionPlugin } = motionModule;
-      const Table = tableModule.default;
-      const { FontIcon, IconifyIconOffline, IconifyIconOnline } = reIconModule;
-      const { Auth } = reAuthModule;
-      const {
-        ScTable,
-        ScTableColumn,
-        ScButton,
-        ScSelect,
-        ScSwitch,
-        ScText,
-        ScDrawer,
-        ScDialog,
-        ScTooltip,
-      } = componentsModule;
+    ] = await importsPromise;
 
-      // 3. 创建应用实例
-      const app = createApp(AppRoot);
+    const { createApp } = vueModule;
+    const AppRoot = appRootModule.default;
+    const { getPlatformConfig, injectResponsiveStorage, useI18n } = configModule;
+    const { router, setupStore, menu, Ripple } = coreModule;
+    const { useElementPlus } = pluginsModule;
+    const { MotionPlugin } = motionModule;
+    const Table = tableModule.default;
+    const { FontIcon, IconifyIconOffline, IconifyIconOnline } = reIconModule;
+    const { Auth } = reAuthModule;
+    const {
+      ScTable,
+      ScTableColumn,
+      ScButton,
+      ScSelect,
+      ScSwitch,
+      ScText,
+      ScDrawer,
+      ScDialog,
+      ScTooltip,
+    } = componentsModule;
 
-      // 4. 创建 bootstrap
-      const bootstrap = new AppBootstrap(app);
+    // 创建真实的应用实例
+    app = createApp(AppRoot);
+    Object.assign(tempApp, app);
 
-      // 5. 同步注册核心指令
-      if (enableCoreDirectives) {
-        import("./directives").then((coreDir) => {
-          const builtinDirectives: Record<string, Directive> = {
-            auth: coreDir.auth,
-            auths: coreDir.auths,
-            "auths-all": coreDir.authsAll,
-            copy: coreDir.copy,
-            longpress: coreDir.longpress,
-            optimize: coreDir.optimize,
-            ripple: Ripple,
-            admin: coreDir.admin,
-            role: coreDir.role,
-            roles: coreDir.roles,
-            screenfull: coreDir.fullscreen,
-            menu,
-            ...directives,
-          };
-          bootstrap.registerDirectives(builtinDirectives);
-        });
-      } else if (Object.keys(directives).length > 0) {
-        bootstrap.registerDirectives(directives);
+    // 获取平台配置
+    const config = await getPlatformConfig(app);
+
+    // 初始化加载动画样式
+    try {
+      const loaderStyleFromConfig = config?.LoadingPageStyle;
+      if (
+        loaderStyleFromConfig &&
+        !localStorage.getItem("sys-loader-style")
+      ) {
+        const mapping: Record<string, string> = {
+          spinner: "simple",
+          clock: "default",
+          pixel: "dinoGame",
+          cube: "blocks",
+          dots: "default",
+          pulse: "pulse",
+          minimal: "simple",
+          space: "rings",
+          servererror: "book",
+        };
+        localStorage.setItem(
+          "sys-loader-style",
+          mapping[String(loaderStyleFromConfig)] || "default",
+        );
       }
+    } catch (error) {
+      console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
+    }
 
-      // 6. 字体加密指令
-      if (enableFontEncryption !== false) {
-        import("@layout/default").then(({ vFontEncryption }) => {
-          if (typeof enableFontEncryption === "object") {
-            const globalFeCfg = enableFontEncryption;
-            const objDir = vFontEncryption as import("vue").ObjectDirective;
-            const wrappedDirective: Directive = {
-              mounted(el, binding: DirectiveBinding) {
-                const merged =
-                  binding.value == null
-                    ? globalFeCfg
-                    : typeof binding.value === "boolean"
-                      ? { ...globalFeCfg, enabled: binding.value }
-                      : { ...globalFeCfg, ...binding.value };
-                objDir.mounted?.(
-                  el,
-                  { ...binding, value: merged },
-                  null as any,
-                  null as any,
-                );
-              },
-              updated(el, binding: DirectiveBinding) {
-                const merged =
-                  binding.value == null
-                    ? globalFeCfg
-                    : typeof binding.value === "boolean"
-                      ? { ...globalFeCfg, enabled: binding.value }
-                      : { ...globalFeCfg, ...binding.value };
-                objDir.updated?.(
-                  el,
-                  { ...binding, value: merged },
-                  null as any,
-                  null as any,
-                );
-              },
-              unmounted: objDir.unmounted,
-            };
-            bootstrap.registerDirective("font-encryption", wrappedDirective);
-          } else {
-            bootstrap.registerDirective("font-encryption", vFontEncryption);
-          }
-        });
-      }
-
-      // 7. 注册核心组件
-      bootstrap
-        .registerComponent("IconifyIconOffline", IconifyIconOffline)
-        .registerComponent("IconifyIconOnline", IconifyIconOnline)
-        .registerComponent("FontIcon", FontIcon)
-        .registerComponent("Auth", Auth)
-        .registerComponent("ScTable", ScTable)
-        .registerComponent("ScTableColumn", ScTableColumn)
-        .registerComponent("ScButton", ScButton)
-        .registerComponent("ScSelect", ScSelect)
-        .registerComponent("ScSwitch", ScSwitch)
-        .registerComponent("ScDrawer", ScDrawer)
-        .registerComponent("ScDialog", ScDialog)
-        .registerComponent("ScTooltip", ScTooltip)
-        .registerComponent("ScText", ScText);
-
-      if (Object.keys(components).length > 0) {
-        bootstrap.registerGlobalComponents(components);
-      }
-
-      // 8. 注册第三方插件
-      if (enableTippy) {
-        import("vue-tippy").then((tippyModule) => {
-          const VueTippy = tippyModule.default;
-          bootstrap.use(() => {
-            void app.use(VueTippy);
-          });
-        });
-      }
-      if (enableElementPlusX) {
-        import("vue-element-plus-x")
-          .then((epxModule) => {
-            const ElementPlusX = epxModule.default;
-            app.use(ElementPlusX);
-          })
-          .catch((error) => {
-            console.error(
-              "[createStandardApp] ElementPlusX 加载失败:",
-              error instanceof Error ? error.message : error,
-            );
-          });
-      }
-
-      // 9. 注册核心功能
-      const activeRouter = customRouter ?? router;
-      const corePlugins: any[] = [];
-      if (enableMotion) corePlugins.push(MotionPlugin);
-      if (enableI18n) corePlugins.push(useI18n);
-      corePlugins.push(useElementPlus);
-      if (enableTable) corePlugins.push(Table);
-
-      bootstrap
-        .registerStore(setupStore)
-        .registerRouter(activeRouter)
-        .registerPlugins([...corePlugins, ...plugins, ...socketPlugins])
-        .registerEncryptedFonts();
-
-      // 10. 全局 Socket 服务初始化
-      if (socket) {
-        import("./config/socketService")
-          .then(({ initGlobalSocketService }) => {
-            initGlobalSocketService(socket);
-          })
-          .catch((error) => {
-            console.warn(
-              "[createStandardApp] 全局 Socket 服务初始化失败:",
-              error,
-            );
-          });
-      }
-
-      // 11. socketSetup 路由钩子
-      if (socketSetup) {
-        bootstrap.use(() => socketSetup(activeRouter));
-      }
-
-      // 12. 主题系统
-      if (enableTheme) {
-        import("@repo/components")
-          .then(({ autoRegisterThemePlugins, initThemeSystem }) => {
-            autoRegisterThemePlugins(app)
-              .then(() => initThemeSystem())
-              .catch((error) => {
-                console.warn(
-                  "[createStandardApp] 主题系统初始化失败:",
-                  error,
-                );
-              });
-          })
-          .catch((error) => {
-            console.warn("[createStandardApp] 主题系统初始化失败:", error);
-          });
-      }
-
-      // 13. 设置全局属性和警告处理器
-      (app.config.globalProperties as any).__proxyIdCheat__ = 0;
-      app.config.warnHandler = (msg, _instance, trace) => {
-        if (typeof msg === "string") {
-          if (
-            msg.includes("__proxyIdCheat__") &&
-            msg.includes(
-              "was accessed during render but is not defined on instance",
-            )
-          )
-            return;
-          if (
-            msg.includes(
-              'Slot "default" invoked outside of the render function',
-            )
-          )
-            return;
-          if (
-            msg.includes(
-              "Runtime directive used on component with non-element root node",
-            )
-          )
-            return;
-        }
-        console.warn(msg, trace);
+    // 注册核心指令
+    if (enableCoreDirectives) {
+      const coreDir = await import("./directives");
+      const builtinDirectives: Record<string, Directive> = {
+        auth: coreDir.auth,
+        auths: coreDir.auths,
+        "auths-all": coreDir.authsAll,
+        copy: coreDir.copy,
+        longpress: coreDir.longpress,
+        optimize: coreDir.optimize,
+        ripple: Ripple,
+        admin: coreDir.admin,
+        role: coreDir.role,
+        roles: coreDir.roles,
+        screenfull: coreDir.fullscreen,
+        menu,
+        ...directives,
       };
+      bootstrap.registerDirectives(builtinDirectives);
+    } else if (Object.keys(directives).length > 0) {
+      bootstrap.registerDirectives(directives);
+    }
 
-      // 14. 获取平台配置并注入响应式存储
-      return getPlatformConfig(app).then((config) => {
-        // 14.1 初始化加载动画样式
-        try {
-          const loaderStyleFromConfig = config?.LoadingPageStyle;
-          if (
-            loaderStyleFromConfig &&
-            !localStorage.getItem("sys-loader-style")
-          ) {
-            const mapping: Record<string, string> = {
-              spinner: "simple",
-              clock: "default",
-              pixel: "dinoGame",
-              cube: "blocks",
-              dots: "default",
-              pulse: "pulse",
-              minimal: "simple",
-              space: "rings",
-              servererror: "book",
-            };
-            localStorage.setItem(
-              "sys-loader-style",
-              mapping[String(loaderStyleFromConfig)] || "default",
+    // 字体加密指令
+    if (enableFontEncryption !== false) {
+      const { vFontEncryption } = await import("@layout/default");
+      if (typeof enableFontEncryption === "object") {
+        const globalFeCfg = enableFontEncryption;
+        const objDir = vFontEncryption as import("vue").ObjectDirective;
+        const wrappedDirective: Directive = {
+          mounted(el, binding: DirectiveBinding) {
+            const merged =
+              binding.value == null
+                ? globalFeCfg
+                : typeof binding.value === "boolean"
+                  ? { ...globalFeCfg, enabled: binding.value }
+                  : { ...globalFeCfg, ...binding.value };
+            objDir.mounted?.(
+              el,
+              { ...binding, value: merged },
+              null as any,
+              null as any,
             );
-          }
-        } catch (error) {
-          console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
-        }
+          },
+          updated(el, binding: DirectiveBinding) {
+            const merged =
+              binding.value == null
+                ? globalFeCfg
+                : typeof binding.value === "boolean"
+                  ? { ...globalFeCfg, enabled: binding.value }
+                  : { ...globalFeCfg, ...binding.value };
+            objDir.updated?.(
+              el,
+              { ...binding, value: merged },
+              null as any,
+              null as any,
+            );
+          },
+          unmounted: objDir.unmounted,
+        };
+        bootstrap.registerDirective("font-encryption", wrappedDirective);
+      } else {
+        bootstrap.registerDirective("font-encryption", vFontEncryption);
+      }
+    }
 
-        // 14.2 注入响应式存储
-        bootstrap.use(() => injectResponsiveStorage(app, config));
+    // 注册核心组件
+    bootstrap
+      .registerComponent("IconifyIconOffline", IconifyIconOffline)
+      .registerComponent("IconifyIconOnline", IconifyIconOnline)
+      .registerComponent("FontIcon", FontIcon)
+      .registerComponent("Auth", Auth)
+      .registerComponent("ScTable", ScTable)
+      .registerComponent("ScTableColumn", ScTableColumn)
+      .registerComponent("ScButton", ScButton)
+      .registerComponent("ScSelect", ScSelect)
+      .registerComponent("ScSwitch", ScSwitch)
+      .registerComponent("ScDrawer", ScDrawer)
+      .registerComponent("ScDialog", ScDialog)
+      .registerComponent("ScTooltip", ScTooltip)
+      .registerComponent("ScText", ScText);
 
-        // 14.3 自定义初始化
-        if (setup) {
-          bootstrap.use(() => setup(app, config));
-        }
+    if (Object.keys(components).length > 0) {
+      bootstrap.registerGlobalComponents(components);
+    }
 
-        return bootstrap;
+    // 注册第三方插件
+    if (enableTippy) {
+      const tippyModule = await import("vue-tippy");
+      const VueTippy = tippyModule.default;
+      bootstrap.use(() => {
+        void app.use(VueTippy);
       });
-    },
-  );
+    }
+
+    if (enableElementPlusX) {
+      try {
+        const epxModule = await import("vue-element-plus-x");
+        const ElementPlusX = epxModule.default;
+        app.use(ElementPlusX);
+      } catch (error) {
+        console.error(
+          "[createStandardApp] ElementPlusX 加载失败:",
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+
+    // 注册核心功能
+    const activeRouter = customRouter ?? router;
+    const corePlugins: any[] = [];
+    if (enableMotion) corePlugins.push(MotionPlugin);
+    if (enableI18n) corePlugins.push(useI18n);
+    corePlugins.push(useElementPlus);
+    if (enableTable) corePlugins.push(Table);
+
+    bootstrap
+      .registerStore(setupStore)
+      .registerRouter(activeRouter)
+      .use(() => injectResponsiveStorage(app, config))
+      .registerPlugins([...corePlugins, ...plugins, ...socketPlugins])
+      .registerEncryptedFonts();
+
+    // 全局 Socket 服务初始化
+    if (socket) {
+      import("./config/socketService")
+        .then(({ initGlobalSocketService }) => {
+          initGlobalSocketService(socket);
+        })
+        .catch((error) => {
+          console.warn(
+            "[createStandardApp] 全局 Socket 服务初始化失败:",
+            error,
+          );
+        });
+    }
+
+    // socketSetup 路由钩子
+    if (socketSetup) {
+      bootstrap.use(() => socketSetup(activeRouter));
+    }
+
+    // 主题系统
+    if (enableTheme) {
+      import("@repo/components")
+        .then(({ autoRegisterThemePlugins, initThemeSystem }) => {
+          autoRegisterThemePlugins(app)
+            .then(() => initThemeSystem())
+            .catch((error) => {
+              console.warn("[createStandardApp] 主题系统初始化失败:", error);
+            });
+        })
+        .catch((error) => {
+          console.warn("[createStandardApp] 主题系统初始化失败:", error);
+        });
+    }
+
+    // 设置全局属性和警告处理器
+    (app.config.globalProperties as any).__proxyIdCheat__ = 0;
+    app.config.warnHandler = (msg, _instance, trace) => {
+      if (typeof msg === "string") {
+        if (
+          msg.includes("__proxyIdCheat__") &&
+          msg.includes(
+            "was accessed during render but is not defined on instance",
+          )
+        )
+          return;
+        if (
+          msg.includes('Slot "default" invoked outside of the render function')
+        )
+          return;
+        if (
+          msg.includes(
+            "Runtime directive used on component with non-element root node",
+          )
+        )
+          return;
+      }
+      console.warn(msg, trace);
+    };
+
+    // 自定义初始化
+    if (setup) {
+      bootstrap.use(() => setup(app, config));
+    }
+  });
+
+  return bootstrap;
 }

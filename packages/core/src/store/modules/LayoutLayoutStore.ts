@@ -12,7 +12,7 @@ import * as _ from "lodash-es";
 
 // 404 组件的异步加载
 // @ts-ignore
-const _NOT_FOUND = defineAsyncComponent(() => import("../../../pages/common/error/404.vue"));
+const _NOT_FOUND = defineAsyncComponent(() => import("../../../../../pages/common/error/404.vue"));
 
 export const useLayoutLayoutStore = defineStore({
   id: "useLayoutLayoutStore",

@@ -1,6 +1,7 @@
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
-const Layout = () => import("@layout/default");
+//@ts-ignore
+const Layout = () => import("../../../../../layout/default/src/index.vue");
 
 export default {
   path: "/redirect",
@@ -14,7 +15,7 @@ export default {
     {
       path: "/redirect/:path(.*)",
       name: "Redirect",
-      component: () => import("@pages/common/layout/redirect.vue"),
+      component: () => import("../../../../../pages/common/layout/redirect.vue"),
     },
   ],
 } satisfies RouteConfigsTable;

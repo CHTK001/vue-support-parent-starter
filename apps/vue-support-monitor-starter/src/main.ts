@@ -36,16 +36,17 @@ import "element-plus/dist/index.css";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 
-createStandardApp({
+const bootstrap = createStandardApp({
   enableElementPlusX: true,
   components: { ScCard },
   socketPlugins: [GlobalSocketPlugin],
   setup: (app) => setupDirectives(app),
-}).then((bootstrap) => {
-  bootstrap.mount("#app");
-  // 清理加载器
-  const style = document.querySelector("style");
-  if (style && style.textContent?.includes("sys-loader")) {
-    style.remove();
-  }
 });
+
+bootstrap.mount("#app");
+
+// 清理加载器
+const style = document.querySelector("style");
+if (style && style.textContent?.includes("sys-loader")) {
+  style.remove();
+}
