@@ -1052,7 +1052,6 @@ onBeforeUnmount(() => {
                 <span v-else>登录中...</span>
               </div>
             </Motion>
-          </ScForm>
         </div>
 
         <!-- 第三方登录 -->
