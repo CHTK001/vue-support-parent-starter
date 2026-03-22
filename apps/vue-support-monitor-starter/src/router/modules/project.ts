@@ -29,7 +29,7 @@ export default [
             path: "/project/ai/llm/web",
             name: "ProjectAiLlmWeb",
             component: async () => {
-              const { LlmNewIndex } = await import("@pages/project");
+              const { LlmNewIndex } = await import("../../../../../pages/project/src");
               return LlmNewIndex;
             },
             meta: {
@@ -52,7 +52,7 @@ export default [
             path: "/project/ai/vincent/web",
             name: "ProjectAiVincentWeb",
             component: async () => {
-              const { VincentIndex } = await import("@pages/project");
+              const { VincentIndex } = await import("../../../../../pages/project/src");
               return VincentIndex;
             },
             meta: {
@@ -63,7 +63,7 @@ export default [
             path: "/project/ai/face/detect/web",
             name: "ProjectAiImageDetectionWeb",
             component: async () => {
-              const { ImageDetectIndex } = await import("@pages/project");
+              const { ImageDetectIndex } = await import("../../../../../pages/project/src");
               return ImageDetectIndex;
             },
             meta: {
@@ -74,7 +74,7 @@ export default [
             path: "/project/ai/video/web",
             name: "ProjectAiVideoWeb",
             component: async () => {
-              const { VideoIndex } = await import("@pages/project");
+              const { VideoIndex } = await import("../../../../../pages/project/src");
               return VideoIndex;
             },
             meta: {
@@ -85,7 +85,7 @@ export default [
             path: "/project/ai/colorization/web",
             name: "ProjectAiColorizationWeb",
             component: async () => {
-              const { ColorizationIndex } = await import("@pages/project");
+              const { ColorizationIndex } = await import("../../../../../pages/project/src");
               return ColorizationIndex;
             },
             meta: {
@@ -96,7 +96,7 @@ export default [
             path: "/project/ai/resolution/web",
             name: "ProjectAiResolutionWeb",
             component: async () => {
-              const { ResolutionIndex } = await import("@pages/project");
+              const { ResolutionIndex } = await import("../../../../../pages/project/src");
               return ResolutionIndex;
             },
             meta: {
@@ -109,7 +109,7 @@ export default [
         path: "/project/manage",
         name: "ProjectManage",
         component: async () => {
-          const { ProjectIndex } = await import("@pages/project");
+          const { ProjectIndex } = await import("../../../../../pages/project/src");
           return ProjectIndex;
         },
         meta: {
@@ -120,7 +120,7 @@ export default [
         path: "/project/secret",
         name: "ProjectSecret",
         component: async () => {
-          const { SecretIndex } = await import("@pages/project");
+          const { SecretIndex } = await import("../../../../../pages/project/src");
           return SecretIndex;
         },
         meta: {
@@ -133,7 +133,7 @@ export default [
         path: "/project/ai/face/detect",
         name: "ProjectAiImageDetection",
         component: async () => {
-          const { ImageDetectIndex } = await import("@pages/project");
+          const { ImageDetectIndex } = await import("../../../../../pages/project/src");
           return ImageDetectIndex;
         },
         meta: {
@@ -145,7 +145,7 @@ export default [
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
         component: async () => {
-          const { LlmNewIndex } = await import("@pages/project");
+          const { LlmNewIndex } = await import("../../../../../pages/project/src");
           return LlmNewIndex;
         },
         meta: {
@@ -157,7 +157,7 @@ export default [
         path: "/project/ai/vincent",
         name: "ProjectAiVincent",
         component: async () => {
-          const { VincentIndex } = await import("@pages/project");
+          const { VincentIndex } = await import("../../../../../pages/project/src");
           return VincentIndex;
         },
         meta: {
@@ -169,7 +169,7 @@ export default [
         path: "/project/ai/video",
         name: "ProjectAiVideo",
         component: async () => {
-          const { VideoIndex } = await import("@pages/project");
+          const { VideoIndex } = await import("../../../../../pages/project/src");
           return VideoIndex;
         },
         meta: {
@@ -181,7 +181,7 @@ export default [
         path: "/project/ai/colorization",
         name: "ProjectAiColorization",
         component: async () => {
-          const { ColorizationIndex } = await import("@pages/project");
+          const { ColorizationIndex } = await import("../../../../../pages/project/src");
           return ColorizationIndex;
         },
         meta: {
@@ -193,7 +193,7 @@ export default [
         path: "/project/ai/resolution",
         name: "ProjectAiResolution",
         component: async () => {
-          const { ResolutionIndex } = await import("@pages/project");
+          const { ResolutionIndex } = await import("../../../../../pages/project/src");
           return ResolutionIndex;
         },
         meta: {
@@ -205,7 +205,8 @@ export default [
         path: "/project/template/device",
         name: "device-template",
         component: async () => {
-          const { DeviceTemplate } = await import("@pages/project");
+          const { DeviceTemplate } =
+            await import("../../../../../pages/project/src");
           return DeviceTemplate;
         },
         meta: {
@@ -217,7 +218,7 @@ export default [
         path: "/project/template/sms",
         name: "sms-template",
         component: async () => {
-          const { SmsTemplate } = await import("@pages/project");
+          const { SmsTemplate } = await import("../../../../../pages/project/src");
           return SmsTemplate;
         },
         meta: {
@@ -229,7 +230,8 @@ export default [
         path: "/project/template/email",
         name: "email-template",
         component: async () => {
-          const { EmailTemplate } = await import("@pages/project");
+          const { EmailTemplate } =
+            await import("../../../../../pages/project/src");
           return EmailTemplate;
         },
         meta: {

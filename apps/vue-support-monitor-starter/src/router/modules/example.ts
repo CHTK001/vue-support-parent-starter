@@ -13,7 +13,7 @@ export default [
       {
         path: "/example/index",
         name: "ExampleIndex",
-        component: () => import("@pages/example"),
+        component: () => import("../../../../../pages/example/src"),
         meta: {
           title: "测试例子",
           icon: "ep:files",
