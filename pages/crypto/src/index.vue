@@ -187,7 +187,7 @@ import {
   TechButton,
   TechDeco,
 } from "@repo/sc-visualization/TechUI";
-import { ScEcharts } from "@repo/components"
+import { ScEcharts } from "@repo/components/ScEcharts"
 import * as echarts from "echarts";
 
 // --- State ---

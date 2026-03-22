@@ -3,7 +3,7 @@ import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { message } from "@repo/utils";
-import { ScCron } from "@repo/components"
+import { ScCron } from "@repo/components/ScCron"
 const { copy } = useClipboard();
 
 // 环境变量

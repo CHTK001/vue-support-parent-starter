@@ -2,7 +2,7 @@
 import { reactive, ref, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { ScSwitch } from "@repo/components"
+import { ScSwitch } from "@repo/components/ScSwitch"
 import hljs from "highlight.js/lib/core";
 import json from "highlight.js/lib/languages/json";
 import "highlight.js/styles/github.css";

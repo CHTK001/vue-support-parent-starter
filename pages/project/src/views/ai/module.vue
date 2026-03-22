@@ -305,7 +305,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, shallowRef } from "vue";

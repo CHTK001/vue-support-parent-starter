@@ -1,6 +1,6 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
-import { ScSwitch } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon"
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";

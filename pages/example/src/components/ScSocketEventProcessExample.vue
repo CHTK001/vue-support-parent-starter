@@ -476,9 +476,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScSocketEventProcess } from "@repo/components"
+import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess"
 import CodePreview from "./CodePreview.vue";
-import { IconifyIconOnline } from "@repo/components";
+import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess";
 
 // 配置
 const currentMode = ref("embed");

@@ -1,4 +1,7 @@
 ﻿<script setup lang="ts">
+import { ScInput } from "@repo/components/ScInput";
+import { ScEmpty } from "@repo/components/ScEmpty";
+
 import { match } from "pinyin-pro";
 import { useI18n } from "vue-i18n";
 import { getConfig } from "@repo/config";
@@ -15,7 +18,6 @@ import { usePermissionStoreHook } from "@repo/core";
 import { cloneDeep, isAllEmpty } from "@pureadmin/utils";
 import SearchIcon from "@iconify-icons/ri/search-line";
 import { localStorageProxy } from "@repo/utils";
-import { ScInput, ScEmpty } from "@repo/components";
 interface Props {
   /** 弹窗显隐 */
   value: boolean;

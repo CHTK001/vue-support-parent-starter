@@ -3,7 +3,7 @@ import { router } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LayAvatar from "../../lay-avatar/index.vue";
-import { ScText } from "@repo/components";
+import { ScText } from "@repo/components/ScText";
 
 const { t } = useTranslationLang();
 const { logout, username, userAvatar, avatarsStyle, clickClearRouter } =

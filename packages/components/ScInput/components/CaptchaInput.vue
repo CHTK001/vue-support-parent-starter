@@ -47,7 +47,7 @@
 import { ref, computed, onMounted } from "vue";
 import { validate } from "../validation";
 import { getDefaultIcon } from "../defaultIcons";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 interface Props {
   /**

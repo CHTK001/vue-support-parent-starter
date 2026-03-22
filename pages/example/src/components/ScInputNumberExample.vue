@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScInputNumber } from "@repo/components";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
 import DemoBlock from "./DemoBlock.vue";
 
 const num1 = ref(1);

@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
 import { message } from "@repo/utils";

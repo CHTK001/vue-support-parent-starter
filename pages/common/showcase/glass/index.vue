@@ -1,7 +1,7 @@
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { ref, reactive } from "vue";
-import { ScSlider } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 defineOptions({
   name: "GlassShowcase",

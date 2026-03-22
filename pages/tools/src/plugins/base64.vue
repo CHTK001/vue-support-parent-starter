@@ -2,7 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { ScSwitch } from "@repo/components"
+import { ScSwitch } from "@repo/components/ScSwitch"
 // 国际化
 const { t } = useI18n();
 

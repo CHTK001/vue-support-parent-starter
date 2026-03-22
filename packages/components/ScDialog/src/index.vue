@@ -197,7 +197,7 @@ import interact from "interactjs";
 import { localStorageProxy } from "@repo/utils";
 import { useTaskbar, type TaskbarItem } from "./useTaskbar";
 import { useDialogInteract, useDialogMinimize, useDialogZIndex, type DockPosition } from "../composables";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 /** 对话框模式 */
 type DialogMode = "element" | "custom";

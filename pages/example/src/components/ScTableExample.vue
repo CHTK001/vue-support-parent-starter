@@ -533,21 +533,20 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
 import { message } from "@repo/utils";
-import {
-  ScForm,
-  ScFormItem,
-  ScSwitch,
-  ScSelect,
-  ScOption,
-  ScInputNumber,
-  ScRadio,
-  ScRadioGroup,
-  ScTag,
-  ScButton,
-  ScDivider,
-  ScTable,
-  ScTableColumn,
-} from "@repo/components";
+import { ScForm } from "@repo/components/ScForm"
+import { ScFormItem } from "@repo/components/ScFormItem"
+import { ScSwitch } from "@repo/components/ScSwitch"
+import { ScSelect } from "@repo/components/ScSelect"
+import { ScOption } from "@repo/components/ScOption"
+import { ScInputNumber } from "@repo/components/ScInputNumber"
+import { ScRadio } from "@repo/components/ScRadio"
+import { ScRadioGroup } from "@repo/components/ScRadioGroup"
+import { ScTag } from "@repo/components/ScTag"
+import { ScButton } from "@repo/components/ScButton"
+import { ScDivider } from "@repo/components/ScDivider"
+import { ScTable } from "@repo/components/ScTable"
+import { ScTableColumn } from "@repo/components/ScTableColumn"
+import {  } from "@repo/components/";
 import CodePreview from "./CodePreview.vue";
 
 // 配置项

@@ -131,10 +131,10 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed, watch } from "vue";
-import { ScSelect } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScSelect } from "@repo/components/ScSelect"
+import { ScSelect } from "@repo/components/ScSelect";
 import { message } from "@repo/utils";
-import { ScSlider } from "@repo/components";
+import { ScSelect } from "@repo/components/ScSelect";
 
 // 布局选项
 const layoutOptions = [

@@ -330,9 +330,10 @@
 </template>
 
 <script setup lang="ts">
+import { ScSlider } from "@repo/components/ScSlider";
+
 import { ref, reactive, computed, watch } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { ScSlider } from "@repo/components";
 import {
   InfoFilled,
   Setting,

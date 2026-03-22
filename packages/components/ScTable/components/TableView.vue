@@ -99,7 +99,7 @@
 import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed, defineComponent, h } from "vue";
 import { ElTable, ElTableColumn } from "element-plus";
 import Sortable from "sortablejs";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { getLogger } from "@repo/utils";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import ContextMenu from "../plugins/ContextMenu.vue";

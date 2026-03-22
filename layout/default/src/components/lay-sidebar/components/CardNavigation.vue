@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import { ScText } from "@repo/components";
+import { ScText } from "@repo/components/ScText";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import type { MenuItem } from "../../../types/menu";

@@ -352,7 +352,7 @@ import { ref, reactive, shallowRef, onBeforeUnmount, nextTick } from 'vue'
 import { message } from "@repo/utils";
 import ScEditor from './index.vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 基础编辑器内容
 const basicContent = ref('<p>这是一个基础的富文本编辑器示例。</p><p>你可以在这里输入和编辑文本。</p>')

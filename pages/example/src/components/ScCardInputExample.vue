@@ -185,8 +185,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { ScInput } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScInput } from "@repo/components/ScInput"
+import { ScInput } from "@repo/components/ScInput";
 import { InputType } from "@repo/components/ScInput/types";
 import CodePreview from "./CodePreview.vue";
 

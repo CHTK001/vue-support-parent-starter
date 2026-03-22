@@ -251,7 +251,7 @@ import {
   type AIServiceConfig,
   type AIProvider,
 } from "../ai-service";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 const props = defineProps<{
   /** 当前选中的 API */

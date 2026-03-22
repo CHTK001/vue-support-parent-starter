@@ -420,6 +420,8 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import type { ComponentRealtimeMessage } from "@/api/server";
 import {
   batchUpdateLayoutPositions,
@@ -434,7 +436,6 @@ import {
   type ServerComponentLayout,
 } from "@/api/server";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
-import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";

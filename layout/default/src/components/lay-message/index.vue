@@ -1,6 +1,12 @@
 ﻿<script setup lang="ts">
+import { ScAvatar } from "@repo/components/ScAvatar";
+import { ScBadge } from "@repo/components/ScBadge";
+import { ScIcon } from "@repo/components/ScIcon";
+import { ScEmpty } from "@repo/components/ScEmpty";
+import { ScButton } from "@repo/components/ScButton";
+import { ScTabs } from "@repo/components/ScTabs";
+
 import ScTabPane from "@repo/components/ScTabs";
-import { ScAvatar, ScBadge, ScIcon, ScEmpty, ScButton, ScTabs } from "@repo/components";
 /**
  * 消息菜单组件
  * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?

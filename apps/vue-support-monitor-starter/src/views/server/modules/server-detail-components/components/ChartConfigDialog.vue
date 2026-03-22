@@ -206,9 +206,10 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref, reactive, computed, watch, nextTick } from "vue";
 import { message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components";
 import * as echarts from "echarts";
 
 // 定义事件

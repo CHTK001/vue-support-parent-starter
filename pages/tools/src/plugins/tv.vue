@@ -2,7 +2,7 @@
 import { reactive, ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 国际化
 const { t } = useI18n();

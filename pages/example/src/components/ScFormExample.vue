@@ -51,20 +51,19 @@
 <script setup lang="ts">
 import ScRegion from "@repo/components/ScRegion";
 import { reactive } from "vue";
-import {
-  ScButton,
-  ScCheckbox,
-  ScCheckboxGroup,
-  ScForm,
-  ScFormItem,
-  ScInput,
-  ScInputNumber,
-  ScRadio,
-  ScRadioGroup,
-  ScRegion,
-  ScRow,
-  ScCol,
-} from "@repo/components";
+import { ScButton } from "@repo/components/ScButton"
+import { ScCheckbox } from "@repo/components/ScCheckbox"
+import { ScCheckboxGroup } from "@repo/components/ScCheckboxGroup"
+import { ScForm } from "@repo/components/ScForm"
+import { ScFormItem } from "@repo/components/ScFormItem"
+import { ScInput } from "@repo/components/ScInput"
+import { ScInputNumber } from "@repo/components/ScInputNumber"
+import { ScRadio } from "@repo/components/ScRadio"
+import { ScRadioGroup } from "@repo/components/ScRadioGroup"
+import { ScRegion } from "@repo/components/ScRegion"
+import { ScRow } from "@repo/components/ScRow"
+import { ScCol } from "@repo/components/ScCol"
+import {  } from "@repo/components/";
 import DemoBlock from "./DemoBlock.vue";
 
 const form = reactive({

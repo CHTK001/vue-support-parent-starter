@@ -37,7 +37,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScProgress } from "@repo/components";
+import { ScProgress } from "@repo/components/ScProgress";
 import DemoBlock from "./DemoBlock.vue";
 
 const stages = computed(() => [

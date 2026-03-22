@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   clearObject,
   fileToBase64,

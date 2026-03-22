@@ -233,8 +233,12 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScPopover, ScButton, ScInput } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
+import { ScPopover } from "@repo/components/ScPopover"
+import { ScButton } from "@repo/components/ScButton"
+import { ScInput } from "@repo/components/ScInput";
+import { ScPopover } from "@repo/components/ScPopover"
+import { ScButton } from "@repo/components/ScButton"
+import { ScInput } from "@repo/components/ScInput";
 import DemoBlock from "./DemoBlock.vue";
 
 const visible1 = ref(false);
