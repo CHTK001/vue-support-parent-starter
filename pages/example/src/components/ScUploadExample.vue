@@ -135,7 +135,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { message } from "@repo/utils";
-import { ScUpload } from "@repo/components"
+import { ScUpload } from "@repo/components/ScUpload"
 import DemoBlock from "./DemoBlock.vue";
 
 /**

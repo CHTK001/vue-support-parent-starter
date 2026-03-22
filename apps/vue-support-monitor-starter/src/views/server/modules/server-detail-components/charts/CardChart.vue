@@ -35,8 +35,9 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps({
   chartData: {

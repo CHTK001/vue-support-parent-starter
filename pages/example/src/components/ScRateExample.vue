@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScRate } from "@repo/components";
+import { ScRate } from "@repo/components/ScRate";
 import DemoBlock from "./DemoBlock.vue";
 
 const value1 = ref(3);

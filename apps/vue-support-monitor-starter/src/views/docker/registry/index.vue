@@ -150,8 +150,9 @@
 </template>
 
 <script setup lang="ts">
+import { ScTable } from "@repo/components/ScTable";
+
 import { registryApi, type SystemSoftRegistry } from "@/api/docker";
-import { ScTable } from "@repo/components"
 import { message, messageBox } from "@repo/utils";
 import { onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";

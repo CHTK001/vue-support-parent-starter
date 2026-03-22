@@ -1,3 +1,5 @@
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 <template>
   <div class="data-analysis-container system-container modern-bg">
     <!-- 页面头部 -->
@@ -29,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components";
 
 // 页面标题
 defineOptions({

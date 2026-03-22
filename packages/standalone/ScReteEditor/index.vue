@@ -169,15 +169,14 @@ import { ref, computed, onMounted, watch, type PropType } from "vue";
 import { ElMessageBox } from "element-plus";
 import { useReteEditor, type UseReteEditorOptions } from "./useReteEditor";
 import type { EditorData, NodeTypeName, BaseNode, EditorConfig } from "./types";
-import {
-  IconifyIconOnline,
-  ScButton,
-  ScDivider,
-  ScForm,
-  ScFormItem,
-  ScInput,
-  ScTooltip,
-} from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
+import { ScButton } from "@repo/components/ScButton"
+import { ScDivider } from "@repo/components/ScDivider"
+import { ScForm } from "@repo/components/ScForm"
+import { ScFormItem } from "@repo/components/ScFormItem"
+import { ScInput } from "@repo/components/ScInput"
+import { ScTooltip } from "@repo/components/ScTooltip"
+import {  } from "@repo/components/";
 
 /**
  * ScReteEditor - 可视化节点编辑器组件

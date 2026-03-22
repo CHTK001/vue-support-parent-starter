@@ -7,7 +7,7 @@
  */
 import { useRoute, useRouter } from "vue-router";
 import { usePermissionStoreHook } from "@repo/core";
-import { ScText } from "@repo/components";
+import { ScText } from "@repo/components/ScText";
 import { useNav } from "../../hooks/useNav";
 import { isAllEmpty } from "@pureadmin/utils";
 import { computed, ref, watch } from "vue";

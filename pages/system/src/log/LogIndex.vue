@@ -1,6 +1,6 @@
 ﻿<script setup>
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 // 引入 Vue 的响应式和生命周期相关函数
 import {
   computed,

@@ -449,6 +449,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScSocketMessageDialog } from "@repo/components/ScSocketMessageDialog";
+
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox, ElNotification } from "element-plus";
@@ -458,9 +460,6 @@ import PullImageDialog from "./components/PullImageDialog.vue";
 import InstallContainerDialog from "./components/InstallContainerDialog.vue";
 import ImageSyncDialog from "./components/ImageSyncDialog.vue";
 import ImageImportDialog from "./components/ImageImportDialog.vue";
-import { ScSocketMessageDialog } from "@repo/components"
-import { ScTable } from "@repo/components"
-import { ScCard } from "@repo/components";
 
 /**
  * 镜像管理页面 - 现代化重构版本

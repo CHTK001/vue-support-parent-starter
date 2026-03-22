@@ -67,6 +67,8 @@
   </div>
 </template>
 <script>
+import { } from @repo/components; } from "@repo/components/} from @repo/components;";
+
 import { defineComponent } from "vue";
 import { $t, transformI18n, uuid } from "@repo/config";
 import {
@@ -82,7 +84,6 @@ import {
   ScTable,
   ScTableColumn,
   ScButton,
-} from "@repo/components";
 
 export default defineComponent({
   components: {

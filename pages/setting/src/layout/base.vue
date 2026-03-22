@@ -1,5 +1,5 @@
 ﻿<script>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { queryEmail, transformI18n } from "@repo/config";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";

@@ -227,7 +227,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, message, stringSplitToNumber, useDefer } from "@repo/utils";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";

@@ -1,24 +1,53 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card">
-        <p>流水条数</p>
-        <strong>{{ pagination.total }}</strong>
-        <span>覆盖支付、退款等交易动作，辅助对账与问题追踪。</span>
+  <section class="ops-view transaction-view">
+    <div class="ops-hero">
+      <article class="ops-hero__intro">
+        <p class="ops-kicker">Transaction Trace</p>
+        <h3 class="ops-title">把支付动作、退款动作和对账线索压缩到一张追踪面板里</h3>
+        <p class="ops-copy">
+          流水页面向排障和对账，重点是快速识别成功、处理中和失败的交易段，
+          判断是状态机未完成、查单未执行，还是第三方返回和本地订单不一致。
+        </p>
+        <div class="ops-ribbon">
+          <span class="ops-ribbon__item">支付 / 退款统一追踪</span>
+          <span class="ops-ribbon__item">支持订单号快速定位</span>
+          <span class="ops-ribbon__item">适合联调 mock 与钱包实测后的核账</span>
+        </div>
       </article>
-      <article class="hero-card">
-        <p>成功流水</p>
-        <strong>{{ successCount }}</strong>
-        <span>状态为成功的支付与退款流水。</span>
-      </article>
-      <article class="hero-card">
-        <p>处理中流水</p>
-        <strong>{{ processingCount }}</strong>
-        <span>适合排查待回调、待确认和退款处理中场景。</span>
-      </article>
+
+      <div class="ops-hero__stats">
+        <article class="ops-stat">
+          <p class="ops-stat__label">流水条数</p>
+          <strong class="ops-stat__value">{{ pagination.total }}</strong>
+          <p class="ops-stat__desc">覆盖支付、退款等交易动作，辅助对账与问题追踪。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">成功流水</p>
+          <strong class="ops-stat__value">{{ successCount }}</strong>
+          <p class="ops-stat__desc">状态为成功的支付与退款流水。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">处理中流水</p>
+          <strong class="ops-stat__value">{{ processingCount }}</strong>
+          <p class="ops-stat__desc">适合排查待回调、待确认和退款处理中场景。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">失败流水</p>
+          <strong class="ops-stat__value">{{ failedCount }}</strong>
+          <p class="ops-stat__desc">优先核对失败原因、第三方单号和请求快照是否齐全。</p>
+        </article>
+      </div>
     </div>
 
-    <el-card class="panel">
+    <div class="ops-note">
+      <p class="ops-note__label">对账建议</p>
+      <p class="ops-note__text">
+        钱包支付应当直接看到本地扣款流水；第三方 mock 场景会记录请求与返回快照，
+        适合先验证字段语义，再切换到真实商户配置做正式联调。
+      </p>
+    </div>
+
+    <el-card class="ops-panel">
       <template #header>
         <div class="panel__header">
           <div>
@@ -28,33 +57,42 @@
         </div>
       </template>
 
-      <el-form :inline="true" :model="searchForm" class="toolbar">
-        <el-form-item label="商户">
-          <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="订单号">
-          <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
-        </el-form-item>
-        <el-form-item label="交易类型">
-          <el-select v-model="searchForm.transactionType" clearable placeholder="全部类型" style="width: 180px">
-            <el-option label="支付" value="PAY" />
-            <el-option label="退款" value="REFUND" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
-            <el-option v-for="(label, value) in TransactionStatusMap" :key="value" :label="label" :value="Number(value)" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <div class="ops-toolbar">
+        <el-form :inline="true" :model="searchForm" class="toolbar">
+          <el-form-item label="商户">
+            <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="订单号">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
+          </el-form-item>
+          <el-form-item label="交易类型">
+            <el-select v-model="searchForm.transactionType" clearable placeholder="全部类型" style="width: 180px">
+              <el-option label="支付" value="PAY" />
+              <el-option label="退款" value="REFUND" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+              <el-option v-for="(label, value) in TransactionStatusMap" :key="value" :label="label" :value="Number(value)" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="handleResetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
 
-      <el-table :data="transactionList" v-loading="loading" border class="table">
+        <div class="ops-toolbar__meta">
+          <span class="ops-chip">支付流水 {{ payCount }}</span>
+          <span class="ops-chip">退款流水 {{ refundCount }}</span>
+          <span class="ops-chip">当前页金额 {{ formatCurrency(totalAmount) }}</span>
+        </div>
+      </div>
+
+      <div class="ops-table">
+        <el-table :data="transactionList" v-loading="loading" border>
         <el-table-column prop="transactionNo" label="流水号" min-width="220" />
         <el-table-column prop="orderNo" label="订单号" min-width="220" />
         <el-table-column prop="merchantId" label="商户ID" width="120" />
@@ -73,7 +111,8 @@
         <el-table-column prop="thirdPartyTransactionNo" label="第三方流水号" min-width="200" />
         <el-table-column prop="remark" label="备注" min-width="180" />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-      </el-table>
+        </el-table>
+      </div>
 
       <el-pagination
         v-model:current-page="pagination.page"
@@ -81,7 +120,7 @@
         :total="pagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
+        class="ops-pager"
         @current-change="loadTransactions"
         @size-change="loadTransactions"
       />
@@ -114,6 +153,12 @@ const searchForm = reactive({
 
 const successCount = computed(() => transactionList.value.filter((item) => item.status === 1).length);
 const processingCount = computed(() => transactionList.value.filter((item) => item.status === 2).length);
+const failedCount = computed(() => transactionList.value.filter((item) => item.status === 0).length);
+const payCount = computed(() => transactionList.value.filter((item) => item.transactionType === "PAY").length);
+const refundCount = computed(() => transactionList.value.filter((item) => item.transactionType === "REFUND").length);
+const totalAmount = computed(() =>
+  transactionList.value.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+);
 
 async function loadMerchants() {
   const res = await getMerchantList({ page: 1, size: 200 });
@@ -171,51 +216,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
-}
-
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
 .panel__header {
   display: flex;
   justify-content: space-between;
@@ -237,23 +237,13 @@ onMounted(async () => {
 }
 
 .toolbar {
-  margin-bottom: 18px;
-}
-
-.table {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.pager {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
+  flex: 1 1 auto;
 }
 
 @media (max-width: 1100px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
+  .panel__header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

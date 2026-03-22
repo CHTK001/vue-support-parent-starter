@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { queryEmail } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { getDefaultIcon } from "../defaultIcons";
 
 interface Props {

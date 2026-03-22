@@ -119,13 +119,13 @@
 </template>
 
 <script setup>
-import { ScCard } from "@repo/components"
+import { ScCard } from "@repo/components/ScCard"
 import { debounce } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
 import Sortable from "sortablejs";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
-import { useRenderIcon } from "@repo/components";
+import { ScCard } from "@repo/components/ScCard";
 
 const logger = getLogger("[ScTable][CardView]");
 

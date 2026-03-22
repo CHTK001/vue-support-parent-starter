@@ -215,7 +215,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { clearObject, message } from "@repo/utils";
 import { defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";

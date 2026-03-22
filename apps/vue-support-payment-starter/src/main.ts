@@ -6,6 +6,7 @@ import "element-plus/dist/index.css";
 import "@repo/assets/styles/layout/default/reset.scss";
 import "@repo/assets/styles/layout/default/tailwind.css";
 import "@repo/assets/styles/layout/default/index.scss";
+import "./styles/index.scss";
 
 createStandardApp({
   router,

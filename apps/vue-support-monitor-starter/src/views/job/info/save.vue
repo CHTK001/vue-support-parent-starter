@@ -288,8 +288,9 @@
   </sc-dialog>
 </template>
 <script>
+import { ScCron } from "@repo/components/ScCron";
+
 import { fetchJobSave, fetchJobUpdate } from "@/api/monitor/job";
-import { ScCron } from "@repo/components"
 import { useUserStore } from "@repo/core";
 export default {
   name: "Save",

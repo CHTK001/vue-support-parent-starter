@@ -60,7 +60,8 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import Prism from "prismjs";
 import "prismjs/components/prism-http.min.js";
 import "prismjs/components/prism-sql.min.js";

@@ -1,24 +1,45 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card">
-        <p>商户总数</p>
-        <strong>{{ pagination.total }}</strong>
-        <span>统一维护商户主体、默认回调地址和自动关单策略。</span>
+  <section class="ops-view merchant-view">
+    <div class="ops-hero">
+      <article class="ops-hero__intro">
+        <p class="ops-kicker">Merchant Ops</p>
+        <h3 class="ops-title">商户、渠道与开通指引统一在一个控制面完成编排</h3>
+        <p class="ops-copy">
+          这里同时承担商户主体管理、支付方式开通、密钥掩码展示和能力状态校验。
+          钱包与综合支付是平台内建能力，微信和支付宝则按已实现的子渠道矩阵开放。
+        </p>
+        <div class="ops-ribbon">
+          <span class="ops-ribbon__item">可执行渠道 {{ executableGuideCount }}</span>
+          <span class="ops-ribbon__item">仅指引能力 {{ guideOnlyGuideCount }}</span>
+          <span class="ops-ribbon__item">默认 Provider SPI 已接入</span>
+        </div>
       </article>
-      <article class="hero-card">
-        <p>激活商户</p>
-        <strong>{{ activeMerchantCount }}</strong>
-        <span>只有激活商户才允许继续创建支付订单。</span>
-      </article>
-      <article class="hero-card">
-        <p>已配置支付方式</p>
-        <strong>{{ totalChannelCount }}</strong>
-        <span>商户下支持微信、支付宝、综合支付和钱包。</span>
-      </article>
+
+      <div class="ops-hero__stats">
+        <article class="ops-stat">
+          <p class="ops-stat__label">商户总数</p>
+          <strong class="ops-stat__value">{{ pagination.total }}</strong>
+          <p class="ops-stat__desc">统一维护商户主体、默认回调地址和自动关单策略。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">激活商户</p>
+          <strong class="ops-stat__value">{{ activeMerchantCount }}</strong>
+          <p class="ops-stat__desc">只有激活商户才允许继续创建支付订单和钱包账户。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">已配置支付方式</p>
+          <strong class="ops-stat__value">{{ totalChannelCount }}</strong>
+          <p class="ops-stat__desc">覆盖微信、支付宝、综合支付与钱包余额四类路径。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">当前巡检焦点</p>
+          <strong class="ops-stat__value">{{ activeMerchantCount ? "联调中" : "待开通" }}</strong>
+          <p class="ops-stat__desc">第三方渠道可走 mock，钱包能力可在本地完成真实闭环验证。</p>
+        </article>
+      </div>
     </div>
 
-    <el-card class="panel">
+    <el-card class="ops-panel">
       <template #header>
         <div class="panel__header">
           <div>
@@ -29,27 +50,46 @@
         </div>
       </template>
 
-      <el-form :inline="true" :model="searchForm" class="toolbar">
-        <el-form-item label="商户名称">
-          <el-input v-model="searchForm.merchantName" placeholder="请输入商户名称" clearable />
-        </el-form-item>
-        <el-form-item label="商户状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 180px">
-            <el-option v-for="(label, value) in MerchantStatusMap" :key="value" :label="label" :value="Number(value)" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <div class="ops-toolbar">
+        <el-form :inline="true" :model="searchForm" class="toolbar">
+          <el-form-item label="商户名称">
+            <el-input v-model="searchForm.merchantName" placeholder="请输入商户名称" clearable />
+          </el-form-item>
+          <el-form-item label="商户状态">
+            <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 180px">
+              <el-option v-for="(label, value) in MerchantStatusMap" :key="value" :label="label" :value="Number(value)" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="handleResetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
 
-      <el-table :data="merchantList" v-loading="loading" class="table" border>
-        <el-table-column prop="merchantName" label="商户名称" min-width="180" />
-        <el-table-column prop="merchantNo" label="商户号" width="200" />
-        <el-table-column label="联系人" width="150">
+        <div class="ops-toolbar__meta">
+          <span class="ops-chip">商户待审核 {{ pendingMerchantCount }}</span>
+          <span class="ops-chip">钱包已开启 {{ walletMerchantCount }}</span>
+          <span class="ops-chip">综合支付已开启 {{ compositeMerchantCount }}</span>
+        </div>
+      </div>
+
+      <div class="ops-table">
+        <el-table :data="merchantList" v-loading="loading" border>
+        <el-table-column label="商户名称" min-width="220">
           <template #default="{ row }">
-            {{ row.contactName || "-" }}
+            <div class="merchant-title">
+              <strong>{{ row.merchantName }}</strong>
+              <span>{{ row.contactName || "未填写联系人" }} / {{ row.contactPhone || "未填写手机号" }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="merchantNo" label="商户号" width="200" />
+        <el-table-column label="回调配置" min-width="220">
+          <template #default="{ row }">
+            <div class="cell-stack">
+              <span>Notify: {{ row.defaultNotifyUrl || "-" }}</span>
+              <span>Return: {{ row.defaultReturnUrl || "-" }}</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="120">
@@ -80,7 +120,8 @@
             <el-button link type="danger" @click="handleDeleteMerchant(row)">删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <el-pagination
         v-model:current-page="pagination.page"
@@ -88,7 +129,7 @@
         :total="pagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
+        class="ops-pager"
         @current-change="loadMerchants"
         @size-change="loadMerchants"
       />
@@ -155,15 +196,33 @@
         </div>
       </template>
 
-      <div class="drawer-summary" v-if="selectedMerchant">
-        <el-tag :type="merchantStatusTag(selectedMerchant.status)">
-          {{ selectedMerchant.statusDesc || MerchantStatusMap[selectedMerchant.status] }}
-        </el-tag>
-        <span>默认回调：{{ selectedMerchant.defaultNotifyUrl || "未配置" }}</span>
-        <span>自动关单：{{ selectedMerchant.autoCloseEnabled ? `${selectedMerchant.autoCloseMinutes || 30} 分钟` : "关闭" }}</span>
+      <div class="ops-split" v-if="selectedMerchant">
+        <div class="ops-subpanel">
+          <p class="ops-kicker">Merchant Snapshot</p>
+          <h4 class="drawer-title">{{ selectedMerchant.merchantName }}</h4>
+          <p class="ops-section-copy">
+            默认回调：{{ selectedMerchant.defaultNotifyUrl || "未配置" }}<br />
+            返回地址：{{ selectedMerchant.defaultReturnUrl || "未配置" }}
+          </p>
+          <div class="ops-ribbon drawer-ribbon">
+            <span class="ops-ribbon__item">
+              {{ selectedMerchant.statusDesc || MerchantStatusMap[selectedMerchant.status] }}
+            </span>
+            <span class="ops-ribbon__item">
+              自动关单 {{ selectedMerchant.autoCloseEnabled ? `${selectedMerchant.autoCloseMinutes || 30} 分钟` : "关闭" }}
+            </span>
+          </div>
+        </div>
+        <div class="ops-note">
+          <p class="ops-note__label">执行策略</p>
+          <p class="ops-note__text">
+            只有已经实现的子渠道才能启用。第三方渠道缺少密钥时只展示指引，钱包与综合支付会优先走平台内建校验。
+          </p>
+        </div>
       </div>
 
-      <el-table :data="channelList" v-loading="channelLoading" border>
+      <div class="ops-table">
+        <el-table :data="channelList" v-loading="channelLoading" border>
         <el-table-column label="支付方式" min-width="200">
           <template #default="{ row }">
             <div class="channel-title">
@@ -213,7 +272,8 @@
             <el-button v-if="row.status === 1" link type="warning" @click="handleDisableChannel(row)">禁用</el-button>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
     </el-drawer>
 
     <el-dialog v-model="channelDialogVisible" :title="editingChannel ? '编辑支付方式' : '新增支付方式'" width="820px">
@@ -317,6 +377,23 @@
 
     <el-drawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'">
       <template v-if="currentGuide">
+        <div class="ops-split guide-layout">
+          <div class="ops-subpanel">
+            <p class="ops-kicker">Guide Snapshot</p>
+            <h4 class="drawer-title">{{ currentGuide.title }}</h4>
+            <p class="ops-section-copy">{{ currentGuide.summary }}</p>
+            <div class="ops-ribbon">
+              <span class="ops-ribbon__item">{{ currentGuide.channelType }} / {{ currentGuide.channelSubType }}</span>
+              <span class="ops-ribbon__item">默认 SPI {{ currentGuide.defaultProviderSpi || "default" }}</span>
+            </div>
+          </div>
+          <div class="ops-note">
+            <p class="ops-note__label">指引用途</p>
+            <p class="ops-note__text">
+              开通指引目录会保留 guide-only 能力，避免 FACE_TO_FACE、SANDBOX 这类能力被误当成可直接创建的支付子渠道。
+            </p>
+          </div>
+        </div>
         <div class="guide-block">
           <p class="guide-block__label">概述</p>
           <p>{{ currentGuide.summary }}</p>
@@ -420,7 +497,12 @@ const channelForm = reactive<ChannelForm>(createDefaultChannelForm());
 const merchantFormRef = ref();
 
 const activeMerchantCount = computed(() => merchantList.value.filter((item) => item.status === 1).length);
+const pendingMerchantCount = computed(() => merchantList.value.filter((item) => item.status === 0).length);
+const walletMerchantCount = computed(() => merchantList.value.filter((item) => item.walletEnabled).length);
+const compositeMerchantCount = computed(() => merchantList.value.filter((item) => item.compositeEnabled).length);
 const totalChannelCount = computed(() => merchantList.value.reduce((sum, item) => sum + (item.channelCount || 0), 0));
+const executableGuideCount = computed(() => catalog.value.filter((item) => isExecutableChannel(item.channelType, item.channelSubType)).length);
+const guideOnlyGuideCount = computed(() => Math.max(catalog.value.length - executableGuideCount.value, 0));
 const availableSubTypes = computed(() => ChannelSubTypeOptions[channelForm.channelType] || []);
 const usesThirdPartyCredentials = computed(() => ["WECHAT", "ALIPAY"].includes(channelForm.channelType));
 const isCompositeChannel = computed(() => channelForm.channelType === "COMPOSITE");
@@ -749,53 +831,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
-}
-
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
-  border: 1px solid rgba(128, 84, 46, 0.08);
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  display: block;
-  color: #705847;
-  line-height: 1.7;
-}
-
 .panel__header,
 .drawer-header {
   display: flex;
@@ -820,24 +855,35 @@ onMounted(async () => {
 }
 
 .toolbar {
-  margin-bottom: 18px;
-}
-
-.table {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.pager {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
+  flex: 1 1 auto;
 }
 
 .tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.merchant-title,
+.channel-title,
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.merchant-title strong,
+.channel-title strong,
+.drawer-title {
+  color: #23170f;
+}
+
+.merchant-title span,
+.channel-title span,
+.cell-stack span {
+  color: #7d6450;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .form-grid {
@@ -850,27 +896,14 @@ onMounted(async () => {
   grid-column: 1 / -1;
 }
 
-.drawer-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  margin-bottom: 16px;
-  color: #6e5744;
+.drawer-title {
+  margin: 0;
+  font-size: 22px;
+  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
 }
 
-.channel-title {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.channel-title strong {
-  color: #23170f;
-}
-
-.channel-title span {
-  color: #7d6450;
-  font-size: 13px;
+.drawer-ribbon {
+  margin-top: 14px;
 }
 
 .guide-actions {
@@ -911,8 +944,9 @@ onMounted(async () => {
 }
 
 @media (max-width: 1100px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
+  .drawer-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

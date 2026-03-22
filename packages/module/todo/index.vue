@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from "vue";
 import { localStorageProxy } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 const STORAGE_KEY = "widget-quick-todo";
 

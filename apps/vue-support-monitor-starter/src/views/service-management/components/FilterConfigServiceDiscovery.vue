@@ -328,6 +328,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScSelect } from "@repo/components/ScSelect";
+
 import { ref, watch } from "vue";
 import { message } from "@repo/utils";
 import {
@@ -338,7 +340,6 @@ import {
   type ServiceDiscoveryConfig,
   type ServiceDiscoveryMapping,
 } from "@/api/system-server-setting";
-import { ScSelect } from "@repo/components"
 import { fetchOptionObjectsList } from "@/api/spi";
 
 interface Props {

@@ -333,6 +333,8 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import {
   ElMessage,
@@ -350,7 +352,6 @@ import {
   CircleCheck,
   WarningFilled,
 } from "@element-plus/icons-vue";
-import { IconifyIconOnline } from "@repo/components";
 import {
   fetchSyncTaskList,
   fetchCreateSyncTask,

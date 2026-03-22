@@ -57,9 +57,10 @@
 </template>
 
 <script setup lang="ts">
+import { ScProgress } from "@repo/components/ScProgress";
+
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
-import { ScProgress } from "@repo/components";
 import {
   executeComponentQuery,
   type ServerDetailComponent,

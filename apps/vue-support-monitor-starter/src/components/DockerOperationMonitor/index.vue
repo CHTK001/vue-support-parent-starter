@@ -13,8 +13,9 @@
 </template>
 
 <script setup lang="ts">
+import { ScMessageDialog } from "@repo/components/ScMessageDialog";
+
 import { computed } from "vue";
-import { ScMessageDialog } from "@repo/components";
 import { useDockerOperationStore } from "@/stores/dockerOperation";
 
 /**

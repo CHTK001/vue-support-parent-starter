@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 import { reactive } from "vue";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 const shortcuts = reactive([
   { name: "Google", url: "https://www.google.com", icon: "logos:google-icon" },

@@ -83,8 +83,8 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import { ScPagintion } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScPagintion } from "@repo/components/ScPagintion"
+import { ScPagintion } from "@repo/components/ScPagintion";
 
 const config = reactive({
   page: 1,

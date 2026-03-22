@@ -3,7 +3,9 @@ import { useI18n } from "vue-i18n";
 import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
-import { ScSwitch, ScInput, ScInputNumber } from "@repo/components";
+import { ScSwitch } from "@repo/components/ScSwitch"
+import { ScInput } from "@repo/components/ScInput"
+import { ScInputNumber } from "@repo/components/ScInputNumber";
 import NewMenuAnimationSelector from "../../components/base/NewMenuAnimationSelector.vue";
 
 const { t } = useI18n();

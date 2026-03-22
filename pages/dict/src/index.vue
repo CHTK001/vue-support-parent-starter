@@ -1,8 +1,8 @@
 ﻿<script setup lang="ts">
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import { useRenderIcon } from "@repo/components";
-import { ScSwitch } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon"
 import {
   fetchDeleteDictItem,
   fetchPageDictItem,

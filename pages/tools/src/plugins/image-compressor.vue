@@ -207,7 +207,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { message } from "@repo/utils";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 图片数据
 const originalImage = ref({

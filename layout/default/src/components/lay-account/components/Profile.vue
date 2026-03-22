@@ -1,11 +1,12 @@
 ﻿<script setup lang="ts">
+import { ScCropper } from "@repo/components/ScCropper";
+
 import { reactive, ref } from "vue";
 import { message } from "@repo/utils";
 import { fetchUpdateUser, getMine } from "@repo/core";
 import type { FormInstance, FormRules } from "element-plus";
 import { deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
-import { ScCropper } from "@repo/components"
 import {
   ScAvatar,
   ScForm,
@@ -14,7 +15,6 @@ import {
   ScAutocomplete,
   ScButton,
   ScDialog,
-} from "@repo/components";
 
 defineOptions({
   name: "Profile",

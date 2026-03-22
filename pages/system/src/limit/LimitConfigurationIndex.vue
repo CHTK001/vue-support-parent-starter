@@ -316,8 +316,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from "vue";
 import { message, ScMessageBox, type FormInstance } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
-import { ScSwitch } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon"
 import {
   fetchLimitConfigurationPage,
   fetchLimitConfigurationList,

@@ -635,6 +635,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScSelect } from "@repo/components/ScSelect";
+
 import { fileStorageList } from "@/api/file-manager/file-storage";
 import { fetchOptionObjectsList } from "@/api/spi";
 import {
@@ -655,7 +657,6 @@ import {
   type FileStorageConfig,
 } from "@/api/system-server-setting";
 import DirectorySelector from "@/views/file-system/components/DirectorySelector.vue";
-import { ScSelect } from "@repo/components"
 import { message } from "@repo/utils";
 import { ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import { computed, nextTick, ref, watch } from "vue";

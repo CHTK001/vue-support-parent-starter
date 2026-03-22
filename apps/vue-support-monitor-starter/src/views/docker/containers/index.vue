@@ -341,6 +341,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScTable } from "@repo/components/ScTable";
+
 import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import ServerTerminalDialog from "@/views/server/modules/server-management/components/ServerTerminalDialog.vue";
 import { getServerInfo, sendServerData } from "@/api/server";
@@ -349,8 +351,6 @@ import {
   getServerList,
   type SystemSoftContainer,
 } from "@/api/docker";
-import { ScTable } from "@repo/components"
-import { ScCard } from "@repo/components";
 import { message, messageBox } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";
 import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";

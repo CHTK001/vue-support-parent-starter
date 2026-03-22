@@ -517,7 +517,10 @@ import {
 } from "vue";
 import type { FlightLineData } from "../types/flightline";
 import { DEFAULT_FLIGHTLINE_CONFIG } from "../types/flightline";
-import { ScSlider, ScSwitch, ScColorPicker, ScSelect } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider"
+import { ScSwitch } from "@repo/components/ScSwitch"
+import { ScColorPicker } from "@repo/components/ScColorPicker"
+import { ScSelect } from "@repo/components/ScSelect";
 
 // 环境变量判断
 const isDevelopment = ref(process.env.NODE_ENV === "development");

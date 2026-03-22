@@ -179,10 +179,10 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed } from "vue";
-import { ScInput } from "@repo/components"
-import { ScSelect } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
-import { ScSlider } from "@repo/components";
+import { ScInput } from "@repo/components/ScInput"
+import { ScInput } from "@repo/components/ScInput"
+import { ScInput } from "@repo/components/ScInput";
+import { ScInput } from "@repo/components/ScInput";
 
 // 类型选项
 const typeOptions = [

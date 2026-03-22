@@ -20,10 +20,11 @@ console.info = (...args: any[]) => {
   _consoleInfo(...args);
 };
 
+import { ScCard } from "@repo/components/ScCard";
+
 import { createStandardApp } from "@repo/core";
 import { setupDirectives } from "./directives";
 import GlobalSocketPlugin from "./plugins/globalSocket";
-import { ScCard } from "@repo/components";
 // 应用专属样式
 import "@/styles/threshold.scss";
 import "@/styles/theme-common.scss";

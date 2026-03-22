@@ -1,15 +1,14 @@
 ﻿<script>
+import { IconSelect } from "@repo/components/IconSelect";
+
 import { fetchListDictItem } from "@repo/core";
 import { fetchSaveSfc, fetchUpdateSfc } from "@repo/core";
 import { defineAsyncComponent } from "vue";
 
-import { IconSelect } from "@repo/components";
 import { message } from "@repo/utils";
 import { clearObject } from "@repo/config";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-import { useRenderIcon } from "@repo/components";
-import { ScFormTable } from "@repo/components"
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/scCodeEditor"));
 import CodeLayout from "./code.vue";
 export default {

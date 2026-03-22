@@ -103,8 +103,9 @@
 </template>
 
 <script setup lang="ts">
+import { ScCard } from "@repo/components/ScCard";
+
 import { ref, onMounted } from "vue";
-import { ScCard } from "@repo/components";
 import {
   getCertStats,
   type AcmeCertStats,

@@ -270,9 +270,9 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { computed } from "vue";
-import { ScSlider } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 // Props
 const props = defineProps({

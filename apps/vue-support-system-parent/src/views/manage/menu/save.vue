@@ -1,4 +1,6 @@
 ﻿<script setup lang="ts">
+import { IconSelect } from "@repo/components/IconSelect";
+
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
 import {
@@ -13,7 +15,6 @@ import {
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
-import { IconSelect } from "@repo/components";
 import Segmented from "@repo/components/ReSegmented";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";

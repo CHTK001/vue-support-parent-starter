@@ -199,7 +199,7 @@ import { MapType } from "../types/map";
 import { ApiUrls } from "../types/api";
 import logger from "../composables/LogObject";
 import { message } from "@repo/utils";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 定义组件属性
 const props = defineProps({

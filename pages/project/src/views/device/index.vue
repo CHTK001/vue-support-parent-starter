@@ -443,7 +443,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { defineAsyncComponent, reactive, ref, shallowRef } from "vue";
 import { fetchPageProjectForDevice } from "../../api/manage/device";
 import { createDevice, getResourceIcon } from "../template/device/hook/device";

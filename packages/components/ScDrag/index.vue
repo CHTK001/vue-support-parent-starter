@@ -1,6 +1,6 @@
 <script>
 import Close from "@iconify-icons/ep/close";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { uuid } from "@pureadmin/utils";
 import { defineComponent, markRaw } from "vue";
 import Setting from "@iconify-icons/ep/setting";

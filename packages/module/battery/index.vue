@@ -6,7 +6,7 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, onUnmounted, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 const battery = reactive({
   level: 100,

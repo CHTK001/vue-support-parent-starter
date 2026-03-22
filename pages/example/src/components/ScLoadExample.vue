@@ -212,11 +212,11 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import CodePreview from "./CodePreview.vue";
-import { ScLoading } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
 import { computed, onUnmounted, ref } from "vue";
-import { ScSlider } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 // 加载组件引用
 const loadingRef = ref(null);
@@ -374,7 +374,7 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import { ScLoading } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
 const loadingRef = ref(null);
 const loadingVisible = ref(false);
 

@@ -20,7 +20,7 @@ import {
 } from "./column";
 import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { paginate, deepCopy } from "@repo/utils";
 import { useDateFormat } from "@vueuse/core";
 const columnSetting = markRaw(columnSettingLayout);

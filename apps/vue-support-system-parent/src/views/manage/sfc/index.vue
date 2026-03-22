@@ -296,6 +296,8 @@
 </template>
 
 <script setup>
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import {
   fetchDeleteSfc,
   fetchInstallSfc,
@@ -303,7 +305,6 @@ import {
   fetchUpdateSfc,
   fetchUninstallSfc,
 } from "@repo/core";
-import { useRenderIcon } from "@repo/components";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
 import UploadLayout from "./upload.vue";

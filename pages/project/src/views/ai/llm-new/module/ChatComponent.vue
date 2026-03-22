@@ -325,7 +325,7 @@
 
 <script setup>
 import { fetchEventSource } from "@microsoft/fetch-event-source";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { ScContainer } from "@repo/components/ScContainer";
 import { fetchCallStream } from "@repo/core";
 import { message, ScMessageBox } from "@repo/utils";

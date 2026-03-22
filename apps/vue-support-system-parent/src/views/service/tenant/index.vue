@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import {
   feechSyncTenant,
   fetchDeleteTenant,
@@ -8,8 +10,6 @@ import {
   type TenantStats,
 } from "@/api/service/tenant";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
 import { isTimeExpired, message } from "@repo/utils";
 import {
   computed,

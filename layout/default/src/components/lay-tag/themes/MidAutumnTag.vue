@@ -33,7 +33,7 @@ import {
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";
 import ArrowRightSLine from "@iconify-icons/ri/arrow-right-s-line";

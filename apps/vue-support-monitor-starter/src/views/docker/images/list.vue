@@ -203,8 +203,9 @@
 </template>
 
 <script setup lang="ts">
+import { ScTable } from "@repo/components/ScTable";
+
 import { getServerList, imageApi, type SystemSoftImage } from "@/api/docker";
-import { ScTable } from "@repo/components"
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import { defineAsyncComponent, nextTick, reactive, ref, computed } from "vue";
 
 import {

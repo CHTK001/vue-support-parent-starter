@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { isAllEmpty } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { emitter, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { localStorageProxy, useDefer } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
-import { ScText } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { useNav } from "../../hooks/useNav";
 import type { MenuItem } from "../../types/menu";
 import DoubleNavSidebarItem from "./components/DoubleNavSidebarItem.vue";

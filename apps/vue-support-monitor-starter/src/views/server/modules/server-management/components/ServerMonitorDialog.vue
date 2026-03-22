@@ -228,7 +228,8 @@
 </template>
 
 <script setup lang="ts">
-import { ScProgress } from "@repo/components";
+import { ScProgress } from "@repo/components/ScProgress";
+
 import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import {

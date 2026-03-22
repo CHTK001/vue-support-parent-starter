@@ -5,7 +5,7 @@ import type { LanguageConfig } from "@repo/config";
 import Check from "@iconify-icons/ep/check";
 import { useDefer } from "@repo/utils";
 import { computed } from "vue";
-import { ScText } from "@repo/components";
+import { ScText } from "@repo/components/ScText";
 
 const { locale, translation } = useTranslationLang();
 const languageConfigs = getAllLanguageConfigs();

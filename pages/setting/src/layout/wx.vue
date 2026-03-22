@@ -65,7 +65,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   fetchDefaultNameProject,
   fetchDefaultProject,

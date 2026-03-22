@@ -82,9 +82,10 @@
 </template>
 
 <script setup>
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import { fetchUploadSfc } from "@repo/core";
 import { ref, defineExpose, reactive } from "vue";
-import { useRenderIcon } from "@repo/components";
 import { message } from "@repo/utils";
 
 const emit = defineEmits(["close", "success"]);

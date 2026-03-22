@@ -280,9 +280,10 @@
 </template>
 
 <script setup lang="ts">
+import { ScProgress } from "@repo/components/ScProgress";
+
 import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
-import { ScProgress } from "@repo/components";
 import {
   getServerStatus,
   getServerInfo,

@@ -12,8 +12,9 @@
 </template>
 
 <script setup lang="ts">
+import { ScProgress } from "@repo/components/ScProgress";
+
 import { defineProps, computed } from "vue";
-import { ScProgress } from "@repo/components";
 
 interface Props {
   value: number;

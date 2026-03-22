@@ -16,13 +16,13 @@ import {
   watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ScText } from "@repo/components";
+import { ScText } from "@repo/components/ScText";
 import { useNav } from "../../../hooks/useNav";
 import { useLayout } from "../../../hooks/useLayout";
 import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
-import { ReMenuNewBadge } from "@repo/components";
+import { ScText } from "@repo/components/ScText";
 
 // Props
 interface Props {

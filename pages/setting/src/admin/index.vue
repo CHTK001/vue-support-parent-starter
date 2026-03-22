@@ -8,7 +8,7 @@ import {
 } from "vue";
 import { fetchSettingPage } from "../api";
 import { $t } from "@repo/config";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 const ItemSave = defineAsyncComponent(() => import("./save.vue"));
 const ScTable = defineAsyncComponent(
   () => import("@repo/components"),

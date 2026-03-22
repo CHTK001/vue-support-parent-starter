@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScColorPicker } from "@repo/components";
+import { ScColorPicker } from "@repo/components/ScColorPicker";
 import DemoBlock from "./DemoBlock.vue";
 
 const color1 = ref("#409EFF");

@@ -1,6 +1,6 @@
 <script setup>
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
 
 const logger = getLogger("[ScTable]");

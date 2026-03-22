@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { ScSwitch } from "@repo/components";
+import { ScSwitch } from "@repo/components/ScSwitch";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import type { OptionsType } from "@repo/components/ReSegmented/index";
 

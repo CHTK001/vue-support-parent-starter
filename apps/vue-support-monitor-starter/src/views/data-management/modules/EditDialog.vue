@@ -394,9 +394,10 @@
 // 2) 远程图片URL 与 图标URL 只能存在一个：增加表单互斥校验与互斥 watch。
 // 3) JDBC 驱动与驱动文件：仅当协议为 jdbc 时显示。
 
+import { ScSelect } from "@repo/components/ScSelect";
+
 import { computed, ref, watch, nextTick } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { ScSelect } from "@repo/components"
 import {
   saveSystemDataSetting,
   type SystemDataSetting,

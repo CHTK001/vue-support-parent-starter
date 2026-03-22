@@ -188,7 +188,7 @@
  */
 import { ref, reactive } from "vue";
 import { ScContainer } from "@repo/components/ScContainer";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 const containerRef = ref();
 

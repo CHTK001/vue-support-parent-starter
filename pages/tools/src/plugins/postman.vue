@@ -5,8 +5,8 @@ import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { http } from "@repo/utils";
 import { saveAs } from "file-saver";
-import { IconifyIconOnline } from "@repo/components";
-import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 // 国际化
 const { t } = useI18n();

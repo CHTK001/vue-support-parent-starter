@@ -91,16 +91,22 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
-import {
-  ScCard,
-  ScRow,
-  ScCol,
-  ScRadio,
-  ScRadioButton,
-  ScNumber,
-  ScEcharts,
-} from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
+import { ScCard } from "@repo/components/ScCard"
+import { ScRow } from "@repo/components/ScRow"
+import { ScCol } from "@repo/components/ScCol"
+import { ScRadio } from "@repo/components/ScRadio"
+import { ScRadioButton } from "@repo/components/ScRadioButton"
+import { ScNumber } from "@repo/components/ScNumber"
+import { ScEcharts } from "@repo/components/ScEcharts"
+import {  } from "@repo/components/";
+import { ScCard } from "@repo/components/ScCard"
+import { ScRow } from "@repo/components/ScRow"
+import { ScCol } from "@repo/components/ScCol"
+import { ScRadio } from "@repo/components/ScRadio"
+import { ScRadioButton } from "@repo/components/ScRadioButton"
+import { ScNumber } from "@repo/components/ScNumber"
+import { ScEcharts } from "@repo/components/ScEcharts"
+import {  } from "@repo/components/";
 
 const period = ref("today");
 

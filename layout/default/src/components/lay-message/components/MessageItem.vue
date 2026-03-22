@@ -6,8 +6,9 @@
  * @version 1.0.0
  * @since 2024-12-04
  */
+import { ScAvatar } from "@repo/components/ScAvatar";
+
 import { computed } from 'vue'
-import { ScAvatar } from '@repo/components'
 
 interface MessageItemProps {
   id: number

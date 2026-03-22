@@ -138,7 +138,8 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import { ElMessage } from "element-plus";
 import { ref, watch } from "vue";
 

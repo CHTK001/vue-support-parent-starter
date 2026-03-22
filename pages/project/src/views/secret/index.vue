@@ -5,9 +5,9 @@ import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 import Download from "@iconify-icons/ri/cloud-line";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
-import { ScTable } from "@repo/components"
-import { ScSwitch } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon"
+import { useRenderIcon } from "@repo/components/ReIcon"
 import { markRaw, nextTick, reactive, ref } from "vue";
 import {
   fetchDeleteSecret,

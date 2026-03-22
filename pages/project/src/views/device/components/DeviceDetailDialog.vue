@@ -168,8 +168,8 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components";
-import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { deepClean, getTimeAgo } from "@repo/utils";
 import {
   defineAsyncComponent,

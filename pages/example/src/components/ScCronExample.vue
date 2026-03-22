@@ -69,8 +69,8 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import { ScCron } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScCron } from "@repo/components/ScCron"
+import { ScCron } from "@repo/components/ScCron";
 
 const shortcuts = [
   { text: "每分钟", value: "0 * * * * ?" },

@@ -350,8 +350,9 @@ sum(rate(http_requests_total[5m]))</code></pre>
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref } from "vue";
-import { IconifyIconOnline } from "@repo/components";
 
 // 定义属性
 const props = defineProps<{

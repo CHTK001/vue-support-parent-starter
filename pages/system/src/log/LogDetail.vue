@@ -1,6 +1,6 @@
 ﻿<script>
 import EyeClose from "@iconify-icons/ri/eye-close-line";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import scStatusIndicator from "@repo/components/ScMini/scStatusIndicator.vue";
 import { defineComponent } from "vue";
 import VueJsonPretty from "vue-json-pretty";

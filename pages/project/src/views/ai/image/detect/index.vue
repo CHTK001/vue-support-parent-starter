@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fileToBase64, localStorageProxy, message } from "@repo/utils";
 import {
   computed,

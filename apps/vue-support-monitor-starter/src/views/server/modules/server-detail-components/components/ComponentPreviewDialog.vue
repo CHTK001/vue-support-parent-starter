@@ -287,8 +287,9 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref, reactive, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
 import type { ServerDetailComponent } from "@/api/server";
 
 // 定义属性

@@ -1,3 +1,5 @@
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 <template>
   <div class="email-detail system-container modern-bg">
     <!-- 邮件详情 -->
@@ -89,7 +91,6 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components";
 
 // 定义接口
 interface Email {

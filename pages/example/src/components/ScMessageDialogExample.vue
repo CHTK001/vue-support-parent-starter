@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
-import { ScMessageDialog } from "@repo/components"
+import { ScMessageDialog } from "@repo/components/ScMessageDialog"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -184,7 +184,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScMessageDialog } from "@repo/components"
+import { ScMessageDialog } from "@repo/components/ScMessageDialog"
 const dialogRef = ref();
 const operations = ref([]);
 

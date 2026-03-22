@@ -139,7 +139,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { message, ScMessageBox } from "@repo/utils";
 
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   fetchLimitRecordPage,
   deleteLimitRecord,

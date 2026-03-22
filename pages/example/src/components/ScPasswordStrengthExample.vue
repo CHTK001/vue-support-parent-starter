@@ -73,8 +73,8 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import { ScPasswordStrength } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScPasswordStrength } from "@repo/components/ScPasswordStrength"
+import { ScPasswordStrength } from "@repo/components/ScPasswordStrength";
 
 // 配置项
 const config = reactive({

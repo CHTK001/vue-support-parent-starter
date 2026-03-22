@@ -32,8 +32,9 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref, onMounted, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
 
 defineProps({
   mode: { type: String, required: true },

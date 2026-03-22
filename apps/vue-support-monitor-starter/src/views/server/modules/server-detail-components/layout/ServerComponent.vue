@@ -143,13 +143,14 @@
 </template>
 
 <script setup>
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import LineChart from "../charts/LineChart.vue";
 import GaugeChart from "../charts/GaugeChart.vue";
 import CardChart from "../charts/CardChart.vue";
 import BarChart from "../charts/BarChart.vue";
 import PieChart from "../charts/PieChart.vue";
-import { IconifyIconOnline } from "@repo/components";
 
 const props = defineProps({
   item: {

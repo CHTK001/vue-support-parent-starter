@@ -259,7 +259,7 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // Props
 const props = defineProps({

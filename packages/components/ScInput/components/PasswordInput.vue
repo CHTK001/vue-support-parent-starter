@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { getDefaultIcon } from "../defaultIcons";
 
 interface Props {

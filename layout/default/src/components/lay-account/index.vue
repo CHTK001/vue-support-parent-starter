@@ -1,4 +1,6 @@
 ﻿<script setup lang="ts">
+import { ScAvatar } from "@repo/components/ScAvatar";
+
 import { getMine, useUserStore } from "@repo/core";
 import { ReText } from "@repo/components/ReText";
 import { LaySidebarTopCollapse, useDataThemeChange } from "@layout/default";
@@ -19,7 +21,6 @@ import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
 import Totp from "./components/Totp.vue";
-import { ScAvatar } from "@repo/components";
 
 defineOptions({
   name: "AccountSettings",

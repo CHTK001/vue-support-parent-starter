@@ -5,7 +5,7 @@ import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { ScTooltip } from "@repo/components";
+import { ScTooltip } from "@repo/components/ScTooltip";
 import LayThemeSwitcher from "../../../lay-theme-switcher/index.vue";
 import LoaderStyleSetting from "../LoaderStyleSetting.vue";
 

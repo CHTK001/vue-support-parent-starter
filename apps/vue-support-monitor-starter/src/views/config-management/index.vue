@@ -219,11 +219,11 @@
 </template>
 
 <script setup lang="ts">
+import { ScTable } from "@repo/components/ScTable";
+
 import { ref, reactive, onMounted } from "vue";
 import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
-import { ScTable } from "@repo/components"
-import { ScCard } from "@repo/components";
 import {
   getConfigPageList,
   deleteConfig,

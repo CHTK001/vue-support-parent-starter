@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import {
   defineAsyncComponent,
   nextTick,
@@ -10,8 +12,6 @@ import {
 import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { transformI18n } from "@repo/config";
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
 import { useI18n } from "vue-i18n";
 
 // Props

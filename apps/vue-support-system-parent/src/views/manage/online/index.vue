@@ -250,6 +250,8 @@
 </template>
 
 <script setup lang="ts">
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import { onMounted, reactive, ref, shallowRef } from "vue";
 import {
   fetchOnlineUsers,
@@ -259,7 +261,6 @@ import {
   type OnlineUser,
 } from "@/api/manage/online";
 import { getTimeAgo, message } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
 import Search from "@iconify-icons/ep/search";
 import Location from "@iconify-icons/ep/location";
 

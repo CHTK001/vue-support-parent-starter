@@ -31,9 +31,10 @@
 </template>
 
 <script setup>
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import "codemirror/mode/vue/vue";
 import { reactive, defineAsyncComponent, defineExpose, ref } from "vue";
-import { useRenderIcon } from "@repo/components";
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/scCodeEditor"));
 const form = reactive({ sysSfcContent: "" });
 const visible = ref(false);

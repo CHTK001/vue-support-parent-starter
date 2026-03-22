@@ -213,11 +213,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ScFilterBar } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScFilterBar } from "@repo/components/ScFilterBar"
+import { ScFilterBar } from "@repo/components/ScFilterBar";
 import DemoBlock from "./DemoBlock.vue";
 import { message } from "@repo/utils";
-import { ScSlider } from "@repo/components";
+import { ScFilterBar } from "@repo/components/ScFilterBar";
 import draggable from "vuedraggable";
 
 // ==================== 类型定义 ====================

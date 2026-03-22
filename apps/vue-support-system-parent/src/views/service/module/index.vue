@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import {
   fetchDeleteServiceModule,
   fetchPageServiceModule,
@@ -7,8 +9,6 @@ import {
   type ServiceModuleStats,
 } from "@/api/service/module";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
 import {
   computed,

@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScTag } from "@repo/components";
+import { ScTag } from "@repo/components/ScTag";
 import DemoBlock from "./DemoBlock.vue";
 
 const closableTags = ref([

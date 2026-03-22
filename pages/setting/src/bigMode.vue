@@ -67,8 +67,8 @@ import { defineComponent } from "vue";
 import { uuid } from "@repo/config";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
-import { useRenderIcon } from "@repo/components";
-import { ScAvatar } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 import MarkdownIt from "markdown-it";
 import mdKatex from "@traptitech/markdown-it-katex";
