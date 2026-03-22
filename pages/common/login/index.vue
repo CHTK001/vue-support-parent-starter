@@ -90,8 +90,9 @@ const languageConfigs = getAllLanguageConfigs();
 
 // 获取当前语言的配置
 const currentLanguageConfig = computed(() => {
+  if (!locale || !locale.value) return getLanguageConfig("zh-CN");
   const currentLocale =
-    typeof locale.value === "string" ? locale.value : locale.value.value;
+    typeof locale.value === "string" ? locale.value : locale.value?.value ?? "zh-CN";
   return getLanguageConfig(currentLocale);
 });
 
