@@ -20,9 +20,11 @@
     "resolveJsonModule": true,
     "lib": ["ESNext", "DOM", "ES2022"],
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
       "@pages/common": ["../../pages/common"],
       "@pages/common/*": ["../../pages/common/*"],
+      "@pages/sync": ["../../pages/sync"],
+      "@pages/sync/*": ["../../pages/sync/*"],
     },
     "types": ["node", "vite/client", "element-plus/global"]
   },

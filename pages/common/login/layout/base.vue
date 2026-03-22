@@ -1,3 +1,4 @@
+<script setup lang="ts">
 import TypeIt from "@repo/components/ReTypeit";
 import { ScCode } from "@repo/components"
 import { $t, getConfig, transformI18n } from "@repo/config";
@@ -906,12 +907,43 @@ onBeforeUnmount(() => {
                   prop="username"
                   class="modern-form-item"
                 >
+                  <el-input
+                    v-model="ruleForm.username"
+                    clearable
+                    :disabled="loading"
+                    :placeholder="t('login.pureUsername')"
+                    :prefix-icon="useRenderIcon('ri:user-line')"
+                    class="modern-input"
+                  />
+                </ScFormItem>
               </div>
             </Motion>
 
             <!-- 密码字段 -->
             <Motion v-if="showCredentialLogin" :delay="150">
               <div class="form-field-wrapper">
+                <label class="field-label">{{ t("login.purePassword") }}</label>
+                <ScFormItem
+                  :rules="[
+                    {
+                      required: true,
+                      message: transformI18n($t('login.purePasswordReg')),
+                      trigger: 'blur',
+                    },
+                  ]"
+                  prop="password"
+                  class="modern-form-item"
+                >
+                  <el-input
+                    v-model="ruleForm.password"
+                    clearable
+                    show-password
+                    :disabled="loading"
+                    :placeholder="t('login.purePassword')"
+                    :prefix-icon="useRenderIcon('ri:lock-line')"
+                    class="modern-input"
+                  />
+                </ScFormItem>
               </div>
             </Motion>
 
@@ -976,7 +1008,32 @@ onBeforeUnmount(() => {
               <div class="form-field-wrapper">
                 <label class="field-label">验证码</label>
                 <div class="verify-code-wrapper">
-                  </div>
+                  <ScFormItem
+                    :rules="[
+                      {
+                        required: true,
+                        message: transformI18n($t('login.pureVerifyCode')),
+                        trigger: 'blur',
+                      },
+                    ]"
+                    prop="verifyCode"
+                    class="modern-form-item"
+                  >
+                    <el-input
+                      v-model="ruleForm.verifyCode"
+                      clearable
+                      :disabled="loading"
+                      :placeholder="t('login.pureVerifyCode')"
+                      class="modern-input"
+                    />
+                  </ScFormItem>
+                  <img
+                    v-if="codeUrl"
+                    :src="codeUrl"
+                    alt="验证码"
+                    class="verify-code-image"
+                    @click="getVerifyCode"
+                  />
                 </div>
               </div>
             </Motion>
@@ -984,8 +1041,15 @@ onBeforeUnmount(() => {
             <!-- 登录按钮 -->
             <Motion :delay="250">
               <div class="login-button-wrapper">
-                  <span v-else>登录中...</span>
+                <ScButton
+                  v-if="!loading"
+                  type="primary"
+                  class="login-button"
+                  @click="onLogin"
+                >
+                  {{ t("login.pureLogin") }}
                 </ScButton>
+                <span v-else>登录中...</span>
               </div>
             </Motion>
           </ScForm>
