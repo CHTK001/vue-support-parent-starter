@@ -444,10 +444,10 @@ watch(
               </div>
               <div class="lang-info">
                 <span class="lang-name">{{
-                  currentLanguageConfig.nativeName
+                  currentLanguageConfig?.nativeName || "Language"
                 }}</span>
                 <span class="lang-role">{{
-                  locale === "zh-CN" ? "语言" : "Language"
+                  (typeof locale === "string" ? locale : locale?.value) === "zh-CN" ? "语言" : "Language"
                 }}</span>
               </div>
               <span class="dropdown-arrow-wrapper">
