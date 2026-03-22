@@ -8,7 +8,6 @@
 import { reactive, onMounted, onUnmounted, ref } from "vue";
 import { message, dateFormat } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { ScDialog } from "@repo/components/ScDialog"
 import { ScDialog } from "@repo/components/ScDialog";
 
 const { t } = useI18n();
