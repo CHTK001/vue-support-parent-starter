@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRenderIcon } from "@repo/components";
 import TypeIt from "@repo/components/ReTypeit";
 import { ScCode } from "@repo/components"
 import { $t, getConfig, transformI18n } from "@repo/config";

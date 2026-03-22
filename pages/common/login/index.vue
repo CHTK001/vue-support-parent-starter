@@ -33,10 +33,7 @@ import { bg, illustration } from "./utils/static";
 import { getLoginTheme as getLoginThemeComponent } from "./themes";
 import { getThemeConfig } from "./utils/themeConfig";
 
-import darkIcon from "@repo/assets/svg/dark.svg?component";
-import dayIcon from "@repo/assets/svg/day.svg?component";
 import globalization from "@repo/assets/svg/globalization.svg?component";
-import { useRenderIcon } from "@repo/components";
 
 defineOptions({
   name: "Login",
@@ -430,8 +427,8 @@ watch(
             <ScSwitch
               v-model="dataTheme"
               inline-prompt
-              :active-icon="dayIcon"
-              :inactive-icon="darkIcon"
+              active-icon="ri:sun-line"
+              inactive-icon="ri:moon-line"
             />
           </div>
 
