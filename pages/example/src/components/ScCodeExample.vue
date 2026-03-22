@@ -166,6 +166,8 @@
 </template>
 
 <script setup lang="ts">
+import { import ScCode from @repo/components } from "@repo/components/import ScCode from @repo/components";
+
 import { ref, computed } from "vue";
 import { ScCode } from "@repo/components/ScCode"
 import CodePreview from "./CodePreview.vue";
@@ -313,7 +315,6 @@ const basicCodeExample = `<template>
 
 <script setup>
 import { ref } from 'vue'
-import ScCode from '@repo/components'
 
 const codeRef = ref()
 

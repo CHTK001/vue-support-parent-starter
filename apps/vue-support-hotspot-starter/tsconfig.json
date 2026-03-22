@@ -29,9 +29,36 @@
       "@build/*": [
         "build/*"
       ],
-      "@repo/codec-wasm": ["../../packages/codec-wasm/src/index.js"],
-      "@pages/common": ["../../pages/common"],
-      "@pages/common/*": ["../../pages/common/*"]
+      "@repo/codec-wasm": [
+        "../../packages/codec-wasm/src/index.js"
+      ],
+      "@pages/common": [
+        "../../pages/common"
+      ],
+      "@pages/common/*": [
+        "../../pages/common/*"
+      ],
+      "@repo/components/*": [
+        "../../packages/components/*"
+      ],
+      "@repo/components": [
+        "../../packages/components"
+      ],
+      "@repo/config": [
+        "../../packages/config"
+      ],
+      "@repo/core": [
+        "../../packages/core"
+      ],
+      "@repo/utils": [
+        "../../packages/utils"
+      ],
+      "@repo/plugins": [
+        "../../packages/plugins"
+      ],
+      "@layout/default": [
+        "../../layout/default/src"
+      ]
     },
     "types": [
       "node",
@@ -50,8 +77,9 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "vite.config.ts"
-, "src/views/tools/json/index.vue1"  ],
+    "vite.config.ts",
+    "src/views/tools/json/index.vue1"
+  ],
   "exclude": [
     "dist",
     "**/*.js",
