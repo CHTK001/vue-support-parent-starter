@@ -5,12 +5,21 @@ import type { RouteConfigsTable } from "@repo/types";
  */
 const paymentRouter: RouteConfigsTable = {
   path: "/",
-  redirect: "/orders",
+  redirect: "/home",
   meta: {
     title: "支付系统",
     rank: 0,
   },
   children: [
+    {
+      path: "/home",
+      name: "PaymentHome",
+      component: () => import("@/views/HomeView.vue"),
+      meta: {
+        title: "首页",
+        icon: "ep:house",
+      },
+    },
     {
       path: "/orders",
       name: "OrderList",
