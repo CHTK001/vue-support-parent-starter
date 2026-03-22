@@ -26,10 +26,10 @@ import { type MenuType } from "../types";
 import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
 // @ts-ignore
-const IFrame = () => import("../../../pages/common/layout/frame.vue");
+const IFrame = () => import("../../../../pages/common/layout/frame.vue");
 const Layout = () => import("@layout/default");
 // @ts-ignore
-const MissingRouteView = () => import("../../../pages/common/error/404.vue");
+const MissingRouteView = () => import("../../../../pages/common/error/404.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 //@ts-ignore
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");

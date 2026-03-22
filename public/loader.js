@@ -56,10 +56,24 @@
 
   var loader = loaderStyles[loaderType] || loaderStyles.default;
   var baseCSS =
-    "html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}#app{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#ffffff}html.dark #app{background:#1a1a1a}";
+    "html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}#app{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#ffffff}html.dark #app{background:#1a1a1a}#app-loader{display:flex;align-items:center;justify-content:center;width:100%;height:100%}";
 
   document.write("<style>" + baseCSS + loader.css + "</style>");
-  document.write('<body><div id="app">' + loader.html + "</div>");
+  document.write('<div id="app-loader">' + loader.html + "</div>");
+
+  // 页面加载完成后，将加载器内容移到 #app 中
+  document.addEventListener("DOMContentLoaded", function() {
+    var appLoader = document.getElementById("app-loader");
+    var app = document.getElementById("app");
+    if (appLoader && app) {
+      // 清空 #app 中的所有内容（移除重复的加载器）
+      app.innerHTML = "";
+      while (appLoader.firstChild) {
+        app.appendChild(appLoader.firstChild);
+      }
+      appLoader.remove();
+    }
+  });
 
   // 动态加载可选的 JS 文件（默认不启用）
   var enableOptionalScripts =

@@ -14,7 +14,7 @@ export default [
       {
         path: "/setting-index",
         name: "settingIndex",
-        component: () => import("@pages/setting"),
+        component: () => import("../../../../../pages/setting/src"),
         meta: {
           icon: "ep:setting",
           rank: 99,
@@ -26,7 +26,7 @@ export default [
       {
         path: "/dict",
         name: "DictManagement",
-        component: () => import("@pages/dict"),
+        component: () => import("../../../../../pages/dict/src"),
         meta: {
           title: "字典管理",
         },
@@ -35,7 +35,7 @@ export default [
         path: "/holiday/index",
         name: "HolidayIndex",
         component: async () => {
-          const { SystemHolidayIndex } = await import("@pages/system");
+          const { SystemHolidayIndex } = await import("../../../../../pages/system/src");
           return SystemHolidayIndex;
         },
         meta: {
@@ -47,7 +47,7 @@ export default [
         path: "/filesystem/index",
         name: "FileSystemIndex",
         component: async () => {
-          const { SystemFileSystem } = await import("@pages/system");
+          const { SystemFileSystem } = await import("../../../../../pages/system/src");
           return SystemFileSystem;
         },
         meta: {
@@ -59,7 +59,7 @@ export default [
         path: "/log/system/index",
         name: "LogSystemIndex",
         component: async () => {
-          const { SystemLogIndex } = await import("@pages/system");
+          const { SystemLogIndex } = await import("../../../../../pages/system/src");
           return SystemLogIndex;
         },
         meta: {
