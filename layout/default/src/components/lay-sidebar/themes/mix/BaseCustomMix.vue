@@ -28,7 +28,7 @@ import {
 } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
 import { localStorageProxy } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import type { StorageConfigs } from "@repo/config";
 import { useNav } from "../../../../hooks/useNav";
 import {
@@ -37,7 +37,7 @@ import {
   CustomSubMenu,
 } from "../../components/custom-menu";
 import LayTool from "../../../lay-tool/index.vue";
-import { ReMenuNewBadge } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 const props = defineProps<{
   /** 主题类名 */

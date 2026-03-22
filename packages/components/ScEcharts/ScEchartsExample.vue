@@ -238,7 +238,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import ScEcharts from './index.vue'
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 响应式数据
 const containerWidth = ref(600)

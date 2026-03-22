@@ -63,7 +63,8 @@
 </template>
 
 <script>
-import { ScPasswordStrength } from "@repo/components"
+import { ScPasswordStrength } from "@repo/components/ScPasswordStrength";
+
 import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner, useUserStore } from "@repo/core";
 import { transformI18n } from "@repo/config";
@@ -73,7 +74,6 @@ import {
   ScFormItem,
   ScInput,
   ScButton,
-} from "@repo/components";
 
 export default {
   components: {

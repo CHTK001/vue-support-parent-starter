@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ReMenuNewBadge } from "@repo/components";
-import { useRenderIcon } from "@repo/components";
+import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
+import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
 import {
   resolvePath as configResolvePath,
   getConfig,
@@ -16,7 +16,7 @@ import {
   useAttrs,
   onMounted,
 } from "vue";
-import { ScText } from "@repo/components";
+import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
 import { useNav } from "../../../hooks/useNav";
 import { emitter } from "@repo/core";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";

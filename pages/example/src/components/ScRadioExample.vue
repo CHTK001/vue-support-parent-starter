@@ -23,7 +23,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScRadio, ScRadioGroup } from "@repo/components";
+import { ScRadio } from "@repo/components/ScRadio"
+import { ScRadioGroup } from "@repo/components/ScRadioGroup";
 import DemoBlock from "./DemoBlock.vue";
 
 const value1 = ref<string | number | boolean>("A");

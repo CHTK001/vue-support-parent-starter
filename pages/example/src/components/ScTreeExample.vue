@@ -188,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import { ScTree } from "@repo/components"
+import { ScTree } from "@repo/components/ScTree"
 import CodePreview from "./CodePreview.vue";
 import type {
   TreeNode,
@@ -196,7 +196,7 @@ import type {
   TreeProps,
 } from "@repo/components/ScTree/types";
 import { computed, reactive, ref } from "vue";
-import { ScSlider } from "@repo/components";
+import { ScTree } from "@repo/components/ScTree";
 
 // 初始树形数据
 const initialTreeData: TreeNodeData[] = [

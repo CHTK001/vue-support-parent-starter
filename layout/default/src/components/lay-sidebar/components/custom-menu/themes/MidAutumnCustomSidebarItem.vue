@@ -4,7 +4,7 @@
  * 深蓝配金色月光
  */
 import { computed, toRaw, provide, ref, onMounted } from "vue";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   transformI18n,
   resolvePath as configResolvePath,
@@ -13,7 +13,7 @@ import {
 import { type MenuType, emitter } from "@repo/core";
 import CustomMenuItem from "../CustomMenuItem.vue";
 import CustomSubMenu from "../CustomSubMenu.vue";
-import { ReMenuNewBadge } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 const props = defineProps<{
   item: MenuType;

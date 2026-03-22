@@ -6,12 +6,12 @@
  * @version 1.0.0
  * @since 2024-12-15
  */
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import { isEqual, useGlobal } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
-import { useRenderIcon } from "@repo/components";
 import { useRoute, useRouter } from "vue-router";
 import { onBeforeUnmount, onMounted, ref, toRaw, watch, computed } from "vue";
-import { ScIcon, ScTooltip } from "@repo/components";
 import {
   emitter,
   findRouteByPath,

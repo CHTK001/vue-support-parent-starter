@@ -90,7 +90,7 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from "vue"
 import { debounce } from "lodash-es";
 import { ElIcon, ElEmpty, ElCheckbox } from "element-plus";
 import Sortable from "sortablejs";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
 import { ScIcon } from "../../ScIcon";

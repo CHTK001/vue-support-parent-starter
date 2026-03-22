@@ -135,7 +135,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
-import { ScSocketMessageDialog } from "@repo/components"
+import { ScSocketMessageDialog } from "@repo/components/ScSocketMessageDialog"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -230,7 +230,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScSocketMessageDialog } from "@repo/components"
+import { ScSocketMessageDialog } from "@repo/components/ScSocketMessageDialog"
 const dialogRef = ref();
 const dialogVisible = ref(false);
 

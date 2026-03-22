@@ -93,7 +93,7 @@
  */
 import { computed, ref, watch, onMounted, type PropType } from "vue";
 import { fetchListDictItem } from "@repo/core";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 // 字典项类型
 interface DictItem {

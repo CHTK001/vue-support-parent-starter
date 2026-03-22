@@ -245,12 +245,11 @@
 </template>
 
 <script setup lang="ts">
+import { ScDialog } from "@repo/components/ScDialog";
+
 import { softwareApi } from "@/api/docker";
 import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import { useGlobalSocket, MonitorTopics } from "@repo/core";
-import { ScDialog } from "@repo/components"
-import { ScTable } from "@repo/components"
-import { ScCard } from "@repo/components";
 import { message } from "@repo/utils";
 import { ElMessageBox, ElNotification } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref, watch } from "vue";

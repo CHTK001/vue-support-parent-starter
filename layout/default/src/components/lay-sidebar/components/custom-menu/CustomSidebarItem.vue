@@ -5,7 +5,7 @@
  */
 import { computed, toRaw, inject, isRef, type Ref, type Component, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   transformI18n,
   resolvePath as configResolvePath,
@@ -13,7 +13,7 @@ import {
 } from "@repo/config";
 import type { MenuType } from "@repo/core";
 import { emitter } from "@repo/core";
-import { ReMenuNewBadge } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import CustomMenuItem from "./CustomMenuItem.vue";
 import CustomSubMenu from "./CustomSubMenu.vue";
 

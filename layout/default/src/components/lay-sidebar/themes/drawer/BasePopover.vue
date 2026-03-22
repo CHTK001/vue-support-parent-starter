@@ -3,7 +3,8 @@ import { emitter, usePermissionStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ScText, ReMenuNewBadge } from "@repo/components";
+import { ScText } from "@repo/components/ScText"
+import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
 import { useNav } from "../../../../hooks/useNav";
 import { useGlobal } from "@pureadmin/utils";
 import type { MenuItem } from "../../../../types/menu";

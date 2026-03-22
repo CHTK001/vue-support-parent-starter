@@ -60,13 +60,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import {
-  ScCard,
-  ScButton,
-  ScRadio,
-  ScRadioGroup,
-  ScSwitch,
-} from "@repo/components";
+import { ScCard } from "@repo/components/ScCard"
+import { ScButton } from "@repo/components/ScButton"
+import { ScRadio } from "@repo/components/ScRadio"
+import { ScRadioGroup } from "@repo/components/ScRadioGroup"
+import { ScSwitch } from "@repo/components/ScSwitch"
+import {  } from "@repo/components/";
 import { ScMessage } from "@repo/utils";
 
 const preferences = reactive({

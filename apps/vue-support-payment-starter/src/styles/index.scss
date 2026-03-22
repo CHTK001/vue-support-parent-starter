@@ -1,8 +1,267 @@
-/**
- * 支付系统样式
- */
+.ops-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-// 应用特定样式
-.payment-container {
-  // 支付相关样式
+.ops-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.ops-hero__intro,
+.ops-hero__stats,
+.ops-panel,
+.ops-subpanel {
+  border: 1px solid rgba(123, 86, 50, 0.12);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.92) 0%, rgba(250, 244, 235, 0.92) 100%);
+  box-shadow: 0 24px 70px rgba(61, 39, 22, 0.08);
+}
+
+.ops-hero__intro {
+  position: relative;
+  overflow: hidden;
+  padding: 28px;
+  background:
+    radial-gradient(circle at right top, rgba(214, 159, 89, 0.2), transparent 34%),
+    linear-gradient(140deg, rgba(255, 250, 243, 0.96) 0%, rgba(245, 232, 214, 0.96) 100%);
+}
+
+.ops-hero__intro::after {
+  content: "";
+  position: absolute;
+  inset: auto -48px -56px auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(156, 83, 42, 0.18) 0%, rgba(156, 83, 42, 0) 70%);
+}
+
+.ops-kicker {
+  margin: 0 0 10px;
+  color: #a36e34;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ops-title {
+  margin: 0;
+  color: #24170f;
+  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
+  font-size: 32px;
+  line-height: 1.18;
+}
+
+.ops-copy {
+  max-width: 640px;
+  margin: 12px 0 0;
+  color: #6e5541;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.ops-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.ops-ribbon__item {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #5f452f;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(145, 105, 66, 0.12);
+}
+
+.ops-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px;
+}
+
+.ops-stat {
+  min-height: 136px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(122, 87, 53, 0.08);
+}
+
+.ops-stat__label {
+  margin: 0;
+  color: #8b6847;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ops-stat__value {
+  margin: 10px 0 12px;
+  color: #25180f;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ops-stat__desc {
+  margin: 0;
+  color: #6c5440;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.ops-panel {
+  padding: 12px;
+}
+
+.ops-panel :where(.el-card__header) {
+  padding: 18px 20px 10px;
+  border-bottom: none;
+}
+
+.ops-panel :where(.el-card__body) {
+  padding: 0 20px 20px;
+}
+
+.ops-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 18px;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(247, 239, 230, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(122, 87, 53, 0.08);
+}
+
+.ops-toolbar__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ops-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #5f4735;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(128, 91, 54, 0.08);
+}
+
+.ops-table {
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 1px rgba(123, 86, 50, 0.06);
+}
+
+.ops-table .el-table th.el-table__cell {
+  background: rgba(245, 235, 224, 0.8);
+}
+
+.ops-table .el-table tr:hover > td.el-table__cell {
+  background: rgba(255, 249, 241, 0.92);
+}
+
+.ops-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.ops-section-title {
+  margin: 0;
+  color: #261810;
+  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
+  font-size: 24px;
+}
+
+.ops-section-copy {
+  margin: 8px 0 0;
+  color: #6e5541;
+  line-height: 1.8;
+}
+
+.ops-note {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(43, 31, 24, 0.95) 0%, rgba(89, 58, 34, 0.95) 100%);
+  color: #f7efe5;
+}
+
+.ops-note__label {
+  margin: 0 0 8px;
+  color: rgba(246, 206, 156, 0.88);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ops-note__text {
+  margin: 0;
+  color: rgba(247, 239, 229, 0.82);
+  line-height: 1.8;
+}
+
+.ops-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ops-subpanel {
+  padding: 18px;
+}
+
+.ops-code {
+  margin: 0;
+  padding: 14px 16px;
+  overflow: auto;
+  border-radius: 18px;
+  background: #1f1712;
+  color: #f8efe4;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+@media (max-width: 1100px) {
+  .ops-hero,
+  .ops-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .ops-hero__intro {
+    padding: 22px 18px;
+  }
+
+  .ops-hero__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-title {
+    font-size: 28px;
+  }
+
+  .ops-panel :where(.el-card__header),
+  .ops-panel :where(.el-card__body) {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }

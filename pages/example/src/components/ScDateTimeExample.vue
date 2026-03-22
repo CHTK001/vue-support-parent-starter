@@ -43,7 +43,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScDatePicker, ScTimePicker } from "@repo/components";
+import { ScDatePicker } from "@repo/components/ScDatePicker"
+import { ScTimePicker } from "@repo/components/ScTimePicker";
 import DemoBlock from "./DemoBlock.vue";
 
 const date1 = ref<string | null>(null);

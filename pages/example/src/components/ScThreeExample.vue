@@ -164,8 +164,8 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import * as THREE from "three";
-import { ScThree } from "@repo/components";
-import { ScSelect } from "@repo/components"
+import { ScThree } from "@repo/components/ScThree";
+import { ScThree } from "@repo/components/ScThree"
 import DemoBlock from "./DemoBlock.vue";
 
 /**
@@ -334,7 +334,7 @@ const codes = {
 />
 
 <script setup>
-import { ScThree } from "@repo/components";
+import { ScThree } from "@repo/components/ScThree";
 import * as THREE from "three";
 
 function onReady(scene, camera, renderer) {

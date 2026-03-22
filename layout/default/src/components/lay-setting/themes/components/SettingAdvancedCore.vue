@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { ScSwitch, ScInputNumber } from "@repo/components";
+import { ScSwitch } from "@repo/components/ScSwitch"
+import { ScInputNumber } from "@repo/components/ScInputNumber";
 
 const { t } = useI18n();
 

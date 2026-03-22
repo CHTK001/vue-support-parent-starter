@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import { ScEcharts } from "@repo/components"
+import { ScEcharts } from "@repo/components/ScEcharts"
 import CodePreview from "./CodePreview.vue";
 
 /**

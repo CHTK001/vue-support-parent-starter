@@ -6,7 +6,7 @@
  * @version 1.0.1
  */
 import { reactive, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { message } from "@repo/utils";
 
 const quotes = [

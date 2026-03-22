@@ -95,6 +95,7 @@ export interface PaymentLaunchResult {
   payUrl?: string;
   launchType?: string;
   formHtml?: string;
+  body?: string;
   sdkParams?: Record<string, unknown>;
   paidAmount?: number;
   status?: string;

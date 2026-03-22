@@ -285,13 +285,14 @@
 </template>
 
 <script setup lang="ts">
+import { ScCard } from "@repo/components/ScCard";
+
 import { ref, reactive } from "vue";
 import { ElMessageBox } from "element-plus";
 import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
 import ServerSelectDialog from "./components/ServerSelectDialog.vue";
 import ExecuteRecordDialog from "./components/ExecuteRecordDialog.vue";
-import { ScCard } from "@repo/components"
 import * as ScriptAPI from "@/api/server/script-management";
 import type { Script } from "./types";
 import { ScriptStatus } from "./types";

@@ -355,10 +355,11 @@ location /.well-known/acme-challenge/ {
 </template>
 
 <script setup lang="ts">
+import { ScSelect } from "@repo/components/ScSelect";
+
 import { ref, reactive, computed, watch, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { type FormInstance, type FormRules } from "element-plus";
-import { ScSelect } from "@repo/components"
 import {
   getAccountList,
   applyCert,

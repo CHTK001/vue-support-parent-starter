@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ScButton } from "@repo/components";
+import { ScButton } from "@repo/components/ScButton";
 import DemoBlock from "./DemoBlock.vue";
 
 const codes = {

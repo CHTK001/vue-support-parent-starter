@@ -16,10 +16,10 @@ const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { localStorageProxy, message, ScLoading } from "@repo/utils";
 import { getConfig } from "@repo/config";
-import { ScButton, ScIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";

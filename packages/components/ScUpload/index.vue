@@ -89,8 +89,8 @@ import { defineAsyncComponent, computed } from "vue";
 import { genFileId, ElUpload } from "element-plus";
 import { useRenderIcon } from "../ReIcon/src/hooks";
 import { useThemeComponent } from "../hooks/useThemeComponent";
-import { ScButton } from "@repo/components"
-import { ScProgress } from "@repo/components"
+import { ScButton } from "@repo/components/ScButton"
+import { ScButton } from "@repo/components/ScButton"
 import { ScImage } from "@repo/components/ScImage";
 
 const scCropper = defineAsyncComponent(() => import("../scCropper/index.vue"));

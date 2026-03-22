@@ -1,24 +1,53 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card">
-        <p>订单总数</p>
-        <strong>{{ pagination.total }}</strong>
-        <span>管理创建、支付、完成、退款和删除全链路状态。</span>
+  <section class="ops-view order-view">
+    <div class="ops-hero">
+      <article class="ops-hero__intro">
+        <p class="ops-kicker">Order State Machine</p>
+        <h3 class="ops-title">把订单状态机、真实支付拉起结果和退款动作放在同一条操作带里</h3>
+        <p class="ops-copy">
+          订单页不仅负责 CRUD，还要直接承接支付拉起参数展示、渠道查单、手动补偿和退款确认。
+          钱包渠道可以在本地完成真实资金变更，第三方渠道默认以 mock 形态验证返回结构。
+        </p>
+        <div class="ops-ribbon">
+          <span class="ops-ribbon__item">可实时调起支付</span>
+          <span class="ops-ribbon__item">支持查单与退款</span>
+          <span class="ops-ribbon__item">支持 APP / JSAPI / H5 / Native 结果展示</span>
+        </div>
       </article>
-      <article class="hero-card">
-        <p>待处理订单</p>
-        <strong>{{ pendingCount }}</strong>
-        <span>包括待支付、支付中、退款中的订单。</span>
-      </article>
-      <article class="hero-card">
-        <p>成功支付金额</p>
-        <strong>{{ formatCurrency(successPaidAmount) }}</strong>
-        <span>基于当前页订单估算，用于快速巡检支付状态。</span>
-      </article>
+
+      <div class="ops-hero__stats">
+        <article class="ops-stat">
+          <p class="ops-stat__label">订单总数</p>
+          <strong class="ops-stat__value">{{ pagination.total }}</strong>
+          <p class="ops-stat__desc">管理创建、支付、完成、退款和删除全链路状态。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">待处理订单</p>
+          <strong class="ops-stat__value">{{ pendingCount }}</strong>
+          <p class="ops-stat__desc">包括待支付、支付中、退款中的订单。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">成功支付金额</p>
+          <strong class="ops-stat__value">{{ formatCurrency(successPaidAmount) }}</strong>
+          <p class="ops-stat__desc">基于当前页订单估算，用于快速巡检支付状态。</p>
+        </article>
+        <article class="ops-stat">
+          <p class="ops-stat__label">退款中订单</p>
+          <strong class="ops-stat__value">{{ refundingCount }}</strong>
+          <p class="ops-stat__desc">建议优先核对第三方查单结果与退款日志是否一致。</p>
+        </article>
+      </div>
     </div>
 
-    <el-card class="panel">
+    <div class="ops-note">
+      <p class="ops-note__label">测试边界</p>
+      <p class="ops-note__text">
+        钱包是当前唯一不依赖第三方凭据、可以在本地完成真实扣款与退款闭环的支付能力。
+        微信和支付宝现在验证的是接口矩阵、返回字段和页面拉起方式；若配置真实商户密钥，也可以继续联调官方网关。
+      </p>
+    </div>
+
+    <el-card class="ops-panel">
       <template #header>
         <div class="panel__header">
           <div>
@@ -29,31 +58,47 @@
         </div>
       </template>
 
-      <el-form :inline="true" :model="searchForm" class="toolbar">
-        <el-form-item label="商户">
-          <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="订单号">
-          <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
-            <el-option v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <div class="ops-toolbar">
+        <el-form :inline="true" :model="searchForm" class="toolbar">
+          <el-form-item label="商户">
+            <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="订单号">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+              <el-option v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">查询</el-button>
+            <el-button @click="handleResetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
 
-      <el-table :data="orderList" v-loading="loading" border class="table">
+        <div class="ops-toolbar__meta">
+          <span class="ops-chip">支付中 {{ payingCount }}</span>
+          <span class="ops-chip">已完成 {{ completedCount }}</span>
+          <span class="ops-chip">已退款 {{ refundedCount }}</span>
+        </div>
+      </div>
+
+      <div class="ops-table">
+        <el-table :data="orderList" v-loading="loading" border>
         <el-table-column prop="orderNo" label="平台订单号" min-width="220" />
         <el-table-column prop="businessOrderNo" label="业务订单号" min-width="180" />
         <el-table-column prop="merchantName" label="商户" width="160" />
-        <el-table-column prop="channelName" label="支付方式" width="180" />
+        <el-table-column label="支付方式" width="190">
+          <template #default="{ row }">
+            <div class="cell-stack">
+              <strong>{{ row.channelName || "-" }}</strong>
+              <span>{{ row.channelType }} / {{ row.channelSubType || "-" }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="金额" width="140">
           <template #default="{ row }">
             <strong>{{ formatCurrency(row.orderAmount) }}</strong>
@@ -89,7 +134,8 @@
             <el-button v-if="canDelete(row.status)" link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <el-pagination
         v-model:current-page="pagination.page"
@@ -97,7 +143,7 @@
         :total="pagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
+        class="ops-pager"
         @current-change="loadOrders"
         @size-change="loadOrders"
       />
@@ -180,6 +226,53 @@
       </el-timeline>
       <el-empty v-else description="暂无状态流转记录" />
     </el-drawer>
+
+    <el-dialog v-model="launchDialogVisible" width="760px" :title="launchTitle">
+      <div class="ops-split">
+        <div class="ops-subpanel">
+          <p class="ops-kicker">Launch Type</p>
+          <h4 class="drawer-title">{{ currentLaunch?.launchType || "UNKNOWN" }}</h4>
+          <p class="ops-section-copy">
+            {{ currentLaunch?.message || "渠道已返回支付拉起结果" }}
+          </p>
+          <div class="ops-ribbon">
+            <span class="ops-ribbon__item">状态 {{ currentLaunch?.status || "-" }}</span>
+            <span class="ops-ribbon__item">交易号 {{ currentLaunch?.tradeNo || "-" }}</span>
+          </div>
+        </div>
+        <div class="ops-note">
+          <p class="ops-note__label">拉起说明</p>
+          <p class="ops-note__text">
+            `HTML_FORM` 会打开表单窗口，`REDIRECT_URL` 直接跳转，`JSAPI / MINI_PROGRAM / APP / NATIVE`
+            会把可用于前端拉起的参数保留在本对话框中，方便联调。
+          </p>
+        </div>
+      </div>
+
+      <div v-if="currentLaunch?.payUrl" class="launch-block">
+        <p class="ops-kicker">Pay URL</p>
+        <pre class="ops-code">{{ currentLaunch.payUrl }}</pre>
+      </div>
+      <div v-if="currentLaunch?.body" class="launch-block">
+        <p class="ops-kicker">Body</p>
+        <pre class="ops-code">{{ currentLaunch.body }}</pre>
+      </div>
+      <div v-if="currentLaunch?.formHtml" class="launch-block">
+        <p class="ops-kicker">HTML Form</p>
+        <pre class="ops-code">{{ currentLaunch.formHtml }}</pre>
+      </div>
+      <div v-if="currentLaunch?.sdkParams" class="launch-block">
+        <p class="ops-kicker">SDK Params</p>
+        <pre class="ops-code">{{ formattedSdkParams }}</pre>
+      </div>
+      <div v-if="currentLaunch?.rawResponse" class="launch-block">
+        <p class="ops-kicker">Raw Response</p>
+        <pre class="ops-code">{{ currentLaunch.rawResponse }}</pre>
+      </div>
+      <template #footer>
+        <el-button @click="launchDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -237,16 +330,26 @@ const searchForm = reactive({
 
 const createDialogVisible = ref(false);
 const logDrawerVisible = ref(false);
+const launchDialogVisible = ref(false);
+const currentLaunch = ref<PaymentLaunchResult | null>(null);
+const launchTitle = ref("支付拉起结果");
 
 const createForm = reactive<OrderForm>(createDefaultOrderForm());
 
 const pendingCount = computed(() =>
   orderList.value.filter((item) => ["PENDING", "PAYING", "REFUNDING"].includes(item.status)).length
 );
+const payingCount = computed(() => orderList.value.filter((item) => item.status === "PAYING").length);
+const completedCount = computed(() => orderList.value.filter((item) => item.status === "COMPLETED").length);
+const refundedCount = computed(() => orderList.value.filter((item) => item.status === "REFUNDED").length);
+const refundingCount = computed(() => orderList.value.filter((item) => item.status === "REFUNDING").length);
 const successPaidAmount = computed(() =>
   orderList.value
     .filter((item) => item.status === "PAID" || item.status === "COMPLETED" || item.status === "REFUNDING" || item.status === "REFUNDED")
     .reduce((sum, item) => sum + Number(item.paidAmount || 0), 0)
+);
+const formattedSdkParams = computed(() =>
+  currentLaunch.value?.sdkParams ? JSON.stringify(currentLaunch.value.sdkParams, null, 2) : ""
 );
 
 async function loadMerchants() {
@@ -480,39 +583,21 @@ function canDelete(status: string) {
 }
 
 async function presentPayLaunch(order: PaymentOrder, launch: PaymentLaunchResult) {
+  currentLaunch.value = launch;
+  launchTitle.value = `${order.orderNo} - 支付拉起结果`;
   if (launch.launchType === "HTML_FORM" && launch.formHtml) {
     const win = window.open("", "_blank", "noopener,noreferrer");
     if (win) {
       win.document.write(launch.formHtml);
       win.document.close();
       ElMessage.success("支付表单已在新窗口打开");
-      return;
     }
   }
   if (launch.launchType === "REDIRECT_URL" && launch.payUrl) {
     window.open(launch.payUrl, "_blank", "noopener,noreferrer");
-    ElMessage.success("支付链接已在新窗口打开");
-    return;
+    ElMessage.success("支付链接已在新窗口打开，同时保留了拉起结果预览");
   }
-  if ((launch.launchType === "JSAPI" || launch.launchType === "MINI_PROGRAM" || launch.launchType === "APP") && launch.sdkParams) {
-    const payload = typeof launch.sdkParams.orderString === "string"
-      ? launch.sdkParams.orderString
-      : JSON.stringify(launch.sdkParams, null, 2);
-    await ElMessageBox.alert(payload, `${order.orderNo} - ${launch.launchType} 参数`, {
-      confirmButtonText: "关闭",
-    });
-    return;
-  }
-  if (launch.launchType === "NATIVE") {
-    const codeUrl = launch.payUrl || String(launch.sdkParams?.codeUrl || "");
-    await ElMessageBox.alert(codeUrl || "渠道已返回 Native 拉起结果", `${order.orderNo} - Native 参数`, {
-      confirmButtonText: "关闭",
-    });
-    return;
-  }
-  await ElMessageBox.alert(launch.message || "支付请求已提交", `${order.orderNo} - 支付结果`, {
-    confirmButtonText: "关闭",
-  });
+  launchDialogVisible.value = true;
 }
 
 function formatCurrency(value?: number) {
@@ -543,51 +628,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.view {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
-}
-
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
 .panel__header {
   display: flex;
   justify-content: space-between;
@@ -610,18 +650,7 @@ onMounted(async () => {
 }
 
 .toolbar {
-  margin-bottom: 18px;
-}
-
-.table {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.pager {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
+  flex: 1 1 auto;
 }
 
 .cell-stack {
@@ -651,9 +680,20 @@ onMounted(async () => {
   margin: 0;
 }
 
+.launch-block {
+  margin-top: 16px;
+}
+
+.drawer-title {
+  margin: 0;
+  font-size: 22px;
+  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
+}
+
 @media (max-width: 1100px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
+  .panel__header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

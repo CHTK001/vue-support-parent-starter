@@ -71,7 +71,7 @@
 import { ref, computed, watch, nextTick, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import Cropper from "cropperjs";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 import "cropperjs/dist/cropper.css";
 
 interface Props {

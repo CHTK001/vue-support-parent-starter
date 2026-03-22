@@ -29,7 +29,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScCheckbox, ScCheckboxGroup } from "@repo/components";
+import { ScCheckbox } from "@repo/components/ScCheckbox"
+import { ScCheckboxGroup } from "@repo/components/ScCheckboxGroup";
 import DemoBlock from "./DemoBlock.vue";
 
 const checked1 = ref(true);

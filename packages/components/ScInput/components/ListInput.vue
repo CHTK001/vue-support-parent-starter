@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 const props = withDefaults(
   defineProps<{

@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ScAlert } from "@repo/components";
+import { ScAlert } from "@repo/components/ScAlert";
 import DemoBlock from "./DemoBlock.vue";
 
 const codes = {

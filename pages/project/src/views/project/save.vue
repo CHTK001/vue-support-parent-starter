@@ -415,7 +415,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";

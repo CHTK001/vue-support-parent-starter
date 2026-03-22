@@ -282,14 +282,14 @@
 </template>
 
 <script>
+import { useRenderIcon } from "@repo/components/ReIcon";
+
 import { fetchAppList } from "@/api/monitor/app";
 import {
   fetchJobLogChart,
   fetchJobLogPage,
   fetchJobLogClear,
 } from "@/api/monitor/job";
-import { useRenderIcon } from "@repo/components";
-import { ScEcharts } from "@repo/components"
 import { dateFormat, getDateRang, getRecentDays } from "@repo/utils";
 import { defineAsyncComponent, defineComponent } from "vue";
 

@@ -45,7 +45,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
 type Rect8Position = "top-left" | "top-center" | "top-right" | "left-center" | "right-center" | "bottom-left" | "bottom-center" | "bottom-right";
 

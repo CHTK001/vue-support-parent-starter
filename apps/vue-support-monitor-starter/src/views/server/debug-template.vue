@@ -93,8 +93,9 @@
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+
 import { ref, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
 
 // 状态
 const leftPanelMinimized = ref(false);

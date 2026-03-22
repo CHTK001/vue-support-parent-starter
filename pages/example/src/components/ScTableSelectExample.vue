@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ScTableSelect } from "@repo/components"
+import { ScTableSelect } from "@repo/components/ScTableSelect"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -109,7 +109,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScTableSelect } from "@repo/components"
+import { ScTableSelect } from "@repo/components/ScTableSelect"
 const selected = ref([]);
 
 const columns = [

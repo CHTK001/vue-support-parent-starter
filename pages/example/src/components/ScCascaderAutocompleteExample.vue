@@ -27,7 +27,8 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScAutocomplete, ScCascader } from "@repo/components";
+import { ScAutocomplete } from "@repo/components/ScAutocomplete"
+import { ScCascader } from "@repo/components/ScCascader";
 import DemoBlock from "./DemoBlock.vue";
 
 const cascaderValue = ref<(string | number)[] | string | number>("");

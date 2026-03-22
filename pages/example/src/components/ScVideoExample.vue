@@ -91,8 +91,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ScVideo } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import { ScVideo } from "@repo/components/ScVideo"
+import { ScVideo } from "@repo/components/ScVideo";
 
 const videoRef = ref();
 

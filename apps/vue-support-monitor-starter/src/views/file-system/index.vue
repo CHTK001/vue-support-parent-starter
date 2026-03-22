@@ -438,6 +438,8 @@
 </template>
 
 <script setup lang="ts">
+import { ScCard } from "@repo/components/ScCard";
+
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from "vue";
 import { message, messageBox } from "@repo/utils";
 import { formatBytes } from "@pureadmin/utils";
@@ -470,7 +472,6 @@ import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
-import { ScCard } from "@repo/components"
 // SSE连接
 const {
   state: sseState,

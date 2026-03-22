@@ -1,7 +1,7 @@
 ﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { ScSlider } from "@repo/components";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 响应式数据
 const env = reactive({

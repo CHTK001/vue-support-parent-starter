@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import { ScFile } from "@repo/components"
+import { ScFile } from "@repo/components/ScFile"
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -144,7 +144,7 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScFile } from "@repo/components"
+import { ScFile } from "@repo/components/ScFile"
 const path = ref("");
 
 const loadFiles = async (params) => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import { ScButton } from "@repo/components";
+import { ScButton } from "@repo/components/ScButton";
 
 const { t } = useI18n();
 
