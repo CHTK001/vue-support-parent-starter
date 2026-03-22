@@ -1,6 +1,35 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@repo/tsconfig/node.json",
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "paths": {
+      "@repo/components/*": [
+        "../../packages/components/*"
+      ],
+      "@repo/components": [
+        "../../packages/components"
+      ],
+      "@repo/config": [
+        "../../packages/config"
+      ],
+      "@repo/core": [
+        "../../packages/core"
+      ],
+      "@repo/utils": [
+        "../../packages/utils"
+      ],
+      "@repo/plugins": [
+        "../../packages/plugins"
+      ],
+      "@layout/default": [
+        "../../layout/default/src"
+      ]
+    }
+  }
 }
