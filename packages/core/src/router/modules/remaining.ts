@@ -5,6 +5,21 @@ const Layout = () => import("@layout/default");
 
 export default [
   {
+    path: "/",
+    redirect: "/home",
+  },
+  {
+    path: "/home",
+    name: "Home",
+    component: Layout,
+    meta: {
+      title: $t("menus.pureHome"),
+      showLink: false,
+      rank: 0,
+    },
+    children: [],
+  },
+  {
     path: "/login",
     name: "Login",
     // @ts-ignore
