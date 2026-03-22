@@ -42,11 +42,10 @@ createStandardApp({
   socketPlugins: [GlobalSocketPlugin],
   setup: (app) => setupDirectives(app),
 }).then((bootstrap) => {
-  return bootstrap.mount("#app").then(() => {
-    // 清理加载器
-    const style = document.querySelector("style");
-    if (style && style.textContent?.includes("sys-loader")) {
-      style.remove();
-    }
-  });
+  bootstrap.mount("#app");
+  // 清理加载器
+  const style = document.querySelector("style");
+  if (style && style.textContent?.includes("sys-loader")) {
+    style.remove();
+  }
 });
