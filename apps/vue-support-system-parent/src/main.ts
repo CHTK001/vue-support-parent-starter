@@ -5,4 +5,4 @@ import "@repo/assets/fonts/iconfont.js";
 import "@repo/assets/styles/modern-page.scss";
 import "./styles/enhancements.scss";
 
-createStandardApp().then(async (bootstrap) => bootstrap.mount("#app"));
+createStandardApp().then((bootstrap) => bootstrap.mount("#app"));
