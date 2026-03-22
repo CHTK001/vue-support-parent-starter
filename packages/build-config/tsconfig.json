@@ -9,7 +9,34 @@
     "declaration": true,
     "declarationDir": "./dist",
     "outDir": "./dist",
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@repo/components/*": [
+        "../../packages/components/*"
+      ],
+      "@repo/components": [
+        "../../packages/components"
+      ],
+      "@repo/config": [
+        "../../packages/config"
+      ],
+      "@repo/core": [
+        "../../packages/core"
+      ],
+      "@repo/utils": [
+        "../../packages/utils"
+      ],
+      "@repo/plugins": [
+        "../../packages/plugins"
+      ],
+      "@layout/default": [
+        "../../layout/default/src"
+      ]
+    }
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }
