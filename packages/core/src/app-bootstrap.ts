@@ -319,7 +319,8 @@ export async function createStandardApp(
   const { Auth } = await import("@repo/components/ReAuth");
   const {
     ScTable, ScTableColumn, ScButton, ScSelect, ScSwitch,
-    ScText, ScDrawer, ScDialog, ScTooltip,
+    ScText, ScDrawer, ScDialog, ScTooltip, ScDropdown,
+    ScDropdownItem, ScTag, ScDropdownMenu,
   } = await import("@repo/components");
 
   // 3. 创建应用实例
@@ -414,7 +415,11 @@ export async function createStandardApp(
     .registerComponent("ScDrawer", ScDrawer)
     .registerComponent("ScDialog", ScDialog)
     .registerComponent("ScTooltip", ScTooltip)
-    .registerComponent("ScText", ScText);
+    .registerComponent("ScText", ScText)
+    .registerComponent("ScDropdown", ScDropdown)
+    .registerComponent("ScDropdownItem", ScDropdownItem)
+    .registerComponent("ScTag", ScTag)
+    .registerComponent("ScDropdownMenu", ScDropdownMenu);
 
   if (Object.keys(components).length > 0) {
     bootstrap.registerGlobalComponents(components);
