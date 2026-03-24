@@ -57,10 +57,7 @@ export const getParseApis = (): Promise<ApiResponse<ParseApiConfig[]>> => {
  * @param apiId 解析接口ID
  * @returns 解析结果
  */
-export const parseVideoUrl = (
-  url: string,
-  apiId: string,
-): Promise<ApiResponse<ParseResult>> => {
+export const parseVideoUrl = (url: string, apiId: string): Promise<ApiResponse<ParseResult>> => {
   return http.post(`${API_BASE}/parse`, {
     url,
     apiId,
@@ -73,10 +70,7 @@ export const parseVideoUrl = (
  * @param apiId 解析接口ID
  * @returns 解析结果列表
  */
-export const batchParseVideoUrls = (
-  urls: string[],
-  apiId: string,
-): Promise<ApiResponse<ParseResult[]>> => {
+export const batchParseVideoUrls = (urls: string[], apiId: string): Promise<ApiResponse<ParseResult[]>> => {
   return http.post(`${API_BASE}/batch-parse`, {
     urls,
     apiId,
@@ -91,7 +85,7 @@ export const batchParseVideoUrls = (
  */
 export const getParseHistory = (
   page: number = 1,
-  size: number = 20,
+  size: number = 20
 ): Promise<
   ApiResponse<{
     records: ParseHistory[];
@@ -118,9 +112,7 @@ export const clearParseHistory = (): Promise<ApiResponse<boolean>> => {
  * @param historyId 历史记录ID
  * @returns 操作结果
  */
-export const deleteParseHistory = (
-  historyId: string,
-): Promise<ApiResponse<boolean>> => {
+export const deleteParseHistory = (historyId: string): Promise<ApiResponse<boolean>> => {
   return http.delete(`${API_BASE}/history/${historyId}`);
 };
 
@@ -130,7 +122,7 @@ export const deleteParseHistory = (
  * @returns 检测结果
  */
 export const validateVideoUrl = (
-  url: string,
+  url: string
 ): Promise<
   ApiResponse<{
     valid: boolean;
@@ -150,7 +142,7 @@ export const validateVideoUrl = (
  */
 export const getParseStats = (
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): Promise<
   ApiResponse<{
     totalParses: number;
@@ -172,7 +164,7 @@ export const getParseStats = (
  * @returns 测试结果
  */
 export const testParseApi = (
-  apiId: string,
+  apiId: string
 ): Promise<
   ApiResponse<{
     available: boolean;
@@ -205,9 +197,7 @@ export const getPopularVideoSites = (): Promise<
  * @param config 解析接口配置
  * @returns 操作结果
  */
-export const addCustomParseApi = (
-  config: Omit<ParseApiConfig, "value">,
-): Promise<ApiResponse<string>> => {
+export const addCustomParseApi = (config: Omit<ParseApiConfig, "value">): Promise<ApiResponse<string>> => {
   return http.post(`${API_BASE}/custom-api`, config);
 };
 
@@ -217,10 +207,7 @@ export const addCustomParseApi = (
  * @param config 解析接口配置
  * @returns 操作结果
  */
-export const updateCustomParseApi = (
-  apiId: string,
-  config: Partial<ParseApiConfig>,
-): Promise<ApiResponse<boolean>> => {
+export const updateCustomParseApi = (apiId: string, config: Partial<ParseApiConfig>): Promise<ApiResponse<boolean>> => {
   return http.put(`${API_BASE}/custom-api/${apiId}`, config);
 };
 
@@ -229,8 +216,6 @@ export const updateCustomParseApi = (
  * @param apiId 接口ID
  * @returns 操作结果
  */
-export const deleteCustomParseApi = (
-  apiId: string,
-): Promise<ApiResponse<boolean>> => {
+export const deleteCustomParseApi = (apiId: string): Promise<ApiResponse<boolean>> => {
   return http.delete(`${API_BASE}/custom-api/${apiId}`);
 };

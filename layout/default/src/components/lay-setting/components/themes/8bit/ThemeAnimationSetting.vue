@@ -12,3 +12,4 @@ import BaseComponent from "../../base/ThemeAnimationSetting.vue";
 // 8-bit 主题专属动画样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
+

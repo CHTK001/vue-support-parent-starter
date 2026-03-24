@@ -4,7 +4,7 @@
     <slot name="header" :data="progressData">
       <div class="process-header">
         <span class="process-title">{{ title }}</span>
-        <ScTag :type="statusType" size="small">{{ statusText }}</ScTag>
+        <el-tag :type="statusType" size="small">{{ statusText }}</el-tag>
       </div>
     </slot>
 
@@ -33,12 +33,12 @@
           </div>
         </slot>
         <div class="header-controls">
-          <ScButton type="text" size="small" class="control-btn" :title="isMinimized ? '还原' : '最小化'" @click.stop="toggleMinimize">
+          <el-button type="text" size="small" class="control-btn" :title="isMinimized ? '还原' : '最小化'" @click.stop="toggleMinimize">
             <IconifyIconOnline :icon="isMinimized ? 'ri:arrow-up-s-line' : 'ri:subtract-line'" width="16" />
-          </ScButton>
-          <ScButton v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
+          </el-button>
+          <el-button v-if="closeable" type="text" size="small" class="control-btn close-btn" @click.stop="handleClose">
             <IconifyIconOnline icon="ri:close-line" width="16" />
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -50,7 +50,7 @@
         <!-- Process 布局 -->
         <template v-else-if="layout === 'process'">
           <div class="process-status">
-            <ScTag :type="statusType" size="small">{{ statusText }}</ScTag>
+            <el-tag :type="statusType" size="small">{{ statusText }}</el-tag>
           </div>
           <ProcessLayout :percentage="percentage" :status="status" :message="message" :current-step="currentStep" />
         </template>
@@ -64,7 +64,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type PropType } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ProcessLayout from "./components/ProcessLayout.vue";
 import LogLayout from "./components/LogLayout.vue";
 import ResizeHandles from "./components/ResizeHandles.vue";

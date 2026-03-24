@@ -12,30 +12,30 @@
       <ul>
         <li v-for="item in usercolumn" :key="item.prop">
           <span class="move_b">
-            <ScTag class="move" style="cursor: move"><el-icon-d-caret style="width: 1em; height: 1em" /></ScTag>
+            <el-tag class="move" style="cursor: move"><el-icon-d-caret style="width: 1em; height: 1em" /></el-tag>
           </span>
           <span class="show_b">
-            <ScSwitch v-model="item.hide" :active-value="false" :inactive-value="true" />
+            <el-switch v-model="item.hide" :active-value="false" :inactive-value="true" />
           </span>
           <span class="name_b" :title="item.prop">{{ item.label }}</span>
           <span class="width_b">
-            <ScInput v-model="item.width" placeholder="auto" size="small" />
+            <el-input v-model="item.width" placeholder="auto" size="small" />
           </span>
           <span class="sortable_b">
-            <ScSwitch v-model="item.sortable" />
+            <el-switch v-model="item.sortable" />
           </span>
           <span class="fixed_b">
-            <ScSwitch v-model="item.fixed" />
+            <el-switch v-model="item.fixed" />
           </span>
         </li>
       </ul>
     </div>
     <div class="setting-column__bottom">
-      <ScButton :disabled="isSave" @click="backDefaul">重置</ScButton>
-      <ScButton type="primary" @click="save">保存</ScButton>
+      <el-button :disabled="isSave" @click="backDefaul">重置</el-button>
+      <el-button type="primary" @click="save">保存</el-button>
     </div>
   </div>
-  <ScEmpty v-else description="暂无可配置的列" :image-size="80" />
+  <el-empty v-else description="暂无可配置的列" :image-size="80" />
 </template>
 
 <script>

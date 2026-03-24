@@ -2,7 +2,7 @@
  * 默认主题 - 标签页美化样式
  * 现代化设计，精致细腻的视觉效果
  */
-@use '../../../../../../packages/assets/styles/glass.scss' as *;
+@use '../../../../../../packages/assets/style/glass.scss' as *;
 
 // 动画定义
 @keyframes schedule-in-width {
@@ -101,19 +101,12 @@
     margin: 0 3px;
     line-height: 30px;
     cursor: pointer;
-    border-radius: 6px;
-    // 非激活态：透明背景，无边框
-    background: transparent;
-    border: 1px solid transparent;
-    box-shadow: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-    // 关闭按钮默认隐藏，hover 时显示
-    .el-icon-close {
-      opacity: 0;
-      transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
-    }
-
+    border-radius: 6px; // 优化圆角
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); // 添加阴影
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
     &:not(:first-child) {
       padding-right: 28px;
     }
@@ -121,41 +114,12 @@
     &:first-child {
       margin-left: 6px;
     }
-
+    
     &:hover {
-      background: var(--el-fill-color-light);
-      border-color: var(--el-border-color-lighter);
+      border-color: var(--el-color-primary-light-5);
       color: var(--el-color-primary);
-
-      // hover 时显示关闭按钮
-      .el-icon-close {
-        opacity: 1;
-      }
-    }
-
-    // 激活态：primary 色底 + 白色文字
-    &.is-active {
-      background: var(--el-color-primary);
-      border-color: var(--el-color-primary);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.35);
-
-      .el-icon-close {
-        opacity: 1;
-        color: rgba(255, 255, 255, 0.8);
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.2);
-          color: #fff;
-        }
-      }
-
-      &:hover {
-        background: var(--el-color-primary);
-        color: #fff;
-        transform: none;
-        box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.35);
-      }
+      transform: translateY(-1px); // 悬停上浮
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
     &.chrome-item {
@@ -247,6 +211,12 @@
       font-size: 14px;
       border-radius: 50%;
       padding: 2px;
+      transition: all 0.3s;
+      
+      &:hover {
+        background-color: var(--el-color-danger);
+        color: #fff;
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 ﻿<script setup>
 import { reactive, ref, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { ScSwitch } from "@repo/components"
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import Prism from "prismjs";
 import "prismjs/components/prism-sql.min.js";
 import "prismjs/themes/prism-tomorrow.min.css";
@@ -343,7 +343,7 @@ const parseMybatisLog = () => {
 
     // 尝试提取SQL语句 - 同时支持带有 ==> 前缀和不带前缀的格式
     let sqlMatch = logContent.match(
-      /(?:==>)?\s*Preparing:\s*([\s\S]+?)(?=(?:==>)?\s*Parameters:|$)/i,
+      /(?:==>)?\s*Preparing:\s*([\s\S]+?)(?=(?:==>)?\s*Parameters:|$)/i
     );
     if (!sqlMatch || !sqlMatch[1]) {
       throw new Error("无法从日志中提取SQL语句");
@@ -354,7 +354,7 @@ const parseMybatisLog = () => {
 
     // 尝试提取参数 - 同时支持带有 ==> 前缀和不带前缀的格式
     let paramsMatch = logContent.match(
-      /(?:==>)?\s*Parameters:\s*([\s\S]+?)(?=\n|$)/i,
+      /(?:==>)?\s*Parameters:\s*([\s\S]+?)(?=\n|$)/i
     );
     let params = [];
     let paramsStr = "";
@@ -442,15 +442,10 @@ const toggleMybatisLogInput = () => {
       <!-- 头部信息 -->
       <div class="sql-params__header">
         <div class="sql-params__header-content">
-          <IconifyIconOnline
-            icon="ri:database-2-line"
-            class="sql-params__header-icon"
-          />
+          <IconifyIconOnline icon="ri:database-2-line" class="sql-params__header-icon" />
           <div>
             <h2 class="sql-params__header-title">SQL参数填充工具</h2>
-            <p class="sql-params__header-desc">
-              填充SQL预处理语句中的参数，支持问号占位符、数字占位符和命名参数
-            </p>
+            <p class="sql-params__header-desc">填充SQL预处理语句中的参数，支持问号占位符、数字占位符和命名参数</p>
           </div>
         </div>
       </div>
@@ -468,7 +463,7 @@ const toggleMybatisLogInput = () => {
                 />
                 <span>SQL参数填充</span>
                 <div class="sql-params__header-actions">
-                  <ScButton
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -494,7 +489,7 @@ const toggleMybatisLogInput = () => {
             <ScForm label-position="top" v-if="!env.mybatisLog.enabled">
               <!-- SQL输入 -->
               <ScFormItem label="SQL语句 (包含占位符)">
-                <ScInput
+                <ScInput 
                   v-model="env.inputSQL"
                   type="textarea"
                   :rows="8"
@@ -505,11 +500,11 @@ const toggleMybatisLogInput = () => {
 
               <!-- 参数类型选择 -->
               <ScFormItem label="参数类型">
-                <ScRadioGroup
+                <ScRadioGroup 
                   v-model="env.paramsType"
                   class="sql-params__radio-group"
                 >
-                  <ScRadio
+                  <ScRadio 
                     v-for="option in env.paramTypeOptions"
                     :key="option.value"
                     :label="option.value"
@@ -534,7 +529,7 @@ const toggleMybatisLogInput = () => {
 
               <!-- 参数输入 -->
               <!-- 参数输入 -->
-              <ScFormItem
+              <ScFormItem 
                 :label="
                   env.paramsType === 'json'
                     ? 'JSON参数'
@@ -545,7 +540,7 @@ const toggleMybatisLogInput = () => {
                         : '数字占位符参数 (JSON数组)'
                 "
               >
-                <ScInput
+                <ScInput 
                   v-model="env.paramsInput"
                   type="textarea"
                   :rows="5"
@@ -562,8 +557,11 @@ const toggleMybatisLogInput = () => {
                 />
               </ScFormItem>
               <!-- 分隔符设置 (仅数组模式) -->
-              <ScFormItem v-if="env.paramsType === 'array'" label="参数分隔符">
-                <ScInput
+              <ScFormItem 
+                v-if="env.paramsType === 'array'"
+                label="参数分隔符"
+              >
+                <ScInput 
                   v-model="env.paramsSeparator"
                   placeholder="默认为逗号"
                   style="width: 100px"
@@ -583,12 +581,12 @@ const toggleMybatisLogInput = () => {
                     v-if="env.formatOptions.enabled"
                     class="sql-params__format-settings"
                   >
-                    <ScSelect
+                    <ScSelect 
                       v-model="env.formatOptions.language"
                       placeholder="SQL方言"
                       class="sql-params__format-select"
                     >
-                      <ScOption
+                      <ScOption 
                         v-for="option in env.sqlDialectOptions"
                         :key="option.value"
                         :label="option.label"
@@ -607,7 +605,7 @@ const toggleMybatisLogInput = () => {
 
               <!-- 操作按钮 -->
               <div class="sql-params__actions">
-                <ScButton
+                <ScButton 
                   type="primary"
                   :loading="env.loading"
                   class="sql-params__fill-btn"
@@ -617,7 +615,7 @@ const toggleMybatisLogInput = () => {
                   <span>填充参数</span>
                 </ScButton>
 
-                <ScButton
+                <ScButton 
                   type="success"
                   class="sql-params__format-btn"
                   @click="formatSQL"
@@ -635,7 +633,7 @@ const toggleMybatisLogInput = () => {
             <ScForm label-position="top" v-else>
               <!-- MyBatis日志解析表单 -->
               <ScFormItem label="粘贴MyBatis日志 (包含SQL和参数)">
-                <ScInput
+                <ScInput 
                   v-model="env.mybatisLog.input"
                   type="textarea"
                   :rows="12"
@@ -645,7 +643,7 @@ const toggleMybatisLogInput = () => {
               </ScFormItem>
 
               <div class="sql-params__actions">
-                <ScButton
+                <ScButton 
                   type="primary"
                   :loading="env.loading"
                   class="sql-params__fill-btn"
@@ -655,7 +653,7 @@ const toggleMybatisLogInput = () => {
                   <span>解析日志</span>
                 </ScButton>
 
-                <ScButton
+                <ScButton 
                   class="sql-params__clear-btn"
                   @click="env.mybatisLog.input = ''"
                 >
@@ -679,8 +677,8 @@ const toggleMybatisLogInput = () => {
             </template>
 
             <div class="sql-params__templates">
-              <ScCollapse accordion>
-                <ScCollapseItem
+              <el-collapse accordion>
+                <el-collapse-item
                   v-for="(template, index) in env.templates"
                   :key="index"
                   :title="template.name"
@@ -700,7 +698,7 @@ const toggleMybatisLogInput = () => {
                       </div>
                     </div>
                     <div class="sql-params__template-actions">
-                      <ScButton
+                      <ScButton 
                         type="primary"
                         size="small"
                         @click.stop="applyTemplate(template)"
@@ -710,8 +708,8 @@ const toggleMybatisLogInput = () => {
                       </ScButton>
                     </div>
                   </div>
-                </ScCollapseItem>
-              </ScCollapse>
+                </el-collapse-item>
+              </el-collapse>
             </div>
           </ScCard>
         </ScCol>
@@ -728,7 +726,7 @@ const toggleMybatisLogInput = () => {
                 />
                 <span>填充结果</span>
                 <div class="sql-params__header-actions" v-if="env.outputSQL">
-                  <ScButton
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -741,7 +739,7 @@ const toggleMybatisLogInput = () => {
               </div>
             </template>
 
-            <ScEmpty
+            <ScEmpty 
               v-if="!env.outputSQL"
               description="请先填充SQL参数"
               class="sql-params__empty"
@@ -773,7 +771,7 @@ const toggleMybatisLogInput = () => {
               </div>
             </template>
 
-            <ScEmpty
+            <ScEmpty 
               v-if="!env.history.length"
               description="暂无历史记录"
               class="sql-params__empty"
@@ -786,7 +784,7 @@ const toggleMybatisLogInput = () => {
               </template>
             </ScEmpty>
 
-            <ScTable
+            <ScTable 
               v-else
               :data="env.history"
               style="width: 100%"
@@ -809,7 +807,7 @@ const toggleMybatisLogInput = () => {
               </ScTableColumn>
               <ScTableColumn label="操作" width="100" fixed="right">
                 <template #default="scope">
-                  <ScButton
+                  <ScButton 
                     type="primary"
                     link
                     size="small"
@@ -836,8 +834,8 @@ const toggleMybatisLogInput = () => {
             </template>
 
             <div class="sql-params__reference">
-              <ScCollapse accordion>
-                <ScCollapseItem title="MyBatis日志解析" name="mybatis">
+              <el-collapse accordion>
+                <el-collapse-item title="MyBatis日志解析" name="mybatis">
                   <div class="sql-params__reference-content">
                     <p>工具支持从MyBatis日志中提取SQL和参数：</p>
                     <ol>
@@ -852,8 +850,8 @@ Parameters: 123(Integer)</code></pre>
                     <pre><code>==>  Preparing: select * from users where username = ? and status = ? 
 ==> Parameters: admin(String), 1(Integer)</code></pre>
                   </div>
-                </ScCollapseItem>
-                <ScCollapseItem title="支持的占位符类型" name="placeholders">
+                </el-collapse-item>
+                <el-collapse-item title="支持的占位符类型" name="placeholders">
                   <div class="sql-params__reference-content">
                     <h4>问号占位符</h4>
                     <p>最常见的占位符类型，用于JDBC预处理语句。</p>
@@ -868,8 +866,8 @@ Parameters: 123(Integer)</code></pre>
                     <pre><code>SELECT * FROM orders WHERE customer_id = :customerId</code></pre>
                     <pre><code>SELECT * FROM employees WHERE department = #{departmentId}</code></pre>
                   </div>
-                </ScCollapseItem>
-                <ScCollapseItem title="参数格式说明" name="formats">
+                </el-collapse-item>
+                <el-collapse-item title="参数格式说明" name="formats">
                   <div class="sql-params__reference-content">
                     <h4>JSON格式</h4>
                     <p>使用JSON数组表示参数列表：</p>
@@ -883,8 +881,8 @@ Parameters: 123(Integer)</code></pre>
                     <p>使用JSON对象，键为参数名：</p>
                     <pre><code>{"customerId": 12345, "status": "active"}</code></pre>
                   </div>
-                </ScCollapseItem>
-                <ScCollapseItem title="参数类型处理" name="types">
+                </el-collapse-item>
+                <el-collapse-item title="参数类型处理" name="types">
                   <div class="sql-params__reference-content">
                     <p>工具会根据参数类型自动处理：</p>
                     <ul>
@@ -896,8 +894,8 @@ Parameters: 123(Integer)</code></pre>
                       <li><strong>对象</strong>: 转换为JSON字符串</li>
                     </ul>
                   </div>
-                </ScCollapseItem>
-              </ScCollapse>
+                </el-collapse-item>
+              </el-collapse>
             </div>
           </ScCard>
         </ScCol>
@@ -918,11 +916,7 @@ Parameters: 123(Integer)</code></pre>
   }
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-info-light-3) 0%,
-      var(--el-color-info) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-info-light-3) 0%, var(--el-color-info) 100%);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;

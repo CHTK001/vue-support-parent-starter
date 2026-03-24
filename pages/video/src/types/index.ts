@@ -52,7 +52,7 @@ export interface PageRequest {
   /** 排序字段 */
   orderBy?: string;
   /** 排序方向 */
-  orderDirection?: "asc" | "desc";
+  orderDirection?: 'asc' | 'desc';
 }
 
 /**
@@ -116,15 +116,15 @@ export interface VideoInfo {
  */
 export enum VideoStatus {
   /** 正常 */
-  NORMAL = "normal",
+  NORMAL = 'normal',
   /** 处理中 */
-  PROCESSING = "processing",
+  PROCESSING = 'processing',
   /** 失败 */
-  FAILED = "failed",
+  FAILED = 'failed',
   /** 禁用 */
-  DISABLED = "disabled",
+  DISABLED = 'disabled',
   /** 删除 */
-  DELETED = "deleted",
+  DELETED = 'deleted'
 }
 
 /**
@@ -192,17 +192,17 @@ export interface VideoDownloadInfo {
  */
 export enum DownloadStatus {
   /** 等待中 */
-  WAITING = "waiting",
+  WAITING = 'waiting',
   /** 下载中 */
-  DOWNLOADING = "downloading",
+  DOWNLOADING = 'downloading',
   /** 已完成 */
-  COMPLETED = "completed",
+  COMPLETED = 'completed',
   /** 已暂停 */
-  PAUSED = "paused",
+  PAUSED = 'paused',
   /** 失败 */
-  FAILED = "failed",
+  FAILED = 'failed',
   /** 已取消 */
-  CANCELLED = "cancelled",
+  CANCELLED = 'cancelled'
 }
 
 /**
@@ -294,19 +294,19 @@ export interface ConfigInfo {
  */
 export enum ConfigType {
   /** 字符串 */
-  STRING = "string",
+  STRING = 'string',
   /** 数字 */
-  NUMBER = "number",
+  NUMBER = 'number',
   /** 布尔值 */
-  BOOLEAN = "boolean",
+  BOOLEAN = 'boolean',
   /** JSON */
-  JSON = "json",
+  JSON = 'json',
   /** 数组 */
-  ARRAY = "array",
+  ARRAY = 'array',
   /** 文件 */
-  FILE = "file",
+  FILE = 'file',
   /** 密码 */
-  PASSWORD = "password",
+  PASSWORD = 'password'
 }
 
 /**
@@ -314,9 +314,9 @@ export enum ConfigType {
  */
 export enum ConfigStatus {
   /** 启用 */
-  ENABLED = "enabled",
+  ENABLED = 'enabled',
   /** 禁用 */
-  DISABLED = "disabled",
+  DISABLED = 'disabled'
 }
 
 /**
@@ -354,11 +354,11 @@ export interface SyncConfig {
  */
 export enum SyncType {
   /** 视频同步 */
-  VIDEO = "video",
+  VIDEO = 'video',
   /** 配置同步 */
-  CONFIG = "config",
+  CONFIG = 'config',
   /** 数据同步 */
-  DATA = "data",
+  DATA = 'data'
 }
 
 /**
@@ -366,13 +366,13 @@ export enum SyncType {
  */
 export enum SyncStatus {
   /** 等待中 */
-  WAITING = "waiting",
+  WAITING = 'waiting',
   /** 同步中 */
-  SYNCING = "syncing",
+  SYNCING = 'syncing',
   /** 成功 */
-  SUCCESS = "success",
+  SUCCESS = 'success',
   /** 失败 */
-  FAILED = "failed",
+  FAILED = 'failed'
 }
 
 /**
@@ -416,11 +416,11 @@ export interface ParseInterface {
  */
 export enum ParseType {
   /** 官方接口 */
-  OFFICIAL = "official",
+  OFFICIAL = 'official',
   /** 第三方接口 */
-  THIRD_PARTY = "third_party",
+  THIRD_PARTY = 'third_party',
   /** 自定义接口 */
-  CUSTOM = "custom",
+  CUSTOM = 'custom'
 }
 
 /**
@@ -428,13 +428,13 @@ export enum ParseType {
  */
 export enum ResponseFormat {
   /** JSON */
-  JSON = "json",
+  JSON = 'json',
   /** XML */
-  XML = "xml",
+  XML = 'xml',
   /** HTML */
-  HTML = "html",
+  HTML = 'html',
   /** 纯文本 */
-  TEXT = "text",
+  TEXT = 'text'
 }
 
 /**
@@ -442,11 +442,11 @@ export enum ResponseFormat {
  */
 export enum InterfaceStatus {
   /** 正常 */
-  NORMAL = "normal",
+  NORMAL = 'normal',
   /** 异常 */
-  ERROR = "error",
+  ERROR = 'error',
   /** 维护中 */
-  MAINTENANCE = "maintenance",
+  MAINTENANCE = 'maintenance'
 }
 
 /**
@@ -546,15 +546,15 @@ export interface FileUploadInfo {
  */
 export enum UploadStatus {
   /** 等待中 */
-  WAITING = "waiting",
+  WAITING = 'waiting',
   /** 上传中 */
-  UPLOADING = "uploading",
+  UPLOADING = 'uploading',
   /** 已完成 */
-  COMPLETED = "completed",
+  COMPLETED = 'completed',
   /** 失败 */
-  FAILED = "failed",
+  FAILED = 'failed',
   /** 已取消 */
-  CANCELLED = "cancelled",
+  CANCELLED = 'cancelled'
 }
 
 /**
@@ -576,21 +576,21 @@ export interface WebSocketMessage {
  */
 export enum MessageType {
   /** 连接 */
-  CONNECT = "connect",
+  CONNECT = 'connect',
   /** 断开连接 */
-  DISCONNECT = "disconnect",
+  DISCONNECT = 'disconnect',
   /** 心跳 */
-  HEARTBEAT = "heartbeat",
+  HEARTBEAT = 'heartbeat',
   /** 解析进度 */
-  PARSE_PROGRESS = "parse_progress",
+  PARSE_PROGRESS = 'parse_progress',
   /** 下载进度 */
-  DOWNLOAD_PROGRESS = "download_progress",
+  DOWNLOAD_PROGRESS = 'download_progress',
   /** 上传进度 */
-  UPLOAD_PROGRESS = "upload_progress",
+  UPLOAD_PROGRESS = 'upload_progress',
   /** 系统通知 */
-  SYSTEM_NOTIFICATION = "system_notification",
+  SYSTEM_NOTIFICATION = 'system_notification',
   /** 错误信息 */
-  ERROR = "error",
+  ERROR = 'error'
 }
 
 /**
@@ -646,50 +646,50 @@ export interface FormFieldConfig {
  */
 export enum FieldType {
   /** 文本输入 */
-  TEXT = "text",
+  TEXT = 'text',
   /** 密码输入 */
-  PASSWORD = "password",
+  PASSWORD = 'password',
   /** 数字输入 */
-  NUMBER = "number",
+  NUMBER = 'number',
   /** 邮箱输入 */
-  EMAIL = "email",
+  EMAIL = 'email',
   /** URL输入 */
-  URL = "url",
+  URL = 'url',
   /** 文本域 */
-  TEXTAREA = "textarea",
+  TEXTAREA = 'textarea',
   /** 选择框 */
-  SELECT = "select",
+  SELECT = 'select',
   /** 单选框 */
-  RADIO = "radio",
+  RADIO = 'radio',
   /** 复选框 */
-  CHECKBOX = "checkbox",
+  CHECKBOX = 'checkbox',
   /** 开关 */
-  SWITCH = "switch",
+  SWITCH = 'switch',
   /** 日期选择 */
-  DATE = "date",
+  DATE = 'date',
   /** 时间选择 */
-  TIME = "time",
+  TIME = 'time',
   /** 日期时间选择 */
-  DATETIME = "datetime",
+  DATETIME = 'datetime',
   /** 文件上传 */
-  FILE = "file",
+  FILE = 'file',
   /** 图片上传 */
-  IMAGE = "image",
+  IMAGE = 'image',
   /** 颜色选择 */
-  COLOR = "color",
+  COLOR = 'color',
   /** 滑块 */
-  SLIDER = "slider",
+  SLIDER = 'slider',
   /** 评分 */
-  RATE = "rate",
+  RATE = 'rate'
 }
 
 /**
  * 导出所有类型
  */
-export * from "./video";
-export * from "./config";
-export * from "./parse";
-export * from "./search";
-export * from "./system";
-export * from "./upload";
-export * from "./websocket";
+export * from './video';
+export * from './config';
+export * from './parse';
+export * from './search';
+export * from './system';
+export * from './upload';
+export * from './websocket';

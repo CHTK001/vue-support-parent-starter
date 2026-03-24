@@ -8,6 +8,7 @@ import GraphConsole from "@/views/data-management/console/graph/graphConsole.vue
 const id = computed(() => Number(useRoute().query.id));
 </script>
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -41,10 +42,12 @@ const id = computed(() => Number(useRoute().query.id));
   }
 }
 
+
 .page {
   padding: 8px;
   height: 100%;
 }
+
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -54,4 +57,5 @@ const id = computed(() => Number(useRoute().query.id));
     padding: 12px 16px;
   }
 }
+
 </style>

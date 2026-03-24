@@ -51,7 +51,7 @@
  * @version 1.0.0
  */
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScSwitch from "../index.vue";
 
 interface Props {

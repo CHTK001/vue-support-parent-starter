@@ -6,23 +6,18 @@
         <span class="header-title">主机资源监控</span>
       </div>
       <div class="header-right">
-        <ScButton
-          :loading="loading"
-          size="small"
-          circle
-          @click="handleRefresh"
-        >
+        <el-button @click="handleRefresh" :loading="loading" size="small" circle>
           <IconifyIconOnline icon="ri:refresh-line" />
-        </ScButton>
+        </el-button>
       </div>
     </div>
-
+    
     <div class="monitor-content">
       <!-- CPU使用率 -->
       <div class="resource-item">
         <div class="resource-label">CPU使用率</div>
         <div class="resource-progress">
-          <ScProgress
+          <el-progress
             :percentage="cpuUsage"
             :color="getUsageColor(cpuUsage)"
             :stroke-width="10"
@@ -31,12 +26,12 @@
         </div>
         <div class="resource-value">{{ cpuUsage.toFixed(1) }}%</div>
       </div>
-
+      
       <!-- 内存使用率 -->
       <div class="resource-item">
         <div class="resource-label">内存使用率</div>
         <div class="resource-progress">
-          <ScProgress
+          <el-progress
             :percentage="memoryUsage"
             :color="getUsageColor(memoryUsage)"
             :stroke-width="10"
@@ -45,12 +40,12 @@
         </div>
         <div class="resource-value">{{ memoryUsage.toFixed(1) }}%</div>
       </div>
-
+      
       <!-- 磁盘使用率 -->
       <div class="resource-item">
         <div class="resource-label">磁盘使用率</div>
         <div class="resource-progress">
-          <ScProgress
+          <el-progress
             :percentage="diskUsage"
             :color="getUsageColor(diskUsage)"
             :stroke-width="10"
@@ -59,7 +54,7 @@
         </div>
         <div class="resource-value">{{ diskUsage.toFixed(1) }}%</div>
       </div>
-
+      
       <!-- 容器状态统计 -->
       <div class="container-stats">
         <div class="stats-item">
@@ -80,66 +75,63 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, type ContainerStatusStatistics } from "@/api/docker";
-import { onMounted, ref } from "vue";
+import { containerApi, type ContainerStatusStatistics } from '@/api/docker'
+import { onMounted, ref } from 'vue'
 
 // 响应式数据
-const loading = ref(false);
-const cpuUsage = ref(0);
-const memoryUsage = ref(0);
-const diskUsage = ref(0);
-const containerStats = ref<ContainerStatusStatistics>({
-  total: 0,
-  running: 0,
-  stopped: 0,
-});
+const loading = ref(false)
+const cpuUsage = ref(0)
+const memoryUsage = ref(0)
+const diskUsage = ref(0)
+const containerStats = ref<ContainerStatusStatistics>({ 
+  total: 0, 
+  running: 0, 
+  stopped: 0 
+})
 
 // 获取主机资源使用情况
 const fetchHostStats = async () => {
-  if (loading.value) return;
-  loading.value = true;
-
+  if (loading.value) return
+  loading.value = true
+  
   try {
     // 这里使用模拟数据，实际应用中应该从API获取主机资源数据
-    cpuUsage.value = Math.random() * 100;
-    memoryUsage.value = Math.random() * 100;
-    diskUsage.value = Math.random() * 100;
-
+    cpuUsage.value = Math.random() * 100
+    memoryUsage.value = Math.random() * 100
+    diskUsage.value = Math.random() * 100
+    
     // 获取容器状态统计
-    const response = await containerApi.getContainerStatusStats();
-    if (response.code === "00000") {
-      containerStats.value = response.data || {
-        total: 0,
-        running: 0,
-        stopped: 0,
-      };
+    const response = await containerApi.getContainerStatusStats()
+    if (response.code === '00000') {
+      containerStats.value = response.data || { total: 0, running: 0, stopped: 0 }
     }
   } catch (error) {
-    console.error("获取主机资源数据失败:", error);
+    console.error('获取主机资源数据失败:', error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 // 刷新数据
 const handleRefresh = () => {
-  fetchHostStats();
-};
+  fetchHostStats()
+}
 
 // 根据使用率获取颜色
 const getUsageColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
-};
+  if (percentage < 50) return '#67c23a'
+  if (percentage < 80) return '#e6a23c'
+  return '#f56c6c'
+}
 
 // 组件挂载时获取数据
 onMounted(() => {
-  fetchHostStats();
-});
+  fetchHostStats()
+})
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -172,6 +164,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .container-host-monitor {
   background: white;
@@ -257,6 +250,7 @@ onMounted(() => {
   margin-top: 4px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -265,4 +259,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

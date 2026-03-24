@@ -2,7 +2,7 @@
  * useTableChangeHighlight - 变更高亮 composable
  * 数据变化时高亮显示
  */
-import { ref, computed, type Ref, type ComputedRef } from "vue";
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 
 /** 变更记录 */
 export interface ChangeRecord {
@@ -13,7 +13,7 @@ export interface ChangeRecord {
   /** 变更时间 */
   timestamp: number;
   /** 变更类型 */
-  type: "add" | "update" | "delete";
+  type: 'add' | 'update' | 'delete';
 }
 
 /** 高亮选项 */
@@ -57,7 +57,7 @@ export interface ChangeHighlightReturn {
   /** 检查单元格是否高亮 */
   isCellHighlighted: (rowKey: string | number, column: string) => boolean;
   /** 获取行变更类型 */
-  getChangeType: (rowKey: string | number) => "add" | "update" | "delete" | null;
+  getChangeType: (rowKey: string | number) => 'add' | 'update' | 'delete' | null;
   /** 获取行高亮类名 */
   getRowHighlightClass: (rowKey: string | number) => string;
   /** 比较数据变化并自动标记 */
@@ -68,7 +68,14 @@ export interface ChangeHighlightReturn {
  * 变更高亮 composable
  */
 export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): ChangeHighlightReturn {
-  const { enabled = false, duration = 3000, rowKey = "id", highlightAdd = true, highlightUpdate = true, highlightDelete = true } = options;
+  const {
+    enabled = false,
+    duration = 3000,
+    rowKey = 'id',
+    highlightAdd = true,
+    highlightUpdate = true,
+    highlightDelete = true,
+  } = options;
 
   const isEnabled = ref(enabled);
   const highlightDuration = ref(duration);
@@ -109,7 +116,7 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
       rowKey: rk,
       columns,
       timestamp: Date.now(),
-      type: "add"
+      type: 'add',
     });
 
     setAutoCleanTimer(rk);
@@ -125,7 +132,7 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
       rowKey: rk,
       columns,
       timestamp: Date.now(),
-      type: "update"
+      type: 'update',
     });
 
     setAutoCleanTimer(rk);
@@ -141,7 +148,7 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
       rowKey: rk,
       columns: [],
       timestamp: Date.now(),
-      type: "delete"
+      type: 'delete',
     });
 
     setAutoCleanTimer(rk);
@@ -181,10 +188,10 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
   const isCellHighlighted = (rk: string | number, column: string): boolean => {
     const change = changes.value.get(rk);
     if (!change) return false;
-
+    
     // 新增行整行高亮
-    if (change.type === "add") return true;
-
+    if (change.type === 'add') return true;
+    
     // 更新行只高亮变更的列
     return change.columns.includes(column);
   };
@@ -192,7 +199,7 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
   /**
    * 获取行变更类型
    */
-  const getChangeType = (rk: string | number): "add" | "update" | "delete" | null => {
+  const getChangeType = (rk: string | number): 'add' | 'update' | 'delete' | null => {
     return changes.value.get(rk)?.type ?? null;
   };
 
@@ -201,8 +208,8 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
    */
   const getRowHighlightClass = (rk: string | number): string => {
     const type = getChangeType(rk);
-    if (!type) return "";
-
+    if (!type) return '';
+    
     return `highlight-${type}`;
   };
 
@@ -260,7 +267,7 @@ export function useTableChangeHighlight(options: ChangeHighlightOptions = {}): C
     isCellHighlighted,
     getChangeType,
     getRowHighlightClass,
-    compareAndMark
+    compareAndMark,
   };
 }
 

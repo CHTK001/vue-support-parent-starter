@@ -6,22 +6,22 @@
     :close-on-click-modal="false"
     @closed="handleClose"
   >
-    <div v-loading="loading" class="preview-extension-config">
+    <div class="preview-extension-config" v-loading="loading">
       <!-- 模式切换 -->
-      <ScCard class="config-card" shadow="never">
+      <el-card class="config-card" shadow="never">
         <template #header>
           <div class="card-header">
             <span class="title">预览模式</span>
-            <ScTag
+            <el-tag
               :type="config.whitelistMode ? 'warning' : 'info'"
               effect="dark"
             >
               {{ config.whitelistMode ? "白名单模式" : "黑名单模式" }}
-            </ScTag>
+            </el-tag>
           </div>
         </template>
         <div class="mode-selector">
-          <ScRadioGroup v-model="config.whitelistMode" @change="onModeChange">
+          <el-radio-group v-model="config.whitelistMode" @change="onModeChange">
             <el-radio-button :value="false">
               <IconifyIconOnline icon="ri:forbid-line" />
               <span>黑名单模式</span>
@@ -30,7 +30,7 @@
               <IconifyIconOnline icon="ri:check-line" />
               <span>白名单模式</span>
             </el-radio-button>
-          </ScRadioGroup>
+          </el-radio-group>
           <div class="mode-description">
             <template v-if="config.whitelistMode">
               <IconifyIconOnline icon="ri:information-line" class="info-icon" />
@@ -42,13 +42,13 @@
             </template>
           </div>
         </div>
-      </ScCard>
+      </el-card>
 
       <!-- 黑名单配置 -->
-      <ScCard
-        v-show="!config.whitelistMode"
+      <el-card
         class="config-card"
         shadow="never"
+        v-show="!config.whitelistMode"
       >
         <template #header>
           <div class="card-header">
@@ -64,7 +64,7 @@
         </template>
         <div class="extension-list">
           <div class="add-section">
-            <ScInput
+            <el-input
               v-model="newDisabledExt"
               placeholder="输入扩展名，如: exe"
               clearable
@@ -72,17 +72,17 @@
             >
               <template #prepend>.</template>
               <template #append>
-                <ScButton
-                  :disabled="!newDisabledExt.trim()"
+                <el-button
                   @click="addDisabledExtension"
+                  :disabled="!newDisabledExt.trim()"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
-                </ScButton>
+                </el-button>
               </template>
-            </ScInput>
+            </el-input>
           </div>
           <div class="tags-container">
-            <ScTag
+            <el-tag
               v-for="ext in config.disabledExtensions"
               :key="ext"
               closable
@@ -91,8 +91,8 @@
               @close="removeDisabledExtension(ext)"
             >
               .{{ ext }}
-            </ScTag>
-            <ScEmpty
+            </el-tag>
+            <el-empty
               v-if="config.disabledExtensions.length === 0"
               description="暂无禁用的扩展名"
               :image-size="60"
@@ -100,25 +100,25 @@
           </div>
           <div class="quick-add">
             <span class="label">快速添加：</span>
-            <ScButton
+            <el-button
               size="small"
               @click="addQuickDisabled('exe,dll,bat,cmd,sh')"
               >可执行文件</el-button
             >
-            <ScButton
+            <el-button
               size="small"
               @click="addQuickDisabled('zip,rar,7z,tar,gz')"
               >压缩包</el-button
             >
-            <ScButton size="small" @click="addQuickDisabled('db,sql,bak')"
+            <el-button size="small" @click="addQuickDisabled('db,sql,bak')"
               >数据库文件</el-button
             >
           </div>
         </div>
-      </ScCard>
+      </el-card>
 
       <!-- 白名单配置 -->
-      <ScCard v-show="config.whitelistMode" class="config-card" shadow="never">
+      <el-card class="config-card" shadow="never" v-show="config.whitelistMode">
         <template #header>
           <div class="card-header">
             <span class="title">
@@ -133,7 +133,7 @@
         </template>
         <div class="extension-list">
           <div class="add-section">
-            <ScInput
+            <el-input
               v-model="newAllowedExt"
               placeholder="输入扩展名，如: pdf"
               clearable
@@ -141,17 +141,17 @@
             >
               <template #prepend>.</template>
               <template #append>
-                <ScButton
-                  :disabled="!newAllowedExt.trim()"
+                <el-button
                   @click="addAllowedExtension"
+                  :disabled="!newAllowedExt.trim()"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
-                </ScButton>
+                </el-button>
               </template>
-            </ScInput>
+            </el-input>
           </div>
           <div class="tags-container">
-            <ScTag
+            <el-tag
               v-for="ext in config.allowedExtensions"
               :key="ext"
               closable
@@ -160,8 +160,8 @@
               @close="removeAllowedExtension(ext)"
             >
               .{{ ext }}
-            </ScTag>
-            <ScEmpty
+            </el-tag>
+            <el-empty
               v-if="config.allowedExtensions.length === 0"
               description="暂无允许的扩展名"
               :image-size="60"
@@ -169,34 +169,34 @@
           </div>
           <div class="quick-add">
             <span class="label">快速添加：</span>
-            <ScButton
+            <el-button
               size="small"
               @click="addQuickAllowed('pdf,doc,docx,xls,xlsx,ppt,pptx')"
               >Office文档</el-button
             >
-            <ScButton
+            <el-button
               size="small"
               @click="addQuickAllowed('jpg,jpeg,png,gif,bmp,webp,svg')"
               >图片</el-button
             >
-            <ScButton
+            <el-button
               size="small"
               @click="addQuickAllowed('txt,md,json,xml,html,css,js')"
               >文本代码</el-button
             >
-            <ScButton size="small" @click="addQuickAllowed('mp4,mp3,wav,avi')"
+            <el-button size="small" @click="addQuickAllowed('mp4,mp3,wav,avi')"
               >音视频</el-button
             >
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="danger" @click="handleClear">清空配置</ScButton>
-        <ScButton type="primary" :loading="saving" @click="handleSave"
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="danger" @click="handleClear">清空配置</el-button>
+        <el-button type="primary" @click="handleSave" :loading="saving"
           >保存</el-button
         >
       </div>
@@ -282,9 +282,8 @@ async function loadConfig() {
  */
 function onModeChange() {
   message(
-    config.value.whitelistMode ? "已切换到白名单模式" : "已切换到黑名单模式",
-    { type: "info" },
-  );
+    config.value.whitelistMode ? "已切换到白名单模式" : "已切换到黑名单模式"
+  , { type: "info" });
 }
 
 /**
@@ -416,7 +415,7 @@ watch(
       loadConfig();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 </script>
 
@@ -543,6 +542,7 @@ watch(
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -551,4 +551,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

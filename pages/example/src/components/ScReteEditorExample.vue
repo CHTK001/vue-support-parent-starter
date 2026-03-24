@@ -4,8 +4,7 @@
     <div class="page-header">
       <h2>ScReteEditor 可视化节点编辑器示例</h2>
       <p class="description">
-        基于 Rete.js
-        的可视化节点编辑器组件，支持节点拖拽、连接、右键菜单、小地图、自动排列等功能。
+        基于 Rete.js 的可视化节点编辑器组件，支持节点拖拽、连接、右键菜单、小地图、自动排列等功能。
       </p>
     </div>
 
@@ -16,7 +15,7 @@
         <div class="example-section">
           <h3>基础编辑器</h3>
           <p>包含完整的工具栏、节点面板、属性面板和状态栏。</p>
-
+          
           <div class="editor-container">
             <ScReteEditor
               ref="basicEditorRef"
@@ -39,13 +38,11 @@
             <ScButton @click="handleBasicArrange">自动排列</ScButton>
           </div>
 
-          <ScCollapse>
-            <ScCollapseItem title="查看数据 (JSON)" name="data">
-              <pre class="json-preview">{{
-                JSON.stringify(basicData, null, 2)
-              }}</pre>
-            </ScCollapseItem>
-          </ScCollapse>
+          <el-collapse>
+            <el-collapse-item title="查看数据 (JSON)" name="data">
+              <pre class="json-preview">{{ JSON.stringify(basicData, null, 2) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
         </div>
       </ScTabPane>
 
@@ -54,8 +51,8 @@
         <div class="example-section">
           <h3>简洁编辑器</h3>
           <p>隐藏部分面板，只保留画布区域，适合嵌入到其他页面中。</p>
-
-          <div class="editor-container" style="height: 400px">
+          
+          <div class="editor-container" style="height: 400px;">
             <ScReteEditor
               ref="minimalEditorRef"
               v-model="minimalData"
@@ -77,8 +74,8 @@
         <div class="example-section">
           <h3>只读编辑器</h3>
           <p>禁用所有编辑操作，只能查看节点和连接。</p>
-
-          <div class="editor-container" style="height: 400px">
+          
+          <div class="editor-container" style="height: 400px;">
             <ScReteEditor
               v-model="readonlyData"
               :readonly="true"
@@ -98,7 +95,7 @@
         <div class="example-section">
           <h3>自定义节点菜单</h3>
           <p>通过 nodeMenuItems 配置自定义节点类型和图标。</p>
-
+          
           <div class="editor-container">
             <ScReteEditor
               ref="customEditorRef"
@@ -117,8 +114,7 @@
           <div class="selected-node-info" v-if="selectedNodeInfo">
             <ScAlert type="info" :closable="false">
               <template #title>
-                选中节点: {{ selectedNodeInfo.label }} (ID:
-                {{ selectedNodeInfo.id }})
+                选中节点: {{ selectedNodeInfo.label }} (ID: {{ selectedNodeInfo.id }})
               </template>
             </ScAlert>
           </div>
@@ -130,8 +126,8 @@
         <div class="example-section">
           <h3>编辑器 API</h3>
           <p>通过 ref 调用编辑器的方法进行程序化操作。</p>
-
-          <div class="editor-container" style="height: 400px">
+          
+          <div class="editor-container" style="height: 400px;">
             <ScReteEditor
               ref="apiEditorRef"
               v-model="apiData"
@@ -145,15 +141,9 @@
 
           <div class="api-actions">
             <el-space wrap>
-              <ScButton type="primary" @click="apiAddInputNode"
-                >添加输入节点</ScButton
-              >
-              <ScButton type="primary" @click="apiAddProcessNode"
-                >添加处理节点</ScButton
-              >
-              <ScButton type="primary" @click="apiAddOutputNode"
-                >添加输出节点</ScButton
-              >
+              <ScButton type="primary" @click="apiAddInputNode">添加输入节点</ScButton>
+              <ScButton type="primary" @click="apiAddProcessNode">添加处理节点</ScButton>
+              <ScButton type="primary" @click="apiAddOutputNode">添加输出节点</ScButton>
               <ScDivider direction="vertical" />
               <ScButton @click="apiArrange">自动排列</ScButton>
               <ScButton @click="apiZoomToFit">适应画布</ScButton>
@@ -171,24 +161,24 @@
       <ScTabPane label="代码示例" name="code">
         <div class="example-section">
           <h3>使用说明</h3>
-
-          <ScCollapse v-model="activeCodeCollapse">
-            <ScCollapseItem title="1. 基础用法" name="basic-code">
+          
+          <el-collapse v-model="activeCodeCollapse">
+            <el-collapse-item title="1. 基础用法" name="basic-code">
               <pre class="code-block">{{ basicCodeExample }}</pre>
-            </ScCollapseItem>
-
-            <ScCollapseItem title="2. 数据格式 (EditorData)" name="data-code">
+            </el-collapse-item>
+            
+            <el-collapse-item title="2. 数据格式 (EditorData)" name="data-code">
               <pre class="code-block">{{ dataFormatExample }}</pre>
-            </ScCollapseItem>
-
-            <ScCollapseItem title="3. 调用组件方法" name="api-code">
+            </el-collapse-item>
+            
+            <el-collapse-item title="3. 调用组件方法" name="api-code">
               <pre class="code-block">{{ apiCodeExample }}</pre>
-            </ScCollapseItem>
-
-            <ScCollapseItem title="4. 自定义节点菜单" name="custom-code">
+            </el-collapse-item>
+            
+            <el-collapse-item title="4. 自定义节点菜单" name="custom-code">
               <pre class="code-block">{{ customNodeCodeExample }}</pre>
-            </ScCollapseItem>
-          </ScCollapse>
+            </el-collapse-item>
+          </el-collapse>
         </div>
       </ScTabPane>
     </ScTabs>
@@ -196,15 +186,11 @@
 </template>
 
 <script setup lang="ts">
+
 import ScTabPane from "@repo/components/ScTabs";
 import { ref, reactive } from "vue";
 import { ScMessage } from "@repo/utils";
-import {
-  ScReteEditor,
-  type EditorData,
-  type BaseNode,
-  type NodeTypeName,
-} from "@repo/scReteEditor";
+import { ScReteEditor, type EditorData, type BaseNode, type NodeTypeName } from "@repo/components";
 
 // =============== 基础用法 ===============
 const basicEditorRef = ref<InstanceType<typeof ScReteEditor>>();
@@ -226,65 +212,20 @@ const handleBasicGetData = () => {
 const handleBasicLoadSample = async () => {
   const sampleData: EditorData = {
     nodes: [
-      {
-        id: "node_1",
-        type: "input",
-        label: "MySQL 数据源",
-        position: { x: 100, y: 150 },
-      },
-      {
-        id: "node_2",
-        type: "process",
-        label: "数据转换",
-        position: { x: 350, y: 100 },
-      },
-      {
-        id: "node_3",
-        type: "condition",
-        label: "数据校验",
-        position: { x: 350, y: 250 },
-      },
-      {
-        id: "node_4",
-        type: "output",
-        label: "Redis 缓存",
-        position: { x: 600, y: 100 },
-      },
-      {
-        id: "node_5",
-        type: "output",
-        label: "Elasticsearch",
-        position: { x: 600, y: 250 },
-      },
+      { id: "node_1", type: "input", label: "MySQL 数据源", position: { x: 100, y: 150 } },
+      { id: "node_2", type: "process", label: "数据转换", position: { x: 350, y: 100 } },
+      { id: "node_3", type: "condition", label: "数据校验", position: { x: 350, y: 250 } },
+      { id: "node_4", type: "output", label: "Redis 缓存", position: { x: 600, y: 100 } },
+      { id: "node_5", type: "output", label: "Elasticsearch", position: { x: 600, y: 250 } },
     ],
     connections: [
-      {
-        sourceId: "node_1",
-        sourceOutput: "output",
-        targetId: "node_2",
-        targetInput: "input",
-      },
-      {
-        sourceId: "node_1",
-        sourceOutput: "output",
-        targetId: "node_3",
-        targetInput: "input",
-      },
-      {
-        sourceId: "node_2",
-        sourceOutput: "output",
-        targetId: "node_4",
-        targetInput: "input",
-      },
-      {
-        sourceId: "node_3",
-        sourceOutput: "true",
-        targetId: "node_5",
-        targetInput: "input",
-      },
+      { sourceId: "node_1", sourceOutput: "output", targetId: "node_2", targetInput: "input" },
+      { sourceId: "node_1", sourceOutput: "output", targetId: "node_3", targetInput: "input" },
+      { sourceId: "node_2", sourceOutput: "output", targetId: "node_4", targetInput: "input" },
+      { sourceId: "node_3", sourceOutput: "true", targetId: "node_5", targetInput: "input" },
     ],
   };
-
+  
   await basicEditorRef.value?.loadData(sampleData);
   ScMessage.success("示例数据已加载");
 };
@@ -307,50 +248,20 @@ const minimalData = ref<EditorData>({
     { id: "m2", type: "output", label: "输出", position: { x: 400, y: 100 } },
   ],
   connections: [
-    {
-      sourceId: "m1",
-      sourceOutput: "output",
-      targetId: "m2",
-      targetInput: "input",
-    },
+    { sourceId: "m1", sourceOutput: "output", targetId: "m2", targetInput: "input" },
   ],
 });
 
 // =============== 只读模式 ===============
 const readonlyData = ref<EditorData>({
   nodes: [
-    {
-      id: "r1",
-      type: "input",
-      label: "数据输入",
-      position: { x: 100, y: 100 },
-    },
-    {
-      id: "r2",
-      type: "process",
-      label: "处理节点",
-      position: { x: 350, y: 100 },
-    },
-    {
-      id: "r3",
-      type: "output",
-      label: "数据输出",
-      position: { x: 600, y: 100 },
-    },
+    { id: "r1", type: "input", label: "数据输入", position: { x: 100, y: 100 } },
+    { id: "r2", type: "process", label: "处理节点", position: { x: 350, y: 100 } },
+    { id: "r3", type: "output", label: "数据输出", position: { x: 600, y: 100 } },
   ],
   connections: [
-    {
-      sourceId: "r1",
-      sourceOutput: "output",
-      targetId: "r2",
-      targetInput: "input",
-    },
-    {
-      sourceId: "r2",
-      sourceOutput: "output",
-      targetId: "r3",
-      targetInput: "input",
-    },
+    { sourceId: "r1", sourceOutput: "output", targetId: "r2", targetInput: "input" },
+    { sourceId: "r2", sourceOutput: "output", targetId: "r3", targetInput: "input" },
   ],
 });
 
@@ -362,37 +273,13 @@ const customData = ref<EditorData>({
 });
 
 const customNodeMenuItems = [
-  {
-    label: "数据库",
-    type: "input" as NodeTypeName,
-    icon: "ri:database-2-line",
-  },
+  { label: "数据库", type: "input" as NodeTypeName, icon: "ri:database-2-line" },
   { label: "API接口", type: "input" as NodeTypeName, icon: "ri:cloud-line" },
-  {
-    label: "文件导入",
-    type: "input" as NodeTypeName,
-    icon: "ri:file-upload-line",
-  },
-  {
-    label: "数据清洗",
-    type: "process" as NodeTypeName,
-    icon: "ri:filter-3-line",
-  },
-  {
-    label: "数据转换",
-    type: "process" as NodeTypeName,
-    icon: "ri:exchange-line",
-  },
-  {
-    label: "条件判断",
-    type: "condition" as NodeTypeName,
-    icon: "ri:git-branch-line",
-  },
-  {
-    label: "消息队列",
-    type: "output" as NodeTypeName,
-    icon: "ri:mail-send-line",
-  },
+  { label: "文件导入", type: "input" as NodeTypeName, icon: "ri:file-upload-line" },
+  { label: "数据清洗", type: "process" as NodeTypeName, icon: "ri:filter-3-line" },
+  { label: "数据转换", type: "process" as NodeTypeName, icon: "ri:exchange-line" },
+  { label: "条件判断", type: "condition" as NodeTypeName, icon: "ri:git-branch-line" },
+  { label: "消息队列", type: "output" as NodeTypeName, icon: "ri:mail-send-line" },
   { label: "存储输出", type: "output" as NodeTypeName, icon: "ri:save-line" },
 ];
 
@@ -418,9 +305,9 @@ const apiData = ref<EditorData>({
 });
 
 const apiAddInputNode = async () => {
-  const node = await apiEditorRef.value?.addNode("input", "输入节点", {
-    x: Math.random() * 300 + 50,
-    y: Math.random() * 200 + 50,
+  const node = await apiEditorRef.value?.addNode("input", "输入节点", { 
+    x: Math.random() * 300 + 50, 
+    y: Math.random() * 200 + 50 
   });
   if (node) {
     ScMessage.success(`添加节点: ${node.label}`);
@@ -428,9 +315,9 @@ const apiAddInputNode = async () => {
 };
 
 const apiAddProcessNode = async () => {
-  const node = await apiEditorRef.value?.addNode("process", "处理节点", {
-    x: Math.random() * 300 + 200,
-    y: Math.random() * 200 + 50,
+  const node = await apiEditorRef.value?.addNode("process", "处理节点", { 
+    x: Math.random() * 300 + 200, 
+    y: Math.random() * 200 + 50 
   });
   if (node) {
     ScMessage.success(`添加节点: ${node.label}`);
@@ -438,9 +325,9 @@ const apiAddProcessNode = async () => {
 };
 
 const apiAddOutputNode = async () => {
-  const node = await apiEditorRef.value?.addNode("output", "输出节点", {
-    x: Math.random() * 300 + 400,
-    y: Math.random() * 200 + 50,
+  const node = await apiEditorRef.value?.addNode("output", "输出节点", { 
+    x: Math.random() * 300 + 400, 
+    y: Math.random() * 200 + 50 
   });
   if (node) {
     ScMessage.success(`添加节点: ${node.label}`);
@@ -483,7 +370,7 @@ const basicCodeExample = `<template>
 
 import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
-import { ScReteEditor, type EditorData } from '@repo/scReteEditor';
+import { ScReteEditor, type EditorData } from '@repo/components';
 
 const editorData = ref<EditorData>({
   nodes: [],
@@ -537,7 +424,7 @@ const apiCodeExample = `<template>
 
 import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
-import { ScReteEditor } from '@repo/scReteEditor';
+import { ScReteEditor } from '@repo/components';
 
 const editorRef = ref<InstanceType<typeof ScReteEditor>>();
 const data = ref({ nodes: [], connections: [] });
@@ -587,7 +474,7 @@ const customNodeCodeExample = `<template>
 
 import ScTabPane from "@repo/components/ScTabs";
 import { ref } from 'vue';
-import { ScReteEditor, type NodeTypeName } from '@repo/scReteEditor';
+import { ScReteEditor, type NodeTypeName } from '@repo/components';
 
 const data = ref({ nodes: [], connections: [] });
 
@@ -603,6 +490,7 @@ const nodeMenuItems = [
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -619,6 +507,8 @@ const nodeMenuItems = [
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -652,6 +542,7 @@ const nodeMenuItems = [
     z-index: 1;
   }
 }
+
 
 .rete-editor-example {
   padding: 20px;
@@ -734,6 +625,7 @@ const nodeMenuItems = [
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -742,4 +634,7 @@ const nodeMenuItems = [
     padding: 12px 16px;
   }
 }
+
 </style>
+
+

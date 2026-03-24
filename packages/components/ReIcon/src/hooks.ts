@@ -1,6 +1,6 @@
 import type { iconType } from "./types";
 import { h, defineComponent, type Component } from "vue";
-import { IconifyIconOnline, IconifyIconOffline, FontIcon, PixelIcon } from "../index";
+import { IconifyIconOnline, IconifyIconOffline, FontIcon } from "../index";
 
 /**
  * 支持 `iconfont`、自定义 `svg` 以及 `iconify` 中所有的图标
@@ -14,21 +14,8 @@ export function useRenderIcon(icon: any, attrs?: iconType): Component {
   const ifReg = /^IF-/;
   // HTTP远程图标
   const httpReg = /^https?:\/\//;
-  // pixel-icon 图标
-  const pixelIconReg = /^pixel-icon:/;
   // typeof icon === "function" 属于SVG
-  if (pixelIconReg.test(icon)) {
-    // pixel-icon 图标
-    return defineComponent({
-      name: "PixelIcon",
-      render() {
-        return h(PixelIcon, {
-          icon: icon,
-          ...attrs
-        });
-      }
-    });
-  } else if (ifReg.test(icon)) {
+  if (ifReg.test(icon)) {
     // iconfont
     const name = icon.split(ifReg)[1];
     const iconName = name.slice(0, name.indexOf(" ") == -1 ? name.length : name.indexOf(" "));

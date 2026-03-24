@@ -11,14 +11,7 @@
     </div>
 
     <ScCard class="video-card">
-      <ScForm
-        :model="formState"
-        :rules="rules"
-        ref="formRef"
-        label-position="right"
-        label-width="120px"
-        class="video-form"
-      >
+      <ScForm :model="formState" :rules="rules" ref="formRef" label-position="right" label-width="120px" class="video-form">
         <!-- 表单内容分栏 -->
         <div class="video-form-layout">
           <!-- 左侧区域 -->
@@ -27,41 +20,27 @@
             <div class="video-section">
               <h3 class="video-section-title">基础信息</h3>
               <ScFormItem label="视频标题" prop="videoTitle">
-                <ScInput
-                  v-model="formState.videoTitle"
-                  placeholder="请输入视频标题"
-                >
+                <ScInput v-model="formState.videoTitle" placeholder="请输入视频标题">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:film" />
                   </template>
                 </ScInput>
-                <div class="form-item-tip">
-                  视频的主要标题，将显示在列表和详情页
-                </div>
+                <div class="form-item-tip">视频的主要标题，将显示在列表和详情页</div>
               </ScFormItem>
 
               <ScFormItem label="视频名称" prop="videoName">
-                <ScInput
-                  v-model="formState.videoName"
-                  placeholder="请输入视频名称"
-                >
+                <ScInput v-model="formState.videoName" placeholder="请输入视频名称">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:video-camera" />
                   </template>
                   <template #append>
-                    <OnlineResourceFinder
-                      :keyword="formState.videoName"
-                      @select="handleSelectResource"
-                    />
+                    <OnlineResourceFinder :keyword="formState.videoName" @select="handleSelectResource" />
                   </template>
                 </ScInput>
               </ScFormItem>
 
               <ScFormItem label="视频别名">
-                <ScInput
-                  v-model="formState.videoAliasName"
-                  placeholder="请输入视频别名"
-                >
+                <ScInput v-model="formState.videoAliasName" placeholder="请输入视频别名">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:price-tag" />
                   </template>
@@ -69,11 +48,7 @@
               </ScFormItem>
 
               <ScFormItem label="视频类型" prop="videoType">
-                <ScSelect
-                  v-model="formState.videoType"
-                  placeholder="请选择视频类型"
-                  class="video-full-width"
-                >
+                <ScSelect v-model="formState.videoType" placeholder="请选择视频类型" class="video-full-width">
                   <ScOption label="电影" value="电影" />
                   <ScOption label="电视剧" value="电视剧" />
                   <ScOption label="动漫" value="动漫" />
@@ -83,10 +58,7 @@
               </ScFormItem>
 
               <ScFormItem label="所属平台">
-                <ScInput
-                  v-model="formState.videoPlatform"
-                  placeholder="请输入所属平台"
-                />
+                <ScInput v-model="formState.videoPlatform" placeholder="请输入所属平台" />
               </ScFormItem>
             </div>
 
@@ -94,127 +66,47 @@
             <div class="video-section">
               <h3 class="video-section-title">详情信息</h3>
               <ScFormItem label="视频年份">
-                <ScDatePicker
-                  v-model="formState.videoYear"
-                  type="year"
-                  placeholder="选择年份"
-                  format="YYYY"
-                  value-format="YYYY"
-                />
+                <ScDatePicker v-model="formState.videoYear" type="year" placeholder="选择年份" format="YYYY" value-format="YYYY" />
               </ScFormItem>
 
               <ScFormItem label="上映日期">
-                <ScInput
-                  v-model="formState.videoRelease"
-                  placeholder="例如：2023-01-01中国上映"
-                />
+                <ScInput v-model="formState.videoRelease" placeholder="例如：2023-01-01中国上映" />
               </ScFormItem>
 
               <ScFormItem label="视频地区">
-                <ScSelect
-                  v-model="selectedDistricts"
-                  placeholder="请选择或输入视频地区"
-                  filterable
-                  allow-create
-                  default-first-option
-                  multiple
-                  class="video-full-width"
-                  @change="handleDistrictChange"
-                >
-                  <ScOption
-                    v-for="item in districtOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                <ScSelect v-model="selectedDistricts" placeholder="请选择或输入视频地区" filterable allow-create default-first-option multiple class="video-full-width" @change="handleDistrictChange">
+                  <ScOption v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </ScSelect>
-                <div class="form-item-tip">
-                  可多选或输入新的地区，自动以逗号分隔
-                </div>
+                <div class="form-item-tip">可多选或输入新的地区，自动以逗号分隔</div>
               </ScFormItem>
 
               <ScFormItem label="视频导演">
-                <ScSelect
-                  v-model="selectedDirectors"
-                  placeholder="请选择或输入导演"
-                  filterable
-                  allow-create
-                  default-first-option
-                  multiple
-                  class="video-full-width"
-                  @change="handleDirectorChange"
-                >
-                  <ScOption
-                    v-for="item in directorOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                <ScSelect v-model="selectedDirectors" placeholder="请选择或输入导演" filterable allow-create default-first-option multiple class="video-full-width" @change="handleDirectorChange">
+                  <ScOption v-for="item in directorOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </ScSelect>
-                <div class="form-item-tip">
-                  可多选或输入新的导演，自动以逗号分隔
-                </div>
+                <div class="form-item-tip">可多选或输入新的导演，自动以逗号分隔</div>
               </ScFormItem>
 
               <ScFormItem label="视频编剧">
-                <ScSelect
-                  v-model="selectedWriters"
-                  placeholder="请选择或输入编剧"
-                  filterable
-                  allow-create
-                  default-first-option
-                  multiple
-                  class="video-full-width"
-                  @change="handleWriterChange"
-                >
-                  <ScOption
-                    v-for="item in writerOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                <ScSelect v-model="selectedWriters" placeholder="请选择或输入编剧" filterable allow-create default-first-option multiple class="video-full-width" @change="handleWriterChange">
+                  <ScOption v-for="item in writerOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </ScSelect>
-                <div class="form-item-tip">
-                  可多选或输入新的编剧，自动以逗号分隔
-                </div>
+                <div class="form-item-tip">可多选或输入新的编剧，自动以逗号分隔</div>
               </ScFormItem>
 
               <ScFormItem label="视频主演">
-                <ScSelect
-                  v-model="selectedActors"
-                  placeholder="请选择或输入主演"
-                  filterable
-                  allow-create
-                  default-first-option
-                  multiple
-                  class="video-full-width"
-                  @change="handleActorChange"
-                >
-                  <ScOption
-                    v-for="item in actorOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                <ScSelect v-model="selectedActors" placeholder="请选择或输入主演" filterable allow-create default-first-option multiple class="video-full-width" @change="handleActorChange">
+                  <ScOption v-for="item in actorOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </ScSelect>
-                <div class="form-item-tip">
-                  可多选或输入新的演员名称，自动以逗号分隔
-                </div>
+                <div class="form-item-tip">可多选或输入新的演员名称，自动以逗号分隔</div>
               </ScFormItem>
 
               <ScFormItem label="发布日期">
-                <ScDatePicker
-                  v-model="formState.videoPublishDate"
-                  type="datetime"
-                  placeholder="选择发布日期时间"
-                />
+                <ScDatePicker v-model="formState.videoPublishDate" type="datetime" placeholder="选择发布日期时间" />
               </ScFormItem>
 
               <ScFormItem label="豆瓣ID">
-                <ScInput
-                  v-model="formState.videoDouBanId"
-                  placeholder="请输入豆瓣视频ID"
-                />
+                <ScInput v-model="formState.videoDouBanId" placeholder="请输入豆瓣视频ID" />
               </ScFormItem>
 
               <ScFormItem label="视频状态" prop="videoStatus">
@@ -232,24 +124,13 @@
             <div class="video-section">
               <h3 class="video-section-title">媒体信息</h3>
               <ScFormItem label="视频封面" prop="videoCover">
-                <ScInput
-                  v-model="formState.videoCover"
-                  placeholder="请输入封面图片URL地址"
-                >
+                <ScInput v-model="formState.videoCover" placeholder="请输入封面图片URL地址">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:picture" />
                   </template>
                 </ScInput>
-                <div
-                  v-if="formState.videoCover"
-                  class="video-cover-preview w-full"
-                >
-                  <ScImage
-                    :src="formState.videoCover"
-                    fit="cover"
-                    alt="视频封面"
-                    class="video-preview-image"
-                  >
+                <div v-if="formState.videoCover" class="video-cover-preview w-full">
+                  <ScImage :src="formState.videoCover" fit="cover" alt="视频封面" class="video-preview-image">
                     <template #error>
                       <div class="image-error-placeholder">
                         <IconifyIconOnline icon="ep:picture-filled" />
@@ -258,16 +139,11 @@
                     </template>
                   </ScImage>
                 </div>
-                <div v-else class="upload-tip">
-                  添加封面图片可以提高视频的点击率
-                </div>
+                <div v-else class="upload-tip">添加封面图片可以提高视频的点击率</div>
               </ScFormItem>
 
               <ScFormItem label="视频缩略图">
-                <ScInput
-                  v-model="formState.videoThumbnail"
-                  placeholder="请输入缩略图URL地址"
-                >
+                <ScInput v-model="formState.videoThumbnail" placeholder="请输入缩略图URL地址">
                   <template #prefix>
                     <IconifyIconOnline icon="ep:picture-rounded" />
                   </template>
@@ -275,26 +151,15 @@
               </ScFormItem>
 
               <ScFormItem label="视频时长(分钟)">
-                <ScInputNumber
-                  v-model="formState.videoDuration"
-                  :min="0"
-                  placeholder="请输入视频时长"
-                />
+                <ScInputNumber v-model="formState.videoDuration" :min="0" placeholder="请输入视频时长" />
               </ScFormItem>
 
               <ScFormItem label="视频大小">
-                <ScInput
-                  v-model="formState.videoSize"
-                  placeholder="例如：1.2GB"
-                />
+                <ScInput v-model="formState.videoSize" placeholder="例如：1.2GB" />
               </ScFormItem>
 
               <ScFormItem label="视频清晰度">
-                <ScSelect
-                  v-model="formState.videoQuality"
-                  placeholder="请选择视频清晰度"
-                  class="video-full-width"
-                >
+                <ScSelect v-model="formState.videoQuality" placeholder="请选择视频清晰度" class="video-full-width">
                   <ScOption label="标清SD" value="标清SD" />
                   <ScOption label="高清HD" value="高清HD" />
                   <ScOption label="超清UHD" value="超清UHD" />
@@ -304,35 +169,14 @@
               </ScFormItem>
 
               <ScFormItem label="视频语言">
-                <ScSelect
-                  v-model="selectedLanguages"
-                  placeholder="请选择或输入视频语言"
-                  filterable
-                  allow-create
-                  default-first-option
-                  multiple
-                  class="video-full-width"
-                  @change="handleLanguageChange"
-                >
-                  <ScOption
-                    v-for="item in languageOptions"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                <ScSelect v-model="selectedLanguages" placeholder="请选择或输入视频语言" filterable allow-create default-first-option multiple class="video-full-width" @change="handleLanguageChange">
+                  <ScOption v-for="item in languageOptions" :key="item.value" :label="item.label" :value="item.value" />
                 </ScSelect>
-                <div class="form-item-tip">
-                  可多选或输入新的语言，自动以逗号分隔
-                </div>
+                <div class="form-item-tip">可多选或输入新的语言，自动以逗号分隔</div>
               </ScFormItem>
 
               <ScFormItem label="视频评分">
-                <ScRate
-                  v-model="formState.videoScore"
-                  :max="10"
-                  :allow-half="true"
-                  show-score
-                />
+                <ScRate v-model="formState.videoScore" :max="10" :allow-half="true" show-score />
               </ScFormItem>
             </div>
 
@@ -340,13 +184,7 @@
             <div class="video-section">
               <h3 class="video-section-title">视频描述</h3>
               <ScFormItem label="视频描述" prop="videoDescription">
-                <ScInput
-                  v-model="formState.videoDescription"
-                  type="textarea"
-                  placeholder="请输入视频描述内容"
-                  :rows="12"
-                  class="video-description-textarea"
-                />
+                <ScInput v-model="formState.videoDescription" type="textarea" placeholder="请输入视频描述内容" :rows="12" class="video-description-textarea" />
               </ScFormItem>
             </div>
           </div>
@@ -354,17 +192,8 @@
 
         <!-- 表单底部操作区 -->
         <div class="video-form-footer">
-          <ScTooltip
-            content="保存当前视频信息"
-            placement="top"
-            :effect="'light'"
-          >
-            <ScButton
-              type="primary"
-              @click="handleSubmit"
-              :loading="submitLoading"
-              size="large"
-            >
+          <ScTooltip content="保存当前视频信息" placement="top" :effect="'light'">
+            <ScButton type="primary" @click="handleSubmit" :loading="submitLoading" size="large">
               <IconifyIconOnline icon="ep:check" />
               {{ isEdit ? "更新视频" : "保存视频" }}
             </ScButton>
@@ -542,33 +371,25 @@ const initActors = () => {
 
 const initDirectors = () => {
   if (formState.videoDirector) {
-    selectedDirectors.value = formState.videoDirector
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedDirectors.value = formState.videoDirector.split(/[,，、]/g).filter((item) => item.trim());
   }
 };
 
 const initWriters = () => {
   if (formState.videoWriter) {
-    selectedWriters.value = formState.videoWriter
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedWriters.value = formState.videoWriter.split(/[,，、]/g).filter((item) => item.trim());
   }
 };
 
 const initDistricts = () => {
   if (formState.videoDistrict) {
-    selectedDistricts.value = formState.videoDistrict
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedDistricts.value = formState.videoDistrict.split(/[,，、]/g).filter((item) => item.trim());
   }
 };
 
 const initLanguages = () => {
   if (formState.videoLanguage) {
-    selectedLanguages.value = formState.videoLanguage
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedLanguages.value = formState.videoLanguage.split(/[,，、]/g).filter((item) => item.trim());
   }
 };
 
@@ -595,9 +416,7 @@ const rules = reactive<FormRules>({
   videoTitle: [{ required: true, message: "请输入视频标题", trigger: "blur" }],
   videoName: [{ required: true, message: "请输入视频名称", trigger: "blur" }],
   videoType: [{ required: true, message: "请选择视频类型", trigger: "change" }],
-  videoCover: [
-    { required: true, message: "请输入封面图片URL", trigger: "blur" },
-  ],
+  videoCover: [{ required: true, message: "请输入封面图片URL", trigger: "blur" }],
   videoUrl: [{ required: true, message: "请输入视频URL地址", trigger: "blur" }],
 });
 
@@ -702,11 +521,7 @@ const handleSelectResource = (resource: VideoItemType) => {
 
   // 将资源数据应用到表单
   Object.keys(processedResource).forEach((key) => {
-    if (
-      key !== "videoId" &&
-      processedResource[key] !== undefined &&
-      processedResource[key] !== null
-    ) {
+    if (key !== "videoId" && processedResource[key] !== undefined && processedResource[key] !== null) {
       formState[key] = processedResource[key];
     }
   });
@@ -716,37 +531,27 @@ const handleSelectResource = (resource: VideoItemType) => {
 
   // 如果有演员信息，更新selectedActors
   if (resource.videoActor) {
-    selectedActors.value = resource.videoActor
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedActors.value = resource.videoActor.split(/[,，、]/g).filter((item) => item.trim());
   }
 
   // 如果有导演信息，更新selectedDirectors
   if (resource.videoDirector) {
-    selectedDirectors.value = resource.videoDirector
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedDirectors.value = resource.videoDirector.split(/[,，、]/g).filter((item) => item.trim());
   }
 
   // 如果有编剧信息，更新selectedWriters
   if (resource.videoWriter) {
-    selectedWriters.value = resource.videoWriter
-      ? resource.videoWriter.split(/[,，、]/g).filter((item) => item.trim())
-      : [];
+    selectedWriters.value = resource.videoWriter ? resource.videoWriter.split(/[,，、]/g).filter((item) => item.trim()) : [];
   }
 
   // 如果有区域信息，更新selectedDistricts
   if (resource.videoDistrict) {
-    selectedDistricts.value = resource.videoDistrict
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedDistricts.value = resource.videoDistrict.split(/[,，、]/g).filter((item) => item.trim());
   }
 
   // 如果有语言信息，更新selectedLanguages
   if (resource.videoLanguage) {
-    selectedLanguages.value = resource.videoLanguage
-      .split(/[,，、]/g)
-      .filter((item) => item.trim());
+    selectedLanguages.value = resource.videoLanguage.split(/[,，、]/g).filter((item) => item.trim());
   }
 
   message("已自动填充视频信息", { type: "success" });

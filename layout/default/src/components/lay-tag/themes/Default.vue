@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseTag from "./BaseTag.vue";
+import BaseTag from './BaseTag.vue';
 </script>
 
 <template>
@@ -7,5 +7,5 @@ import BaseTag from "./BaseTag.vue";
 </template>
 
 <style lang="scss">
-@use "./default.scss";
+@use './default.scss';
 </style>

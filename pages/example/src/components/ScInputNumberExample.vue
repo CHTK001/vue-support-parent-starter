@@ -3,19 +3,8 @@
     <DemoBlock title="基础用法" :code="codes.basic">
       <div class="demo-row">
         <ScInputNumber v-model="num1" :min="0" :max="10" />
-        <ScInputNumber
-          v-model="num2"
-          :min="0"
-          :max="10"
-          controls-position="right"
-        />
-        <ScInputNumber
-          v-model="num3"
-          :min="0"
-          :max="1"
-          :step="0.1"
-          :precision="1"
-        />
+        <ScInputNumber v-model="num2" :min="0" :max="10" controls-position="right" />
+        <ScInputNumber v-model="num3" :min="0" :max="1" :step="0.1" :precision="1" />
       </div>
     </DemoBlock>
 
@@ -66,3 +55,5 @@ const codes = {
   }
 }
 </style>
+
+

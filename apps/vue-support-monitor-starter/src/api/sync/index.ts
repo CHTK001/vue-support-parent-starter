@@ -99,14 +99,7 @@ export interface SpiParameter {
   name: string;
   label: string;
   description?: string;
-  type:
-    | "string"
-    | "number"
-    | "boolean"
-    | "select"
-    | "password"
-    | "textarea"
-    | "json";
+  type: "string" | "number" | "boolean" | "select" | "password" | "textarea" | "json";
   defaultValue?: any;
   required?: boolean;
   sensitive?: boolean;
@@ -227,19 +220,7 @@ export interface SyncTableStatus {
 /** 列定义 */
 export interface ColumnDefinition {
   name: string;
-  type:
-    | "VARCHAR"
-    | "INT"
-    | "BIGINT"
-    | "TEXT"
-    | "DATETIME"
-    | "DATE"
-    | "DECIMAL"
-    | "BOOLEAN"
-    | "FLOAT"
-    | "DOUBLE"
-    | "BLOB"
-    | "JSON";
+  type: "VARCHAR" | "INT" | "BIGINT" | "TEXT" | "DATETIME" | "DATE" | "DECIMAL" | "BOOLEAN" | "FLOAT" | "DOUBLE" | "BLOB" | "JSON";
   length?: number;
   scale?: number;
   nullable?: boolean;
@@ -476,11 +457,7 @@ export function getSpiParameters(spiType: string, spiName: string) {
 /**
  * 验证 SPI 配置
  */
-export function validateSpiConfig(
-  spiType: string,
-  spiName: string,
-  config: Record<string, any>,
-) {
+export function validateSpiConfig(spiType: string, spiName: string, config: Record<string, any>) {
   return request({
     url: "/v1/sync/spi/validate",
     method: "post",
@@ -492,11 +469,7 @@ export function validateSpiConfig(
 /**
  * 测试 SPI 连接
  */
-export function testSpiConnection(
-  spiType: string,
-  spiName: string,
-  config: Record<string, any>,
-) {
+export function testSpiConnection(spiType: string, spiName: string, config: Record<string, any>) {
   return request({
     url: "/v1/sync/spi/test",
     method: "post",
@@ -510,11 +483,7 @@ export function testSpiConnection(
 /**
  * 获取全局执行统计
  */
-export function getStatistics(params?: {
-  startTime?: string;
-  endTime?: string;
-  granularity?: string;
-}) {
+export function getStatistics(params?: { startTime?: string; endTime?: string; granularity?: string }) {
   return request({
     url: "/v1/sync/task/statistics",
     method: "get",
@@ -525,10 +494,7 @@ export function getStatistics(params?: {
 /**
  * 获取指定任务的执行统计
  */
-export function getTaskStatistics(
-  taskId: number,
-  params?: { startTime?: string; endTime?: string; granularity?: string },
-) {
+export function getTaskStatistics(taskId: number, params?: { startTime?: string; endTime?: string; granularity?: string }) {
   return request({
     url: `/v1/sync/task/statistics/${taskId}`,
     method: "get",
@@ -578,11 +544,7 @@ export function checkOutputTableExists(nodeConfig: string, tableName: string) {
 /**
  * 创建输出目标表
  */
-export function createOutputTable(
-  nodeConfig: string,
-  tableName: string,
-  columns: ColumnDefinition[],
-) {
+export function createOutputTable(nodeConfig: string, tableName: string, columns: ColumnDefinition[]) {
   return request({
     url: "/v1/sync/task/output/table/create",
     method: "post",
@@ -607,11 +569,7 @@ export function getOutputTableStructure(nodeConfig: string, tableName: string) {
 /**
  * 预览建表SQL
  */
-export function previewCreateTableSql(
-  tableName: string,
-  columns: ColumnDefinition[],
-  dbType = "mysql",
-) {
+export function previewCreateTableSql(tableName: string, columns: ColumnDefinition[], dbType = "mysql") {
   return request({
     url: "/v1/sync/task/output/table/preview-sql",
     method: "post",
@@ -623,11 +581,7 @@ export function previewCreateTableSql(
 /**
  * 同步输出目标表结构
  */
-export function syncOutputTableStructure(
-  nodeConfig: string,
-  tableName: string,
-  columns: ColumnDefinition[],
-) {
+export function syncOutputTableStructure(nodeConfig: string, tableName: string, columns: ColumnDefinition[]) {
   return request({
     url: "/v1/sync/task/output/table/sync-structure",
     method: "post",

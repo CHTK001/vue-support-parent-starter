@@ -38,7 +38,7 @@ import DemoBlock from "./DemoBlock.vue";
 const closableTags = ref([
   { id: 1, label: "可关闭" },
   { id: 2, label: "主要", type: "primary" },
-  { id: 3, label: "圆角可关闭", type: "danger", round: true },
+  { id: 3, label: "圆角可关闭", type: "danger", round: true }
 ]);
 
 const codes = {
@@ -59,11 +59,11 @@ const codes = {
   {{ tag.label }}
 </ScTag>
 <ScTag type="success" effect="dark">深色</ScTag>
-<ScTag type="warning" round>圆角</ScTag>`,
+<ScTag type="warning" round>圆角</ScTag>`
 };
 
 const handleClose = (id: number) => {
-  closableTags.value = closableTags.value.filter((tag) => tag.id !== id);
+  closableTags.value = closableTags.value.filter(tag => tag.id !== id);
 };
 </script>
 
@@ -79,3 +79,5 @@ const handleClose = (id: number) => {
   }
 }
 </style>
+
+

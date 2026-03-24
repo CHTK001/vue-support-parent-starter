@@ -2,313 +2,252 @@
   <div class="statistics-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <ScBreadcrumb separator="/">
-        <ScBreadcrumbItem :to="{ path: '/webrtc' }"
-          >WebRTC管理</el-breadcrumb-item
-        >
-        <ScBreadcrumbItem>房间统计</ScBreadcrumbItem>
-      </ScBreadcrumb>
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item :to="{ path: '/webrtc' }">WebRTC管理</el-breadcrumb-item>
+        <el-breadcrumb-item>房间统计</el-breadcrumb-item>
+      </el-breadcrumb>
     </div>
 
     <!-- 统计概览 -->
     <div class="statistics-overview">
-      <ScRow :gutter="20">
-        <ScCol :span="6">
-          <ScCard class="stat-card" shadow="hover">
+      <el-row :gutter="20">
+        <el-col :span="6">
+          <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon total-rooms">
-                <ScIcon><House /></ScIcon>
+                <el-icon><House /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ systemStats.totalRooms }}</div>
                 <div class="stat-label">总房间数</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
+          </el-card>
+        </el-col>
 
-        <ScCol :span="6">
-          <ScCard class="stat-card" shadow="hover">
+        <el-col :span="6">
+          <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon active-rooms">
-                <ScIcon><VideoCamera /></ScIcon>
+                <el-icon><VideoCamera /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ systemStats.activeRooms }}</div>
                 <div class="stat-label">活跃房间</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
+          </el-card>
+        </el-col>
 
-        <ScCol :span="6">
-          <ScCard class="stat-card" shadow="hover">
+        <el-col :span="6">
+          <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon online-users">
-                <ScIcon><User /></ScIcon>
+                <el-icon><User /></el-icon>
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ systemStats.onlineUsers }}</div>
                 <div class="stat-label">在线用户</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
+          </el-card>
+        </el-col>
 
-        <ScCol :span="6">
-          <ScCard class="stat-card" shadow="hover">
+        <el-col :span="6">
+          <el-card class="stat-card" shadow="hover">
             <div class="stat-content">
               <div class="stat-icon total-duration">
-                <ScIcon><Timer /></ScIcon>
+                <el-icon><Timer /></el-icon>
               </div>
               <div class="stat-info">
-                <div class="stat-value">
-                  {{ formatDuration(systemStats.totalDuration) }}
-                </div>
+                <div class="stat-value">{{ formatDuration(systemStats.totalDuration) }}</div>
                 <div class="stat-label">总通话时长</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-      </ScRow>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 图表区域 -->
     <div class="charts-section">
-      <ScRow :gutter="20">
+      <el-row :gutter="20">
         <!-- 房间使用趋势 -->
-        <ScCol :span="12">
-          <ScCard class="chart-card" shadow="hover">
+        <el-col :span="12">
+          <el-card class="chart-card" shadow="hover">
             <template #header>
               <div class="card-header">
                 <span>房间使用趋势</span>
-                <ScSelect
-                  v-model="trendPeriod"
-                  size="small"
-                  style="width: 120px"
-                >
-                  <ScOption label="今日" value="today" />
-                  <ScOption label="本周" value="week" />
-                  <ScOption label="本月" value="month" />
-                </ScSelect>
+                <el-select v-model="trendPeriod" size="small" style="width: 120px">
+                  <el-option label="今日" value="today" />
+                  <el-option label="本周" value="week" />
+                  <el-option label="本月" value="month" />
+                </el-select>
               </div>
             </template>
-            <div ref="roomTrendChartRef" class="chart-container" />
-          </ScCard>
-        </ScCol>
+            <div ref="roomTrendChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
 
         <!-- 房间类型分布 -->
-        <ScCol :span="12">
-          <ScCard class="chart-card" shadow="hover">
+        <el-col :span="12">
+          <el-card class="chart-card" shadow="hover">
             <template #header>
               <div class="card-header">
                 <span>房间类型分布</span>
-                <ScButton type="text" @click="refreshRoomTypeChart">
-                  <ScIcon><Refresh /></ScIcon>
-                </ScButton>
+                <el-button type="text" @click="refreshRoomTypeChart">
+                  <el-icon><Refresh /></el-icon>
+                </el-button>
               </div>
             </template>
-            <div ref="roomTypeChartRef" class="chart-container" />
-          </ScCard>
-        </ScCol>
-      </ScRow>
+            <div ref="roomTypeChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
+      </el-row>
 
-      <ScRow :gutter="20" style="margin-top: 20px">
+      <el-row :gutter="20" style="margin-top: 20px">
         <!-- 用户活跃度 -->
-        <ScCol :span="12">
-          <ScCard class="chart-card" shadow="hover">
+        <el-col :span="12">
+          <el-card class="chart-card" shadow="hover">
             <template #header>
               <div class="card-header">
                 <span>用户活跃度</span>
-                <ScSelect
-                  v-model="activityPeriod"
-                  size="small"
-                  style="width: 120px"
-                >
-                  <ScOption label="24小时" value="24h" />
-                  <ScOption label="7天" value="7d" />
-                  <ScOption label="30天" value="30d" />
-                </ScSelect>
+                <el-select v-model="activityPeriod" size="small" style="width: 120px">
+                  <el-option label="24小时" value="24h" />
+                  <el-option label="7天" value="7d" />
+                  <el-option label="30天" value="30d" />
+                </el-select>
               </div>
             </template>
-            <div ref="userActivityChartRef" class="chart-container" />
-          </ScCard>
-        </ScCol>
+            <div ref="userActivityChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
 
         <!-- 系统性能监控 -->
-        <ScCol :span="12">
-          <ScCard class="chart-card" shadow="hover">
+        <el-col :span="12">
+          <el-card class="chart-card" shadow="hover">
             <template #header>
               <div class="card-header">
                 <span>系统性能监控</span>
-                <ScSwitch
-                  v-model="realTimeMonitoring"
-                  active-text="实时监控"
-                  size="small"
-                  @change="toggleRealTimeMonitoring"
-                />
+                <el-switch v-model="realTimeMonitoring" active-text="实时监控" size="small" @change="toggleRealTimeMonitoring" />
               </div>
             </template>
-            <div ref="performanceChartRef" class="chart-container" />
-          </ScCard>
-        </ScCol>
-      </ScRow>
+            <div ref="performanceChartRef" class="chart-container"></div>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 详细统计表格 -->
     <div class="detailed-statistics">
-      <ScCard class="table-card" shadow="hover">
+      <el-card class="table-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>房间详细统计</span>
             <div class="header-actions">
-              <ScInput
-                v-model="searchKeyword"
-                placeholder="搜索房间"
-                size="small"
-                style="width: 200px; margin-right: 12px"
-                clearable
-              >
+              <el-input v-model="searchKeyword" placeholder="搜索房间" size="small" style="width: 200px; margin-right: 12px" clearable>
                 <template #prefix>
-                  <ScIcon><Search /></ScIcon>
+                  <el-icon><Search /></el-icon>
                 </template>
-              </ScInput>
-              <ScButton type="primary" size="small" @click="exportStatistics">
-                <ScIcon><Download /></ScIcon>
+              </el-input>
+              <el-button type="primary" size="small" @click="exportStatistics">
+                <el-icon><Download /></el-icon>
                 导出
-              </ScButton>
-              <ScButton type="info" size="small" @click="refreshStatistics">
-                <ScIcon><Refresh /></ScIcon>
+              </el-button>
+              <el-button type="info" size="small" @click="refreshStatistics">
+                <el-icon><Refresh /></el-icon>
                 刷新
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </template>
 
-        <ScTable
-          v-loading="loading"
-          :data="filteredRoomStats"
-          style="width: 100%"
-          row-key="roomId"
-        >
-          <ScTableColumn prop="roomName" label="房间名称" min-width="150" />
-          <ScTableColumn prop="roomType" label="类型" width="100">
+        <el-table :data="filteredRoomStats" style="width: 100%" v-loading="loading" row-key="roomId">
+          <el-table-column prop="roomName" label="房间名称" min-width="150" />
+          <el-table-column prop="roomType" label="类型" width="100">
             <template #default="{ row }">
-              <ScTag :type="getRoomTypeTag(row.roomType)" size="small">
+              <el-tag :type="getRoomTypeTag(row.roomType)" size="small">
                 {{ getRoomTypeText(row.roomType) }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="totalUsers" label="总参与人数" width="120" />
-          <ScTableColumn prop="peakUsers" label="峰值人数" width="100" />
-          <ScTableColumn prop="totalDuration" label="总时长" width="120">
+          </el-table-column>
+          <el-table-column prop="totalUsers" label="总参与人数" width="120" />
+          <el-table-column prop="peakUsers" label="峰值人数" width="100" />
+          <el-table-column prop="totalDuration" label="总时长" width="120">
             <template #default="{ row }">
               {{ formatDuration(row.totalDuration) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="avgDuration" label="平均时长" width="120">
+          </el-table-column>
+          <el-table-column prop="avgDuration" label="平均时长" width="120">
             <template #default="{ row }">
               {{ formatDuration(row.avgDuration) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="createTime" label="创建时间" width="150">
+          </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="150">
             <template #default="{ row }">
               {{ formatTime(row.createTime) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="status" label="状态" width="100">
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
-              <ScTag
-                :type="row.status === 'active' ? 'success' : 'info'"
-                size="small"
-              >
+              <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
                 {{ row.status === "active" ? "活跃" : "已结束" }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="操作" width="150">
+          </el-table-column>
+          <el-table-column label="操作" width="150">
             <template #default="{ row }">
-              <ScButton
-                type="primary"
-                size="small"
-                @click="viewRoomDetail(row)"
-              >
-                详情
-              </ScButton>
-              <ScButton type="info" size="small" @click="viewRoomHistory(row)">
-                历史
-              </ScButton>
+              <el-button type="primary" size="small" @click="viewRoomDetail(row)"> 详情 </el-button>
+              <el-button type="info" size="small" @click="viewRoomHistory(row)"> 历史 </el-button>
             </template>
-          </ScTableColumn>
-        </ScTable>
+          </el-table-column>
+        </el-table>
 
         <div class="pagination-container">
-          <ScPagination
-            v-model:current-page="pagination.currentPage"
-            v-model:page-size="pagination.pageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="pagination.total"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
+          <el-pagination v-model:current-page="pagination.currentPage" v-model:page-size="pagination.pageSize" :page-sizes="[10, 20, 50, 100]" :total="pagination.total" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 房间详情对话框 -->
     <sc-dialog v-model="showRoomDetail" title="房间详情" width="800px">
-      <div v-if="selectedRoom" class="room-detail-content">
-        <ScDescriptions :column="2" border>
-          <ScDescriptionsItem label="房间名称">{{
-            selectedRoom.roomName
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="房间类型">
-            <ScTag :type="getRoomTypeTag(selectedRoom.roomType)" size="small">
+      <div class="room-detail-content" v-if="selectedRoom">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="房间名称">{{ selectedRoom.roomName }}</el-descriptions-item>
+          <el-descriptions-item label="房间类型">
+            <el-tag :type="getRoomTypeTag(selectedRoom.roomType)" size="small">
               {{ getRoomTypeText(selectedRoom.roomType) }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="创建者">{{
-            selectedRoom.creatorName
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="创建时间">{{
-            formatTime(selectedRoom.createTime)
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="总参与人数">{{
-            selectedRoom.totalUsers
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="峰值人数">{{
-            selectedRoom.peakUsers
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="总时长">{{
-            formatDuration(selectedRoom.totalDuration)
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="平均时长">{{
-            formatDuration(selectedRoom.avgDuration)
-          }}</ScDescriptionsItem>
-        </ScDescriptions>
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="创建者">{{ selectedRoom.creatorName }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ formatTime(selectedRoom.createTime) }}</el-descriptions-item>
+          <el-descriptions-item label="总参与人数">{{ selectedRoom.totalUsers }}</el-descriptions-item>
+          <el-descriptions-item label="峰值人数">{{ selectedRoom.peakUsers }}</el-descriptions-item>
+          <el-descriptions-item label="总时长">{{ formatDuration(selectedRoom.totalDuration) }}</el-descriptions-item>
+          <el-descriptions-item label="平均时长">{{ formatDuration(selectedRoom.avgDuration) }}</el-descriptions-item>
+        </el-descriptions>
 
         <!-- 参与者列表 -->
         <div class="participants-section">
           <h4>参与者列表</h4>
-          <ScTable :data="selectedRoom.participants" style="width: 100%">
-            <ScTableColumn prop="username" label="用户名" />
-            <ScTableColumn prop="joinTime" label="加入时间" width="150">
+          <el-table :data="selectedRoom.participants" style="width: 100%">
+            <el-table-column prop="username" label="用户名" />
+            <el-table-column prop="joinTime" label="加入时间" width="150">
               <template #default="{ row }">
                 {{ formatTime(row.joinTime) }}
               </template>
-            </ScTableColumn>
-            <ScTableColumn prop="leaveTime" label="离开时间" width="150">
+            </el-table-column>
+            <el-table-column prop="leaveTime" label="离开时间" width="150">
               <template #default="{ row }">
                 {{ row.leaveTime ? formatTime(row.leaveTime) : "仍在房间" }}
               </template>
-            </ScTableColumn>
-            <ScTableColumn prop="duration" label="停留时长" width="120">
+            </el-table-column>
+            <el-table-column prop="duration" label="停留时长" width="120">
               <template #default="{ row }">
                 {{ formatDuration(row.duration) }}
               </template>
-            </ScTableColumn>
-          </ScTable>
+            </el-table-column>
+          </el-table>
         </div>
       </div>
     </sc-dialog>
@@ -317,29 +256,25 @@
     <sc-dialog v-model="showRoomHistory" title="房间历史" width="1000px">
       <div class="room-history-content">
         <!-- 历史图表 -->
-        <div
-          ref="roomHistoryChartRef"
-          class="chart-container"
-          style="height: 300px; margin-bottom: 20px"
-        />
+        <div ref="roomHistoryChartRef" class="chart-container" style="height: 300px; margin-bottom: 20px"></div>
 
         <!-- 历史记录表格 -->
-        <ScTable :data="roomHistoryData" style="width: 100%">
-          <ScTableColumn prop="date" label="日期" width="120" />
-          <ScTableColumn prop="sessions" label="会话次数" width="100" />
-          <ScTableColumn prop="totalUsers" label="参与人数" width="100" />
-          <ScTableColumn prop="peakUsers" label="峰值人数" width="100" />
-          <ScTableColumn prop="totalDuration" label="总时长" width="120">
+        <el-table :data="roomHistoryData" style="width: 100%">
+          <el-table-column prop="date" label="日期" width="120" />
+          <el-table-column prop="sessions" label="会话次数" width="100" />
+          <el-table-column prop="totalUsers" label="参与人数" width="100" />
+          <el-table-column prop="peakUsers" label="峰值人数" width="100" />
+          <el-table-column prop="totalDuration" label="总时长" width="120">
             <template #default="{ row }">
               {{ formatDuration(row.totalDuration) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="avgDuration" label="平均时长" width="120">
+          </el-table-column>
+          <el-table-column prop="avgDuration" label="平均时长" width="120">
             <template #default="{ row }">
               {{ formatDuration(row.avgDuration) }}
             </template>
-          </ScTableColumn>
-        </ScTable>
+          </el-table-column>
+        </el-table>
       </div>
     </sc-dialog>
   </div>
@@ -353,33 +288,11 @@
  * @version 1.0.0
  */
 
-import {
-  ref,
-  reactive,
-  computed,
-  onMounted,
-  onUnmounted,
-  watch,
-  nextTick,
-} from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { message } from "@repo/utils";
-import {
-  House,
-  VideoCamera,
-  User,
-  Timer,
-  Refresh,
-  Search,
-  Download,
-} from "@element-plus/icons-vue";
+import { House, VideoCamera, User, Timer, Refresh, Search, Download } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
-import {
-  getSystemStatistics,
-  getRoomStatistics,
-  getRoomHistory,
-  type SystemStatistics,
-  type RoomStatistics,
-} from "@/api/webrtc/statistics";
+import { getSystemStatistics, getRoomStatistics, getRoomHistory, type SystemStatistics, type RoomStatistics } from "@/api/webrtc/statistics";
 
 // 图表引用
 const roomTrendChartRef = ref<HTMLElement>();
@@ -434,9 +347,7 @@ let monitoringTimer: NodeJS.Timeout | null = null;
 // 计算属性
 const filteredRoomStats = computed(() => {
   if (!searchKeyword.value) return roomStats.value;
-  return roomStats.value.filter((room) =>
-    room.roomName.toLowerCase().includes(searchKeyword.value.toLowerCase()),
-  );
+  return roomStats.value.filter((room) => room.roomName.toLowerCase().includes(searchKeyword.value.toLowerCase()));
 });
 
 /**
@@ -976,6 +887,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -992,6 +904,8 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -1025,6 +939,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .statistics-container {
   padding: 20px;
@@ -1098,7 +1013,7 @@ onUnmounted(() => {
 
         .stat-label {
           font-size: 14px;
-          color: var(--el-text-color-primary);
+           color: var(--el-text-color-primary);
         }
       }
     }
@@ -1199,6 +1114,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1207,4 +1123,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

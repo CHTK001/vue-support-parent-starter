@@ -4,29 +4,16 @@
  * 完全用 div 替代 el-menu，避免样式冲突
  * 使用 ResizeObserver + 防抖监听宽度变化
  */
-import {
-  computed,
-  ref,
-  provide,
-  onMounted,
-  onBeforeUnmount,
-  nextTick,
-  watch,
-  type Component,
-} from "vue";
-import { useRoute } from "vue-router";
-import { getConfig, responsiveStorageNameSpace } from "@repo/config";
-import { usePermissionStoreHook, emitter } from "@repo/core";
-import { isAllEmpty } from "@pureadmin/utils";
-import { localStorageProxy } from "@repo/utils";
-import type { StorageConfigs } from "@repo/config";
-import { useNav } from "../../../../hooks/useNav";
-import {
-  CustomMenu,
-  CustomSidebarItem,
-  CustomSubMenu,
-} from "../../components/custom-menu";
-import LayTool from "../../../lay-tool/index.vue";
+import { computed, ref, provide, onMounted, onBeforeUnmount, nextTick, watch, type Component } from 'vue';
+import { useRoute } from 'vue-router';
+import { getConfig, responsiveStorageNameSpace } from '@repo/config';
+import { usePermissionStoreHook, emitter } from '@repo/core';
+import { isAllEmpty } from '@pureadmin/utils';
+import { localStorageProxy } from '@repo/utils';
+import type { StorageConfigs } from '@repo/config';
+import { useNav } from '../../../../hooks/useNav';
+import { CustomMenu, CustomSidebarItem, CustomSubMenu } from '../../components/custom-menu';
+import LayTool from '../../../lay-tool/index.vue';
 
 const props = defineProps<{
   /** 主题类名 */
@@ -43,22 +30,13 @@ const { getLogo, backTopMenu } = useNav();
 // 提取 store 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
 
-// 控制 logo 显示，从本地存储读取初始值
-const showLogo = ref(
-  localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`
-  )?.showLogo ?? true
-);
-
 // 提供主题化组件给子组件递归使用
-const ThemeSidebarItem = computed(
-  () => props.sidebarItemComponent || CustomSidebarItem,
-);
-provide("themeSidebarItem", ThemeSidebarItem.value);
+const ThemeSidebarItem = computed(() => props.sidebarItemComponent || CustomSidebarItem);
+provide('themeSidebarItem', ThemeSidebarItem.value);
 
 // 当前激活路径
 const defaultActive = computed(() =>
-  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
 );
 
 // === 菜单溢出处理 ===
@@ -91,7 +69,7 @@ const overflowMenus = computed(() => {
 // 获取菜单容器 DOM 元素
 function getMenuContainerEl(): HTMLElement | null {
   if (!menuContainerRef.value) return null;
-  if ("$el" in menuContainerRef.value) {
+  if ('$el' in menuContainerRef.value) {
     return (menuContainerRef.value as any).$el as HTMLElement;
   }
   return menuContainerRef.value as HTMLElement;
@@ -102,42 +80,39 @@ function calcVisibleCount() {
   if (!headerRef.value) {
     return;
   }
-
+  
   const totalMenus = allMenus.value.length;
   if (totalMenus === 0) {
     return;
   }
-
+  
   // 获取整个 header 的宽度
   const headerWidth = headerRef.value.clientWidth;
   if (headerWidth === 0) {
     return;
   }
-
+  
   // 获取右侧工具栏的实际宽度
   const rightToolbarWidth = rightToolbarRef.value?.offsetWidth || 300;
-
+  
   // 计算菜单区域的可用宽度 = header宽度 - Logo宽度 - 右侧工具栏宽度 - padding
   const padding = 32; // 左右 padding
   const menuMargin = 32; // 菜单区域的 margin
-  const availableWidth =
-    headerWidth - LOGO_WIDTH - rightToolbarWidth - padding - menuMargin;
-
+  const availableWidth = headerWidth - LOGO_WIDTH - rightToolbarWidth - padding - menuMargin;
+  
   if (availableWidth <= 0) {
     visibleCount.value = 1;
     return;
   }
-
+  
   // 获取菜单容器
   const menuContainerEl = getMenuContainerEl();
-
+  
   // 获取所有菜单项元素并计算宽度
   const itemWidths: number[] = [];
-
+  
   if (menuContainerEl) {
-    const menuItems = menuContainerEl.querySelectorAll(
-      ":scope > .custom-menu-item, :scope > .custom-sub-menu:not(.more-menu)",
-    );
+    const menuItems = menuContainerEl.querySelectorAll(':scope > .custom-menu-item, :scope > .custom-sub-menu:not(.more-menu)');
     menuItems.forEach((item) => {
       const el = item as HTMLElement;
       const rect = el.getBoundingClientRect();
@@ -147,28 +122,28 @@ function calcVisibleCount() {
       itemWidths.push(rect.width + marginLeft + marginRight);
     });
   }
-
+  
   // 如果没有测量到宽度，使用估算值
   const estimatedItemWidth = 100;
-
-  if (itemWidths.length === 0 || itemWidths.every((w) => w === 0)) {
+  
+  if (itemWidths.length === 0 || itemWidths.every(w => w === 0)) {
     const safeWidth = availableWidth - MORE_MENU_WIDTH - 20;
     const count = Math.floor(safeWidth / estimatedItemWidth);
     visibleCount.value = Math.max(1, Math.min(count, totalMenus));
     return;
   }
-
+  
   // 计算可以容纳的菜单数量
   let usedWidth = 0;
   let count = 0;
   const safetyMargin = 30; // 安全边距
-
+  
   for (let i = 0; i < totalMenus; i++) {
     const itemWidth = itemWidths[i] || estimatedItemWidth;
     const remainingMenus = totalMenus - i - 1;
     const needMoreMenu = remainingMenus > 0;
     const reservedWidth = needMoreMenu ? MORE_MENU_WIDTH + safetyMargin : 0;
-
+    
     if (usedWidth + itemWidth + reservedWidth <= availableWidth) {
       usedWidth += itemWidth;
       count++;
@@ -176,7 +151,7 @@ function calcVisibleCount() {
       break;
     }
   }
-
+  
   visibleCount.value = Math.max(1, count);
 }
 
@@ -201,13 +176,13 @@ function setupResizeObserver() {
     initTimer = setTimeout(() => setupResizeObserver(), 100);
     return;
   }
-
+  
   resizeObserver?.disconnect();
-
+  
   resizeObserver = new ResizeObserver(() => {
     debouncedCalcVisibleCount();
   });
-
+  
   // 监听整个 header 的尺寸变化
   resizeObserver.observe(headerRef.value);
 }
@@ -217,9 +192,6 @@ onMounted(() => {
     setupResizeObserver();
     // 初始计算延迟执行，等待 DOM 完全渲染
     setTimeout(() => calcVisibleCount(), 200);
-  });
-  emitter.on("logoChange", (val: boolean) => {
-    showLogo.value = val;
   });
 });
 
@@ -234,21 +206,16 @@ onBeforeUnmount(() => {
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
-  emitter.off("logoChange");
 });
 
 // 监听菜单数据变化
-watch(
-  allMenus,
-  () => {
-    nextTick(() => {
-      // 先显示全部，然后重新计算
-      visibleCount.value = allMenus.value.length;
-      setTimeout(() => calcVisibleCount(), 100);
-    });
-  },
-  { immediate: false },
-);
+watch(allMenus, () => {
+  nextTick(() => {
+    // 先显示全部，然后重新计算
+    visibleCount.value = allMenus.value.length;
+    setTimeout(() => calcVisibleCount(), 100);
+  });
+}, { immediate: false });
 
 // 监听 visibleCount 变化，重新计算（因为 DOM 变化后宽度可能不同）
 watch(visibleCount, () => {
@@ -257,11 +224,9 @@ watch(visibleCount, () => {
     const menuContainerEl = getMenuContainerEl();
     if (menuContainerEl) {
       // 二次验证，确保计算正确
-      const items = menuContainerEl.querySelectorAll(
-        ":scope > .custom-menu-item, :scope > .custom-sub-menu",
-      );
+      const items = menuContainerEl.querySelectorAll(':scope > .custom-menu-item, :scope > .custom-sub-menu');
       let totalWidth = 0;
-      items.forEach((item) => {
+      items.forEach(item => {
         totalWidth += (item as HTMLElement).offsetWidth;
       });
       // 如果超出容器宽度，需要减少显示数量
@@ -280,11 +245,11 @@ watch(visibleCount, () => {
     :class="['horizontal-header', 'horizontal-custom-menu', themeClass]"
   >
     <!-- Logo 区域 -->
-    <div v-if="showLogo" class="horizontal-header-left" @click="backTopMenu">
+    <div class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
       <span>{{ getConfig().Title }}</span>
     </div>
-
+    
     <!-- 菜单区域：使用自定义菜单组件 -->
     <CustomMenu
       ref="menuContainerRef"
@@ -302,7 +267,7 @@ watch(visibleCount, () => {
         :base-path="menuItem.path"
         :popper-class="popperClass"
       />
-
+      
       <!-- 更多菜单（溢出部分） -->
       <CustomSubMenu
         v-if="overflowMenus.length > 0"
@@ -315,7 +280,7 @@ watch(visibleCount, () => {
         <template #title>
           <span class="menu-title">...</span>
         </template>
-
+        
         <!-- 溢出的菜单项 -->
         <component
           :is="ThemeSidebarItem"
@@ -328,7 +293,7 @@ watch(visibleCount, () => {
         />
       </CustomSubMenu>
     </CustomMenu>
-
+    
     <!-- 右侧工具栏 -->
     <div ref="rightToolbarRef" class="horizontal-header-right">
       <LayTool />
@@ -392,7 +357,7 @@ watch(visibleCount, () => {
   height: 100%;
   margin: 0 16px;
   overflow: hidden; // 隐藏溢出部分
-
+  
   // 确保菜单项不会被压缩
   :deep(.custom-menu-item),
   :deep(.custom-sub-menu) {
@@ -413,7 +378,7 @@ watch(visibleCount, () => {
 // "更多"菜单样式
 .more-menu {
   flex-shrink: 0;
-
+  
   .menu-title {
     font-size: 14px;
     font-weight: 500;

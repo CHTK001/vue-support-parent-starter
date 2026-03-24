@@ -1,8 +1,8 @@
 <template>
   <div class="scifi-dashboard system-container modern-bg">
     <!-- 科幻风格头部 -->
-    <TechHeader
-      variant="A1"
+    <TechHeader 
+      variant="A1" 
       :title="headerTitle"
       :sub-title="headerSubTitle"
       :glow-opacity="0.8"
@@ -10,9 +10,9 @@
       <template #left>
         <div class="header-left">
           <div class="status-indicator" :class="{ online: isConnected }">
-            <span class="pulse" />
+            <span class="pulse"></span>
           </div>
-          <span class="status-text">{{ isConnected ? "已连接" : "断开" }}</span>
+          <span class="status-text">{{ isConnected ? '已连接' : '断开' }}</span>
         </div>
       </template>
       <template #right>
@@ -21,26 +21,12 @@
             <IconifyIconOnline icon="ri:time-line" />
             {{ formatTime(lastUpdateTime) }}
           </span>
-          <TechButton
-            variant="A1"
-            appearance="A"
-            size="small"
-            @click="refreshData"
-          >
+          <TechButton variant="A1" appearance="A" size="small" @click="refreshData">
             <IconifyIconOnline icon="ri:refresh-line" />
             刷新
           </TechButton>
-          <TechButton
-            variant="A1"
-            appearance="B"
-            size="small"
-            @click="toggleFullscreen"
-          >
-            <IconifyIconOnline
-              :icon="
-                isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'
-              "
-            />
+          <TechButton variant="A1" appearance="B" size="small" @click="toggleFullscreen">
+            <IconifyIconOnline :icon="isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'" />
           </TechButton>
         </div>
       </template>
@@ -51,43 +37,27 @@
       <!-- 左侧面板 -->
       <div class="left-section">
         <!-- CPU 面板 -->
-        <TechPanel
-          variant="A1"
-          title="CPU 监控"
-          :height="280"
-          class="metric-panel"
-        >
+        <TechPanel variant="A1" title="CPU 监控" :height="280" class="metric-panel">
           <div class="metric-content">
             <div class="gauge-wrapper">
-              <TechGeometry
-                variant="Hexagon"
-                :width="120"
-                :height="120"
-                :glow-opacity="0.6"
-              />
+              <TechGeometry variant="Hexagon" :width="120" :height="120" :glow-opacity="0.6" />
               <div class="gauge-value">
-                <span class="value">{{
-                  (metrics.cpu?.usage || 0).toFixed(1)
-                }}</span>
+                <span class="value">{{ (metrics.cpu?.usage || 0).toFixed(1) }}</span>
                 <span class="unit">%</span>
               </div>
             </div>
             <div class="metric-details">
               <div class="detail-row">
                 <span class="label">核心数</span>
-                <span class="value">{{ metrics.cpu?.cores || "-" }}</span>
+                <span class="value">{{ metrics.cpu?.cores || '-' }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">系统负载</span>
-                <span class="value">{{
-                  metrics.cpu?.loadAverage?.toFixed(2) || "-"
-                }}</span>
+                <span class="value">{{ metrics.cpu?.loadAverage?.toFixed(2) || '-' }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">进程占用</span>
-                <span class="value"
-                  >{{ (metrics.cpu?.processUsage || 0).toFixed(1) }}%</span
-                >
+                <span class="value">{{ (metrics.cpu?.processUsage || 0).toFixed(1) }}%</span>
               </div>
             </div>
           </div>
@@ -95,46 +65,27 @@
         </TechPanel>
 
         <!-- 内存面板 -->
-        <TechPanel
-          variant="A2"
-          title="内存监控"
-          :height="280"
-          class="metric-panel"
-        >
+        <TechPanel variant="A2" title="内存监控" :height="280" class="metric-panel">
           <div class="metric-content">
             <div class="gauge-wrapper">
-              <TechGeometry
-                variant="Hexagon"
-                :width="120"
-                :height="120"
-                :glow-opacity="0.6"
-                decoration-color-alt
-              />
+              <TechGeometry variant="Hexagon" :width="120" :height="120" :glow-opacity="0.6" decoration-color-alt />
               <div class="gauge-value alt">
-                <span class="value">{{
-                  (metrics.memory?.usage || 0).toFixed(1)
-                }}</span>
+                <span class="value">{{ (metrics.memory?.usage || 0).toFixed(1) }}</span>
                 <span class="unit">%</span>
               </div>
             </div>
             <div class="metric-details">
               <div class="detail-row">
                 <span class="label">已用</span>
-                <span class="value">{{
-                  formatBytes(metrics.memory?.used)
-                }}</span>
+                <span class="value">{{ formatBytes(metrics.memory?.used) }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">可用</span>
-                <span class="value">{{
-                  formatBytes(metrics.memory?.free)
-                }}</span>
+                <span class="value">{{ formatBytes(metrics.memory?.free) }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">总量</span>
-                <span class="value">{{
-                  formatBytes(metrics.memory?.total)
-                }}</span>
+                <span class="value">{{ formatBytes(metrics.memory?.total) }}</span>
               </div>
             </div>
           </div>
@@ -145,24 +96,19 @@
       <!-- 中央面板 -->
       <div class="center-section">
         <!-- 节点状态 -->
-        <TechPanel
-          variant="B1"
-          title="节点状态"
-          :height="200"
-          class="status-panel"
-        >
+        <TechPanel variant="B1" title="节点状态" :height="200" class="status-panel">
           <div class="node-status-content">
-            <TechGeometry
-              variant="Hexagon"
-              :width="100"
-              :height="100"
+            <TechGeometry 
+              variant="Hexagon" 
+              :width="100" 
+              :height="100" 
               :glow-opacity="isConnected ? 1 : 0.3"
               :decoration-color-alt="!isConnected"
             />
             <div class="status-info">
               <div class="status-row">
                 <IconifyIconOnline icon="ri:server-line" />
-                <span>{{ nodeInfo?.applicationName || "未知节点" }}</span>
+                <span>{{ nodeInfo?.applicationName || '未知节点' }}</span>
               </div>
               <div class="status-row address">
                 <IconifyIconOnline icon="ri:global-line" />
@@ -177,20 +123,12 @@
         </TechPanel>
 
         <!-- JVM 面板 -->
-        <TechPanel
-          variant="B2"
-          title="JVM 监控"
-          :height="360"
-          class="jvm-panel"
-        >
+        <TechPanel variant="B2" title="JVM 监控" :height="360" class="jvm-panel">
           <div class="jvm-content">
             <TechPanelTitle variant="A1" title="堆内存" />
             <div class="memory-bar-wrapper">
               <div class="memory-bar">
-                <div
-                  class="memory-used"
-                  :style="{ width: `${jvmHeapUsage}%` }"
-                />
+                <div class="memory-used" :style="{ width: `${jvmHeapUsage}%` }"></div>
               </div>
               <div class="memory-info">
                 <span>{{ formatBytes(metrics.jvm?.heapUsed) }}</span>
@@ -202,10 +140,7 @@
             <TechPanelTitle variant="A2" title="非堆内存" />
             <div class="memory-bar-wrapper">
               <div class="memory-bar alt">
-                <div
-                  class="memory-used"
-                  :style="{ width: `${jvmNonHeapUsage}%` }"
-                />
+                <div class="memory-used" :style="{ width: `${jvmNonHeapUsage}%` }"></div>
               </div>
               <div class="memory-info">
                 <span>{{ formatBytes(metrics.jvm?.nonHeapUsed) }}</span>
@@ -217,13 +152,11 @@
             <div class="jvm-info-grid">
               <div class="info-item">
                 <span class="label">JVM 版本</span>
-                <span class="value">{{ metrics.jvm?.version || "-" }}</span>
+                <span class="value">{{ metrics.jvm?.version || '-' }}</span>
               </div>
               <div class="info-item">
                 <span class="label">启动时间</span>
-                <span class="value">{{
-                  formatStartTime(metrics.jvm?.startTime)
-                }}</span>
+                <span class="value">{{ formatStartTime(metrics.jvm?.startTime) }}</span>
               </div>
             </div>
           </div>
@@ -233,24 +166,12 @@
       <!-- 右侧面板 -->
       <div class="right-section">
         <!-- 磁盘面板 -->
-        <TechPanel
-          variant="A3"
-          title="磁盘监控"
-          :height="280"
-          class="metric-panel"
-        >
+        <TechPanel variant="A3" title="磁盘监控" :height="280" class="metric-panel">
           <div class="metric-content">
             <div class="gauge-wrapper">
-              <TechGeometry
-                variant="Hexagon"
-                :width="120"
-                :height="120"
-                :glow-opacity="0.6"
-              />
+              <TechGeometry variant="Hexagon" :width="120" :height="120" :glow-opacity="0.6" />
               <div class="gauge-value">
-                <span class="value">{{
-                  (metrics.disk?.usage || 0).toFixed(1)
-                }}</span>
+                <span class="value">{{ (metrics.disk?.usage || 0).toFixed(1) }}</span>
                 <span class="unit">%</span>
               </div>
             </div>
@@ -265,9 +186,7 @@
               </div>
               <div class="detail-row">
                 <span class="label">总量</span>
-                <span class="value">{{
-                  formatBytes(metrics.disk?.total)
-                }}</span>
+                <span class="value">{{ formatBytes(metrics.disk?.total) }}</span>
               </div>
             </div>
           </div>
@@ -275,53 +194,32 @@
         </TechPanel>
 
         <!-- 网络面板 -->
-        <TechPanel
-          variant="B3"
-          title="网络监控"
-          :height="280"
-          class="metric-panel"
-        >
+        <TechPanel variant="B3" title="网络监控" :height="280" class="metric-panel">
           <div class="network-content">
             <div class="network-stats">
               <div class="stat-item upload">
-                <IconifyIconOnline
-                  icon="ri:upload-cloud-2-line"
-                  class="stat-icon"
-                />
-                <span class="stat-value">{{
-                  formatBytesPerSec(metrics.network?.sendRate)
-                }}</span>
+                <IconifyIconOnline icon="ri:upload-cloud-2-line" class="stat-icon" />
+                <span class="stat-value">{{ formatBytesPerSec(metrics.network?.sendRate) }}</span>
                 <span class="stat-label">上传速率</span>
               </div>
               <div class="stat-item download">
-                <IconifyIconOnline
-                  icon="ri:download-cloud-2-line"
-                  class="stat-icon"
-                />
-                <span class="stat-value">{{
-                  formatBytesPerSec(metrics.network?.receiveRate)
-                }}</span>
+                <IconifyIconOnline icon="ri:download-cloud-2-line" class="stat-icon" />
+                <span class="stat-value">{{ formatBytesPerSec(metrics.network?.receiveRate) }}</span>
                 <span class="stat-label">下载速率</span>
               </div>
             </div>
             <div class="metric-details">
               <div class="detail-row">
                 <span class="label">发送总量</span>
-                <span class="value">{{
-                  formatBytes(metrics.network?.bytesSent)
-                }}</span>
+                <span class="value">{{ formatBytes(metrics.network?.bytesSent) }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">接收总量</span>
-                <span class="value">{{
-                  formatBytes(metrics.network?.bytesReceived)
-                }}</span>
+                <span class="value">{{ formatBytes(metrics.network?.bytesReceived) }}</span>
               </div>
               <div class="detail-row">
                 <span class="label">TCP 连接</span>
-                <span class="value">{{
-                  metrics.network?.tcpConnections || 0
-                }}</span>
+                <span class="value">{{ metrics.network?.tcpConnections || 0 }}</span>
               </div>
             </div>
           </div>
@@ -348,30 +246,21 @@
             <span class="stat-name">峰值线程</span>
           </div>
           <div class="stat-block">
-            <span class="stat-number">{{
-              metrics.thread?.totalStarted || 0
-            }}</span>
+            <span class="stat-number">{{ metrics.thread?.totalStarted || 0 }}</span>
             <span class="stat-name">总启动数</span>
           </div>
         </div>
       </TechPanel>
 
       <!-- GC 信息 -->
-      <TechPanel
-        variant="B4"
-        title="GC 信息"
-        class="footer-panel"
-        decoration-color-alt
-      >
+      <TechPanel variant="B4" title="GC 信息" class="footer-panel" decoration-color-alt>
         <div class="gc-stats">
           <div class="stat-block">
             <span class="stat-number">{{ metrics.gc?.count || 0 }}</span>
             <span class="stat-name">GC 次数</span>
           </div>
           <div class="stat-block">
-            <span class="stat-number">{{
-              formatMillis(metrics.gc?.time)
-            }}</span>
+            <span class="stat-number">{{ formatMillis(metrics.gc?.time) }}</span>
             <span class="stat-name">GC 耗时</span>
           </div>
         </div>
@@ -388,12 +277,7 @@
             <IconifyIconOnline icon="ri:settings-3-line" />
             配置查看
           </TechButton>
-          <TechButton
-            variant="A2"
-            size="small"
-            appearance="B"
-            @click="handleRestart"
-          >
+          <TechButton variant="A2" size="small" appearance="B" @click="handleRestart">
             <IconifyIconOnline icon="ri:restart-line" />
             重启节点
           </TechButton>
@@ -421,7 +305,7 @@ import {
   TechDeco,
   TechGeometry,
   TechPanelTitle,
-} from "@repo/sc-visualization/TechUI";
+} from "@repo/components/TechUI";
 import {
   getNodeMetricsForNodeControl,
   type NodeMetricsDTO,
@@ -570,7 +454,7 @@ const refreshData = async () => {
   try {
     const response = await getNodeMetricsForNodeControl(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     if (response.success && response.data) {
       metrics.value = response.data;
@@ -598,10 +482,6 @@ const toggleFullscreen = () => {
     document.exitFullscreen();
     isFullscreen.value = false;
   }
-};
-
-const handleFullscreenChange = () => {
-  isFullscreen.value = !!document.fullscreenElement;
 };
 
 /**
@@ -695,7 +575,7 @@ watch(
       connectSocket();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 onMounted(() => {
@@ -707,20 +587,21 @@ onMounted(() => {
   }, 10000);
 
   // 监听全屏变化
-  document.addEventListener("fullscreenchange", handleFullscreenChange);
+  document.addEventListener("fullscreenchange", () => {
+    isFullscreen.value = !!document.fullscreenElement;
+  });
 });
 
 onUnmounted(() => {
   disconnectSocket();
   if (refreshTimer) {
     clearInterval(refreshTimer);
-    refreshTimer = null;
   }
-  document.removeEventListener("fullscreenchange", handleFullscreenChange);
 });
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -753,6 +634,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .scifi-dashboard {
   width: 100%;
@@ -1114,6 +996,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1122,4 +1005,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

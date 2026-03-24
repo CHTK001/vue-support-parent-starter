@@ -17,7 +17,7 @@ export const globalSetting: PlatformConfigs = {
   // ===========================================
   // 鉴权与登录配置
   // ===========================================
-  /** 是否开启远程权限控制 */
+  /** 是否开启远程权限控制 */ 
   OpenAuth: true,
   /** 是否开启动态配置面板 */
   OpenSetting: true,
@@ -25,30 +25,20 @@ export const globalSetting: PlatformConfigs = {
   OpenTenantLogin: false,
   /** 是否开启基础登录 */
   OpenBaseLogin: true,
-  /** 是否开启短信登录 */
-  OpenSmsLogin: false,
-  /** 是否开启刷新token（仅控制相关功能入口是否展示，刷新逻辑由HTTP模块统一处理） */
-  OpenShowRefreshToken: false,
   /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
   BlockOnConfigLoadFail: false,
   /** 是否显示错误页面风格切换按钮（默认false） */
   ShowErrorPageStyleSwitcher: false,
-  /** 是否显示加载动画样式切换按钮（默认false） */
-  ShowLoadingPageStyleSwitcher: false,
   /** 系统加载页面风格（默认minimal） */
   LoadingPageStyle: "minimal",
   /** 错误页面风格（默认minimal） */
   ErrorPageStyle: "minimal",
-  /** 是否自动提示错误信息（默认 true，与历史行为保持一致） */
-  AutoErrorMessage: true,
 
   // ===========================================
   // 布局与菜单配置
   // ===========================================
   /** 是否开启远程菜单 */
   RemoteMenu: false,
-  /** 是否在远程菜单基础上合并本地菜单（仅当RemoteMenu为true时生效，默认false） */
-  MergeLocalMenu: false,
   /** 是否开启远程布局 */
   RemoteLayout: false,
   /** 是否开启远程布局保存 */
@@ -86,8 +76,6 @@ export const globalSetting: PlatformConfigs = {
   contentMargin: 16,
   /** 是否显示FPS监控 */
   ShowFpsMonitor: false,
-  /** 消息弹窗默认开关 */
-  MessagePopupEnabled: true,
 
   // ===========================================
   // 顶部工具栏配置
@@ -110,7 +98,7 @@ export const globalSetting: PlatformConfigs = {
   // ===========================================
   // 主题与样式配置
   // ===========================================
-  /** 主题模式 */
+  /** 主题模式 */ 
   Theme: "light",
   /** 是否开启暗黑模式 */
   DarkMode: false,
@@ -130,8 +118,6 @@ export const globalSetting: PlatformConfigs = {
   LayoutRadius: 10,
   /** 布局模糊程度 */
   LayoutBlur: 10,
-  /** 内容区是否拉伸 */
-  Stretch: false,
 
   // ===========================================
   // 标签页配置
@@ -145,7 +131,7 @@ export const globalSetting: PlatformConfigs = {
   // 导航菜单配置
   // ===========================================
   /** 布局模式 */
-  Layout: "vertical",
+  Layout: "vertical", 
   /** 菜单箭头图标是否开启动画 */
   MenuArrowIconNoTransition: false,
   /** 菜单搜索历史的最大条目 */
@@ -217,8 +203,6 @@ export const globalSetting: PlatformConfigs = {
     retryDelay: 1000,
     /** 显示加载状态 */
     showLoading: true,
-    /** 是否开启请求签名（x-sign），默认 true */
-    enableSign: true,
   },
 
   // ===========================================
@@ -250,10 +234,6 @@ export const globalSetting: PlatformConfigs = {
     confirmOnLeave: false,
     /** 顶部是否显示时间 */
     showHeaderClock: false,
-    /** 顶部是否显示第二个时间 */
-    headerClockSecondEnabled: false,
-    /** 顶部第二时间的时区 */
-    headerClockSecondTimezone: "UTC",
     /** 页面缩放比例（0.8 - 1.5） */
     uiScale: 1,
     /** 读屏优化模式 */

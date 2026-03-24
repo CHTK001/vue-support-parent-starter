@@ -1,5 +1,5 @@
-import type { Component } from "vue";
-import type { ElTree } from "element-plus";
+import type { Component } from 'vue';
+import type { ElTree } from 'element-plus';
 
 // 节点数据类型
 export interface TreeNodeData {
@@ -55,10 +55,10 @@ export type FilterNodeMethodFunction = (value: string, data: TreeNodeData, node:
 export type AllowDragFunction = (node: TreeNode) => boolean;
 
 // 是否允许放置方法类型
-export type AllowDropFunction = (draggingNode: TreeNode, dropNode: TreeNode, type: "before" | "after" | "inner") => boolean;
+export type AllowDropFunction = (draggingNode: TreeNode, dropNode: TreeNode, type: 'before' | 'after' | 'inner') => boolean;
 
 // 拖拽类型
-export type DropType = "before" | "after" | "inner" | undefined;
+export type DropType = 'before' | 'after' | 'inner' | undefined;
 
 // 自定义渲染函数类型
-export type RenderContentFunction = (h: Function, { node, data, store }: { node: TreeNode; data: TreeNodeData; store: any }) => Component;
+export type RenderContentFunction = (h: Function, { node, data, store }: { node: TreeNode; data: TreeNodeData; store: any }) => Component; 

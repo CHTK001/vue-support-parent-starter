@@ -1,15 +1,5 @@
 ﻿<template>
-  <sc-dialog
-    v-model="dialogVisible"
-    top="10px"
-    :title="dialogTitle"
-    :width="dialogWidth"
-    :close-on-click-modal="false"
-    :close-on-press-escape="false"
-    :destroy-on-close="true"
-    class="modern-dialog"
-    @close="handleClose"
-  >
+  <sc-dialog v-model="dialogVisible" top="10px" :title="dialogTitle" :width="dialogWidth" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" class="modern-dialog" @close="handleClose">
     <div class="dialog-content">
       <!-- 表单头部 -->
       <div class="form-header" v-if="!isViewMode">
@@ -28,13 +18,7 @@
       <div class="view-card" v-if="isViewMode">
         <div class="card-header">
           <div class="project-avatar">
-            <img
-              v-if="formData.sysProjectIcon"
-              :src="formData.sysProjectIcon"
-              :alt="formData.sysProjectName"
-              class="avatar-image"
-              @error="handleImageError"
-            />
+            <img v-if="formData.sysProjectIcon" :src="formData.sysProjectIcon" :alt="formData.sysProjectName" class="avatar-image" @error="handleImageError" />
             <div v-else class="avatar-placeholder">
               <ScIcon class="placeholder-icon">
                 <component :is="useRenderIcon('ri:apps-line')" />
@@ -44,16 +28,11 @@
           <div class="project-info">
             <h2 class="project-name">{{ formData.sysProjectName }}</h2>
             <div class="project-meta">
-              <ScTag
-                :type="formData.sysProjectStatus === 1 ? 'success' : 'danger'"
-                class="status-tag"
-              >
+              <ScTag :type="formData.sysProjectStatus === 1 ? 'success' : 'danger'" class="status-tag">
                 {{ formData.sysProjectStatus === 1 ? "启用" : "禁用" }}
               </ScTag>
               <span class="meta-divider">•</span>
-              <span class="meta-text">{{
-                getVenderName(formData.sysProjectVender)
-              }}</span>
+              <span class="meta-text">{{ getVenderName(formData.sysProjectVender) }}</span>
             </div>
           </div>
         </div>
@@ -62,9 +41,7 @@
           <div class="info-grid">
             <div class="info-item">
               <label class="info-label">项目分组</label>
-              <div class="info-value">
-                {{ formData.sysProjectGroup || "未分组" }}
-              </div>
+              <div class="info-value">{{ formData.sysProjectGroup || "未分组" }}</div>
             </div>
             <div class="info-item">
               <label class="info-label">排序值</label>
@@ -72,27 +49,18 @@
             </div>
             <div class="info-item">
               <label class="info-label">创建时间</label>
-              <div class="info-value">
-                {{ formatDateTime(formData.createTime) }}
-              </div>
+              <div class="info-value">{{ formatDateTime(formData.createTime) }}</div>
             </div>
             <div class="info-item">
               <label class="info-label">更新时间</label>
-              <div class="info-value">
-                {{ formatDateTime(formData.updateTime) }}
-              </div>
+              <div class="info-value">{{ formatDateTime(formData.updateTime) }}</div>
             </div>
           </div>
 
           <div class="info-section" v-if="formData.sysProjectFunction">
             <label class="section-label">项目功能</label>
             <div class="function-tags">
-              <ScTag
-                v-for="funcId in getFunctionIds(formData.sysProjectFunction)"
-                :key="funcId"
-                type="primary"
-                class="function-tag"
-              >
+              <ScTag v-for="funcId in getFunctionIds(formData.sysProjectFunction)" :key="funcId" type="primary" class="function-tag">
                 {{ getFunctionName(funcId) }}
               </ScTag>
             </div>
@@ -106,15 +74,7 @@
       </div>
 
       <!-- 编辑表单 -->
-      <ScForm
-        v-else
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="120px"
-        class="modern-form"
-        @submit.prevent
-      >
+      <ScForm v-else ref="formRef" :model="formData" :rules="formRules" label-width="120px" class="modern-form" @submit.prevent>
         <div class="form-grid">
           <!-- 基本信息 -->
           <div class="form-section">
@@ -126,95 +86,41 @@
             </div>
 
             <div class="form-row">
-              <ScFormItem
-                label="项目名称"
-                prop="sysProjectName"
-                class="form-item"
-              >
-                <ScInput
-                  v-model="formData.sysProjectName"
-                  placeholder="请输入项目名称"
-                  clearable
-                  maxlength="50"
-                  show-word-limit
-                  class="form-input"
-                >
+              <ScFormItem label="项目名称" prop="sysProjectName" class="form-item">
+                <ScInput v-model="formData.sysProjectName" placeholder="请输入项目名称" clearable maxlength="50" show-word-limit class="form-input">
                   <template #prefix>
-                    <ScIcon
-                      ><component :is="useRenderIcon('ri:apps-line')"
-                    /></ScIcon>
+                    <ScIcon><component :is="useRenderIcon('ri:apps-line')" /></ScIcon>
                   </template>
                 </ScInput>
               </ScFormItem>
 
-              <ScFormItem
-                label="项目分组"
-                prop="sysProjectGroup"
-                class="form-item"
-              >
-                <ScInput
-                  v-model="formData.sysProjectGroup"
-                  placeholder="请输入项目分组"
-                  clearable
-                  maxlength="30"
-                  show-word-limit
-                  class="form-input"
-                >
+              <ScFormItem label="项目分组" prop="sysProjectGroup" class="form-item">
+                <ScInput v-model="formData.sysProjectGroup" placeholder="请输入项目分组" clearable maxlength="30" show-word-limit class="form-input">
                   <template #prefix>
-                    <ScIcon
-                      ><component :is="useRenderIcon('ri:folder-line')"
-                    /></ScIcon>
+                    <ScIcon><component :is="useRenderIcon('ri:folder-line')" /></ScIcon>
                   </template>
                 </ScInput>
               </ScFormItem>
             </div>
 
             <div class="form-row">
-              <ScFormItem
-                label="项目厂商"
-                prop="sysProjectVender"
-                class="form-item"
-              >
-                <ScSelect
-                  v-model="formData.sysProjectVender"
-                  placeholder="请选择项目厂商"
-                  clearable
-                  filterable
-                  class="form-select"
-                >
-                  <ScOption
-                    v-for="item in venderOptions"
-                    :key="item.sysDictItemId"
-                    :label="item.sysDictItemName"
-                    :value="item.sysDictItemId"
-                  >
+              <ScFormItem label="项目厂商" prop="sysProjectVender" class="form-item">
+                <ScSelect v-model="formData.sysProjectVender" placeholder="请选择项目厂商" clearable filterable class="form-select">
+                  <ScOption v-for="item in venderOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
                     <div class="option-content">
-                      <span class="option-name">{{
-                        item.sysDictItemName
-                      }}</span>
-                      <span class="option-code">{{
-                        item.sysDictItemCode
-                      }}</span>
+                      <span class="option-name">{{ item.sysDictItemName }}</span>
+                      <span class="option-code">{{ item.sysDictItemCode }}</span>
                     </div>
                   </ScOption>
                 </ScSelect>
               </ScFormItem>
 
-              <ScFormItem
-                label="项目状态"
-                prop="sysProjectStatus"
-                class="form-item"
-              >
-                <ScRadioGroup
-                  v-model="formData.sysProjectStatus"
-                  class="status-radio"
-                >
+              <ScFormItem label="项目状态" prop="sysProjectStatus" class="form-item">
+                <ScRadioGroup v-model="formData.sysProjectStatus" class="status-radio">
                   <ScRadio :label="1" class="status-option">
                     <div class="radio-content">
                       <ScIcon class="radio-icon success">
-                        <component
-                          :is="useRenderIcon('ri:checkbox-circle-line')"
-                        />
+                        <component :is="useRenderIcon('ri:checkbox-circle-line')" />
                       </ScIcon>
                       <span>启用</span>
                     </div>
@@ -222,9 +128,7 @@
                   <ScRadio :label="0" class="status-option">
                     <div class="radio-content">
                       <ScIcon class="radio-icon danger">
-                        <component
-                          :is="useRenderIcon('ri:close-circle-line')"
-                        />
+                        <component :is="useRenderIcon('ri:close-circle-line')" />
                       </ScIcon>
                       <span>禁用</span>
                     </div>
@@ -233,23 +137,10 @@
               </ScFormItem>
             </div>
 
-            <ScFormItem
-              label="排序值"
-              prop="sysProjectSort"
-              class="form-item full-width"
-            >
-              <ScInputNumber
-                v-model="formData.sysProjectSort"
-                :min="0"
-                :max="9999"
-                :step="1"
-                placeholder="请输入排序值"
-                class="form-number"
-              />
+            <ScFormItem label="排序值" prop="sysProjectSort" class="form-item full-width">
+              <ScInputNumber v-model="formData.sysProjectSort" :min="0" :max="9999" :step="1" placeholder="请输入排序值" class="form-number" />
               <div class="form-tip">
-                <ScIcon
-                  ><component :is="useRenderIcon('ri:information-line')"
-                /></ScIcon>
+                <ScIcon><component :is="useRenderIcon('ri:information-line')" /></ScIcon>
                 数值越小排序越靠前，默认为0
               </div>
             </ScFormItem>
@@ -264,27 +155,9 @@
               <span>功能配置</span>
             </div>
 
-            <ScFormItem
-              label="项目功能"
-              prop="sysProjectFunction"
-              class="form-item full-width"
-            >
-              <ScSelect
-                v-model="selectedFunctions"
-                :max-collapse-tags="5"
-                placeholder="请选择项目功能"
-                multiple
-                collapse-tags
-                collapse-tags-tooltip
-                filterable
-                class="form-select multiple"
-              >
-                <ScOption
-                  v-for="item in functionOptions"
-                  :key="item.sysDictItemId"
-                  :label="item.sysDictItemName"
-                  :value="item.sysDictItemId"
-                >
+            <ScFormItem label="项目功能" prop="sysProjectFunction" class="form-item full-width">
+              <ScSelect v-model="selectedFunctions" :max-collapse-tags="5" placeholder="请选择项目功能" multiple collapse-tags collapse-tags-tooltip filterable class="form-select multiple">
+                <ScOption v-for="item in functionOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
                   <div class="option-content">
                     <span class="option-name">{{ item.sysDictItemName }}</span>
                     <span class="option-code">{{ item.sysDictItemCode }}</span>
@@ -303,20 +176,10 @@
               <span>图标和描述</span>
             </div>
 
-            <ScFormItem
-              label="项目图标"
-              prop="sysProjectIcon"
-              class="form-item full-width"
-            >
+            <ScFormItem label="项目图标" prop="sysProjectIcon" class="form-item full-width">
               <div class="icon-upload">
                 <div class="icon-preview">
-                  <img
-                    v-if="formData.sysProjectIcon"
-                    :src="formData.sysProjectIcon"
-                    :alt="formData.sysProjectName"
-                    class="preview-image"
-                    @error="handleImageError"
-                  />
+                  <img v-if="formData.sysProjectIcon" :src="formData.sysProjectIcon" :alt="formData.sysProjectName" class="preview-image" @error="handleImageError" />
                   <div v-else class="preview-placeholder">
                     <ScIcon class="placeholder-icon">
                       <component :is="useRenderIcon('ri:image-add-line')" />
@@ -325,51 +188,22 @@
                   </div>
                 </div>
                 <div class="icon-actions">
-                  <ScInput
-                    v-model="formData.sysProjectIcon"
-                    placeholder="请输入图标URL地址"
-                    clearable
-                    class="icon-input"
-                  >
+                  <ScInput v-model="formData.sysProjectIcon" placeholder="请输入图标URL地址" clearable class="icon-input">
                     <template #prefix>
-                      <ScIcon
-                        ><component :is="useRenderIcon('ri:link')"
-                      /></ScIcon>
+                      <ScIcon><component :is="useRenderIcon('ri:link')" /></ScIcon>
                     </template>
                   </ScInput>
-                  <ScButton
-                    type="primary"
-                    :icon="useRenderIcon('ri:upload-line')"
-                    @click="handleUploadIcon"
-                    class="upload-btn"
-                  >
-                    上传图标
-                  </ScButton>
+                  <ScButton type="primary" :icon="useRenderIcon('ri:upload-line')" @click="handleUploadIcon" class="upload-btn"> 上传图标 </ScButton>
                 </div>
               </div>
               <div class="form-tip">
-                <ScIcon
-                  ><component :is="useRenderIcon('ri:information-line')"
-                /></ScIcon>
+                <ScIcon><component :is="useRenderIcon('ri:information-line')" /></ScIcon>
                 支持JPG、PNG格式，建议尺寸64x64像素
               </div>
             </ScFormItem>
 
-            <ScFormItem
-              label="项目描述"
-              prop="sysProjectRemark"
-              class="form-item full-width"
-            >
-              <ScInput
-                v-model="formData.sysProjectRemark"
-                type="textarea"
-                placeholder="请输入项目描述信息..."
-                :rows="4"
-                maxlength="200"
-                show-word-limit
-                resize="none"
-                class="form-textarea"
-              />
+            <ScFormItem label="项目描述" prop="sysProjectRemark" class="form-item full-width">
+              <ScInput v-model="formData.sysProjectRemark" type="textarea" placeholder="请输入项目描述信息..." :rows="4" maxlength="200" show-word-limit resize="none" class="form-textarea" />
             </ScFormItem>
           </div>
         </div>
@@ -391,13 +225,7 @@
           <ScButton @click="handleClose" class="cancel-btn">
             {{ isViewMode ? "关闭" : "取消" }}
           </ScButton>
-          <ScButton
-            v-if="!isViewMode"
-            type="primary"
-            :loading="submitLoading"
-            @click="handleSubmit"
-            class="submit-btn"
-          >
+          <ScButton v-if="!isViewMode" type="primary" :loading="submitLoading" @click="handleSubmit" class="submit-btn">
             <template #loading>
               <div class="loading-content">
                 <ScIcon class="loading-icon">
@@ -415,7 +243,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";
@@ -459,12 +287,8 @@ const formRules = {
     { required: true, message: "请输入项目名称", trigger: "blur" },
     { min: 2, max: 50, message: "项目名称长度在2到50个字符", trigger: "blur" },
   ],
-  sysProjectVender: [
-    { required: true, message: "请选择项目厂商", trigger: "change" },
-  ],
-  sysProjectStatus: [
-    { required: true, message: "请选择项目状态", trigger: "change" },
-  ],
+  sysProjectVender: [{ required: true, message: "请选择项目厂商", trigger: "change" }],
+  sysProjectStatus: [{ required: true, message: "请选择项目状态", trigger: "change" }],
 };
 
 // 计算属性
@@ -490,7 +314,7 @@ watch(
   (newVal) => {
     formData.sysProjectFunction = newVal.join(",");
   },
-  { deep: true },
+  { deep: true }
 );
 
 // 方法
@@ -549,9 +373,7 @@ const getSubmitLoadingText = () => {
 };
 
 const getVenderName = (venderId) => {
-  const vender = venderOptions.value.find(
-    (item) => item.sysDictItemId === venderId,
-  );
+  const vender = venderOptions.value.find((item) => item.sysDictItemId === venderId);
   return vender?.sysDictItemName || "未知厂商";
 };
 
@@ -564,9 +386,7 @@ const getFunctionIds = (functionStr) => {
 };
 
 const getFunctionName = (functionId) => {
-  const func = functionOptions.value.find(
-    (item) => item.sysDictItemId === functionId,
-  );
+  const func = functionOptions.value.find((item) => item.sysDictItemId === functionId);
   return func?.sysDictItemName || "未知功能";
 };
 
@@ -744,11 +564,7 @@ defineExpose({
     overflow: hidden;
 
     .el-dialog__header {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-dark-2)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
       color: var(--el-text-color-primary);
       padding: 10px 12px;
       border-bottom: none;
@@ -844,11 +660,7 @@ defineExpose({
     align-items: center;
     gap: 20px;
     padding: 24px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9),
-      var(--el-color-primary-light-8)
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
 
     .project-avatar {
       width: 64px;
@@ -1209,11 +1021,7 @@ defineExpose({
     .submit-btn {
       border-radius: 8px;
       padding: 10px 24px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-dark-2)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
       border: none;
 
       .loading-content {
@@ -1250,11 +1058,7 @@ defineExpose({
     border-color: var(--el-border-color);
 
     .card-header {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-7),
-        var(--el-color-primary-light-6)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-color-primary-light-6));
     }
   }
 

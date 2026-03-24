@@ -62,7 +62,7 @@
         <ScRow :gutter="20">
           <ScCol :span="8">
             <ScFormItem label="高度">
-              <ScInputNumber
+              <ScInputNumber 
                 v-model="config.height"
                 :min="100"
                 :max="400"
@@ -72,7 +72,7 @@
           </ScCol>
           <ScCol :span="8">
             <ScFormItem label="宽度">
-              <ScInputNumber
+              <ScInputNumber 
                 v-model="config.width"
                 :min="300"
                 :max="600"
@@ -135,7 +135,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { message } from "@repo/utils";
-import { ScSocketMessageDialog } from "@repo/components"
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 import CodePreview from "./CodePreview.vue";
 
 /**
@@ -230,7 +230,8 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScSocketMessageDialog } from "@repo/components"
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+
 const dialogRef = ref();
 const dialogVisible = ref(false);
 

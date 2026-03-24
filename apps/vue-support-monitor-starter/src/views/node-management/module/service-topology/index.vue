@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="service-topology system-container modern-bg">
     <!-- 工具栏 -->
-    <ScCard class="toolbar-card" shadow="never">
+    <el-card class="toolbar-card" shadow="never">
       <div class="toolbar">
         <div class="toolbar-left">
           <h3>
@@ -10,23 +10,18 @@
           </h3>
         </div>
         <div class="toolbar-right">
-          <ScTooltip content="刷新" placement="top">
-            <ScButton
-              type="primary"
-              :icon="Refresh"
-              :loading="loading"
-              @click="loadTopologyData"
-            />
-          </ScTooltip>
-          <ScTooltip content="适应画布" placement="top">
-            <ScButton :icon="FullScreen" @click="fitView" />
-          </ScTooltip>
-          <ScTooltip content="重置视图" placement="top">
-            <ScButton :icon="RefreshRight" @click="resetView" />
-          </ScTooltip>
+          <el-tooltip content="刷新" placement="top">
+            <el-button type="primary" :icon="Refresh" :loading="loading" @click="loadTopologyData" />
+          </el-tooltip>
+          <el-tooltip content="适应画布" placement="top">
+            <el-button :icon="FullScreen" @click="fitView" />
+          </el-tooltip>
+          <el-tooltip content="重置视图" placement="top">
+            <el-button :icon="RefreshRight" @click="resetView" />
+          </el-tooltip>
         </div>
       </div>
-    </ScCard>
+    </el-card>
 
     <!-- 统计卡片 -->
     <div class="stats-section">
@@ -57,14 +52,11 @@
     </div>
 
     <!-- 图谱容器 -->
-    <ScCard class="graph-card" shadow="never">
-      <div ref="graphContainer" v-loading="loading" class="graph-container" />
-
-      <ScEmpty
-        v-if="!loading && topologyData.nodes.length === 0"
-        description="暂无服务拓扑数据"
-      />
-    </ScCard>
+    <el-card class="graph-card" shadow="never">
+      <div ref="graphContainer" class="graph-container" v-loading="loading" />
+      
+      <el-empty v-if="!loading && topologyData.nodes.length === 0" description="暂无服务拓扑数据" />
+    </el-card>
 
     <!-- 节点详情抽屉 -->
     <sc-drawer
@@ -82,7 +74,7 @@
           </div>
         </div>
 
-        <ScDivider />
+        <el-divider />
 
         <h4>调用关系</h4>
         <div class="relations-list">
@@ -97,20 +89,16 @@
               <span class="target">{{ edge.target }}</span>
             </div>
             <div class="relation-stats">
-              <ScTag size="small" type="info">
+              <el-tag size="small" type="info">
                 调用 {{ edge.callCount }} 次
-              </ScTag>
+              </el-tag>
               <span class="last-time">
                 {{ formatTime(edge.lastCallTime) }}
               </span>
             </div>
           </div>
-
-          <ScEmpty
-            v-if="getNodeEdges(selectedNode.id).length === 0"
-            description="暂无调用关系"
-            :image-size="60"
-          />
+          
+          <el-empty v-if="getNodeEdges(selectedNode.id).length === 0" description="暂无调用关系" :image-size="60" />
         </div>
       </div>
     </sc-drawer>
@@ -149,10 +137,7 @@ const selectedNode = ref<TopologyNode | null>(null);
  * 总调用次数
  */
 const totalCallCount = computed(() => {
-  return topologyData.value.edges.reduce(
-    (sum, edge) => sum + edge.callCount,
-    0,
-  );
+  return topologyData.value.edges.reduce((sum, edge) => sum + edge.callCount, 0);
 });
 
 /**
@@ -185,13 +170,13 @@ const registerEdgeAnimation = () => {
   class FlowLineEdge extends Quadratic {
     afterDraw(cfg: any, group: any) {
       if (!cfg || !group) return;
-
+      
       const shape = group.get("children")[0];
       if (!shape) return;
 
       const startPoint = shape.getPoint(0);
       const endPoint = shape.getPoint(1);
-
+      
       // 创建流动的圆点
       const circle = group.addShape("circle", {
         attrs: {
@@ -218,7 +203,7 @@ const registerEdgeAnimation = () => {
           repeat: true,
           duration: 2000,
           easing: "easeLinear",
-        },
+        }
       );
     }
   }
@@ -418,7 +403,7 @@ const resetView = () => {
  */
 const getNodeEdges = (nodeId: string): TopologyEdge[] => {
   return topologyData.value.edges.filter(
-    (edge) => edge.source === nodeId || edge.target === nodeId,
+    (edge) => edge.source === nodeId || edge.target === nodeId
   );
 };
 
@@ -454,6 +439,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -486,6 +472,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .service-topology {
   padding: 20px;

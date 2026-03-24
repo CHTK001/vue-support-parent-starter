@@ -21,7 +21,7 @@ export interface ModelConfig {
 /**
  * 模型状态
  */
-export type ModelStatus = "idle" | "loading" | "ready" | "error";
+export type ModelStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 /**
  * 对话消息
@@ -30,7 +30,7 @@ export interface ChatMessage {
   /** 消息 ID */
   id: number;
   /** 消息类型 */
-  type: "user" | "bot";
+  type: 'user' | 'bot';
   /** 消息内容 */
   content: string;
   /** 时间戳 */
@@ -54,3 +54,4 @@ export interface GenerationOptions {
   /** 重复惩罚 */
   repetitionPenalty?: number;
 }
+

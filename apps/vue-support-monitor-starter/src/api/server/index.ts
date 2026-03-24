@@ -235,12 +235,7 @@ export interface ServerMetrics {
  */
 export interface BatchOperationParams {
   ids: string[];
-  action:
-    | "connect"
-    | "disconnect"
-    | "delete"
-    | "enable-monitoring"
-    | "disable-monitoring";
+  action: "connect" | "disconnect" | "delete" | "enable-monitoring" | "disable-monitoring";
 }
 
 /**
@@ -310,11 +305,7 @@ export interface ServerDetailComponent extends ServerComponent {
  * @returns 服务器分页数据
  */
 export function getServerPageList(params: ServerPageParams) {
-  return http.request<ReturnResult<{ records: ServerInfo[]; total: number }>>(
-    "get",
-    "v1/gen/server/page",
-    { params },
-  );
+  return http.request<ReturnResult<{ records: ServerInfo[]; total: number }>>("get", "v1/gen/server/page", { params });
 }
 
 /**
@@ -369,11 +360,7 @@ export function deleteServer(id: string) {
  * @returns 连接测试结果
  */
 export function testServerConnection(id: string) {
-  return http.request<ReturnResult<ServerConnectionTestResult>>(
-    "get",
-    "v1/gen/server/test",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<ServerConnectionTestResult>>("get", "v1/gen/server/test", { params: { id } });
 }
 
 /**
@@ -393,11 +380,7 @@ export function connectServer(id: string) {
  * @returns 断开连接结果
  */
 export function disconnectServer(id: string) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/disconnect",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/disconnect", { params: { id } });
 }
 
 /**
@@ -406,11 +389,7 @@ export function disconnectServer(id: string) {
  * @returns 服务器状态信息
  */
 export function getServerStatus(id: string) {
-  return http.request<ReturnResult<{ status: number; message: string }>>(
-    "get",
-    "v1/gen/server/status",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<{ status: number; message: string }>>("get", "v1/gen/server/status", { params: { id } });
 }
 
 /**
@@ -446,10 +425,7 @@ export function getServerInfo(id: string) {
  * @returns 指标数据
  */
 export function getServerDetailMetrics(serverId: number) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    `v1/gen/server/detail/${serverId}/metrics`,
-  );
+  return http.request<ReturnResult<any>>("get", `v1/gen/server/detail/${serverId}/metrics`);
 }
 
 /**
@@ -474,11 +450,7 @@ export function sendServerData(id: string, data: string) {
  * @param height 终端高度
  * @returns 调整结果
  */
-export function resizeServerTerminal(
-  id: string,
-  width: number,
-  height: number,
-) {
+export function resizeServerTerminal(id: string, width: number, height: number) {
   return http.request<ReturnResult<boolean>>("post", "v1/gen/server/resize", {
     params: { id, width, height },
   });
@@ -493,13 +465,7 @@ export function resizeServerTerminal(
  * @param sortOrder 排序顺序
  * @returns 文件列表
  */
-export function getServerFiles(
-  serverId: string,
-  path: string,
-  includeHidden: boolean = false,
-  sortBy: string = "name",
-  sortOrder: string = "asc",
-) {
+export function getServerFiles(serverId: string, path: string, includeHidden: boolean = false, sortBy: string = "name", sortOrder: string = "asc") {
   return http.request<ReturnResult<any>>("get", "v1/file-management/list", {
     params: {
       serverId: parseInt(serverId),
@@ -519,12 +485,7 @@ export function getServerFiles(
  * @param includeHidden 是否包含隐藏文件
  * @returns 文件树
  */
-export function getServerFileTree(
-  serverId: string,
-  path: string,
-  maxDepth: number = 3,
-  includeHidden: boolean = false,
-) {
+export function getServerFileTree(serverId: string, path: string, maxDepth: number = 3, includeHidden: boolean = false) {
   return http.request<ReturnResult<any>>("get", "v1/file-management/tree", {
     params: {
       serverId: parseInt(serverId),
@@ -542,11 +503,7 @@ export function getServerFileTree(
  * @param file 文件对象
  * @returns 上传结果
  */
-export function uploadServerFile(
-  serverId: string,
-  targetPath: string,
-  file: File,
-) {
+export function uploadServerFile(serverId: string, targetPath: string, file: File) {
   const formData = new FormData();
   formData.append("file", file);
   return http.post("v1/file-management/upload", formData, {
@@ -584,17 +541,13 @@ export function downloadServerFile(serverId: string, filePath: string) {
  * @returns 删除结果
  */
 export function deleteServerFile(serverId: string, path: string) {
-  return http.request<ReturnResult<any>>(
-    "delete",
-    "v1/file-management/delete",
-    {
-      params: {
-        serverId: parseInt(serverId),
-        path,
-        recursive: false,
-      },
+  return http.request<ReturnResult<any>>("delete", "v1/file-management/delete", {
+    params: {
+      serverId: parseInt(serverId),
+      path,
+      recursive: false,
     },
-  );
+  });
 }
 
 /**
@@ -632,22 +585,14 @@ export function readServerFileContent(id: string, path: string) {
  * @param content 文件内容
  * @returns 保存结果
  */
-export function saveServerFileContent(
-  id: string,
-  path: string,
-  content: string,
-) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/save-file",
-    {
-      data: content,
-      params: { id, path },
-      headers: {
-        "Content-Type": "text/plain",
-      },
+export function saveServerFileContent(id: string, path: string, content: string) {
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/save-file", {
+    data: content,
+    params: { id, path },
+    headers: {
+      "Content-Type": "text/plain",
     },
-  );
+  });
 }
 
 /**
@@ -709,11 +654,7 @@ export function deleteComponentTemplate(templateId: string) {
  * @returns 模板列表
  */
 export function getLayoutTemplates(category?: string) {
-  return http.request<ReturnResult<any[]>>(
-    "get",
-    "v1/gen/server/layout-templates",
-    { params: { category } },
-  );
+  return http.request<ReturnResult<any[]>>("get", "v1/gen/server/layout-templates", { params: { category } });
 }
 
 /**
@@ -722,11 +663,7 @@ export function getLayoutTemplates(category?: string) {
  * @returns 保存结果
  */
 export function saveLayoutTemplate(template: any) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/layout-template",
-    { data: template },
-  );
+  return http.request<ReturnResult<any>>("post", "v1/gen/server/layout-template", { data: template });
 }
 
 /**
@@ -735,10 +672,7 @@ export function saveLayoutTemplate(template: any) {
  * @returns 删除结果
  */
 export function deleteLayoutTemplate(templateId: string) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `v1/gen/server/layout-template/${templateId}`,
-  );
+  return http.request<ReturnResult<boolean>>("delete", `v1/gen/server/layout-template/${templateId}`);
 }
 
 /**
@@ -748,11 +682,7 @@ export function deleteLayoutTemplate(templateId: string) {
  * @returns 应用结果
  */
 export function applyLayoutTemplate(serverId: number, templateId: string) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/apply-layout-template",
-    { data: { serverId, templateId } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/apply-layout-template", { data: { serverId, templateId } });
 }
 
 /**
@@ -773,10 +703,7 @@ export function saveServerLayout(serverId: number, layout: any) {
  * @returns 布局配置
  */
 export function getServerLayout(serverId: number) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    `v1/gen/server/layout/${serverId}`,
-  );
+  return http.request<ReturnResult<any>>("get", `v1/gen/server/layout/${serverId}`);
 }
 
 /**
@@ -796,11 +723,7 @@ export function validateComponentConfig(config: any) {
  * @param expressionType 表达式类型
  * @returns 预览数据
  */
-export function previewComponentData(
-  serverId: number,
-  expression: string,
-  expressionType: string,
-) {
+export function previewComponentData(serverId: number, expression: string, expressionType: string) {
   // 使用验证接口来预览数据
   return validateComponentExpression(serverId, expressionType, expression);
 }
@@ -811,11 +734,7 @@ export function previewComponentData(
  * @returns 操作结果
  */
 export function enableServerMonitoring(id: string) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/enable-monitoring",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/enable-monitoring", { params: { id } });
 }
 
 /**
@@ -824,11 +743,7 @@ export function enableServerMonitoring(id: string) {
  * @returns 操作结果
  */
 export function disableServerMonitoring(id: string) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/disable-monitoring",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/disable-monitoring", { params: { id } });
 }
 
 /**
@@ -837,11 +752,7 @@ export function disableServerMonitoring(id: string) {
  * @returns 监控状态
  */
 export function getServerMonitoringStatus(id: string) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    "v1/gen/server/monitoring-status",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<any>>("get", "v1/gen/server/monitoring-status", { params: { id } });
 }
 
 /**
@@ -850,11 +761,7 @@ export function getServerMonitoringStatus(id: string) {
  * @returns 收集结果
  */
 export function collectServerMetrics(id: string) {
-  return http.request<ReturnResult<ServerMetrics>>(
-    "post",
-    "v1/gen/server/collect-metrics",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<ServerMetrics>>("post", "v1/gen/server/collect-metrics", { params: { id } });
 }
 
 /**
@@ -862,10 +769,7 @@ export function collectServerMetrics(id: string) {
  * @returns 按标签分组的服务器列表
  */
 export function getServersByTags() {
-  return http.request<ReturnResult<Record<string, ServerInfo[]>>>(
-    "get",
-    "v1/gen/server/by-tags",
-  );
+  return http.request<ReturnResult<Record<string, ServerInfo[]>>>("get", "v1/gen/server/by-tags");
 }
 
 /**
@@ -874,11 +778,7 @@ export function getServersByTags() {
  * @returns 操作结果
  */
 export function batchOperateServers(params: BatchOperationParams) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/batch-operation",
-    { data: params },
-  );
+  return http.request<ReturnResult<any>>("post", "v1/gen/server/batch-operation", { data: params });
 }
 
 /**
@@ -897,10 +797,7 @@ export function cloneServer(params: CloneServerParams) {
  * @returns 服务器统计数据
  */
 export function getServerStatistics() {
-  return http.request<ReturnResult<ServerStatistics>>(
-    "get",
-    "v1/gen/server/statistics",
-  );
+  return http.request<ReturnResult<ServerStatistics>>("get", "v1/gen/server/statistics");
 }
 
 /**
@@ -909,13 +806,9 @@ export function getServerStatistics() {
  * @returns 配置文件
  */
 export function exportServerConfig(ids: string[]) {
-  return http.post(
-    "v1/gen/server/export",
-    { ids },
-    {
-      responseType: "blob",
-    },
-  );
+  return http.post("v1/gen/server/export", { ids }, {
+    responseType: "blob",
+  });
 }
 
 /**
@@ -971,8 +864,7 @@ export const CONNECTION_STATUS = {
   ERROR: 3, // 连接失败
 } as const;
 
-export type ConnectionStatus =
-  (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
+export type ConnectionStatus = (typeof CONNECTION_STATUS)[keyof typeof CONNECTION_STATUS];
 
 /**
  * 在线状态枚举
@@ -1049,8 +941,7 @@ export const WS_MESSAGE_TYPE = {
   SERVER_ADD: "server_add",
 } as const;
 
-export type WSMessageType =
-  (typeof WS_MESSAGE_TYPE)[keyof typeof WS_MESSAGE_TYPE];
+export type WSMessageType = (typeof WS_MESSAGE_TYPE)[keyof typeof WS_MESSAGE_TYPE];
 
 /**
  * 前端显示用的服务器数据接口（简化字段名）
@@ -1320,10 +1211,7 @@ export interface LatencyStatistics {
  * 获取服务器当前延迟
  */
 export const getServerLatency = (serverId: number) => {
-  return http.request<ReturnResult<number>>(
-    "get",
-    `server/latency/${serverId}`,
-  );
+  return http.request<ReturnResult<number>>("get", `server/latency/${serverId}`);
 };
 
 /**
@@ -1339,15 +1227,9 @@ export const getBatchServerLatency = (serverIds: number[]) => {
 /**
  * 获取服务器延迟历史数据
  */
-export const getServerLatencyHistory = (
-  serverId: number,
-  startTime: string,
-  endTime: string,
-) => {
+export const getServerLatencyHistory = (serverId: number, startTime: string, endTime: string) => {
   //@ts-ignore
-  return http.get<
-    Array<{ timestamp: number; latency: number; serverId: number }>
-  >(`server/latency/${serverId}/history`, {
+  return http.get<Array<{ timestamp: number; latency: number; serverId: number }>>(`server/latency/${serverId}/history`, {
     params: { startTime, endTime },
   });
 };
@@ -1357,10 +1239,7 @@ export const getServerLatencyHistory = (
  */
 export const getLatencyStatistics = () => {
   //@ts-ignore
-  return http.request<ReturnResult<LatencyStatistics>>(
-    "get",
-    "server/latency/statistics",
-  );
+  return http.request<ReturnResult<LatencyStatistics>>("get", "server/latency/statistics");
 };
 
 /**
@@ -1418,14 +1297,9 @@ export const cleanupExpiredLatencyData = (expireDays: number = 30) => {
  * 手动更新服务器延迟
  */
 export const updateServerLatency = (serverId: number, latency: number) => {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `server/latency/${serverId}`,
-    null,
-    {
-      params: { latency },
-    },
-  );
+  return http.request<ReturnResult<boolean>>("put", `server/latency/${serverId}`, null, {
+    params: { latency },
+  });
 };
 
 /**
@@ -1456,9 +1330,7 @@ export const getLatencyStatus = (latency: number): LatencyStatus => {
 /**
  * 格式化延迟显示文本
  */
-export const formatLatencyText = (
-  latency: number | null | undefined,
-): string => {
+export const formatLatencyText = (latency: number | null | undefined): string => {
   if (latency === null || latency === undefined) {
     return "未检测";
   }
@@ -1477,31 +1349,11 @@ export const formatLatencyText = (
  */
 export function mapServerMetricsToDisplay(metrics: any): ServerMetricsDisplay {
   // 兼容嵌套格式和扁平格式
-  const cpuUsage =
-    metrics.cpu?.usage ??
-    metrics.monitorSysGenServerMetricsCpuUsage ??
-    metrics.cpuUsage ??
-    0;
-  const memoryUsage =
-    metrics.memory?.usage ??
-    metrics.monitorSysGenServerMetricsMemoryUsage ??
-    metrics.memoryUsage ??
-    0;
-  const diskUsage =
-    metrics.disk?.usage ??
-    metrics.monitorSysGenServerMetricsDiskUsage ??
-    metrics.diskUsage ??
-    0;
-  const networkIn =
-    metrics.network?.in ??
-    metrics.monitorSysGenServerMetricsNetworkIn ??
-    metrics.networkIn ??
-    0;
-  const networkOut =
-    metrics.network?.out ??
-    metrics.monitorSysGenServerMetricsNetworkOut ??
-    metrics.networkOut ??
-    0;
+  const cpuUsage = metrics.cpu?.usage ?? metrics.monitorSysGenServerMetricsCpuUsage ?? metrics.cpuUsage ?? 0;
+  const memoryUsage = metrics.memory?.usage ?? metrics.monitorSysGenServerMetricsMemoryUsage ?? metrics.memoryUsage ?? 0;
+  const diskUsage = metrics.disk?.usage ?? metrics.monitorSysGenServerMetricsDiskUsage ?? metrics.diskUsage ?? 0;
+  const networkIn = metrics.network?.in ?? metrics.monitorSysGenServerMetricsNetworkIn ?? metrics.networkIn ?? 0;
+  const networkOut = metrics.network?.out ?? metrics.monitorSysGenServerMetricsNetworkOut ?? metrics.networkOut ?? 0;
 
   // 处理负载平均值
   let loadAverage = metrics.loadAverage;
@@ -1525,26 +1377,11 @@ export function mapServerMetricsToDisplay(metrics: any): ServerMetricsDisplay {
     networkInSpeed: metrics.network?.inSpeed ?? metrics.networkInSpeed ?? 0,
     networkOutSpeed: metrics.network?.outSpeed ?? metrics.networkOutSpeed ?? 0,
     loadAverage: String(loadAverage),
-    uptime: Number(
-      metrics.uptime ?? metrics.monitorSysGenServerMetricsUptime ?? 0,
-    ),
-    collectTime:
-      metrics.collectTime ??
-      metrics.monitorSysGenServerMetricsCollectTime ??
-      new Date().toISOString(),
-    cpuCores:
-      metrics.cpu?.cores ??
-      metrics.monitorSysGenServerMetricsCpuCores ??
-      metrics.cpuCores ??
-      1,
-    processCount:
-      metrics.processCount ??
-      metrics.monitorSysGenServerMetricsProcessCount ??
-      0,
-    responseTime:
-      metrics.responseTime ??
-      metrics.monitorSysGenServerMetricsResponseTime ??
-      0,
+    uptime: Number(metrics.uptime ?? metrics.monitorSysGenServerMetricsUptime ?? 0),
+    collectTime: metrics.collectTime ?? metrics.monitorSysGenServerMetricsCollectTime ?? new Date().toISOString(),
+    cpuCores: metrics.cpu?.cores ?? metrics.monitorSysGenServerMetricsCpuCores ?? metrics.cpuCores ?? 1,
+    processCount: metrics.processCount ?? metrics.monitorSysGenServerMetricsProcessCount ?? 0,
+    responseTime: metrics.responseTime ?? metrics.monitorSysGenServerMetricsResponseTime ?? 0,
     osInfo: metrics.osInfo ?? metrics.monitorSysGenServerMetricsOsInfo ?? "",
   };
 }
@@ -1554,9 +1391,7 @@ export function mapServerMetricsToDisplay(metrics: any): ServerMetricsDisplay {
  * @param serverInfo 后台返回的服务器信息
  * @returns 前端显示用的服务器数据
  */
-export function mapServerInfoToDisplayData(
-  serverInfo: ServerInfo,
-): ServerDisplayData {
+export function mapServerInfoToDisplayData(serverInfo: ServerInfo): ServerDisplayData {
   return {
     id: String(serverInfo.monitorSysGenServerId),
     name: serverInfo.monitorSysGenServerName,
@@ -1564,12 +1399,8 @@ export function mapServerInfoToDisplayData(
     port: serverInfo.monitorSysGenServerPort,
     protocol: serverInfo.monitorSysGenServerProtocol as ProtocolType,
     status: serverInfo.monitorSysGenServerStatus as ServerStatus,
-    onlineStatus:
-      serverInfo.monitorSysGenServerConnectionStatus === 1
-        ? ONLINE_STATUS.ONLINE
-        : ONLINE_STATUS.OFFLINE,
-    connectionStatus:
-      serverInfo.monitorSysGenServerConnectionStatus as ConnectionStatus,
+    onlineStatus: serverInfo.monitorSysGenServerConnectionStatus === 1 ? ONLINE_STATUS.ONLINE : ONLINE_STATUS.OFFLINE,
+    connectionStatus: serverInfo.monitorSysGenServerConnectionStatus as ConnectionStatus,
     metricsSupport: true, // 默认支持指标收集
     username: serverInfo.monitorSysGenServerUsername,
     group: "", // 后台实体类中没有group字段，使用空字符串
@@ -1585,10 +1416,8 @@ export function mapServerInfoToDisplayData(
     monitorSysGenServerIpAddresses: serverInfo.monitorSysGenServerIpAddresses,
     isLocal: serverInfo.monitorSysGenServerIsLocal === 1, // 转换为布尔值
     monitorSysGenServerIsLocal: serverInfo.monitorSysGenServerIsLocal,
-    monitorSysGenServerDockerEnabled:
-      serverInfo.monitorSysGenServerDockerEnabled,
-    monitorSysGenServerDockerConnectionType:
-      serverInfo.monitorSysGenServerDockerConnectionType,
+    monitorSysGenServerDockerEnabled: serverInfo.monitorSysGenServerDockerEnabled,
+    monitorSysGenServerDockerConnectionType: serverInfo.monitorSysGenServerDockerConnectionType,
     monitorSysGenServerDockerHost: serverInfo.monitorSysGenServerDockerHost,
     monitorSysGenServerDockerPort: serverInfo.monitorSysGenServerDockerPort,
     // 操作系统信息
@@ -1596,10 +1425,8 @@ export function mapServerInfoToDisplayData(
     monitorSysGenServerOsVersion: serverInfo.monitorSysGenServerOsVersion,
     monitorSysGenServerOsArch: serverInfo.monitorSysGenServerOsArch,
     // 延迟检测开关
-    latencyCheckEnabled:
-      (serverInfo as any).monitorSysGenServerSettingLatencyCheckEnabled === 1,
-    monitorSysGenServerSettingLatencyCheckEnabled: (serverInfo as any)
-      .monitorSysGenServerSettingLatencyCheckEnabled,
+    latencyCheckEnabled: (serverInfo as any).monitorSysGenServerSettingLatencyCheckEnabled === 1,
+    monitorSysGenServerSettingLatencyCheckEnabled: (serverInfo as any).monitorSysGenServerSettingLatencyCheckEnabled,
     ...serverInfo,
   };
 }
@@ -1609,9 +1436,7 @@ export function mapServerInfoToDisplayData(
  * @param realtimeData 实时数据
  * @returns 前端显示用的服务器数据
  */
-export function mapRealtimeDataToDisplayData(
-  realtimeData: ServerRealtimeData,
-): ServerDisplayData {
+export function mapRealtimeDataToDisplayData(realtimeData: ServerRealtimeData): ServerDisplayData {
   return {
     id: realtimeData.id,
     name: realtimeData.monitorSysGenServerName,
@@ -1626,9 +1451,7 @@ export function mapRealtimeDataToDisplayData(
     lastOfflineTime: realtimeData.monitorSysGenServerLastOfflineTime,
     createTime: "",
     updateTime: realtimeData.monitorSysGenServerUpdateTime,
-    metrics: realtimeData.metrics
-      ? mapServerMetricsToDisplay(realtimeData.metrics)
-      : undefined,
+    metrics: realtimeData.metrics ? mapServerMetricsToDisplay(realtimeData.metrics) : undefined,
   };
 }
 
@@ -1637,9 +1460,7 @@ export function mapRealtimeDataToDisplayData(
  * @param serverList 后台返回的服务器列表
  * @returns 前端显示用的服务器列表
  */
-export function mapServerListToDisplayData(
-  serverList: ServerInfo[],
-): ServerDisplayData[] {
+export function mapServerListToDisplayData(serverList: ServerInfo[]): ServerDisplayData[] {
   return serverList.map(mapServerInfoToDisplayData);
 }
 
@@ -1648,9 +1469,7 @@ export function mapServerListToDisplayData(
  * @param displayData 前端显示数据
  * @returns 保存参数
  */
-export function mapDisplayDataToSaveParams(
-  displayData: Partial<ServerDisplayData>,
-): ServerSaveParams {
+export function mapDisplayDataToSaveParams(displayData: Partial<ServerDisplayData>): ServerSaveParams {
   return {
     id: displayData.id,
     monitorSysGenServerName: displayData.name || "",
@@ -1665,10 +1484,8 @@ export function mapDisplayDataToSaveParams(
     // 多IP和Docker相关字段
     monitorSysGenServerIpAddresses: displayData.monitorSysGenServerIpAddresses,
     monitorSysGenServerIsLocal: displayData.monitorSysGenServerIsLocal, // 注意：这个字段由后端自动检测设置
-    monitorSysGenServerDockerEnabled:
-      displayData.monitorSysGenServerDockerEnabled,
-    monitorSysGenServerDockerConnectionType:
-      displayData.monitorSysGenServerDockerConnectionType,
+    monitorSysGenServerDockerEnabled: displayData.monitorSysGenServerDockerEnabled,
+    monitorSysGenServerDockerConnectionType: displayData.monitorSysGenServerDockerConnectionType,
     monitorSysGenServerDockerHost: displayData.monitorSysGenServerDockerHost,
     monitorSysGenServerDockerPort: displayData.monitorSysGenServerDockerPort,
     // 操作系统信息（注意：这些字段由后端自动检测设置）
@@ -1686,16 +1503,7 @@ export function mapDisplayDataToSaveParams(
  * @returns 检测结果，包含 available 和 recommendedProtocol 字段
  */
 export function checkRemoteDesktopAvailability(id: string) {
-  return http.request<
-    ReturnResult<{
-      available: boolean;
-      recommendedProtocol: string;
-      host?: string;
-      remotePort?: number;
-      reason?: string;
-      error?: string;
-    }>
-  >("get", "v1/gen/server/remote-desktop/check", { params: { id } });
+  return http.request<ReturnResult<{ available: boolean; recommendedProtocol: string; host?: string; remotePort?: number; reason?: string; error?: string }>>("get", "v1/gen/server/remote-desktop/check", { params: { id } });
 }
 
 /**
@@ -1704,11 +1512,7 @@ export function checkRemoteDesktopAvailability(id: string) {
  * @returns 代理连接URL
  */
 export function getGuacamoleProxyUrl(id: string) {
-  return http.request<ReturnResult<string>>(
-    "get",
-    "v1/gen/server/proxy/guacamole",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<string>>("get", "v1/gen/server/proxy/guacamole", { params: { id } });
 }
 
 /**
@@ -1717,11 +1521,7 @@ export function getGuacamoleProxyUrl(id: string) {
  * @returns 测试结果
  */
 export function testProxyConnection(id: string) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/proxy/test",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/proxy/test", { params: { id } });
 }
 
 /**
@@ -1753,23 +1553,8 @@ export function getSupportedReportMethods() {
  * @param data URL请求数据
  * @returns 上报结果
  */
-export function reportUrlRequest(data: {
-  method: string;
-  url: string;
-  clientIp: string;
-  serverIp: string;
-  serverPort: number;
-  timestamp: number;
-  responseTime?: number;
-  statusCode?: number;
-  userAgent?: string;
-  referer?: string;
-}) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/report/url",
-    { data },
-  );
+export function reportUrlRequest(data: { method: string; url: string; clientIp: string; serverIp: string; serverPort: number; timestamp: number; responseTime?: number; statusCode?: number; userAgent?: string; referer?: string }) {
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/report/url", { data });
 }
 
 /**
@@ -1780,12 +1565,7 @@ export function reportUrlRequest(data: {
  * @param timeRange 时间范围参数
  * @returns 查询结果
  */
-export function queryDataByConfig(
-  id: string,
-  queryType: string,
-  expression: string,
-  timeRange: any,
-) {
+export function queryDataByConfig(id: string, queryType: string, expression: string, timeRange: any) {
   return http.request<ReturnResult<any>>("post", "v1/gen/server/query/data", {
     params: { id, queryType, expression },
     data: timeRange,
@@ -1799,14 +1579,10 @@ export function queryDataByConfig(
  * @returns 操作结果
  */
 export function updateReportConfig(id: string, config: ReportConfigParams) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/report/config",
-    {
-      params: { id },
-      data: config,
-    },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/report/config", {
+    params: { id },
+    data: config,
+  });
 }
 
 // ==================== 服务器组件管理 API ====================
@@ -1817,10 +1593,7 @@ export function updateReportConfig(id: string, config: ReportConfigParams) {
  * @returns 组件列表
  */
 export function getComponentsByServerId(serverId: number) {
-  return http.request<ReturnResult<any[]>>(
-    "get",
-    `v1/gen/server/component/list/${serverId}`,
-  );
+  return http.request<ReturnResult<any[]>>("get", `v1/gen/server/component/list/${serverId}`);
 }
 
 /**
@@ -1829,10 +1602,7 @@ export function getComponentsByServerId(serverId: number) {
  * @returns 组件信息
  */
 export function getComponentById(componentId: number) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    `v1/gen/server/component/${componentId}`,
-  );
+  return http.request<ReturnResult<any>>("get", `v1/gen/server/component/${componentId}`);
 }
 
 /**
@@ -1841,11 +1611,7 @@ export function getComponentById(componentId: number) {
  * @returns 创建结果
  */
 export function createServerComponent(component: any) {
-  return http.request<ReturnResult<ServerComponent>>(
-    "post",
-    "v1/gen/server/component/create",
-    { data: component },
-  );
+  return http.request<ReturnResult<ServerComponent>>("post", "v1/gen/server/component/create", { data: component });
 }
 
 /**
@@ -1855,11 +1621,7 @@ export function createServerComponent(component: any) {
  * @returns 更新结果
  */
 export function updateServerComponent(componentId: number, component: any) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/gen/server/component/${componentId}`,
-    { data: component },
-  );
+  return http.request<ReturnResult<boolean>>("put", `v1/gen/server/component/${componentId}`, { data: component });
 }
 
 /**
@@ -1868,10 +1630,7 @@ export function updateServerComponent(componentId: number, component: any) {
  * @returns 删除结果
  */
 export function deleteServerComponent(componentId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `v1/gen/server/component/${componentId}`,
-  );
+  return http.request<ReturnResult<boolean>>("delete", `v1/gen/server/component/${componentId}`);
 }
 
 /**
@@ -1880,10 +1639,7 @@ export function deleteServerComponent(componentId: number) {
  * @returns 初始化结果
  */
 export function initDefaultComponentsForServer(serverId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/gen/server/component/init/${serverId}`,
-  );
+  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/init/${serverId}`);
 }
 
 /**
@@ -1892,10 +1648,7 @@ export function initDefaultComponentsForServer(serverId: number) {
  * @param enabled 是否启用
  * @returns 操作结果
  */
-export async function toggleComponentEnabled(
-  componentId: number,
-  enabled: boolean,
-) {
+export async function toggleComponentEnabled(componentId: number, enabled: boolean) {
   // 先获取组件信息
   const componentRes = await getComponentById(componentId);
   if (componentRes.code !== "00000") {
@@ -1928,23 +1681,14 @@ export function executeComponentQuery(componentId: number, timeRange: any) {
  * @param step 步长（秒）
  * @returns 组件数据
  */
-export function getComponentData(
-  componentId: number,
-  startTime?: number,
-  endTime?: number,
-  step?: number,
-) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    `v1/gen/server/component/${componentId}/data`,
-    {
-      params: {
-        startTime,
-        endTime,
-        step: step || 60,
-      },
+export function getComponentData(componentId: number, startTime?: number, endTime?: number, step?: number) {
+  return http.request<ReturnResult<any>>("get", `v1/gen/server/component/${componentId}/data`, {
+    params: {
+      startTime,
+      endTime,
+      step: step || 60,
     },
-  );
+  });
 }
 
 /**
@@ -1953,10 +1697,7 @@ export function getComponentData(
  * @returns 实时数据
  */
 export function getComponentRealtimeData(componentId: number) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    `v1/gen/server/component/${componentId}/data/realtime`,
-  );
+  return http.request<ReturnResult<any>>("get", `v1/gen/server/component/${componentId}/data/realtime`);
 }
 
 /**
@@ -1966,16 +1707,8 @@ export function getComponentRealtimeData(componentId: number) {
  * @param expression 表达式内容
  * @returns 验证结果
  */
-export function validateComponentExpression(
-  serverId: number,
-  expressionType: string,
-  expression: string,
-) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/gen/server/component/validate/${serverId}`,
-    { params: { expressionType, expression } },
-  );
+export function validateComponentExpression(serverId: number, expressionType: string, expression: string) {
+  return http.request<ReturnResult<boolean>>("post", `v1/gen/server/component/validate/${serverId}`, { params: { expressionType, expression } });
 }
 
 /**
@@ -1984,14 +1717,8 @@ export function validateComponentExpression(
  * @param targetServerId 目标服务器ID
  * @returns 克隆结果
  */
-export function cloneComponent(
-  sourceComponentId: number,
-  targetServerId: number,
-) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    `v1/gen/server/component/clone/${sourceComponentId}/to/${targetServerId}`,
-  );
+export function cloneComponent(sourceComponentId: number, targetServerId: number) {
+  return http.request<ReturnResult<any>>("post", `v1/gen/server/component/clone/${sourceComponentId}/to/${targetServerId}`);
 }
 
 /**
@@ -2000,13 +1727,8 @@ export function cloneComponent(
  * @param enabled 是否启用
  * @returns 操作结果
  */
-export async function batchUpdateComponentsEnabled(
-  componentIds: number[],
-  enabled: boolean,
-) {
-  const results = await Promise.all(
-    componentIds.map((id) => toggleComponentEnabled(id, enabled)),
-  );
+export async function batchUpdateComponentsEnabled(componentIds: number[], enabled: boolean) {
+  const results = await Promise.all(componentIds.map((id) => toggleComponentEnabled(id, enabled)));
 
   const success = results.every((result) => result.code === "00000");
   return {
@@ -2022,9 +1744,7 @@ export async function batchUpdateComponentsEnabled(
  * @returns 操作结果
  */
 export async function batchDeleteComponents(componentIds: number[]) {
-  const results = await Promise.all(
-    componentIds.map((id) => deleteServerComponent(id)),
-  );
+  const results = await Promise.all(componentIds.map((id) => deleteServerComponent(id)));
 
   const success = results.every((result) => result.code === "00000");
   return {
@@ -2040,19 +1760,11 @@ export async function batchDeleteComponents(componentIds: number[]) {
  * @param timeRange 时间范围参数
  * @returns 批量组件数据
  */
-export async function getBatchComponentData(
-  componentIds: number[],
-  timeRange?: any,
-) {
+export async function getBatchComponentData(componentIds: number[], timeRange?: any) {
   const results = await Promise.all(
     componentIds.map(async (id) => {
       try {
-        const result = await getComponentData(
-          id,
-          timeRange?.startTime,
-          timeRange?.endTime,
-          timeRange?.step,
-        );
+        const result = await getComponentData(id, timeRange?.startTime, timeRange?.endTime, timeRange?.step);
         return {
           componentId: id,
           success: result.code === "00000",
@@ -2067,7 +1779,7 @@ export async function getBatchComponentData(
           error: error instanceof Error ? error.message : "获取数据失败",
         };
       }
-    }),
+    })
   );
 
   return {
@@ -2082,10 +1794,7 @@ export async function getBatchComponentData(
  * @returns 共享组件列表
  */
 export function getSharedComponents() {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    "v1/gen/server/component/shared",
-  );
+  return http.request<ReturnResult<ServerComponent[]>>("get", "v1/gen/server/component/shared");
 }
 
 /**
@@ -2094,10 +1803,7 @@ export function getSharedComponents() {
  * @returns 操作结果
  */
 export function shareComponent(componentId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/gen/server/component/share/${componentId}`,
-  );
+  return http.request<ReturnResult<boolean>>("put", `v1/gen/server/component/share/${componentId}`);
 }
 
 /**
@@ -2106,14 +1812,8 @@ export function shareComponent(componentId: number) {
  * @param sourceComponentId 源组件ID
  * @returns 操作结果
  */
-export function copySharedComponent(
-  serverId: number,
-  sourceComponentId: number,
-) {
-  return http.request<ReturnResult<ServerComponent>>(
-    "post",
-    `v1/gen/server/component/copy/${serverId}/${sourceComponentId}`,
-  );
+export function copySharedComponent(serverId: number, sourceComponentId: number) {
+  return http.request<ReturnResult<ServerComponent>>("post", `v1/gen/server/component/copy/${serverId}/${sourceComponentId}`);
 }
 
 /**
@@ -2122,10 +1822,7 @@ export function copySharedComponent(
  * @returns 组件列表
  */
 export function getComponentsByType(componentType: string) {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    `v1/gen/server/component/type/${componentType}`,
-  );
+  return http.request<ReturnResult<ServerComponent[]>>("get", `v1/gen/server/component/type/${componentType}`);
 }
 
 /**
@@ -2134,10 +1831,7 @@ export function getComponentsByType(componentType: string) {
  * @returns 检查结果
  */
 export function canDeleteComponent(componentId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "get",
-    `v1/gen/server/component/can-delete/${componentId}`,
-  );
+  return http.request<ReturnResult<boolean>>("get", `v1/gen/server/component/can-delete/${componentId}`);
 }
 
 /**
@@ -2146,11 +1840,7 @@ export function canDeleteComponent(componentId: number) {
  * @returns 上报配置
  */
 export function getReportConfig(id: string) {
-  return http.request<ReturnResult<ReportConfigParams>>(
-    "get",
-    "v1/gen/server/report/config",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<ReportConfigParams>>("get", "v1/gen/server/report/config", { params: { id } });
 }
 
 /**
@@ -2161,17 +1851,8 @@ export function getReportConfig(id: string) {
  * @param interval 数据间隔（分钟，默认5分钟）
  * @returns 历史指标数据
  */
-export function getServerMetricsHistory(
-  serverId: number,
-  startTime: string,
-  endTime: string,
-  interval: number = 5,
-) {
-  return http.request<ReturnResult<any[]>>(
-    "get",
-    "v1/gen/server/metrics/history",
-    { params: { serverId, startTime, endTime, interval } },
-  );
+export function getServerMetricsHistory(serverId: number, startTime: string, endTime: string, interval: number = 5) {
+  return http.request<ReturnResult<any[]>>("get", "v1/gen/server/metrics/history", { params: { serverId, startTime, endTime, interval } });
 }
 
 /**
@@ -2180,11 +1861,7 @@ export function getServerMetricsHistory(
  * @returns 测试结果
  */
 export function testPrometheusConnection(serverId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/prometheus/test",
-    { params: { serverId } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/prometheus/test", { params: { serverId } });
 }
 
 /**
@@ -2203,10 +1880,7 @@ export function detectServerInfo(id: string) {
  * @returns 检测结果
  */
 export function batchDetectServerInfo() {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/gen/server/batch-detect-info",
-  );
+  return http.request<ReturnResult<any>>("post", "v1/gen/server/batch-detect-info");
 }
 
 /**
@@ -2261,10 +1935,7 @@ export interface ServerComponentLayout {
  * @returns 启用的组件布局列表
  */
 export function getEnabledServerComponentLayouts(serverId: number) {
-  return http.request<ReturnResult<ServerComponentLayout[]>>(
-    "get",
-    `monitor/server/component/layout/server/${serverId}/enabled`,
-  );
+  return http.request<ReturnResult<ServerComponentLayout[]>>("get", `monitor/server/component/layout/server/${serverId}/enabled`);
 }
 
 /**
@@ -2273,10 +1944,7 @@ export function getEnabledServerComponentLayouts(serverId: number) {
  * @returns 操作结果
  */
 export function deleteServerComponentLayout(layoutId: number) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `monitor/server/component/layout/${layoutId}`,
-  );
+  return http.request<ReturnResult<boolean>>("delete", `monitor/server/component/layout/${layoutId}`);
 }
 
 /**
@@ -2285,11 +1953,7 @@ export function deleteServerComponentLayout(layoutId: number) {
  * @returns 操作结果
  */
 export function batchUpdateLayoutPositions(layouts: ServerComponentLayout[]) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "monitor/server/component/layout/batch/position",
-    { data: layouts },
-  );
+  return http.request<ReturnResult<boolean>>("post", "monitor/server/component/layout/batch/position", { data: layouts });
 }
 
 /**
@@ -2302,21 +1966,10 @@ export function batchUpdateLayoutPositions(layouts: ServerComponentLayout[]) {
  * @param h 高度
  * @returns 操作结果
  */
-export function createServerComponentLayout(
-  serverId: number,
-  componentId: number,
-  x?: number,
-  y?: number,
-  w?: number,
-  h?: number,
-) {
-  return http.request<ReturnResult<ServerComponentLayout>>(
-    "post",
-    "monitor/server/component/layout/create",
-    {
-      params: { serverId, componentId, x, y, w, h },
-    },
-  );
+export function createServerComponentLayout(serverId: number, componentId: number, x?: number, y?: number, w?: number, h?: number) {
+  return http.request<ReturnResult<ServerComponentLayout>>("post", "monitor/server/component/layout/create", {
+    params: { serverId, componentId, x, y, w, h },
+  });
 }
 
 /**
@@ -2325,10 +1978,7 @@ export function createServerComponentLayout(
  * @returns 组件定义列表
  */
 export function getAvailableComponentDefinitions(serverId: number) {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    `v1/gen/server/component/list/${serverId}`,
-  );
+  return http.request<ReturnResult<ServerComponent[]>>("get", `v1/gen/server/component/list/${serverId}`);
 }
 
 /**
@@ -2372,15 +2022,8 @@ export function updateServerDetailComponent(data: ServerComponent) {
  * @param components 组件列表
  * @returns 操作结果
  */
-export function batchUpdateComponentPosition(
-  serverId: number,
-  components: ServerComponent[],
-) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/gen/server/component/positions/${serverId}`,
-    { data: components },
-  );
+export function batchUpdateComponentPosition(serverId: number, components: ServerComponent[]) {
+  return http.request<ReturnResult<boolean>>("put", `v1/gen/server/component/positions/${serverId}`, { data: components });
 }
 
 /**
@@ -2415,10 +2058,7 @@ export function initDefaultComponentsForServerDetail(serverId: number) {
  * @param timeRange 时间范围参数
  * @returns 查询结果
  */
-export function executeComponentQueryDetail(
-  componentId: number,
-  timeRange: any,
-) {
+export function executeComponentQueryDetail(componentId: number, timeRange: any) {
   return executeComponentQuery(componentId, timeRange);
 }
 
@@ -2429,11 +2069,7 @@ export function executeComponentQueryDetail(
  * @param serverId 服务器ID
  * @returns 验证结果
  */
-export function validateComponentExpressionDetail(
-  expressionType: string,
-  expression: string,
-  serverId: number,
-) {
+export function validateComponentExpressionDetail(expressionType: string, expression: string, serverId: number) {
   return validateComponentExpression(serverId, expressionType, expression);
 }
 
@@ -2443,10 +2079,7 @@ export function validateComponentExpressionDetail(
  * @param enabled 是否启用
  * @returns 操作结果
  */
-export function toggleComponentEnabledDetail(
-  componentId: number,
-  enabled: boolean,
-) {
+export function toggleComponentEnabledDetail(componentId: number, enabled: boolean) {
   return toggleComponentEnabled(componentId, enabled);
 }
 /**
@@ -2455,8 +2088,5 @@ export function toggleComponentEnabledDetail(
  * @returns 启用的组件列表
  */
 export function getEnabledServerDetailComponents(serverId: number) {
-  return http.request<ReturnResult<ServerComponent[]>>(
-    "get",
-    `v1/gen/server/component/list/${serverId}`,
-  );
+  return http.request<ReturnResult<ServerComponent[]>>("get", `v1/gen/server/component/list/${serverId}`);
 }

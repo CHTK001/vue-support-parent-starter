@@ -193,7 +193,7 @@ export interface PutObjectResult {
  */
 export const uploadFile = (
   request: SysFileUploadRequest,
-  file: File,
+  file: File
 ): Promise<ReturnResult<PutObjectResult>> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -219,7 +219,7 @@ export const uploadFile = (
  * @returns 任务创建响应
  */
 export const createUploadTask = (
-  request: SysFileUploadTaskRequest,
+  request: SysFileUploadTaskRequest
 ): Promise<ReturnResult<SysFileUploadTaskResponse>> => {
   return http.request("post", "/v2/file/task/create", {
     data: request,
@@ -234,7 +234,7 @@ export const createUploadTask = (
  */
 export const uploadTaskPart = (
   request: SysFileUploadTaskPartRequest,
-  file: Blob,
+  file: Blob
 ): Promise<ReturnResult<SysFileUploadTaskPartResponse>> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -267,7 +267,7 @@ export const getFileSystemSetting = (): Promise<
  * @returns 更新结果
  */
 export const updateFileSystemSetting = (
-  setting: SysFileSystemSetting,
+  setting: SysFileSystemSetting
 ): Promise<ReturnResult<boolean>> => {
   return http.request("put", "/v2/file/setting", {
     data: setting,
@@ -306,7 +306,7 @@ export const getFileServerStatus = (): Promise<ReturnResult<string>> => {
  * @returns 是否可用
  */
 export const checkPortAvailable = (
-  port: number,
+  port: number
 ): Promise<ReturnResult<boolean>> => {
   return http.request("get", "/v2/file/server/check-port", {
     params: { port },
@@ -353,7 +353,7 @@ export interface PageData<T> {
  * @returns 文件列表
  */
 export const getFileList = (
-  params: FileListParams,
+  params: FileListParams
 ): Promise<ReturnResult<PageData<SysFileSystem>>> => {
   return http.request("get", "/v2/file/list", { params });
 };
@@ -400,7 +400,7 @@ export const getGroupList = (): Promise<ReturnResult<SysFileSystemGroup[]>> => {
  * @returns 操作结果
  */
 export const addGroup = (
-  group: SysFileSystemGroup,
+  group: SysFileSystemGroup
 ): Promise<ReturnResult<SysFileSystemGroup>> => {
   return http.request("post", "/v2/file/group", { data: group });
 };
@@ -411,7 +411,7 @@ export const addGroup = (
  * @returns 操作结果
  */
 export const updateGroup = (
-  group: SysFileSystemGroup,
+  group: SysFileSystemGroup
 ): Promise<ReturnResult<boolean>> => {
   return http.request("put", "/v2/file/group", { data: group });
 };
@@ -422,7 +422,7 @@ export const updateGroup = (
  * @returns 操作结果
  */
 export const deleteGroup = (
-  groupId: number,
+  groupId: number
 ): Promise<ReturnResult<boolean>> => {
   return http.request("delete", `/v2/file/group/${groupId}`);
 };
@@ -469,7 +469,7 @@ export interface InstantUploadResponse {
  * @returns 秒传检查响应
  */
 export const checkInstantUpload = (
-  request: InstantUploadRequest,
+  request: InstantUploadRequest
 ): Promise<ReturnResult<InstantUploadResponse>> => {
   return http.request("post", "/v2/file/instant-check", {
     data: request,
@@ -506,7 +506,7 @@ export interface TaskInfoResponse {
  * @returns 任务信息
  */
 export const getTaskInfo = (
-  taskId: string,
+  taskId: string
 ): Promise<ReturnResult<TaskInfoResponse>> => {
   return http.request("get", `/v2/file/task/info/${taskId}`);
 };
@@ -519,7 +519,7 @@ export const getTaskInfo = (
  */
 export const findTaskByMd5 = (
   fileMd5: string,
-  fileSize: number,
+  fileSize: number
 ): Promise<ReturnResult<TaskInfoResponse>> => {
   return http.request("get", "/v2/file/task/resume", {
     params: { fileMd5, fileSize },

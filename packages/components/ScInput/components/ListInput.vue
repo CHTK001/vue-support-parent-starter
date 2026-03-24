@@ -2,7 +2,7 @@
   <div class="list-input">
     <div class="list-items">
       <div v-for="(item, index) in items" :key="index" class="list-item">
-        <ScInput
+        <el-input
           v-model="items[index]"
           :placeholder="placeholder || '请输入内容'"
           class="item-input"
@@ -10,7 +10,7 @@
           :size="size"
           @input="handleInput"
         />
-        <ScButton
+        <el-button
           v-if="items.length > 1"
           type="danger"
           circle
@@ -20,19 +20,19 @@
           @click="removeItem(index)"
         >
           <IconifyIconOnline icon="ep:delete" />
-        </ScButton>
+        </el-button>
       </div>
-      <ScButton type="primary" class="add-btn w-full" :size="size" :disabled="disabled" @click="addItem">
+      <el-button type="primary" class="add-btn w-full" :size="size" :disabled="disabled" @click="addItem">
         <IconifyIconOnline icon="ep:plus" />
         <span style="margin-left: 4px">添加</span>
-      </ScButton>
+      </el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = withDefaults(
   defineProps<{

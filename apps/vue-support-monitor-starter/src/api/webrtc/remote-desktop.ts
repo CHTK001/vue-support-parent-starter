@@ -35,6 +35,9 @@ export function getWebRTCConnectInfo(params?: {
 /**
  * 获取WebRTC服务状态
  */
-export function getWebRTCStatus(params?: { serverId?: number }) {
+export function getWebRTCStatus(params?: {
+  serverId?: number;
+}) {
   return http.get<WebRTCStatus>("/api/monitor/webrtc/status", { params });
 }
+

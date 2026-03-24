@@ -9,23 +9,8 @@ import UserDropdown from "../dropdowns/UserDropdown.vue";
 import Setting from "@iconify-icons/ri/settings-3-line";
 import { getConfig } from "@repo/config";
 import { emitter } from "@repo/core";
-import { ref, computed } from "vue";
+import { ref, onBeforeUnmount, onMounted, computed } from "vue";
 import { useGlobal } from "@pureadmin/utils";
-import { useDraggable } from "@vueuse/core";
-import HeaderClock from "../HeaderClock.vue";
-import { webLlmDownloadState } from "../../lay-ai-chat/services/webLlmDownloadState";
-import ToolItem from "../components/ToolItem.vue";
-
-// webLLM 进度浮层收缩状态
-const webllmCollapsed = ref(false);
-
-// webLLM 浮层拖拽
-const webllmEl = ref<HTMLElement | null>(null);
-const webllmHandle = ref<HTMLElement | null>(null);
-const { style: webllmStyle } = useDraggable(webllmEl as any, {
-  initialValue: { x: window.innerWidth - 276, y: 16 },
-  handle: webllmHandle as any,
-});
 
 // 接收主题类名
 const props = defineProps<{
@@ -38,9 +23,7 @@ const { onPanel } = useNav();
 const { t } = useTranslationLang();
 
 // 当前主题 - 用于节日主题按钮显示
-const storageTheme = computed(
-  () => $storage?.configure?.systemTheme || "default",
-);
+const storageTheme = computed(() => $storage?.configure?.systemTheme || "default");
 const currentTheme = ref<string>(storageTheme.value);
 
 const handleThemeChange = (themeKey: string) => {
@@ -54,31 +37,34 @@ emitter.on("systemThemeChange", handleThemeChange);
 const isSpringFestival = () => currentTheme.value === "spring-festival";
 const isMidAutumn = () => currentTheme.value === "mid-autumn";
 const isHalloween = () => currentTheme.value === "halloween";
-const isChristmas = () => currentTheme.value === "christmas";
-const isFutureTech = () => currentTheme.value === "future-tech";
-
-const settingTextMotion = computed(() => {
-  if (isSpringFestival()) return "gold-foil";
-  if (isHalloween()) return "glitch";
-  if (isChristmas()) return "gold-foil";
-  if (isFutureTech()) return "none";
-  return "none";
-});
-
-const settingThemeClass = computed(() => ({
-  "fu-setting": isSpringFestival(),
-  "mooncake-setting": isMidAutumn(),
-  "pumpkin-setting": isHalloween(),
-  "christmas-setting": isChristmas(),
-  "future-setting": isFutureTech(),
-}));
 
 // 界面元素显示状态 - 从存储中读取初始值
 const showSearch = ref(
   $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
 );
 const showFullscreen = ref($storage.configure?.showFullscreen ?? true);
-const showHeaderClock = ref($storage.configure?.showHeaderClock ?? false);
+const showHeaderClock = ref(
+  $storage.configure?.showHeaderClock ?? false,
+);
+
+const headerClockText = ref<string>("");
+let headerClockTimer: ReturnType<typeof setInterval> | null = null;
+
+function updateHeaderClock(): void {
+  const now = new Date();
+  const hours = `${now.getHours()}`.padStart(2, "0");
+  const minutes = `${now.getMinutes()}`.padStart(2, "0");
+  const seconds = `${now.getSeconds()}`.padStart(2, "0");
+  headerClockText.value = `${hours}:${minutes}:${seconds}`;
+}
+
+function startHeaderClock(): void {
+  if (headerClockTimer) {
+    return;
+  }
+  updateHeaderClock();
+  headerClockTimer = setInterval(updateHeaderClock, 1000);
+}
 
 // 监听界面元素显示设置变化
 emitter.on("showSearchChange", (val: boolean) => {
@@ -89,19 +75,44 @@ emitter.on("showFullscreenChange", (val: boolean) => {
 });
 emitter.on("showHeaderClockChange", (val: boolean) => {
   showHeaderClock.value = val;
+  if (val) {
+    startHeaderClock();
+  }
+});
+
+onMounted(() => {
+  if (showHeaderClock.value) {
+    startHeaderClock();
+  }
+});
+
+// 清理事件监听
+onBeforeUnmount(() => {
+  emitter.off("showSearchChange");
+  emitter.off("showFullscreenChange");
+  emitter.off("systemThemeChange", handleThemeChange);
+  emitter.off("showHeaderClockChange");
+  if (headerClockTimer) {
+    clearInterval(headerClockTimer);
+    headerClockTimer = null;
+  }
 });
 </script>
 
 <template>
   <div :class="['tool-bar', themeClass]">
     <!-- 搜索 -->
-    <LaySearch v-if="showSearch" id="header-search" class="tool-item" />
+    <LaySearch
+      v-if="showSearch"
+      id="header-search"
+      class="tool-item"
+    />
 
     <!-- 全屏 -->
-    <LaySidebarFullScreen
-      v-if="showFullscreen"
-      id="full-screen"
-      class="tool-item"
+    <LaySidebarFullScreen 
+      v-if="showFullscreen" 
+      id="full-screen" 
+      class="tool-item" 
     />
 
     <!-- 消息 -->
@@ -123,56 +134,21 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
       class="tool-item header-clock"
       aria-label="当前时间"
     >
-      <HeaderClock />
+      {{ headerClockText }}
     </div>
 
-    <!-- webLLM 下载进度（fixed 右上角浮层，下载中时显示） -->
-    <Teleport to="body">
-      <div
-        v-if="webLlmDownloadState.downloading"
-        ref="webllmEl"
-        class="webllm-float"
-        :class="{ 'webllm-float--collapsed': webllmCollapsed }"
-        :style="webllmStyle as any"
-      >
-        <!-- 标题栏：拖拽区域 + 点击收缩/展开 -->
-        <div ref="webllmHandle" class="webllm-float-header" @click="webllmCollapsed = !webllmCollapsed">
-          <IconifyIconOnline icon="ri:download-cloud-line" class="webllm-float-icon" />
-          <span class="webllm-float-title">AI 模型下载中</span>
-          <span class="webllm-float-progress-text">{{ webLlmDownloadState.progress }}%</span>
-          <IconifyIconOnline
-            :icon="webllmCollapsed ? 'ri:arrow-down-s-line' : 'ri:arrow-up-s-line'"
-            class="webllm-float-toggle"
-          />
-        </div>
-        <!-- 展开内容 -->
-        <div v-show="!webllmCollapsed" class="webllm-float-body">
-          <div class="webllm-float-filename">{{ webLlmDownloadState.fileName || 'AI模型' }}</div>
-          <div class="webllm-float-bar-wrap">
-            <div class="webllm-float-bar" :style="{ width: webLlmDownloadState.progress + '%' }" />
-          </div>
-          <div class="webllm-float-meta">
-            {{ webLlmDownloadState.text }}
-            <template v-if="webLlmDownloadState.speed"> · {{ webLlmDownloadState.speed }}</template>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
     <!-- 系统设置 -->
-    <ToolItem
+    <span
       v-if="getConfig().ShowBarSetting"
+      :class="['tool-item', 'setting-btn', { 'fu-setting': isSpringFestival(), 'mooncake-setting': isMidAutumn(), 'pumpkin-setting': isHalloween() }]"
+      :title="t('buttons.pureOpenSystemSet')"
       @click="onPanel"
     >
-      <span class="setting-content">
-        <IconifyIconOffline :icon="Setting" class="setting-icon" />
-        <ScText v-if="isSpringFestival()" class="setting-symbol setting-symbol--festival" :theme-motion="settingTextMotion">🧧</ScText>
-        <ScText v-else-if="isMidAutumn()">🥮</ScText>
-        <ScText v-else-if="isHalloween()" class="setting-symbol setting-symbol--halloween" :theme-motion="settingTextMotion">🎃</ScText>
-        <ScText v-else-if="isChristmas()" class="setting-symbol setting-symbol--christmas" :theme-motion="settingTextMotion">🎄</ScText>
-        <ScText v-else-if="isFutureTech()" class="setting-symbol setting-symbol--future" :theme-motion="settingTextMotion">⚡</ScText>
-      </span>
-    </ToolItem>
+      <template v-if="isSpringFestival()">福</template>
+      <template v-else-if="isMidAutumn()">🥮</template>
+      <template v-else-if="isHalloween()">🎃</template>
+      <IconifyIconOffline v-else :icon="Setting" />
+    </span>
   </div>
 </template>
 
@@ -181,9 +157,9 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 .tool-bar {
   display: flex;
   align-items: center;
-  gap: 4px;  // 使用 4px，ToolItem 自身有 padding，视觉间距约 8px
+  gap: 8px;
   height: 48px;
-  padding: 0 8px;
+  padding: 0 16px;
 }
 
 .tool-item {
@@ -243,8 +219,6 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 
 .setting-btn {
   font-size: 20px;
-  overflow: visible;
-  min-width: 42px;
 
   &:hover {
     background: linear-gradient(
@@ -259,73 +233,27 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   }
 }
 
-.setting-content {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.setting-icon {
-  font-size: 15px;
-  flex-shrink: 0;
-}
-
-.setting-symbol {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  line-height: 1;
-
-  &--festival,
-  &--christmas,
-  &--halloween {
-    font-size: 18px;
-  }
-
-  &--future {
-    font-size: 16px;
-  }
-}
-
 .header-clock {
-  min-width: 150px;
-  padding: 0 16px;
+  min-width: 88px;
+  padding: 0 10px;
   font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 500;
   justify-content: flex-start;
-  gap: 8px;
-  background: linear-gradient(
-    135deg,
-    rgba(var(--el-color-primary-rgb), 0.06) 0%,
-    rgba(var(--el-color-primary-rgb), 0.02) 100%
-  );
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.18);
-  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.12);
 }
 
 .fu-setting {
-  font-family: "STKaiti", "KaiTi", "SimKai", serif;
+  font-family: 'STKaiti', 'KaiTi', 'SimKai', serif;
   font-size: 18px;
   font-weight: 900;
-  color: #dc143c;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 215, 0, 0.15),
-    rgba(220, 20, 60, 0.1)
-  );
+  color: #DC143C;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(220, 20, 60, 0.1));
   border: 1.5px solid rgba(220, 20, 60, 0.3);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: radial-gradient(
-      circle,
-      rgba(255, 215, 0, 0.3),
-      rgba(220, 20, 60, 0.15)
-    );
-    color: #b22222;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.3), rgba(220, 20, 60, 0.15));
+    color: #B22222;
     border-color: rgba(220, 20, 60, 0.5);
     animation: fu-glow 2s ease-in-out infinite;
   }
@@ -336,102 +264,38 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   font-size: 20px;
   background: rgba(255, 117, 24, 0.15);
   border: 1px solid rgba(255, 117, 24, 0.3);
+  
   &:hover {
     background: rgba(255, 117, 24, 0.25);
     border-color: rgba(255, 117, 24, 0.6);
     // 嘴巴发光效果 - 通过 drop-shadow 模拟
     filter: drop-shadow(0 0 2px #ffff00) drop-shadow(0 0 5px #ff7518);
     animation: pumpkin-bounce 0.6s ease infinite;
-
+    
     // 尝试增加内部亮度
     :deep(svg) {
-      filter: brightness(1.2);
+       filter: brightness(1.2);
     }
-
-    &::before,
-    &::after {
-      opacity: 1;
-    }
-
-    &::before {
-      transform: scale(1);
-    }
-
-    &::after {
-      animation: spider-crawl 1.8s ease-in-out infinite;
-    }
-  }
-}
-
-.future-setting {
-  letter-spacing: 0.08em;
-
-  &:hover {
-    box-shadow:
-      0 0 18px rgba(0, 255, 255, 0.28),
-      inset 0 0 10px rgba(0, 255, 255, 0.18);
-  }
-}
-
-.christmas-setting {
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 999px;
-    border: 1px dashed rgba(255, 225, 138, 0.32);
-    opacity: 0;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    pointer-events: none;
-    transform: scale(0.85);
-  }
-
-  &:hover::before {
-    opacity: 1;
-    transform: scale(1.05);
   }
 }
 
 @keyframes pumpkin-bounce {
-  0%,
-  100% {
-    transform: translateY(-2px) scale(1.1);
-  }
-  50% {
-    transform: translateY(-5px) scale(1.1);
-  }
-}
-
-@keyframes spider-crawl {
-  0%,
-  100% {
-    transform: translateY(-6px) translateX(0);
-  }
-  50% {
-    transform: translateY(2px) translateX(-2px);
-  }
+  0%, 100% { transform: translateY(-2px) scale(1.1); }
+  50% { transform: translateY(-5px) scale(1.1); }
 }
 
 // 中秋主题 - 月饼设置按钮
 .mooncake-setting {
   font-size: 20px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 213, 79, 0.2),
-    rgba(26, 35, 126, 0.15)
-  );
+  background: linear-gradient(135deg, rgba(255, 213, 79, 0.2), rgba(26, 35, 126, 0.15));
   border: 1.5px solid rgba(255, 213, 79, 0.4);
   box-shadow: 0 2px 8px rgba(26, 35, 126, 0.2);
 
   &:hover {
-    background: radial-gradient(
-      circle,
-      rgba(255, 213, 79, 0.35),
-      rgba(26, 35, 126, 0.2)
-    );
+    background: radial-gradient(circle, rgba(255, 213, 79, 0.35), rgba(26, 35, 126, 0.2));
     border-color: rgba(255, 213, 79, 0.6);
     transform: translateY(-2px) rotate(15deg);
-    box-shadow:
+    box-shadow: 
       0 4px 16px rgba(255, 213, 79, 0.4),
       0 0 20px rgba(255, 213, 79, 0.2);
     animation: mooncake-glow 2s ease-in-out infinite;
@@ -439,28 +303,20 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
 }
 
 @keyframes mooncake-glow {
-  0%,
-  100% {
+  0%, 100% {
     filter: drop-shadow(0 0 4px rgba(255, 213, 79, 0.5));
   }
   50% {
-    filter: drop-shadow(0 0 12px rgba(255, 213, 79, 0.8))
-      drop-shadow(0 0 20px rgba(26, 35, 126, 0.4));
+    filter: drop-shadow(0 0 12px rgba(255, 213, 79, 0.8)) drop-shadow(0 0 20px rgba(26, 35, 126, 0.4));
   }
 }
 
 @keyframes fu-glow {
-  0%,
-  100% {
-    text-shadow:
-      0 0 8px rgba(220, 20, 60, 0.6),
-      0 1px 2px rgba(0, 0, 0, 0.2);
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(220, 20, 60, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
   50% {
-    text-shadow:
-      0 0 16px rgba(220, 20, 60, 0.8),
-      0 0 24px rgba(255, 215, 0, 0.6),
-      0 1px 2px rgba(0, 0, 0, 0.2);
+    text-shadow: 0 0 16px rgba(220, 20, 60, 0.8), 0 0 24px rgba(255, 215, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -473,110 +329,8 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
   }
 }
 
-// webLLM 下载进度浮层（fixed，位置由 useDraggable 控制）
-.webllm-float {
-  position: fixed;
-  z-index: 9999;
-  width: 260px;
-  background: var(--el-bg-color);
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.25);
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  transition: width 0.2s ease;
-
-  &--collapsed {
-    width: 180px;
-  }
-}
-
-.webllm-float-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  cursor: move;
-  user-select: none;
-  touch-action: none;
-  background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08), rgba(var(--el-color-primary-rgb), 0.04));
-  user-select: none;
-
-  &:hover {
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.14), rgba(var(--el-color-primary-rgb), 0.08));
-  }
-}
-
-.webllm-float-icon {
-  font-size: 15px;
-  color: var(--el-color-primary);
-  flex-shrink: 0;
-  animation: webllm-pulse 1.5s ease-in-out infinite;
-}
-
-.webllm-float-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.webllm-float-progress-text {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--el-color-primary);
-  flex-shrink: 0;
-}
-
-.webllm-float-toggle {
-  font-size: 16px;
-  color: var(--el-text-color-secondary);
-  flex-shrink: 0;
-}
-
-.webllm-float-body {
-  padding: 8px 12px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.webllm-float-filename {
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.webllm-float-bar-wrap {
-  width: 100%;
-  height: 4px;
-  background: var(--el-fill-color);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.webllm-float-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.webllm-float-meta {
-  font-size: 10px;
-  color: var(--el-text-color-placeholder);
-}
-
-@keyframes webllm-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-// 语言切换触发器.lang-style {
+// 语言切换触发器
+.lang-style {
   .lang-icon-wrapper {
     position: relative;
     width: 32px;
@@ -598,6 +352,7 @@ emitter.on("showHeaderClockChange", (val: boolean) => {
       color: #fff;
     }
   }
+}
 
 // 用户下拉触发器
 .user-dropdown {

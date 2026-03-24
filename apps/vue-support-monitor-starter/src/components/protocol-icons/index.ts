@@ -19,7 +19,7 @@ export const HttpIcon = () =>
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
       }),
-    ],
+    ]
   );
 
 // TCP 协议图标
@@ -41,7 +41,7 @@ export const TcpIcon = () =>
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
       }),
-    ],
+    ]
   );
 
 // UDP 协议图标
@@ -63,7 +63,7 @@ export const UdpIcon = () =>
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
       }),
-    ],
+    ]
   );
 
 // WebSocket 协议图标
@@ -85,7 +85,7 @@ export const WsIcon = () =>
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
       }),
-    ],
+    ]
   );
 
 // MQTT 协议图标
@@ -107,7 +107,7 @@ export const MqttIcon = () =>
         "stroke-linecap": "round",
         "stroke-linejoin": "round",
       }),
-    ],
+    ]
   );
 
 // 根据协议类型返回对应的图标

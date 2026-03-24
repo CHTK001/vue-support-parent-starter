@@ -6,17 +6,8 @@
         <span class="title-text">模型配置</span>
       </div>
       <div class="header-actions">
-        <IconifyIconOnline
-          @click="$emit('refresh')"
-          class="cursor-pointer"
-          v-if="settingOpen"
-          icon="mdi:refresh"
-        />
-        <IconifyIconOnline
-          @click="handleToggle"
-          class="cursor-pointer"
-          :icon="settingOpen ? 'ep:d-arrow-right' : 'ep:d-arrow-left'"
-        />
+        <IconifyIconOnline @click="$emit('refresh')" class="cursor-pointer" v-if="settingOpen" icon="mdi:refresh" />
+        <IconifyIconOnline @click="handleToggle" class="cursor-pointer" :icon="settingOpen ? 'ep:d-arrow-right' : 'ep:d-arrow-left'" />
       </div>
     </div>
 
@@ -30,34 +21,13 @@
           </div>
           <ScFormItem prop="model">
             <div class="model-selector">
-              <ScSelect
-                filterable
-                v-model="form.model"
-                placeholder="选择 AI 模型"
-                clearable
-                @change="$emit('change-module', $event)"
-                class="modern-select"
-              >
-                <ScOption
-                  v-for="item in modelList"
-                  class="model-option"
-                  :key="item.sysAiModuleCode"
-                  :label="item.sysAiModuleName"
-                  :value="item.sysAiModuleCode"
-                >
+              <ScSelect filterable v-model="form.model" placeholder="选择 AI 模型" clearable @change="$emit('change-module', $event)" class="modern-select">
+                <ScOption v-for="item in modelList" class="model-option" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                   <template #default>
-                    <ScTooltip
-                      placement="right"
-                      :raw-content="true"
-                      :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
-                    >
+                    <ScTooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
                       <div class="option-content">
                         <div class="option-avatar">
-                          <ScImage
-                            :src="item.sysProjectIcon"
-                            fit="cover"
-                            class="avatar-image"
-                          >
+                          <ScImage :src="item.sysProjectIcon" fit="cover" class="avatar-image">
                             <template #error>
                               <div class="avatar-fallback">
                                 <IconifyIconOnline icon="mdi:robot" />
@@ -66,12 +36,8 @@
                           </ScImage>
                         </div>
                         <div class="option-info">
-                          <div class="option-name">
-                            {{ item.sysAiModuleName }}
-                          </div>
-                          <div class="option-project">
-                            {{ item.sysProjectName }}
-                          </div>
+                          <div class="option-name">{{ item.sysAiModuleName }}</div>
+                          <div class="option-project">{{ item.sysProjectName }}</div>
                         </div>
                       </div>
                     </ScTooltip>
@@ -79,11 +45,7 @@
                 </ScOption>
                 <template #label="{ label }">
                   <div class="selected-label">
-                    <ScImage
-                      class="label-avatar"
-                      :src="modelSelectLabel?.sysProjectIcon"
-                      fit="cover"
-                    >
+                    <ScImage class="label-avatar" :src="modelSelectLabel?.sysProjectIcon" fit="cover">
                       <template #error>
                         <IconifyIconOnline icon="mdi:robot" />
                       </template>
@@ -92,13 +54,7 @@
                   </div>
                 </template>
               </ScSelect>
-              <ScButton
-                v-if="env.showEdit"
-                circle
-                class="add-model-btn"
-                @click="$emit('open-module')"
-                type="primary"
-              >
+              <ScButton v-if="env.showEdit" circle class="add-model-btn" @click="$emit('open-module')" type="primary">
                 <IconifyIconOnline icon="ep:plus" />
               </ScButton>
             </div>
@@ -112,13 +68,7 @@
             <span>角色设定</span>
           </div>
           <ScFormItem prop="system">
-            <ScInput
-              :rows="6"
-              type="textarea"
-              placeholder="定义 AI 的角色和行为特征，例如：你是一个专业的商业文案专家，擅长创作吸引人的营销内容..."
-              v-model="form.system"
-              class="modern-textarea"
-            />
+            <ScInput :rows="6" type="textarea" placeholder="定义 AI 的角色和行为特征，例如：你是一个专业的商业文案专家，擅长创作吸引人的营销内容..." v-model="form.system" class="modern-textarea" />
           </ScFormItem>
         </div>
 
@@ -136,23 +86,10 @@
               <span class="param-value">{{ form.tokens }}</span>
             </div>
             <div class="param-control">
-              <ScSlider
-                :min="1"
-                :max="8192"
-                v-model="form.tokens"
-                class="modern-slider"
-              />
-              <ScInputNumber
-                :min="1"
-                :max="8192"
-                v-model="form.tokens"
-                class="modern-number"
-                :controls="false"
-              />
+              <ScSlider :min="1" :max="8192" v-model="form.tokens" class="modern-slider" />
+              <ScInputNumber :min="1" :max="8192" v-model="form.tokens" class="modern-number" :controls="false" />
             </div>
-            <div class="param-desc">
-              控制 AI 回复的最大长度，1 token ≈ 1.5 个中文字符
-            </div>
+            <div class="param-desc">控制 AI 回复的最大长度，1 token ≈ 1.5 个中文字符</div>
           </div>
 
           <!-- Temperature -->
@@ -162,21 +99,8 @@
               <span class="param-value">{{ form.temperature }}</span>
             </div>
             <div class="param-control">
-              <ScSlider
-                :min="0.1"
-                :max="1"
-                v-model="form.temperature"
-                :step="0.1"
-                class="modern-slider"
-              />
-              <ScInputNumber
-                :min="0.1"
-                :max="1"
-                v-model="form.temperature"
-                :step="0.1"
-                class="modern-number"
-                :controls="false"
-              />
+              <ScSlider :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-slider" />
+              <ScInputNumber :min="0.1" :max="1" v-model="form.temperature" :step="0.1" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">值越高回复越有创意，值越低回复越稳定</div>
           </div>
@@ -188,23 +112,10 @@
               <span class="param-value">{{ form.topK }}</span>
             </div>
             <div class="param-control">
-              <ScSlider
-                :min="1"
-                :max="16"
-                v-model="form.topK"
-                class="modern-slider"
-              />
-              <ScInputNumber
-                :min="1"
-                :max="16"
-                v-model="form.topK"
-                class="modern-number"
-                :controls="false"
-              />
+              <ScSlider :min="1" :max="16" v-model="form.topK" class="modern-slider" />
+              <ScInputNumber :min="1" :max="16" v-model="form.topK" class="modern-number" :controls="false" />
             </div>
-            <div class="param-desc">
-              控制词汇选择的多样性，影响回复的丰富程度
-            </div>
+            <div class="param-desc">控制词汇选择的多样性，影响回复的丰富程度</div>
           </div>
 
           <!-- Top-P -->
@@ -214,21 +125,8 @@
               <span class="param-value">{{ form.topP }}</span>
             </div>
             <div class="param-control">
-              <ScSlider
-                :min="0.1"
-                :max="1"
-                :step="0.1"
-                v-model="form.topP"
-                class="modern-slider"
-              />
-              <ScInputNumber
-                :min="0.1"
-                :step="0.1"
-                :max="1"
-                v-model="form.topP"
-                class="modern-number"
-                :controls="false"
-              />
+              <ScSlider :min="0.1" :max="1" :step="0.1" v-model="form.topP" class="modern-slider" />
+              <ScInputNumber :min="0.1" :step="0.1" :max="1" v-model="form.topP" class="modern-number" :controls="false" />
             </div>
             <div class="param-desc">动态调整词汇选择范围，平衡质量与多样性</div>
           </div>
@@ -240,12 +138,7 @@
               <span class="param-value seed-value">{{ form.seed }}</span>
             </div>
             <div class="param-control seed-control">
-              <ScButton
-                circle
-                @click="$emit('click-seed')"
-                class="seed-refresh-btn"
-                type="primary"
-              >
+              <ScButton circle @click="$emit('click-seed')" class="seed-refresh-btn" type="primary">
                 <IconifyIconOnline icon="ep:refresh" />
               </ScButton>
               <div class="seed-desc">点击生成新的随机种子</div>
@@ -290,13 +183,7 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits([
-  "refresh",
-  "change-module",
-  "open-module",
-  "click-seed",
-  "toggle",
-]);
+const emit = defineEmits(["refresh", "change-module", "open-module", "click-seed", "toggle"]);
 
 // State
 const settingOpen = ref(props.isOpen);
@@ -306,14 +193,12 @@ watch(
   () => props.isOpen,
   (newValue) => {
     settingOpen.value = newValue;
-  },
+  }
 );
 
 // Computed
 const modelSelectLabel = computed(() => {
-  return props.modelList.find(
-    (item) => item.sysAiModuleCode === props.form.model,
-  );
+  return props.modelList.find((item) => item.sysAiModuleCode === props.form.model);
 });
 
 // Methods
@@ -630,11 +515,7 @@ const handleToggle = () => {
   .param-item {
     padding: 1.25rem;
     border-radius: 1rem;
-    background: linear-gradient(
-      to bottom right,
-      white,
-      rgba(249, 250, 251, 0.5)
-    );
+    background: linear-gradient(to bottom right, white, rgba(249, 250, 251, 0.5));
     border: 1px solid #f3f4f6;
     backdrop-filter: blur(8px);
     transition: all 0.3s var(--transition);
@@ -661,16 +542,12 @@ const handleToggle = () => {
         border-radius: 0.75rem;
         background-color: rgba(124, 58, 237, 0.1);
         color: var(--primary);
-        font-family:
-          ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono",
-          Menlo, monospace;
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
         font-size: 0.875rem;
         line-height: 1.25rem;
 
         &.seed-value {
-          font-family:
-            ui-monospace, SFMono-Regular, "SF Mono", Consolas,
-            "Liberation Mono", Menlo, monospace;
+          font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
           font-size: 0.75rem;
           line-height: 1rem;
         }
@@ -701,11 +578,7 @@ const handleToggle = () => {
         :deep(.el-slider__bar) {
           height: 0.5rem;
           border-radius: 9999px;
-          background: linear-gradient(
-            90deg,
-            var(--primary-light),
-            var(--primary)
-          );
+          background: linear-gradient(90deg, var(--primary-light), var(--primary));
         }
 
         :deep(.el-slider__button) {
@@ -743,11 +616,7 @@ const handleToggle = () => {
 
       .seed-refresh-btn {
         border-radius: 0.75rem;
-        background: linear-gradient(
-          135deg,
-          var(--primary),
-          var(--primary-dark)
-        );
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
         box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
         transition: all 0.3s var(--transition);
 
@@ -825,11 +694,7 @@ const handleToggle = () => {
   }
 
   .param-item {
-    background: linear-gradient(
-      to bottom right,
-      rgba(31, 41, 55, 0.5),
-      rgba(17, 24, 39, 0.5)
-    );
+    background: linear-gradient(to bottom right, rgba(31, 41, 55, 0.5), rgba(17, 24, 39, 0.5));
     border-color: rgba(55, 65, 81, 0.5);
 
     .param-header {

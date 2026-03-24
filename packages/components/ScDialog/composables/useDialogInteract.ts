@@ -5,8 +5,8 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, onUnmounted, type Ref } from "vue";
-import interact from "interactjs";
+import { ref, onUnmounted, type Ref } from 'vue';
+import interact from 'interactjs';
 
 /** 尺寸限制 */
 export interface SizeConstraints {
@@ -82,7 +82,7 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
   const {
     draggable = true,
     resizable = false,
-    dragHandle = ".sc-dialog__header",
+    dragHandle = '.sc-dialog__header',
     minSize = { width: 300, height: 200 },
     maxSize = { width: Infinity, height: Infinity },
     dragOutside = false,
@@ -93,12 +93,12 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
     onDragEnd,
     onResizeStart,
     onResizeMove,
-    onResizeEnd
+    onResizeEnd,
   } = options;
 
   const isDragging = ref(false);
   const isResizing = ref(false);
-
+  
   let interactInstance: ReturnType<typeof interact> | null = null;
 
   /**
@@ -155,8 +155,8 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
    */
   const updatePosition = (element: HTMLElement, x: number, y: number): void => {
     element.style.transform = `translate(${x}px, ${y}px)`;
-    element.setAttribute("data-x", String(x));
-    element.setAttribute("data-y", String(y));
+    element.setAttribute('data-x', String(x));
+    element.setAttribute('data-y', String(y));
   };
 
   /**
@@ -172,8 +172,8 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
    */
   const getPosition = (element: HTMLElement): { x: number; y: number } => {
     return {
-      x: parseFloat(element.getAttribute("data-x") || "0") || 0,
-      y: parseFloat(element.getAttribute("data-y") || "0") || 0
+      x: parseFloat(element.getAttribute('data-x') || '0') || 0,
+      y: parseFloat(element.getAttribute('data-y') || '0') || 0,
     };
   };
 
@@ -197,10 +197,10 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
             isDragging.value = true;
             onDragStart?.();
           },
-          move: event => {
+          move: (event) => {
             const target = event.target as HTMLElement;
-            let x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + event.dx;
-            let y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + event.dy;
+            let x = (parseFloat(target.getAttribute('data-x') || '0') || 0) + event.dx;
+            let y = (parseFloat(target.getAttribute('data-y') || '0') || 0) + event.dy;
 
             // 边界限制
             if (!dragOutside) {
@@ -222,14 +222,14 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
             updatePosition(target, x, y);
             onDragMove?.(x, y);
           },
-          end: event => {
+          end: (event) => {
             isDragging.value = false;
             onDragEnd?.({
               target: event.target as HTMLElement,
-              client: { x: event.client.x, y: event.client.y }
+              client: { x: event.client.x, y: event.client.y },
             });
-          }
-        }
+          },
+        },
       });
     }
 
@@ -240,44 +240,44 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
         modifiers: [
           interact.modifiers.restrictSize({
             min: minSize,
-            max: maxSize
-          })
+            max: maxSize,
+          }),
         ],
         listeners: {
-          start: event => {
+          start: (event) => {
             isResizing.value = true;
-            document.body.style.userSelect = "none";
+            document.body.style.userSelect = 'none';
             // 禁用过渡，避免缩放卡顿
             const target = event.target as HTMLElement;
             if (target) {
-              target.style.transition = "none";
+              target.style.transition = 'none';
             }
             onResizeStart?.();
           },
-          move: event => {
+          move: (event) => {
             const target = event.target as HTMLElement;
             const { width, height } = event.rect;
             const { left, top } = event.deltaRect;
 
             updateSize(target, width, height);
 
-            const x = (parseFloat(target.getAttribute("data-x") || "0") || 0) + left;
-            const y = (parseFloat(target.getAttribute("data-y") || "0") || 0) + top;
+            const x = (parseFloat(target.getAttribute('data-x') || '0') || 0) + left;
+            const y = (parseFloat(target.getAttribute('data-y') || '0') || 0) + top;
             updatePosition(target, x, y);
 
             onResizeMove?.(width, height);
           },
-          end: event => {
+          end: (event) => {
             isResizing.value = false;
-            document.body.style.userSelect = "";
+            document.body.style.userSelect = '';
             // 恢复过渡
             const target = event.target as HTMLElement;
             if (target) {
-              target.style.transition = "";
+              target.style.transition = '';
             }
             onResizeEnd?.();
-          }
-        }
+          },
+        },
       });
     }
   };
@@ -305,7 +305,7 @@ export function useDialogInteract(options: DialogInteractOptions = {}): DialogIn
     calculateSnap,
     updatePosition,
     updateSize,
-    getPosition
+    getPosition,
   };
 }
 

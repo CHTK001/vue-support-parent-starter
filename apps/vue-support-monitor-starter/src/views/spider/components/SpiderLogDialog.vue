@@ -9,18 +9,12 @@
   >
     <div class="log-toolbar">
       <div class="toolbar-left">
-        <ScSelect
-          v-model="filterLevel"
-          placeholder="日志级别"
-          clearable
-          style="width: 120px"
-          @change="handleFilter"
-        >
-          <ScOption label="INFO" value="INFO" />
-          <ScOption label="WARN" value="WARN" />
-          <ScOption label="ERROR" value="ERROR" />
-        </ScSelect>
-        <ScInput
+        <el-select v-model="filterLevel" placeholder="日志级别" clearable style="width: 120px" @change="handleFilter">
+          <el-option label="INFO" value="INFO" />
+          <el-option label="WARN" value="WARN" />
+          <el-option label="ERROR" value="ERROR" />
+        </el-select>
+        <el-input
           v-model="keyword"
           placeholder="搜索关键字..."
           clearable
@@ -30,23 +24,23 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
+        </el-input>
       </div>
       <div class="toolbar-right">
-        <ScSwitch
+        <el-switch
           v-model="autoRefresh"
           active-text="自动刷新"
           inactive-text=""
           @change="handleAutoRefreshChange"
         />
-        <ScButton size="small" @click="handleRefresh">
+        <el-button size="small" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
-    <ScTable
+    <el-table
       v-loading="loading"
       :data="filteredLogs"
       border
@@ -54,46 +48,29 @@
       max-height="500"
       :row-class-name="getRowClassName"
     >
-      <ScTableColumn label="时间" width="180" prop="time">
+      <el-table-column label="时间" width="180" prop="time">
         <template #default="{ row }">
           <span>{{ formatTime(row.time) }}</span>
         </template>
-      </ScTableColumn>
-      <ScTableColumn label="级别" width="100" align="center">
+      </el-table-column>
+      <el-table-column label="级别" width="100" align="center">
         <template #default="{ row }">
-          <ScTag :type="getLevelType(row.level)" size="small">{{
-            row.level
-          }}</ScTag>
+          <el-tag :type="getLevelType(row.level)" size="small">{{ row.level }}</el-tag>
         </template>
-      </ScTableColumn>
-      <ScTableColumn
-        label="消息"
-        min-width="300"
-        prop="message"
-        show-overflow-tooltip
-      />
-      <ScTableColumn
-        label="URL"
-        min-width="200"
-        prop="url"
-        show-overflow-tooltip
-      >
+      </el-table-column>
+      <el-table-column label="消息" min-width="300" prop="message" show-overflow-tooltip />
+      <el-table-column label="URL" min-width="200" prop="url" show-overflow-tooltip>
         <template #default="{ row }">
-          <ScLink
-            v-if="row.url"
-            type="primary"
-            :href="row.url"
-            target="_blank"
-          >
+          <el-link v-if="row.url" type="primary" :href="row.url" target="_blank">
             {{ truncateText(row.url, 50) }}
-          </ScLink>
+          </el-link>
           <span v-else class="text-muted">-</span>
         </template>
-      </ScTableColumn>
-    </ScTable>
+      </el-table-column>
+    </el-table>
 
     <div class="pagination-container">
-      <ScPagination
+      <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :page-sizes="[20, 50, 100, 200]"
@@ -125,7 +102,7 @@ const emit = defineEmits<{
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (val) => emit("update:visible", val),
+  set: (val) => emit("update:visible", val)
 });
 
 // 响应式状态
@@ -140,55 +117,47 @@ let refreshTimer: number | null = null;
 const pagination = reactive({
   page: 1,
   size: 50,
-  total: 0,
+  total: 0
 });
 
 // 过滤后的日志
 const filteredLogs = computed(() => {
   let list = logList.value;
-
+  
   if (filterLevel.value) {
-    list = list.filter((log) => log.level === filterLevel.value);
+    list = list.filter(log => log.level === filterLevel.value);
   }
-
+  
   if (keyword.value) {
     const kw = keyword.value.toLowerCase();
-    list = list.filter(
-      (log) =>
-        (log.message && log.message.toLowerCase().includes(kw)) ||
-        (log.url && log.url.toLowerCase().includes(kw)),
+    list = list.filter(log => 
+      (log.message && log.message.toLowerCase().includes(kw)) ||
+      (log.url && log.url.toLowerCase().includes(kw))
     );
   }
-
+  
   return list;
 });
 
 // 监听对话框打开
-watch(
-  () => props.visible,
-  (val) => {
-    if (val && props.taskId) {
-      loadLogs();
-    } else {
-      stopAutoRefresh();
-    }
-  },
-);
+watch(() => props.visible, (val) => {
+  if (val && props.taskId) {
+    loadLogs();
+  } else {
+    stopAutoRefresh();
+  }
+});
 
 /**
  * 加载日志
  */
 const loadLogs = async () => {
   if (!props.taskId) return;
-
+  
   try {
     loading.value = true;
-    const res = await getSpiderTaskLogs(
-      props.taskId,
-      pagination.page,
-      pagination.size,
-    );
-
+    const res = await getSpiderTaskLogs(props.taskId, pagination.page, pagination.size);
+    
     if (res.code === "00000" && res.data) {
       logList.value = res.data.data || [];
       pagination.total = res.data.total || 0;
@@ -208,7 +177,7 @@ const getLevelType = (level: string) => {
   const map: Record<string, string> = {
     INFO: "success",
     WARN: "warning",
-    ERROR: "danger",
+    ERROR: "danger"
   };
   return map[level] || "info";
 };
@@ -317,13 +286,13 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-
+  
   .toolbar-left {
     display: flex;
     gap: 12px;
     align-items: center;
   }
-
+  
   .toolbar-right {
     display: flex;
     gap: 12px;
@@ -349,6 +318,7 @@ onUnmounted(() => {
   background-color: #fdf6ec !important;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -357,4 +327,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

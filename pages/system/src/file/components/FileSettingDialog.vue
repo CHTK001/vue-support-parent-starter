@@ -6,7 +6,7 @@
     destroy-on-close
     :close-on-click-modal="false"
   >
-    <ScForm
+    <ScForm 
       ref="formRef"
       :model="formData"
       :rules="rules"
@@ -20,14 +20,14 @@
       </ScDivider>
 
       <ScFormItem label="配置名称" prop="sysFileSystemSettingName">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingName"
           placeholder="请输入配置名称"
         />
       </ScFormItem>
 
       <ScFormItem label="默认存储类型">
-        <ScSelect
+        <ScSelect 
           v-model="formData.sysFileSystemSettingDefaultStorageType"
           style="width: 100%"
         >
@@ -40,7 +40,7 @@
       </ScFormItem>
 
       <ScFormItem label="单文件最大(MB)">
-        <ScInputNumber
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingMaxFileSizeMb"
           :min="1"
           :max="10240"
@@ -48,7 +48,7 @@
       </ScFormItem>
 
       <ScFormItem label="文件保留天数">
-        <ScInputNumber
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingRetentionDays"
           :min="0"
           :max="365"
@@ -66,11 +66,11 @@
         <ScSwitch v-model="formData.sysFileSystemSettingChunkEnabled" />
       </ScFormItem>
 
-      <ScFormItem
+      <ScFormItem 
         v-if="formData.sysFileSystemSettingChunkEnabled"
         label="分片大小(MB)"
       >
-        <ScInputNumber
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingChunkSizeMb"
           :min="1"
           :max="500"
@@ -85,11 +85,11 @@
         <ScSwitch v-model="formData.sysFileSystemSettingManualMergeEnabled" />
       </ScFormItem>
 
-      <ScFormItem
+      <ScFormItem 
         v-if="formData.sysFileSystemSettingAutoMergeEnabled"
         label="合并任务限制"
       >
-        <ScInputNumber
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingMergeTaskLimit"
           :min="1"
           :max="100"
@@ -102,15 +102,18 @@
         存储配置
       </ScDivider>
 
-      <ScFormItem label="存储根路径" prop="sysFileSystemSettingStorageRootPath">
-        <ScInput
+      <ScFormItem 
+        label="存储根路径"
+        prop="sysFileSystemSettingStorageRootPath"
+      >
+        <ScInput 
           v-model="formData.sysFileSystemSettingStorageRootPath"
           placeholder="请输入存储根路径，如: /data/files 或 D:/files"
         />
       </ScFormItem>
 
       <ScFormItem label="临时文件路径">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingTempPath"
           placeholder="请输入临时文件路径，如: /data/temp 或 D:/temp"
         />
@@ -125,7 +128,7 @@
       <!-- 服务器状态和控制 -->
       <ScFormItem label="服务器状态">
         <div class="server-control">
-          <ScTag
+          <ScTag 
             :type="serverStatus === 'running' ? 'success' : 'info'"
             size="large"
           >
@@ -138,7 +141,7 @@
             />
             {{ serverStatus === "running" ? "运行中" : "已停止" }}
           </ScTag>
-          <ScButton
+          <ScButton 
             v-if="serverStatus === 'stopped'"
             type="success"
             size="small"
@@ -148,7 +151,7 @@
             <IconifyIconOnline icon="ri:play-circle-line" />
             启动服务
           </ScButton>
-          <ScButton
+          <ScButton 
             v-else
             type="danger"
             size="small"
@@ -162,13 +165,13 @@
       </ScFormItem>
 
       <ScFormItem label="服务端口" prop="sysFileSystemSettingHttpServerPort">
-        <ScInputNumber
+        <ScInputNumber 
           v-model="formData.sysFileSystemSettingHttpServerPort"
           :min="1"
           :max="65535"
           @change="handlePortChange"
         />
-        <ScTag
+        <ScTag 
           v-if="portStatus !== null"
           :type="portStatus ? 'success' : 'danger'"
           size="small"
@@ -179,21 +182,21 @@
       </ScFormItem>
 
       <ScFormItem label="服务主机">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingHttpServerHost"
           placeholder="0.0.0.0"
         />
       </ScFormItem>
 
       <ScFormItem label="上下文路径">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingHttpServerContext"
           placeholder="/file"
         />
       </ScFormItem>
 
       <ScFormItem label="访问域名">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingHttpAccessDomain"
           placeholder="http://example.com"
         />
@@ -215,7 +218,7 @@
       </ScFormItem>
 
       <ScFormItem label="允许的文件类型">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingAllowedTypes"
           type="textarea"
           :rows="2"
@@ -224,7 +227,7 @@
       </ScFormItem>
 
       <ScFormItem label="备注">
-        <ScInput
+        <ScInput 
           v-model="formData.sysFileSystemSettingRemark"
           type="textarea"
           :rows="2"
@@ -236,7 +239,7 @@
     <template #footer>
       <ScButton @click="visible = false">取消</ScButton>
       <ScButton type="primary" :loading="loading" @click="handleSubmit"
-        >保存</ScButton
+        >保存</el-button
       >
     </template>
   </sc-dialog>
@@ -350,7 +353,7 @@ watch(
       formData.value = { ...val };
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 监听对话框打开

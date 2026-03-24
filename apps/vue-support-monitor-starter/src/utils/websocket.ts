@@ -31,7 +31,7 @@ export class WebSocketManager {
       reconnectInterval: 3000,
       maxReconnectAttempts: 5,
       heartbeatInterval: 30000,
-      heartbeatMessage: JSON.stringify({ type: "ping" }),
+      heartbeatMessage: JSON.stringify({ type: 'ping' }),
       onOpen: () => {},
       onMessage: () => {},
       onError: () => {},
@@ -50,7 +50,7 @@ export class WebSocketManager {
       this.ws = new WebSocket(this.options.url, this.options.protocols);
       this.setupEventListeners();
     } catch (error) {
-      console.error("WebSocket连接失败:", error);
+      console.error('WebSocket连接失败:', error);
       this.handleReconnect();
     }
   }
@@ -61,7 +61,7 @@ export class WebSocketManager {
   disconnect(): void {
     this.isManualClose = true;
     this.clearTimers();
-
+    
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -107,7 +107,7 @@ export class WebSocketManager {
     if (!this.ws) return;
 
     this.ws.onopen = (event) => {
-      console.log("WebSocket连接已建立");
+      console.log('WebSocket连接已建立');
       this.reconnectAttempts = 0;
       this.startHeartbeat();
       this.options.onOpen(event);
@@ -117,26 +117,26 @@ export class WebSocketManager {
       // 处理心跳响应
       try {
         const data = JSON.parse(event.data);
-        if (data.type === "pong") {
+        if (data.type === 'pong') {
           return; // 忽略心跳响应
         }
       } catch (e) {
         // 不是JSON格式，继续处理
       }
-
+      
       this.options.onMessage(event);
     };
 
     this.ws.onerror = (event) => {
-      console.error("WebSocket错误:", event);
+      console.error('WebSocket错误:', event);
       this.options.onError(event);
     };
 
     this.ws.onclose = (event) => {
-      console.log("WebSocket连接已关闭:", event.code, event.reason);
+      console.log('WebSocket连接已关闭:', event.code, event.reason);
       this.clearTimers();
       this.options.onClose(event);
-
+      
       if (!this.isManualClose) {
         this.handleReconnect();
       }
@@ -148,15 +148,13 @@ export class WebSocketManager {
    */
   private handleReconnect(): void {
     if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
-      console.error("达到最大重连次数，停止重连");
+      console.error('达到最大重连次数，停止重连');
       this.options.onMaxReconnectAttemptsReached();
       return;
     }
 
     this.reconnectAttempts++;
-    console.log(
-      `尝试重连 (${this.reconnectAttempts}/${this.options.maxReconnectAttempts})`,
-    );
+    console.log(`尝试重连 (${this.reconnectAttempts}/${this.options.maxReconnectAttempts})`);
     this.options.onReconnect(this.reconnectAttempts);
 
     this.reconnectTimer = setTimeout(() => {
@@ -183,7 +181,7 @@ export class WebSocketManager {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-
+    
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
@@ -198,20 +196,19 @@ export function createWebSocket(options: WebSocketOptions): WebSocketManager {
   return new WebSocketManager(options);
 }
 
+
+
 /**
  * 日志WebSocket连接
  */
 export class LogWebSocket extends WebSocketManager {
-  constructor(
-    serverId: string | number,
-    options: Partial<WebSocketOptions> = {},
-  ) {
-    const baseUrl = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8080";
+  constructor(serverId: string | number, options: Partial<WebSocketOptions> = {}) {
+    const baseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8080';
     const url = `${baseUrl}/ws/logs/${serverId}`;
-
+    
     super({
       url,
-      heartbeatMessage: JSON.stringify({ type: "ping", timestamp: Date.now() }),
+      heartbeatMessage: JSON.stringify({ type: 'ping', timestamp: Date.now() }),
       ...options,
     });
   }
@@ -225,7 +222,7 @@ export class LogWebSocket extends WebSocketManager {
     keyword?: string;
   }): boolean {
     return this.sendJSON({
-      type: "filter",
+      type: 'filter',
       filter,
       timestamp: Date.now(),
     });
@@ -236,7 +233,7 @@ export class LogWebSocket extends WebSocketManager {
    */
   startRealTimeLog(): boolean {
     return this.sendJSON({
-      type: "start",
+      type: 'start',
       timestamp: Date.now(),
     });
   }
@@ -246,7 +243,7 @@ export class LogWebSocket extends WebSocketManager {
    */
   stopRealTimeLog(): boolean {
     return this.sendJSON({
-      type: "stop",
+      type: 'stop',
       timestamp: Date.now(),
     });
   }
@@ -260,4 +257,4 @@ export const WS_READY_STATE = {
   CLOSED: 3,
 } as const;
 
-export type WSReadyState = (typeof WS_READY_STATE)[keyof typeof WS_READY_STATE];
+export type WSReadyState = typeof WS_READY_STATE[keyof typeof WS_READY_STATE];

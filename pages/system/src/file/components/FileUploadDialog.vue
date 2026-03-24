@@ -11,12 +11,12 @@
     <div class="upload-config">
       <ScForm :model="config" label-width="100px" inline>
         <ScFormItem label="目标分组">
-          <ScSelect
+          <ScSelect 
             v-model="config.groupId"
             placeholder="选择分组"
             style="width: 160px"
           >
-            <ScOption
+            <ScOption 
               v-for="group in groups"
               :key="group.sysFileSystemGroupId"
               :label="group.sysFileSystemGroupName"
@@ -25,7 +25,7 @@
           </ScSelect>
         </ScFormItem>
         <ScFormItem label="上传方式">
-          <ScRadioGroup
+          <ScRadioGroup 
             v-model="config.uploadMode"
             :disabled="!setting?.sysFileSystemSettingChunkEnabled"
           >
@@ -33,7 +33,7 @@
             <ScRadio value="chunk">分片上传</ScRadio>
           </ScRadioGroup>
         </ScFormItem>
-        <ScFormItem
+        <ScFormItem 
           v-if="
             config.uploadMode === 'chunk' &&
             setting?.sysFileSystemSettingAutoMergeEnabled
@@ -118,7 +118,7 @@
                 {{ getStatusText(file.status) }}
               </span>
             </div>
-            <ScProgress
+            <ScProgress 
               v-if="file.status === 'uploading'"
               :percentage="file.progress"
               :stroke-width="4"
@@ -127,7 +127,7 @@
           </div>
 
           <div class="file-actions">
-            <ScButton
+            <ScButton 
               v-if="file.previewUrl"
               type="primary"
               circle
@@ -136,7 +136,7 @@
             >
               <IconifyIconOnline icon="ri:crop-line" />
             </ScButton>
-            <ScButton
+            <ScButton 
               v-if="file.status !== 'uploading'"
               type="danger"
               circle
@@ -167,7 +167,7 @@
         </div>
         <div class="footer-buttons">
           <ScButton @click="visible = false">取消</ScButton>
-          <ScButton
+          <ScButton 
             type="primary"
             :disabled="fileList.length === 0"
             :loading="isUploading"
@@ -411,10 +411,7 @@ const handleImageCropped = async (blob: Blob) => {
 };
 
 // 计算 MD5
-const calculateMD5 = async (
-  file: File,
-  onProgress?: (percent: number) => void,
-): Promise<string> => {
+const calculateMD5 = async (file: File, onProgress?: (percent: number) => void): Promise<string> => {
   return new Promise((resolve, reject) => {
     const spark = new SparkMD5.ArrayBuffer();
     const reader = new FileReader();
@@ -460,9 +457,7 @@ const saveUploadProgress = (item: FileItem, totalChunks: number) => {
   if (!item.fileMd5 || !item.taskId) return;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const data: Record<string, PersistedUpload> = stored
-      ? JSON.parse(stored)
-      : {};
+    const data: Record<string, PersistedUpload> = stored ? JSON.parse(stored) : {};
     data[item.fileMd5] = {
       fileName: item.file.name,
       fileSize: item.file.size,
@@ -563,7 +558,7 @@ const uploadSingleFile = async (item: FileItem) => {
         fileName: item.file.name,
         ossType: "FILESYSTEM",
       },
-      item.file,
+      item.file
     );
 
     if (res.code === 200) {
@@ -630,10 +625,7 @@ const uploadChunkedFile = async (item: FileItem) => {
           uploadedParts = resumeRes.data.uploadedParts || [];
           item.taskId = taskId;
           item.uploadedParts = uploadedParts;
-          message(
-            `检测到未完成任务，已上传 ${uploadedParts.length}/${totalChunks} 分片`,
-            { type: "info" },
-          );
+          message(`检测到未完成任务，已上传 ${uploadedParts.length}/${totalChunks} 分片`, { type: "info" });
         }
       }
     }
@@ -674,10 +666,10 @@ const uploadChunkedFile = async (item: FileItem) => {
 
     // 创建分片上传任务
     const chunkTasks: Promise<void>[] = [];
-
+    
     for (let i = 0; i < totalChunks; i++) {
       const partNumber = i + 1;
-
+      
       // 跳过已上传的分片
       if (uploadedSet.has(partNumber)) {
         continue;
@@ -688,7 +680,10 @@ const uploadChunkedFile = async (item: FileItem) => {
         const end = Math.min(start + chunkSize, item.file.size);
         const chunk = item.file.slice(start, end);
 
-        const partRes = await uploadTaskPart({ taskId, partNumber }, chunk);
+        const partRes = await uploadTaskPart(
+          { taskId, partNumber },
+          chunk
+        );
         if (partRes.code !== 200) {
           throw new Error(partRes.msg || `分片 ${partNumber} 上传失败`);
         }
@@ -696,14 +691,12 @@ const uploadChunkedFile = async (item: FileItem) => {
         completedChunks++;
         item.uploadedParts = item.uploadedParts || [];
         item.uploadedParts.push(partNumber);
-        item.progress =
-          baseProgress +
-          Math.round((completedChunks / totalChunks) * (100 - baseProgress));
-
+        item.progress = baseProgress + Math.round((completedChunks / totalChunks) * (100 - baseProgress));
+        
         // 保存进度
         saveUploadProgress(item, totalChunks);
       });
-
+      
       chunkTasks.push(task);
     }
 
@@ -775,30 +768,27 @@ onMounted(() => {
   // 监听服务端推送的上传进度
   const socket = configStore.getSocket();
   if (socket) {
-    socket.on(
-      "service:file:upload:progress",
-      (data: {
-        taskId: string;
-        progress: number;
-        status: string;
-        message?: string;
-      }) => {
-        // 查找对应的文件项
-        const item = fileList.value.find((f) => f.taskId === data.taskId);
-        if (item) {
-          if (data.status === "completed") {
-            item.status = "success";
-            item.progress = 100;
-          } else if (data.status === "error") {
-            item.status = "error";
-            message(data.message || "服务端处理失败", { type: "error" });
-          } else if (data.status === "merging") {
-            // 合并中状态
-            item.progress = Math.max(item.progress, 95);
-          }
+    socket.on("service:file:upload:progress", (data: {
+      taskId: string;
+      progress: number;
+      status: string;
+      message?: string;
+    }) => {
+      // 查找对应的文件项
+      const item = fileList.value.find(f => f.taskId === data.taskId);
+      if (item) {
+        if (data.status === "completed") {
+          item.status = "success";
+          item.progress = 100;
+        } else if (data.status === "error") {
+          item.status = "error";
+          message(data.message || "服务端处理失败", { type: "error" });
+        } else if (data.status === "merging") {
+          // 合并中状态
+          item.progress = Math.max(item.progress, 95);
         }
-      },
-    );
+      }
+    });
   }
 });
 

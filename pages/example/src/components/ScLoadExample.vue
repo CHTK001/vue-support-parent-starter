@@ -187,7 +187,7 @@
               effect="dark"
               type="success"
               class="active-tag"
-              >当前选中</ScTag
+              >当前选中</el-tag
             >
           </div>
         </div>
@@ -212,9 +212,9 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import CodePreview from "./CodePreview.vue";
-import { ScLoading } from "@repo/components"
+import ScLoading from "@repo/components/ScLoading/index.vue";
 import { computed, onUnmounted, ref } from "vue";
 import { ScSlider } from "@repo/components";
 
@@ -374,7 +374,8 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import { ScLoading } from "@repo/components"
+import ScLoading from "@repo/components/ScLoading/index.vue";
+
 const loadingRef = ref(null);
 const loadingVisible = ref(false);
 

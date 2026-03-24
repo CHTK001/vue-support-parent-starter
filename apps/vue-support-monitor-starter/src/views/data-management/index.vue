@@ -45,7 +45,7 @@
     <div class="toolbar-section">
       <div class="toolbar modern-toolbar">
         <div class="left">
-          <ScInput
+          <el-input
             v-model="searchKey"
             placeholder="搜索名称/类型"
             clearable
@@ -54,36 +54,36 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </ScInput>
-          <ScSelect
+          </el-input>
+          <el-select
             v-model="typeFilter"
             placeholder="全部类型"
             class="w-200 ml-8"
             clearable
           >
-            <ScOption label="全部类型" value="" />
-            <ScOption
+            <el-option label="全部类型" value="" />
+            <el-option
               v-for="t in typeOptions"
               :key="t"
               :label="t"
               :value="t"
             />
-          </ScSelect>
-          <ScSelect v-model="sortKey" class="w-160 ml-8">
-            <ScOption label="按名称排序" value="name" />
-            <ScOption label="按类型排序" value="type" />
-          </ScSelect>
+          </el-select>
+          <el-select v-model="sortKey" class="w-160 ml-8">
+            <el-option label="按名称排序" value="name" />
+            <el-option label="按类型排序" value="type" />
+          </el-select>
         </div>
         <div class="right">
-          <ScButton
+          <el-button
             type="primary"
             size="large"
-            class="create-btn"
             @click="openEdit()"
+            class="create-btn"
           >
             <IconifyIconOnline icon="ri:add-line" />
             新建数据源
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </div>
@@ -91,8 +91,8 @@
     <!-- 内容区域 -->
     <div class="content-section">
       <ScTable
-        ref="tableRef"
         class="enhanced-card-grid"
+        ref="tableRef"
         :loading="loading"
         :url="pageSystemDataSettings"
         :params="queryParams"
@@ -100,14 +100,14 @@
         layout="card"
       >
         <template #empty>
-          <ScEmpty description="暂无数据源配置">
-            <ScButton type="primary" @click="openEdit()">新建配置</ScButton>
-          </ScEmpty>
+          <el-empty description="暂无数据源配置">
+            <el-button type="primary" @click="openEdit()">新建配置</el-button>
+          </el-empty>
         </template>
 
         <template #default="{ row: item }">
           <div class="enhanced-card-wrapper">
-            <ScCard
+            <el-card
               :class="[
                 'enhanced-data-card',
                 getTypeClass(item.systemDataSettingType),
@@ -118,7 +118,7 @@
               <div
                 class="card-status-indicator"
                 :class="getStatusClass(item)"
-              />
+              ></div>
 
               <!-- 卡片头部 -->
               <div class="enhanced-card-header">
@@ -144,33 +144,33 @@
                       {{ item.systemDataSettingName }}
                     </h3>
                     <div class="type-badge">
-                      <ScTag
+                      <el-tag
                         :type="getTypeTag(item.systemDataSettingType)"
                         size="small"
                         effect="light"
                       >
                         {{ item.systemDataSettingType }}
-                      </ScTag>
+                      </el-tag>
                     </div>
                   </div>
                 </div>
                 <div class="header-actions">
                   <div class="quick-actions">
-                    <ScTooltip
+                    <el-tooltip
                       v-if="capOf(item)?.document"
                       content="查看文档"
                       placement="top"
                     >
-                      <ScButton
+                      <el-button
                         class="quick-action-btn"
                         size="small"
                         text
                         @click.stop="viewDocument(item)"
                       >
                         <IconifyIconOnline icon="ri:file-text-line" />
-                      </ScButton>
-                    </ScTooltip>
-                    <ScTooltip
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip
                       v-if="capOf(item)?.backup"
                       :content="
                         backupOn[item.systemDataSettingId!]
@@ -179,7 +179,7 @@
                       "
                       placement="top"
                     >
-                      <ScButton
+                      <el-button
                         class="quick-action-btn"
                         :class="{
                           'backup-active': backupOn[item.systemDataSettingId!],
@@ -195,44 +195,44 @@
                               : 'ri:play-line'
                           "
                         />
-                      </ScButton>
-                    </ScTooltip>
-                    <ScTooltip
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip
                       v-if="isJdbcItem(item)"
                       content="上传驱动"
                       placement="top"
                     >
-                      <ScUpload
+                      <el-upload
                         :auto-upload="false"
                         :show-file-list="false"
                         :on-change="(f) => onUploadDriver(item, f)"
                         class="upload-action"
                       >
-                        <ScButton class="quick-action-btn" size="small" text>
+                        <el-button class="quick-action-btn" size="small" text>
                           <IconifyIconOnline icon="ri:upload-2-line" />
-                        </ScButton>
-                      </ScUpload>
-                    </ScTooltip>
-                    <ScTooltip content="编辑配置" placement="top">
-                      <ScButton
+                        </el-button>
+                      </el-upload>
+                    </el-tooltip>
+                    <el-tooltip content="编辑配置" placement="top">
+                      <el-button
                         class="quick-action-btn"
                         size="small"
                         text
                         @click.stop="openEdit(item)"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
-                      </ScButton>
-                    </ScTooltip>
-                    <ScTooltip content="删除数据源" placement="top">
-                      <ScButton
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip content="删除数据源" placement="top">
+                      <el-button
                         class="quick-action-btn danger"
                         size="small"
                         text
                         @click.stop="remove(item)"
                       >
                         <IconifyIconOnline icon="ri:delete-bin-line" />
-                      </ScButton>
-                    </ScTooltip>
+                      </el-button>
+                    </el-tooltip>
                   </div>
                 </div>
               </div>
@@ -270,7 +270,7 @@
                     class="status-indicator"
                     :class="getConnectionStatus(item)"
                   >
-                    <div class="status-dot" />
+                    <div class="status-dot"></div>
                     <span class="status-text">{{
                       getConnectionStatusText(item)
                     }}</span>
@@ -279,24 +279,24 @@
               </div>
 
               <!-- 背景装饰 -->
-              <div class="card-decoration" :style="bgStyle(item)" />
+              <div class="card-decoration" :style="bgStyle(item)"></div>
 
               <!-- 操作按钮 -->
               <div class="enhanced-card-actions" @click.stop>
                 <div class="action-buttons">
-                  <ScTooltip content="打开控制台" placement="top">
-                    <ScButton
+                  <el-tooltip content="打开控制台" placement="top">
+                    <el-button
                       size="small"
                       type="primary"
-                      class="action-btn primary-action"
                       @click.stop.prevent="openConsole(item)"
+                      class="action-btn primary-action"
                     >
                       <IconifyIconOnline icon="ri:login-circle-line" />
-                    </ScButton>
-                  </ScTooltip>
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
-            </ScCard>
+            </el-card>
           </div>
         </template>
       </ScTable>
@@ -330,11 +330,15 @@
         </div>
       </template>
       <div class="doc-iframe-container">
-        <div v-if="docLoading" class="iframe-loading">
+        <div class="iframe-loading" v-if="docLoading">
           <IconifyIconOnline icon="ri:loader-4-line" class="loading-icon" />
           <span>加载中...</span>
         </div>
-        <iframe :src="docUrl" class="doc-iframe" @load="docLoading = false" />
+        <iframe
+          :src="docUrl"
+          class="doc-iframe"
+          @load="docLoading = false"
+        ></iframe>
       </div>
     </sc-dialog>
     <ConsoleSettingDialog
@@ -352,7 +356,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, reactive } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  watch,
+  reactive,
+} from "vue";
 import {
   pageSystemDataSettings,
   deleteSystemDataSetting,
@@ -442,8 +452,8 @@ const sortKey = ref<"name" | "type">("name");
 const typeOptions = computed(
   () =>
     Array.from(
-      new Set(list.value.map((i) => i.systemDataSettingType).filter(Boolean)),
-    ) as string[],
+      new Set(list.value.map((i) => i.systemDataSettingType).filter(Boolean))
+    ) as string[]
 );
 
 // 交给 ScTable 处理分页与过滤，这里保留 options 构建
@@ -458,7 +468,7 @@ watch([searchKey, typeFilter], () => {
 });
 
 function getTypeTag(
-  type?: string,
+  type?: string
 ): "success" | "warning" | "info" | "primary" | "danger" {
   const t = (type || "").toLowerCase();
   if (t.includes("jdbc") || t.includes("sql")) {
@@ -525,27 +535,32 @@ function openConsole(row: SystemDataSetting) {
       name: "dataJdbcConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("redis")) {
+  }
+  else if (type.includes("redis")) {
     _url = router.resolve({
       name: "dataRedisConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("zk") || type.includes("zookeeper")) {
+  }
+  else if (type.includes("zk") || type.includes("zookeeper")) {
     _url = router.resolve({
       name: "dataZookeeperConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("influx")) {
+  }
+ else  if (type.includes("influx")) {
     _url = router.resolve({
       name: "dataInfluxConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("mqtt")) {
+  }
+  else if (type.includes("mqtt")) {
     _url = router.resolve({
       name: "dataMqttConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (
+  }
+  else if (
     type.includes("graph") ||
     type.includes("graphdb") ||
     type.includes("neo4j")
@@ -554,13 +569,14 @@ function openConsole(row: SystemDataSetting) {
       name: "dataGraphConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
-  } else if (type.includes("email")) {
+  }
+  else if (type.includes("email")) {
     _url = router.resolve({
       name: "dataEmailConsoleFull",
       query: { id: row.systemDataSettingId },
     }).href;
   }
-  window.open(_url, "_blank");
+   window.open(_url, '_blank')
 }
 
 function openSetting(row: SystemDataSetting) {
@@ -717,6 +733,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -749,6 +766,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 /* 页面主容器 */
 .data-management-page {
@@ -1657,21 +1675,13 @@ onMounted(() => {
     align-items: center;
     gap: 16px;
     padding: 24px 32px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9),
-      var(--el-color-primary-light-8)
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
 
     .header-icon {
       width: 52px;
       height: 52px;
       border-radius: 14px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       display: flex;
       align-items: center;
       justify-content: center;

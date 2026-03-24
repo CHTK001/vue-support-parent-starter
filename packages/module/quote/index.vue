@@ -6,15 +6,12 @@
  * @version 1.0.1
  */
 import { reactive, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 
 const quotes = [
   { text: "生活不是等待风暴过去，而是学会在风雨中起舞。", author: "佚名" },
-  {
-    text: "成功不是终点，失败也不是终结，唯有勇气才是永恒的。",
-    author: "丘吉尔",
-  },
+  { text: "成功不是终点，失败也不是终结，唯有勇气才是永恒的。", author: "丘吉尔" },
   { text: "今天的努力是为了明天的惊艳。", author: "佚名" },
   { text: "不积跬步，无以至千里；不积小流，无以成江海。", author: "荀子" },
   { text: "千里之行，始于足下。", author: "老子" },
@@ -69,7 +66,7 @@ onMounted(() => {
     <div class="quote-background">
       <IconifyIconOnline icon="ri:double-quotes-r" class="bg-icon" />
     </div>
-
+    
     <div class="quote-content" v-if="env.currentQuote">
       <div class="quote-icon">
         <IconifyIconOnline icon="ri:double-quotes-l" />
@@ -77,18 +74,18 @@ onMounted(() => {
       <div class="quote-text">{{ env.currentQuote.text }}</div>
       <div class="quote-author">—— {{ env.currentQuote.author }}</div>
     </div>
-
+    
     <div class="quote-actions">
-      <ScTooltip content="复制" placement="top">
+      <el-tooltip content="复制" placement="top">
         <div class="action-btn" @click="copyQuote">
           <IconifyIconOnline icon="ri:file-copy-line" />
         </div>
-      </ScTooltip>
-      <ScTooltip content="下一条" placement="top">
+      </el-tooltip>
+      <el-tooltip content="下一条" placement="top">
         <div class="action-btn" @click="nextQuote">
           <IconifyIconOnline icon="ri:refresh-line" />
         </div>
-      </ScTooltip>
+      </el-tooltip>
     </div>
   </div>
 </template>
@@ -107,10 +104,10 @@ onMounted(() => {
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
-
+  
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-
+    
     .quote-actions {
       opacity: 1;
     }
@@ -123,7 +120,7 @@ onMounted(() => {
   right: 10px;
   opacity: 0.05;
   pointer-events: none;
-
+  
   .bg-icon {
     font-size: 120px;
     color: var(--el-text-color-primary);
@@ -133,14 +130,14 @@ onMounted(() => {
 .quote-content {
   position: relative;
   z-index: 1;
-
+  
   .quote-icon {
     font-size: 24px;
     color: var(--el-color-primary);
     margin-bottom: 8px;
     opacity: 0.6;
   }
-
+  
   .quote-text {
     font-size: 16px;
     line-height: 1.6;
@@ -149,7 +146,7 @@ onMounted(() => {
     font-family: "Georgia", serif;
     margin-bottom: 12px;
   }
-
+  
   .quote-author {
     text-align: right;
     font-size: 13px;
@@ -166,7 +163,7 @@ onMounted(() => {
   gap: 8px;
   opacity: 0;
   transition: opacity 0.3s;
-
+  
   .action-btn {
     width: 28px;
     height: 28px;
@@ -178,7 +175,7 @@ onMounted(() => {
     background: var(--el-fill-color-light);
     color: var(--el-text-color-regular);
     transition: all 0.2s;
-
+    
     &:hover {
       background: var(--el-color-primary-light-9);
       color: var(--el-color-primary);

@@ -49,7 +49,7 @@
           class="device-card"
         >
           <div class="device-status">
-            <div class="status-dot online" />
+            <div class="status-dot online"></div>
           </div>
           <div class="device-info">
             <div class="device-main">
@@ -57,15 +57,15 @@
               <span class="device-port">:{{ device.port }}</span>
             </div>
             <div class="device-meta">
-              <span v-if="device.metadata?.hostname" class="meta-item">
+              <span class="meta-item" v-if="device.metadata?.hostname">
                 <IconifyIconOnline icon="ri:computer-line" class="meta-icon" />
                 {{ device.metadata.hostname }}
               </span>
-              <span v-if="device.metadata?.contextPath" class="meta-item">
+              <span class="meta-item" v-if="device.metadata?.contextPath">
                 <IconifyIconOnline icon="ri:link" class="meta-icon" />
                 {{ device.metadata.contextPath }}
               </span>
-              <span v-if="device.metadata?.javaVersion" class="meta-item">
+              <span class="meta-item" v-if="device.metadata?.javaVersion">
                 <IconifyIconOnline
                   icon="simple-icons:openjdk"
                   class="meta-icon"
@@ -75,20 +75,20 @@
             </div>
           </div>
           <div class="device-actions">
-            <ScTooltip content="访问服务" placement="top">
-              <ScButton size="small" circle @click="handleVisitDevice(device)">
+            <el-tooltip content="访问服务" placement="top">
+              <el-button size="small" circle @click="handleVisitDevice(device)">
                 <IconifyIconOnline icon="ri:external-link-line" />
-              </ScButton>
-            </ScTooltip>
+              </el-button>
+            </el-tooltip>
           </div>
         </div>
       </div>
 
-      <ScEmpty v-else description="暂无在线设备" />
+      <el-empty v-else description="暂无在线设备" />
     </div>
 
     <template #footer>
-      <ScButton @click="handleClose">关闭</ScButton>
+      <el-button @click="handleClose">关闭</el-button>
     </template>
   </sc-dialog>
 </template>
@@ -354,6 +354,7 @@ const handleVisitDevice = (device: Discovery) => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -362,4 +363,5 @@ const handleVisitDevice = (device: Discovery) => {
     padding: 12px 16px;
   }
 }
+
 </style>

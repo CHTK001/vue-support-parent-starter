@@ -5,31 +5,25 @@
         <IconifyIconOnline icon="ri:bar-chart-line" class="chart-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div v-if="editMode" class="chart-actions">
-        <ScButton type="primary" text size="small" @click="handleEdit">
+      <div class="chart-actions" v-if="editMode">
+        <el-button type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
-        </ScButton>
-        <ScButton type="danger" text size="small" @click="handleDelete">
+        </el-button>
+        <el-button type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </ScButton>
+        </el-button>
       </div>
     </div>
-
-    <div v-loading="loading" class="chart-content">
-      <div ref="chartRef" class="bar-chart" />
+    
+    <div class="chart-content" v-loading="loading">
+      <div ref="chartRef" class="bar-chart"></div>
     </div>
 
-    <div v-if="!editMode" class="chart-footer">
-      <ScButton
-        type="primary"
-        text
-        size="small"
-        :loading="refreshing"
-        @click="handleRefresh"
-      >
+    <div class="chart-footer" v-if="!editMode">
+      <el-button type="primary" text size="small" @click="handleRefresh" :loading="refreshing">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </ScButton>
+      </el-button>
     </div>
   </div>
 </template>
@@ -59,31 +53,20 @@ const chartInstance = ref<echarts.ECharts>();
 const initChart = () => {
   if (!chartRef.value) return;
   chartInstance.value = echarts.init(chartRef.value);
-
+  
   // 示例数据
   const option = {
-    tooltip: { trigger: "axis" },
-    grid: {
-      left: "3%",
-      right: "4%",
-      bottom: "3%",
-      top: "3%",
-      containLabel: true,
-    },
-    xAxis: {
-      type: "category",
-      data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    },
-    yAxis: { type: "value" },
-    series: [
-      {
-        data: [120, 200, 150, 80, 70, 110, 130],
-        type: "bar",
-        itemStyle: { color: "#409EFF" },
-      },
-    ],
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
+    xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+    yAxis: { type: 'value' },
+    series: [{
+      data: [120, 200, 150, 80, 70, 110, 130],
+      type: 'bar',
+      itemStyle: { color: '#409EFF' }
+    }]
   };
-
+  
   chartInstance.value.setOption(option);
 };
 
@@ -96,21 +79,21 @@ const handleRefresh = () => {
 };
 
 const handleEdit = () => emit("edit", props.componentData);
-const handleDelete = () =>
-  emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
+const handleDelete = () => emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
 
 onMounted(() => {
   nextTick(() => initChart());
-  window.addEventListener("resize", () => chartInstance.value?.resize());
+  window.addEventListener('resize', () => chartInstance.value?.resize());
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", () => chartInstance.value?.resize());
+  window.removeEventListener('resize', () => chartInstance.value?.resize());
   chartInstance.value?.dispose();
 });
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -143,6 +126,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .bar-chart-component {
   height: 100%;
@@ -210,6 +194,7 @@ onUnmounted(() => {
   justify-content: center;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -218,4 +203,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

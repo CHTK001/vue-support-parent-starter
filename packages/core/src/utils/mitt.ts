@@ -45,10 +45,6 @@ type Events = {
   aiChatSkinChange: string;
   /** 顶部时间显示开关变化事件 */
   showHeaderClockChange: boolean;
-  /** 顶部第二时间显示开关变化事件 */
-  headerClockSecondEnabledChange: boolean;
-  /** 顶部第二时间时区变化事件 */
-  headerClockSecondTimezoneChange: string;
   /** 顶部搜索按钮开关变化事件 */
   showSearchChange: boolean;
   /** 顶部全屏按钮开关变化事件 */
@@ -73,18 +69,6 @@ type Events = {
   themeAnimationModeChange: string;
   /** 强制启用新菜单变化事件 */
   forceNewMenuChange: boolean;
-  /** drawer 布局汉堡按钮切换事件（true=打开，false=关闭） */
-  drawerHamburgerToggle: boolean;
-  /** drawer 菜单关闭事件（点击外部或菜单项后触发） */
-  drawerMenuClosed: void;
-  /** drawer 汉堡按钮位置变更事件 */
-  drawerHamburgerPositionChange: string;
-  /** 设置重置为默认值事件 */
-  settingResetToDefault: void;
-  /** 设置导出配置事件 */
-  settingExportConfig: void;
-  /** 设置导入配置事件 */
-  settingImportConfig: void;
 };
 
 export const emitter: Emitter<Events> = mitt<Events>();

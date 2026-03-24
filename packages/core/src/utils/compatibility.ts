@@ -37,10 +37,7 @@ export const registerRequestIdleCallback = (() => {
     return window.requestIdleCallback;
   }
 
-  return (
-    callback: (deadline: IdleDeadline) => void,
-    options?: RequestIdleCallbackOptions,
-  ) => {
+  return (callback: (deadline: IdleDeadline) => void, options?: RequestIdleCallbackOptions) => {
     const startTime = performance.now();
     const timeout = options?.timeout || Infinity;
 
@@ -72,11 +69,7 @@ export const registerEventListener = (() => {
     return window.attachEvent;
   }
 
-  return (
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options?: boolean | AddEventListenerOptions,
-  ) => {
+  return (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
     //@ts-ignore
     window.addEventListener(type, listener, options);
   };

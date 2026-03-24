@@ -10,201 +10,152 @@
         <div class="page-subtitle">管理Docker镜像的拉取、启动和删除</div>
       </div>
       <div class="header-right">
-        <ScButton :loading="loading" @click="handleRefresh">
+        <el-button @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton type="primary" @click="openPullDialog">
+        </el-button>
+        <el-button type="primary" @click="openPullDialog">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           拉取镜像
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 搜索栏 -->
     <div class="search-bar">
       <div class="search-left">
-        <ScInput
-          v-model="searchParams.keyword"
-          placeholder="搜索镜像名称或标签"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+        <el-input v-model="searchParams.keyword" placeholder="搜索镜像名称或标签" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
-          v-model="searchParams.serverId"
-          placeholder="服务器"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
-          <ScOption label="全部" value="" />
-          <ScOption
-            v-for="server in serverOptions"
-            :key="server.id"
-            :label="server.name"
-            :value="server.id"
-          />
-        </ScSelect>
-        <ScSelect
-          v-model="searchParams.status"
-          placeholder="状态"
-          clearable
-          class="filter-select"
-          @change="handleSearch"
-        >
-          <ScOption label="全部" value="" />
-          <ScOption label="可用" value="available" />
-          <ScOption label="拉取中" value="pulling" />
-          <ScOption label="错误" value="error" />
-        </ScSelect>
+        </el-input>
+        <el-select v-model="searchParams.serverId" placeholder="服务器" clearable class="filter-select" @change="handleSearch">
+          <el-option label="全部" value="" />
+          <el-option v-for="server in serverOptions" :key="server.id" :label="server.name" :value="server.id" />
+        </el-select>
+        <el-select v-model="searchParams.status" placeholder="状态" clearable class="filter-select" @change="handleSearch">
+          <el-option label="全部" value="" />
+          <el-option label="可用" value="available" />
+          <el-option label="拉取中" value="pulling" />
+          <el-option label="错误" value="error" />
+        </el-select>
       </div>
       <div class="search-right">
-        <ScButton :loading="syncLoading" type="success" @click="handleSyncAll">
+        <el-button @click="handleSyncAll" :loading="syncLoading" type="success">
           <IconifyIconOnline icon="ri:refresh-2-line" class="mr-1" />
           同步状态
-        </ScButton>
-        <ScButton
-          :disabled="selectedIds.length === 0"
-          type="danger"
-          @click="handleBatchDelete"
-        >
+        </el-button>
+        <el-button @click="handleBatchDelete" :disabled="selectedIds.length === 0" type="danger">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           批量删除
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 镜像表格 -->
-    <ScCard class="images-table-card">
+    <el-card class="images-table-card">
       <ScTable
         :url="imageApi.getImagePageList"
         :params="searchParams"
         stripe
         :loading="loading"
+        @selection-change="handleSelectionChange"
         class="images-table"
         table-name="soft-images"
         height="auto"
-        @selection-change="handleSelectionChange"
       >
-        <ScTableColumn type="selection" width="55" />
+        <el-table-column type="selection" width="55" />
 
-        <ScTableColumn label="镜像名称" min-width="200">
+        <el-table-column label="镜像名称" min-width="200">
           <template #default="{ row }">
             <div class="image-info">
               <div class="image-name">{{ row.systemSoftImageName }}</div>
               <div class="image-tag">{{ row.systemSoftImageTag }}</div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="完整名称" min-width="300">
+        <el-table-column label="完整名称" min-width="300">
           <template #default="{ row }">
             <div class="image-full-name">
-              {{
-                row.systemSoftImageFullName ||
-                `${row.systemSoftImageName}:${row.systemSoftImageTag}`
-              }}
+              {{ row.systemSoftImageFullName || `${row.systemSoftImageName}:${row.systemSoftImageTag}` }}
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="服务器" width="180">
+        <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
               <div class="server-name">{{ row.systemSoftImageServerName }}</div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="状态" width="120">
+        <el-table-column label="状态" width="120">
           <template #default="{ row }">
-            <ScTag
-              :type="getStatusTag(row.systemSoftImageStatus)"
-              size="small"
-            >
+            <el-tag :type="getStatusTag(row.systemSoftImageStatus)" size="small">
               {{ getStatusText(row.systemSoftImageStatus) }}
-            </ScTag>
+            </el-tag>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="大小" width="120">
+        <el-table-column label="大小" width="120">
           <template #default="{ row }">
             {{ formatSize(row.systemSoftImageSize) }}
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="架构" width="100">
+        <el-table-column label="架构" width="100">
           <template #default="{ row }">
             {{ row.systemSoftImageArchitecture || "-" }}
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="创建时间" min-width="160">
+        <el-table-column label="创建时间" min-width="160">
           <template #default="{ row }">
             {{ formatTime(row.systemSoftImageCreated) }}
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <ScButton
-                size="small"
-                type="primary"
-                :disabled="row.systemSoftImageStatus !== 'available'"
-                @click="openStartDialog(row)"
-              >
+              <el-button size="small" type="primary" @click="openStartDialog(row)" :disabled="row.systemSoftImageStatus !== 'available'">
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
-              </ScButton>
-              <ScButton size="small" @click="viewImageDetail(row)">
+              </el-button>
+              <el-button size="small" @click="viewImageDetail(row)">
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
-              </ScButton>
-              <ScButton
-                size="small"
-                type="danger"
-                @click="handleDelete(row.systemSoftImageId)"
-              >
+              </el-button>
+              <el-button size="small" type="danger" @click="handleDelete(row.systemSoftImageId)">
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除
-              </ScButton>
+              </el-button>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
       </ScTable>
-    </ScCard>
+    </el-card>
 
     <!-- 拉取镜像对话框 -->
-    <PullImageDialog
-      v-model:visible="pullDialogVisible"
-      @success="handleDialogSuccess"
-    />
+    <PullImageDialog v-model:visible="pullDialogVisible" @success="handleDialogSuccess" />
 
     <!-- 启动容器对话框 -->
-    <StartContainerDialog
-      v-model:visible="startDialogVisible"
-      :image-data="currentImage"
-      @success="handleDialogSuccess"
-    />
+    <StartContainerDialog v-model:visible="startDialogVisible" :image-data="currentImage" @success="handleDialogSuccess" />
 
     <!-- 批量操作底部工具栏 -->
     <div v-if="selectedIds.length > 0" class="batch-actions">
       <div class="batch-info">已选择 {{ selectedIds.length }} 个镜像</div>
-      <ScButton @click="clearSelection">取消选择</ScButton>
-      <ScButton type="danger" @click="handleBatchDelete">批量删除</ScButton>
+      <el-button @click="clearSelection">取消选择</el-button>
+      <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { getServerList, imageApi, type SystemSoftImage } from "@/api/docker";
-import { ScTable } from "@repo/components"
+import ScTable from "@repo/components/ScTable/index.vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
@@ -226,7 +177,7 @@ const searchParams = reactive({
   serverId: "",
   status: "",
   size: 10,
-  page: 1,
+  page: 1
 });
 
 // 基础方法
@@ -266,8 +217,7 @@ const formatSize = (size?: number) => {
   return `${s.toFixed(2)} ${units[i]}`;
 };
 
-const formatTime = (time?: string) =>
-  time ? new Date(time).toLocaleString() : "-";
+const formatTime = (time?: string) => (time ? new Date(time).toLocaleString() : "-");
 
 // 操作方法
 const openPullDialog = () => {
@@ -327,13 +277,9 @@ const handleBatchDelete = async () => {
   }
 
   try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedIds.value.length} 个镜像吗？`,
-      "批量删除确认",
-      {
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个镜像吗？`, "批量删除确认", {
+      type: "warning",
+    });
 
     const response = await imageApi.batchDeleteImages(selectedIds.value);
     if (response.code === "00000" || response.success) {
@@ -375,6 +321,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -391,6 +338,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -424,6 +373,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .images-management {
   padding: 20px;
@@ -573,6 +523,7 @@ onMounted(() => {
   font-weight: 500;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -581,4 +532,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

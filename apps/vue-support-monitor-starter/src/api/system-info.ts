@@ -21,18 +21,13 @@ export interface DirectoryInfo {
 }
 
 export function getSystemDrives() {
-  return http.request<ReturnResult<DriveInfo[]>>(
-    "get",
-    "/v1/system-info/drives",
-  );
+  return http.request<ReturnResult<DriveInfo[]>>("get", "/v1/system-info/drives");
 }
 
 export function getSystemDirectories(path: string, includeHidden = false) {
-  return http.request<ReturnResult<DirectoryInfo[]>>(
-    "get",
-    "/v1/system-info/directories",
-    {
-      params: { path, includeHidden },
-    },
-  );
+  return http.request<ReturnResult<DirectoryInfo[]>>("get", "/v1/system-info/directories", {
+    params: { path, includeHidden }
+  });
 }
+
+

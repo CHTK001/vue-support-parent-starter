@@ -3,221 +3,121 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton type="primary" @click="handleCreateTask">
+        <el-button type="primary" @click="handleCreateTask">
           <IconifyIconOnline icon="ep:plus" />
           新建上传任务
-        </ScButton>
-        <ScButton @click="handleRefresh">
+        </el-button>
+        <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
 
       <div class="toolbar-right">
-        <ScInput
-          v-model="searchForm.taskName"
-          placeholder="搜索任务名称"
-          style="width: 200px"
-          clearable
-          @clear="handleSearch"
-          @keyup.enter="handleSearch"
-        >
+        <el-input v-model="searchForm.taskName" placeholder="搜索任务名称" style="width: 200px" clearable @clear="handleSearch" @keyup.enter="handleSearch">
           <template #append>
-            <ScButton @click="handleSearch">
+            <el-button @click="handleSearch">
               <IconifyIconOnline icon="ep:search" />
-            </ScButton>
+            </el-button>
           </template>
-        </ScInput>
+        </el-input>
 
-        <ScSelect
-          v-model="searchForm.status"
-          placeholder="任务状态"
-          style="width: 120px; margin-left: 8px"
-          clearable
-          @change="handleSearch"
-        >
-          <ScOption
-            v-for="status in statusOptions"
-            :key="status.value"
-            :label="status.label"
-            :value="status.value"
-          />
-        </ScSelect>
+        <el-select v-model="searchForm.status" placeholder="任务状态" style="width: 120px; margin-left: 8px" clearable @change="handleSearch">
+          <el-option v-for="status in statusOptions" :key="status.value" :label="status.label" :value="status.value" />
+        </el-select>
 
-        <ScSelect
-          v-model="searchForm.serverId"
-          placeholder="选择服务器"
-          style="width: 200px; margin-left: 8px"
-          clearable
-          @change="handleSearch"
-        >
-          <ScOption
+        <el-select v-model="searchForm.serverId" placeholder="选择服务器" style="width: 200px; margin-left: 8px" clearable @change="handleSearch">
+          <el-option
             v-for="server in sshServers"
             :key="server.monitorSysGenServerId"
             :label="`${server.monitorSysGenServerName} (${server.monitorSysGenServerHost})`"
             :value="server.monitorSysGenServerId"
           />
-        </ScSelect>
+        </el-select>
       </div>
     </div>
 
     <!-- 任务列表 -->
-    <ScTable
-      v-loading="loading"
-      :data="taskList"
-      stripe
-      border
-      style="width: 100%"
-      @selection-change="handleSelectionChange"
-    >
-      <ScTableColumn type="selection" width="55" />
+    <el-table v-loading="loading" :data="taskList" stripe border style="width: 100%" @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55" />
 
-      <ScTableColumn
-        prop="monitorSysGenServerFileUploadTaskId"
-        label="任务ID"
-        width="80"
-      />
+      <el-table-column prop="monitorSysGenServerFileUploadTaskId" label="任务ID" width="80" />
 
-      <ScTableColumn
-        prop="monitorSysGenServerFileUploadTaskName"
-        label="任务名称"
-        min-width="150"
-      />
+      <el-table-column prop="monitorSysGenServerFileUploadTaskName" label="任务名称" min-width="150" />
 
-      <ScTableColumn label="服务器" width="200">
+      <el-table-column label="服务器" width="200">
         <template #default="{ row }">
           <div>
-            <div class="font-medium">
-              {{ getServerName(row.monitorSysGenServerId) }}
-            </div>
-            <div class="text-[var(--el-text-color-regular)] text-sm">
-              {{ getServerHost(row.monitorSysGenServerId) }}
-            </div>
+            <div class="font-medium">{{ getServerName(row.monitorSysGenServerId) }}</div>
+            <div class="text-[var(--el-text-color-regular)] text-sm">{{ getServerHost(row.monitorSysGenServerId) }}</div>
           </div>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn
-        prop="monitorSysGenServerFileUploadFileName"
-        label="文件名"
-        min-width="150"
-      />
+      <el-table-column prop="monitorSysGenServerFileUploadFileName" label="文件名" min-width="150" />
 
-      <ScTableColumn label="文件大小" width="100">
+      <el-table-column label="文件大小" width="100">
         <template #default="{ row }">
           {{ formatFileSize(row.monitorSysGenServerFileUploadFileSize) }}
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn
-        prop="monitorSysGenServerFileUploadTargetPath"
-        label="目标路径"
-        min-width="200"
-      />
+      <el-table-column prop="monitorSysGenServerFileUploadTargetPath" label="目标路径" min-width="200" />
 
-      <ScTableColumn label="上传模式" width="100">
+      <el-table-column label="上传模式" width="100">
         <template #default="{ row }">
-          <ScTag
-            :type="
-              row.monitorSysGenServerFileUploadMode === 'REALTIME'
-                ? 'success'
-                : 'warning'
-            "
-          >
+          <el-tag :type="row.monitorSysGenServerFileUploadMode === 'REALTIME' ? 'success' : 'warning'">
             {{ getModeText(row.monitorSysGenServerFileUploadMode) }}
-          </ScTag>
+          </el-tag>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="任务状态" width="100">
+      <el-table-column label="任务状态" width="100">
         <template #default="{ row }">
-          <ScTag
-            :type="getStatusType(row.monitorSysGenServerFileUploadStatus)"
-          >
+          <el-tag :type="getStatusType(row.monitorSysGenServerFileUploadStatus)">
             {{ getStatusText(row.monitorSysGenServerFileUploadStatus) }}
-          </ScTag>
+          </el-tag>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="优先级" width="80">
+      <el-table-column label="优先级" width="80">
         <template #default="{ row }">
-          <ScTag
-            :type="getPriorityType(row.monitorSysGenServerFileUploadPriority)"
-            size="small"
-          >
+          <el-tag :type="getPriorityType(row.monitorSysGenServerFileUploadPriority)" size="small">
             {{ row.monitorSysGenServerFileUploadPriority }}
-          </ScTag>
+          </el-tag>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="重试次数" width="80">
-        <template #default="{ row }"
-          >{{ row.monitorSysGenServerFileUploadRetryCount }}/{{
-            row.monitorSysGenServerFileUploadMaxRetry
-          }}</template
-        >
-      </ScTableColumn>
+      <el-table-column label="重试次数" width="80">
+        <template #default="{ row }">{{ row.monitorSysGenServerFileUploadRetryCount }}/{{ row.monitorSysGenServerFileUploadMaxRetry }}</template>
+      </el-table-column>
 
-      <ScTableColumn label="创建时间" width="160">
+      <el-table-column label="创建时间" width="160">
         <template #default="{ row }">
           {{ formatDateTime(row.monitorSysGenServerFileUploadCreateTime) }}
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <div class="action-buttons">
-            <ScButton
-              v-if="row.monitorSysGenServerFileUploadStatus === 'PENDING'"
-              type="primary"
-              size="small"
-              @click="handleStartTask(row)"
-              >启动</el-button
-            >
+            <el-button v-if="row.monitorSysGenServerFileUploadStatus === 'PENDING'" type="primary" size="small" @click="handleStartTask(row)">启动</el-button>
 
-            <ScButton
-              v-if="
-                ['PENDING', 'PROCESSING'].includes(
-                  row.monitorSysGenServerFileUploadStatus,
-                )
-              "
-              type="warning"
-              size="small"
-              @click="handleCancelTask(row)"
-              >取消</el-button
-            >
+            <el-button v-if="['PENDING', 'PROCESSING'].includes(row.monitorSysGenServerFileUploadStatus)" type="warning" size="small" @click="handleCancelTask(row)">取消</el-button>
 
-            <ScButton
-              v-if="row.monitorSysGenServerFileUploadStatus === 'FAILED'"
-              type="success"
-              size="small"
-              @click="handleRetryTask(row)"
-              >重试</el-button
-            >
+            <el-button v-if="row.monitorSysGenServerFileUploadStatus === 'FAILED'" type="success" size="small" @click="handleRetryTask(row)">重试</el-button>
 
-            <ScButton type="info" size="small" @click="handleViewTask(row)"
-              >详情</el-button
-            >
+            <el-button type="info" size="small" @click="handleViewTask(row)">详情</el-button>
 
-            <ScButton
-              v-if="
-                ['COMPLETED', 'FAILED', 'CANCELLED'].includes(
-                  row.monitorSysGenServerFileUploadStatus,
-                )
-              "
-              type="danger"
-              size="small"
-              @click="handleDeleteTask(row)"
-              >删除</el-button
-            >
+            <el-button v-if="['COMPLETED', 'FAILED', 'CANCELLED'].includes(row.monitorSysGenServerFileUploadStatus)" type="danger" size="small" @click="handleDeleteTask(row)">删除</el-button>
           </div>
         </template>
-      </ScTableColumn>
-    </ScTable>
+      </el-table-column>
+    </el-table>
 
     <!-- 分页 -->
     <div class="pagination">
-      <ScPagination
+      <el-pagination
         v-model:current-page="pagination.current"
         v-model:page-size="pagination.size"
         :total="pagination.total"
@@ -230,30 +130,20 @@
 
     <!-- 批量操作 -->
     <div v-if="selectedTasks.length > 0" class="batch-actions">
-      <ScCard>
+      <el-card>
         <div class="batch-actions-content">
           <span>已选择 {{ selectedTasks.length }} 个任务</span>
           <div class="batch-buttons">
-            <ScButton type="warning" @click="handleBatchCancel"
-              >批量取消</el-button
-            >
-            <ScButton type="success" @click="handleBatchRetry"
-              >批量重试</el-button
-            >
-            <ScButton type="danger" @click="handleBatchDelete"
-              >批量删除</el-button
-            >
+            <el-button type="warning" @click="handleBatchCancel">批量取消</el-button>
+            <el-button type="success" @click="handleBatchRetry">批量重试</el-button>
+            <el-button type="danger" @click="handleBatchDelete">批量删除</el-button>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 上传对话框 -->
-    <ServerFileUploadDialog
-      ref="uploadDialogRef"
-      :ssh-servers="sshServers"
-      @success="handleUploadSuccess"
-    />
+    <ServerFileUploadDialog ref="uploadDialogRef" :ssh-servers="sshServers" @success="handleUploadSuccess" />
   </div>
 </template>
 
@@ -271,7 +161,7 @@ import {
   batchRetryTasks,
   type ServerFileUploadTask,
   type ServerFileUploadTaskPageParams,
-  TASK_STATUS,
+  TASK_STATUS
 } from "@/api/server-file-upload";
 import ServerFileUploadDialog from "./dialogs/ServerFileUploadDialog.vue";
 
@@ -286,7 +176,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sshServers: () => [],
+  sshServers: () => []
 });
 
 // Emits
@@ -304,14 +194,14 @@ const uploadDialogRef = ref();
 const searchForm = reactive({
   taskName: "",
   status: "",
-  serverId: undefined as number | undefined,
+  serverId: undefined as number | undefined
 });
 
 // 分页
 const pagination = reactive({
   current: 1,
   size: 20,
-  total: 0,
+  total: 0
 });
 
 // 状态选项
@@ -320,13 +210,13 @@ const statusOptions = [
   { label: "处理中", value: "PROCESSING" },
   { label: "已完成", value: "COMPLETED" },
   { label: "失败", value: "FAILED" },
-  { label: "已取消", value: "CANCELLED" },
+  { label: "已取消", value: "CANCELLED" }
 ];
 
 // 计算属性
 const serverMap = computed(() => {
   const map = new Map();
-  props.sshServers.forEach((server) => {
+  props.sshServers.forEach(server => {
     map.set(server.monitorSysGenServerId, server);
   });
   return map;
@@ -345,7 +235,7 @@ const loadTaskList = async () => {
     const params: ServerFileUploadTaskPageParams = {
       current: pagination.current,
       size: pagination.size,
-      ...searchForm,
+      ...searchForm
     };
 
     const { data } = await getServerFileUploadTaskPage(params);
@@ -408,7 +298,7 @@ const handleStartTask = async (task: ServerFileUploadTask) => {
 const handleCancelTask = async (task: ServerFileUploadTask) => {
   try {
     await ElMessageBox.confirm("确定要取消该任务吗？", "提示", {
-      type: "warning",
+      type: "warning"
     });
 
     await cancelServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId);
@@ -436,7 +326,7 @@ const handleRetryTask = async (task: ServerFileUploadTask) => {
 const handleDeleteTask = async (task: ServerFileUploadTask) => {
   try {
     await ElMessageBox.confirm("确定要删除该任务吗？删除后无法恢复。", "提示", {
-      type: "warning",
+      type: "warning"
     });
 
     await deleteServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId);
@@ -457,17 +347,11 @@ const handleViewTask = (task: ServerFileUploadTask) => {
 
 const handleBatchCancel = async () => {
   try {
-    await ElMessageBox.confirm(
-      `确定要取消选中的 ${selectedTasks.value.length} 个任务吗？`,
-      "提示",
-      {
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要取消选中的 ${selectedTasks.value.length} 个任务吗？`, "提示", {
+      type: "warning"
+    });
 
-    const taskIds = selectedTasks.value.map(
-      (task) => task.monitorSysGenServerFileUploadTaskId,
-    );
+    const taskIds = selectedTasks.value.map(task => task.monitorSysGenServerFileUploadTaskId);
     await batchCancelTasks(taskIds);
 
     message("批量取消成功", { type: "success" });
@@ -482,17 +366,11 @@ const handleBatchCancel = async () => {
 
 const handleBatchRetry = async () => {
   try {
-    await ElMessageBox.confirm(
-      `确定要重试选中的 ${selectedTasks.value.length} 个任务吗？`,
-      "提示",
-      {
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要重试选中的 ${selectedTasks.value.length} 个任务吗？`, "提示", {
+      type: "warning"
+    });
 
-    const taskIds = selectedTasks.value.map(
-      (task) => task.monitorSysGenServerFileUploadTaskId,
-    );
+    const taskIds = selectedTasks.value.map(task => task.monitorSysGenServerFileUploadTaskId);
     await batchRetryTasks(taskIds);
 
     message("批量重试成功", { type: "success" });
@@ -507,18 +385,12 @@ const handleBatchRetry = async () => {
 
 const handleBatchDelete = async () => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedTasks.value.length} 个任务吗？删除后无法恢复。`,
-      "提示",
-      {
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedTasks.value.length} 个任务吗？删除后无法恢复。`, "提示", {
+      type: "warning"
+    });
 
     // 批量删除需要逐个调用删除接口
-    const promises = selectedTasks.value.map((task) =>
-      deleteServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId),
-    );
+    const promises = selectedTasks.value.map(task => deleteServerFileUploadTask(task.monitorSysGenServerFileUploadTaskId));
 
     await Promise.all(promises);
 
@@ -566,7 +438,7 @@ const formatDateTime = (dateTime: string) => {
 const getModeText = (mode: string) => {
   const modeMap = {
     REALTIME: "实时",
-    SCHEDULED: "定时",
+    SCHEDULED: "定时"
   };
   return modeMap[mode] || mode;
 };
@@ -577,7 +449,7 @@ const getStatusText = (status: string) => {
     [TASK_STATUS.PROCESSING]: "处理中",
     [TASK_STATUS.COMPLETED]: "已完成",
     [TASK_STATUS.FAILED]: "失败",
-    [TASK_STATUS.CANCELLED]: "已取消",
+    [TASK_STATUS.CANCELLED]: "已取消"
   };
   return statusMap[status] || status;
 };
@@ -588,7 +460,7 @@ const getStatusType = (status: string) => {
     [TASK_STATUS.PROCESSING]: "warning",
     [TASK_STATUS.COMPLETED]: "success",
     [TASK_STATUS.FAILED]: "danger",
-    [TASK_STATUS.CANCELLED]: "info",
+    [TASK_STATUS.CANCELLED]: "info"
   };
   return typeMap[status] || "info";
 };
@@ -602,7 +474,7 @@ const getPriorityType = (priority: number) => {
 // 暴露方法给父组件
 defineExpose({
   handleRefresh,
-  setStatusFilter,
+  setStatusFilter
 });
 </script>
 
@@ -632,6 +504,7 @@ defineExpose({
     z-index: 1;
   }
 }
+
 
 .server-file-upload-tasks {
   padding: $spacing-lg;
@@ -752,4 +625,5 @@ defineExpose({
     }
   }
 }
+
 </style>

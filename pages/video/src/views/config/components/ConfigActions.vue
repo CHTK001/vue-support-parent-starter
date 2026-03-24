@@ -2,34 +2,13 @@
   <div class="config-actions">
     <!-- 快速操作 -->
     <div class="quick-actions">
-      <ScButton
-        v-if="config.videoSyncConfigStatus === 0"
-        type="success"
-        size="small"
-        circle
-        @click="handleAction('enable')"
-        title="启用配置"
-      >
+      <ScButton v-if="config.videoSyncConfigStatus === 0" type="success" size="small" circle @click="handleAction('enable')" title="启用配置">
         <IconifyIconOnline icon="ep:video-play" />
       </ScButton>
-      <ScButton
-        v-else
-        type="warning"
-        size="small"
-        circle
-        @click="handleAction('disable')"
-        title="禁用配置"
-      >
+      <ScButton v-else type="warning" size="small" circle @click="handleAction('disable')" title="禁用配置">
         <IconifyIconOnline icon="ep:video-pause" />
       </ScButton>
-      <ScButton
-        type="primary"
-        size="small"
-        circle
-        :loading="(config as any).syncing"
-        @click="handleAction('sync')"
-        title="执行同步"
-      >
+      <ScButton type="primary" size="small" circle :loading="(config as any).syncing" @click="handleAction('sync')" title="执行同步">
         <IconifyIconOnline icon="ep:refresh" />
       </ScButton>
     </div>
@@ -95,11 +74,7 @@ const handleAction = (action: string) => {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-color-primary-light-7) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-7) 100%);
   border-radius: 12px;
   border: 1px solid var(--el-border-color-lighter);
 }

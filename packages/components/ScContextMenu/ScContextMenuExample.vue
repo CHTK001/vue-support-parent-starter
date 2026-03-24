@@ -11,7 +11,7 @@
         @contextmenu="handleBasicContextMenu"
       >
         <div class="demo-content">
-          <ScIcon><Document /></ScIcon>
+          <el-icon><Document /></el-icon>
           <p>右键点击此区域</p>
           <p>显示基础右键菜单</p>
         </div>
@@ -27,7 +27,7 @@
         @contextmenu="handleNestedContextMenu"
       >
         <div class="demo-content">
-          <ScIcon><Folder /></ScIcon>
+          <el-icon><Folder /></el-icon>
           <p>右键点击此区域</p>
           <p>显示多级右键菜单</p>
         </div>
@@ -39,12 +39,12 @@
       <h3>条件显示菜单</h3>
       <p>根据数据状态动态显示不同的菜单项</p>
       <div class="demo-controls">
-        <ScSwitch 
+        <el-switch 
           v-model="isAdmin" 
           active-text="管理员模式" 
           inactive-text="普通用户"
         />
-        <ScSwitch 
+        <el-switch 
           v-model="isEditable" 
           active-text="可编辑" 
           inactive-text="只读"
@@ -55,7 +55,7 @@
         @contextmenu="handleConditionalContextMenu"
       >
         <div class="demo-content">
-          <ScIcon><User /></ScIcon>
+          <el-icon><User /></el-icon>
           <p>右键点击此区域</p>
           <p>根据权限显示不同菜单</p>
           <p>当前状态：{{ isAdmin ? '管理员' : '普通用户' }} | {{ isEditable ? '可编辑' : '只读' }}</p>
@@ -67,39 +67,39 @@
     <div class="example-section">
       <h3>表格右键菜单</h3>
       <p>在表格行上右键点击，显示针对该行数据的操作菜单</p>
-      <ScTable 
+      <el-table 
         :data="tableData" 
         style="width: 100%"
         @row-contextmenu="handleTableContextMenu"
       >
-        <ScTableColumn prop="name" label="姓名" width="120" />
-        <ScTableColumn prop="age" label="年龄" width="80" />
-        <ScTableColumn prop="email" label="邮箱" />
-        <ScTableColumn prop="status" label="状态" width="100">
+        <el-table-column prop="name" label="姓名" width="120" />
+        <el-table-column prop="age" label="年龄" width="80" />
+        <el-table-column prop="email" label="邮箱" />
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <ScTag :type="row.status === 'active' ? 'success' : 'danger'">
+            <el-tag :type="row.status === 'active' ? 'success' : 'danger'">
               {{ row.status === 'active' ? '激活' : '禁用' }}
-            </ScTag>
+            </el-tag>
           </template>
-        </ScTableColumn>
-      </ScTable>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 操作结果显示 -->
     <div class="example-section">
       <h3>操作结果</h3>
-      <ScCard v-if="lastAction">
+      <el-card v-if="lastAction">
         <p><strong>最后操作：</strong>{{ lastAction.action }}</p>
         <p v-if="lastAction.data"><strong>操作数据：</strong>{{ JSON.stringify(lastAction.data) }}</p>
         <p><strong>操作时间：</strong>{{ lastAction.time }}</p>
-      </ScCard>
-      <ScEmpty v-else description="暂无操作记录" />
+      </el-card>
+      <el-empty v-else description="暂无操作记录" />
     </div>
 
     <!-- 功能说明 -->
     <div class="example-section">
       <h3>功能说明</h3>
-      <ScCard>
+      <el-card>
         <h4>组件特性</h4>
         <ul>
           <li>支持右键菜单显示，自动定位</li>
@@ -118,35 +118,35 @@
           <li>树形组件节点菜单</li>
           <li>卡片组件操作菜单</li>
         </ul>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- API 文档 -->
     <div class="example-section">
       <h3>API 文档</h3>
-      <ScCard>
+      <el-card>
         <h4>Props</h4>
-        <ScTable :data="propsData" border>
-          <ScTableColumn prop="name" label="属性名" width="120" />
-          <ScTableColumn prop="type" label="类型" width="100" />
-          <ScTableColumn prop="default" label="默认值" width="80" />
-          <ScTableColumn prop="description" label="说明" />
-        </ScTable>
+        <el-table :data="propsData" border>
+          <el-table-column prop="name" label="属性名" width="120" />
+          <el-table-column prop="type" label="类型" width="100" />
+          <el-table-column prop="default" label="默认值" width="80" />
+          <el-table-column prop="description" label="说明" />
+        </el-table>
         
         <h4 style="margin-top: 20px;">Methods</h4>
-        <ScTable :data="methodsData" border>
-          <ScTableColumn prop="name" label="方法名" width="120" />
-          <ScTableColumn prop="params" label="参数" width="200" />
-          <ScTableColumn prop="description" label="说明" />
-        </ScTable>
+        <el-table :data="methodsData" border>
+          <el-table-column prop="name" label="方法名" width="120" />
+          <el-table-column prop="params" label="参数" width="200" />
+          <el-table-column prop="description" label="说明" />
+        </el-table>
         
         <h4 style="margin-top: 20px;">菜单项配置</h4>
-        <ScTable :data="menuItemData" border>
-          <ScTableColumn prop="name" label="属性名" width="120" />
-          <ScTableColumn prop="type" label="类型" width="100" />
-          <ScTableColumn prop="description" label="说明" />
-        </ScTable>
-      </ScCard>
+        <el-table :data="menuItemData" border>
+          <el-table-column prop="name" label="属性名" width="120" />
+          <el-table-column prop="type" label="类型" width="100" />
+          <el-table-column prop="description" label="说明" />
+        </el-table>
+      </el-card>
     </div>
 
     <!-- 右键菜单组件 -->

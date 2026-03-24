@@ -63,7 +63,7 @@ export function unbindScript(params) {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
       },
-    },
+    }
   );
 }
 
@@ -103,7 +103,7 @@ export function syncToWorkspace(params) {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
       },
-    },
+    }
   );
 }
 
@@ -115,7 +115,7 @@ export function getScriptItem(params) {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
       },
-    },
+    }
   );
 }
 

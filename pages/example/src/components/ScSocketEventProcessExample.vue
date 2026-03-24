@@ -455,7 +455,7 @@
     >
       <template #default="{ data, percentage, status }">
         <div class="custom-dialog-content">
-          <ScResult
+          <el-result
             :icon="getResultIcon(status)"
             :title="status"
             :sub-title="`进度: ${percentage}%`"
@@ -467,7 +467,7 @@
                 :color="getProgressColor(percentage)"
               />
             </template>
-          </ScResult>
+          </el-result>
         </div>
       </template>
     </ScSocketEventProcess>
@@ -476,9 +476,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScSocketEventProcess } from "@repo/components"
+import ScSocketEventProcess from "@repo/components/ScSocketMessageDialog/index.vue";
 import CodePreview from "./CodePreview.vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 配置
 const currentMode = ref("embed");

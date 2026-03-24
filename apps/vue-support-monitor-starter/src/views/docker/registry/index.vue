@@ -10,24 +10,24 @@
         <div class="page-subtitle">配置Docker镜像仓库用于检索软件</div>
       </div>
       <div class="header-right">
-        <ScTooltip content="刷新" placement="top">
-          <ScButton circle @click="loadRegistries">
+        <el-tooltip content="刷新" placement="top">
+          <el-button circle @click="loadRegistries">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </ScButton>
-        </ScTooltip>
-        <ScTooltip
+          </el-button>
+        </el-tooltip>
+        <el-tooltip
           :content="canCreate ? '添加仓库' : '仅支持一个仓库'"
           placement="top"
         >
-          <ScButton
+          <el-button
             type="primary"
             circle
             :disabled="!canCreate"
             @click="openCreateDialog"
           >
             <IconifyIconOnline icon="ri:add-line" />
-          </ScButton>
-        </ScTooltip>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
     >
       <template #default="{ row }">
         <div class="card-wrapper">
-          <ScCard
+          <el-card
             class="registry-card"
             :class="{ 'is-disabled': row.systemSoftRegistryStatus !== 1 }"
             shadow="never"
@@ -57,7 +57,7 @@
               :class="
                 row.systemSoftRegistryStatus === 1 ? 'active' : 'inactive'
               "
-            />
+            ></div>
 
             <!-- 卡片头部 -->
             <div class="card-header">
@@ -73,15 +73,15 @@
               </div>
               <div class="title-section">
                 <h3 class="name">{{ row.systemSoftRegistryName }}</h3>
-                <ScTag
+                <el-tag
                   :type="getRegistryTypeTag(row.systemSoftRegistryType)"
                   size="small"
                   effect="light"
                 >
                   {{ getRegistryTypeText(row.systemSoftRegistryType) }}
-                </ScTag>
+                </el-tag>
               </div>
-              <ScSwitch
+              <el-switch
                 :model-value="row.systemSoftRegistryStatus === 1"
                 size="small"
                 @change="(val: boolean) => handleToggleStatus(row, val)"
@@ -92,7 +92,7 @@
             <div class="card-body">
               <div class="info-row">
                 <IconifyIconOnline icon="ri:global-line" class="info-icon" />
-                <ScLink
+                <el-link
                   :href="row.systemSoftRegistryUrl"
                   target="_blank"
                   type="primary"
@@ -113,23 +113,23 @@
 
             <!-- 操作按钮 -->
             <div class="card-actions">
-              <ScTooltip content="编辑" placement="top">
-                <ScButton size="small" circle @click="openEditDialog(row)"
+              <el-tooltip content="编辑" placement="top">
+                <el-button size="small" circle @click="openEditDialog(row)"
                   ><IconifyIconOnline icon="ri:edit-line"
-                /></ScButton>
-              </ScTooltip>
-              <ScTooltip content="删除" placement="top">
-                <ScButton
+                /></el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button
                   size="small"
                   circle
                   type="danger"
                   plain
                   @click="handleDelete(row.systemSoftRegistryId)"
                   ><IconifyIconOnline icon="ri:delete-bin-line"
-                /></ScButton>
-              </ScTooltip>
+                /></el-button>
+              </el-tooltip>
             </div>
-          </ScCard>
+          </el-card>
         </div>
       </template>
     </ScTable>
@@ -151,7 +151,7 @@
 
 <script setup lang="ts">
 import { registryApi, type SystemSoftRegistry } from "@/api/docker";
-import { ScTable } from "@repo/components"
+import ScTable from "@repo/components/ScTable/index.vue";
 import { message, messageBox } from "@repo/utils";
 import { onMounted, reactive, ref } from "vue";
 import RegistryDialog from "./components/RegistryDialog.vue";
@@ -325,7 +325,7 @@ const handleDelete = async (registryId: number) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
     const response = await registryApi.deleteRegistry(registryId);
@@ -377,7 +377,7 @@ const handleBatchDelete = async () => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
     const response = await registryApi.batchDeleteRegistries(selectedIds.value);
@@ -446,13 +446,13 @@ const getRegistryGradient = (type?: string) => {
 // 切换启用状态
 const handleToggleStatus = async (
   row: SystemSoftRegistry,
-  enabled: boolean,
+  enabled: boolean
 ) => {
   try {
     const payload = { ...row, systemSoftRegistryStatus: enabled ? 1 : 0 };
     const res = await registryApi.updateRegistry(
       row.systemSoftRegistryId!,
-      payload,
+      payload
     );
     if (res.code === "00000") {
       message.success(enabled ? "已启用" : "已禁用");
@@ -520,6 +520,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -536,6 +537,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -569,6 +572,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .registry-management {
   padding: 20px;

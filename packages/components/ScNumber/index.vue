@@ -474,7 +474,7 @@ const computedMin = computed(() => themeConfig.value?.min ?? props.min);
 const computedMax = computed(() => themeConfig.value?.max ?? props.max);
 const computedStep = computed(() => themeConfig.value?.step ?? props.step);
 const themeColor = computed(() => themeConfig.value?.color ?? props.progressColor);
-const themeIcon = computed(() => themeConfig.value?.icon ?? "");
+const themeIcon = computed(() => themeConfig.value?.icon ?? '');
 
 // 暴露给父组件
 defineExpose({

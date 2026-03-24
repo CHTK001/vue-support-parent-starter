@@ -1,3 +1,4 @@
+
 import { nextTick } from "vue";
 import { storageLocal } from "@pureadmin/utils";
 
@@ -37,17 +38,26 @@ function getThemeClipPathKeyframes(
 
     case "top-right": {
       const endRadiusTR = Math.hypot(innerWidth, innerHeight);
-      return [`circle(0px at 100% 0)`, `circle(${endRadiusTR}px at 100% 0)`];
+      return [
+        `circle(0px at 100% 0)`,
+        `circle(${endRadiusTR}px at 100% 0)`,
+      ];
     }
 
     case "top-center": {
       const endRadiusTC = Math.hypot(innerWidth / 2, innerHeight);
-      return [`circle(0px at 50% 0)`, `circle(${endRadiusTC}px at 50% 0)`];
+      return [
+        `circle(0px at 50% 0)`,
+        `circle(${endRadiusTC}px at 50% 0)`,
+      ];
     }
 
     case "top-left": {
       const endRadiusTL = Math.hypot(innerWidth, innerHeight);
-      return [`circle(0px at 0 0)`, `circle(${endRadiusTL}px at 0 0)`];
+      return [
+        `circle(0px at 0 0)`,
+        `circle(${endRadiusTL}px at 0 0)`,
+      ];
     }
 
     case "bottom-right": {
@@ -68,7 +78,10 @@ function getThemeClipPathKeyframes(
 
     case "bottom-left": {
       const endRadiusBL = Math.hypot(innerWidth, innerHeight);
-      return [`circle(0px at 0 100%)`, `circle(${endRadiusBL}px at 0 100%)`];
+      return [
+        `circle(0px at 0 100%)`,
+        `circle(${endRadiusBL}px at 0 100%)`,
+      ];
     }
 
     case "center": {
@@ -81,7 +94,10 @@ function getThemeClipPathKeyframes(
 
     case "left-center": {
       const endRadiusLC = Math.hypot(innerWidth, innerHeight / 2);
-      return [`circle(0px at 0 50%)`, `circle(${endRadiusLC}px at 0 50%)`];
+      return [
+        `circle(0px at 0 50%)`,
+        `circle(${endRadiusLC}px at 0 50%)`,
+      ];
     }
 
     case "right-center": {
@@ -111,7 +127,10 @@ function getThemeClipPathKeyframes(
     default: {
       // 兜底：右上角扩散
       const endRadiusDef = Math.hypot(innerWidth, innerHeight);
-      return [`circle(0px at 100% 0)`, `circle(${endRadiusDef}px at 100% 0)`];
+      return [
+        `circle(0px at 100% 0)`,
+        `circle(${endRadiusDef}px at 100% 0)`,
+      ];
     }
   }
 }
@@ -164,8 +183,7 @@ export function useThemeAnimation(
   let direction = configure?.themeAnimationDirection ?? "top-right";
 
   if (mode === "random") {
-    direction =
-      validDirections[Math.floor(Math.random() * validDirections.length)];
+    direction = validDirections[Math.floor(Math.random() * validDirections.length)];
   }
 
   // 如果是 cursor 模式但没有 event，降级为 center，避免运行时异常

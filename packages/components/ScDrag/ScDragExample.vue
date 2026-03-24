@@ -10,9 +10,9 @@
       <h3>基础用法</h3>
       <p>最基本的可拖拽对话框</p>
       <div class="example-demo">
-        <ScButton type="primary" @click="basicVisible = true">
+        <el-button type="primary" @click="basicVisible = true">
           打开基础对话框
-        </ScButton>
+        </el-button>
         <ScDrag
           v-model="basicVisible"
           title="基础对话框"
@@ -24,7 +24,7 @@
           <div class="p-4">
             <p>这是一个基础的可拖拽对话框内容。</p>
             <p>你可以拖拽标题栏来移动对话框。</p>
-            <ScButton @click="basicVisible = false">关闭</ScButton>
+            <el-button @click="basicVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>
@@ -35,9 +35,9 @@
       <h3>科技风格</h3>
       <p>启用科技风格的对话框</p>
       <div class="example-demo">
-        <ScButton type="primary" @click="techVisible = true">
+        <el-button type="primary" @click="techVisible = true">
           打开科技风格对话框
-        </ScButton>
+        </el-button>
         <ScDrag
           v-model="techVisible"
           title="科技风格对话框"
@@ -53,7 +53,7 @@
             <h4 class="text-lg mb-4">科技风格内容</h4>
             <p class="mb-2">这是科技风格的对话框，具有炫酷的边框效果。</p>
             <p class="mb-4">适用于科技感强的应用场景。</p>
-            <ScButton type="primary" @click="techVisible = false">关闭</ScButton>
+            <el-button type="primary" @click="techVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>
@@ -64,9 +64,9 @@
       <h3>边缘吸附功能</h3>
       <p>拖拽到屏幕边缘时自动吸附并最小化</p>
       <div class="example-demo">
-        <ScButton type="primary" @click="miniVisible = true">
+        <el-button type="primary" @click="miniVisible = true">
           打开边缘吸附对话框
-        </ScButton>
+        </el-button>
         <ScDrag
           v-model="miniVisible"
           title="边缘吸附对话框"
@@ -82,7 +82,7 @@
             <p class="mb-2">将对话框拖拽到屏幕边缘试试看！</p>
             <p class="mb-2">支持上、下、左、右四个方向的边缘吸附。</p>
             <p class="mb-4">吸附后会自动最小化为小图标。</p>
-            <ScButton @click="miniVisible = false">关闭</ScButton>
+            <el-button @click="miniVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>
@@ -94,12 +94,12 @@
       <p>只允许水平或垂直方向拖拽</p>
       <div class="example-demo">
         <el-space>
-          <ScButton type="primary" @click="horizontalVisible = true">
+          <el-button type="primary" @click="horizontalVisible = true">
             水平拖拽
-          </ScButton>
-          <ScButton type="primary" @click="verticalVisible = true">
+          </el-button>
+          <el-button type="primary" @click="verticalVisible = true">
             垂直拖拽
-          </ScButton>
+          </el-button>
         </el-space>
         
         <!-- 水平拖拽 -->
@@ -113,7 +113,7 @@
         >
           <div class="p-4">
             <p>只能水平方向拖拽</p>
-            <ScButton @click="horizontalVisible = false">关闭</ScButton>
+            <el-button @click="horizontalVisible = false">关闭</el-button>
           </div>
         </ScDrag>
 
@@ -128,7 +128,7 @@
         >
           <div class="p-4">
             <p>只能垂直方向拖拽</p>
-            <ScButton @click="verticalVisible = false">关闭</ScButton>
+            <el-button @click="verticalVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>
@@ -139,9 +139,9 @@
       <h3>网格对齐</h3>
       <p>拖拽时按网格对齐</p>
       <div class="example-demo">
-        <ScButton type="primary" @click="gridVisible = true">
+        <el-button type="primary" @click="gridVisible = true">
           打开网格对齐对话框
-        </ScButton>
+        </el-button>
         <ScDrag
           v-model="gridVisible"
           title="网格对齐"
@@ -153,7 +153,7 @@
           <div class="p-4">
             <p class="mb-2">拖拽时会按20px的网格对齐</p>
             <p class="mb-4">移动更加规整有序</p>
-            <ScButton @click="gridVisible = false">关闭</ScButton>
+            <el-button @click="gridVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>
@@ -164,9 +164,9 @@
       <h3>禁用拖拽</h3>
       <p>固定位置的对话框</p>
       <div class="example-demo">
-        <ScButton type="primary" @click="fixedVisible = true">
+        <el-button type="primary" @click="fixedVisible = true">
           打开固定对话框
-        </ScButton>
+        </el-button>
         <ScDrag
           v-model="fixedVisible"
           title="固定对话框"
@@ -178,7 +178,7 @@
           <div class="p-4">
             <p class="mb-2">这个对话框无法拖拽移动</p>
             <p class="mb-4">适用于需要固定位置的场景</p>
-            <ScButton @click="fixedVisible = false">关闭</ScButton>
+            <el-button @click="fixedVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>
@@ -189,9 +189,9 @@
       <h3>带遮罩层</h3>
       <p>显示背景遮罩的对话框</p>
       <div class="example-demo">
-        <ScButton type="primary" @click="overlayVisible = true">
+        <el-button type="primary" @click="overlayVisible = true">
           打开带遮罩对话框
-        </ScButton>
+        </el-button>
         <ScDrag
           v-model="overlayVisible"
           title="带遮罩对话框"
@@ -203,7 +203,7 @@
           <div class="p-4">
             <p class="mb-2">背景有遮罩层效果</p>
             <p class="mb-4">突出对话框内容</p>
-            <ScButton @click="overlayVisible = false">关闭</ScButton>
+            <el-button @click="overlayVisible = false">关闭</el-button>
           </div>
         </ScDrag>
       </div>

@@ -33,7 +33,7 @@
             <IconifyIconOnline icon="mdi:download" />
           </div>
         </div>
-
+        
         <div class="download-item" @click="handleDownload('key')">
           <div class="item-icon key">
             <IconifyIconOnline icon="mdi:key" />
@@ -46,7 +46,7 @@
             <IconifyIconOnline icon="mdi:download" />
           </div>
         </div>
-
+        
         <div class="download-item" @click="handleDownload('chain')">
           <div class="item-icon chain">
             <IconifyIconOnline icon="mdi:link-variant" />
@@ -69,9 +69,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton class="close-btn" @click="dialogVisible = false"
-          >关闭</ScButton
-        >
+        <el-button @click="dialogVisible = false" class="close-btn">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -267,6 +265,7 @@ function handleDownload(fileType: string) {
   border-radius: 8px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -275,6 +274,7 @@ function handleDownload(fileType: string) {
     padding: 12px 16px;
   }
 }
+
 </style>
 
 <style lang="scss">

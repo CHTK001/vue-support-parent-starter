@@ -10,16 +10,7 @@ import { useNav } from "../../../hooks/useNav";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { isAllEmpty } from "@pureadmin/utils";
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  shallowRef,
-  watch,
-  type Component,
-  provide,
-} from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch, type Component, provide } from "vue";
 import LaySidebarLogo from "../components/SidebarLogo.vue";
 import DefaultSidebarItem from "../components/themes/DefaultSidebarItem.vue";
 import LaySidebarLeftCollapse from "../components/SidebarLeftCollapse.vue";
@@ -33,12 +24,10 @@ const props = defineProps<{
 }>();
 
 // 计算实际使用的 SidebarItem 组件
-const ThemeSidebarItem = computed(
-  () => props.sidebarItemComponent || DefaultSidebarItem,
-);
+const ThemeSidebarItem = computed(() => props.sidebarItemComponent || DefaultSidebarItem);
 
-// 提供给子组件（用于递归渲染）- 传 computed ref，inject 端用 .value 解包
-provide("themeSidebarItem", ThemeSidebarItem);
+// 提供给子组件（用于递归渲染）
+provide('themeSidebarItem', ThemeSidebarItem);
 
 const route = useRoute();
 const isShow = ref(false);
@@ -47,8 +36,8 @@ const isShow = ref(false);
 const permissionStore = usePermissionStoreHook();
 const showLogo = ref(
   localStorageProxy().getItem<StorageConfigs>(
-    `${responsiveStorageNameSpace()}configure`,
-  )?.showLogo ?? true,
+    `${responsiveStorageNameSpace()}configure`
+  )?.showLogo ?? true
 );
 
 const {
@@ -70,15 +59,11 @@ const menuData = computed(() => {
 });
 
 const loading = computed(() =>
-  pureApp?.layout === "mix"
-    ? false
-    : menuData.value.length === 0
-      ? true
-      : false,
+  pureApp?.layout === "mix" ? false : menuData.value.length === 0 ? true : false
 );
 
 const defaultActive = computed(() =>
-  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
 );
 
 function getSubMenuData() {
@@ -89,7 +74,7 @@ function getSubMenuData() {
   // 当前路由的父级路由信息
   const parenetRoute = findRouteByPath(
     parentPathArr[0] || path,
-    permissionStore.wholeMenus,
+    permissionStore.wholeMenus
   );
   if (!parenetRoute?.children) return;
   subMenuData.value = parenetRoute?.children;
@@ -104,7 +89,7 @@ watch(
   },
   {
     immediate: true,
-  },
+  }
 );
 
 // 移除 deep: true，使用数组长度变化作为触发条件
@@ -112,7 +97,7 @@ watch(
   () => permissionStore.wholeMenus.length,
   () => {
     getSubMenuData();
-  },
+  }
 );
 
 onMounted(() => {
@@ -143,11 +128,11 @@ onBeforeUnmount(() => {
     @mouseleave.prevent="isShow = false"
   >
     <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
-    <ScScrollbar
+    <el-scrollbar
       wrap-class="scrollbar-wrapper"
       :class="[device === 'mobile' ? 'mobile' : 'pc']"
     >
-      <ScMenu
+      <el-menu
         router
         mode="vertical"
         popper-class="pure-scrollbar"
@@ -171,8 +156,8 @@ onBeforeUnmount(() => {
             class="outer-most select-none"
           />
         </span>
-      </ScMenu>
-    </ScScrollbar>
+      </el-menu>
+    </el-scrollbar>
     <LaySidebarCenterCollapse
       v-if="device !== 'mobile' && (isShow || isCollapse)"
       :is-active="pureApp?.sidebar?.opened"

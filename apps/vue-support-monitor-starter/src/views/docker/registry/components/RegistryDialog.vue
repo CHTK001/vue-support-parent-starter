@@ -24,7 +24,7 @@
         </div>
       </div>
 
-      <ScForm
+      <el-form
         ref="formRef"
         :model="formData"
         :rules="formRules"
@@ -37,10 +37,10 @@
             <IconifyIconOnline icon="ri:information-line" />
             基本信息
           </div>
-          <ScRow :gutter="16">
-            <ScCol :span="12">
-              <ScFormItem label="仓库名称" prop="systemSoftRegistryName">
-                <ScInput
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="仓库名称" prop="systemSoftRegistryName">
+                <el-input
                   v-model="formData.systemSoftRegistryName"
                   placeholder="输入仓库名称"
                   clearable
@@ -48,13 +48,13 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:bookmark-line" />
                   </template>
-                </ScInput>
-              </ScFormItem>
-            </ScCol>
-            <ScCol :span="12">
-              <ScFormItem label="仓库状态">
+                </el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="仓库状态">
                 <div class="status-switch">
-                  <ScSwitch
+                  <el-switch
                     v-model="formData.systemSoftRegistryStatus"
                     :active-value="1"
                     :inactive-value="0"
@@ -62,12 +62,12 @@
                     inactive-text="禁用"
                   />
                 </div>
-              </ScFormItem>
-            </ScCol>
-          </ScRow>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-          <ScFormItem label="仓库地址" prop="systemSoftRegistryUrl">
-            <ScInput
+          <el-form-item label="仓库地址" prop="systemSoftRegistryUrl">
+            <el-input
               v-model="formData.systemSoftRegistryUrl"
               placeholder="输入仓库地址"
               clearable
@@ -75,22 +75,17 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:global-line" />
               </template>
-              <template #append>
-                <ScButton
-                  v-if="showTestButton"
-                  :loading="testLoading"
-                  @click="testConnection"
-                >
-                  <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
-                  测试连接
-                </ScButton>
+              <template #append v-if="showTestButton">
+                <el-button @click="testConnection" :loading="testLoading">
+                  <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />测试连接
+                </el-button>
               </template>
-            </ScInput>
+            </el-input>
             <div class="url-hint">
               <IconifyIconOnline icon="ri:lightbulb-line" />
               {{ getUrlHint(formData.systemSoftRegistryType) }}
             </div>
-          </ScFormItem>
+          </el-form-item>
         </div>
 
         <!-- 认证信息 -->
@@ -100,10 +95,10 @@
             认证信息
             <span class="optional">（可选）</span>
           </div>
-          <ScRow :gutter="16">
-            <ScCol :span="12">
-              <ScFormItem label="用户名" prop="systemSoftRegistryUsername">
-                <ScInput
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="用户名" prop="systemSoftRegistryUsername">
+                <el-input
                   v-model="formData.systemSoftRegistryUsername"
                   placeholder="输入用户名"
                   clearable
@@ -111,12 +106,12 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:user-line" />
                   </template>
-                </ScInput>
-              </ScFormItem>
-            </ScCol>
-            <ScCol :span="12">
-              <ScFormItem label="密码" prop="systemSoftRegistryPassword">
-                <ScInput
+                </el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="密码" prop="systemSoftRegistryPassword">
+                <el-input
                   v-model="formData.systemSoftRegistryPassword"
                   type="password"
                   placeholder="输入密码"
@@ -126,16 +121,16 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:lock-line" />
                   </template>
-                </ScInput>
-              </ScFormItem>
-            </ScCol>
-          </ScRow>
-          <ScFormItem
+                </el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item
             label="邮箱"
-            v-if="showEmail"
             prop="systemSoftRegistryEmail"
+            v-if="showEmail"
           >
-            <ScInput
+            <el-input
               v-model="formData.systemSoftRegistryEmail"
               placeholder="输入邮箱"
               clearable
@@ -143,8 +138,8 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:mail-line" />
               </template>
-            </ScInput>
-          </ScFormItem>
+            </el-input>
+          </el-form-item>
         </div>
 
         <!-- 高级设置 -->
@@ -153,11 +148,11 @@
             <IconifyIconOnline icon="ri:settings-3-line" />
             高级设置
           </div>
-          <ScRow :gutter="16">
-            <ScCol :span="12">
-              <ScFormItem label="支持同步">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="支持同步">
                 <div class="feature-toggle">
-                  <ScSwitch
+                  <el-switch
                     v-model="formData.systemSoftRegistrySupportSync"
                     :active-value="1"
                     :inactive-value="0"
@@ -168,11 +163,11 @@
                       : "已禁用"
                   }}</span>
                 </div>
-              </ScFormItem>
-            </ScCol>
-          </ScRow>
-          <ScFormItem label="仓库描述" prop="systemSoftRegistryDescription">
-            <ScInput
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="仓库描述" prop="systemSoftRegistryDescription">
+            <el-input
               v-model="formData.systemSoftRegistryDescription"
               type="textarea"
               :rows="2"
@@ -180,12 +175,12 @@
               maxlength="200"
               show-word-limit
             />
-          </ScFormItem>
+          </el-form-item>
         </div>
-      </ScForm>
+      </el-form>
 
       <!-- 连接测试结果 -->
-      <ScAlert
+      <el-alert
         v-if="testResult"
         :type="testResult.success ? 'success' : 'error'"
         :title="testResult.message"
@@ -197,11 +192,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton size="large" @click="handleCancel">取消</ScButton>
-        <ScButton
+        <el-button @click="handleCancel" size="large">取消</el-button>
+        <el-button
           type="primary"
-          :loading="confirmLoading"
           @click="handleConfirm"
+          :loading="confirmLoading"
           size="large"
         >
           <IconifyIconOnline
@@ -209,7 +204,7 @@
             class="mr-1"
           />
           {{ isEdit ? "保存更改" : "创建仓库" }}
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -402,7 +397,7 @@ const testConnection = async () => {
   testResult.value = null;
   try {
     const response = await softRegistryApi.testRegistryConnection(
-      props.registryData.systemSoftRegistryId!,
+      props.registryData.systemSoftRegistryId
     );
     if (response.code === "00000") {
       testResult.value = { success: true, message: "已发起连接测试" };
@@ -440,7 +435,7 @@ const handleConfirm = async () => {
       // 编辑模式
       const response = await softRegistryApi.updateRegistry(
         formData.value.systemSoftRegistryId!,
-        payload,
+        payload
       );
 
       if (response.code === "00000") {
@@ -494,7 +489,7 @@ watch(
       resetForm();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 监听对话框显示状态
@@ -633,6 +628,7 @@ watch(dialogVisible, (visible) => {
   }
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -641,4 +637,5 @@ watch(dialogVisible, (visible) => {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -125,10 +125,10 @@ const MAX_DISPLAY_COUNT = 12;
 const showMoreTypes = computed(() => types.value.length > MAX_DISPLAY_COUNT);
 const showMoreYears = computed(() => years.value.length > MAX_DISPLAY_COUNT);
 const showMoreDistricts = computed(
-  () => districts.value.length > MAX_DISPLAY_COUNT,
+  () => districts.value.length > MAX_DISPLAY_COUNT
 );
 const showMoreLanguages = computed(
-  () => languages.value.length > MAX_DISPLAY_COUNT,
+  () => languages.value.length > MAX_DISPLAY_COUNT
 );
 
 // 计算显示的筛选条件
@@ -315,7 +315,7 @@ const handleDataLoaded = (data: any, total: number) => {
 // 生成兼容的图片OSS地址
 const createCompatibleImageUrl = (
   videoCover: string,
-  videoPlatform: string,
+  videoPlatform: string
 ) => {
   if (!videoCover) return null as any;
   return (
@@ -356,11 +356,7 @@ const handleVideoClick = (video: any) => {
 .logo {
   font-size: 42px;
   font-weight: 700;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

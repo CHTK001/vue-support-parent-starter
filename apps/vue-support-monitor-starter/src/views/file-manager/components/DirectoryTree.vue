@@ -7,38 +7,43 @@
         <span>目录结构</span>
       </div>
       <div class="header-actions">
-        <ScTooltip content="刷新目录" placement="top">
-          <ScButton
+        <el-tooltip content="刷新目录" placement="top">
+          <el-button
             size="small"
             circle
+            @click="refreshTree"
             :loading="isLoading"
             class="action-btn"
-            @click="refreshTree"
           >
             <IconifyIconOnline icon="ri:refresh-line" />
-          </ScButton>
-        </ScTooltip>
-        <ScTooltip content="展开全部" placement="top">
-          <ScButton size="small" circle class="action-btn" @click="expandAll">
-            <IconifyIconOnline icon="ri:add-box-line" />
-          </ScButton>
-        </ScTooltip>
-        <ScTooltip content="收起全部" placement="top">
-          <ScButton
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="展开全部" placement="top">
+          <el-button
             size="small"
             circle
+            @click="expandAll"
             class="action-btn"
+          >
+            <IconifyIconOnline icon="ri:add-box-line" />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="收起全部" placement="top">
+          <el-button
+            size="small"
+            circle
             @click="collapseAll"
+            class="action-btn"
           >
             <IconifyIconOnline icon="ri:subtract-line" />
-          </ScButton>
-        </ScTooltip>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
 
     <!-- 搜索框 -->
     <div class="tree-search">
-      <ScInput
+      <el-input
         v-model="searchText"
         placeholder="搜索目录..."
         clearable
@@ -48,7 +53,7 @@
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </ScInput>
+      </el-input>
     </div>
 
     <!-- 快捷路径 -->
@@ -73,7 +78,7 @@
 
     <!-- 目录树 -->
     <div class="tree-container">
-      <ScTree
+      <el-tree
         ref="treeRef"
         :data="filteredTreeData"
         :props="treeProps"
@@ -90,10 +95,7 @@
         @node-contextmenu="handleNodeContextMenu"
       >
         <template #default="{ node, data }">
-          <div
-            class="tree-node"
-            :class="{ 'is-current': data.path === currentPath }"
-          >
+          <div class="tree-node" :class="{ 'is-current': data.path === currentPath }">
             <div class="node-content">
               <div class="node-icon">
                 <IconifyIconOnline
@@ -104,444 +106,427 @@
               </div>
               <div class="node-label">
                 <span class="node-name">{{ data.name }}</span>
-                <span v-if="data.childCount > 0" class="node-count"
-                  >({{ data.childCount }})</span
-                >
+                <span v-if="data.childCount > 0" class="node-count">({{ data.childCount }})</span>
               </div>
             </div>
-            <div v-if="showNodeActions" class="node-actions">
-              <ScTooltip content="新建文件夹" placement="top">
-                <ScButton
+            <div class="node-actions" v-if="showNodeActions">
+              <el-tooltip content="新建文件夹" placement="top">
+                <el-button
                   size="small"
                   circle
-                  class="node-action-btn"
                   @click.stop="createFolder(data)"
+                  class="node-action-btn"
                 >
                   <IconifyIconOnline icon="ri:folder-add-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="刷新" placement="top">
-                <ScButton
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="刷新" placement="top">
+                <el-button
                   size="small"
                   circle
-                  class="node-action-btn"
                   @click.stop="refreshNode(node, data)"
+                  class="node-action-btn"
                 >
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </ScButton>
-              </ScTooltip>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </template>
-      </ScTree>
+      </el-tree>
     </div>
 
     <!-- 右键菜单 -->
-    <ScDropdown
+    <el-dropdown
       ref="contextMenuRef"
       trigger="contextmenu"
       :teleported="false"
       class="context-menu"
     >
-      <div />
+      <div></div>
       <template #dropdown>
-        <ScDropdownMenu>
-          <ScDropdownItem @click="openInNewTab">
+        <el-dropdown-menu>
+          <el-dropdown-item @click="openInNewTab">
             <IconifyIconOnline icon="ri:external-link-line" class="menu-icon" />
             在新标签页打开
-          </ScDropdownItem>
-          <ScDropdownItem @click="createFolderInContext">
+          </el-dropdown-item>
+          <el-dropdown-item @click="createFolderInContext">
             <IconifyIconOnline icon="ri:folder-add-line" class="menu-icon" />
             新建文件夹
-          </ScDropdownItem>
-          <ScDropdownItem @click="refreshNodeInContext">
+          </el-dropdown-item>
+          <el-dropdown-item @click="refreshNodeInContext">
             <IconifyIconOnline icon="ri:refresh-line" class="menu-icon" />
             刷新
-          </ScDropdownItem>
-          <ScDropdownItem divided @click="copyPath">
+          </el-dropdown-item>
+          <el-dropdown-item divided @click="copyPath">
             <IconifyIconOnline icon="ri:file-copy-line" class="menu-icon" />
             复制路径
-          </ScDropdownItem>
-          <ScDropdownItem @click="showProperties">
+          </el-dropdown-item>
+          <el-dropdown-item @click="showProperties">
             <IconifyIconOnline icon="ri:information-line" class="menu-icon" />
             属性
-          </ScDropdownItem>
-        </ScDropdownMenu>
+          </el-dropdown-item>
+        </el-dropdown-menu>
       </template>
-    </ScDropdown>
+    </el-dropdown>
   </div>
 </template>
 
 <script setup lang="ts">
 import { message } from "@repo/utils";
-import { ElTree } from "element-plus";
-import type { ElTreeNode } from "element-plus/es/components/tree/src/model/node";
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { ElTree } from 'element-plus'
+import type { ElTreeNode } from 'element-plus/es/components/tree/src/model/node'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 // 目录节点接口
 interface DirectoryNode {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  childCount: number;
-  size?: number;
-  modifiedTime?: string;
-  permissions?: string;
-  children?: DirectoryNode[];
+  name: string
+  path: string
+  isDirectory: boolean
+  childCount: number
+  size?: number
+  modifiedTime?: string
+  permissions?: string
+  children?: DirectoryNode[]
 }
 
 // 快捷路径接口
 interface QuickPath {
-  name: string;
-  path: string;
-  icon: string;
+  name: string
+  path: string
+  icon: string
 }
 
 // Props
 interface Props {
-  currentPath: string;
-  showNodeActions?: boolean;
+  currentPath: string
+  showNodeActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  currentPath: "/",
-  showNodeActions: true,
-});
+  currentPath: '/',
+  showNodeActions: true
+})
 
 // Emits
 const emit = defineEmits<{
-  "path-selected": [path: string];
-  "folder-create": [parentPath: string];
-  "node-refresh": [path: string];
-}>();
+  'path-selected': [path: string]
+  'folder-create': [parentPath: string]
+  'node-refresh': [path: string]
+}>()
 
 // 响应式数据
-const treeRef = ref<InstanceType<typeof ElTree>>();
-const contextMenuRef = ref();
-const isLoading = ref(false);
-const searchText = ref("");
-const contextMenuNode = ref<DirectoryNode | null>(null);
+const treeRef = ref<InstanceType<typeof ElTree>>()
+const contextMenuRef = ref()
+const isLoading = ref(false)
+const searchText = ref('')
+const contextMenuNode = ref<DirectoryNode | null>(null)
 
-const treeData = ref<DirectoryNode[]>([]);
+const treeData = ref<DirectoryNode[]>([])
 
 // 树形控件配置
 const treeProps = {
-  children: "children",
-  label: "name",
-  isLeaf: (data: DirectoryNode) => !data.isDirectory,
-};
+  children: 'children',
+  label: 'name',
+  isLeaf: (data: DirectoryNode) => !data.isDirectory
+}
 
 // 快捷路径
 const quickPaths = ref<QuickPath[]>([
-  { name: "根目录", path: "/", icon: "ri:home-line" },
-  { name: "文档", path: "/documents", icon: "ri:file-text-line" },
-  { name: "图片", path: "/images", icon: "ri:image-line" },
-  { name: "视频", path: "/videos", icon: "ri:video-line" },
-  { name: "音频", path: "/audio", icon: "ri:music-line" },
-  { name: "下载", path: "/downloads", icon: "ri:download-line" },
-  { name: "桌面", path: "/desktop", icon: "ri:computer-line" },
-  { name: "回收站", path: "/trash", icon: "ri:delete-bin-line" },
-]);
+  { name: '根目录', path: '/', icon: 'ri:home-line' },
+  { name: '文档', path: '/documents', icon: 'ri:file-text-line' },
+  { name: '图片', path: '/images', icon: 'ri:image-line' },
+  { name: '视频', path: '/videos', icon: 'ri:video-line' },
+  { name: '音频', path: '/audio', icon: 'ri:music-line' },
+  { name: '下载', path: '/downloads', icon: 'ri:download-line' },
+  { name: '桌面', path: '/desktop', icon: 'ri:computer-line' },
+  { name: '回收站', path: '/trash', icon: 'ri:delete-bin-line' }
+])
 
 // 计算属性
 const filteredTreeData = computed(() => {
   if (!searchText.value.trim()) {
-    return treeData.value;
+    return treeData.value
   }
-
-  return filterTreeData(treeData.value, searchText.value.toLowerCase());
-});
+  
+  return filterTreeData(treeData.value, searchText.value.toLowerCase())
+})
 
 // 方法
-const filterTreeData = (
-  data: DirectoryNode[],
-  searchTerm: string,
-): DirectoryNode[] => {
-  return data.filter((node) => {
-    const matchesSearch = node.name.toLowerCase().includes(searchTerm);
-    const hasMatchingChildren =
-      node.children && filterTreeData(node.children, searchTerm).length > 0;
-
+const filterTreeData = (data: DirectoryNode[], searchTerm: string): DirectoryNode[] => {
+  return data.filter(node => {
+    const matchesSearch = node.name.toLowerCase().includes(searchTerm)
+    const hasMatchingChildren = node.children && filterTreeData(node.children, searchTerm).length > 0
+    
     if (matchesSearch || hasMatchingChildren) {
       if (node.children) {
-        node.children = filterTreeData(node.children, searchTerm);
+        node.children = filterTreeData(node.children, searchTerm)
       }
-      return true;
+      return true
     }
+    
+    return false
+  })
+}
 
-    return false;
-  });
-};
-
-const loadNode = async (
-  node: ElTreeNode,
-  resolve: (data: DirectoryNode[]) => void,
-) => {
+const loadNode = async (node: ElTreeNode, resolve: (data: DirectoryNode[]) => void) => {
   try {
     if (node.level === 0) {
       // 加载根节点
-      const rootData = await loadDirectoryData("/");
-      resolve(rootData);
+      const rootData = await loadDirectoryData('/')
+      resolve(rootData)
     } else {
       // 加载子节点
-      const nodeData = node.data as DirectoryNode;
-      const childData = await loadDirectoryData(nodeData.path);
-      resolve(childData);
+      const nodeData = node.data as DirectoryNode
+      const childData = await loadDirectoryData(nodeData.path)
+      resolve(childData)
     }
   } catch (error) {
-    console.error("加载目录数据失败:", error);
-    message("加载目录失败", { type: "error" });
-    resolve([]);
+    console.error('加载目录数据失败:', error)
+    message('加载目录失败', { type: "error" })
+    resolve([])
   }
-};
+}
 
 const loadDirectoryData = async (path: string): Promise<DirectoryNode[]> => {
   try {
     // 这里应该调用实际的API获取目录数据
     // const response = await getDirectoryData(path)
     // return response.data
-
+    
     // 模拟数据
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
     const mockData: DirectoryNode[] = [
       {
-        name: "documents",
-        path: path + "/documents",
+        name: 'documents',
+        path: path + '/documents',
         isDirectory: true,
         childCount: 5,
-        modifiedTime: "2024-01-15 10:30:00",
+        modifiedTime: '2024-01-15 10:30:00'
       },
       {
-        name: "images",
-        path: path + "/images",
+        name: 'images',
+        path: path + '/images',
         isDirectory: true,
         childCount: 12,
-        modifiedTime: "2024-01-14 15:20:00",
+        modifiedTime: '2024-01-14 15:20:00'
       },
       {
-        name: "videos",
-        path: path + "/videos",
+        name: 'videos',
+        path: path + '/videos',
         isDirectory: true,
         childCount: 3,
-        modifiedTime: "2024-01-13 09:45:00",
+        modifiedTime: '2024-01-13 09:45:00'
       },
       {
-        name: "projects",
-        path: path + "/projects",
+        name: 'projects',
+        path: path + '/projects',
         isDirectory: true,
         childCount: 8,
-        modifiedTime: "2024-01-12 14:15:00",
-      },
-    ];
-
-    return mockData;
+        modifiedTime: '2024-01-12 14:15:00'
+      }
+    ]
+    
+    return mockData
   } catch (error) {
-    throw new Error("获取目录数据失败");
+    throw new Error('获取目录数据失败')
   }
-};
+}
 
 const getNodeIcon = (data: DirectoryNode, expanded: boolean): string => {
   if (!data.isDirectory) {
-    return "ri:file-line";
+    return 'ri:file-line'
   }
-
+  
   // 特殊目录图标
   const specialIcons: Record<string, string> = {
-    documents: "ri:file-text-line",
-    images: "ri:image-line",
-    videos: "ri:video-line",
-    audio: "ri:music-line",
-    downloads: "ri:download-line",
-    desktop: "ri:computer-line",
-    trash: "ri:delete-bin-line",
-    projects: "ri:code-box-line",
-  };
-
-  const specialIcon = specialIcons[data.name.toLowerCase()];
-  if (specialIcon) {
-    return specialIcon;
+    'documents': 'ri:file-text-line',
+    'images': 'ri:image-line',
+    'videos': 'ri:video-line',
+    'audio': 'ri:music-line',
+    'downloads': 'ri:download-line',
+    'desktop': 'ri:computer-line',
+    'trash': 'ri:delete-bin-line',
+    'projects': 'ri:code-box-line'
   }
-
-  return expanded ? "ri:folder-open-line" : "ri:folder-line";
-};
+  
+  const specialIcon = specialIcons[data.name.toLowerCase()]
+  if (specialIcon) {
+    return specialIcon
+  }
+  
+  return expanded ? 'ri:folder-open-line' : 'ri:folder-line'
+}
 
 const getNodeIconClass = (data: DirectoryNode): string => {
   if (!data.isDirectory) {
-    return "file-icon";
+    return 'file-icon'
   }
-
+  
   const specialClasses: Record<string, string> = {
-    documents: "documents-icon",
-    images: "images-icon",
-    videos: "videos-icon",
-    audio: "audio-icon",
-    downloads: "downloads-icon",
-    desktop: "desktop-icon",
-    trash: "trash-icon",
-    projects: "projects-icon",
-  };
-
-  return specialClasses[data.name.toLowerCase()] || "folder-icon";
-};
+    'documents': 'documents-icon',
+    'images': 'images-icon',
+    'videos': 'videos-icon',
+    'audio': 'audio-icon',
+    'downloads': 'downloads-icon',
+    'desktop': 'desktop-icon',
+    'trash': 'trash-icon',
+    'projects': 'projects-icon'
+  }
+  
+  return specialClasses[data.name.toLowerCase()] || 'folder-icon'
+}
 
 const handleNodeClick = (data: DirectoryNode) => {
   if (data.isDirectory) {
-    selectPath(data.path);
+    selectPath(data.path)
   }
-};
+}
 
 const handleNodeExpand = (data: DirectoryNode, node: ElTreeNode) => {
   // 节点展开时的处理
-};
+}
 
 const handleNodeCollapse = (data: DirectoryNode, node: ElTreeNode) => {
   // 节点收起时的处理
-};
+}
 
 const handleNodeContextMenu = (event: MouseEvent, data: DirectoryNode) => {
-  event.preventDefault();
-  contextMenuNode.value = data;
-
+  event.preventDefault()
+  contextMenuNode.value = data
+  
   // 显示右键菜单
   nextTick(() => {
     if (contextMenuRef.value) {
-      contextMenuRef.value.handleOpen();
+      contextMenuRef.value.handleOpen()
     }
-  });
-};
+  })
+}
 
 const selectPath = (path: string) => {
-  emit("path-selected", path);
-};
+  emit('path-selected', path)
+}
 
 const refreshTree = async () => {
-  isLoading.value = true;
+  isLoading.value = true
   try {
     // 重新加载整个树
-    const rootData = await loadDirectoryData("/");
-    treeData.value = rootData;
-
+    const rootData = await loadDirectoryData('/')
+    treeData.value = rootData
+    
     // 刷新树组件
     if (treeRef.value) {
-      treeRef.value.setData(rootData);
+      treeRef.value.setData(rootData)
     }
-
-    message("目录刷新成功", { type: "success" });
+    
+    message('目录刷新成功', { type: "success" })
   } catch (error) {
-    message("刷新目录失败", { type: "error" });
+    message('刷新目录失败', { type: "error" })
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 const expandAll = () => {
   if (treeRef.value) {
     // 展开所有节点
-    const allNodes = treeRef.value.store.nodesMap;
+    const allNodes = treeRef.value.store.nodesMap
     Object.values(allNodes).forEach((node: any) => {
       if (node.isLeaf === false) {
-        node.expand();
+        node.expand()
       }
-    });
+    })
   }
-};
+}
 
 const collapseAll = () => {
   if (treeRef.value) {
     // 收起所有节点
-    const allNodes = treeRef.value.store.nodesMap;
+    const allNodes = treeRef.value.store.nodesMap
     Object.values(allNodes).forEach((node: any) => {
       if (node.isLeaf === false) {
-        node.collapse();
+        node.collapse()
       }
-    });
+    })
   }
-};
+}
 
 const createFolder = (parentData: DirectoryNode) => {
-  emit("folder-create", parentData.path);
-};
+  emit('folder-create', parentData.path)
+}
 
 const refreshNode = async (node: ElTreeNode, data: DirectoryNode) => {
   try {
     // 刷新指定节点
-    const childData = await loadDirectoryData(data.path);
-    node.childNodes = [];
-    node.loaded = false;
-    node.expand();
-
-    emit("node-refresh", data.path);
-    message("节点刷新成功", { type: "success" });
+    const childData = await loadDirectoryData(data.path)
+    node.childNodes = []
+    node.loaded = false
+    node.expand()
+    
+    emit('node-refresh', data.path)
+    message('节点刷新成功', { type: "success" })
   } catch (error) {
-    message("刷新节点失败", { type: "error" });
+    message('刷新节点失败', { type: "error" })
   }
-};
+}
 
 // 右键菜单操作
 const openInNewTab = () => {
   if (contextMenuNode.value) {
     // 在新标签页打开
-    window.open(
-      `/file-manager?path=${encodeURIComponent(contextMenuNode.value.path)}`,
-      "_blank",
-    );
+    window.open(`/file-manager?path=${encodeURIComponent(contextMenuNode.value.path)}`, '_blank')
   }
-};
+}
 
 const createFolderInContext = () => {
   if (contextMenuNode.value) {
-    createFolder(contextMenuNode.value);
+    createFolder(contextMenuNode.value)
   }
-};
+}
 
 const refreshNodeInContext = () => {
   if (contextMenuNode.value && treeRef.value) {
-    const node = treeRef.value.getNode(contextMenuNode.value.path);
+    const node = treeRef.value.getNode(contextMenuNode.value.path)
     if (node) {
-      refreshNode(node, contextMenuNode.value);
+      refreshNode(node, contextMenuNode.value)
     }
   }
-};
+}
 
 const copyPath = () => {
   if (contextMenuNode.value) {
-    navigator.clipboard
-      .writeText(contextMenuNode.value.path)
-      .then(() => {
-        message("路径已复制到剪贴板", { type: "success" });
-      })
-      .catch(() => {
-        message("复制路径失败", { type: "error" });
-      });
+    navigator.clipboard.writeText(contextMenuNode.value.path).then(() => {
+      message('路径已复制到剪贴板', { type: "success" })
+    }).catch(() => {
+      message('复制路径失败', { type: "error" })
+    })
   }
-};
+}
 
 const showProperties = () => {
   if (contextMenuNode.value) {
     // 显示属性对话框
-    message("属性功能开发中...", { type: "info" });
+    message('属性功能开发中...', { type: "info" })
   }
-};
+}
 
 // 监听当前路径变化
-watch(
-  () => props.currentPath,
-  (newPath) => {
-    if (treeRef.value) {
-      treeRef.value.setCurrentKey(newPath);
-    }
-  },
-);
+watch(() => props.currentPath, (newPath) => {
+  if (treeRef.value) {
+    treeRef.value.setCurrentKey(newPath)
+  }
+})
 
 // 组件挂载
 onMounted(() => {
   // 初始化加载根目录
-  refreshTree();
-});
+  refreshTree()
+})
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -575,11 +560,12 @@ onMounted(() => {
   }
 }
 
+
 .directory-tree {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color-overlay);
+   background: var(--el-bg-color-overlay);
   border-radius: 12px;
   border: 1px solid #e4e7ed;
   overflow: hidden;
@@ -682,7 +668,7 @@ onMounted(() => {
         .path-icon {
           margin-right: 8px;
           font-size: 16px;
-          color: var(--el-text-color-primary);
+           color: var(--el-text-color-primary);
         }
 
         .path-name {
@@ -736,36 +722,16 @@ onMounted(() => {
               font-size: 18px;
               transition: color 0.2s ease;
 
-              &.folder-icon {
-                color: #ffc107;
-              }
-              &.documents-icon {
-                color: #007bff;
-              }
-              &.images-icon {
-                color: #28a745;
-              }
-              &.videos-icon {
-                color: #dc3545;
-              }
-              &.audio-icon {
-                color: #6f42c1;
-              }
-              &.downloads-icon {
-                color: #17a2b8;
-              }
-              &.desktop-icon {
-                color: #6c757d;
-              }
-              &.trash-icon {
-                color: #dc3545;
-              }
-              &.projects-icon {
-                color: #20c997;
-              }
-              &.file-icon {
-                color: #adb5bd;
-              }
+              &.folder-icon { color: #ffc107; }
+              &.documents-icon { color: #007bff; }
+              &.images-icon { color: #28a745; }
+              &.videos-icon { color: #dc3545; }
+              &.audio-icon { color: #6f42c1; }
+              &.downloads-icon { color: #17a2b8; }
+              &.desktop-icon { color: #6c757d; }
+              &.trash-icon { color: #dc3545; }
+              &.projects-icon { color: #20c997; }
+              &.file-icon { color: #adb5bd; }
             }
           }
 
@@ -780,7 +746,7 @@ onMounted(() => {
 
             .node-count {
               font-size: 12px;
-              color: var(--el-text-color-primary);
+               color: var(--el-text-color-primary);
               background: #f0f2f5;
               padding: 2px 6px;
               border-radius: 10px;

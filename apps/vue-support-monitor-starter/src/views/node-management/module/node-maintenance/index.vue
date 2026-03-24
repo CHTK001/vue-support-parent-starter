@@ -8,59 +8,57 @@
         </div>
       </template>
       <div class="flex items-center gap-4">
-        <ScInput
+        <el-input
           v-model="nodeInfo.ipAddress"
           placeholder="节点IP地址"
           style="width: 200px"
         />
-        <ScInputNumber
+        <el-input-number
           v-model="nodeInfo.port"
           :min="1"
           :max="65535"
           placeholder="端口"
           style="width: 120px"
         />
-        <ScTooltip content="连接节点" placement="top">
-          <ScButton type="primary" :icon="Connection" @click="connectNode" />
-        </ScTooltip>
+        <el-tooltip content="连接节点" placement="top">
+          <el-button type="primary" :icon="Connection" @click="connectNode" />
+        </el-tooltip>
       </div>
       <div v-if="connected" class="mt-3">
-        <ScTag type="success">
+        <el-tag type="success">
           <IconifyIconOnline icon="ep:success-filled" class="mr-1" />
-          已连接: {{ upgradeStatus?.applicationName }} ({{
-            upgradeStatus?.currentVersion
-          }})
-        </ScTag>
+          已连接: {{ upgradeStatus?.applicationName }} ({{ upgradeStatus?.currentVersion }})
+        </el-tag>
       </div>
     </ScCard>
 
     <!-- 功能标签页 -->
-    <ScTabs v-model="activeTab" type="border-card">
+    <el-tabs v-model="activeTab" type="border-card">
       <!-- 备份管理 -->
-      <ScTabPane label="备份管理" name="backup">
+      <el-tab-pane label="备份管理" name="backup">
         <div class="mb-4 flex items-center gap-4">
-          <ScInput
+          <el-input
             v-model="backupDescription"
             placeholder="备份描述"
             style="width: 300px"
           />
-          <ScTooltip content="创建备份" placement="top">
-            <ScButton
+          <el-tooltip content="创建备份" placement="top">
+            <el-button
               type="primary"
               :icon="Plus"
               :loading="creating"
               :disabled="!connected"
               @click="createBackup"
             />
-          </ScTooltip>
-          <ScTooltip content="刷新列表" placement="top">
-            <ScButton
+          </el-tooltip>
+          <el-tooltip content="刷新列表" placement="top">
+            <el-button
               type="primary"
               :icon="Refresh"
               :disabled="!connected"
               @click="loadBackups"
             />
-          </ScTooltip>
+          </el-tooltip>
         </div>
 
         <ScTable
@@ -69,81 +67,79 @@
           :pagination="false"
         >
           <template #operation="{ row }">
-            <ScTooltip content="查看" placement="top">
-              <ScButton
+            <el-tooltip content="查看" placement="top">
+              <el-button
                 type="primary"
                 link
                 :icon="View"
                 @click="viewBackup(row)"
               />
-            </ScTooltip>
-            <ScTooltip content="还原" placement="top">
-              <ScButton
+            </el-tooltip>
+            <el-tooltip content="还原" placement="top">
+              <el-button
                 type="warning"
                 link
                 :icon="RefreshLeft"
                 @click="previewRestore(row)"
               />
-            </ScTooltip>
-            <ScTooltip content="删除" placement="top">
-              <ScButton
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <el-button
                 type="danger"
                 link
                 :icon="Delete"
                 @click="deleteBackup(row)"
               />
-            </ScTooltip>
+            </el-tooltip>
           </template>
         </ScTable>
-      </ScTabPane>
+      </el-tab-pane>
 
       <!-- 升级管理 -->
-      <ScTabPane label="升级管理" name="upgrade">
+      <el-tab-pane label="升级管理" name="upgrade">
         <div class="mb-4 flex items-center gap-4">
-          <ScUpload
+          <el-upload
             ref="uploadRef"
             :auto-upload="false"
             :show-file-list="false"
             accept=".jar,.zip"
             :on-change="handleFileChange"
           >
-            <ScButton :icon="Upload" :disabled="!connected"
-              >选择升级包</el-button
-            >
-          </ScUpload>
+            <el-button :icon="Upload" :disabled="!connected">选择升级包</el-button>
+          </el-upload>
           <span v-if="selectedFile" class="text-sm text-gray-500">
             {{ selectedFile.name }} ({{ formatSize(selectedFile.size) }})
           </span>
-          <ScButton
+          <el-button
             type="primary"
             :loading="uploading"
             :disabled="!selectedFile || !connected"
             @click="uploadPackage"
           >
             上传
-          </ScButton>
-          <ScTooltip content="刷新列表" placement="top">
-            <ScButton
+          </el-button>
+          <el-tooltip content="刷新列表" placement="top">
+            <el-button
               type="primary"
               :icon="Refresh"
               :disabled="!connected"
               @click="loadUpgradePackages"
             />
-          </ScTooltip>
+          </el-tooltip>
         </div>
 
         <!-- 当前版本信息 -->
-        <ScDescriptions v-if="upgradeStatus" :column="3" border class="mb-4">
-          <ScDescriptionsItem label="应用名称">
+        <el-descriptions v-if="upgradeStatus" :column="3" border class="mb-4">
+          <el-descriptions-item label="应用名称">
             {{ upgradeStatus.applicationName }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="当前版本">
+          </el-descriptions-item>
+          <el-descriptions-item label="当前版本">
             {{ upgradeStatus.currentVersion }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="JAR大小">
+          </el-descriptions-item>
+          <el-descriptions-item label="JAR大小">
             {{ formatSize(upgradeStatus.jarSize) }}
-          </ScDescriptionsItem>
-        </ScDescriptions>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <ScTable
           :url="upgradeTableUrl"
@@ -151,92 +147,72 @@
           :pagination="false"
         >
           <template #operation="{ row }">
-            <ScPopconfirm
+            <el-popconfirm
               title="确定要执行升级吗？升级前会自动备份当前配置"
               @confirm="executeUpgrade(row)"
             >
               <template #reference>
-                <ScButton type="primary" link :icon="Upload">
+                <el-button type="primary" link :icon="Upload">
                   执行升级
-                </ScButton>
+                </el-button>
               </template>
-            </ScPopconfirm>
+            </el-popconfirm>
           </template>
         </ScTable>
-      </ScTabPane>
+      </el-tab-pane>
 
       <!-- 还原管理 -->
-      <ScTabPane label="还原预览" name="restore">
+      <el-tab-pane label="还原预览" name="restore">
         <div v-if="!restorePreview" class="text-center text-gray-500 py-10">
           请在备份管理中选择一个备份进行还原预览
         </div>
         <div v-else>
-          <ScDescriptions :column="2" border class="mb-4">
-            <ScDescriptionsItem label="备份时间">
+          <el-descriptions :column="2" border class="mb-4">
+            <el-descriptions-item label="备份时间">
               {{ formatTime(restorePreview.backupTime) }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="备份描述">
+            </el-descriptions-item>
+            <el-descriptions-item label="备份描述">
               {{ restorePreview.description }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="差异项数">
-              <ScTag
-                :type="
-                  restorePreview.differenceCount > 0 ? 'warning' : 'success'
-                "
-              >
+            </el-descriptions-item>
+            <el-descriptions-item label="差异项数">
+              <el-tag :type="restorePreview.differenceCount > 0 ? 'warning' : 'success'">
                 {{ restorePreview.differenceCount }}
-              </ScTag>
-            </ScDescriptionsItem>
-          </ScDescriptions>
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
 
-          <ScTable
-            :data="restorePreview.differences"
-            border
-            stripe
-            max-height="400"
-          >
-            <ScTableColumn prop="key" label="配置项" min-width="200" />
-            <ScTableColumn
-              prop="currentValue"
-              label="当前值"
-              min-width="150"
-            />
-            <ScTableColumn
-              prop="backupValue"
-              label="备份值"
-              min-width="150"
-            />
-            <ScTableColumn prop="status" label="状态" width="80">
+          <el-table :data="restorePreview.differences" border stripe max-height="400">
+            <el-table-column prop="key" label="配置项" min-width="200" />
+            <el-table-column prop="currentValue" label="当前值" min-width="150" />
+            <el-table-column prop="backupValue" label="备份值" min-width="150" />
+            <el-table-column prop="status" label="状态" width="80">
               <template #default="{ row }">
-                <ScTag
-                  :type="row.status === '新增' ? 'success' : 'warning'"
-                  size="small"
-                >
+                <el-tag :type="row.status === '新增' ? 'success' : 'warning'" size="small">
                   {{ row.status }}
-                </ScTag>
+                </el-tag>
               </template>
-            </ScTableColumn>
-          </ScTable>
+            </el-table-column>
+          </el-table>
 
           <div class="mt-4 text-right">
-            <ScPopconfirm
+            <el-popconfirm
               title="确定要还原配置吗？部分配置需要重启后生效"
               @confirm="executeRestore"
             >
               <template #reference>
-                <ScButton type="primary" :loading="restoring">
+                <el-button type="primary" :loading="restoring">
                   执行还原
-                </ScButton>
+                </el-button>
               </template>
-            </ScPopconfirm>
+            </el-popconfirm>
           </div>
         </div>
-      </ScTabPane>
-    </ScTabs>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 备份内容查看对话框 -->
     <sc-dialog v-model="viewDialogVisible" title="备份内容" width="70%">
-      <ScInput
+      <el-input
         v-model="backupContentJson"
         type="textarea"
         :rows="20"
@@ -342,7 +318,7 @@ const backupTableUrl = computed(() => {
   return async () => {
     const res = await listBackupsForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     backups.value = res.data || [];
     return { data: res.data || [] };
@@ -354,7 +330,7 @@ const upgradeTableUrl = computed(() => {
   return async () => {
     const res = await listUpgradePackagesForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     upgradePackages.value = res.data || [];
     return { data: res.data || [] };
@@ -373,7 +349,7 @@ const connectNode = async () => {
   try {
     const res = await getUpgradeStatusForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     upgradeStatus.value = res.data;
     connected.value = true;
@@ -393,7 +369,7 @@ const loadBackups = async () => {
   try {
     const res = await listBackupsForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     backups.value = res.data || [];
   } catch {
@@ -410,7 +386,7 @@ const createBackup = async () => {
     await createBackupForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      backupDescription.value || "手动备份",
+      backupDescription.value || "手动备份"
     );
     message("备份创建成功", { type: "success" });
     backupDescription.value = "";
@@ -430,7 +406,7 @@ const viewBackup = async (row: BackupInfo) => {
     const res = await getBackupContentForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      row.fileName,
+      row.fileName
     );
     backupContentJson.value = JSON.stringify(res.data, null, 2);
     viewDialogVisible.value = true;
@@ -447,7 +423,7 @@ const deleteBackup = async (row: BackupInfo) => {
     await deleteBackupForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      row.fileName,
+      row.fileName
     );
     message("删除成功", { type: "success" });
     loadBackups();
@@ -464,7 +440,7 @@ const loadUpgradePackages = async () => {
   try {
     const res = await listUpgradePackagesForMaintenance(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     upgradePackages.value = res.data || [];
   } catch {
@@ -496,7 +472,7 @@ const uploadPackage = async () => {
         nodeInfo.value.ipAddress,
         nodeInfo.value.port,
         selectedFile.value!.name,
-        base64,
+        base64
       );
       message("上传成功", { type: "success" });
       selectedFile.value = null;
@@ -520,7 +496,7 @@ const executeUpgrade = async (row: UpgradePackageInfo) => {
       nodeInfo.value.port,
       row.fileName,
       true,
-      true,
+      true
     );
     message("升级成功，节点即将重启", { type: "success" });
   } catch {
@@ -536,7 +512,7 @@ const previewRestore = async (row: BackupInfo) => {
     const res = await previewRestoreForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      row.fileName,
+      row.fileName
     );
     restorePreview.value = res.data;
     restoreFileName.value = row.fileName;
@@ -555,7 +531,7 @@ const executeRestore = async () => {
     await executeRestoreForMaintenance(
       nodeInfo.value.ipAddress,
       nodeInfo.value.port,
-      restoreFileName.value,
+      restoreFileName.value
     );
     message("还原成功，部分配置需要重启后生效", { type: "success" });
     restorePreview.value = null;
@@ -587,6 +563,7 @@ const formatSize = (bytes?: number) => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -620,9 +597,11 @@ const formatSize = (bytes?: number) => {
   }
 }
 
+
 .node-maintenance {
   padding: 20px;
 }
+
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -632,4 +611,5 @@ const formatSize = (bytes?: number) => {
     padding: 12px 16px;
   }
 }
+
 </style>

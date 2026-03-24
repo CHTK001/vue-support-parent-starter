@@ -35,7 +35,7 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <ScInput
+        <el-input
           v-model="searchParams.keyword"
           placeholder="搜索镜像名称、标签..."
           class="search-input"
@@ -45,34 +45,34 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
+        </el-input>
+        <el-select
           v-model="searchParams.serverId"
           placeholder="全部服务器"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <ScOption label="全部服务器" :value="undefined" />
-          <ScOption
+          <el-option label="全部服务器" :value="undefined" />
+          <el-option
             v-for="server in servers"
             :key="server.monitorSysGenServerId"
             :label="server.monitorSysGenServerName"
             :value="server.monitorSysGenServerId"
           />
-        </ScSelect>
-        <ScSelect
+        </el-select>
+        <el-select
           v-model="searchParams.status"
           placeholder="全部状态"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <ScOption label="全部状态" :value="undefined" />
-          <ScOption label="可用" value="AVAILABLE" />
-          <ScOption label="拉取中" value="PULLING" />
-          <ScOption label="错误" value="PULL_FAILED" />
-        </ScSelect>
+          <el-option label="全部状态" :value="undefined" />
+          <el-option label="可用" value="AVAILABLE" />
+          <el-option label="拉取中" value="PULLING" />
+          <el-option label="错误" value="PULL_FAILED" />
+        </el-select>
         <div class="view-toggle">
           <button
             v-for="view in viewOptions"
@@ -86,22 +86,22 @@
         </div>
       </div>
       <div class="toolbar-right">
-        <ScButton :loading="loading" @click="handleRefresh">
+        <el-button @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton @click="syncVisible = true">
+        </el-button>
+        <el-button @click="syncVisible = true">
           <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
           同步
-        </ScButton>
-        <ScButton @click="importVisible = true">
+        </el-button>
+        <el-button @click="importVisible = true">
           <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
           导入
-        </ScButton>
-        <ScButton type="primary" @click="pullVisible = true">
+        </el-button>
+        <el-button type="primary" @click="pullVisible = true">
           <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
           拉取镜像
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -122,21 +122,21 @@
               <span class="group-count">{{ group.images.length }} 个镜像</span>
             </div>
           </div>
-          <ScDropdown trigger="click">
+          <el-dropdown trigger="click">
             <button class="more-btn">
               <IconifyIconOnline icon="ri:more-2-fill" />
             </button>
             <template #dropdown>
-              <ScDropdownMenu>
-                <ScDropdownItem
+              <el-dropdown-menu>
+                <el-dropdown-item
                   @click="handleExportServerImages(group.serverId)"
                 >
                   <IconifyIconOnline icon="ri:download-2-line" class="mr-2" />
                   导出全部镜像
-                </ScDropdownItem>
-              </ScDropdownMenu>
+                </el-dropdown-item>
+              </el-dropdown-menu>
             </template>
-          </ScDropdown>
+          </el-dropdown>
         </div>
 
         <div class="images-grid-modern">
@@ -165,7 +165,7 @@
                       'status-dot',
                       getStatusClass(image.systemSoftImageStatus),
                     ]"
-                  />
+                  ></span>
                 </div>
               </div>
             </div>
@@ -254,7 +254,7 @@
                     'status-dot',
                     getStatusClass(item.systemSoftImageStatus),
                   ]"
-                />
+                ></span>
               </div>
             </div>
             <div class="server-card-body">
@@ -308,9 +308,9 @@
         class="modern-table"
         :data-loaded="handleDataLoaded"
       >
-        <ScTableColumn type="selection" width="50" />
+        <el-table-column type="selection" width="50" />
 
-        <ScTableColumn label="镜像" min-width="260">
+        <el-table-column label="镜像" min-width="260">
           <template #default="{ row }">
             <div class="table-image-cell">
               <div
@@ -331,9 +331,9 @@
               </div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="服务器" width="180">
+        <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="table-server-cell">
               <IconifyIconOnline
@@ -343,25 +343,25 @@
               <span>{{ row.systemSoftImageServerName }}</span>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="大小" width="120">
+        <el-table-column label="大小" width="120">
           <template #default="{ row }">
             <span class="size-text">{{
               formatSize(row.systemSoftImageSize)
             }}</span>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="镜像ID" width="140">
+        <el-table-column label="镜像ID" width="140">
           <template #default="{ row }">
             <span class="image-id-text">{{
               (row.systemSoftImageImageId || "").substring(0, 12)
             }}</span>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="状态" width="100">
+        <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <span
               :class="[
@@ -372,38 +372,38 @@
               {{ getStatusText(row.systemSoftImageStatus) }}
             </span>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <div class="table-actions">
-              <ScTooltip content="安装容器" placement="top">
+              <el-tooltip content="安装容器" placement="top">
                 <button
                   class="table-action-btn primary"
                   @click="openInstallContainer(row)"
                 >
                   <IconifyIconOnline icon="ri:play-circle-line" />
                 </button>
-              </ScTooltip>
-              <ScTooltip content="导出" placement="top">
+              </el-tooltip>
+              <el-tooltip content="导出" placement="top">
                 <button
                   class="table-action-btn"
                   @click="handleExportImage(row)"
                 >
                   <IconifyIconOnline icon="ri:download-2-line" />
                 </button>
-              </ScTooltip>
-              <ScTooltip content="删除" placement="top">
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
                 <button
                   class="table-action-btn danger"
                   @click="handleDeleteImage(row)"
                 >
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </button>
-              </ScTooltip>
+              </el-tooltip>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
       </ScTable>
     </div>
 
@@ -458,8 +458,8 @@ import PullImageDialog from "./components/PullImageDialog.vue";
 import InstallContainerDialog from "./components/InstallContainerDialog.vue";
 import ImageSyncDialog from "./components/ImageSyncDialog.vue";
 import ImageImportDialog from "./components/ImageImportDialog.vue";
-import { ScSocketMessageDialog } from "@repo/components"
-import { ScTable } from "@repo/components"
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components";
 
 /**
@@ -518,12 +518,12 @@ const searchParams = ref({
 const availableCount = computed(
   () =>
     imageList.value.filter((img) => img.systemSoftImageStatus === "AVAILABLE")
-      .length,
+      .length
 );
 const pullingCount = computed(
   () =>
     imageList.value.filter((img) => img.systemSoftImageStatus === "PULLING")
-      .length,
+      .length
 );
 
 // 获取全局Socket服务
@@ -694,7 +694,7 @@ async function handleDeleteImage(image: SystemSoftImage) {
     await ElMessageBox.confirm(
       `确认删除镜像 ${image.systemSoftImageName}:${image.systemSoftImageTag}？`,
       "提示",
-      { type: "warning" },
+      { type: "warning" }
     );
 
     const res = await imageApi.deleteImage(image.systemSoftImageId!);
@@ -864,7 +864,7 @@ function setupSocketListeners() {
     console.log("✅ 操作完成:", operation);
     if (
       ["pull_image", "export_image", "import_image", "sync_images"].includes(
-        operation.type,
+        operation.type
       )
     ) {
       ElNotification.success({
@@ -909,6 +909,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -941,6 +942,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .images-management {
   padding: 16px;

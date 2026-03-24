@@ -8,164 +8,141 @@
   >
     <div v-loading="loading" class="server-info">
       <!-- 基本信息 -->
-      <ScCard class="info-card" shadow="never">
+      <el-card class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:information-line" class="mr-2" />
             基本信息
           </div>
         </template>
-
-        <ScDescriptions :column="2" border>
-          <ScDescriptionsItem label="服务器名称">
+        
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="服务器名称">
             {{ serverData.monitorSysGenServerName || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="协议类型">
-            <ScTag
-              :type="getProtocolType(serverData.monitorSysGenServerProtocol)"
-            >
-              <IconifyIconOnline
-                :icon="getProtocolIcon(serverData.monitorSysGenServerProtocol)"
-                class="mr-1"
-              />
+          </el-descriptions-item>
+          <el-descriptions-item label="协议类型">
+            <el-tag :type="getProtocolType(serverData.monitorSysGenServerProtocol)">
+              <IconifyIconOnline :icon="getProtocolIcon(serverData.monitorSysGenServerProtocol)" class="mr-1" />
               {{ serverData.monitorSysGenServerProtocol || "-" }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="服务器地址">
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="服务器地址">
             {{ serverData.monitorSysGenServerHost || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="端口">
+          </el-descriptions-item>
+          <el-descriptions-item label="端口">
             {{ serverData.monitorSysGenServerPort || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="用户名">
+          </el-descriptions-item>
+          <el-descriptions-item label="用户名">
             {{ serverData.monitorSysGenServerUsername || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="认证方式">
-            <ScTag size="small">
-              {{
-                serverData.monitorSysGenServerAuthType === "password"
-                  ? "密码认证"
-                  : "密钥认证"
-              }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="状态">
-            <ScTag :type="getStatusType(serverData.monitorSysGenServerStatus)">
+          </el-descriptions-item>
+          <el-descriptions-item label="认证方式">
+            <el-tag size="small">
+              {{ serverData.monitorSysGenServerAuthType === "password" ? "密码认证" : "密钥认证" }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusType(serverData.monitorSysGenServerStatus)">
               {{ getStatusText(serverData.monitorSysGenServerStatus) }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="监控状态">
-            <ScTag
-              :type="
-                serverData.monitorSysGenServerMonitorEnabled
-                  ? 'success'
-                  : 'info'
-              "
-            >
-              {{
-                serverData.monitorSysGenServerMonitorEnabled
-                  ? "已启用"
-                  : "已禁用"
-              }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="标签" :span="2">
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="监控状态">
+            <el-tag :type="serverData.monitorSysGenServerMonitorEnabled ? 'success' : 'info'">
+              {{ serverData.monitorSysGenServerMonitorEnabled ? "已启用" : "已禁用" }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="标签" :span="2">
             <div v-if="serverData.monitorSysGenServerTags">
-              <ScTag
+              <el-tag
                 v-for="tag in serverData.monitorSysGenServerTags.split(',')"
                 :key="tag"
                 size="small"
                 class="mr-1"
               >
                 {{ tag.trim() }}
-              </ScTag>
+              </el-tag>
             </div>
             <span v-else>-</span>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="描述" :span="2">
+          </el-descriptions-item>
+          <el-descriptions-item label="描述" :span="2">
             {{ serverData.monitorSysGenServerDescription || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="创建时间">
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间">
             {{ formatDate(serverData.monitorSysGenServerCreateTime) }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="更新时间">
+          </el-descriptions-item>
+          <el-descriptions-item label="更新时间">
             {{ formatDate(serverData.monitorSysGenServerUpdateTime) }}
-          </ScDescriptionsItem>
-        </ScDescriptions>
-      </ScCard>
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-card>
 
       <!-- 连接状态 -->
-      <ScCard class="info-card" shadow="never">
+      <el-card class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:link" class="mr-2" />
             连接状态
-            <ScButton
+            <el-button
               type="primary"
               size="small"
               :loading="statusLoading"
-              class="ml-auto"
               @click="refreshStatus"
+              class="ml-auto"
             >
               刷新状态
-            </ScButton>
+            </el-button>
           </div>
         </template>
-
-        <ScDescriptions :column="2" border>
-          <ScDescriptionsItem label="连接状态">
-            <ScTag :type="getConnectionStatusType(connectionStatus.status)">
+        
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="连接状态">
+            <el-tag :type="getConnectionStatusType(connectionStatus.status)">
               {{ getConnectionStatusText(connectionStatus.status) }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="最后连接时间">
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="最后连接时间">
             {{ formatDate(connectionStatus.lastConnectTime) }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="连接次数">
+          </el-descriptions-item>
+          <el-descriptions-item label="连接次数">
             {{ connectionStatus.connectCount || 0 }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="在线时长">
+          </el-descriptions-item>
+          <el-descriptions-item label="在线时长">
             {{ formatDuration(connectionStatus.onlineDuration) }}
-          </ScDescriptionsItem>
-        </ScDescriptions>
-      </ScCard>
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-card>
 
       <!-- 系统信息 -->
-      <ScCard
-        v-if="systemInfo && Object.keys(systemInfo).length > 0"
-        class="info-card"
-        shadow="never"
-      >
+      <el-card v-if="systemInfo && Object.keys(systemInfo).length > 0" class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:computer-line" class="mr-2" />
             系统信息
-            <ScButton
+            <el-button
               type="primary"
               size="small"
               :loading="infoLoading"
-              class="ml-auto"
               @click="refreshSystemInfo"
+              class="ml-auto"
             >
               刷新信息
-            </ScButton>
+            </el-button>
           </div>
         </template>
-
-        <ScDescriptions :column="2" border>
-          <ScDescriptionsItem label="操作系统">
+        
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="操作系统">
             {{ systemInfo.osName || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="系统版本">
+          </el-descriptions-item>
+          <el-descriptions-item label="系统版本">
             {{ systemInfo.osVersion || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="主机名">
+          </el-descriptions-item>
+          <el-descriptions-item label="主机名">
             {{ systemInfo.hostname || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="CPU架构">
+          </el-descriptions-item>
+          <el-descriptions-item label="CPU架构">
             {{ systemInfo.cpuArch || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="CPU使用率">
+          </el-descriptions-item>
+          <el-descriptions-item label="CPU使用率">
             <ScProgress
               type="line"
               :percentage="Math.round(systemInfo.cpuUsage || 0)"
@@ -174,8 +151,8 @@
               text-position="right"
               :stroke-width="8"
             />
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="内存使用率">
+          </el-descriptions-item>
+          <el-descriptions-item label="内存使用率">
             <ScProgress
               type="line"
               :percentage="Math.round(systemInfo.memoryUsage || 0)"
@@ -184,8 +161,8 @@
               text-position="right"
               :stroke-width="8"
             />
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="磁盘使用率">
+          </el-descriptions-item>
+          <el-descriptions-item label="磁盘使用率">
             <ScProgress
               type="line"
               :percentage="Math.round(systemInfo.diskUsage || 0)"
@@ -194,32 +171,32 @@
               text-position="right"
               :stroke-width="8"
             />
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="系统负载">
+          </el-descriptions-item>
+          <el-descriptions-item label="系统负载">
             {{ systemInfo.loadAverage || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="运行时间" :span="2">
+          </el-descriptions-item>
+          <el-descriptions-item label="运行时间" :span="2">
             {{ formatDuration(systemInfo.uptime) }}
-          </ScDescriptionsItem>
-        </ScDescriptions>
-      </ScCard>
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-card>
 
       <!-- 最近指标 -->
-      <ScCard v-if="recentMetrics.length > 0" class="info-card" shadow="never">
+      <el-card v-if="recentMetrics.length > 0" class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:line-chart-line" class="mr-2" />
             最近指标记录
           </div>
         </template>
-
-        <ScTable :data="recentMetrics" stripe>
-          <ScTableColumn prop="collectTime" label="收集时间" width="180">
+        
+        <el-table :data="recentMetrics" stripe>
+          <el-table-column prop="collectTime" label="收集时间" width="180">
             <template #default="{ row }">
               {{ formatDate(row.collectTime) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="cpuUsage" label="CPU使用率" width="120">
+          </el-table-column>
+          <el-table-column prop="cpuUsage" label="CPU使用率" width="120">
             <template #default="{ row }">
               <ScProgress
                 type="line"
@@ -230,8 +207,8 @@
                 :stroke-width="6"
               />
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="memoryUsage" label="内存使用率" width="120">
+          </el-table-column>
+          <el-table-column prop="memoryUsage" label="内存使用率" width="120">
             <template #default="{ row }">
               <ScProgress
                 type="line"
@@ -242,8 +219,8 @@
                 :stroke-width="6"
               />
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="diskUsage" label="磁盘使用率" width="120">
+          </el-table-column>
+          <el-table-column prop="diskUsage" label="磁盘使用率" width="120">
             <template #default="{ row }">
               <ScProgress
                 type="line"
@@ -254,26 +231,26 @@
                 :stroke-width="6"
               />
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="networkIn" label="网络入流量" width="120">
+          </el-table-column>
+          <el-table-column prop="networkIn" label="网络入流量" width="120">
             <template #default="{ row }">
               {{ formatBytes(row.networkIn) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="networkOut" label="网络出流量" width="120">
+          </el-table-column>
+          <el-table-column prop="networkOut" label="网络出流量" width="120">
             <template #default="{ row }">
               {{ formatBytes(row.networkOut) }}
             </template>
-          </ScTableColumn>
-        </ScTable>
-      </ScCard>
+          </el-table-column>
+        </el-table>
+      </el-card>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">关闭</ScButton>
-        <ScButton type="primary" @click="handleEdit">编辑</ScButton>
-        <ScButton type="success" @click="handleConnect">连接</ScButton>
+        <el-button @click="visible = false">关闭</el-button>
+        <el-button type="primary" @click="handleEdit">编辑</el-button>
+        <el-button type="success" @click="handleConnect">连接</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -403,32 +380,28 @@ const getProtocolType = (protocol: string) => {
  * 获取协议图标
  */
 const getProtocolIcon = (protocol: string) => {
-  return (
-    protocolIconMap[protocol as keyof typeof protocolIconMap] ||
-    "ri:server-line"
-  );
+  return protocolIconMap[protocol as keyof typeof protocolIconMap] || "ri:server-line";
 };
 
 /**
  * 获取进度条颜色（支持渐变和不同指标类型）
  */
-const getProgressColor = (percentage: number, metricType: string = "cpu") => {
+const getProgressColor = (percentage: number, metricType: string = 'cpu') => {
   // 定义不同指标的阈值
   const thresholds = {
     cpu: { normal: 50, warning: 80, critical: 90 },
     memory: { normal: 60, warning: 80, critical: 90 },
     disk: { normal: 70, warning: 85, critical: 95 },
-    network: { normal: 60, warning: 80, critical: 90 },
+    network: { normal: 60, warning: 80, critical: 90 }
   };
 
-  const threshold =
-    thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
+  const threshold = thresholds[metricType as keyof typeof thresholds] || thresholds.cpu;
 
   // 返回渐变色配置
   return [
-    { color: "#67c23a", percentage: threshold.normal },
-    { color: "#e6a23c", percentage: threshold.warning },
-    { color: "#f56c6c", percentage: 100 },
+    { color: '#67c23a', percentage: threshold.normal },
+    { color: '#e6a23c', percentage: threshold.warning },
+    { color: '#f56c6c', percentage: 100 }
   ];
 };
 
@@ -528,17 +501,14 @@ const handleConnect = async () => {
     console.error("连接服务器出错:", error);
   } finally {
     loading.value = false;
-  }
+  };
 };
 
 /**
  * 进度阶段颜色（供 ScProgress 使用）
  */
 const getProgressStages = (metricType: string) => {
-  const thresholds: Record<
-    string,
-    { normal: number; warning: number; critical: number }
-  > = {
+  const thresholds: Record<string, { normal: number; warning: number; critical: number }> = {
     cpu: { normal: 50, warning: 80, critical: 100 },
     memory: { normal: 60, warning: 85, critical: 100 },
     disk: { normal: 70, warning: 85, critical: 100 },
@@ -599,6 +569,7 @@ defineExpose({
   border-radius: 4px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -607,4 +578,5 @@ defineExpose({
     padding: 12px 16px;
   }
 }
+
 </style>

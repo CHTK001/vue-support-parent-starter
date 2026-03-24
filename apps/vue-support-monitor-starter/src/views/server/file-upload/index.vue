@@ -10,22 +10,22 @@
       </div>
 
       <div class="header-actions">
-        <ScButton type="primary" @click="handleCreateTask">
+        <el-button type="primary" @click="handleCreateTask">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建上传任务
-        </ScButton>
-        <ScButton @click="handleRefreshStats">
+        </el-button>
+        <el-button @click="handleRefreshStats">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新统计
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-cards">
-      <ScRow :gutter="16">
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon pending">
                 <IconifyIconOnline icon="ep:clock" />
@@ -35,11 +35,11 @@
                 <div class="stat-label">待处理任务</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
+          </el-card>
+        </el-col>
 
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon processing">
                 <IconifyIconOnline icon="ep:loading" />
@@ -51,11 +51,11 @@
                 <div class="stat-label">处理中任务</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
+          </el-card>
+        </el-col>
 
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon completed">
                 <IconifyIconOnline icon="ep:check" />
@@ -67,11 +67,11 @@
                 <div class="stat-label">已完成任务</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
+          </el-card>
+        </el-col>
 
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon failed">
                 <IconifyIconOnline icon="ep:close" />
@@ -81,9 +81,9 @@
                 <div class="stat-label">失败任务</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-      </ScRow>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 实时进度监控 -->
@@ -96,18 +96,18 @@
 
     <!-- 任务管理 -->
     <div class="task-management">
-      <ScCard>
+      <el-card>
         <template #header>
           <div class="card-header">
             <span>任务管理</span>
             <div class="header-tabs">
-              <ScRadioGroup v-model="activeTab" @change="handleTabChange">
+              <el-radio-group v-model="activeTab" @change="handleTabChange">
                 <el-radio-button value="all">全部任务</el-radio-button>
                 <el-radio-button value="pending">待处理</el-radio-button>
                 <el-radio-button value="processing">处理中</el-radio-button>
                 <el-radio-button value="completed">已完成</el-radio-button>
                 <el-radio-button value="failed">失败</el-radio-button>
-              </ScRadioGroup>
+              </el-radio-group>
             </div>
           </div>
         </template>
@@ -117,7 +117,7 @@
           :ssh-servers="sshServers"
           @task-updated="handleTaskUpdated"
         />
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 上传对话框 -->
@@ -287,7 +287,7 @@ const stopAutoRefresh = () => {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-
+  
   // 渐变背景
   &::before {
     content: "";
@@ -310,7 +310,7 @@ const stopAutoRefresh = () => {
     pointer-events: none;
     z-index: 0;
   }
-
+  
   > * {
     position: relative;
     z-index: 1;
@@ -327,14 +327,14 @@ const stopAutoRefresh = () => {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 20px;
-  box-shadow:
+  box-shadow: 
     0 4px 24px rgba(0, 0, 0, 0.04),
     0 2px 8px rgba(0, 0, 0, 0.02);
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  
   &:hover {
-    box-shadow:
+    box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.08),
       0 4px 12px rgba(0, 0, 0, 0.04);
   }
@@ -347,11 +347,7 @@ const stopAutoRefresh = () => {
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -368,13 +364,13 @@ const stopAutoRefresh = () => {
 .header-actions {
   display: flex;
   gap: 12px;
-
+  
   .el-button {
     border-radius: 12px;
     padding: 10px 20px;
     font-weight: 500;
     transition: all 0.2s ease;
-
+    
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -394,13 +390,13 @@ const stopAutoRefresh = () => {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow:
+  box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.06),
     0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  
   &:hover {
-    box-shadow:
+    box-shadow: 
       0 8px 24px rgba(0, 0, 0, 0.12),
       0 4px 8px rgba(0, 0, 0, 0.08);
     transform: translateY(-4px);
@@ -472,7 +468,7 @@ const stopAutoRefresh = () => {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 20px;
-  box-shadow:
+  box-shadow: 
     0 4px 24px rgba(0, 0, 0, 0.06),
     0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -491,7 +487,7 @@ const stopAutoRefresh = () => {
 
 .header-tabs {
   margin-left: auto;
-
+  
   :deep(.el-radio-group) {
     .el-radio-button__inner {
       border-radius: 8px;

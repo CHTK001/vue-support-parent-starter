@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, watch, onMounted, onUnmounted, type Ref } from "vue";
+import { ref, watch, onMounted, onUnmounted, type Ref } from 'vue';
 
 /** 对话框记忆数据 */
 export interface DialogMemoryData {
@@ -29,13 +29,6 @@ export interface DrawerMemoryData {
   width?: string;
   /** 高度（上下抽屉） */
   height?: string;
-  /** 是否打开 */
-  isOpen?: boolean;
-  /**
-   * 位置
-   * @description 可用于记录内容滚动位置或业务相关的自定义位置
-   */
-  position?: number;
   /** 最后更新时间 */
   timestamp?: number;
 }
@@ -46,7 +39,7 @@ export type ComponentMemoryData = DialogMemoryData | DrawerMemoryData;
 /** 记忆配置选项 */
 export interface ComponentMemoryOptions {
   /** 组件类型 */
-  type: "dialog" | "drawer";
+  type: 'dialog' | 'drawer';
   /** 记忆键名 */
   memoryKey: string;
   /** 是否启用记忆 */
@@ -78,15 +71,23 @@ export interface ComponentMemoryReturn<T extends ComponentMemoryData> {
 }
 
 /** 存储键前缀 */
-const DEFAULT_PREFIX = "sc-component-memory";
+const DEFAULT_PREFIX = 'sc-component-memory';
 
 /**
  * 组件记忆 composable
  * @param options 配置选项
  * @returns ComponentMemoryReturn
  */
-export function useComponentMemory<T extends ComponentMemoryData>(options: ComponentMemoryOptions): ComponentMemoryReturn<T> {
-  const { type, memoryKey, enabled = true, expiry = 0, storagePrefix = DEFAULT_PREFIX } = options;
+export function useComponentMemory<T extends ComponentMemoryData>(
+  options: ComponentMemoryOptions
+): ComponentMemoryReturn<T> {
+  const {
+    type,
+    memoryKey,
+    enabled = true,
+    expiry = 0,
+    storagePrefix = DEFAULT_PREFIX,
+  } = options;
 
   const memoryData = ref<T | null>(null) as Ref<T | null>;
   const isLoaded = ref(false);
@@ -115,11 +116,11 @@ export function useComponentMemory<T extends ComponentMemoryData>(options: Compo
     try {
       const key = getStorageKey();
       const stored = localStorage.getItem(key);
-
+      
       if (!stored) return null;
 
       const data = JSON.parse(stored) as T;
-
+      
       // 检查是否过期
       if (isExpired(data)) {
         clearMemory();
@@ -145,7 +146,7 @@ export function useComponentMemory<T extends ComponentMemoryData>(options: Compo
       const key = getStorageKey();
       const saveData: T = {
         ...data,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       } as T;
 
       localStorage.setItem(key, JSON.stringify(saveData));
@@ -164,7 +165,7 @@ export function useComponentMemory<T extends ComponentMemoryData>(options: Compo
     const current = memoryData.value || ({} as T);
     saveMemory({
       ...current,
-      ...data
+      ...data,
     });
   };
 
@@ -203,29 +204,35 @@ export function useComponentMemory<T extends ComponentMemoryData>(options: Compo
     clearMemory,
     hasMemory,
     getStorageKey,
-    updateMemory
+    updateMemory,
   };
 }
 
 /**
  * 对话框记忆 composable (便捷包装)
  */
-export function useDialogMemory(memoryKey: string, options: Omit<ComponentMemoryOptions, "type" | "memoryKey"> = {}): ComponentMemoryReturn<DialogMemoryData> {
+export function useDialogMemory(
+  memoryKey: string,
+  options: Omit<ComponentMemoryOptions, 'type' | 'memoryKey'> = {}
+): ComponentMemoryReturn<DialogMemoryData> {
   return useComponentMemory<DialogMemoryData>({
     ...options,
-    type: "dialog",
-    memoryKey
+    type: 'dialog',
+    memoryKey,
   });
 }
 
 /**
  * 抽屉记忆 composable (便捷包装)
  */
-export function useDrawerMemory(memoryKey: string, options: Omit<ComponentMemoryOptions, "type" | "memoryKey"> = {}): ComponentMemoryReturn<DrawerMemoryData> {
+export function useDrawerMemory(
+  memoryKey: string,
+  options: Omit<ComponentMemoryOptions, 'type' | 'memoryKey'> = {}
+): ComponentMemoryReturn<DrawerMemoryData> {
   return useComponentMemory<DrawerMemoryData>({
     ...options,
-    type: "drawer",
-    memoryKey
+    type: 'drawer',
+    memoryKey,
   });
 }
 
@@ -234,18 +241,23 @@ export function useDrawerMemory(memoryKey: string, options: Omit<ComponentMemory
  * @param type 组件类型
  * @param storagePrefix 存储前缀
  */
-export function clearAllComponentMemory(type?: "dialog" | "drawer", storagePrefix = DEFAULT_PREFIX): void {
+export function clearAllComponentMemory(
+  type?: 'dialog' | 'drawer',
+  storagePrefix = DEFAULT_PREFIX
+): void {
   try {
     const keys = Object.keys(localStorage);
-    const prefix = type ? `${storagePrefix}-${type}-` : `${storagePrefix}-`;
+    const prefix = type
+      ? `${storagePrefix}-${type}-`
+      : `${storagePrefix}-`;
 
-    keys.forEach(key => {
+    keys.forEach((key) => {
       if (key.startsWith(prefix)) {
         localStorage.removeItem(key);
       }
     });
   } catch (error) {
-    console.warn("[clearAllComponentMemory] Failed to clear memories:", error);
+    console.warn('[clearAllComponentMemory] Failed to clear memories:', error);
   }
 }
 
@@ -254,12 +266,17 @@ export function clearAllComponentMemory(type?: "dialog" | "drawer", storagePrefi
  * @param type 组件类型
  * @param storagePrefix 存储前缀
  */
-export function getAllMemoryKeys(type?: "dialog" | "drawer", storagePrefix = DEFAULT_PREFIX): string[] {
+export function getAllMemoryKeys(
+  type?: 'dialog' | 'drawer',
+  storagePrefix = DEFAULT_PREFIX
+): string[] {
   try {
     const keys = Object.keys(localStorage);
-    const prefix = type ? `${storagePrefix}-${type}-` : `${storagePrefix}-`;
+    const prefix = type
+      ? `${storagePrefix}-${type}-`
+      : `${storagePrefix}-`;
 
-    return keys.filter(key => key.startsWith(prefix));
+    return keys.filter((key) => key.startsWith(prefix));
   } catch {
     return [];
   }

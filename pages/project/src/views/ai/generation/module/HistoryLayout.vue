@@ -48,20 +48,12 @@ const displayData = computed(() => {
           fps: props.form.parameters?.fps,
         },
       },
-      sysAiVincentTaskUrls: props.newGeneratedData
-        .map((item) => item.url)
-        .filter((url) => url !== null),
-      sysAiVincentTaskLocalUrls: props.newGeneratedData
-        .map((item) => item.url)
-        .filter((url) => url !== null),
+      sysAiVincentTaskUrls: props.newGeneratedData.map((item) => item.url).filter((url) => url !== null),
+      sysAiVincentTaskLocalUrls: props.newGeneratedData.map((item) => item.url).filter((url) => url !== null),
       // 添加占位符和进度信息
       isGenerating: props.newGeneratedData.some((item) => item.isPlaceholder),
-      placeholderData: props.newGeneratedData.filter(
-        (item) => item.isPlaceholder,
-      ),
-      generatedData: props.newGeneratedData.filter(
-        (item) => !item.isPlaceholder,
-      ),
+      placeholderData: props.newGeneratedData.filter((item) => item.isPlaceholder),
+      generatedData: props.newGeneratedData.filter((item) => !item.isPlaceholder),
     };
     allData.unshift(newItem); // 添加到数组开头
   }
@@ -73,22 +65,17 @@ const displayData = computed(() => {
  * @return {*}
  */
 const loadHistoryData = async () => {
-  fetchHistoryTaskForVincent({ sysAiVincentTaskType: props.env.category }).then(
-    ({ data }) => {
-      historyData.value = data.map((it, index) => {
-        return {
-          ...it,
-          id: it.id || `history_${index}_${Date.now()}`, // 确保每个项目都有唯一ID
-          config: !it.sysAiVincentTaskCondition
-            ? {}
-            : JSON.parse(it.sysAiVincentTaskCondition),
-          sysAiVincentTaskUrls: it?.sysAiVincentTaskUrl?.split(",") || [],
-          sysAiVincentTaskLocalUrls:
-            it?.sysAiVincentTaskLocalUrl?.split(",") || [],
-        };
-      });
-    },
-  );
+  fetchHistoryTaskForVincent({ sysAiVincentTaskType: props.env.category }).then(({ data }) => {
+    historyData.value = data.map((it, index) => {
+      return {
+        ...it,
+        id: it.id || `history_${index}_${Date.now()}`, // 确保每个项目都有唯一ID
+        config: !it.sysAiVincentTaskCondition ? {} : JSON.parse(it.sysAiVincentTaskCondition),
+        sysAiVincentTaskUrls: it?.sysAiVincentTaskUrl?.split(",") || [],
+        sysAiVincentTaskLocalUrls: it?.sysAiVincentTaskLocalUrl?.split(",") || [],
+      };
+    });
+  });
 };
 
 /**
@@ -175,19 +162,12 @@ defineExpose({
       <div class="params-section">
         <!-- 提示词区域 -->
         <div class="prompt-text" :title="row.config?.input?.prompt">
-          <span
-            class="prompt-content"
-            @click="handleReDraw(row.config?.input?.prompt)"
-            >{{ row.config?.input?.prompt }}</span
-          >
+          <span class="prompt-content" @click="handleReDraw(row.config?.input?.prompt)">{{ row.config?.input?.prompt }}</span>
         </div>
 
         <!-- 标签式参数展示 -->
         <div class="param-tags">
-          <div
-            class="param-tag model-tag"
-            @click="handleReDraw(row.config.model, 'model')"
-          >
+          <div class="param-tag model-tag" @click="handleReDraw(row.config.model, 'model')">
             <span class="tag-icon">🤖</span>
             <span class="tag-text">{{ row.config.model }}</span>
           </div>
@@ -231,14 +211,9 @@ defineExpose({
         </div>
 
         <!-- 反向提示词 -->
-        <div
-          class="negative-prompt-section"
-          v-if="row.config?.input?.negativePrompt"
-        >
+        <div class="negative-prompt-section" v-if="row.config?.input?.negativePrompt">
           <span class="negative-label">反向提示词</span>
-          <span class="negative-content">{{
-            row.config.input.negativePrompt
-          }}</span>
+          <span class="negative-content">{{ row.config.input.negativePrompt }}</span>
         </div>
       </div>
     </div>

@@ -10,15 +10,20 @@ import DefaultTag from "./themes/Default.vue";
 
 // 主题组件映射 - 默认主题静态导入，其他主题懒加载
 const themeComponents = {
-  default: DefaultTag,
+  'default': DefaultTag,
   // 春节主题复用现有的新年标签组件
+  'spring-festival': defineAsyncComponent(() => import("./themes/NewYearTag.vue")),
+  'halloween': defineAsyncComponent(() => import("./themes/HalloweenTag.vue")),
+  'mid-autumn': defineAsyncComponent(() => import("./themes/MidAutumnTag.vue")),
+  'christmas': defineAsyncComponent(() => import("./themes/ChristmasTag.vue")),
+  'new-year': defineAsyncComponent(() => import("./themes/NewYearTag.vue")),
+  // future-tech 主题暂时复用默认标签组件，避免因未实现主题导致标签区域不显示
+  'future-tech': DefaultTag,
+  '8bit': DefaultTag, // 8-bit 主题使用默认标签组件
 };
 
 // 使用统一的主题切换 Hook
-const { CurrentComponent, currentTheme } = useThemeComponent(
-  themeComponents,
-  DefaultTag,
-);
+const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultTag);
 </script>
 
 <template>

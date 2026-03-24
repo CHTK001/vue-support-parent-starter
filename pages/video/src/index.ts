@@ -22,17 +22,4 @@ import VideoSource from "./views/source/index.vue";
 // 主模块导出
 export * from "./api";
 export * from "./router";
-export {
-  VideoAddResult,
-  VideoConfig,
-  VideoDetail,
-  VideoDetailResult,
-  VideoEditResult,
-  VideoManage,
-  VideoManageSearchResult,
-  VideoParse,
-  VideoPlay,
-  VideoSearch,
-  VideoSearchResult,
-  VideoSource,
-};
+export { VideoAddResult, VideoConfig, VideoDetail, VideoDetailResult, VideoEditResult, VideoManage, VideoManageSearchResult, VideoParse, VideoPlay, VideoSearch, VideoSearchResult, VideoSource };

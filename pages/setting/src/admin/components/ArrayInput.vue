@@ -1,28 +1,13 @@
 ﻿<template>
   <div class="sc-array-input">
-    <ScInput
-      v-model="jsonString"
-      type="textarea"
-      :rows="rows"
-      :disabled="disabled"
-      :placeholder="placeholder"
-      @blur="validateAndUpdate"
-      class="array-textarea"
-    />
+    <ScInput v-model="jsonString" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" @blur="validateAndUpdate" class="array-textarea" />
 
     <div class="array-error" v-if="error">
       {{ error }}
     </div>
 
     <div class="array-items" v-if="isValidArray && showItems">
-      <draggable
-        v-model="arrayItems"
-        item-key="id"
-        handle=".item-drag-handle"
-        :disabled="disabled"
-        @end="handleDragEnd"
-        class="array-draggable"
-      >
+      <draggable v-model="arrayItems" item-key="id" handle=".item-drag-handle" :disabled="disabled" @end="handleDragEnd" class="array-draggable">
         <template #item="{ element, index }">
           <div class="array-item">
             <div class="item-drag-handle" v-if="!disabled">
@@ -30,13 +15,7 @@
             </div>
             <div class="item-content">{{ element.value }}</div>
             <div class="item-actions" v-if="!disabled">
-              <ScButton
-                type="danger"
-                size="small"
-                circle
-                @click="removeItem(index)"
-                class="delete-btn"
-              >
+              <ScButton type="danger" size="small" circle @click="removeItem(index)" class="delete-btn">
                 <IconifyIconOnline icon="ep:delete" />
               </ScButton>
             </div>
@@ -44,17 +23,10 @@
         </template>
       </draggable>
 
-      <div class="array-empty" v-if="arrayItems.length === 0">
-        数组为空，请添加项目
-      </div>
+      <div class="array-empty" v-if="arrayItems.length === 0">数组为空，请添加项目</div>
 
       <div class="array-add" v-if="!disabled">
-        <ScInput
-          v-model="newItem"
-          placeholder="输入新项目，多个项目用逗号分隔"
-          @keyup.enter="addItem"
-          class="add-input"
-        >
+        <ScInput v-model="newItem" placeholder="输入新项目，多个项目用逗号分隔" @keyup.enter="addItem" class="add-input">
           <template #append>
             <ScButton @click="addItem">
               <IconifyIconOnline icon="ep:plus" />
@@ -271,7 +243,7 @@ watch(
   () => {
     jsonString.value = props.modelValue;
     initArrayItems();
-  },
+  }
 );
 
 // 初始化

@@ -1,7 +1,7 @@
 ﻿<template>
   <sc-dialog
-    v-model="dialogVisible"
     title="同步进度"
+    v-model="dialogVisible"
     width="700px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -11,23 +11,24 @@
       <!-- 整体进度 -->
       <div class="overall-progress">
         <div class="progress-header">
-          <h4>{{ progress.title || "正在同步仓库数据" }}</h4>
-          <ScTag :type="getStatusType(progress.status)" size="small">
+          <h4>{{ progress.title || '正在同步仓库数据' }}</h4>
+          <el-tag 
+            :type="getStatusType(progress.status)"
+            size="small"
+          >
             {{ getStatusText(progress.status) }}
-          </ScTag>
+          </el-tag>
         </div>
-
-        <ScProgress
+        
+        <el-progress
           :percentage="progress.percentage || 0"
           :status="getProgressStatus(progress.status)"
           :stroke-width="20"
           text-inside
         />
-
+        
         <div class="progress-info">
-          <span class="current-step">{{
-            progress.currentStep || "准备中..."
-          }}</span>
+          <span class="current-step">{{ progress.currentStep || '准备中...' }}</span>
           <span class="time-info">
             已用时: {{ formatDuration(progress.elapsed || 0) }}
             <span v-if="progress.estimated">
@@ -38,13 +39,10 @@
       </div>
 
       <!-- 详细步骤 -->
-      <div
-        v-if="progress.steps && progress.steps.length > 0"
-        class="step-details"
-      >
+      <div class="step-details" v-if="progress.steps && progress.steps.length > 0">
         <h5>同步步骤</h5>
-        <ScTimeline>
-          <ScTimelineItem
+        <el-timeline>
+          <el-timeline-item
             v-for="(step, index) in progress.steps"
             :key="index"
             :type="getStepType(step.status)"
@@ -58,7 +56,7 @@
                 {{ step.description }}
               </div>
               <div v-if="step.progress !== undefined" class="step-progress">
-                <ScProgress
+                <el-progress
                   :percentage="step.progress"
                   :show-text="false"
                   :stroke-width="6"
@@ -70,24 +68,20 @@
                 {{ step.error }}
               </div>
             </div>
-          </ScTimelineItem>
-        </ScTimeline>
+          </el-timeline-item>
+        </el-timeline>
       </div>
 
       <!-- 同步统计 -->
-      <div v-if="progress.stats" class="sync-stats">
+      <div class="sync-stats" v-if="progress.stats">
         <h5>同步统计</h5>
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-value">
-              {{ progress.stats.totalSoftware || 0 }}
-            </div>
+            <div class="stat-value">{{ progress.stats.totalSoftware || 0 }}</div>
             <div class="stat-label">软件总数</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">
-              {{ progress.stats.syncedSoftware || 0 }}
-            </div>
+            <div class="stat-value">{{ progress.stats.syncedSoftware || 0 }}</div>
             <div class="stat-label">已同步</div>
           </div>
           <div class="stat-item">
@@ -95,32 +89,30 @@
             <div class="stat-label">新增</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">
-              {{ progress.stats.updatedSoftware || 0 }}
-            </div>
+            <div class="stat-value">{{ progress.stats.updatedSoftware || 0 }}</div>
             <div class="stat-label">更新</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">
-              {{ progress.stats.failedSoftware || 0 }}
-            </div>
+            <div class="stat-value">{{ progress.stats.failedSoftware || 0 }}</div>
             <div class="stat-label">失败</div>
           </div>
         </div>
       </div>
 
       <!-- 同步日志 -->
-      <div v-if="progress.logs && progress.logs.length > 0" class="sync-logs">
+      <div class="sync-logs" v-if="progress.logs && progress.logs.length > 0">
         <div class="logs-header">
           <h5>同步日志</h5>
           <div class="logs-actions">
-            <ScButton size="small" @click="toggleLogDetails">
-              {{ showLogDetails ? "隐藏" : "显示" }}详细日志
-            </ScButton>
-            <ScButton size="small" @click="clearLogs"> 清空日志 </ScButton>
+            <el-button size="small" @click="toggleLogDetails">
+              {{ showLogDetails ? '隐藏' : '显示' }}详细日志
+            </el-button>
+            <el-button size="small" @click="clearLogs">
+              清空日志
+            </el-button>
           </div>
         </div>
-
+        
         <div v-if="showLogDetails" class="logs-content">
           <div
             v-for="(log, index) in displayLogs"
@@ -137,122 +129,135 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton v-if="canCancel" @click="handleCancel"> 取消同步 </ScButton>
-        <ScButton v-if="isCompleted" type="primary" @click="handleClose">
+        <el-button
+          v-if="canCancel"
+          @click="handleCancel"
+        >
+          取消同步
+        </el-button>
+        <el-button
+          v-if="isCompleted"
+          type="primary"
+          @click="handleClose"
+        >
           确定
-        </ScButton>
-        <ScButton v-if="isFailed" type="warning" @click="handleRetry">
+        </el-button>
+        <el-button
+          v-if="isFailed"
+          type="warning"
+          @click="handleRetry"
+        >
           重试
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch } from 'vue';
 
 // Props 定义
 interface Props {
-  visible: boolean;
-  progress: any;
+  visible: boolean
+  progress: any
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
 // Emits 定义
 const emit = defineEmits<{
-  "update:visible": [value: boolean];
-  cancel: [];
-  retry: [];
-}>();
+  'update:visible': [value: boolean]
+  cancel: []
+  retry: []
+}>()
 
 // 响应式数据
-const showLogDetails = ref(false);
-const maxDisplayLogs = ref(100);
+const showLogDetails = ref(false)
+const maxDisplayLogs = ref(100)
 
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit("update:visible", value),
-});
+  set: (value) => emit('update:visible', value)
+})
 
 const isCompleted = computed(() => {
-  return ["completed", "cancelled"].includes(props.progress?.status);
-});
+  return ['completed', 'cancelled'].includes(props.progress?.status)
+})
 
 const isFailed = computed(() => {
-  return props.progress?.status === "failed";
-});
+  return props.progress?.status === 'failed'
+})
 
 const canCancel = computed(() => {
-  return ["running", "pending"].includes(props.progress?.status);
-});
+  return ['running', 'pending'].includes(props.progress?.status)
+})
 
 const displayLogs = computed(() => {
-  if (!props.progress?.logs) return [];
-
-  const logs = [...props.progress.logs];
+  if (!props.progress?.logs) return []
+  
+  const logs = [...props.progress.logs]
   if (logs.length > maxDisplayLogs.value) {
-    return logs.slice(-maxDisplayLogs.value);
+    return logs.slice(-maxDisplayLogs.value)
   }
-  return logs;
-});
+  return logs
+})
 
 // 方法定义
 const getStatusType = (status: string) => {
   const types = {
-    pending: "info",
-    running: "warning",
-    completed: "success",
-    failed: "danger",
-    cancelled: "info",
-  };
-  return types[status] || "info";
-};
+    'pending': 'info',
+    'running': 'warning',
+    'completed': 'success',
+    'failed': 'danger',
+    'cancelled': 'info'
+  }
+  return types[status] || 'info'
+}
 
 const getStatusText = (status: string) => {
   const texts = {
-    pending: "等待中",
-    running: "进行中",
-    completed: "已完成",
-    failed: "失败",
-    cancelled: "已取消",
-  };
-  return texts[status] || "未知";
-};
+    'pending': '等待中',
+    'running': '进行中',
+    'completed': '已完成',
+    'failed': '失败',
+    'cancelled': '已取消'
+  }
+  return texts[status] || '未知'
+}
 
 const getProgressStatus = (status: string) => {
-  if (status === "completed") return "success";
-  if (status === "failed") return "exception";
-  return null;
-};
+  if (status === 'completed') return 'success'
+  if (status === 'failed') return 'exception'
+  return null
+}
 
 const getStepType = (status: string) => {
   const types = {
-    pending: "info",
-    running: "primary",
-    completed: "success",
-    failed: "danger",
-    skipped: "warning",
-  };
-  return types[status] || "info";
-};
+    'pending': 'info',
+    'running': 'primary',
+    'completed': 'success',
+    'failed': 'danger',
+    'skipped': 'warning'
+  }
+  return types[status] || 'info'
+}
 
 const getStepIcon = (status: string) => {
   const icons = {
-    pending: "ri:time-line",
-    running: "ri:loader-line",
-    completed: "ri:check-line",
-    failed: "ri:close-line",
-    skipped: "ri:skip-forward-line",
-  };
-  return icons[status] || "ri:more-line";
-};
+    'pending': 'ri:time-line',
+    'running': 'ri:loader-line',
+    'completed': 'ri:check-line',
+    'failed': 'ri:close-line',
+    'skipped': 'ri:skip-forward-line'
+  }
+  return icons[status] || 'ri:more-line'
+}
 
 const formatTime = (timestamp: number | string) => {
-  return new Date(timestamp).toLocaleTimeString();
-};
+  return new Date(timestamp).toLocaleTimeString()
+}
 
 const formatDuration = (seconds: number) => {
   if (seconds < 60) {
@@ -269,35 +274,35 @@ const formatDuration = (seconds: number) => {
 };
 
 const toggleLogDetails = () => {
-  showLogDetails.value = !showLogDetails.value;
-};
+  showLogDetails.value = !showLogDetails.value
+}
 
 const clearLogs = () => {
   // 清空日志的逻辑
-  console.log("清空日志");
-};
+  console.log('清空日志')
+}
 
 const handleCancel = () => {
-  emit("cancel");
-};
+  emit('cancel')
+}
 
 const handleRetry = () => {
-  emit("retry");
-};
+  emit('retry')
+}
 
 const handleClose = () => {
-  emit("update:visible", false);
-};
+  emit('update:visible', false)
+}
 
 // 监听器
 watch(
   () => props.visible,
   (newVal) => {
     if (newVal) {
-      showLogDetails.value = false;
+      showLogDetails.value = false
     }
-  },
-);
+  }
+)
 </script>
 
 <style scoped lang="scss">
@@ -441,7 +446,7 @@ watch(
   background: #f8f9fa;
   border-radius: 6px;
   padding: 12px;
-  font-family: "Consolas", "Monaco", monospace;
+  font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -485,6 +490,7 @@ watch(
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -493,4 +499,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

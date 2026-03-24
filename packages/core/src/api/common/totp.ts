@@ -17,9 +17,5 @@ export const fetchUnbindTotp = () => {
  * 获取totp uri
  */
 export const fetchGetTotpUri = () => {
-  return http.request<ReturnResult<boolean>>(
-    "get",
-    "/v2/user/totp/generateUri",
-    {},
-  );
+  return http.request<ReturnResult<boolean>>("get", "/v2/user/totp/generateUri", {});
 };

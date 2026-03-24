@@ -1,23 +1,20 @@
 <template>
   <div class="container-dashboard system-container modern-bg">
-    <ScRow :gutter="20">
-      <ScCol :span="24">
-        <ScCard class="dashboard-card">
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card class="dashboard-card">
           <template #header>
             <div class="card-header">
               <span class="card-title">
-                <IconifyIconOnline
-                  icon="ri:dashboard-line"
-                  class="title-icon"
-                />
+                <IconifyIconOnline icon="ri:dashboard-line" class="title-icon" />
                 容器监控概览
               </span>
-              <ScButton :loading="loading" size="small" @click="handleRefresh">
+              <el-button @click="handleRefresh" :loading="loading" size="small">
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </ScButton>
+              </el-button>
             </div>
           </template>
-
+          
           <div class="dashboard-content">
             <!-- 关键指标 -->
             <div class="metrics-grid">
@@ -26,25 +23,21 @@
                   <IconifyIconOnline icon="ri:cpu-line" />
                 </div>
                 <div class="metric-content">
-                  <div class="metric-value">
-                    {{ formatPercent(avgCpuUsage) }}
-                  </div>
+                  <div class="metric-value">{{ formatPercent(avgCpuUsage) }}</div>
                   <div class="metric-label">平均CPU使用率</div>
                 </div>
               </div>
-
+              
               <div class="metric-card">
                 <div class="metric-icon memory">
                   <IconifyIconOnline icon="ri:database-2-line" />
                 </div>
                 <div class="metric-content">
-                  <div class="metric-value">
-                    {{ formatPercent(avgMemoryUsage) }}
-                  </div>
+                  <div class="metric-value">{{ formatPercent(avgMemoryUsage) }}</div>
                   <div class="metric-label">平均内存使用率</div>
                 </div>
               </div>
-
+              
               <div class="metric-card">
                 <div class="metric-icon container">
                   <IconifyIconOnline icon="ri:container-line" />
@@ -54,7 +47,7 @@
                   <div class="metric-label">总容器数</div>
                 </div>
               </div>
-
+              
               <div class="metric-card">
                 <div class="metric-icon running">
                   <IconifyIconOnline icon="ri:play-circle-line" />
@@ -65,198 +58,176 @@
                 </div>
               </div>
             </div>
-
+            
             <!-- 容器状态分布 -->
             <div class="status-distribution">
               <div class="chart-container">
-                <div ref="chartContainerRef" class="chart" />
+                <div ref="chartContainerRef" class="chart"></div>
               </div>
             </div>
           </div>
-        </ScCard>
-      </ScCol>
-    </ScRow>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup lang="ts">
-import { containerApi } from "@/api/docker";
-import * as echarts from "echarts";
-import { onMounted, onUnmounted, ref } from "vue";
+import { containerApi } from '@/api/docker'
+import * as echarts from 'echarts'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 // 响应式数据
-const loading = ref(false);
-const chartContainerRef = ref<HTMLElement>();
-let chartInstance: echarts.ECharts | null = null;
+const loading = ref(false)
+const chartContainerRef = ref<HTMLElement>()
+let chartInstance: echarts.ECharts | null = null
 
 // 指标数据
-const avgCpuUsage = ref(0);
-const avgMemoryUsage = ref(0);
-const totalContainers = ref(0);
-const runningContainers = ref(0);
+const avgCpuUsage = ref(0)
+const avgMemoryUsage = ref(0)
+const totalContainers = ref(0)
+const runningContainers = ref(0)
 
 // 初始化图表
 const initChart = () => {
   if (chartContainerRef.value) {
-    chartInstance = echarts.init(chartContainerRef.value);
-    updateChart();
+    chartInstance = echarts.init(chartContainerRef.value)
+    updateChart()
   }
-};
+}
 
 // 更新图表
 const updateChart = () => {
-  if (!chartInstance) return;
-
+  if (!chartInstance) return
+  
   const option = {
     title: {
-      text: "容器状态分布",
-      left: "center",
+      text: '容器状态分布',
+      left: 'center',
       textStyle: {
         fontSize: 14,
-        fontWeight: "normal",
-      },
+        fontWeight: 'normal'
+      }
     },
     tooltip: {
-      trigger: "item",
-      formatter: "{a} <br/>{b}: {c} ({d}%)",
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
     },
     legend: {
-      orient: "vertical",
-      left: "left",
+      orient: 'vertical',
+      left: 'left'
     },
     series: [
       {
-        name: "容器状态",
-        type: "pie",
-        radius: ["40%", "70%"],
+        name: '容器状态',
+        type: 'pie',
+        radius: ['40%', '70%'],
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: "#fff",
-          borderWidth: 2,
+          borderColor: '#fff',
+          borderWidth: 2
         },
         label: {
           show: false,
-          position: "center",
+          position: 'center'
         },
         emphasis: {
           label: {
             show: true,
-            fontSize: "14",
-            fontWeight: "bold",
-          },
+            fontSize: '14',
+            fontWeight: 'bold'
+          }
         },
         labelLine: {
-          show: false,
+          show: false
         },
         data: [
-          {
-            value: runningContainers.value,
-            name: "运行中",
-            itemStyle: { color: "#67c23a" },
-          },
-          {
-            value: totalContainers.value - runningContainers.value,
-            name: "其他状态",
-            itemStyle: { color: "#909399" },
-          },
-        ],
-      },
-    ],
-  };
-
-  chartInstance.setOption(option);
-};
+          { value: runningContainers.value, name: '运行中', itemStyle: { color: '#67c23a' } },
+          { value: totalContainers.value - runningContainers.value, name: '其他状态', itemStyle: { color: '#909399' } }
+        ]
+      }
+    ]
+  }
+  
+  chartInstance.setOption(option)
+}
 
 // 加载数据
 const loadData = async () => {
   try {
-    loading.value = true;
-
+    loading.value = true
+    
     // 获取容器状态统计
-    const statsResponse = await containerApi.getContainerStatusStats();
-    if (statsResponse.code === "00000") {
-      const stats = statsResponse.data || { total: 0, running: 0 };
-      totalContainers.value = stats.total || 0;
-      runningContainers.value = stats.running || 0;
+    const statsResponse = await containerApi.getContainerStatusStats()
+    if (statsResponse.code === '00000') {
+      const stats = statsResponse.data || { total: 0, running: 0 }
+      totalContainers.value = stats.total || 0
+      runningContainers.value = stats.running || 0
     }
-
+    
     // 获取容器列表以计算平均资源使用率
-    const listResponse = await containerApi.getContainerPageList({
-      page: 1,
-      pageSize: 1000,
-    });
-    if (listResponse.code === "00000") {
-      const containers = listResponse.data.records || [];
-
+    const listResponse = await containerApi.getContainerPageList({ page: 1, pageSize: 1000 })
+    if (listResponse.code === '00000') {
+      const containers = listResponse.data.records || []
+      
       // 计算平均CPU和内存使用率
       if (containers.length > 0) {
-        const cpuSum = containers.reduce(
-          (sum, container) =>
-            sum +
-            (container.systemSoftContainerCpuPercent ||
-              container.systemSoftContainerCpuUsage ||
-              0),
-          0,
-        );
-
-        const memorySum = containers.reduce(
-          (sum, container) =>
-            sum +
-            (container.systemSoftContainerMemoryPercent ||
-              container.systemSoftContainerMemoryUsage ||
-              0),
-          0,
-        );
-
-        avgCpuUsage.value = cpuSum / containers.length;
-        avgMemoryUsage.value = memorySum / containers.length;
+        const cpuSum = containers.reduce((sum, container) => 
+          sum + (container.systemSoftContainerCpuPercent || container.systemSoftContainerCpuUsage || 0), 0)
+        
+        const memorySum = containers.reduce((sum, container) => 
+          sum + (container.systemSoftContainerMemoryPercent || container.systemSoftContainerMemoryUsage || 0), 0)
+        
+        avgCpuUsage.value = cpuSum / containers.length
+        avgMemoryUsage.value = memorySum / containers.length
       } else {
-        avgCpuUsage.value = 0;
-        avgMemoryUsage.value = 0;
+        avgCpuUsage.value = 0
+        avgMemoryUsage.value = 0
       }
     }
-
+    
     // 更新图表
-    updateChart();
+    updateChart()
   } catch (error) {
-    console.error("加载容器监控数据失败:", error);
+    console.error('加载容器监控数据失败:', error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 // 刷新数据
 const handleRefresh = () => {
-  loadData();
-};
+  loadData()
+}
 
 // 格式化百分比
-const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+const formatPercent = (value: number) => `${value.toFixed(1)}%`
 
 // 组件挂载
 onMounted(() => {
-  initChart();
-  loadData();
-
+  initChart()
+  loadData()
+  
   // 添加窗口大小变化监听
-  window.addEventListener("resize", () => {
+  window.addEventListener('resize', () => {
     if (chartInstance) {
-      chartInstance.resize();
+      chartInstance.resize()
     }
-  });
-});
+  })
+})
 
 // 组件卸载
 onUnmounted(() => {
   if (chartInstance) {
-    chartInstance.dispose();
-    chartInstance = null;
+    chartInstance.dispose()
+    chartInstance = null
   }
-});
+})
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -289,6 +260,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .container-dashboard {
   margin-bottom: 20px;

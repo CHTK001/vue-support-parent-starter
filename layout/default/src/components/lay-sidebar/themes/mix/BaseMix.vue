@@ -6,7 +6,7 @@ import {
   usePermissionStoreHook,
 } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { getConfig, transformI18n } from "@repo/config";
 import { nextTick, onMounted, ref, toRaw, watch } from "vue";
 import { useTranslationLang } from "../../../../hooks/useTranslationLang";
@@ -71,7 +71,7 @@ watch(
   () => [route.path, permissionStore.wholeMenus],
   () => {
     getDefaultActive(route.path);
-  },
+  }
 );
 const deferDropdown = useDefer(4);
 </script>
@@ -82,7 +82,7 @@ const deferDropdown = useDefer(4);
     v-loading="permissionStore.wholeMenus.length === 0"
     :class="['horizontal-header', themeClass]"
   >
-    <ScMenu
+    <el-menu
       ref="menuRef"
       router
       mode="horizontal"
@@ -90,7 +90,7 @@ const deferDropdown = useDefer(4);
       class="horizontal-header-menu"
       :default-active="defaultActive"
     >
-      <ScMenuItem
+      <el-menu-item
         v-for="route in permissionStore.wholeMenus"
         :key="route.path"
         :index="resolvePath(route) || route.redirect"
@@ -111,8 +111,8 @@ const deferDropdown = useDefer(4);
             <LaySidebarExtraIcon :extraIcon="route.meta.extraIcon" />
           </div>
         </template>
-      </ScMenuItem>
-    </ScMenu>
+      </el-menu-item>
+    </el-menu>
     <div class="horizontal-header-right">
       <LayTool />
     </div>

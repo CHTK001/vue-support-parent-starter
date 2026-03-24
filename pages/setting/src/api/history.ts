@@ -52,7 +52,7 @@ export const fetchHistoryPage = (params: {
   return http.request<ReturnResult<PageResult<SettingHistory>>>(
     "get",
     "/v2/setting/history/page",
-    { params },
+    { params }
   );
 };
 
@@ -62,7 +62,7 @@ export const fetchHistoryByBatch = (batchNo: string) => {
   return http.request<ReturnResult<SettingHistory[]>>(
     "get",
     "/v2/setting/history/batch",
-    { params },
+    { params }
   );
 };
 
@@ -72,7 +72,7 @@ export const fetchRollbackBatch = (batchNo: string) => {
   return http.request<ReturnResult<boolean>>(
     "post",
     "/v2/setting/history/rollback/batch",
-    { params },
+    { params }
   );
 };
 
@@ -82,6 +82,6 @@ export const fetchRollbackSingle = (historyId: number) => {
   return http.request<ReturnResult<boolean>>(
     "post",
     "/v2/setting/history/rollback/single",
-    { params },
+    { params }
   );
 };

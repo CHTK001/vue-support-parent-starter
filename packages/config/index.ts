@@ -1,11 +1,5 @@
 // 优先显式导出 config 模块的函数，确保正确导出
-export {
-  getConfig,
-  setConfig,
-  putConfig,
-  responsiveStorageNameSpace,
-  upgrade,
-} from "./src/config";
+export { getConfig, setConfig, putConfig, responsiveStorageNameSpace, upgrade } from "./src/config";
 export * from "./src/config";
 export * from "./src/i18n";
 export * from "./src/setting";

@@ -253,7 +253,8 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { ScSlider } from "@repo/components";
 import { message , ScNotification} from "@repo/utils";
 
-import { ScSwitch } from "@repo/components"
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+
 // 状态变量
 const isRunning = ref(false);
 const isWorkMode = ref(true);

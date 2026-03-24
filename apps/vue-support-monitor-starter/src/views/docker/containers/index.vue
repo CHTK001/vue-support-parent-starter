@@ -37,19 +37,15 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <ScButton :loading="loading" @click="handleRefresh">
+        <el-button @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton
-          type="primary"
-          :loading="syncLoading"
-          @click="handleSyncStatus"
-        >
+        </el-button>
+        <el-button type="primary" @click="handleSyncStatus" :loading="syncLoading">
           <IconifyIconOnline icon="ri:loop-left-line" class="mr-1" />
           同步状态
-        </ScButton>
-        <ScInput
+        </el-button>
+        <el-input
           v-model="searchParams.keyword"
           placeholder="搜索容器名称或镜像"
           class="search-input"
@@ -59,77 +55,77 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
+        </el-input>
+        <el-select
           v-model="searchParams.status"
           placeholder="运行状态"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <ScOption label="全部状态" value="" />
-          <ScOption label="运行中" value="running">
+          <el-option label="全部状态" value="" />
+          <el-option label="运行中" value="running">
             <span class="status-option"
               ><span class="status-dot running" />运行中</span
             >
-          </ScOption>
-          <ScOption label="已停止" value="stopped">
+          </el-option>
+          <el-option label="已停止" value="stopped">
             <span class="status-option"
               ><span class="status-dot stopped" />已停止</span
             >
-          </ScOption>
-          <ScOption label="暂停" value="paused">
+          </el-option>
+          <el-option label="暂停" value="paused">
             <span class="status-option"
               ><span class="status-dot paused" />暂停</span
             >
-          </ScOption>
-          <ScOption label="重启中" value="restarting">
+          </el-option>
+          <el-option label="重启中" value="restarting">
             <span class="status-option"
               ><span class="status-dot restarting" />重启中</span
             >
-          </ScOption>
-          <ScOption label="错误" value="error">
+          </el-option>
+          <el-option label="错误" value="error">
             <span class="status-option"
               ><span class="status-dot error" />错误</span
             >
-          </ScOption>
-        </ScSelect>
-        <ScSelect
+          </el-option>
+        </el-select>
+        <el-select
           v-model="searchParams.serverId"
           placeholder="选择服务器"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <ScOption label="全部服务器" value="" />
-          <ScOption
+          <el-option label="全部服务器" value="" />
+          <el-option
             v-for="server in serverOptions"
             :key="server.id"
             :label="server.name"
             :value="server.id"
           />
-        </ScSelect>
+        </el-select>
       </div>
       <div class="toolbar-right">
-        <el-button-group v-if="selectedIds.length > 0" class="batch-btn-group">
-          <ScButton type="success" @click="handleBatchStart">
+        <el-button-group class="batch-btn-group" v-if="selectedIds.length > 0">
+          <el-button type="success" @click="handleBatchStart">
             <IconifyIconOnline icon="ri:play-fill" class="mr-1" />
             启动 ({{ selectedIds.length }})
-          </ScButton>
-          <ScButton type="warning" @click="handleBatchStop">
+          </el-button>
+          <el-button type="warning" @click="handleBatchStop">
             <IconifyIconOnline icon="ri:stop-fill" class="mr-1" />
             停止
-          </ScButton>
-          <ScButton type="danger" @click="handleBatchDelete">
+          </el-button>
+          <el-button type="danger" @click="handleBatchDelete">
             <IconifyIconOnline icon="ri:delete-bin-fill" class="mr-1" />
             删除
-          </ScButton>
+          </el-button>
         </el-button-group>
       </div>
     </div>
 
     <!-- 容器表格 -->
-    <ScCard class="container-table-card">
+    <el-card class="container-table-card">
       <ScTable
         ref="tableRef"
         :url="containerApi.getContainerPageList"
@@ -141,9 +137,9 @@
         height="100%"
         @selection-change="handleSelectionChange"
       >
-        <ScTableColumn type="selection" width="55" />
+        <el-table-column type="selection" width="55" />
 
-        <ScTableColumn label="容器信息" min-width="250">
+        <el-table-column label="容器信息" min-width="250">
           <template #default="{ row }">
             <div class="container-info">
               <div class="container-details">
@@ -156,59 +152,57 @@
               </div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="镜像信息" min-width="200">
+        <el-table-column label="镜像信息" min-width="200">
           <template #default="{ row }">
             <div class="image-info">
               <div class="image-name">{{ row.systemSoftContainerImage }}</div>
               <div class="image-tag">{{ row.systemSoftContainerImageTag }}</div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="运行状态" width="120">
+        <el-table-column label="运行状态" width="120">
           <template #default="{ row }">
-            <ScTag
+            <el-tag
               :type="getStatusType(row.systemSoftContainerStatus)"
               size="small"
             >
               {{ getStatusText(row.systemSoftContainerStatus) }}
-            </ScTag>
+            </el-tag>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="服务器" width="180">
+        <el-table-column label="服务器" width="180">
           <template #default="{ row }">
             <div class="server-info">
-              <div class="server-name">
-                {{ getServerName(row.systemServerId) }}
-              </div>
+              <div class="server-name">{{ getServerName(row.systemServerId) }}</div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="端口映射" min-width="150">
+        <el-table-column label="端口映射" min-width="150">
           <template #default="{ row }">
             <div class="ports-container">
-              <ScTag
+              <el-tag
                 v-for="port in parsePortMappings(row.systemSoftContainerPorts)"
                 :key="port"
                 size="small"
                 class="port-tag"
               >
                 {{ port }}
-              </ScTag>
+              </el-tag>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="资源使用" width="180">
+        <el-table-column label="资源使用" width="180">
           <template #default="{ row }">
             <div class="resource-usage">
               <div class="usage-item">
                 <span class="usage-label">CPU:</span>
-                <ScProgress
+                <el-progress
                   :percentage="
                     row.systemSoftContainerCpuPercent ||
                     row.systemSoftContainerCpuUsage ||
@@ -230,7 +224,7 @@
               </div>
               <div class="usage-item">
                 <span class="usage-label">内存:</span>
-                <ScProgress
+                <el-progress
                   :percentage="
                     row.systemSoftContainerMemoryPercent ||
                     row.systemSoftContainerMemoryUsage ||
@@ -252,77 +246,77 @@
               </div>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="创建时间" width="160">
+        <el-table-column label="创建时间" width="160">
           <template #default="{ row }">
             {{ formatTime(row.systemSoftContainerCreatedTime) }}
           </template>
-        </ScTableColumn>
+        </el-table-column>
 
-        <ScTableColumn label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <ScButton
+              <el-button
                 size="small"
                 type="success"
-                :disabled="row.systemSoftContainerStatus === 'running'"
                 @click="handleStart(row)"
+                :disabled="row.systemSoftContainerStatus === 'running'"
               >
                 <IconifyIconOnline icon="ri:play-line" class="mr-1" />
                 启动
-              </ScButton>
-              <ScButton
+              </el-button>
+              <el-button
                 size="small"
                 type="warning"
-                :disabled="row.systemSoftContainerStatus !== 'running'"
                 @click="handleStop(row)"
+                :disabled="row.systemSoftContainerStatus !== 'running'"
               >
                 <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
                 停止
-              </ScButton>
-              <ScButton size="small" @click="openExec(row)">
+              </el-button>
+              <el-button size="small" @click="openExec(row)">
                 <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
                 进入容器
-              </ScButton>
-              <ScDropdown
+              </el-button>
+              <el-dropdown
                 @command="(command) => handleMoreAction(command, row)"
               >
-                <ScButton size="small">
+                <el-button size="small">
                   <IconifyIconOnline icon="ri:more-line" />
-                </ScButton>
+                </el-button>
                 <template #dropdown>
-                  <ScDropdownMenu>
-                    <ScDropdownItem command="restart">
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="restart">
                       <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
                       重启
-                    </ScDropdownItem>
-                    <ScDropdownItem command="logs">
+                    </el-dropdown-item>
+                    <el-dropdown-item command="logs">
                       <IconifyIconOnline
                         icon="ri:file-text-line"
                         class="mr-1"
                       />
                       查看日志
-                    </ScDropdownItem>
-                    <ScDropdownItem command="detail">
+                    </el-dropdown-item>
+                    <el-dropdown-item command="detail">
                       <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                       详细信息
-                    </ScDropdownItem>
-                    <ScDropdownItem command="delete" divided>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>
                       <IconifyIconOnline
                         icon="ri:delete-bin-line"
                         class="mr-1"
                       />
                       删除
-                    </ScDropdownItem>
-                  </ScDropdownMenu>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-              </ScDropdown>
+              </el-dropdown>
             </div>
           </template>
-        </ScTableColumn>
+        </el-table-column>
       </ScTable>
-    </ScCard>
+    </el-card>
 
     <!-- 容器详情对话框 -->
     <ContainerDetailDialog
@@ -349,7 +343,7 @@ import {
   getServerList,
   type SystemSoftContainer,
 } from "@/api/docker";
-import { ScTable } from "@repo/components"
+import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components";
 import { message, messageBox } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";
@@ -403,9 +397,7 @@ const handleRefresh = () => {
 
 // 监听表格选择变化
 const handleSelectionChange = (selection: SystemSoftContainer[]) => {
-  selectedIds.value = selection
-    .map((item) => item.systemSoftContainerId!)
-    .filter(Boolean);
+  selectedIds.value = selection.map(item => item.systemSoftContainerId!).filter(Boolean);
 };
 
 const handleSearch = () => {
@@ -455,7 +447,7 @@ const formatTime = (time?: string) =>
 const handleStart = async (container: SystemSoftContainer) => {
   try {
     const response = await containerApi.startContainer(
-      container.systemSoftContainerId!,
+      container.systemSoftContainerId!
     );
     if (response.code === "00000") {
       message.success("容器启动成功");
@@ -477,7 +469,7 @@ const handleStop = async (container: SystemSoftContainer) => {
     });
 
     const response = await containerApi.stopContainer(
-      container.systemSoftContainerId!,
+      container.systemSoftContainerId!
     );
     if (response.code === "00000") {
       message.success("容器停止成功");
@@ -496,7 +488,7 @@ const handleStop = async (container: SystemSoftContainer) => {
 
 const handleMoreAction = async (
   command: string,
-  container: SystemSoftContainer,
+  container: SystemSoftContainer
 ) => {
   currentContainer.value = container;
 
@@ -519,7 +511,7 @@ const handleMoreAction = async (
 const handleRestart = async (container: SystemSoftContainer) => {
   try {
     const response = await containerApi.restartContainer(
-      container.systemSoftContainerId!,
+      container.systemSoftContainerId!
     );
     if (response.code === "00000") {
       message.success("容器重启成功");
@@ -541,11 +533,11 @@ const handleDelete = async (container: SystemSoftContainer) => {
       "删除确认",
       {
         type: "error",
-      },
+      }
     );
 
     const response = await containerApi.deleteContainer(
-      container.systemSoftContainerId!,
+      container.systemSoftContainerId!
     );
     if (response.code === "00000") {
       message.success("容器删除成功");
@@ -618,7 +610,7 @@ const handleBatchStop = async () => {
       "批量停止确认",
       {
         type: "warning",
-      },
+      }
     );
 
     // 使用现有的批量操作API
@@ -654,7 +646,7 @@ const handleBatchDelete = async () => {
       "批量删除确认",
       {
         type: "error",
-      },
+      }
     );
 
     // 使用现有的批量操作API
@@ -714,11 +706,12 @@ async function openExec(row: any) {
   try {
     // 获取服务器信息
     const serverId = String(
-      row.systemServerId || row.systemSoftContainerServerId || row.serverId,
+      row.systemServerId || row.systemSoftContainerServerId || row.serverId
     );
     if (!serverId) return message.warning("缺少服务器ID");
     const { data, code, msg } = await getServerInfo(serverId);
-    if (code !== 0 || !data) return message.error(msg || "获取服务器信息失败");
+    if (code !== 0 || !data)
+      return message.error(msg || "获取服务器信息失败");
 
     // 打开终端并设置数据
     // ServerTerminalDialog 暴露 setData/open 方法
@@ -731,7 +724,7 @@ async function openExec(row: any) {
     const shell = "/bin/sh";
     setTimeout(() => {
       sendServerData(serverId, `docker exec -it ${name} ${shell}\n`).catch(
-        () => {},
+        () => {}
       );
     }, 800);
   } catch (e) {
@@ -742,6 +735,7 @@ async function openExec(row: any) {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -774,6 +768,7 @@ async function openExec(row: any) {
     z-index: 1;
   }
 }
+
 
 .container-management {
   padding: 16px;

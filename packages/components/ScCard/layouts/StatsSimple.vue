@@ -161,20 +161,10 @@ export default defineComponent({
     background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   }
 
-  &.theme--primary {
-    @include theme-variant("primary");
-  }
-  &.theme--success {
-    @include theme-variant("success");
-  }
-  &.theme--warning {
-    @include theme-variant("warning");
-  }
-  &.theme--danger {
-    @include theme-variant("danger");
-  }
-  &.theme--info {
-    @include theme-variant("info");
-  }
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 }
 </style>

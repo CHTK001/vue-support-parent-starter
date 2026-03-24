@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 interface Props {
-  type?: "info" | "success" | "warning" | "error";
+  type?: 'info' | 'success' | 'warning' | 'error';
   icon?: string;
   title?: string;
   message?: string;
@@ -35,13 +35,13 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-  type: "info",
-  icon: "ri:information-line",
-  title: "提示信息",
-  message: "这是一条提示消息",
+  type: 'info',
+  icon: 'ri:information-line',
+  title: '提示信息',
+  message: '这是一条提示消息',
   closable: false,
   showAction: false,
-  actionText: "了解更多",
+  actionText: '了解更多'
 });
 
 defineEmits<{
@@ -58,7 +58,7 @@ defineEmits<{
   position: relative;
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     left: 0;

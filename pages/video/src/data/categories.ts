@@ -110,8 +110,7 @@ export const mockVideoResults = [
   {
     videoId: 2,
     videoName: "流浪地球",
-    videoDescription:
-      "太阳即将毁灭，人类在地球表面建造出巨大的推进器，寻找新家园",
+    videoDescription: "太阳即将毁灭，人类在地球表面建造出巨大的推进器，寻找新家园",
     videoCover: "https://via.placeholder.com/300x180?text=流浪地球",
     videoType: "电影",
     videoTags: "科幻,灾难,冒险",

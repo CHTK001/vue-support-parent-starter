@@ -3,12 +3,7 @@
     <ScForm :form="form">
       <ScFormItem label="模型" prop="model">
         <ScSelect v-model="form.model">
-          <ScOption
-            v-for="model in models"
-            :key="model"
-            :value="model"
-            :label="model"
-          />
+          <ScOption v-for="model in models" :key="model" :value="model" :label="model" />
         </ScSelect>
       </ScFormItem>
     </ScForm>
@@ -18,14 +13,8 @@
           <ScCard class="big-model border-radius mt-[4px]" shadow="hover">
             <div v-if="row.role != 'user'" class="flex flex-row">
               <ScAvatar class="justify-start min-w-[40px]" />
-              <span
-                :id="'ref' + row?.requestId"
-                class="leading-10 pl-2 text-[13px] w-full"
-              >
-                <span
-                  class="mdTextBox w-full"
-                  v-html="renderMdText(row.message)"
-                />
+              <span :id="'ref' + row?.requestId" class="leading-10 pl-2 text-[13px] w-full">
+                <span class="mdTextBox w-full" v-html="renderMdText(row.message)" />
                 <!-- <span v-for="(item, index) in row.message" :key="index">{{ item }}</span> -->
               </span>
             </div>
@@ -40,24 +29,8 @@
       </ul>
     </div>
     <div class="absolute bottom-0 w-full">
-      <ScInput
-        v-model="question"
-        type="textarea"
-        :readonly="loading"
-        :disabled="loading"
-        :rows="4"
-        resize="none"
-        :show-word-limit="true"
-        placeholder="请输入问题"
-      />
-      <ScButton
-        :icon="useRenderIcon('ep:search')"
-        :loading="loading"
-        class="!absolute !right-0 !h-full"
-        type="primary"
-        @click="send"
-        >{{ $t("buttons.send") }}</ScButton
-      >
+      <ScInput v-model="question" type="textarea" :readonly="loading" :disabled="loading" :rows="4" resize="none" :show-word-limit="true" placeholder="请输入问题" />
+      <ScButton :icon="useRenderIcon('ep:search')" :loading="loading" class="!absolute !right-0 !h-full" type="primary" @click="send">{{ $t("buttons.send") }}</ScButton>
     </div>
   </div>
 </template>
@@ -67,8 +40,7 @@ import { defineComponent } from "vue";
 import { uuid } from "@repo/config";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
-import { useRenderIcon } from "@repo/components";
-import { ScAvatar } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 import MarkdownIt from "markdown-it";
 import mdKatex from "@traptitech/markdown-it-katex";
@@ -76,9 +48,7 @@ import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 
 export default defineComponent({
-  components: {
-    ScAvatar,
-  },
+  components: {},
   data() {
     return {
       loading: false,
@@ -116,18 +86,12 @@ export default defineComponent({
         const validLang = !!(options && hljs.getLanguage(options?.language));
         if (validLang) {
           const lang = options?.language ?? "";
-          return _this.highlightBlock(
-            hljs.highlight(lang, code, true).value,
-            lang,
-          );
+          return _this.highlightBlock(hljs.highlight(lang, code, true).value, lang);
         }
         return _this.highlightBlock(hljs.highlightAuto(code).value, "");
       },
     });
-    this.markdownRender.use(mdKatex, {
-      blockClass: "katexmath-block rounded-md p-[10px]",
-      errorColor: " #cc0000",
-    });
+    this.markdownRender.use(mdKatex, { blockClass: "katexmath-block rounded-md p-[10px]", errorColor: " #cc0000" });
     window.addEventListener("keydown", this.keydown);
     // 使用highlight.js自动识别语言
     // window.addEventListener("DOMContentLoaded", this.highlight);
@@ -194,7 +158,7 @@ export default defineComponent({
             requestId: requestId,
             model: this.form.model,
             user: this.question,
-          }),
+          })
         );
         this.question = null;
         const code = [];

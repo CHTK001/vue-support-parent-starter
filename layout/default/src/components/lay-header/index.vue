@@ -1,29 +1,68 @@
+<template>
+  <div
+    class="header-container"
+    :class="{ 'fixed-header': set.fixedHeader }"
+  >
+    <LayNav />
+    
+    <!-- 标签页：在非移动模式下显示，且未隐藏标签页 -->
+    <div v-if="layout !== 'mobile' && !set.hideTabs" class="header-tags">
+      <LayTag v-if="defer(2)" />
+    </div>
+  </div>
+</template>
 <script setup lang="ts">
-/**
- * lay-header 组件
- * @description 使用 useThemeComponent Hook 统一管理主题切换
- * @version 2.1.0 - 支持节日主题装饰
- */
-import { defineAsyncComponent } from "vue";
-import { useThemeComponent } from "../../hooks/useThemeComponent";
-import DefaultHeader from "./themes/Default.vue";
+import LayTag from "../lay-tag/index.vue";
+import LayNav from "../lay-nav/index.vue";
+import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
+import { useGlobal } from "@pureadmin/utils";
+import { computed, reactive } from "vue";
+import { useLayout } from "../../hooks/useLayout";
+import { setType } from "../../types";
+import { useDefer } from "@repo/utils";
 
-// 主题组件映射 - 默认主题静态导入，节日主题懒加载
-const themeComponents = {
-  'default': DefaultHeader,
-  '8bit': DefaultHeader,
-  'spring-festival': defineAsyncComponent(() => import("./themes/SpringFestivalHeader.vue")),
-  'halloween': defineAsyncComponent(() => import("./themes/HalloweenHeader.vue")),
-  'christmas': defineAsyncComponent(() => import("./themes/ChristmasHeader.vue")),
-  'future-tech': defineAsyncComponent(() => import("./themes/FutureTechHeader.vue")),
-};
+const { layout } = useLayout();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+const pureSetting = useSettingStoreHook();
 
-// 使用统一的主题切换 Hook
-const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultHeader);
+// 提取 store 引用到顶层，避免在 computed 中重复调用
+const appStore = useAppStoreHook();
+
+const defer = useDefer(3);
+
+const set: setType = reactive({
+  sidebar: computed(() => appStore.sidebar),
+  device: computed(() => appStore.device),
+  fixedHeader: computed(() => pureSetting.fixedHeader),
+  // 保留以下属性以保持类型完整性，即使未在模板中直接使用
+  classes: computed(() => ({
+    hideSidebar: !set.sidebar.opened,
+    openSidebar: set.sidebar.opened,
+    withoutAnimation: set.sidebar.withoutAnimation,
+    mobile: set.device === "mobile",
+  })),
+  hideTabs: computed(() => $storage?.configure.hideTabs),
+});
 </script>
 
-<template>
-  <component :is="CurrentComponent" />
-</template>
-
 <script lang="ts">
+// 导入集中的主题皮肤样式
+import '@repo/skin';
+</script>
+
+<style lang="scss" scoped>
+// 基础容器样式
+.header-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  background: var(--el-bg-color);
+}
+
+// 头部容器样式优化
+.header-only-tags {
+  position: relative;
+  min-height: 48px;
+  background: transparent;
+}
+</style>
+

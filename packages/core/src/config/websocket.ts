@@ -9,6 +9,7 @@
 
 import { ref } from "vue";
 import { getToken } from "../utils/auth";
+import type { SocketTemplate, SocketTemplateListenOptions } from "./socketTemplate";
 import { parseSocketMessage, toWebSocketUrl } from "./socketUtils";
 
 /**
@@ -39,9 +40,7 @@ export interface WebSocketConfig {
  * @param config 配置
  * @returns SocketTemplate 实例
  */
-export function createWebSocketService(
-  config: WebSocketConfig,
-): SocketTemplate {
+export function createWebSocketService(config: WebSocketConfig): SocketTemplate {
   const isConnected = ref(false);
   let wsInstance: WebSocket | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -65,9 +64,7 @@ export function createWebSocketService(
     if (config.heartbeatInterval && config.heartbeatInterval > 0) {
       heartbeatTimer = setInterval(() => {
         if (wsInstance?.readyState === WebSocket.OPEN) {
-          wsInstance.send(
-            JSON.stringify({ event: "ping", timestamp: Date.now() }),
-          );
+          wsInstance.send(JSON.stringify({ event: "ping", timestamp: Date.now() }));
         }
       }, config.heartbeatInterval);
     }
@@ -89,10 +86,10 @@ export function createWebSocketService(
     try {
       const token = getToken();
       let baseUrl = config.urls[Math.floor(Math.random() * config.urls.length)];
-
+      
       // 转换为 WebSocket URL
       baseUrl = toWebSocketUrl(baseUrl);
-
+      
       // 添加路径
       if (config.path) {
         baseUrl = baseUrl.replace(/\/$/, "") + config.path;
@@ -124,20 +121,14 @@ export function createWebSocketService(
         isConnected.value = false;
         stopHeartbeat();
         console.log("[WebSocket] 断开连接", event.code, event.reason);
-        triggerEvent("disconnect", {
-          connected: false,
-          code: event.code,
-          reason: event.reason,
-        });
+        triggerEvent("disconnect", { connected: false, code: event.code, reason: event.reason });
 
         // 自动重连
         const maxAttempts = config.reconnectionAttempts ?? 3;
         if (config.reconnection !== false && reconnectAttempts < maxAttempts) {
           reconnectAttempts++;
           const delay = config.reconnectionDelay || 1000;
-          console.log(
-            `[WebSocket] 尝试重连 (${reconnectAttempts}/${maxAttempts})...`,
-          );
+          console.log(`[WebSocket] 尝试重连 (${reconnectAttempts}/${maxAttempts})...`);
           setTimeout(() => {
             if (!isConnected.value) {
               connect();
@@ -154,7 +145,7 @@ export function createWebSocketService(
       wsInstance.onmessage = (event) => {
         try {
           let message: { event?: string; data?: unknown };
-
+          
           // 尝试解析JSON
           if (typeof event.data === "string") {
             try {
@@ -176,9 +167,7 @@ export function createWebSocketService(
           }
 
           const eventName = message.event || "message";
-          const data = parseSocketMessage(
-            message.data !== undefined ? message.data : message,
-          );
+          const data = parseSocketMessage(message.data !== undefined ? message.data : message);
           triggerEvent(eventName, data);
         } catch (error) {
           console.error("[WebSocket] 消息解析错误:", error);
@@ -201,7 +190,7 @@ export function createWebSocketService(
   const on = (
     event: string,
     callback: (data: unknown) => void,
-    options?: SocketTemplateListenOptions,
+    options?: SocketTemplateListenOptions
   ) => {
     const wrappedCallback = (data: unknown) => {
       if (options?.dataId !== undefined) {
@@ -230,7 +219,7 @@ export function createWebSocketService(
           event,
           data,
           timestamp: new Date().toISOString(),
-        }),
+        })
       );
     } else {
       console.warn("[WebSocket] 未连接，无法发送消息");
@@ -242,37 +231,19 @@ export function createWebSocketService(
     eventListeners.clear();
   };
 
-  // subscribe 内部 handler 注册表（key: "MODULE_EVENT"）
-  const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
-
-  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
-    const key = `${module}_${event}`;
-    if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
-    subscribeHandlers.get(key)!.add(handler);
-    return () => subscribeHandlers.get(key)?.delete(handler);
-  };
-
-  // 监听底层 message 事件，按 module+event 分发
-  on("message", (raw: unknown) => {
-    try {
-      const msg = (typeof raw === "string" ? JSON.parse(raw) : raw) as WsMessage;
-      if (!msg?.module || !msg?.event) return;
-      const key = `${msg.module}_${msg.event}`;
-      subscribeHandlers.get(key)?.forEach(h => { try { h(msg); } catch {} });
-    } catch {}
-  });
-
   return {
     protocol: "websocket",
-    get socket() { return wsInstance; },
-    get isConnected() { return isConnected.value; },
-    get connected() { return isConnected; },
+    get socket() {
+      return wsInstance;
+    },
+    get isConnected() {
+      return isConnected.value;
+    },
     connect,
     disconnect,
     on,
     off,
     emit,
     close,
-    subscribe,
   };
 }

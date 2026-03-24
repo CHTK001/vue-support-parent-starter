@@ -27,7 +27,7 @@ const props = withDefaults(
     position: "top-right",
     duration: 5000,
     maxVisible: 4,
-  },
+  }
 );
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -181,7 +181,7 @@ const clearAll = () => {
 // 监听新消息推送
 const handleNewMessage = (data: any) => {
   if (!data) return;
-
+  
   addMessage({
     id: data.messageId || data.id || Date.now(),
     title: data.title || "新消息",
@@ -286,6 +286,7 @@ defineExpose({
             ></div>
           </div>
         </TransitionGroup>
+
       </div>
     </Transition>
   </Teleport>
@@ -518,6 +519,7 @@ html.dark {
         0 6px 20px rgba(0, 0, 0, 0.25);
     }
   }
+
 }
 
 // 不同位置的动画调整
@@ -534,5 +536,5 @@ html.dark {
 
 <style lang="scss">
 // 引入主题样式
-@use "./themes/index";
+@use './themes/index';
 </style>

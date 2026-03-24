@@ -2,20 +2,7 @@ import { storeToRefs } from "pinia";
 import { getConfig, transformI18n } from "@repo/config";
 import { useRouter } from "vue-router";
 import type { RouteMetaType } from "@repo/core";
-import {
-  clearRouter,
-  emitter,
-  getTopMenu,
-  remainingPaths,
-  router,
-  useAppStoreHook,
-  useConfigStore,
-  useEpThemeStoreHook,
-  useLayoutStore,
-  usePermissionStoreHook,
-  useUserStoreHook,
-  getToken,
-} from "@repo/core";
+import { clearRouter, emitter, getTopMenu, remainingPaths, router, useAppStoreHook, useConfigStore, useEpThemeStoreHook, useLayoutStore, usePermissionStoreHook, useUserStoreHook, getToken } from "@repo/core";
 import Avatar from "@repo/assets/images/user.jpg";
 import { useFullscreen } from "@vueuse/core";
 import { computed, type CSSProperties } from "vue";
@@ -25,8 +12,7 @@ import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 
-const errorInfo =
-  "The current routing configuration is incorrect, please check the configuration";
+const errorInfo = "The current routing configuration is incorrect, please check the configuration";
 
 export function useNav() {
   const pureApp = useAppStoreHook();
@@ -58,9 +44,7 @@ export function useNav() {
 
   /** 昵称（如果昵称为空则显示用户名） */
   const username = computed(() => {
-    return isAllEmpty(userStore?.nickname)
-      ? userStore?.username
-      : userStore?.nickname;
+    return isAllEmpty(userStore?.nickname) ? userStore?.username : userStore?.nickname;
   });
 
   /** 设置国际化选中后的样式 */
@@ -87,12 +71,13 @@ export function useNav() {
     return !pureApp.getSidebarStatus;
   });
 
-  const device = computed(() => {
+const device = computed(() => {
     return pureApp.getDevice;
   });
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const layout = computed(() => {
     const fallbackLayout = "vertical";
+    const validLayouts = ["vertical", "horizontal", "mix", "hover", "double", "mobile"];
     const rawLayout = $storage?.layout?.layout as string | undefined;
 
     if (rawLayout && validLayouts.includes(rawLayout)) {
@@ -109,8 +94,7 @@ export function useNav() {
   /** 动态title */
   function changeTitle(meta: RouteMetaType) {
     const Title = appConfig.Title;
-    if (Title)
-      document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
+    if (Title) document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
     else document.title = transformI18n(meta.i18nKey || meta.title);
   }
 
@@ -158,9 +142,7 @@ export function useNav() {
     menuRef?.handleResize();
   }
 
-  function resolvePath(
-    route: { path?: string; children?: Array<{ path?: string }> } | null,
-  ) {
+  function resolvePath(route: { path?: string; children?: Array<{ path?: string }> } | null) {
     if (!route.children) return console.error(errorInfo);
     const httpReg = /^http(s?):\/\//;
     const routeChildPath = route.children[0]?.path;

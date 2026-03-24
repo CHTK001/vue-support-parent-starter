@@ -549,13 +549,8 @@ export const triggerGc = (): Promise<ReturnResult<string>> => {
  * @since 2024/12/18
  * @version 1.0.0
  */
-export const fetchThreadDetails = (
-  topN: number = 50,
-  includeStack: boolean = false,
-): Promise<ReturnResult<ThreadDetail[]>> => {
-  return http.request<ThreadDetail[]>("get", "/v2/jvm/threads", {
-    params: { topN, includeStack },
-  });
+export const fetchThreadDetails = (topN: number = 50, includeStack: boolean = false): Promise<ReturnResult<ThreadDetail[]>> => {
+  return http.request<ThreadDetail[]>("get", "/v2/jvm/threads", { params: { topN, includeStack } });
 };
 
 /**
@@ -566,12 +561,8 @@ export const fetchThreadDetails = (
  * @since 2024/12/18
  * @version 1.0.0
  */
-export const fetchThreadDetail = (
-  threadId: number,
-): Promise<ReturnResult<ThreadDetail>> => {
-  return http.request<ThreadDetail>("get", "/v2/jvm/thread", {
-    params: { threadId },
-  });
+export const fetchThreadDetail = (threadId: number): Promise<ReturnResult<ThreadDetail>> => {
+  return http.request<ThreadDetail>("get", "/v2/jvm/thread", { params: { threadId } });
 };
 
 /**
@@ -667,10 +658,10 @@ export const analyzeCpuHotspots = (
   interval: number = 50,
   topN: number = 30,
   excludeIdle: boolean = true,
-  packageFilter?: string,
+  packageFilter?: string
 ): Promise<ReturnResult<CpuHotspotAnalysis>> => {
-  return http.request<CpuHotspotAnalysis>("get", "/v2/jvm/hotspots", {
-    params: { sampleCount, interval, topN, excludeIdle, packageFilter },
+  return http.request<CpuHotspotAnalysis>("get", "/v2/jvm/hotspots", { 
+    params: { sampleCount, interval, topN, excludeIdle, packageFilter } 
   });
 };
 
@@ -745,10 +736,10 @@ export interface HeapAnalysis {
  */
 export const analyzeHeap = (
   topN: number = 50,
-  packageFilter?: string,
+  packageFilter?: string
 ): Promise<ReturnResult<HeapAnalysis>> => {
-  return http.request<HeapAnalysis>("get", "/v2/jvm/heap", {
-    params: { topN, packageFilter },
+  return http.request<HeapAnalysis>("get", "/v2/jvm/heap", { 
+    params: { topN, packageFilter } 
   });
 };
 
@@ -867,15 +858,11 @@ export const analyzeBusinessCode = (
   businessPackage: string = "com.chua",
   sampleCount: number = 30,
   interval: number = 50,
-  topN: number = 20,
+  topN: number = 20
 ): Promise<ReturnResult<BusinessCodeAnalysis>> => {
-  return http.request<BusinessCodeAnalysis>(
-    "get",
-    "/v2/jvm/business-analysis",
-    {
-      params: { businessPackage, sampleCount, interval, topN },
-    },
-  );
+  return http.request<BusinessCodeAnalysis>("get", "/v2/jvm/business-analysis", { 
+    params: { businessPackage, sampleCount, interval, topN } 
+  });
 };
 
 /**
@@ -1027,10 +1014,10 @@ export interface JvmOptimizationAdvice {
  */
 export const getJvmOptimization = (
   targetLatency: number = 200,
-  targetThroughput: number = 95,
+  targetThroughput: number = 95
 ): Promise<ReturnResult<JvmOptimizationAdvice>> => {
-  return http.request<JvmOptimizationAdvice>("get", "/v2/jvm/optimization", {
-    params: { targetLatency, targetThroughput },
+  return http.request<JvmOptimizationAdvice>("get", "/v2/jvm/optimization", { 
+    params: { targetLatency, targetThroughput } 
   });
 };
 
@@ -1099,10 +1086,10 @@ export interface ThreadDump {
  * @version 1.0.0
  */
 export const getThreadDump = (
-  format: string = "json",
+  format: string = "json"
 ): Promise<ReturnResult<ThreadDump>> => {
-  return http.request<ThreadDump>("get", "/v2/jvm/thread-dump", {
-    params: { format },
+  return http.request<ThreadDump>("get", "/v2/jvm/thread-dump", { 
+    params: { format } 
   });
 };
 
@@ -1181,10 +1168,10 @@ export interface MemoryLeakAnalysis {
  */
 export const analyzeMemoryLeak = (
   intervalSeconds: number = 5,
-  topN: number = 20,
+  topN: number = 20
 ): Promise<ReturnResult<MemoryLeakAnalysis>> => {
-  return http.request<MemoryLeakAnalysis>("get", "/v2/jvm/memory-leak", {
-    params: { intervalSeconds, topN },
+  return http.request<MemoryLeakAnalysis>("get", "/v2/jvm/memory-leak", { 
+    params: { intervalSeconds, topN } 
   });
 };
 
@@ -1279,10 +1266,10 @@ export interface JvmDiagnostic {
  * @version 1.0.0
  */
 export const getJvmDiagnostic = (
-  includeEnv: boolean = false,
+  includeEnv: boolean = false
 ): Promise<ReturnResult<JvmDiagnostic>> => {
-  return http.request<JvmDiagnostic>("get", "/v2/jvm/diagnostic", {
-    params: { includeEnv },
+  return http.request<JvmDiagnostic>("get", "/v2/jvm/diagnostic", { 
+    params: { includeEnv } 
   });
 };
 
@@ -1295,9 +1282,9 @@ export const getJvmDiagnostic = (
  * @version 1.0.0
  */
 export const executeVmCommand = (
-  command: string,
+  command: string
 ): Promise<ReturnResult<string>> => {
-  return http.request<string>("get", "/v2/jvm/vm-command", {
-    params: { command },
+  return http.request<string>("get", "/v2/jvm/vm-command", { 
+    params: { command } 
   });
 };

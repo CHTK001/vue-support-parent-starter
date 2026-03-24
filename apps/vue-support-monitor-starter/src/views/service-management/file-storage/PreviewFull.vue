@@ -7,16 +7,16 @@
           已安装的存储
         </div>
         <div class="actions">
-          <ScButton size="small" type="primary" @click="addStorage">
+          <el-button size="small" type="primary" @click="addStorage">
             <IconifyIconOnline icon="ri:add-line" />
-          </ScButton>
-          <ScButton size="small" @click="reload()">
+          </el-button>
+          <el-button size="small" @click="reload()">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
-      <ScScrollbar class="left-list thin-scrollbar">
+      <el-scrollbar class="left-list thin-scrollbar">
         <div
           v-for="(s, idx) in storages"
           :key="idx"
@@ -26,12 +26,12 @@
           <div class="row1">
             <span class="seq">#{{ idx + 1 }}</span>
             <span class="type">{{ s.fileStorageType }}</span>
-            <ScTag
+            <el-tag
               size="small"
               :type="s.fileStorageEnabled ? 'success' : 'info'"
             >
               {{ s.fileStorageEnabled ? "启用" : "禁用" }}
-            </ScTag>
+            </el-tag>
           </div>
           <div class="row2">
             <span v-if="s.fileStorageType === 'FILESYSTEM'">
@@ -43,41 +43,41 @@
             </span>
           </div>
           <div class="row3">
-            <ScButton link size="small" @click.stop="doPreview(idx)">
+            <el-button link size="small" @click.stop="doPreview(idx)">
               <IconifyIconOnline icon="ri:eye-line" />
               预览
-            </ScButton>
+            </el-button>
           </div>
         </div>
-      </ScScrollbar>
+      </el-scrollbar>
     </aside>
 
     <main class="fs-right">
       <div class="toolbar">
-        <ScRadioGroup v-model="mode" size="small">
+        <el-radio-group v-model="mode" size="small">
           <el-radio-button label="list">列表</el-radio-button>
           <el-radio-button label="card">卡片</el-radio-button>
           <el-radio-button label="image">大图</el-radio-button>
-        </ScRadioGroup>
-        <ScButton size="small" @click="fetchPreviewItems">
+        </el-radio-group>
+        <el-button size="small" @click="fetchPreviewItems">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </ScButton>
+        </el-button>
         <!-- 面包屑与上级 -->
         <div class="crumbs">
-          <ScButton size="small" :disabled="!canGoUp" @click="goUp"
+          <el-button size="small" @click="goUp" :disabled="!canGoUp"
             >上级</el-button
           >
-          <ScBreadcrumb separator="/" class="bc">
-            <ScBreadcrumbItem
+          <el-breadcrumb separator="/" class="bc">
+            <el-breadcrumb-item
               v-for="(c, i) in crumbs"
               :key="i"
-              class="bc-item"
               @click="onCrumbClick(i)"
+              class="bc-item"
             >
               {{ c.name || "/" }}
-            </ScBreadcrumbItem>
-          </ScBreadcrumb>
+            </el-breadcrumb-item>
+          </el-breadcrumb>
         </div>
         <!-- 服务器信息 -->
         <div class="server-info">
@@ -107,28 +107,28 @@
         <div class="spacer" />
         <div class="pager">
           <span>每页</span>
-          <ScSelect
+          <el-select
             v-model="pager.limit"
             size="small"
             style="width: 90px"
             @change="onLimitChange"
           >
-            <ScOption :value="20" label="20" />
-            <ScOption :value="50" label="50" />
-            <ScOption :value="100" label="100" />
-          </ScSelect>
+            <el-option :value="20" label="20" />
+            <el-option :value="50" label="50" />
+            <el-option :value="100" label="100" />
+          </el-select>
           <span>条</span>
           <span class="gap" />
-          <ScButton
+          <el-button
             size="small"
-            :disabled="pager.page <= 1"
             @click="goPrevPage"
+            :disabled="pager.page <= 1"
             >上一页</el-button
           >
-          <ScButton
+          <el-button
             size="small"
-            :disabled="previewItems.length < pager.limit"
             @click="goNextPage"
+            :disabled="previewItems.length < pager.limit"
             >下一页</el-button
           >
         </div>
@@ -156,7 +156,7 @@
         <div v-if="uploadingFiles.length > 0" class="upload-progress">
           <div v-for="(f, i) in uploadingFiles" :key="i" class="upload-item">
             <span class="upload-name">{{ f.name }}</span>
-            <ScProgress
+            <el-progress
               :percentage="f.progress"
               :status="f.status"
               :stroke-width="6"
@@ -178,29 +178,29 @@
               <div class="list-info">
                 <div class="list-name" :title="it.name">{{ it.name }}</div>
                 <div class="list-meta">
-                  <ScTag
+                  <el-tag
                     :type="getFileTagType(it)"
                     size="small"
                     effect="plain"
                   >
                     {{ getFileTypeLabel(it) }}
-                  </ScTag>
+                  </el-tag>
                   <span class="list-size">{{ formatSize(it.size) }}</span>
                   <span class="list-time">{{ it.modified }}</span>
                 </div>
               </div>
               <div class="list-actions">
-                <ScButton link size="small" @click.stop="onItemClick(it)">
+                <el-button link size="small" @click.stop="onItemClick(it)">
                   <IconifyIconOnline icon="ri:eye-line" />
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-if="!it.directory"
                   link
                   size="small"
                   @click.stop="downloadFile(it)"
                 >
                   <IconifyIconOnline icon="ri:download-line" />
-                </ScButton>
+                </el-button>
               </div>
             </div>
           </div>
@@ -218,7 +218,7 @@
               </div>
               <div class="thumb-wrap">
                 <template v-if="isImage(it)">
-                  <ScImage
+                  <el-image
                     :key="getImageUrl(it)"
                     :src="getImageUrl(it)"
                     fit="cover"
@@ -230,12 +230,12 @@
                     <template #error>
                       <div class="img-error">
                         <span>加载失败</span>
-                        <ScButton size="small" @click.stop="retryImage(it)"
+                        <el-button size="small" @click.stop="retryImage(it)"
                           >重试</el-button
                         >
                       </div>
                     </template>
-                  </ScImage>
+                  </el-image>
                 </template>
                 <template v-else>
                   <div class="file-icon-wrap">
@@ -247,7 +247,7 @@
                 <div class="card-name" :title="it.name">{{ it.name }}</div>
                 <div class="card-meta">
                   <span class="card-size">{{ formatSize(it.size) }}</span>
-                  <ScButton
+                  <el-button
                     v-if="!it.directory"
                     class="card-download"
                     size="small"
@@ -255,7 +255,7 @@
                     @click.stop="downloadFile(it)"
                   >
                     <IconifyIconOnline icon="ri:download-line" />
-                  </ScButton>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -273,7 +273,7 @@
                 {{ getFileTypeLabel(it) }}
               </div>
               <template v-if="isImage(it)">
-                <ScImage
+                <el-image
                   :key="getImageUrl(it)"
                   :src="getImageUrl(it)"
                   fit="cover"
@@ -285,12 +285,12 @@
                   <template #error>
                     <div class="img-error">
                       <span>加载失败</span>
-                      <ScButton size="small" @click.stop="retryImage(it)"
+                      <el-button size="small" @click.stop="retryImage(it)"
                         >重试</el-button
                       >
                     </div>
                   </template>
-                </ScImage>
+                </el-image>
               </template>
               <template v-else>
                 <div class="big-icon-wrap">
@@ -303,7 +303,7 @@
                   <span class="ov-size">{{ formatSize(it.size) }}</span>
                   <span class="ov-time">{{ it.modified }}</span>
                 </div>
-                <ScButton
+                <el-button
                   v-if="!it.directory"
                   class="ov-download"
                   size="small"
@@ -312,7 +312,7 @@
                 >
                   <IconifyIconOnline icon="ri:download-line" />
                   下载
-                </ScButton>
+                </el-button>
               </div>
             </div>
           </div>
@@ -372,7 +372,7 @@ const iconModules = import.meta.glob("@/assets/images/*.{png,webp,svg}", {
 // 创建文件图标管理器
 const iconManager = createFileIconManager(
   iconModules,
-  iconModules["/src/assets/images/unknown.png"] || "",
+  iconModules["/src/assets/images/unknown.png"] || ""
 );
 
 const serverInfo = ref<SystemServer | any>({});
@@ -512,9 +512,7 @@ async function onDrop(e: DragEvent) {
 
     // 检查文件大小
     if (file.size > maxSize) {
-      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, {
-        type: "warning",
-      });
+      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, { type: "warning" });
       continue;
     }
 
@@ -547,9 +545,7 @@ async function onDrop(e: DragEvent) {
     } catch (err: any) {
       uploadItem.progress = 100;
       uploadItem.status = "exception";
-      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, {
-        type: "error",
-      });
+      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, { type: "error" });
     }
 
     // 3秒后移除上传项
@@ -921,7 +917,7 @@ async function fetchPreviewItems() {
       s,
       currentPath.value,
       pager.value.limit,
-      pager.value.marker || "",
+      pager.value.marker || ""
     );
     const now = Date.now();
     const cached = listCache.get(key);
@@ -938,7 +934,7 @@ async function fetchPreviewItems() {
     params.append("endpoint", s.fileStorageEndpoint || "");
     params.append(
       "basePath",
-      currentPath.value || s.fileStorageBasePath || "/",
+      currentPath.value || s.fileStorageBasePath || "/"
     );
     // 通过 limit 控制后端返回条数
     params.append("limit", String(pager.value.limit));
@@ -1006,11 +1002,12 @@ watch(
   () => {
     updateUrlQuery();
   },
-  { flush: "post" },
+  { flush: "post" }
 );
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1043,6 +1040,7 @@ watch(
     z-index: 1;
   }
 }
+
 
 .fs-full {
   display: grid;
@@ -1768,6 +1766,7 @@ watch(
   }
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -1776,4 +1775,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

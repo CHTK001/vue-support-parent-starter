@@ -1,8 +1,5 @@
 <template>
-  <div
-    v-if="fileInfo"
-    class="file-detail-content modern-scrollbar system-container modern-bg"
-  >
+  <div class="file-detail-content modern-scrollbar system-container modern-bg" v-if="fileInfo">
     <!-- 文件图标和名称 -->
     <div class="file-header">
       <div class="file-icon-large">
@@ -27,7 +24,7 @@
             fileInfo.isDirectory ? "文件夹" : "文件"
           }}</span>
         </div>
-        <div v-if="!fileInfo.isDirectory" class="detail-item">
+        <div class="detail-item" v-if="!fileInfo.isDirectory">
           <span class="label">大小:</span>
           <span class="value">{{ formatFileSize(fileInfo.size) }}</span>
         </div>
@@ -35,7 +32,7 @@
           <span class="label">修改时间:</span>
           <span class="value">{{ formatTime(fileInfo.modifiedTime) }}</span>
         </div>
-        <div v-if="fileInfo.permissions" class="detail-item">
+        <div class="detail-item" v-if="fileInfo.permissions">
           <span class="label">权限:</span>
           <span class="value">{{ fileInfo.permissions }}</span>
         </div>
@@ -46,23 +43,23 @@
     <div class="detail-section">
       <h5 class="section-title">操作</h5>
       <div class="action-buttons">
-        <ScButton
-          v-if="!fileInfo.isDirectory && isPreviewable"
+        <el-button
           size="small"
-          type="primary"
+          v-if="!fileInfo.isDirectory && isPreviewable"
           @click="handlePreview"
+          type="primary"
         >
           <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
           预览
-        </ScButton>
-        <ScButton size="small" @click="handleDownload">
+        </el-button>
+        <el-button size="small" @click="handleDownload">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           下载
-        </ScButton>
-        <ScButton size="small" type="danger" @click="handleDelete">
+        </el-button>
+        <el-button size="small" type="danger" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           删除
-        </ScButton>
+        </el-button>
       </div>
     </div>
   </div>
@@ -367,7 +364,7 @@ const handleDelete = async () => {
         type: "warning",
         confirmButtonText: "删除",
         cancelButtonText: "取消",
-      },
+      }
     );
 
     emit("delete", props.fileInfo);
@@ -378,6 +375,7 @@ const handleDelete = async () => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -411,11 +409,12 @@ const handleDelete = async () => {
   }
 }
 
+
 .file-detail-content {
   padding: 16px;
   height: 100%;
   overflow-y: auto;
-  background: var(--el-bg-color-overlay); /* 设置文件详情内容背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件详情内容背景为白色 */
 }
 
 .file-header {
@@ -532,6 +531,7 @@ const handleDelete = async () => {
   }
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -540,4 +540,5 @@ const handleDelete = async () => {
     padding: 12px 16px;
   }
 }
+
 </style>

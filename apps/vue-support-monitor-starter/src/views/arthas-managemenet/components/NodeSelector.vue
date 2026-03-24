@@ -1,22 +1,11 @@
 <template>
-  <ScForm :inline="true">
-    <ScFormItem :label="label" class="!mb-0">
-      <ScSelect
-        v-model="value"
-        filterable
-        :placeholder="placeholder"
-        style="min-width: 320px"
-        @change="$emit('change', value)"
-      >
-        <ScOption
-          v-for="node in nodes"
-          :key="node.nodeId"
-          :label="formatNodeLabel(node)"
-          :value="node.nodeId"
-        />
-      </ScSelect>
-    </ScFormItem>
-  </ScForm>
+  <el-form :inline="true">
+    <el-form-item :label="label" class="!mb-0">
+      <el-select v-model="value" filterable :placeholder="placeholder" style="min-width: 320px" @change="$emit('change', value)">
+        <el-option v-for="node in nodes" :key="node.nodeId" :label="formatNodeLabel(node)" :value="node.nodeId" />
+      </el-select>
+    </el-form-item>
+  </el-form>
 </template>
 
 <script setup lang="ts">

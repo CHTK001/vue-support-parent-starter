@@ -12,16 +12,16 @@ import { http } from "@repo/utils";
 
 // login
 export function login(params) {
-  return http.post("/userLogin", params);
+  return http.post('/userLogin', params);
 }
 
 // oauth2Login
 export function oauth2Login(params) {
-  return http.post("/oauth2/login", params);
+  return http.post('/oauth2/login', params);
 }
 
 export function oauth2Url(params) {
-  return http.get("/oauth2-url", { params });
+  return http.get('/oauth2-url', { params });
 }
 
 /**
@@ -30,22 +30,22 @@ export function oauth2Url(params) {
  * @returns
  */
 export function mfaVerify(params) {
-  return http.get("/mfa_verify", { params });
+  return http.get('/mfa_verify', { params });
 }
 
 // refresh token
 export function refreshToken() {
-  return http.post("/renewal");
+  return http.post('/renewal');
 }
 
 // 关闭 两步验证信息
 export function closeMfa(params) {
-  return http.get("/user/close_mfa", { params });
+  return http.get('/user/close_mfa', { params });
 }
 
 // 生成 两步验证信息
 export function generateMfa() {
-  return http.get("/user/generate_mfa");
+  return http.get('/user/generate_mfa');
 }
 
 /**
@@ -54,37 +54,37 @@ export function generateMfa() {
  * @returns
  */
 export function bindMfa(params) {
-  return http.get("/user/bind_mfa", { params });
+  return http.get('/user/bind_mfa', { params });
 }
 
 // 获取用户信息
 export function getUserInfo() {
-  return http.post("/user/user-basic-info");
+  return http.post('/user/user-basic-info');
 }
 
 // 退出登录
 export function loginOut(params) {
-  return http.get("/logout2", { data: params });
+  return http.get('/logout2', { data: params });
 }
 
 // 修改密码
 export function updatePwd(params) {
-  return http.post("/user/updatePwd", params);
+  return http.post('/user/updatePwd', params);
 }
 
 // 所有管理员列表
 export function getUserListAll() {
-  return http.post("/user/get_user_list_all");
+  return http.post('/user/get_user_list_all');
 }
 
 // 用户列表
 export function getUserList(params) {
-  return http.post("/user/get_user_list", params);
+  return http.post('/user/get_user_list', params);
 }
 
 // 编辑
 export function editUser(params) {
-  return http.post("/user/edit", params);
+  return http.post('/user/edit', params);
 }
 
 // // 修改用户
@@ -94,7 +94,7 @@ export function editUser(params) {
 
 // 删除用户
 export function deleteUser(id) {
-  return http.post("/user/deleteUser", { id });
+  return http.post('/user/deleteUser', { id });
 }
 
 /**
@@ -108,7 +108,7 @@ export function deleteUser(id) {
  * } params
  */
 export function editUserInfo(params) {
-  return http.post("/user/save_basicInfo.json", params);
+  return http.post('/user/save_basicInfo.json', params);
 }
 
 /**
@@ -116,7 +116,7 @@ export function editUserInfo(params) {
  * @param {String} email 邮箱地址
  */
 export function sendEmailCode(email) {
-  return http.post("/user/sendCode.json", { email }, { timeout: 0 });
+  return http.post('/user/sendCode.json', { email }, { timeout: 0 });
 }
 
 /**
@@ -125,7 +125,7 @@ export function sendEmailCode(email) {
  * @returns
  */
 export function unlockUser(id) {
-  return http.get("/user/unlock", { params: { id } });
+  return http.get('/user/unlock', { params: { id } });
 }
 
 /**
@@ -134,7 +134,7 @@ export function unlockUser(id) {
  * @returns
  */
 export function closeUserMfa(id) {
-  return http.get("/user/close_user_mfa", { params: { id } });
+  return http.get('/user/close_user_mfa', { params: { id } });
 }
 
 /**
@@ -143,7 +143,7 @@ export function closeUserMfa(id) {
  * @returns
  */
 export function restUserPwd(id) {
-  return http.get("/user/rest-user-pwd", { params: { id } });
+  return http.get('/user/rest-user-pwd', { params: { id } });
 }
 
 /**
@@ -152,7 +152,7 @@ export function restUserPwd(id) {
  * @returns
  */
 export function workspaceList(userId) {
-  return http.get("/user/workspace_list", { params: { userId } });
+  return http.get('/user/workspace_list', { params: { userId } });
 }
 
 /**
@@ -161,15 +161,15 @@ export function workspaceList(userId) {
  * @returns
  */
 export function myWorkspace() {
-  return http.get("/user/my-workspace", { params: {} });
+  return http.get('/user/my-workspace', { params: {} });
 }
 
 export function statWorkspace() {
-  return http.get("/stat/workspace", { params: {} });
+  return http.get('/stat/workspace', { params: {} });
 }
 
 export function statSystemOverview() {
-  return http.get("/stat/system", { params: {} });
+  return http.get('/stat/system', { params: {} });
 }
 
 /**
@@ -178,7 +178,7 @@ export function statSystemOverview() {
  * @returns
  */
 export function clusterList() {
-  return http.get("/user/cluster-list", { params: {} });
+  return http.get('/user/cluster-list', { params: {} });
 }
 
 /**
@@ -187,10 +187,10 @@ export function clusterList() {
  * @returns
  */
 export function saveWorkspace(data) {
-  return http.post("/user/save-workspace", data, {
+  return http.post('/user/save-workspace', data, {
     headers: {
-      "Content-Type": "application/json",
-    },
+      'Content-Type': 'application/json'
+    }
   });
 }
 
@@ -200,7 +200,7 @@ export function saveWorkspace(data) {
  * @returns
  */
 export function loginConfig() {
-  return http.get("/login-config", { params: {} });
+  return http.get('/login-config', { params: {} });
 }
 
 /**
@@ -209,17 +209,17 @@ export function loginConfig() {
  * @returns
  */
 export function loginRandCode(params) {
-  return http.get("/rand-code", { params });
+  return http.get('/rand-code', { params });
 }
 
 export function listLoginLog(params) {
-  return http.post("/user/list-login-log-data", params);
+  return http.post('/user/list-login-log-data', params);
 }
 
 export function listOperaterLog(params) {
-  return http.post("/user/list-operate-log-data", params);
+  return http.post('/user/list-operate-log-data', params);
 }
 
 export function recentLogData(params) {
-  return http.post("/user/recent-log-data", params);
+  return http.post('/user/recent-log-data', params);
 }

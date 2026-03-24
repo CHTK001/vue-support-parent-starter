@@ -7,8 +7,8 @@
 <template>
   <div class="sc-table-timeline" :class="`theme--${theme}`" :style="{ height: height }">
     <!-- 时间线容器 -->
-    <ScTimeline v-if="tableData.length > 0">
-      <ScTimelineItem
+    <el-timeline v-if="tableData.length > 0">
+      <el-timeline-item
         v-for="(item, index) in tableData"
         :key="item[rowKey] || index"
         :timestamp="getTimestamp(item)"
@@ -41,19 +41,19 @@
         <template v-if="$slots.dot" #dot>
           <slot name="dot" :row="item" :index="index" />
         </template>
-      </ScTimelineItem>
-    </ScTimeline>
+      </el-timeline-item>
+    </el-timeline>
 
     <!-- 空状态 -->
     <div v-else class="timeline-empty">
       <slot name="empty">
-        <ScEmpty :description="emptyText" :image-size="100" />
+        <el-empty :description="emptyText" :image-size="100" />
       </slot>
     </div>
 
     <!-- 加载更多 -->
     <div v-if="paginationType === 'scroll' && tableData.length > 0" class="timeline-load-more">
-      <ScButton v-if="hasMore" :loading="loading" type="primary" link @click="$emit('load-more')">加载更多</ScButton>
+      <el-button v-if="hasMore" :loading="loading" type="primary" link @click="$emit('load-more')">加载更多</el-button>
       <span v-else class="no-more">没有更多了</span>
     </div>
   </div>

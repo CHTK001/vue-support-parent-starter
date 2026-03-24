@@ -15,7 +15,6 @@ import { usePermissionStoreHook } from "@repo/core";
 import { cloneDeep, isAllEmpty } from "@pureadmin/utils";
 import SearchIcon from "@iconify-icons/ri/search-line";
 import { localStorageProxy } from "@repo/utils";
-import { ScInput, ScEmpty } from "@repo/components";
 interface Props {
   /** 弹窗显隐 */
   value: boolean;
@@ -295,7 +294,7 @@ onKeyStroke("ArrowDown", handleDown);
     @opened="inputRef.focus()"
     @closed="inputRef.blur()"
   >
-    <ScInput
+    <ScInput 
       ref="inputRef"
       v-model="keyword"
       size="large"
@@ -311,7 +310,7 @@ onKeyStroke("ArrowDown", handleDown);
       </template>
     </ScInput>
     <div class="search-content">
-      <ScScrollbar ref="scrollbarRef" max-height="calc(90vh - 140px)">
+      <el-scrollbar ref="scrollbarRef" max-height="calc(90vh - 140px)">
         <ScEmpty v-if="showEmpty" :description="t('search.pureEmpty')" />
         <SearchHistory
           v-if="showSearchHistory"
@@ -330,7 +329,7 @@ onKeyStroke("ArrowDown", handleDown);
           :options="resultOptions"
           @click="handleEnter"
         />
-      </ScScrollbar>
+      </el-scrollbar>
     </div>
     <template #footer>
       <SearchFooter :total="resultOptions.length" />
@@ -346,7 +345,7 @@ onKeyStroke("ArrowDown", handleDown);
 
 <style lang="scss">
 // 引入主题样式
-@use "../themes/index";
+@use '../themes/index';
 
 // 防止搜索弹窗打开时页面宽度变化
 .pure-search-dialog {

@@ -38,7 +38,7 @@ const codes = {
 <ScButton type="primary">默认按钮</ScButton>
 <ScButton type="primary" size="large">大号按钮</ScButton>
 <ScButton type="primary" disabled>禁用按钮</ScButton>
-<ScButton type="primary" loading>加载中</ScButton>`,
+<ScButton type="primary" loading>加载中</ScButton>`
 };
 </script>
 
@@ -54,3 +54,5 @@ const codes = {
   }
 }
 </style>
+
+

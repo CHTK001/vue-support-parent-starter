@@ -7,17 +7,7 @@ import MusicPlayer from "./components/MusicPlayer.vue";
 import MusicContent from "./components/MusicContent.vue";
 import MusicLyrics from "./components/MusicLyrics.vue";
 import MusicPlaylistDrawer from "./components/MusicPlaylistDrawer.vue";
-import {
-  fetchMusicTypes,
-  fetchMusicPlatforms,
-  fetchHotKeywords,
-  fetchMusicSearch,
-  fetchMusicDetail,
-  fetchRecommendPlaylists,
-  fetchPlaylistDetail,
-  MusicInfo,
-  Playlist,
-} from "./api";
+import { fetchMusicTypes, fetchMusicPlatforms, fetchHotKeywords, fetchMusicSearch, fetchMusicDetail, fetchRecommendPlaylists, fetchPlaylistDetail, MusicInfo, Playlist } from "./api";
 
 // 音频元素引用
 const audioRef = ref<HTMLAudioElement | null>(null);
@@ -68,10 +58,7 @@ const env = reactive({
 
   // 推荐歌单
   recommendPlaylists: [] as Playlist[],
-  currentPlaylistDetail: null as {
-    playlist: Playlist;
-    songs: MusicInfo[];
-  } | null,
+  currentPlaylistDetail: null as { playlist: Playlist; songs: MusicInfo[] } | null,
 });
 
 // 计算属性：进度百分比
@@ -203,10 +190,7 @@ const addToSearchHistory = (keyword: string) => {
   }
 
   // 保存到本地存储
-  localStorage.setItem(
-    "music-search-history",
-    JSON.stringify(env.searchHistory),
-  );
+  localStorage.setItem("music-search-history", JSON.stringify(env.searchHistory));
 };
 
 // 清空搜索历史
@@ -319,9 +303,7 @@ const togglePlay = () => {
 const playNext = () => {
   if (env.currentPlaylist.length === 0) return;
 
-  const currentIndex = env.currentPlaylist.findIndex(
-    (item) => item.musicId === env.currentMusic?.musicId,
-  );
+  const currentIndex = env.currentPlaylist.findIndex((item) => item.musicId === env.currentMusic?.musicId);
   let nextIndex: number;
 
   if (env.isRandom) {
@@ -344,9 +326,7 @@ const playNext = () => {
 const playPrev = () => {
   if (env.currentPlaylist.length === 0) return;
 
-  const currentIndex = env.currentPlaylist.findIndex(
-    (item) => item.musicId === env.currentMusic?.musicId,
-  );
+  const currentIndex = env.currentPlaylist.findIndex((item) => item.musicId === env.currentMusic?.musicId);
   let prevIndex: number;
 
   if (env.isRandom) {
@@ -368,17 +348,13 @@ const playPrev = () => {
 // 切换随机播放
 const toggleRandom = () => {
   env.isRandom = !env.isRandom;
-  message(env.isRandom ? "已开启随机播放" : "已关闭随机播放", {
-    type: "success",
-  });
+  message(env.isRandom ? "已开启随机播放" : "已关闭随机播放", { type: "success" });
 };
 
 // 切换循环播放
 const toggleLoop = () => {
   env.isLoop = !env.isLoop;
-  message(env.isLoop ? "已开启单曲循环" : "已关闭单曲循环", {
-    type: "success",
-  });
+  message(env.isLoop ? "已开启单曲循环" : "已关闭单曲循环", { type: "success" });
 };
 
 // 切换静音
@@ -404,9 +380,7 @@ const seekTo = (time: number) => {
 
 // 切换收藏状态
 const toggleFavorite = (music: MusicInfo) => {
-  const index = env.favorites.findIndex(
-    (item) => item.musicId === music.musicId,
-  );
+  const index = env.favorites.findIndex((item) => item.musicId === music.musicId);
   if (index !== -1) {
     env.favorites.splice(index, 1);
     message("已取消收藏", { type: "success" });
@@ -463,9 +437,7 @@ const updateCurrentLyric = () => {
 // 添加到播放历史
 const addToPlayHistory = (music: MusicInfo) => {
   // 如果已存在，先移除
-  const index = env.playHistory.findIndex(
-    (item) => item.musicId === music.musicId,
-  );
+  const index = env.playHistory.findIndex((item) => item.musicId === music.musicId);
   if (index !== -1) {
     env.playHistory.splice(index, 1);
   }
@@ -539,7 +511,7 @@ watch(
   () => env.volume,
   () => {
     adjustVolume();
-  },
+  }
 );
 
 // 监听页面变化
@@ -549,7 +521,7 @@ watch(
     if (env.keyword) {
       searchMusic();
     }
-  },
+  }
 );
 
 // 监听筛选条件变化
@@ -596,28 +568,15 @@ const musicPlayerProps = {
 <template>
   <div class="music-player system-container modern-bg">
     <!-- 音频元素 -->
-    <audio
-      ref="audioRef"
-      :src="env.currentMusic?.url"
-      preload="auto"
-      hidden
-    ></audio>
+    <audio ref="audioRef" :src="env.currentMusic?.url" preload="auto" hidden></audio>
 
     <!-- 头部搜索区域 -->
-    <MusicHeader
-      :env="env"
-      :searchMusic="searchMusic"
-      :clearSearchHistory="clearSearchHistory"
-    />
+    <MusicHeader :env="env" :searchMusic="searchMusic" :clearSearchHistory="clearSearchHistory" />
 
     <!-- 主内容区 -->
     <div class="music-player__main">
       <!-- 左侧导航和播放列表 -->
-      <MusicSidebar
-        :env="env"
-        :playMusic="playMusic"
-        :formatTime="formatTime"
-      />
+      <MusicSidebar :env="env" :playMusic="playMusic" :formatTime="formatTime" />
 
       <!-- 内容区 -->
       <MusicContent v-bind="musicPlayerProps" />
@@ -627,21 +586,10 @@ const musicPlayerProps = {
     <MusicPlayer v-bind="musicPlayerProps" />
 
     <!-- 歌词抽屉 -->
-    <MusicLyrics
-      v-if="env.showLyrics"
-      :env="env"
-      :lyricsContainerRef="lyricsContainerRef"
-    />
+    <MusicLyrics v-if="env.showLyrics" :env="env" :lyricsContainerRef="lyricsContainerRef" />
 
     <!-- 播放列表抽屉 -->
-    <MusicPlaylistDrawer
-      v-if="env.showPlaylistDrawer"
-      :env="env"
-      :playMusic="playMusic"
-      :formatTime="formatTime"
-      :isFavorite="isFavorite"
-      :toggleFavorite="toggleFavorite"
-    />
+    <MusicPlaylistDrawer v-if="env.showPlaylistDrawer" :env="env" :playMusic="playMusic" :formatTime="formatTime" :isFavorite="isFavorite" :toggleFavorite="toggleFavorite" />
   </div>
 </template>
 

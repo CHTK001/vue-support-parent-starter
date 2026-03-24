@@ -1,8 +1,8 @@
 ﻿<script setup lang="ts">
 import Calendar from "@iconify-icons/ep/calendar";
 import Refresh from "@iconify-icons/line-md/backup-restore";
-import { useRenderIcon } from "@repo/components";
-import { ScFilterBar } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
 import { message } from "@repo/utils";
 import {
   computed,
@@ -48,8 +48,6 @@ const params = reactive({
 
 // 节假日数据
 const holidayData = ref<SysHoliday[]>([]);
-// 下班时间（HH:mm）
-const workEndTime = ref("18:00");
 
 /**
  * 计算距离今天的天数
@@ -241,11 +239,11 @@ onMounted(() => {
 
 <template>
   <div class="h-full holiday-container system-container modern-bg">
-    <ScContainer>
-      <ScMain class="nopadding">
-        <ScContainer>
+    <el-container>
+      <el-main class="nopadding">
+        <el-container>
           <!-- 头部搜索区域 -->
-          <ScHeader class="h-[70px]">
+          <el-header class="h-[70px]">
             <div class="flex justify-between items-center h-full">
               <!-- 操作按钮区域 -->
               <div class="flex items-center gap-2 ml-4">
@@ -300,18 +298,6 @@ onMounted(() => {
                       <span>下班倒计时</span>
                       <ScSwitch v-model="showWorkCountdown" size="small" />
                     </div>
-                    <div class="setting-item">
-                      <span>下班时间</span>
-                      <ScTimePicker
-                        v-model="workEndTime"
-                        size="small"
-                        format="HH:mm"
-                        value-format="HH:mm"
-                        placeholder="选择下班时间"
-                        :clearable="false"
-                        class="work-time-picker"
-                      />
-                    </div>
                   </div>
                 </ScPopover>
 
@@ -336,10 +322,10 @@ onMounted(() => {
                 </div>
               </div>
             </div>
-          </ScHeader>
+          </el-header>
 
           <!-- 主内容区域 -->
-          <ScMain class="thin-scroller">
+          <el-main class="thin-scroller">
             <!-- 表格视图 -->
             <div
               v-if="viewMode === 'table'"
@@ -442,7 +428,6 @@ onMounted(() => {
                 :poster-mode="posterMode"
                 :show-holiday-countdown="showHolidayCountdown"
                 :show-work-countdown="showWorkCountdown"
-                :work-end-time="workEndTime"
                 @year-change="
                   (year) => {
                     params.year = year;
@@ -451,10 +436,10 @@ onMounted(() => {
                 "
               />
             </div>
-          </ScMain>
-        </ScContainer>
-      </ScMain>
-    </ScContainer>
+          </el-main>
+        </el-container>
+      </el-main>
+    </el-container>
   </div>
 </template>
 

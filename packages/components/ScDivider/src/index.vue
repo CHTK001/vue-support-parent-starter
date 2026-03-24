@@ -33,4 +33,6 @@ defineProps({
 });
 
 const { currentComponent } = useThemeComponent("ElDivider");
+
+
 </script>

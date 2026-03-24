@@ -22,8 +22,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@build/*": ["build/*"],
-      "@pages/common": ["../../pages/common"],
-      "@pages/common/*": ["../../pages/common/*"]
+      "@repo/codec-wasm": ["../codec-wasm/codec_wasm.js"]
     },
     "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
   },

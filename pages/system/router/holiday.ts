@@ -11,7 +11,7 @@ const routes = [
     meta: {
       title: "节假日管理",
       icon: "ri:calendar-line",
-      rank: 12,
+      rank: 12
     },
   },
   {
@@ -24,7 +24,7 @@ const routes = [
     meta: {
       title: "节假日日历",
       icon: "ri:calendar-2-line",
-      rank: 13,
+      rank: 13
     },
   },
 ] satisfies Array<RouteConfigsTable>;

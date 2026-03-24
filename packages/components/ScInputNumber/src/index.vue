@@ -120,6 +120,8 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElInputNumber");
 
+
+
 const handleChange = (val: number | undefined, oldVal: number | undefined) => {
   emit("change", val, oldVal);
 };

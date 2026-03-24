@@ -10,19 +10,19 @@
             {{ nodeInfo?.ipAddress }}:{{ nodeInfo?.port }}
           </span>
         </div>
-        <ScTag :type="isConnected ? 'success' : 'danger'" effect="dark">
+        <el-tag :type="isConnected ? 'success' : 'danger'" effect="dark">
           {{ isConnected ? "已连接" : "断开连接" }}
-        </ScTag>
+        </el-tag>
       </div>
       <div class="header-actions">
         <span class="last-update">
           <IconifyIconOnline icon="ri:time-line" />
           更新时间: {{ formatTime(lastUpdateTime) }}
         </span>
-        <ScButton :loading="loading" @click="refreshData">
+        <el-button @click="refreshData" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -35,7 +35,7 @@
         </div>
         <div class="card-content">
           <div class="progress-ring">
-            <ScProgress
+            <el-progress
               type="circle"
               :percentage="metrics.cpu?.usage || 0"
               :stroke-width="12"
@@ -46,7 +46,7 @@
                   {{ (metrics.cpu?.usage || 0).toFixed(1) }}%
                 </span>
               </template>
-            </ScProgress>
+            </el-progress>
           </div>
           <div class="card-details">
             <div class="detail-item">
@@ -70,7 +70,7 @@
         </div>
         <div class="card-content">
           <div class="progress-ring">
-            <ScProgress
+            <el-progress
               type="circle"
               :percentage="metrics.memory?.usage || 0"
               :stroke-width="12"
@@ -81,7 +81,7 @@
                   {{ (metrics.memory?.usage || 0).toFixed(1) }}%
                 </span>
               </template>
-            </ScProgress>
+            </el-progress>
           </div>
           <div class="card-details">
             <div class="detail-item">
@@ -105,7 +105,7 @@
         </div>
         <div class="card-content">
           <div class="progress-ring">
-            <ScProgress
+            <el-progress
               type="circle"
               :percentage="metrics.disk?.usage || 0"
               :stroke-width="12"
@@ -116,7 +116,7 @@
                   {{ (metrics.disk?.usage || 0).toFixed(1) }}%
                 </span>
               </template>
-            </ScProgress>
+            </el-progress>
           </div>
           <div class="card-details">
             <div class="detail-item">
@@ -172,10 +172,10 @@
         JVM 信息
       </h3>
       <div class="jvm-cards">
-        <ScCard shadow="never" class="jvm-card">
+        <el-card shadow="never" class="jvm-card">
           <template #header>堆内存</template>
           <div class="memory-bar">
-            <ScProgress
+            <el-progress
               :percentage="jvmHeapUsage"
               :stroke-width="20"
               :color="getProgressColor(jvmHeapUsage)"
@@ -186,12 +186,12 @@
               <span>{{ formatBytes(metrics.jvm?.heapMax) }}</span>
             </div>
           </div>
-        </ScCard>
+        </el-card>
 
-        <ScCard shadow="never" class="jvm-card">
+        <el-card shadow="never" class="jvm-card">
           <template #header>非堆内存</template>
           <div class="memory-bar">
-            <ScProgress
+            <el-progress
               :percentage="jvmNonHeapUsage"
               :stroke-width="20"
               :color="getProgressColor(jvmNonHeapUsage)"
@@ -202,19 +202,19 @@
               <span>{{ formatBytes(metrics.jvm?.nonHeapMax) }}</span>
             </div>
           </div>
-        </ScCard>
+        </el-card>
 
-        <ScCard shadow="never" class="jvm-card">
+        <el-card shadow="never" class="jvm-card">
           <template #header>运行信息</template>
-          <ScDescriptions :column="1" size="small">
-            <ScDescriptionsItem label="JVM版本">
+          <el-descriptions :column="1" size="small">
+            <el-descriptions-item label="JVM版本">
               {{ metrics.jvm?.version || "-" }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="运行时长">
+            </el-descriptions-item>
+            <el-descriptions-item label="运行时长">
               {{ formatUptime(metrics.jvm?.uptime) }}
-            </ScDescriptionsItem>
-          </ScDescriptions>
-        </ScCard>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
       </div>
     </div>
 
@@ -225,7 +225,7 @@
           <IconifyIconOnline icon="ri:stack-line" />
           线程信息
         </h3>
-        <ScCard shadow="never">
+        <el-card shadow="never">
           <div class="thread-stats">
             <div class="thread-stat">
               <span class="stat-value">{{ metrics.thread?.live || 0 }}</span>
@@ -240,7 +240,7 @@
               <span class="stat-label">峰值线程</span>
             </div>
           </div>
-        </ScCard>
+        </el-card>
       </div>
 
       <div class="gc-section">
@@ -248,7 +248,7 @@
           <IconifyIconOnline icon="ri:delete-bin-6-line" />
           GC 信息
         </h3>
-        <ScCard shadow="never">
+        <el-card shadow="never">
           <div class="gc-stats">
             <div class="gc-stat">
               <span class="stat-value">{{ metrics.gc?.count || 0 }}</span>
@@ -261,7 +261,7 @@
               <span class="stat-label">GC耗时</span>
             </div>
           </div>
-        </ScCard>
+        </el-card>
       </div>
     </div>
   </div>
@@ -387,7 +387,7 @@ const refreshData = async () => {
   try {
     const response = await getNodeMetricsForNodeControl(
       nodeInfo.value.ipAddress,
-      nodeInfo.value.port,
+      nodeInfo.value.port
     );
     if (response.success && response.data) {
       metrics.value = response.data;
@@ -476,6 +476,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -508,6 +509,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .monitor-dashboard {
   padding: 24px;

@@ -20,39 +20,6 @@ import {
 } from "@repo/config";
 import { removeToken, setToken } from "../../utils/auth";
 
-const normalizeRoles = (roles: Array<string> = []) => {
-  const normalizedRoles = new Set<string>();
-
-  roles.forEach((role) => {
-    const value = String(role || "").trim();
-    if (!value) {
-      return;
-    }
-
-    normalizedRoles.add(value);
-    const lowerValue = value.toLowerCase();
-
-    if (lowerValue === "admin") {
-      normalizedRoles.add("admin");
-      normalizedRoles.add("ADMIN");
-      return;
-    }
-
-    if (lowerValue === "ops") {
-      normalizedRoles.add("ops");
-      normalizedRoles.add("OPS");
-      return;
-    }
-
-    if (lowerValue === "superadmin" || lowerValue === "super_admin") {
-      normalizedRoles.add("superadmin");
-      normalizedRoles.add("SUPER_ADMIN");
-    }
-  });
-
-  return Array.from(normalizedRoles);
-};
-
 export const useUserStore = defineStore({
   id: "pure-user",
   state: (): userType => ({
@@ -72,9 +39,7 @@ export const useUserStore = defineStore({
       "",
     loginType: null,
     // 页面级别权限
-    roles: normalizeRoles(
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
-    ),
+    roles: localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
     perms: localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [],
     // 是否勾选了登录页的免登录
     isRemembered: false,
@@ -104,8 +69,8 @@ export const useUserStore = defineStore({
     },
     /** 存储角色 */
     SET_ROLES(roles: Array<string>) {
-      this.roles = normalizeRoles(roles);
-      setUserRole(this.roles);
+      this.roles = roles;
+      setUserRole(roles);
     },
     SET_PERMS(perms: Array<string>) {
       this.perms = perms;

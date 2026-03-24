@@ -8,8 +8,7 @@ export const emailAccounts: EmailAccount[] = [
     emailAccountProvider: "Gmail",
     emailAccountColor: "#4285F4",
     emailAccountAvatar: "https://cdn-icons-png.flaticon.com/512/281/281769.png",
-    emailAccountSignature:
-      "<p>Best Regards,<br>John Doe<br>Marketing Manager</p>",
+    emailAccountSignature: "<p>Best Regards,<br>John Doe<br>Marketing Manager</p>",
     emailAccountUnreadCount: 5,
   },
   {
@@ -28,8 +27,7 @@ export const emailAccounts: EmailAccount[] = [
     emailAccountAddress: "backup@example.com",
     emailAccountProvider: "163邮箱",
     emailAccountColor: "#D44638",
-    emailAccountAvatar:
-      "https://cdn-icons-png.flaticon.com/512/5968/5968534.png",
+    emailAccountAvatar: "https://cdn-icons-png.flaticon.com/512/5968/5968534.png",
     emailAccountSignature: "<p>Sent from my backup email</p>",
     emailAccountUnreadCount: 0,
   },
@@ -170,8 +168,7 @@ export const emailMessages: EmailInfo[] = [
         emailAttachmentId: "a2",
         emailAttachmentName: "财务数据.xlsx",
         emailAttachmentSize: 1800000,
-        emailAttachmentType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        emailAttachmentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         emailAttachmentUrl: "#",
       },
     ],
@@ -196,9 +193,7 @@ export const emailMessages: EmailInfo[] = [
       emailAvatar: "https://randomuser.me/api/portraits/women/2.jpg",
     },
     emailRecipients: {
-      emailTo: [
-        { emailName: "个人邮箱", emailAddress: "personal@example.com" },
-      ],
+      emailTo: [{ emailName: "个人邮箱", emailAddress: "personal@example.com" }],
       emailCc: [{ emailName: "共同好友", emailAddress: "mutual@friend.com" }],
     },
     emailDate: "2023-07-14T18:45:00",
@@ -228,9 +223,7 @@ export const emailMessages: EmailInfo[] = [
       emailAvatar: "https://cdn-icons-png.flaticon.com/512/1077/1077976.png",
     },
     emailRecipients: {
-      emailTo: [
-        { emailName: "个人邮箱", emailAddress: "personal@example.com" },
-      ],
+      emailTo: [{ emailName: "个人邮箱", emailAddress: "personal@example.com" }],
     },
     emailAttachments: [
       {
@@ -327,9 +320,7 @@ export const emailMessages: EmailInfo[] = [
       emailAvatar: "https://randomuser.me/api/portraits/women/5.jpg",
     },
     emailRecipients: {
-      emailTo: [
-        { emailName: "个人邮箱", emailAddress: "personal@example.com" },
-      ],
+      emailTo: [{ emailName: "个人邮箱", emailAddress: "personal@example.com" }],
       emailCc: [
         { emailName: "爸爸", emailAddress: "dad@family.com" },
         { emailName: "妈妈", emailAddress: "mom@family.com" },
@@ -340,16 +331,14 @@ export const emailMessages: EmailInfo[] = [
         emailAttachmentId: "a5",
         emailAttachmentName: "旅行计划.docx",
         emailAttachmentSize: 1300000,
-        emailAttachmentType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        emailAttachmentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         emailAttachmentUrl: "#",
       },
       {
         emailAttachmentId: "a6",
         emailAttachmentName: "预算.xlsx",
         emailAttachmentSize: 950000,
-        emailAttachmentType:
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        emailAttachmentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         emailAttachmentUrl: "#",
       },
     ],
@@ -408,9 +397,7 @@ export const emailSentMessages: EmailInfo[] = [
       emailAvatar: "https://cdn-icons-png.flaticon.com/512/281/281769.png",
     },
     emailRecipients: {
-      emailTo: [
-        { emailName: "开发团队", emailAddress: "dev-team@company.com" },
-      ],
+      emailTo: [{ emailName: "开发团队", emailAddress: "dev-team@company.com" }],
       emailCc: [{ emailName: "产品经理", emailAddress: "product@company.com" }],
     },
     emailAttachments: [
@@ -418,8 +405,7 @@ export const emailSentMessages: EmailInfo[] = [
         emailAttachmentId: "s1a1",
         emailAttachmentName: "会议纪要-20230714.docx",
         emailAttachmentSize: 1100000,
-        emailAttachmentType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        emailAttachmentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         emailAttachmentUrl: "#",
       },
     ],
@@ -514,8 +500,4 @@ export const emailDraftMessages: EmailInfo[] = [
 ];
 
 // 所有邮件合并
-export const allEmails = [
-  ...emailMessages,
-  ...emailSentMessages,
-  ...emailDraftMessages,
-];
+export const allEmails = [...emailMessages, ...emailSentMessages, ...emailDraftMessages];

@@ -39,19 +39,10 @@
       </ul>
     </div>
   </Teleport>
-
+  
   <!-- 子菜单 - 独立的 Teleport，避免被主菜单样式影响 -->
   <Teleport to="body">
-    <div
-      v-if="subMenuVisible && visible"
-      class="sc-context-menu sc-context-menu--submenu"
-      :class="className"
-      :style="{ top: `${subMenuTop}px`, left: `${subMenuLeft}px` }"
-      @click.stop
-      @contextmenu.prevent
-      @mouseenter="handleSubMenuHover"
-      @mouseleave="handleMenuItemLeave(null, $event)"
-    >
+    <div v-if="subMenuVisible && visible" class="sc-context-menu sc-context-menu--submenu" :class="className" :style="{ top: `${subMenuTop}px`, left: `${subMenuLeft}px` }" @click.stop @contextmenu.prevent @mouseenter="handleSubMenuHover" @mouseleave="handleMenuItemLeave(null, $event)">
       <ul class="sc-context-menu__list">
         <template v-for="(item, index) in subMenuItems" :key="index">
           <!-- 分割线 -->
@@ -226,7 +217,7 @@ const handleMenuItemLeave = (item, event) => {
           // 使用更可靠的方法检查鼠标是否在子菜单上
           const hoveredElements = document.querySelectorAll(":hover");
           let isHoveringSubMenu = false;
-
+          
           for (const el of hoveredElements) {
             if (subMenuEl.contains(el)) {
               isHoveringSubMenu = true;
@@ -238,13 +229,11 @@ const handleMenuItemLeave = (item, event) => {
           if (!isHoveringSubMenu && event?.clientX !== undefined && event?.clientY !== undefined) {
             const subMenuRect = subMenuEl.getBoundingClientRect();
             const padding = 10; // 过渡区域的大小
-
-            if (
-              event.clientX >= subMenuRect.left - padding &&
-              event.clientX <= subMenuRect.right + padding &&
-              event.clientY >= subMenuRect.top - padding &&
-              event.clientY <= subMenuRect.bottom + padding
-            ) {
+            
+            if (event.clientX >= subMenuRect.left - padding && 
+                event.clientX <= subMenuRect.right + padding && 
+                event.clientY >= subMenuRect.top - padding && 
+                event.clientY <= subMenuRect.bottom + padding) {
               isHoveringSubMenu = true;
             }
           }
@@ -386,7 +375,7 @@ const handleSubMenuHover = () => {
     clearTimeout(subMenuLeaveTimer.value);
     subMenuLeaveTimer.value = null;
   }
-
+  
   // 确保子菜单可见
   if (!subMenuVisible.value && activeParentItem.value && activeParentItem.value.children) {
     subMenuItems.value = activeParentItem.value.children;

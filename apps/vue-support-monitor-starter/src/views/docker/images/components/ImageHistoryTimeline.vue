@@ -12,49 +12,49 @@
           <IconifyIconOnline icon="ri:image-line" class="info-icon" />
           <div class="info-text">
             <div class="image-name">{{ image?.systemSoftImageName }}</div>
-            <ScTag size="small" type="primary" effect="plain">
+            <el-tag size="small" type="primary" effect="plain">
               {{ image?.systemSoftImageTag }}
-            </ScTag>
+            </el-tag>
           </div>
         </div>
         <div class="filter-bar">
-          <ScSelect
+          <el-select
             v-model="filterType"
             placeholder="操作类型"
             clearable
             size="small"
             @change="loadHistory"
           >
-            <ScOption label="全部" :value="undefined" />
-            <ScOption label="拉取镜像" value="PULL_IMAGE" />
-            <ScOption label="创建容器" value="CREATE_CONTAINER" />
-            <ScOption label="导出镜像" value="EXPORT_IMAGE" />
-            <ScOption label="删除镜像" value="DELETE_IMAGE" />
-          </ScSelect>
-          <ScSelect
+            <el-option label="全部" :value="undefined" />
+            <el-option label="拉取镜像" value="PULL_IMAGE" />
+            <el-option label="创建容器" value="CREATE_CONTAINER" />
+            <el-option label="导出镜像" value="EXPORT_IMAGE" />
+            <el-option label="删除镜像" value="DELETE_IMAGE" />
+          </el-select>
+          <el-select
             v-model="filterStatus"
             placeholder="状态"
             clearable
             size="small"
             @change="loadHistory"
           >
-            <ScOption label="全部" :value="undefined" />
-            <ScOption label="成功" :value="1" />
-            <ScOption label="失败" :value="2" />
-            <ScOption label="进行中" :value="0" />
-          </ScSelect>
+            <el-option label="全部" :value="undefined" />
+            <el-option label="成功" :value="1" />
+            <el-option label="失败" :value="2" />
+            <el-option label="进行中" :value="0" />
+          </el-select>
         </div>
       </div>
     </template>
 
-    <ScScrollbar v-loading="loading" max-height="500px">
+    <el-scrollbar max-height="500px" v-loading="loading">
       <div v-if="records.length === 0" class="empty-state">
         <IconifyIconOnline icon="ri:history-line" class="empty-icon" />
         <p class="empty-text">暂无历史记录</p>
       </div>
 
-      <ScTimeline v-else class="history-timeline">
-        <ScTimelineItem
+      <el-timeline v-else class="history-timeline">
+        <el-timeline-item
           v-for="record in records"
           :key="record.systemSoftRecordId"
           :timestamp="formatDateTime(record.systemSoftRecordTime)"
@@ -62,7 +62,7 @@
           :type="getTimelineType(record.systemSoftRecordStatus)"
           :hollow="record.systemSoftRecordStatus === 0"
         >
-          <ScCard
+          <el-card
             class="timeline-card"
             :class="`status-${record.systemSoftRecordStatus}`"
           >
@@ -75,13 +75,13 @@
                 <span class="operation-type">{{
                   getOperationText(record.systemSoftRecordOperationType)
                 }}</span>
-                <ScTag
+                <el-tag
                   :type="getStatusType(record.systemSoftRecordStatus)"
                   size="small"
                   class="ml-2"
                 >
                   {{ getStatusText(record.systemSoftRecordStatus) }}
-                </ScTag>
+                </el-tag>
               </div>
               <div class="record-meta">
                 <span class="meta-item">
@@ -105,9 +105,9 @@
 
               <div v-if="record.systemSoftRecordParams" class="content-item">
                 <span class="content-label">操作参数：</span>
-                <ScTag size="small" effect="plain" class="param-tag">
+                <el-tag size="small" effect="plain" class="param-tag">
                   {{ record.systemSoftRecordParams }}
-                </ScTag>
+                </el-tag>
               </div>
 
               <div
@@ -170,17 +170,17 @@
                 结束：{{ formatDateTime(record.systemSoftRecordEndTime) }}
               </span>
             </div>
-          </ScCard>
-        </ScTimelineItem>
-      </ScTimeline>
-    </ScScrollbar>
+          </el-card>
+        </el-timeline-item>
+      </el-timeline>
+    </el-scrollbar>
 
     <template #footer>
-      <ScButton @click="visible = false">关闭</ScButton>
-      <ScButton type="primary" @click="loadHistory">
+      <el-button @click="visible = false">关闭</el-button>
+      <el-button type="primary" @click="loadHistory">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </ScButton>
+      </el-button>
     </template>
   </sc-dialog>
 </template>
@@ -270,7 +270,7 @@ async function loadHistory() {
           systemSoftRecordUser: "admin",
           systemSoftRecordContainerId: "abc123def456",
           systemSoftRecordStartTime: new Date(
-            Date.now() - 3600000 - 5000,
+            Date.now() - 3600000 - 5000
           ).toISOString(),
           systemSoftRecordEndTime: new Date(Date.now() - 3600000).toISOString(),
           systemSoftRecordDuration: 5000,
@@ -308,7 +308,7 @@ function formatDuration(ms: number): string {
 
 // 获取时间轴类型
 function getTimelineType(
-  status: number,
+  status: number
 ): "success" | "warning" | "danger" | "info" | "primary" {
   switch (status) {
     case 1:
@@ -324,7 +324,7 @@ function getTimelineType(
 
 // 获取状态类型
 function getStatusType(
-  status: number,
+  status: number
 ): "success" | "warning" | "danger" | "info" {
   switch (status) {
     case 1:
@@ -389,7 +389,7 @@ watch(
     if (val && props.image) {
       loadHistory();
     }
-  },
+  }
 );
 
 watch(visible, (val) => {
@@ -573,6 +573,7 @@ watch(visible, (val) => {
   align-items: center;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -581,4 +582,5 @@ watch(visible, (val) => {
     padding: 12px 16px;
   }
 }
+
 </style>

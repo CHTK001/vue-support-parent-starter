@@ -6,7 +6,11 @@
 import { computed, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
-import type { StorageConfig, StorageLayout, ThemeKey } from "../types/theme";
+import type {
+  StorageConfig,
+  StorageLayout,
+  ThemeKey,
+} from "../types/theme";
 
 /**
  * 统一布局配置 Hook
@@ -83,16 +87,13 @@ export function useLayoutConfig() {
    */
   function updateConfig<K extends keyof StorageConfig>(
     key: K,
-    value: StorageConfig[K],
+    value: StorageConfig[K]
   ): void {
     if (!$storage) {
       return;
     }
     const oldConfigure = ($storage.configure ?? {}) as Record<string, unknown>;
-    $storage.configure = {
-      ...oldConfigure,
-      [key]: value,
-    } as typeof $storage.configure;
+    $storage.configure = { ...oldConfigure, [key]: value } as typeof $storage.configure;
 
     // 发送相应的事件通知
     emitConfigChange(key, value);
@@ -107,17 +108,11 @@ export function useLayoutConfig() {
       return;
     }
     const oldConfigure = ($storage.configure ?? {}) as Record<string, unknown>;
-    $storage.configure = {
-      ...oldConfigure,
-      ...updates,
-    } as typeof $storage.configure;
+    $storage.configure = { ...oldConfigure, ...updates } as typeof $storage.configure;
 
     // 发送事件通知
     Object.keys(updates).forEach((key) => {
-      emitConfigChange(
-        key as keyof StorageConfig,
-        updates[key as keyof StorageConfig],
-      );
+      emitConfigChange(key as keyof StorageConfig, updates[key as keyof StorageConfig]);
     });
   }
 
@@ -128,7 +123,7 @@ export function useLayoutConfig() {
    */
   function updateLayout<K extends keyof StorageLayout>(
     key: K,
-    value: StorageLayout[K],
+    value: StorageLayout[K]
   ): void {
     if (!$storage?.layout) return;
 
@@ -143,7 +138,7 @@ export function useLayoutConfig() {
    */
   function emitConfigChange<K extends keyof StorageConfig>(
     key: K,
-    value: StorageConfig[K],
+    value: StorageConfig[K]
   ): void {
     // 根据配置键发送对应的事件
     const eventMap: Partial<Record<keyof StorageConfig, string>> = {

@@ -47,7 +47,7 @@ export function getSoftVersionPageList(params: any) {
   return http.request<ReturnResult<{ records: any[]; total: number }>>(
     "get",
     "v1/soft/version/page",
-    { params },
+    { params }
   );
 }
 
@@ -83,7 +83,7 @@ export function uninstallSoft(params: {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/soft/record/uninstall",
-    { data: params },
+    { data: params }
   );
 }
 
@@ -91,14 +91,14 @@ export function getSoftRecordPageList(params: any) {
   return http.request<ReturnResult<{ records: any[]; total: number }>>(
     "get",
     "v1/soft/record/page",
-    { params },
+    { params }
   );
 }
 
 export function getAbnormalContainers() {
   return http.request<ReturnResult<any[]>>(
     "get",
-    "v1/system/soft/container/abnormal",
+    "v1/system/soft/container/abnormal"
   );
 }
 
@@ -107,7 +107,7 @@ export function getSoftInstallRecords(params: any) {
   return http.request<ReturnResult<{ records: any[]; total: number }>>(
     "get",
     "v1/soft/record/page",
-    { params },
+    { params }
   );
 }
 
@@ -140,7 +140,7 @@ export function getSoftContainerList(params: any) {
   return http.request<ReturnResult<any[]>>(
     "get",
     "v1/system/soft/container/list",
-    { params },
+    { params }
   );
 }
 
@@ -148,7 +148,7 @@ export function startSoftContainer(data: { containerId: string }) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/system/soft/container/start",
-    { data },
+    { data }
   );
 }
 
@@ -156,7 +156,7 @@ export function stopSoftContainer(data: { containerId: string }) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/system/soft/container/stop",
-    { data },
+    { data }
   );
 }
 
@@ -164,7 +164,7 @@ export function removeSoftContainer(data: { containerId: string }) {
   return http.request<ReturnResult<boolean>>(
     "delete",
     "v1/system/soft/container",
-    { data },
+    { data }
   );
 }
 
@@ -172,7 +172,7 @@ export function getSoftContainerLogs(params: { containerId: string }) {
   return http.request<ReturnResult<string>>(
     "get",
     "v1/system/soft/container/logs",
-    { params },
+    { params }
   );
 }
 

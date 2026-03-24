@@ -123,10 +123,6 @@ export interface StorageConfig {
   showFullscreen?: boolean;
   /** 是否显示顶部时间 */
   showHeaderClock?: boolean;
-  /** 是否显示顶部第二个时间 */
-  headerClockSecondEnabled?: boolean;
-  /** 顶部第二时间的时区 */
-  headerClockSecondTimezone?: string;
   /**
    * 消息中心下拉弹框位置（用于 el-dropdown placement 映射）
    * 值域与 ScSelect layout="position" 一致
@@ -167,8 +163,6 @@ export interface StorageConfig {
   aiChatVendor?: "hf" | "chrome" | "other";
   /** AI 助手模型名称（如 Hugging Face 模型 ID） */
   aiChatModel?: string;
-  /** AI 运行模式：webllm / chrome / vendor */
-  aiChatMode?: string;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */
@@ -205,11 +199,5 @@ export interface StorageConfig {
   devGrid?: boolean;
   /** DevTools 悬停检查开关 */
   devHoverInspector?: boolean;
-  /** 热点工具（热力图覆盖层）开关 */
-  devHeatmap?: boolean;
-  /** 语音朗读开关 */
-  voiceReadEnabled?: boolean;
   /** 开发模式下 AI 设置展示控制 */
-  /** drawer 布局汉堡按钮位置 */
-  drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
 }

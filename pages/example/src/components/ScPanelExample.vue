@@ -197,6 +197,7 @@
       </div>
     </DemoBlock>
 
+
     <!-- 功能组合 -->
     <DemoBlock title="功能组合" :code="codes.full">
       <div class="demo-row">
@@ -378,6 +379,7 @@ const codes = {
   <p>自定义颜色</p>
 </ScPanel>`,
 
+
   full: `<ScPanel
   title="完整功能"
   icon="ep:setting"
@@ -404,7 +406,7 @@ import { message } from "@repo/utils";
 function handleClose() {
   message("面板已关闭", { type: "info" });
 }
-<\/script>`,
+<\/script>`
 };
 </script>
 

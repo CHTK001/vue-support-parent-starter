@@ -4,12 +4,12 @@
  */
 const plugin = () => {
   return {
-    postcssPlugin: "postcss-fix-color-adjust",
+    postcssPlugin: 'postcss-fix-color-adjust',
     Declaration(decl: any) {
-      if (decl.prop === "color-adjust") {
-        decl.prop = "print-color-adjust";
+      if (decl.prop === 'color-adjust') {
+        decl.prop = 'print-color-adjust';
       }
-    },
+    }
   };
 };
 

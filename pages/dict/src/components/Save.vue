@@ -11,7 +11,7 @@
       class="dict-dialog"
       @close="close"
     >
-      <ScForm
+      <ScForm 
         ref="dialogForm"
         :model="form"
         :rules="rules"
@@ -52,7 +52,7 @@
               <div class="section-title">基本信息</div>
 
               <ScFormItem label="字典名称" prop="sysDictName">
-                <ScInput
+                <ScInput 
                   v-model="form.sysDictName"
                   placeholder="请输入字典名称"
                   class="dict-input"
@@ -66,7 +66,7 @@
               </ScFormItem>
 
               <ScFormItem label="字典编码" prop="sysDictCode">
-                <ScInput
+                <ScInput 
                   v-model="form.sysDictCode"
                   placeholder="请输入字典编码"
                   class="dict-input"
@@ -83,7 +83,7 @@
               </ScFormItem>
 
               <ScFormItem label="字典i18n" prop="sysDictI18n">
-                <ScInput
+                <ScInput 
                   v-model="form.sysDictI18n"
                   placeholder="请输入字典i18n"
                   class="dict-input"
@@ -112,7 +112,7 @@
               </ScFormItem>
 
               <ScFormItem label="描述" prop="sysDictRemark">
-                <ScInput
+                <ScInput 
                   v-model="form.sysDictRemark"
                   placeholder="请输入描述"
                   type="textarea"
@@ -130,7 +130,7 @@
           <ScButton @click="visible = false" class="cancel-btn">
             取消
           </ScButton>
-          <ScButton
+          <ScButton 
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"

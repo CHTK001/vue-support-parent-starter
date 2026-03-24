@@ -17,8 +17,8 @@ import { useResponsiveLayout } from "./hooks/useResponsiveLayout";
 import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 import { useDebugMode } from "./hooks/useDebugMode";
 import { setType } from "./types";
-import { ScDebugConsole } from "@repo/components";
-import { CoolLoading } from "../../../pages/common";
+import ScDebugConsole from "@repo/components/ScDebugConsole/index.vue";
+import { CoolLoading } from "@repo/pages";
 
 import { useGlobal } from "@pureadmin/utils";
 import { storeToRefs } from "pinia";
@@ -31,7 +31,6 @@ import {
   onBeforeMount,
   onMounted,
   onUnmounted,
-  provide,
   reactive,
   ref,
   watch,
@@ -40,40 +39,24 @@ import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
-import { aesDecrypt } from "@repo/utils";
-import {
-  initSession,
-  localStorageProxy,
-  message,
-  stopSession,
-} from "@repo/utils";
+import { initSession, localStorageProxy, message, stopSession } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
-import NavDrawerLayout from "./components/lay-sidebar/NavDrawer.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
+import NavMobileLayout from "./components/lay-sidebar/NavMobile.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import LayAiChat from "./components/lay-ai-chat/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import FpsMonitor from "./components/lay-performance/FpsMonitor.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
 import LiteInspector from "./components/lay-dev-tools/LiteInspector.vue";
-import HeatmapOverlay from "./components/lay-dev-tools/HeatmapOverlay.vue";
-import FestivalLayer from "./components/lay-festival/index.vue";
 
-// 导入设计 token（全局 CSS 变量 --dt-xxxx，必须在 script 中引入才能全局生效）
-import "./styles/design-tokens.scss";
-// 导入设计 token 覆盖（Element Plus 圆角/间距/阴影统一）
-import "./styles/base-override.scss";
-// 导入主题皮肤样式
+// 导入主题皮肤样式（节日主题仅保留已实现的圣诞皮肤）
 import "./themes/8bit.scss";
 import "./themes/future-tech.scss";
-// 导入节日主题样式
-import "./themes/halloween.scss";
-import "./themes/christmas.scss";
-import "./themes/spring-festival.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 // 导入移动端独立样式
 import "./styles/mobile.scss";
@@ -97,8 +80,8 @@ const LayContent = createLayoutAsyncComponent(
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
-const NavDrawer = markRaw(NavDrawerLayout);
 const NavDouble = markRaw(NavDoubleLayout);
+const NavMobile = markRaw(NavMobileLayout);
 
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();
@@ -138,29 +121,14 @@ const aiChatPosition = computed(
   () => $storage?.configure?.aiChatPosition || "bottom-right",
 );
 const aiChatHeaders = computed(() => {
-  const raw = $storage?.configure?.aiChatApiKey;
-  if (!raw) return {};
-  const apiKey = aesDecrypt(raw, getConfig().StorageKey);
-  return { Authorization: `Bearer ${apiKey}` };
+  const apiKey = $storage?.configure?.aiChatApiKey;
+  if (!apiKey) {
+    return {};
+  }
+  return {
+    Authorization: `Bearer ${apiKey}`,
+  };
 });
-
-// 向子组件注入 AI 配置（HeatmapOverlay 等通过 inject 获取）
-provide(
-  "heatmapAiConfig",
-  computed(() => ({
-    mode: $storage?.configure?.aiChatMode,
-    vendor: $storage?.configure?.aiChatVendor,
-    apiKey: aesDecrypt(
-      $storage?.configure?.aiChatApiKey ?? "",
-      getConfig().StorageKey,
-    ),
-    apiUrl: aesDecrypt(
-      $storage?.configure?.aiChatApiUrl ?? "",
-      getConfig().StorageKey,
-    ),
-    model: $storage?.configure?.aiChatModel,
-  })),
-);
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();
@@ -274,9 +242,7 @@ function applySessionAutoLogout(): void {
       ? localAutoLogout
       : (sessionConfig.autoLogout ?? false);
   const timeoutSeconds =
-    typeof localTimeout === "number"
-      ? localTimeout
-      : (sessionConfig.timeout ?? 0);
+    typeof localTimeout === "number" ? localTimeout : (sessionConfig.timeout ?? 0);
 
   // 每次应用前先停止，保证不会重复绑定事件/定时器
   stopSession();
@@ -443,14 +409,15 @@ const LayHeader = defineComponent({
           (layout.value === "vertical" ||
             layout.value === "mix" ||
             layout.value === "hover" ||
-            layout.value === "drawer" ||
-            layout.value === "double")
+            layout.value === "double" ||
+            layout.value === "mobile")
             ? h(LayNavbar)
             : null,
           !pureSetting.hiddenSideBar && layout.value === "horizontal"
             ? h(NavHorizontal)
             : null,
-          h(markRaw(LayTag)),
+          // 移动导航模式下不显示标签页
+          layout.value !== "mobile" ? h(markRaw(LayTag)) : null,
         ],
       },
     );
@@ -475,15 +442,25 @@ const LayHeader = defineComponent({
     <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
       <!-- 防删除水印容器 -->
       <div ref="watermarkContainerRef" class="watermark-container"></div>
+      <!-- 移动导航模式：底部导航栏设计 -->
+      <template v-if="layout === 'mobile'">
+        <NavMobile>
+          <div class="mobile-main-container">
+            <LayHeader />
+            <LayContent :fixed-header="true" />
+          </div>
+        </NavMobile>
+      </template>
+
       <!-- 双栏导航模式：特殊布局 -->
-      <template v-if="layout === 'double'">
+      <template v-else-if="layout === 'double'">
         <div
-          v-if="set.device === 'mobile' && set.sidebar.opened"
+          v-show="set.device === 'mobile' && set.sidebar.opened"
           class="app-mask"
           @click="useAppStoreHook().toggleSideBar()"
         />
         <div class="double-layout-container">
-          <NavDouble v-if="!pureSetting.hiddenSideBar" />
+          <NavDouble v-show="!pureSetting.hiddenSideBar" />
           <div
             :class="[
               'main-container',
@@ -501,19 +478,19 @@ const LayHeader = defineComponent({
                 <LayContent :fixed-header="set.fixedHeader" />
               </div>
             </div>
-            <ScScrollbar v-else style="flex: 1">
-              <ScBacktop
+            <el-scrollbar v-else style="flex: 1">
+              <el-backtop
                 :title="t('buttons.pureBackTop')"
                 target=".main-container .el-scrollbar__wrap"
               >
                 <BackTopIcon />
-              </ScBacktop>
+              </el-backtop>
               <LayHeader />
               <!-- 主体内容 -->
               <div style="flex: 1">
                 <LayContent :fixed-header="set.fixedHeader" />
               </div>
-            </ScScrollbar>
+            </el-scrollbar>
           </div>
         </div>
       </template>
@@ -521,22 +498,17 @@ const LayHeader = defineComponent({
       <!-- 其他导航模式：原有逻辑 -->
       <template v-else>
         <div
-          v-if="set.device === 'mobile' && set.sidebar.opened"
+          v-show="set.device === 'mobile' && set.sidebar.opened"
           class="app-mask"
           @click="useAppStoreHook().toggleSideBar()"
         />
         <NavVertical
-          v-if="
+          v-show="
             !pureSetting.hiddenSideBar &&
             (layout === 'vertical' || layout === 'mix')
           "
         />
-        <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
-        <NavDrawer v-if="!pureSetting.hiddenSideBar && layout === 'drawer'" />
-        <!-- 卡片导航模式 -->
-        <CardNavigation
-          v-if="!pureSetting.hiddenSideBar && layout === 'card'"
-        />
+        <NavHover v-show="!pureSetting.hiddenSideBar && layout === 'hover'" />
         <div
           :class="[
             'main-container',
@@ -553,19 +525,19 @@ const LayHeader = defineComponent({
               <LayContent :fixed-header="set.fixedHeader" />
             </div>
           </div>
-          <ScScrollbar v-else style="flex: 1">
-            <ScBacktop
+          <el-scrollbar v-else style="flex: 1">
+            <el-backtop
               :title="t('buttons.pureBackTop')"
               target=".main-container .el-scrollbar__wrap"
             >
               <BackTopIcon />
-            </ScBacktop>
+            </el-backtop>
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">
               <LayContent :fixed-header="set.fixedHeader" />
             </div>
-          </ScScrollbar>
+          </el-scrollbar>
         </div>
       </template>
 
@@ -592,11 +564,6 @@ const LayHeader = defineComponent({
 
       <!-- DevTools 轻量调试工具（仅开发环境生效，由配置控制） -->
       <LiteInspector />
-      <!-- 热点工具热力图覆盖层（仅开发/测试环境生效，由配置控制） -->
-      <HeatmapOverlay />
     </div>
-
-    <!-- 节日特效层（根据主题动态渲染） -->
-    <FestivalLayer :theme="$storage?.configure?.systemTheme || 'default'" />
   </ThemeSkinProvider>
 </template>

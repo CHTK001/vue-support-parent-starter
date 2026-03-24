@@ -213,7 +213,7 @@ export function applySystemServerConfigChanges(id: number) {
 export function cloneSystemServerV2(
   id: number,
   newName: string,
-  newPort: number,
+  newPort: number
 ) {
   return request({
     url: `/system/server/${id}/clone`,
@@ -230,7 +230,7 @@ export function cloneSystemServerV2(
  */
 export function batchOperationSystemServer(
   serverIds: number[],
-  operation: string,
+  operation: string
 ) {
   return request({
     url: "/system/server/batch",
@@ -294,7 +294,7 @@ export function getServerLogSseUrl(serverId: number): string {
  */
 export function getServerLogs(
   serverId: number,
-  params?: { level?: string; limit?: number; filterName?: string },
+  params?: { level?: string; limit?: number; filterName?: string }
 ) {
   return request({
     url: `/system/server/${serverId}/logs`,

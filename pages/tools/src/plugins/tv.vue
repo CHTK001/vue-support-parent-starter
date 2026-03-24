@@ -369,14 +369,14 @@ const toggleFavorite = (channel) => {
     env.favorites.push(channel);
     message(
       t("message.addFavoriteSuccess") || `已将 ${channel.name} 添加到收藏`,
-      { type: "success" },
+      { type: "success" }
     );
   } else {
     // 从收藏中移除
     env.favorites.splice(index, 1);
     message(
       t("message.removeFavoriteSuccess") || `已将 ${channel.name} 从收藏中移除`,
-      { type: "info" },
+      { type: "info" }
     );
   }
   // 保存到本地存储
@@ -525,12 +525,12 @@ onBeforeUnmount(() => {
 
             <!-- 频道分类 -->
             <div class="tv-tool__category-tabs">
-              <ScRadioGroup
+              <ScRadioGroup 
                 v-model="env.selectedCategory"
                 size="large"
                 class="tv-tool__radio-group"
               >
-                <ScRadio
+                <ScRadio 
                   v-for="category in env.categories"
                   :key="category.value"
                   :label="category.value"
@@ -563,7 +563,7 @@ onBeforeUnmount(() => {
                   <div class="tv-tool__channel-name">{{ channel.name }}</div>
                 </div>
                 <div class="tv-tool__channel-actions">
-                  <ScButton
+                  <ScButton 
                     type="primary"
                     link
                     @click.stop="toggleFavorite(channel)"
@@ -585,7 +585,7 @@ onBeforeUnmount(() => {
           </ScCard>
 
           <!-- 收藏频道 -->
-          <ScCard
+          <ScCard 
             class="tv-tool__favorites-card"
             shadow="hover"
             v-if="env.favorites.length > 0"
@@ -620,7 +620,7 @@ onBeforeUnmount(() => {
                   <div class="tv-tool__channel-name">{{ channel.name }}</div>
                 </div>
                 <div class="tv-tool__channel-actions">
-                  <ScButton
+                  <ScButton 
                     type="danger"
                     link
                     @click.stop="toggleFavorite(channel)"
@@ -633,7 +633,7 @@ onBeforeUnmount(() => {
           </ScCard>
 
           <!-- 历史记录 -->
-          <ScCard
+          <ScCard 
             class="tv-tool__history-card"
             shadow="hover"
             v-if="env.history.length > 0"
@@ -753,7 +753,7 @@ onBeforeUnmount(() => {
                   </div>
 
                   <div class="tv-tool__player-actions">
-                    <ScButton
+                    <ScButton 
                       type="primary"
                       @click="toggleFavorite(env.currentChannel)"
                     >
@@ -788,7 +788,7 @@ onBeforeUnmount(() => {
           </ScCard>
 
           <!-- 使用说明 -->
-          <ScCard
+          <ScCard 
             class="tv-tool__tips-card"
             shadow="hover"
             v-if="!env.currentChannel"

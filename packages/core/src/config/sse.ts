@@ -8,11 +8,9 @@
  */
 
 import { ref, type InjectionKey } from "vue";
-import {
-  fetchEventSource,
-  EventStreamContentType,
-} from "@microsoft/fetch-event-source";
+import { fetchEventSource, EventStreamContentType } from "@microsoft/fetch-event-source";
 import { getToken } from "../utils/auth";
+import type { SocketTemplate, SocketTemplateListenOptions } from "./socketTemplate";
 import { parseSocketMessage, buildAuthUrl } from "./socketUtils";
 
 /**
@@ -92,17 +90,17 @@ export function createSseService(config: SseConfig): SseService {
   const buildUrl = (): string => {
     const token = getToken();
     let baseUrl = config.urls[Math.floor(Math.random() * config.urls.length)];
-
+    
     // 添加路径
     if (config.path) {
       baseUrl = baseUrl.replace(/\/$/, "") + config.path;
     }
-
+    
     const queryParams: Record<string, string> = { ...config.query };
     if (config.clientId) {
       queryParams.clientId = config.clientId;
     }
-
+    
     return buildAuthUrl(baseUrl, token?.accessToken, queryParams);
   };
 
@@ -122,26 +120,21 @@ export function createSseService(config: SseConfig): SseService {
     fetchEventSource(url, {
       method: "GET",
       headers: {
-        Accept: "text/event-stream",
-        Authorization: token?.accessToken ? `Bearer ${token.accessToken}` : "",
+        "Accept": "text/event-stream",
+        "Authorization": token?.accessToken ? `Bearer ${token.accessToken}` : "",
         ...(config.query || {}),
       },
       signal: abortController.signal,
       openWhenHidden: true, // 保持后台连接
-
+      
       async onopen(response) {
-        if (
-          response.ok &&
-          response.headers.get("content-type")?.includes(EventStreamContentType)
-        ) {
+        if (response.ok && response.headers.get("content-type")?.includes(EventStreamContentType)) {
           isConnected.value = true;
           reconnectAttempts = 0;
           console.log("[SSE] 连接成功");
           triggerListeners("connect", { connected: true });
         } else {
-          throw new Error(
-            `[SSE] 连接失败: ${response.status} ${response.statusText}`,
-          );
+          throw new Error(`[SSE] 连接失败: ${response.status} ${response.statusText}`);
         }
       },
 
@@ -149,12 +142,12 @@ export function createSseService(config: SseConfig): SseService {
         // 处理事件名称
         const eventName = event.event || "message";
         const data = parseSocketMessage(event.data);
-
+        
         // 处理连接确认事件
         if (eventName === "connected") {
           console.log("[SSE] 连接确认", data);
         }
-
+        
         triggerListeners(eventName, data);
       },
 
@@ -162,17 +155,12 @@ export function createSseService(config: SseConfig): SseService {
         console.error("[SSE] 连接错误", error);
         isConnected.value = false;
         triggerListeners("error", error);
-
+        
         // 自动重连逻辑
-        if (
-          config.reconnection !== false &&
-          reconnectAttempts < maxReconnectAttempts
-        ) {
+        if (config.reconnection !== false && reconnectAttempts < maxReconnectAttempts) {
           reconnectAttempts++;
           const delay = config.reconnectionDelay ?? 3000;
-          console.log(
-            `[SSE] 将在 ${delay}ms 后尝试重连 (${reconnectAttempts}/${maxReconnectAttempts})`,
-          );
+          console.log(`[SSE] 将在 ${delay}ms 后尝试重连 (${reconnectAttempts}/${maxReconnectAttempts})`);
           // fetchEventSource 会自动重试，这里抛出错误表示需要重连
           throw error;
         } else if (reconnectAttempts >= maxReconnectAttempts) {
@@ -233,7 +221,7 @@ export function createSseService(config: SseConfig): SseService {
   const on = (
     event: string,
     callback: (data: unknown) => void,
-    options?: SocketTemplateListenOptions,
+    options?: SocketTemplateListenOptions
   ) => {
     // 注册到内部监听器Map
     if (!listeners.has(event)) {
@@ -272,7 +260,7 @@ export function createSseService(config: SseConfig): SseService {
    */
   const emit = (_event: string, _data?: unknown) => {
     console.warn(
-      "[SSE] SSE 是单向通信协议，不支持客户端发送消息。如需双向通信，请使用 WebSocket 或 Socket.IO。",
+      "[SSE] SSE 是单向通信协议，不支持客户端发送消息。如需双向通信，请使用 WebSocket 或 Socket.IO。"
     );
   };
 
@@ -282,15 +270,6 @@ export function createSseService(config: SseConfig): SseService {
   const close = () => {
     disconnect();
     listeners.clear();
-  };
-
-  const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
-
-  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
-    const key = `${module}_${event}`;
-    if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
-    subscribeHandlers.get(key)!.add(handler);
-    return () => subscribeHandlers.get(key)?.delete(handler);
   };
 
   return {
@@ -304,16 +283,12 @@ export function createSseService(config: SseConfig): SseService {
     get isConnected() {
       return isConnected.value;
     },
-    get connected() {
-      return isConnected;
-    },
     connect,
     disconnect,
     on,
     off,
     emit,
     close,
-    subscribe,
   };
 }
 

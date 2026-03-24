@@ -95,6 +95,8 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElColorPicker");
 
+
+
 const handleChange = (val: string | null) => {
   emit("change", val);
 };

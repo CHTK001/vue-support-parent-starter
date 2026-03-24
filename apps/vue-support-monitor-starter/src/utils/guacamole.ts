@@ -343,7 +343,7 @@ export function createWebSocketUrl(
   baseUrl: string,
   protocol: "rdp" | "vnc" | "other",
   serverId: string | number,
-  nodeId?: string | number,
+  nodeId?: string | number
 ): string {
   baseUrl = getConfig().BaseUrl + baseUrl;
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -373,7 +373,7 @@ export const defaultGuacamoleConfig: GuacamoleClientConfig = {
  */
 export function waitForConnection(
   client: GuacamoleClientManager,
-  timeout: number = 10000,
+  timeout: number = 10000
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -397,7 +397,7 @@ export function waitForConnection(
  */
 export function setupFileDrop(
   element: HTMLElement,
-  client: GuacamoleClientManager,
+  client: GuacamoleClientManager
 ) {
   element.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -422,7 +422,7 @@ export function setupFileDrop(
  */
 export function autoResizeDisplay(
   client: GuacamoleClientManager,
-  container: HTMLElement,
+  container: HTMLElement
 ) {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {

@@ -52,7 +52,7 @@ const codes = {
 </ScBadge>
 <ScBadge type="warning" is-dot>
   <ScButton>警告</ScButton>
-</ScBadge>`,
+</ScBadge>`
 };
 </script>
 
@@ -68,3 +68,5 @@ const codes = {
   }
 }
 </style>
+
+

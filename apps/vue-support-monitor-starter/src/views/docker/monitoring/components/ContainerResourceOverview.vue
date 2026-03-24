@@ -3,13 +3,13 @@
     <div class="overview-header">
       <div class="header-title">资源使用概览</div>
       <div class="header-actions">
-        <ScButton size="small" :loading="loading" @click="refreshData">
+        <el-button size="small" @click="refreshData" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
     </div>
-
+    
     <div class="overview-content">
       <div class="resource-grid">
         <!-- CPU使用率 -->
@@ -19,7 +19,7 @@
             <div class="card-title">CPU使用率</div>
           </div>
           <div class="card-content">
-            <ScProgress
+            <el-progress
               type="circle"
               :percentage="cpuUsage"
               :color="getUsageColor(cpuUsage)"
@@ -28,7 +28,7 @@
             <div class="usage-text">{{ cpuUsage.toFixed(2) }}%</div>
           </div>
         </div>
-
+        
         <!-- 内存使用率 -->
         <div class="resource-card memory">
           <div class="card-header">
@@ -36,7 +36,7 @@
             <div class="card-title">内存使用率</div>
           </div>
           <div class="card-content">
-            <ScProgress
+            <el-progress
               type="circle"
               :percentage="memoryUsage"
               :color="getUsageColor(memoryUsage)"
@@ -45,7 +45,7 @@
             <div class="usage-text">{{ memoryUsage.toFixed(2) }}%</div>
           </div>
         </div>
-
+        
         <!-- 磁盘IO -->
         <div class="resource-card disk">
           <div class="card-header">
@@ -65,7 +65,7 @@
             </div>
           </div>
         </div>
-
+        
         <!-- 网络IO -->
         <div class="resource-card network">
           <div class="card-header">
@@ -86,220 +86,216 @@
           </div>
         </div>
       </div>
-
+      
       <!-- 资源使用趋势图 -->
       <div class="trend-chart">
         <div class="chart-header">
           <div class="chart-title">资源使用趋势</div>
           <div class="time-selector">
-            <ScSelect
-              v-model="timeRange"
-              size="small"
-              style="width: 120px"
+            <el-select 
+              v-model="timeRange" 
+              size="small" 
               @change="onTimeRangeChange"
+              style="width: 120px"
             >
-              <ScOption label="最近1小时" value="1h" />
-              <ScOption label="最近6小时" value="6h" />
-              <ScOption label="最近12小时" value="12h" />
-              <ScOption label="最近24小时" value="24h" />
-            </ScSelect>
+              <el-option label="最近1小时" value="1h" />
+              <el-option label="最近6小时" value="6h" />
+              <el-option label="最近12小时" value="12h" />
+              <el-option label="最近24小时" value="24h" />
+            </el-select>
           </div>
         </div>
-        <div ref="trendChartContainerRef" class="chart-container" />
+        <div class="chart-container" ref="trendChartContainerRef"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { containerApi } from "@/api/docker";
-import * as echarts from "echarts";
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { containerApi } from '@/api/docker'
+import * as echarts from 'echarts'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 interface Props {
-  containerId: number;
+  containerId: number
 }
 
 interface ChartData {
-  timestamps: string[];
-  cpuUsage: number[];
-  memoryUsage: number[];
+  timestamps: string[]
+  cpuUsage: number[]
+  memoryUsage: number[]
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
-const loading = ref(false);
-const timeRange = ref("1h");
-const cpuUsage = ref(0);
-const memoryUsage = ref(0);
-const diskRead = ref(0);
-const diskWrite = ref(0);
-const networkRx = ref(0);
-const networkTx = ref(0);
+const loading = ref(false)
+const timeRange = ref('1h')
+const cpuUsage = ref(0)
+const memoryUsage = ref(0)
+const diskRead = ref(0)
+const diskWrite = ref(0)
+const networkRx = ref(0)
+const networkTx = ref(0)
 
-const trendChartContainerRef = ref<HTMLElement>();
-let trendChartInstance: echarts.ECharts | null = null;
+const trendChartContainerRef = ref<HTMLElement>()
+let trendChartInstance: echarts.ECharts | null = null
 
 // 初始化趋势图
 const initTrendChart = () => {
   if (trendChartContainerRef.value) {
-    trendChartInstance = echarts.init(trendChartContainerRef.value);
-    updateTrendChart();
+    trendChartInstance = echarts.init(trendChartContainerRef.value)
+    updateTrendChart()
   }
-};
+}
 
 // 更新趋势图
 const updateTrendChart = () => {
-  if (!trendChartInstance) return;
-
+  if (!trendChartInstance) return
+  
   // 这里使用模拟数据，实际应用中应该从API获取历史数据
-  const timestamps = [];
-  const cpuData = [];
-  const memoryData = [];
-
-  const now = new Date();
+  const timestamps = []
+  const cpuData = []
+  const memoryData = []
+  
+  const now = new Date()
   for (let i = 59; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60000);
-    timestamps.push(
-      time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    );
-    cpuData.push(Math.random() * 100);
-    memoryData.push(Math.random() * 100);
+    const time = new Date(now.getTime() - i * 60000)
+    timestamps.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+    cpuData.push(Math.random() * 100)
+    memoryData.push(Math.random() * 100)
   }
-
+  
   const option = {
     tooltip: {
-      trigger: "axis",
+      trigger: 'axis'
     },
     legend: {
-      data: ["CPU使用率", "内存使用率"],
+      data: ['CPU使用率', '内存使用率']
     },
     xAxis: {
-      type: "category",
-      data: timestamps,
+      type: 'category',
+      data: timestamps
     },
     yAxis: {
-      type: "value",
+      type: 'value',
       axisLabel: {
-        formatter: "{value}%",
-      },
+        formatter: '{value}%'
+      }
     },
     series: [
       {
-        name: "CPU使用率",
-        type: "line",
+        name: 'CPU使用率',
+        type: 'line',
         data: cpuData,
         smooth: true,
         lineStyle: {
-          color: "#409eff",
-        },
+          color: '#409eff'
+        }
       },
       {
-        name: "内存使用率",
-        type: "line",
+        name: '内存使用率',
+        type: 'line',
         data: memoryData,
         smooth: true,
         lineStyle: {
-          color: "#67c23a",
-        },
-      },
+          color: '#67c23a'
+        }
+      }
     ],
     grid: {
-      left: "10%",
-      right: "10%",
-      bottom: "15%",
-      top: "20%",
-    },
-  };
-
-  trendChartInstance.setOption(option);
-};
+      left: '10%',
+      right: '10%',
+      bottom: '15%',
+      top: '20%'
+    }
+  }
+  
+  trendChartInstance.setOption(option)
+}
 
 // 获取容器资源使用数据
 const fetchResourceData = async () => {
-  if (loading.value) return;
-  loading.value = true;
-
+  if (loading.value) return
+  loading.value = true
+  
   try {
     // 获取实时统计数据
-    const response = await containerApi.getContainerStats(props.containerId);
-    if (response.code === "00000") {
-      const stats = response.data;
+    const response = await containerApi.getContainerStats(props.containerId)
+    if (response.code === '00000') {
+      const stats = response.data
       if (stats) {
-        cpuUsage.value = stats.cpuPercent || stats.cpuUsage || 0;
-        memoryUsage.value = stats.memoryPercent || stats.memoryUsage || 0;
-        diskRead.value = stats.diskRead || 0;
-        diskWrite.value = stats.diskWrite || 0;
-        networkRx.value = stats.networkRx || stats.networkRxBytes || 0;
-        networkTx.value = stats.networkTx || stats.networkTxBytes || 0;
+        cpuUsage.value = stats.cpuPercent || stats.cpuUsage || 0
+        memoryUsage.value = stats.memoryPercent || stats.memoryUsage || 0
+        diskRead.value = stats.diskRead || 0
+        diskWrite.value = stats.diskWrite || 0
+        networkRx.value = stats.networkRx || stats.networkRxBytes || 0
+        networkTx.value = stats.networkTx || stats.networkTxBytes || 0
       }
     }
   } catch (error) {
-    console.error("获取容器资源数据失败:", error);
+    console.error('获取容器资源数据失败:', error)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 // 刷新数据
 const refreshData = () => {
-  fetchResourceData();
-};
+  fetchResourceData()
+}
 
 // 根据使用率获取颜色
 const getUsageColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
-};
+  if (percentage < 50) return '#67c23a'
+  if (percentage < 80) return '#e6a23c'
+  return '#f56c6c'
+}
 
 // 格式化字节显示
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 
 // 时间范围变化处理
 const onTimeRangeChange = (value: string) => {
-  timeRange.value = value;
+  timeRange.value = value
   // 这里可以重新获取历史数据并更新图表
-  updateTrendChart();
-};
+  updateTrendChart()
+}
 
 // 监听容器ID变化
-watch(
-  () => props.containerId,
-  () => {
-    fetchResourceData();
-  },
-);
+watch(() => props.containerId, () => {
+  fetchResourceData()
+})
 
 // 组件挂载
 onMounted(() => {
-  initTrendChart();
-  fetchResourceData();
-
+  initTrendChart()
+  fetchResourceData()
+  
   // 添加窗口大小变化监听
-  window.addEventListener("resize", () => {
+  window.addEventListener('resize', () => {
     if (trendChartInstance) {
-      trendChartInstance.resize();
+      trendChartInstance.resize()
     }
-  });
-});
+  })
+})
 
 // 组件卸载
 onUnmounted(() => {
   if (trendChartInstance) {
-    trendChartInstance.dispose();
-    trendChartInstance = null;
+    trendChartInstance.dispose()
+    trendChartInstance = null
   }
-});
+})
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -332,6 +328,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .container-resource-overview {
   padding: 20px;
@@ -467,7 +464,7 @@ onUnmounted(() => {
   .resource-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .container-resource-overview {
     padding: 12px;
   }

@@ -1,10 +1,10 @@
 <template>
-  <ScMenu class="feature-menu" :default-active="modelValue" @select="onSelect">
-    <ScMenuItem v-for="f in features" :key="f.key" :index="f.key">
+  <el-menu class="feature-menu" :default-active="modelValue" @select="onSelect">
+    <el-menu-item v-for="f in features" :key="f.key" :index="f.key">
       <IconifyIconOnline :icon="f.icon" class="mr-2" />
       <span>{{ f.title }}</span>
-    </ScMenuItem>
-  </ScMenu>
+    </el-menu-item>
+  </el-menu>
 </template>
 
 <script setup lang="ts">
@@ -34,6 +34,7 @@ function onSelect(key: string) {
   margin-right: 6px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -42,4 +43,5 @@ function onSelect(key: string) {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -2,67 +2,35 @@
   <div class="connection-status-container system-container modern-bg">
     <!-- 连接状态指示器 -->
     <div class="status-indicator">
-      <ScTag
-        :type="getStatusType(connectionStatus)"
-        :effect="isConnecting ? 'plain' : 'light'"
-        size="small"
-        class="status-tag"
-      >
-        <IconifyIconOnline
-          v-if="isConnecting"
-          icon="ep:loading"
-          class="is-loading"
-        />
+      <el-tag :type="getStatusType(connectionStatus)" :effect="isConnecting ? 'plain' : 'light'" size="small" class="status-tag">
+        <IconifyIconOnline v-if="isConnecting" icon="ep:loading" class="is-loading" />
         <IconifyIconOnline v-else :icon="getStatusIcon(connectionStatus)" />
         {{ getStatusText(connectionStatus) }}
-      </ScTag>
+      </el-tag>
 
       <!-- 最后连接时间 -->
-      <span v-if="lastConnectTime" class="last-connect-time"
-        >最后连接: {{ formatTime(lastConnectTime) }}</span
-      >
+      <span v-if="lastConnectTime" class="last-connect-time">最后连接: {{ formatTime(lastConnectTime) }}</span>
     </div>
 
     <!-- 连接操作按钮 -->
     <div class="connection-actions">
-      <ScButton
-        size="small"
-        type="primary"
-        :loading="isConnecting"
-        :disabled="!serverId"
-        @click="testConnection"
-      >
+      <el-button size="small" type="primary" :loading="isConnecting" @click="testConnection" :disabled="!serverId">
         <IconifyIconOnline icon="ep:connection" />
         {{ isConnecting ? "测试中..." : "测试连接" }}
-      </ScButton>
+      </el-button>
 
-      <ScButton
-        v-if="connectionStatus === CONNECTION_STATUS.FAILED"
-        size="small"
-        type="warning"
-        @click="showErrorDetails"
-      >
+      <el-button v-if="connectionStatus === CONNECTION_STATUS.FAILED" size="small" type="warning" @click="showErrorDetails">
         <IconifyIconOnline icon="ep:warning" />
         查看错误
-      </ScButton>
+      </el-button>
     </div>
 
     <!-- 错误详情对话框 -->
-    <sc-dialog
-      v-model="showErrorDialog"
-      title="连接错误详情"
-      width="500px"
-      :close-on-click-modal="false"
-    >
+    <sc-dialog v-model="showErrorDialog" title="连接错误详情" width="500px" :close-on-click-modal="false">
       <div class="error-details">
-        <ScAlert
-          :title="errorMessage || '连接失败'"
-          type="error"
-          :closable="false"
-          show-icon
-        />
+        <el-alert :title="errorMessage || '连接失败'" type="error" :closable="false" show-icon />
 
-        <div v-if="errorMessage" class="error-info">
+        <div class="error-info" v-if="errorMessage">
           <h4>错误信息:</h4>
           <pre class="error-message">{{ errorMessage }}</pre>
         </div>
@@ -80,8 +48,8 @@
       </div>
 
       <template #footer>
-        <ScButton @click="showErrorDialog = false">关闭</ScButton>
-        <ScButton type="primary" @click="testConnection">重新测试</ScButton>
+        <el-button @click="showErrorDialog = false">关闭</el-button>
+        <el-button type="primary" @click="testConnection">重新测试</el-button>
       </template>
     </sc-dialog>
   </div>
@@ -99,7 +67,7 @@ const CONNECTION_STATUS = {
   OFFLINE: 0,
   ONLINE: 1,
   CONNECTING: 2,
-  FAILED: 3,
+  FAILED: 3
 };
 
 // Props
@@ -116,7 +84,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   connectionStatus: 0,
   autoRefresh: false,
-  refreshInterval: 30000,
+  refreshInterval: 30000
 });
 
 // Emits
@@ -138,11 +106,9 @@ watch(
   () => props.connectionStatus,
   (newStatus, oldStatus) => {
     if (newStatus !== oldStatus) {
-      console.log(
-        `服务器 ${props.serverName} 连接状态变化: ${oldStatus} -> ${newStatus}`,
-      );
+      console.log(`服务器 ${props.serverName} 连接状态变化: ${oldStatus} -> ${newStatus}`);
     }
-  },
+  }
 );
 
 // 获取状态类型
@@ -193,7 +159,7 @@ const formatTime = (time: string | Date) => {
   const date = typeof time === "string" ? new Date(time) : time;
   return formatDistanceToNow(date, {
     addSuffix: true,
-    locale: zhCN,
+    locale: zhCN
   });
 };
 
@@ -267,11 +233,12 @@ onUnmounted(() => {
 defineExpose({
   testConnection,
   startAutoRefresh,
-  stopAutoRefresh,
+  stopAutoRefresh
 });
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -304,6 +271,7 @@ defineExpose({
     z-index: 1;
   }
 }
+
 
 .connection-status-container {
   display: flex;
@@ -395,6 +363,7 @@ defineExpose({
   }
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -403,4 +372,5 @@ defineExpose({
     padding: 12px 16px;
   }
 }
+
 </style>

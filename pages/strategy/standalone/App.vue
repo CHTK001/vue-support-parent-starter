@@ -9,41 +9,33 @@
         </div>
       </div>
       <nav class="header-nav">
-        <router-link
-          to="/limit"
-          class="nav-item"
-          :class="{ active: $route.path === '/limit' }"
-        >
+        <router-link to="/limit" class="nav-item" :class="{ active: $route.path === '/limit' }">
           <i class="ri-speed-line"></i>
           <span>限流配置</span>
         </router-link>
-        <router-link
-          to="/limit-record"
-          class="nav-item"
-          :class="{ active: $route.path === '/limit-record' }"
-        >
+        <router-link to="/limit-record" class="nav-item" :class="{ active: $route.path === '/limit-record' }">
           <i class="ri-history-line"></i>
           <span>限流记录</span>
         </router-link>
       </nav>
       <div class="header-right">
-        <ScDropdown>
+        <el-dropdown>
           <ScButton text>
             <i class="ri-settings-3-line"></i>
           </ScButton>
           <template #dropdown>
-            <ScDropdownMenu>
-              <ScDropdownItem @click="toggleTheme">
+            <el-dropdown-menu>
+              <el-dropdown-item @click="toggleTheme">
                 <i :class="isDark ? 'ri-sun-line' : 'ri-moon-line'"></i>
-                {{ isDark ? "浅色模式" : "深色模式" }}
-              </ScDropdownItem>
-              <ScDropdownItem @click="showAbout = true">
+                {{ isDark ? '浅色模式' : '深色模式' }}
+              </el-dropdown-item>
+              <el-dropdown-item @click="showAbout = true">
                 <i class="ri-information-line"></i>
                 关于
-              </ScDropdownItem>
-            </ScDropdownMenu>
+              </el-dropdown-item>
+            </el-dropdown-menu>
           </template>
-        </ScDropdown>
+        </el-dropdown>
       </div>
     </header>
 
@@ -65,7 +57,8 @@
         <h2>策略管理中心</h2>
         <p class="version">版本 1.0.0</p>
         <p class="description">
-          提供限流、熔断、降级等策略的配置管理功能， 帮助您保护系统稳定性。
+          提供限流、熔断、降级等策略的配置管理功能，
+          帮助您保护系统稳定性。
         </p>
         <div class="features">
           <div class="feature-item">

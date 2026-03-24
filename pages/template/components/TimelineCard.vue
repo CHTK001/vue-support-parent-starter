@@ -21,7 +21,7 @@
           </div>
           <p class="timeline-card__description">{{ item.description }}</p>
           <div v-if="item.tags" class="timeline-card__tags">
-            <ScTag
+            <ScTag 
               v-for="(tag, tagIndex) in item.tags"
               :key="tagIndex"
               size="small"

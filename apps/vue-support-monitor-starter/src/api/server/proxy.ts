@@ -7,31 +7,31 @@ import { http } from "@repo/utils";
 // 代理类型枚举
 export const PROXY_TYPES = {
   HTTP: "HTTP",
-  SOCKS4: "SOCKS4",
-  SOCKS5: "SOCKS5",
+  SOCKS4: "SOCKS4", 
+  SOCKS5: "SOCKS5"
 } as const;
 
 // 代理状态枚举
 export const PROXY_STATUS = {
   DISABLED: 0,
-  ENABLED: 1,
+  ENABLED: 1
 } as const;
 
 // 服务器代理关联接口 (对应后端 MonitorSysGenServerProxy 实体)
 export interface ServerProxy {
-  monitorSysGenServerProxyId?: number; // 服务器代理关联ID
-  monitorSysGenServerProxyType?: string; // 代理类型 (HTTP, SOCKS4, SOCKS5, GUACAMOLE)
-  monitorSysGenServerProxyHost?: string; // 代理主机地址
-  monitorSysGenServerProxyPort?: number; // 代理端口号
-  monitorSysGenServerProxyEnabled?: number; // 是否启用 0:否 1:是
-  monitorSysGenServerProxyStatus?: number; // 代理状态 0:离线 1:在线 2:连接中 3:连接失败
+  monitorSysGenServerProxyId?: number;           // 服务器代理关联ID
+  monitorSysGenServerProxyType?: string;         // 代理类型 (HTTP, SOCKS4, SOCKS5, GUACAMOLE)
+  monitorSysGenServerProxyHost?: string;         // 代理主机地址
+  monitorSysGenServerProxyPort?: number;         // 代理端口号
+  monitorSysGenServerProxyEnabled?: number;      // 是否启用 0:否 1:是
+  monitorSysGenServerProxyStatus?: number;       // 代理状态 0:离线 1:在线 2:连接中 3:连接失败
   monitorSysGenServerProxyLastConnectTime?: string; // 最后连接时间
   monitorSysGenServerProxyConnectionError?: string; // 连接失败原因
-  monitorSysGenServerProxyRemark?: string; // 备注
-  createTime?: string; // 继承自SysBase
-  updateTime?: string; // 继承自SysBase
-  createBy?: string; // 继承自SysBase
-  updateBy?: string; // 继承自SysBase
+  monitorSysGenServerProxyRemark?: string;       // 备注
+  createTime?: string;                           // 继承自SysBase
+  updateTime?: string;                           // 继承自SysBase
+  createBy?: string;                             // 继承自SysBase
+  updateBy?: string;                             // 继承自SysBase
 }
 
 // 代理测试结果接口
@@ -90,7 +90,7 @@ export function getServerProxyPageList(params: ProxyPageRequest) {
   return http.request<ReturnResult<PageResult<ServerProxy>>>(
     "get",
     "v1/gen/server/proxy/page",
-    { params },
+    { params }
   );
 }
 
@@ -102,7 +102,7 @@ export function getServerProxyPageList(params: ProxyPageRequest) {
 export function getServerProxyList(serverId: number) {
   return http.request<ReturnResult<ServerProxy[]>>(
     "get",
-    `v1/gen/server/proxy/server/${serverId}`,
+    `v1/gen/server/proxy/server/${serverId}`
   );
 }
 
@@ -114,7 +114,7 @@ export function getServerProxyList(serverId: number) {
 export function getServerListByProxy(proxyId: number) {
   return http.request<ReturnResult<ServerProxy[]>>(
     "get",
-    `v1/gen/server/proxy/proxy/${proxyId}`,
+    `v1/gen/server/proxy/proxy/${proxyId}`
   );
 }
 
@@ -127,7 +127,7 @@ export function getServerListByProxy(proxyId: number) {
 export function getServerProxyByType(serverId: number, proxyType: string) {
   return http.request<ReturnResult<ServerProxy>>(
     "get",
-    `v1/gen/server/proxy/server/${serverId}/type/${proxyType}`,
+    `v1/gen/server/proxy/server/${serverId}/type/${proxyType}`
   );
 }
 
@@ -139,7 +139,7 @@ export function getServerProxyByType(serverId: number, proxyType: string) {
 export function getProxyDetail(proxyId: number) {
   return http.request<ReturnResult<ServerProxy>>(
     "get",
-    `v1/gen/server/proxy/${proxyId}`,
+    `v1/gen/server/proxy/${proxyId}`
   );
 }
 
@@ -152,7 +152,7 @@ export function saveProxy(proxy: ServerProxy) {
   return http.request<ReturnResult<ServerProxy>>(
     "post",
     "v1/gen/server/proxy/save",
-    { data: proxy },
+    { data: proxy }
   );
 }
 
@@ -165,7 +165,7 @@ export function updateProxy(proxy: ServerProxy) {
   return http.request<ReturnResult<ServerProxy>>(
     "put",
     "v1/gen/server/proxy/update",
-    { data: proxy },
+    { data: proxy }
   );
 }
 
@@ -177,7 +177,7 @@ export function updateProxy(proxy: ServerProxy) {
 export function deleteServerProxy(id: number) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `v1/gen/server/proxy/delete/${id}`,
+    `v1/gen/server/proxy/delete/${id}`
   );
 }
 
@@ -190,7 +190,7 @@ export function batchDeleteServerProxy(ids: number[]) {
   return http.request<ReturnResult<boolean>>(
     "delete",
     "v1/gen/server/proxy/batch-delete",
-    { data: ids },
+    { data: ids }
   );
 }
 
@@ -204,7 +204,7 @@ export function testProxyConnection(proxyId: number, testUrl?: string) {
   return http.request<ReturnResult<ProxyTestResult>>(
     "post",
     `v1/gen/server/proxy/test/${proxyId}`,
-    { params: { testUrl } },
+    { params: { testUrl } }
   );
 }
 
@@ -218,7 +218,7 @@ export function batchTestProxyConnection(proxyIds: number[], testUrl?: string) {
   return http.request<ReturnResult<ProxyTestResult[]>>(
     "post",
     "v1/gen/server/proxy/test/batch",
-    { data: proxyIds, params: { testUrl } },
+    { data: proxyIds, params: { testUrl } }
   );
 }
 
@@ -232,7 +232,7 @@ export function updateProxyStatus(proxyId: number, status: number) {
   return http.request<ReturnResult<boolean>>(
     "put",
     `v1/gen/server/proxy/status/${proxyId}`,
-    { params: { status } },
+    { params: { status } }
   );
 }
 
@@ -246,7 +246,7 @@ export function batchUpdateProxyStatus(proxyIds: number[], status: number) {
   return http.request<ReturnResult<boolean>>(
     "put",
     "v1/gen/server/proxy/status/batch",
-    { data: proxyIds, params: { status } },
+    { data: proxyIds, params: { status } }
   );
 }
 
@@ -257,7 +257,7 @@ export function batchUpdateProxyStatus(proxyIds: number[], status: number) {
 export function getProxyStatistics() {
   return http.request<ReturnResult<ProxyStatistics>>(
     "get",
-    "v1/gen/server/proxy/statistics",
+    "v1/gen/server/proxy/statistics"
   );
 }
 
@@ -269,7 +269,7 @@ export function getProxyStatistics() {
 export function getProxyListByTags(tags: string) {
   return http.request<ReturnResult<ServerProxy[]>>(
     "get",
-    `v1/gen/server/proxy/tags/${tags}`,
+    `v1/gen/server/proxy/tags/${tags}`
   );
 }
 
@@ -283,7 +283,7 @@ export function copyProxy(proxyId: number, newName: string) {
   return http.request<ReturnResult<ServerProxy>>(
     "post",
     `v1/gen/server/proxy/copy/${proxyId}`,
-    { params: { newName } },
+    { params: { newName } }
   );
 }
 
@@ -296,7 +296,7 @@ export function importProxyList(proxyList: ServerProxy[]) {
   return http.request<ReturnResult<ServerProxy[]>>(
     "post",
     "v1/gen/server/proxy/import",
-    { data: proxyList },
+    { data: proxyList }
   );
 }
 
@@ -309,7 +309,7 @@ export function exportProxyList(proxyIds?: number[]) {
   return http.request<ReturnResult<ServerProxy[]>>(
     "post",
     "v1/gen/server/proxy/export",
-    { data: proxyIds },
+    { data: proxyIds }
   );
 }
 
@@ -323,7 +323,7 @@ export function exportProxyList(proxyIds?: number[]) {
 export function enableServerProxy(id: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `v1/gen/server/proxy/enable/${id}`,
+    `v1/gen/server/proxy/enable/${id}`
   );
 }
 
@@ -335,7 +335,7 @@ export function enableServerProxy(id: number) {
 export function disableServerProxy(id: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `v1/gen/server/proxy/disable/${id}`,
+    `v1/gen/server/proxy/disable/${id}`
   );
 }
 
@@ -347,7 +347,7 @@ export function disableServerProxy(id: number) {
 export function getServerProxyUrl(id: number) {
   return http.request<ReturnResult<string>>(
     "get",
-    `v1/gen/server/proxy/url/${id}`,
+    `v1/gen/server/proxy/url/${id}`
   );
 }
 
@@ -361,7 +361,7 @@ export function batchUpdateServerProxyStatus(ids: number[], status: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/proxy/batch-update-status",
-    { data: { ids, status } },
+    { data: { ids, status } }
   );
 }
 
@@ -372,7 +372,7 @@ export function batchUpdateServerProxyStatus(ids: number[], status: number) {
 export function getServerProxyStatistics() {
   return http.request<ReturnResult<Record<string, any>>>(
     "get",
-    "v1/gen/server/proxy/statistics",
+    "v1/gen/server/proxy/statistics"
   );
 }
 
@@ -384,7 +384,7 @@ export function getServerProxyStatistics() {
 export function getServerProxyTypes(serverId: number) {
   return http.request<ReturnResult<string[]>>(
     "get",
-    `v1/gen/server/proxy/server/${serverId}/types`,
+    `v1/gen/server/proxy/server/${serverId}/types`
   );
 }
 
@@ -394,13 +394,10 @@ export function getServerProxyTypes(serverId: number) {
  * @param targetServerId 目标服务器ID
  * @returns 克隆结果
  */
-export function cloneServerProxyConfig(
-  sourceServerId: number,
-  targetServerId: number,
-) {
+export function cloneServerProxyConfig(sourceServerId: number, targetServerId: number) {
   return http.request<ReturnResult<ServerProxy[]>>(
     "post",
     "v1/gen/server/proxy/clone",
-    { data: { sourceServerId, targetServerId } },
+    { data: { sourceServerId, targetServerId } }
   );
 }

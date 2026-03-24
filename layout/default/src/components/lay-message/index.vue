@@ -1,6 +1,5 @@
 ﻿<script setup lang="ts">
 import ScTabPane from "@repo/components/ScTabs";
-import { ScAvatar, ScBadge, ScIcon, ScEmpty, ScButton, ScTabs } from "@repo/components";
 /**
  * 消息菜单组件
  * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?
@@ -379,7 +378,7 @@ onUnmounted(() => {
 
 <template>
   <div v-if="messageEnabled">
-    <ScDropdown
+    <el-dropdown
       ref="dropdownRef"
       trigger="click"
       :placement="dropdownPlacement"
@@ -413,7 +412,7 @@ onUnmounted(() => {
 
           <!-- 消息列表 -->
           <div class="panel-body">
-            <ScScrollbar max-height="320px">
+            <el-scrollbar max-height="320px">
               <div v-if="loading" class="loading-wrapper">
                 <ScIcon class="is-loading"
                   ><IconifyIconOnline icon="ri:loader-4-line"
@@ -446,7 +445,7 @@ onUnmounted(() => {
                   <span v-if="!msg.read" class="unread-dot"></span>
                 </div>
               </div>
-            </ScScrollbar>
+            </el-scrollbar>
           </div>
 
           <!-- 底部 -->
@@ -459,7 +458,7 @@ onUnmounted(() => {
           </div>
         </div>
       </template>
-    </ScDropdown>
+    </el-dropdown>
 
     <!-- 消息中心 Drawer - 使用 Teleport 避免父元素堆叠上下文限制 -->
     <Teleport to="body">
@@ -518,7 +517,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 消息列表 -->
-        <ScScrollbar class="drawer-content">
+        <el-scrollbar class="drawer-content">
           <ScEmpty
             v-if="filteredMessages.length === 0"
             description="暂无消息"
@@ -566,7 +565,7 @@ onUnmounted(() => {
               </div>
             </div>
           </div>
-        </ScScrollbar>
+        </el-scrollbar>
       </sc-drawer>
     </Teleport>
 

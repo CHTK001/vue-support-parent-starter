@@ -6,7 +6,7 @@
 
     <div class="sc-datetime-input-container">
       <!-- 时间选择器 -->
-      <ScTimePicker
+      <el-time-picker
         v-if="isTimePicker"
         ref="datePickerRef"
         v-model="currentValue"
@@ -27,7 +27,7 @@
         @visible-change="handleVisibleChange"
       />
       <!-- 日期选择器 -->
-      <ScDatePicker
+      <el-date-picker
         v-else
         ref="datePickerRef"
         v-model="currentValue"
@@ -63,7 +63,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { getDefaultIcon } from "../defaultIcons";
 import { validate } from "../validation";
 

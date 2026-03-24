@@ -2,10 +2,10 @@
  * useTableEdit - 表格编辑 composable
  * 支持单元格编辑和行编辑模式
  */
-import { ref, computed, type Ref, type ComputedRef } from "vue";
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 
 /** 编辑模式 */
-export type EditMode = "cell" | "row";
+export type EditMode = 'cell' | 'row';
 
 /** 编辑状态 */
 export interface EditState {
@@ -77,7 +77,14 @@ export interface EditReturn {
  * 表格编辑 composable
  */
 export function useTableEdit(options: EditOptions = {}): EditReturn {
-  const { enabled = false, mode = "cell", rowKey = "id", editableColumns = [], beforeEdit, beforeSave } = options;
+  const {
+    enabled = false,
+    mode = 'cell',
+    rowKey = 'id',
+    editableColumns = [],
+    beforeEdit,
+    beforeSave,
+  } = options;
 
   const isEnabled = ref(enabled);
   const editMode = ref<EditMode>(mode);
@@ -87,7 +94,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 生成编辑键
    */
   const getEditKey = (rowKey: string | number, columnKey?: string): string => {
-    if (editMode.value === "row" || !columnKey) {
+    if (editMode.value === 'row' || !columnKey) {
       return `row-${rowKey}`;
     }
     return `cell-${rowKey}-${columnKey}`;
@@ -126,7 +133,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
       rowKey: rk,
       columnKey,
       originalValue: value,
-      currentValue: value
+      currentValue: value,
     });
   };
 
@@ -140,7 +147,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
     editingStates.value.set(key, {
       rowKey: rk,
       originalValue: { ...row },
-      currentValue: { ...row }
+      currentValue: { ...row },
     });
   };
 
@@ -148,7 +155,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 更新编辑值
    */
   const updateEditValue = (rk: string | number, columnKey: string, value: any): void => {
-    if (editMode.value === "row") {
+    if (editMode.value === 'row') {
       const key = getEditKey(rk);
       const state = editingStates.value.get(key);
       if (state) {
@@ -167,7 +174,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 取消编辑
    */
   const cancelEdit = (rk: string | number, columnKey?: string): void => {
-    if (editMode.value === "row") {
+    if (editMode.value === 'row') {
       const key = getEditKey(rk);
       editingStates.value.delete(key);
     } else if (columnKey) {
@@ -187,9 +194,9 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 保存编辑
    */
   const saveEdit = (rk: string | number, columnKey?: string): EditState | null => {
-    const key = editMode.value === "row" ? getEditKey(rk) : getEditKey(rk, columnKey);
+    const key = editMode.value === 'row' ? getEditKey(rk) : getEditKey(rk, columnKey);
     const state = editingStates.value.get(key);
-
+    
     if (state) {
       editingStates.value.delete(key);
       return state;
@@ -210,7 +217,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 检查单元格是否在编辑
    */
   const isCellEditing = (rk: string | number, columnKey: string): boolean => {
-    if (editMode.value === "row") {
+    if (editMode.value === 'row') {
       return editingStates.value.has(getEditKey(rk));
     }
     return editingStates.value.has(getEditKey(rk, columnKey));
@@ -220,7 +227,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 检查行是否在编辑
    */
   const isRowEditing = (rk: string | number): boolean => {
-    if (editMode.value === "row") {
+    if (editMode.value === 'row') {
       return editingStates.value.has(getEditKey(rk));
     }
     // 单元格模式下检查是否有该行的任何单元格在编辑
@@ -236,7 +243,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    * 获取编辑值
    */
   const getEditValue = (rk: string | number, columnKey: string): any => {
-    if (editMode.value === "row") {
+    if (editMode.value === 'row') {
       const state = editingStates.value.get(getEditKey(rk));
       return state?.currentValue?.[columnKey];
     }
@@ -249,8 +256,8 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
    */
   const getRowChanges = (rk: string | number): Record<string, any> => {
     const changes: Record<string, any> = {};
-
-    if (editMode.value === "row") {
+    
+    if (editMode.value === 'row') {
       const state = editingStates.value.get(getEditKey(rk));
       if (state) {
         const original = state.originalValue;
@@ -271,7 +278,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
         }
       }
     }
-
+    
     return changes;
   };
 
@@ -292,7 +299,7 @@ export function useTableEdit(options: EditOptions = {}): EditReturn {
     isRowEditing,
     isColumnEditable,
     getEditValue,
-    getRowChanges
+    getRowChanges,
   };
 }
 

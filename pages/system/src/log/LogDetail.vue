@@ -1,6 +1,6 @@
 ﻿<script>
 import EyeClose from "@iconify-icons/ri/eye-close-line";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import scStatusIndicator from "@repo/components/ScMini/scStatusIndicator.vue";
 import { defineComponent } from "vue";
 import VueJsonPretty from "vue-json-pretty";
@@ -51,9 +51,7 @@ export default defineComponent({
           return item.label;
         }
       });
-      return _value || _value.length > 0
-        ? _value?.[0]?.label
-        : transformI18n("module.other");
+      return _value || _value.length > 0 ? _value?.[0]?.label : transformI18n("module.other");
     },
   },
 });
@@ -62,66 +60,45 @@ export default defineComponent({
   <div>
     <sc-drawer v-model="visible" title="详情页" @close="onClose">
       <ScDivider />
-      <ScMain style="padding: 0 20px">
-        <ScDescriptions :column="1" border size="small">
-          <ScDescriptionsItem label="请求接口">
-            <ScTag v-if="row.sysLogCost <= 1000" type="success" plain
-              >{{ row.sysLogCost || 0 }} ms</ScTag
-            >
-            <ScTag
-              v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
-              type="warning"
-              plain
-              >{{ row.sysLogCost || 0 }} ms</ScTag
-            >
-            <ScTag v-else type="danger" plain
-              >{{ row.sysLogCost || 0 }} ms</ScTag
-            >
+      <el-main style="padding: 0 20px">
+        <el-descriptions :column="1" border size="small">
+          <el-descriptions-item label="请求接口">
+            <ScTag v-if="row.sysLogCost <= 1000" type="success" plain>{{ row.sysLogCost || 0 }} ms</ScTag>
+            <ScTag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning" plain>{{ row.sysLogCost || 0 }} ms</ScTag>
+            <ScTag v-else type="danger" plain>{{ row.sysLogCost || 0 }} ms</ScTag>
             <span class="ml-2">{{ row.sysLogUrl }}</span>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="客户端地址">
+          </el-descriptions-item>
+          <el-descriptions-item label="客户端地址">
             <span>{{ row.sysLogIp }}</span>
-            <ScIcon
-              v-if="!clickEye && !row.sysLogAddress"
-              class="cursor-pointer"
-              style="z-index: 999999"
-            >
+            <ScIcon v-if="!clickEye && !row.sysLogAddress" class="cursor-pointer" style="z-index: 999999">
               <component :is="EyeClose" />
             </ScIcon>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem v-if="row.sysLogAddress" label="客户端地址位置">
+          </el-descriptions-item>
+          <el-descriptions-item v-if="row.sysLogAddress" label="客户端地址位置">
             <ScTag>{{ row.sysLogAddress }}</ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="状态代码">
-            <sc-status-indicator
-              v-if="row.sysLogStatus == 1"
-              pulse
-              type="success"
-            />
-            <sc-status-indicator
-              v-if="row.sysLogStatus == 0"
-              pulse
-              type="danger"
-            />
+          </el-descriptions-item>
+          <el-descriptions-item label="状态代码">
+            <sc-status-indicator v-if="row.sysLogStatus == 1" pulse type="success" />
+            <sc-status-indicator v-if="row.sysLogStatus == 0" pulse type="danger" />
             {{ row.sysLogStatus == 1 ? "成功" : "失败" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志名">
+          </el-descriptions-item>
+          <el-descriptions-item label="日志名">
             {{ transform(row.sysLogFrom) }}
             <span v-if="row.logAction">({{ row.logAction }})</span>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志时间">
+          </el-descriptions-item>
+          <el-descriptions-item label="日志时间">
             {{ row.createTime }}
-          </ScDescriptionsItem>
-        </ScDescriptions>
-        <ScCollapse v-model="activeNames" style="margin-top: 20px">
-          <!-- <ScCollapseItem title="常规" name="1">
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-collapse v-model="activeNames" style="margin-top: 20px">
+          <!-- <el-collapse-item title="常规" name="1">
             <ScAlert 
               :title="row.logContent"
               :type="typeMap[row.level]"
               :closable="false"
             />
-          </ScCollapseItem> -->
-          <ScCollapseItem title="部分参数" name="2">
+          </el-collapse-item> -->
+          <el-collapse-item title="部分参数" name="2">
             <!-- <ScAlert 
               :title="row.sysLogParam"
               type="info"
@@ -129,16 +106,16 @@ export default defineComponent({
               class="comment"
             /> -->
             <VueJsonPretty :data="toJsonObject(row.sysLogParam)" />
-          </ScCollapseItem>
-          <!-- <ScCollapseItem
+          </el-collapse-item>
+          <!-- <el-collapse-item
             v-if="logWatch && logWatch != 'undefined'"
             title="详细"
             name="3"
           >
             <div ref="code" class="code" v-html="logWatch" />
-          </ScCollapseItem> -->
-        </ScCollapse>
-      </ScMain>
+          </el-collapse-item> -->
+        </el-collapse>
+      </el-main>
     </sc-drawer>
   </div>
 </template>

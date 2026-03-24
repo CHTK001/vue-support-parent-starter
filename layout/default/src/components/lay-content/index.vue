@@ -290,7 +290,7 @@ onBeforeUnmount(() => {
 
     <!-- 错误状态 -->
     <div v-if="loadError && !isLoading" class="route-error-container">
-      <ScResult icon="error" title="加载失败" :sub-title="loadError.message">
+      <el-result icon="error" title="加载失败" :sub-title="loadError.message">
         <template #extra>
           <ScButton
             type="primary"
@@ -302,7 +302,7 @@ onBeforeUnmount(() => {
             重新加载
           </ScButton>
         </template>
-      </ScResult>
+      </el-result>
     </div>
 
     <router-view v-show="!isLoading && !loadError">
@@ -320,17 +320,17 @@ onBeforeUnmount(() => {
                 :style="{
                   'max-width': getMainWidth,
                   margin: '0 auto',
-                  height: `calc(100vh - ${headerHeight}px - ${hideFooter ? 0 : 30}px)`,
+                  height: `calc(100vh - ${headerHeight}px)`,
                   padding: `${contentMargin}px`,
                   boxSizing: 'border-box',
                 }"
               >
-                <ScBacktop
+                <el-backtop
                   v-if="cardBody && backtopReady"
                   :title="t('buttons.pureBackTop')"
                   :target="backtopTargetSelector"
                 />
-                <ScCard
+                <el-card
                   class="layout sidebar-custom thin-scroller card-height"
                   :class="{ 'no-card-mode': !cardBody }"
                   :shadow="cardBody ? 'always' : 'never'"
@@ -349,7 +349,7 @@ onBeforeUnmount(() => {
                     boxSizing: 'border-box',
                   }"
                 >
-                  <ScScrollbar class="card-scrollbar">
+                  <el-scrollbar class="card-scrollbar">
                     <div
                       style="
                         min-height: 100%;
@@ -369,8 +369,8 @@ onBeforeUnmount(() => {
                         :transition-type="transitionType"
                       />
                     </div>
-                  </ScScrollbar>
-                </ScCard>
+                  </el-scrollbar>
+                </el-card>
               </div>
               <div
                 v-else
@@ -380,7 +380,7 @@ onBeforeUnmount(() => {
                   margin: '0 auto',
                 }"
               >
-                <ScCard
+                <el-card
                   class="h-full layout sidebar-custom sssss"
                   :class="{ 'no-card-mode': !cardBody }"
                   :shadow="cardBody ? 'always' : 'never'"
@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
                     boxSizing: 'border-box',
                   }"
                 >
-                  <ScScrollbar class="card-scrollbar">
+                  <el-scrollbar class="card-scrollbar">
                     <div
                       style="
                         padding: 20px;
@@ -420,8 +420,8 @@ onBeforeUnmount(() => {
                         :transition-type="transitionType"
                       />
                     </div>
-                  </ScScrollbar>
-                </ScCard>
+                  </el-scrollbar>
+                </el-card>
               </div>
             </template>
           </LayFrame>
@@ -447,7 +447,6 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   max-width: 100%; /* 限制最大宽度 */
-  min-width: 1200px; /* 防止内容区域过窄 */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -559,8 +558,6 @@ onBeforeUnmount(() => {
 
 .app-main {
   position: relative;
-  display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
   overflow: hidden; // 禁止外层滚动，让内部 el-scrollbar 独自处理滚动

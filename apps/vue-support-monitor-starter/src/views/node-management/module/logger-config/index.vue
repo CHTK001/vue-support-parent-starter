@@ -18,16 +18,12 @@
           <div class="header-text">
             <h3>日志配置</h3>
             <p v-if="nodeInfo">
-              <span class="node-name">{{
-                nodeInfo.nodeName || nodeInfo.applicationName
-              }}</span>
-              <span class="node-address"
-                >{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span
-              >
+              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
+              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
             </p>
           </div>
         </div>
-        <div v-if="loggers.length > 0" class="header-stats">
+        <div class="header-stats" v-if="loggers.length > 0">
           <div class="stat-item">
             <span class="stat-value">{{ loggers.length }}</span>
             <span class="stat-label">日志器</span>
@@ -40,7 +36,7 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <ScInput
+          <el-input
             v-model="searchText"
             placeholder="搜索日志器..."
             clearable
@@ -49,23 +45,23 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </ScInput>
-          <span v-if="searchText" class="search-result">
+          </el-input>
+          <span class="search-result" v-if="searchText">
             找到 <strong>{{ filteredLoggers.length }}</strong> 个
           </span>
         </div>
         <div class="toolbar-right">
-          <ScTooltip content="刷新配置" placement="top">
-            <ScButton
+          <el-tooltip content="刷新配置" placement="top">
+            <el-button
               type="primary"
               :icon="loading ? '' : undefined"
-              :loading="loading"
               @click="handleRefresh"
+              :loading="loading"
             >
               <IconifyIconOnline v-if="!loading" icon="ri:refresh-line" />
               刷新
-            </ScButton>
-          </ScTooltip>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
 
@@ -81,19 +77,12 @@
           :loading="loading"
           @refresh="handleRefresh"
         >
-          <ScTableColumn label="日志器名称" min-width="280">
+          <el-table-column label="日志器名称" min-width="280">
             <template #default="{ row }">
               <div class="logger-name-cell">
-                <div
-                  class="logger-icon-wrapper"
-                  :class="{ 'is-root': row.loggerName === 'ROOT' }"
-                >
+                <div class="logger-icon-wrapper" :class="{ 'is-root': row.loggerName === 'ROOT' }">
                   <IconifyIconOnline
-                    :icon="
-                      row.loggerName === 'ROOT'
-                        ? 'ri:home-5-line'
-                        : 'ri:code-s-slash-line'
-                    "
+                    :icon="row.loggerName === 'ROOT' ? 'ri:home-5-line' : 'ri:code-s-slash-line'"
                   />
                 </div>
                 <span class="logger-name-text" :title="row.loggerName">
@@ -101,11 +90,11 @@
                 </span>
               </div>
             </template>
-          </ScTableColumn>
+          </el-table-column>
 
-          <ScTableColumn label="配置等级" width="110" align="center">
+          <el-table-column label="配置等级" width="110" align="center">
             <template #default="{ row }">
-              <ScTag
+              <el-tag
                 v-if="row.configuredLevel"
                 :type="getLevelTagType(row.configuredLevel)"
                 size="small"
@@ -113,91 +102,78 @@
                 round
               >
                 {{ row.configuredLevel }}
-              </ScTag>
+              </el-tag>
               <span v-else class="no-config">-</span>
             </template>
-          </ScTableColumn>
+          </el-table-column>
 
-          <ScTableColumn label="有效等级" width="110" align="center">
+          <el-table-column label="有效等级" width="110" align="center">
             <template #default="{ row }">
-              <ScTag
+              <el-tag
                 :type="getLevelTagType(row.effectiveLevel)"
                 size="small"
                 effect="dark"
                 round
               >
                 {{ row.effectiveLevel }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
+          </el-table-column>
 
-          <ScTableColumn label="继承" width="70" align="center">
+          <el-table-column label="继承" width="70" align="center">
             <template #default="{ row }">
               <IconifyIconOnline
-                :icon="
-                  row.additive
-                    ? 'ri:checkbox-circle-fill'
-                    : 'ri:close-circle-line'
-                "
-                :class="[
-                  'inherit-icon',
-                  row.additive ? 'is-active' : 'is-inactive',
-                ]"
+                :icon="row.additive ? 'ri:checkbox-circle-fill' : 'ri:close-circle-line'"
+                :class="['inherit-icon', row.additive ? 'is-active' : 'is-inactive']"
               />
             </template>
-          </ScTableColumn>
+          </el-table-column>
 
-          <ScTableColumn label="设置等级" width="130" align="center">
+          <el-table-column label="设置等级" width="130" align="center">
             <template #default="{ row }">
-              <ScSelect
+              <el-select
                 v-model="row.newLevel"
                 placeholder="选择"
                 size="small"
                 class="level-select"
               >
-                <ScOption
+                <el-option
                   v-for="level in logLevels"
                   :key="level"
                   :label="level"
                   :value="level"
                 >
                   <div class="level-option">
-                    <ScTag
-                      :type="getLevelTagType(level)"
-                      size="small"
-                      effect="light"
-                    >
+                    <el-tag :type="getLevelTagType(level)" size="small" effect="light">
                       {{ level }}
-                    </ScTag>
+                    </el-tag>
                   </div>
-                </ScOption>
-              </ScSelect>
+                </el-option>
+              </el-select>
             </template>
-          </ScTableColumn>
+          </el-table-column>
 
-          <ScTableColumn label="操作" width="90" align="center" fixed="right">
+          <el-table-column label="操作" width="90" align="center" fixed="right">
             <template #default="{ row }">
-              <ScButton
+              <el-button
                 type="primary"
                 size="small"
                 :loading="row.updating"
-                :disabled="
-                  !row.newLevel || row.newLevel === row.configuredLevel
-                "
-                plain
+                :disabled="!row.newLevel || row.newLevel === row.configuredLevel"
                 @click="updateLoggerLevel(row)"
+                plain
               >
                 应用
-              </ScButton>
+              </el-button>
             </template>
-          </ScTableColumn>
+          </el-table-column>
         </ScTable>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
+        <el-button @click="handleClose">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -255,7 +231,7 @@ const encodeNodeUrl = (ip: string, port: number): string => {
  * 获取日志等级标签类型
  */
 const getLevelTagType = (
-  level?: string,
+  level?: string
 ): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
   switch (level) {
     case "ERROR":
@@ -311,7 +287,7 @@ const logLevels: LogLevel[] = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 const filteredLoggers = computed(() => {
   if (!searchText.value) return loggers.value;
   return loggers.value.filter((logger: any) =>
-    logger.loggerName?.toLowerCase().includes(searchText.value.toLowerCase()),
+    logger.loggerName?.toLowerCase().includes(searchText.value.toLowerCase())
   );
 });
 
@@ -323,7 +299,7 @@ watch(
       loadLoggers();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 监听弹框显示状态
@@ -345,7 +321,7 @@ const loadLoggers = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     const response = await getNodeLoggers(encodedNodeUrl);
 
@@ -359,7 +335,7 @@ const loadLoggers = async () => {
       }));
     } else {
       message.error(
-        "获取日志配置失败: " + ((response as any).msg || "未知错误"),
+        "获取日志配置失败: " + ((response as any).msg || "未知错误")
       );
       loggers.value = [];
     }
@@ -380,7 +356,7 @@ const handleRefresh = async () => {
   try {
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     const response = await refreshNodeLoggers(encodedNodeUrl);
 
@@ -389,7 +365,7 @@ const handleRefresh = async () => {
       message.success("日志配置刷新成功");
     } else {
       message.error(
-        "刷新日志配置失败: " + ((response as any).msg || "未知错误"),
+        "刷新日志配置失败: " + ((response as any).msg || "未知错误")
       );
     }
   } catch (error) {
@@ -431,12 +407,12 @@ const updateLoggerLevel = async (logger: any) => {
     console.warn("SyncServer 方式失败，回退到 HTTP 方式:", syncResponse.msg);
     const encodedNodeUrl = encodeNodeUrl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     const response = await setLoggerLevel(
       encodedNodeUrl,
       logger.loggerName,
-      logger.newLevel || "",
+      logger.newLevel || ""
     );
 
     if (response.success) {
@@ -445,7 +421,7 @@ const updateLoggerLevel = async (logger: any) => {
       await loadLoggers();
     } else {
       message.error(
-        "设置日志等级失败: " + ((response as any).msg || "未知错误"),
+        "设置日志等级失败: " + ((response as any).msg || "未知错误")
       );
     }
   } catch (error) {
@@ -657,6 +633,7 @@ const handleClose = () => {
   gap: 10px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -665,4 +642,5 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

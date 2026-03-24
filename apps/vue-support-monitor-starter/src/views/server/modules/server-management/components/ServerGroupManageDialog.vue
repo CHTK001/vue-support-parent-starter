@@ -12,15 +12,15 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <ScButton type="primary" :icon="Plus" @click="handleAdd">
+          <el-button type="primary" @click="handleAdd" :icon="Plus">
             新增分组
-          </ScButton>
-          <ScButton :icon="Refresh" :loading="loading" @click="handleRefresh">
+          </el-button>
+          <el-button @click="handleRefresh" :icon="Refresh" :loading="loading">
             刷新
-          </ScButton>
+          </el-button>
         </div>
         <div class="toolbar-right">
-          <ScInput
+          <el-input
             v-model="searchKeyword"
             placeholder="搜索分组名称"
             clearable
@@ -32,8 +32,8 @@
       </div>
 
       <!-- 分组列表 -->
-      <div v-loading="loading" class="group-list">
-        <ScEmpty
+      <div class="group-list" v-loading="loading">
+        <el-empty
           v-if="filteredGroups.length === 0"
           description="暂无分组数据"
         />
@@ -65,15 +65,15 @@
                 </div>
               </div>
               <div class="group-actions">
-                <ScTag
+                <el-tag
                   v-if="group.monitorSysGenServerGroupIsDefault === 1"
                   type="primary"
                   size="small"
                   effect="light"
                 >
                   默认
-                </ScTag>
-                <ScTag
+                </el-tag>
+                <el-tag
                   :type="
                     group.monitorSysGenServerGroupStatus === 1
                       ? 'success'
@@ -85,7 +85,7 @@
                   {{
                     group.monitorSysGenServerGroupStatus === 1 ? "启用" : "禁用"
                   }}
-                </ScTag>
+                </el-tag>
               </div>
             </div>
 
@@ -106,48 +106,48 @@
 
             <div class="card-footer">
               <el-button-group>
-                <ScButton size="small" :icon="Edit" @click="handleEdit(group)">
+                <el-button size="small" @click="handleEdit(group)" :icon="Edit">
                   编辑
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-if="group.monitorSysGenServerGroupIsDefault !== 1"
                   size="small"
                   type="primary"
-                  :icon="Star"
                   @click="handleSetDefault(group)"
+                  :icon="Star"
                 >
                   设为默认
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   size="small"
                   :type="
                     group.monitorSysGenServerGroupStatus === 1
                       ? 'warning'
                       : 'success'
                   "
+                  @click="handleToggleStatus(group)"
                   :icon="
                     group.monitorSysGenServerGroupStatus === 1
                       ? 'el-icon-close'
                       : 'el-icon-check'
                   "
-                  @click="handleToggleStatus(group)"
                 >
                   {{
                     group.monitorSysGenServerGroupStatus === 1 ? "禁用" : "启用"
                   }}
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-if="
                     group.monitorSysGenServerGroupIsDefault !== 1 &&
                     (group.serverCount || 0) === 0
                   "
                   size="small"
                   type="danger"
-                  :icon="Delete"
                   @click="handleDelete(group)"
+                  :icon="Delete"
                 >
                   删除
-                </ScButton>
+                </el-button>
               </el-button-group>
             </div>
           </div>
@@ -157,7 +157,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">关闭</ScButton>
+        <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -200,7 +200,7 @@ const filteredGroups = computed(() => {
   return groups.value.filter((group) =>
     group.monitorSysGenServerGroupName
       ?.toLowerCase()
-      .includes(searchKeyword.value.toLowerCase()),
+      .includes(searchKeyword.value.toLowerCase())
   );
 });
 
@@ -227,7 +227,7 @@ const loadGroups = async () => {
         if (group.monitorSysGenServerGroupId) {
           try {
             const countResult = await getGroupServerCount(
-              group.monitorSysGenServerGroupId,
+              group.monitorSysGenServerGroupId
             );
             if (countResult.success) {
               group.serverCount = countResult.data;
@@ -304,7 +304,7 @@ const handleToggleStatus = async (group: ServerGroup) => {
     const newStatus = group.monitorSysGenServerGroupStatus === 1 ? 0 : 1;
     const result = await toggleGroupStatus(
       group.monitorSysGenServerGroupId,
-      newStatus,
+      newStatus
     );
     if (result.success) {
       message.success(`${newStatus === 1 ? "启用" : "禁用"}分组成功`);
@@ -332,7 +332,7 @@ const handleDelete = async (group: ServerGroup) => {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      },
+      }
     );
 
     const result = await deleteServerGroup(group.monitorSysGenServerGroupId);
@@ -505,6 +505,7 @@ defineExpose({
   justify-content: flex-end;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -513,4 +514,5 @@ defineExpose({
     padding: 12px 16px;
   }
 }
+
 </style>

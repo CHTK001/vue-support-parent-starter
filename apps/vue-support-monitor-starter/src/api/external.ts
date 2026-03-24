@@ -13,7 +13,7 @@ import { http } from "@repo/utils";
 export function executionRequest(url: any, param: any) {
   return http.get(url, param, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }

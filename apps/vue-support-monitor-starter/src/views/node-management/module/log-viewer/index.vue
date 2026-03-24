@@ -25,21 +25,21 @@
     <div class="log-viewer-content">
       <!-- 工具栏 -->
       <div class="toolbar">
-        <ScSelect
+        <el-select
           v-model="selectedLogFile"
           placeholder="选择日志文件"
           style="width: 200px"
           @change="loadLogContent"
         >
-          <ScOption
+          <el-option
             v-for="file in logFiles"
             :key="file"
             :label="file"
             :value="file"
           />
-        </ScSelect>
+        </el-select>
 
-        <ScInputNumber
+        <el-input-number
           v-model="lines"
           :min="50"
           :max="1000"
@@ -48,49 +48,49 @@
           placeholder="行数"
         />
 
-        <ScButton type="primary" :loading="loading" @click="loadLogContent">
+        <el-button type="primary" @click="loadLogContent" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </ScButton>
+        </el-button>
 
-        <ScButton @click="toggleAutoRefresh">
+        <el-button @click="toggleAutoRefresh">
           <IconifyIconOnline
             :icon="autoRefresh ? 'ri:pause-circle-line' : 'ri:play-circle-line'"
           />
           {{ autoRefresh ? "停止自动刷新" : "自动刷新" }}
-        </ScButton>
+        </el-button>
 
-        <ScButton @click="scrollToBottom">
+        <el-button @click="scrollToBottom">
           <IconifyIconOnline icon="ri:arrow-down-line" />
           滚动到底部
-        </ScButton>
+        </el-button>
 
-        <ScButton @click="copyLogContent">
+        <el-button @click="copyLogContent">
           <IconifyIconOnline icon="ri:file-copy-line" />
           复制
-        </ScButton>
+        </el-button>
       </div>
 
       <!-- 日志内容 -->
       <div class="log-content-wrapper">
         <div v-if="loading" class="loading-mask">
-          <ScIcon class="is-loading">
+          <el-icon class="is-loading">
             <IconifyIconOnline icon="ri:loader-4-line" />
-          </ScIcon>
+          </el-icon>
           <span>加载中...</span>
         </div>
 
         <pre ref="logContentRef" class="log-content">{{ logContent }}</pre>
 
         <div v-if="!loading && !logContent" class="empty-content">
-          <ScEmpty description="暂无日志内容" />
+          <el-empty description="暂无日志内容" />
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
+        <el-button @click="handleClose">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -145,7 +145,7 @@ const loadLogFiles = async () => {
   try {
     const response = await getLogFilesForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     if (response.success && response.data) {
       logFiles.value = response.data;
@@ -170,7 +170,7 @@ const loadLogContent = async () => {
       props.nodeInfo.ipAddress,
       props.nodeInfo.port,
       selectedLogFile.value,
-      lines.value,
+      lines.value
     );
     if (response.success && response.data) {
       logContent.value = response.data;
@@ -257,7 +257,7 @@ watch(
       loadLogContent();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(visible, (newVisible) => {
@@ -370,6 +370,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -378,4 +379,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

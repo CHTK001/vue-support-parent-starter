@@ -1,14 +1,5 @@
 <template>
-  <component
-    :is="currentComponent || ElSteps"
-    :active="active"
-    :process-status="processStatus"
-    :finish-status="finishStatus"
-    :align-center="alignCenter"
-    :direction="direction"
-    :space="space"
-    :simple="simple"
-  >
+  <component :is="currentComponent || ElSteps" :active="active" :process-status="processStatus" :finish-status="finishStatus" :align-center="alignCenter" :direction="direction" :space="space" :simple="simple">
     <template v-if="$slots.default" #default>
       <slot />
     </template>
@@ -58,4 +49,6 @@ defineProps({
 });
 
 const { currentComponent } = useThemeComponent("ElSteps");
+
+
 </script>

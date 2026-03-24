@@ -10,8 +10,8 @@ import {
   type AsyncComponentLoader,
   type Component,
 } from "vue";
-import { ElIcon, ElButton } from "element-plus";
-
+import ScIcon from "@repo/components/ScIcon/index.vue";
+import { ScButton } from "@repo/components/ScButton";
 
 /**
  * 默认加载组件（三个点动画）

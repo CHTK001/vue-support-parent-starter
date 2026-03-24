@@ -2,7 +2,7 @@
   <div class="statistics-charts system-container modern-bg">
     <!-- 时间范围选择 -->
     <div class="filter-bar">
-      <ScDatePicker
+      <el-date-picker
         v-model="dateRange"
         type="datetimerange"
         range-separator="至"
@@ -13,138 +13,117 @@
         :shortcuts="dateShortcuts"
         @change="handleDateChange"
       />
-      <ScSelect
-        v-model="granularity"
-        placeholder="统计粒度"
-        style="width: 120px; margin-left: 12px"
-        @change="loadData"
-      >
-        <ScOption label="按小时" value="hour" />
-        <ScOption label="按天" value="day" />
-      </ScSelect>
-      <ScButton :loading="loading" style="margin-left: 12px" @click="loadData">
-        <ScIcon><Refresh /></ScIcon>
+      <el-select v-model="granularity" placeholder="统计粒度" style="width: 120px; margin-left: 12px" @change="loadData">
+        <el-option label="按小时" value="hour" />
+        <el-option label="按天" value="day" />
+      </el-select>
+      <el-button :loading="loading" style="margin-left: 12px" @click="loadData">
+        <el-icon><Refresh /></el-icon>
         刷新
-      </ScButton>
+      </el-button>
     </div>
 
     <!-- 汇总卡片 -->
-    <ScRow :gutter="16" class="summary-row">
-      <ScCol :span="4">
-        <ScCard class="summary-card" shadow="hover">
-          <div class="summary-value">
-            {{ statistics?.summary?.totalExecutions || 0 }}
-          </div>
+    <el-row :gutter="16" class="summary-row">
+      <el-col :span="4">
+        <el-card class="summary-card" shadow="hover">
+          <div class="summary-value">{{ statistics?.summary?.totalExecutions || 0 }}</div>
           <div class="summary-label">总执行次数</div>
-        </ScCard>
-      </ScCol>
-      <ScCol :span="4">
-        <ScCard class="summary-card success" shadow="hover">
-          <div class="summary-value">
-            {{ statistics?.summary?.successCount || 0 }}
-          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card class="summary-card success" shadow="hover">
+          <div class="summary-value">{{ statistics?.summary?.successCount || 0 }}</div>
           <div class="summary-label">成功次数</div>
-        </ScCard>
-      </ScCol>
-      <ScCol :span="4">
-        <ScCard class="summary-card danger" shadow="hover">
-          <div class="summary-value">
-            {{ statistics?.summary?.failCount || 0 }}
-          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card class="summary-card danger" shadow="hover">
+          <div class="summary-value">{{ statistics?.summary?.failCount || 0 }}</div>
           <div class="summary-label">失败次数</div>
-        </ScCard>
-      </ScCol>
-      <ScCol :span="4">
-        <ScCard class="summary-card" shadow="hover">
-          <div class="summary-value">
-            {{ formatPercent(statistics?.summary?.successRate) }}
-          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card class="summary-card" shadow="hover">
+          <div class="summary-value">{{ formatPercent(statistics?.summary?.successRate) }}</div>
           <div class="summary-label">成功率</div>
-        </ScCard>
-      </ScCol>
-      <ScCol :span="4">
-        <ScCard class="summary-card" shadow="hover">
-          <div class="summary-value">
-            {{ formatDuration(statistics?.summary?.avgCost) }}
-          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card class="summary-card" shadow="hover">
+          <div class="summary-value">{{ formatDuration(statistics?.summary?.avgCost) }}</div>
           <div class="summary-label">平均耗时</div>
-        </ScCard>
-      </ScCol>
-      <ScCol :span="4">
-        <ScCard class="summary-card" shadow="hover">
-          <div class="summary-value">
-            {{ formatNumber(statistics?.summary?.totalReadCount) }}
-          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="4">
+        <el-card class="summary-card" shadow="hover">
+          <div class="summary-value">{{ formatNumber(statistics?.summary?.totalReadCount) }}</div>
           <div class="summary-label">总数据量</div>
-        </ScCard>
-      </ScCol>
-    </ScRow>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 图表区域 -->
-    <ScRow :gutter="16" class="chart-row">
-      <ScCol :span="16">
-        <ScCard class="chart-card" shadow="hover">
+    <el-row :gutter="16" class="chart-row">
+      <el-col :span="16">
+        <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>执行趋势</span>
             </div>
           </template>
-          <div ref="trendChartRef" class="chart-container" />
-        </ScCard>
-      </ScCol>
-      <ScCol :span="8">
-        <ScCard class="chart-card" shadow="hover">
+          <div ref="trendChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>状态分布</span>
             </div>
           </template>
-          <div ref="statusPieRef" class="chart-container" />
-        </ScCard>
-      </ScCol>
-    </ScRow>
+          <div ref="statusPieRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-    <ScRow :gutter="16" class="chart-row">
-      <ScCol :span="8">
-        <ScCard class="chart-card" shadow="hover">
+    <el-row :gutter="16" class="chart-row">
+      <el-col :span="8">
+        <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>触发类型分布</span>
             </div>
           </template>
-          <div ref="triggerPieRef" class="chart-container" />
-        </ScCard>
-      </ScCol>
-      <ScCol :span="16">
-        <ScCard class="chart-card" shadow="hover">
+          <div ref="triggerPieRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+      <el-col :span="16">
+        <el-card class="chart-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <span>数据量趋势</span>
             </div>
           </template>
-          <div ref="dataChartRef" class="chart-container" />
-        </ScCard>
-      </ScCol>
-    </ScRow>
+          <div ref="dataChartRef" class="chart-container"></div>
+        </el-card>
+      </el-col>
+    </el-row>
 
     <!-- 任务排行榜(仅全局统计时显示) -->
-    <ScCard
-      v-if="!taskId && statistics?.taskRanking?.length"
-      class="ranking-card"
-      shadow="hover"
-    >
+    <el-card v-if="!taskId && statistics?.taskRanking?.length" class="ranking-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span>任务执行排行榜 TOP 10</span>
         </div>
       </template>
-      <ScTable :data="statistics.taskRanking" stripe>
-        <ScTableColumn type="index" label="排名" width="70" />
-        <ScTableColumn prop="taskName" label="任务名称" min-width="150" />
-        <ScTableColumn prop="executions" label="执行次数" width="100" />
-        <ScTableColumn label="成功率" width="100">
+      <el-table :data="statistics.taskRanking" stripe>
+        <el-table-column type="index" label="排名" width="70" />
+        <el-table-column prop="taskName" label="任务名称" min-width="150" />
+        <el-table-column prop="executions" label="执行次数" width="100" />
+        <el-table-column label="成功率" width="100">
           <template #default="{ row }">
-            <ScProgress
+            <el-progress
               :percentage="row.successRate"
               :color="getProgressColor(row.successRate)"
               :stroke-width="10"
@@ -152,19 +131,19 @@
             />
             <span class="progress-text">{{ row.successRate.toFixed(1) }}%</span>
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="平均耗时" width="100">
+        </el-table-column>
+        <el-table-column label="平均耗时" width="100">
           <template #default="{ row }">
             {{ formatDuration(row.avgCost) }}
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="数据量" width="120">
+        </el-table-column>
+        <el-table-column label="数据量" width="120">
           <template #default="{ row }">
             {{ formatNumber(row.totalDataCount) }}
           </template>
-        </ScTableColumn>
-      </ScTable>
-    </ScCard>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </div>
 </template>
 
@@ -172,11 +151,7 @@
 import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { Refresh } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
-import {
-  getStatistics,
-  getTaskStatistics,
-  type SyncTaskStatistics,
-} from "@/api/sync";
+import { getStatistics, getTaskStatistics, type SyncTaskStatistics } from "@/api/sync";
 
 const props = defineProps<{
   taskId?: number;
@@ -391,8 +366,7 @@ const renderStatusPie = () => {
 
 // 触发类型饼图
 const renderTriggerPie = () => {
-  if (!triggerPieRef.value || !statistics.value?.triggerTypeDistribution)
-    return;
+  if (!triggerPieRef.value || !statistics.value?.triggerTypeDistribution) return;
 
   if (!triggerPie) {
     triggerPie = echarts.init(triggerPieRef.value);
@@ -547,12 +521,9 @@ const handleResize = () => {
 };
 
 // 监听taskId变化
-watch(
-  () => props.taskId,
-  () => {
-    loadData();
-  },
-);
+watch(() => props.taskId, () => {
+  loadData();
+});
 
 onMounted(() => {
   loadData();
@@ -569,6 +540,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -602,6 +574,7 @@ onUnmounted(() => {
   }
 }
 
+
 .statistics-charts {
   .filter-bar {
     display: flex;
@@ -629,11 +602,11 @@ onUnmounted(() => {
       }
 
       &.success .summary-value {
-        color: #67c23a;
+        color: #67C23A;
       }
 
       &.danger .summary-value {
-        color: #f56c6c;
+        color: #F56C6C;
       }
     }
   }
@@ -663,6 +636,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -671,4 +645,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

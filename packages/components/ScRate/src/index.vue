@@ -137,6 +137,8 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElRate");
 
+
+
 const handleChange = (val: number) => {
   emit("change", val);
 };

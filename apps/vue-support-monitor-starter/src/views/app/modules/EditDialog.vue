@@ -1,30 +1,30 @@
 ﻿<template>
   <div class="system-container modern-bg">
     <sc-dialog
-      v-model="props.visible"
       title="更新配置"
       width="400px"
       draggable
+      v-model="props.visible"
+      @close="handleClose"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       append-to-body
-      @close="handleClose"
     >
-      <ScForm :model="form">
-        <ScFormItem label="平台" prop="monitorApplicationName">
-          <ScInput
+      <el-form :model="form">
+        <el-form-item label="平台" prop="monitorApplicationName">
+          <el-input
             v-model="form.monitorApplicationName"
             placeholder="请输入平台"
           />
-        </ScFormItem>
-        <ScFormItem label="名称" prop="monitorName">
-          <ScInput v-model="form.monitorName" placeholder="请输入名称" />
-        </ScFormItem>
-      </ScForm>
+        </el-form-item>
+        <el-form-item label="名称" prop="monitorName">
+          <el-input v-model="form.monitorName" placeholder="请输入名称" />
+        </el-form-item>
+      </el-form>
 
       <template #footer>
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" @click="handleSubmit">确定</ScButton>
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </sc-dialog>
   </div>
@@ -74,10 +74,11 @@ watch(
     if (val) {
       form.value = val;
     }
-  },
+  }
 );
 </script>
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -111,6 +112,8 @@ watch(
   }
 }
 
+
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -119,4 +122,6 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>
+

@@ -105,31 +105,34 @@ watch(disabled, val => {
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/mixins.scss" as *;
+@use "@/styles/variables.scss" as *;
+
 .sc-editor-container {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 4px;
+  border: 1px solid $border-light;
+  border-radius: $radius-md;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all $duration-normal $ease-standard;
   background-color: var(--el-bg-color);
 
   &:hover {
-    border-color: var(--el-border-color);
+    border-color: $border-medium;
   }
 
   &:focus-within {
-    border-color: var(--el-color-primary);
-    box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px $primary-light;
   }
 
   &.is-disabled {
-    background-color: var(--el-fill-color-light);
+    background-color: $bg-glass-light;
     cursor: not-allowed;
     opacity: 0.8;
   }
 }
 
 .sc-editor-toolbar {
-  border-bottom: 1px solid var(--el-border-color-light);
-  background-color: var(--el-bg-color);
+  border-bottom: 1px solid $border-light;
+  background-color: $bg-glass-toolbar;
 }
 </style>

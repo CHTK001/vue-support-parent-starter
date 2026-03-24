@@ -1,4 +1,5 @@
 ﻿<script setup>
+
 import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed, watch } from "vue";
 import { message } from "@repo/utils";
@@ -179,11 +180,7 @@ const compareTexts = () => {
     diffResult.forEach((part) => {
       // 添加颜色标记
       const color = part.added ? "green" : part.removed ? "red" : "grey";
-      const spanClass = part.added
-        ? "addition"
-        : part.removed
-          ? "deletion"
-          : "unchanged";
+      const spanClass = part.added ? "addition" : part.removed ? "deletion" : "unchanged";
       const prefix = part.added ? "+ " : part.removed ? "- " : "  ";
 
       // 对于行比较，我们需要在每行前添加前缀
@@ -201,13 +198,7 @@ const compareTexts = () => {
     });
 
     // 生成统一差异格式
-    const unifiedDiff = Diff.createPatch(
-      "file",
-      env.originalText,
-      env.modifiedText,
-      "原始",
-      "修改后",
-    );
+    const unifiedDiff = Diff.createPatch("file", env.originalText, env.modifiedText, "原始", "修改后");
 
     env.diffResult = html;
     env.unifiedDiff = unifiedDiff;
@@ -351,7 +342,7 @@ watch(
   () => env.language,
   () => {
     highlightCode();
-  },
+  }
 );
 
 // 组件挂载时初始化
@@ -377,15 +368,10 @@ onMounted(() => {
       <!-- 头部信息 -->
       <div class="text-diff-tool__header">
         <div class="text-diff-tool__header-content">
-          <IconifyIconOnline
-            icon="ri:contrast-2-line"
-            class="text-diff-tool__header-icon"
-          />
+          <IconifyIconOnline icon="ri:contrast-2-line" class="text-diff-tool__header-icon" />
           <div>
             <h2 class="text-diff-tool__header-title">文本对比工具</h2>
-            <p class="text-diff-tool__header-desc">
-              比较两段文本或代码，高亮显示差异，支持多种编程语言
-            </p>
+            <p class="text-diff-tool__header-desc">比较两段文本或代码，高亮显示差异，支持多种编程语言</p>
           </div>
         </div>
       </div>
@@ -397,10 +383,7 @@ onMounted(() => {
           <ScCard class="text-diff-tool__input-card" shadow="hover">
             <template #header>
               <div class="text-diff-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:settings-line"
-                  class="text-diff-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:settings-line" class="text-diff-tool__card-icon" />
                 <span>比较设置</span>
               </div>
             </template>
@@ -409,12 +392,7 @@ onMounted(() => {
               <!-- 语言选择 -->
               <ScFormItem label="语言">
                 <ScSelect v-model="env.language" class="text-diff-tool__select">
-                  <ScOption
-                    v-for="lang in env.languages"
-                    :key="lang.value"
-                    :label="lang.label"
-                    :value="lang.value"
-                  >
+                  <ScOption v-for="lang in env.languages" :key="lang.value" :label="lang.label" :value="lang.value">
                     <div class="text-diff-tool__language-option">
                       <IconifyIconOnline :icon="getLanguageIcon(lang.value)" />
                       <span>{{ lang.label }}</span>
@@ -425,15 +403,8 @@ onMounted(() => {
 
               <!-- 比较方式 -->
               <ScFormItem label="比较方式">
-                <ScRadioGroup
-                  v-model="env.diffType"
-                  class="text-diff-tool__radio-group"
-                >
-                  <ScRadio
-                    v-for="type in env.diffTypes"
-                    :key="type.value"
-                    :label="type.value"
-                  >
+                <ScRadioGroup v-model="env.diffType" class="text-diff-tool__radio-group">
+                  <ScRadio v-for="type in env.diffTypes" :key="type.value" :label="type.value">
                     <div class="text-diff-tool__radio-content">
                       <IconifyIconOnline :icon="type.icon" />
                       <span>{{ type.label }}</span>
@@ -454,12 +425,7 @@ onMounted(() => {
               <!-- 示例选择 -->
               <ScFormItem label="示例">
                 <div class="text-diff-tool__examples">
-                  <ScButton
-                    v-for="example in env.examples"
-                    :key="example.name"
-                    size="small"
-                    @click="applyExample(example)"
-                  >
+                  <ScButton v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
                     {{ example.name }}
                   </ScButton>
                 </div>
@@ -475,22 +441,12 @@ onMounted(() => {
           <ScCard class="text-diff-tool__editor-card" shadow="hover">
             <template #header>
               <div class="text-diff-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:file-text-line"
-                  class="text-diff-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:file-text-line" class="text-diff-tool__card-icon" />
                 <span>原始文本</span>
               </div>
             </template>
 
-            <ScInput
-              v-model="env.originalText"
-              type="textarea"
-              :rows="15"
-              placeholder="输入原始文本或代码"
-              resize="vertical"
-              class="text-diff-tool__input"
-            />
+            <ScInput v-model="env.originalText" type="textarea" :rows="15" placeholder="输入原始文本或代码" resize="vertical" class="text-diff-tool__input" />
           </ScCard>
         </ScCol>
 
@@ -499,44 +455,24 @@ onMounted(() => {
           <ScCard class="text-diff-tool__editor-card" shadow="hover">
             <template #header>
               <div class="text-diff-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:file-edit-line"
-                  class="text-diff-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:file-edit-line" class="text-diff-tool__card-icon" />
                 <span>修改后文本</span>
               </div>
             </template>
 
-            <ScInput
-              v-model="env.modifiedText"
-              type="textarea"
-              :rows="15"
-              placeholder="输入修改后文本或代码"
-              resize="vertical"
-              class="text-diff-tool__input"
-            />
+            <ScInput v-model="env.modifiedText" type="textarea" :rows="15" placeholder="输入修改后文本或代码" resize="vertical" class="text-diff-tool__input" />
           </ScCard>
         </ScCol>
       </ScRow>
 
       <!-- 操作按钮 -->
       <div class="text-diff-tool__actions">
-        <ScButton
-          type="primary"
-          :loading="env.loading"
-          :disabled="!canCompare"
-          class="text-diff-tool__compare-btn"
-          @click="compareTexts"
-        >
+        <ScButton type="primary" :loading="env.loading" :disabled="!canCompare" class="text-diff-tool__compare-btn" @click="compareTexts">
           <IconifyIconOnline icon="ri:contrast-2-line" />
           <span>比较文本</span>
         </ScButton>
 
-        <ScButton
-          type="success"
-          class="text-diff-tool__swap-btn"
-          @click="swapTexts"
-        >
+        <ScButton type="success" class="text-diff-tool__swap-btn" @click="swapTexts">
           <IconifyIconOnline icon="ri:swap-line" />
           <span>交换文本</span>
         </ScButton>
@@ -548,25 +484,13 @@ onMounted(() => {
       </div>
 
       <!-- 比较结果 -->
-      <ScCard
-        v-if="env.diffResult"
-        class="text-diff-tool__result-card"
-        shadow="hover"
-      >
+      <ScCard v-if="env.diffResult" class="text-diff-tool__result-card" shadow="hover">
         <template #header>
           <div class="text-diff-tool__card-header">
-            <IconifyIconOnline
-              icon="ri:contrast-2-line"
-              class="text-diff-tool__card-icon"
-            />
+            <IconifyIconOnline icon="ri:contrast-2-line" class="text-diff-tool__card-icon" />
             <span>比较结果</span>
             <div class="text-diff-tool__result-actions">
-              <ScButton
-                type="primary"
-                link
-                size="small"
-                @click="copyToClipboard(env.unifiedDiff)"
-              >
+              <ScButton type="primary" link size="small" @click="copyToClipboard(env.unifiedDiff)">
                 <IconifyIconOnline icon="ri:file-copy-line" />
                 <span>复制差异</span>
               </ScButton>
@@ -577,16 +501,12 @@ onMounted(() => {
         <ScTabs type="border-card">
           <ScTabPane label="内联视图">
             <div class="text-diff-tool__diff-result">
-              <pre
-                :class="{ 'line-numbers': env.showLineNumbers }"
-              ><code :class="`language-${env.language}`" v-html="env.diffResult"></code></pre>
+              <pre :class="{ 'line-numbers': env.showLineNumbers }"><code :class="`language-${env.language}`" v-html="env.diffResult"></code></pre>
             </div>
           </ScTabPane>
           <ScTabPane label="统一视图">
             <div class="text-diff-tool__unified-diff">
-              <pre
-                :class="{ 'line-numbers': env.showLineNumbers }"
-              ><code class="language-diff">{{ env.unifiedDiff }}</code></pre>
+              <pre :class="{ 'line-numbers': env.showLineNumbers }"><code class="language-diff">{{ env.unifiedDiff }}</code></pre>
             </div>
           </ScTabPane>
         </ScTabs>
@@ -596,24 +516,14 @@ onMounted(() => {
       <ScCard class="text-diff-tool__history-card" shadow="hover">
         <template #header>
           <div class="text-diff-tool__card-header">
-            <IconifyIconOnline
-              icon="ri:history-line"
-              class="text-diff-tool__card-icon"
-            />
+            <IconifyIconOnline icon="ri:history-line" class="text-diff-tool__card-icon" />
             <span>历史记录</span>
           </div>
         </template>
 
-        <ScEmpty
-          v-if="!env.history.length"
-          description="暂无历史记录"
-          class="text-diff-tool__empty"
-        >
+        <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="text-diff-tool__empty">
           <template #image>
-            <IconifyIconOnline
-              icon="ri:history-line"
-              class="text-diff-tool__empty-icon"
-            />
+            <IconifyIconOnline icon="ri:history-line" class="text-diff-tool__empty-icon" />
           </template>
         </ScEmpty>
 
@@ -623,33 +533,19 @@ onMounted(() => {
             <template #default="{ row }">
               <div class="text-diff-tool__language-tag">
                 <IconifyIconOnline :icon="getLanguageIcon(row.language)" />
-                <span>{{
-                  env.languages.find((lang) => lang.value === row.language)
-                    ?.label || row.language
-                }}</span>
+                <span>{{ env.languages.find((lang) => lang.value === row.language)?.label || row.language }}</span>
               </div>
             </template>
           </ScTableColumn>
           <ScTableColumn prop="diffType" label="比较方式" width="120">
             <template #default="{ row }">
-              <span>{{
-                env.diffTypes.find((type) => type.value === row.diffType)
-                  ?.label || row.diffType
-              }}</span>
+              <span>{{ env.diffTypes.find((type) => type.value === row.diffType)?.label || row.diffType }}</span>
             </template>
           </ScTableColumn>
           <ScTableColumn label="操作" width="120">
             <template #default="scope">
-              <ScButton type="primary" link @click="loadFromHistory(scope.row)">
-                加载
-              </ScButton>
-              <ScButton
-                type="danger"
-                link
-                @click="env.history.splice(env.history.indexOf(scope.row), 1)"
-              >
-                删除
-              </ScButton>
+              <ScButton type="primary" link @click="loadFromHistory(scope.row)"> 加载 </ScButton>
+              <ScButton type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </ScButton>
             </template>
           </ScTableColumn>
         </ScTable>
@@ -668,11 +564,7 @@ onMounted(() => {
 }
 
 .text-diff-tool__header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-3) 0%,
-    var(--el-color-primary) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;

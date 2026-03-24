@@ -2,51 +2,22 @@
   <div class="video-nav">
     <div class="video-nav__category">
       <!-- 首页选项 -->
-      <div
-        class="video-nav__item"
-        :class="{ 'video-nav__item--active': activeTab === 'home' }"
-        @click="handleHomeClick"
-      >
+      <div class="video-nav__item" :class="{ 'video-nav__item--active': activeTab === 'home' }" @click="handleHomeClick">
         <IconifyIconOnline icon="ep:house" :size="18" />
         <span>首页</span>
       </div>
 
-      <div
-        v-for="category in categories"
-        :key="category.value"
-        :class="[
-          'video-nav__item',
-          {
-            'video-nav__item--active':
-              modelValue === category.value && activeTab !== 'home',
-          },
-        ]"
-        @click="handleCategoryClick(category)"
-      >
-        <IconifyIconOnline
-          v-if="category.icon"
-          :icon="category.icon"
-          :size="18"
-        />
+      <div v-for="category in categories" :key="category.value" :class="['video-nav__item', { 'video-nav__item--active': modelValue === category.value && activeTab !== 'home' }]" @click="handleCategoryClick(category)">
+        <IconifyIconOnline v-if="category.icon" :icon="category.icon" :size="18" />
         <span>{{ category.label }}</span>
       </div>
       <div class="video-nav__search">
-        <ScInput
-          v-model="searchKeyword"
-          placeholder="请输入视频名称、演员、导演等关键词"
-          class="video-nav__input"
-          clearable
-          @keyup.enter="handleSearch"
-        >
+        <ScInput v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="video-nav__input" clearable @keyup.enter="handleSearch">
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
         </ScInput>
-        <ScButton
-          type="primary"
-          class="video-nav__button"
-          @click="handleSearch"
-        >
+        <ScButton type="primary" class="video-nav__button" @click="handleSearch">
           <IconifyIconOnline icon="ep:search" />
         </ScButton>
       </div>
@@ -143,7 +114,7 @@ watch(
   () => {
     initNavState();
   },
-  { deep: true },
+  { deep: true }
 );
 </script>
 

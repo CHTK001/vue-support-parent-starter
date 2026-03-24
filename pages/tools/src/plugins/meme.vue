@@ -472,7 +472,7 @@ onMounted(() => {
 
             <!-- 加载状态 -->
             <div v-if="env.searchLoading" class="meme-tool__loading">
-              <ScSkeleton :rows="3" animated />
+              <el-skeleton :rows="3" animated />
             </div>
 
             <!-- 空状态 -->

@@ -1,6 +1,6 @@
 <template>
   <div class="server-quick-setting system-container modern-bg">
-    <ScPopover
+    <el-popover
       placement="bottom-start"
       :width="300"
       trigger="click"
@@ -8,18 +8,18 @@
       @update:visible="handleVisibleChange"
     >
       <template #reference>
-        <ScButton
+        <el-button
           :type="isMonitorEnabled ? 'success' : 'info'"
           size="small"
           :loading="loading"
           plain
         >
-          <IconifyIconOnline
-            :icon="isMonitorEnabled ? 'ri:eye-line' : 'ri:eye-off-line'"
-            class="mr-1"
+          <IconifyIconOnline 
+            :icon="isMonitorEnabled ? 'ri:eye-line' : 'ri:eye-off-line'" 
+            class="mr-1" 
           />
-          {{ isMonitorEnabled ? "监控中" : "未监控" }}
-        </ScButton>
+          {{ isMonitorEnabled ? '监控中' : '未监控' }}
+        </el-button>
       </template>
 
       <div class="quick-setting-content">
@@ -31,14 +31,11 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用监控</span>
-            <ScTooltip
-              content="开启后将定期收集服务器指标数据"
-              placement="top"
-            >
+            <el-tooltip content="开启后将定期收集服务器指标数据" placement="top">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </ScTooltip>
+            </el-tooltip>
           </div>
-          <ScSwitch
+          <el-switch
             v-model="localSettings.monitorEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -49,11 +46,11 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用上报</span>
-            <ScTooltip content="开启后将向监控中心上报数据" placement="top">
+            <el-tooltip content="开启后将向监控中心上报数据" placement="top">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </ScTooltip>
+            </el-tooltip>
           </div>
-          <ScSwitch
+          <el-switch
             v-model="localSettings.reportEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -64,14 +61,11 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用告警</span>
-            <ScTooltip
-              content="开启后将在指标异常时发送告警通知"
-              placement="top"
-            >
+            <el-tooltip content="开启后将在指标异常时发送告警通知" placement="top">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
-            </ScTooltip>
+            </el-tooltip>
           </div>
-          <ScSwitch
+          <el-switch
             v-model="localSettings.alertEnabled"
             :active-value="1"
             :inactive-value="0"
@@ -80,21 +74,21 @@
         </div>
 
         <div class="setting-actions">
-          <ScButton size="small" @click="handleOpenFullSetting">
+          <el-button size="small" @click="handleOpenFullSetting">
             <IconifyIconOnline icon="ri:settings-3-line" class="mr-1" />
             完整设置
-          </ScButton>
-          <ScButton
-            type="primary"
-            size="small"
+          </el-button>
+          <el-button 
+            type="primary" 
+            size="small" 
             :loading="saveLoading"
             @click="handleSave"
           >
             保存
-          </ScButton>
+          </el-button>
         </div>
       </div>
-    </ScPopover>
+    </el-popover>
   </div>
 </template>
 
@@ -104,7 +98,7 @@ import { message } from "@repo/utils";
 import {
   type ServerSetting,
   getOrCreateServerSetting,
-  saveOrUpdateServerSetting,
+  saveOrUpdateServerSetting
 } from "@/api/server/setting";
 
 // 定义属性
@@ -138,15 +132,11 @@ const localSettings = reactive({
 const isMonitorEnabled = computed(() => localSettings.monitorEnabled === 1);
 
 // 监听服务器ID变化
-watch(
-  () => props.serverId,
-  (newServerId) => {
-    if (newServerId) {
-      loadServerSetting();
-    }
-  },
-  { immediate: true },
-);
+watch(() => props.serverId, (newServerId) => {
+  if (newServerId) {
+    loadServerSetting();
+  }
+}, { immediate: true });
 
 /**
  * 处理可见性变化
@@ -163,22 +153,19 @@ const handleVisibleChange = (newVisible: boolean) => {
  */
 const loadServerSetting = async () => {
   if (!props.serverId) return;
-
+  
   try {
     loading.value = true;
     const result = await getOrCreateServerSetting(props.serverId);
     if (result.code === "00000" && result.data) {
       serverSetting.value = result.data;
       // 更新本地设置
-      localSettings.monitorEnabled =
-        result.data.monitorSysGenServerSettingMonitorEnabled || 0;
-      localSettings.reportEnabled =
-        result.data.monitorSysGenServerSettingReportEnabled || 0;
-      localSettings.alertEnabled =
-        result.data.monitorSysGenServerSettingAlertEnabled || 0;
+      localSettings.monitorEnabled = result.data.monitorSysGenServerSettingMonitorEnabled || 0;
+      localSettings.reportEnabled = result.data.monitorSysGenServerSettingReportEnabled || 0;
+      localSettings.alertEnabled = result.data.monitorSysGenServerSettingAlertEnabled || 0;
     }
   } catch (error) {
-    console.error("加载服务器设置失败:", error);
+    console.error('加载服务器设置失败:', error);
   } finally {
     loading.value = false;
   }
@@ -221,7 +208,7 @@ const handleAlertChange = (value: number) => {
 const handleSave = async () => {
   try {
     saveLoading.value = true;
-
+    
     const submitData = {
       ...serverSetting.value,
       monitorSysGenServerId: props.serverId,
@@ -256,6 +243,7 @@ const handleOpenFullSetting = () => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -288,6 +276,7 @@ const handleOpenFullSetting = () => {
     z-index: 1;
   }
 }
+
 
 .server-quick-setting {
   display: inline-block;
@@ -344,6 +333,7 @@ const handleOpenFullSetting = () => {
   border-top: 1px solid var(--el-border-color-light);
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -352,4 +342,5 @@ const handleOpenFullSetting = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

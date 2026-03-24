@@ -58,9 +58,7 @@ withDefaults(defineProps<Props>(), {
   border: 4px solid #e5e7eb;
   padding: 2px;
   position: relative;
-  box-shadow:
-    0 0 0 3px #111827,
-    0 0 0 4px #e5e7eb;
+  box-shadow: 0 0 0 3px #111827, 0 0 0 4px #e5e7eb;
   background: #111827;
 }
 
@@ -92,3 +90,5 @@ withDefaults(defineProps<Props>(), {
   }
 }
 </style>
+
+

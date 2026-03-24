@@ -5,10 +5,10 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, computed, type Ref, type ComputedRef } from "vue";
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 
 /** 吸附位置类型 */
-export type DockPosition = "left" | "right" | "top" | "bottom" | null;
+export type DockPosition = 'left' | 'right' | 'top' | 'bottom' | null;
 
 /** 对话框状态 */
 export interface DialogState {
@@ -72,7 +72,11 @@ export interface DialogMinimizeReturn {
  * @returns DialogMinimizeReturn
  */
 export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMinimizeReturn {
-  const { edgeThreshold = 50, edgeDock = true, minimizeShowTitle = true } = options;
+  const {
+    edgeThreshold = 50,
+    edgeDock = true,
+    minimizeShowTitle = true,
+  } = options;
 
   // 状态
   const isMinimized = ref(false);
@@ -87,7 +91,7 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
    * 最小化过渡动画名称
    */
   const minimizeTransitionName = computed(() => {
-    if (!dockPosition.value) return "dialog-fade";
+    if (!dockPosition.value) return 'dialog-fade';
     return `dialog-minimize-${dockPosition.value}`;
   });
 
@@ -96,10 +100,10 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
    */
   const saveDialogState = (element: HTMLElement): DialogState => {
     return {
-      x: parseFloat(element.getAttribute("data-x") || "0") || 0,
-      y: parseFloat(element.getAttribute("data-y") || "0") || 0,
-      width: element.style.width || "",
-      height: element.style.height || ""
+      x: parseFloat(element.getAttribute('data-x') || '0') || 0,
+      y: parseFloat(element.getAttribute('data-y') || '0') || 0,
+      width: element.style.width || '',
+      height: element.style.height || '',
     };
   };
 
@@ -108,8 +112,8 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
    */
   const restoreDialogState = (element: HTMLElement, state: DialogState): void => {
     element.style.transform = `translate(${state.x}px, ${state.y}px)`;
-    element.setAttribute("data-x", String(state.x));
-    element.setAttribute("data-y", String(state.y));
+    element.setAttribute('data-x', String(state.x));
+    element.setAttribute('data-y', String(state.y));
     if (state.width) {
       element.style.width = state.width;
     }
@@ -130,19 +134,19 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
 
     // 检测左边缘
     if (rect.left <= edgeThreshold) {
-      return "left";
+      return 'left';
     }
     // 检测右边缘
     if (rect.right >= viewportWidth - edgeThreshold) {
-      return "right";
+      return 'right';
     }
     // 检测顶部边缘
     if (rect.top <= edgeThreshold) {
-      return "top";
+      return 'top';
     }
     // 检测底部边缘
     if (rect.bottom >= viewportHeight - edgeThreshold) {
-      return "bottom";
+      return 'bottom';
     }
 
     return null;
@@ -163,16 +167,16 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
     // 计算最小化图标位置
     const iconSize = 48;
     switch (position) {
-      case "left":
+      case 'left':
         minimizedIconPosition.value = { x: 0, y: rect.top };
         break;
-      case "right":
+      case 'right':
         minimizedIconPosition.value = { x: window.innerWidth - iconSize, y: rect.top };
         break;
-      case "top":
+      case 'top':
         minimizedIconPosition.value = { x: rect.left + rect.width / 2 - iconSize / 2, y: 0 };
         break;
-      case "bottom":
+      case 'bottom':
         minimizedIconPosition.value = { x: rect.left + rect.width / 2 - iconSize / 2, y: window.innerHeight - iconSize };
         break;
       default:
@@ -183,7 +187,10 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
   /**
    * 从最小化恢复
    */
-  const restoreFromMinimized = (element: HTMLElement | null, restorePosition?: { x: number; y: number }): void => {
+  const restoreFromMinimized = (
+    element: HTMLElement | null,
+    restorePosition?: { x: number; y: number }
+  ): void => {
     isMinimized.value = false;
     dockPosition.value = null;
     minimizedIconPosition.value = null;
@@ -192,15 +199,15 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
 
     // 使用原始位置或保存的状态
     const stateToUse = originalDialogState.value || lastDialogState.value;
-
+    
     if (stateToUse) {
       const x = restorePosition?.x ?? stateToUse.x;
       const y = restorePosition?.y ?? stateToUse.y;
-
+      
       element.style.transform = `translate(${x}px, ${y}px)`;
-      element.setAttribute("data-x", String(x));
-      element.setAttribute("data-y", String(y));
-
+      element.setAttribute('data-x', String(x));
+      element.setAttribute('data-y', String(y));
+      
       if (stateToUse.width) {
         element.style.width = stateToUse.width;
       }
@@ -273,7 +280,7 @@ export function useDialogMinimize(options: DialogMinimizeOptions = {}): DialogMi
     checkEdgeDock,
     saveDialogState,
     restoreDialogState,
-    resetState
+    resetState,
   };
 }
 

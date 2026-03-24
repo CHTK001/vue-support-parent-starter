@@ -1,89 +1,51 @@
 <template>
-  <div
-    ref="serverLayoutRef"
-    class="system-container modern-bg server-component-layout h-full"
-  >
-    <div v-if="editable" class="layout-header">
+  <div class="system-container modern-bg server-component-layout h-full" ref="serverLayoutRef">
+    <div class="layout-header" v-if="editable">
       <!-- 左侧编辑操作区 -->
       <div class="layout-actions-left">
-        <ScButton type="primary" @click="showAddComponentDrawer = true">
+        <el-button type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加组件
-        </ScButton>
-        <ScButton type="primary" @click="showComponentSelector = true">
+        </el-button>
+        <el-button type="primary" @click="showComponentSelector = true">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-1" />
           组件库
-        </ScButton>
-        <ScButton type="primary" @click="loadSharedComponents">
+        </el-button>
+        <el-button type="primary" @click="loadSharedComponents">
           <IconifyIconOnline icon="ri:share-line" class="mr-1" />
           共享组件
-        </ScButton>
+        </el-button>
       </div>
 
       <!-- 右侧保存操作区 -->
       <div v-if="editable && layoutChanged" class="layout-actions-right">
-        <ScButton type="primary" @click="saveConfigToServer">
+        <el-button type="primary" @click="saveConfigToServer">
           <IconifyIconOnline icon="ri:save-line" class="mr-1" />
           保存布局
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
-    <GridLayout
-      v-if="layout.length > 0"
-      class="h-full"
-      :layout="layout"
-      :col-num="24"
-      :row-height="30"
-      :is-draggable="editable"
-      :is-resizable="editable"
-      :vertical-compact="true"
-      :use-css-transforms="true"
-      :margin="[10, 10]"
-      @layout-updated="handleLayoutUpdated"
-    >
-      <GridItem
-        v-for="item in layout"
-        :key="item.i"
-        :x="item.x"
-        :y="item.y"
-        :w="item.w"
-        :h="item.h"
-        :i="item.i"
-      >
+    <GridLayout v-if="layout.length > 0" class="h-full" :layout="layout" :col-num="24" :row-height="30" :is-draggable="editable" :is-resizable="editable" :vertical-compact="true" :use-css-transforms="true" :margin="[10, 10]" @layout-updated="handleLayoutUpdated">
+      <GridItem v-for="item in layout" :key="item.i" :x="item.x" :y="item.y" :w="item.w" :h="item.h" :i="item.i">
         <div class="grid-item-content">
           <div v-if="editable" class="grid-item-overlay">
             <div class="grid-item-actions">
-              <ScTooltip content="编辑组件">
-                <ScButton
-                  type="primary"
-                  circle
-                  size="small"
-                  @click="editComponent(item)"
-                >
+              <el-tooltip content="编辑组件">
+                <el-button type="primary" circle size="small" @click="editComponent(item)">
                   <IconifyIconOnline icon="ri:edit-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="图表配置">
-                <ScButton
-                  type="warning"
-                  circle
-                  size="small"
-                  @click="editChartConfig(item)"
-                >
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="图表配置">
+                <el-button type="warning" circle size="small" @click="editChartConfig(item)">
                   <IconifyIconOnline icon="ri:settings-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="删除组件">
-                <ScButton
-                  type="danger"
-                  circle
-                  size="small"
-                  @click="removeComponent(item)"
-                >
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除组件">
+                <el-button type="danger" circle size="small" @click="removeComponent(item)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </ScButton>
-              </ScTooltip>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
 
@@ -111,311 +73,149 @@
 
     <!-- 空状态 -->
     <div v-else class="empty-layout">
-      <ScEmpty description="暂无组件">
-        <ScButton type="primary" @click="showAddComponentDrawer = true">
+      <el-empty description="暂无组件">
+        <el-button type="primary" @click="showAddComponentDrawer = true">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           添加第一个组件
-        </ScButton>
-      </ScEmpty>
+        </el-button>
+      </el-empty>
     </div>
 
     <!-- 添加组件抽屉 -->
-    <sc-drawer
-      v-model="showAddComponentDrawer"
-      title="添加组件"
-      size="600px"
-      direction="rtl"
-    >
+    <sc-drawer v-model="showAddComponentDrawer" title="添加组件" size="600px" direction="rtl">
       <div class="add-component-form">
-        <ScForm
-          ref="addFormRef"
-          :model="addForm"
-          :rules="addFormRules"
-          label-width="120px"
-        >
-          <ScFormItem label="组件名称" prop="title">
-            <ScInput v-model="addForm.title" placeholder="请输入组件名称" />
-          </ScFormItem>
+        <el-form ref="addFormRef" :model="addForm" :rules="addFormRules" label-width="120px">
+          <el-form-item label="组件名称" prop="title">
+            <el-input v-model="addForm.title" placeholder="请输入组件名称" />
+          </el-form-item>
 
-          <ScFormItem label="组件类型" prop="type">
-            <ScSelect
-              v-model="addForm.type"
-              placeholder="请选择组件类型"
-              style="width: 100%"
-            >
-              <ScOption
-                v-for="option in componentTypeOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ScSelect>
-          </ScFormItem>
+          <el-form-item label="组件类型" prop="type">
+            <el-select v-model="addForm.type" placeholder="请选择组件类型" style="width: 100%">
+              <el-option v-for="option in componentTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
+            </el-select>
+          </el-form-item>
 
-          <ScFormItem label="表达式类型" prop="expressionType">
-            <ScSelect
-              v-model="addForm.expressionType"
-              placeholder="请选择表达式类型"
-              style="width: 100%"
-            >
-              <ScOption
-                v-for="option in expressionTypeOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ScSelect>
-          </ScFormItem>
+          <el-form-item label="表达式类型" prop="expressionType">
+            <el-select v-model="addForm.expressionType" placeholder="请选择表达式类型" style="width: 100%">
+              <el-option v-for="option in expressionTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
+            </el-select>
+          </el-form-item>
 
-          <ScFormItem
-            :label="
-              addForm.expressionType === 'PROMETHEUS'
-                ? 'PromQL表达式'
-                : '组件选择'
-            "
-            prop="expression"
-          >
+          <el-form-item :label="addForm.expressionType === 'PROMETHEUS' ? 'PromQL表达式' : '组件选择'" prop="expression">
             <!-- Prometheus 表达式输入 -->
             <template v-if="addForm.expressionType === 'PROMETHEUS'">
-              <ScInput
-                v-model="addForm.expression"
-                type="textarea"
-                :rows="4"
-                placeholder="请输入PromQL查询表达式"
-              />
+              <el-input v-model="addForm.expression" type="textarea" :rows="4" placeholder="请输入PromQL查询表达式" />
               <div class="expression-examples">
                 <div class="examples-header">常用表达式示例：</div>
                 <div class="examples-list">
-                  <ScTag
-                    v-for="example in prometheusExamples"
-                    :key="example.value"
-                    size="small"
-                    class="example-tag"
-                    @click="addForm.expression = example.value"
-                  >
+                  <el-tag v-for="example in prometheusExamples" :key="example.value" size="small" class="example-tag" @click="addForm.expression = example.value">
                     {{ example.label }}
-                  </ScTag>
+                  </el-tag>
                 </div>
               </div>
             </template>
 
             <!-- 固定组件选择 -->
             <template v-else>
-              <ScSelect
-                v-model="addForm.expression"
-                placeholder="请选择监控组件"
-                style="width: 100%"
-                filterable
-              >
-                <ScOption
-                  v-for="option in componentOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ScSelect>
+              <el-select v-model="addForm.expression" placeholder="请选择监控组件" style="width: 100%" filterable>
+                <el-option v-for="option in componentOptions" :key="option.value" :label="option.label" :value="option.value" />
+              </el-select>
             </template>
-          </ScFormItem>
+          </el-form-item>
 
-          <ScFormItem label="组件大小">
-            <ScRow :gutter="10">
-              <ScCol :span="12">
-                <ScInputNumber
-                  v-model="addForm.w"
-                  :min="1"
-                  :max="24"
-                  placeholder="宽度"
-                  style="width: 100%"
-                />
-              </ScCol>
-              <ScCol :span="12">
-                <ScInputNumber
-                  v-model="addForm.h"
-                  :min="1"
-                  :max="20"
-                  placeholder="高度"
-                  style="width: 100%"
-                />
-              </ScCol>
-            </ScRow>
-          </ScFormItem>
+          <el-form-item label="组件大小">
+            <el-row :gutter="10">
+              <el-col :span="12">
+                <el-input-number v-model="addForm.w" :min="1" :max="24" placeholder="宽度" style="width: 100%" />
+              </el-col>
+              <el-col :span="12">
+                <el-input-number v-model="addForm.h" :min="1" :max="20" placeholder="高度" style="width: 100%" />
+              </el-col>
+            </el-row>
+          </el-form-item>
 
-          <ScFormItem label="数值单位" prop="valueUnit">
-            <ScSelect
-              v-model="addForm.valueUnit"
-              placeholder="请选择数值单位"
-              style="width: 100%"
-              clearable
-            >
-              <ScOption
-                v-for="option in valueUnitOptions"
-                :key="option.value"
-                :label="option.label"
-                :value="option.value"
-              />
-            </ScSelect>
-          </ScFormItem>
+          <el-form-item label="数值单位" prop="valueUnit">
+            <el-select v-model="addForm.valueUnit" placeholder="请选择数值单位" style="width: 100%" clearable>
+              <el-option v-for="option in valueUnitOptions" :key="option.value" :label="option.label" :value="option.value" />
+            </el-select>
+          </el-form-item>
 
-          <ScFormItem label="显示标题">
-            <ScSwitch
-              v-model="addForm.showTitle"
-              active-text="显示"
-              inactive-text="隐藏"
-            />
-          </ScFormItem>
-        </ScForm>
+          <el-form-item label="显示标题">
+            <el-switch v-model="addForm.showTitle" active-text="显示" inactive-text="隐藏" />
+          </el-form-item>
+        </el-form>
 
         <div class="drawer-footer">
-          <ScButton @click="showAddComponentDrawer = false">取消</ScButton>
-          <ScButton type="primary" :loading="addLoading" @click="addComponent">
+          <el-button @click="showAddComponentDrawer = false">取消</el-button>
+          <el-button type="primary" @click="addComponent" :loading="addLoading">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加组件
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </sc-drawer>
 
     <!-- 组件选择器对话框 -->
-    <sc-dialog
-      v-model="showComponentSelector"
-      title="选择组件"
-      width="60%"
-      destroy-on-close
-    >
+    <sc-dialog v-model="showComponentSelector" title="选择组件" width="60%" destroy-on-close>
       <div class="component-selector">
-        <ScTabs v-model="componentSelectorTab">
-          <ScTabPane label="我的组件" name="my">
+        <el-tabs v-model="componentSelectorTab">
+          <el-tab-pane label="我的组件" name="my">
             <div class="component-cards">
-              <ScEmpty
-                v-if="myComponents.length === 0"
-                description="暂无可用组件"
-              />
+              <el-empty v-if="myComponents.length === 0" description="暂无可用组件" />
               <div v-else class="component-grid">
-                <div
-                  v-for="item in myComponents"
-                  :key="item.monitorSysGenServerComponentId"
-                  class="component-card"
-                  :class="{
-                    'component-card-selected': selectedComponents.includes(
-                      item.monitorSysGenServerComponentId,
-                    ),
-                  }"
-                  @click="toggleComponentSelection(item)"
-                >
+                <div v-for="item in myComponents" :key="item.monitorSysGenServerComponentId" class="component-card" :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenServerComponentId) }" @click="toggleComponentSelection(item)">
                   <div class="component-card-header">
-                    <span class="component-card-title">{{
-                      item.monitorSysGenServerComponentName
-                    }}</span>
-                    <ScTag
-                      size="small"
-                      :type="
-                        getComponentTypeTag(
-                          item.monitorSysGenServerComponentType,
-                        )
-                      "
-                    >
-                      {{
-                        getComponentTypeName(
-                          item.monitorSysGenServerComponentType,
-                        )
-                      }}
-                    </ScTag>
+                    <span class="component-card-title">{{ item.monitorSysGenServerComponentName }}</span>
+                    <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenServerComponentType)">
+                      {{ getComponentTypeName(item.monitorSysGenServerComponentType) }}
+                    </el-tag>
                   </div>
                   <div class="component-card-content">
-                    <div class="component-expression">
-                      {{
-                        item.monitorSysGenServerComponentExpression ||
-                        item.monitorSysGenServerComponentDescription
-                      }}
-                    </div>
+                    <div class="component-expression">{{ item.monitorSysGenServerComponentExpression || item.monitorSysGenServerComponentDescription }}</div>
                   </div>
                 </div>
               </div>
             </div>
-          </ScTabPane>
+          </el-tab-pane>
 
-          <ScTabPane label="共享组件" name="shared">
+          <el-tab-pane label="共享组件" name="shared">
             <div class="component-cards">
-              <ScEmpty
-                v-if="sharedComponents.length === 0"
-                description="暂无共享组件"
-              />
+              <el-empty v-if="sharedComponents.length === 0" description="暂无共享组件" />
               <div v-else class="component-grid">
-                <div
-                  v-for="item in sharedComponents"
-                  :key="item.monitorSysGenServerComponentId"
-                  class="component-card"
-                  :class="{
-                    'component-card-selected': selectedComponents.includes(
-                      item.monitorSysGenServerComponentId,
-                    ),
-                  }"
-                  @click="toggleComponentSelection(item)"
-                >
+                <div v-for="item in sharedComponents" :key="item.monitorSysGenServerComponentId" class="component-card" :class="{ 'component-card-selected': selectedComponents.includes(item.monitorSysGenServerComponentId) }" @click="toggleComponentSelection(item)">
                   <div class="component-card-header">
-                    <span class="component-card-title">{{
-                      item.monitorSysGenServerComponentName
-                    }}</span>
-                    <ScTag
-                      size="small"
-                      :type="
-                        getComponentTypeTag(
-                          item.monitorSysGenServerComponentType,
-                        )
-                      "
-                    >
-                      {{
-                        getComponentTypeName(
-                          item.monitorSysGenServerComponentType,
-                        )
-                      }}
-                    </ScTag>
+                    <span class="component-card-title">{{ item.monitorSysGenServerComponentName }}</span>
+                    <el-tag size="small" :type="getComponentTypeTag(item.monitorSysGenServerComponentType)">
+                      {{ getComponentTypeName(item.monitorSysGenServerComponentType) }}
+                    </el-tag>
                   </div>
                   <div class="component-card-content">
-                    <div class="component-expression">
-                      {{
-                        item.monitorSysGenServerComponentExpression ||
-                        item.monitorSysGenServerComponentDescription
-                      }}
-                    </div>
+                    <div class="component-expression">{{ item.monitorSysGenServerComponentExpression || item.monitorSysGenServerComponentDescription }}</div>
                   </div>
                 </div>
               </div>
             </div>
-          </ScTabPane>
-        </ScTabs>
+          </el-tab-pane>
+        </el-tabs>
 
         <div class="selector-footer">
-          <div class="selected-info">
-            已选择 {{ selectedComponents.length }} 个组件
-          </div>
+          <div class="selected-info">已选择 {{ selectedComponents.length }} 个组件</div>
           <div class="selector-actions">
-            <ScButton @click="showComponentSelector = false">取消</ScButton>
-            <ScButton
-              type="primary"
-              :disabled="selectedComponents.length === 0"
-              @click="addSelectedComponents"
-            >
+            <el-button @click="showComponentSelector = false">取消</el-button>
+            <el-button type="primary" @click="addSelectedComponents" :disabled="selectedComponents.length === 0">
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />
               添加选中组件
-            </ScButton>
+            </el-button>
           </div>
         </div>
       </div>
     </sc-dialog>
 
     <!-- 图表配置对话框 -->
-    <ChartConfigDialog
-      ref="chartConfigDialogRef"
-      @save="handleChartConfigSave"
-    />
+    <ChartConfigDialog ref="chartConfigDialogRef" @save="handleChartConfigSave" />
 
     <!-- 组件编辑对话框 -->
-    <ComponentEditDialog
-      ref="componentEditDialogRef"
-      :server-id="serverId"
-      @saved="handleComponentSaved"
-    />
+    <ComponentEditDialog ref="componentEditDialogRef" :server-id="serverId" @saved="handleComponentSaved" />
   </div>
 </template>
 
@@ -434,18 +234,11 @@ import {
   type ServerComponentLayout,
 } from "@/api/server";
 import { useServerMetrics } from "@/composables/useServerWebSocket";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { GridItem, GridLayout } from "grid-layout-plus";
-import {
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  reactive,
-  ref,
-  watch,
-} from "vue";
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ChartConfigDialog from "../components/ChartConfigDialog.vue";
 import ComponentEditDialog from "../components/ComponentEditDialog.vue";
 import ServerComponent from "./ServerComponent.vue";
@@ -538,21 +331,9 @@ const componentOptions = [
 
 // Prometheus 示例表达式
 const prometheusExamples = [
-  {
-    label: "CPU使用率",
-    value:
-      '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)',
-  },
-  {
-    label: "内存使用率",
-    value:
-      "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
-  },
-  {
-    label: "磁盘使用率",
-    value:
-      "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)",
-  },
+  { label: "CPU使用率", value: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' },
+  { label: "内存使用率", value: "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" },
+  { label: "磁盘使用率", value: "100 - ((node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes)" },
   { label: "网络接收", value: "irate(node_network_receive_bytes_total[5m])" },
   { label: "系统负载", value: "node_load1" },
   { label: "服务状态", value: "up" },
@@ -571,12 +352,8 @@ const valueUnitOptions = [
 const addFormRules = {
   title: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
   type: [{ required: true, message: "请选择组件类型", trigger: "change" }],
-  expressionType: [
-    { required: true, message: "请选择表达式类型", trigger: "change" },
-  ],
-  expression: [
-    { required: true, message: "请输入表达式或选择组件", trigger: "blur" },
-  ],
+  expressionType: [{ required: true, message: "请选择表达式类型", trigger: "change" }],
+  expression: [{ required: true, message: "请输入表达式或选择组件", trigger: "blur" }],
 };
 
 // 监听布局变化
@@ -585,7 +362,7 @@ watch(
   () => {
     layoutChanged.value = true;
   },
-  { deep: true },
+  { deep: true }
 );
 
 // 监听timeParams变化，更新查询时间范围
@@ -593,19 +370,11 @@ watch(
   () => props.timeParams,
   (newTimeParams) => {
     if (newTimeParams && newTimeParams.start && newTimeParams.end) {
-      queryTimeRange.value = [
-        new Date(newTimeParams.start),
-        new Date(newTimeParams.end),
-      ];
-      console.log(
-        "时间参数更新:",
-        newTimeParams,
-        "转换后的时间范围:",
-        queryTimeRange.value,
-      );
+      queryTimeRange.value = [new Date(newTimeParams.start), new Date(newTimeParams.end)];
+      console.log("时间参数更新:", newTimeParams, "转换后的时间范围:", queryTimeRange.value);
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 
 // 生命周期
@@ -656,25 +425,17 @@ const loadComponents = async () => {
 
       if (componentsRes.code === "00000" && componentsRes.data) {
         componentsRes.data.forEach((component) => {
-          componentsMap.set(
-            component.monitorSysGenServerComponentId,
-            component,
-          );
+          componentsMap.set(component.monitorSysGenServerComponentId, component);
         });
       }
 
       // 3. 合并布局配置和组件定义
       layout.value = layoutRes.data
         .map((layoutConfig) => {
-          const component = componentsMap.get(
-            layoutConfig.monitorSysGenServerComponentId,
-          );
+          const component = componentsMap.get(layoutConfig.monitorSysGenServerComponentId);
 
           if (!component) {
-            console.warn(
-              "找不到组件定义:",
-              layoutConfig.monitorSysGenServerComponentId,
-            );
+            console.warn("找不到组件定义:", layoutConfig.monitorSysGenServerComponentId);
             return null;
           }
 
@@ -688,19 +449,14 @@ const loadComponents = async () => {
             layoutId: layoutConfig.monitorSysGenServerComponentLayoutId,
             componentId: layoutConfig.monitorSysGenServerComponentId,
             zIndex: layoutConfig.monitorSysGenServerComponentLayoutZIndex || 1,
-            movable:
-              layoutConfig.monitorSysGenServerComponentLayoutMovable !== false,
-            resizable:
-              layoutConfig.monitorSysGenServerComponentLayoutResizable !==
-              false,
+            movable: layoutConfig.monitorSysGenServerComponentLayoutMovable !== false,
+            resizable: layoutConfig.monitorSysGenServerComponentLayoutResizable !== false,
             // 组件定义字段
             title: component.monitorSysGenServerComponentName,
             type: component.monitorSysGenServerComponentType,
-            expressionType:
-              component.monitorSysGenServerComponentExpressionType,
+            expressionType: component.monitorSysGenServerComponentExpressionType,
             expression: component.monitorSysGenServerComponentExpression,
-            showTitle:
-              component.monitorSysGenServerComponentShowTitle !== false,
+            showTitle: component.monitorSysGenServerComponentShowTitle !== false,
             valueUnit: (component as any).monitorSysGenServerComponentValueUnit,
             chartConfig: component.monitorSysGenServerComponentChartConfig,
             enabled: component.monitorSysGenServerComponentEnabled,
@@ -764,7 +520,7 @@ const saveConfigToServer = async () => {
           monitorSysGenServerComponentLayoutMovable: item.movable !== false,
           monitorSysGenServerComponentLayoutResizable: item.resizable !== false,
           monitorSysGenServerComponentLayoutStatus: 1,
-        }) as ServerComponentLayout,
+        }) as ServerComponentLayout
     );
 
     // 使用新的批量更新布局位置API
@@ -885,15 +641,11 @@ const editComponent = (item: any) => {
  */
 const removeComponent = async (item: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要从布局中移除组件 "${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`,
-      "移除确认",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要从布局中移除组件 "${item.title}" 吗？这只会删除布局配置，不会删除组件定义。`, "移除确认", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
 
     // 删除布局配置，而不是删除组件定义
     const res = await deleteServerComponentLayout(item.layoutId);
@@ -902,9 +654,7 @@ const removeComponent = async (item: any) => {
       message("组件已从布局中移除", { type: "success" });
 
       // 从前端布局中移除
-      const index = layout.value.findIndex(
-        (layoutItem) => layoutItem.layoutId === item.layoutId,
-      );
+      const index = layout.value.findIndex((layoutItem) => layoutItem.layoutId === item.layoutId);
       if (index > -1) {
         layout.value.splice(index, 1);
       }
@@ -948,8 +698,7 @@ const handleChartConfigSave = async (item: any, config: any) => {
       monitorSysGenServerComponentName: item.title || "",
       monitorSysGenServerComponentTitle: item.title || "",
       monitorSysGenServerComponentType: item.type || "card",
-      monitorSysGenServerComponentExpressionType:
-        item.expressionType || "COMPONENT",
+      monitorSysGenServerComponentExpressionType: item.expressionType || "COMPONENT",
       monitorSysGenServerComponentExpression: item.expression || "",
       monitorSysGenServerComponentEnabled: item.enabled || 1,
       monitorSysGenServerComponentChartConfig: JSON.stringify(config),
@@ -958,9 +707,7 @@ const handleChartConfigSave = async (item: any, config: any) => {
     if (res.code === "00000") {
       message("图表配置保存成功", { type: "success" });
       // 更新本地数据
-      const layoutItem = layout.value.find(
-        (l) => l.componentId === item.componentId,
-      );
+      const layoutItem = layout.value.find((l) => l.componentId === item.componentId);
       if (layoutItem) {
         layoutItem.chartConfig = JSON.stringify(config);
       }
@@ -1079,34 +826,29 @@ const handleRealtimeQuery = async (item: any, componentId: number) => {
     }
 
     // 订阅服务器指标数据
-    const unsubscribe = serverMetrics.onServerMetrics(
-      (metrics: any, message: any) => {
-        // 根据组件表达式从服务器指标中提取相应数据
-        const extractedData = extractDataFromServerMetrics(
-          metrics,
-          item.expression,
-        );
+    const unsubscribe = serverMetrics.onServerMetrics((metrics: any, message: any) => {
+      // 根据组件表达式从服务器指标中提取相应数据
+      const extractedData = extractDataFromServerMetrics(metrics, item.expression);
 
-        // 构建实时消息格式
-        const realtimeMessage: ComponentRealtimeMessage = {
-          componentId: componentId,
-          componentName: item.title,
-          data: extractedData,
-          type: "realtime",
-          timestamp: message.timestamp || Date.now(),
-        };
+      // 构建实时消息格式
+      const realtimeMessage: ComponentRealtimeMessage = {
+        componentId: componentId,
+        componentName: item.title,
+        data: extractedData,
+        type: "realtime",
+        timestamp: message.timestamp || Date.now(),
+      };
 
-        // 更新组件数据
-        componentsData.value[item.i] = {
-          data: extractedData,
-          updateTime: new Date().toLocaleTimeString(),
-          expressionType: "REALTIME",
-          realtimeMessage: realtimeMessage,
-        };
+      // 更新组件数据
+      componentsData.value[item.i] = {
+        data: extractedData,
+        updateTime: new Date().toLocaleTimeString(),
+        expressionType: "REALTIME",
+        realtimeMessage: realtimeMessage,
+      };
 
-        console.log(`实时数据更新: ${item.title}`, extractedData);
-      },
-    );
+      console.log(`实时数据更新: ${item.title}`, extractedData);
+    });
 
     // 保存取消订阅函数
     realtimeUnsubscribeFunctions.value.set(item.i, unsubscribe);
@@ -1221,12 +963,7 @@ const getComponentHeight = (item: any) => {
     chartPadding = 32;
   }
 
-  const finalHeight =
-    gridHeight -
-    gridItemBorder -
-    serverComponentHeader -
-    serverComponentBorder -
-    chartPadding;
+  const finalHeight = gridHeight - gridItemBorder - serverComponentHeader - serverComponentBorder - chartPadding;
 
   // 确保最小高度，避免图表显示异常
   return Math.max(finalHeight, 80);
@@ -1302,14 +1039,7 @@ const loadMyComponents = async () => {
       console.log("获取到组件定义:", res.data.length, "个组件");
 
       // 过滤掉已经在布局中的组件
-      const availableComponents = res.data.filter(
-        (component: any) =>
-          !layout.value.some(
-            (layoutItem) =>
-              layoutItem.componentId ===
-              component.monitorSysGenServerComponentId,
-          ),
-      );
+      const availableComponents = res.data.filter((component: any) => !layout.value.some((layoutItem) => layoutItem.componentId === component.monitorSysGenServerComponentId));
 
       myComponents.value = availableComponents;
       console.log("可选组件定义:", availableComponents.length, "个");
@@ -1317,9 +1047,7 @@ const loadMyComponents = async () => {
       if (availableComponents.length === 0) {
         message("所有组件都已添加到布局中", { type: "info" });
       } else {
-        message(`找到 ${availableComponents.length} 个可选组件`, {
-          type: "success",
-        });
+        message(`找到 ${availableComponents.length} 个可选组件`, { type: "success" });
       }
     } else {
       console.warn("API返回错误:", res);
@@ -1329,10 +1057,7 @@ const loadMyComponents = async () => {
   } catch (error) {
     console.error("加载组件定义失败:", error);
     myComponents.value = [];
-    message(
-      "加载组件定义失败: " +
-        ((error as any, { type: "error" }).message || "未知错误"),
-    );
+    message("加载组件定义失败: " + ((error as any, { type: "error" }).message || "未知错误"));
   }
 };
 
@@ -1375,11 +1100,7 @@ const addSelectedComponents = async () => {
     loading.value = true;
 
     const allComponents = [...myComponents.value, ...sharedComponents.value];
-    const selectedItems = allComponents.filter((component) =>
-      selectedComponents.value.includes(
-        component.monitorSysGenServerComponentId,
-      ),
-    );
+    const selectedItems = allComponents.filter((component) => selectedComponents.value.includes(component.monitorSysGenServerComponentId));
 
     // 为每个选中的组件创建布局配置
     for (const component of selectedItems) {
@@ -1389,14 +1110,7 @@ const addSelectedComponents = async () => {
       const h = 6;
 
       // 调用后端API创建布局配置
-      const layoutRes = await createServerComponentLayout(
-        props.serverId,
-        component.monitorSysGenServerComponentId,
-        x,
-        y,
-        w,
-        h,
-      );
+      const layoutRes = await createServerComponentLayout(props.serverId, component.monitorSysGenServerComponentId, x, y, w, h);
 
       if (layoutRes.code === "00000" && layoutRes.data) {
         // 创建成功后，添加到前端布局中
@@ -1427,10 +1141,7 @@ const addSelectedComponents = async () => {
         await loadComponentData(componentItem);
       } else {
         console.error("创建布局配置失败:", layoutRes);
-        message(
-          `创建组件 ${component.monitorSysGenServerComponentName} 的布局配置失败`,
-          { type: "error" },
-        );
+        message(`创建组件 ${component.monitorSysGenServerComponentName} 的布局配置失败`, { type: "error" });
       }
     }
 
@@ -1451,13 +1162,8 @@ const addSelectedComponents = async () => {
 /**
  * 获取组件类型标签
  */
-const getComponentTypeTag = (
-  type: string,
-): "success" | "warning" | "info" | "primary" | "danger" => {
-  const typeMap: Record<
-    string,
-    "success" | "warning" | "info" | "primary" | "danger"
-  > = {
+const getComponentTypeTag = (type: string): "success" | "warning" | "info" | "primary" | "danger" => {
+  const typeMap: Record<string, "success" | "warning" | "info" | "primary" | "danger"> = {
     card: "primary",
     gauge: "success",
     line: "info",
@@ -1490,7 +1196,7 @@ watch(
     if (show) {
       loadMyComponents();
     }
-  },
+  }
 );
 
 // 暴露方法
@@ -1978,4 +1684,5 @@ defineExpose({
     }
   }
 }
+
 </style>

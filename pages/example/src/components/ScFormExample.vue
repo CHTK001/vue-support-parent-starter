@@ -1,7 +1,12 @@
 ﻿<template>
   <div class="sc-form-example">
     <DemoBlock title="基础表单" :code="codes.basic">
-      <ScForm :model="form" label-width="90px" size="default" class="demo-form">
+      <ScForm
+        :model="form"
+        label-width="90px"
+        size="default"
+        class="demo-form"
+      >
         <ScRow :gutter="16">
           <ScCol :span="12">
             <ScFormItem label="用户名">
@@ -49,6 +54,7 @@
 </template>
 
 <script setup lang="ts">
+
 import ScRegion from "@repo/components/ScRegion";
 import { reactive } from "vue";
 import {
@@ -128,3 +134,5 @@ const codes = {
   }
 }
 </style>
+
+

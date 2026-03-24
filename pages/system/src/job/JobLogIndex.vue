@@ -5,7 +5,7 @@
       <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <ScSelect
+            <ScSelect 
               v-model="searchForm.jobId"
               placeholder="选择任务"
               class="job-filter"
@@ -13,14 +13,14 @@
               filterable
               @change="handleSearch"
             >
-              <ScOption
+              <ScOption 
                 v-for="job in jobList"
                 :key="job.jobId"
                 :label="job.jobName"
                 :value="job.jobId"
               />
             </ScSelect>
-            <ScSelect
+            <ScSelect 
               v-model="searchForm.logStatus"
               placeholder="执行状态"
               class="status-filter"
@@ -30,7 +30,7 @@
               <ScOption label="成功" :value="1" />
               <ScOption label="失败" :value="0" />
             </ScSelect>
-            <ScDatePicker
+            <ScDatePicker 
               v-model="dateRange"
               type="datetimerange"
               range-separator="至"
@@ -57,25 +57,15 @@
     <!-- 日志列表 -->
     <div class="logs-section">
       <ScCard shadow="never">
-        <ScTable
+        <ScTable 
           v-loading="loading"
           :data="logList"
           row-key="logId"
           stripe
           border
         >
-          <ScTableColumn
-            prop="logId"
-            label="日志ID"
-            width="100"
-            align="center"
-          />
-          <ScTableColumn
-            prop="jobId"
-            label="任务ID"
-            width="80"
-            align="center"
-          />
+          <ScTableColumn prop="logId" label="日志ID" width="100" align="center" />
+          <ScTableColumn prop="jobId" label="任务ID" width="80" align="center" />
           <ScTableColumn label="任务信息" min-width="200">
             <template #default="{ row }">
               <div class="job-info-cell">
@@ -86,40 +76,26 @@
               </div>
             </template>
           </ScTableColumn>
-          <ScTableColumn
-            prop="executorAddress"
-            label="执行器地址"
-            width="150"
-          />
+          <ScTableColumn prop="executorAddress" label="执行器地址" width="150" />
           <ScTableColumn prop="triggerTime" label="调度时间" width="170" />
           <ScTableColumn label="调度结果" width="100" align="center">
             <template #default="{ row }">
-              <ScTag
-                :type="row.triggerCode === 200 ? 'success' : 'danger'"
-                size="small"
-              >
-                {{ row.triggerCode === 200 ? "成功" : "失败" }}
+              <ScTag :type="row.triggerCode === 200 ? 'success' : 'danger'" size="small">
+                {{ row.triggerCode === 200 ? '成功' : '失败' }}
               </ScTag>
             </template>
           </ScTableColumn>
           <ScTableColumn prop="handleTime" label="执行时间" width="170" />
           <ScTableColumn label="执行结果" width="100" align="center">
             <template #default="{ row }">
-              <ScTag
-                :type="row.handleCode === 200 ? 'success' : 'danger'"
-                size="small"
-              >
-                {{ row.handleCode === 200 ? "成功" : "失败" }}
+              <ScTag :type="row.handleCode === 200 ? 'success' : 'danger'" size="small">
+                {{ row.handleCode === 200 ? '成功' : '失败' }}
               </ScTag>
             </template>
           </ScTableColumn>
           <ScTableColumn label="操作" width="120" align="center" fixed="right">
             <template #default="{ row }">
-              <ScButton
-                size="small"
-                type="primary"
-                @click="handleViewDetail(row)"
-              >
+              <ScButton size="small" type="primary" @click="handleViewDetail(row)">
                 <i class="ri-eye-line"></i>
                 详情
               </ScButton>
@@ -129,7 +105,7 @@
 
         <!-- 分页 -->
         <div class="pagination-container">
-          <ScPagination
+          <el-pagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.pageSize"
             :total="pagination.total"
@@ -145,53 +121,33 @@
     <!-- 日志详情对话框 -->
     <sc-dialog v-model="detailDialogVisible" title="日志详情" width="800px">
       <div v-if="currentLog" class="log-detail">
-        <ScDescriptions :column="2" border>
-          <ScDescriptionsItem label="日志ID">{{
-            currentLog.logId
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="任务ID">{{
-            currentLog.jobId
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="执行器">{{
-            currentLog.executorHandler
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="执行器地址">{{
-            currentLog.executorAddress
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="执行参数" :span="2">
-            <pre class="param-content">{{
-              currentLog.executorParam || "-"
-            }}</pre>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="调度时间">{{
-            currentLog.triggerTime
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="调度结果">
-            <ScTag
-              :type="currentLog.triggerCode === 200 ? 'success' : 'danger'"
-            >
-              {{ currentLog.triggerCode === 200 ? "成功" : "失败" }} ({{
-                currentLog.triggerCode
-              }})
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="日志ID">{{ currentLog.logId }}</el-descriptions-item>
+          <el-descriptions-item label="任务ID">{{ currentLog.jobId }}</el-descriptions-item>
+          <el-descriptions-item label="执行器">{{ currentLog.executorHandler }}</el-descriptions-item>
+          <el-descriptions-item label="执行器地址">{{ currentLog.executorAddress }}</el-descriptions-item>
+          <el-descriptions-item label="执行参数" :span="2">
+            <pre class="param-content">{{ currentLog.executorParam || '-' }}</pre>
+          </el-descriptions-item>
+          <el-descriptions-item label="调度时间">{{ currentLog.triggerTime }}</el-descriptions-item>
+          <el-descriptions-item label="调度结果">
+            <ScTag :type="currentLog.triggerCode === 200 ? 'success' : 'danger'">
+              {{ currentLog.triggerCode === 200 ? '成功' : '失败' }} ({{ currentLog.triggerCode }})
             </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="调度日志" :span="2">
-            <pre class="log-content">{{ currentLog.triggerMsg || "-" }}</pre>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="执行时间">{{
-            currentLog.handleTime
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="执行结果">
+          </el-descriptions-item>
+          <el-descriptions-item label="调度日志" :span="2">
+            <pre class="log-content">{{ currentLog.triggerMsg || '-' }}</pre>
+          </el-descriptions-item>
+          <el-descriptions-item label="执行时间">{{ currentLog.handleTime }}</el-descriptions-item>
+          <el-descriptions-item label="执行结果">
             <ScTag :type="currentLog.handleCode === 200 ? 'success' : 'danger'">
-              {{ currentLog.handleCode === 200 ? "成功" : "失败" }} ({{
-                currentLog.handleCode
-              }})
+              {{ currentLog.handleCode === 200 ? '成功' : '失败' }} ({{ currentLog.handleCode }})
             </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="执行日志" :span="2">
-            <pre class="log-content">{{ currentLog.handleMsg || "-" }}</pre>
-          </ScDescriptionsItem>
-        </ScDescriptions>
+          </el-descriptions-item>
+          <el-descriptions-item label="执行日志" :span="2">
+            <pre class="log-content">{{ currentLog.handleMsg || '-' }}</pre>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <!-- 实时日志 -->
         <div class="realtime-log-section" v-if="realtimeLog">
@@ -228,12 +184,7 @@
           <span class="form-tip">将删除 {{ clearDays }} 天前的日志</span>
         </ScFormItem>
         <ScFormItem v-if="clearType === 'count'" label="保留条数">
-          <ScInputNumber
-            v-model="clearCount"
-            :min="100"
-            :max="100000"
-            :step="100"
-          />
+          <ScInputNumber v-model="clearCount" :min="100" :max="100000" :step="100" />
           <span class="form-tip">将保留最近 {{ clearCount }} 条日志</span>
         </ScFormItem>
       </ScForm>
@@ -378,8 +329,7 @@ const loadRealtimeLog = async () => {
   try {
     const response = await fetchJobLogCat({ logId: currentLog.value.logId! });
     if (response.success) {
-      realtimeLog.value =
-        response.data?.logContent || response.data || "暂无日志内容";
+      realtimeLog.value = response.data?.logContent || response.data || "暂无日志内容";
     } else {
       ScMessage.error(response.msg || "加载实时日志失败");
     }
@@ -435,7 +385,7 @@ watch(
   (newVal) => {
     searchForm.jobId = newVal;
     handleSearch();
-  },
+  }
 );
 
 // 生命周期

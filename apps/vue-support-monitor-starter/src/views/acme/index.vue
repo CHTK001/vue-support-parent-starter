@@ -43,9 +43,7 @@
           >
             <IconifyIconOnline icon="mdi:certificate" />
             <span>证书列表</span>
-            <span v-if="stats.validCount" class="tab-badge">{{
-              stats.validCount
-            }}</span>
+            <span class="tab-badge" v-if="stats.validCount">{{ stats.validCount }}</span>
           </div>
           <div
             class="tab-item"
@@ -54,28 +52,26 @@
           >
             <IconifyIconOnline icon="mdi:account-group" />
             <span>账户管理</span>
-            <span v-if="stats.accountCount" class="tab-badge">{{
-              stats.accountCount
-            }}</span>
+            <span class="tab-badge" v-if="stats.accountCount">{{ stats.accountCount }}</span>
           </div>
         </div>
         <div class="tabs-actions">
-          <ScButton type="primary" @click="handleApplyCert">
+          <el-button type="primary" @click="handleApplyCert">
             <IconifyIconOnline icon="mdi:certificate-outline" />
             申请证书
-          </ScButton>
-          <ScButton @click="handleAddAccount">
+          </el-button>
+          <el-button @click="handleAddAccount">
             <IconifyIconOnline icon="mdi:account-plus" />
             添加账户
-          </ScButton>
+          </el-button>
         </div>
       </div>
       <!-- 证书列表内容 -->
-      <div v-show="activeTab === 'certs'" class="tab-content">
+      <div class="tab-content" v-show="activeTab === 'certs'">
         <CertList ref="certListRef" @copy="handleCopyCert" />
       </div>
       <!-- 账户管理内容 -->
-      <div v-show="activeTab === 'accounts'" class="tab-content">
+      <div class="tab-content" v-show="activeTab === 'accounts'">
         <AccountList ref="accountListRef" />
       </div>
     </div>
@@ -105,11 +101,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ScCard } from "@repo/components";
-import {
-  getCertStats,
-  type AcmeCertStats,
-  type AcmeCertificate,
-} from "@/api/acme";
+import { getCertStats, type AcmeCertStats, type AcmeCertificate } from "@/api/acme";
 import CertList from "./components/CertList.vue";
 import AccountList from "./components/AccountList.vue";
 import ApplyCertDialog from "./components/ApplyCertDialog.vue";

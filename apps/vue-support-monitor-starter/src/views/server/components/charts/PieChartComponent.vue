@@ -5,31 +5,25 @@
         <IconifyIconOnline icon="ri:pie-chart-line" class="chart-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div v-if="editMode" class="chart-actions">
-        <ScButton type="primary" text size="small" @click="handleEdit">
+      <div class="chart-actions" v-if="editMode">
+        <el-button type="primary" text size="small" @click="handleEdit">
           <IconifyIconOnline icon="ri:edit-line" />
-        </ScButton>
-        <ScButton type="danger" text size="small" @click="handleDelete">
+        </el-button>
+        <el-button type="danger" text size="small" @click="handleDelete">
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </ScButton>
+        </el-button>
       </div>
     </div>
-
-    <div v-loading="loading" class="chart-content">
-      <div ref="chartRef" class="pie-chart" />
+    
+    <div class="chart-content" v-loading="loading">
+      <div ref="chartRef" class="pie-chart"></div>
     </div>
 
-    <div v-if="!editMode" class="chart-footer">
-      <ScButton
-        type="primary"
-        text
-        size="small"
-        :loading="refreshing"
-        @click="handleRefresh"
-      >
+    <div class="chart-footer" v-if="!editMode">
+      <el-button type="primary" text size="small" @click="handleRefresh" :loading="refreshing">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </ScButton>
+      </el-button>
     </div>
   </div>
 </template>
@@ -59,31 +53,29 @@ const chartInstance = ref<echarts.ECharts>();
 const initChart = () => {
   if (!chartRef.value) return;
   chartInstance.value = echarts.init(chartRef.value);
-
+  
   // 示例数据
   const option = {
-    tooltip: { trigger: "item" },
-    legend: { top: "5%", left: "center" },
-    series: [
-      {
-        name: "Access From",
-        type: "pie",
-        radius: ["40%", "70%"],
-        avoidLabelOverlap: false,
-        label: { show: false, position: "center" },
-        emphasis: { label: { show: true, fontSize: "40", fontWeight: "bold" } },
-        labelLine: { show: false },
-        data: [
-          { value: 1048, name: "Search Engine" },
-          { value: 735, name: "Direct" },
-          { value: 580, name: "Email" },
-          { value: 484, name: "Union Ads" },
-          { value: 300, name: "Video Ads" },
-        ],
-      },
-    ],
+    tooltip: { trigger: 'item' },
+    legend: { top: '5%', left: 'center' },
+    series: [{
+      name: 'Access From',
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      label: { show: false, position: 'center' },
+      emphasis: { label: { show: true, fontSize: '40', fontWeight: 'bold' } },
+      labelLine: { show: false },
+      data: [
+        { value: 1048, name: 'Search Engine' },
+        { value: 735, name: 'Direct' },
+        { value: 580, name: 'Email' },
+        { value: 484, name: 'Union Ads' },
+        { value: 300, name: 'Video Ads' }
+      ]
+    }]
   };
-
+  
   chartInstance.value.setOption(option);
 };
 
@@ -96,16 +88,15 @@ const handleRefresh = () => {
 };
 
 const handleEdit = () => emit("edit", props.componentData);
-const handleDelete = () =>
-  emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
+const handleDelete = () => emit("delete", props.componentData.monitorSysGenServerDetailComponentId!);
 
 onMounted(() => {
   nextTick(() => initChart());
-  window.addEventListener("resize", () => chartInstance.value?.resize());
+  window.addEventListener('resize', () => chartInstance.value?.resize());
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", () => chartInstance.value?.resize());
+  window.removeEventListener('resize', () => chartInstance.value?.resize());
   chartInstance.value?.dispose();
 });
 </script>

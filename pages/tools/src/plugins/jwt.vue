@@ -1,4 +1,5 @@
 ﻿<script setup>
+
 import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
@@ -131,9 +132,7 @@ const decodeJWT = () => {
     message(t("message.decodeSuccess") || "解码成功", { type: "success" });
   } catch (error) {
     console.error("解码错误:", error);
-    message(t("message.decodeError") || "解码失败: " + error.message, {
-      type: "error",
-    });
+    message(t("message.decodeError") || "解码失败: " + error.message, { type: "error" });
     env.header = null;
     env.payload = null;
     env.signature = "";
@@ -148,9 +147,7 @@ const decodeJWT = () => {
  */
 const encodeJWT = async () => {
   if (!env.headerInput || !env.payloadInput) {
-    message(t("message.inputRequired") || "请输入头部和载荷", {
-      type: "warning",
-    });
+    message(t("message.inputRequired") || "请输入头部和载荷", { type: "warning" });
     return;
   }
 
@@ -176,9 +173,7 @@ const encodeJWT = async () => {
       const encoder = new TextEncoder();
       const secretKey = encoder.encode(env.secretKey);
 
-      jwt = await new jose.SignJWT(payload)
-        .setProtectedHeader(header)
-        .sign(secretKey);
+      jwt = await new jose.SignJWT(payload).setProtectedHeader(header).sign(secretKey);
     } else {
       // 其他算法需要密钥对，这里简化处理
       message("目前仅支持HMAC算法", { type: "warning" });
@@ -193,9 +188,7 @@ const encodeJWT = async () => {
     message(t("message.encodeSuccess") || "编码成功", { type: "success" });
   } catch (error) {
     console.error("编码错误:", error);
-    message(t("message.encodeError") || "编码失败: " + error.message, {
-      type: "error",
-    });
+    message(t("message.encodeError") || "编码失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -222,13 +215,9 @@ const verifyJWT = async () => {
     const encoder = new TextEncoder();
     const secretKey = encoder.encode(env.verifySecretKey);
 
-    const { payload, protectedHeader } = await jose.jwtVerify(
-      env.verifyJwtInput,
-      secretKey,
-      {
-        algorithms: [env.verifyAlgorithm],
-      },
-    );
+    const { payload, protectedHeader } = await jose.jwtVerify(env.verifyJwtInput, secretKey, {
+      algorithms: [env.verifyAlgorithm],
+    });
 
     env.verifyResult = {
       valid: true,
@@ -243,9 +232,7 @@ const verifyJWT = async () => {
       valid: false,
       error: error.message,
     };
-    message(t("message.verifyError") || "验证失败: " + error.message, {
-      type: "error",
-    });
+    message(t("message.verifyError") || "验证失败: " + error.message, { type: "error" });
   } finally {
     env.loading = false;
   }
@@ -300,15 +287,11 @@ const copyToClipboard = (text, message) => {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      message(t("message.copySuccess") || "已复制到剪贴板", {
-        type: "success",
-      });
+      message(t("message.copySuccess") || "已复制到剪贴板", { type: "success" });
     })
     .catch((error) => {
       console.error("复制错误:", error);
-      message(t("message.copyError") || "复制失败: " + error.message, {
-        type: "error",
-      });
+      message(t("message.copyError") || "复制失败: " + error.message, { type: "error" });
     });
 };
 
@@ -322,16 +305,12 @@ const downloadJWT = () => {
   }
 
   try {
-    const blob = new Blob([env.encodedJWT], {
-      type: "text/plain;charset=utf-8",
-    });
+    const blob = new Blob([env.encodedJWT], { type: "text/plain;charset=utf-8" });
     saveAs(blob, `jwt-token-${new Date().getTime()}.txt`);
     message(t("message.downloadSuccess") || "下载成功", { type: "success" });
   } catch (error) {
     console.error("下载错误:", error);
-    message(t("message.downloadError") || "下载失败: " + error.message, {
-      type: "error",
-    });
+    message(t("message.downloadError") || "下载失败: " + error.message, { type: "error" });
   }
 };
 
@@ -407,15 +386,9 @@ const expirationStatus = computed(() => {
     if (remaining < 60) {
       return { status: "warning", message: `即将过期 (${remaining}秒)` };
     } else if (remaining < 3600) {
-      return {
-        status: "warning",
-        message: `即将过期 (${Math.floor(remaining / 60)}分钟)`,
-      };
+      return { status: "warning", message: `即将过期 (${Math.floor(remaining / 60)}分钟)` };
     } else {
-      return {
-        status: "valid",
-        message: `有效 (${Math.floor(remaining / 3600)}小时)`,
-      };
+      return { status: "valid", message: `有效 (${Math.floor(remaining / 3600)}小时)` };
     }
   }
 });
@@ -434,9 +407,7 @@ onMounted(() => {
         <div class="jwt-tool__header">
           <div class="jwt-tool__header-inner">
             <div class="jwt-tool__header-title">JWT 工具</div>
-            <div class="jwt-tool__header-subtitle">
-              JSON Web Token 编码、解码与验证
-            </div>
+            <div class="jwt-tool__header-subtitle">JSON Web Token 编码、解码与验证</div>
           </div>
         </div>
       </div>
@@ -450,10 +421,7 @@ onMounted(() => {
               <ScCard class="jwt-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
-                    <IconifyIconOnline
-                      icon="ri:key-line"
-                      class="jwt-tool__card-icon"
-                    />
+                    <IconifyIconOnline icon="ri:key-line" class="jwt-tool__card-icon" />
                     <span>输入 JWT</span>
                   </div>
                 </template>
@@ -461,42 +429,19 @@ onMounted(() => {
                 <ScForm label-position="top">
                   <!-- JWT输入框 -->
                   <ScFormItem label="输入需要解码的 JWT">
-                    <ScInput
-                      v-model="env.jwtInput"
-                      type="textarea"
-                      :rows="6"
-                      placeholder="请输入 JWT 令牌"
-                      clearable
-                      class="jwt-tool__input"
-                      @input="() => debounceProcess(decodeJWT)"
-                    />
+                    <ScInput v-model="env.jwtInput" type="textarea" :rows="6" placeholder="请输入 JWT 令牌" clearable class="jwt-tool__input" @input="() => debounceProcess(decodeJWT)" />
                   </ScFormItem>
 
                   <!-- 历史记录区域 -->
                   <div class="jwt-tool__history" v-if="env.history.length > 0">
                     <div class="jwt-tool__history-label">
-                      <IconifyIconOnline
-                        icon="ri:history-line"
-                        class="jwt-tool__history-icon"
-                      />
+                      <IconifyIconOnline icon="ri:history-line" class="jwt-tool__history-icon" />
                       <span>历史记录:</span>
                     </div>
                     <div class="jwt-tool__history-items">
-                      <div
-                        v-for="(item, index) in env.history"
-                        :key="index"
-                        class="jwt-tool__history-item"
-                        @click="selectFromHistory(item)"
-                      >
+                      <div v-for="(item, index) in env.history" :key="index" class="jwt-tool__history-item" @click="selectFromHistory(item)">
                         <div class="jwt-tool__history-preview">
-                          <IconifyIconOnline
-                            :icon="
-                              item.type === 'decode'
-                                ? 'ri:key-line'
-                                : 'ri:lock-line'
-                            "
-                            class="jwt-tool__history-icon-preview"
-                          />
+                          <IconifyIconOnline :icon="item.type === 'decode' ? 'ri:key-line' : 'ri:lock-line'" class="jwt-tool__history-icon-preview" />
                         </div>
                         <div class="jwt-tool__history-text">
                           {{ item.jwt.substring(0, 15) + "..." }}
@@ -507,12 +452,7 @@ onMounted(() => {
 
                   <!-- 操作按钮区域 -->
                   <div class="jwt-tool__actions">
-                    <ScButton
-                      type="primary"
-                      :loading="env.loading"
-                      class="jwt-tool__decode-btn"
-                      @click="decodeJWT"
-                    >
+                    <ScButton type="primary" :loading="env.loading" class="jwt-tool__decode-btn" @click="decodeJWT">
                       <IconifyIconOnline icon="ri:key-line" />
                       <span>解码 JWT</span>
                     </ScButton>
@@ -531,24 +471,14 @@ onMounted(() => {
               <ScCard class="jwt-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
-                    <IconifyIconOnline
-                      icon="ri:file-list-line"
-                      class="jwt-tool__card-icon"
-                    />
+                    <IconifyIconOnline icon="ri:file-list-line" class="jwt-tool__card-icon" />
                     <span>解码结果</span>
                   </div>
                 </template>
 
-                <ScEmpty
-                  v-if="!env.header && !env.payload"
-                  description="请先输入并解码 JWT"
-                  class="jwt-tool__empty"
-                >
+                <ScEmpty v-if="!env.header && !env.payload" description="请先输入并解码 JWT" class="jwt-tool__empty">
                   <template #image>
-                    <IconifyIconOnline
-                      icon="ri:key-line"
-                      class="jwt-tool__empty-icon"
-                    />
+                    <IconifyIconOnline icon="ri:key-line" class="jwt-tool__empty-icon" />
                   </template>
                 </ScEmpty>
 
@@ -556,75 +486,37 @@ onMounted(() => {
                   <!-- 头部信息 -->
                   <div class="jwt-tool__result-section">
                     <div class="jwt-tool__result-section-header">
-                      <IconifyIconOnline
-                        icon="ri:file-info-line"
-                        class="jwt-tool__result-section-icon"
-                      />
+                      <IconifyIconOnline icon="ri:file-info-line" class="jwt-tool__result-section-icon" />
                       <span>头部 (Header)</span>
-                      <ScButton
-                        type="primary"
-                        size="small"
-                        class="jwt-tool__copy-btn"
-                        @click="
-                          copyToClipboard(
-                            JSON.stringify(env.header, null, 2),
-                            message,
-                          )
-                        "
-                      >
+                      <ScButton type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(JSON.stringify(env.header, null, 2), message)">
                         <IconifyIconOnline icon="ri:clipboard-line" />
                       </ScButton>
                     </div>
                     <div class="jwt-tool__result-content">
-                      <pre class="jwt-tool__json-display">{{
-                        formatJSON(env.header)
-                      }}</pre>
+                      <pre class="jwt-tool__json-display">{{ formatJSON(env.header) }}</pre>
                     </div>
                   </div>
 
                   <!-- 载荷信息 -->
                   <div class="jwt-tool__result-section">
                     <div class="jwt-tool__result-section-header">
-                      <IconifyIconOnline
-                        icon="ri:file-text-line"
-                        class="jwt-tool__result-section-icon"
-                      />
+                      <IconifyIconOnline icon="ri:file-text-line" class="jwt-tool__result-section-icon" />
                       <span>载荷 (Payload)</span>
-                      <ScButton
-                        type="primary"
-                        size="small"
-                        class="jwt-tool__copy-btn"
-                        @click="
-                          copyToClipboard(
-                            JSON.stringify(env.payload, null, 2),
-                            message,
-                          )
-                        "
-                      >
+                      <ScButton type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(JSON.stringify(env.payload, null, 2), message)">
                         <IconifyIconOnline icon="ri:clipboard-line" />
                       </ScButton>
                     </div>
                     <div class="jwt-tool__result-content">
-                      <pre class="jwt-tool__json-display">{{
-                        formatJSON(env.payload)
-                      }}</pre>
+                      <pre class="jwt-tool__json-display">{{ formatJSON(env.payload) }}</pre>
                     </div>
                   </div>
 
                   <!-- 签名信息 -->
                   <div class="jwt-tool__result-section">
                     <div class="jwt-tool__result-section-header">
-                      <IconifyIconOnline
-                        icon="ri:shield-check-line"
-                        class="jwt-tool__result-section-icon"
-                      />
+                      <IconifyIconOnline icon="ri:shield-check-line" class="jwt-tool__result-section-icon" />
                       <span>签名 (Signature)</span>
-                      <ScButton
-                        type="primary"
-                        size="small"
-                        class="jwt-tool__copy-btn"
-                        @click="copyToClipboard(env.signature, message)"
-                      >
+                      <ScButton type="primary" size="small" class="jwt-tool__copy-btn" @click="copyToClipboard(env.signature, message)">
                         <IconifyIconOnline icon="ri:clipboard-line" />
                       </ScButton>
                     </div>
@@ -634,46 +526,23 @@ onMounted(() => {
                   </div>
 
                   <!-- 过期信息 -->
-                  <div
-                    v-if="env.payload && env.payload.exp"
-                    class="jwt-tool__result-section"
-                  >
+                  <div v-if="env.payload && env.payload.exp" class="jwt-tool__result-section">
                     <div class="jwt-tool__result-section-header">
-                      <IconifyIconOnline
-                        icon="ri:time-line"
-                        class="jwt-tool__result-section-icon"
-                      />
+                      <IconifyIconOnline icon="ri:time-line" class="jwt-tool__result-section-icon" />
                       <span>过期状态</span>
                     </div>
                     <div class="jwt-tool__result-content">
                       <div
                         class="jwt-tool__expiration"
                         :class="{
-                          'jwt-tool__expiration--expired':
-                            expirationStatus.status === 'expired',
-                          'jwt-tool__expiration--warning':
-                            expirationStatus.status === 'warning',
-                          'jwt-tool__expiration--valid':
-                            expirationStatus.status === 'valid',
+                          'jwt-tool__expiration--expired': expirationStatus.status === 'expired',
+                          'jwt-tool__expiration--warning': expirationStatus.status === 'warning',
+                          'jwt-tool__expiration--valid': expirationStatus.status === 'valid',
                         }"
                       >
-                        <IconifyIconOnline
-                          :icon="
-                            expirationStatus.status === 'expired'
-                              ? 'ri:time-fill'
-                              : expirationStatus.status === 'warning'
-                                ? 'ri:alarm-warning-line'
-                                : 'ri:shield-check-fill'
-                          "
-                          class="jwt-tool__expiration-icon"
-                        />
+                        <IconifyIconOnline :icon="expirationStatus.status === 'expired' ? 'ri:time-fill' : expirationStatus.status === 'warning' ? 'ri:alarm-warning-line' : 'ri:shield-check-fill'" class="jwt-tool__expiration-icon" />
                         <span>{{ expirationStatus.message }}</span>
-                        <span class="jwt-tool__expiration-time">
-                          过期时间:
-                          {{
-                            new Date(env.payload.exp * 1000).toLocaleString()
-                          }}
-                        </span>
+                        <span class="jwt-tool__expiration-time"> 过期时间: {{ new Date(env.payload.exp * 1000).toLocaleString() }} </span>
                       </div>
                     </div>
                   </div>
@@ -691,10 +560,7 @@ onMounted(() => {
               <ScCard class="jwt-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
-                    <IconifyIconOnline
-                      icon="ri:lock-line"
-                      class="jwt-tool__card-icon"
-                    />
+                    <IconifyIconOnline icon="ri:lock-line" class="jwt-tool__card-icon" />
                     <span>创建 JWT</span>
                   </div>
                 </template>
@@ -704,12 +570,7 @@ onMounted(() => {
                   <div class="jwt-tool__templates">
                     <div class="jwt-tool__templates-label">预设模板:</div>
                     <div class="jwt-tool__templates-items">
-                      <ScButton
-                        v-for="(template, index) in env.templates"
-                        :key="index"
-                        size="small"
-                        @click="applyTemplate(template)"
-                      >
+                      <ScButton v-for="(template, index) in env.templates" :key="index" size="small" @click="applyTemplate(template)">
                         {{ template.name }}
                       </ScButton>
                     </div>
@@ -717,67 +578,32 @@ onMounted(() => {
 
                   <!-- 头部输入 -->
                   <ScFormItem label="头部 (Header)">
-                    <ScInput
-                      v-model="env.headerInput"
-                      type="textarea"
-                      :rows="4"
-                      placeholder="请输入 JWT 头部 JSON"
-                      class="jwt-tool__input"
-                    />
+                    <ScInput v-model="env.headerInput" type="textarea" :rows="4" placeholder="请输入 JWT 头部 JSON" class="jwt-tool__input" />
                   </ScFormItem>
 
                   <!-- 载荷输入 -->
                   <ScFormItem label="载荷 (Payload)">
-                    <ScInput
-                      v-model="env.payloadInput"
-                      type="textarea"
-                      :rows="6"
-                      placeholder="请输入 JWT 载荷 JSON"
-                      class="jwt-tool__input"
-                    />
+                    <ScInput v-model="env.payloadInput" type="textarea" :rows="6" placeholder="请输入 JWT 载荷 JSON" class="jwt-tool__input" />
                   </ScFormItem>
 
                   <!-- 算法选择 -->
                   <ScFormItem label="签名算法">
                     <ScSelect v-model="env.algorithm" class="jwt-tool__select">
-                      <ScOption
-                        v-for="item in env.algorithms"
-                        :key="item.value"
-                        :label="item.label"
-                        :value="item.value"
-                      />
+                      <ScOption v-for="item in env.algorithms" :key="item.value" :label="item.label" :value="item.value" />
                     </ScSelect>
                   </ScFormItem>
 
                   <!-- 密钥输入 -->
                   <ScFormItem label="密钥">
-                    <ScInput
-                      v-model="env.secretKey"
-                      placeholder="请输入密钥"
-                      :type="
-                        env.algorithm.startsWith('HS') ? 'password' : 'textarea'
-                      "
-                      :rows="env.algorithm.startsWith('HS') ? 1 : 4"
-                      show-password
-                      class="jwt-tool__input"
-                    />
+                    <ScInput v-model="env.secretKey" placeholder="请输入密钥" :type="env.algorithm.startsWith('HS') ? 'password' : 'textarea'" :rows="env.algorithm.startsWith('HS') ? 1 : 4" show-password class="jwt-tool__input" />
                     <div class="jwt-tool__input-tip">
-                      {{
-                        env.algorithm.startsWith("HS")
-                          ? "对称密钥"
-                          : "非对称密钥 (目前仅支持HMAC算法)"
-                      }}
+                      {{ env.algorithm.startsWith("HS") ? "对称密钥" : "非对称密钥 (目前仅支持HMAC算法)" }}
                     </div>
                   </ScFormItem>
 
                   <!-- 操作按钮区域 -->
                   <div class="jwt-tool__actions">
-                    <ScButton
-                      type="primary"
-                      :loading="env.loading"
-                      class="jwt-tool__encode-btn"
-                      @click="encodeJWT"
-                    >
+                    <ScButton type="primary" :loading="env.loading" class="jwt-tool__encode-btn" @click="encodeJWT">
                       <IconifyIconOnline icon="ri:lock-line" />
                       <span>生成 JWT</span>
                     </ScButton>
@@ -796,45 +622,27 @@ onMounted(() => {
               <ScCard class="jwt-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
-                    <IconifyIconOnline
-                      icon="ri:key-line"
-                      class="jwt-tool__card-icon"
-                    />
+                    <IconifyIconOnline icon="ri:key-line" class="jwt-tool__card-icon" />
                     <span>生成结果</span>
                   </div>
                 </template>
 
-                <ScEmpty
-                  v-if="!env.encodedJWT"
-                  description="请先创建 JWT"
-                  class="jwt-tool__empty"
-                >
+                <ScEmpty v-if="!env.encodedJWT" description="请先创建 JWT" class="jwt-tool__empty">
                   <template #image>
-                    <IconifyIconOnline
-                      icon="ri:lock-line"
-                      class="jwt-tool__empty-icon"
-                    />
+                    <IconifyIconOnline icon="ri:lock-line" class="jwt-tool__empty-icon" />
                   </template>
                 </ScEmpty>
 
                 <div v-else class="jwt-tool__results">
                   <div class="jwt-tool__result-section">
                     <div class="jwt-tool__result-section-header">
-                      <IconifyIconOnline
-                        icon="ri:key-line"
-                        class="jwt-tool__result-section-icon"
-                      />
+                      <IconifyIconOnline icon="ri:key-line" class="jwt-tool__result-section-icon" />
                       <span>JWT 令牌</span>
                     </div>
                     <div class="jwt-tool__result-content">
                       <div class="jwt-tool__encoded-jwt">
                         <div class="jwt-tool__jwt-parts">
-                          <span
-                            v-for="(part, index) in env.encodedJWT.split('.')"
-                            :key="index"
-                            class="jwt-tool__jwt-part"
-                            :class="`jwt-tool__jwt-part-${index}`"
-                          >
+                          <span v-for="(part, index) in env.encodedJWT.split('.')" :key="index" class="jwt-tool__jwt-part" :class="`jwt-tool__jwt-part-${index}`">
                             {{ part }}
                           </span>
                         </div>
@@ -843,10 +651,7 @@ onMounted(() => {
                   </div>
 
                   <div class="jwt-tool__result-actions">
-                    <ScButton
-                      type="primary"
-                      @click="copyToClipboard(env.encodedJWT, message)"
-                    >
+                    <ScButton type="primary" @click="copyToClipboard(env.encodedJWT, message)">
                       <IconifyIconOnline icon="ri:clipboard-line" />
                       <span>复制 JWT</span>
                     </ScButton>
@@ -860,18 +665,12 @@ onMounted(() => {
                   <div class="jwt-tool__result-info">
                     <div class="jwt-tool__result-info-item">
                       <span class="jwt-tool__result-info-label">算法:</span>
-                      <span class="jwt-tool__result-info-value">{{
-                        env.algorithm
-                      }}</span>
+                      <span class="jwt-tool__result-info-value">{{ env.algorithm }}</span>
                     </div>
                     <div class="jwt-tool__result-info-item">
                       <span class="jwt-tool__result-info-label">过期时间:</span>
                       <span class="jwt-tool__result-info-value">
-                        {{
-                          env.payload && env.payload.exp
-                            ? new Date(env.payload.exp * 1000).toLocaleString()
-                            : "未设置"
-                        }}
+                        {{ env.payload && env.payload.exp ? new Date(env.payload.exp * 1000).toLocaleString() : "未设置" }}
                       </span>
                     </div>
                   </div>
@@ -889,10 +688,7 @@ onMounted(() => {
               <ScCard class="jwt-tool__input-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
-                    <IconifyIconOnline
-                      icon="ri:shield-check-line"
-                      class="jwt-tool__card-icon"
-                    />
+                    <IconifyIconOnline icon="ri:shield-check-line" class="jwt-tool__card-icon" />
                     <span>验证 JWT</span>
                   </div>
                 </template>
@@ -900,62 +696,27 @@ onMounted(() => {
                 <ScForm label-position="top">
                   <!-- JWT输入框 -->
                   <ScFormItem label="输入需要验证的 JWT">
-                    <ScInput
-                      v-model="env.verifyJwtInput"
-                      type="textarea"
-                      :rows="6"
-                      placeholder="请输入 JWT 令牌"
-                      clearable
-                      class="jwt-tool__input"
-                    />
+                    <ScInput v-model="env.verifyJwtInput" type="textarea" :rows="6" placeholder="请输入 JWT 令牌" clearable class="jwt-tool__input" />
                   </ScFormItem>
 
                   <!-- 算法选择 -->
                   <ScFormItem label="签名算法">
-                    <ScSelect
-                      v-model="env.verifyAlgorithm"
-                      class="jwt-tool__select"
-                    >
-                      <ScOption
-                        v-for="item in env.algorithms"
-                        :key="item.value"
-                        :label="item.label"
-                        :value="item.value"
-                      />
+                    <ScSelect v-model="env.verifyAlgorithm" class="jwt-tool__select">
+                      <ScOption v-for="item in env.algorithms" :key="item.value" :label="item.label" :value="item.value" />
                     </ScSelect>
                   </ScFormItem>
 
                   <!-- 密钥输入 -->
                   <ScFormItem label="密钥">
-                    <ScInput
-                      v-model="env.verifySecretKey"
-                      placeholder="请输入密钥"
-                      :type="
-                        env.verifyAlgorithm.startsWith('HS')
-                          ? 'password'
-                          : 'textarea'
-                      "
-                      :rows="env.verifyAlgorithm.startsWith('HS') ? 1 : 4"
-                      show-password
-                      class="jwt-tool__input"
-                    />
+                    <ScInput v-model="env.verifySecretKey" placeholder="请输入密钥" :type="env.verifyAlgorithm.startsWith('HS') ? 'password' : 'textarea'" :rows="env.verifyAlgorithm.startsWith('HS') ? 1 : 4" show-password class="jwt-tool__input" />
                     <div class="jwt-tool__input-tip">
-                      {{
-                        env.verifyAlgorithm.startsWith("HS")
-                          ? "对称密钥"
-                          : "非对称密钥 (目前仅支持HMAC算法)"
-                      }}
+                      {{ env.verifyAlgorithm.startsWith("HS") ? "对称密钥" : "非对称密钥 (目前仅支持HMAC算法)" }}
                     </div>
                   </ScFormItem>
 
                   <!-- 操作按钮区域 -->
                   <div class="jwt-tool__actions">
-                    <ScButton
-                      type="primary"
-                      :loading="env.loading"
-                      class="jwt-tool__verify-btn"
-                      @click="verifyJWT"
-                    >
+                    <ScButton type="primary" :loading="env.loading" class="jwt-tool__verify-btn" @click="verifyJWT">
                       <IconifyIconOnline icon="ri:shield-check-line" />
                       <span>验证 JWT</span>
                     </ScButton>
@@ -974,120 +735,65 @@ onMounted(() => {
               <ScCard class="jwt-tool__result-card" shadow="hover">
                 <template #header>
                   <div class="jwt-tool__card-header">
-                    <IconifyIconOnline
-                      icon="ri:check-double-line"
-                      class="jwt-tool__card-icon"
-                    />
+                    <IconifyIconOnline icon="ri:check-double-line" class="jwt-tool__card-icon" />
                     <span>验证结果</span>
                   </div>
                 </template>
 
-                <ScEmpty
-                  v-if="!env.verifyResult"
-                  description="请先验证 JWT"
-                  class="jwt-tool__empty"
-                >
+                <ScEmpty v-if="!env.verifyResult" description="请先验证 JWT" class="jwt-tool__empty">
                   <template #image>
-                    <IconifyIconOnline
-                      icon="ri:shield-check-line"
-                      class="jwt-tool__empty-icon"
-                    />
+                    <IconifyIconOnline icon="ri:shield-check-line" class="jwt-tool__empty-icon" />
                   </template>
                 </ScEmpty>
 
                 <div v-else class="jwt-tool__results">
                   <!-- 验证状态 -->
-                  <div
-                    class="jwt-tool__verify-status"
-                    :class="{
-                      'is-valid': env.verifyResult.valid,
-                      'is-invalid': !env.verifyResult.valid,
-                    }"
-                  >
-                    <IconifyIconOnline
-                      :icon="
-                        env.verifyResult.valid
-                          ? 'ri:check-double-line'
-                          : 'ri:close-circle-line'
-                      "
-                      class="jwt-tool__verify-status-icon"
-                    />
+                  <div class="jwt-tool__verify-status" :class="{ 'is-valid': env.verifyResult.valid, 'is-invalid': !env.verifyResult.valid }">
+                    <IconifyIconOnline :icon="env.verifyResult.valid ? 'ri:check-double-line' : 'ri:close-circle-line'" class="jwt-tool__verify-status-icon" />
                     <span class="jwt-tool__verify-status-text">
-                      {{
-                        env.verifyResult.valid ? "JWT 验证通过" : "JWT 验证失败"
-                      }}
+                      {{ env.verifyResult.valid ? "JWT 验证通过" : "JWT 验证失败" }}
                     </span>
                   </div>
 
                   <!-- 错误信息 -->
-                  <div
-                    v-if="!env.verifyResult.valid"
-                    class="jwt-tool__verify-error"
-                  >
+                  <div v-if="!env.verifyResult.valid" class="jwt-tool__verify-error">
                     <div class="jwt-tool__verify-error-title">错误信息:</div>
-                    <div class="jwt-tool__verify-error-message">
-                      {{ env.verifyResult.error }}
-                    </div>
+                    <div class="jwt-tool__verify-error-message">{{ env.verifyResult.error }}</div>
                   </div>
 
                   <!-- 验证成功信息 -->
-                  <div
-                    v-if="env.verifyResult.valid"
-                    class="jwt-tool__verify-details"
-                  >
+                  <div v-if="env.verifyResult.valid" class="jwt-tool__verify-details">
                     <!-- 头部信息 -->
                     <div class="jwt-tool__result-section">
                       <div class="jwt-tool__result-section-header">
-                        <IconifyIconOnline
-                          icon="ri:file-info-line"
-                          class="jwt-tool__result-section-icon"
-                        />
+                        <IconifyIconOnline icon="ri:file-info-line" class="jwt-tool__result-section-icon" />
                         <span>头部 (Header)</span>
                       </div>
                       <div class="jwt-tool__result-content">
-                        <pre class="jwt-tool__json-display">{{
-                          formatJSON(env.verifyResult.header)
-                        }}</pre>
+                        <pre class="jwt-tool__json-display">{{ formatJSON(env.verifyResult.header) }}</pre>
                       </div>
                     </div>
 
                     <!-- 载荷信息 -->
                     <div class="jwt-tool__result-section">
                       <div class="jwt-tool__result-section-header">
-                        <IconifyIconOnline
-                          icon="ri:file-text-line"
-                          class="jwt-tool__result-section-icon"
-                        />
+                        <IconifyIconOnline icon="ri:file-text-line" class="jwt-tool__result-section-icon" />
                         <span>载荷 (Payload)</span>
                       </div>
                       <div class="jwt-tool__result-content">
-                        <pre class="jwt-tool__json-display">{{
-                          formatJSON(env.verifyResult.payload)
-                        }}</pre>
+                        <pre class="jwt-tool__json-display">{{ formatJSON(env.verifyResult.payload) }}</pre>
                       </div>
                     </div>
 
                     <!-- 过期信息 -->
-                    <div
-                      v-if="
-                        env.verifyResult.payload && env.verifyResult.payload.exp
-                      "
-                      class="jwt-tool__result-section"
-                    >
+                    <div v-if="env.verifyResult.payload && env.verifyResult.payload.exp" class="jwt-tool__result-section">
                       <div class="jwt-tool__result-section-header">
-                        <IconifyIconOnline
-                          icon="ri:time-line"
-                          class="jwt-tool__result-section-icon"
-                        />
+                        <IconifyIconOnline icon="ri:time-line" class="jwt-tool__result-section-icon" />
                         <span>过期时间</span>
                       </div>
                       <div class="jwt-tool__result-content">
                         <div class="jwt-tool__expiration-time">
-                          {{
-                            new Date(
-                              env.verifyResult.payload.exp * 1000,
-                            ).toLocaleString()
-                          }}
+                          {{ new Date(env.verifyResult.payload.exp * 1000).toLocaleString() }}
                         </div>
                       </div>
                     </div>
@@ -1118,17 +824,13 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-3) 0%,
-      var(--el-color-primary) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
     padding: 30px;
     color: #fff;
     box-shadow: 0 4px 20px rgba(var(--el-color-primary-rgb), 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+    
     &:hover {
       box-shadow: 0 6px 24px rgba(var(--el-color-primary-rgb), 0.4);
       transform: translateY(-2px);
@@ -1434,31 +1136,19 @@ onMounted(() => {
     }
 
     &-0 {
-      background: linear-gradient(
-        135deg,
-        rgba(var(--el-color-primary-rgb), 0.1) 0%,
-        rgba(var(--el-color-primary-rgb), 0.15) 100%
-      );
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1) 0%, rgba(var(--el-color-primary-rgb), 0.15) 100%);
       color: var(--el-color-primary);
       border-color: var(--el-color-primary-light-7);
     }
 
     &-1 {
-      background: linear-gradient(
-        135deg,
-        rgba(var(--el-color-success-rgb), 0.1) 0%,
-        rgba(var(--el-color-success-rgb), 0.15) 100%
-      );
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.1) 0%, rgba(var(--el-color-success-rgb), 0.15) 100%);
       color: var(--el-color-success);
       border-color: var(--el-color-success-light-7);
     }
 
     &-2 {
-      background: linear-gradient(
-        135deg,
-        rgba(var(--el-color-warning-rgb), 0.1) 0%,
-        rgba(var(--el-color-warning-rgb), 0.15) 100%
-      );
+      background: linear-gradient(135deg, rgba(var(--el-color-warning-rgb), 0.1) 0%, rgba(var(--el-color-warning-rgb), 0.15) 100%);
       color: var(--el-color-warning-dark-2);
       border-color: var(--el-color-warning-light-7);
     }

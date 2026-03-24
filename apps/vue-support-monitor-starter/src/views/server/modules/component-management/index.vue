@@ -4,152 +4,102 @@
     <div class="page-header">
       <div class="header-left">
         <h2>组件管理</h2>
-        <p class="header-desc">
-          管理服务器监控组件，支持时间范围查询和数据分析
-        </p>
+        <p class="header-desc">管理服务器监控组件，支持时间范围查询和数据分析</p>
       </div>
       <div class="header-right">
-        <ScButton type="primary" @click="handleAddComponent">
+        <el-button type="primary" @click="handleAddComponent">
           <IconifyIconOnline icon="ep:plus" />
           添加组件
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 查询条件栏 -->
     <div class="query-bar">
       <div class="query-left">
-        <ScSelect
-          v-model="selectedServerId"
-          placeholder="选择服务器"
-          style="width: 200px"
-          @change="handleServerChange"
-        >
-          <ScOption
-            v-for="server in servers"
-            :key="server.monitorSysGenServerId"
-            :label="server.monitorSysGenServerName"
-            :value="server.monitorSysGenServerId"
-          />
-        </ScSelect>
+        <el-select v-model="selectedServerId" placeholder="选择服务器" style="width: 200px" @change="handleServerChange">
+          <el-option v-for="server in servers" :key="server.monitorSysGenServerId" :label="server.monitorSysGenServerName" :value="server.monitorSysGenServerId" />
+        </el-select>
 
-        <ScDatePicker
-          v-model="timeRange"
-          type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          value-format="X"
-          :shortcuts="timeShortcuts"
-          class="!w-[350px]"
-        />
+        <el-date-picker v-model="timeRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="X" :shortcuts="timeShortcuts" class="!w-[350px]" />
 
-        <ScSelect v-model="queryStep" placeholder="步长" style="width: 100px">
-          <ScOption label="1分钟" :value="60" />
-          <ScOption label="5分钟" :value="300" />
-          <ScOption label="15分钟" :value="900" />
-          <ScOption label="30分钟" :value="1800" />
-        </ScSelect>
+        <el-select v-model="queryStep" placeholder="步长" style="width: 100px">
+          <el-option label="1分钟" :value="60" />
+          <el-option label="5分钟" :value="300" />
+          <el-option label="15分钟" :value="900" />
+          <el-option label="30分钟" :value="1800" />
+        </el-select>
       </div>
 
       <div class="query-right">
-        <ScButton type="primary" :loading="loading" @click="handleQuery">
+        <el-button type="primary" :loading="loading" @click="handleQuery">
           <IconifyIconOnline icon="ep:search" />
           查询数据
-        </ScButton>
-        <ScButton @click="handleRefresh">
+        </el-button>
+        <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 统计信息 -->
-    <div v-if="queryStats" class="stats-bar">
+    <div class="stats-bar" v-if="queryStats">
       <div class="stats-item">
         <span class="stats-label">查询时间:</span>
-        <ScTag type="success" size="small"
-          >{{ queryStats.queryTime }}ms</el-tag
-        >
+        <el-tag type="success" size="small">{{ queryStats.queryTime }}ms</el-tag>
       </div>
       <div class="stats-item">
         <span class="stats-label">组件数量:</span>
-        <ScTag type="info" size="small">{{
-          queryStats.componentCount
-        }}</ScTag>
+        <el-tag type="info" size="small">{{ queryStats.componentCount }}</el-tag>
       </div>
       <div class="stats-item">
         <span class="stats-label">数据点:</span>
-        <ScTag type="warning" size="small">{{ queryStats.dataPoints }}</ScTag>
+        <el-tag type="warning" size="small">{{ queryStats.dataPoints }}</el-tag>
       </div>
       <div class="stats-item">
         <span class="stats-label">更新时间:</span>
-        <ScTag size="small">{{ queryStats.updateTime }}</ScTag>
+        <el-tag size="small">{{ queryStats.updateTime }}</el-tag>
       </div>
     </div>
 
     <!-- 组件列表 -->
-    <div v-loading="loading" class="component-list">
+    <div class="component-list" v-loading="loading">
       <div v-if="components.length === 0" class="empty-state">
-        <ScEmpty description="暂无组件数据">
-          <ScButton type="primary" @click="handleAddComponent">
-            添加第一个组件
-          </ScButton>
-        </ScEmpty>
+        <el-empty description="暂无组件数据">
+          <el-button type="primary" @click="handleAddComponent"> 添加第一个组件 </el-button>
+        </el-empty>
       </div>
 
       <div v-else class="component-grid">
-        <div
-          v-for="component in components"
-          :key="component.monitorSysGenServerComponentId"
-          class="component-card"
-        >
+        <div v-for="component in components" :key="component.monitorSysGenServerComponentId" class="component-card">
           <!-- 组件头部 -->
           <div class="card-header">
             <div class="card-title">
               <h4>{{ component.monitorSysGenServerComponentName }}</h4>
               <div class="card-meta">
-                <ScTag
-                  :type="
-                    getComponentTypeTagColor(
-                      component.monitorSysGenServerComponentType,
-                    )
-                  "
-                  size="small"
-                >
-                  {{
-                    getComponentTypeDisplayName(
-                      component.monitorSysGenServerComponentType,
-                    )
-                  }}
-                </ScTag>
-                <ScTag type="info" size="small">
-                  {{
-                    getExpressionTypeDisplayName(
-                      component.monitorSysGenServerComponentExpressionType,
-                    )
-                  }}
-                </ScTag>
+                <el-tag :type="getComponentTypeTagColor(component.monitorSysGenServerComponentType)" size="small">
+                  {{ getComponentTypeDisplayName(component.monitorSysGenServerComponentType) }}
+                </el-tag>
+                <el-tag type="info" size="small">
+                  {{ getExpressionTypeDisplayName(component.monitorSysGenServerComponentExpressionType) }}
+                </el-tag>
               </div>
             </div>
             <div class="card-actions">
-              <ScDropdown
-                @command="(cmd: string) => handleAction(cmd, component)"
-              >
-                <ScButton text>
+              <el-dropdown @command="(cmd: string) => handleAction(cmd, component)">
+                <el-button text>
                   <IconifyIconOnline icon="ep:more" />
-                </ScButton>
+                </el-button>
                 <template #dropdown>
-                  <ScDropdownMenu>
-                    <ScDropdownItem command="view">查看数据</ScDropdownItem>
-                    <ScDropdownItem command="edit">编辑</ScDropdownItem>
-                    <ScDropdownItem command="clone">克隆</ScDropdownItem>
-                    <ScDropdownItem command="delete" divided
-                      >删除</el-dropdown-item
-                    >
-                  </ScDropdownMenu>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="view">查看数据</el-dropdown-item>
+                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                    <el-dropdown-item command="clone">克隆</el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-              </ScDropdown>
+              </el-dropdown>
             </div>
           </div>
 
@@ -158,47 +108,23 @@
             <div class="component-info">
               <div class="info-item">
                 <span class="info-label">表达式:</span>
-                <span class="info-value">{{
-                  component.monitorSysGenServerComponentExpression || "未设置"
-                }}</span>
+                <span class="info-value">{{ component.monitorSysGenServerComponentExpression || "未设置" }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">单位:</span>
-                <span class="info-value">{{
-                  component.monitorSysGenServerComponentUnit || "无"
-                }}</span>
+                <span class="info-value">{{ component.monitorSysGenServerComponentUnit || "无" }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">状态:</span>
-                <ScTag
-                  :type="
-                    getComponentStatusTagType(
-                      component.monitorSysGenServerComponentStatus,
-                    )
-                  "
-                  size="small"
-                >
-                  {{
-                    getComponentStatusText(
-                      component.monitorSysGenServerComponentStatus,
-                    )
-                  }}
-                </ScTag>
+                <el-tag :type="getComponentStatusTagType(component.monitorSysGenServerComponentStatus)" size="small">
+                  {{ getComponentStatusText(component.monitorSysGenServerComponentStatus) }}
+                </el-tag>
               </div>
             </div>
 
             <!-- 数据预览 -->
-            <div
-              v-if="componentData[component.monitorSysGenServerComponentId!]"
-              class="data-preview"
-            >
-              <div
-                :ref="
-                  (el) =>
-                    setChartRef(component.monitorSysGenServerComponentId!, el)
-                "
-                class="preview-chart"
-              />
+            <div class="data-preview" v-if="componentData[component.monitorSysGenServerComponentId!]">
+              <div class="preview-chart" :ref="(el) => setChartRef(component.monitorSysGenServerComponentId!, el)"></div>
             </div>
             <div v-else class="no-data">
               <el-text type="info" size="small">暂无数据</el-text>
@@ -208,29 +134,13 @@
           <!-- 组件底部 -->
           <div class="card-footer">
             <div class="footer-left">
-              <el-text size="small" type="info">
-                创建时间:
-                {{
-                  formatDate(
-                    component.createTime ||
-                      component.monitorSysGenServerComponentCreateTime,
-                  )
-                }}
-              </el-text>
+              <el-text size="small" type="info"> 创建时间: {{ formatDate(component.createTime || component.monitorSysGenServerComponentCreateTime) }} </el-text>
             </div>
             <div class="footer-right">
-              <ScButton
-                size="small"
-                type="primary"
-                text
-                :loading="
-                  componentLoading[component.monitorSysGenServerComponentId!]
-                "
-                @click="handleQueryComponent(component)"
-              >
+              <el-button size="small" type="primary" text @click="handleQueryComponent(component)" :loading="componentLoading[component.monitorSysGenServerComponentId!]">
                 <IconifyIconOnline icon="ep:refresh" />
                 查询
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </div>
@@ -238,38 +148,16 @@
     </div>
 
     <!-- 组件数据查询对话框 -->
-    <ComponentDataDialog
-      v-model="dataDialogVisible"
-      :component="selectedComponent"
-      :server-id="selectedServerId"
-    />
+    <ComponentDataDialog v-model="dataDialogVisible" :component="selectedComponent" :server-id="selectedServerId" />
 
     <!-- 组件编辑对话框 -->
-    <ComponentEditDialog
-      v-model="editDialogVisible"
-      :component="selectedComponent"
-      :server-id="selectedServerId"
-      @success="handleRefresh"
-    />
+    <ComponentEditDialog v-model="editDialogVisible" :component="selectedComponent" :server-id="selectedServerId" @success="handleRefresh" />
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  deleteServerComponent,
-  getBatchComponentData,
-  getComponentsByServerId,
-  getServerList,
-  ServerInfo,
-  type ServerComponent,
-} from "@/api/server";
-import {
-  getComponentStatusTagType,
-  getComponentStatusText,
-  getComponentTypeDisplayName,
-  getComponentTypeTagColor,
-  getExpressionTypeDisplayName,
-} from "@/utils/component-field-mapping";
+import { deleteServerComponent, getBatchComponentData, getComponentsByServerId, getServerList, ServerInfo, type ServerComponent } from "@/api/server";
+import { getComponentStatusTagType, getComponentStatusText, getComponentTypeDisplayName, getComponentTypeTagColor, getExpressionTypeDisplayName } from "@/utils/component-field-mapping";
 import * as echarts from "echarts";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
@@ -392,12 +280,7 @@ const handleQuery = async () => {
     const endTime = parseInt(timeRange.value[1]);
 
     const start = Date.now();
-    const res = await getBatchComponentData(
-      selectedServerId.value,
-      startTime,
-      endTime,
-      queryStep.value,
-    );
+    const res = await getBatchComponentData(selectedServerId.value, startTime, endTime, queryStep.value);
     const queryTime = Date.now() - start;
 
     if (res.code === "00000") {
@@ -408,12 +291,9 @@ const handleQuery = async () => {
       queryStats.value = {
         queryTime,
         componentCount: Object.keys(res.data?.components || {}).length,
-        dataPoints: Object.values(res.data?.components || {}).reduce(
-          (sum: number, data: any) => {
-            return sum + (Array.isArray(data?.data) ? data.data.length : 1);
-          },
-          0,
-        ),
+        dataPoints: Object.values(res.data?.components || {}).reduce((sum: number, data: any) => {
+          return sum + (Array.isArray(data?.data) ? data.data.length : 1);
+        }, 0),
         updateTime: new Date().toLocaleTimeString(),
       };
 
@@ -505,12 +385,7 @@ const generateChartData = (data: any) => {
   if (!data?.data) return [];
 
   if (Array.isArray(data.data)) {
-    return data.data.map((item: any, index: number) => [
-      item.timestamp
-        ? new Date(item.timestamp * 1000)
-        : new Date(Date.now() - index * 60 * 1000),
-      item.value || item,
-    ]);
+    return data.data.map((item: any, index: number) => [item.timestamp ? new Date(item.timestamp * 1000) : new Date(Date.now() - index * 60 * 1000), item.value || item]);
   }
 
   return [[new Date(), data.data]];
@@ -601,19 +476,13 @@ const handleCloneComponent = (component: ServerComponent) => {
  */
 const handleDeleteComponent = async (component: ServerComponent) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除组件 "${component.monitorSysGenServerComponentName}" 吗？`,
-      "确认删除",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      },
-    );
+    await ElMessageBox.confirm(`确定要删除组件 "${component.monitorSysGenServerComponentName}" 吗？`, "确认删除", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
 
-    const res = await deleteServerComponent(
-      component.monitorSysGenServerComponentId!,
-    );
+    const res = await deleteServerComponent(component.monitorSysGenServerComponentId!);
     if (res.code === "00000") {
       message("删除成功", { type: "success" });
       handleRefresh();
@@ -641,14 +510,12 @@ onMounted(() => {
   const end = new Date();
   const start = new Date();
   start.setTime(start.getTime() - 60 * 60 * 1000);
-  timeRange.value = [
-    Math.floor(start.getTime() / 1000).toString(),
-    Math.floor(end.getTime() / 1000).toString(),
-  ];
+  timeRange.value = [Math.floor(start.getTime() / 1000).toString(), Math.floor(end.getTime() / 1000).toString()];
 });
 </script>
 
 <style lang="scss" scoped>
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -665,6 +532,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -698,6 +567,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .component-management {
   padding: 20px;
@@ -871,6 +741,7 @@ onMounted(() => {
   border-top: 1px solid #ebeef5;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -879,4 +750,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

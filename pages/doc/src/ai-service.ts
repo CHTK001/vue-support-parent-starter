@@ -128,9 +128,7 @@ export class AIService {
   /**
    * 生成 Mock 数据
    */
-  async generateMockData(
-    request: AIGenerateRequest,
-  ): Promise<AIGenerateResponse> {
+  async generateMockData(request: AIGenerateRequest): Promise<AIGenerateResponse> {
     if (!this.config || !this.config.enabled) {
       return { success: false, error: "AI 服务未启用" };
     }
@@ -214,8 +212,7 @@ Response:`;
         messages: [
           {
             role: "system",
-            content:
-              "You are a helpful assistant that generates realistic mock API response data. Always respond with valid JSON only.",
+            content: "You are a helpful assistant that generates realistic mock API response data. Always respond with valid JSON only.",
           },
           { role: "user", content: prompt },
         ],
@@ -323,9 +320,7 @@ Response:`;
     }
 
     const result = await response.json();
-    const content = Array.isArray(result)
-      ? result[0]?.generated_text
-      : result.generated_text;
+    const content = Array.isArray(result) ? result[0]?.generated_text : result.generated_text;
 
     return this.parseAIResponse(content);
   }
@@ -344,8 +339,7 @@ Response:`;
         messages: [
           {
             role: "system",
-            content:
-              "You are a helpful assistant that generates realistic mock API response data. Always respond with valid JSON only.",
+            content: "You are a helpful assistant that generates realistic mock API response data. Always respond with valid JSON only.",
           },
           { role: "user", content: prompt },
         ],
@@ -405,9 +399,7 @@ Response:`;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(this.config!.apiKey
-          ? { Authorization: `Bearer ${this.config!.apiKey}` }
-          : {}),
+        ...(this.config!.apiKey ? { Authorization: `Bearer ${this.config!.apiKey}` } : {}),
       },
       body: JSON.stringify({
         prompt,
@@ -422,8 +414,7 @@ Response:`;
 
     const result = await response.json();
     // 假设返回格式为 { content: "..." } 或 { data: "..." }
-    const content =
-      result.content || result.data || result.response || result.text;
+    const content = result.content || result.data || result.response || result.text;
 
     return this.parseAIResponse(content);
   }

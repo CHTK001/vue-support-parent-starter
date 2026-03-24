@@ -2,10 +2,10 @@
   <div class="job-management-container system-container modern-bg">
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <ScCard class="search-card" shadow="never">
+      <el-card class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <ScInput
+            <el-input
               v-model="form.jobDesc"
               placeholder="搜索任务名称或描述"
               class="search-input"
@@ -15,41 +15,41 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
-            </ScInput>
-            <ScSelect
+            </el-input>
+            <el-select
               v-model="form.jobGroup"
               placeholder="选择任务组"
               class="app-filter"
               clearable
               @change="handleGroupFilter"
             >
-              <ScOption :value="0" label="全部任务组" />
-              <ScOption
+              <el-option :value="0" label="全部任务组" />
+              <el-option
                 v-for="item in executorData"
                 :key="item.monitorId"
                 :label="item.monitorName"
                 :value="item.monitorId"
               />
-            </ScSelect>
-            <ScSelect
+            </el-select>
+            <el-select
               v-model="form.jobTriggerStatus"
               placeholder="任务状态"
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
-              <ScOption label="运行中" :value="1" />
-              <ScOption label="已停止" :value="0" />
-            </ScSelect>
+              <el-option label="运行中" :value="1" />
+              <el-option label="已停止" :value="0" />
+            </el-select>
           </div>
           <div class="search-right">
-            <ScButton type="primary" @click="add">
+            <el-button type="primary" @click="add">
               <IconifyIconOnline icon="ri:add-line" />
               新建任务
-            </ScButton>
+            </el-button>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 任务列表 -->
@@ -71,7 +71,7 @@
             <div
               class="status-bar"
               :class="row.jobTriggerStatus === 1 ? 'running' : 'stopped'"
-            />
+            ></div>
 
             <!-- 卡片头部 -->
             <div class="card-header">
@@ -87,7 +87,7 @@
                   <span
                     class="status-dot"
                     :class="row.jobTriggerStatus === 1 ? 'online' : 'offline'"
-                  />
+                  ></span>
                 </div>
                 <div class="job-title-info">
                   <h3 class="job-name">{{ row.jobName }}</h3>
@@ -106,24 +106,24 @@
                   </div>
                 </div>
               </div>
-              <ScDropdown
+              <el-dropdown
                 trigger="click"
+                @command="(cmd) => handleCommand(cmd, row)"
                 class="more-dropdown"
                 popper-class="job-dropdown-popper"
-                @command="(cmd) => handleCommand(cmd, row)"
               >
-                <ScButton class="more-btn" @click.stop>
+                <el-button class="more-btn" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" />
-                </ScButton>
+                </el-button>
                 <template #dropdown>
-                  <ScDropdownMenu class="job-dropdown-menu">
+                  <el-dropdown-menu class="job-dropdown-menu">
                     <div class="dropdown-header">
                       <div class="header-icon">
                         <IconifyIconOnline icon="ri:settings-3-line" />
                       </div>
                       <span>操作菜单</span>
                     </div>
-                    <ScDropdownItem command="edit">
+                    <el-dropdown-item command="edit">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon edit">
                           <IconifyIconOnline icon="ri:edit-line" />
@@ -136,8 +136,8 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </ScDropdownItem>
-                    <ScDropdownItem command="copy">
+                    </el-dropdown-item>
+                    <el-dropdown-item command="copy">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon copy">
                           <IconifyIconOnline icon="ri:file-copy-line" />
@@ -150,8 +150,8 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </ScDropdownItem>
-                    <ScDropdownItem command="nextTriggerTime">
+                    </el-dropdown-item>
+                    <el-dropdown-item command="nextTriggerTime">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon schedule">
                           <IconifyIconOnline icon="ri:calendar-schedule-line" />
@@ -164,8 +164,8 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </ScDropdownItem>
-                    <ScDropdownItem command="log">
+                    </el-dropdown-item>
+                    <el-dropdown-item command="log">
                       <div class="dropdown-item-content">
                         <div class="dropdown-item-icon log">
                           <IconifyIconOnline icon="ri:file-list-3-line" />
@@ -178,9 +178,9 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </ScDropdownItem>
-                    <div class="dropdown-divider" />
-                    <ScDropdownItem command="delete">
+                    </el-dropdown-item>
+                    <div class="dropdown-divider"></div>
+                    <el-dropdown-item command="delete">
                       <div class="dropdown-item-content danger">
                         <div class="dropdown-item-icon delete">
                           <IconifyIconOnline icon="ri:delete-bin-line" />
@@ -193,10 +193,10 @@
                           <IconifyIconOnline icon="ri:arrow-right-s-line" />
                         </div>
                       </div>
-                    </ScDropdownItem>
-                  </ScDropdownMenu>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-              </ScDropdown>
+              </el-dropdown>
             </div>
 
             <!-- 卡片内容 -->
@@ -217,9 +217,9 @@
                 <div class="detail-item">
                   <span class="detail-label">任务类型</span>
                   <span class="detail-value">
-                    <ScTag size="small" effect="plain">{{
+                    <el-tag size="small" effect="plain">{{
                       row.jobGlueType || "BEAN"
-                    }}</ScTag>
+                    }}</el-tag>
                   </span>
                 </div>
                 <div class="detail-item">
@@ -233,20 +233,20 @@
 
             <!-- 卡片底部操作 -->
             <div class="card-footer">
-              <ScTooltip content="执行一次" placement="top">
-                <ScButton
+              <el-tooltip content="执行一次" placement="top">
+                <el-button
                   class="action-btn trigger"
                   @click.stop="trigger(row)"
                 >
                   <IconifyIconOnline icon="ri:flashlight-line" />
                   <span>执行</span>
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip
+                </el-button>
+              </el-tooltip>
+              <el-tooltip
                 :content="row.jobTriggerStatus === 1 ? '停止任务' : '启动任务'"
                 placement="top"
               >
-                <ScButton
+                <el-button
                   class="action-btn power"
                   :class="row.jobTriggerStatus === 1 ? 'stop' : 'start'"
                   @click.stop="
@@ -263,8 +263,8 @@
                   <span>{{
                     row.jobTriggerStatus === 1 ? "停止" : "启动"
                   }}</span>
-                </ScButton>
-              </ScTooltip>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </template>
@@ -279,20 +279,20 @@
       class="job-dialog"
       width="500px"
     >
-      <ScForm :model="form" label-width="120px">
-        <ScFormItem label="任务参数">
-          <ScInput v-model="executorParam" type="textarea" :rows="6" />
-        </ScFormItem>
-        <ScFormItem label="机器地址">
-          <ScInput v-model="addressList" type="textarea" :rows="6" />
-        </ScFormItem>
-      </ScForm>
+      <el-form :model="form" label-width="120px">
+        <el-form-item label="任务参数">
+          <el-input v-model="executorParam" type="textarea" :rows="6" />
+        </el-form-item>
+        <el-form-item label="机器地址">
+          <el-input v-model="addressList" type="textarea" :rows="6" />
+        </el-form-item>
+      </el-form>
       <template #footer>
         <span class="job-dialog-footer">
-          <ScButton :loading="triggerLoadding" @click="triggerShow = false"
+          <el-button :loading="triggerLoadding" @click="triggerShow = false"
             >取消</el-button
           >
-          <ScButton
+          <el-button
             :loading="triggerLoadding"
             type="primary"
             @click="triggerExecute"
@@ -340,10 +340,10 @@
       width="400px"
       class="job-dialog"
     >
-      <ScEmpty v-if="jobgroupByIdData.length == 0" />
+      <el-empty v-if="jobgroupByIdData.length == 0" />
       <div v-else class="job-node-list">
         <div v-for="item in jobgroupByIdData" :key="item" class="job-node-item">
-          <ScTag effect="light">{{ item?.host }}:{{ item?.port }}</ScTag>
+          <el-tag effect="light">{{ item?.host }}:{{ item?.port }}</el-tag>
         </div>
       </div>
     </sc-dialog>
@@ -630,7 +630,7 @@ const nextTriggerTime = async (row) => {
 // 获取执行器名称
 const getExecutorName = (jobGroup) => {
   const executor = executorData.value.find(
-    (item) => item.monitorId === jobGroup,
+    (item) => item.monitorId === jobGroup
   );
   return executor ? executor.monitorName : "未知";
 };
@@ -712,6 +712,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -744,6 +745,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .job-management-container {
   padding: 16px;
@@ -1158,22 +1160,14 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 20px 24px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9),
-      var(--el-color-primary-light-8)
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .header-icon {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1263,9 +1257,7 @@ onMounted(() => {
 .job-dropdown-popper {
   padding: 0 !important;
   border-radius: 16px !important;
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.15),
-    0 8px 16px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid var(--el-border-color-lighter) !important;
   backdrop-filter: blur(20px);
   overflow: hidden;
@@ -1312,11 +1304,7 @@ onMounted(() => {
       width: 28px;
       height: 28px;
       border-radius: 8px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1531,22 +1519,14 @@ onMounted(() => {
     align-items: center;
     gap: 12px;
     padding: 20px 24px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9),
-      var(--el-color-primary-light-8)
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .header-icon {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1593,11 +1573,7 @@ onMounted(() => {
         width: 26px;
         height: 26px;
         border-radius: 8px;
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary),
-          var(--el-color-primary-light-3)
-        );
+        background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
         color: #fff;
         font-size: 12px;
         font-weight: 600;

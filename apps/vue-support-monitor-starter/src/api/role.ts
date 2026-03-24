@@ -9,33 +9,33 @@ export type Role = {
 };
 
 /** 获取角色菜单 */
-export const fetchGetRoleMenu = (params) => {
+export const fetchGetRoleMenu = params => {
   return http.request<ReturnResult<number[]>>("get", "/v2/role/get_menu", {
-    params,
+    params
   });
 };
 /** 更新角色菜单 */
-export const fetchUpdateRoleMenu = (setting) => {
+export const fetchUpdateRoleMenu = setting => {
   return http.request<ReturnResult<boolean>>("put", "/v2/role/update_menu", {
-    data: setting,
+    data: setting
   });
 };
 
 /** 删除系统配置 */
-export const fetchDeleteRole = (id) => {
+export const fetchDeleteRole = id => {
   const params = { sysRoleId: id };
   return http.request<ReturnResult<boolean>>("delete", "/v2/role/delete", {
-    params,
+    params
   });
 };
 
 /** 保存角色配置 */
-export const fetchSaveRole = (setting) => {
+export const fetchSaveRole = setting => {
   return http.request<boolean>("post", "/v2/role/save", { data: setting });
 };
 
 /** 更新角色配置 */
-export const fetchUpdateRole = (setting) => {
+export const fetchUpdateRole = setting => {
   if (!setting.sysRoleId) {
     return;
   }
@@ -43,14 +43,14 @@ export const fetchUpdateRole = (setting) => {
 };
 
 /** 获取角色配置 */
-export const fetchPageRole = (params) => {
+export const fetchPageRole = params => {
   return http.request<ReturnResult<Role[]>>("get", "/v2/role/page", {
-    params,
+    params
   });
 };
 /** 获取角色 */
-export const fetchListRole = (params) => {
+export const fetchListRole = params => {
   return http.request<ReturnResult<Role[]>>("get", "/v2/role/list", {
-    params,
+    params
   });
 };

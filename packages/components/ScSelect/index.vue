@@ -99,7 +99,7 @@
     </div>
 
     <!-- 位置选择器布局 -->
-    <PositionLayout v-else-if="layout === 'position'" v-model="selectValue" :disabled="disabled" :mode="mode" @change="handleChange" />
+    <PositionLayout v-else-if="layout === 'position'" v-model="selectValue" :disabled="disabled" @change="handleChange" />
 
     <!-- 下拉选择器布局 -->
     <DropdownLayout
@@ -116,23 +116,13 @@
       :title="dropdownTitle"
       :placeholder="dropdownPlaceholder"
       :match-trigger-width="dropdownMatchWidth"
-      :show-search-bar="dropdownShowSearch"
-      :show-batch-actions="dropdownShowBatchActions"
       :dropdown-direction="dropdownDirection"
       :dropdown-col="dropdownCol"
       :display-mode="displayMode"
       :is-selected="isSelected"
       :is-item-disabled="isItemDisabled"
       @select="handleSelect"
-      @selectAll="selectAll"
-      @invertSelection="invertSelection"
-      @clearSelection="clearSelection"
-    >
-      <!-- 透传 content 插槽，用于自定义选项内容（如价格信息） -->
-      <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
-        <slot name="content" :option="option" :isSelected="slotIsSelected" />
-      </template>
-    </DropdownLayout>
+    />
 
     <!-- 过滤器布局 -->
     <FilterLayout
@@ -291,11 +281,6 @@ const props = defineProps({
       return ["card", "select", "pill", "dropdown", "filter", "table", "tree", "position"].includes(value);
     }
   },
-  // 位置选择器模式：9=3x3九格，4=2x2四角（仅 layout="position" 时生效）
-  mode: {
-    type: String as () => "4" | "9",
-    default: "9"
-  },
   // 是否多选
   multiple: {
     type: Boolean,
@@ -306,25 +291,15 @@ const props = defineProps({
     type: Number,
     default: 0 // 0表示不限制
   },
-  // 下拉布局是否显示搜索栏
-  dropdownShowSearch: {
-    type: Boolean,
-    default: true
-  },
   // 多选模式下最多显示的标签数量
   maxCollapseTags: {
     type: Number,
     default: 1
   },
-  // 是否显示原生 select 布局的批量操作按钮
+  // 是否显示批量操作按钮
   showBatchActions: {
     type: Boolean,
     default: true
-  },
-  // 下拉多选时是否显示全选/反选操作栏（仅 dropdown 布局且 multiple=true 时生效）
-  dropdownShowBatchActions: {
-    type: Boolean,
-    default: false
   },
   // 卡片宽度
   width: {
@@ -528,14 +503,6 @@ watch(
   () => props.modelValue,
   newValue => {
     selectValue.value = newValue;
-  }
-);
-
-// 监听options变化，切换厂商时同步更新下拉数据
-watch(
-  () => props.options,
-  newVal => {
-    selectOptions.value = newVal;
   }
 );
 const fetchOptions = async () => {

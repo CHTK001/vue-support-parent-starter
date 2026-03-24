@@ -1,12 +1,4 @@
-import {
-  computed,
-  type CSSProperties,
-  getCurrentInstance,
-  onMounted,
-  reactive,
-  ref,
-  unref,
-} from "vue";
+import { computed, type CSSProperties, getCurrentInstance, onMounted, reactive, ref, unref } from "vue";
 import type { tagsViewsType } from "../types";
 import type { StorageConfigs } from "@repo/config";
 import { $t, responsiveStorageNameSpace, transformI18n } from "@repo/config";
@@ -32,12 +24,10 @@ export function useTags() {
   const currentSelect = ref({});
   const isScrolling = ref(false);
 
-  const configure =
-    localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`,
-    ) || ({} as StorageConfigs);
-
   /** 显示模式，默认灵动模式 */
+  const showModel = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showModel || "smart");
+  /** 是否隐藏标签页，默认显示 */
+  const showTags = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`).hideTabs) ?? ref("false");
   const multiTags: any = computed(() => {
     return multiTagsStore.multiTags || [];
   });
@@ -98,10 +88,10 @@ export function useTags() {
 
   function conditionHandle(item, previous, next) {
     // 处理刷新时的 redirect 路径，避免闪烁
-    const currentPath = route.path.startsWith("/redirect")
-      ? route.path.replace("/redirect", "")
+    const currentPath = route.path.startsWith('/redirect') 
+      ? route.path.replace('/redirect', '') 
       : route.path;
-
+    
     if (isBoolean(route?.meta?.showLink) && route?.meta?.showLink === false) {
       if (Object.keys(route.query).length > 0) {
         return isEqual(route.query, item.query) ? previous : next;
@@ -145,11 +135,7 @@ export function useTags() {
   });
 
   const getContextMenuStyle = computed((): CSSProperties => {
-    return {
-      position: "fixed",
-      left: `${buttonLeft.value}px`,
-      top: `${buttonTop.value}px`,
-    };
+    return { left: buttonLeft.value + "px", top: buttonTop.value + "px" };
   });
 
   const closeMenu = () => {
@@ -169,14 +155,14 @@ export function useTags() {
   }
 
   function onContentFullScreen() {
-    pureSetting.hiddenSideBar
-      ? pureSetting.changeSetting({ key: "hiddenSideBar", value: false })
-      : pureSetting.changeSetting({ key: "hiddenSideBar", value: true });
+    pureSetting.hiddenSideBar ? pureSetting.changeSetting({ key: "hiddenSideBar", value: false }) : pureSetting.changeSetting({ key: "hiddenSideBar", value: true });
   }
 
   onMounted(() => {
     if (!showModel.value) {
-      // TODO: add logic here
+      const configure = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`);
+      configure.showModel = "chrome";
+      localStorageProxy().setItem(`${responsiveStorageNameSpace()}configure`, configure);
     }
   });
 

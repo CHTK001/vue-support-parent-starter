@@ -100,24 +100,24 @@ const themeObserver = new MutationObserver(mutations => {
 
 // 更新主题颜色
 const updateTheme = () => {
-  const getCssVar = name => {
+  const getCssVar = (name) => {
     const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return val || "";
   };
 
   theme.value = {
-    headerBgColor: getCssVar("--stitch-lay-bg-hover") || (isDark.value ? "#1d1e1f" : "#f5f7fa"),
-    headerTextColor: getCssVar("--stitch-lay-text-normal") || (isDark.value ? "#e5eaf3" : "#606266"),
-    rowBgColor: getCssVar("--stitch-lay-bg-panel") || (isDark.value ? "#141414" : "#ffffff"),
-    rowAltBgColor: getCssVar("--stitch-lay-bg-group") || (isDark.value ? "#1d1e1f" : "#fafafa"),
-    rowHoverBgColor: getCssVar("--stitch-lay-bg-hover") || (isDark.value ? "#262727" : "#f5f7fa"),
-    rowSelectedBgColor: getCssVar("--stitch-lay-bg-active") || (isDark.value ? "#18222c" : "#ecf5ff"),
-    borderColor: getCssVar("--stitch-lay-border") || (isDark.value ? "#414243" : "#ebeef5"),
-    textColor: getCssVar("--stitch-lay-text-sub") || (isDark.value ? "#e5eaf3" : "#606266"),
+    headerBgColor: getCssVar('--stitch-lay-bg-hover') || (isDark.value ? "#1d1e1f" : "#f5f7fa"),
+    headerTextColor: getCssVar('--stitch-lay-text-normal') || (isDark.value ? "#e5eaf3" : "#606266"),
+    rowBgColor: getCssVar('--stitch-lay-bg-panel') || (isDark.value ? "#141414" : "#ffffff"),
+    rowAltBgColor: getCssVar('--stitch-lay-bg-group') || (isDark.value ? "#1d1e1f" : "#fafafa"),
+    rowHoverBgColor: getCssVar('--stitch-lay-bg-hover') || (isDark.value ? "#262727" : "#f5f7fa"),
+    rowSelectedBgColor: getCssVar('--stitch-lay-bg-active') || (isDark.value ? "#18222c" : "#ecf5ff"),
+    borderColor: getCssVar('--stitch-lay-border') || (isDark.value ? "#414243" : "#ebeef5"),
+    textColor: getCssVar('--stitch-lay-text-sub') || (isDark.value ? "#e5eaf3" : "#606266"),
     fontSize: 14,
     fontFamily: "Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif"
   };
-
+  
   // 主题变化后重新渲染表格
   nextTick(() => {
     rerenderTable();
@@ -621,12 +621,15 @@ watch(
 
 // 监听列配置变化 - 使用长度作为版本号避免深度监听
 const userColumnVersion = computed(() => props.userColumn?.length ?? 0);
-watch([() => props.userColumn, userColumnVersion], () => {
-  nextTick(() => {
-    initColumnWidths();
-    rerenderTable();
-  });
-});
+watch(
+  [() => props.userColumn, userColumnVersion],
+  () => {
+    nextTick(() => {
+      initColumnWidths();
+      rerenderTable();
+    });
+  }
+);
 
 // 监听toggleIndex变化
 watch(
@@ -637,10 +640,15 @@ watch(
 );
 
 // 监听config变化 - 使用关键属性版本号避免深度监听
-const configVersion = computed(() => `${props.config?.border}-${props.config?.stripe}-${props.config?.size}`);
-watch(configVersion, () => {
-  rerenderTable();
-});
+const configVersion = computed(() => 
+  `${props.config?.border}-${props.config?.stripe}-${props.config?.size}`
+);
+watch(
+  configVersion,
+  () => {
+    rerenderTable();
+  }
+);
 
 // 处理右键菜单
 const handleCanvasContextMenu = e => {
@@ -708,7 +716,7 @@ onMounted(() => {
   });
 
   // 设置鼠标滚轮事件，支持水平滚动
-  wheelHandler = e => {
+  wheelHandler = (e) => {
     if (e.shiftKey) {
       e.preventDefault();
       e.stopPropagation();

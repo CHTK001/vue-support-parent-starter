@@ -9,23 +9,11 @@
         </div>
         <div class="video-filter__options-wrapper">
           <div class="video-filter__options">
-            <div
-              v-for="type in displayedTypes"
-              :key="type.value"
-              :class="[
-                'video-filter__option',
-                { 'video-filter__option--active': isTypeSelected(type.value) },
-              ]"
-              @click="handleTypeClick(type)"
-            >
+            <div v-for="type in displayedTypes" :key="type.value" :class="['video-filter__option', { 'video-filter__option--active': isTypeSelected(type.value) }]" @click="handleTypeClick(type)">
               {{ type.label }}
             </div>
           </div>
-          <div
-            v-if="showMoreTypes"
-            class="video-filter__more-btn"
-            @click="toggleMoreTypes"
-          >
+          <div v-if="showMoreTypes" class="video-filter__more-btn" @click="toggleMoreTypes">
             {{ showAllTypes ? "收起" : "更多" }}
             <ScIcon>
               <component :is="showAllTypes ? 'ArrowUp' : 'ArrowDown'" />
@@ -42,23 +30,11 @@
         </div>
         <div class="video-filter__options-wrapper">
           <div class="video-filter__options">
-            <div
-              v-for="year in displayedYears"
-              :key="year.value"
-              :class="[
-                'video-filter__option',
-                { 'video-filter__option--active': isYearSelected(year.value) },
-              ]"
-              @click="handleYearClick(year)"
-            >
+            <div v-for="year in displayedYears" :key="year.value" :class="['video-filter__option', { 'video-filter__option--active': isYearSelected(year.value) }]" @click="handleYearClick(year)">
               {{ year.label }}
             </div>
           </div>
-          <div
-            v-if="showMoreYears"
-            class="video-filter__more-btn"
-            @click="toggleMoreYears"
-          >
+          <div v-if="showMoreYears" class="video-filter__more-btn" @click="toggleMoreYears">
             {{ showAllYears ? "收起" : "更多" }}
             <ScIcon>
               <component :is="showAllYears ? 'ArrowUp' : 'ArrowDown'" />
@@ -75,27 +51,11 @@
         </div>
         <div class="video-filter__options-wrapper">
           <div class="video-filter__options">
-            <div
-              v-for="district in displayedDistricts"
-              :key="district.value"
-              :class="[
-                'video-filter__option',
-                {
-                  'video-filter__option--active': isDistrictSelected(
-                    district.value,
-                  ),
-                },
-              ]"
-              @click="handleDistrictClick(district)"
-            >
+            <div v-for="district in displayedDistricts" :key="district.value" :class="['video-filter__option', { 'video-filter__option--active': isDistrictSelected(district.value) }]" @click="handleDistrictClick(district)">
               {{ district.label }}
             </div>
           </div>
-          <div
-            v-if="showMoreDistricts"
-            class="video-filter__more-btn"
-            @click="toggleMoreDistricts"
-          >
+          <div v-if="showMoreDistricts" class="video-filter__more-btn" @click="toggleMoreDistricts">
             {{ showAllDistricts ? "收起" : "更多" }}
             <ScIcon>
               <component :is="showAllDistricts ? 'ArrowUp' : 'ArrowDown'" />
@@ -112,27 +72,11 @@
         </div>
         <div class="video-filter__options-wrapper">
           <div class="video-filter__options">
-            <div
-              v-for="language in displayedLanguages"
-              :key="language.value"
-              :class="[
-                'video-filter__option',
-                {
-                  'video-filter__option--active': isLanguageSelected(
-                    language.value,
-                  ),
-                },
-              ]"
-              @click="handleLanguageClick(language)"
-            >
+            <div v-for="language in displayedLanguages" :key="language.value" :class="['video-filter__option', { 'video-filter__option--active': isLanguageSelected(language.value) }]" @click="handleLanguageClick(language)">
               {{ language.label }}
             </div>
           </div>
-          <div
-            v-if="showMoreLanguages"
-            class="video-filter__more-btn"
-            @click="toggleMoreLanguages"
-          >
+          <div v-if="showMoreLanguages" class="video-filter__more-btn" @click="toggleMoreLanguages">
             {{ showAllLanguages ? "收起" : "更多" }}
             <ScIcon>
               <component :is="showAllLanguages ? 'ArrowUp' : 'ArrowDown'" />
@@ -181,12 +125,8 @@ const languages = ref([{ label: "全部", value: "全部" }, ...languageOptions]
 // 已选择的筛选条件
 const selectedTypes = ref<string[]>(props.modelValue?.types || ["全部"]);
 const selectedYears = ref<string[]>(props.modelValue?.years || ["全部"]);
-const selectedDistricts = ref<string[]>(
-  props.modelValue?.districts || ["全部"],
-);
-const selectedLanguages = ref<string[]>(
-  props.modelValue?.languages || ["全部"],
-);
+const selectedDistricts = ref<string[]>(props.modelValue?.districts || ["全部"]);
+const selectedLanguages = ref<string[]>(props.modelValue?.languages || ["全部"]);
 
 // 筛选条件显示控制
 const showAllTypes = ref(false);
@@ -200,44 +140,30 @@ const MAX_DISPLAY_COUNT = 12;
 // 判断是否选中的助手函数
 const isTypeSelected = (value: string) => selectedTypes.value.includes(value);
 const isYearSelected = (value: string) => selectedYears.value.includes(value);
-const isDistrictSelected = (value: string) =>
-  selectedDistricts.value.includes(value);
-const isLanguageSelected = (value: string) =>
-  selectedLanguages.value.includes(value);
+const isDistrictSelected = (value: string) => selectedDistricts.value.includes(value);
+const isLanguageSelected = (value: string) => selectedLanguages.value.includes(value);
 
 // 计算是否显示更多按钮
 const showMoreTypes = computed(() => types.value.length > MAX_DISPLAY_COUNT);
 const showMoreYears = computed(() => years.value.length > MAX_DISPLAY_COUNT);
-const showMoreDistricts = computed(
-  () => districts.value.length > MAX_DISPLAY_COUNT,
-);
-const showMoreLanguages = computed(
-  () => languages.value.length > MAX_DISPLAY_COUNT,
-);
+const showMoreDistricts = computed(() => districts.value.length > MAX_DISPLAY_COUNT);
+const showMoreLanguages = computed(() => languages.value.length > MAX_DISPLAY_COUNT);
 
 // 计算显示的筛选条件
 const displayedTypes = computed(() => {
-  return showAllTypes.value
-    ? types.value
-    : types.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllTypes.value ? types.value : types.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedYears = computed(() => {
-  return showAllYears.value
-    ? years.value
-    : years.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllYears.value ? years.value : years.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedDistricts = computed(() => {
-  return showAllDistricts.value
-    ? districts.value
-    : districts.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllDistricts.value ? districts.value : districts.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 const displayedLanguages = computed(() => {
-  return showAllLanguages.value
-    ? languages.value
-    : languages.value.slice(0, MAX_DISPLAY_COUNT);
+  return showAllLanguages.value ? languages.value : languages.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
 /**
@@ -365,7 +291,7 @@ watch(
       selectedLanguages.value = newValue.languages || ["all"];
     }
   },
-  { deep: true },
+  { deep: true }
 );
 </script>
 

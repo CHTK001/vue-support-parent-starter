@@ -17,7 +17,7 @@ const routes = [
     meta: {
       title: "节假日管理",
       icon: "ep:calendar",
-      rank: 8,
+      rank: 8
     },
   },
 ] satisfies Array<RouteConfigsTable>;

@@ -112,10 +112,7 @@ export const useWeatherStore = reactive({
             data: res.data,
             timestamp: new Date().getTime(),
           };
-          localStorageProxy().setItem(
-            useWeatherStore.storageKey,
-            useWeatherStore.weather,
-          );
+          localStorageProxy().setItem(useWeatherStore.storageKey, useWeatherStore.weather);
           this.doAnalysis();
         });
         return;
@@ -138,22 +135,12 @@ export const useWeatherStore = reactive({
       useWeatherStore.city = item?.city;
       useWeatherStore.header = item?.city + " 未来7天天气情况";
       useWeatherStore.weatherArray = item?.day || [];
-      useWeatherStore.current = useWeatherStore.weatherArray.find(
-        (item) => item.date == this.toDay(),
-      );
+      useWeatherStore.current = useWeatherStore.weatherArray.find((item) => item.date == this.toDay());
       if (useWeatherStore.current) {
-        useWeatherStore.options.series[0].data = (item?.hours || []).map(
-          (it) => it.temperature,
-        );
-        useWeatherStore.options.series[1].data = (item?.hours || []).map(
-          (it) => it.humidity,
-        );
-        useWeatherStore.options.series[2].data = (item?.hours || []).map(
-          (it) => it.windSpeed,
-        );
-        useWeatherStore.options.xAxis.data = (item?.hours || []).map(
-          (it) => it.time,
-        );
+        useWeatherStore.options.series[0].data = (item?.hours || []).map((it) => it.temperature);
+        useWeatherStore.options.series[1].data = (item?.hours || []).map((it) => it.humidity);
+        useWeatherStore.options.series[2].data = (item?.hours || []).map((it) => it.windSpeed);
+        useWeatherStore.options.xAxis.data = (item?.hours || []).map((it) => it.time);
       }
     },
     isDay() {
@@ -162,15 +149,7 @@ export const useWeatherStore = reactive({
     },
     toDay() {
       const date = new Date();
-      return (
-        date.getFullYear() +
-        "-" +
-        (date.getMonth() + 1 > 9
-          ? date.getMonth() + 1
-          : "0" + (date.getMonth() + 1)) +
-        "-" +
-        date.getDate()
-      );
+      return date.getFullYear() + "-" + (date.getMonth() + 1 > 9 ? date.getMonth() + 1 : "0" + (date.getMonth() + 1)) + "-" + date.getDate();
     },
   },
 });

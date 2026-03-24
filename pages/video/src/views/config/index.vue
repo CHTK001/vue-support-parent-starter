@@ -40,7 +40,7 @@
           </div>
 
           <div class="table-actions">
-            <ScInput
+            <ScInput 
               v-model="searchKeyword"
               placeholder="搜索配置名称"
               clearable
@@ -52,7 +52,7 @@
               </template>
             </ScInput>
 
-            <ScSelect
+            <ScSelect 
               v-model="statusFilter"
               placeholder="状态筛选"
               style="width: 120px"
@@ -100,7 +100,7 @@
               <div class="empty-description">
                 还没有创建任何视频同步配置，点击上方按钮开始创建
               </div>
-              <ScButton
+              <ScButton 
                 type="primary"
                 @click="showAddDialog = true"
                 class="empty-action"
@@ -143,7 +143,8 @@
 
 <script setup lang="ts">
 // 直接使用IconifyIconOnline组件，无需变量赋值
-import { ScTable } from "@repo/components"
+import ScTable from "@repo/components/ScTable/index.vue";
+
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import {
   deleteSyncConfig,
@@ -156,9 +157,9 @@ import {
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
-import { ScSocketMessageDialog } from "@repo/components"
+import ScSocketMessageDialog from "@repo/components/ScSocketMessageDialog/index.vue";
 import { useGlobalSocket } from "@repo/core";
-import { message, ScMessageBox } from "@repo/utils";
+import { message , ScMessageBox} from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";
 import ConfigForm from "./components/ConfigForm.vue";
 import ConfigStats from "./components/ConfigStats.vue";
@@ -219,7 +220,7 @@ const initSocket = () => {
   socketInstance.on("/topic/video-sync/global", (data) => {
     const dataObject = JSON.parse(data.data);
     const config = configList.value.find(
-      (c) => c.videoSyncConfigId === dataObject.videoSyncConfigId,
+      (c) => c.videoSyncConfigId === dataObject.videoSyncConfigId
     );
 
     if (config) {
@@ -276,13 +277,13 @@ const getStatusText = (status: string): string => {
 const updateStats = () => {
   stats.totalConfigs = configList.value.length;
   stats.enabledConfigs = configList.value.filter(
-    (c) => c.videoSyncConfigEnable === true,
+    (c) => c.videoSyncConfigEnable === true
   ).length;
   stats.syncingConfigs = configList.value.filter(
-    (c) => c.videoSyncConfigStatus === "PROGRESS",
+    (c) => c.videoSyncConfigStatus === "PROGRESS"
   ).length;
   stats.errorConfigs = configList.value.filter(
-    (c) => c.videoSyncConfigStatus === "ERROR",
+    (c) => c.videoSyncConfigStatus === "ERROR"
   ).length;
 };
 
@@ -388,7 +389,7 @@ const handleStop = (config: VideoSyncConfig) => {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
-    },
+    }
   )
     .then(() => {
       // 用户确认停止
@@ -438,7 +439,7 @@ const deleteConfig = (config: VideoSyncConfig) => {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
-    },
+    }
   )
     .then(() => {
       // 用户确认删除
@@ -541,11 +542,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-3) 0%,
-    var(--el-color-primary) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;

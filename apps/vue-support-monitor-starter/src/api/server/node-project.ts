@@ -76,7 +76,7 @@ export function getProjectAccessList(nodeId) {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
       },
-    },
+    }
   );
 }
 
@@ -513,7 +513,7 @@ export function getProjectGroupAll() {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
       },
-    },
+    }
   );
 }
 

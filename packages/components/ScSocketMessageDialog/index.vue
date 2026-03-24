@@ -94,7 +94,7 @@
  * @updated 2025-12-02 简化架构，完全由 interact.js 控制
  */
 import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick, type PropType } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useSocketService } from "@repo/core";
 import interact from "interactjs";
 import { ScTag } from "../ScTag";

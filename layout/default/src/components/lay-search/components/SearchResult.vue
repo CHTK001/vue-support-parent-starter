@@ -3,7 +3,7 @@ import type { Props } from "../types";
 import { transformI18n } from "@repo/config";
 import { useResizeObserver } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@repo/core";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ref, computed, getCurrentInstance, onMounted } from "vue";
 import EnterOutlined from "@repo/assets/svg/enter_outlined.svg?component";
 
@@ -24,7 +24,8 @@ const epThemeStore = useEpThemeStoreHook();
 const itemStyle = computed(() => {
   return (item) => {
     return {
-      background: item?.path === active.value ? epThemeStore.epThemeColor : "",
+      background:
+        item?.path === active.value ? epThemeStore.epThemeColor : "",
       color: item.path === active.value ? "#fff" : "",
       fontSize: item.path === active.value ? "16px" : "14px",
     };

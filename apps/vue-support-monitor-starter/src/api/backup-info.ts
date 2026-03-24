@@ -22,8 +22,8 @@ import { loadRouterBase } from "./config";
 export function getBackupList(params) {
   return http.post("/system/backup/list", params, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -31,15 +31,11 @@ export function getBackupList(params) {
  * 获取数据库表名列表
  */
 export function getTableNameList() {
-  return http.post(
-    "/system/backup/table-name-list",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/system/backup/table-name-list", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -48,12 +44,12 @@ export function getTableNameList() {
  */
 export function createBackup(tableNameList) {
   const data = {
-    tableNameList,
+    tableNameList
   };
   return http.post("/system/backup/create", data, {
     headers: {
-      "Content-Type": "application/json",
-    },
+      "Content-Type": "application/json"
+    }
   });
 }
 
@@ -62,15 +58,11 @@ export function createBackup(tableNameList) {
  * @param {*} id
  */
 export function deleteBackup(id) {
-  return http.post(
-    "/system/backup/delete",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/system/backup/delete", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -79,16 +71,12 @@ export function deleteBackup(id) {
  * @returns
  */
 export function restoreBackup(id) {
-  return http.post(
-    "/system/backup/restore",
-    { id },
-    {
-      timeout: 0,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/system/backup/restore", { id }, {
+    timeout: 0,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -98,7 +86,7 @@ export function restoreBackup(id) {
  */
 export function downloadBackupFile(id) {
   return loadRouterBase("/system/backup/download", {
-    id: id,
+    id: id
   });
 }
 
@@ -112,24 +100,20 @@ export function downloadBackupFile(id) {
 export function uploadBackupFile(formData) {
   return http.post("/system/backup/upload", formData, {
     headers: {
-      "Content-Type": "multipart/form-data;charset=UTF-8",
+      "Content-Type": "multipart/form-data;charset=UTF-8"
     },
     // 0 表示无超时时间
-    timeout: 0,
+    timeout: 0
   });
 }
 
 export function getTriggerUrl(params) {
-  return http.post(
-    "/system/backup/trigger-url",
-    {},
-    {
-      params: params,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/system/backup/trigger-url", {}, {
+    params: params,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 export const backupTypeArray = [
@@ -137,12 +121,12 @@ export const backupTypeArray = [
   { key: 1, value: t("i18n_67b667bf98"), disabled: false },
   { key: 2, value: t("i18n_90c0458a4c"), disabled: true },
   { key: 3, value: t("i18n_590e5b46a0"), disabled: true },
-  { key: 4, value: t("i18n_4696724ed3"), disabled: true },
+  { key: 4, value: t("i18n_4696724ed3"), disabled: true }
 ];
 
-export const arrayToMap = (arra) => {
+export const arrayToMap = arra => {
   const obj = {};
-  arra.forEach((value) => {
+  arra.forEach(value => {
     obj[value.key] = value.value;
   });
   return obj;
@@ -153,5 +137,5 @@ export const backupTypeMap = arrayToMap(backupTypeArray);
 export const backupStatusMap = {
   0: t("i18n_5d459d550a"),
   1: t("i18n_3ba621d736"),
-  2: t("i18n_1012e09849"),
+  2: t("i18n_1012e09849")
 };

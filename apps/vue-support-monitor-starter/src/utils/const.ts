@@ -49,17 +49,7 @@ export const NO_LOADING_KEY = "loading";
 /**
  * 分页选择条
  */
-export const PAGE_DEFAULT_SIZW_OPTIONS = [
-  "5",
-  "10",
-  "15",
-  "20",
-  "25",
-  "30",
-  "35",
-  "40",
-  "50",
-];
+export const PAGE_DEFAULT_SIZW_OPTIONS = ["5", "10", "15", "20", "25", "30", "35", "40", "50"];
 
 /**
  * 缓存当前的工作空间 ID
@@ -102,10 +92,7 @@ export const PAGE_DEFAULT_LIST_QUERY: any = {
  * @param {Array} pageSizeOptions 分页选择条选项
  * @returns
  */
-export function COMPUTED_PAGINATION(
-  queryParam: any,
-  pageSizeOptions = PAGE_DEFAULT_SIZW_OPTIONS,
-) {
+export function COMPUTED_PAGINATION(queryParam: any, pageSizeOptions = PAGE_DEFAULT_SIZW_OPTIONS) {
   // console.log(queryParam)
   const limit = queryParam.limit || PAGE_DEFAULT_LIST_QUERY.limit;
   const total = queryParam.total || 0;
@@ -131,10 +118,7 @@ export function COMPUTED_PAGINATION(
  * @param {JSON} param1
  * @returns
  */
-export function CHANGE_PAGE(
-  listQuery: { [key: string]: any },
-  { pagination, sorter }: any,
-) {
+export function CHANGE_PAGE(listQuery: { [key: string]: any }, { pagination, sorter }: any) {
   if (pagination && Object.keys(pagination).length) {
     let limit = pagination.pageSize || pagination.limit || listQuery.limit;
     if (limit === -1) {
@@ -152,11 +136,7 @@ export function CHANGE_PAGE(
     PAGE_DEFAULT_LIST_QUERY.limit = limit;
   }
   if (sorter && Object.keys(sorter).length) {
-    listQuery = {
-      ...listQuery,
-      order: sorter.order,
-      order_field: sorter.field,
-    };
+    listQuery = { ...listQuery, order: sorter.order, order_field: sorter.field };
   }
   return listQuery;
 }
@@ -168,11 +148,7 @@ export function CHANGE_PAGE(
  * @params asyncHandle {Function} - 对`list`的每一个项的处理函数，参数为当前处理项，必须 return 一个Promise来确定是否继续进行迭代
  * @return {Promise} - 返回一个 Promise 值来确认所有数据是否迭代完成
  */
-export function concurrentExecution(
-  list: any[],
-  limit: number,
-  asyncHandle: any,
-) {
+export function concurrentExecution(list: any[], limit: number, asyncHandle: any) {
   // 递归执行
   const recursion = (arr: any) => {
     // 执行方法 arr.shift() 取出并移除第一个数据
@@ -204,17 +180,11 @@ export function concurrentExecution(
  * @param limit 并发控制
  * @param asyncHandle 任务处理函数
  */
-export async function concurrentJobs(
-  list: any[],
-  limit: number,
-  asyncHandle: any,
-) {
+export async function concurrentJobs(list: any[], limit: number, asyncHandle: any) {
   const arr = [...list];
   const result = [];
   for (let i = 0; i < arr.length; i += limit) {
-    result.push(
-      ...(await Promise.allSettled(arr.slice(i, i + limit).map(asyncHandle))),
-    );
+    result.push(...(await Promise.allSettled(arr.slice(i, i + limit).map(asyncHandle))));
   }
   return result;
 }
@@ -278,12 +248,7 @@ export function parseTime(time: any, cFormat = "YYYY-MM-DD HH:mm:ss") {
  * @returns
  */
 export function renderSize(value: any, defaultValue = "-") {
-  return formatUnits(
-    value,
-    1024,
-    ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"],
-    defaultValue,
-  );
+  return formatUnits(value, 1024, ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"], defaultValue);
 }
 
 /**
@@ -293,12 +258,7 @@ export function renderSize(value: any, defaultValue = "-") {
  * @returns
  */
 export function renderBpsSize(value: any, defaultValue = "-") {
-  return formatUnits(
-    value,
-    1024,
-    ["bps", "Kbps", "Mbps", "Gbps", "Tbps", "Pbps", "Ebps", "Zbps", "Ybps"],
-    defaultValue,
-  );
+  return formatUnits(value, 1024, ["bps", "Kbps", "Mbps", "Gbps", "Tbps", "Pbps", "Ebps", "Zbps", "Ybps"], defaultValue);
 }
 
 /**
@@ -307,12 +267,7 @@ export function renderBpsSize(value: any, defaultValue = "-") {
  * @param defaultValue
  * @returns
  */
-export function formatUnits(
-  value: any,
-  base: number,
-  unitArr: string[],
-  defaultValue = "-",
-) {
+export function formatUnits(value: any, base: number, unitArr: string[], defaultValue = "-") {
   if (null == value || value === "") {
     return defaultValue;
   }
@@ -359,12 +314,7 @@ if (!Array.prototype.groupBy) {
 //     : this
 // }
 //
-export function itemGroupBy(
-  arr: any[],
-  groupKey: string,
-  key: string,
-  dataKey: string,
-) {
+export function itemGroupBy(arr: any[], groupKey: string, key: string, dataKey: string) {
   key = key || "type";
   dataKey = dataKey || "data";
 
@@ -389,11 +339,7 @@ export function itemGroupBy(
  * @param {String} levelCount 格式化个数
  * @returns
  */
-export function formatDuration(
-  ms: any,
-  seg: string = ",",
-  levelCount: number = 5,
-) {
+export function formatDuration(ms: any, seg: string = ",", levelCount: number = 5) {
   let msNum = Number(ms);
   if (isNaN(msNum)) {
     return ms;
@@ -406,11 +352,11 @@ export function formatDuration(
   levelCount = levelCount || 5;
   if (msNum < 0) msNum = -msNum;
   const time: { [key: string]: number } = {};
-  ((time[t("i18n_249aba7632")] = Math.floor(msNum / 86400000)),
+  (time[t("i18n_249aba7632")] = Math.floor(msNum / 86400000)),
     (time[t("i18n_2de0d491d0")] = Math.floor(msNum / 3600000) % 24),
     (time[t("i18n_3a17b7352e")] = Math.floor(msNum / 60000) % 60),
     (time[t("i18n_0c1fec657f")] = Math.floor(msNum / 1000) % 60),
-    (time[t("i18n_21157cbff8")] = Math.floor(msNum) % 1000));
+    (time[t("i18n_21157cbff8")] = Math.floor(msNum) % 1000);
   return Object.entries(time)
     .filter((val) => val[1] !== 0)
     .map(([key, val]) => `${val}${key}`)
@@ -483,15 +429,9 @@ export function compareVersion(version1: string, version2: string) {
 
 // 当前页面构建信息
 export function pageBuildInfo() {
-  const htmlVersion = (
-    document.head.querySelector("[name~=jpom-version][content]") as any
-  )?.content;
-  const buildTime = (
-    document.head.querySelector("[name~=build-time][content]") as any
-  )?.content;
-  const buildEnv = (
-    document.head.querySelector("[name~=build-env][content]") as any
-  )?.content;
+  const htmlVersion = (document.head.querySelector("[name~=jpom-version][content]") as any)?.content;
+  const buildTime = (document.head.querySelector("[name~=build-time][content]") as any)?.content;
+  const buildEnv = (document.head.querySelector("[name~=build-env][content]") as any)?.content;
   return {
     v: htmlVersion,
     t: buildTime,
@@ -507,10 +447,7 @@ export function pageBuildInfo() {
  * @param dragResult onDrop 结果集
  * @returns
  */
-export const dropApplyDrag = <T = any>(
-  arr: T[],
-  dragResult: { removedIndex: number; addedIndex: number; payload: T },
-) => {
+export const dropApplyDrag = <T = any>(arr: T[], dragResult: { removedIndex: number; addedIndex: number; payload: T }) => {
   const { removedIndex, addedIndex, payload } = dragResult;
   if (removedIndex === null && addedIndex === null) return arr;
   const result = [...arr];

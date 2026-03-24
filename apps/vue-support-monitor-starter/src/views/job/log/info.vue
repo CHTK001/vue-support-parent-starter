@@ -60,9 +60,9 @@
           </div>
           <div class="info-item">
             <span class="info-label">执行环境</span>
-            <ScTag size="small" :type="getEnvType(form.jobLogProfile)">
+            <el-tag size="small" :type="getEnvType(form.jobLogProfile)">
               {{ form.jobLogProfile || "-" }}
-            </ScTag>
+            </el-tag>
           </div>
           <div class="info-item">
             <span class="info-label">执行服务器</span>
@@ -381,6 +381,7 @@ export default {
   word-break: break-all;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -389,4 +390,5 @@ export default {
     padding: 12px 16px;
   }
 }
+
 </style>

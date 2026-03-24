@@ -21,20 +21,16 @@ export default {
         iv: "",
         mode: "",
         padding: "",
-      },
+      }
     ) {
       if (secretKey.length % 8 != 0) {
         console.warn("[error]: 秘钥长度需为8的倍数，否则解密将会失败。");
       }
-      const result = CryptoJS.AES.encrypt(
-        data,
-        CryptoJS.enc.Utf8.parse(secretKey),
-        {
-          iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
-          mode: CryptoJS.mode[config.mode || "ECB"],
-          padding: CryptoJS.pad[config.padding || "Pkcs7"],
-        },
-      );
+      const result = CryptoJS.AES.encrypt(data, CryptoJS.enc.Utf8.parse(secretKey), {
+        iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
+        mode: CryptoJS.mode[config.mode || "ECB"],
+        padding: CryptoJS.pad[config.padding || "Pkcs7"],
+      });
       return result.toString();
     },
     decrypt(
@@ -44,17 +40,13 @@ export default {
         iv: "",
         mode: "",
         padding: "",
-      },
+      }
     ) {
-      const result = CryptoJS.AES.decrypt(
-        cipher,
-        CryptoJS.enc.Utf8.parse(secretKey),
-        {
-          iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
-          mode: CryptoJS.mode[config.mode || "ECB"],
-          padding: CryptoJS.pad[config.padding || "Pkcs7"],
-        },
-      );
+      const result = CryptoJS.AES.decrypt(cipher, CryptoJS.enc.Utf8.parse(secretKey), {
+        iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
+        mode: CryptoJS.mode[config.mode || "ECB"],
+        padding: CryptoJS.pad[config.padding || "Pkcs7"],
+      });
       return CryptoJS.enc.Utf8.stringify(result);
     },
   },

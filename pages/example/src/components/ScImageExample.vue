@@ -180,7 +180,9 @@
               裁剪
             </li>
             <li>
-              <ScIcon><IconifyIconOnline icon="ri:rotate-lock-line" /></ScIcon>
+              <ScIcon 
+                ><IconifyIconOnline icon="ri:rotate-lock-line"
+              /></ScIcon>
               旋转
             </li>
             <li>
@@ -188,7 +190,7 @@
               缩放
             </li>
             <li>
-              <ScIcon
+              <ScIcon 
                 ><IconifyIconOnline icon="ri:flip-horizontal-line"
               /></ScIcon>
               翻转
@@ -422,9 +424,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScImage } from "@repo/components"
+import ScImage from "@repo/components/ScImage/index.vue";
 import CodePreview from "./CodePreview.vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 
 // 基础示例
@@ -459,7 +461,7 @@ const customEditorImage3 = ref("");
 // 事件示例
 const eventImage = ref("");
 const eventLogs = ref<Array<{ time: string; type: string; message: string }>>(
-  [],
+  []
 );
 
 // 方法

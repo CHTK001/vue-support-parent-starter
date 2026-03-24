@@ -91,8 +91,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
-import { ScVideo } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import ScVideo from "@repo/components/ScVideo/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const videoRef = ref();
 
@@ -102,7 +102,7 @@ const config = reactive({
   controls: true,
   autoplay: false,
   loop: false,
-  muted: false,
+  muted: false
 });
 
 // 生成示例代码
@@ -126,108 +126,18 @@ function pauseVideo() {
 </script>
 
 <style scoped lang="scss">
-.sc-video-example {
-  padding: 20px;
-}
-.example-container {
-  display: flex;
-  gap: 24px;
-  @media (max-width: 900px) {
-    flex-direction: column;
-  }
-}
-.config-panel {
-  width: 320px;
-  flex-shrink: 0;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-  @media (max-width: 900px) {
-    width: 100%;
-  }
-}
-.preview-panel {
-  flex: 1;
-  min-width: 0;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-}
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  .iconify {
-    color: var(--el-color-primary);
-  }
-}
-.switch-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.switch-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
-  span {
-    cursor: help;
-    border-bottom: 1px dashed var(--el-border-color);
-  }
-}
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.preview-area {
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-.code-area {
-  margin-top: 20px;
-}
-.code-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  .iconify {
-    color: var(--el-color-primary);
-  }
-}
-.code-content {
-  margin: 0;
-  padding: 16px;
-  background: #1e1e1e;
-  border-radius: 6px;
-  overflow-x: auto;
-  code {
-    font-size: 13px;
-    font-family: "SF Mono", "Monaco", "Consolas", monospace;
-    color: #d4d4d4;
-    line-height: 1.6;
-  }
-}
-:deep(.el-form-item) {
-  margin-bottom: 16px;
-}
-:deep(.el-divider) {
-  margin: 16px 0;
-}
+.sc-video-example { padding: 20px; }
+.example-container { display: flex; gap: 24px; @media (max-width: 900px) { flex-direction: column; } }
+.config-panel { width: 320px; flex-shrink: 0; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 20px; @media (max-width: 900px) { width: 100%; } }
+.preview-panel { flex: 1; min-width: 0; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 20px; }
+.panel-title { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); .iconify { color: var(--el-color-primary); } }
+.switch-group { display: flex; flex-direction: column; gap: 12px; }
+.switch-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--el-text-color-regular); span { cursor: help; border-bottom: 1px dashed var(--el-border-color); } }
+.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.preview-area { background: var(--el-fill-color-lighter); border-radius: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.code-area { margin-top: 20px; }
+.code-title { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 14px; font-weight: 500; color: var(--el-text-color-primary); .iconify { color: var(--el-color-primary); } }
+.code-content { margin: 0; padding: 16px; background: #1e1e1e; border-radius: 6px; overflow-x: auto; code { font-size: 13px; font-family: "SF Mono", "Monaco", "Consolas", monospace; color: #d4d4d4; line-height: 1.6; } }
+:deep(.el-form-item) { margin-bottom: 16px; }
+:deep(.el-divider) { margin: 16px 0; }
 </style>

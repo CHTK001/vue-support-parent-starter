@@ -2,7 +2,7 @@
  * useTableBatchAction - 批量操作 composable
  * 管理批量操作工具栏
  */
-import { ref, computed, type Ref, type ComputedRef } from "vue";
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 
 /** 批量操作项 */
 export interface BatchAction {
@@ -13,7 +13,7 @@ export interface BatchAction {
   /** 图标 */
   icon?: string;
   /** 类型：primary/success/warning/danger/info */
-  type?: "primary" | "success" | "warning" | "danger" | "info" | "default";
+  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'default';
   /** 是否禁用 */
   disabled?: boolean | ((selectedRows: any[]) => boolean);
   /** 是否需要确认 */
@@ -68,7 +68,12 @@ export interface BatchActionReturn {
  * 批量操作 composable
  */
 export function useTableBatchAction(options: BatchActionOptions = {}): BatchActionReturn {
-  const { enabled = false, actions: initialActions = [], showCount = true, hideWhenEmpty = true } = options;
+  const {
+    enabled = false,
+    actions: initialActions = [],
+    showCount = true,
+    hideWhenEmpty = true,
+  } = options;
 
   const isEnabled = ref(enabled);
   const actions = ref<BatchAction[]>([...initialActions]);
@@ -105,7 +110,7 @@ export function useTableBatchAction(options: BatchActionOptions = {}): BatchActi
    * 检查操作是否禁用
    */
   const isActionDisabled = (action: BatchAction): boolean => {
-    if (typeof action.disabled === "function") {
+    if (typeof action.disabled === 'function') {
       return action.disabled(selectedRows.value);
     }
     return action.disabled ?? false;
@@ -165,7 +170,7 @@ export function useTableBatchAction(options: BatchActionOptions = {}): BatchActi
     executeAction,
     addAction,
     removeAction,
-    isActionDisabled
+    isActionDisabled,
   };
 }
 

@@ -1,6 +1,6 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
-import { ScSwitch } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
@@ -62,8 +62,8 @@ const renderContent = (h, { node, data }) => {
         style:
           "float: right; color: var(--el-text-color-secondary); font-size: 13px",
       },
-      data?.sysDictItemCode,
-    ),
+      data?.sysDictItemCode
+    )
   );
 };
 onMounted(() => {
@@ -169,17 +169,17 @@ const resetForm = async (ref) => {
     <SmsDialog ref="smsDialogRef" />
     <SmsSelectDialog ref="smsSelectDialogRef" />
 
-    <ScContainer>
-      <ScHeader>
+    <el-container>
+      <el-header>
         <div class="left-panel">
-          <ScForm
+          <ScForm 
             ref="formRef"
             :inline="true"
             :model="form"
             class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
           >
             <ScFormItem label="模板名称" prop="sysSmsTemplateName">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSmsTemplateName"
                 placeholder="请输入模板名称"
                 clearable
@@ -188,13 +188,13 @@ const resetForm = async (ref) => {
             </ScFormItem>
 
             <ScFormItem label="模板类型" prop="sysSmsTemplateCategory">
-              <ScSelect
+              <ScSelect 
                 v-model="form.sysSmsTemplateCategory"
                 placeholder="请选择类型"
                 clearable
                 class="w-full min-w-[240px]"
               >
-                <ScOption
+                <ScOption 
                   v-for="item in categoryData"
                   :key="item.sysDictItemId"
                   :value="item.sysDictItemId"
@@ -206,41 +206,41 @@ const resetForm = async (ref) => {
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <ScButton
+            <ScButton 
               type="primary"
               :icon="useRenderIcon('ri:search-line')"
               :loading="loading.query"
               @click="onSearch"
             />
-            <ScButton
+            <ScButton 
               title="重置"
               :icon="useRenderIcon('ep:refresh')"
               @click="resetForm(formRef)"
             />
-            <ScButton
+            <ScButton 
               title="新增"
               :icon="useRenderIcon('ep:edit')"
               @click="dialogOpen({}, 'save')"
             />
-            <ScButton
+            <ScButton 
               title="测试"
               :icon="useRenderIcon('bi:send')"
               @click="handleAllSend"
             />
-            <ScButton
+            <ScButton 
               title="同步"
               :icon="useRenderIcon('bi:database-down')"
               @click="handleSync"
             />
-            <ScButton
+            <ScButton 
               title="日志"
               :icon="useRenderIcon('ep:files')"
               @click="handleLog"
             />
           </div>
         </div>
-      </ScHeader>
-      <ScMain>
+      </el-header>
+      <el-main>
         <ScTable
           ref="tableRef"
           border
@@ -249,14 +249,14 @@ const resetForm = async (ref) => {
           :params="params"
           class="custom-table-row"
         >
-          <ScTableColumn
+          <ScTableColumn 
             label="序号"
             type="index"
             align="center"
             fixed
             width="60px"
           />
-          <ScTableColumn
+          <ScTableColumn 
             prop="sysSmsTemplateName"
             label="模板名称"
             align="center"
@@ -266,11 +266,11 @@ const resetForm = async (ref) => {
           >
             <template #default="{ row }">
               <div>
-                <ScTooltip
+                <ScTooltip 
                   v-if="row.sysSmsTemplateRemark"
                   :content="row.sysSmsTemplateRemark"
                 >
-                  <ScTag
+                  <ScTag 
                     :title="row.sysSmsTemplateName"
                     effect="dark"
                     size="small"
@@ -290,7 +290,7 @@ const resetForm = async (ref) => {
                   </span>
                 </ScTooltip>
                 <div v-else>
-                  <ScTag
+                  <ScTag 
                     :title="row.sysSmsTemplateName"
                     effect="dark"
                     size="small"
@@ -312,7 +312,7 @@ const resetForm = async (ref) => {
               </div>
             </template>
           </ScTableColumn>
-          <ScTableColumn
+          <ScTableColumn 
             prop="sysSmsTemplateCategory"
             label="模板类型"
             show-overflow-tooltip
@@ -321,7 +321,7 @@ const resetForm = async (ref) => {
               <ScTag>{{ row.sysSmsTemplateCategoryLabel || "/" }}</ScTag>
             </template>
           </ScTableColumn>
-          <ScTableColumn
+          <ScTableColumn 
             prop="sysSmsTemplateContent"
             label="模板内容"
             min-width="360px"
@@ -331,7 +331,7 @@ const resetForm = async (ref) => {
               <span>{{ row.sysSmsTemplateContent || "/" }}</span>
             </template>
           </ScTableColumn>
-          <ScTableColumn
+          <ScTableColumn 
             prop="sysSmsTemplateStatus"
             label="状态"
             align="center"
@@ -346,13 +346,13 @@ const resetForm = async (ref) => {
               />
             </template>
           </ScTableColumn>
-          <ScTableColumn
+          <ScTableColumn 
             prop="sysSmsTemplateSort"
             label="排序"
             align="center"
             width="60px"
           />
-          <ScTableColumn
+          <ScTableColumn 
             prop="updateTime"
             label="最后一次更新时间"
             align="center"
@@ -366,7 +366,7 @@ const resetForm = async (ref) => {
 
           <ScTableColumn label="操作" fixed="right" align="center">
             <template #default="{ row }">
-              <ScButton
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -376,7 +376,7 @@ const resetForm = async (ref) => {
               >
                 {{ $t("buttons.test") }}
               </ScButton>
-              <ScButton
+              <ScButton 
                 size="small"
                 plain
                 link
@@ -386,28 +386,27 @@ const resetForm = async (ref) => {
               >
                 {{ $t("buttons.update") }}
               </ScButton>
-              <ScPopconfirm
+              <ScPopconfirm 
                 v-if="row.sysSmsTemplateDisabled == 0"
                 :title="$t('message.confimDelete')"
                 @confirm="onDelete(row)"
               >
                 <template #reference>
-                  <ScButton
+                  <ScButton 
                     size="small"
                     type="danger"
                     plain
                     link
                     :icon="useRenderIcon('ep:delete')"
+                    >{{ $t("buttons.delete") }}</el-button
                   >
-                    {{ $t("buttons.delete") }}
-                  </ScButton>
                 </template>
               </ScPopconfirm>
             </template>
           </ScTableColumn>
         </ScTable>
-      </ScMain>
-    </ScContainer>
+      </el-main>
+    </el-container>
   </div>
 </template>
 

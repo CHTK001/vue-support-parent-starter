@@ -1,52 +1,24 @@
 <template>
   <div class="sc-config-value-input">
     <!-- 根据类型选择不同的输入组件 -->
-    <component
-      :is="getComponentByType(type)"
-      v-model="innerValue"
-      v-bind="$attrs"
-      :disabled="disabled"
-      :placeholder="placeholder || getPlaceholderByType(type)"
-    />
+    <component :is="getComponentByType(type)" v-model="innerValue" v-bind="$attrs" :disabled="disabled" :placeholder="placeholder || getPlaceholderByType(type)" />
   </div>
 </template>
 
 <script setup>
 import { computed, defineAsyncComponent } from "vue"; // 添加defineAsyncComponent
 // 将所有组件改为异步组件
-const StringInput = defineAsyncComponent(
-  () => import("./components/StringInput.vue"),
-);
-const NumberInput = defineAsyncComponent(
-  () => import("./components/NumberInput.vue"),
-);
-const BooleanToggle = defineAsyncComponent(
-  () => import("./components/BooleanToggle.vue"),
-);
-const ArrayInput = defineAsyncComponent(
-  () => import("./components/ArrayInput.vue"),
-);
-const TextAreaInput = defineAsyncComponent(
-  () => import("./components/TextAreaInput.vue"),
-);
-const DictInput = defineAsyncComponent(
-  () => import("./components/DictInput.vue"),
-);
-const ColorPicker = defineAsyncComponent(
-  () => import("./components/ColorPicker.vue"),
-);
-const MailInput = defineAsyncComponent(
-  () => import("./components/MailInput.vue"),
-);
-const PasswordInput = defineAsyncComponent(
-  () => import("./components/PasswordInput.vue"),
-);
-const SecretInput = defineAsyncComponent(
-  () => import("./components/SecretInput.vue"),
-);
-const ObjectInput = defineAsyncComponent(
-  () => import("./components/ObjectInput.vue"),
-);
+const StringInput = defineAsyncComponent(() => import("./components/StringInput.vue"));
+const NumberInput = defineAsyncComponent(() => import("./components/NumberInput.vue"));
+const BooleanToggle = defineAsyncComponent(() => import("./components/BooleanToggle.vue"));
+const ArrayInput = defineAsyncComponent(() => import("./components/ArrayInput.vue"));
+const TextAreaInput = defineAsyncComponent(() => import("./components/TextAreaInput.vue"));
+const DictInput = defineAsyncComponent(() => import("./components/DictInput.vue"));
+const ColorPicker = defineAsyncComponent(() => import("./components/ColorPicker.vue"));
+const MailInput = defineAsyncComponent(() => import("./components/MailInput.vue"));
+const PasswordInput = defineAsyncComponent(() => import("./components/PasswordInput.vue"));
+const SecretInput = defineAsyncComponent(() => import("./components/SecretInput.vue"));
+const ObjectInput = defineAsyncComponent(() => import("./components/ObjectInput.vue"));
 
 /**
  * 组件属性定义

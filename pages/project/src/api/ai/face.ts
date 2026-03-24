@@ -14,17 +14,13 @@ export interface FaceRequest {
 export const fetchFaceDetection = (params: FaceRequest, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
-  return http.request<ReturnResult<object[]>>(
-    "post",
-    "/v2/ai/image/face/detect",
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      data: formData,
-      params,
+  return http.request<ReturnResult<object[]>>("post", "/v2/ai/image/face/detect", {
+    headers: {
+      "Content-Type": "multipart/form-data",
     },
-  );
+    data: formData,
+    params,
+  });
 };
 
 /**
@@ -33,17 +29,13 @@ export const fetchFaceDetection = (params: FaceRequest, file: File) => {
 export const fetchFaceFeature = (params: FaceRequest, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
-  return http.request<ReturnResult<object[]>>(
-    "post",
-    "/v2/ai/image/face/feature",
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      data: formData,
-      params,
+  return http.request<ReturnResult<object[]>>("post", "/v2/ai/image/face/feature", {
+    headers: {
+      "Content-Type": "multipart/form-data",
     },
-  );
+    data: formData,
+    params,
+  });
 };
 
 /**
@@ -52,39 +44,27 @@ export const fetchFaceFeature = (params: FaceRequest, file: File) => {
 export const fetchFaceRecognizer = (params: FaceRequest, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
-  return http.request<ReturnResult<object[]>>(
-    "post",
-    "/v2/ai/image/face/recognizer",
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      data: formData,
-      params,
+  return http.request<ReturnResult<object[]>>("post", "/v2/ai/image/face/recognizer", {
+    headers: {
+      "Content-Type": "multipart/form-data",
     },
-  );
+    data: formData,
+    params,
+  });
 };
 
 /**
  * 人脸对比
  */
-export const fetchFaceCompare = (
-  params: FaceRequest,
-  file: File,
-  file2: File,
-) => {
+export const fetchFaceCompare = (params: FaceRequest, file: File, file2: File) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("file2", file2);
-  return http.request<ReturnResult<object[]>>(
-    "post",
-    "/v2/ai/image/face/compare",
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      data: formData,
-      params,
+  return http.request<ReturnResult<object[]>>("post", "/v2/ai/image/face/compare", {
+    headers: {
+      "Content-Type": "multipart/form-data",
     },
-  );
+    data: formData,
+    params,
+  });
 };

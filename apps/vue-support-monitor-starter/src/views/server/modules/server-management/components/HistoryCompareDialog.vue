@@ -9,17 +9,17 @@
     <div class="history-compare">
       <!-- 选择对比的历史记录 -->
       <div class="compare-selector">
-        <ScRow :gutter="16">
-          <ScCol :span="12">
+        <el-row :gutter="16">
+          <el-col :span="12">
             <div class="selector-section">
               <h4 class="selector-title">选择基准配置</h4>
-              <ScSelect
-                v-model="selectedHistory1"
+              <el-select 
+                v-model="selectedHistory1" 
                 placeholder="请选择基准配置"
                 filterable
                 style="width: 100%"
               >
-                <ScOption
+                <el-option
                   v-for="history in historyOptions"
                   :key="history.monitorSysGenServerSettingHistoryId"
                   :label="formatHistoryLabel(history)"
@@ -27,134 +27,128 @@
                 >
                   <div class="history-option">
                     <div class="option-main">
-                      <ScTag
-                        :type="ChangeTypeColors[history.changeType]"
+                      <el-tag 
+                        :type="ChangeTypeColors[history.changeType]" 
                         size="small"
                         class="mr-2"
                       >
                         {{ ChangeTypeNames[history.changeType] }}
-                      </ScTag>
+                      </el-tag>
                       <span>{{ history.changeDescription }}</span>
                     </div>
                     <div class="option-time">
                       {{ formatTime(history.changeTime) }}
                     </div>
                   </div>
-                </ScOption>
-              </ScSelect>
+                </el-option>
+              </el-select>
             </div>
-          </ScCol>
-          <ScCol :span="12">
+          </el-col>
+          <el-col :span="12">
             <div class="selector-section">
               <h4 class="selector-title">选择对比配置</h4>
-              <ScSelect
-                v-model="selectedHistory2"
+              <el-select 
+                v-model="selectedHistory2" 
                 placeholder="请选择对比配置"
                 filterable
                 style="width: 100%"
               >
-                <ScOption
+                <el-option
                   v-for="history in historyOptions"
                   :key="history.monitorSysGenServerSettingHistoryId"
                   :label="formatHistoryLabel(history)"
                   :value="history.monitorSysGenServerSettingHistoryId"
-                  :disabled="
-                    history.monitorSysGenServerSettingHistoryId ===
-                    selectedHistory1
-                  "
+                  :disabled="history.monitorSysGenServerSettingHistoryId === selectedHistory1"
                 >
                   <div class="history-option">
                     <div class="option-main">
-                      <ScTag
-                        :type="ChangeTypeColors[history.changeType]"
+                      <el-tag 
+                        :type="ChangeTypeColors[history.changeType]" 
                         size="small"
                         class="mr-2"
                       >
                         {{ ChangeTypeNames[history.changeType] }}
-                      </ScTag>
+                      </el-tag>
                       <span>{{ history.changeDescription }}</span>
                     </div>
                     <div class="option-time">
                       {{ formatTime(history.changeTime) }}
                     </div>
                   </div>
-                </ScOption>
-              </ScSelect>
+                </el-option>
+              </el-select>
             </div>
-          </ScCol>
-        </ScRow>
-
+          </el-col>
+        </el-row>
+        
         <div class="compare-actions">
-          <ScButton
-            type="primary"
+          <el-button 
+            type="primary" 
             :disabled="!canCompare"
             :loading="comparing"
             @click="handleCompare"
           >
             <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
             开始对比
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
       <!-- 对比结果 -->
-      <div v-if="compareResult" class="compare-result">
+      <div class="compare-result" v-if="compareResult">
         <div class="result-header">
           <h4 class="result-title">
             <IconifyIconOnline icon="ri:git-compare-line" class="mr-2" />
             对比结果
           </h4>
           <div class="result-summary">
-            <ScTag type="info" size="small">
+            <el-tag type="info" size="small">
               共发现 {{ differences.length }} 处差异
-            </ScTag>
+            </el-tag>
           </div>
         </div>
 
         <!-- 差异列表 -->
-        <div v-if="differences.length > 0" class="differences-list">
-          <ScTable :data="differences" stripe>
-            <ScTableColumn prop="field" label="字段路径" width="200">
+        <div class="differences-list" v-if="differences.length > 0">
+          <el-table :data="differences" stripe>
+            <el-table-column prop="field" label="字段路径" width="200">
               <template #default="{ row }">
                 <div class="field-path">
                   <IconifyIconOnline icon="ri:node-tree" class="mr-1" />
                   {{ row.field }}
                 </div>
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="基准值">
+            </el-table-column>
+            <el-table-column label="基准值">
               <template #default="{ row }">
                 <div class="value-cell base-value">
                   {{ formatValue(row.baseValue) }}
                 </div>
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="对比值">
+            </el-table-column>
+            <el-table-column label="对比值">
               <template #default="{ row }">
                 <div class="value-cell compare-value">
                   {{ formatValue(row.compareValue) }}
                 </div>
               </template>
-            </ScTableColumn>
-            <ScTableColumn prop="changeType" label="变更类型" width="100">
+            </el-table-column>
+            <el-table-column prop="changeType" label="变更类型" width="100">
               <template #default="{ row }">
-                <ScTag
-                  :type="getDifferenceTypeColor(row.changeType)"
+                <el-tag 
+                  :type="getDifferenceTypeColor(row.changeType)" 
                   size="small"
                 >
                   {{ getDifferenceTypeName(row.changeType) }}
-                </ScTag>
+                </el-tag>
               </template>
-            </ScTableColumn>
-          </ScTable>
+            </el-table-column>
+          </el-table>
         </div>
 
         <!-- 无差异提示 -->
-        <div v-else class="no-differences">
-          <ScEmpty
-            description="两个配置完全相同，没有发现差异"
-            :image-size="80"
-          />
+        <div class="no-differences" v-else>
+          <el-empty description="两个配置完全相同，没有发现差异" :image-size="80" />
         </div>
 
         <!-- 并排对比视图 -->
@@ -163,57 +157,57 @@
             <IconifyIconOnline icon="ri:layout-column-line" class="mr-2" />
             并排对比
           </h4>
-          <ScRow :gutter="16">
-            <ScCol :span="12">
+          <el-row :gutter="16">
+            <el-col :span="12">
               <div class="config-panel">
                 <div class="panel-header">
                   <h5>基准配置</h5>
-                  <ScTag type="info" size="small">
-                    {{ formatTime(baseHistory?.changeTime || "") }}
-                  </ScTag>
+                  <el-tag type="info" size="small">
+                    {{ formatTime(baseHistory?.changeTime || '') }}
+                  </el-tag>
                 </div>
                 <div class="config-content">
                   <pre><code>{{ formatConfig(baseConfig) }}</code></pre>
                 </div>
               </div>
-            </ScCol>
-            <ScCol :span="12">
+            </el-col>
+            <el-col :span="12">
               <div class="config-panel">
                 <div class="panel-header">
                   <h5>对比配置</h5>
-                  <ScTag type="info" size="small">
-                    {{ formatTime(compareHistory?.changeTime || "") }}
-                  </ScTag>
+                  <el-tag type="info" size="small">
+                    {{ formatTime(compareHistory?.changeTime || '') }}
+                  </el-tag>
                 </div>
                 <div class="config-content">
                   <pre><code>{{ formatConfig(compareConfig) }}</code></pre>
                 </div>
               </div>
-            </ScCol>
-          </ScRow>
+            </el-col>
+          </el-row>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
-        <ScButton
+        <el-button @click="handleClose">关闭</el-button>
+        <el-button 
           v-if="compareResult && baseHistory"
-          type="warning"
+          type="warning" 
           @click="handleRestoreBase"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
           恢复基准配置
-        </ScButton>
-        <ScButton
+        </el-button>
+        <el-button 
           v-if="compareResult && compareHistory"
-          type="warning"
+          type="warning" 
           @click="handleRestoreCompare"
         >
           <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
           恢复对比配置
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -222,11 +216,11 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
-import {
+import { 
   type ServerSettingHistory,
   compareHistory,
   ChangeTypeNames,
-  ChangeTypeColors,
+  ChangeTypeColors
 } from "@/api/server/settingHistory";
 
 // 定义属性
@@ -254,27 +248,20 @@ const compareResult = ref<any>(null);
 
 // 计算属性
 const historyOptions = computed(() => {
-  return props.historyList.filter((h) => h.settingSnapshot);
+  return props.historyList.filter(h => h.settingSnapshot);
 });
 
 const canCompare = computed(() => {
-  return (
-    selectedHistory1.value &&
-    selectedHistory2.value &&
-    selectedHistory1.value !== selectedHistory2.value
-  );
+  return selectedHistory1.value && selectedHistory2.value && 
+         selectedHistory1.value !== selectedHistory2.value;
 });
 
 const baseHistory = computed(() => {
-  return historyOptions.value.find(
-    (h) => h.monitorSysGenServerSettingHistoryId === selectedHistory1.value,
-  );
+  return historyOptions.value.find(h => h.monitorSysGenServerSettingHistoryId === selectedHistory1.value);
 });
 
 const compareHistory = computed(() => {
-  return historyOptions.value.find(
-    (h) => h.monitorSysGenServerSettingHistoryId === selectedHistory2.value,
-  );
+  return historyOptions.value.find(h => h.monitorSysGenServerSettingHistoryId === selectedHistory2.value);
 });
 
 const baseConfig = computed(() => {
@@ -339,14 +326,10 @@ const formatConfig = (config: any) => {
  */
 const getDifferenceTypeColor = (type: string) => {
   switch (type) {
-    case "added":
-      return "success";
-    case "removed":
-      return "danger";
-    case "modified":
-      return "warning";
-    default:
-      return "info";
+    case "added": return "success";
+    case "removed": return "danger";
+    case "modified": return "warning";
+    default: return "info";
   }
 };
 
@@ -355,14 +338,10 @@ const getDifferenceTypeColor = (type: string) => {
  */
 const getDifferenceTypeName = (type: string) => {
   switch (type) {
-    case "added":
-      return "新增";
-    case "removed":
-      return "删除";
-    case "modified":
-      return "修改";
-    default:
-      return "未知";
+    case "added": return "新增";
+    case "removed": return "删除";
+    case "modified": return "修改";
+    default: return "未知";
   }
 };
 
@@ -371,14 +350,11 @@ const getDifferenceTypeName = (type: string) => {
  */
 const handleCompare = async () => {
   if (!canCompare.value) return;
-
+  
   try {
     comparing.value = true;
-    const result = await compareHistory(
-      selectedHistory1.value!,
-      selectedHistory2.value!,
-    );
-
+    const result = await compareHistory(selectedHistory1.value!, selectedHistory2.value!);
+    
     if (result.success) {
       compareResult.value = result.data;
       message.success("对比完成");
@@ -423,16 +399,12 @@ const handleClose = () => {
 };
 
 // 监听visible变化
-watch(
-  () => props.visible,
-  (newVal) => {
-    dialogVisible.value = newVal;
-    if (newVal && props.selectedHistory) {
-      selectedHistory1.value =
-        props.selectedHistory.monitorSysGenServerSettingHistoryId;
-    }
-  },
-);
+watch(() => props.visible, (newVal) => {
+  dialogVisible.value = newVal;
+  if (newVal && props.selectedHistory) {
+    selectedHistory1.value = props.selectedHistory.monitorSysGenServerSettingHistoryId;
+  }
+});
 
 // 监听dialogVisible变化
 watch(dialogVisible, (newVal) => {
@@ -468,7 +440,7 @@ watch(dialogVisible, (newVal) => {
 
       .option-time {
         font-size: 12px;
-        color: var(--el-text-color-primary);
+         color: var(--el-text-color-primary);
       }
     }
 
@@ -501,13 +473,13 @@ watch(dialogVisible, (newVal) => {
       .field-path {
         display: flex;
         align-items: center;
-        font-family: "Courier New", monospace;
+        font-family: 'Courier New', monospace;
         font-size: 12px;
         color: #606266;
       }
 
       .value-cell {
-        font-family: "Courier New", monospace;
+        font-family: 'Courier New', monospace;
         font-size: 12px;
         padding: 4px 8px;
         border-radius: 4px;
@@ -572,7 +544,7 @@ watch(dialogVisible, (newVal) => {
 
           pre {
             margin: 0;
-            font-family: "Courier New", monospace;
+            font-family: 'Courier New', monospace;
             font-size: 12px;
             line-height: 1.5;
             color: var(--el-text-color-primary);
@@ -589,6 +561,7 @@ watch(dialogVisible, (newVal) => {
   gap: 12px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -597,4 +570,5 @@ watch(dialogVisible, (newVal) => {
     padding: 12px 16px;
   }
 }
+
 </style>

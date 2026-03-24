@@ -2,10 +2,10 @@
  * useTableExport - 表格数据导出 composable
  * 支持导出 Excel、CSV、JSON 格式
  */
-import { ref, type Ref } from "vue";
+import { ref, type Ref } from 'vue';
 
 /** 导出类型 */
-export type ExportType = "excel" | "csv" | "json";
+export type ExportType = 'excel' | 'csv' | 'json';
 
 /** 导出选项 */
 export interface ExportOptions {
@@ -45,7 +45,13 @@ export interface ExportReturn {
  * 表格导出 composable
  */
 export function useTableExport(options: ExportOptions = {}): ExportReturn {
-  const { enabled = false, types = ["excel", "csv", "json"], filename = "table-data", columns = [], columnTitles = {} } = options;
+  const {
+    enabled = false,
+    types = ['excel', 'csv', 'json'],
+    filename = 'table-data',
+    columns = [],
+    columnTitles = {},
+  } = options;
 
   const isEnabled = ref(enabled);
   const isExporting = ref(false);
@@ -87,7 +93,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
   const downloadFile = (content: string | Blob, filename: string, mimeType: string): void => {
     const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -108,7 +114,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
       const name = opts.filename || filename;
 
       if (formattedData.length === 0) {
-        console.warn("[useTableExport] No data to export");
+        console.warn('[useTableExport] No data to export');
         return;
       }
 
@@ -121,22 +127,22 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
         <head><meta charset="UTF-8"></head>
         <body>
         <table border="1">
-          <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
+          <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
           <tbody>
       `;
 
       formattedData.forEach(row => {
-        html += "<tr>";
+        html += '<tr>';
         headers.forEach(h => {
-          const value = row[h] ?? "";
+          const value = row[h] ?? '';
           html += `<td>${value}</td>`;
         });
-        html += "</tr>";
+        html += '</tr>';
       });
 
-      html += "</tbody></table></body></html>";
+      html += '</tbody></table></body></html>';
 
-      downloadFile(html, `${name}.xls`, "application/vnd.ms-excel;charset=utf-8");
+      downloadFile(html, `${name}.xls`, 'application/vnd.ms-excel;charset=utf-8');
     } finally {
       isExporting.value = false;
     }
@@ -154,29 +160,29 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
       const name = opts.filename || filename;
 
       if (formattedData.length === 0) {
-        console.warn("[useTableExport] No data to export");
+        console.warn('[useTableExport] No data to export');
         return;
       }
 
       const headers = Object.keys(formattedData[0]);
-
+      
       // 转义 CSV 值
       const escapeValue = (val: any): string => {
-        const str = String(val ?? "");
-        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+        const str = String(val ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
           return `"${str.replace(/"/g, '""')}"`;
         }
         return str;
       };
 
-      let csv = "\uFEFF"; // BOM for UTF-8
-      csv += headers.map(escapeValue).join(",") + "\n";
-
+      let csv = '\uFEFF'; // BOM for UTF-8
+      csv += headers.map(escapeValue).join(',') + '\n';
+      
       formattedData.forEach(row => {
-        csv += headers.map(h => escapeValue(row[h])).join(",") + "\n";
+        csv += headers.map(h => escapeValue(row[h])).join(',') + '\n';
       });
 
-      downloadFile(csv, `${name}.csv`, "text/csv;charset=utf-8");
+      downloadFile(csv, `${name}.csv`, 'text/csv;charset=utf-8');
     } finally {
       isExporting.value = false;
     }
@@ -194,7 +200,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
       const name = opts.filename || filename;
 
       const json = JSON.stringify(formattedData, null, 2);
-      downloadFile(json, `${name}.json`, "application/json;charset=utf-8");
+      downloadFile(json, `${name}.json`, 'application/json;charset=utf-8');
     } finally {
       isExporting.value = false;
     }
@@ -203,13 +209,17 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
   /**
    * 通用导出方法
    */
-  const exportData = async (type: ExportType, data: any[], opts: Partial<ExportOptions> = {}): Promise<void> => {
+  const exportData = async (
+    type: ExportType,
+    data: any[],
+    opts: Partial<ExportOptions> = {}
+  ): Promise<void> => {
     switch (type) {
-      case "excel":
+      case 'excel':
         return exportToExcel(data, opts);
-      case "csv":
+      case 'csv':
         return exportToCsv(data, opts);
-      case "json":
+      case 'json':
         return exportToJson(data, opts);
       default:
         console.warn(`[useTableExport] Unknown export type: ${type}`);
@@ -223,7 +233,7 @@ export function useTableExport(options: ExportOptions = {}): ExportReturn {
     exportToExcel,
     exportToCsv,
     exportToJson,
-    exportData
+    exportData,
   };
 }
 

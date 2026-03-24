@@ -119,7 +119,7 @@ function enableCopy(el: ElementWithEncryption): void {
  */
 function enableOcrNoise(
   el: ElementWithEncryption,
-  noise: NonNullable<FontEncryptionValue["ocrNoise"]>,
+  noise: NonNullable<FontEncryptionValue["ocrNoise"]>
 ): void {
   const level = typeof noise === "boolean" ? "low" : noise.level || "low";
 
@@ -178,15 +178,9 @@ export const vFontEncryption: Directive<
   mounted(el, binding: DirectiveBinding<FontEncryptionValue | boolean>) {
     const value = binding.value;
     const config: FontEncryptionValue =
-      typeof value === "boolean"
-        ? { enabled: value }
-        : (value ?? { enabled: true });
+      typeof value === "boolean" ? { enabled: value } : value ?? { enabled: true };
 
-    const {
-      enabled = true,
-      disableCopy: needDisableCopy = false,
-      ocrNoise = false,
-    } = config;
+    const { enabled = true, disableCopy: needDisableCopy = false, ocrNoise = false } = config;
 
     if (enabled) {
       applyEncryption(el);
@@ -204,15 +198,9 @@ export const vFontEncryption: Directive<
   updated(el, binding: DirectiveBinding<FontEncryptionValue | boolean>) {
     const value = binding.value;
     const config: FontEncryptionValue =
-      typeof value === "boolean"
-        ? { enabled: value }
-        : (value ?? { enabled: true });
+      typeof value === "boolean" ? { enabled: value } : value ?? { enabled: true };
 
-    const {
-      enabled = true,
-      disableCopy: needDisableCopy = false,
-      ocrNoise = false,
-    } = config;
+    const { enabled = true, disableCopy: needDisableCopy = false, ocrNoise = false } = config;
 
     if (enabled) {
       applyEncryption(el);

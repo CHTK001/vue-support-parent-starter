@@ -69,7 +69,7 @@ watch(
   (newValue) => {
     selectedValue.value = newValue || "";
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 处理选择变化

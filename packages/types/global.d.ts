@@ -196,10 +196,6 @@ declare global {
       aiChatApiUrl?: string;
       aiChatVendor?: string;
       aiChatModel?: string;
-      /** AI 运行模式：webllm / chrome / vendor */
-      aiChatMode?: string;
-      // drawer 布局汉堡按钮位置
-      drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
     };
     tags?: Array<any>;
   }

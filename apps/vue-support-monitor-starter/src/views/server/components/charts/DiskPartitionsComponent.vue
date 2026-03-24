@@ -3,28 +3,36 @@
     <div class="card-header">
       <div class="card-title">
         <IconifyIconOnline icon="ri:hard-drive-line" class="card-icon" />
-        <span>{{
-          componentData.monitorSysGenServerDetailComponentTitle || "磁盘分区"
-        }}</span>
+        <span>{{ componentData.monitorSysGenServerDetailComponentTitle || '磁盘分区' }}</span>
       </div>
-      <div v-if="editMode" class="card-actions">
-        <ScButton type="primary" text size="small" @click="handleEdit">
+      <div class="card-actions" v-if="editMode">
+        <el-button
+          type="primary"
+          text
+          size="small"
+          @click="handleEdit"
+        >
           <IconifyIconOnline icon="ri:edit-line" />
-        </ScButton>
-        <ScButton type="danger" text size="small" @click="handleDelete">
+        </el-button>
+        <el-button
+          type="danger"
+          text
+          size="small"
+          @click="handleDelete"
+        >
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </ScButton>
+        </el-button>
       </div>
     </div>
-
-    <div v-loading="loading" class="card-content">
+    
+    <div class="card-content" v-loading="loading">
       <div v-if="partitions.length === 0" class="no-data">
-        <ScEmpty description="暂无磁盘分区数据" :image-size="60" />
+        <el-empty description="暂无磁盘分区数据" :image-size="60" />
       </div>
-
+      
       <div v-else class="partitions-list">
-        <div
-          v-for="(partition, index) in partitions"
+        <div 
+          v-for="(partition, index) in partitions" 
           :key="index"
           class="partition-item"
         >
@@ -32,49 +40,45 @@
             <div class="partition-name">
               <IconifyIconOnline icon="ri:folder-line" class="partition-icon" />
               <span class="name">{{ partition.name || partition.mount }}</span>
-              <ScTag size="small" type="info" class="partition-type">
+              <el-tag size="small" type="info" class="partition-type">
                 {{ partition.type }}
-              </ScTag>
+              </el-tag>
             </div>
           </div>
-
+          
           <div class="partition-details">
             <div class="detail-item">
               <span class="label">已用:</span>
-              <span class="value">{{
-                formatBytes(partition.usedSpace || 0)
-              }}</span>
+              <span class="value">{{ formatBytes(partition.usedSpace || 0) }}</span>
             </div>
             <div class="detail-item">
               <span class="label">可用:</span>
-              <span class="value">{{
-                formatBytes(partition.freeSpace || 0)
-              }}</span>
+              <span class="value">{{ formatBytes(partition.freeSpace || 0) }}</span>
             </div>
             <div class="detail-item">
               <span class="label">总计:</span>
-              <span class="value">{{
-                formatBytes(partition.totalSpace || 0)
-              }}</span>
+              <span class="value">{{ formatBytes(partition.totalSpace || 0) }}</span>
             </div>
           </div>
         </div>
       </div>
-
-      <div class="last-update">最后更新: {{ lastUpdateTime }}</div>
+      
+      <div class="last-update">
+        最后更新: {{ lastUpdateTime }}
+      </div>
     </div>
 
-    <div v-if="!editMode" class="card-footer">
-      <ScButton
+    <div class="card-footer" v-if="!editMode">
+      <el-button
         type="primary"
         text
         size="small"
-        :loading="refreshing"
         @click="handleRefresh"
+        :loading="refreshing"
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </ScButton>
+      </el-button>
     </div>
   </div>
 </template>
@@ -106,7 +110,7 @@ const emit = defineEmits<{
 const loading = ref(false);
 const refreshing = ref(false);
 const partitions = ref<any[]>([]);
-const lastUpdateTime = ref<string>("-");
+const lastUpdateTime = ref<string>('-');
 
 // WebSocket监听
 const { onServerMetrics } = useServerMetrics(props.serverId);
@@ -136,29 +140,31 @@ const updatePartitionsData = (metrics: any) => {
   }
 };
 
+
+
 /**
  * 格式化字节
  */
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
 /**
  * 处理编辑
  */
 const handleEdit = () => {
-  emit("edit", props.componentData);
+  emit('edit', props.componentData);
 };
 
 /**
  * 处理删除
  */
 const handleDelete = () => {
-  emit("delete", props.componentData);
+  emit('delete', props.componentData);
 };
 
 /**
@@ -167,7 +173,7 @@ const handleDelete = () => {
 const handleRefresh = async () => {
   refreshing.value = true;
   try {
-    emit("refresh", props.componentData);
+    emit('refresh', props.componentData);
     // 这里可以添加刷新逻辑
   } finally {
     refreshing.value = false;

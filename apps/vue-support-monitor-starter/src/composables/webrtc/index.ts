@@ -5,10 +5,11 @@
  * @version 1.0.0
  */
 
-export { useWebRTCCall } from "./useWebRTCCall";
-export { useWebRTCConference } from "./useWebRTCConference";
-export { useWebRTCScreenShare } from "./useWebRTCScreenShare";
+export { useWebRTCCall } from './useWebRTCCall';
+export { useWebRTCConference } from './useWebRTCConference';
+export { useWebRTCScreenShare } from './useWebRTCScreenShare';
 
 // 导出类型定义
-export type {} from // 这里可以导出组合式函数中定义的类型
-"./useWebRTCCall";
+export type {
+  // 这里可以导出组合式函数中定义的类型
+} from './useWebRTCCall';

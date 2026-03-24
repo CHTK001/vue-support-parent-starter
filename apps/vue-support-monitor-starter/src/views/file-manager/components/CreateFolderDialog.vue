@@ -15,39 +15,43 @@
           <span>创建位置</span>
         </div>
         <div class="path-value">
-          <ScInput :model-value="currentPath" readonly class="path-input">
+          <el-input
+            :model-value="currentPath"
+            readonly
+            class="path-input"
+          >
             <template #prepend>
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
-          </ScInput>
+          </el-input>
         </div>
       </div>
 
       <!-- 文件夹名称输入 -->
       <div class="folder-name-section">
-        <ScForm
+        <el-form
           ref="formRef"
           :model="formData"
           :rules="formRules"
           label-width="100px"
           @submit.prevent="handleSubmit"
         >
-          <ScFormItem label="文件夹名称" prop="folderName">
-            <ScInput
+          <el-form-item label="文件夹名称" prop="folderName">
+            <el-input
               v-model="formData.folderName"
               placeholder="请输入文件夹名称"
               clearable
               maxlength="255"
               show-word-limit
-              class="folder-name-input"
               @keyup.enter="handleSubmit"
+              class="folder-name-input"
             >
               <template #prepend>
                 <IconifyIconOnline icon="ri:folder-add-line" />
               </template>
-            </ScInput>
-          </ScFormItem>
-        </ScForm>
+            </el-input>
+          </el-form-item>
+        </el-form>
       </div>
 
       <!-- 预览信息 -->
@@ -63,343 +67,298 @@
           </div>
           <div class="preview-item">
             <span class="preview-label">文件夹名称:</span>
-            <span class="preview-value">{{
-              formData.folderName || "(未输入)"
-            }}</span>
+            <span class="preview-value">{{ formData.folderName || '(未输入)' }}</span>
           </div>
         </div>
       </div>
 
       <!-- 高级选项 -->
       <div class="advanced-options">
-        <ScCollapse v-model="activeCollapse">
-          <ScCollapseItem title="高级选项" name="advanced">
+        <el-collapse v-model="activeCollapse">
+          <el-collapse-item title="高级选项" name="advanced">
             <div class="options-content">
-              <ScFormItem label="权限设置">
-                <ScSelect
+              <el-form-item label="权限设置">
+                <el-select
                   v-model="formData.permissions"
                   placeholder="选择文件夹权限"
                   class="permissions-select"
                 >
-                  <ScOption label="读写权限 (755)" value="755">
+                  <el-option
+                    label="读写权限 (755)"
+                    value="755"
+                  >
                     <div class="permission-option">
-                      <IconifyIconOnline
-                        icon="ri:lock-unlock-line"
-                        class="option-icon"
-                      />
+                      <IconifyIconOnline icon="ri:lock-unlock-line" class="option-icon" />
                       <div class="option-details">
                         <div class="option-title">读写权限 (755)</div>
-                        <div class="option-desc">
-                          所有者可读写执行，其他用户可读执行
-                        </div>
+                        <div class="option-desc">所有者可读写执行，其他用户可读执行</div>
                       </div>
                     </div>
-                  </ScOption>
-                  <ScOption label="只读权限 (644)" value="644">
+                  </el-option>
+                  <el-option
+                    label="只读权限 (644)"
+                    value="644"
+                  >
                     <div class="permission-option">
-                      <IconifyIconOnline
-                        icon="ri:lock-line"
-                        class="option-icon"
-                      />
+                      <IconifyIconOnline icon="ri:lock-line" class="option-icon" />
                       <div class="option-details">
                         <div class="option-title">只读权限 (644)</div>
-                        <div class="option-desc">
-                          所有者可读写，其他用户只读
-                        </div>
+                        <div class="option-desc">所有者可读写，其他用户只读</div>
                       </div>
                     </div>
-                  </ScOption>
-                  <ScOption label="完全权限 (777)" value="777">
+                  </el-option>
+                  <el-option
+                    label="完全权限 (777)"
+                    value="777"
+                  >
                     <div class="permission-option">
-                      <IconifyIconOnline
-                        icon="ri:lock-unlock-fill"
-                        class="option-icon"
-                      />
+                      <IconifyIconOnline icon="ri:lock-unlock-fill" class="option-icon" />
                       <div class="option-details">
                         <div class="option-title">完全权限 (777)</div>
                         <div class="option-desc">所有用户都有读写执行权限</div>
                       </div>
                     </div>
-                  </ScOption>
-                </ScSelect>
-              </ScFormItem>
-
-              <ScFormItem>
-                <ScCheckbox v-model="formData.createParentDirs">
-                  <IconifyIconOnline
-                    icon="ri:folder-add-line"
-                    class="checkbox-icon"
-                  />
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              
+              <el-form-item>
+                <el-checkbox v-model="formData.createParentDirs">
+                  <IconifyIconOnline icon="ri:folder-add-line" class="checkbox-icon" />
                   自动创建父级目录
-                </ScCheckbox>
-              </ScFormItem>
-
-              <ScFormItem>
-                <ScCheckbox v-model="formData.addToFavorites">
-                  <IconifyIconOnline
-                    icon="ri:star-line"
-                    class="checkbox-icon"
-                  />
+                </el-checkbox>
+              </el-form-item>
+              
+              <el-form-item>
+                <el-checkbox v-model="formData.addToFavorites">
+                  <IconifyIconOnline icon="ri:star-line" class="checkbox-icon" />
                   添加到收藏夹
-                </ScCheckbox>
-              </ScFormItem>
+                </el-checkbox>
+              </el-form-item>
             </div>
-          </ScCollapseItem>
-        </ScCollapse>
+          </el-collapse-item>
+        </el-collapse>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton
+        <el-button @click="handleClose">取消</el-button>
+        <el-button
+          @click="handleSubmit"
           type="primary"
           :loading="isCreating"
           :disabled="!formData.folderName.trim()"
-          @click="handleSubmit"
         >
-          <IconifyIconOnline
-            v-if="!isCreating"
-            icon="ri:folder-add-line"
-            class="btn-icon"
-          />
-          {{ isCreating ? "创建中..." : "创建文件夹" }}
-        </ScButton>
+          <IconifyIconOnline v-if="!isCreating" icon="ri:folder-add-line" class="btn-icon" />
+          {{ isCreating ? '创建中...' : '创建文件夹' }}
+        </el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, nextTick } from "vue";
+import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
+import { ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 
 // Props
 interface Props {
-  modelValue: boolean;
-  currentPath: string;
+  modelValue: boolean
+  currentPath: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
-  currentPath: "/",
-});
+  currentPath: '/'
+})
 
 // Emits
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean];
-  "folder-created": [folderPath: string];
-}>();
+  'update:modelValue': [value: boolean]
+  'folder-created': [folderPath: string]
+}>()
 
 // 响应式数据
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
-});
+  set: (value) => emit('update:modelValue', value)
+})
 
-const formRef = ref<FormInstance>();
-const isCreating = ref(false);
-const activeCollapse = ref<string[]>([]);
+const formRef = ref<FormInstance>()
+const isCreating = ref(false)
+const activeCollapse = ref<string[]>([])
 
 const formData = reactive({
-  folderName: "",
-  permissions: "755",
+  folderName: '',
+  permissions: '755',
   createParentDirs: false,
-  addToFavorites: false,
-});
+  addToFavorites: false
+})
 
 // 表单验证规则
 const formRules: FormRules = {
   folderName: [
-    { required: true, message: "请输入文件夹名称", trigger: "blur" },
-    {
-      min: 1,
-      max: 255,
-      message: "文件夹名称长度在 1 到 255 个字符",
-      trigger: "blur",
-    },
+    { required: true, message: '请输入文件夹名称', trigger: 'blur' },
+    { min: 1, max: 255, message: '文件夹名称长度在 1 到 255 个字符', trigger: 'blur' },
     {
       pattern: /^[^<>:"/\\|?*]+$/,
       message: '文件夹名称不能包含以下字符: < > : " / \\ | ? *',
-      trigger: "blur",
+      trigger: 'blur'
     },
     {
       validator: (rule, value, callback) => {
         // 检查是否为保留名称
-        const reservedNames = [
-          "CON",
-          "PRN",
-          "AUX",
-          "NUL",
-          "COM1",
-          "COM2",
-          "COM3",
-          "COM4",
-          "COM5",
-          "COM6",
-          "COM7",
-          "COM8",
-          "COM9",
-          "LPT1",
-          "LPT2",
-          "LPT3",
-          "LPT4",
-          "LPT5",
-          "LPT6",
-          "LPT7",
-          "LPT8",
-          "LPT9",
-        ];
+        const reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']
         if (reservedNames.includes(value.toUpperCase())) {
-          callback(new Error("不能使用系统保留名称"));
+          callback(new Error('不能使用系统保留名称'))
         } else {
-          callback();
+          callback()
         }
       },
-      trigger: "blur",
+      trigger: 'blur'
     },
     {
       validator: (rule, value, callback) => {
         // 检查是否以点开头或结尾
-        if (value.startsWith(".") || value.endsWith(".")) {
-          callback(new Error("文件夹名称不能以点开头或结尾"));
+        if (value.startsWith('.') || value.endsWith('.')) {
+          callback(new Error('文件夹名称不能以点开头或结尾'))
         } else {
-          callback();
+          callback()
         }
       },
-      trigger: "blur",
-    },
-  ],
-};
+      trigger: 'blur'
+    }
+  ]
+}
 
 // 计算属性
 const fullPath = computed(() => {
   if (!formData.folderName.trim()) {
-    return props.currentPath;
+    return props.currentPath
   }
-
-  const cleanPath = props.currentPath.endsWith("/")
-    ? props.currentPath
-    : props.currentPath + "/";
-
-  return cleanPath + formData.folderName.trim();
-});
+  
+  const cleanPath = props.currentPath.endsWith('/') 
+    ? props.currentPath 
+    : props.currentPath + '/'
+  
+  return cleanPath + formData.folderName.trim()
+})
 
 // 方法
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-
+  if (!formRef.value) return
+  
   try {
     // 验证表单
-    await formRef.value.validate();
-
+    await formRef.value.validate()
+    
     // 检查文件夹是否已存在
-    const folderExists = await checkFolderExists(fullPath.value);
+    const folderExists = await checkFolderExists(fullPath.value)
     if (folderExists) {
       const action = await ElMessageBox.confirm(
         `文件夹 "${formData.folderName}" 已存在，是否要覆盖？`,
-        "文件夹已存在",
+        '文件夹已存在',
         {
-          confirmButtonText: "覆盖",
-          cancelButtonText: "取消",
-          type: "warning",
-        },
-      );
-
-      if (action !== "confirm") {
-        return;
+          confirmButtonText: '覆盖',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      
+      if (action !== 'confirm') {
+        return
       }
     }
-
-    isCreating.value = true;
-
+    
+    isCreating.value = true
+    
     // 调用创建文件夹API
     await createFolder({
       path: fullPath.value,
       permissions: formData.permissions,
       createParentDirs: formData.createParentDirs,
-      addToFavorites: formData.addToFavorites,
-    });
-
-    message(`文件夹 "${formData.folderName}" 创建成功`, { type: "success" });
-    emit("folder-created", fullPath.value);
-    handleClose();
+      addToFavorites: formData.addToFavorites
+    })
+    
+    message(`文件夹 "${formData.folderName}" 创建成功`, { type: "success" })
+    emit('folder-created', fullPath.value)
+    handleClose()
+    
   } catch (error: any) {
-    if (error !== "cancel") {
-      message(error.message || "创建文件夹失败", { type: "error" });
-      console.error("创建文件夹失败:", error);
+    if (error !== 'cancel') {
+      message(error.message || '创建文件夹失败', { type: "error" })
+      console.error('创建文件夹失败:', error)
     }
   } finally {
-    isCreating.value = false;
+    isCreating.value = false
   }
-};
+}
 
 const checkFolderExists = async (path: string): Promise<boolean> => {
   try {
     // 这里应该调用实际的API检查文件夹是否存在
     // const response = await checkPathExists(path)
     // return response.data.exists
-
+    
     // 模拟检查
-    return false;
+    return false
   } catch (error) {
-    console.error("检查文件夹是否存在失败:", error);
-    return false;
+    console.error('检查文件夹是否存在失败:', error)
+    return false
   }
-};
+}
 
 const createFolder = async (options: {
-  path: string;
-  permissions: string;
-  createParentDirs: boolean;
-  addToFavorites: boolean;
+  path: string
+  permissions: string
+  createParentDirs: boolean
+  addToFavorites: boolean
 }) => {
   try {
     // 这里应该调用实际的创建文件夹API
     // const response = await createFolderApi(options)
     // return response.data
-
+    
     // 模拟创建
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { success: true };
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    return { success: true }
   } catch (error) {
-    throw new Error("创建文件夹失败");
+    throw new Error('创建文件夹失败')
   }
-};
+}
 
 const handleClose = () => {
-  dialogVisible.value = false;
-  resetForm();
-};
+  dialogVisible.value = false
+  resetForm()
+}
 
 const resetForm = () => {
-  formData.folderName = "";
-  formData.permissions = "755";
-  formData.createParentDirs = false;
-  formData.addToFavorites = false;
-  activeCollapse.value = [];
-
+  formData.folderName = ''
+  formData.permissions = '755'
+  formData.createParentDirs = false
+  formData.addToFavorites = false
+  activeCollapse.value = []
+  
   if (formRef.value) {
-    formRef.value.resetFields();
+    formRef.value.resetFields()
   }
-};
+}
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible) {
     nextTick(() => {
       // 聚焦到文件夹名称输入框
-      const input = document.querySelector(
-        ".folder-name-input input",
-      ) as HTMLInputElement;
+      const input = document.querySelector('.folder-name-input input') as HTMLInputElement
       if (input) {
-        input.focus();
+        input.focus()
       }
-    });
+    })
   }
-});
+})
 </script>
 
 <style lang="scss" scoped>
@@ -488,7 +447,7 @@ watch(dialogVisible, (visible) => {
             flex: 1;
             color: var(--el-text-color-primary);
             word-break: break-all;
-            font-family: "Consolas", "Monaco", "Courier New", monospace;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
           }
         }
       }
@@ -565,7 +524,7 @@ watch(dialogVisible, (visible) => {
 :deep(.el-select-dropdown__item) {
   height: auto;
   padding: 0;
-
+  
   .permission-option {
     padding: 12px 20px;
   }

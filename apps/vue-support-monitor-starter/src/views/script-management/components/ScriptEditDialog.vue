@@ -1,92 +1,92 @@
 ﻿<template>
   <sc-dialog
     :model-value="visible"
+    @update:model-value="$emit('update:visible', $event)"
     :title="isEdit ? '编辑脚本' : '新建脚本'"
     width="85%"
     top="5vh"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     class="simple-script-dialog"
-    @update:model-value="$emit('update:visible', $event)"
     @close="handleClose"
   >
     <div class="dialog-content">
       <!-- 基本信息表单 -->
-      <ScForm
+      <el-form
         ref="formRef"
         :model="scriptForm"
         :rules="formRules"
         label-width="100px"
         class="script-form"
       >
-        <ScRow :gutter="20">
-          <ScCol :span="12">
-            <ScFormItem label="脚本名称" prop="monitorSysGenScriptName">
-              <ScInput
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="脚本名称" prop="monitorSysGenScriptName">
+              <el-input
                 v-model="scriptForm.monitorSysGenScriptName"
                 placeholder="请输入脚本名称"
                 clearable
                 maxlength="50"
                 show-word-limit
               />
-            </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="脚本类型" prop="monitorSysGenScriptType">
-              <ScSelect
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="脚本类型" prop="monitorSysGenScriptType">
+              <el-select
                 v-model="scriptForm.monitorSysGenScriptType"
                 placeholder="请选择脚本类型"
                 style="width: 100%"
                 @change="handleTypeChange"
               >
-                <ScOption label="Shell" value="SHELL">
+                <el-option label="Shell" value="SHELL">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:terminal-line" />
                     <span>Shell</span>
                   </div>
-                </ScOption>
-                <ScOption label="Python" value="PYTHON">
+                </el-option>
+                <el-option label="Python" value="PYTHON">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:file-code-line" />
                     <span>Python</span>
                   </div>
-                </ScOption>
-                <ScOption label="PowerShell" value="POWERSHELL">
+                </el-option>
+                <el-option label="PowerShell" value="POWERSHELL">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:windows-line" />
                     <span>PowerShell</span>
                   </div>
-                </ScOption>
-                <ScOption label="Batch" value="BATCH">
+                </el-option>
+                <el-option label="Batch" value="BATCH">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:file-text-line" />
                     <span>Batch</span>
                   </div>
-                </ScOption>
-                <ScOption label="JavaScript" value="JAVASCRIPT">
+                </el-option>
+                <el-option label="JavaScript" value="JAVASCRIPT">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:javascript-line" />
                     <span>JavaScript</span>
                   </div>
-                </ScOption>
-                <ScOption label="SQL" value="SQL">
+                </el-option>
+                <el-option label="SQL" value="SQL">
                   <div class="option-item">
                     <IconifyIconOnline icon="ri:database-2-line" />
                     <span>SQL</span>
                   </div>
-                </ScOption>
-              </ScSelect>
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <ScRow>
-          <ScCol :span="24">
-            <ScFormItem
+        <el-row>
+          <el-col :span="24">
+            <el-form-item
               label="脚本描述"
               prop="monitorSysGenScriptDescription"
             >
-              <ScInput
+              <el-input
                 v-model="scriptForm.monitorSysGenScriptDescription"
                 type="textarea"
                 :rows="2"
@@ -94,57 +94,57 @@
                 maxlength="200"
                 show-word-limit
               />
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <ScRow :gutter="20">
-          <ScCol :span="12">
-            <ScFormItem label="脚本分类">
-              <ScInput
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="脚本分类">
+              <el-input
                 v-model="scriptForm.monitorSysGenScriptCategory"
                 placeholder="如: 系统管理、数据处理等"
                 clearable
               />
-            </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="脚本状态">
-              <ScRadioGroup v-model="scriptForm.monitorSysGenScriptStatus">
-                <ScRadio value="ENABLED">启用</ScRadio>
-                <ScRadio value="DISABLED">禁用</ScRadio>
-              </ScRadioGroup>
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
-      </ScForm>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="脚本状态">
+              <el-radio-group v-model="scriptForm.monitorSysGenScriptStatus">
+                <el-radio value="ENABLED">启用</el-radio>
+                <el-radio value="DISABLED">禁用</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
 
       <!-- 代码编辑器 -->
       <div class="code-editor-section">
         <div class="section-header">
           <h4>脚本内容</h4>
           <div class="editor-actions">
-            <ScButton size="small" @click="loadTemplate">
+            <el-button size="small" @click="loadTemplate">
               <IconifyIconOnline icon="ri:file-add-line" />
               加载模板
-            </ScButton>
-            <ScButton size="small" @click="formatCode">
+            </el-button>
+            <el-button size="small" @click="formatCode">
               <IconifyIconOnline icon="ri:code-s-slash-line" />
               格式化
-            </ScButton>
+            </el-button>
           </div>
         </div>
 
         <div class="code-editor-wrapper">
           <CodeEditor
             :content="scriptForm.monitorSysGenScriptContent"
+            @update:content="handleContentChange"
             :options="{
               mode: getEditorLanguage(scriptForm.monitorSysGenScriptType),
             }"
             height="500px"
             :show-tool="true"
             placeholder="请输入脚本内容..."
-            @update:content="handleContentChange"
           />
         </div>
       </div>
@@ -153,16 +153,16 @@
     <!-- 对话框底部按钮 -->
     <template #footer>
       <div class="dialog-footer">
-        <ScButton size="large" @click="handleClose">取消</ScButton>
-        <ScButton
+        <el-button @click="handleClose" size="large">取消</el-button>
+        <el-button
           type="primary"
+          @click="handleSave"
           :loading="saving"
           size="large"
-          @click="handleSave"
         >
           <IconifyIconOnline icon="ri:save-line" />
           保存脚本
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -263,7 +263,7 @@ watch(
       }
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 方法
@@ -288,7 +288,7 @@ const resetForm = () => {
 const loadTemplate = () => {
   scriptForm.monitorSysGenScriptContent = getScriptTemplate(
     scriptForm.monitorSysGenScriptType!,
-    scriptForm.monitorSysGenScriptDescription,
+    scriptForm.monitorSysGenScriptDescription
   );
 };
 
@@ -334,7 +334,7 @@ const handleSave = async () => {
     if (response.success) {
       message(
         scriptForm.monitorSysGenScriptId ? "脚本更新成功" : "脚本创建成功",
-        { type: "success" },
+        { type: "success" }
       );
       emit("save");
       handleClose();
@@ -363,11 +363,7 @@ const handleSave = async () => {
   }
 
   :deep(.el-dialog__header) {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
     color: white;
     padding: 20px 24px;
     margin: 0;
@@ -469,11 +465,7 @@ const handleSave = async () => {
         display: block;
         width: 4px;
         height: 18px;
-        background: linear-gradient(
-          180deg,
-          var(--el-color-primary),
-          var(--el-color-primary-light-3)
-        );
+        background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
         border-radius: 2px;
       }
     }
@@ -516,6 +508,7 @@ const handleSave = async () => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -524,4 +517,5 @@ const handleSave = async () => {
     padding: 12px 16px;
   }
 }
+
 </style>

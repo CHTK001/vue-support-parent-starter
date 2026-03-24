@@ -8,7 +8,7 @@
       class="default-setting-dialog"
     >
       <ScForm>
-        <ScFormItem
+        <ScFormItem 
           v-for="item in currentValue"
           :key="item.value"
           prop="label"
@@ -31,19 +31,18 @@
       </ScForm>
       <template #footer>
         <ScButton @click="handleClose">取消</ScButton>
-        <ScButton
+        <ScButton 
           type="primary"
           :icon="useRenderIcon('ri:save-2-line')"
           @click="handleSubmit"
+          >保存</el-button
         >
-          保存
-        </ScButton>
       </template>
     </sc-dialog>
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToNumber } from "@repo/utils";
 import { defineExpose, reactive, ref } from "vue";
 import { fetchUpdateProject } from "../../api/manage/project";

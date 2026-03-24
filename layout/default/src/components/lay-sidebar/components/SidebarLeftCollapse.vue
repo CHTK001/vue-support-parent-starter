@@ -18,14 +18,7 @@ const { t } = useI18n();
 const { tooltipEffect } = useNav();
 
 const iconClass = computed(() => {
-  return [
-    "w-[16px]",
-    "h-[16px]",
-    "inline-block",
-    "align-middle",
-    "cursor-pointer",
-    "duration-&lsqb;100ms&rsqb",
-  ];
+  return ["w-[16px]", "h-[16px]", "inline-block", "align-middle", "cursor-pointer", "duration-&lsqb;100ms&rsqb"];
 });
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -44,9 +37,7 @@ const toggleClick = () => {
   <div class="left-collapse" :class="{ 'collapsed-state': !isActive }">
     <IconifyIconOffline
       v-tippy="{
-        content: isActive
-          ? t('buttons.pureClickCollapse')
-          : t('buttons.pureClickExpand'),
+        content: isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand'),
         theme: tooltipEffect,
         hideOnClick: 'toggle',
         placement: 'right',
@@ -111,264 +102,239 @@ const toggleClick = () => {
 // 春节主题 - 春联样式
 html[data-skin="spring-festival"] {
   .left-collapse {
-    background: linear-gradient(135deg, #8b0000 0%, #dc143c 100%);
-    border-top: 2px solid #ffd700;
+    background: linear-gradient(135deg, #8B0000 0%, #DC143C 100%);
+    border-top: 2px solid #FFD700;
     box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     position: relative;
     overflow: hidden;
-
+    
     // 春联装饰
     &::after {
-      content: "🧧";
+      content: '🧧';
       position: absolute;
       font-size: 18px;
       opacity: 0.9;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
     }
-
+    
     :deep(svg) {
-      color: #ffd700 !important;
+      color: #FFD700 !important;
     }
-
+    
     &:hover {
-      background: linear-gradient(135deg, #a00000 0%, #ff1744 100%);
+      background: linear-gradient(135deg, #A00000 0%, #FF1744 100%);
       box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-
+      
       &::after {
         transform: scale(1.1);
       }
     }
-
+    
     &.collapsed-state {
-      background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
-      border-top: 2px solid #dc143c;
-
+      background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+      border-top: 2px solid #DC143C;
+      
       &::after {
-        content: "🏅";
+        content: '🏅';
       }
-
+      
       :deep(svg) {
-        color: #8b0000 !important;
+        color: #8B0000 !important;
       }
-
+      
       &::before {
-        background: #dc143c;
+        background: #DC143C;
       }
-
+      
       &:hover {
-        background: linear-gradient(135deg, #ffe44d 0%, #ffb732 100%);
+        background: linear-gradient(135deg, #FFE44D 0%, #FFB732 100%);
       }
     }
   }
 }
 
+
+
 // 中秋主题 - 月亮样式
 html[data-skin="mid-autumn"] {
   .left-collapse {
     background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
-    border-top: 2px solid #ffd54f;
+    border-top: 2px solid #FFD54F;
     box-shadow: 0 0 10px rgba(255, 213, 79, 0.2);
     position: relative;
-
+    
     // 月亮装饰
     &::after {
-      content: "🌙";
+      content: '🌙';
       position: absolute;
       font-size: 18px;
       right: 10px;
       filter: drop-shadow(0 0 6px rgba(255, 213, 79, 0.8));
       animation: moonFloat 3s ease-in-out infinite;
     }
-
+    
     :deep(svg) {
-      color: #ffd54f !important;
+      color: #FFD54F !important;
     }
-
+    
     &:hover {
       background: linear-gradient(135deg, #283593 0%, #3949ab 100%);
       box-shadow: 0 0 15px rgba(255, 213, 79, 0.4);
     }
-
+    
     &.collapsed-state {
-      background: linear-gradient(135deg, #ffd54f 0%, #ffca28 100%);
+      background: linear-gradient(135deg, #FFD54F 0%, #FFCA28 100%);
       border-top: 2px solid #1a237e;
-
+      
       &::after {
-        content: "🌕";
+        content: '🌕';
         filter: drop-shadow(0 0 8px rgba(255, 213, 79, 1));
       }
-
+      
       :deep(svg) {
         color: #1a237e !important;
       }
-
+      
       &::before {
         background: #1a237e;
       }
-
+      
       &:hover {
-        background: linear-gradient(135deg, #ffe082 0%, #ffd54f 100%);
+        background: linear-gradient(135deg, #FFE082 0%, #FFD54F 100%);
       }
     }
   }
-
+  
   @keyframes moonFloat {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-2px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
   }
 }
 
 // 圣诞主题 - 圣诞树样式
 html[data-skin="christmas"] {
   .left-collapse {
-    background: linear-gradient(135deg, #165b33 0%, #1e7b46 100%);
-    border-top: 2px solid #bb2528;
+    background: linear-gradient(135deg, #165B33 0%, #1E7B46 100%);
+    border-top: 2px solid #BB2528;
     box-shadow: 0 0 10px rgba(187, 37, 40, 0.2);
     position: relative;
-
+    
     // 圣诞树装饰
     &::after {
-      content: "🎄";
+      content: '🎄';
       position: absolute;
       font-size: 18px;
       right: 10px;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
       animation: treeGlow 2s ease-in-out infinite;
     }
-
+    
     :deep(svg) {
-      color: #f8b229 !important;
+      color: #F8B229 !important;
     }
-
+    
     &:hover {
-      background: linear-gradient(135deg, #1e7b46 0%, #2a9d5c 100%);
+      background: linear-gradient(135deg, #1E7B46 0%, #2A9D5C 100%);
       box-shadow: 0 0 15px rgba(187, 37, 40, 0.4);
     }
-
+    
     &.collapsed-state {
-      background: linear-gradient(135deg, #bb2528 0%, #d42a2d 100%);
-      border-top: 2px solid #165b33;
-
+      background: linear-gradient(135deg, #BB2528 0%, #D42A2D 100%);
+      border-top: 2px solid #165B33;
+      
       &::after {
-        content: "⭐";
+        content: '⭐';
         filter: drop-shadow(0 0 6px rgba(248, 178, 41, 0.8));
       }
-
+      
       :deep(svg) {
-        color: #f8b229 !important;
+        color: #F8B229 !important;
       }
-
+      
       &::before {
-        background: #f8b229;
+        background: #F8B229;
       }
-
+      
       &:hover {
-        background: linear-gradient(135deg, #d42a2d 0%, #e53935 100%);
+        background: linear-gradient(135deg, #D42A2D 0%, #E53935 100%);
       }
     }
   }
-
+  
   @keyframes treeGlow {
-    0%,
-    100% {
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-    }
-    50% {
-      filter: drop-shadow(0 0 8px rgba(248, 178, 41, 0.6));
-    }
+    0%, 100% { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+    50% { filter: drop-shadow(0 0 8px rgba(248, 178, 41, 0.6)); }
   }
 }
 
 // 新年主题 - 雪花样式
 html[data-skin="new-year"] {
   .left-collapse {
-    background: linear-gradient(
-      135deg,
-      rgba(240, 248, 255, 0.95) 0%,
-      rgba(224, 240, 255, 0.95) 100%
-    );
+    background: linear-gradient(135deg, rgba(240, 248, 255, 0.95) 0%, rgba(224, 240, 255, 0.95) 100%);
     border-top: 2px solid #60a5fa;
     box-shadow: 0 0 10px rgba(96, 165, 250, 0.2);
     position: relative;
-
+    
     // 雪花装饰
     &::after {
-      content: "❄️";
+      content: '❄️';
       position: absolute;
       font-size: 16px;
       right: 12px;
       color: #60a5fa;
       animation: snowFall 2s ease-in-out infinite;
     }
-
+    
     :deep(svg) {
       color: #3b82f6 !important;
     }
-
+    
     &:hover {
-      background: linear-gradient(
-        135deg,
-        rgba(248, 250, 255, 0.98) 0%,
-        rgba(232, 245, 255, 0.98) 100%
-      );
+      background: linear-gradient(135deg, rgba(248, 250, 255, 0.98) 0%, rgba(232, 245, 255, 0.98) 100%);
       box-shadow: 0 0 15px rgba(96, 165, 250, 0.3);
     }
-
+    
     &.collapsed-state {
       background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
       border-top: 2px solid #1d4ed8;
-
+      
       &::after {
-        content: "✨";
+        content: '✨';
         filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
       }
-
+      
       :deep(svg) {
         color: #fff !important;
       }
-
+      
       &::before {
         background: #fff;
       }
-
+      
       &:hover {
         background: linear-gradient(135deg, #60a5fa 0%, #93c5fd 100%);
       }
     }
   }
-
+  
   @keyframes snowFall {
-    0%,
-    100% {
-      transform: translateY(0) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-2px) rotate(15deg);
-    }
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-2px) rotate(15deg); }
   }
 }
 
 // FutureTech 主题 - 科技风格
 html[data-skin="future-tech"] {
   .left-collapse {
-    background: linear-gradient(
-      180deg,
-      rgba(5, 10, 31, 0.95),
-      rgba(10, 26, 58, 0.9)
-    ) !important;
+    background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
     border-top: 2px solid rgba(0, 255, 255, 0.4) !important;
     box-shadow: 0 -2px 10px rgba(0, 255, 255, 0.1) !important;
     position: relative;
     overflow: hidden;
-
+    
     // 扫描线装饰
     &::after {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: -100%;
@@ -378,52 +344,48 @@ html[data-skin="future-tech"] {
       box-shadow: 0 0 10px #00ffff;
       animation: techScan 3s linear infinite;
     }
-
+    
     :deep(svg) {
       color: rgba(0, 255, 255, 0.7) !important;
       filter: drop-shadow(0 0 3px rgba(0, 255, 255, 0.4));
     }
-
+    
     &:hover {
       background: rgba(0, 255, 255, 0.15) !important;
       box-shadow: 0 -2px 15px rgba(0, 255, 255, 0.3) !important;
-
+      
       :deep(svg) {
         color: #00ffff !important;
         filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
       }
     }
-
+    
     &.collapsed-state {
-      background: linear-gradient(
-        180deg,
-        rgba(5, 10, 31, 0.95),
-        rgba(10, 26, 58, 0.9)
-      ) !important;
+      background: linear-gradient(180deg, rgba(5, 10, 31, 0.95), rgba(10, 26, 58, 0.9)) !important;
       border-top: 2px solid #00ffff !important;
       box-shadow: 0 -2px 15px rgba(0, 255, 255, 0.3) !important;
-
+      
       &::after {
         animation: techScan 2s linear infinite;
       }
-
+      
       :deep(svg) {
         color: #00ffff !important;
         filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.9));
       }
-
+      
       &::before {
         background: #00ffff;
         box-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
       }
-
+      
       &:hover {
         background: rgba(0, 255, 255, 0.2) !important;
         box-shadow: 0 -2px 20px rgba(0, 255, 255, 0.5) !important;
       }
     }
   }
-
+  
   @keyframes techScan {
     0% {
       left: -100%;

@@ -1,13 +1,5 @@
 <template>
-  <sc-dialog
-    v-model="dialogVisible"
-    :title="title"
-    :width="width"
-    :destroy-on-close="destroyOnClose"
-    :close-on-click-modal="closeOnClickModal"
-    @closed="handleClosed"
-    @open="handleOpen"
-  >
+  <sc-dialog v-model="dialogVisible" :title="title" :width="width" :destroy-on-close="destroyOnClose" :close-on-click-modal="closeOnClickModal" @closed="handleClosed" @open="handleOpen">
     <slot></slot>
   </sc-dialog>
 </template>
@@ -46,13 +38,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits([
-  "update:modelValue",
-  "confirm",
-  "cancel",
-  "closed",
-  "open",
-]);
+const emit = defineEmits(["update:modelValue", "confirm", "cancel", "closed", "open"]);
 
 const dialogVisible = ref(props.modelValue);
 const confirmLoading = ref(false);
@@ -62,7 +48,7 @@ watch(
   () => props.modelValue,
   (val) => {
     dialogVisible.value = val;
-  },
+  }
 );
 
 // 监听dialogVisible变化
@@ -70,7 +56,7 @@ watch(
   () => dialogVisible.value,
   (val) => {
     emit("update:modelValue", val);
-  },
+  }
 );
 
 // 打开对话框
@@ -118,11 +104,7 @@ defineExpose({
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 
   .el-dialog__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-8) 0%,
-      var(--el-color-primary-light-9) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
     padding: 16px 20px;
     margin: 0;
     border-bottom: 1px solid var(--el-border-color-lighter);

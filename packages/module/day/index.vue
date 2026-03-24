@@ -6,7 +6,7 @@
  * @version 1.0.1
  */
 import { reactive, onMounted } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const env = reactive({
   date: new Date(),
@@ -20,15 +20,7 @@ const updateDate = () => {
   env.date = now;
   env.day = now.getDate();
   env.month = now.getMonth() + 1;
-  const weeks = [
-    "星期日",
-    "星期一",
-    "星期二",
-    "星期三",
-    "星期四",
-    "星期五",
-    "星期六",
-  ];
+  const weeks = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
   env.week = weeks[now.getDay()];
 };
 
@@ -62,7 +54,7 @@ onMounted(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--el-border-color-lighter);
   transition: transform 0.2s;
-
+  
   &:hover {
     transform: translateY(-2px);
   }
@@ -86,14 +78,14 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 8px;
-
+  
   .day-number {
     font-size: 42px;
     font-weight: 800;
     color: var(--el-text-color-primary);
     line-height: 1;
   }
-
+  
   .week-text {
     font-size: 12px;
     color: var(--el-text-color-secondary);

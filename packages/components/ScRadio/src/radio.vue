@@ -1,5 +1,14 @@
 <template>
-  <component :is="currentComponent || ElRadio" v-model="currentValue" :label="label" :disabled="disabled" :border="border" :size="size" :name="name" @change="handleChange">
+  <component
+    :is="currentComponent || ElRadio"
+    v-model="currentValue"
+    :label="label"
+    :disabled="disabled"
+    :border="border"
+    :size="size"
+    :name="name"
+    @change="handleChange"
+  >
     <template v-if="$slots.default" #default>
       <slot />
     </template>
@@ -44,6 +53,8 @@ const currentValue = computed({
 });
 
 const { currentComponent } = useThemeComponent("ElRadio");
+
+
 
 const handleChange = (val: any) => {
   emit("change", val);

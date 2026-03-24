@@ -3,26 +3,24 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton @click="handleBack">
-          <ScIcon><ArrowLeft /></ScIcon>
+        <el-button @click="handleBack">
+          <el-icon><ArrowLeft /></el-icon>
           返回
-        </ScButton>
-        <span class="task-name">{{
-          taskData?.syncTaskName || "加载中..."
-        }}</span>
-        <ScTag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
+        </el-button>
+        <span class="task-name">{{ taskData?.syncTaskName || "加载中..." }}</span>
+        <el-tag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
           {{ getStatusText(taskData.syncTaskStatus) }}
-        </ScTag>
+        </el-tag>
       </div>
       <div class="toolbar-right">
-        <ScButton type="primary" :loading="saving" @click="handleSave">
-          <ScIcon><DocumentChecked /></ScIcon>
+        <el-button type="primary" :loading="saving" @click="handleSave">
+          <el-icon><DocumentChecked /></el-icon>
           保存
-        </ScButton>
-        <ScButton @click="handleValidate">
-          <ScIcon><CircleCheck /></ScIcon>
+        </el-button>
+        <el-button @click="handleValidate">
+          <el-icon><CircleCheck /></el-icon>
           验证
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -30,8 +28,8 @@
     <div class="editor-wrapper">
       <!-- 左侧节点面板 -->
       <div class="node-panel">
-        <ScCollapse v-model="activeCollapse">
-          <ScCollapseItem title="输入节点" name="INPUT">
+        <el-collapse v-model="activeCollapse">
+          <el-collapse-item title="输入节点" name="INPUT">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.INPUT"
@@ -40,12 +38,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'INPUT', spi)"
               >
-                <ScIcon><Download /></ScIcon>
+                <el-icon><Download /></el-icon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </ScCollapseItem>
-          <ScCollapseItem title="输出节点" name="OUTPUT">
+          </el-collapse-item>
+          <el-collapse-item title="输出节点" name="OUTPUT">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.OUTPUT"
@@ -54,12 +52,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'OUTPUT', spi)"
               >
-                <ScIcon><Upload /></ScIcon>
+                <el-icon><Upload /></el-icon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </ScCollapseItem>
-          <ScCollapseItem title="数据中心" name="DATA_CENTER">
+          </el-collapse-item>
+          <el-collapse-item title="数据中心" name="DATA_CENTER">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.DATA_CENTER"
@@ -68,12 +66,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'DATA_CENTER', spi)"
               >
-                <ScIcon><Connection /></ScIcon>
+                <el-icon><Connection /></el-icon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </ScCollapseItem>
-          <ScCollapseItem title="过滤器" name="FILTER">
+          </el-collapse-item>
+          <el-collapse-item title="过滤器" name="FILTER">
             <div class="node-list">
               <div
                 v-for="spi in spiMap.FILTER"
@@ -82,12 +80,12 @@
                 draggable="true"
                 @dragstart="handleDragStart($event, 'FILTER', spi)"
               >
-                <ScIcon><Filter /></ScIcon>
+                <el-icon><Filter /></el-icon>
                 <span>{{ spi.displayName }}</span>
               </div>
             </div>
-          </ScCollapseItem>
-        </ScCollapse>
+          </el-collapse-item>
+        </el-collapse>
       </div>
 
       <!-- ScReteEditor 组件 -->
@@ -123,98 +121,89 @@
         <template v-if="selectedSyncNode">
           <div class="panel-header">
             <span>节点配置</span>
-            <ScButton text size="small" @click="selectedSyncNode = null">
-              <ScIcon><Close /></ScIcon>
-            </ScButton>
+            <el-button text size="small" @click="selectedSyncNode = null">
+              <el-icon><Close /></el-icon>
+            </el-button>
           </div>
           <div class="panel-content">
-            <ScForm label-position="top" size="small">
-              <ScFormItem label="节点名称">
-                <ScInput
-                  v-model="selectedSyncNode.syncNodeName"
-                  placeholder="请输入节点名称"
-                />
-              </ScFormItem>
-              <ScFormItem label="节点类型">
-                <ScInput
-                  :value="getNodeTypeText(selectedSyncNode.syncNodeType)"
-                  disabled
-                />
-              </ScFormItem>
-              <ScFormItem label="SPI类型">
-                <ScInput :value="selectedSyncNode.syncNodeSpiName" disabled />
-              </ScFormItem>
+            <el-form label-position="top" size="small">
+              <el-form-item label="节点名称">
+                <el-input v-model="selectedSyncNode.syncNodeName" placeholder="请输入节点名称" />
+              </el-form-item>
+              <el-form-item label="节点类型">
+                <el-input :value="getNodeTypeText(selectedSyncNode.syncNodeType)" disabled />
+              </el-form-item>
+              <el-form-item label="SPI类型">
+                <el-input :value="selectedSyncNode.syncNodeSpiName" disabled />
+              </el-form-item>
 
               <!-- 动态参数配置 -->
               <template v-if="selectedNodeParams.length > 0">
-                <ScDivider>参数配置</ScDivider>
-                <ScFormItem
+                <el-divider>参数配置</el-divider>
+                <el-form-item
                   v-for="param in selectedNodeParams"
                   :key="param.name"
                   :label="param.label"
                 >
-                  <ScInput
+                  <el-input
                     v-if="param.type === 'string'"
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.placeholder || param.description"
                   />
-                  <ScInput
+                  <el-input
                     v-else-if="param.type === 'password'"
                     v-model="nodeConfig[param.name]"
                     type="password"
                     show-password
                     :placeholder="param.placeholder || param.description"
                   />
-                  <ScInput
+                  <el-input
                     v-else-if="param.type === 'textarea'"
                     v-model="nodeConfig[param.name]"
                     type="textarea"
                     :rows="3"
                     :placeholder="param.placeholder || param.description"
                   />
-                  <ScInputNumber
+                  <el-input-number
                     v-else-if="param.type === 'number'"
                     v-model="nodeConfig[param.name]"
                     :min="param.min"
                     :max="param.max"
                   />
-                  <ScSwitch
+                  <el-switch
                     v-else-if="param.type === 'boolean'"
                     v-model="nodeConfig[param.name]"
                   />
-                  <ScSelect
+                  <el-select
                     v-else-if="param.type === 'select'"
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.placeholder"
                   >
-                    <ScOption
+                    <el-option
                       v-for="opt in param.options"
                       :key="opt.value"
                       :label="opt.label"
                       :value="opt.value"
                     />
-                  </ScSelect>
-                </ScFormItem>
+                  </el-select>
+                </el-form-item>
               </template>
 
-              <ScFormItem>
-                <ScButton type="primary" @click="handleSaveNodeConfig">
+              <el-form-item>
+                <el-button type="primary" @click="handleSaveNodeConfig">
                   保存配置
-                </ScButton>
-                <ScButton
-                  v-if="
-                    selectedSyncNode.syncNodeType === 'INPUT' ||
-                    selectedSyncNode.syncNodeType === 'OUTPUT'
-                  "
+                </el-button>
+                <el-button 
+                  v-if="selectedSyncNode.syncNodeType === 'INPUT' || selectedSyncNode.syncNodeType === 'OUTPUT'" 
                   @click="handleTestConnection"
                 >
                   测试连接
-                </ScButton>
-              </ScFormItem>
-            </ScForm>
+                </el-button>
+              </el-form-item>
+            </el-form>
           </div>
         </template>
-        <ScEmpty v-else description="请选择节点" />
+        <el-empty v-else description="请选择节点" />
       </div>
     </div>
   </div>
@@ -234,12 +223,7 @@ import {
   Connection,
   Filter,
 } from "@element-plus/icons-vue";
-import {
-  ScReteEditor,
-  type EditorData,
-  type NodeTypeName,
-  type BaseNode,
-} from "@repo/scReteEditor";
+import { ScReteEditor, type EditorData, type NodeTypeName, type BaseNode } from "@repo/components";
 import {
   getSyncTaskDesign,
   saveSyncTaskDesign,
@@ -296,15 +280,10 @@ const selectedNodeParams = ref<SpiParameter[]>([]);
 const nodeConfig = reactive<Record<string, any>>({});
 
 // 拖拽数据
-let draggedSpi: {
-  nodeType: string;
-  spiName: string;
-  displayName: string;
-} | null = null;
+let draggedSpi: { nodeType: string; spiName: string; displayName: string } | null = null;
 
 // 生成唯一ID
-const generateNodeKey = () =>
-  `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+const generateNodeKey = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 // 节点类型映射
 const syncTypeToEditorType: Record<string, NodeTypeName> = {
@@ -326,10 +305,7 @@ const editorTypeToSyncType: Record<string, string> = {
 /**
  * 将 SyncNode/SyncConnection 转换为 EditorData
  */
-function convertToEditorData(
-  nodes: SyncNode[],
-  connections: SyncConnection[],
-): EditorData {
+function convertToEditorData(nodes: SyncNode[], connections: SyncConnection[]): EditorData {
   return {
     nodes: nodes.map((node) => {
       let position = { x: 100, y: 100 };
@@ -338,7 +314,7 @@ function convertToEditorData(
           position = JSON.parse(node.syncNodePosition);
         } catch (e) {}
       }
-
+      
       return {
         id: node.syncNodeKey || `node_${node.syncNodeId || Date.now()}`,
         type: syncTypeToEditorType[node.syncNodeType] || "process",
@@ -359,26 +335,22 @@ function convertToEditorData(
 /**
  * 将 EditorData 转换回 SyncNode/SyncConnection
  */
-function convertFromEditorData(data: EditorData): {
-  nodes: SyncNode[];
-  connections: SyncConnection[];
-} {
+function convertFromEditorData(data: EditorData): { nodes: SyncNode[]; connections: SyncConnection[] } {
   const nodeMap = new Map(syncNodes.value.map((n) => [n.syncNodeKey, n]));
-
+  
   const nodes: SyncNode[] = data.nodes.map((editorNode) => {
     const existing = nodeMap.get(editorNode.id);
     return {
       ...existing,
       syncNodeKey: editorNode.id,
-      syncNodeType: (editorTypeToSyncType[editorNode.type] ||
-        "DATA_CENTER") as any,
+      syncNodeType: (editorTypeToSyncType[editorNode.type] || "DATA_CENTER") as any,
       syncNodeName: editorNode.label,
       syncNodePosition: JSON.stringify(editorNode.position),
       syncNodeSpiName: existing?.syncNodeSpiName || "Unknown",
       syncNodeEnabled: 1,
     };
   });
-
+  
   const connections: SyncConnection[] = data.connections.map((conn) => ({
     sourceNodeKey: conn.sourceId,
     sourceHandle: conn.sourceOutput,
@@ -386,7 +358,7 @@ function convertFromEditorData(data: EditorData): {
     targetHandle: conn.targetInput,
     connectionType: "DATA",
   }));
-
+  
   return { nodes, connections };
 }
 
@@ -409,15 +381,15 @@ function handleDragOver(event: DragEvent) {
 // 拖拽放下 - 创建新节点
 function handleDrop(event: DragEvent) {
   event.preventDefault();
-
+  
   if (!draggedSpi) return;
-
+  
   // 获取放下位置相对于编辑器的坐标
   const editorContainer = event.currentTarget as HTMLElement;
   const rect = editorContainer.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
-
+  
   // 创建新的 SyncNode
   const newNodeKey = generateNodeKey();
   const newSyncNode: SyncNode = {
@@ -429,10 +401,10 @@ function handleDrop(event: DragEvent) {
     syncNodeEnabled: 1,
     syncNodeConfig: "{}",
   };
-
+  
   // 添加到 syncNodes
   syncNodes.value.push(newSyncNode);
-
+  
   // 创建对应的编辑器节点
   const newEditorNode = {
     id: newNodeKey,
@@ -441,16 +413,16 @@ function handleDrop(event: DragEvent) {
     position: { x, y },
     controls: {},
   };
-
+  
   // 更新编辑器数据
   editorData.value = {
     ...editorData.value,
     nodes: [...editorData.value.nodes, newEditorNode],
   };
-
+  
   // 清除拖拽数据
   draggedSpi = null;
-
+  
   ElMessage.success(`已添加节点: ${newSyncNode.syncNodeName}`);
 }
 
@@ -460,18 +432,15 @@ async function handleNodeSelected(node: BaseNode | null) {
     selectedSyncNode.value = null;
     return;
   }
-
+  
   const syncNode = syncNodes.value.find((n) => n.syncNodeKey === node.id);
   if (syncNode) {
     selectedSyncNode.value = syncNode;
-
+    
     // 加载参数配置
     if (syncNode.syncNodeType && syncNode.syncNodeSpiName) {
       try {
-        const res = await getSpiParameters(
-          syncNode.syncNodeType,
-          syncNode.syncNodeSpiName,
-        );
+        const res = await getSpiParameters(syncNode.syncNodeType, syncNode.syncNodeSpiName);
         if (res.data?.success) {
           selectedNodeParams.value = res.data.data || [];
         }
@@ -479,7 +448,7 @@ async function handleNodeSelected(node: BaseNode | null) {
         selectedNodeParams.value = [];
       }
     }
-
+    
     // 解析现有配置
     Object.keys(nodeConfig).forEach((key) => delete nodeConfig[key]);
     if (syncNode.syncNodeConfig) {
@@ -487,13 +456,10 @@ async function handleNodeSelected(node: BaseNode | null) {
         Object.assign(nodeConfig, JSON.parse(syncNode.syncNodeConfig));
       } catch (e) {}
     }
-
+    
     // 设置默认值
     selectedNodeParams.value.forEach((param) => {
-      if (
-        nodeConfig[param.name] === undefined &&
-        param.defaultValue !== undefined
-      ) {
+      if (nodeConfig[param.name] === undefined && param.defaultValue !== undefined) {
         nodeConfig[param.name] = param.defaultValue;
       }
     });
@@ -505,23 +471,19 @@ function handleDataChanged(data: EditorData) {
   // 更新连接
   const { connections } = convertFromEditorData(data);
   syncConnections.value = connections;
-
+  
   // 更新节点位置和名称
   data.nodes.forEach((editorNode) => {
-    const syncNode = syncNodes.value.find(
-      (n) => n.syncNodeKey === editorNode.id,
-    );
+    const syncNode = syncNodes.value.find((n) => n.syncNodeKey === editorNode.id);
     if (syncNode) {
       syncNode.syncNodePosition = JSON.stringify(editorNode.position);
       syncNode.syncNodeName = editorNode.label;
     }
   });
-
+  
   // 删除不存在的节点
   const editorNodeIds = new Set(data.nodes.map((n) => n.id));
-  syncNodes.value = syncNodes.value.filter((n) =>
-    editorNodeIds.has(n.syncNodeKey || ""),
-  );
+  syncNodes.value = syncNodes.value.filter((n) => editorNodeIds.has(n.syncNodeKey || ""));
 }
 
 // ============== 业务操作 ==============
@@ -551,12 +513,9 @@ const loadTaskDesign = async () => {
       taskData.value = design.task;
       syncNodes.value = design.nodes || [];
       syncConnections.value = design.connections || [];
-
+      
       // 转换为编辑器数据
-      editorData.value = convertToEditorData(
-        syncNodes.value,
-        syncConnections.value,
-      );
+      editorData.value = convertToEditorData(syncNodes.value, syncConnections.value);
     }
   } catch (e) {
     console.error(e);
@@ -570,18 +529,16 @@ const handleSave = async () => {
   try {
     const data = editorRef.value?.getData() || editorData.value;
     const { nodes, connections } = convertFromEditorData(data);
-
+    
     // 保留原有的配置信息
     nodes.forEach((node) => {
-      const original = syncNodes.value.find(
-        (n) => n.syncNodeKey === node.syncNodeKey,
-      );
+      const original = syncNodes.value.find((n) => n.syncNodeKey === node.syncNodeKey);
       if (original) {
         node.syncNodeConfig = original.syncNodeConfig;
         node.syncNodeSpiName = original.syncNodeSpiName;
       }
     });
-
+    
     const res = await saveSyncTaskDesign(taskId.value, {
       task: taskData.value || undefined,
       nodes,
@@ -605,7 +562,7 @@ const handleValidate = async () => {
   try {
     const data = editorRef.value?.getData() || editorData.value;
     const { nodes, connections } = convertFromEditorData(data);
-
+    
     const res = await validateSyncTaskDesign({
       task: taskData.value || undefined,
       nodes,
@@ -670,7 +627,7 @@ const handleTestConnection = async () => {
     const res = await testSpiConnection(
       selectedSyncNode.value.syncNodeType!,
       selectedSyncNode.value.syncNodeSpiName!,
-      nodeConfig,
+      nodeConfig
     );
     if (res.data?.success) {
       ElMessage.success(res.data.data || "连接成功");
@@ -692,6 +649,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -724,6 +682,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .sync-task-design {
   height: 100vh;
@@ -885,6 +844,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -893,4 +853,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

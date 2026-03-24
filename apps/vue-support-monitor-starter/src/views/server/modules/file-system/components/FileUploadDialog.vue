@@ -39,10 +39,10 @@
       <div v-if="fileList.length" class="file-list">
         <div class="list-header">
           <span>待上传文件 ({{ fileList.length }})</span>
-          <ScButton size="small" text @click="clearFiles">
+          <el-button size="small" text @click="clearFiles">
             <IconifyIconOnline icon="ri:delete-bin-line" />
             清空
-          </ScButton>
+          </el-button>
         </div>
         <div class="list-content">
           <div v-for="(file, index) in fileList" :key="index" class="file-item">
@@ -57,14 +57,14 @@
               </div>
             </div>
             <div class="file-actions">
-              <ScButton
+              <el-button
                 size="small"
                 text
                 type="danger"
                 @click="removeFile(index)"
               >
                 <IconifyIconOnline icon="ri:close-line" />
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </div>
@@ -72,16 +72,16 @@
 
       <!-- 上传配置 -->
       <div class="upload-config">
-        <ScForm :model="uploadConfig" label-width="100px" size="small">
-          <ScFormItem label="并发数">
-            <ScInputNumber
+        <el-form :model="uploadConfig" label-width="100px" size="small">
+          <el-form-item label="并发数">
+            <el-input-number
               v-model="uploadConfig.concurrent"
               :min="1"
               :max="5"
               controls-position="right"
             />
-          </ScFormItem>
-          <ScFormItem v-if="systemConfig" label="配置信息">
+          </el-form-item>
+          <el-form-item label="配置信息" v-if="systemConfig">
             <div class="config-info">
               <span class="config-item"
                 >分片大小: {{ systemConfig.chunkSize }}MB</span
@@ -90,22 +90,22 @@
                 >最大文件: {{ systemConfig.maxFileSize }}MB</span
               >
             </div>
-          </ScFormItem>
-        </ScForm>
+          </el-form-item>
+        </el-form>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton
+        <el-button @click="handleClose">取消</el-button>
+        <el-button
           type="primary"
           :disabled="!fileList.length || uploading"
           :loading="uploading"
           @click="startUpload"
         >
           {{ uploading ? "上传中..." : "开始上传" }}
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -205,9 +205,8 @@ const addFiles = (files: File[]) => {
   const validFiles = files.filter((file) => {
     if (file.size > maxSize) {
       message(
-        `文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`,
-        { type: "warning" },
-      );
+        `文件 ${file.name} 超过 ${systemConfig.value!.maxFileSize}MB 限制，已跳过`
+      , { type: "warning" });
       return false;
     }
     return true;
@@ -346,7 +345,7 @@ const uploadFileChunk = async (
   file: File,
   fileId: number,
   chunkNumber: number,
-  chunkSize: number,
+  chunkSize: number
 ) => {
   const start = chunkNumber * chunkSize;
   const end = Math.min(start + chunkSize, file.size);
@@ -492,7 +491,7 @@ onMounted(() => {
 
         .secondary-text {
           font-size: 14px;
-          color: var(--el-text-color-primary);
+           color: var(--el-text-color-primary);
           margin: 0;
         }
       }
@@ -556,7 +555,7 @@ onMounted(() => {
 
             .file-size {
               font-size: 12px;
-              color: var(--el-text-color-primary);
+               color: var(--el-text-color-primary);
             }
           }
         }
@@ -591,6 +590,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -599,4 +599,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

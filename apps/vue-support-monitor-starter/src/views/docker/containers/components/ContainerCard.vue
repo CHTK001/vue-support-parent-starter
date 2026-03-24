@@ -1,16 +1,11 @@
 <template>
-  <ScCard
-    class="container-card"
-    :class="{ running: isRunning, stopped: isStopped }"
-  >
+  <el-card class="container-card" :class="{ 'running': isRunning, 'stopped': isStopped }">
     <!-- 卡片头部 -->
     <template #header>
       <div class="card-header">
         <div class="header-left">
-          <IconifyIconOnline
-            :icon="
-              isRunning ? 'ri:checkbox-circle-line' : 'ri:stop-circle-line'
-            "
+          <IconifyIconOnline 
+            :icon="isRunning ? 'ri:checkbox-circle-line' : 'ri:stop-circle-line'" 
             :class="['status-icon', isRunning ? 'running' : 'stopped']"
           />
           <div class="container-name">
@@ -18,12 +13,9 @@
             <div class="container-id">{{ dockerId }}</div>
           </div>
         </div>
-        <ScTag
-          :type="getStatusType(container.systemSoftContainerStatus)"
-          size="small"
-        >
+        <el-tag :type="getStatusType(container.systemSoftContainerStatus)" size="small">
           {{ getStatusText(container.systemSoftContainerStatus) }}
-        </ScTag>
+        </el-tag>
       </div>
     </template>
 
@@ -35,11 +27,7 @@
           <IconifyIconOnline icon="ri:image-line" class="info-icon" />
           <span>镜像</span>
         </div>
-        <div class="info-value">
-          {{ container.systemSoftContainerImage }}:{{
-            container.systemSoftContainerImageTag || "latest"
-          }}
-        </div>
+        <div class="info-value">{{ container.systemSoftContainerImage }}:{{ container.systemSoftContainerImageTag || 'latest' }}</div>
       </div>
 
       <!-- 服务器信息 -->
@@ -58,17 +46,12 @@
           <span>端口</span>
         </div>
         <div class="ports-list">
-          <ScTag
-            v-for="port in ports.slice(0, 3)"
-            :key="port"
-            size="small"
-            class="port-tag"
-          >
+          <el-tag v-for="port in ports.slice(0, 3)" :key="port" size="small" class="port-tag">
             {{ port }}
-          </ScTag>
-          <ScTag v-if="ports.length > 3" size="small" type="info">
+          </el-tag>
+          <el-tag v-if="ports.length > 3" size="small" type="info">
             +{{ ports.length - 3 }}
-          </ScTag>
+          </el-tag>
         </div>
       </div>
 
@@ -76,8 +59,8 @@
       <div class="resource-section">
         <div class="resource-item">
           <div class="resource-label">CPU</div>
-          <ScProgress
-            :percentage="cpuUsage"
+          <el-progress 
+            :percentage="cpuUsage" 
             :color="getUsageColor(cpuUsage)"
             :stroke-width="6"
             :show-text="false"
@@ -86,8 +69,8 @@
         </div>
         <div class="resource-item">
           <div class="resource-label">内存</div>
-          <ScProgress
-            :percentage="memoryUsage"
+          <el-progress 
+            :percentage="memoryUsage" 
             :color="getUsageColor(memoryUsage)"
             :stroke-width="6"
             :show-text="false"
@@ -102,9 +85,7 @@
           <IconifyIconOnline icon="ri:time-line" class="info-icon" />
           <span>创建时间</span>
         </div>
-        <div class="info-value">
-          {{ formatTime(container.systemSoftContainerCreatedTime) }}
-        </div>
+        <div class="info-value">{{ formatTime(container.systemSoftContainerCreatedTime) }}</div>
       </div>
     </div>
 
@@ -112,186 +93,179 @@
     <template #footer>
       <div class="card-footer">
         <el-button-group class="action-group">
-          <ScButton
-            size="small"
-            type="success"
+          <el-button 
+            size="small" 
+            type="success" 
             :disabled="isRunning"
             @click="$emit('start', container)"
           >
             <IconifyIconOnline icon="ri:play-line" />
-          </ScButton>
-          <ScButton
-            size="small"
-            type="warning"
+          </el-button>
+          <el-button 
+            size="small" 
+            type="warning" 
             :disabled="!isRunning"
             @click="$emit('stop', container)"
           >
             <IconifyIconOnline icon="ri:stop-line" />
-          </ScButton>
-          <ScButton
-            size="small"
-            type="primary"
+          </el-button>
+          <el-button 
+            size="small" 
+            type="primary" 
             @click="$emit('restart', container)"
           >
             <IconifyIconOnline icon="ri:restart-line" />
-          </ScButton>
+          </el-button>
         </el-button-group>
 
-        <ScDropdown trigger="click" @command="handleCommand">
-          <ScButton size="small">
+        <el-dropdown trigger="click" @command="handleCommand">
+          <el-button size="small">
             <IconifyIconOnline icon="ri:more-2-fill" />
-          </ScButton>
+          </el-button>
           <template #dropdown>
-            <ScDropdownMenu>
-              <ScDropdownItem command="exec" :disabled="!isRunning">
+            <el-dropdown-menu>
+              <el-dropdown-item command="exec" :disabled="!isRunning">
                 <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
                 进入容器
-              </ScDropdownItem>
-              <ScDropdownItem command="logs">
+              </el-dropdown-item>
+              <el-dropdown-item command="logs">
                 <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
                 查看日志
-              </ScDropdownItem>
-              <ScDropdownItem command="detail">
+              </el-dropdown-item>
+              <el-dropdown-item command="detail">
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详细信息
-              </ScDropdownItem>
-              <ScDropdownItem command="delete" divided>
+              </el-dropdown-item>
+              <el-dropdown-item command="delete" divided>
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除容器
-              </ScDropdownItem>
-            </ScDropdownMenu>
+              </el-dropdown-item>
+            </el-dropdown-menu>
           </template>
-        </ScDropdown>
+        </el-dropdown>
       </div>
     </template>
-  </ScCard>
+  </el-card>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import type { SystemSoftContainer } from "@/api/docker";
+import { computed } from 'vue'
+import type { SystemSoftContainer } from '@/api/docker'
 
 interface Props {
-  container: SystemSoftContainer;
+  container: SystemSoftContainer
 }
 
 interface Emits {
-  (e: "start", container: SystemSoftContainer): void;
-  (e: "stop", container: SystemSoftContainer): void;
-  (e: "restart", container: SystemSoftContainer): void;
-  (e: "delete", container: SystemSoftContainer): void;
-  (e: "detail", container: SystemSoftContainer): void;
-  (e: "logs", container: SystemSoftContainer): void;
-  (e: "exec", container: SystemSoftContainer): void;
+  (e: 'start', container: SystemSoftContainer): void
+  (e: 'stop', container: SystemSoftContainer): void
+  (e: 'restart', container: SystemSoftContainer): void
+  (e: 'delete', container: SystemSoftContainer): void
+  (e: 'detail', container: SystemSoftContainer): void
+  (e: 'logs', container: SystemSoftContainer): void
+  (e: 'exec', container: SystemSoftContainer): void
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
 // 计算属性
-const isRunning = computed(
-  () => props.container.systemSoftContainerStatus === "running",
-);
-const isStopped = computed(
-  () =>
-    props.container.systemSoftContainerStatus === "stopped" ||
-    props.container.systemSoftContainerStatus === "exited",
-);
+const isRunning = computed(() => props.container.systemSoftContainerStatus === 'running')
+const isStopped = computed(() => 
+  props.container.systemSoftContainerStatus === 'stopped' || 
+  props.container.systemSoftContainerStatus === 'exited'
+)
 
 const dockerId = computed(() => {
-  const id = props.container.systemSoftContainerDockerId;
-  return id ? id.substring(0, 12) : "N/A";
-});
+  const id = props.container.systemSoftContainerDockerId
+  return id ? id.substring(0, 12) : 'N/A'
+})
 
 const ports = computed(() => {
-  if (!props.container.systemSoftContainerPorts) return [];
+  if (!props.container.systemSoftContainerPorts) return []
   try {
-    const mappings = JSON.parse(props.container.systemSoftContainerPorts);
+    const mappings = JSON.parse(props.container.systemSoftContainerPorts)
     if (Array.isArray(mappings)) {
-      return mappings.map((p) => `${p.hostPort}:${p.containerPort}`);
+      return mappings.map(p => `${p.hostPort}:${p.containerPort}`)
     }
-    return [];
+    return []
   } catch {
-    return props.container.systemSoftContainerPorts.split(",").filter(Boolean);
+    return props.container.systemSoftContainerPorts.split(',').filter(Boolean)
   }
-});
+})
 
 const cpuUsage = computed(() => {
-  return (
-    props.container.systemSoftContainerCpuPercent ||
-    props.container.systemSoftContainerCpuUsage ||
-    0
-  );
-});
+  return props.container.systemSoftContainerCpuPercent || 
+         props.container.systemSoftContainerCpuUsage || 
+         0
+})
 
 const memoryUsage = computed(() => {
-  return (
-    props.container.systemSoftContainerMemoryPercent ||
-    props.container.systemSoftContainerMemoryUsage ||
-    0
-  );
-});
+  return props.container.systemSoftContainerMemoryPercent || 
+         props.container.systemSoftContainerMemoryUsage || 
+         0
+})
 
 // 工具函数
 const getStatusType = (status?: string) => {
   const map: Record<string, any> = {
-    running: "success",
-    stopped: "info",
-    exited: "info",
-    paused: "warning",
-    restarting: "warning",
-    error: "danger",
-  };
-  return map[status || ""] || "info";
-};
+    running: 'success',
+    stopped: 'info',
+    exited: 'info',
+    paused: 'warning',
+    restarting: 'warning',
+    error: 'danger'
+  }
+  return map[status || ''] || 'info'
+}
 
 const getStatusText = (status?: string) => {
   const map: Record<string, string> = {
-    running: "运行中",
-    stopped: "已停止",
-    exited: "已退出",
-    paused: "暂停",
-    restarting: "重启中",
-    error: "错误",
-  };
-  return map[status || ""] || "未知";
-};
+    running: '运行中',
+    stopped: '已停止',
+    exited: '已退出',
+    paused: '暂停',
+    restarting: '重启中',
+    error: '错误'
+  }
+  return map[status || ''] || '未知'
+}
 
 const getUsageColor = (percentage: number) => {
-  if (percentage < 50) return "#67c23a";
-  if (percentage < 80) return "#e6a23c";
-  return "#f56c6c";
-};
+  if (percentage < 50) return '#67c23a'
+  if (percentage < 80) return '#e6a23c'
+  return '#f56c6c'
+}
 
 const formatTime = (time?: string) => {
-  if (!time) return "-";
-  const date = new Date(time);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+  if (!time) return '-'
+  const date = new Date(time)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 // 事件处理
 const handleCommand = (command: string) => {
   switch (command) {
-    case "exec":
-      emit("exec", props.container);
-      break;
-    case "logs":
-      emit("logs", props.container);
-      break;
-    case "detail":
-      emit("detail", props.container);
-      break;
-    case "delete":
-      emit("delete", props.container);
-      break;
+    case 'exec':
+      emit('exec', props.container)
+      break
+    case 'logs':
+      emit('logs', props.container)
+      break
+    case 'detail':
+      emit('detail', props.container)
+      break
+    case 'delete':
+      emit('delete', props.container)
+      break
   }
-};
+}
 </script>
 
 <style scoped lang="scss">
@@ -362,7 +336,7 @@ const handleCommand = (command: string) => {
 .container-id {
   font-size: 11px;
   color: var(--app-text-secondary);
-  font-family: "Consolas", monospace;
+  font-family: 'Consolas', monospace;
   margin-top: 2px;
 }
 
@@ -411,7 +385,7 @@ const handleCommand = (command: string) => {
 }
 
 .port-tag {
-  font-family: "Consolas", monospace;
+  font-family: 'Consolas', monospace;
   font-size: 10px;
 }
 
@@ -501,3 +475,4 @@ const handleCommand = (command: string) => {
   }
 }
 </style>
+

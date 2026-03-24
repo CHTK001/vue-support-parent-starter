@@ -19,10 +19,10 @@
       </div>
     </template>
 
-    <ScForm :model="form" :rules="rules" label-width="90px" class="task-form">
-      <ScTabs v-model="activeTab" class="task-tabs">
+    <el-form :model="form" :rules="rules" label-width="90px" class="task-form">
+      <el-tabs v-model="activeTab" class="task-tabs">
         <!-- 基础配置 Tab -->
-        <ScTabPane name="basic">
+        <el-tab-pane name="basic">
           <template #label>
             <span class="tab-label">
               <IconifyIconOnline icon="ri:settings-3-line" />
@@ -30,98 +30,98 @@
             </span>
           </template>
           <div class="tab-content">
-            <ScRow :gutter="16">
-              <ScCol :span="8">
-                <ScFormItem label="任务名称" prop="jobName">
-                  <ScInput
+            <el-row :gutter="16">
+              <el-col :span="8">
+                <el-form-item label="任务名称" prop="jobName">
+                  <el-input
                     v-model="form.jobName"
                     placeholder="请输入任务名称"
                     maxlength="50"
                   />
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="负责人" prop="jobAuthor">
-                  <ScInput
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="负责人" prop="jobAuthor">
+                  <el-input
                     v-model="form.jobAuthor"
                     maxlength="50"
                     placeholder="请输入负责人"
                   />
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="任务环境" prop="jobApplicationActive">
-                  <ScSelect
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="任务环境" prop="jobApplicationActive">
+                  <el-select
                     v-model="form.jobApplicationActive"
                     allow-create
                     placeholder="请选择"
                     style="width: 100%"
                   >
-                    <ScOption value="dev" label="开发" />
-                    <ScOption value="prod" label="生产" />
-                    <ScOption value="test" label="测试" />
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="执行器" prop="jobGroup">
-                  <ScSelect
+                    <el-option value="dev" label="开发" />
+                    <el-option value="prod" label="生产" />
+                    <el-option value="test" label="测试" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="执行器" prop="jobGroup">
+                  <el-select
                     v-model="form.monitorId"
                     clearable
                     filterable
                     placeholder="请选择"
                     style="width: 100%"
                   >
-                    <ScOption
+                    <el-option
                       v-for="item in executorData"
                       :key="item.monitorId"
                       :value="item.monitorId"
                       :label="item.monitorName"
                     />
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="运行模式" prop="jobGlueType">
-                  <ScSelect
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="运行模式" prop="jobGlueType">
+                  <el-select
                     v-model="form.jobGlueType"
                     clearable
                     filterable
                     style="width: 100%"
                   >
-                    <ScOption value="BEAN" label="BEAN" />
-                    <ScOption value="GLUE_GROOVY" label="GLUE(Java)" />
-                    <ScOption value="GLUE_SHELL" label="GLUE(Shell)" />
-                    <ScOption value="GLUE_PYTHON" label="GLUE(Python)" />
-                    <ScOption value="GLUE_NODEJS" label="GLUE(NodeJs)" />
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="运行名称" prop="jobExecuteBean">
-                  <ScInput
+                    <el-option value="BEAN" label="BEAN" />
+                    <el-option value="GLUE_GROOVY" label="GLUE(Java)" />
+                    <el-option value="GLUE_SHELL" label="GLUE(Shell)" />
+                    <el-option value="GLUE_PYTHON" label="GLUE(Python)" />
+                    <el-option value="GLUE_NODEJS" label="GLUE(NodeJs)" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="运行名称" prop="jobExecuteBean">
+                  <el-input
                     v-model="form.jobExecuteBean"
                     maxlength="100"
                     placeholder="后端执行名称"
                     clearable
                   />
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="24">
-                <ScFormItem label="报警邮件">
-                  <ScInput
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="报警邮件">
+                  <el-input
                     v-model="form.jobAlarmEmail"
                     maxlength="100"
                     placeholder="多个邮件地址用逗号分隔"
                   />
-                </ScFormItem>
-              </ScCol>
-            </ScRow>
+                </el-form-item>
+              </el-col>
+            </el-row>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 调度配置 Tab -->
-        <ScTabPane name="schedule">
+        <el-tab-pane name="schedule">
           <template #label>
             <span class="tab-label">
               <IconifyIconOnline icon="ri:time-line" />
@@ -129,18 +129,18 @@
             </span>
           </template>
           <div class="tab-content">
-            <ScRow :gutter="16">
-              <ScCol :span="12">
-                <ScFormItem label="调度类型" prop="jobScheduleType">
-                  <ScRadioGroup v-model="form.jobScheduleType">
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="调度类型" prop="jobScheduleType">
+                  <el-radio-group v-model="form.jobScheduleType">
                     <el-radio-button label="NONE">无</el-radio-button>
                     <el-radio-button label="CRON">Cron</el-radio-button>
                     <el-radio-button label="FIX_RATE">固定速率</el-radio-button>
-                  </ScRadioGroup>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="12">
-                <ScFormItem
+                  </el-radio-group>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item
                   v-if="form.jobScheduleType == 'CRON'"
                   label="Cron表达式"
                   prop="scheduleConf"
@@ -152,25 +152,25 @@
                     clearable
                     :shortcuts="shortcuts"
                   />
-                </ScFormItem>
-                <ScFormItem
+                </el-form-item>
+                <el-form-item
                   v-if="form.jobScheduleType == 'FIX_RATE'"
                   label="间隔时间"
                   prop="scheduleConf"
                 >
-                  <ScInput
+                  <el-input
                     v-model="form.jobScheduleTime"
                     :maxlength="10"
                     placeholder="单位：秒"
                     clearable
                   >
                     <template #suffix>秒</template>
-                  </ScInput>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="24">
-                <ScFormItem label="任务参数" prop="jobExecutorParam">
-                  <ScInput
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="24">
+                <el-form-item label="任务参数" prop="jobExecutorParam">
+                  <el-input
                     v-model="form.jobExecutorParam"
                     type="textarea"
                     :rows="3"
@@ -178,14 +178,14 @@
                     placeholder="请输入任务参数"
                     clearable
                   />
-                </ScFormItem>
-              </ScCol>
-            </ScRow>
+                </el-form-item>
+              </el-col>
+            </el-row>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 高级配置 Tab -->
-        <ScTabPane name="advanced">
+        <el-tab-pane name="advanced">
           <template #label>
             <span class="tab-label">
               <IconifyIconOnline icon="ri:tools-line" />
@@ -193,108 +193,121 @@
             </span>
           </template>
           <div class="tab-content">
-            <ScRow :gutter="16">
-              <ScCol :span="8">
-                <ScFormItem label="路由策略" prop="jobExecutorRouteStrategy">
-                  <ScSelect
+            <el-row :gutter="16">
+              <el-col :span="8">
+                <el-form-item label="路由策略" prop="jobExecutorRouteStrategy">
+                  <el-select
                     v-model="form.jobExecutorRouteStrategy"
                     clearable
                     filterable
                     style="width: 100%"
                   >
-                    <ScOption value="FIRST" label="第一个" />
-                    <ScOption value="LAST" label="最后一个" />
-                    <ScOption value="ROUND" label="轮询" />
-                    <ScOption value="RANDOM" label="随机" />
-                    <ScOption value="FAILOVER" label="故障转移" />
-                    <ScOption value="SHARDING_BROADCAST" label="分片广播" />
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="过期策略" prop="jobExecuteMisfireStrategy">
-                  <ScSelect
+                    <el-option value="FIRST" label="第一个" />
+                    <el-option value="LAST" label="最后一个" />
+                    <el-option value="ROUND" label="轮询" />
+                    <el-option value="RANDOM" label="随机" />
+                    <el-option value="FAILOVER" label="故障转移" />
+                    <el-option value="SHARDING_BROADCAST" label="分片广播" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="过期策略" prop="jobExecuteMisfireStrategy">
+                  <el-select
                     v-model="form.jobExecuteMisfireStrategy"
                     style="width: 100%"
                   >
-                    <ScOption value="DO_NOTHING" label="忽略" />
-                    <ScOption value="FIRE_ONCE_NOW" label="立即执行一次" />
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="阻塞策略" prop="jobExecutorBlockStrategy">
-                  <ScSelect
+                    <el-option value="DO_NOTHING" label="忽略" />
+                    <el-option value="FIRE_ONCE_NOW" label="立即执行一次" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="阻塞策略" prop="jobExecutorBlockStrategy">
+                  <el-select
                     v-model="form.jobExecutorBlockStrategy"
                     clearable
                     filterable
                     style="width: 100%"
                   >
-                    <ScOption value="SERIAL_EXECUTION" label="单机串行" />
-                    <ScOption value="DISCARD_LATER" label="丢弃后续调度" />
-                    <ScOption value="COVER_EARLY" label="覆盖之前调度" />
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="超时时间" prop="jobExecutorTimeout">
-                  <ScInput
+                    <el-option value="SERIAL_EXECUTION" label="单机串行" />
+                    <el-option value="DISCARD_LATER" label="丢弃后续调度" />
+                    <el-option value="COVER_EARLY" label="覆盖之前调度" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="超时时间" prop="jobExecutorTimeout">
+                  <el-input
                     v-model="form.jobExecutorTimeout"
                     maxlength="6"
                     placeholder="单位秒，0表示不限制"
                     clearable
                   >
                     <template #suffix>秒</template>
-                  </ScInput>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="重试次数" prop="jobExecutorFailRetryCount">
-                  <ScInput
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="重试次数" prop="jobExecutorFailRetryCount">
+                  <el-input
                     v-model="form.jobExecutorFailRetryCount"
                     maxlength="4"
                     placeholder="失败重试次数"
                     clearable
                   >
                     <template #suffix>次</template>
-                  </ScInput>
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="8">
-                <ScFormItem label="子任务ID" prop="childJobId">
-                  <ScInput
+                  </el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="子任务ID" prop="childJobId">
+                  <el-input
                     v-model="form.childJobId"
                     maxlength="100"
                     placeholder="多个用逗号分隔"
                     clearable
                   />
-                </ScFormItem>
-              </ScCol>
-            </ScRow>
+                </el-form-item>
+              </el-col>
+            </el-row>
           </div>
-        </ScTabPane>
-      </ScTabs>
-    </ScForm>
+        </el-tab-pane>
+      </el-tabs>
+    </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="triggerShow = false">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="submit">
+        <el-button @click="triggerShow = false">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="submit">
           <IconifyIconOnline icon="ri:check-line" />
           <span>确认提交</span>
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 <script>
 import { fetchJobSave, fetchJobUpdate } from "@/api/monitor/job";
-import { ScCron } from "@repo/components"
+import scCron from "@repo/components/ScCron/index.vue";
 import { useUserStore } from "@repo/core";
 export default {
   name: "Save",
   components: {
     scCron,
+  },
+  computed: {
+    modeIcon() {
+      const iconMap = {
+        add: "ri:add-circle-line",
+        edit: "ri:edit-line",
+        copy: "ri:file-copy-line",
+      };
+      return iconMap[this.mode] || "ri:add-circle-line";
+    },
+    modeClass() {
+      return `mode-${this.mode}`;
+    },
   },
   data() {
     return {
@@ -356,25 +369,12 @@ export default {
       },
     };
   },
-  computed: {
-    modeIcon() {
-      const iconMap = {
-        add: "ri:add-circle-line",
-        edit: "ri:edit-line",
-        copy: "ri:file-copy-line",
-      };
-      return iconMap[this.mode] || "ri:add-circle-line";
-    },
-    modeClass() {
-      return `mode-${this.mode}`;
-    },
-  },
   methods: {
     async submit() {
       this.loading = !0;
       var res = undefined;
       const appItem = this.executorData.filter(
-        (it) => it.monitorId == this.form.monitorId,
+        (it) => it.monitorId == this.form.monitorId
       );
       if (appItem && appItem.length > 0) {
         this.form.jobApplicationName = appItem[0].monitorApplicationName;
@@ -383,7 +383,7 @@ export default {
         res = await fetchJobSave(this.form).finally(() => (this.loading = !1));
       } else {
         res = await fetchJobUpdate(this.form).finally(
-          () => (this.loading = !1),
+          () => (this.loading = !1)
         );
       }
       if (res.code === "00000") {
@@ -563,6 +563,7 @@ export default {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -571,4 +572,5 @@ export default {
     padding: 12px 16px;
   }
 }
+
 </style>

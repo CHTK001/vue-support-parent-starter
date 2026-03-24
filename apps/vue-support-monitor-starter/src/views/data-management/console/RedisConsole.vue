@@ -1,12 +1,8 @@
 <template>
-  <div
-    class="console system-container modern-bg"
-    :style="gridStyle"
-    @contextmenu.prevent
-  >
+  <div class="console system-container modern-bg" :style="gridStyle" @contextmenu.prevent>
     <!-- 左侧：搜索 + 树（与 JDBC 相同接口） -->
     <div class="left overflow-auto thin-scrollbar">
-      <ScInput
+      <el-input
         v-model="keyword"
         placeholder="搜索..."
         size="small"
@@ -16,9 +12,9 @@
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </ScInput>
-      <ScTree
-        ref="treeRef"
+      </el-input>
+      <el-tree
+      ref="treeRef"
         class="tree"
         :data="treeData"
         :props="treeProps"
@@ -37,12 +33,12 @@
           <span class="flex justify-between w-full">
             <span>{{ data.name }}</span>
             <span v-if="data.type" class="el-form-item-msg ml-2 mt-[3px]">
-              {{ data.description }}
-              {{ data.type }}
+              {{data.description}}
+              {{data.type}}
             </span>
           </span>
         </template>
-      </ScTree>
+      </el-tree>
     </div>
 
     <!-- 分割条 -->
@@ -61,17 +57,17 @@
           <span v-if="currentType" class="comment"
             >• 类型：{{ currentType }}</span
           >
-          <span>• TTL: {{ nodeValue?.properties?.ttl }}</span>
+          <span>• TTL: {{nodeValue?.properties?.ttl}}</span>
           <!-- <span>{{nodeValue}}</span> -->
         </div>
         <div class="toolbar">
-          <ScButton
+          <el-button
             size="small"
             :disabled="!currentPath"
             @click="refreshValue"
           >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -79,7 +75,7 @@
         <template v-if="currentPath">
           <!-- STRING -->
           <div v-if="viewerType === 'string'" class="result-wrap">
-            <ScInput
+            <el-input
               v-model="stringValue"
               type="textarea"
               :rows="14"
@@ -87,54 +83,54 @@
             />
           </div>
           <!-- HASH -->
-          <ScTable
+          <el-table
             v-else-if="viewerType === 'hash'"
             :data="hashRows"
             size="small"
             border
             height="580px"
           >
-            <ScTableColumn prop="field" label="字段" :min-width="160" />
-            <ScTableColumn prop="value" label="值" :min-width="240" />
-          </ScTable>
+            <el-table-column prop="field" label="字段" :min-width="160" />
+            <el-table-column prop="value" label="值" :min-width="240" />
+          </el-table>
           <!-- LIST -->
-          <ScTable
+          <el-table
             v-else-if="viewerType === 'list'"
             :data="listRows"
             size="small"
             border
             height="580px"
           >
-            <ScTableColumn prop="index" label="#" width="70" />
-            <ScTableColumn prop="value" label="值" :min-width="240" />
-          </ScTable>
+            <el-table-column prop="index" label="#" width="70" />
+            <el-table-column prop="value" label="值" :min-width="240" />
+          </el-table>
           <!-- SET -->
-          <ScTable
+          <el-table
             v-else-if="viewerType === 'set'"
             :data="setRows"
             size="small"
             border
             height="580px"
           >
-            <ScTableColumn prop="value" label="成员" :min-width="240" />
-          </ScTable>
+            <el-table-column prop="value" label="成员" :min-width="240" />
+          </el-table>
           <!-- ZSET -->
-          <ScTable
+          <el-table
             v-else-if="viewerType === 'zset'"
             :data="zsetRows"
             size="small"
             border
             height="580px"
           >
-            <ScTableColumn prop="member" label="成员" :min-width="200" />
-            <ScTableColumn prop="score" label="分数" width="120" />
-          </ScTable>
+            <el-table-column prop="member" label="成员" :min-width="200" />
+            <el-table-column prop="score" label="分数" width="120" />
+          </el-table>
           <!-- 其他类型：JSON 展示 -->
           <div v-else class="result-wrap">
             <pre>{{ pretty(nodeValue) }}</pre>
           </div>
         </template>
-        <ScEmpty v-else description="请选择左侧 key" />
+        <el-empty v-else description="请选择左侧 key" />
       </div>
 
       <div class="right-status">
@@ -187,18 +183,13 @@ async function loadRoot() {
 
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void,
+  resolve: (children: any[]) => void
 ) => {
   if (!node || node.level === 0) return resolve(treeData.value || []);
   const data = node.data || {};
 
   if (data.leaf === true) return resolve([]);
-  const res = await getConsoleChildren(
-    props.id,
-    data.path,
-    page.value,
-    size.value,
-  );
+  const res = await getConsoleChildren(props.id, data.path, page.value, size.value);
   resolve(extractArrayFromApi(res?.data).map(normalizeTreeNode));
 };
 
@@ -256,7 +247,7 @@ function normalizeValueForView(val: any) {
         hashRows.value = val.map((it: any) =>
           Array.isArray(it)
             ? { field: String(it[0]), value: String(it[1]) }
-            : { field: String(it.field), value: String(it.value) },
+            : { field: String(it.field), value: String(it.value) }
         );
       } else if (val && typeof val === "object") {
         hashRows.value = Object.keys(val).map((k) => ({
@@ -281,7 +272,7 @@ function normalizeValueForView(val: any) {
       zsetRows.value = arr.map((it: any) =>
         Array.isArray(it)
           ? { member: String(it[0]), score: Number(it[1]) }
-          : { member: String(it.member), score: Number(it.score) },
+          : { member: String(it.member), score: Number(it.score) }
       );
       break;
     }
@@ -424,19 +415,17 @@ async function onMenuSelect(key: string) {
   }
 }
 
+
 /**
  * 刷新当前右键节点的子节点
  */
-async function refreshContextNodeChildren() {
+ async function refreshContextNodeChildren() {
   const node = contextNode.value;
   if (!node?.path) return;
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (
-      treeRef.value &&
-      typeof treeRef.value.updateKeyChildren === "function"
-    ) {
+    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -462,8 +451,7 @@ async function deleteKey(node: any) {
   try {
     const ok = window.confirm(`确认删除 Key：${node.name} ?`);
     if (!ok) return;
-    const { executeConsole } =
-      await import("@/api/data-management/system-data");
+    const { executeConsole } = await import("@/api/data-management/system-data");
     await executeConsole(props.id, `DEL ${node.path}`, "redis");
     await refreshContextNodeChildren();
     if (currentPath.value === node.path) {
@@ -491,6 +479,7 @@ onMounted(loadRoot);
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -523,6 +512,7 @@ onMounted(loadRoot);
     z-index: 1;
   }
 }
+
 
 .console {
   display: grid;
@@ -614,6 +604,7 @@ onMounted(loadRoot);
   color: var(--el-text-color-secondary);
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -622,4 +613,5 @@ onMounted(loadRoot);
     padding: 12px 16px;
   }
 }
+
 </style>

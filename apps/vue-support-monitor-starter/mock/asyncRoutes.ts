@@ -11,7 +11,7 @@ const permissionRouter = {
   meta: {
     title: "menus.purePermission",
     icon: "ep:lollipop",
-    rank: 10,
+    rank: 10
   },
   children: [
     {
@@ -19,8 +19,8 @@ const permissionRouter = {
       name: "PermissionPage",
       meta: {
         title: "menus.purePermissionPage",
-        roles: ["admin", "common"],
-      },
+        roles: ["admin", "common"]
+      }
     },
     {
       path: "/permission/button/index",
@@ -28,14 +28,10 @@ const permissionRouter = {
       meta: {
         title: "menus.purePermissionButton",
         roles: ["admin", "common"],
-        auths: [
-          "permission:btn:add",
-          "permission:btn:edit",
-          "permission:btn:delete",
-        ],
-      },
-    },
-  ],
+        auths: ["permission:btn:add", "permission:btn:edit", "permission:btn:delete"]
+      }
+    }
+  ]
 };
 
 export default defineFakeRoute([
@@ -45,8 +41,8 @@ export default defineFakeRoute([
     response: () => {
       return {
         success: true,
-        data: [permissionRouter],
+        data: [permissionRouter]
       };
-    },
-  },
+    }
+  }
 ]);

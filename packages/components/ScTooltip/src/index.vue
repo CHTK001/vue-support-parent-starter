@@ -20,9 +20,10 @@
     :persistent="persistent"
     :aria-label="ariaLabel"
     :effect="effect"
-    :z-index="zIndex"
-    v-bind="filteredAttrs"
-    v-on="filteredListeners || {}"
+    @before-show="handleBeforeShow"
+    @before-hide="handleBeforeHide"
+    @show="handleShow"
+    @hide="handleHide"
   >
     <template v-if="$slots.default" #default>
       <slot />
@@ -39,15 +40,10 @@
  * 封装 Element Plus Tooltip 与 PixelUI PxTooltip
  * 在 data-skin 为 8bit 时自动切换为像素风提示
  */
-import { computed, useAttrs } from "vue";
+import { computed } from "vue";
 import type { PropType } from "vue";
 import { ElTooltip } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
-
-// 禁用属性自动继承，手动控制属性传递以避免 Element Plus Popup 组件的警告
-defineOptions({
-  inheritAttrs: false
-});
 
 defineProps({
   content: {
@@ -125,11 +121,6 @@ defineProps({
   effect: {
     type: String as PropType<"dark" | "light">,
     default: "dark"
-  },
-  /** tooltip 层级，默认不设置（由 ElTooltip 自动管理），在高层级容器内使用时需手动传入 */
-  zIndex: {
-    type: Number,
-    default: undefined
   }
 });
 
@@ -137,10 +128,8 @@ const emit = defineEmits(["before-show", "before-hide", "show", "hide"]);
 
 const { currentComponent } = useThemeComponent("ElTooltip");
 
-// 获取 attrs，排除已声明的事件监听器，避免重复绑定
-const attrs = useAttrs();
 
-// 事件处理函数
+
 const handleBeforeShow = () => {
   emit("before-show");
 };
@@ -156,33 +145,4 @@ const handleShow = () => {
 const handleHide = () => {
   emit("hide");
 };
-
-// 过滤属性，排除已声明的事件监听器
-const filteredAttrs = computed(() => {
-  const { onBeforeShow, onBeforeHide, onShow, onHide, ...rest } = attrs;
-  return rest;
-});
-
-// 过滤事件监听器，只在有外部监听器时才绑定，避免传递给 Popup 组件导致警告
-// 确保始终返回一个对象，避免 v-on 警告
-const filteredListeners = computed(() => {
-  const listeners: Record<string, any> = {};
-
-  // 只在有外部监听器时才绑定，避免传递给 Popup 组件
-  if (attrs.onBeforeShow) {
-    listeners["before-show"] = handleBeforeShow;
-  }
-  if (attrs.onBeforeHide) {
-    listeners["before-hide"] = handleBeforeHide;
-  }
-  if (attrs.onShow) {
-    listeners["show"] = handleShow;
-  }
-  if (attrs.onHide) {
-    listeners["hide"] = handleHide;
-  }
-
-  // 确保始终返回一个对象
-  return listeners;
-});
 </script>

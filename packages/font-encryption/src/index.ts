@@ -66,10 +66,7 @@ export async function registerEncryptedFonts(): Promise<void> {
     return;
   }
 
-  if (
-    !("fonts" in document) ||
-    typeof (window as any).FontFace !== "function"
-  ) {
+  if (!("fonts" in document) || typeof (window as any).FontFace !== "function") {
     // 运行环境不支持 FontFace API 时直接跳过，仅依赖默认系统字体
     initialized = true;
     return;
@@ -79,11 +76,6 @@ export async function registerEncryptedFonts(): Promise<void> {
 
   try {
     const [first, second] = pickTwoRandomVariants();
-
-    // URL 有效性检查：Vite import 在某些环境下可能返回 undefined 或空字符串
-    if (!first.url || !second.url) {
-      return;
-    }
 
     const FontFaceCtor = (window as any).FontFace as typeof FontFace;
 
@@ -107,22 +99,16 @@ export async function registerEncryptedFonts(): Promise<void> {
       },
     );
 
+    await Promise.all([
+      primaryFace.load(),
+      secondaryFace.load(),
+    ]);
 
-    // 只将加载成功的字体添加到文档
-    if (results[0].status === "fulfilled") {
-      document.fonts.add(primaryFace);
-    } else {
-      // ignore optional encrypted font failures
-    }
-
-    if (results[1].status === "fulfilled") {
-      document.fonts.add(secondaryFace);
-    } else {
-      // ignore optional encrypted font failures
-    }
+    document.fonts.add(primaryFace);
+    document.fonts.add(secondaryFace);
   } catch (error) {
-    // 字体注册失败时仅记录 debug 日志，不阻断应用
-    void error;
+    // 字体注册失败时仅记录日志，不阻断应用
+    console.warn("[font-encryption] 注册加密字体失败:", error);
   }
 }
 

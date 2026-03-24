@@ -3,7 +3,7 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 </script>
 
 <template>
-  <ScTooltip
+  <ScTooltip 
     :content="$t('module.logout')"
     placement="bottom"
     :show-after="300"
@@ -89,6 +89,8 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
   }
 }
 
+
+
 // 万圣节主题
 :global(html[data-skin="halloween"]) .logout-btn {
   &::before {
@@ -101,7 +103,7 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 
   &:hover {
     box-shadow: 0 0 15px rgba(255, 117, 24, 0.4);
-
+    
     .logout-icon {
       color: #76ff03; // 幽灵绿
       text-shadow: 0 0 8px rgba(118, 255, 3, 0.6);
@@ -110,14 +112,62 @@ import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 }
 </style>
 
-// 春节主题 :global(html[data-skin="spring-festival"]),
-:global(html[data-skin="new-year"]) { .logout-btn { &::before { background:
-rgba(229, 57, 53, 0.1); } .logout-icon { color: #c62828; } &:hover { box-shadow:
-0 4px 12px rgba(229, 57, 53, 0.3); .logout-icon { color: #e53935; } } } } //
-中秋主题 :global(html[data-skin="mid-autumn"]) .logout-btn { &::before {
-background: rgba(106, 27, 154, 0.15); } .logout-icon { color: #ffc107; } &:hover
-{ box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3); .logout-icon { color: #ff9800;
-} } } // 圣诞主题 :global(html[data-skin="christmas"]) .logout-btn { &::before {
-background: rgba(196, 30, 58, 0.1); } .logout-icon { color: #228b22; } &:hover {
-box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3); .logout-icon { color: #c41e3a; }
-} }
+// 春节主题
+:global(html[data-skin="spring-festival"]),
+:global(html[data-skin="new-year"]) {
+  .logout-btn {
+    &::before {
+      background: rgba(229, 57, 53, 0.1);
+    }
+
+    .logout-icon {
+      color: #c62828;
+    }
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(229, 57, 53, 0.3);
+
+      .logout-icon {
+        color: #e53935;
+      }
+    }
+  }
+}
+
+// 中秋主题
+:global(html[data-skin="mid-autumn"]) .logout-btn {
+  &::before {
+    background: rgba(106, 27, 154, 0.15);
+  }
+
+  .logout-icon {
+    color: #ffc107;
+  }
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+
+    .logout-icon {
+      color: #ff9800;
+    }
+  }
+}
+
+// 圣诞主题
+:global(html[data-skin="christmas"]) .logout-btn {
+  &::before {
+    background: rgba(196, 30, 58, 0.1);
+  }
+
+  .logout-icon {
+    color: #228b22;
+  }
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(196, 30, 58, 0.3);
+
+    .logout-icon {
+      color: #c41e3a;
+    }
+  }
+}

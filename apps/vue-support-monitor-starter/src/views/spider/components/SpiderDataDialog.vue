@@ -9,7 +9,7 @@
   >
     <div class="data-toolbar">
       <div class="toolbar-left">
-        <ScDatePicker
+        <el-date-picker
           v-model="dateRange"
           type="datetimerange"
           range-separator="至"
@@ -19,7 +19,7 @@
           size="small"
           @change="handleSearch"
         />
-        <ScInput
+        <el-input
           v-model="keyword"
           placeholder="关键字搜索"
           clearable
@@ -30,34 +30,34 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScButton type="primary" size="small" @click="handleSearch">
+        </el-input>
+        <el-button type="primary" size="small" @click="handleSearch">
           <IconifyIconOnline icon="ri:search-line" class="mr-1" />
           搜索
-        </ScButton>
+        </el-button>
       </div>
       <div class="toolbar-right">
-        <ScButton size="small" @click="handleRefresh">
+        <el-button size="small" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton type="success" size="small" @click="handleExport">
+        </el-button>
+        <el-button type="success" size="small" @click="handleExport">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出数据
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
-    <ScTable
+    <el-table
       v-loading="loading"
       :data="dataList"
       border
       stripe
       max-height="500"
     >
-      <ScTableColumn type="index" label="#" width="60" align="center" />
+      <el-table-column type="index" label="#" width="60" align="center" />
       <template v-for="col in columns" :key="col.prop">
-        <ScTableColumn
+        <el-table-column
           :prop="col.prop"
           :label="col.label"
           :min-width="col.minWidth || 150"
@@ -65,12 +65,12 @@
         >
           <template #default="{ row }">
             <template v-if="isUrl(row[col.prop])">
-              <ScLink type="primary" :href="row[col.prop]" target="_blank">
+              <el-link type="primary" :href="row[col.prop]" target="_blank">
                 {{ truncateText(row[col.prop], 50) }}
-              </ScLink>
+              </el-link>
             </template>
             <template v-else-if="isImageUrl(row[col.prop])">
-              <ScImage
+              <el-image
                 :src="row[col.prop]"
                 :preview-src-list="[row[col.prop]]"
                 fit="cover"
@@ -81,33 +81,23 @@
               {{ row[col.prop] }}
             </template>
           </template>
-        </ScTableColumn>
+        </el-table-column>
       </template>
-      <ScTableColumn prop="crawlTime" label="爬取时间" width="180" />
-      <ScTableColumn label="操作" width="100" align="center" fixed="right">
+      <el-table-column prop="crawlTime" label="爬取时间" width="180" />
+      <el-table-column label="操作" width="100" align="center" fixed="right">
         <template #default="{ row }">
-          <ScButton
-            type="primary"
-            link
-            size="small"
-            @click="handleViewDetail(row)"
-          >
+          <el-button type="primary" link size="small" @click="handleViewDetail(row)">
             <IconifyIconOnline icon="ri:eye-line" />
-          </ScButton>
-          <ScButton
-            type="danger"
-            link
-            size="small"
-            @click="handleDeleteRow(row)"
-          >
+          </el-button>
+          <el-button type="danger" link size="small" @click="handleDeleteRow(row)">
             <IconifyIconOnline icon="ri:delete-bin-line" />
-          </ScButton>
+          </el-button>
         </template>
-      </ScTableColumn>
-    </ScTable>
+      </el-table-column>
+    </el-table>
 
     <div class="pagination-container">
-      <ScPagination
+      <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.size"
         :page-sizes="[10, 20, 50, 100]"
@@ -125,29 +115,23 @@
       width="600px"
       append-to-body
     >
-      <ScDescriptions :column="1" border>
-        <ScDescriptionsItem
+      <el-descriptions :column="1" border>
+        <el-descriptions-item
           v-for="(value, key) in detailData"
           :key="key"
           :label="String(key)"
         >
           <template v-if="isUrl(value)">
-            <ScLink type="primary" :href="String(value)" target="_blank">{{
-              value
-            }}</ScLink>
+            <el-link type="primary" :href="String(value)" target="_blank">{{ value }}</el-link>
           </template>
           <template v-else-if="isImageUrl(String(value))">
-            <ScImage
-              :src="String(value)"
-              fit="contain"
-              style="max-width: 200px; max-height: 200px"
-            />
+            <el-image :src="String(value)" fit="contain" style="max-width: 200px; max-height: 200px" />
           </template>
           <template v-else>
             {{ value }}
           </template>
-        </ScDescriptionsItem>
-      </ScDescriptions>
+        </el-descriptions-item>
+      </el-descriptions>
     </sc-dialog>
   </sc-dialog>
 </template>
@@ -155,11 +139,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from "vue";
 import { message, confirm } from "@repo/utils";
-import {
-  getSpiderTaskData,
-  exportSpiderTaskData,
-  deleteSpiderData,
-} from "@/api/spider";
+import { getSpiderTaskData, exportSpiderTaskData, deleteSpiderData } from "@/api/spider";
 
 // Props
 const props = defineProps<{
@@ -176,7 +156,7 @@ const emit = defineEmits<{
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (val) => emit("update:visible", val),
+  set: (val) => emit("update:visible", val)
 });
 
 // 响应式状态
@@ -192,48 +172,39 @@ const detailData = ref<Record<string, any>>({});
 const pagination = reactive({
   page: 1,
   size: 20,
-  total: 0,
+  total: 0
 });
 
 // 监听对话框打开
-watch(
-  () => props.visible,
-  (val) => {
-    if (val && props.taskId) {
-      loadData();
-    }
-  },
-);
+watch(() => props.visible, (val) => {
+  if (val && props.taskId) {
+    loadData();
+  }
+});
 
 /**
  * 加载数据
  */
 const loadData = async () => {
   if (!props.taskId) return;
-
+  
   try {
     loading.value = true;
-    const res = await getSpiderTaskData(
-      props.taskId,
-      pagination.page,
-      pagination.size,
-    );
-
+    const res = await getSpiderTaskData(props.taskId, pagination.page, pagination.size);
+    
     if (res.code === "00000" && res.data) {
       dataList.value = res.data.data || [];
       pagination.total = res.data.total || 0;
-
+      
       // 动态生成列
       if (dataList.value.length > 0) {
         const firstRow = dataList.value[0];
         columns.value = Object.keys(firstRow)
-          .filter(
-            (key) => !key.startsWith("_") && !["id", "taskId"].includes(key),
-          )
-          .map((key) => ({
+          .filter(key => !key.startsWith("_") && !["id", "taskId"].includes(key))
+          .map(key => ({
             prop: key,
             label: key,
-            minWidth: 150,
+            minWidth: 150
           }));
       }
     }
@@ -265,10 +236,10 @@ const handleRefresh = () => {
  */
 const handleExport = async () => {
   if (!props.taskId) return;
-
+  
   try {
     const res = await exportSpiderTaskData(props.taskId, "json");
-
+    
     if (res.code === "00000" && res.data) {
       // 下载文件
       const link = document.createElement("a");
@@ -362,13 +333,13 @@ const truncateText = (text: string, maxLen: number): string => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-
+  
   .toolbar-left {
     display: flex;
     gap: 12px;
     align-items: center;
   }
-
+  
   .toolbar-right {
     display: flex;
     gap: 8px;
@@ -381,6 +352,7 @@ const truncateText = (text: string, maxLen: number): string => {
   margin-top: 16px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -389,4 +361,5 @@ const truncateText = (text: string, maxLen: number): string => {
     padding: 12px 16px;
   }
 }
+
 </style>

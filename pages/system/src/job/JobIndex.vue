@@ -1,14 +1,11 @@
 ﻿<template>
   <div class="job-management-container system-container modern-bg">
-    <!-- 任务执行统计 -->
-    <JobStatistics />
-
     <!-- 搜索和筛选 -->
     <div class="search-section">
       <ScCard class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <ScInput
+            <ScInput 
               v-model="searchForm.jobDesc"
               placeholder="搜索任务名称或描述"
               class="search-input"
@@ -19,7 +16,7 @@
                 <i class="ri-search-line"></i>
               </template>
             </ScInput>
-            <ScSelect
+            <ScSelect 
               v-model="searchForm.jobGroup"
               placeholder="选择任务组"
               class="group-filter"
@@ -27,14 +24,14 @@
               @change="handleSearch"
             >
               <ScOption :value="undefined" label="全部任务组" />
-              <ScOption
+              <ScOption 
                 v-for="item in jobGroups"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
               />
             </ScSelect>
-            <ScSelect
+            <ScSelect 
               v-model="searchForm.jobTriggerStatus"
               placeholder="任务状态"
               class="status-filter"
@@ -62,19 +59,14 @@
     <!-- 任务列表 -->
     <div class="jobs-section">
       <ScCard shadow="never">
-        <ScTable
+        <ScTable 
           v-loading="loading"
           :data="jobList"
           row-key="jobId"
           stripe
           border
         >
-          <ScTableColumn
-            prop="jobId"
-            label="任务ID"
-            width="80"
-            align="center"
-          />
+          <ScTableColumn prop="jobId" label="任务ID" width="80" align="center" />
           <ScTableColumn prop="jobName" label="任务名称" min-width="150">
             <template #default="{ row }">
               <div class="job-name-cell">
@@ -85,12 +77,7 @@
               </div>
             </template>
           </ScTableColumn>
-          <ScTableColumn
-            prop="jobAuthor"
-            label="负责人"
-            width="100"
-            align="center"
-          />
+          <ScTableColumn prop="jobAuthor" label="负责人" width="100" align="center" />
           <ScTableColumn prop="jobScheduleConf" label="调度配置" width="150">
             <template #default="{ row }">
               <ScTooltip :content="row.jobScheduleConf" placement="top">
@@ -100,27 +87,18 @@
               </ScTooltip>
             </template>
           </ScTableColumn>
-          <ScTableColumn
-            prop="jobExecutorHandler"
-            label="执行器"
-            min-width="150"
-          />
-          <ScTableColumn
-            prop="jobTriggerStatus"
-            label="状态"
-            width="100"
-            align="center"
-          >
+          <ScTableColumn prop="jobExecutorHandler" label="执行器" min-width="150" />
+          <ScTableColumn prop="jobTriggerStatus" label="状态" width="100" align="center">
             <template #default="{ row }">
               <ScTag :type="row.jobTriggerStatus === 1 ? 'success' : 'danger'">
-                {{ row.jobTriggerStatus === 1 ? "运行中" : "已停止" }}
+                {{ row.jobTriggerStatus === 1 ? '运行中' : '已停止' }}
               </ScTag>
             </template>
           </ScTableColumn>
           <ScTableColumn label="操作" width="280" align="center" fixed="right">
             <template #default="{ row }">
               <el-button-group size="small">
-                <ScButton
+                <ScButton 
                   v-if="row.jobTriggerStatus === 0"
                   type="success"
                   @click="handleStart(row)"
@@ -128,7 +106,11 @@
                   <i class="ri-play-line"></i>
                   启动
                 </ScButton>
-                <ScButton v-else type="warning" @click="handleStop(row)">
+                <ScButton 
+                  v-else
+                  type="warning"
+                  @click="handleStop(row)"
+                >
                   <i class="ri-stop-line"></i>
                   停止
                 </ScButton>
@@ -155,7 +137,7 @@
 
         <!-- 分页 -->
         <div class="pagination-container">
-          <ScPagination
+          <el-pagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.pageSize"
             :total="pagination.total"
@@ -168,21 +150,126 @@
       </ScCard>
     </div>
 
-    <!-- 新增/编辑对话框 - 使用新组件 -->
-    <JobSaveDialog ref="saveDialogRef" @success="loadJobList" />
+    <!-- 新增/编辑对话框 -->
+    <sc-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="700px"
+      :close-on-click-modal="false"
+    >
+      <ScForm 
+        ref="formRef"
+        :model="jobForm"
+        :rules="formRules"
+        label-width="120px"
+      >
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="任务名称" prop="jobName">
+              <ScInput v-model="jobForm.jobName" placeholder="请输入任务名称" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="负责人" prop="jobAuthor">
+              <ScInput v-model="jobForm.jobAuthor" placeholder="请输入负责人" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="调度类型" prop="jobScheduleType">
+              <ScSelect v-model="jobForm.jobScheduleType" placeholder="请选择调度类型" style="width: 100%">
+                <ScOption label="CRON" value="CRON" />
+                <ScOption label="固定频率" value="FIX_RATE" />
+                <ScOption label="固定延迟" value="FIX_DELAY" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="调度配置" prop="jobScheduleConf">
+              <ScInput v-model="jobForm.jobScheduleConf" placeholder="如: 0/5 * * * * ?" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="执行器" prop="jobExecutorHandler">
+              <ScInput v-model="jobForm.jobExecutorHandler" placeholder="请输入执行器Bean名称" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="执行参数">
+              <ScInput v-model="jobForm.jobExecutorParam" placeholder="请输入执行参数(JSON)" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="路由策略">
+              <ScSelect v-model="jobForm.jobExecutorRouteStrategy" placeholder="请选择路由策略" style="width: 100%">
+                <ScOption label="第一个" value="FIRST" />
+                <ScOption label="最后一个" value="LAST" />
+                <ScOption label="轮询" value="ROUND" />
+                <ScOption label="随机" value="RANDOM" />
+                <ScOption label="一致性哈希" value="CONSISTENT_HASH" />
+                <ScOption label="最不经常使用" value="LEAST_FREQUENTLY_USED" />
+                <ScOption label="最近最久未使用" value="LEAST_RECENTLY_USED" />
+                <ScOption label="故障转移" value="FAILOVER" />
+                <ScOption label="忙碌转移" value="BUSYOVER" />
+                <ScOption label="分片广播" value="SHARDING_BROADCAST" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="阻塞策略">
+              <ScSelect v-model="jobForm.jobExecutorBlockStrategy" placeholder="请选择阻塞策略" style="width: 100%">
+                <ScOption label="单机串行" value="SERIAL_EXECUTION" />
+                <ScOption label="丢弃后续调度" value="DISCARD_LATER" />
+                <ScOption label="覆盖之前调度" value="COVER_EARLY" />
+              </ScSelect>
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScRow :gutter="20">
+          <ScCol :span="12">
+            <ScFormItem label="超时时间(秒)">
+              <ScInputNumber v-model="jobForm.jobExecutorTimeout" :min="0" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+          <ScCol :span="12">
+            <ScFormItem label="失败重试次数">
+              <ScInputNumber v-model="jobForm.jobExecutorFailRetryCount" :min="0" :max="10" style="width: 100%" />
+            </ScFormItem>
+          </ScCol>
+        </ScRow>
+        <ScFormItem label="任务描述">
+          <ScInput 
+            v-model="jobForm.jobDesc"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入任务描述"
+          />
+        </ScFormItem>
+        <ScFormItem label="告警邮件">
+          <ScInput v-model="jobForm.jobAlarmEmail" placeholder="多个邮箱用逗号分隔" />
+        </ScFormItem>
+      </ScForm>
+      <template #footer>
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitLoading" @click="handleSubmit">
+          确定
+        </ScButton>
+      </template>
+    </sc-dialog>
 
     <!-- 执行任务对话框 -->
-    <sc-dialog
-      v-model="triggerDialogVisible"
-      title="手动执行任务"
-      width="500px"
-    >
+    <sc-dialog v-model="triggerDialogVisible" title="手动执行任务" width="500px">
       <ScForm label-width="100px">
         <ScFormItem label="任务名称">
           <span>{{ currentJob?.jobName }}</span>
         </ScFormItem>
         <ScFormItem label="执行参数">
-          <ScInput
+          <ScInput 
             v-model="triggerParam"
             type="textarea"
             :rows="4"
@@ -192,11 +279,7 @@
       </ScForm>
       <template #footer>
         <ScButton @click="triggerDialogVisible = false">取消</ScButton>
-        <ScButton
-          type="primary"
-          :loading="triggerLoading"
-          @click="confirmTrigger"
-        >
+        <ScButton type="primary" :loading="triggerLoading" @click="confirmTrigger">
           执行
         </ScButton>
       </template>
@@ -206,12 +289,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import {
-  ScMessage,
-  ScMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "@repo/utils";
+import { ScMessage, ScMessageBox, type FormInstance, type FormRules } from "@repo/utils";
 import {
   fetchJobPageList,
   fetchJobSave,
@@ -223,8 +301,6 @@ import {
   type JobInfo,
   type JobPageParams,
 } from "./api";
-import JobStatistics from "./components/JobStatistics.vue";
-import JobSaveDialog from "./components/JobSaveDialog.vue";
 
 // Props
 const props = defineProps<{
@@ -245,7 +321,6 @@ const dialogVisible = ref(false);
 const triggerDialogVisible = ref(false);
 const dialogTitle = ref("新建任务");
 const formRef = ref<FormInstance>();
-const saveDialogRef = ref();
 
 // 搜索表单
 const searchForm = reactive<JobPageParams>({
@@ -290,15 +365,9 @@ const triggerParam = ref("");
 const formRules: FormRules = {
   jobName: [{ required: true, message: "请输入任务名称", trigger: "blur" }],
   jobAuthor: [{ required: true, message: "请输入负责人", trigger: "blur" }],
-  jobScheduleType: [
-    { required: true, message: "请选择调度类型", trigger: "change" },
-  ],
-  jobScheduleConf: [
-    { required: true, message: "请输入调度配置", trigger: "blur" },
-  ],
-  jobExecutorHandler: [
-    { required: true, message: "请输入执行器", trigger: "blur" },
-  ],
+  jobScheduleType: [{ required: true, message: "请选择调度类型", trigger: "change" }],
+  jobScheduleConf: [{ required: true, message: "请输入调度配置", trigger: "blur" }],
+  jobExecutorHandler: [{ required: true, message: "请输入执行器", trigger: "blur" }],
 };
 
 // 任务组列表
@@ -340,24 +409,73 @@ const handleRefresh = () => {
 
 // 新增
 const handleAdd = () => {
-  saveDialogRef.value?.open({}, "add");
+  dialogTitle.value = "新建任务";
+  currentJob.value = null;
+  resetForm();
+  dialogVisible.value = true;
 };
 
 // 编辑
 const handleEdit = (row: JobInfo) => {
-  saveDialogRef.value?.open(row, "edit");
+  dialogTitle.value = "编辑任务";
+  currentJob.value = row;
+  Object.assign(jobForm, row);
+  dialogVisible.value = true;
+};
+
+// 重置表单
+const resetForm = () => {
+  Object.assign(jobForm, {
+    jobId: undefined,
+    jobName: "",
+    jobDesc: "",
+    jobAuthor: "",
+    jobScheduleType: "CRON",
+    jobScheduleConf: "",
+    jobExecutorHandler: "",
+    jobExecutorParam: "",
+    jobExecutorRouteStrategy: "FIRST",
+    jobExecutorBlockStrategy: "SERIAL_EXECUTION",
+    jobExecutorTimeout: 0,
+    jobExecutorFailRetryCount: 0,
+    jobAlarmEmail: "",
+  });
+  formRef.value?.resetFields();
+};
+
+// 提交表单
+const handleSubmit = async () => {
+  const valid = await formRef.value?.validate();
+  if (!valid) return;
+
+  submitLoading.value = true;
+  try {
+    const api = currentJob.value ? fetchJobUpdate : fetchJobSave;
+    const data = currentJob.value
+      ? { ...jobForm, jobId: currentJob.value.jobId }
+      : jobForm;
+    const response = await api(data);
+    if (response.success) {
+      ScMessage.success(currentJob.value ? "修改成功" : "新增成功");
+      dialogVisible.value = false;
+      loadJobList();
+    } else {
+      ScMessage.error(response.msg || "操作失败");
+    }
+  } catch (error) {
+    console.error("操作失败:", error);
+    ScMessage.error("操作失败");
+  } finally {
+    submitLoading.value = false;
+  }
 };
 
 // 删除
 const handleDelete = async (row: JobInfo) => {
   try {
-    await ScMessageBox.confirm(
-      `确定要删除任务"${row.jobName}"吗？`,
-      "删除确认",
-      {
-        type: "warning",
-      },
-    );
+    await ScMessageBox.confirm(`确定要删除任务"${row.jobName}"吗？`, "删除确认", {
+      type: "warning",
+    });
     const response = await fetchJobDelete({ jobId: row.jobId! });
     if (response.success) {
       ScMessage.success("删除成功");
@@ -392,13 +510,9 @@ const handleStart = async (row: JobInfo) => {
 // 停止
 const handleStop = async (row: JobInfo) => {
   try {
-    await ScMessageBox.confirm(
-      `确定要停止任务"${row.jobName}"吗？`,
-      "停止确认",
-      {
-        type: "warning",
-      },
-    );
+    await ScMessageBox.confirm(`确定要停止任务"${row.jobName}"吗？`, "停止确认", {
+      type: "warning",
+    });
     const response = await fetchJobStop({ jobId: row.jobId! });
     if (response.success) {
       ScMessage.success("停止成功");

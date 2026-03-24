@@ -5,8 +5,8 @@
     width="960px"
     :close-on-click-modal="false"
     class="service-discovery-dialog"
-    draggable
     @close="handleClose"
+    draggable
   >
     <div class="service-discovery-container">
       <!-- 发现模式选择 -->
@@ -27,10 +27,7 @@
               <div class="mode-card-title">{{ mode.label }}</div>
               <div class="mode-card-desc">{{ mode.describe }}</div>
             </div>
-            <div
-              v-if="config.serviceDiscoveryMode === mode.value"
-              class="mode-card-check"
-            >
+            <div class="mode-card-check" v-if="config.serviceDiscoveryMode === mode.value">
               <IconifyIconOnline icon="ri:check-line" />
             </div>
           </div>
@@ -51,37 +48,31 @@
         <div class="basic-config-row">
           <div class="config-item">
             <label>负载均衡策略</label>
-            <ScSelect
+            <el-select
               v-model="config.serviceDiscoveryBalance"
               placeholder="请选择负载均衡策略"
               style="width: 100%"
             >
-              <ScOption
+              <el-option
                 v-for="opt in balanceOptions"
                 :key="opt.value"
                 :label="opt.label"
                 :value="opt.value"
               />
-            </ScSelect>
+            </el-select>
           </div>
           <div class="config-item status-item">
             <label>启用状态</label>
             <div class="status-switch">
-              <ScSwitch
+              <el-switch
                 v-model="config.serviceDiscoveryEnabled"
                 inline-prompt
                 active-text="启用"
                 inactive-text="禁用"
-                style="
-                  --el-switch-on-color: #10b981;
-                  --el-switch-off-color: #ef4444;
-                "
+                style="--el-switch-on-color: #10b981; --el-switch-off-color: #ef4444"
               />
-              <span
-                class="status-text"
-                :class="{ enabled: config.serviceDiscoveryEnabled }"
-              >
-                {{ config.serviceDiscoveryEnabled ? "已启用" : "已禁用" }}
+              <span class="status-text" :class="{ enabled: config.serviceDiscoveryEnabled }">
+                {{ config.serviceDiscoveryEnabled ? '已启用' : '已禁用' }}
               </span>
             </div>
           </div>
@@ -108,10 +99,7 @@
           </div>
           <div class="tip-content">
             <strong>推荐使用</strong>
-            <span
-              >自动发现已连接到 SyncServer
-              的所有节点，无需手动配置服务器地址和端口</span
-            >
+            <span>自动发现已连接到 SyncServer 的所有节点，无需手动配置服务器地址和端口</span>
           </div>
         </div>
       </div>
@@ -130,22 +118,22 @@
             <p>选择 Spring 容器中的 ServiceDiscovery 实现</p>
           </div>
         </div>
-        <div class="config-field" style="max-width: 400px">
+        <div class="config-field" style="max-width: 400px;">
           <label>Bean 名称</label>
-          <ScSelect
+          <el-select
             v-model="config.serviceDiscoveryBeanName"
             placeholder="选择或输入 Bean 名称"
             filterable
             allow-create
             style="width: 100%"
           >
-            <ScOption
+            <el-option
               v-for="opt in springBeanOptions"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </ScSelect>
+          </el-select>
         </div>
         <div class="config-tips info">
           <div class="tip-icon">
@@ -170,15 +158,10 @@
             <h4>服务映射配置</h4>
             <p>管理服务名称与地址的映射关系</p>
           </div>
-          <ScButton
-            type="primary"
-            size="small"
-            class="add-btn"
-            @click="addMapping"
-          >
+          <el-button type="primary" size="small" @click="addMapping" class="add-btn">
             <IconifyIconOnline icon="ri:add-line" />
             新增映射
-          </ScButton>
+          </el-button>
         </div>
 
         <!-- 表头 -->
@@ -192,21 +175,21 @@
 
         <!-- 映射列表 -->
         <div class="mapping-list">
-          <div v-for="(m, idx) in mappings" :key="idx" class="mapping-row">
+          <div class="mapping-row" v-for="(m, idx) in mappings" :key="idx">
             <div class="col-name">
-              <ScInput
+              <el-input
                 v-model="m.serviceDiscoveryName"
                 placeholder="user-service"
               />
             </div>
             <div class="col-address">
-              <ScInput
+              <el-input
                 v-model="m.serviceDiscoveryAddress"
                 placeholder="http://localhost:8080"
               />
             </div>
             <div class="col-weight">
-              <ScInputNumber
+              <el-input-number
                 v-model="m.serviceDiscoveryWeight"
                 :min="0"
                 :max="100"
@@ -214,22 +197,22 @@
               />
             </div>
             <div class="col-status">
-              <ScSwitch
-                v-model="m.serviceDiscoveryEnabled"
+              <el-switch 
+                v-model="m.serviceDiscoveryEnabled" 
                 inline-prompt
                 active-text="开"
                 inactive-text="关"
               />
             </div>
             <div class="col-action">
-              <ScButton
+              <el-button
                 type="danger"
                 size="small"
                 text
                 @click="mappings.splice(idx, 1)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </ScButton>
+              </el-button>
             </div>
           </div>
 
@@ -263,18 +246,18 @@
         <div class="detail-config-grid">
           <div class="config-field">
             <label>集群名称</label>
-            <ScInput
+            <el-input
               v-model="config.serviceDiscoveryHazelcastClusterName"
               placeholder="如: dev-cluster"
             >
               <template #prefix>
                 <IconifyIconOnline icon="ri:team-line" />
               </template>
-            </ScInput>
+            </el-input>
           </div>
           <div class="config-field">
             <label>端口</label>
-            <ScInputNumber
+            <el-input-number
               v-model="config.serviceDiscoveryHazelcastPort"
               :min="1"
               :max="65535"
@@ -284,18 +267,18 @@
           </div>
           <div class="config-field full-width">
             <label>成员地址</label>
-            <ScInput
+            <el-input
               v-model="config.serviceDiscoveryHazelcastMembers"
               placeholder="如: 192.168.1.100:5701,192.168.1.101:5701"
             >
               <template #prefix>
                 <IconifyIconOnline icon="ri:links-line" />
               </template>
-            </ScInput>
+            </el-input>
           </div>
           <div class="config-field">
             <label>连接超时 (秒)</label>
-            <ScInputNumber
+            <el-input-number
               v-model="config.serviceDiscoveryHazelcastTimeout"
               :min="1"
               :max="300"
@@ -318,8 +301,8 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave"
           >保存配置</el-button
         >
       </div>
@@ -338,7 +321,7 @@ import {
   type ServiceDiscoveryConfig,
   type ServiceDiscoveryMapping,
 } from "@/api/system-server-setting";
-import { ScSelect } from "@repo/components"
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { fetchOptionObjectsList } from "@/api/spi";
 
 interface Props {
@@ -389,7 +372,7 @@ const modeOptions = ref<Option[]>(
       icon: "simple-icons:hazelcast",
       describe: "基于 Hazelcast 集群的服务发现",
     },
-  ].map((it) => ({ ...it, value: it.name })),
+  ].map((it) => ({ ...it, value: it.name }))
 );
 const balanceOptions = ref<Option[]>([]);
 const springBeanOptions = ref<Option[]>([]);
@@ -400,7 +383,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true },
+  { immediate: true }
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -463,7 +446,7 @@ async function handleSave() {
     ) {
       const r = await saveServiceDiscoveryMappings(
         props.serverId,
-        mappings.value,
+        mappings.value
       );
       if (!r.success) {
         message(r.msg || "保存映射失败", { type: "error" });
@@ -500,7 +483,7 @@ async function loadBalanceOptions() {
         .filter((it: any) => !!it.name);
       const seen = new Set<string>();
       balanceOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true),
+        seen.has(it.name) ? false : (seen.add(it.name), true)
       );
       if (
         !config.value.serviceDiscoveryBalance &&
@@ -531,7 +514,7 @@ async function loadSpringBeanOptions() {
         .filter((it: any) => !!it.name);
       const seen = new Set<string>();
       springBeanOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true),
+        seen.has(it.name) ? false : (seen.add(it.name), true)
       );
     }
   } catch {}
@@ -685,30 +668,22 @@ async function loadSpringBeanOptions() {
 
       &.monitor {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        :deep(.iconify) {
-          color: #10b981;
-        }
+        :deep(.iconify) { color: #10b981; }
       }
 
       &.spring {
         background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        :deep(.iconify) {
-          color: #6ee7b7;
-        }
+        :deep(.iconify) { color: #6ee7b7; }
       }
 
       &.hazelcast {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        :deep(.iconify) {
-          color: #f59e0b;
-        }
+        :deep(.iconify) { color: #f59e0b; }
       }
 
       &.table {
         background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        :deep(.iconify) {
-          color: #3b82f6;
-        }
+        :deep(.iconify) { color: #3b82f6; }
       }
     }
 
@@ -853,14 +828,10 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #a7f3d0;
-      :deep(.iconify) {
-        color: #10b981;
-      }
+      :deep(.iconify) { color: #10b981; }
     }
 
-    .tip-content strong {
-      color: #065f46;
-    }
+    .tip-content strong { color: #065f46; }
   }
 
   &.warning {
@@ -868,14 +839,10 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #fde68a;
-      :deep(.iconify) {
-        color: #f59e0b;
-      }
+      :deep(.iconify) { color: #f59e0b; }
     }
 
-    .tip-content strong {
-      color: #92400e;
-    }
+    .tip-content strong { color: #92400e; }
   }
 
   &.info {
@@ -883,9 +850,7 @@ async function loadSpringBeanOptions() {
 
     .tip-icon {
       background: #bfdbfe;
-      :deep(.iconify) {
-        color: #3b82f6;
-      }
+      :deep(.iconify) { color: #3b82f6; }
     }
   }
 }
@@ -1026,6 +991,7 @@ async function loadSpringBeanOptions() {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1034,4 +1000,5 @@ async function loadSpringBeanOptions() {
     padding: 12px 16px;
   }
 }
+
 </style>

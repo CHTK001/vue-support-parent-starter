@@ -15,14 +15,14 @@
         <template #subTitle>
           <a-row type="flex" align="middle">
             <a-col>
-              <slot name="before" />
+              <slot name="before"></slot>
             </a-col>
 
             <a-col v-if="extendBar" style="padding-left: 10px">
               <a-space>
                 <a-tooltip :title="$t('i18n_65f66dfe97')">
                   <a-button type="primary" size="small" @click="clearLogCache"
-                    ><DeleteOutlined />{{ $t("i18n_288f0c404c") }}</a-button
+                    ><DeleteOutlined />{{ $t('i18n_288f0c404c') }}</a-button
                   >
                 </a-tooltip>
                 <!-- <a-tooltip title="内容超过边界自动换行">
@@ -43,21 +43,17 @@
       </a-page-header>
     </template>
 
-    <viewPre
-      ref="viewPre"
-      :height="`calc(${style.bodyStyle.height} - 40px)`"
-      :config="temp"
-    />
+    <viewPre ref="viewPre" :height="`calc(${style.bodyStyle.height} - 40px)`" :config="temp"></viewPre>
   </CustomModal>
 </template>
 <script>
-import viewPre from "./view-pre.vue";
-import { mapState } from "pinia";
+import viewPre from './view-pre.vue'
+import { mapState } from 'pinia'
 
 export default {
-  name: "LogView",
+  name: 'LogView',
   components: {
-    viewPre,
+    viewPre
     // VNodes: {
     //   functional: true,
     //   render: (h, ctx) => ctx.props.vnodes,
@@ -67,91 +63,92 @@ export default {
   props: {
     titleName: {
       type: String,
-      default: "",
+      default: ''
     },
     marginTop: {
       type: String,
-      default: "0",
+      default: '0'
     },
     extendBar: {
       type: Boolean,
-      default: true,
+      default: true
     },
     visible: {
       type: Boolean,
-      default: false,
-    },
+      default: false
+    }
   },
-  emits: ["close"],
+  emits: ['close'],
   data() {
     return {
       temp: {
         logScroll: true,
         // 自动换行
-        wordBreak: false,
+        wordBreak: false
       },
-      visibleModel: false,
-    };
+      visibleModel: false
+    }
   },
   computed: {
+    
     regModifier() {
-      return this.regModifiers.join("");
+      return this.regModifiers.join('')
     },
     style() {
-      return this.getFullscreenViewLogStyle();
-    },
+      return this.getFullscreenViewLogStyle()
+    }
   },
   created() {
-    this.visibleModel = this.visible;
+    this.visibleModel = this.visible
   },
   mounted() {
-    const cacheJson = localStorage.getItem("log-view-cache") || "{}";
+    const cacheJson = localStorage.getItem('log-view-cache') || '{}'
     try {
-      const cacheData = JSON.parse(cacheJson);
-      this.temp = Object.assign({}, this.temp, cacheData);
+      const cacheData = JSON.parse(cacheJson)
+      this.temp = Object.assign({}, this.temp, cacheData)
     } catch (e) {
-      console.error(e);
+      console.error(e)
     }
   },
   methods: {
-    // 计算弹窗全屏样式
-    getFullscreenViewLogStyle() {
-      // 非全屏
-      return {
-        // dialogStyle: {
-        //   maxWidth: '100vw',
-        //   top: false,
-        //   paddingBottom: 0
-        // },
-        bodyStyle: {
-          padding: "0 10px",
-          paddingTop: "10px",
-          marginRight: "10px",
-          height: "70vh",
-        },
-        width: "80vw",
-        style: {
-          maxWidth: "100vw",
-          top: false,
-          paddingBottom: 0,
-        },
-      };
+     // 计算弹窗全屏样式
+    getFullscreenViewLogStyle ()  {
+        // 非全屏
+        return {
+          // dialogStyle: {
+          //   maxWidth: '100vw',
+          //   top: false,
+          //   paddingBottom: 0
+          // },
+          bodyStyle: {
+            padding: '0 10px',
+            paddingTop: '10px',
+            marginRight: '10px',
+            height: '70vh'
+          },
+          width: '80vw',
+          style: {
+            maxWidth: '100vw',
+            top: false,
+            paddingBottom: 0
+          }
+        }
     },
     appendLine(data) {
-      this.$refs.viewPre?.appendLine(data);
+      this.$refs.viewPre?.appendLine(data)
     },
     clearLogCache() {
-      this.$refs.viewPre?.clearLogCache();
+      this.$refs.viewPre?.clearLogCache()
     },
     onChange() {
-      localStorage.setItem("log-view-cache", JSON.stringify(this.temp));
+      localStorage.setItem('log-view-cache', JSON.stringify(this.temp))
     },
     close() {
-      this.visibleModel = false;
-      this.$emit("close");
-    },
-  },
-};
+      this.visibleModel = false
+      this.$emit('close')
+    }
+  }
+}
 </script>
 <style scoped lang="scss">
 .log-filter {

@@ -1,28 +1,16 @@
 <script setup lang="ts">
-import {
-  emitter,
-  usePermissionStoreHook,
-  useMultiTagsStoreHook,
-} from "@repo/core";
+import { emitter, usePermissionStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { indexedDBProxy, localStorageProxy, useDefer } from "@repo/utils";
 import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace, getConfig } from "@repo/config";
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ScText } from "@repo/components";
 import { useNav } from "../../../hooks/useNav";
 import { useLayout } from "../../../hooks/useLayout";
 import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
-import { ReMenuNewBadge } from "@repo/components";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 // Props
 interface Props {
@@ -69,7 +57,7 @@ const isHoverCollapsed = ref(false);
 const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
 const forceNewMenu = ref(false);
 const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
+const newMenuAnimation = ref(getConfig().NewMenuAnimation || 'bounce');
 
 // 悬浮导航专用的切换函数
 function toggleHoverSideBar() {
@@ -80,7 +68,7 @@ function toggleHoverSideBar() {
   // 通过CSS变量通知全局布局状态变化
   document.documentElement.style.setProperty(
     "--hover-sidebar-width",
-    isHoverCollapsed.value ? "64px" : "200px",
+    isHoverCollapsed.value ? "64px" : "200px"
   );
 }
 
@@ -97,7 +85,7 @@ const isHalloween = computed(() => {
 // 只获取一级菜单，并添加"我的收藏"菜单
 const firstLevelMenus = computed(() => {
   const menus = permissionStore.wholeMenus.filter(
-    (menu) => menu.meta?.showLink !== false,
+    (menu) => menu.meta?.showLink !== false
   );
 
   // 添加"我的收藏"菜单
@@ -139,7 +127,7 @@ const totalMenuItems = computed(() => {
 // 计算直接二级菜单数量
 const directMenuCount = computed(() => {
   return currentSubMenus.value.filter(
-    (menu) => !menu.children || menu.children.length === 0,
+    (menu) => !menu.children || menu.children.length === 0
   ).length;
 });
 
@@ -156,28 +144,28 @@ const groupItemCounts = computed(() => {
 const layoutStrategy = computed(() => {
   const groups = groupItemCounts.value;
   const totalItems = totalMenuItems.value;
-
+  
   // 如果总数少于等于12个，使用纯横向布局
   if (totalItems <= 12) {
-    return { type: "horizontal", verticalGroups: [], horizontalGroups: groups };
+    return { type: 'horizontal', verticalGroups: [], horizontalGroups: groups };
   }
-
+  
   // 如果总数超过30个，使用纯纵向布局
   if (totalItems > 30) {
-    return { type: "vertical", verticalGroups: groups, horizontalGroups: [] };
+    return { type: 'vertical', verticalGroups: groups, horizontalGroups: [] };
   }
-
+  
   // 混合布局算法：小分组纵向，大分组横向
   const avgCount = totalItems / groups.length;
   const verticalGroups = [];
   const horizontalGroups = [];
-
+  
   // 按菜单项数量排序
   const sortedGroups = [...groups].sort((a, b) => a.count - b.count);
-
+  
   // 计算纵向分组的总数和横向分组的总数
   let verticalTotal = 0;
-
+  
   for (const group of sortedGroups) {
     // 如果当前分组菜单项数量小于平均值的一半，或纵向组总数不超过横向组最大项
     // 或者分组菜单项数量小于等于5
@@ -188,39 +176,33 @@ const layoutStrategy = computed(() => {
       horizontalGroups.push(group);
     }
   }
-
+  
   // 如果没有横向分组，取最大的一个作为横向
   if (horizontalGroups.length === 0 && verticalGroups.length > 1) {
     const largest = verticalGroups.pop();
     horizontalGroups.push(largest);
   }
-
+  
   // 按原始顺序恢复
-  const originalOrder = groups.map((g) => g.menu.path);
-  verticalGroups.sort(
-    (a, b) =>
-      originalOrder.indexOf(a.menu.path) - originalOrder.indexOf(b.menu.path),
-  );
-  horizontalGroups.sort(
-    (a, b) =>
-      originalOrder.indexOf(a.menu.path) - originalOrder.indexOf(b.menu.path),
-  );
-
+  const originalOrder = groups.map(g => g.menu.path);
+  verticalGroups.sort((a, b) => originalOrder.indexOf(a.menu.path) - originalOrder.indexOf(b.menu.path));
+  horizontalGroups.sort((a, b) => originalOrder.indexOf(a.menu.path) - originalOrder.indexOf(b.menu.path));
+  
   if (verticalGroups.length > 0 && horizontalGroups.length > 0) {
-    return { type: "mixed", verticalGroups, horizontalGroups };
+    return { type: 'mixed', verticalGroups, horizontalGroups };
   }
-
-  return { type: "horizontal", verticalGroups: [], horizontalGroups: groups };
+  
+  return { type: 'horizontal', verticalGroups: [], horizontalGroups: groups };
 });
 
 // 判断是否应该使用纵向布局（当菜单项过多时）
 const shouldUseVerticalLayout = computed(() => {
-  return layoutStrategy.value.type === "vertical";
+  return layoutStrategy.value.type === 'vertical';
 });
 
 // 是否使用混合布局
 const shouldUseMixedLayout = computed(() => {
-  return layoutStrategy.value.type === "mixed";
+  return layoutStrategy.value.type === 'mixed';
 });
 
 // 动态计算容器宽度 - 根据布局模式调整
@@ -232,7 +214,7 @@ const dynamicContainerWidth = computed(() => {
   if (shouldUseVerticalLayout.value) {
     return "360px";
   }
-
+  
   // 混合布局时计算宽度
   if (shouldUseMixedLayout.value) {
     const strategy = layoutStrategy.value;
@@ -266,10 +248,10 @@ const dynamicContainerWidth = computed(() => {
 const getGridColumns = (itemCount: number) => {
   // 计算分组数量
   const groupCount = currentSubMenus.value.filter(
-    (menu) => menu.children && menu.children.length > 0,
+    (menu) => menu.children && menu.children.length > 0
   ).length;
   const directMenuCount = currentSubMenus.value.filter(
-    (menu) => !menu.children || menu.children.length === 0,
+    (menu) => !menu.children || menu.children.length === 0
   ).length;
 
   // 总列数 = 分组数 + (有直接菜单项时+1)
@@ -427,7 +409,7 @@ function isMenuActive(menu: MenuItem): boolean {
       if (child.path === route.path) return true;
       if (child.children) {
         return child.children.some(
-          (grandChild: MenuItem) => grandChild.path === route.path,
+          (grandChild: MenuItem) => grandChild.path === route.path
         );
       }
       return false;
@@ -475,7 +457,7 @@ async function toggleFavorite(menu: MenuItem, event?: Event) {
   if (isFavorited) {
     // 取消收藏
     favoriteMenus.value = favoriteMenus.value.filter(
-      (fav) => fav.path !== menu.path,
+      (fav) => fav.path !== menu.path
     );
   } else {
     // 添加收藏
@@ -607,7 +589,7 @@ watch(
     if (newPath.includes("/redirect")) return;
     menuSelect(newPath);
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 onMounted(async () => {
@@ -653,7 +635,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   >
     <LaySidebarLogo v-if="props.showLogo" :collapse="isHoverCollapsed" />
 
-    <ScScrollbar
+    <el-scrollbar
       wrap-class="scrollbar-wrapper"
       :class="[device === 'mobile' ? 'mobile' : 'pc']"
     >
@@ -663,10 +645,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           v-for="(menu, index) in firstLevelMenus"
           :key="menu.path"
           class="first-level-menu-item"
-          :class="{
-            'is-active': isMenuActive(menu),
-            'menu-animation': menuAnimation,
-          }"
+          :class="{ 'is-active': isMenuActive(menu), 'menu-animation': menuAnimation }"
           @mouseenter="handleMenuHover(menu, $event)"
           @mouseleave="handleMenuLeave"
           @click="handleMenuClick(menu)"
@@ -678,11 +657,9 @@ const defer = useDefer(firstLevelMenus.value.length);
               class="menu-icon"
             />
             <IconifyIconOnline v-else icon="ep:menu" class="menu-icon" />
-            <ScText
-              v-if="!isHoverCollapsed"
-              class="menu-title"
-              :text="menu.meta?.title || ''"
-            />
+            <span v-if="!isHoverCollapsed" class="menu-title">{{
+              menu.meta?.title
+            }}</span>
             <ReMenuNewBadge
               v-if="showNewMenu && !isHoverCollapsed"
               :createTime="menu.meta?.createTime"
@@ -695,7 +672,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           </div>
         </div>
       </div>
-    </ScScrollbar>
+    </el-scrollbar>
 
     <!-- 子菜单弹出层 -->
     <Teleport to="body">
@@ -750,7 +727,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                       :icon="favorite.icon"
                       class="favorite-menu-icon"
                     />
-                    <ScText :text="favorite.title || ''" />
+                    <span>{{ favorite.title }}</span>
                     <span class="add-time">{{
                       formatAddTime(favorite.addTime)
                     }}</span>
@@ -769,33 +746,15 @@ const defer = useDefer(firstLevelMenus.value.length);
             </div>
 
             <!-- 普通菜单内容 - 根据菜单数量自动选择布局 -->
-            <div
-              v-else
-              class="horizontal-menu-container"
-              :class="{
-                'vertical-mode': shouldUseVerticalLayout,
-                'mixed-mode': shouldUseMixedLayout,
-              }"
-            >
+            <div v-else class="horizontal-menu-container" :class="{ 'vertical-mode': shouldUseVerticalLayout, 'mixed-mode': shouldUseMixedLayout }">
+              
               <!-- 混合布局：小分组纵向 + 大分组横向 -->
               <div v-if="shouldUseMixedLayout" class="mixed-layout-container">
                 <!-- 纵向分组区域 -->
-                <div
-                  v-if="layoutStrategy.verticalGroups.length > 0"
-                  class="vertical-section"
-                >
-                  <template
-                    v-for="groupInfo in layoutStrategy.verticalGroups"
-                    :key="groupInfo.menu.path"
-                  >
-                    <div
-                      v-if="groupInfo.hasChildren"
-                      class="vertical-menu-group"
-                    >
-                      <ScText
-                        class="vertical-group-title"
-                        :text="groupInfo.menu.meta?.title || ''"
-                      />
+                <div v-if="layoutStrategy.verticalGroups.length > 0" class="vertical-section">
+                  <template v-for="groupInfo in layoutStrategy.verticalGroups" :key="groupInfo.menu.path">
+                    <div v-if="groupInfo.hasChildren" class="vertical-menu-group">
+                      <div class="vertical-group-title">{{ groupInfo.menu.meta?.title }}</div>
                       <div class="vertical-group-items">
                         <div
                           v-for="thirdMenu in groupInfo.menu.children"
@@ -807,28 +766,16 @@ const defer = useDefer(firstLevelMenus.value.length);
                           <router-link
                             :to="thirdMenu.path"
                             class="menu-item"
-                            :class="{
-                              'is-active': defaultActive === thirdMenu.path,
-                              'menu-animation': menuAnimation,
-                            }"
+                            :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            <ScText
-                              style="
-                                flex: 1;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                              "
-                              :text="thirdMenu.meta?.title || ''"
-                            />
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
                             <ReMenuNewBadge
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
                               :type="thirdMenu.meta?.badgeType || 'primary'"
                               :customText="thirdMenu.meta?.badgeText"
-                              :forceShow="
-                                forceNewMenu || thirdMenu.meta?.permanentNew
-                              "
+                              :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
                               :animation="newMenuAnimation"
                             />
                           </router-link>
@@ -839,49 +786,28 @@ const defer = useDefer(firstLevelMenus.value.length);
                       <router-link
                         :to="groupInfo.menu.path"
                         class="menu-item"
-                        :class="{
-                          'is-active': defaultActive === groupInfo.menu.path,
-                          'menu-animation': menuAnimation,
-                        }"
+                        :class="{ 'is-active': defaultActive === groupInfo.menu.path, 'menu-animation': menuAnimation }"
                         @click="handleSubMenuClick(groupInfo.menu, $event)"
                       >
-                        <ScText
-                          style="
-                            flex: 1;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                          "
-                          :text="groupInfo.menu.meta?.title || ''"
-                        />
+                        <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ groupInfo.menu.meta?.title }}</span>
                         <ReMenuNewBadge
                           v-if="showNewMenu"
                           :createTime="groupInfo.menu.meta?.createTime"
                           :type="groupInfo.menu.meta?.badgeType || 'primary'"
                           :customText="groupInfo.menu.meta?.badgeText"
-                          :forceShow="
-                            forceNewMenu || groupInfo.menu.meta?.permanentNew
-                          "
+                          :forceShow="forceNewMenu || groupInfo.menu.meta?.permanentNew"
                           :animation="newMenuAnimation"
                         />
                       </router-link>
                     </div>
                   </template>
                 </div>
-
+                
                 <!-- 横向分组区域 -->
-                <div
-                  v-if="layoutStrategy.horizontalGroups.length > 0"
-                  class="horizontal-section"
-                >
-                  <template
-                    v-for="groupInfo in layoutStrategy.horizontalGroups"
-                    :key="groupInfo.menu.path"
-                  >
+                <div v-if="layoutStrategy.horizontalGroups.length > 0" class="horizontal-section">
+                  <template v-for="groupInfo in layoutStrategy.horizontalGroups" :key="groupInfo.menu.path">
                     <div v-if="groupInfo.hasChildren" class="menu-column">
-                      <ScText
-                        class="column-title"
-                        :text="groupInfo.menu.meta?.title || ''"
-                      />
+                      <div class="column-title">{{ groupInfo.menu.meta?.title }}</div>
                       <div class="column-items">
                         <div
                           v-for="thirdMenu in groupInfo.menu.children"
@@ -893,28 +819,16 @@ const defer = useDefer(firstLevelMenus.value.length);
                           <router-link
                             :to="thirdMenu.path"
                             class="menu-item"
-                            :class="{
-                              'is-active': defaultActive === thirdMenu.path,
-                              'menu-animation': menuAnimation,
-                            }"
+                            :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                             @click="handleSubMenuClick(thirdMenu, $event)"
                           >
-                            <ScText
-                              style="
-                                flex: 1;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                              "
-                              :text="thirdMenu.meta?.title || ''"
-                            />
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
                             <ReMenuNewBadge
                               v-if="showNewMenu"
                               :createTime="thirdMenu.meta?.createTime"
                               :type="thirdMenu.meta?.badgeType || 'primary'"
                               :customText="thirdMenu.meta?.badgeText"
-                              :forceShow="
-                                forceNewMenu || thirdMenu.meta?.permanentNew
-                              "
+                              :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
                               :animation="newMenuAnimation"
                             />
                           </router-link>
@@ -924,25 +838,13 @@ const defer = useDefer(firstLevelMenus.value.length);
                   </template>
                 </div>
               </div>
-
+              
               <!-- 纵向布局（菜单项过多时） -->
-              <div
-                v-else-if="shouldUseVerticalLayout"
-                class="vertical-columns-layout"
-              >
-                <template
-                  v-for="subMenu in currentSubMenus"
-                  :key="subMenu.path"
-                >
+              <div v-else-if="shouldUseVerticalLayout" class="vertical-columns-layout">
+                <template v-for="subMenu in currentSubMenus" :key="subMenu.path">
                   <!-- 有子菜单的分组 -->
-                  <div
-                    v-if="subMenu.children && subMenu.children.length > 0"
-                    class="vertical-menu-group"
-                  >
-                    <ScText
-                      class="vertical-group-title"
-                      :text="subMenu.meta?.title || ''"
-                    />
+                  <div v-if="subMenu.children && subMenu.children.length > 0" class="vertical-menu-group">
+                    <div class="vertical-group-title">{{ subMenu.meta?.title }}</div>
                     <div class="vertical-group-items">
                       <div
                         v-for="thirdMenu in subMenu.children"
@@ -954,49 +856,27 @@ const defer = useDefer(firstLevelMenus.value.length);
                         <router-link
                           :to="thirdMenu.path"
                           class="menu-item"
-                          :class="{
-                            'is-active': defaultActive === thirdMenu.path,
-                            'menu-animation': menuAnimation,
-                          }"
+                          :class="{ 'is-active': defaultActive === thirdMenu.path, 'menu-animation': menuAnimation }"
                           @click="handleSubMenuClick(thirdMenu, $event)"
                         >
-                          <ScText
-                            style="
-                              flex: 1;
-                              overflow: hidden;
-                              text-overflow: ellipsis;
-                            "
-                            :text="thirdMenu.meta?.title || ''"
-                          />
+                          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
                           <ReMenuNewBadge
                             v-if="showNewMenu"
                             :createTime="thirdMenu.meta?.createTime"
                             :type="thirdMenu.meta?.badgeType || 'primary'"
                             :customText="thirdMenu.meta?.badgeText"
-                            :forceShow="
-                              forceNewMenu || thirdMenu.meta?.permanentNew
-                            "
+                            :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
                             :animation="newMenuAnimation"
                           />
                         </router-link>
                         <button
                           v-if="hoveredMenuItem?.path === thirdMenu.path"
                           class="favorite-btn"
-                          :class="{
-                            'is-favorited': isMenuFavorited(thirdMenu),
-                          }"
+                          :class="{ 'is-favorited': isMenuFavorited(thirdMenu) }"
                           @click="toggleFavorite(thirdMenu, $event)"
-                          :title="
-                            isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'
-                          "
+                          :title="isMenuFavorited(thirdMenu) ? '取消收藏' : '添加收藏'"
                         >
-                          <IconifyIconOnline
-                            :icon="
-                              isMenuFavorited(thirdMenu)
-                                ? 'ep:star-filled'
-                                : 'ep:star'
-                            "
-                          />
+                          <IconifyIconOnline :icon="isMenuFavorited(thirdMenu) ? 'ep:star-filled' : 'ep:star'" />
                         </button>
                       </div>
                     </div>
@@ -1006,20 +886,10 @@ const defer = useDefer(firstLevelMenus.value.length);
                     <router-link
                       :to="subMenu.path"
                       class="menu-item"
-                      :class="{
-                        'is-active': defaultActive === subMenu.path,
-                        'menu-animation': menuAnimation,
-                      }"
+                      :class="{ 'is-active': defaultActive === subMenu.path, 'menu-animation': menuAnimation }"
                       @click="handleSubMenuClick(subMenu, $event)"
                     >
-                      <ScText
-                        style="
-                          flex: 1;
-                          overflow: hidden;
-                          text-overflow: ellipsis;
-                        "
-                        :text="subMenu.meta?.title || ''"
-                      />
+                      <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ subMenu.meta?.title }}</span>
                       <ReMenuNewBadge
                         v-if="showNewMenu"
                         :createTime="subMenu.meta?.createTime"
@@ -1034,17 +904,9 @@ const defer = useDefer(firstLevelMenus.value.length);
                       class="favorite-btn"
                       :class="{ 'is-favorited': isMenuFavorited(subMenu) }"
                       @click="toggleFavorite(subMenu, $event)"
-                      :title="
-                        isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'
-                      "
+                      :title="isMenuFavorited(subMenu) ? '取消收藏' : '添加收藏'"
                     >
-                      <IconifyIconOnline
-                        :icon="
-                          isMenuFavorited(subMenu)
-                            ? 'ep:star-filled'
-                            : 'ep:star'
-                        "
-                      />
+                      <IconifyIconOnline :icon="isMenuFavorited(subMenu) ? 'ep:star-filled' : 'ep:star'" />
                     </button>
                   </div>
                 </template>
@@ -1066,10 +928,7 @@ const defer = useDefer(firstLevelMenus.value.length);
                     v-if="subMenu.children && subMenu.children.length > 0"
                     class="menu-column"
                   >
-                    <ScText
-                      class="column-title"
-                      :text="subMenu.meta?.title || ''"
-                    />
+                    <div class="column-title">{{ subMenu.meta?.title }}</div>
                     <div class="column-items">
                       <div
                         v-for="thirdMenu in subMenu.children"
@@ -1079,33 +938,24 @@ const defer = useDefer(firstLevelMenus.value.length);
                         @mouseleave="handleMenuItemLeave"
                       >
                         <router-link
-                          :to="thirdMenu.path"
-                          class="menu-item"
-                          :class="{
-                            'is-active': defaultActive === thirdMenu.path,
-                            'menu-animation': menuAnimation,
-                          }"
-                          @click="handleSubMenuClick(thirdMenu, $event)"
-                        >
-                          <ScText
-                            style="
-                              flex: 1;
-                              overflow: hidden;
-                              text-overflow: ellipsis;
-                            "
-                            :text="thirdMenu.meta?.title || ''"
-                          />
-                          <ReMenuNewBadge
-                            v-if="showNewMenu"
-                            :createTime="thirdMenu.meta?.createTime"
-                            :type="thirdMenu.meta?.badgeType || 'primary'"
-                            :customText="thirdMenu.meta?.badgeText"
-                            :forceShow="
-                              forceNewMenu || thirdMenu.meta?.permanentNew
-                            "
-                            :animation="newMenuAnimation"
-                          />
-                        </router-link>
+                            :to="thirdMenu.path"
+                            class="menu-item"
+                            :class="{
+                              'is-active': defaultActive === thirdMenu.path,
+                              'menu-animation': menuAnimation
+                            }"
+                            @click="handleSubMenuClick(thirdMenu, $event)"
+                          >
+                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ thirdMenu.meta?.title }}</span>
+                            <ReMenuNewBadge
+                              v-if="showNewMenu"
+                              :createTime="thirdMenu.meta?.createTime"
+                              :type="thirdMenu.meta?.badgeType || 'primary'"
+                              :customText="thirdMenu.meta?.badgeText"
+                              :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
+                              :animation="newMenuAnimation"
+                            />
+                          </router-link>
                         <!-- 收藏按钮 -->
                         <button
                           v-if="hoveredMenuItem?.path === thirdMenu.path"
@@ -1135,12 +985,12 @@ const defer = useDefer(firstLevelMenus.value.length);
                 <div
                   v-if="
                     currentSubMenus.some(
-                      (menu) => !menu.children || menu.children.length === 0,
+                      (menu) => !menu.children || menu.children.length === 0
                     )
                   "
                   class="menu-column"
                 >
-                  <ScText class="column-title" text="其他功能" />
+                  <div class="column-title">其他功能</div>
                   <div class="column-items">
                     <template
                       v-for="subMenu in currentSubMenus"
@@ -1159,26 +1009,17 @@ const defer = useDefer(firstLevelMenus.value.length);
                           class="menu-item"
                           :class="{
                             'is-active': defaultActive === subMenu.path,
-                            'menu-animation': menuAnimation,
+                            'menu-animation': menuAnimation
                           }"
                           @click="handleSubMenuClick(subMenu, $event)"
                         >
-                          <ScText
-                            style="
-                              flex: 1;
-                              overflow: hidden;
-                              text-overflow: ellipsis;
-                            "
-                            :text="subMenu.meta?.title || ''"
-                          />
+                          <span style="flex: 1; overflow: hidden; text-overflow: ellipsis;">{{ subMenu.meta?.title }}</span>
                           <ReMenuNewBadge
                             v-if="showNewMenu"
                             :createTime="subMenu.meta?.createTime"
                             :type="subMenu.meta?.badgeType || 'primary'"
                             :customText="subMenu.meta?.badgeText"
-                            :forceShow="
-                              forceNewMenu || subMenu.meta?.permanentNew
-                            "
+                            :forceShow="forceNewMenu || subMenu.meta?.permanentNew"
                             :animation="newMenuAnimation"
                           />
                         </router-link>
@@ -1229,15 +1070,9 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 
 @keyframes menu-bounce {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
 }
 
 .sidebar-hover-container {
@@ -1323,10 +1158,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   height: 50px;
   margin: 4px 0;
   border-radius: 8px;
-  transition:
-    background-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -1338,30 +1170,28 @@ const defer = useDefer(firstLevelMenus.value.length);
   }
 
   &.is-active {
-    // 默认（亮色）：背景蓝色，文字白色
-    background: var(--el-color-primary) !important;
-    color: #fff !important;
-    font-weight: 600;
-    box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
-
-    svg,
-    i,
-    span {
+      // 默认（亮色）：背景蓝色，文字白色
+      background: var(--el-color-primary) !important;
       color: #fff !important;
-    }
-
-    // 暗色模式适配：使用定义的变量
-    @at-root html.dark & {
-      background: var(--hover-nav-menu-active-bg) !important;
-      color: var(--hover-nav-menu-active-color) !important;
+      font-weight: 600;
+      box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
       svg,
       i,
       span {
+        color: #fff !important;
+      }
+
+      // 暗色模式适配：使用定义的变量
+      @at-root html.dark & {
+        background: var(--hover-nav-menu-active-bg) !important;
         color: var(--hover-nav-menu-active-color) !important;
+        
+        svg, i, span {
+          color: var(--hover-nav-menu-active-color) !important;
+        }
       }
     }
-  }
 
   .menu-content {
     display: flex;
@@ -1425,22 +1255,22 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 
 .sub-menu-container {
-  min-width: 320px;
-  max-width: 900px;
-  width: fit-content;
-  max-height: calc(100vh - 60px);
-  background: var(--hover-nav-submenu-bg);
-  border-radius: 16px;
-  // 性能优化：减少阴影层级，减轻重绘开销
-  box-shadow: 0 12px 24px var(--hover-nav-submenu-shadow);
-  border: 1px solid var(--hover-nav-submenu-border);
-  overflow: hidden;
-  // 性能优化：去掉大面积背景模糊，降低 hover 打开时的卡顿
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  position: relative;
-  will-change: transform, opacity;
-  contain: layout style paint;
+    min-width: 320px;
+    max-width: 900px;
+    width: fit-content;
+    max-height: calc(100vh - 60px);
+    background: var(--hover-nav-submenu-bg);
+    border-radius: 16px;
+    // 性能优化：减少阴影层级，减轻重绘开销
+    box-shadow: 0 12px 24px var(--hover-nav-submenu-shadow);
+    border: 1px solid var(--hover-nav-submenu-border);
+    overflow: hidden;
+    // 性能优化：去掉大面积背景模糊，降低 hover 打开时的卡顿
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    position: relative;
+    will-change: transform, opacity;
+    contain: layout style paint;
 
   /* 添加光泽效果 */
   &::before {
@@ -1502,12 +1332,12 @@ const defer = useDefer(firstLevelMenus.value.length);
 /* 横向多列菜单容器 */
 .horizontal-menu-container {
   width: 100%;
-
+  
   &.vertical-mode {
     max-height: calc(100vh - 120px);
     overflow-y: auto;
   }
-
+  
   &.mixed-mode {
     max-height: calc(100vh - 120px);
     overflow-y: auto;
@@ -1518,7 +1348,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 .mixed-layout-container {
   display: flex;
   gap: 16px;
-
+  
   .vertical-section {
     min-width: 160px;
     max-width: 200px;
@@ -1527,12 +1357,12 @@ const defer = useDefer(firstLevelMenus.value.length);
     display: flex;
     flex-direction: column;
     gap: 8px;
-
+    
     html.dark & {
       border-right-color: rgba(255, 255, 255, 0.1);
     }
   }
-
+  
   .horizontal-section {
     flex: 1;
     display: grid;
@@ -1561,13 +1391,13 @@ const defer = useDefer(firstLevelMenus.value.length);
     top: 0;
     background: var(--el-bg-color-overlay);
     z-index: 1;
-
+    
     html.dark & {
       color: rgba(255, 255, 255, 0.6);
       background: rgba(28, 28, 35, 0.95);
     }
   }
-
+  
   .vertical-group-items {
     display: flex;
     flex-direction: column;
@@ -1663,10 +1493,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   line-height: 1.4;
   border-radius: 6px;
   // 性能优化：仅过渡颜色相关属性，避免频繁动画 box-shadow
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   position: relative;
   width: 100%;
   min-height: 36px;
@@ -1721,10 +1548,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     /* 浅色风格下激活样式保持白色 */
     html[data-theme="light"] & {
       color: var(--hover-nav-menu-active-color, #ffffff) !important;
-      background: var(
-        --hover-nav-menu-active-bg,
-        var(--el-color-primary)
-      ) !important;
+      background: var(--hover-nav-menu-active-bg, var(--el-color-primary)) !important;
     }
   }
 }
@@ -1750,10 +1574,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    background-color 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
   opacity: 0;
   z-index: 10;
   border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
@@ -1853,11 +1674,7 @@ const defer = useDefer(firstLevelMenus.value.length);
       border-radius: 8px;
       text-decoration: none;
       color: var(--el-text-color-regular);
-      transition:
-        background-color 0.2s ease,
-        transform 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+      transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       font-size: 13px;
       position: relative;
       border: 1px solid transparent;
@@ -2049,8 +1866,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 @use "sass:color";
 
 // ==================== 春节主题样式 ====================
-html[data-skin="spring-festival"],
-html.theme-spring-festival {
+html[data-skin="spring-festival"] {
   $spring-red: #dc143c;
   $spring-red-dark: #b22222;
   $spring-gold: #ffd700;
@@ -2059,21 +1875,13 @@ html.theme-spring-festival {
 
   // 悬停导航容器
   .sidebar-hover-container {
-    background: linear-gradient(
-      135deg,
-      rgba(220, 20, 60, 0.98),
-      rgba(178, 34, 34, 0.98)
-    ) !important;
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.98), rgba(178, 34, 34, 0.98)) !important;
     border-right: 3px solid $spring-border !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 
     // Logo区域
     .sidebar-logo-container {
-      background: linear-gradient(
-        135deg,
-        rgba(139, 0, 0, 0.9),
-        rgba(178, 34, 34, 0.9)
-      ) !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(178, 34, 34, 0.9)) !important;
       border-bottom: 2px solid rgba(255, 215, 0, 0.4) !important;
 
       .sidebar-title {
@@ -2086,11 +1894,7 @@ html.theme-spring-festival {
     .first-level-menu-item {
       color: $spring-gold !important;
       border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
-      background: linear-gradient(
-        135deg,
-        rgba(139, 0, 0, 0.7),
-        rgba(178, 34, 34, 0.7)
-      ) !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
 
       .menu-icon {
         color: $spring-gold !important;
@@ -2101,11 +1905,7 @@ html.theme-spring-festival {
       }
 
       &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba(220, 20, 60, 0.9),
-          rgba(178, 34, 34, 0.9)
-        ) !important;
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
         border-color: rgba(255, 215, 0, 0.6) !important;
         box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
         transform: translateX(4px) scale(1.02);
@@ -2117,11 +1917,7 @@ html.theme-spring-festival {
       }
 
       &.is-active {
-        background: linear-gradient(
-          135deg,
-          $spring-gold,
-          $spring-gold-light
-        ) !important;
+        background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
         border: 2px solid $spring-red !important;
         font-weight: 700;
         box-shadow:
@@ -2138,11 +1934,7 @@ html.theme-spring-festival {
     // 折叠按钮
     .hover-collapse-btn,
     .sidebar-collapse-btn {
-      background: linear-gradient(
-        135deg,
-        rgba(139, 0, 0, 0.95),
-        rgba(178, 34, 34, 0.95)
-      ) !important;
+      background: linear-gradient(135deg, rgba(139, 0, 0, 0.95), rgba(178, 34, 34, 0.95)) !important;
       border-top: 2px solid $spring-border !important;
 
       .collapse-icon,
@@ -2155,11 +1947,7 @@ html.theme-spring-festival {
       }
 
       &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba(220, 20, 60, 0.95),
-          rgba(178, 34, 34, 0.95)
-        ) !important;
+        background: linear-gradient(135deg, rgba(220, 20, 60, 0.95), rgba(178, 34, 34, 0.95)) !important;
 
         .collapse-icon,
         .sidebar-collapse-icon {
@@ -2172,11 +1960,7 @@ html.theme-spring-festival {
   // 子菜单弹出层
   .sub-menu-popup {
     .sub-menu-container {
-      background: linear-gradient(
-        135deg,
-        rgba(220, 20, 60, 0.98),
-        rgba(178, 34, 34, 0.98)
-      ) !important;
+      background: linear-gradient(135deg, rgba(220, 20, 60, 0.98), rgba(178, 34, 34, 0.98)) !important;
       border: 3px solid $spring-gold !important;
       box-shadow:
         0 4px 16px rgba(255, 215, 0, 0.3),
@@ -2190,31 +1974,19 @@ html.theme-spring-festival {
 
       // 菜单项
       .menu-item {
-        background: linear-gradient(
-          135deg,
-          rgba(139, 0, 0, 0.7),
-          rgba(178, 34, 34, 0.7)
-        ) !important;
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
         border: 1.5px solid rgba(255, 215, 0, 0.3) !important;
         color: $spring-gold !important;
 
         &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba(220, 20, 60, 0.9),
-            rgba(178, 34, 34, 0.9)
-          ) !important;
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
           border-color: rgba(255, 215, 0, 0.6) !important;
           color: #fff !important;
           box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3) !important;
         }
 
         &.is-active {
-          background: linear-gradient(
-            135deg,
-            $spring-gold,
-            $spring-gold-light
-          ) !important;
+          background: linear-gradient(135deg, $spring-gold, $spring-gold-light) !important;
           border: 2px solid $spring-red !important;
           color: #8b0000 !important;
           font-weight: 700;
@@ -2240,11 +2012,7 @@ html.theme-spring-festival {
 
       // 收藏菜单项
       .favorite-menu-item {
-        background: linear-gradient(
-          135deg,
-          rgba(139, 0, 0, 0.7),
-          rgba(178, 34, 34, 0.7)
-        ) !important;
+        background: linear-gradient(135deg, rgba(139, 0, 0, 0.7), rgba(178, 34, 34, 0.7)) !important;
         color: $spring-gold !important;
 
         .favorite-menu-icon {
@@ -2253,11 +2021,7 @@ html.theme-spring-festival {
         }
 
         &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba(220, 20, 60, 0.9),
-            rgba(178, 34, 34, 0.9)
-          ) !important;
+          background: linear-gradient(135deg, rgba(220, 20, 60, 0.9), rgba(178, 34, 34, 0.9)) !important;
           border-color: rgba(255, 215, 0, 0.6) !important;
         }
       }
@@ -2273,207 +2037,6 @@ html.theme-spring-festival {
         p {
           color: $spring-gold !important;
         }
-      }
-    }
-  }
-}
-
-// ==================== 万圣节主题样式 ====================
-html[data-skin="halloween"],
-html.theme-halloween {
-  $hall-bg: #2a012f;
-  $hall-bg-deep: #18001d;
-  $hall-orange: #ff9c42;
-  $hall-orange-strong: #ff7518;
-  $hall-lime: #a8ff60;
-  $hall-border: rgba(255, 117, 24, 0.35);
-
-  .sidebar-hover-container {
-    background: linear-gradient(180deg, rgba($hall-bg, 0.98), rgba($hall-bg-deep, 0.98)) !important;
-    border-right: 2px solid $hall-border !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32) !important;
-
-    .sidebar-logo-container {
-      background: linear-gradient(180deg, rgba(53, 0, 62, 0.95), rgba(28, 0, 36, 0.92)) !important;
-      border-bottom: 1px solid rgba($hall-orange, 0.22) !important;
-
-      .sidebar-title {
-        color: $hall-orange !important;
-        font-family: "Creepster", "Nosifer", "Segoe UI", sans-serif;
-      }
-    }
-
-    .first-level-menu-item {
-      color: $hall-orange !important;
-      border: 1px solid rgba($hall-orange, 0.2) !important;
-      background: linear-gradient(135deg, rgba(58, 5, 69, 0.72), rgba(31, 0, 36, 0.7)) !important;
-
-      .menu-icon,
-      .menu-title {
-        color: $hall-orange !important;
-      }
-
-      &:hover {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
-        border-color: rgba($hall-orange-strong, 0.42) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $hall-lime !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.96), rgba(255, 171, 64, 0.9)) !important;
-        border: 1px solid rgba(42, 1, 47, 0.22) !important;
-        box-shadow: 0 8px 18px -12px rgba(255, 117, 24, 0.58) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: #240014 !important;
-        }
-      }
-    }
-
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(180deg, rgba(53, 0, 62, 0.95), rgba(28, 0, 36, 0.92)) !important;
-      border-top: 1px solid rgba($hall-orange, 0.22) !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon,
-      .collapse-text {
-        color: $hall-orange !important;
-      }
-    }
-  }
-
-  .sub-menu-popup .sub-menu-container {
-    background: linear-gradient(180deg, rgba($hall-bg, 0.98), rgba($hall-bg-deep, 0.98)) !important;
-    border: 2px solid rgba($hall-orange, 0.32) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42) !important;
-
-    .column-title {
-      color: $hall-orange !important;
-      border-bottom: 1px solid rgba($hall-orange, 0.22) !important;
-    }
-
-    .menu-item,
-    .favorite-menu-item {
-      background: linear-gradient(135deg, rgba(58, 5, 69, 0.72), rgba(31, 0, 36, 0.7)) !important;
-      border: 1px solid rgba($hall-orange, 0.18) !important;
-      color: $hall-orange !important;
-
-      &:hover {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.2), rgba(60, 0, 74, 0.52)) !important;
-        border-color: rgba($hall-orange-strong, 0.42) !important;
-        color: $hall-lime !important;
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(255, 117, 24, 0.96), rgba(255, 171, 64, 0.9)) !important;
-        color: #240014 !important;
-      }
-    }
-  }
-}
-
-// ==================== 未来科技主题样式 ====================
-html[data-skin="future-tech"],
-html.theme-future-tech {
-  $ft-panel: #102818;
-  $ft-panel-deep: #07180f;
-  $ft-gold: #f2d07a;
-  $ft-gold-strong: #ffefb5;
-  $ft-green: #6aa576;
-  $ft-border: rgba(106, 165, 118, 0.28);
-
-  .sidebar-hover-container {
-    background: linear-gradient(180deg, rgba($ft-panel, 0.98), rgba($ft-panel-deep, 0.98)) !important;
-    border-right: 2px solid $ft-border !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.36) !important;
-
-    .sidebar-logo-container {
-      background: linear-gradient(180deg, rgba(17, 42, 27, 0.95), rgba(8, 23, 14, 0.92)) !important;
-      border-bottom: 1px solid rgba($ft-green, 0.2) !important;
-
-      .sidebar-title {
-        color: $ft-gold !important;
-        font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
-        letter-spacing: 0.06em;
-      }
-    }
-
-    .first-level-menu-item {
-      color: $ft-gold !important;
-      border: 1px solid rgba($ft-green, 0.18) !important;
-      background: linear-gradient(135deg, rgba(18, 47, 29, 0.78), rgba(8, 23, 14, 0.74)) !important;
-
-      .menu-icon,
-      .menu-title {
-        color: $ft-gold !important;
-      }
-
-      &:hover {
-        background: linear-gradient(135deg, rgba(31, 78, 47, 0.82), rgba(11, 29, 18, 0.78)) !important;
-        border-color: rgba($ft-gold, 0.24) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: $ft-gold-strong !important;
-        }
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
-        border: 1px solid rgba(16, 40, 24, 0.18) !important;
-        box-shadow: 0 10px 20px -14px rgba(242, 208, 122, 0.5) !important;
-
-        .menu-icon,
-        .menu-title {
-          color: #102818 !important;
-        }
-      }
-    }
-
-    .hover-collapse-btn,
-    .sidebar-collapse-btn {
-      background: linear-gradient(180deg, rgba(17, 42, 27, 0.95), rgba(8, 23, 14, 0.92)) !important;
-      border-top: 1px solid rgba($ft-green, 0.2) !important;
-
-      .collapse-icon,
-      .sidebar-collapse-icon,
-      .collapse-text {
-        color: $ft-gold !important;
-      }
-    }
-  }
-
-  .sub-menu-popup .sub-menu-container {
-    background: linear-gradient(180deg, rgba($ft-panel, 0.98), rgba($ft-panel-deep, 0.98)) !important;
-    border: 2px solid rgba($ft-green, 0.3) !important;
-    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.46) !important;
-
-    .column-title {
-      color: $ft-gold !important;
-      border-bottom: 1px solid rgba($ft-green, 0.18) !important;
-    }
-
-    .menu-item,
-    .favorite-menu-item {
-      background: linear-gradient(135deg, rgba(18, 47, 29, 0.78), rgba(8, 23, 14, 0.74)) !important;
-      border: 1px solid rgba($ft-green, 0.18) !important;
-      color: $ft-gold !important;
-
-      &:hover {
-        background: linear-gradient(135deg, rgba(31, 78, 47, 0.82), rgba(11, 29, 18, 0.78)) !important;
-        border-color: rgba($ft-gold, 0.24) !important;
-        color: $ft-gold-strong !important;
-      }
-
-      &.is-active {
-        background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
-        color: #102818 !important;
       }
     }
   }
@@ -2496,11 +2059,7 @@ html[data-skin="mid-autumn"] {
 
     // Logo区域
     .sidebar-logo-container {
-      background: linear-gradient(
-        135deg,
-        rgba(13, 27, 66, 0.95),
-        rgba($mid-blue, 0.95)
-      ) !important;
+      background: linear-gradient(135deg, rgba(13, 27, 66, 0.95), rgba($mid-blue, 0.95)) !important;
       border-bottom: 2px solid $mid-border !important;
 
       .sidebar-title {
@@ -2534,11 +2093,7 @@ html[data-skin="mid-autumn"] {
       }
 
       &.is-active {
-        background: linear-gradient(
-          135deg,
-          $mid-gold,
-          $mid-gold-light
-        ) !important;
+        background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
         border-color: $mid-cyan !important;
         box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
 
@@ -2552,11 +2107,7 @@ html[data-skin="mid-autumn"] {
     // 折叠按钮
     .hover-collapse-btn,
     .sidebar-collapse-btn {
-      background: linear-gradient(
-        135deg,
-        $mid-blue,
-        $mid-blue-light
-      ) !important;
+      background: linear-gradient(135deg, $mid-blue, $mid-blue-light) !important;
       border-color: $mid-border !important;
 
       .collapse-icon,
@@ -2578,11 +2129,7 @@ html[data-skin="mid-autumn"] {
   // 子菜单弹出层
   .sub-menu-popup {
     .sub-menu-container {
-      background: linear-gradient(
-        180deg,
-        $mid-blue,
-        $mid-blue-light
-      ) !important;
+      background: linear-gradient(180deg, $mid-blue, $mid-blue-light) !important;
       border: 2px solid $mid-gold !important;
       box-shadow:
         0 0 20px rgba($mid-gold, 0.3),
@@ -2608,11 +2155,7 @@ html[data-skin="mid-autumn"] {
         }
 
         &.is-active {
-          background: linear-gradient(
-            135deg,
-            $mid-gold,
-            $mid-gold-light
-          ) !important;
+          background: linear-gradient(135deg, $mid-gold, $mid-gold-light) !important;
           border-color: $mid-cyan !important;
           color: $mid-blue !important;
           box-shadow: 0 4px 16px rgba($mid-gold, 0.5) !important;
@@ -2677,21 +2220,13 @@ html[data-skin="christmas"] {
 
   // 悬停导航容器
   .sidebar-hover-container {
-    background: linear-gradient(
-      180deg,
-      $xmas-green,
-      color.adjust($xmas-green, $lightness: -5%)
-    ) !important;
+    background: linear-gradient(180deg, $xmas-green, color.adjust($xmas-green, $lightness: -5%)) !important;
     border-right: 3px solid $xmas-border !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 
     // Logo区域
     .sidebar-logo-container {
-      background: linear-gradient(
-        180deg,
-        color.adjust($xmas-green, $lightness: -8%),
-        color.adjust($xmas-green, $lightness: -5%)
-      ) !important;
+      background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -5%)) !important;
       border-bottom: 2px solid $xmas-border !important;
 
       .sidebar-title {
@@ -2704,10 +2239,7 @@ html[data-skin="christmas"] {
     .first-level-menu-item {
       color: $xmas-white !important;
       border: 1.5px solid rgba($xmas-gold, 0.3) !important;
-      background: rgba(
-        color.adjust($xmas-green, $lightness: -5%),
-        0.6
-      ) !important;
+      background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
 
       .menu-icon {
         color: $xmas-gold !important;
@@ -2718,11 +2250,7 @@ html[data-skin="christmas"] {
       }
 
       &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba($xmas-red, 0.8),
-          rgba($xmas-red-light, 0.7)
-        ) !important;
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
         border-color: rgba($xmas-gold, 0.5) !important;
         box-shadow: 0 4px 12px rgba($xmas-red, 0.3) !important;
 
@@ -2733,11 +2261,7 @@ html[data-skin="christmas"] {
       }
 
       &.is-active {
-        background: linear-gradient(
-          135deg,
-          $xmas-red,
-          $xmas-red-light
-        ) !important;
+        background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
         border: 2px solid $xmas-gold !important;
         box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
 
@@ -2751,11 +2275,7 @@ html[data-skin="christmas"] {
     // 折叠按钮
     .hover-collapse-btn,
     .sidebar-collapse-btn {
-      background: linear-gradient(
-        180deg,
-        color.adjust($xmas-green, $lightness: -8%),
-        color.adjust($xmas-green, $lightness: -10%)
-      ) !important;
+      background: linear-gradient(180deg, color.adjust($xmas-green, $lightness: -8%), color.adjust($xmas-green, $lightness: -10%)) !important;
       border-top: 2px solid $xmas-border !important;
 
       .collapse-icon,
@@ -2768,11 +2288,7 @@ html[data-skin="christmas"] {
       }
 
       &:hover {
-        background: linear-gradient(
-          135deg,
-          rgba($xmas-red, 0.8),
-          rgba($xmas-red-light, 0.7)
-        ) !important;
+        background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
 
         .collapse-icon,
         .sidebar-collapse-icon {
@@ -2785,11 +2301,7 @@ html[data-skin="christmas"] {
   // 子菜单弹出层
   .sub-menu-popup {
     .sub-menu-container {
-      background: linear-gradient(
-        180deg,
-        $xmas-green,
-        color.adjust($xmas-green, $lightness: -5%)
-      ) !important;
+      background: linear-gradient(180deg, $xmas-green, color.adjust($xmas-green, $lightness: -5%)) !important;
       border: 2px solid $xmas-gold !important;
       box-shadow:
         0 4px 20px rgba($xmas-gold, 0.3),
@@ -2803,30 +2315,19 @@ html[data-skin="christmas"] {
 
       // 菜单项
       .menu-item {
-        background: rgba(
-          color.adjust($xmas-green, $lightness: -5%),
-          0.6
-        ) !important;
+        background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
         border: 1.5px solid rgba($xmas-gold, 0.3) !important;
         color: $xmas-white !important;
 
         &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba($xmas-red, 0.8),
-            rgba($xmas-red-light, 0.7)
-          ) !important;
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
           border-color: rgba($xmas-gold, 0.5) !important;
           color: $xmas-white !important;
           box-shadow: 0 4px 12px rgba($xmas-red, 0.3) !important;
         }
 
         &.is-active {
-          background: linear-gradient(
-            135deg,
-            $xmas-red,
-            $xmas-red-light
-          ) !important;
+          background: linear-gradient(135deg, $xmas-red, $xmas-red-light) !important;
           border: 2px solid $xmas-gold !important;
           color: $xmas-white !important;
           box-shadow: 0 4px 16px rgba($xmas-red, 0.5) !important;
@@ -2849,10 +2350,7 @@ html[data-skin="christmas"] {
 
       // 收藏菜单项
       .favorite-menu-item {
-        background: rgba(
-          color.adjust($xmas-green, $lightness: -5%),
-          0.6
-        ) !important;
+        background: rgba(color.adjust($xmas-green, $lightness: -5%), 0.6) !important;
         color: $xmas-white !important;
 
         .favorite-menu-icon {
@@ -2861,11 +2359,7 @@ html[data-skin="christmas"] {
         }
 
         &:hover {
-          background: linear-gradient(
-            135deg,
-            rgba($xmas-red, 0.8),
-            rgba($xmas-red-light, 0.7)
-          ) !important;
+          background: linear-gradient(135deg, rgba($xmas-red, 0.8), rgba($xmas-red-light, 0.7)) !important;
           border-color: rgba($xmas-gold, 0.5) !important;
         }
       }
@@ -2889,23 +2383,19 @@ html[data-skin="christmas"] {
 // ==================== 元旦主题样式 ====================
 html[data-skin="new-year"] {
   // 元旦冰雪主题色
-  $ice-lightest: #f5fbff;
-  $ice-light: #b8e0f2;
-  $ice-medium: #7cc2e8;
-  $ice-primary: #4ea8de;
-  $ice-deep: #2a7ab8;
-  $ice-darker: #1e5f8c;
-  $frost-white: #ffffff;
-  $frost-purple: #e0e7f5;
+  $ice-lightest: #F5FBFF;
+  $ice-light: #B8E0F2;
+  $ice-medium: #7CC2E8;
+  $ice-primary: #4EA8DE;
+  $ice-deep: #2A7AB8;
+  $ice-darker: #1E5F8C;
+  $frost-white: #FFFFFF;
+  $frost-purple: #E0E7F5;
   $ice-border: rgba(78, 168, 222, 0.3);
 
   // 悬停导航容器
   .sidebar-hover-container {
-    background: linear-gradient(
-      180deg,
-      rgba($ice-lightest, 0.98),
-      rgba($frost-purple, 0.95)
-    ) !important;
+    background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
     border-right: 2px solid $ice-border !important;
     box-shadow: 0 4px 20px rgba($ice-deep, 0.15) !important;
     backdrop-filter: blur(8px);
@@ -2913,11 +2403,7 @@ html[data-skin="new-year"] {
 
     // Logo区域
     .sidebar-logo-container {
-      background: linear-gradient(
-        180deg,
-        rgba($frost-white, 0.95),
-        rgba($ice-lightest, 0.9)
-      ) !important;
+      background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
       border-bottom: 1px solid rgba($ice-medium, 0.3) !important;
 
       .sidebar-title {
@@ -2954,11 +2440,7 @@ html[data-skin="new-year"] {
       }
 
       &.is-active {
-        background: linear-gradient(
-          135deg,
-          $ice-primary,
-          $ice-medium
-        ) !important;
+        background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
         border: 2px solid rgba($frost-white, 0.5) !important;
         font-weight: 700;
         box-shadow:
@@ -2975,11 +2457,7 @@ html[data-skin="new-year"] {
     // 折叠按钮
     .hover-collapse-btn,
     .sidebar-collapse-btn {
-      background: linear-gradient(
-        180deg,
-        rgba($frost-white, 0.95),
-        rgba($ice-lightest, 0.9)
-      ) !important;
+      background: linear-gradient(180deg, rgba($frost-white, 0.95), rgba($ice-lightest, 0.9)) !important;
       border-top: 1px solid rgba($ice-medium, 0.3) !important;
 
       .collapse-icon,
@@ -3005,17 +2483,13 @@ html[data-skin="new-year"] {
   // 子菜单弹出层
   .sub-menu-popup {
     .sub-menu-container {
-      background: linear-gradient(
-        180deg,
-        rgba($ice-lightest, 0.98),
-        rgba($frost-purple, 0.95)
-      ) !important;
+      background: linear-gradient(180deg, rgba($ice-lightest, 0.98), rgba($frost-purple, 0.95)) !important;
       border: 2px solid rgba($ice-primary, 0.3) !important;
       box-shadow:
         0 8px 32px rgba($ice-deep, 0.2),
         0 20px 60px rgba(0, 0, 0, 0.15) !important;
       backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 
       // 列标题
       .column-title {
@@ -3038,11 +2512,7 @@ html[data-skin="new-year"] {
         }
 
         &.is-active {
-          background: linear-gradient(
-            135deg,
-            $ice-primary,
-            $ice-medium
-          ) !important;
+          background: linear-gradient(135deg, $ice-primary, $ice-medium) !important;
           border: 2px solid rgba($frost-white, 0.5) !important;
           color: $frost-white !important;
           box-shadow: 0 4px 16px rgba($ice-primary, 0.4) !important;

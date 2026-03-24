@@ -8,115 +8,117 @@
   >
     <div class="sync-content">
       <!-- 同步配置 -->
-      <ScForm ref="formRef" :model="form" :rules="rules" label-width="120px">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
         <div class="form-section">
           <div class="section-title">同步配置</div>
-
-          <ScFormItem label="镜像仓库" prop="registryIds">
-            <ScSelect
+          
+          <el-form-item label="镜像仓库" prop="registryIds">
+            <el-select
               v-model="form.registryIds"
               placeholder="选择要同步的镜像仓库"
               multiple
               style="width: 100%"
             >
-              <ScOption
+              <el-option
                 v-for="registry in registryOptions"
                 :key="registry.systemSoftRegistryId"
                 :label="registry.systemSoftRegistryName"
                 :value="registry.systemSoftRegistryId"
               >
                 <div class="registry-option">
-                  <span class="registry-name">{{
-                    registry.systemSoftRegistryName
-                  }}</span>
-                  <span class="registry-type"
-                    >({{
-                      getRegistryTypeText(registry.systemSoftRegistryType)
-                    }})</span
-                  >
+                  <span class="registry-name">{{ registry.systemSoftRegistryName }}</span>
+                  <span class="registry-type">({{ getRegistryTypeText(registry.systemSoftRegistryType) }})</span>
                 </div>
-              </ScOption>
-            </ScSelect>
+              </el-option>
+            </el-select>
             <div class="form-tip">
               选择要同步软件信息的镜像仓库，可以选择多个
             </div>
-          </ScFormItem>
-
-          <ScFormItem label="同步类型">
-            <ScRadioGroup v-model="form.syncType">
-              <ScRadio label="popular">热门软件</ScRadio>
-              <ScRadio label="official">官方镜像</ScRadio>
-              <ScRadio label="custom">自定义搜索</ScRadio>
-            </ScRadioGroup>
-          </ScFormItem>
-
-          <ScFormItem v-if="form.syncType === 'custom'" label="搜索关键词">
-            <ScInput
+          </el-form-item>
+          
+          <el-form-item label="同步类型">
+            <el-radio-group v-model="form.syncType">
+              <el-radio label="popular">热门软件</el-radio>
+              <el-radio label="official">官方镜像</el-radio>
+              <el-radio label="custom">自定义搜索</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          
+          <el-form-item v-if="form.syncType === 'custom'" label="搜索关键词">
+            <el-input
               v-model="form.searchKeywords"
               placeholder="输入要搜索的软件关键词，多个关键词用逗号分隔"
               type="textarea"
               :rows="3"
             />
-            <div class="form-tip">例如: nginx,mysql,redis,mongodb</div>
-          </ScFormItem>
-
-          <ScFormItem label="同步数量限制">
-            <ScInputNumber
+            <div class="form-tip">
+              例如: nginx,mysql,redis,mongodb
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="同步数量限制">
+            <el-input-number
               v-model="form.limitCount"
               :min="10"
               :max="500"
               :step="10"
               style="width: 200px"
             />
-            <div class="form-tip">每个仓库最多同步的软件数量</div>
-          </ScFormItem>
-
-          <ScFormItem label="版本信息">
-            <ScCheckbox v-model="form.includeVersions"
-              >同步版本标签信息</el-checkbox
-            >
+            <div class="form-tip">
+              每个仓库最多同步的软件数量
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="版本信息">
+            <el-checkbox v-model="form.includeVersions">同步版本标签信息</el-checkbox>
             <div class="form-tip">
               是否同步每个软件的版本标签列表（会增加同步时间）
             </div>
-          </ScFormItem>
+          </el-form-item>
         </div>
-
+        
         <div class="form-section">
           <div class="section-title">高级选项</div>
-
-          <ScFormItem label="覆盖策略">
-            <ScRadioGroup v-model="form.overwritePolicy">
-              <ScRadio label="skip">跳过已存在</ScRadio>
-              <ScRadio label="update">更新已存在</ScRadio>
-              <ScRadio label="merge">合并信息</ScRadio>
-            </ScRadioGroup>
-            <div class="form-tip">当软件已存在时的处理策略</div>
-          </ScFormItem>
-
-          <ScFormItem label="并发数量">
-            <ScInputNumber
+          
+          <el-form-item label="覆盖策略">
+            <el-radio-group v-model="form.overwritePolicy">
+              <el-radio label="skip">跳过已存在</el-radio>
+              <el-radio label="update">更新已存在</el-radio>
+              <el-radio label="merge">合并信息</el-radio>
+            </el-radio-group>
+            <div class="form-tip">
+              当软件已存在时的处理策略
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="并发数量">
+            <el-input-number
               v-model="form.concurrency"
               :min="1"
               :max="10"
               style="width: 200px"
             />
-            <div class="form-tip">同时同步的软件数量，建议不超过5个</div>
-          </ScFormItem>
-
-          <ScFormItem label="超时时间">
-            <ScInputNumber
+            <div class="form-tip">
+              同时同步的软件数量，建议不超过5个
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="超时时间">
+            <el-input-number
               v-model="form.timeout"
               :min="30"
               :max="300"
               :step="30"
               style="width: 200px"
             />
-            <span style="margin-left: 8px">秒</span>
-            <div class="form-tip">单个软件信息同步的超时时间</div>
-          </ScFormItem>
+            <span style="margin-left: 8px;">秒</span>
+            <div class="form-tip">
+              单个软件信息同步的超时时间
+            </div>
+          </el-form-item>
         </div>
-      </ScForm>
-
+      </el-form>
+      
       <!-- 预览信息 -->
       <div class="preview-section">
         <div class="section-title">同步预览</div>
@@ -136,205 +138,194 @@
         </div>
       </div>
     </div>
-
+    
     <template #footer>
       <span class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSubmit">
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="loading">
           开始同步
-        </ScButton>
+        </el-button>
       </span>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from "vue";
+import { ref, reactive, computed, watch } from 'vue'
 import { message } from "@repo/utils";
-import { type FormInstance, type FormRules } from "element-plus";
-import { softwareApi, registryApi } from "@/api/docker";
+import { type FormInstance, type FormRules } from 'element-plus'
+import { softwareApi, registryApi } from '@/api/docker'
 
 interface Props {
-  visible: boolean;
+  visible: boolean
 }
 
 interface Emits {
-  (e: "update:visible", value: boolean): void;
-  (e: "success"): void;
+  (e: 'update:visible', value: boolean): void
+  (e: 'success'): void
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-const formRef = ref<FormInstance>();
-const loading = ref(false);
-const registryOptions = ref<any[]>([]);
+const formRef = ref<FormInstance>()
+const loading = ref(false)
+const registryOptions = ref<any[]>([])
 
 const form = reactive({
   registryIds: [] as number[],
-  syncType: "popular",
-  searchKeywords: "",
+  syncType: 'popular',
+  searchKeywords: '',
   limitCount: 50,
   includeVersions: true,
-  overwritePolicy: "merge",
+  overwritePolicy: 'merge',
   concurrency: 3,
-  timeout: 120,
-});
+  timeout: 120
+})
 
 const rules: FormRules = {
   registryIds: [
-    { required: true, message: "请选择至少一个镜像仓库", trigger: "change" },
-  ],
-};
+    { required: true, message: '请选择至少一个镜像仓库', trigger: 'change' }
+  ]
+}
 
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit("update:visible", value),
-});
+  set: (value) => emit('update:visible', value)
+})
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible) {
-    loadData();
+    loadData()
   }
-});
+})
 
 const loadData = async () => {
   try {
     // 加载镜像仓库列表
-    const registryResponse = await registryApi.getAllRegistries();
-    if (registryResponse.code === "00000") {
-      registryOptions.value = registryResponse.data || [];
+    const registryResponse = await registryApi.getAllRegistries()
+    if (registryResponse.code === '00000') {
+      registryOptions.value = registryResponse.data || []
     }
   } catch (error) {
-    console.error("加载数据失败:", error);
+    console.error('加载数据失败:', error)
   }
-};
+}
 
 const getRegistryTypeText = (type?: string) => {
   const map = {
-    docker_hub: "Docker Hub",
-    aliyun: "阿里云",
-    harbor: "Harbor",
-    custom: "自定义",
-  };
-  return map[type] || "未知";
-};
+    docker_hub: 'Docker Hub',
+    aliyun: '阿里云',
+    harbor: 'Harbor',
+    custom: '自定义'
+  }
+  return map[type] || '未知'
+}
 
 const getSelectedRegistryNames = () => {
-  if (form.registryIds.length === 0) return "未选择";
-  const names = form.registryIds.map((id) => {
-    const registry = registryOptions.value.find(
-      (r: any) => r.systemSoftRegistryId === id,
-    );
-    return registry?.systemSoftRegistryName || "未知";
-  });
-  return names.join(", ");
-};
+  if (form.registryIds.length === 0) return '未选择'
+  const names = form.registryIds.map(id => {
+    const registry = registryOptions.value.find((r: any) => r.systemSoftRegistryId === id)
+    return registry?.systemSoftRegistryName || '未知'
+  })
+  return names.join(', ')
+}
 
 const getSyncTypeText = () => {
   const map = {
-    popular: "热门软件",
-    official: "官方镜像",
-    custom: "自定义搜索",
-  };
-  return map[form.syncType] || "未知";
-};
+    popular: '热门软件',
+    official: '官方镜像',
+    custom: '自定义搜索'
+  }
+  return map[form.syncType] || '未知'
+}
 
 const getEstimatedCount = () => {
-  const registryCount = form.registryIds.length;
-  if (registryCount === 0) return "0";
-
-  let baseCount = form.limitCount;
-  if (form.syncType === "custom" && form.searchKeywords) {
-    const keywordCount = form.searchKeywords
-      .split(",")
-      .filter((k) => k.trim()).length;
-    baseCount = Math.min(baseCount, keywordCount * 10); // 每个关键词预计10个结果
+  const registryCount = form.registryIds.length
+  if (registryCount === 0) return '0'
+  
+  let baseCount = form.limitCount
+  if (form.syncType === 'custom' && form.searchKeywords) {
+    const keywordCount = form.searchKeywords.split(',').filter(k => k.trim()).length
+    baseCount = Math.min(baseCount, keywordCount * 10) // 每个关键词预计10个结果
   }
-
-  return `约 ${registryCount * baseCount} 个软件`;
-};
+  
+  return `约 ${registryCount * baseCount} 个软件`
+}
 
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-
+  if (!formRef.value) return
+  
   try {
-    await formRef.value.validate();
-    loading.value = true;
-
+    await formRef.value.validate()
+    loading.value = true
+    
     // 构建同步参数
     const params = {
       registryIds: form.registryIds,
       syncType: form.syncType,
-      searchKeywords:
-        form.syncType === "custom" ? form.searchKeywords : undefined,
+      searchKeywords: form.syncType === 'custom' ? form.searchKeywords : undefined,
       limitCount: form.limitCount,
       includeVersions: form.includeVersions,
       overwritePolicy: form.overwritePolicy,
       concurrency: form.concurrency,
-      timeout: form.timeout,
-    };
-
-    const response = await softwareApi.syncSoftwareFromRegistry(params);
-    if (response.code === "00000") {
+      timeout: form.timeout
+    }
+    
+    const response = await softwareApi.syncSoftwareFromRegistry(params)
+    if (response.code === '00000') {
       // 开始监听同步进度
       if (response.data?.operationId) {
         startOperation({
           id: response.data.operationId,
-          type: "sync_software",
-          title: "同步软件信息",
-          message: "正在同步软件信息...",
-        });
-
+          type: 'sync_software',
+          title: '同步软件信息',
+          message: '正在同步软件信息...'
+        })
+        
         // 订阅进度更新
-        const unsubscribe = subscribeOperation(
-          response.data.operationId,
-          (operation) => {
-            if (
-              operation.status === "success" ||
-              operation.status === "error"
-            ) {
-              unsubscribe();
-              if (operation.status === "success") {
-                emit("success");
-              }
+        const unsubscribe = subscribeOperation(response.data.operationId, (operation) => {
+          if (operation.status === 'success' || operation.status === 'error') {
+            unsubscribe()
+            if (operation.status === 'success') {
+              emit('success')
             }
-          },
-        );
+          }
+        })
       }
-
-      message("软件同步任务已启动，请查看进度", { type: "success" });
-      emit("success");
-      handleClose();
+      
+      message('软件同步任务已启动，请查看进度', { type: "success" })
+      emit('success')
+      handleClose()
     } else {
-      message(response.message || "软件同步失败", { type: "error" });
+      message(response.message || '软件同步失败', { type: "error" })
     }
   } catch (error) {
-    message("软件同步失败", { type: "error" });
+    message('软件同步失败', { type: "error" })
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const handleClose = () => {
   if (!loading.value) {
-    dialogVisible.value = false;
-    resetForm();
+    dialogVisible.value = false
+    resetForm()
   }
-};
+}
 
 const resetForm = () => {
-  form.registryIds = [];
-  form.syncType = "popular";
-  form.searchKeywords = "";
-  form.limitCount = 50;
-  form.includeVersions = true;
-  form.overwritePolicy = "merge";
-  form.concurrency = 3;
-  form.timeout = 120;
-  formRef.value?.resetFields();
-};
+  form.registryIds = []
+  form.syncType = 'popular'
+  form.searchKeywords = ''
+  form.limitCount = 50
+  form.includeVersions = true
+  form.overwritePolicy = 'merge'
+  form.concurrency = 3
+  form.timeout = 120
+  formRef.value?.resetFields()
+}
 </script>
 
 <style scoped lang="scss">
@@ -343,8 +334,7 @@ const resetForm = () => {
   overflow-y: auto;
 }
 
-.form-section,
-.preview-section {
+.form-section, .preview-section {
   margin-bottom: 24px;
 }
 
@@ -413,6 +403,7 @@ const resetForm = () => {
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -421,4 +412,5 @@ const resetForm = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

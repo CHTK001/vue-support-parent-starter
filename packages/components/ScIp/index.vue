@@ -3,7 +3,7 @@
     <!-- 加载状态 -->
     <template v-if="loading">
       <div class="sc-ip__loading">
-        <ScSkeleton :rows="1" animated style="width: 120px" />
+        <el-skeleton :rows="1" animated style="width: 120px" />
       </div>
     </template>
 
@@ -69,9 +69,9 @@
       </div>
 
       <!-- 状态标签 -->
-      <ScTag v-if="showTag && displayAddress" :type="tagType" size="small" class="sc-ip__tag" effect="light">
+      <el-tag v-if="showTag && displayAddress" :type="tagType" size="small" class="sc-ip__tag" effect="light">
         {{ isLocal ? "本地" : "公网" }}
-      </ScTag>
+      </el-tag>
     </template>
   </div>
 </template>

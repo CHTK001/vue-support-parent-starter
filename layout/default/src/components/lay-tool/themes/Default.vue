@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseTool from "./BaseTool.vue";
+import BaseTool from './BaseTool.vue';
 </script>
 
 <template>

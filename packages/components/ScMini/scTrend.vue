@@ -1,14 +1,14 @@
 <template>
   <span class="sc-trend" :class="'sc-trend--' + type">
-    <ScIcon v-if="iconType == 'P'" class="sc-trend-icon">
+    <el-icon v-if="iconType == 'P'" class="sc-trend-icon">
       <el-icon-top />
-    </ScIcon>
-    <ScIcon v-if="iconType == 'N'" class="sc-trend-icon">
+    </el-icon>
+    <el-icon v-if="iconType == 'N'" class="sc-trend-icon">
       <el-icon-bottom />
-    </ScIcon>
-    <ScIcon v-if="iconType == 'Z'" class="sc-trend-icon">
+    </el-icon>
+    <el-icon v-if="iconType == 'Z'" class="sc-trend-icon">
       <el-icon-right />
-    </ScIcon>
+    </el-icon>
     <em class="sc-trend-prefix">{{ prefix }}</em>
     <em class="sc-trend-value">{{ modelValue }}</em>
     <em class="sc-trend-suffix">{{ suffix }}</em>

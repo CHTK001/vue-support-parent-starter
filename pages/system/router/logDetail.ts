@@ -11,7 +11,7 @@ const routes = [
     meta: {
       title: "日志详情",
       icon: "ri:file-list-line",
-      rank: 14,
+      rank: 14
     },
   },
 ] satisfies Array<RouteConfigsTable>;

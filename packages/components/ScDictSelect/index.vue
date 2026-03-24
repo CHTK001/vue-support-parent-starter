@@ -7,7 +7,7 @@
 -->
 <template>
   <div class="sc-dict-select" :class="[`sc-dict-select--${size}`, { 'is-disabled': disabled }]">
-    <ScSelect
+    <el-select
       v-model="currentValue"
       :placeholder="placeholder"
       :disabled="disabled"
@@ -32,14 +32,14 @@
     >
       <!-- 前缀图标 -->
       <template v-if="showIcon" #prefix>
-        <ScIcon class="dict-icon">
+        <el-icon class="dict-icon">
           <component :is="prefixIcon" v-if="prefixIcon" />
           <IconifyIconOnline v-else icon="ri:book-2-line" />
-        </ScIcon>
+        </el-icon>
       </template>
 
       <!-- 选项列表 -->
-      <ScOption
+      <el-option
         v-for="item in dictOptions"
         :key="item[valueField]"
         :label="item[labelField]"
@@ -52,14 +52,14 @@
             {{ item[codeField] }}
           </span>
         </div>
-      </ScOption>
+      </el-option>
 
       <!-- 空状态 -->
       <template #empty>
         <div class="dict-empty">
-          <ScIcon class="dict-empty__icon">
+          <el-icon class="dict-empty__icon">
             <IconifyIconOnline icon="ri:inbox-line" />
-          </ScIcon>
+          </el-icon>
           <span class="dict-empty__text">{{ noDataText }}</span>
         </div>
       </template>
@@ -68,10 +68,10 @@
       <template v-for="(_, name) in $slots" #[name]="slotData">
         <slot :name="name" v-bind="slotData || {}" />
       </template>
-    </ScSelect>
+    </el-select>
 
     <!-- 刷新按钮 -->
-    <ScButton
+    <el-button
       v-if="showRefresh"
       class="refresh-btn"
       :size="size"
@@ -79,10 +79,10 @@
       text
       @click="refresh"
     >
-      <ScIcon :class="{ 'is-loading': loading }">
+      <el-icon :class="{ 'is-loading': loading }">
         <IconifyIconOnline icon="ri:refresh-line" />
-      </ScIcon>
-    </ScButton>
+      </el-icon>
+    </el-button>
   </div>
 </template>
 
@@ -93,7 +93,7 @@
  */
 import { computed, ref, watch, onMounted, type PropType } from "vue";
 import { fetchListDictItem } from "@repo/core";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 字典项类型
 interface DictItem {

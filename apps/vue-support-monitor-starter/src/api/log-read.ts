@@ -49,13 +49,9 @@ export function updateCache(params) {
  * @param {*} id
  */
 export function deleteLogRead(id) {
-  return http.post(
-    "/log-read/del.json",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/log-read/del.json", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }

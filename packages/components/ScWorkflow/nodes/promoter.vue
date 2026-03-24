@@ -2,7 +2,7 @@
   <div class="node-wrap">
     <div class="node-wrap-box start-node" @click="show">
       <div class="title" style="background: #576a95">
-        <ScIcon class="icon"><el-icon-user-filled /></ScIcon>
+        <el-icon class="icon"><el-icon-user-filled /></el-icon>
         <span>{{ nodeConfig.nodeName }}</span>
       </div>
       <div class="content">
@@ -15,28 +15,28 @@
         <div class="node-wrap-drawer__title">
           <label v-if="!isEditTitle" @click="editTitle">
             {{ form.nodeName }}
-            <ScIcon class="node-wrap-drawer__title-edit"><el-icon-edit /></ScIcon>
+            <el-icon class="node-wrap-drawer__title-edit"><el-icon-edit /></el-icon>
           </label>
-          <ScInput v-if="isEditTitle" ref="nodeTitle" v-model="form.nodeName" clearable @blur="saveTitle" @keyup.enter="saveTitle" />
+          <el-input v-if="isEditTitle" ref="nodeTitle" v-model="form.nodeName" clearable @blur="saveTitle" @keyup.enter="saveTitle" />
         </div>
       </template>
-      <ScContainer>
-        <ScMain style="padding: 0 20px 20px 20px">
-          <ScForm label-position="top">
-            <ScFormItem label="谁可以发起此审批">
-              <ScButton type="primary" icon="el-icon-plus" round @click="selectHandle(2, form.nodeRoleList)">选择角色</ScButton>
+      <el-container>
+        <el-main style="padding: 0 20px 20px 20px">
+          <el-form label-position="top">
+            <el-form-item label="谁可以发起此审批">
+              <el-button type="primary" icon="el-icon-plus" round @click="selectHandle(2, form.nodeRoleList)">选择角色</el-button>
               <div class="tags-list">
-                <ScTag v-for="(role, index) in form.nodeRoleList" :key="role.id" type="info" closable @close="delRole(index)">{{ role.name }}</ScTag>
+                <el-tag v-for="(role, index) in form.nodeRoleList" :key="role.id" type="info" closable @close="delRole(index)">{{ role.name }}</el-tag>
               </div>
-            </ScFormItem>
-            <ScAlert v-if="form.nodeRoleList.length == 0" title="不指定则默认所有人都可发起此审批" type="info" :closable="false" />
-          </ScForm>
-        </ScMain>
-        <ScFooter>
-          <ScButton type="primary" @click="save">保存</ScButton>
-          <ScButton @click="drawer = false">取消</ScButton>
-        </ScFooter>
-      </ScContainer>
+            </el-form-item>
+            <el-alert v-if="form.nodeRoleList.length == 0" title="不指定则默认所有人都可发起此审批" type="info" :closable="false" />
+          </el-form>
+        </el-main>
+        <el-footer>
+          <el-button type="primary" @click="save">保存</el-button>
+          <el-button @click="drawer = false">取消</el-button>
+        </el-footer>
+      </el-container>
     </sc-drawer>
   </div>
 </template>

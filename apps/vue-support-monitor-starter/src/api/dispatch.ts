@@ -23,43 +23,31 @@ export function getDishPatchList(data, loading) {
 
 // 分发列表
 export function getDishPatchListAll() {
-  return http.get(
-    "/outgiving/dispatch-list-all",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/outgiving/dispatch-list-all", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 // 分发节点项目状态
 export function getDispatchProject(id, loading) {
-  return http.post(
-    "/outgiving/getItemData.json",
-    { id },
-    {
-      timeout: 0,
-      headers: {
-        loading: loading === false ? "no" : "",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/outgiving/getItemData.json", { id }, {
+    timeout: 0,
+    headers: {
+      loading: loading === false ? "no" : "",
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 // reqId
 export function getReqId() {
-  return http.get(
-    "/outgiving/get-reqId",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/outgiving/get-reqId", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -183,15 +171,11 @@ export function useuseStaticFileStorage(params) {
  * @param {*} id 分发 ID
  */
 export function releaseDelDisPatch(id) {
-  return http.post(
-    "/outgiving/release_del.json",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/outgiving/release_del.json", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -211,15 +195,11 @@ export function delDisPatchProject(data) {
  * @param {*} id 分发 ID
  */
 export function unbindOutgiving(id) {
-  return http.get(
-    "/outgiving/unbind.json",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/outgiving/unbind.json", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**

@@ -5,15 +5,8 @@ import yaml from "js-yaml";
 
 let config: Record<string, any> = {};
 let configGroup: Record<string, any> = {};
-const setConfig = (cfg?: unknown, value?: unknown) => {
-  if (typeof cfg === "string") {
-    config[cfg] = value;
-    return;
-  }
-
-  if (cfg && typeof cfg === "object") {
-    config = Object.assign(config, cfg);
-  }
+const setConfig = (cfg?: unknown) => {
+  config = Object.assign(config, cfg);
 };
 
 const putConfig = (key: string, value: any) => {
@@ -22,7 +15,7 @@ const putConfig = (key: string, value: any) => {
 
 setConfig(globalSetting);
 //@ts-ignore
-const extConfig = import.meta.glob("@/app*.y(a)?ml", {
+const extConfig = import.meta.glob("@/application*.y(a)?ml", {
   eager: true,
   query: "raw",
 });
@@ -33,8 +26,7 @@ Object.entries(extConfig).map(([key, value]: any) => {
 
 /** 版本升级 */
 const upgrade = async (version) => {
-  localStorage.getItem("version") !== version &&
-    localStorage.setItem("version", version);
+  localStorage.getItem("version") !== version && localStorage.setItem("version", version);
 };
 
 /** 获取配置组 */
@@ -44,11 +36,11 @@ const getConfigGroup = (groupName?: string): PlatformConfigs | any => {
 
 /** 设置配置组 */
 const setConfigGroup = (groupName: string, key: string, value: object) => {
-  if (!configGroup[groupName]) {
-    configGroup[groupName] = {};
+  if (!configGroup[key]) {
+    configGroup[key] = {};
   }
   configGroup[groupName][key] = value;
-  setConfig({ [key]: value });
+  setConfig({ key: value });
 };
 
 /** 获取配置 */

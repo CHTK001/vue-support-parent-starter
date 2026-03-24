@@ -3,55 +3,63 @@
     <!-- 工具栏 -->
     <div class="desktop-toolbar">
       <div class="toolbar-left">
-        <ScButton
-          v-if="!isConnected"
-          type="primary"
-          size="small"
+        <el-button 
+          v-if="!isConnected" 
+          type="primary" 
+          size="small" 
           :loading="isConnecting"
           @click="connect"
         >
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-          {{ isConnecting ? "连接中..." : "连接" }}
-        </ScButton>
-
-        <ScButton v-else type="danger" size="small" @click="disconnect">
+          {{ isConnecting ? '连接中...' : '连接' }}
+        </el-button>
+        
+        <el-button 
+          v-else 
+          type="danger" 
+          size="small" 
+          @click="disconnect"
+        >
           <IconifyIconOnline icon="ri:stop-line" class="mr-1" />
           断开连接
-        </ScButton>
+        </el-button>
 
-        <ScDivider direction="vertical" />
+        <el-divider direction="vertical" />
 
-        <ScButton
-          size="small"
+        <el-button 
+          size="small" 
           :disabled="!isConnected"
           @click="takeScreenshot"
         >
           <IconifyIconOnline icon="ri:camera-line" class="mr-1" />
           截图
-        </ScButton>
+        </el-button>
 
-        <ScButton
-          size="small"
+        <el-button 
+          size="small" 
           :disabled="!isConnected"
           @click="toggleFullscreen"
         >
           <IconifyIconOnline icon="ri:fullscreen-line" class="mr-1" />
           全屏
-        </ScButton>
+        </el-button>
       </div>
 
       <div class="toolbar-right">
-        <ScTag :type="connectionStatusType" size="small">
+        <el-tag 
+          :type="connectionStatusType" 
+          size="small"
+        >
           {{ connectionStatusText }}
-        </ScTag>
+        </el-tag>
       </div>
     </div>
 
     <!-- 桌面显示区域 -->
-    <div
-      ref="desktopDisplay"
+    <div 
+      ref="desktopDisplay" 
       class="desktop-display"
-      :class="{ fullscreen: isFullscreen }"
+      :class="{ 'fullscreen': isFullscreen }"
     >
       <div v-if="!isConnected && !isConnecting" class="connection-placeholder">
         <div class="placeholder-content">
@@ -59,21 +67,15 @@
           <h3>VNC 远程桌面</h3>
           <p>点击"连接"按钮开始连接到远程桌面</p>
           <div class="server-info">
-            <p>
-              <strong>服务器:</strong> {{ server?.monitorSysGenServerName }}
-            </p>
-            <p>
-              <strong>地址:</strong> {{ server?.monitorSysGenServerHost }}:{{
-                server?.monitorSysGenServerPort
-              }}
-            </p>
+            <p><strong>服务器:</strong> {{ server?.monitorSysGenServerName }}</p>
+            <p><strong>地址:</strong> {{ server?.monitorSysGenServerHost }}:{{ server?.monitorSysGenServerPort }}</p>
           </div>
         </div>
       </div>
 
       <div v-if="isConnecting" class="connection-loading">
-        <el-loading-directive
-          v-loading="true"
+        <el-loading-directive 
+          v-loading="true" 
           element-loading-text="正在连接远程桌面..."
           element-loading-background="rgba(0, 0, 0, 0.8)"
         />
@@ -88,33 +90,33 @@
       :close-on-click-modal="false"
     >
       <div class="error-content">
-        <ScAlert
+        <el-alert
           :title="errorMessage"
           type="error"
           :closable="false"
           show-icon
         />
-
-        <div v-if="errorDetails" class="error-details">
+        
+        <div class="error-details" v-if="errorDetails">
           <h4>错误详情:</h4>
           <pre>{{ errorDetails }}</pre>
         </div>
       </div>
-
+      
       <template #footer>
-        <ScButton @click="showErrorDialog = false">关闭</ScButton>
-        <ScButton type="primary" @click="retryConnection">重试连接</ScButton>
+        <el-button @click="showErrorDialog = false">关闭</el-button>
+        <el-button type="primary" @click="retryConnection">重试连接</el-button>
       </template>
     </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
-import { GuacamoleTunnelClient } from "@/utils/guacamole/tunnel-client";
-import type { TunnelClientConfig } from "@/utils/guacamole/tunnel-client";
+import { ElMessageBox } from 'element-plus';
+import { GuacamoleTunnelClient } from '@/utils/guacamole/tunnel-client';
+import type { TunnelClientConfig } from '@/utils/guacamole/tunnel-client';
 
 // Props
 interface Props {
@@ -130,55 +132,55 @@ const isConnected = ref(false);
 const isFullscreen = ref(false);
 const currentState = ref<number | null>(null);
 const showErrorDialog = ref(false);
-const errorMessage = ref("");
-const errorDetails = ref("");
+const errorMessage = ref('');
+const errorDetails = ref('');
 
 // Guacamole客户端
 let tunnelClient: GuacamoleTunnelClient | null = null;
 
 // 计算属性
 const connectionStatusType = computed(() => {
-  if (isConnected.value) return "success";
-  if (isConnecting.value) return "warning";
-  return "info";
+  if (isConnected.value) return 'success';
+  if (isConnecting.value) return 'warning';
+  return 'info';
 });
 
 const connectionStatusText = computed(() => {
-  if (isConnected.value) return "已连接";
-  if (isConnecting.value) return "连接中";
-  return "未连接";
+  if (isConnected.value) return '已连接';
+  if (isConnecting.value) return '连接中';
+  return '未连接';
 });
 
 // 方法
 const connect = async () => {
   if (!props.server || !desktopDisplay.value) {
-    message("服务器信息不完整或显示容器未准备好", { type: "error" });
+    message('服务器信息不完整或显示容器未准备好', { type: "error" });
     return;
   }
 
   try {
     isConnecting.value = true;
-
+    
     // 创建隧道客户端配置
     const config: TunnelClientConfig = {
       serverId: props.server.monitorSysGenServerId,
-      protocol: "vnc" as const,
+      protocol: 'vnc' as const,
       host: props.server.monitorSysGenServerHost,
       port: props.server.monitorSysGenServerPort || 5900,
-      username: props.server.monitorSysGenServerUsername || "",
-      password: props.server.monitorSysGenServerPassword || "",
+      username: props.server.monitorSysGenServerUsername || '',
+      password: props.server.monitorSysGenServerPassword || '',
       colorDepth: 32,
       swapRedBlue: false,
-      cursor: "local",
-      readOnly: false,
+      cursor: 'local',
+      readOnly: false
     };
 
     // 创建客户端
     tunnelClient = new GuacamoleTunnelClient(config, {
       onStateChange: (state: number) => {
         currentState.value = state;
-        console.log("VNC 隧道状态变化:", state);
-
+        console.log('VNC 隧道状态变化:', state);
+        
         // 检查是否已连接
         if (tunnelClient && tunnelClient.isConnected()) {
           isConnected.value = true;
@@ -189,17 +191,17 @@ const connect = async () => {
         }
       },
       onError: (error: any) => {
-        console.error("VNC 隧道错误:", error);
+        console.error('VNC 隧道错误:', error);
         isConnecting.value = false;
         isConnected.value = false;
-        showError("连接错误", error.message || error.toString());
+        showError('连接错误', error.message || error.toString());
       },
       onName: (name: string) => {
-        console.log("VNC 会话名称:", name);
+        console.log('VNC 会话名称:', name);
       },
       onClipboard: (_stream: any, mimetype: string) => {
-        console.log("收到剪贴板数据:", mimetype);
-      },
+        console.log('收到剪贴板数据:', mimetype);
+      }
     });
 
     // 连接到服务器
@@ -208,15 +210,13 @@ const connect = async () => {
     // 等待DOM更新后绑定到显示容器
     await nextTick();
     tunnelClient.attachTo(desktopDisplay.value);
-
-    message("VNC 隧道连接成功", { type: "success" });
+    
+    message('VNC 隧道连接成功', { type: "success" });
+    
   } catch (error) {
-    console.error("VNC 隧道连接失败:", error);
+    console.error('VNC 隧道连接失败:', error);
     isConnecting.value = false;
-    showError(
-      "连接失败",
-      error instanceof Error ? error.message : String(error),
-    );
+    showError('连接失败', error instanceof Error ? error.message : String(error));
   }
 };
 
@@ -225,16 +225,16 @@ const disconnect = () => {
     tunnelClient.disconnect();
     tunnelClient = null;
   }
-
+  
   isConnected.value = false;
   isConnecting.value = false;
-
+  
   // 清空显示容器
   if (desktopDisplay.value) {
-    desktopDisplay.value.innerHTML = "";
+    desktopDisplay.value.innerHTML = '';
   }
-
-  message("VNC 连接已断开", { type: "info" });
+  
+  message('VNC 连接已断开', { type: "info" });
 };
 
 const takeScreenshot = () => {
@@ -242,21 +242,21 @@ const takeScreenshot = () => {
     const screenshot = tunnelClient.takeScreenshot();
     if (screenshot) {
       // 创建下载链接
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.download = `vnc-screenshot-${Date.now()}.png`;
       link.href = screenshot;
       link.click();
-
-      message("截图已保存", { type: "success" });
+      
+      message('截图已保存', { type: "success" });
     } else {
-      message("截图失败", { type: "error" });
+      message('截图失败', { type: "error" });
     }
   }
 };
 
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value;
-
+  
   if (isFullscreen.value) {
     document.documentElement.requestFullscreen?.();
   } else {
@@ -279,11 +279,11 @@ const retryConnection = () => {
 
 // 生命周期
 onMounted(() => {
-  console.log("TunnelVNCDesktop 组件已挂载");
+  console.log('TunnelVNCDesktop 组件已挂载');
 });
 
 onUnmounted(() => {
-  console.log("TunnelVNCDesktop 组件即将卸载");
+  console.log('TunnelVNCDesktop 组件即将卸载');
   if (tunnelClient) {
     tunnelClient.destroy();
     tunnelClient = null;
@@ -292,6 +292,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -324,6 +325,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .tunnel-vnc-desktop {
   display: flex;
@@ -445,10 +447,11 @@ onUnmounted(() => {
 .error-details pre {
   margin: 0;
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   white-space: pre-wrap;
   word-break: break-all;
 }
+
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -458,4 +461,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

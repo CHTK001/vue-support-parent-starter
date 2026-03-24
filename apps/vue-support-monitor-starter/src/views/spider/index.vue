@@ -2,9 +2,9 @@
   <div class="spider-task-list system-container modern-bg">
     <!-- 统计概览 -->
     <div class="statistics-overview">
-      <ScRow :gutter="16">
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon total">
                 <IconifyIconOnline icon="ri:spider-line" />
@@ -14,10 +14,10 @@
                 <div class="stat-label">总任务数</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon running">
                 <IconifyIconOnline icon="ri:play-circle-line" />
@@ -27,10 +27,10 @@
                 <div class="stat-label">运行中</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon success">
                 <IconifyIconOnline icon="ri:checkbox-circle-line" />
@@ -40,10 +40,10 @@
                 <div class="stat-label">今日数据</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-icon fail">
                 <IconifyIconOnline icon="ri:close-circle-line" />
@@ -53,36 +53,30 @@
                 <div class="stat-label">总数据量</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-      </ScRow>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton type="primary" @click="handleCreate">
+        <el-button type="primary" @click="handleCreate">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           创建任务
-        </ScButton>
-        <ScButton @click="handleRefresh">
+        </el-button>
+        <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
       <div class="toolbar-right">
-        <ScSelect
-          v-model="filterStatus"
-          placeholder="任务状态"
-          clearable
-          style="width: 120px"
-          @change="handleFilter"
-        >
-          <ScOption label="停用" :value="0" />
-          <ScOption label="启用" :value="1" />
-          <ScOption label="运行中" :value="2" />
-        </ScSelect>
-        <ScInput
+        <el-select v-model="filterStatus" placeholder="任务状态" clearable style="width: 120px" @change="handleFilter">
+          <el-option label="停用" :value="0" />
+          <el-option label="启用" :value="1" />
+          <el-option label="运行中" :value="2" />
+        </el-select>
+        <el-input
           v-model="searchKeyword"
           placeholder="搜索任务名称..."
           clearable
@@ -92,15 +86,15 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </ScInput>
+        </el-input>
       </div>
     </div>
 
     <!-- 任务列表 -->
-    <ScTable v-loading="loading" :data="taskList" stripe>
-      <ScTableColumn type="selection" width="55" />
-
-      <ScTableColumn label="任务名称" min-width="200">
+    <el-table v-loading="loading" :data="taskList" stripe>
+      <el-table-column type="selection" width="55" />
+      
+      <el-table-column label="任务名称" min-width="200">
         <template #default="{ row }">
           <div class="task-name">
             <IconifyIconOnline icon="ri:spider-line" class="task-icon" />
@@ -108,25 +102,23 @@
           </div>
           <div class="task-url">{{ row.spiderTaskUrl }}</div>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="状态" width="100" align="center">
+      </el-table-column>
+      
+      <el-table-column label="状态" width="100" align="center">
         <template #default="{ row }">
-          <ScTag :type="getStatusType(row.spiderTaskStatus)" size="small">
+          <el-tag :type="getStatusType(row.spiderTaskStatus)" size="small">
             {{ getStatusText(row.spiderTaskStatus) }}
-          </ScTag>
+          </el-tag>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="调度类型" width="100" align="center">
+      </el-table-column>
+      
+      <el-table-column label="调度类型" width="100" align="center">
         <template #default="{ row }">
-          <span>{{
-            row.spiderTaskScheduleType === "CRON" ? "定时" : "一次性"
-          }}</span>
+          <span>{{ row.spiderTaskScheduleType === 'CRON' ? '定时' : '一次性' }}</span>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="爬取统计" width="150" align="center">
+      </el-table-column>
+      
+      <el-table-column label="爬取统计" width="150" align="center">
         <template #default="{ row }">
           <div class="stat-mini">
             <span class="success">{{ row.spiderTaskTotalSuccess || 0 }}</span>
@@ -134,74 +126,69 @@
             <span class="fail">{{ row.spiderTaskTotalFail || 0 }}</span>
           </div>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="运行状态" width="100" align="center">
+      </el-table-column>
+      
+      <el-table-column label="运行状态" width="100" align="center">
         <template #default="{ row }">
-          <ScTag
-            :type="getRunStatusType(row.spiderTaskRunStatus)"
-            size="small"
-          >
-            {{ row.spiderTaskRunStatus || "IDLE" }}
-          </ScTag>
+          <el-tag :type="getRunStatusType(row.spiderTaskRunStatus)" size="small">
+            {{ row.spiderTaskRunStatus || 'IDLE' }}
+          </el-tag>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="最后执行" width="160" align="center">
+      </el-table-column>
+      
+      <el-table-column label="最后执行" width="160" align="center">
         <template #default="{ row }">
-          <span v-if="row.spiderTaskLastRunTime">{{
-            formatDateTime(row.spiderTaskLastRunTime)
-          }}</span>
+          <span v-if="row.spiderTaskLastRunTime">{{ formatDateTime(row.spiderTaskLastRunTime) }}</span>
           <span v-else class="text-muted">从未执行</span>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="操作" width="400" align="center" fixed="right">
+      </el-table-column>
+      
+      <el-table-column label="操作" width="400" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <ScButton
-              v-if="row.spiderTaskRunStatus !== 'RUNNING'"
-              size="small"
-              type="primary"
+            <el-button 
+              v-if="row.spiderTaskRunStatus !== 'RUNNING'" 
+              size="small" 
+              type="primary" 
+              @click="handleRun(row)" 
               :disabled="row.spiderTaskStatus === 0"
-              @click="handleRun(row)"
             >
               <IconifyIconOnline icon="ri:play-line" />
               运行
-            </ScButton>
-            <ScButton
-              v-else
-              size="small"
-              type="warning"
+            </el-button>
+            <el-button 
+              v-else 
+              size="small" 
+              type="warning" 
               @click="handleStop(row)"
             >
               <IconifyIconOnline icon="ri:stop-line" />
               停止
-            </ScButton>
-            <ScButton size="small" type="success" @click="handleDesign(row)">
+            </el-button>
+            <el-button size="small" type="success" @click="handleDesign(row)">
               <IconifyIconOnline icon="ri:flow-chart" />
               设计
-            </ScButton>
-            <ScButton size="small" @click="handleEdit(row)">
+            </el-button>
+            <el-button size="small" @click="handleEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" />
-            </ScButton>
-            <ScButton size="small" @click="handleViewData(row)">
+            </el-button>
+            <el-button size="small" @click="handleViewData(row)">
               <IconifyIconOnline icon="ri:database-2-line" />
-            </ScButton>
-            <ScButton size="small" @click="handleViewLogs(row)">
+            </el-button>
+            <el-button size="small" @click="handleViewLogs(row)">
               <IconifyIconOnline icon="ri:file-list-line" />
-            </ScButton>
-            <ScButton size="small" type="danger" @click="handleDelete(row)">
+            </el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </ScButton>
+            </el-button>
           </el-button-group>
         </template>
-      </ScTableColumn>
-    </ScTable>
+      </el-table-column>
+    </el-table>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <ScPagination
+      <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"
@@ -246,7 +233,7 @@ import {
   runSpiderTask,
   stopSpiderTask,
   deleteSpiderTask,
-  TASK_STATUS_MAP,
+  TASK_STATUS_MAP
 } from "@/api/spider";
 import SpiderTaskDialog from "./components/SpiderTaskDialog.vue";
 import SpiderDataDialog from "./components/SpiderDataDialog.vue";
@@ -267,7 +254,7 @@ let refreshTimer: number | null = null;
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0,
+  total: 0
 });
 
 // 统计
@@ -276,7 +263,7 @@ const statistics = reactive({
   runningCount: 0,
   enabledCount: 0,
   todayDataCount: 0,
-  totalDataCount: 0,
+  totalDataCount: 0
 });
 
 /**
@@ -287,7 +274,7 @@ const loadTaskList = async () => {
     loading.value = true;
     const params: any = {
       page: pagination.page,
-      pageSize: pagination.pageSize,
+      pageSize: pagination.pageSize
     };
     if (searchKeyword.value) {
       params.spiderTaskName = searchKeyword.value;
@@ -295,7 +282,7 @@ const loadTaskList = async () => {
     if (filterStatus.value !== undefined) {
       params.spiderTaskStatus = filterStatus.value;
     }
-
+    
     const res = await getSpiderTaskPageList(params);
     if (res.code === "00000") {
       taskList.value = res.data?.records || [];
@@ -345,7 +332,7 @@ const getRunStatusType = (status: string) => {
     IDLE: "info",
     RUNNING: "primary",
     STOPPED: "warning",
-    ERROR: "danger",
+    ERROR: "danger"
   };
   return map[status] || "info";
 };
@@ -388,9 +375,9 @@ const handleRun = async (row: any) => {
     await ElMessageBox.confirm(
       `确定要运行任务 "${row.spiderTaskName}" 吗？`,
       "运行确认",
-      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
+      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
     );
-
+    
     const res = await runSpiderTask(row.spiderTaskId);
     if (res.code === "00000") {
       message.success("任务已开始运行");
@@ -415,9 +402,9 @@ const handleDelete = async (row: any) => {
     await ElMessageBox.confirm(
       `确定要删除任务 "${row.spiderTaskName}" 吗？`,
       "删除确认",
-      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
+      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
     );
-
+    
     const res = await deleteSpiderTask(row.spiderTaskId);
     if (res.code === "00000") {
       message.success("删除成功");
@@ -458,9 +445,9 @@ const handleStop = async (row: any) => {
     await ElMessageBox.confirm(
       `确定要停止任务 "${row.spiderTaskName}" 吗？`,
       "停止确认",
-      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" },
+      { confirmButtonText: "确定", cancelButtonText: "取消", type: "warning" }
     );
-
+    
     const res = await stopSpiderTask(row.spiderTaskId);
     if (res.code === "00000") {
       message.success("任务已停止");
@@ -483,9 +470,7 @@ const handleStop = async (row: any) => {
 const startAutoRefresh = () => {
   if (refreshTimer) return;
   refreshTimer = window.setInterval(() => {
-    const hasRunning = taskList.value.some(
-      (t: any) => t.spiderTaskRunStatus === "RUNNING",
-    );
+    const hasRunning = taskList.value.some((t: any) => t.spiderTaskRunStatus === "RUNNING");
     if (hasRunning) {
       loadTaskList();
       loadStatistics();
@@ -551,20 +536,14 @@ const handleDialogSuccess = () => {
 };
 
 // 监听任务列表变化，自动管理刷新
-watch(
-  () => taskList.value,
-  (list) => {
-    const hasRunning = list.some(
-      (t: any) => t.spiderTaskRunStatus === "RUNNING",
-    );
-    if (hasRunning) {
-      startAutoRefresh();
-    } else {
-      stopAutoRefresh();
-    }
-  },
-  { deep: true },
-);
+watch(() => taskList.value, (list) => {
+  const hasRunning = list.some((t: any) => t.spiderTaskRunStatus === "RUNNING");
+  if (hasRunning) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
+}, { deep: true });
 
 // 生命周期
 onMounted(() => {
@@ -578,6 +557,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -611,17 +591,18 @@ onUnmounted(() => {
   }
 }
 
+
 .spider-task-list {
   padding: 20px;
-
+  
   .statistics-overview {
     margin-bottom: 20px;
-
+    
     .stat-card {
       .stat-content {
         display: flex;
         align-items: center;
-
+        
         .stat-icon {
           width: 48px;
           height: 48px;
@@ -632,62 +613,42 @@ onUnmounted(() => {
           margin-right: 16px;
           font-size: 24px;
           color: #fff;
-
-          &.total {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          }
-          &.running {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          }
-          &.success {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-          }
-          &.fail {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-          }
+          
+          &.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+          &.running { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+          &.success { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+          &.fail { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
         }
-
+        
         .stat-info {
-          .stat-value {
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--el-text-color-primary);
-          }
-          .stat-label {
-            font-size: 14px;
-            color: var(--el-text-color-secondary);
-            margin-top: 4px;
-          }
+          .stat-value { font-size: 28px; font-weight: 600; color: var(--el-text-color-primary); }
+          .stat-label { font-size: 14px; color: var(--el-text-color-secondary); margin-top: 4px; }
         }
       }
     }
   }
-
+  
   .toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-
-    .toolbar-left,
-    .toolbar-right {
+    
+    .toolbar-left, .toolbar-right {
       display: flex;
       align-items: center;
       gap: 8px;
     }
   }
-
+  
   .task-name {
     display: flex;
     align-items: center;
     font-weight: 500;
-
-    .task-icon {
-      margin-right: 8px;
-      color: #409eff;
-    }
+    
+    .task-icon { margin-right: 8px; color: #409eff; }
   }
-
+  
   .task-url {
     font-size: 12px;
     color: var(--el-text-color-secondary);
@@ -697,33 +658,23 @@ onUnmounted(() => {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-
+  
   .stat-mini {
-    .success {
-      color: #67c23a;
-    }
-    .fail {
-      color: #f56c6c;
-    }
-    .total {
-      color: #409eff;
-    }
-    .separator {
-      margin: 0 4px;
-      color: #c0c4cc;
-    }
+    .success { color: #67c23a; }
+    .fail { color: #f56c6c; }
+    .total { color: #409eff; }
+    .separator { margin: 0 4px; color: #c0c4cc; }
   }
-
-  .text-muted {
-    color: #c0c4cc;
-  }
-
+  
+  .text-muted { color: #c0c4cc; }
+  
   .pagination-wrapper {
     display: flex;
     justify-content: center;
     margin-top: 20px;
   }
 }
+
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -733,4 +684,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

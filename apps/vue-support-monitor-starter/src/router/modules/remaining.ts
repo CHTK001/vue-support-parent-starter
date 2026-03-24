@@ -1,4 +1,4 @@
-import { Account } from "../../../../../layout/default/src/index";
+import { Account } from "@layout/default";
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
 
@@ -6,7 +6,7 @@ export default [
   {
     path: "/login",
     name: "Login",
-    component: () => import("../../../../../pages/common/login/index.vue"),
+    component: () => import("@repo/pages/login/index.vue"),
     meta: {
       title: $t("menus.pureLogin"),
       showLink: false,

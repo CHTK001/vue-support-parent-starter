@@ -58,76 +58,76 @@ const env = reactive({
 // 字符映射表
 const charMappings = {
   classic: {
-    你: "尓",
-    好: "㚚",
-    我: "莪",
-    的: "嘚",
-    是: "昰",
-    了: "孒",
-    在: "咱",
-    有: "冇",
-    和: "龢",
-    人: "亾",
-    都: "嘟",
-    说: "説",
-    要: "藐",
-    会: "茴",
-    对: "対",
-    很: "狠",
-    想: "想",
-    能: "能",
-    什: "甚",
-    么: "庅",
+    '你': '尓',
+    '好': '㚚',
+    '我': '莪',
+    '的': '嘚',
+    '是': '昰',
+    '了': '孒',
+    '在': '咱',
+    '有': '冇',
+    '和': '龢',
+    '人': '亾',
+    '都': '嘟',
+    '说': '説',
+    '要': '藐',
+    '会': '茴',
+    '对': '対',
+    '很': '狠',
+    '想': '想',
+    '能': '能',
+    '什': '甚',
+    '么': '庅',
   },
   flower: {
-    你: "妮",
-    好: "恏",
-    我: "莪",
-    的: "啲",
-    是: "昰",
-    了: "叻",
-    在: "咱",
-    有: "囿",
-    和: "咊",
-    人: "亽",
-    都: "嘟",
-    说: "説",
-    要: "耀",
-    会: "繪",
-    对: "対",
-    很: "狠",
-    想: "想",
-    能: "能",
-    什: "甚",
-    么: "麽",
+    '你': '妮',
+    '好': '恏',
+    '我': '莪',
+    '的': '啲',
+    '是': '昰',
+    '了': '叻',
+    '在': '咱',
+    '有': '囿',
+    '和': '咊',
+    '人': '亽',
+    '都': '嘟',
+    '说': '説',
+    '要': '耀',
+    '会': '繪',
+    '对': '対',
+    '很': '狠',
+    '想': '想',
+    '能': '能',
+    '什': '甚',
+    '么': '麽',
   },
   symbol: {
-    a: "₳",
-    b: "฿",
-    c: "₵",
-    d: "Đ",
-    e: "Ɇ",
-    f: "₣",
-    g: "₲",
-    h: "Ⱨ",
-    i: "ł",
-    j: "J",
-    k: "₭",
-    l: "Ⱡ",
-    m: "₥",
-    n: "₦",
-    o: "Ø",
-    p: "₱",
-    q: "Q",
-    r: "Ɽ",
-    s: "₴",
-    t: "₮",
-    u: "Ʉ",
-    v: "V",
-    w: "W",
-    x: "Ӿ",
-    y: "Ɏ",
-    z: "Ⱬ",
+    'a': '₳',
+    'b': '฿',
+    'c': '₵',
+    'd': 'Đ',
+    'e': 'Ɇ',
+    'f': '₣',
+    'g': '₲',
+    'h': 'Ⱨ',
+    'i': 'ł',
+    'j': 'J',
+    'k': '₭',
+    'l': 'Ⱡ',
+    'm': '₥',
+    'n': '₦',
+    'o': 'Ø',
+    'p': '₱',
+    'q': 'Q',
+    'r': 'Ɽ',
+    's': '₴',
+    't': '₮',
+    'u': 'Ʉ',
+    'v': 'V',
+    'w': 'W',
+    'x': 'Ӿ',
+    'y': 'Ɏ',
+    'z': 'Ⱬ',
   },
 };
 
@@ -178,21 +178,16 @@ const convertText = () => {
  * 使用映射表转换文本
  */
 const convertWithMapping = (text, mapping) => {
-  return text
-    .split("")
-    .map((char) => mapping[char] || char)
-    .join("");
+  return text.split('').map(char => mapping[char] || char).join('');
 };
 
 /**
  * 转换为符号文本
  */
 const convertToSymbols = (text) => {
-  return text
-    .toLowerCase()
-    .split("")
-    .map((char) => charMappings.symbol[char] || char)
-    .join("");
+  return text.toLowerCase().split('').map(char => 
+    charMappings.symbol[char] || char
+  ).join('');
 };
 
 /**
@@ -200,59 +195,27 @@ const convertToSymbols = (text) => {
  */
 const convertToUpsideDown = (text) => {
   const upsideDownChars = {
-    a: "ɐ",
-    b: "q",
-    c: "ɔ",
-    d: "p",
-    e: "ǝ",
-    f: "ɟ",
-    g: "ƃ",
-    h: "ɥ",
-    i: "ı",
-    j: "ɾ",
-    k: "ʞ",
-    l: "l",
-    m: "ɯ",
-    n: "u",
-    o: "o",
-    p: "d",
-    q: "b",
-    r: "ɹ",
-    s: "s",
-    t: "ʇ",
-    u: "n",
-    v: "ʌ",
-    w: "ʍ",
-    x: "x",
-    y: "ʎ",
-    z: "z",
-    "!": "¡",
-    "?": "¿",
-    "&": "⅋",
-    ".": "˙",
-    "[": "]",
-    "(": ")",
-    "{": "}",
-    "<": ">",
-    _: "‾",
+    'a': 'ɐ', 'b': 'q', 'c': 'ɔ', 'd': 'p', 'e': 'ǝ',
+    'f': 'ɟ', 'g': 'ƃ', 'h': 'ɥ', 'i': 'ı', 'j': 'ɾ',
+    'k': 'ʞ', 'l': 'l', 'm': 'ɯ', 'n': 'u', 'o': 'o',
+    'p': 'd', 'q': 'b', 'r': 'ɹ', 's': 's', 't': 'ʇ',
+    'u': 'n', 'v': 'ʌ', 'w': 'ʍ', 'x': 'x', 'y': 'ʎ',
+    'z': 'z', '!': '¡', '?': '¿', '&': '⅋', '.': '˙',
+    '[': ']', '(': ')', '{': '}', '<': '>', '_': '‾',
   };
-  return text
-    .toLowerCase()
-    .split("")
-    .reverse()
-    .map((char) => upsideDownChars[char] || char)
-    .join("");
+  return text.toLowerCase().split('').reverse().map(char => 
+    upsideDownChars[char] || char
+  ).join('');
 };
 
 /**
  * 转换为乱码文本
  */
 const convertToChaos = (text) => {
-  const chaosChars = "璑餀龗韛髜鑶驫鸑麤靐霳韠韛颲饙餀饐霻麷";
-  return text
-    .split("")
-    .map(() => chaosChars[Math.floor(Math.random() * chaosChars.length)])
-    .join("");
+  const chaosChars = '璑餀龗韛髜鑶驫鸑麤靐霳韠韛颲饙餀饐霻麷';
+  return text.split('').map(() => 
+    chaosChars[Math.floor(Math.random() * chaosChars.length)]
+  ).join('');
 };
 
 /**
@@ -261,8 +224,8 @@ const convertToChaos = (text) => {
 const parseCustomMapping = (mappingText) => {
   if (!mappingText) return {};
   const mapping = {};
-  mappingText.split("\n").forEach((line) => {
-    const [from, to] = line.split("=>").map((s) => s.trim());
+  mappingText.split('\n').forEach(line => {
+    const [from, to] = line.split('=>').map(s => s.trim());
     if (from && to) {
       mapping[from] = to;
     }
@@ -331,6 +294,7 @@ const resetForm = () => {
   env.outputText = "";
   env.customMapping = "";
 };
+
 </script>
 
 <template>
@@ -339,10 +303,7 @@ const resetForm = () => {
       <!-- 标题区域 -->
       <div class="martian-tool__header">
         <div class="martian-tool__title">
-          <IconifyIconOnline
-            icon="ri:alien-fill"
-            class="martian-tool__title-icon"
-          />
+          <IconifyIconOnline icon="ri:alien-fill" class="martian-tool__title-icon" />
           <span>火星文转换器</span>
         </div>
         <div class="martian-tool__subtitle">
@@ -356,33 +317,20 @@ const resetForm = () => {
           <ScCard class="martian-tool__input-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:input-method-line"
-                  class="martian-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:input-method-line" class="martian-tool__card-icon" />
                 <span>输入文本</span>
               </div>
             </template>
 
             <ScForm label-position="top">
               <ScFormItem label="转换风格">
-                <ScRadioGroup
-                  v-model="env.selectedStyle"
-                  class="martian-tool__style-group"
-                >
-                  <ScRadio
-                    v-for="style in env.styles"
-                    :key="style.value"
-                    :label="style.value"
-                  >
+                <ScRadioGroup v-model="env.selectedStyle" class="martian-tool__style-group">
+                  <ScRadio v-for="style in env.styles" :key="style.value" :label="style.value">
                     <div class="martian-tool__style-item">
                       <IconifyIconOnline :icon="style.icon" />
                       <span>{{ style.label }}</span>
                       <ScTooltip :content="style.example" placement="top">
-                        <IconifyIconOnline
-                          icon="ri:question-line"
-                          class="martian-tool__help-icon"
-                        />
+                        <IconifyIconOnline icon="ri:question-line" class="martian-tool__help-icon" />
                       </ScTooltip>
                     </div>
                   </ScRadio>
@@ -390,7 +338,7 @@ const resetForm = () => {
               </ScFormItem>
 
               <ScFormItem label="输入文本">
-                <ScInput
+                <ScInput 
                   v-model="env.inputText"
                   type="textarea"
                   :rows="4"
@@ -399,11 +347,8 @@ const resetForm = () => {
                 />
               </ScFormItem>
 
-              <ScFormItem
-                v-if="env.selectedStyle === 'custom'"
-                label="自定义映射规则"
-              >
-                <ScInput
+              <ScFormItem v-if="env.selectedStyle === 'custom'" label="自定义映射规则">
+                <ScInput 
                   v-model="env.customMapping"
                   type="textarea"
                   :rows="3"
@@ -411,18 +356,14 @@ const resetForm = () => {
                   class="martian-tool__textarea"
                 />
                 <div class="martian-tool__mapping-example">
-                  示例：<br />
-                  你=>尓<br />
+                  示例：<br/>
+                  你=>尓<br/>
                   好=>㚚
                 </div>
               </ScFormItem>
 
               <div class="martian-tool__actions">
-                <ScButton
-                  type="primary"
-                  :loading="env.loading"
-                  @click="convertText"
-                >
+                <ScButton type="primary" :loading="env.loading" @click="convertText">
                   <IconifyIconOnline icon="ri:translate-2" />
                   <span>转换</span>
                 </ScButton>
@@ -441,41 +382,25 @@ const resetForm = () => {
           <ScCard class="martian-tool__output-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:alien-fill"
-                  class="martian-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:alien-fill" class="martian-tool__card-icon" />
                 <span>转换结果</span>
               </div>
             </template>
 
             <div v-if="!env.outputText" class="martian-tool__empty">
-              <IconifyIconOnline
-                icon="ri:alien-fill"
-                class="martian-tool__empty-icon"
-              />
+              <IconifyIconOnline icon="ri:alien-fill" class="martian-tool__empty-icon" />
               <span>转换结果将在这里显示</span>
             </div>
 
             <template v-else>
               <div class="martian-tool__output">
-                <div class="martian-tool__output-text">
-                  {{ env.outputText }}
-                </div>
+                <div class="martian-tool__output-text">{{ env.outputText }}</div>
                 <div class="martian-tool__output-actions">
-                  <ScButton
-                    type="primary"
-                    link
-                    @click="copyToClipboard(env.outputText)"
-                  >
+                  <ScButton type="primary" link @click="copyToClipboard(env.outputText)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                     <span>复制</span>
                   </ScButton>
-                  <ScButton
-                    type="success"
-                    link
-                    @click="addToFavorites(env.outputText)"
-                  >
+                  <ScButton type="success" link @click="addToFavorites(env.outputText)">
                     <IconifyIconOnline icon="ri:star-line" />
                     <span>收藏</span>
                   </ScButton>
@@ -488,53 +413,32 @@ const resetForm = () => {
           <ScCard class="martian-tool__history-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:history-line"
-                  class="martian-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:history-line" class="martian-tool__card-icon" />
                 <span>历史记录</span>
               </div>
             </template>
 
             <div v-if="!env.history.length" class="martian-tool__empty">
-              <IconifyIconOnline
-                icon="ri:history-line"
-                class="martian-tool__empty-icon"
-              />
+              <IconifyIconOnline icon="ri:history-line" class="martian-tool__empty-icon" />
               <span>暂无历史记录</span>
             </div>
 
             <div v-else class="martian-tool__history">
-              <div
-                v-for="item in env.history"
-                :key="item.id"
-                class="martian-tool__history-item"
-              >
+              <div v-for="item in env.history" :key="item.id" class="martian-tool__history-item">
                 <div class="martian-tool__history-content">
                   <div class="martian-tool__history-text">
                     <div>原文：{{ item.input }}</div>
                     <div>转换：{{ item.output }}</div>
                   </div>
                   <div class="martian-tool__history-info">
-                    <ScTag
-                      size="small"
-                      :type="item.style === 'custom' ? 'warning' : 'info'"
-                    >
-                      {{
-                        env.styles.find((s) => s.value === item.style)?.label
-                      }}
+                    <ScTag size="small" :type="item.style === 'custom' ? 'warning' : 'info'">
+                      {{ env.styles.find(s => s.value === item.style)?.label }}
                     </ScTag>
-                    <span class="martian-tool__history-time">{{
-                      item.timestamp
-                    }}</span>
+                    <span class="martian-tool__history-time">{{ item.timestamp }}</span>
                   </div>
                 </div>
                 <div class="martian-tool__history-actions">
-                  <ScButton
-                    type="primary"
-                    link
-                    @click="copyToClipboard(item.output)"
-                  >
+                  <ScButton type="primary" link @click="copyToClipboard(item.output)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
@@ -546,38 +450,24 @@ const resetForm = () => {
           <ScCard class="martian-tool__favorites-card" shadow="hover">
             <template #header>
               <div class="martian-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:star-line"
-                  class="martian-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:star-line" class="martian-tool__card-icon" />
                 <span>收藏夹</span>
               </div>
             </template>
 
             <div v-if="!env.favoriteTexts.length" class="martian-tool__empty">
-              <IconifyIconOnline
-                icon="ri:star-line"
-                class="martian-tool__empty-icon"
-              />
+              <IconifyIconOnline icon="ri:star-line" class="martian-tool__empty-icon" />
               <span>暂无收藏内容</span>
             </div>
 
             <div v-else class="martian-tool__favorites">
-              <div
-                v-for="(text, index) in env.favoriteTexts"
-                :key="index"
-                class="martian-tool__favorite-item"
-              >
+              <div v-for="(text, index) in env.favoriteTexts" :key="index" class="martian-tool__favorite-item">
                 <span class="martian-tool__favorite-text">{{ text }}</span>
                 <div class="martian-tool__favorite-actions">
                   <ScButton type="primary" link @click="copyToClipboard(text)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
-                  <ScButton
-                    type="danger"
-                    link
-                    @click="removeFromFavorites(text)"
-                  >
+                  <ScButton type="danger" link @click="removeFromFavorites(text)">
                     <IconifyIconOnline icon="ri:delete-bin-line" />
                   </ScButton>
                 </div>
@@ -736,7 +626,7 @@ const resetForm = () => {
       align-items: center;
       justify-content: center;
       gap: 8px;
-
+      
       &:hover {
         transform: translateY(-2px);
       }
@@ -882,8 +772,7 @@ const resetForm = () => {
   }
 
   @keyframes float {
-    0%,
-    100% {
+    0%, 100% {
       transform: translateY(0);
     }
     50% {

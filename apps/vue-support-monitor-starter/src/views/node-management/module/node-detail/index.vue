@@ -7,7 +7,7 @@
   >
     <div class="node-detail-content">
       <!-- 节点基本信息 -->
-      <div v-if="nodeInfo" class="node-info-section">
+      <div class="node-info-section" v-if="nodeInfo">
         <div class="info-header">
           <div class="info-icon">
             <IconifyIconOnline icon="ri:server-line" />
@@ -19,13 +19,13 @@
             <div class="info-address">
               <IconifyIconOnline icon="ri:global-line" />
               <span>{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
-              <ScTag
+              <el-tag
                 :type="getStatusType(nodeInfo.status)"
                 size="small"
                 class="ml-2"
               >
                 {{ getStatusText(nodeInfo.status) }}
-              </ScTag>
+              </el-tag>
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@
     </div>
 
     <template #footer>
-      <ScButton @click="handleClose">关闭</ScButton>
+      <el-button @click="handleClose">关闭</el-button>
     </template>
   </ScDialog>
 </template>
@@ -66,7 +66,8 @@ import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import type { OnlineNodeInfo } from "@/api/server/node-management";
 import { apiCheckNodeHealth } from "@/api/server/node-management";
-import { ScDialog } from "@repo/components"
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
+
 /**
  * 节点详情组件
  * @author CH
@@ -195,13 +196,8 @@ const featureList = computed(() => [
  * 获取状态类型
  * @param status 状态
  */
-const getStatusType = (
-  status: string,
-): "success" | "warning" | "danger" | "info" | "primary" => {
-  const statusMap: Record<
-    string,
-    "success" | "warning" | "danger" | "info" | "primary"
-  > = {
+const getStatusType = (status: string): "success" | "warning" | "danger" | "info" | "primary" => {
+  const statusMap: Record<string, "success" | "warning" | "danger" | "info" | "primary"> = {
     ONLINE: "success",
     OFFLINE: "danger",
     CONNECTING: "warning",
@@ -344,7 +340,7 @@ const checkNodeHealth = async (node: OnlineNodeInfo) => {
     const response = await apiCheckNodeHealth(node.ipAddress, node.port);
     if (response.code === "00000") {
       message.success(
-        `节点 ${node.nodeName || node.applicationName} 健康检查通过`,
+        `节点 ${node.nodeName || node.applicationName} 健康检查通过`
       );
     } else {
       message.warning(`节点健康检查失败: ${response.msg}`);

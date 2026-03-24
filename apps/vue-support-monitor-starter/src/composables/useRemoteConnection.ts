@@ -1,7 +1,7 @@
 /**
  * 远程连接管理 Composable
  * 统一管理 SSH/RDP/VNC 连接的 Socket 通信
- *
+ * 
  * @author CH
  * @since 2024-12-27
  */
@@ -20,11 +20,7 @@ import { getConfig } from "@repo/config";
 export type ConnectionProtocol = "ssh" | "rdp" | "vnc";
 
 /** 连接状态 */
-export type ConnectionStatus =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
 /** 远程连接消息 */
 export interface RemoteConnectionMessage {
@@ -76,12 +72,11 @@ function getProtocolTopics(protocol: ConnectionProtocol) {
  * 远程连接 Composable
  */
 export function useRemoteConnection(options: RemoteConnectionOptions) {
-  const { serverId, protocol, onConnected, onDisconnected, onData, onError } =
-    options;
-
+  const { serverId, protocol, onConnected, onDisconnected, onData, onError } = options;
+  
   const topics = getProtocolTopics(protocol);
   const socketName = `${protocol}-connection-${serverId}`;
-
+  
   const socketService: Ref<SocketTemplate | null> = ref(null);
   const connectionStatus: Ref<ConnectionStatus> = ref("disconnected");
   const isListenersInitialized = ref(false);
@@ -100,7 +95,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
       try {
         const data = parseSocketMessage(rawMessage);
         if (data?.serverId && data.serverId !== serverId) return;
-
+        
         console.log(`[${protocol.toUpperCase()}] 连接成功:`, data);
         connectionStatus.value = "connected";
         onConnected?.(data as RemoteConnectionMessage);
@@ -114,13 +109,13 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
       try {
         const data = parseSocketMessage(rawMessage);
         if (data?.serverId && data.serverId !== serverId) return;
-
+        
         // 提取实际数据
         let outputData = data?.data;
         if (typeof outputData === "object" && outputData?.output) {
           outputData = outputData.output;
         }
-
+        
         if (outputData) {
           onData?.(outputData);
         }
@@ -134,7 +129,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
       try {
         const data = parseSocketMessage(rawMessage);
         if (data?.serverId && data.serverId !== serverId) return;
-
+        
         console.log(`[${protocol.toUpperCase()}] 连接断开:`, data);
         connectionStatus.value = "disconnected";
         onDisconnected?.(data as RemoteConnectionMessage);
@@ -148,7 +143,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
       try {
         const data = parseSocketMessage(rawMessage);
         if (data?.serverId && data.serverId !== serverId) return;
-
+        
         console.error(`[${protocol.toUpperCase()}] 错误:`, data);
         connectionStatus.value = "error";
         onError?.(data?.errorMessage || "连接错误");
@@ -191,13 +186,11 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
       // 等待 socket 连接成功后初始化监听器并发送连接请求
       return new Promise((resolve) => {
         socketService.value!.on("connect", () => {
-          console.log(
-            `[${protocol.toUpperCase()}] Socket 连接成功，初始化监听器并发送连接请求`,
-          );
-
+          console.log(`[${protocol.toUpperCase()}] Socket 连接成功，初始化监听器并发送连接请求`);
+          
           // 先初始化消息监听器
           initMessageListeners();
-
+          
           // 发送连接请求
           socketService.value?.emit(
             topics.CONNECT,
@@ -206,9 +199,9 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
               serverHost: options.serverHost,
               serverPort: options.serverPort,
               timestamp: Date.now(),
-            }),
+            })
           );
-
+          
           resolve(true);
         });
 
@@ -241,7 +234,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
         serverId: serverId,
         data: input,
         timestamp: Date.now(),
-      }),
+      })
     );
     return true;
   };
@@ -260,7 +253,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
         serverId: serverId,
         data: { cols, rows },
         timestamp: Date.now(),
-      }),
+      })
     );
     return true;
   };
@@ -276,7 +269,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
           serverId: serverId,
           errorMessage: reason || "用户主动断开",
           timestamp: Date.now(),
-        }),
+        })
       );
     }
 
@@ -290,10 +283,7 @@ export function useRemoteConnection(options: RemoteConnectionOptions) {
    * 检查是否已连接
    */
   const isConnected = (): boolean => {
-    return (
-      connectionStatus.value === "connected" &&
-      socketService.value?.isConnected === true
-    );
+    return connectionStatus.value === "connected" && socketService.value?.isConnected === true;
   };
 
   // 组件卸载时清理

@@ -5,22 +5,16 @@
       <span class="label">延迟</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-      <div
-        class="gauge-fill"
-        :style="{
-          width: `${Math.min((latency / 200) * 100, 100)}%`,
-          backgroundColor: getLatencyColor(latency),
-        }"
-      ></div>
+      <div class="gauge-fill" :style="{ width: `${Math.min((latency / 200) * 100, 100)}%`, backgroundColor: getLatencyColor(latency) }"></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 defineProps({
-  mode: { type: String, required: true },
+  mode: { type: String, required: true }
 });
 
 const latency = ref<number | null>(null);
@@ -29,10 +23,7 @@ let intervalId: number | null = null;
 const measureLatency = async () => {
   try {
     // 优先使用 Connection API（如果可用）
-    const conn =
-      (navigator as any).connection ||
-      (navigator as any).mozConnection ||
-      (navigator as any).webkitConnection;
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
     if (conn && conn.rtt) {
       latency.value = conn.rtt;
       return;
@@ -42,12 +33,12 @@ const measureLatency = async () => {
     const startTime = performance.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
-
+    
     try {
-      await fetch(window.location.origin + "/favicon.ico", {
-        method: "HEAD",
-        cache: "no-cache",
-        signal: controller.signal,
+      await fetch(window.location.origin + '/favicon.ico', { 
+        method: 'HEAD',
+        cache: 'no-cache',
+        signal: controller.signal
       });
       clearTimeout(timeoutId);
       const endTime = performance.now();
@@ -62,9 +53,9 @@ const measureLatency = async () => {
 };
 
 const getLatencyColor = (val: number) => {
-  if (val < 50) return "#00ff00";
-  if (val < 100) return "#ffaa00";
-  return "#ff0000";
+  if (val < 50) return '#00ff00';
+  if (val < 100) return '#ffaa00';
+  return '#ff0000';
 };
 
 onMounted(() => {
@@ -111,7 +102,7 @@ onBeforeUnmount(() => {
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;
@@ -123,3 +114,4 @@ onBeforeUnmount(() => {
   transition: width 0.3s;
 }
 </style>
+

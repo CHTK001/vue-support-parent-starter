@@ -3,7 +3,6 @@ import { nextTick, reactive, ref } from "vue";
 import { des } from "@repo/config";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-import { ScButton, ScDivider } from "@repo/components";
 import Password from "./password.vue";
 import Profile from "./Profile.vue";
 
@@ -27,17 +26,13 @@ const title = ref("");
 const list = ref([
   {
     title: t("title.phone"),
-    illustrate: props.userInfo?.sysUserPhone
-      ? t("message.bindPhone") + "：" + des(props.userInfo?.sysUserPhone)
-      : t("message.unbindPhone"),
+    illustrate: props.userInfo?.sysUserPhone ? t("message.bindPhone") + "：" + des(props.userInfo?.sysUserPhone) : t("message.unbindPhone"),
     button: t("buttons.update"),
     type: "phone",
   },
   {
     title: t("title.email2"),
-    illustrate: props.userInfo?.sysUserEmail
-      ? t("message.bindEmail") + "：" + des(props.userInfo?.sysUserEmail)
-      : t("message.unbindEmail"),
+    illustrate: props.userInfo?.sysUserEmail ? t("message.bindEmail") + "：" + des(props.userInfo?.sysUserEmail) : t("message.unbindEmail"),
     button: t("buttons.update"),
     type: "email",
   },
@@ -51,26 +46,11 @@ async function onClick(item) {
 </script>
 
 <template>
-  <div
-    :class="[
-      'min-w-[180px]',
-      deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]',
-    ]"
-  >
-    <sc-dialog
-      v-if="visible.phone"
-      v-model="visible.phone"
-      draggable
-      :title="title"
-    >
+  <div :class="['min-w-[180px]', deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]']">
+    <sc-dialog v-if="visible.phone" v-model="visible.phone" draggable :title="title">
       <password :show-title="false" />
     </sc-dialog>
-    <sc-dialog
-      v-if="visible.email"
-      v-model="visible.email"
-      draggable
-      :title="title"
-    >
+    <sc-dialog v-if="visible.email" v-model="visible.email" draggable :title="title">
       <profile :show-title="false" />
     </sc-dialog>
     <h3 class="my-8">{{ $t("buttons.AccountManagement") }}</h3>

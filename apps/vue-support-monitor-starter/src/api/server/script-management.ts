@@ -111,11 +111,7 @@ export interface ScriptExecuteRecord {
   /** 执行时间 */
   monitorSysGenScriptExecuteTime: string;
   /** 执行结果: SUCCESS, FAILED, RUNNING, TIMEOUT */
-  monitorSysGenScriptExecuteResult:
-    | "SUCCESS"
-    | "FAILED"
-    | "RUNNING"
-    | "TIMEOUT";
+  monitorSysGenScriptExecuteResult: "SUCCESS" | "FAILED" | "RUNNING" | "TIMEOUT";
   /** 执行输出 */
   monitorSysGenScriptExecuteOutput?: string;
   /** 错误信息 */
@@ -189,11 +185,7 @@ export function executeScript(params: ScriptExecuteParams) {
  * @param page 页码
  * @param pageSize 每页数量
  */
-export function getScriptExecuteHistory(
-  scriptId: number,
-  page: number = 1,
-  pageSize: number = 10,
-) {
+export function getScriptExecuteHistory(scriptId: number, page: number = 1, pageSize: number = 10) {
   return http.get(`/script/${scriptId}/history`, {
     params: { page, pageSize },
   });
@@ -203,9 +195,7 @@ export function getScriptExecuteHistory(
  * 分页查询脚本执行记录
  * @param params 查询参数
  */
-export function getScriptExecuteRecordPage(
-  params: ScriptExecuteRecordQueryParams,
-) {
+export function getScriptExecuteRecordPage(params: ScriptExecuteRecordQueryParams) {
   return http.get("/script/execution/history", {
     params: {
       scriptId: params.scriptId,

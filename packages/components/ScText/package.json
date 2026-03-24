@@ -12,6 +12,6 @@
     "typeit"
   ],
   "dependencies": {
-    "typeit": "catalog:"
+    "typeit": "^8.8.3"
   }
 }

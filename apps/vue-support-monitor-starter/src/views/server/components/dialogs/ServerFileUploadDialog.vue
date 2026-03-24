@@ -1,11 +1,11 @@
 <template>
-  <sc-dialog
-    v-model="visible"
-    width="900px"
-    :close-on-click-modal="false"
+  <sc-dialog 
+    v-model="visible" 
+    width="900px" 
+    :close-on-click-modal="false" 
+    @close="handleClose"
     class="upload-dialog"
     :show-close="false"
-    @close="handleClose"
   >
     <!-- 自定义标题 -->
     <template #header>
@@ -16,27 +16,14 @@
           </div>
           <div class="header-info">
             <h3 class="header-title">服务器文件上传</h3>
-            <p class="header-subtitle">
-              创建文件上传任务，支持定时上传和多文件批量处理
-            </p>
+            <p class="header-subtitle">创建文件上传任务，支持定时上传和多文件批量处理</p>
           </div>
         </div>
-        <ScButton
-          class="close-btn"
-          :icon="CloseIcon"
-          circle
-          @click="handleClose"
-        />
+        <el-button class="close-btn" :icon="CloseIcon" circle @click="handleClose" />
       </div>
     </template>
 
-    <ScForm
-      ref="formRef"
-      :model="uploadForm"
-      :rules="formRules"
-      label-width="100px"
-      class="upload-form"
-    >
+    <el-form ref="formRef" :model="uploadForm" :rules="formRules" label-width="100px" class="upload-form">
       <!-- 基本信息区域 -->
       <div class="form-section">
         <div class="section-header">
@@ -44,30 +31,30 @@
           <span>基本信息</span>
         </div>
         <div class="section-content">
-          <ScRow :gutter="24">
-            <ScCol :span="12">
-              <ScFormItem label="任务名称" prop="taskName">
-                <ScInput
-                  v-model="uploadForm.taskName"
-                  placeholder="请输入任务名称"
-                  maxlength="100"
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="任务名称" prop="taskName">
+                <el-input 
+                  v-model="uploadForm.taskName" 
+                  placeholder="请输入任务名称" 
+                  maxlength="100" 
                   show-word-limit
                   :prefix-icon="TaskIcon"
                 />
-              </ScFormItem>
-            </ScCol>
-            <ScCol :span="12">
-              <ScFormItem label="目标服务器" prop="serverId">
-                <ScSelect
-                  v-model="uploadForm.serverId"
-                  placeholder="请选择目标服务器"
-                  style="width: 100%"
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="目标服务器" prop="serverId">
+                <el-select 
+                  v-model="uploadForm.serverId" 
+                  placeholder="请选择目标服务器" 
+                  style="width: 100%" 
                   filterable
                 >
                   <template #prefix>
                     <IconifyIconOnline icon="ri:server-line" :size="16" />
                   </template>
-                  <ScOption
+                  <el-option
                     v-for="server in sshServers"
                     :key="server.monitorSysGenServerId"
                     :label="`${server.monitorSysGenServerName} (${server.monitorSysGenServerHost})`"
@@ -75,36 +62,29 @@
                   >
                     <div class="server-option">
                       <IconifyIconOnline icon="ri:server-line" :size="16" />
-                      <span class="server-name">{{
-                        server.monitorSysGenServerName
-                      }}</span>
-                      <span class="server-host">{{
-                        server.monitorSysGenServerHost
-                      }}</span>
+                      <span class="server-name">{{ server.monitorSysGenServerName }}</span>
+                      <span class="server-host">{{ server.monitorSysGenServerHost }}</span>
                     </div>
-                  </ScOption>
-                </ScSelect>
-              </ScFormItem>
-            </ScCol>
-          </ScRow>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-          <ScRow :gutter="24">
-            <ScCol :span="12">
-              <ScFormItem label="目标路径" prop="targetPath">
-                <ScInput
-                  v-model="uploadForm.targetPath"
-                  placeholder="如：/home/user/uploads/"
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="目标路径" prop="targetPath">
+                <el-input 
+                  v-model="uploadForm.targetPath" 
+                  placeholder="如：/home/user/uploads/" 
                   maxlength="500"
                   :prefix-icon="FolderIcon"
                 />
-              </ScFormItem>
-            </ScCol>
-            <ScCol :span="12">
-              <ScFormItem label="上传模式" prop="uploadMode">
-                <ScRadioGroup
-                  v-model="uploadForm.uploadMode"
-                  class="mode-radio-group"
-                >
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="上传模式" prop="uploadMode">
+                <el-radio-group v-model="uploadForm.uploadMode" class="mode-radio-group">
                   <el-radio-button label="REALTIME">
                     <IconifyIconOnline icon="ri:flashlight-line" :size="14" />
                     <span>立即上传</span>
@@ -113,51 +93,51 @@
                     <IconifyIconOnline icon="ri:time-line" :size="14" />
                     <span>定时上传</span>
                   </el-radio-button>
-                </ScRadioGroup>
-              </ScFormItem>
-            </ScCol>
-          </ScRow>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
           <!-- 定时上传选项 -->
           <el-collapse-transition>
-            <ScRow v-if="uploadForm.uploadMode === 'SCHEDULED'" :gutter="24">
-              <ScCol :span="12">
-                <ScFormItem label="定时时间" prop="scheduledTime">
-                  <ScDatePicker
-                    v-model="uploadForm.scheduledTime"
-                    type="datetime"
-                    placeholder="选择定时上传时间"
-                    style="width: 100%"
+            <el-row :gutter="24" v-if="uploadForm.uploadMode === 'SCHEDULED'">
+              <el-col :span="12">
+                <el-form-item label="定时时间" prop="scheduledTime">
+                  <el-date-picker 
+                    v-model="uploadForm.scheduledTime" 
+                    type="datetime" 
+                    placeholder="选择定时上传时间" 
+                    style="width: 100%" 
                     :disabled-date="disabledDate"
                     :prefix-icon="CalendarIcon"
                   />
-                </ScFormItem>
-              </ScCol>
-              <ScCol :span="12">
-                <ScFormItem label="优先级" prop="priority">
-                  <ScSelect v-model="uploadForm.priority" style="width: 100%">
-                    <ScOption label="低优先级" :value="1">
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="优先级" prop="priority">
+                  <el-select v-model="uploadForm.priority" style="width: 100%">
+                    <el-option label="低优先级" :value="1">
                       <div class="priority-option">
-                        <span class="priority-dot low" />
+                        <span class="priority-dot low"></span>
                         <span>低优先级</span>
                       </div>
-                    </ScOption>
-                    <ScOption label="普通" :value="5">
+                    </el-option>
+                    <el-option label="普通" :value="5">
                       <div class="priority-option">
-                        <span class="priority-dot normal" />
+                        <span class="priority-dot normal"></span>
                         <span>普通</span>
                       </div>
-                    </ScOption>
-                    <ScOption label="高优先级" :value="10">
+                    </el-option>
+                    <el-option label="高优先级" :value="10">
                       <div class="priority-option">
-                        <span class="priority-dot high" />
+                        <span class="priority-dot high"></span>
                         <span>高优先级</span>
                       </div>
-                    </ScOption>
-                  </ScSelect>
-                </ScFormItem>
-              </ScCol>
-            </ScRow>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
           </el-collapse-transition>
         </div>
       </div>
@@ -167,7 +147,7 @@
         <div class="section-header">
           <IconifyIconOnline icon="ri:settings-3-line" :size="18" />
           <span>高级选项</span>
-          <ScTag size="small" type="info" class="section-tag">可选</ScTag>
+          <el-tag size="small" type="info" class="section-tag">可选</el-tag>
         </div>
         <div class="section-content">
           <!-- 开关选项卡片 -->
@@ -180,7 +160,7 @@
                 <div class="switch-card-title">覆盖文件</div>
                 <div class="switch-card-desc">存在同名文件时自动覆盖</div>
               </div>
-              <ScSwitch v-model="uploadForm.overwrite" />
+              <el-switch v-model="uploadForm.overwrite" />
             </div>
 
             <div class="switch-card" :class="{ active: uploadForm.backup }">
@@ -191,7 +171,7 @@
                 <div class="switch-card-title">备份原文件</div>
                 <div class="switch-card-desc">覆盖前自动备份原文件</div>
               </div>
-              <ScSwitch v-model="uploadForm.backup" />
+              <el-switch v-model="uploadForm.backup" />
             </div>
 
             <div class="switch-card" :class="{ active: uploadForm.compress }">
@@ -202,7 +182,7 @@
                 <div class="switch-card-title">压缩传输</div>
                 <div class="switch-card-desc">启用压缩提升传输速度</div>
               </div>
-              <ScSwitch v-model="uploadForm.compress" />
+              <el-switch v-model="uploadForm.compress" />
             </div>
 
             <div class="switch-card" :class="{ active: uploadForm.verify }">
@@ -213,48 +193,48 @@
                 <div class="switch-card-title">文件校验</div>
                 <div class="switch-card-desc">MD5校验确保文件完整</div>
               </div>
-              <ScSwitch v-model="uploadForm.verify" />
+              <el-switch v-model="uploadForm.verify" />
             </div>
           </div>
 
           <!-- 数值配置 -->
-          <ScRow :gutter="24" class="number-config">
-            <ScCol :span="12">
-              <ScFormItem label="超时时间">
-                <ScInputNumber
-                  v-model="uploadForm.timeoutSeconds"
-                  :min="30"
-                  :max="3600"
+          <el-row :gutter="24" class="number-config">
+            <el-col :span="12">
+              <el-form-item label="超时时间">
+                <el-input-number 
+                  v-model="uploadForm.timeoutSeconds" 
+                  :min="30" 
+                  :max="3600" 
                   style="width: 100%"
                   :step="30"
                 />
                 <div class="form-item-tip">单位：秒，建议 300-600</div>
-              </ScFormItem>
-            </ScCol>
-            <ScCol :span="12">
-              <ScFormItem label="最大重试">
-                <ScInputNumber
-                  v-model="uploadForm.maxRetry"
-                  :min="0"
-                  :max="10"
-                  style="width: 100%"
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="最大重试">
+                <el-input-number 
+                  v-model="uploadForm.maxRetry" 
+                  :min="0" 
+                  :max="10" 
+                  style="width: 100%" 
                 />
                 <div class="form-item-tip">失败后自动重试次数</div>
-              </ScFormItem>
-            </ScCol>
-          </ScRow>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-          <ScFormItem label="任务描述">
-            <ScInput
-              v-model="uploadForm.description"
-              type="textarea"
-              :rows="2"
-              placeholder="添加任务描述，便于后续识别和管理（可选）"
-              maxlength="500"
+          <el-form-item label="任务描述">
+            <el-input 
+              v-model="uploadForm.description" 
+              type="textarea" 
+              :rows="2" 
+              placeholder="添加任务描述，便于后续识别和管理（可选）" 
+              maxlength="500" 
               show-word-limit
               resize="none"
             />
-          </ScFormItem>
+          </el-form-item>
         </div>
       </div>
 
@@ -263,18 +243,13 @@
         <div class="section-header">
           <IconifyIconOnline icon="ri:upload-2-line" :size="18" />
           <span>选择文件</span>
-          <ScTag
-            v-if="fileList.length > 0"
-            size="small"
-            type="success"
-            class="section-tag"
-          >
+          <el-tag v-if="fileList.length > 0" size="small" type="success" class="section-tag">
             已选 {{ fileList.length }} 个文件
-          </ScTag>
+          </el-tag>
         </div>
         <div class="section-content">
-          <ScFormItem prop="files" label-width="0">
-            <ScUpload
+          <el-form-item prop="files" label-width="0">
+            <el-upload
               ref="uploadRef"
               :file-list="fileList"
               :auto-upload="false"
@@ -298,11 +273,11 @@
                   <span>支持多文件上传，单个文件大小不超过 100MB</span>
                 </div>
               </div>
-            </ScUpload>
-          </ScFormItem>
+            </el-upload>
+          </el-form-item>
         </div>
       </div>
-    </ScForm>
+    </el-form>
 
     <template #footer>
       <div class="dialog-footer">
@@ -311,20 +286,11 @@
           <span>任务创建后将自动开始执行</span>
         </div>
         <div class="footer-actions">
-          <ScButton size="large" @click="handleClose">取消</ScButton>
-          <ScButton
-            type="primary"
-            :loading="submitting"
-            size="large"
-            @click="handleSubmit"
-          >
-            <IconifyIconOnline
-              v-if="!submitting"
-              icon="ri:upload-cloud-line"
-              :size="16"
-            />
-            <span>{{ submitting ? "创建中..." : "创建任务" }}</span>
-          </ScButton>
+          <el-button @click="handleClose" size="large">取消</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="submitting" size="large">
+            <IconifyIconOnline v-if="!submitting" icon="ri:upload-cloud-line" :size="16" />
+            <span>{{ submitting ? '创建中...' : '创建任务' }}</span>
+          </el-button>
         </div>
       </div>
     </template>
@@ -333,26 +299,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, h } from "vue";
-import {
-  type FormInstance,
-  type FormRules,
-  type UploadFile,
-} from "element-plus";
+import { type FormInstance, type FormRules, type UploadFile } from "element-plus";
 import { message } from "@repo/utils";
-import {
-  createServerFileUploadTask,
-  type ServerFileUploadRequest,
-  UPLOAD_MODE,
-} from "@/api/server-file-upload";
+import { createServerFileUploadTask, type ServerFileUploadRequest, UPLOAD_MODE } from "@/api/server-file-upload";
 
 // 图标组件
-const CloseIcon = h(IconifyIconOnline, { icon: "ri:close-line", size: 18 });
-const TaskIcon = h(IconifyIconOnline, { icon: "ri:task-line", size: 16 });
-const FolderIcon = h(IconifyIconOnline, { icon: "ri:folder-line", size: 16 });
-const CalendarIcon = h(IconifyIconOnline, {
-  icon: "ri:calendar-line",
-  size: 16,
-});
+const CloseIcon = h(IconifyIconOnline, { icon: 'ri:close-line', size: 18 });
+const TaskIcon = h(IconifyIconOnline, { icon: 'ri:task-line', size: 16 });
+const FolderIcon = h(IconifyIconOnline, { icon: 'ri:folder-line', size: 16 });
+const CalendarIcon = h(IconifyIconOnline, { icon: 'ri:calendar-line', size: 16 });
 
 // Props
 interface Props {
@@ -365,7 +320,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sshServers: () => [],
+  sshServers: () => []
 });
 
 // Emits
@@ -395,30 +350,21 @@ const uploadForm = reactive({
   verify: true,
   timeoutSeconds: 300,
   maxRetry: 3,
-  description: "",
+  description: ""
 });
 
 // 表单验证规则
 const formRules: FormRules = {
   taskName: [
     { required: true, message: "请输入任务名称", trigger: "blur" },
-    {
-      min: 2,
-      max: 100,
-      message: "任务名称长度在 2 到 100 个字符",
-      trigger: "blur",
-    },
+    { min: 2, max: 100, message: "任务名称长度在 2 到 100 个字符", trigger: "blur" }
   ],
-  serverId: [
-    { required: true, message: "请选择目标服务器", trigger: "change" },
-  ],
+  serverId: [{ required: true, message: "请选择目标服务器", trigger: "change" }],
   targetPath: [
     { required: true, message: "请输入目标路径", trigger: "blur" },
-    { pattern: /^\/.*/, message: "目标路径必须以 / 开头", trigger: "blur" },
+    { pattern: /^\/.*/, message: "目标路径必须以 / 开头", trigger: "blur" }
   ],
-  uploadMode: [
-    { required: true, message: "请选择上传模式", trigger: "change" },
-  ],
+  uploadMode: [{ required: true, message: "请选择上传模式", trigger: "change" }],
   scheduledTime: [
     {
       validator: (rule, value, callback) => {
@@ -428,8 +374,8 @@ const formRules: FormRules = {
           callback();
         }
       },
-      trigger: "change",
-    },
+      trigger: "change"
+    }
   ],
   files: [
     {
@@ -440,9 +386,9 @@ const formRules: FormRules = {
           callback();
         }
       },
-      trigger: "change",
-    },
-  ],
+      trigger: "change"
+    }
+  ]
 };
 
 // 计算属性
@@ -475,7 +421,7 @@ const resetForm = () => {
     verify: true,
     timeoutSeconds: 300,
     maxRetry: 3,
-    description: "",
+    description: ""
   });
   fileList.value = [];
   formRef.value?.clearValidate();
@@ -531,7 +477,7 @@ const handleSubmit = async () => {
         verify: uploadForm.verify,
         timeoutSeconds: uploadForm.timeoutSeconds,
         maxRetry: uploadForm.maxRetry,
-        description: uploadForm.description,
+        description: uploadForm.description
       };
 
       const { data } = await createServerFileUploadTask(fileItem.raw, request);
@@ -554,7 +500,7 @@ const handleSubmit = async () => {
 
 // 暴露方法
 defineExpose({
-  open,
+  open
 });
 </script>
 
@@ -625,9 +571,7 @@ defineExpose({
   color: #fff;
   background: var(--app-primary);
   box-shadow: $shadow-md;
-  transition:
-    transform $duration-fast $ease-standard,
-    box-shadow $duration-fast $ease-standard;
+  transition: transform $duration-fast $ease-standard, box-shadow $duration-fast $ease-standard;
 
   &:hover {
     transform: translateY(-1px);

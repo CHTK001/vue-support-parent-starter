@@ -9,7 +9,7 @@
     append-to-body
   >
     <div class="dialog-content">
-      <ScForm
+      <el-form
         ref="formRef"
         :model="formData"
         :rules="rules"
@@ -17,8 +17,8 @@
         label-position="left"
         class="group-form"
       >
-        <ScFormItem label="分组名称" prop="monitorSysGenServerGroupName">
-          <ScInput
+        <el-form-item label="分组名称" prop="monitorSysGenServerGroupName">
+          <el-input
             v-model="formData.monitorSysGenServerGroupName"
             placeholder="请输入分组名称"
             clearable
@@ -28,11 +28,11 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:folder-line" />
             </template>
-          </ScInput>
-        </ScFormItem>
+          </el-input>
+        </el-form-item>
 
-        <ScFormItem label="分组描述" prop="monitorSysGenServerGroupDesc">
-          <ScInput
+        <el-form-item label="分组描述" prop="monitorSysGenServerGroupDesc">
+          <el-input
             v-model="formData.monitorSysGenServerGroupDesc"
             type="textarea"
             placeholder="请输入分组描述"
@@ -40,18 +40,18 @@
             maxlength="200"
             show-word-limit
           />
-        </ScFormItem>
+        </el-form-item>
 
-        <ScRow :gutter="20">
-          <ScCol :span="12">
-            <ScFormItem label="分组图标" prop="monitorSysGenServerGroupIcon">
-              <ScSelect
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="分组图标" prop="monitorSysGenServerGroupIcon">
+              <el-select
                 v-model="formData.monitorSysGenServerGroupIcon"
                 placeholder="选择图标"
                 filterable
                 style="width: 100%"
               >
-                <ScOption
+                <el-option
                   v-for="icon in iconOptions"
                   :key="icon.value"
                   :label="icon.label"
@@ -61,13 +61,13 @@
                     <IconifyIconOnline :icon="icon.value" />
                     <span>{{ icon.label }}</span>
                   </div>
-                </ScOption>
-              </ScSelect>
-            </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="分组颜色" prop="monitorSysGenServerGroupColor">
-              <ScColorPicker
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="分组颜色" prop="monitorSysGenServerGroupColor">
+              <el-color-picker
                 v-model="formData.monitorSysGenServerGroupColor"
                 show-alpha
                 :predefine="colorPresets"
@@ -77,15 +77,15 @@
                 :style="{
                   backgroundColor: formData.monitorSysGenServerGroupColor,
                 }"
-              />
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
+              ></span>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <ScRow :gutter="20">
-          <ScCol :span="12">
-            <ScFormItem label="排序号" prop="monitorSysGenServerGroupSort">
-              <ScInputNumber
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="排序号" prop="monitorSysGenServerGroupSort">
+              <el-input-number
                 v-model="formData.monitorSysGenServerGroupSort"
                 :min="0"
                 :max="9999"
@@ -93,23 +93,23 @@
                 placeholder="排序号"
                 style="width: 100%"
               />
-            </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="状态" prop="monitorSysGenServerGroupStatus">
-              <ScSwitch
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态" prop="monitorSysGenServerGroupStatus">
+              <el-switch
                 v-model="formData.monitorSysGenServerGroupStatus"
                 :active-value="1"
                 :inactive-value="0"
                 active-text="启用"
                 inactive-text="禁用"
               />
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
+            </el-form-item>
+          </el-col>
+        </el-row>
 
-        <ScFormItem label="默认分组" prop="monitorSysGenServerGroupIsDefault">
-          <ScSwitch
+        <el-form-item label="默认分组" prop="monitorSysGenServerGroupIsDefault">
+          <el-switch
             v-model="formData.monitorSysGenServerGroupIsDefault"
             :active-value="1"
             :inactive-value="0"
@@ -119,10 +119,10 @@
           <div class="form-tip">
             设为默认分组后，新增服务器时会自动选择此分组
           </div>
-        </ScFormItem>
+        </el-form-item>
 
-        <ScFormItem label="备注" prop="monitorSysGenServerGroupRemark">
-          <ScInput
+        <el-form-item label="备注" prop="monitorSysGenServerGroupRemark">
+          <el-input
             v-model="formData.monitorSysGenServerGroupRemark"
             type="textarea"
             placeholder="请输入备注信息"
@@ -130,8 +130,8 @@
             maxlength="500"
             show-word-limit
           />
-        </ScFormItem>
-      </ScForm>
+        </el-form-item>
+      </el-form>
 
       <!-- 预览区域 -->
       <div class="preview-section">
@@ -154,15 +154,15 @@
               </div>
             </div>
             <div class="preview-badges">
-              <ScTag
+              <el-tag
                 v-if="formData.monitorSysGenServerGroupIsDefault === 1"
                 type="primary"
                 size="small"
                 effect="light"
               >
                 默认
-              </ScTag>
-              <ScTag
+              </el-tag>
+              <el-tag
                 :type="
                   formData.monitorSysGenServerGroupStatus === 1
                     ? 'success'
@@ -176,7 +176,7 @@
                     ? "启用"
                     : "禁用"
                 }}
-              </ScTag>
+              </el-tag>
             </div>
           </div>
         </div>
@@ -185,10 +185,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSubmit">
+        <el-button @click="visible = false">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSubmit">
           {{ mode === "add" ? "新增" : "保存" }}
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -280,7 +280,7 @@ const rules = {
             ", 排除ID:",
             excludeId,
             ", 模式:",
-            mode.value,
+            mode.value
           );
           const result = await checkGroupNameExists(value, excludeId);
           console.log("[分组名称校验] 校验结果:", result);
@@ -386,7 +386,7 @@ const handleSubmit = async () => {
       emit("success");
     } else {
       message.error(
-        result.message || `${mode.value === "add" ? "新增" : "编辑"}分组失败`,
+        result.message || `${mode.value === "add" ? "新增" : "编辑"}分组失败`
       );
     }
   } catch (error) {
@@ -499,6 +499,7 @@ defineExpose({
   gap: 12px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -507,4 +508,5 @@ defineExpose({
     padding: 12px 16px;
   }
 }
+
 </style>

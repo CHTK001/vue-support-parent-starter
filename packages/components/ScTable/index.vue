@@ -1,6 +1,6 @@
 <script setup>
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
 
 const logger = getLogger("[ScTable]");
@@ -578,6 +578,74 @@ const memoryStorageKey = computed(() => {
 
 // 计算高度
 const scTableContentWrapper = ref(null);
+
+// Shift+滚轮横向滚动处理
+const handleWheelWithShift = (event) => {
+  // 检测是否按住了 Shift 键
+  if (!event.shiftKey) {
+    return;
+  }
+
+  // 查找横向滚动容器
+  let scrollContainer = null;
+
+  // 根据布局类型查找不同的滚动容器
+  if (props.layout === 'table') {
+    // 表格布局：查找 el-table__body-wrapper
+    // 注意：表格布局由 TableView 组件自己处理，这里只作为备用
+    const tableEl = scTable.value?.$el;
+    if (tableEl) {
+      scrollContainer = tableEl.querySelector('.el-table__body-wrapper');
+      if (!scrollContainer) {
+        scrollContainer = tableEl.querySelector('.el-scrollbar__wrap');
+      }
+    }
+  } else if (props.layout === 'card') {
+    // 卡片布局：查找 card-view-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.card-view-container');
+    }
+  } else if (props.layout === 'list') {
+    // 列表布局：查找 list-view-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.list-view-container');
+    }
+  } else if (props.layout === 'virtual') {
+    // 虚拟表格布局：查找 scroll-wrapper
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.scroll-wrapper');
+    }
+  } else if (props.layout === 'canvas') {
+    // Canvas 表格布局：查找 body-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.body-container');
+    }
+  } else if (props.layout === 'waterfall') {
+    // 瀑布流布局：查找 waterfall-view-container
+    const container = scTable.value?.$el;
+    if (container) {
+      scrollContainer = container.querySelector('.waterfall-view-container');
+    }
+  } else {
+    // 其他布局：使用内容包装器
+    scrollContainer = scTableContentWrapper.value;
+  }
+
+  // 如果找到了滚动容器，执行横向滚动
+  if (scrollContainer) {
+    // 阻止默认的垂直滚动行为
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 将垂直滚动转换为横向滚动
+    const deltaX = event.deltaY !== 0 ? event.deltaY : (event.deltaX || 0);
+    scrollContainer.scrollLeft += deltaX;
+  }
+};
 
 // 移除 ResizeObserver，直接使用 CSS 控制
 const computedHeight = computed(() => {
@@ -1518,6 +1586,11 @@ onMounted(() => {
     });
   }
 
+  // 添加 Shift+滚轮横向滚动支持
+  // 使用 capture 模式确保事件在捕获阶段被处理，避免被子组件拦截
+  if (scTableMain.value) {
+    scTableMain.value.addEventListener('wheel', handleWheelWithShift, { passive: false, capture: true });
+  }
 });
 
 onUnmounted(() => {
@@ -1529,22 +1602,20 @@ onUnmounted(() => {
   clearLocalData();
   // 清理预加载缓存
   clearPrefetchCache();
+  // 移除 Shift+滚轮横向滚动事件监听
+  if (scTableMain.value) {
+    scTableMain.value.removeEventListener('wheel', handleWheelWithShift, { capture: true });
+  }
 });
 
 onActivated(() => {
   if (!isActive.value) {
     scTable.value.doLayout();
   }
-  // 组件从 keep-alive 恢复时，如果开启了定时刷新则重新启动定时器
-  if (configState.countDownable && !timer.value) {
-    openTimer();
-  }
 });
 
 onDeactivated(() => {
-  // 进入 keep-alive 休眠状态时关闭定时器，避免隐藏页面仍在刷新
   isActive.value = false;
-  closeTimer();
 });
 
 // 新增的方法
@@ -1998,14 +2069,14 @@ defineExpose({
           <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
         </div>
         <div class="drag-action-buttons">
-          <ScButton size="small" @click="cancelDragSort">
+          <el-button size="small" @click="cancelDragSort">
             <IconifyIconOnline icon="ep:refresh-left" />
             取消
-          </ScButton>
-          <ScButton type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
+          </el-button>
+          <el-button type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
             <IconifyIconOnline icon="ep:check" />
             保存排序
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -2016,14 +2087,14 @@ defineExpose({
           <span>已编辑 {{ editChangeCount }} 处，数据已变更</span>
         </div>
         <div class="edit-action-buttons">
-          <ScButton size="small" @click="cancelEditChanges">
+          <el-button size="small" @click="cancelEditChanges">
             <IconifyIconOnline icon="ep:refresh-left" />
             取消
-          </ScButton>
-          <ScButton type="primary" size="small" :loading="editSaveLoading" @click="saveEditChanges">
+          </el-button>
+          <el-button type="primary" size="small" :loading="editSaveLoading" @click="saveEditChanges">
             <IconifyIconOnline icon="ep:check" />
             保存编辑
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -2033,9 +2104,9 @@ defineExpose({
           <IconifyIconOnline icon="ep:warning-filled" />
           <span>检测到大数据量 ({{ performanceMetrics.rowCount }} 行)，建议切换到虚拟滚动模式以获得更好的性能</span>
         </div>
-        <ScButton size="small" text @click="dismissLargeDataTip">
+        <el-button size="small" text @click="dismissLargeDataTip">
           <IconifyIconOnline icon="ep:close" />
-        </ScButton>
+        </el-button>
       </div>
 
       <!-- 表格内容区域 -->
@@ -2093,7 +2164,7 @@ defineExpose({
           <!-- 添加empty插槽，用于自定义无数据展示 -->
           <template #empty>
             <slot name="empty">
-              <ScEmpty :description="emptyText" :image-size="100" />
+              <el-empty :description="emptyText" :image-size="100" />
             </slot>
           </template>
         </component>

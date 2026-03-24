@@ -40,7 +40,7 @@ export interface ThemeTokens {
 export interface ThemeStyleDefinition {
   id: string;
   name: string;
-  type: "light" | "dark"; // Base type for browser fallback
+  type: 'light' | 'dark'; // Base type for browser fallback
   tokens: ThemeTokens;
 }
 
@@ -63,8 +63,8 @@ export const themeStyleSchema = {
           type: "object",
           required: ["palette", "surface", "text", "border"],
           // ... further nesting
-        },
-      },
-    },
-  },
+        }
+      }
+    }
+  }
 };

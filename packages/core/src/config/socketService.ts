@@ -24,11 +24,7 @@ export { createSocketIOService, type SocketIOConfig } from "./socket.io";
 export { createRSocketService, type RSocketConfig } from "./rsocket";
 export { createWebSocketService, type WebSocketConfig } from "./websocket";
 export { createSseService, type SseConfig } from "./sse";
-export {
-  parseSocketMessage,
-  buildAuthUrl,
-  toWebSocketUrl,
-} from "./socketUtils";
+export { parseSocketMessage, buildAuthUrl, toWebSocketUrl } from "./socketUtils";
 
 /**
  * 协议类型
@@ -83,31 +79,19 @@ let currentProtocol: ProtocolType = "socketio";
 /**
  * 全局 Socket 配置缓存
  */
-let globalSocketConfig: {
-  protocol?: ProtocolType;
-  urls?: string[];
-  context?: string;
-} = {};
+let globalSocketConfig: { protocol?: ProtocolType; urls?: string[]; context?: string } = {};
 
 /**
  * 设置全局 Socket 配置（由 ConfigStore 调用）
  */
-export function setGlobalSocketConfig(config: {
-  protocol?: ProtocolType;
-  urls?: string[];
-  context?: string;
-}): void {
+export function setGlobalSocketConfig(config: { protocol?: ProtocolType; urls?: string[]; context?: string }): void {
   globalSocketConfig = { ...globalSocketConfig, ...config };
 }
 
 /**
  * 获取全局 Socket 配置
  */
-export function getGlobalSocketConfig(): {
-  protocol: ProtocolType;
-  urls: string[];
-  context?: string;
-} {
+export function getGlobalSocketConfig(): { protocol: ProtocolType; urls: string[]; context?: string } {
   return {
     protocol: globalSocketConfig.protocol || "socketio",
     urls: globalSocketConfig.urls || [],
@@ -122,9 +106,7 @@ export function getGlobalSocketConfig(): {
  * @param config 配置
  * @returns SocketTemplate 实例
  */
-export function createSocketService(
-  config: SocketServiceConfig,
-): SocketTemplate {
+export function createSocketService(config: SocketServiceConfig): SocketTemplate {
   const protocol = config.protocol || "socketio";
   currentProtocol = protocol;
 
@@ -171,9 +153,7 @@ export function createSocketService(
       });
 
     default:
-      console.warn(
-        `[SocketService] 未知协议类型: ${protocol}，使用默认 Socket.IO`,
-      );
+      console.warn(`[SocketService] 未知协议类型: ${protocol}，使用默认 Socket.IO`);
       return createSocketIOService({
         urls: config.urls,
         context: config.context,
@@ -191,9 +171,7 @@ export function createSocketService(
  * @param config 配置
  * @returns SocketTemplate 实例
  */
-export function initGlobalSocketService(
-  config: SocketServiceConfig,
-): SocketTemplate {
+export function initGlobalSocketService(config: SocketServiceConfig): SocketTemplate {
   // 关闭旧连接
   if (globalSocketService) {
     globalSocketService.close();
@@ -249,7 +227,7 @@ export function closeGlobalSocketService(): void {
  */
 export function createNamedSocketService(
   name: string,
-  config?: SocketServiceConfig,
+  config?: SocketServiceConfig
 ): SocketTemplate {
   // 如果已存在，先关闭旧连接
   if (namedSocketServices.has(name)) {
@@ -269,9 +247,7 @@ export function createNamedSocketService(
   const service = createSocketService(mergedConfig);
   namedSocketServices.set(name, service);
 
-  console.log(
-    `[SocketService] 创建命名实例: ${name}, 协议: ${mergedConfig.protocol}`,
-  );
+  console.log(`[SocketService] 创建命名实例: ${name}, 协议: ${mergedConfig.protocol}`);
   return service;
 }
 
@@ -344,7 +320,7 @@ export function getCurrentProtocol(): ProtocolType {
  */
 export function provideNamedSocketService(
   name: string,
-  config: SocketServiceConfig,
+  config: SocketServiceConfig
 ): SocketTemplate {
   const service = createNamedSocketService(name, config);
   const key = createSocketTemplateKey(name);

@@ -15,15 +15,11 @@ import { http } from "@repo/utils";
  * @returns {*}
  */
 export function listExtConf() {
-  return http.get(
-    "/system/ext-conf/list",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/system/ext-conf/list", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export function getItem(params) {

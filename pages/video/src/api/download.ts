@@ -7,9 +7,7 @@ import type { DownloadItem } from "../types/upload";
  * @returns 创建结果
  */
 export const createDownload = (data: DownloadItem) => {
-  return http.request<ReturnResult<any>>("post", "/v1/video/download/save", {
-    data: data,
-  });
+  return http.request<ReturnResult<any>>("post", "/v1/video/download/save", { data: data });
 };
 /**
  * 根据视频ID获取上传下载地址列表
@@ -17,10 +15,7 @@ export const createDownload = (data: DownloadItem) => {
  * @returns 上传下载地址列表
  */
 export const getDownloadsByVideoId = (videoId: number | string) => {
-  return http.request<ReturnResult<DownloadItem[]>>(
-    "get",
-    `/v1/video/download/get/${videoId}`,
-  );
+  return http.request<ReturnResult<DownloadItem[]>>("get", `/v1/video/download/get/${videoId}`);
 };
 /**
  * 更新上传下载地址信息
@@ -28,9 +23,7 @@ export const getDownloadsByVideoId = (videoId: number | string) => {
  * @returns 更新结果
  */
 export const updateDownload = (data: DownloadItem) => {
-  return http.request<ReturnResult<any>>("put", "/v1/video/download/update", {
-    data: data,
-  });
+  return http.request<ReturnResult<any>>("put", "/v1/video/download/update", { data: data });
 };
 
 /**
@@ -39,8 +32,5 @@ export const updateDownload = (data: DownloadItem) => {
  * @returns 删除结果
  */
 export const deleteDownload = (downloadId: number | string) => {
-  return http.request<ReturnResult<any>>(
-    "delete",
-    `/v1/video/download/${downloadId}`,
-  );
+  return http.request<ReturnResult<any>>("delete", `/v1/video/download/${downloadId}`);
 };

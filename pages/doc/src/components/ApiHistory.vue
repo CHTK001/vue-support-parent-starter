@@ -8,7 +8,7 @@
         <ScBadge :value="historyList.length" :max="99" type="info" />
       </div>
       <div class="header-actions">
-        <ScInput
+        <ScInput 
           v-model="searchKeyword"
           placeholder="搜索..."
           size="small"
@@ -22,16 +22,12 @@
         <ScButton size="small" @click="loadHistory">
           <i class="ri-refresh-line"></i>
         </ScButton>
-        <ScPopconfirm
+        <ScPopconfirm 
           title="确定要清空所有历史记录吗？"
           @confirm="handleClearAll"
         >
           <template #reference>
-            <ScButton
-              size="small"
-              type="danger"
-              :disabled="historyList.length === 0"
-            >
+            <ScButton size="small" type="danger" :disabled="historyList.length === 0">
               <i class="ri-delete-bin-line"></i>
               清空
             </ScButton>
@@ -42,7 +38,7 @@
 
     <!-- 历史列表 -->
     <div class="history-list" v-loading="loading">
-      <ScScrollbar height="100%">
+      <el-scrollbar height="100%">
         <div v-if="filteredList.length === 0" class="empty-state">
           <i class="ri-inbox-line"></i>
           <span>暂无历史记录</span>
@@ -56,7 +52,7 @@
           @click="handleSelect(item)"
         >
           <div class="item-header">
-            <ScTag
+            <ScTag 
               :type="getMethodTagType(item.method)"
               size="small"
               class="method-tag"
@@ -64,7 +60,7 @@
               {{ item.method }}
             </ScTag>
             <span class="item-path" :title="item.path">{{ item.path }}</span>
-            <ScTag
+            <ScTag 
               v-if="item.statusCode"
               :type="getStatusTagType(item.statusCode)"
               size="small"
@@ -81,7 +77,7 @@
             <span v-if="item.duration" class="item-duration">
               {{ item.duration }}ms
             </span>
-            <ScButton
+            <ScButton 
               class="delete-btn"
               size="small"
               text
@@ -92,7 +88,7 @@
             </ScButton>
           </div>
         </div>
-      </ScScrollbar>
+      </el-scrollbar>
     </div>
 
     <!-- 详情对话框 -->
@@ -103,35 +99,32 @@
       size="50%"
     >
       <template v-if="selectedItem">
-        <ScDescriptions :column="1" border>
-          <ScDescriptionsItem label="请求方法">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="请求方法">
             <ScTag :type="getMethodTagType(selectedItem.method)" size="small">
               {{ selectedItem.method }}
             </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="请求路径">
+          </el-descriptions-item>
+          <el-descriptions-item label="请求路径">
             {{ selectedItem.path }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="完整URL">
+          </el-descriptions-item>
+          <el-descriptions-item label="完整URL">
             <ScLink type="primary" :href="selectedItem.url" target="_blank">
               {{ selectedItem.url }}
             </ScLink>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="状态码">
-            <ScTag
-              :type="getStatusTagType(selectedItem.statusCode || 0)"
-              size="small"
-            >
-              {{ selectedItem.statusCode || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="状态码">
+            <ScTag :type="getStatusTagType(selectedItem.statusCode || 0)" size="small">
+              {{ selectedItem.statusCode || '-' }}
             </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="耗时">
-            {{ selectedItem.duration ? selectedItem.duration + "ms" : "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="请求时间">
+          </el-descriptions-item>
+          <el-descriptions-item label="耗时">
+            {{ selectedItem.duration ? selectedItem.duration + 'ms' : '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="请求时间">
             {{ formatTime(selectedItem.createdAt, true) }}
-          </ScDescriptionsItem>
-        </ScDescriptions>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <ScDivider content-position="left">请求头</ScDivider>
         <div class="json-block">
@@ -143,9 +136,7 @@
           <pre>{{ formatJson(selectedItem.params) }}</pre>
         </div>
 
-        <ScDivider v-if="selectedItem.requestBody" content-position="left"
-          >请求体</ScDivider
-        >
+        <ScDivider v-if="selectedItem.requestBody" content-position="left">请求体</ScDivider>
         <div v-if="selectedItem.requestBody" class="json-block">
           <pre>{{ formatJson(selectedItem.requestBody) }}</pre>
         </div>
@@ -193,7 +184,7 @@ const filteredList = computed(() => {
     (item) =>
       item.path.toLowerCase().includes(keyword) ||
       item.method.toLowerCase().includes(keyword) ||
-      item.url.toLowerCase().includes(keyword),
+      item.url.toLowerCase().includes(keyword)
   );
 });
 

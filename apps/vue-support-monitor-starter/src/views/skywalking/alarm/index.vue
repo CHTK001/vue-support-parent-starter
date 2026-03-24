@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <ScIcon :size="28"><Bell /></ScIcon>
+          <el-icon :size="28"><Bell /></el-icon>
         </div>
         <div class="header-text">
           <h2>告警中心</h2>
@@ -12,20 +12,15 @@
         </div>
       </div>
       <div class="header-actions">
-        <ScSelect
-          v-model="filterForm.configId"
-          placeholder="选择配置"
-          style="width: 180px"
-          @change="fetchData"
-        >
-          <ScOption
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="fetchData" style="width: 180px">
+          <el-option
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </ScSelect>
-        <ScDatePicker
+        </el-select>
+        <el-date-picker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -33,24 +28,17 @@
           end-placeholder="结束"
           format="MM-DD HH:mm"
           value-format="YYYY-MM-DD HHmm"
-          style="width: 280px"
           @change="handleTimeChange"
+          style="width: 280px"
         />
-        <ScInput
-          v-model="filterForm.keyword"
-          placeholder="关键字搜索"
-          clearable
-          style="width: 180px"
-        />
-        <ScButton type="primary" :icon="Search" @click="fetchData"
-          >查询</el-button
-        >
-        <ScButton :icon="RefreshRight" @click="resetFilter">重置</ScButton>
+        <el-input v-model="filterForm.keyword" placeholder="关键字搜索" clearable style="width: 180px" />
+        <el-button type="primary" :icon="Search" @click="fetchData">查询</el-button>
+        <el-button :icon="RefreshRight" @click="resetFilter">重置</el-button>
       </div>
     </div>
 
     <!-- 告警列表 -->
-    <ScCard v-loading="loading" class="table-card" shadow="never">
+    <el-card class="table-card" shadow="never" v-loading="loading">
       <template #header>
         <div class="card-header">
           <span>告警列表</span>
@@ -58,41 +46,30 @@
         </div>
       </template>
 
-      <ScTable
-        :data="filteredList"
-        stripe
-        border
-        style="width: 100%"
-        max-height="calc(100vh - 340px)"
-      >
-        <ScTableColumn label="时间" width="180">
+      <el-table :data="filteredList" stripe border style="width: 100%" max-height="calc(100vh - 340px)">
+        <el-table-column label="时间" width="180">
           <template #default="{ row }">
             {{ formatTs(row.startTime) }}
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="scope" label="范围" width="120" />
-        <ScTableColumn
-          prop="message"
-          label="信息"
-          min-width="360"
-          show-overflow-tooltip
-        />
-        <ScTableColumn label="标签" min-width="200">
+        </el-table-column>
+        <el-table-column prop="scope" label="范围" width="120" />
+        <el-table-column prop="message" label="信息" min-width="360" show-overflow-tooltip />
+        <el-table-column label="标签" min-width="200">
           <template #default="{ row }">
             <el-space wrap>
-              <ScTag
+              <el-tag
                 v-for="(t, idx) in row.tags || []"
                 :key="idx"
                 size="small"
                 effect="plain"
               >
                 {{ t.key }}: {{ t.value }}
-              </ScTag>
+              </el-tag>
             </el-space>
           </template>
-        </ScTableColumn>
-      </ScTable>
-    </ScCard>
+        </el-table-column>
+      </el-table>
+    </el-card>
   </div>
 </template>
 
@@ -100,15 +77,8 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { Search, RefreshRight, Bell } from "@element-plus/icons-vue";
-import {
-  getEnabledSkywalkingConfigs,
-  type SkywalkingConfig,
-} from "@/api/skywalking/config";
-import {
-  getDefaultTimeRange,
-  getSkywalkingAlarms,
-  type AlarmMessage,
-} from "@/api/skywalking/data";
+import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
+import { getDefaultTimeRange, getSkywalkingAlarms, type AlarmMessage } from "@/api/skywalking/data";
 
 defineOptions({ name: "SkywalkingAlarm" });
 
@@ -135,9 +105,7 @@ const filteredList = computed(() => {
   if (!filterForm.keyword) return alarmList.value;
   const kw = filterForm.keyword.toLowerCase();
   return alarmList.value.filter(
-    (a) =>
-      a.message?.toLowerCase().includes(kw) ||
-      a.scope?.toLowerCase().includes(kw),
+    (a) => a.message?.toLowerCase().includes(kw) || a.scope?.toLowerCase().includes(kw)
   );
 });
 
@@ -204,7 +172,7 @@ const formatTs = (ts: number | string) => {
   const d = new Date(Number(ts));
   const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
-    d.getMinutes(),
+    d.getMinutes()
   )}:${pad(d.getSeconds())}`;
 };
 
@@ -215,6 +183,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -231,6 +200,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -265,6 +236,7 @@ onMounted(() => {
   }
 }
 
+
 .skywalking-alarm {
   padding: 20px;
   min-height: 100vh;
@@ -292,7 +264,7 @@ onMounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
         border-radius: 10px;
         color: #fff;
       }
@@ -356,6 +328,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -364,4 +337,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

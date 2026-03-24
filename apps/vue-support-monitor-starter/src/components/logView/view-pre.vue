@@ -13,7 +13,7 @@
         <div class="item">
           <template v-if="!item.warp">
             <span class="linenumber">{{ index + 1 }}</span>
-            <span v-html="item.text" />
+            <span v-html="item.text"></span>
             &nbsp;
           </template>
         </div>
@@ -22,95 +22,95 @@
   </div>
 </template>
 <script>
-import ansiparse from "@/utils/parse-ansi";
+import ansiparse from '@/utils/parse-ansi'
 // import codeEditor from "@/components/codeEditor";
-import { RecycleScroller } from "vue-virtual-scroller";
-import "vue-virtual-scroller/dist/vue-virtual-scroller.css";
-import Prism from "prismjs";
-import "prismjs/components/prism-log";
-import "prismjs/themes/prism-okaidia.min.css";
+import { RecycleScroller } from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import Prism from 'prismjs'
+import 'prismjs/components/prism-log'
+import 'prismjs/themes/prism-okaidia.min.css'
 export default {
   components: {
     // codeEditor,
-    RecycleScroller,
+    RecycleScroller
   },
   props: {
     height: {
       type: String,
-      default: "50vh",
+      default: '50vh'
     },
 
     config: {
       type: Object,
-      default: () => {},
+      default: () => {}
     },
     id: {
       type: String,
-      default: "logScrollArea",
-    },
+      default: 'logScrollArea'
+    }
   },
   data() {
     return {
-      defText: "loading context...",
-      logContext: "",
+      defText: 'loading context...',
+      logContext: '',
       dataArray: [],
       idInc: 0,
       visibleStartIndex: -1,
       itemHeight: 24,
       inited: false,
-      uniqueId: `component_${Math.random().toString(36).substring(2, 15)}`,
-    };
+      uniqueId: `component_${Math.random().toString(36).substring(2, 15)}`
+    }
   },
   computed: {
     wordBreak() {
       // this.changeBuffer();
-      return this.config.wordBreak || false;
+      return this.config.wordBreak || false
     },
     showList() {
-      const element = document.querySelector(`#${this.uniqueId}`);
-      let result;
+      const element = document.querySelector(`#${this.uniqueId}`)
+      let result
       if (this.inited) {
         result = this.dataArray.length
           ? [...this.dataArray]
           : [
               {
                 text: this.defText,
-                id: "0-def",
-              },
-            ];
+                id: '0-def'
+              }
+            ]
       } else {
         // 还没有 dom 对象
         result = [
           {
-            text: "loading..................",
-            id: "0-def",
-          },
-        ];
+            text: 'loading..................',
+            id: '0-def'
+          }
+        ]
       }
-      let warp = false;
+      let warp = false
       if (element) {
         // 填充空白，避免无内容 页面背景太低
-        const min = Math.ceil(element.clientHeight / this.itemHeight);
-        const le = min - result.length;
+        const min = Math.ceil(element.clientHeight / this.itemHeight)
+        const le = min - result.length
         for (let i = 0; i < le - 1; i++) {
           result.push({
-            id: "system-warp-empty:" + i,
-            warp: true,
-          });
-          warp = true;
+            id: 'system-warp-empty:' + i,
+            warp: true
+          })
+          warp = true
         }
       }
       if (!warp) {
         // 最后填充一行空白，避免无法看到滚动条
         result = result.concat([
           {
-            id: "system-warp-end:1",
-            warp: true,
-          },
-        ]);
+            id: 'system-warp-end:1',
+            warp: true
+          }
+        ])
       }
-      return result;
-    },
+      return result
+    }
     // showContext: {
     //   get() {
     //     return this.logContext || this.defText;
@@ -120,28 +120,28 @@ export default {
   },
   mounted() {
     const timer = setInterval(() => {
-      const element = document.querySelector(`#${this.uniqueId}`);
+      const element = document.querySelector(`#${this.uniqueId}`)
       if (element) {
-        this.inited = true;
-        clearInterval(timer);
+        this.inited = true
+        clearInterval(timer)
       }
-    }, 200);
+    }, 200)
   },
   methods: {
     scrollToBottom() {
-      const element = document.querySelector(`#${this.uniqueId}`);
+      const element = document.querySelector(`#${this.uniqueId}`)
       if (element) {
-        this.scrollTo(element.scrollHeight - element.clientHeight);
+        this.scrollTo(element.scrollHeight - element.clientHeight)
       }
     },
     scrollToTop() {
-      this.scrollTo(0);
+      this.scrollTo(0)
     },
     scrollTo(h) {
-      const element = document.querySelector(`#${this.uniqueId}`);
+      const element = document.querySelector(`#${this.uniqueId}`)
       if (element) {
         // console.log(element, element.scrollHeight);
-        element.scrollTop = h;
+        element.scrollTop = h
         // this.scrollTo(element, element.scrollHeight - element.clientHeight, 500);
         // element.scrollIntoView(false);
       }
@@ -149,43 +149,40 @@ export default {
     scrollTo2(element, position) {
       if (!window.requestAnimationFrame) {
         window.requestAnimationFrame = function (cb) {
-          return setTimeout(cb, 10);
-        };
-      }
-      let scrollTop = element.scrollTop;
-      const step = function () {
-        const distance = position - scrollTop;
-        scrollTop = scrollTop + distance / 5;
-        if (Math.abs(distance) < 1) {
-          element.scrollTop = position;
-        } else {
-          element.scrollTop = scrollTop;
-          requestAnimationFrame(step);
+          return setTimeout(cb, 10)
         }
-      };
-      step();
+      }
+      let scrollTop = element.scrollTop
+      const step = function () {
+        const distance = position - scrollTop
+        scrollTop = scrollTop + distance / 5
+        if (Math.abs(distance) < 1) {
+          element.scrollTop = position
+        } else {
+          element.scrollTop = scrollTop
+          requestAnimationFrame(step)
+        }
+      }
+      step()
     },
     onUpdate(viewStartIndex, viewEndIndex, visibleStartIndex, visibleEndIndex) {
-      const tempArray = this.dataArray.slice(
-        visibleStartIndex,
-        visibleEndIndex,
-      );
+      const tempArray = this.dataArray.slice(visibleStartIndex, visibleEndIndex)
       this.logContext = tempArray
         .map((item) => {
-          return item.text;
+          return item.text
         })
         .map((item) => {
           return (
             // gitee isuess I657JR
             ansiparse(item)
               .map((ansiItem) => {
-                return ansiItem.text;
+                return ansiItem.text
               })
-              .join("") + "\r\n"
-          );
+              .join('') + '\r\n'
+          )
         })
-        .join("");
-      this.visibleStartIndex = visibleStartIndex;
+        .join('')
+      this.visibleStartIndex = visibleStartIndex
 
       // console.log(this.dataArray.length, tempArray.length, visibleStartIndex, visibleEndIndex);
       // console.log(this.logContext);
@@ -193,54 +190,50 @@ export default {
     //
     appendLine(data) {
       if (!data) {
-        return;
+        return
       }
       const tempArray = (Array.isArray(data) ? data : [data])
         .flatMap((item) => {
-          return item.split("\r\n");
+          return item.split('\r\n')
         })
         .map((item) => {
           return {
             text: ansiparse(item)
               .map((ansiItem) => {
-                return ansiItem.text;
+                return ansiItem.text
               })
-              .join(""),
-            id: this.idInc++,
-          };
+              .join(''),
+            id: this.idInc++
+          }
         })
         .map((item) => {
           return {
             // 制表符号 替换
-            text: Prism.highlight(
-              item.text,
-              Prism.languages.log,
-              "log",
-            ).replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;"),
-            id: item.id,
-          };
-        });
+            text: Prism.highlight(item.text, Prism.languages.log, 'log').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'),
+            id: item.id
+          }
+        })
       if (!tempArray.length) {
-        return;
+        return
       }
-      this.dataArray = [...this.dataArray, ...tempArray];
+      this.dataArray = [...this.dataArray, ...tempArray]
       // console.log(this.dataArray.length, this.showList.length);
       if (this.config.logScroll) {
         setTimeout(() => {
           // 延迟触发滚动
           this.$nextTick(() => {
-            this.scrollToBottom(".scroller");
-          });
-        }, 500);
+            this.scrollToBottom('.scroller')
+          })
+        }, 500)
       }
     },
 
     clearLogCache() {
-      this.dataArray = [];
-      this.scrollToTop();
-    },
-  },
-};
+      this.dataArray = []
+      this.scrollToTop()
+    }
+  }
+}
 </script>
 <style scoped lang="scss">
 .log-view-wrapper {
@@ -253,14 +246,7 @@ export default {
 .scroller {
   height: 100%;
   width: 100%;
-  font-family:
-    Operator Mono,
-    Source Code Pro,
-    Menlo,
-    Monaco,
-    Consolas,
-    Courier New,
-    monospace;
+  font-family: Operator Mono, Source Code Pro, Menlo, Monaco, Consolas, Courier New, monospace;
   position: relative;
   overflow-y: scroll;
 }
@@ -273,8 +259,8 @@ export default {
   padding-right: 4px;
   opacity: 0.6;
   -webkit-user-select: none; /* Safari */
-  -moz-user-select: none; /* Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* Internet Explorer/Edge */
   user-select: none;
 }
 </style>

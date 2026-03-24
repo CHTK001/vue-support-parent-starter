@@ -6,33 +6,33 @@
         <h2 class="page-title">
           <IconifyIconOnline icon="ri:folder-line" class="mr-2" />
           服务器组管理
-          <ScTooltip
+          <el-tooltip
             :content="`当前共有 ${totalCount} 个分组`"
             placement="bottom"
             :show-after="500"
           >
-            <ScTag type="info" effect="plain" class="group-count">
+            <el-tag type="info" effect="plain" class="group-count">
               共
               <span class="count-num">{{ totalCount }}</span>
               个
-            </ScTag>
-          </ScTooltip>
+            </el-tag>
+          </el-tooltip>
         </h2>
       </div>
       <div class="header-right">
-        <ScButton type="primary" :icon="Plus" @click="handleAdd">
+        <el-button type="primary" @click="handleAdd" :icon="Plus">
           新增分组
-        </ScButton>
-        <ScButton :icon="Refresh" :loading="loading" @click="handleRefresh">
+        </el-button>
+        <el-button @click="handleRefresh" :icon="Refresh" :loading="loading">
           刷新
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 搜索和筛选 -->
     <div class="filter-bar">
       <div class="filter-left">
-        <ScInput
+        <el-input
           v-model="searchKeyword"
           placeholder="搜索分组名称"
           clearable
@@ -42,51 +42,43 @@
         />
       </div>
       <div class="filter-right">
-        <ScSelect
+        <el-select
           v-model="filterStatus"
           placeholder="状态筛选"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <ScOption label="启用" :value="1" />
-          <ScOption label="禁用" :value="0" />
-        </ScSelect>
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
       </div>
     </div>
 
     <!-- 分组列表 -->
-    <div v-loading="loading" class="group-content">
-      <ScEmpty v-if="filteredGroups.length === 0" description="暂无分组数据" />
+    <div class="group-content" v-loading="loading">
+      <el-empty v-if="filteredGroups.length === 0" description="暂无分组数据" />
       <div v-else class="group-grid">
         <div
           v-for="group in filteredGroups"
           :key="group.monitorSysGenServerGroupId"
           class="group-card"
-          :class="{
-            'is-default': group.monitorSysGenServerGroupIsDefault === 1,
-          }"
+          :class="{ 'is-default': group.monitorSysGenServerGroupIsDefault === 1 }"
         >
           <div class="card-header">
             <div class="group-info">
               <IconifyIconOnline
                 :icon="group.monitorSysGenServerGroupIcon || 'ri:folder-line'"
-                :style="{
-                  color: group.monitorSysGenServerGroupColor || '#409eff',
-                }"
+                :style="{ color: group.monitorSysGenServerGroupColor || '#409eff' }"
                 class="group-icon"
               />
               <div class="group-details">
-                <div class="group-name">
-                  {{ group.monitorSysGenServerGroupName }}
-                </div>
-                <div class="group-desc">
-                  {{ group.monitorSysGenServerGroupDesc || "暂无描述" }}
-                </div>
+                <div class="group-name">{{ group.monitorSysGenServerGroupName }}</div>
+                <div class="group-desc">{{ group.monitorSysGenServerGroupDesc || '暂无描述' }}</div>
               </div>
             </div>
             <div class="group-badges">
-              <ScTag
+              <el-tag
                 v-if="group.monitorSysGenServerGroupIsDefault === 1"
                 type="primary"
                 size="small"
@@ -95,23 +87,17 @@
               >
                 <IconifyIconOnline icon="ri:star-fill" class="mr-1" />
                 默认
-              </ScTag>
-              <ScTag
-                :type="
-                  group.monitorSysGenServerGroupStatus === 1
-                    ? 'success'
-                    : 'danger'
-                "
+              </el-tag>
+              <el-tag
+                :type="group.monitorSysGenServerGroupStatus === 1 ? 'success' : 'danger'"
                 size="small"
                 effect="light"
               >
-                {{
-                  group.monitorSysGenServerGroupStatus === 1 ? "启用" : "禁用"
-                }}
-              </ScTag>
+                {{ group.monitorSysGenServerGroupStatus === 1 ? '启用' : '禁用' }}
+              </el-tag>
             </div>
           </div>
-
+          
           <div class="card-content">
             <div class="group-stats">
               <div class="stat-item">
@@ -122,67 +108,50 @@
               <div class="stat-item">
                 <IconifyIconOnline icon="ri:sort-asc" class="stat-icon" />
                 <span class="stat-label">排序:</span>
-                <span class="stat-value">{{
-                  group.monitorSysGenServerGroupSort || 0
-                }}</span>
+                <span class="stat-value">{{ group.monitorSysGenServerGroupSort || 0 }}</span>
               </div>
               <div class="stat-item">
                 <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
                 <span class="stat-label">创建:</span>
-                <span class="stat-value">{{
-                  formatTime(group.createTime)
-                }}</span>
+                <span class="stat-value">{{ formatTime(group.createTime) }}</span>
               </div>
             </div>
           </div>
 
           <div class="card-footer">
             <el-button-group class="action-group">
-              <ScButton size="small" :icon="Edit" @click="handleEdit(group)">
+              <el-button size="small" @click="handleEdit(group)" :icon="Edit">
                 编辑
-              </ScButton>
-              <ScButton
+              </el-button>
+              <el-button
                 v-if="group.monitorSysGenServerGroupIsDefault !== 1"
                 size="small"
                 type="primary"
-                :icon="Star"
                 @click="handleSetDefault(group)"
+                :icon="Star"
               >
                 设为默认
-              </ScButton>
-              <ScButton
+              </el-button>
+              <el-button
                 size="small"
-                :type="
-                  group.monitorSysGenServerGroupStatus === 1
-                    ? 'warning'
-                    : 'success'
-                "
+                :type="group.monitorSysGenServerGroupStatus === 1 ? 'warning' : 'success'"
                 @click="handleToggleStatus(group)"
               >
-                <IconifyIconOnline
-                  :icon="
-                    group.monitorSysGenServerGroupStatus === 1
-                      ? 'ri:eye-off-line'
-                      : 'ri:eye-line'
-                  "
-                  class="mr-1"
+                <IconifyIconOnline 
+                  :icon="group.monitorSysGenServerGroupStatus === 1 ? 'ri:eye-off-line' : 'ri:eye-line'" 
+                  class="mr-1" 
                 />
-                {{
-                  group.monitorSysGenServerGroupStatus === 1 ? "禁用" : "启用"
-                }}
-              </ScButton>
-              <ScButton
-                v-if="
-                  group.monitorSysGenServerGroupIsDefault !== 1 &&
-                  (group.serverCount || 0) === 0
-                "
+                {{ group.monitorSysGenServerGroupStatus === 1 ? '禁用' : '启用' }}
+              </el-button>
+              <el-button
+                v-if="group.monitorSysGenServerGroupIsDefault !== 1 && (group.serverCount || 0) === 0"
                 size="small"
                 type="danger"
-                :icon="Delete"
                 @click="handleDelete(group)"
+                :icon="Delete"
               >
                 删除
-              </ScButton>
+              </el-button>
             </el-button-group>
           </div>
         </div>
@@ -195,29 +164,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { message } from "@repo/utils";
-import {
-  Plus,
-  Refresh,
-  Search,
-  Edit,
-  Star,
-  Delete,
-} from "@element-plus/icons-vue";
+import { computed, onMounted, ref } from 'vue';
+import { message } from '@repo/utils';
+import { Plus, Refresh, Search, Edit, Star, Delete } from '@element-plus/icons-vue';
 import {
   type ServerGroup,
   getAllServerGroups,
   setDefaultGroup,
   toggleGroupStatus,
   deleteServerGroup,
-  getGroupServerCount,
-} from "@/api/server/group";
-import ServerGroupEditDialog from "./components/ServerGroupEditDialog.vue";
+  getGroupServerCount
+} from '@/api/server/group';
+import ServerGroupEditDialog from './components/ServerGroupEditDialog.vue';
 
 // 响应式状态
 const loading = ref(false);
-const searchKeyword = ref("");
+const searchKeyword = ref('');
 const filterStatus = ref<number | undefined>();
 const groups = ref<ServerGroup[]>([]);
 const editDialogRef = ref();
@@ -227,23 +189,19 @@ const totalCount = computed(() => groups.value.length);
 
 const filteredGroups = computed(() => {
   let result = groups.value;
-
+  
   // 按名称搜索
   if (searchKeyword.value) {
-    result = result.filter((group) =>
-      group.monitorSysGenServerGroupName
-        ?.toLowerCase()
-        .includes(searchKeyword.value.toLowerCase()),
+    result = result.filter(group =>
+      group.monitorSysGenServerGroupName?.toLowerCase().includes(searchKeyword.value.toLowerCase())
     );
   }
-
+  
   // 按状态筛选
   if (filterStatus.value !== undefined) {
-    result = result.filter(
-      (group) => group.monitorSysGenServerGroupStatus === filterStatus.value,
-    );
+    result = result.filter(group => group.monitorSysGenServerGroupStatus === filterStatus.value);
   }
-
+  
   // 按排序号和创建时间排序
   return result.sort((a, b) => {
     const sortA = a.monitorSysGenServerGroupSort || 0;
@@ -251,10 +209,7 @@ const filteredGroups = computed(() => {
     if (sortA !== sortB) {
       return sortA - sortB;
     }
-    return (
-      new Date(b.createTime || "").getTime() -
-      new Date(a.createTime || "").getTime()
-    );
+    return new Date(b.createTime || '').getTime() - new Date(a.createTime || '').getTime();
   });
 });
 
@@ -267,26 +222,24 @@ const loadGroups = async () => {
     const result = await getAllServerGroups();
     if (result.success && result.data) {
       groups.value = result.data;
-
+      
       // 加载每个分组的服务器数量
       for (const group of groups.value) {
         if (group.monitorSysGenServerGroupId) {
           try {
-            const countResult = await getGroupServerCount(
-              group.monitorSysGenServerGroupId,
-            );
+            const countResult = await getGroupServerCount(group.monitorSysGenServerGroupId);
             if (countResult.success) {
               group.serverCount = countResult.data;
             }
           } catch (error) {
-            console.error("获取分组服务器数量失败:", error);
+            console.error('获取分组服务器数量失败:', error);
           }
         }
       }
     }
   } catch (error) {
-    console.error("加载分组列表失败:", error);
-    message.error("加载分组列表失败");
+    console.error('加载分组列表失败:', error);
+    message.error('加载分组列表失败');
   } finally {
     loading.value = false;
   }
@@ -317,14 +270,14 @@ const handleFilter = () => {
  * 新增分组
  */
 const handleAdd = () => {
-  editDialogRef.value?.open("add");
+  editDialogRef.value?.open('add');
 };
 
 /**
  * 编辑分组
  */
 const handleEdit = (group: ServerGroup) => {
-  editDialogRef.value?.open("edit", group);
+  editDialogRef.value?.open('edit', group);
 };
 
 /**
@@ -333,17 +286,17 @@ const handleEdit = (group: ServerGroup) => {
 const handleSetDefault = async (group: ServerGroup) => {
   try {
     if (!group.monitorSysGenServerGroupId) return;
-
+    
     const result = await setDefaultGroup(group.monitorSysGenServerGroupId);
     if (result.success) {
-      message.success("设置默认分组成功");
+      message.success('设置默认分组成功');
       loadGroups();
     } else {
-      message.error(result.message || "设置默认分组失败");
+      message.error(result.message || '设置默认分组失败');
     }
   } catch (error) {
-    console.error("设置默认分组失败:", error);
-    message.error("设置默认分组失败");
+    console.error('设置默认分组失败:', error);
+    message.error('设置默认分组失败');
   }
 };
 
@@ -353,21 +306,18 @@ const handleSetDefault = async (group: ServerGroup) => {
 const handleToggleStatus = async (group: ServerGroup) => {
   try {
     if (!group.monitorSysGenServerGroupId) return;
-
+    
     const newStatus = group.monitorSysGenServerGroupStatus === 1 ? 0 : 1;
-    const result = await toggleGroupStatus(
-      group.monitorSysGenServerGroupId,
-      newStatus,
-    );
+    const result = await toggleGroupStatus(group.monitorSysGenServerGroupId, newStatus);
     if (result.success) {
-      message.success(`${newStatus === 1 ? "启用" : "禁用"}分组成功`);
+      message.success(`${newStatus === 1 ? '启用' : '禁用'}分组成功`);
       loadGroups();
     } else {
-      message.error(result.message || "操作失败");
+      message.error(result.message || '操作失败');
     }
   } catch (error) {
-    console.error("切换分组状态失败:", error);
-    message.error("操作失败");
+    console.error('切换分组状态失败:', error);
+    message.error('操作失败');
   }
 };
 
@@ -377,28 +327,28 @@ const handleToggleStatus = async (group: ServerGroup) => {
 const handleDelete = async (group: ServerGroup) => {
   try {
     if (!group.monitorSysGenServerGroupId) return;
-
+    
     await ElMessageBox.confirm(
       `确定要删除分组 "${group.monitorSysGenServerGroupName}" 吗？`,
-      "确认删除",
+      '确认删除',
       {
-        type: "warning",
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-      },
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
+      }
     );
-
+    
     const result = await deleteServerGroup(group.monitorSysGenServerGroupId);
     if (result.success) {
-      message.success("删除分组成功");
+      message.success('删除分组成功');
       loadGroups();
     } else {
-      message.error(result.message || "删除分组失败");
+      message.error(result.message || '删除分组失败');
     }
   } catch (error) {
-    if (error !== "cancel") {
-      console.error("删除分组失败:", error);
-      message.error("删除分组失败");
+    if (error !== 'cancel') {
+      console.error('删除分组失败:', error);
+      message.error('删除分组失败');
     }
   }
 };
@@ -407,8 +357,8 @@ const handleDelete = async (group: ServerGroup) => {
  * 格式化时间
  */
 const formatTime = (time: string | undefined) => {
-  if (!time) return "-";
-  return new Date(time).toLocaleDateString("zh-CN");
+  if (!time) return '-';
+  return new Date(time).toLocaleDateString('zh-CN');
 };
 
 // 生命周期
@@ -418,6 +368,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -434,6 +385,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -467,6 +420,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .server-group-container {
   padding: 20px;
@@ -555,24 +509,16 @@ onMounted(() => {
 
   &.is-default {
     border-color: var(--el-color-primary);
-    background: linear-gradient(
-      135deg,
-      rgba(64, 158, 255, 0.05) 0%,
-      rgba(64, 158, 255, 0.02) 100%
-    );
+    background: linear-gradient(135deg, rgba(64, 158, 255, 0.05) 0%, rgba(64, 158, 255, 0.02) 100%);
 
     &::before {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       height: 3px;
-      background: linear-gradient(
-        90deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
+      background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
     }
   }
 
@@ -622,11 +568,7 @@ onMounted(() => {
       flex-shrink: 0;
 
       .default-badge {
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary) 0%,
-          var(--el-color-primary-light-3) 100%
-        );
+        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         border: none;
         color: var(--el-text-color-primary);
       }
@@ -688,6 +630,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -696,4 +639,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -2,7 +2,7 @@
  * useTablePrint - 表格打印 composable
  * 支持打印预览和直接打印
  */
-import { ref, type Ref } from "vue";
+import { ref, type Ref } from 'vue';
 
 /** 打印选项 */
 export interface PrintOptions {
@@ -36,7 +36,14 @@ export interface PrintReturn {
  * 表格打印 composable
  */
 export function useTablePrint(options: PrintOptions = {}): PrintReturn {
-  const { enabled = false, title = "表格数据", showTime = true, customStyles = "", header = "", footer = "" } = options;
+  const {
+    enabled = false,
+    title = '表格数据',
+    showTime = true,
+    customStyles = '',
+    header = '',
+    footer = '',
+  } = options;
 
   const isEnabled = ref(enabled);
   const isPrinting = ref(false);
@@ -44,36 +51,37 @@ export function useTablePrint(options: PrintOptions = {}): PrintReturn {
   /**
    * 生成打印 HTML
    */
-  const generatePrintHtml = (tableEl: HTMLElement | null, data?: any[], columns?: any[], opts: Partial<PrintOptions> = {}): string => {
+  const generatePrintHtml = (
+    tableEl: HTMLElement | null,
+    data?: any[],
+    columns?: any[],
+    opts: Partial<PrintOptions> = {}
+  ): string => {
     const printTitle = opts.title || title;
     const printShowTime = opts.showTime ?? showTime;
     const printHeader = opts.header || header;
     const printFooter = opts.footer || footer;
     const printCustomStyles = opts.customStyles || customStyles;
 
-    let tableHtml = "";
+    let tableHtml = '';
 
     // 如果提供了数据和列配置，生成新表格
     if (data && columns) {
       const visibleColumns = columns.filter(col => col.prop && col.show !== false);
-
+      
       tableHtml = `
         <table class="print-table">
           <thead>
             <tr>
-              ${visibleColumns.map(col => `<th>${col.label || col.prop}</th>`).join("")}
+              ${visibleColumns.map(col => `<th>${col.label || col.prop}</th>`).join('')}
             </tr>
           </thead>
           <tbody>
-            ${data
-              .map(
-                row => `
+            ${data.map(row => `
               <tr>
-                ${visibleColumns.map(col => `<td>${row[col.prop] ?? ""}</td>`).join("")}
+                ${visibleColumns.map(col => `<td>${row[col.prop] ?? ''}</td>`).join('')}
               </tr>
-            `
-              )
-              .join("")}
+            `).join('')}
           </tbody>
         </table>
       `;
@@ -81,7 +89,7 @@ export function useTablePrint(options: PrintOptions = {}): PrintReturn {
       // 使用现有表格元素
       const tableClone = tableEl.cloneNode(true) as HTMLElement;
       // 移除不需要打印的元素
-      tableClone.querySelectorAll(".el-table__fixed, .el-table__fixed-right").forEach(el => el.remove());
+      tableClone.querySelectorAll('.el-table__fixed, .el-table__fixed-right').forEach(el => el.remove());
       tableHtml = tableClone.outerHTML;
     }
 
@@ -174,13 +182,13 @@ export function useTablePrint(options: PrintOptions = {}): PrintReturn {
       <body>
         <div class="print-header">
           <div class="print-title">${printTitle}</div>
-          ${printShowTime ? `<div class="print-time">打印时间：${new Date().toLocaleString()}</div>` : ""}
+          ${printShowTime ? `<div class="print-time">打印时间：${new Date().toLocaleString()}</div>` : ''}
         </div>
-        ${printHeader ? `<div class="print-custom-header">${printHeader}</div>` : ""}
+        ${printHeader ? `<div class="print-custom-header">${printHeader}</div>` : ''}
         <div class="print-content">
           ${tableHtml}
         </div>
-        ${printFooter ? `<div class="print-footer">${printFooter}</div>` : ""}
+        ${printFooter ? `<div class="print-footer">${printFooter}</div>` : ''}
       </body>
       </html>
     `;
@@ -189,22 +197,27 @@ export function useTablePrint(options: PrintOptions = {}): PrintReturn {
   /**
    * 打印表格
    */
-  const print = (tableEl: HTMLElement | null, data?: any[], columns?: any[], opts: Partial<PrintOptions> = {}): void => {
+  const print = (
+    tableEl: HTMLElement | null,
+    data?: any[],
+    columns?: any[],
+    opts: Partial<PrintOptions> = {}
+  ): void => {
     if (!isEnabled.value) return;
     isPrinting.value = true;
 
     try {
       const html = generatePrintHtml(tableEl, data, columns, opts);
-
-      const printWindow = window.open("", "_blank");
+      
+      const printWindow = window.open('', '_blank');
       if (!printWindow) {
-        console.error("[useTablePrint] Failed to open print window");
+        console.error('[useTablePrint] Failed to open print window');
         return;
       }
 
       printWindow.document.write(html);
       printWindow.document.close();
-
+      
       // 等待内容加载完成后打印
       printWindow.onload = () => {
         printWindow.print();
@@ -218,14 +231,19 @@ export function useTablePrint(options: PrintOptions = {}): PrintReturn {
   /**
    * 打印预览
    */
-  const preview = (tableEl: HTMLElement | null, data?: any[], columns?: any[], opts: Partial<PrintOptions> = {}): void => {
+  const preview = (
+    tableEl: HTMLElement | null,
+    data?: any[],
+    columns?: any[],
+    opts: Partial<PrintOptions> = {}
+  ): void => {
     if (!isEnabled.value) return;
 
     const html = generatePrintHtml(tableEl, data, columns, opts);
-
-    const previewWindow = window.open("", "_blank");
+    
+    const previewWindow = window.open('', '_blank');
     if (!previewWindow) {
-      console.error("[useTablePrint] Failed to open preview window");
+      console.error('[useTablePrint] Failed to open preview window');
       return;
     }
 
@@ -237,7 +255,7 @@ export function useTablePrint(options: PrintOptions = {}): PrintReturn {
     isEnabled,
     isPrinting,
     print,
-    preview
+    preview,
   };
 }
 

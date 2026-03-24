@@ -1,17 +1,9 @@
 <template>
   <div class="new-menu-anim-grid">
-    <button
-      v-for="item in options"
-      :key="item.value"
-      type="button"
-      class="anim-card"
-      :class="[
-        `preview-${item.value}`,
-        { 'is-active': currentValue === item.value, 'is-disabled': disabled },
-      ]"
-      :disabled="disabled"
-      @click="handleSelect(item.value)"
-    >
+    <button v-for="item in options" :key="item.value" type="button" class="anim-card" :class="[
+      `preview-${item.value}`,
+      { 'is-active': currentValue === item.value, 'is-disabled': disabled }
+    ]" :disabled="disabled" @click="handleSelect(item.value)">
       <div class="anim-main">
         <span class="anim-label">{{ item.label }}</span>
         <span class="anim-badge">NEW</span>
@@ -22,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed } from 'vue';
 
 const props = defineProps<{
   modelValue: "bounce" | "pulse" | "shake" | "none";
@@ -155,6 +147,7 @@ function handleSelect(value: "bounce" | "pulse" | "shake") {
 }
 
 @keyframes preview-pulse {
+
   0%,
   100% {
     transform: scale(1);
@@ -168,6 +161,7 @@ function handleSelect(value: "bounce" | "pulse" | "shake") {
 }
 
 @keyframes preview-bounce {
+
   0%,
   20%,
   50%,
@@ -186,6 +180,7 @@ function handleSelect(value: "bounce" | "pulse" | "shake") {
 }
 
 @keyframes preview-shake {
+
   0%,
   100% {
     transform: rotate(0deg);

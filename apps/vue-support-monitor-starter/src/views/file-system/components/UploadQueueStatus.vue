@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="upload-queue-status system-container modern-bg"
-    :class="{ 'is-collapsed': isCollapsed }"
-  >
+  <div class="upload-queue-status system-container modern-bg" :class="{ 'is-collapsed': isCollapsed }">
     <!-- 队列状态面板 -->
     <div class="queue-panel">
       <!-- 面板头部 -->
@@ -13,7 +10,7 @@
             class="collapse-icon"
           />
           <span class="panel-title">上传队列</span>
-          <ScBadge
+          <el-badge
             v-if="queueList.length"
             :value="queueList.length"
             class="queue-badge"
@@ -22,7 +19,7 @@
         <div class="header-right">
           <div v-if="isCollapsed && currentTask" class="current-progress">
             <span class="progress-text">{{ currentTask.fileName }}</span>
-            <ScProgress
+            <el-progress
               :percentage="currentTask.progress"
               :status="getProgressStatus(currentTask.status)"
               :stroke-width="4"
@@ -54,17 +51,17 @@
                 <span class="file-name" :title="item.fileName">
                   {{ item.fileName }}
                 </span>
-                <ScButton
+                <el-button
                   size="small"
                   text
                   type="danger"
                   @click="$emit('cancel-task', item.fileId)"
                 >
                   <IconifyIconOnline icon="ri:close-line" />
-                </ScButton>
+                </el-button>
               </div>
               <div class="item-progress">
-                <ScProgress
+                <el-progress
                   :percentage="item.progress"
                   :status="getProgressStatus(item.status)"
                   :stroke-width="6"
@@ -77,7 +74,7 @@
                 <span v-if="item.message" class="status-message">{{
                   item.message
                 }}</span>
-                <ScButton
+                <el-button
                   v-if="item.status === 'completed'"
                   size="small"
                   text
@@ -89,7 +86,7 @@
                     class="mr-1"
                   />
                   同步
-                </ScButton>
+                </el-button>
               </div>
             </div>
           </div>
@@ -97,22 +94,22 @@
 
         <!-- 队列操作 -->
         <div v-if="queueList.length" class="queue-actions">
-          <ScButton size="small" @click="$emit('pause-all')">
+          <el-button size="small" @click="$emit('pause-all')">
             <IconifyIconOnline icon="ri:pause-line" class="mr-1" />
             暂停全部
-          </ScButton>
-          <ScButton size="small" @click="$emit('resume-all')">
+          </el-button>
+          <el-button size="small" @click="$emit('resume-all')">
             <IconifyIconOnline icon="ri:play-line" class="mr-1" />
             继续全部
-          </ScButton>
-          <ScButton
+          </el-button>
+          <el-button
             size="small"
             type="danger"
             @click="$emit('clear-completed')"
           >
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             清除已完成
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </div>
@@ -148,7 +145,7 @@ const queueList = ref<UploadQueueStatus[]>([]);
 // 计算属性
 const currentTask = computed(() => {
   return queueList.value.find(
-    (item) => item.status === "uploading" || item.status === "merging",
+    (item) => item.status === "uploading" || item.status === "merging"
   );
 });
 
@@ -160,7 +157,7 @@ watch(
     queueList.value = Array.from(newQueueStatus.values());
     emit("queue-update", queueList.value);
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 
 // 生命周期
@@ -185,7 +182,7 @@ const toggleCollapse = () => {
  */
 const addToQueue = (task: UploadQueueStatus) => {
   const existingIndex = queueList.value.findIndex(
-    (item) => item.fileId === task.fileId,
+    (item) => item.fileId === task.fileId
   );
   if (existingIndex >= 0) {
     queueList.value[existingIndex] = task;
@@ -211,7 +208,7 @@ const removeFromQueue = (fileId: number) => {
  */
 const updateQueueStatus = (
   fileId: number,
-  updates: Partial<UploadQueueStatus>,
+  updates: Partial<UploadQueueStatus>
 ) => {
   const item = queueList.value.find((item) => item.fileId === fileId);
   if (item) {
@@ -250,7 +247,7 @@ const resumeAll = () => {
  */
 const clearCompleted = () => {
   queueList.value = queueList.value.filter(
-    (item) => item.status !== "completed" && item.status !== "failed",
+    (item) => item.status !== "completed" && item.status !== "failed"
   );
   emit("queue-update", queueList.value);
 };
@@ -299,6 +296,7 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -331,6 +329,7 @@ defineExpose({
     z-index: 1;
   }
 }
+
 
 .upload-queue-status {
   position: fixed;
@@ -373,7 +372,7 @@ defineExpose({
 
         .collapse-icon {
           font-size: 16px;
-          color: var(--el-text-color-primary);
+           color: var(--el-text-color-primary);
           transition: transform 0.3s ease;
         }
 
@@ -421,7 +420,7 @@ defineExpose({
       .empty-queue {
         padding: 40px 20px;
         text-align: center;
-        color: var(--el-text-color-primary);
+         color: var(--el-text-color-primary);
 
         .empty-icon {
           font-size: 32px;
@@ -507,7 +506,7 @@ defineExpose({
 
               .status-message {
                 font-size: 12px;
-                color: var(--el-text-color-primary);
+                 color: var(--el-text-color-primary);
                 max-width: 150px;
                 overflow: hidden;
                 text-overflow: ellipsis;

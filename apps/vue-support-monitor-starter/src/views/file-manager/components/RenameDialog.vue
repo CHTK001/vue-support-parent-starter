@@ -12,8 +12,8 @@
       <div class="file-info">
         <div class="file-preview">
           <div class="file-icon">
-            <IconifyIconOnline
-              :icon="getFileIcon(fileInfo.type)"
+            <IconifyIconOnline 
+              :icon="getFileIcon(fileInfo.type)" 
               class="icon"
               :class="getFileTypeClass(fileInfo.type)"
             />
@@ -21,13 +21,9 @@
           <div class="file-details">
             <div class="file-name">{{ fileInfo.name }}</div>
             <div class="file-meta">
-              <span class="file-type">{{
-                getFileTypeText(fileInfo.type)
-              }}</span>
+              <span class="file-type">{{ getFileTypeText(fileInfo.type) }}</span>
               <span class="file-size">{{ formatFileSize(fileInfo.size) }}</span>
-              <span class="file-date">{{
-                formatDate(fileInfo.modifiedTime)
-              }}</span>
+              <span class="file-date">{{ formatDate(fileInfo.modifiedTime) }}</span>
             </div>
           </div>
         </div>
@@ -35,33 +31,33 @@
 
       <!-- 重命名表单 -->
       <div class="rename-form">
-        <ScForm
+        <el-form
           ref="formRef"
           :model="formData"
           :rules="formRules"
           label-width="80px"
           @submit.prevent="handleSubmit"
         >
-          <ScFormItem label="新名称" prop="newName">
-            <ScInput
+          <el-form-item label="新名称" prop="newName">
+            <el-input
               v-model="formData.newName"
               placeholder="请输入新的文件名"
               clearable
               maxlength="255"
               show-word-limit
-              class="name-input"
               @keyup.enter="handleSubmit"
+              class="name-input"
             >
               <template #prepend>
                 <IconifyIconOnline icon="ri:edit-line" />
               </template>
-            </ScInput>
-          </ScFormItem>
-        </ScForm>
+            </el-input>
+          </el-form-item>
+        </el-form>
       </div>
 
       <!-- 名称分析 -->
-      <div v-if="formData.newName.trim()" class="name-analysis">
+      <div class="name-analysis" v-if="formData.newName.trim()">
         <div class="analysis-header">
           <IconifyIconOnline icon="ri:information-line" class="analysis-icon" />
           <span>名称分析</span>
@@ -71,20 +67,16 @@
             <span class="analysis-label">文件名:</span>
             <span class="analysis-value">{{ nameAnalysis.fileName }}</span>
           </div>
-          <div v-if="nameAnalysis.extension" class="analysis-item">
+          <div class="analysis-item" v-if="nameAnalysis.extension">
             <span class="analysis-label">扩展名:</span>
-            <span class="analysis-value extension">{{
-              nameAnalysis.extension
-            }}</span>
+            <span class="analysis-value extension">{{ nameAnalysis.extension }}</span>
           </div>
           <div class="analysis-item">
             <span class="analysis-label">文件类型:</span>
-            <span class="analysis-value">{{
-              getFileTypeText(nameAnalysis.detectedType)
-            }}</span>
+            <span class="analysis-value">{{ getFileTypeText(nameAnalysis.detectedType) }}</span>
           </div>
-          <div v-if="nameAnalysis.isTypeChanged" class="analysis-item">
-            <ScAlert
+          <div class="analysis-item" v-if="nameAnalysis.isTypeChanged">
+            <el-alert
               title="类型变更提醒"
               :description="`文件类型将从 ${getFileTypeText(fileInfo.type)} 变更为 ${getFileTypeText(nameAnalysis.detectedType)}`"
               type="warning"
@@ -97,8 +89,8 @@
       </div>
 
       <!-- 冲突检测 -->
-      <div v-if="conflictInfo.hasConflict" class="conflict-detection">
-        <ScAlert
+      <div class="conflict-detection" v-if="conflictInfo.hasConflict">
+        <el-alert
           title="名称冲突"
           :description="conflictInfo.message"
           type="error"
@@ -110,342 +102,286 @@
             <div class="conflict-details">
               <p>{{ conflictInfo.message }}</p>
               <div class="conflict-options">
-                <ScRadioGroup v-model="formData.conflictAction">
-                  <ScRadio label="replace">替换现有文件</ScRadio>
-                  <ScRadio label="rename">自动重命名</ScRadio>
-                  <ScRadio label="cancel">取消操作</ScRadio>
-                </ScRadioGroup>
+                <el-radio-group v-model="formData.conflictAction">
+                  <el-radio label="replace">替换现有文件</el-radio>
+                  <el-radio label="rename">自动重命名</el-radio>
+                  <el-radio label="cancel">取消操作</el-radio>
+                </el-radio-group>
               </div>
             </div>
           </template>
-        </ScAlert>
+        </el-alert>
       </div>
 
       <!-- 高级选项 -->
       <div class="advanced-options">
-        <ScCollapse v-model="activeCollapse">
-          <ScCollapseItem title="高级选项" name="advanced">
+        <el-collapse v-model="activeCollapse">
+          <el-collapse-item title="高级选项" name="advanced">
             <div class="options-content">
-              <ScFormItem>
-                <ScCheckbox v-model="formData.preserveExtension">
-                  <IconifyIconOnline
-                    icon="ri:file-text-line"
-                    class="checkbox-icon"
-                  />
+              <el-form-item>
+                <el-checkbox v-model="formData.preserveExtension">
+                  <IconifyIconOnline icon="ri:file-text-line" class="checkbox-icon" />
                   保持原始扩展名
-                </ScCheckbox>
-              </ScFormItem>
-
-              <ScFormItem>
-                <ScCheckbox v-model="formData.updateReferences">
-                  <IconifyIconOnline
-                    icon="ri:links-line"
-                    class="checkbox-icon"
-                  />
+                </el-checkbox>
+              </el-form-item>
+              
+              <el-form-item>
+                <el-checkbox v-model="formData.updateReferences">
+                  <IconifyIconOnline icon="ri:links-line" class="checkbox-icon" />
                   更新相关引用
-                </ScCheckbox>
-              </ScFormItem>
-
-              <ScFormItem>
-                <ScCheckbox v-model="formData.createBackup">
-                  <IconifyIconOnline
-                    icon="ri:save-line"
-                    class="checkbox-icon"
-                  />
+                </el-checkbox>
+              </el-form-item>
+              
+              <el-form-item>
+                <el-checkbox v-model="formData.createBackup">
+                  <IconifyIconOnline icon="ri:save-line" class="checkbox-icon" />
                   创建备份
-                </ScCheckbox>
-              </ScFormItem>
+                </el-checkbox>
+              </el-form-item>
             </div>
-          </ScCollapseItem>
-        </ScCollapse>
+          </el-collapse-item>
+        </el-collapse>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton
+        <el-button @click="handleClose">取消</el-button>
+        <el-button
+          @click="handleSubmit"
           type="primary"
           :loading="isRenaming"
-          :disabled="
-            !formData.newName.trim() ||
-            (conflictInfo.hasConflict && formData.conflictAction === 'cancel')
-          "
-          @click="handleSubmit"
+          :disabled="!formData.newName.trim() || conflictInfo.hasConflict && formData.conflictAction === 'cancel'"
         >
-          <IconifyIconOnline
-            v-if="!isRenaming"
-            icon="ri:edit-line"
-            class="btn-icon"
-          />
-          {{ isRenaming ? "重命名中..." : "确认重命名" }}
-        </ScButton>
+          <IconifyIconOnline v-if="!isRenaming" icon="ri:edit-line" class="btn-icon" />
+          {{ isRenaming ? '重命名中...' : '确认重命名' }}
+        </el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, nextTick } from "vue";
+import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
-import type { FormInstance, FormRules } from "element-plus";
+import { ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 
 // 文件信息接口
 interface FileInfo {
-  name: string;
-  type: string;
-  size: number;
-  modifiedTime: string;
-  path: string;
+  name: string
+  type: string
+  size: number
+  modifiedTime: string
+  path: string
 }
 
 // Props
 interface Props {
-  modelValue: boolean;
-  fileInfo: FileInfo;
+  modelValue: boolean
+  fileInfo: FileInfo
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   fileInfo: () => ({
-    name: "",
-    type: "unknown",
+    name: '',
+    type: 'unknown',
     size: 0,
-    modifiedTime: "",
-    path: "",
-  }),
-});
+    modifiedTime: '',
+    path: ''
+  })
+})
 
 // Emits
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean];
-  "file-renamed": [oldName: string, newName: string];
-}>();
+  'update:modelValue': [value: boolean]
+  'file-renamed': [oldName: string, newName: string]
+}>()
 
 // 响应式数据
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
-});
+  set: (value) => emit('update:modelValue', value)
+})
 
-const formRef = ref<FormInstance>();
-const isRenaming = ref(false);
-const activeCollapse = ref<string[]>([]);
+const formRef = ref<FormInstance>()
+const isRenaming = ref(false)
+const activeCollapse = ref<string[]>([])
 
 const formData = reactive({
-  newName: "",
-  conflictAction: "cancel",
+  newName: '',
+  conflictAction: 'cancel',
   preserveExtension: false,
   updateReferences: false,
-  createBackup: false,
-});
+  createBackup: false
+})
 
 // 表单验证规则
 const formRules: FormRules = {
   newName: [
-    { required: true, message: "请输入新的文件名", trigger: "blur" },
-    {
-      min: 1,
-      max: 255,
-      message: "文件名长度在 1 到 255 个字符",
-      trigger: "blur",
-    },
+    { required: true, message: '请输入新的文件名', trigger: 'blur' },
+    { min: 1, max: 255, message: '文件名长度在 1 到 255 个字符', trigger: 'blur' },
     {
       pattern: /^[^<>:"/\\|?*]+$/,
       message: '文件名不能包含以下字符: < > : " / \\ | ? *',
-      trigger: "blur",
+      trigger: 'blur'
     },
     {
       validator: (rule, value, callback) => {
         if (value === props.fileInfo.name) {
-          callback(new Error("新文件名不能与原文件名相同"));
+          callback(new Error('新文件名不能与原文件名相同'))
         } else {
-          callback();
+          callback()
         }
       },
-      trigger: "blur",
-    },
-  ],
-};
+      trigger: 'blur'
+    }
+  ]
+}
 
 // 计算属性
 const nameAnalysis = computed(() => {
-  const newName = formData.newName.trim();
+  const newName = formData.newName.trim()
   if (!newName) {
     return {
-      fileName: "",
-      extension: "",
-      detectedType: "unknown",
-      isTypeChanged: false,
-    };
+      fileName: '',
+      extension: '',
+      detectedType: 'unknown',
+      isTypeChanged: false
+    }
   }
 
-  const lastDotIndex = newName.lastIndexOf(".");
-  const fileName =
-    lastDotIndex > 0 ? newName.substring(0, lastDotIndex) : newName;
-  const extension = lastDotIndex > 0 ? newName.substring(lastDotIndex) : "";
-  const detectedType = getFileTypeFromExtension(extension);
-  const isTypeChanged = detectedType !== props.fileInfo.type;
+  const lastDotIndex = newName.lastIndexOf('.')
+  const fileName = lastDotIndex > 0 ? newName.substring(0, lastDotIndex) : newName
+  const extension = lastDotIndex > 0 ? newName.substring(lastDotIndex) : ''
+  const detectedType = getFileTypeFromExtension(extension)
+  const isTypeChanged = detectedType !== props.fileInfo.type
 
   return {
     fileName,
     extension,
     detectedType,
-    isTypeChanged,
-  };
-});
+    isTypeChanged
+  }
+})
 
 const conflictInfo = computed(() => {
   // 这里应该检查文件名冲突
   // 模拟冲突检测
-  const hasConflict = false; // 实际应该调用API检查
-
+  const hasConflict = false // 实际应该调用API检查
+  
   return {
     hasConflict,
-    message: hasConflict ? `文件 "${formData.newName}" 已存在` : "",
-  };
-});
+    message: hasConflict ? `文件 "${formData.newName}" 已存在` : ''
+  }
+})
 
 // 方法
 const getFileIcon = (type: string): string => {
   const iconMap: Record<string, string> = {
-    folder: "ri:folder-fill",
-    image: "ri:image-fill",
-    video: "ri:video-fill",
-    audio: "ri:music-fill",
-    document: "ri:file-text-fill",
-    pdf: "ri:file-pdf-fill",
-    archive: "ri:file-zip-fill",
-    code: "ri:code-fill",
-    text: "ri:file-text-line",
-    unknown: "ri:file-line",
-  };
-  return iconMap[type] || iconMap.unknown;
-};
+    folder: 'ri:folder-fill',
+    image: 'ri:image-fill',
+    video: 'ri:video-fill',
+    audio: 'ri:music-fill',
+    document: 'ri:file-text-fill',
+    pdf: 'ri:file-pdf-fill',
+    archive: 'ri:file-zip-fill',
+    code: 'ri:code-fill',
+    text: 'ri:file-text-line',
+    unknown: 'ri:file-line'
+  }
+  return iconMap[type] || iconMap.unknown
+}
 
 const getFileTypeClass = (type: string): string => {
   const classMap: Record<string, string> = {
-    folder: "folder-icon",
-    image: "image-icon",
-    video: "video-icon",
-    audio: "audio-icon",
-    document: "document-icon",
-    pdf: "pdf-icon",
-    archive: "archive-icon",
-    code: "code-icon",
-    text: "text-icon",
-    unknown: "unknown-icon",
-  };
-  return classMap[type] || classMap.unknown;
-};
+    folder: 'folder-icon',
+    image: 'image-icon',
+    video: 'video-icon',
+    audio: 'audio-icon',
+    document: 'document-icon',
+    pdf: 'pdf-icon',
+    archive: 'archive-icon',
+    code: 'code-icon',
+    text: 'text-icon',
+    unknown: 'unknown-icon'
+  }
+  return classMap[type] || classMap.unknown
+}
 
 const getFileTypeText = (type: string): string => {
   const typeMap: Record<string, string> = {
-    folder: "文件夹",
-    image: "图片文件",
-    video: "视频文件",
-    audio: "音频文件",
-    document: "文档文件",
-    pdf: "PDF文件",
-    archive: "压缩文件",
-    code: "代码文件",
-    text: "文本文件",
-    unknown: "未知类型",
-  };
-  return typeMap[type] || typeMap.unknown;
-};
+    folder: '文件夹',
+    image: '图片文件',
+    video: '视频文件',
+    audio: '音频文件',
+    document: '文档文件',
+    pdf: 'PDF文件',
+    archive: '压缩文件',
+    code: '代码文件',
+    text: '文本文件',
+    unknown: '未知类型'
+  }
+  return typeMap[type] || typeMap.unknown
+}
 
 const getFileTypeFromExtension = (extension: string): string => {
-  if (!extension) return "unknown";
-
-  const ext = extension.toLowerCase();
+  if (!extension) return 'unknown'
+  
+  const ext = extension.toLowerCase()
   const typeMap: Record<string, string> = {
-    ".jpg": "image",
-    ".jpeg": "image",
-    ".png": "image",
-    ".gif": "image",
-    ".bmp": "image",
-    ".svg": "image",
-    ".mp4": "video",
-    ".avi": "video",
-    ".mov": "video",
-    ".wmv": "video",
-    ".flv": "video",
-    ".mkv": "video",
-    ".mp3": "audio",
-    ".wav": "audio",
-    ".flac": "audio",
-    ".aac": "audio",
-    ".ogg": "audio",
-    ".pdf": "pdf",
-    ".doc": "document",
-    ".docx": "document",
-    ".xls": "document",
-    ".xlsx": "document",
-    ".ppt": "document",
-    ".pptx": "document",
-    ".zip": "archive",
-    ".rar": "archive",
-    ".7z": "archive",
-    ".tar": "archive",
-    ".gz": "archive",
-    ".js": "code",
-    ".ts": "code",
-    ".vue": "code",
-    ".html": "code",
-    ".css": "code",
-    ".scss": "code",
-    ".json": "code",
-    ".txt": "text",
-    ".md": "text",
-    ".log": "text",
-  };
-
-  return typeMap[ext] || "unknown";
-};
+    '.jpg': 'image', '.jpeg': 'image', '.png': 'image', '.gif': 'image', '.bmp': 'image', '.svg': 'image',
+    '.mp4': 'video', '.avi': 'video', '.mov': 'video', '.wmv': 'video', '.flv': 'video', '.mkv': 'video',
+    '.mp3': 'audio', '.wav': 'audio', '.flac': 'audio', '.aac': 'audio', '.ogg': 'audio',
+    '.pdf': 'pdf',
+    '.doc': 'document', '.docx': 'document', '.xls': 'document', '.xlsx': 'document', '.ppt': 'document', '.pptx': 'document',
+    '.zip': 'archive', '.rar': 'archive', '.7z': 'archive', '.tar': 'archive', '.gz': 'archive',
+    '.js': 'code', '.ts': 'code', '.vue': 'code', '.html': 'code', '.css': 'code', '.scss': 'code', '.json': 'code',
+    '.txt': 'text', '.md': 'text', '.log': 'text'
+  }
+  
+  return typeMap[ext] || 'unknown'
+}
 
 const formatFileSize = (size: number): string => {
-  if (size === 0) return "0 B";
-
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const k = 1024;
-  const i = Math.floor(Math.log(size) / Math.log(k));
-
-  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + " " + units[i];
-};
+  if (size === 0) return '0 B'
+  
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const k = 1024
+  const i = Math.floor(Math.log(size) / Math.log(k))
+  
+  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + units[i]
+}
 
 const formatDate = (dateString: string): string => {
-  if (!dateString) return "";
-
-  const date = new Date(dateString);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+  if (!dateString) return ''
+  
+  const date = new Date(dateString)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-
+  if (!formRef.value) return
+  
   try {
     // 验证表单
-    await formRef.value.validate();
-
+    await formRef.value.validate()
+    
     // 处理冲突
-    if (
-      conflictInfo.value.hasConflict &&
-      formData.conflictAction === "cancel"
-    ) {
-      message("请选择冲突处理方式", { type: "warning" });
-      return;
+    if (conflictInfo.value.hasConflict && formData.conflictAction === 'cancel') {
+      message('请选择冲突处理方式', { type: "warning" })
+      return
     }
-
-    isRenaming.value = true;
-
+    
+    isRenaming.value = true
+    
     // 调用重命名API
     await renameFile({
       oldPath: props.fileInfo.path,
@@ -453,83 +389,82 @@ const handleSubmit = async () => {
       conflictAction: formData.conflictAction,
       preserveExtension: formData.preserveExtension,
       updateReferences: formData.updateReferences,
-      createBackup: formData.createBackup,
-    });
-
-    message(`文件重命名成功`, { type: "success" });
-    emit("file-renamed", props.fileInfo.name, formData.newName.trim());
-    handleClose();
+      createBackup: formData.createBackup
+    })
+    
+    message(`文件重命名成功`, { type: "success" })
+    emit('file-renamed', props.fileInfo.name, formData.newName.trim())
+    handleClose()
+    
   } catch (error: any) {
-    message(error.message || "重命名失败", { type: "error" });
-    console.error("重命名失败:", error);
+    message(error.message || '重命名失败', { type: "error" })
+    console.error('重命名失败:', error)
   } finally {
-    isRenaming.value = false;
+    isRenaming.value = false
   }
-};
+}
 
 const renameFile = async (options: {
-  oldPath: string;
-  newName: string;
-  conflictAction: string;
-  preserveExtension: boolean;
-  updateReferences: boolean;
-  createBackup: boolean;
+  oldPath: string
+  newName: string
+  conflictAction: string
+  preserveExtension: boolean
+  updateReferences: boolean
+  createBackup: boolean
 }) => {
   try {
     // 这里应该调用实际的重命名API
     // const response = await renameFileApi(options)
     // return response.data
-
+    
     // 模拟重命名
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return { success: true };
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    return { success: true }
   } catch (error) {
-    throw new Error("重命名失败");
+    throw new Error('重命名失败')
   }
-};
+}
 
 const handleClose = () => {
-  dialogVisible.value = false;
-  resetForm();
-};
+  dialogVisible.value = false
+  resetForm()
+}
 
 const resetForm = () => {
-  formData.newName = "";
-  formData.conflictAction = "cancel";
-  formData.preserveExtension = false;
-  formData.updateReferences = false;
-  formData.createBackup = false;
-  activeCollapse.value = [];
-
+  formData.newName = ''
+  formData.conflictAction = 'cancel'
+  formData.preserveExtension = false
+  formData.updateReferences = false
+  formData.createBackup = false
+  activeCollapse.value = []
+  
   if (formRef.value) {
-    formRef.value.resetFields();
+    formRef.value.resetFields()
   }
-};
+}
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible && props.fileInfo.name) {
     // 初始化新名称为原文件名
-    formData.newName = props.fileInfo.name;
-
+    formData.newName = props.fileInfo.name
+    
     nextTick(() => {
       // 聚焦到输入框并选中文件名部分（不包括扩展名）
-      const input = document.querySelector(
-        ".name-input input",
-      ) as HTMLInputElement;
+      const input = document.querySelector('.name-input input') as HTMLInputElement
       if (input) {
-        input.focus();
-
-        const lastDotIndex = props.fileInfo.name.lastIndexOf(".");
+        input.focus()
+        
+        const lastDotIndex = props.fileInfo.name.lastIndexOf('.')
         if (lastDotIndex > 0) {
-          input.setSelectionRange(0, lastDotIndex);
+          input.setSelectionRange(0, lastDotIndex)
         } else {
-          input.select();
+          input.select()
         }
       }
-    });
+    })
   }
-});
+})
 </script>
 
 <style lang="scss" scoped>
@@ -550,37 +485,17 @@ watch(dialogVisible, (visible) => {
         .file-icon {
           .icon {
             font-size: 48px;
-
-            &.folder-icon {
-              color: #ffc107;
-            }
-            &.image-icon {
-              color: #28a745;
-            }
-            &.video-icon {
-              color: #dc3545;
-            }
-            &.audio-icon {
-              color: #6f42c1;
-            }
-            &.document-icon {
-              color: #007bff;
-            }
-            &.pdf-icon {
-              color: #dc3545;
-            }
-            &.archive-icon {
-              color: #fd7e14;
-            }
-            &.code-icon {
-              color: #20c997;
-            }
-            &.text-icon {
-              color: #6c757d;
-            }
-            &.unknown-icon {
-              color: #adb5bd;
-            }
+            
+            &.folder-icon { color: #ffc107; }
+            &.image-icon { color: #28a745; }
+            &.video-icon { color: #dc3545; }
+            &.audio-icon { color: #6f42c1; }
+            &.document-icon { color: #007bff; }
+            &.pdf-icon { color: #dc3545; }
+            &.archive-icon { color: #fd7e14; }
+            &.code-icon { color: #20c997; }
+            &.text-icon { color: #6c757d; }
+            &.unknown-icon { color: #adb5bd; }
           }
         }
 
@@ -665,7 +580,7 @@ watch(dialogVisible, (visible) => {
             color: var(--el-text-color-primary);
 
             &.extension {
-              font-family: "Consolas", "Monaco", "Courier New", monospace;
+              font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
               background: #e9ecef;
               padding: 2px 6px;
               border-radius: 4px;

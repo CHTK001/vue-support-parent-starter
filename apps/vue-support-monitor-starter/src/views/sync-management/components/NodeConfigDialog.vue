@@ -7,11 +7,11 @@
     @closed="handleClosed"
   >
     <div v-if="loading" class="loading-container">
-      <ScIcon class="loading-icon"><Loading /></ScIcon>
+      <el-icon class="loading-icon"><Loading /></el-icon>
       <span>加载参数配置...</span>
     </div>
 
-    <ScForm
+    <el-form
       v-else
       ref="formRef"
       :model="formData"
@@ -20,61 +20,55 @@
       class="node-config-form"
     >
       <!-- 基础信息 -->
-      <ScCard shadow="never" class="config-section">
+      <el-card shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
-            <ScIcon><InfoFilled /></ScIcon>
+            <el-icon><InfoFilled /></el-icon>
             <span>基础信息</span>
           </div>
         </template>
-        <ScFormItem label="节点名称" prop="syncNodeName">
-          <ScInput
+        <el-form-item label="节点名称" prop="syncNodeName">
+          <el-input
             v-model="formData.syncNodeName"
             placeholder="请输入节点名称"
             maxlength="100"
             show-word-limit
           />
-        </ScFormItem>
-        <ScRow :gutter="16">
-          <ScCol :span="12">
-            <ScFormItem label="节点类型">
-              <ScInput :value="getNodeTypeText(node?.syncNodeType)" disabled />
-            </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="SPI类型">
-              <ScInput :value="node?.syncNodeSpiName" disabled />
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
-        <ScFormItem label="节点描述" prop="syncNodeDescription">
-          <ScInput
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="节点类型">
+              <el-input :value="getNodeTypeText(node?.syncNodeType)" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="SPI类型">
+              <el-input :value="node?.syncNodeSpiName" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="节点描述" prop="syncNodeDescription">
+          <el-input
             v-model="formData.syncNodeDescription"
             type="textarea"
             :rows="2"
             placeholder="请输入节点描述（可选）"
             maxlength="500"
           />
-        </ScFormItem>
-      </ScCard>
+        </el-form-item>
+      </el-card>
 
       <!-- 参数配置 -->
-      <ScCard
-        v-if="parameters.length > 0"
-        shadow="never"
-        class="config-section"
-      >
+      <el-card v-if="parameters.length > 0" shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
-            <ScIcon><Setting /></ScIcon>
+            <el-icon><Setting /></el-icon>
             <span>参数配置</span>
-            <ScTag size="small" type="info"
-              >{{ parameters.length }} 个参数</el-tag
-            >
+            <el-tag size="small" type="info">{{ parameters.length }} 个参数</el-tag>
           </div>
         </template>
 
-        <ScFormItem
+        <el-form-item
           v-for="param in parameters"
           :key="param.name"
           :label="param.label || param.name"
@@ -84,14 +78,12 @@
           <template #label>
             <div class="param-label">
               <span>{{ param.label || param.name }}</span>
-              <ScTag v-if="param.required" size="small" type="danger"
-                >必填</el-tag
-              >
+              <el-tag v-if="param.required" size="small" type="danger">必填</el-tag>
             </div>
           </template>
 
           <!-- 字符串输入 -->
-          <ScInput
+          <el-input
             v-if="param.type === 'string'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || param.description"
@@ -99,7 +91,7 @@
           />
 
           <!-- 密码输入 -->
-          <ScInput
+          <el-input
             v-else-if="param.type === 'password'"
             v-model="formData.config[param.name]"
             type="password"
@@ -109,7 +101,7 @@
           />
 
           <!-- 文本域 -->
-          <ScInput
+          <el-input
             v-else-if="param.type === 'textarea'"
             v-model="formData.config[param.name]"
             type="textarea"
@@ -119,23 +111,23 @@
 
           <!-- JSON编辑器 -->
           <div v-else-if="param.type === 'json'" class="json-editor">
-            <ScInput
+            <el-input
               v-model="formData.config[param.name]"
               type="textarea"
               :rows="5"
               :placeholder="param.placeholder || '请输入JSON格式数据'"
             />
-            <ScButton
+            <el-button
               size="small"
               class="format-btn"
               @click="formatJson(param.name)"
             >
               格式化JSON
-            </ScButton>
+            </el-button>
           </div>
 
           <!-- 数字输入 -->
-          <ScInputNumber
+          <el-input-number
             v-else-if="param.type === 'number'"
             v-model="formData.config[param.name]"
             :min="param.min"
@@ -147,7 +139,7 @@
           />
 
           <!-- 开关 -->
-          <ScSwitch
+          <el-switch
             v-else-if="param.type === 'boolean'"
             v-model="formData.config[param.name]"
             :active-text="param.activeText || '是'"
@@ -155,7 +147,7 @@
           />
 
           <!-- 下拉选择 -->
-          <ScSelect
+          <el-select
             v-else-if="param.type === 'select'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请选择'"
@@ -163,16 +155,16 @@
             filterable
             style="width: 100%"
           >
-            <ScOption
+            <el-option
               v-for="opt in param.options"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </ScSelect>
+          </el-select>
 
           <!-- 多选 -->
-          <ScSelect
+          <el-select
             v-else-if="param.type === 'multiselect'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请选择'"
@@ -183,16 +175,16 @@
             collapse-tags-tooltip
             style="width: 100%"
           >
-            <ScOption
+            <el-option
               v-for="opt in param.options"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </ScSelect>
+          </el-select>
 
           <!-- 日期选择 -->
-          <ScDatePicker
+          <el-date-picker
             v-else-if="param.type === 'date'"
             v-model="formData.config[param.name]"
             type="date"
@@ -201,7 +193,7 @@
           />
 
           <!-- 日期时间选择 -->
-          <ScDatePicker
+          <el-date-picker
             v-else-if="param.type === 'datetime'"
             v-model="formData.config[param.name]"
             type="datetime"
@@ -210,7 +202,7 @@
           />
 
           <!-- 颜色选择 -->
-          <ScColorPicker
+          <el-color-picker
             v-else-if="param.type === 'color'"
             v-model="formData.config[param.name]"
           />
@@ -232,17 +224,17 @@
               :key="index"
               class="keyvalue-item"
             >
-              <ScInput
+              <el-input
                 v-model="item.key"
                 placeholder="键"
                 @change="updateKeyValueConfig(param.name)"
               />
-              <ScInput
+              <el-input
                 v-model="item.value"
                 placeholder="值"
                 @change="updateKeyValueConfig(param.name)"
               />
-              <ScButton
+              <el-button
                 type="danger"
                 :icon="Delete"
                 circle
@@ -250,28 +242,24 @@
                 @click="removeKeyValueItem(param.name, index)"
               />
             </div>
-            <ScButton
-              type="primary"
-              :icon="Plus"
-              @click="addKeyValueItem(param.name)"
-            >
+            <el-button type="primary" :icon="Plus" @click="addKeyValueItem(param.name)">
               添加
-            </ScButton>
+            </el-button>
           </div>
 
           <!-- 文件路径选择 -->
-          <ScInput
+          <el-input
             v-else-if="param.type === 'filepath'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请输入文件路径'"
           >
             <template #append>
-              <ScButton :icon="FolderOpened" />
+              <el-button :icon="FolderOpened" />
             </template>
-          </ScInput>
+          </el-input>
 
           <!-- 默认为字符串输入 -->
-          <ScInput
+          <el-input
             v-else
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || param.description"
@@ -279,22 +267,22 @@
 
           <!-- 参数描述 -->
           <div v-if="param.description" class="param-description">
-            <ScIcon><InfoFilled /></ScIcon>
+            <el-icon><InfoFilled /></el-icon>
             {{ param.description }}
           </div>
-        </ScFormItem>
-      </ScCard>
+        </el-form-item>
+      </el-card>
 
       <!-- 无参数提示 -->
-      <ScEmpty v-else description="该节点类型无需配置参数" :image-size="100" />
+      <el-empty v-else description="该节点类型无需配置参数" :image-size="100" />
 
       <!-- 输出节点自动建表配置（仅数据库类型） -->
-      <ScCard v-if="showColumnEditor" shadow="never" class="config-section">
+      <el-card v-if="showColumnEditor" shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
-            <ScIcon><Grid /></ScIcon>
+            <el-icon><Grid /></el-icon>
             <span>目标表列定义</span>
-            <ScTag size="small" type="info">自动建表</ScTag>
+            <el-tag size="small" type="info">自动建表</el-tag>
           </div>
         </template>
         <ColumnDefinitionEditor
@@ -305,25 +293,25 @@
           :showAutoCreateSwitch="true"
           @import="handleImportColumns"
         />
-      </ScCard>
-    </ScForm>
+      </el-card>
+    </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">取消</ScButton>
-        <ScButton
+        <el-button @click="visible = false">取消</el-button>
+        <el-button
           v-if="canTest"
           type="info"
           :loading="testing"
           @click="handleTestConnection"
         >
-          <ScIcon><Connection /></ScIcon>
+          <el-icon><Connection /></el-icon>
           测试连接
-        </ScButton>
-        <ScButton type="primary" :loading="saving" @click="handleSave">
-          <ScIcon><Check /></ScIcon>
+        </el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">
+          <el-icon><Check /></el-icon>
           保存配置
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -379,10 +367,7 @@ const dialogTitle = computed(() => {
 });
 
 const canTest = computed(() => {
-  return (
-    props.node?.syncNodeType === "INPUT" ||
-    props.node?.syncNodeType === "OUTPUT"
-  );
+  return props.node?.syncNodeType === "INPUT" || props.node?.syncNodeType === "OUTPUT";
 });
 
 // 是否显示列定义编辑器（仅数据库类型输出节点）
@@ -390,15 +375,9 @@ const showColumnEditor = computed(() => {
   if (props.node?.syncNodeType !== "OUTPUT") return false;
   const spiName = props.node?.syncNodeSpiName?.toLowerCase() || "";
   // 数据库类型SPI
-  return [
-    "jdbc",
-    "mysql",
-    "postgresql",
-    "oracle",
-    "sqlserver",
-    "sqlite",
-    "database",
-  ].some((db) => spiName.includes(db));
+  return ["jdbc", "mysql", "postgresql", "oracle", "sqlserver", "sqlite", "database"].some(
+    (db) => spiName.includes(db)
+  );
 });
 
 const formRef = ref<FormInstance>();
@@ -420,14 +399,10 @@ const formData = reactive<FormData>({
 });
 
 // 键值对临时存储
-const keyValueStore = reactive<
-  Record<string, Array<{ key: string; value: string }>>
->({});
+const keyValueStore = reactive<Record<string, Array<{ key: string; value: string }>>>({});
 
 const formRules: FormRules = {
-  syncNodeName: [
-    { required: true, message: "请输入节点名称", trigger: "blur" },
-  ],
+  syncNodeName: [{ required: true, message: "请输入节点名称", trigger: "blur" }],
 };
 
 // 获取节点类型文本
@@ -445,11 +420,7 @@ const getNodeTypeText = (type?: string) => {
 const getParamRules = (param: SpiParameter) => {
   const rules: any[] = [];
   if (param.required) {
-    rules.push({
-      required: true,
-      message: `请输入${param.label || param.name}`,
-      trigger: "blur",
-    });
+    rules.push({ required: true, message: `请输入${param.label || param.name}`, trigger: "blur" });
   }
   if (param.pattern) {
     rules.push({
@@ -458,10 +429,7 @@ const getParamRules = (param: SpiParameter) => {
       trigger: "blur",
     });
   }
-  if (
-    param.type === "number" &&
-    (param.min !== undefined || param.max !== undefined)
-  ) {
+  if (param.type === "number" && (param.min !== undefined || param.max !== undefined)) {
     rules.push({
       type: "number",
       min: param.min,
@@ -479,10 +447,7 @@ const loadParameters = async () => {
 
   loading.value = true;
   try {
-    const res = await getSpiParameters(
-      props.node.syncNodeType,
-      props.node.syncNodeSpiName,
-    );
+    const res = await getSpiParameters(props.node.syncNodeType, props.node.syncNodeSpiName);
     if (res.data?.success) {
       parameters.value = res.data.data || [];
     }
@@ -511,10 +476,7 @@ const initFormData = () => {
 
   // 设置默认值
   parameters.value.forEach((param) => {
-    if (
-      formData.config[param.name] === undefined &&
-      param.defaultValue !== undefined
-    ) {
+    if (formData.config[param.name] === undefined && param.defaultValue !== undefined) {
       formData.config[param.name] = param.defaultValue;
     }
     // 初始化键值对存储
@@ -622,7 +584,7 @@ const handleTestConnection = async () => {
     const res = await testSpiConnection(
       props.node.syncNodeType!,
       props.node.syncNodeSpiName!,
-      formData.config,
+      formData.config
     );
     if (res.data?.success) {
       ElMessage.success(res.data.data || "连接成功");
@@ -679,7 +641,7 @@ watch(
       });
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -690,7 +652,7 @@ watch(
         initFormData();
       });
     }
-  },
+  }
 );
 </script>
 
@@ -798,6 +760,7 @@ watch(
   gap: 8px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -806,4 +769,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -1,9 +1,9 @@
 ﻿<template>
   <div class="trace-history system-container modern-bg">
     <!-- 搜索栏 -->
-    <ScCard class="search-card" shadow="never">
+    <el-card class="search-card" shadow="never">
       <div class="search-form">
-        <ScInput
+        <el-input
           v-model="searchKeyword"
           placeholder="搜索链路ID、方法名、地址等"
           class="search-input"
@@ -13,9 +13,9 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
+        </el-input>
 
-        <ScDatePicker
+        <el-date-picker
           v-model="dateRange"
           type="datetimerange"
           range-separator="至"
@@ -25,19 +25,19 @@
           class="date-picker"
         />
 
-        <ScButton type="primary" @click="handleSearch">
+        <el-button type="primary" @click="handleSearch">
           <IconifyIconOnline icon="ri:search-line" />
           搜索
-        </ScButton>
+        </el-button>
 
-        <ScTooltip content="刷新" placement="top">
-          <ScButton type="primary" :icon="Refresh" @click="handleRefresh" />
-        </ScTooltip>
+        <el-tooltip content="刷新" placement="top">
+          <el-button type="primary" :icon="Refresh" @click="handleRefresh" />
+        </el-tooltip>
       </div>
-    </ScCard>
+    </el-card>
 
     <!-- 链路列表 -->
-    <ScCard class="trace-list-card" shadow="never">
+    <el-card class="trace-list-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span class="title">
@@ -57,9 +57,13 @@
         >
           <div class="trace-header">
             <div class="trace-info">
-              <ScTag :type="getStatusType(trace)" size="small" effect="dark">
+              <el-tag
+                :type="getStatusType(trace)"
+                size="small"
+                effect="dark"
+              >
                 {{ trace.category || "UNKNOWN" }}
-              </ScTag>
+              </el-tag>
               <span class="method-name">{{ trace.method || "-" }}</span>
               <span class="link-id">{{ trace.linkId }}</span>
             </div>
@@ -98,15 +102,12 @@
           </div>
         </div>
 
-        <ScEmpty
-          v-if="!loading && traceList.length === 0"
-          description="暂无链路数据"
-        />
+        <el-empty v-if="!loading && traceList.length === 0" description="暂无链路数据" />
       </div>
 
       <!-- 分页 -->
       <div class="pagination-wrapper">
-        <ScPagination
+        <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
@@ -116,7 +117,7 @@
           @current-change="handlePageChange"
         />
       </div>
-    </ScCard>
+    </el-card>
 
     <!-- 链路详情抽屉 -->
     <sc-drawer
@@ -129,63 +130,58 @@
         <!-- 基本信息 -->
         <div class="detail-section">
           <h4>基本信息</h4>
-          <ScDescriptions :column="2" border size="small">
-            <ScDescriptionsItem label="链路ID">
+          <el-descriptions :column="2" border size="small">
+            <el-descriptions-item label="链路ID">
               {{ selectedTrace.linkId }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="Span ID">
+            </el-descriptions-item>
+            <el-descriptions-item label="Span ID">
               {{ selectedTrace.spanId }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="父 Span ID">
+            </el-descriptions-item>
+            <el-descriptions-item label="父 Span ID">
               {{ selectedTrace.parentSpanId || "-" }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="线程名">
+            </el-descriptions-item>
+            <el-descriptions-item label="线程名">
               {{ selectedTrace.threadName }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="分类">
+            </el-descriptions-item>
+            <el-descriptions-item label="分类">
               {{ selectedTrace.category }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="协议">
+            </el-descriptions-item>
+            <el-descriptions-item label="协议">
               {{ selectedTrace.protocol }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="状态码">
-              <ScTag
-                :type="
-                  selectedTrace.statusCode === '200' ? 'success' : 'danger'
-                "
-                size="small"
-              >
+            </el-descriptions-item>
+            <el-descriptions-item label="状态码">
+              <el-tag :type="selectedTrace.statusCode === '200' ? 'success' : 'danger'" size="small">
                 {{ selectedTrace.statusCode || "-" }}
-              </ScTag>
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="耗时">
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="耗时">
               <span :class="getCostTimeClass(selectedTrace.costTime)">
                 {{ formatCostTime(selectedTrace.costTime) }}
               </span>
-            </ScDescriptionsItem>
-          </ScDescriptions>
+            </el-descriptions-item>
+          </el-descriptions>
         </div>
 
         <!-- 调用信息 -->
         <div class="detail-section">
           <h4>调用信息</h4>
-          <ScDescriptions :column="1" border size="small">
-            <ScDescriptionsItem label="类名">
+          <el-descriptions :column="1" border size="small">
+            <el-descriptions-item label="类名">
               {{ selectedTrace.typeName }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="方法名">
+            </el-descriptions-item>
+            <el-descriptions-item label="方法名">
               {{ selectedTrace.method }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="地址">
+            </el-descriptions-item>
+            <el-descriptions-item label="地址">
               {{ selectedTrace.address }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem v-if="selectedTrace.database" label="数据库">
+            </el-descriptions-item>
+            <el-descriptions-item v-if="selectedTrace.database" label="数据库">
               {{ selectedTrace.database }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem v-if="selectedTrace.description" label="描述">
+            </el-descriptions-item>
+            <el-descriptions-item v-if="selectedTrace.description" label="描述">
               {{ selectedTrace.description }}
-            </ScDescriptionsItem>
-          </ScDescriptions>
+            </el-descriptions-item>
+          </el-descriptions>
         </div>
 
         <!-- 错误信息 -->
@@ -194,23 +190,23 @@
             <IconifyIconOnline icon="ri:error-warning-line" />
             错误信息
           </h4>
-          <ScAlert type="error" :closable="false" show-icon>
+          <el-alert type="error" :closable="false" show-icon>
             {{ selectedTrace.error }}
-          </ScAlert>
+          </el-alert>
         </div>
 
         <!-- 请求头 -->
         <div v-if="selectedTrace.headers?.length" class="detail-section">
           <h4>请求头</h4>
           <div class="header-list">
-            <ScTag
+            <el-tag
               v-for="(header, index) in selectedTrace.headers"
               :key="index"
               size="small"
               class="header-tag"
             >
               {{ header }}
-            </ScTag>
+            </el-tag>
           </div>
         </div>
 
@@ -218,7 +214,7 @@
         <div v-if="selectedTrace.params?.length" class="detail-section">
           <h4>请求参数</h4>
           <div class="param-list">
-            <ScTag
+            <el-tag
               v-for="(param, index) in selectedTrace.params"
               :key="index"
               size="small"
@@ -226,15 +222,15 @@
               class="param-tag"
             >
               {{ param }}
-            </ScTag>
+            </el-tag>
           </div>
         </div>
 
         <!-- 子 Span -->
         <div v-if="selectedTrace.children?.length" class="detail-section">
           <h4>子调用链 ({{ selectedTrace.children.length }})</h4>
-          <ScTimeline>
-            <ScTimelineItem
+          <el-timeline>
+            <el-timeline-item
               v-for="child in selectedTrace.children"
               :key="child.spanId"
               :type="child.error ? 'danger' : 'primary'"
@@ -242,14 +238,12 @@
               placement="top"
             >
               <div class="child-span">
-                <ScTag size="small" effect="plain">{{
-                  child.category
-                }}</ScTag>
+                <el-tag size="small" effect="plain">{{ child.category }}</el-tag>
                 <span class="child-method">{{ child.method }}</span>
                 <span class="child-address">{{ child.address }}</span>
               </div>
-            </ScTimelineItem>
-          </ScTimeline>
+            </el-timeline-item>
+          </el-timeline>
         </div>
       </div>
     </sc-drawer>
@@ -296,7 +290,7 @@ const loadTraceData = async () => {
       startTime,
       endTime,
       currentPage.value,
-      pageSize.value,
+      pageSize.value
     );
 
     if (response.success && response.data) {
@@ -357,8 +351,7 @@ const handleViewDetail = (trace: AgentTraceDTO) => {
  */
 const getStatusType = (trace: AgentTraceDTO) => {
   if (trace.error) return "danger" as const;
-  if (trace.statusCode === "200" || !trace.statusCode)
-    return "success" as const;
+  if (trace.statusCode === "200" || !trace.statusCode) return "success" as const;
   return "warning" as const;
 };
 
@@ -394,6 +387,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -426,6 +420,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .trace-history {
   padding: 20px;
@@ -650,6 +645,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -658,4 +654,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

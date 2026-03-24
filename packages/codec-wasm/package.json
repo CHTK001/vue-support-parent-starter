@@ -19,7 +19,7 @@
   "scripts": {
     "test": "node test/sm2-test.js",
     "dev": "vite",
-    "build": "node ./scripts/build-wasm.mjs"
+    "build": "bash build-wasm.sh"
   },
   "keywords": [
     "webassembly",
@@ -36,7 +36,7 @@
     "rimraf": "catalog:"
   },
   "dependencies": {
-    "crypto-js": "catalog:",
-    "sm-crypto": "catalog:"
+    "crypto-js": "^4.2.0",
+    "sm-crypto": "^0.3.12"
   }
 }

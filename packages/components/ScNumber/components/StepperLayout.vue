@@ -1,7 +1,12 @@
 <template>
   <div class="sc-number-stepper" :class="[`sc-number-stepper--${size}`, { 'sc-number-stepper--disabled': disabled }]">
     <!-- 减少按钮 -->
-    <button class="sc-number-stepper__btn sc-number-stepper__btn--decrease" :class="{ 'is-disabled': isMinDisabled }" :disabled="disabled || isMinDisabled" @click="decrease">
+    <button
+      class="sc-number-stepper__btn sc-number-stepper__btn--decrease"
+      :class="{ 'is-disabled': isMinDisabled }"
+      :disabled="disabled || isMinDisabled"
+      @click="decrease"
+    >
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
         <path d="M19 13H5v-2h14v2z" />
       </svg>
@@ -26,7 +31,12 @@
     </div>
 
     <!-- 增加按钮 -->
-    <button class="sc-number-stepper__btn sc-number-stepper__btn--increase" :class="{ 'is-disabled': isMaxDisabled }" :disabled="disabled || isMaxDisabled" @click="increase">
+    <button
+      class="sc-number-stepper__btn sc-number-stepper__btn--increase"
+      :class="{ 'is-disabled': isMaxDisabled }"
+      :disabled="disabled || isMaxDisabled"
+      @click="increase"
+    >
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
       </svg>

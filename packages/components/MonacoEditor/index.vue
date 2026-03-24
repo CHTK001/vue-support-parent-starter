@@ -3,31 +3,31 @@
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
-import * as monaco from "monaco-editor";
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import * as monaco from 'monaco-editor';
 
 export default {
-  name: "MonacoEditor",
+  name: 'MonacoEditor',
   props: {
     // 编辑器内容
     modelValue: {
       type: String,
-      default: ""
+      default: ''
     },
     // 编辑器语言
     language: {
       type: String,
-      default: "javascript"
+      default: 'javascript'
     },
     // 编辑器主题
     theme: {
       type: String,
-      default: "vs"
+      default: 'vs'
     },
     // 编辑器高度
     height: {
       type: [String, Number],
-      default: "300px"
+      default: '300px'
     },
     // 编辑器配置项
     options: {
@@ -35,11 +35,11 @@ export default {
       default: () => ({})
     }
   },
-  emits: ["update:modelValue", "change", "editor-mounted"],
+  emits: ['update:modelValue', 'change', 'editor-mounted'],
   setup(props, { emit }) {
     const editorContainer = ref(null);
     const editor = ref(null);
-    const editorHeight = ref(typeof props.height === "number" ? `${props.height}px` : props.height);
+    const editorHeight = ref(typeof props.height === 'number' ? `${props.height}px` : props.height);
     let preventTriggerChangeEvent = false;
 
     // 初始化编辑器
@@ -74,17 +74,17 @@ export default {
         }
         const value = editor.value.getValue();
         if (value !== props.modelValue) {
-          emit("update:modelValue", value);
-          emit("change", value, event);
+          emit('update:modelValue', value);
+          emit('change', value, event);
         }
       });
 
       // 通知编辑器已挂载
-      emit("editor-mounted", editor.value);
+      emit('editor-mounted', editor.value);
     };
 
     // 更新编辑器内容
-    const updateValue = value => {
+    const updateValue = (value) => {
       if (editor.value && value !== editor.value.getValue()) {
         preventTriggerChangeEvent = true;
         editor.value.setValue(value);
@@ -92,7 +92,7 @@ export default {
     };
 
     // 更新编辑器语言
-    const updateLanguage = language => {
+    const updateLanguage = (language) => {
       if (editor.value) {
         const model = editor.value.getModel();
         monaco.editor.setModelLanguage(model, language);
@@ -100,14 +100,14 @@ export default {
     };
 
     // 更新编辑器主题
-    const updateTheme = theme => {
+    const updateTheme = (theme) => {
       if (editor.value) {
         monaco.editor.setTheme(theme);
       }
     };
 
     // 更新编辑器选项
-    const updateOptions = options => {
+    const updateOptions = (options) => {
       if (editor.value) {
         editor.value.updateOptions(options);
       }
@@ -120,17 +120,14 @@ export default {
     // 使用版本号避免深度监听 options
     const optionsVersion = computed(() => JSON.stringify(props.options));
     watch(optionsVersion, () => updateOptions(props.options));
-    watch(
-      () => props.height,
-      value => {
-        editorHeight.value = typeof value === "number" ? `${value}px` : value;
-        nextTick(() => {
-          if (editor.value) {
-            editor.value.layout();
-          }
-        });
-      }
-    );
+    watch(() => props.height, (value) => {
+      editorHeight.value = typeof value === 'number' ? `${value}px` : value;
+      nextTick(() => {
+        if (editor.value) {
+          editor.value.layout();
+        }
+      });
+    });
 
     // 组件挂载时初始化编辑器
     onMounted(() => {
@@ -163,4 +160,4 @@ export default {
   border-radius: 4px;
   overflow: hidden;
 }
-</style>
+</style> 

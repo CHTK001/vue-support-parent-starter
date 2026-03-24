@@ -10,29 +10,29 @@
     <!-- 工具栏 -->
     <div class="log-toolbar">
       <div class="toolbar-left">
-        <ScSelect
+        <el-select
           v-model="filterLevel"
           placeholder="日志级别"
           clearable
           style="width: 120px"
           @change="handleFilterChange"
         >
-          <ScOption label="全部" value="" />
-          <ScOption label="DEBUG" value="DEBUG">
-            <ScTag type="info" size="small">DEBUG</ScTag>
-          </ScOption>
-          <ScOption label="INFO" value="INFO">
-            <ScTag type="success" size="small">INFO</ScTag>
-          </ScOption>
-          <ScOption label="WARN" value="WARN">
-            <ScTag type="warning" size="small">WARN</ScTag>
-          </ScOption>
-          <ScOption label="ERROR" value="ERROR">
-            <ScTag type="danger" size="small">ERROR</ScTag>
-          </ScOption>
-        </ScSelect>
+          <el-option label="全部" value="" />
+          <el-option label="DEBUG" value="DEBUG">
+            <el-tag type="info" size="small">DEBUG</el-tag>
+          </el-option>
+          <el-option label="INFO" value="INFO">
+            <el-tag type="success" size="small">INFO</el-tag>
+          </el-option>
+          <el-option label="WARN" value="WARN">
+            <el-tag type="warning" size="small">WARN</el-tag>
+          </el-option>
+          <el-option label="ERROR" value="ERROR">
+            <el-tag type="danger" size="small">ERROR</el-tag>
+          </el-option>
+        </el-select>
 
-        <ScInput
+        <el-input
           v-model="searchKeyword"
           placeholder="搜索日志内容"
           clearable
@@ -42,9 +42,9 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
+        </el-input>
 
-        <ScSwitch
+        <el-switch
           v-model="autoScroll"
           active-text="自动滚动"
           inactive-text=""
@@ -53,7 +53,7 @@
       </div>
 
       <div class="toolbar-right">
-        <ScTag
+        <el-tag
           :type="connectionStatus === 'connected' ? 'success' : 'danger'"
           size="small"
         >
@@ -65,27 +65,27 @@
             "
           />
           {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
-        </ScTag>
+        </el-tag>
 
-        <ScButton
+        <el-button
           type="primary"
           size="small"
-          :loading="isReconnecting"
           @click="reconnect"
+          :loading="isReconnecting"
         >
           <IconifyIconOnline icon="ri:refresh-line" />
           重连
-        </ScButton>
+        </el-button>
 
-        <ScButton type="warning" size="small" @click="clearLogs">
+        <el-button type="warning" size="small" @click="clearLogs">
           <IconifyIconOnline icon="ri:delete-bin-line" />
           清空
-        </ScButton>
+        </el-button>
 
-        <ScButton type="info" size="small" @click="downloadLogs">
+        <el-button type="info" size="small" @click="downloadLogs">
           <IconifyIconOnline icon="ri:download-line" />
           导出
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -104,13 +104,13 @@
         :class="'level-' + log.level.toLowerCase()"
       >
         <span class="log-time">{{ formatTime(log.timestamp) }}</span>
-        <ScTag
+        <el-tag
           :type="getLevelTagType(log.level)"
           size="small"
           class="log-level"
         >
           {{ log.level }}
-        </ScTag>
+        </el-tag>
         <span v-if="log.filterName" class="log-filter">
           [{{ log.filterName }}]
         </span>
@@ -127,16 +127,16 @@
         总计: <strong>{{ logs.length }}</strong> 条
       </span>
       <span class="stat-item">
-        <ScTag type="info" size="small">DEBUG</ScTag> {{ logStats.debug }}
+        <el-tag type="info" size="small">DEBUG</el-tag> {{ logStats.debug }}
       </span>
       <span class="stat-item">
-        <ScTag type="success" size="small">INFO</ScTag> {{ logStats.info }}
+        <el-tag type="success" size="small">INFO</el-tag> {{ logStats.info }}
       </span>
       <span class="stat-item">
-        <ScTag type="warning" size="small">WARN</ScTag> {{ logStats.warn }}
+        <el-tag type="warning" size="small">WARN</el-tag> {{ logStats.warn }}
       </span>
       <span class="stat-item">
-        <ScTag type="danger" size="small">ERROR</ScTag> {{ logStats.error }}
+        <el-tag type="danger" size="small">ERROR</el-tag> {{ logStats.error }}
       </span>
     </div>
   </sc-dialog>
@@ -301,7 +301,7 @@ const downloadLogs = () => {
   const content = logs.value
     .map(
       (log) =>
-        `[${log.timestamp}] [${log.level}] ${log.filterName ? `[${log.filterName}]` : ""} ${log.message}`,
+        `[${log.timestamp}] [${log.level}] ${log.filterName ? `[${log.filterName}]` : ""} ${log.message}`
     )
     .join("\n");
 
@@ -381,7 +381,7 @@ watch(
     } else {
       disconnectSSE();
     }
-  },
+  }
 );
 
 // 组件卸载时断开连接
@@ -535,6 +535,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -543,4 +544,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

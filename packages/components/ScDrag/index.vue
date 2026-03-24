@@ -1,6 +1,6 @@
 <script>
 import Close from "@iconify-icons/ep/close";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { uuid } from "@pureadmin/utils";
 import { defineComponent, markRaw } from "vue";
 import Setting from "@iconify-icons/ep/setting";
@@ -24,23 +24,18 @@ export default defineComponent({
       type: Object,
       default: () => {
         return {
-          backgroundColor: "#0d1b2a",
-          borderColor: "#1a3a5c",
-          decorationColor: ["#0e4d8a", "#00b4d8"]
+          backgroundColor: $c.bll9,
+          borderColor: $c.bll7,
+          decorationColor: [$c.bll3, $c.cyl5]
         };
       }
     },
     techTitle: {
-      type: Object,
-      default: () => {
-        return {
-          scale: 1.3,
-          position: "left",
-          decorationColor: "#fff",
-          fontWeight: "bold",
-          color: "#f5c518"
-        };
-      }
+      scale: 1.3,
+      position: "left",
+      decorationColor: '#fff',
+      fontWeight: "bold",
+      color: $c.yel5
     },
     height: {
       type: String,
@@ -317,7 +312,7 @@ export default defineComponent({
           <header class="el-dialog__header show-close handle">
             <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
             <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
-              <ScIcon
+              <el-icon
                 size="20"
                 class="!text-[#000]"
                 @click="
@@ -327,10 +322,10 @@ export default defineComponent({
                 "
               >
                 <component :is="useRenderIcon('ep:refresh')" />
-              </ScIcon>
-              <ScIcon size="20" class="!text-[#000]" @click="doClose()">
+              </el-icon>
+              <el-icon size="20" class="!text-[#000]" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
-              </ScIcon>
+              </el-icon>
             </div>
           </header>
           <div id="el-id-1024-54" class="el-dialog__body !p-0">
@@ -340,7 +335,7 @@ export default defineComponent({
         <div v-else class="h-full">
           <aYinTechBorderB4 :config="techConfig" class="h-full min-h-[600px] relative">
             <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
-              <ScIcon color="#fff" size="20">
+              <el-icon color="#fff" size="20">
                 <component
                   :is="useRenderIcon('ep:refresh')"
                   @click="
@@ -349,10 +344,10 @@ export default defineComponent({
                     }
                   "
                 />
-              </ScIcon>
-              <ScIcon color="#fff" size="20" @click="doClose()">
+              </el-icon>
+              <el-icon color="#fff" size="20" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
-              </ScIcon>
+              </el-icon>
             </div>
             <panelTitleB1 :config="techTitle">{{ title }}</panelTitleB1>
             <div id="el-id-1024-54" class="el-dialog-tech__body h-full pt-[40px]">
@@ -363,11 +358,11 @@ export default defineComponent({
         <!--v-if-->
       </div>
       <div v-show="!showContent" class="!w-[48px] !h-[48px]">
-        <ScButton v-if="!tech" size="default" :icon="miniIcon" class="!h-full !w-full" />
+        <el-button v-if="!tech" size="default" :icon="miniIcon" class="!h-full !w-full" />
         <techButtonB1 v-else class="!w-[48px] !h-[48px]" @click="showContent = !showContent">
-          <ScIcon size="18" class="left-[-5px] top-[5px]">
+          <el-icon size="18" class="left-[-5px] top-[5px]">
             <component :is="useRenderIcon(miniIcon)" />
-          </ScIcon>
+          </el-icon>
         </techButtonB1>
       </div>
     </div>

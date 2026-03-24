@@ -9,7 +9,7 @@
   >
     <div class="config-container">
       <!-- 警告提示 -->
-      <ScAlert
+      <el-alert
         v-if="!settingId"
         type="warning"
         show-icon
@@ -18,18 +18,18 @@
       />
 
       <!-- 配置信息头部 -->
-      <div v-if="filterSetting" class="config-header">
+      <div class="config-header" v-if="filterSetting">
         <div class="header-info">
           <div class="info-item">
             <IconifyIconOnline icon="ri:settings-3-line" class="info-icon" />
             <span class="info-label">类型：</span>
-            <ScTag size="small" type="info">{{
+            <el-tag size="small" type="info">{{
               filterSetting.systemServerSettingType
-            }}</ScTag>
+            }}</el-tag>
           </div>
           <div
-            v-if="filterSetting.systemServerSettingDescription"
             class="info-item"
+            v-if="filterSetting.systemServerSettingDescription"
           >
             <IconifyIconOnline icon="ri:file-text-line" class="info-icon" />
             <span class="info-label">描述：</span>
@@ -38,13 +38,13 @@
             }}</span>
           </div>
         </div>
-        <ScTag
+        <el-tag
           :type="filterSetting.systemServerSettingEnabled ? 'success' : 'info'"
           effect="dark"
           round
         >
           {{ filterSetting.systemServerSettingEnabled ? "已启用" : "已禁用" }}
-        </ScTag>
+        </el-tag>
       </div>
 
       <!-- 配置项列表 -->
@@ -52,15 +52,15 @@
         <div class="section-title">
           <IconifyIconOnline icon="ri:list-settings-line" />
           <span>配置项</span>
-          <ScTag type="primary" size="small" round>{{ rows.length }}</ScTag>
+          <el-tag type="primary" size="small" round>{{ rows.length }}</el-tag>
         </div>
 
-        <ScScrollbar v-loading="loading" class="config-scrollbar">
+        <el-scrollbar class="config-scrollbar" v-loading="loading">
           <div class="config-list">
-            <div v-for="(row, idx) in rows" :key="row._key" class="config-item">
+            <div class="config-item" v-for="(row, idx) in rows" :key="row._key">
               <div class="item-index">{{ idx + 1 }}</div>
               <div class="item-content">
-                <ScInput
+                <el-input
                   v-model="row.name"
                   placeholder="参数名 (name)"
                   class="item-name"
@@ -68,8 +68,8 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:key-line" />
                   </template>
-                </ScInput>
-                <ScInput
+                </el-input>
+                <el-input
                   v-model="row.value"
                   placeholder="参数值 (value)"
                   class="item-value"
@@ -77,9 +77,9 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:input-field" />
                   </template>
-                </ScInput>
+                </el-input>
               </div>
-              <ScButton
+              <el-button
                 type="danger"
                 circle
                 size="small"
@@ -87,37 +87,37 @@
                 @click="removeRow(idx)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </ScButton>
+              </el-button>
             </div>
 
             <!-- 空状态 -->
-            <ScEmpty
+            <el-empty
               v-if="rows.length === 0"
               description="暂无配置项"
               :image-size="80"
             >
-              <ScButton type="primary" @click="addRow">
+              <el-button type="primary" @click="addRow">
                 <IconifyIconOnline icon="ri:add-line" />
                 添加配置项
-              </ScButton>
-            </ScEmpty>
+              </el-button>
+            </el-empty>
           </div>
-        </ScScrollbar>
+        </el-scrollbar>
 
         <!-- 添加按钮 -->
-        <div v-if="rows.length > 0" class="add-row-btn">
-          <ScButton type="primary" link @click="addRow">
+        <div class="add-row-btn" v-if="rows.length > 0">
+          <el-button type="primary" link @click="addRow">
             <IconifyIconOnline icon="ri:add-circle-line" />
             新增一行
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton
+        <el-button @click="handleClose">取消</el-button>
+        <el-button
           type="primary"
           :loading="saving"
           :disabled="!settingId"
@@ -125,7 +125,7 @@
         >
           <IconifyIconOnline icon="ri:save-line" />
           保存配置
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -158,7 +158,7 @@ const saving = ref(false);
 const loading = ref(false);
 
 const settingId = computed(
-  () => props.filterSetting?.systemServerSettingId || null,
+  () => props.filterSetting?.systemServerSettingId || null
 );
 
 type KvRow = { _key: string; id?: number; name: string; value: string };
@@ -170,7 +170,7 @@ watch(
     visibleInner.value = !!v;
     if (v) await loadData();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -392,6 +392,7 @@ function handleClose() {
   gap: 12px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -400,4 +401,5 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
+
 </style>

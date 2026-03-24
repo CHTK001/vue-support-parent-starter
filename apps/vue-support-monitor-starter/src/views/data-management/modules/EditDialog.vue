@@ -1,36 +1,30 @@
 ﻿<template>
   <sc-dialog
-    v-model="visibleInner"
     draggable
+    v-model="visibleInner"
     width="1200px"
     :close-on-click-modal="false"
+    @close="handleClose"
     class="data-edit-dialog"
     align-center
     append-to-body
     destroy-on-close
-    @close="handleClose"
   >
     <!-- 自定义头部 -->
     <template #header>
       <div class="dialog-header">
         <div class="header-icon" :class="modelValue ? 'edit' : 'add'">
-          <IconifyIconOnline
-            :icon="modelValue ? 'ri:edit-line' : 'ri:add-circle-line'"
-          />
+          <IconifyIconOnline :icon="modelValue ? 'ri:edit-line' : 'ri:add-circle-line'" />
         </div>
         <div class="header-info">
-          <span class="header-title">{{
-            modelValue ? "编辑配置" : "新建配置"
-          }}</span>
-          <span class="header-subtitle">{{
-            modelValue ? "修改数据源连接配置" : "创建新的数据源连接"
-          }}</span>
+          <span class="header-title">{{ modelValue ? '编辑配置' : '新建配置' }}</span>
+          <span class="header-subtitle">{{ modelValue ? '修改数据源连接配置' : '创建新的数据源连接' }}</span>
         </div>
       </div>
     </template>
 
     <div class="dialog-content">
-      <ScForm
+      <el-form
         ref="formRef"
         :model="form"
         :rules="rules"
@@ -50,63 +44,51 @@
               </div>
             </div>
             <div class="section-body">
-              <ScFormItem label="名称" prop="systemDataSettingName">
-                <ScInput
-                  v-model="form.systemDataSettingName"
+              <el-form-item label="名称" prop="systemDataSettingName">
+                <el-input 
+                  v-model="form.systemDataSettingName" 
                   placeholder="请输入配置名称"
                 >
                   <template #prefix>
-                    <IconifyIconOnline
-                      icon="ri:bookmark-line"
-                      class="input-icon"
-                    />
+                    <IconifyIconOnline icon="ri:bookmark-line" class="input-icon" />
                   </template>
-                </ScInput>
-              </ScFormItem>
+                </el-input>
+              </el-form-item>
 
-              <ScFormItem label="模式" prop="systemDataSettingMode">
+              <el-form-item label="模式" prop="systemDataSettingMode">
                 <ScSelect
                   v-model="form.systemDataSettingMode"
                   :options="modeOptions"
                   placeholder="请选择模式"
                 />
-              </ScFormItem>
+              </el-form-item>
 
-              <ScFormItem label="类型" prop="systemDataSettingType">
+              <el-form-item label="类型" prop="systemDataSettingType">
                 <ScSelect
-                  v-model="form.systemDataSettingType"
                   layout="select"
-                  :options="
-                    systemDataSettingTypeValues.map((item) => ({
-                      label: item.name,
-                      value: item.value || item.name,
-                      icon: item.icon,
-                    }))
-                  "
+                  v-model="form.systemDataSettingType"
+                  :options="systemDataSettingTypeValues.map(item => ({ label: item.name, value: item.value || item.name, icon: item.icon }))"
                   placeholder="请选择类型"
                   filterable
                 />
-              </ScFormItem>
+              </el-form-item>
 
               <!-- 远程模式必填字段 -->
               <template v-if="form.systemDataSettingMode === 'REMOTE'">
-                <ScFormItem label="主机/端口" prop="systemDataSettingHost">
+                <el-form-item label="主机/端口" prop="systemDataSettingHost">
                   <div class="dual-input">
-                    <ScInput
+                    <el-input
                       v-model="form.systemDataSettingHost"
                       placeholder="主机地址"
                       :disabled="!modeChosen"
                     >
                       <template #prefix>
-                        <IconifyIconOnline
-                          icon="ri:server-line"
-                          class="input-icon"
-                        />
+                        <IconifyIconOnline icon="ri:server-line" class="input-icon" />
                       </template>
-                    </ScInput>
-                    <ScInputNumber
-                      v-model="form.systemDataSettingPort"
+                    </el-input>
+                    <el-input-number
                       class="port-input"
+                      v-model="form.systemDataSettingPort"
                       :min="0"
                       :max="65535"
                       placeholder="端口"
@@ -115,28 +97,25 @@
                       controls-position="right"
                     />
                   </div>
-                </ScFormItem>
+                </el-form-item>
               </template>
 
               <!-- JDBC类型必填字段 -->
               <template v-if="form.systemDataSettingType === 'JDBC'">
-                <ScFormItem
-                  label="JDBC驱动"
-                  prop="systemDataSettingDriverClass"
-                >
+                <el-form-item label="JDBC驱动" prop="systemDataSettingDriverClass">
                   <ScSelect
-                    v-model="form.systemDataSettingDriverClass"
                     layout="select"
+                    v-model="form.systemDataSettingDriverClass"
                     :options="jdbcDrivers"
                     placeholder="选择驱动"
                     :disabled="!modeChosen"
                     filterable
                   />
-                </ScFormItem>
+                </el-form-item>
               </template>
 
-              <ScFormItem label="协议">
-                <ScSelect
+              <el-form-item label="协议">
+                <el-select
                   v-model="form.systemDataSettingProtocol"
                   filterable
                   allow-create
@@ -147,14 +126,14 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:link" class="input-icon" />
                   </template>
-                  <ScOption
+                  <el-option
                     v-for="p in protocolOptions"
                     :key="p"
                     :label="p"
                     :value="p"
                   />
-                </ScSelect>
-              </ScFormItem>
+                </el-select>
+              </el-form-item>
             </div>
           </div>
 
@@ -170,54 +149,45 @@
               </div>
             </div>
             <div class="section-body">
-              <ScFormItem label="连接地址">
-                <ScInput
+              <el-form-item label="连接地址">
+                <el-input
                   v-model="form.systemDataSettingServer"
                   placeholder="优先填写完整连接串"
                   :disabled="!modeChosen"
                 >
                   <template #prefix>
-                    <IconifyIconOnline
-                      icon="ri:global-line"
-                      class="input-icon"
-                    />
+                    <IconifyIconOnline icon="ri:global-line" class="input-icon" />
                   </template>
-                </ScInput>
-              </ScFormItem>
+                </el-input>
+              </el-form-item>
 
-              <ScFormItem label="数据库名">
-                <ScInput
+              <el-form-item label="数据库名">
+                <el-input
                   v-model="form.systemDataSettingDatabase"
                   placeholder="请填写数据库名称"
                 >
                   <template #prefix>
-                    <IconifyIconOnline
-                      icon="ri:database-2-line"
-                      class="input-icon"
-                    />
+                    <IconifyIconOnline icon="ri:database-2-line" class="input-icon" />
                   </template>
-                </ScInput>
-              </ScFormItem>
+                </el-input>
+              </el-form-item>
 
               <!-- 非远程模式或作为备选的主机/端口 -->
               <template v-if="form.systemDataSettingMode !== 'REMOTE'">
-                <ScFormItem label="主机/端口">
+                <el-form-item label="主机/端口">
                   <div class="dual-input">
-                    <ScInput
+                    <el-input
                       v-model="form.systemDataSettingHost"
                       placeholder="主机地址"
                       :disabled="!modeChosen"
                     >
                       <template #prefix>
-                        <IconifyIconOnline
-                          icon="ri:server-line"
-                          class="input-icon"
-                        />
+                        <IconifyIconOnline icon="ri:server-line" class="input-icon" />
                       </template>
-                    </ScInput>
-                    <ScInputNumber
-                      v-model="form.systemDataSettingPort"
+                    </el-input>
+                    <el-input-number
                       class="port-input"
+                      v-model="form.systemDataSettingPort"
                       :min="0"
                       :max="65535"
                       placeholder="端口"
@@ -225,107 +195,81 @@
                       controls-position="right"
                     />
                   </div>
-                </ScFormItem>
+                </el-form-item>
               </template>
 
-              <ScFormItem
-                :label="
-                  form.systemDataSettingType == 'EMAIL'
-                    ? '账号/授权码'
-                    : '账号/密码'
-                "
-              >
+              <el-form-item :label="form.systemDataSettingType == 'EMAIL' ? '账号/授权码': '账号/密码'">
                 <div class="dual-input">
-                  <ScInput
+                  <el-input
                     v-model="form.systemDataSettingUsername"
                     placeholder="账号"
                     :disabled="!modeChosen"
                   >
                     <template #prefix>
-                      <IconifyIconOnline
-                        icon="ri:user-3-line"
-                        class="input-icon"
-                      />
+                      <IconifyIconOnline icon="ri:user-3-line" class="input-icon" />
                     </template>
-                  </ScInput>
-                  <ScInput
+                  </el-input>
+                  <el-input
                     v-model="form.systemDataSettingPassword"
                     type="password"
                     show-password
-                    :placeholder="
-                      form.systemDataSettingType == 'EMAIL' ? '授权码' : '密码'
-                    "
+                    :placeholder="form.systemDataSettingType == 'EMAIL' ? '授权码' : '密码'"
                     :disabled="!modeChosen"
                   >
                     <template #prefix>
-                      <IconifyIconOnline
-                        icon="ri:lock-line"
-                        class="input-icon"
-                      />
+                      <IconifyIconOnline icon="ri:lock-line" class="input-icon" />
                     </template>
-                  </ScInput>
+                  </el-input>
                 </div>
-              </ScFormItem>
+              </el-form-item>
 
-              <ScFormItem
-                v-if="form.systemDataSettingType == 'INFLUXDB'"
-                label="数据库策略"
-              >
-                <ScInput
-                  v-model="form.systemDataSettingPolicy"
+              <el-form-item v-if="form.systemDataSettingType == 'INFLUXDB'" label="数据库策略">
+                <el-input 
+                  v-model="form.systemDataSettingPolicy" 
                   placeholder="请填写数据库策略"
                 >
                   <template #prefix>
-                    <IconifyIconOnline
-                      icon="ri:shield-check-line"
-                      class="input-icon"
-                    />
+                    <IconifyIconOnline icon="ri:shield-check-line" class="input-icon" />
                   </template>
-                </ScInput>
-              </ScFormItem>
+                </el-input>
+              </el-form-item>
 
               <!-- JDBC 驱动文件设置（仅当类型为 JDBC 时显示） -->
               <template v-if="form.systemDataSettingType === 'JDBC'">
-                <ScFormItem label="驱动文件">
+                <el-form-item label="驱动文件">
                   <div class="driver-upload">
-                    <ScInput
+                    <el-input
                       v-model="form.systemDataSettingDriverPath"
                       placeholder="本地路径或URL"
                       :disabled="!modeChosen"
                     >
                       <template #prefix>
-                        <IconifyIconOnline
-                          icon="ri:file-code-line"
-                          class="input-icon"
-                        />
+                        <IconifyIconOnline icon="ri:file-code-line" class="input-icon" />
                       </template>
-                    </ScInput>
-                    <ScUpload
+                    </el-input>
+                    <el-upload
                       :auto-upload="false"
                       :show-file-list="false"
                       :on-change="onDriverFileChange"
                       :disabled="!modeChosen"
                     >
-                      <ScButton type="primary" :disabled="!modeChosen">
+                      <el-button type="primary" :disabled="!modeChosen">
                         <IconifyIconOnline icon="ri:upload-2-line" />
                         上传
-                      </ScButton>
-                    </ScUpload>
+                      </el-button>
+                    </el-upload>
                   </div>
-                </ScFormItem>
+                </el-form-item>
               </template>
 
               <!-- 开关选项组 -->
               <div class="switch-group">
                 <div class="switch-item">
                   <div class="switch-info">
-                    <IconifyIconOnline
-                      icon="ri:toggle-line"
-                      class="switch-icon"
-                    />
+                    <IconifyIconOnline icon="ri:toggle-line" class="switch-icon" />
                     <span class="switch-label">启用状态</span>
                   </div>
-                  <ScSwitch
+                  <el-switch
                     v-model="form.systemDataSettingEnabled"
                     :disabled="!modeChosen"
                     active-text=""
@@ -334,29 +278,23 @@
                 </div>
                 <div class="switch-item">
                   <div class="switch-info">
-                    <IconifyIconOnline
-                      icon="ri:time-line"
-                      class="switch-icon"
-                    />
+                    <IconifyIconOnline icon="ri:time-line" class="switch-icon" />
                     <span class="switch-label">支持IDLE</span>
                   </div>
-                  <ScSwitch
-                    v-model="form.systemDataSettingIdle"
+                  <el-switch 
+                    v-model="form.systemDataSettingIdle" 
                     active-text=""
                     inactive-text=""
                   />
                 </div>
                 <div class="switch-item">
                   <div class="switch-info">
-                    <IconifyIconOnline
-                      icon="ri:terminal-box-line"
-                      class="switch-icon"
-                    />
+                    <IconifyIconOnline icon="ri:terminal-box-line" class="switch-icon" />
                     <span class="switch-label">控制台</span>
                   </div>
-                  <ScSwitch
-                    v-model="consoleEnabled"
-                    :disabled="!modeChosen"
+                  <el-switch 
+                    v-model="consoleEnabled" 
+                    :disabled="!modeChosen" 
                     active-text=""
                     inactive-text=""
                   />
@@ -365,24 +303,19 @@
             </div>
           </div>
         </div>
-      </ScForm>
+      </el-form>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton class="cancel-btn" @click="handleClose">
+        <el-button @click="handleClose" class="cancel-btn">
           <IconifyIconOnline icon="ri:close-line" />
           取消
-        </ScButton>
-        <ScButton
-          type="primary"
-          :loading="loading"
-          class="save-btn"
-          @click="handleSave"
-        >
+        </el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave" class="save-btn">
           <IconifyIconOnline icon="ri:check-line" />
           保存配置
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -396,7 +329,7 @@
 
 import { computed, ref, watch, nextTick } from "vue";
 import { ElMessage, type FormInstance, type FormRules } from "element-plus";
-import { ScSelect } from "@repo/components"
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import {
   saveSystemDataSetting,
   type SystemDataSetting,
@@ -449,15 +382,13 @@ const systemDataSettingTypeValues = [
   { name: "数据库", value: "JDBC", icon: "ri:database-line" },
   { name: "REDIS", value: "REDIS", icon: "ri:database-2-line" },
   { name: "ZOOKEEPER", value: "ZOOKEEPER", icon: "ri:node-tree" },
-  {
-    name: "时序数据库(INFLUXDB)",
-    value: "INFLUXDB",
-    icon: "ri:line-chart-line",
-  },
+  { name: "时序数据库(INFLUXDB)", value: "INFLUXDB", icon: "ri:line-chart-line" },
   { name: "电子邮件", value: "EMAIL", icon: "ri:mail-line" },
 ];
 
-const systemDataSettingPolicy = ["INFLUXDB"];
+const systemDataSettingPolicy = [
+  "INFLUXDB"
+]
 
 // 协议列表（包含 jdbc）
 const protocolOptions = [
@@ -472,7 +403,7 @@ const protocolOptions = [
   "Influxdb",
   "Mongodb",
   "Kafka",
-  "Email",
+  "Email"
 ];
 
 // 常见协议默认端口
@@ -492,56 +423,25 @@ const defaultPorts: Record<string, number> = {
 
 // 仅当协议为 jdbc 时显示
 const isJdbc = computed(
-  () => (form.value.systemDataSettingProtocol || "").toLowerCase() === "jdbc",
+  () => (form.value.systemDataSettingProtocol || "").toLowerCase() === "jdbc"
 );
 
 // JDBC 驱动选项
 const jdbcDrivers = [
-  {
-    label: "MySQL8",
-    value: "com.mysql.cj.jdbc.Driver",
-    icon: "ri:database-line",
-  },
+  { label: "MySQL8", value: "com.mysql.cj.jdbc.Driver", icon: "ri:database-line" },
   { label: "MySQL5", value: "com.mysql.jdbc.Driver", icon: "ri:database-line" },
-  {
-    label: "PostgreSQL",
-    value: "org.postgresql.Driver",
-    icon: "ri:database-2-line",
-  },
-  {
-    label: "Oracle",
-    value: "oracle.jdbc.driver.OracleDriver",
-    icon: "ri:database-fill",
-  },
-  {
-    label: "SQL Server",
-    value: "com.microsoft.sqlserver.jdbc.SQLServerDriver",
-    icon: "ri:microsoft-line",
-  },
+  { label: "PostgreSQL", value: "org.postgresql.Driver", icon: "ri:database-2-line" },
+  { label: "Oracle", value: "oracle.jdbc.driver.OracleDriver", icon: "ri:database-fill" },
+  { label: "SQL Server", value: "com.microsoft.sqlserver.jdbc.SQLServerDriver", icon: "ri:microsoft-line" },
   { label: "SQLite", value: "org.sqlite.JDBC", icon: "ri:file-3-line" },
   { label: "H2", value: "org.h2.Driver", icon: "ri:hard-drive-line" },
   { label: "TiDB", value: "com.mysql.cj.jdbc.Driver", icon: "ri:cloud-line" },
-  {
-    label: "MariaDB",
-    value: "org.mariadb.jdbc.Driver",
-    icon: "ri:database-line",
-  },
-  {
-    label: "ClickHouse",
-    value: "ru.yandex.clickhouse.ClickHouseDriver",
-    icon: "ri:bar-chart-line",
-  },
-  {
-    label: "DM (达梦)",
-    value: "dm.jdbc.driver.DmDriver",
-    icon: "ri:shield-line",
-  },
-  {
-    label: "KingBase (人大金仓)",
-    value: "com.kingbase8.Driver",
-    icon: "ri:shield-line",
-  },
+  { label: "MariaDB", value: "org.mariadb.jdbc.Driver", icon: "ri:database-line" },
+  { label: "ClickHouse", value: "ru.yandex.clickhouse.ClickHouseDriver", icon: "ri:bar-chart-line" },
+  { label: "DM (达梦)", value: "dm.jdbc.driver.DmDriver", icon: "ri:shield-line" },
+  { label: "KingBase (人大金仓)", value: "com.kingbase8.Driver", icon: "ri:shield-line" },
   { label: "GBase", value: "com.gbase.jdbc.Driver", icon: "ri:shield-line" },
+
 ];
 
 const modeChosen = computed(() => !!form.value.systemDataSettingMode);
@@ -553,7 +453,7 @@ watch(
     visibleInner.value = v;
     if (v) init();
   },
-  { immediate: true },
+  { immediate: true }
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -595,7 +495,7 @@ watch(
     } else if (key === "jdbc") {
       form.value.systemDataSettingPort = undefined as any;
     }
-  },
+  }
 );
 
 // 远程图片URL 与 图标URL 只能存在一个：互斥处理
@@ -605,7 +505,7 @@ watch(
     if (v && String(v).trim().length > 0) {
       form.value.systemDataSettingIcon = "" as any;
     }
-  },
+  }
 );
 watch(
   () => form.value.systemDataSettingIcon,
@@ -613,7 +513,7 @@ watch(
     if (v && String(v).trim().length > 0) {
       form.value.systemDataSettingImageUrl = "" as any;
     }
-  },
+  }
 );
 
 // 表单规则：
@@ -635,7 +535,8 @@ const rules: FormRules = {
       validator: (_: any, __: any, cb: (e?: Error) => void) => {
         if (form.value.systemDataSettingMode !== "REMOTE") return cb();
         const host = (form.value.systemDataSettingHost || "").trim();
-        if (!host) return cb(new Error("远程模式下主机为必填项"));
+        if (!host)
+          return cb(new Error("远程模式下主机为必填项"));
         return cb();
       },
       trigger: ["blur", "change"],
@@ -657,7 +558,8 @@ const rules: FormRules = {
       validator: (_: any, value: any, cb: (e?: Error) => void) => {
         if (form.value.systemDataSettingType !== "JDBC") return cb();
         const driver = (value || "").trim();
-        if (!driver) return cb(new Error("数据库类型下JDBC驱动为必填项"));
+        if (!driver)
+          return cb(new Error("数据库类型下JDBC驱动为必填项"));
         return cb();
       },
       trigger: ["blur", "change"],
@@ -725,7 +627,7 @@ async function onDriverFileChange(file: any) {
     if (!raw) return;
     const res = await uploadJdbcDriver(
       form.value.systemDataSettingId as any,
-      raw,
+      raw
     );
     if (!res || (res as any).success === false) {
       ElMessage.error((res as any)?.msg || "上传失败");
@@ -1068,6 +970,7 @@ async function onDriverFileChange(file: any) {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1076,4 +979,5 @@ async function onDriverFileChange(file: any) {
     padding: 12px 16px;
   }
 }
+
 </style>

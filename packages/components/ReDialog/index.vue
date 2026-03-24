@@ -10,7 +10,6 @@ import { ref, computed } from "vue";
 import { isFunction } from "@pureadmin/utils";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
-import { ScPopconfirm } from "../ScPopconfirm/index.ts";
 
 defineOptions({
   name: "ReDialog"
@@ -173,7 +172,7 @@ function handleClose(
       </template>
       <span v-else>
         <template v-for="(btn, key) in footerButtons(options)" :key="key">
-          <ScPopconfirm
+          <el-popconfirm
             v-if="btn.popconfirm"
             v-bind="btn.popconfirm"
             @confirm="
@@ -184,10 +183,10 @@ function handleClose(
             "
           >
             <template #reference>
-              <ScButton v-bind="btn">{{ btn?.label }}</ScButton>
+              <el-button v-bind="btn">{{ btn?.label }}</el-button>
             </template>
-          </ScPopconfirm>
-          <ScButton
+          </el-popconfirm>
+          <el-button
             v-else
             v-bind="btn"
             :loading="key === 1 && sureBtnMap[index]?.loading"
@@ -199,7 +198,7 @@ function handleClose(
             "
           >
             {{ btn?.label }}
-          </ScButton>
+          </el-button>
         </template>
       </span>
     </template>

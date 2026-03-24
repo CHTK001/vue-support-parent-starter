@@ -24,9 +24,7 @@
     "lib": ["ESNext", "DOM"],
     "paths": {
       "@/*": ["src/*"],
-      "@build/*": ["build/*"],
-      "@pages/common": ["../../pages/common"],
-      "@pages/common/*": ["../../pages/common/*"]
+      "@build/*": ["build/*"]
     },
     "types": [
       "node",

@@ -3,15 +3,10 @@
     <!-- 头部区域 -->
     <div class="pinyin-tool__header">
       <div class="pinyin-tool__header-content">
-        <IconifyIconOnline
-          icon="ri:translate-2"
-          class="pinyin-tool__header-icon"
-        />
+        <IconifyIconOnline icon="ri:translate-2" class="pinyin-tool__header-icon" />
         <div>
           <h2 class="pinyin-tool__header-title">汉字拼音转换工具</h2>
-          <p class="pinyin-tool__header-desc">
-            将汉字转换为拼音、注音符号和五笔编码，支持批量处理
-          </p>
+          <p class="pinyin-tool__header-desc">将汉字转换为拼音、注音符号和五笔编码，支持批量处理</p>
         </div>
       </div>
     </div>
@@ -20,10 +15,7 @@
       <ScCard class="pinyin-tool__converter-card" shadow="hover">
         <template #header>
           <div class="pinyin-tool__card-header">
-            <IconifyIconOnline
-              icon="ri:translate-2"
-              class="pinyin-tool__card-icon"
-            />
+            <IconifyIconOnline icon="ri:translate-2" class="pinyin-tool__card-icon" />
             <span>拼音转换器</span>
           </div>
         </template>
@@ -35,9 +27,7 @@
           </ScRadioGroup>
 
           <div class="pinyin-tool__action-buttons">
-            <ScButton type="success" @click="copyResult" :icon="CopyDocument"
-              >复制结果</ScButton
-            >
+            <ScButton type="success" @click="copyResult" :icon="CopyDocument">复制结果</ScButton>
             <ScButton @click="clearText" :icon="Delete">清空</ScButton>
           </div>
         </div>
@@ -48,61 +38,29 @@
               <span>输入汉字</span>
               <ScButton size="small" @click="pasteText">粘贴</ScButton>
             </div>
-            <ScInput
-              v-model="inputText"
-              type="textarea"
-              :rows="10"
-              placeholder="请输入需要转换的汉字文本..."
-              @input="handleInput"
-            />
-            <div class="pinyin-tool__char-count">
-              {{ inputText.length }} 个字符
-            </div>
+            <ScInput v-model="inputText" type="textarea" :rows="10" placeholder="请输入需要转换的汉字文本..." @input="handleInput" />
+            <div class="pinyin-tool__char-count">{{ inputText.length }} 个字符</div>
           </div>
 
           <div class="pinyin-tool__output-area">
             <div class="pinyin-tool__area-header">
               <span>转换结果</span>
               <div class="pinyin-tool__output-options">
-                <ScCheckbox
-                  v-if="convertType === 'pinyin'"
-                  v-model="options.toneType"
-                  @change="convert"
-                  label="number"
-                  >数字声调</ScCheckbox
-                >
-                <ScCheckbox
-                  v-if="convertType === 'pinyin'"
-                  v-model="options.uppercase"
-                  @change="convert"
-                  >首字母大写</ScCheckbox
-                >
-                <ScCheckbox
-                  v-if="convertType === 'pinyin'"
-                  v-model="options.removeTone"
-                  @change="convert"
-                  >去除声调</ScCheckbox
-                >
-                <ScCheckbox v-model="options.addSpace" @change="convert"
-                  >添加空格</ScCheckbox
-                >
+                <ScCheckbox v-if="convertType === 'pinyin'" v-model="options.toneType" @change="convert" label="number">数字声调</ScCheckbox>
+                <ScCheckbox v-if="convertType === 'pinyin'" v-model="options.uppercase" @change="convert">首字母大写</ScCheckbox>
+                <ScCheckbox v-if="convertType === 'pinyin'" v-model="options.removeTone" @change="convert">去除声调</ScCheckbox>
+                <ScCheckbox v-model="options.addSpace" @change="convert">添加空格</ScCheckbox>
               </div>
             </div>
             <div class="pinyin-tool__result-display" ref="resultDisplay">
               <div v-if="resultDisplay.length > 0">
                 <template v-for="(item, index) in resultDisplay" :key="index">
-                  <span
-                    class="pinyin-tool__result-item"
-                    :class="{ 'with-space': options.addSpace }"
-                    :title="item.original"
-                  >
+                  <span class="pinyin-tool__result-item" :class="{ 'with-space': options.addSpace }" :title="item.original">
                     {{ item.converted }}
                   </span>
                 </template>
               </div>
-              <div v-else class="pinyin-tool__empty-result">
-                转换结果将显示在这里
-              </div>
+              <div v-else class="pinyin-tool__empty-result">转换结果将显示在这里</div>
             </div>
           </div>
         </div>
@@ -113,64 +71,48 @@
           <ScCard class="pinyin-tool__query-card" shadow="hover">
             <template #header>
               <div class="pinyin-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:search-line"
-                  class="pinyin-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:search-line" class="pinyin-tool__card-icon" />
                 <span>常用汉字查询</span>
               </div>
             </template>
-            <div class="pinyin-tool__search-container">
-              <ScInput
-                v-model="searchChar"
-                placeholder="输入汉字查询拼音、注音和五笔..."
-                maxlength="1"
-                show-word-limit
-                clearable
-              >
-                <template #append>
-                  <ScButton :icon="Search" @click="searchCharInfo"></ScButton>
-                </template>
-              </ScInput>
+          <div class="pinyin-tool__search-container">
+            <ScInput v-model="searchChar" placeholder="输入汉字查询拼音、注音和五笔..." maxlength="1" show-word-limit clearable>
+              <template #append>
+                <ScButton :icon="Search" @click="searchCharInfo"></ScButton>
+              </template>
+            </ScInput>
 
-              <div v-if="charInfo.char" class="pinyin-tool__char-info">
-                <div class="pinyin-tool__char-display">{{ charInfo.char }}</div>
-                <ul class="pinyin-tool__char-details">
-                  <li>
-                    <strong>拼音：</strong>
-                    <span>{{ charInfo.pinyin || "暂无数据" }}</span>
-                  </li>
-                  <li>
-                    <strong>注音：</strong>
-                    <span>{{ charInfo.zhuyin || "暂无数据" }}</span>
-                  </li>
-                  <li>
-                    <strong>五笔：</strong>
-                    <span>{{ charInfo.wubi || "暂无数据" }}</span>
-                  </li>
-                  <li>
-                    <strong>部首：</strong>
-                    <span>{{ charInfo.radical || "暂无数据" }}</span>
-                  </li>
-                  <li>
-                    <strong>笔画：</strong>
-                    <span>{{ charInfo.strokes || "暂无数据" }}</span>
-                  </li>
-                </ul>
-              </div>
-              <div
-                v-else-if="searchChar && charInfo.error"
-                class="pinyin-tool__no-result"
-              >
-                {{ charInfo.error }}
-              </div>
-              <div v-else-if="searchChar" class="pinyin-tool__no-result">
-                正在查询...
-              </div>
-              <div v-else class="pinyin-tool__search-hint">
-                请输入一个汉字进行查询
-              </div>
+            <div v-if="charInfo.char" class="pinyin-tool__char-info">
+              <div class="pinyin-tool__char-display">{{ charInfo.char }}</div>
+              <ul class="pinyin-tool__char-details">
+                <li>
+                  <strong>拼音：</strong>
+                  <span>{{ charInfo.pinyin || "暂无数据" }}</span>
+                </li>
+                <li>
+                  <strong>注音：</strong>
+                  <span>{{ charInfo.zhuyin || "暂无数据" }}</span>
+                </li>
+                <li>
+                  <strong>五笔：</strong>
+                  <span>{{ charInfo.wubi || "暂无数据" }}</span>
+                </li>
+                <li>
+                  <strong>部首：</strong>
+                  <span>{{ charInfo.radical || "暂无数据" }}</span>
+                </li>
+                <li>
+                  <strong>笔画：</strong>
+                  <span>{{ charInfo.strokes || "暂无数据" }}</span>
+                </li>
+              </ul>
             </div>
+            <div v-else-if="searchChar && charInfo.error" class="pinyin-tool__no-result">
+              {{ charInfo.error }}
+            </div>
+            <div v-else-if="searchChar" class="pinyin-tool__no-result">正在查询...</div>
+            <div v-else class="pinyin-tool__search-hint">请输入一个汉字进行查询</div>
+          </div>
           </ScCard>
         </ScCol>
 
@@ -178,76 +120,46 @@
           <ScCard class="pinyin-tool__batch-card" shadow="hover">
             <template #header>
               <div class="pinyin-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:file-list-3-line"
-                  class="pinyin-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:file-list-3-line" class="pinyin-tool__card-icon" />
                 <span>批量处理</span>
               </div>
             </template>
-            <div class="pinyin-tool__batch-process">
-              <div class="pinyin-tool__file-upload">
-                <ScUpload
-                  action="#"
-                  :auto-upload="false"
-                  :limit="1"
-                  :on-change="handleFileChange"
-                >
-                  <template #trigger>
-                    <ScButton type="primary">选择文本文件</ScButton>
-                  </template>
-                  <template #tip>
-                    <div class="el-upload__tip">
-                      仅支持 TXT 文本文件，最大 5MB
-                    </div>
-                  </template>
-                </ScUpload>
-              </div>
-
-              <div class="pinyin-tool__batch-options">
-                <h4>批量转换选项</h4>
-                <ScForm :model="batchOptions" label-position="top" size="small">
-                  <ScFormItem label="转换格式">
-                    <ScRadioGroup v-model="batchOptions.type">
-                      <el-radio-button label="pinyin">拼音</el-radio-button>
-                      <el-radio-button label="zhuyin">注音</el-radio-button>
-                      <el-radio-button label="wubi">五笔</el-radio-button>
-                    </ScRadioGroup>
-                  </ScFormItem>
-
-                  <ScFormItem label="输出格式">
-                    <ScCheckbox v-model="batchOptions.addSpace"
-                      >添加空格</ScCheckbox
-                    >
-                    <ScCheckbox
-                      v-if="batchOptions.type === 'pinyin'"
-                      v-model="batchOptions.uppercase"
-                      >首字母大写</ScCheckbox
-                    >
-                    <ScCheckbox
-                      v-if="batchOptions.type === 'pinyin'"
-                      v-model="batchOptions.removeTone"
-                      >去除声调</ScCheckbox
-                    >
-                  </ScFormItem>
-
-                  <ScFormItem>
-                    <ScButton
-                      type="success"
-                      @click="processBatch"
-                      :disabled="!selectedFile"
-                      >处理文件</ScButton
-                    >
-                    <ScButton
-                      type="primary"
-                      @click="downloadResult"
-                      :disabled="!batchResult"
-                      >下载结果</ScButton
-                    >
-                  </ScFormItem>
-                </ScForm>
-              </div>
+          <div class="pinyin-tool__batch-process">
+            <div class="pinyin-tool__file-upload">
+              <ScUpload action="#" :auto-upload="false" :limit="1" :on-change="handleFileChange">
+                <template #trigger>
+                  <ScButton type="primary">选择文本文件</ScButton>
+                </template>
+                <template #tip>
+                  <div class="el-upload__tip">仅支持 TXT 文本文件，最大 5MB</div>
+                </template>
+              </ScUpload>
             </div>
+
+            <div class="pinyin-tool__batch-options">
+              <h4>批量转换选项</h4>
+              <ScForm :model="batchOptions" label-position="top" size="small">
+                <ScFormItem label="转换格式">
+                  <ScRadioGroup v-model="batchOptions.type">
+                    <el-radio-button label="pinyin">拼音</el-radio-button>
+                    <el-radio-button label="zhuyin">注音</el-radio-button>
+                    <el-radio-button label="wubi">五笔</el-radio-button>
+                  </ScRadioGroup>
+                </ScFormItem>
+
+                <ScFormItem label="输出格式">
+                  <ScCheckbox v-model="batchOptions.addSpace">添加空格</ScCheckbox>
+                  <ScCheckbox v-if="batchOptions.type === 'pinyin'" v-model="batchOptions.uppercase">首字母大写</ScCheckbox>
+                  <ScCheckbox v-if="batchOptions.type === 'pinyin'" v-model="batchOptions.removeTone">去除声调</ScCheckbox>
+                </ScFormItem>
+
+                <ScFormItem>
+                  <ScButton type="success" @click="processBatch" :disabled="!selectedFile">处理文件</ScButton>
+                  <ScButton type="primary" @click="downloadResult" :disabled="!batchResult">下载结果</ScButton>
+                </ScFormItem>
+              </ScForm>
+            </div>
+          </div>
           </ScCard>
         </ScCol>
       </ScRow>
@@ -255,54 +167,45 @@
       <ScCard class="pinyin-tool__help-card" shadow="hover">
         <template #header>
           <div class="pinyin-tool__card-header">
-            <IconifyIconOnline
-              icon="ri:question-line"
-              class="pinyin-tool__card-icon"
-            />
+            <IconifyIconOnline icon="ri:question-line" class="pinyin-tool__card-icon" />
             <span>使用说明</span>
           </div>
         </template>
-        <div class="pinyin-tool__usage-guide">
-          <h3>功能介绍</h3>
-          <p>
-            本工具提供汉字转拼音、注音符号和五笔编码的功能，适用于学习、翻译和文本处理等场景。
-          </p>
+      <div class="pinyin-tool__usage-guide">
+        <h3>功能介绍</h3>
+        <p>本工具提供汉字转拼音、注音符号和五笔编码的功能，适用于学习、翻译和文本处理等场景。</p>
 
-          <h3>使用方法</h3>
-          <ol>
-            <li>在输入框中输入中文文本</li>
-            <li>选择需要的转换类型（拼音、注音或五笔）</li>
-            <li>根据需要调整输出选项</li>
-            <li>查看转换结果，可复制或下载</li>
-          </ol>
+        <h3>使用方法</h3>
+        <ol>
+          <li>在输入框中输入中文文本</li>
+          <li>选择需要的转换类型（拼音、注音或五笔）</li>
+          <li>根据需要调整输出选项</li>
+          <li>查看转换结果，可复制或下载</li>
+        </ol>
 
-          <h3>选项说明</h3>
-          <ul>
-            <li>
-              <strong>数字声调</strong>：使用数字表示声调（例如：ni3 hao3）
-            </li>
-            <li>
-              <strong>首字母大写</strong>：将拼音首字母大写（例如：Ni Hao）
-            </li>
-            <li><strong>去除声调</strong>：移除所有声调标记（例如：ni hao）</li>
-            <li><strong>添加空格</strong>：在转换结果的字符间添加空格</li>
-          </ul>
+        <h3>选项说明</h3>
+        <ul>
+          <li><strong>数字声调</strong>：使用数字表示声调（例如：ni3 hao3）</li>
+          <li><strong>首字母大写</strong>：将拼音首字母大写（例如：Ni Hao）</li>
+          <li><strong>去除声调</strong>：移除所有声调标记（例如：ni hao）</li>
+          <li><strong>添加空格</strong>：在转换结果的字符间添加空格</li>
+        </ul>
 
-          <h3>批量处理</h3>
-          <p>您可以上传文本文件进行批量转换，支持以下功能：</p>
-          <ul>
-            <li>支持多种转换格式</li>
-            <li>可定制输出格式</li>
-            <li>处理完成后可下载结果文件</li>
-          </ul>
+        <h3>批量处理</h3>
+        <p>您可以上传文本文件进行批量转换，支持以下功能：</p>
+        <ul>
+          <li>支持多种转换格式</li>
+          <li>可定制输出格式</li>
+          <li>处理完成后可下载结果文件</li>
+        </ul>
 
-          <h3>注意事项</h3>
-          <ul>
-            <li>对于多音字，系统会尝试根据上下文选择最适合的读音</li>
-            <li>部分生僻字可能没有对应的拼音、注音或五笔数据</li>
-            <li>转换过程完全在浏览器中进行，不会上传您的文本</li>
-          </ul>
-        </div>
+        <h3>注意事项</h3>
+        <ul>
+          <li>对于多音字，系统会尝试根据上下文选择最适合的读音</li>
+          <li>部分生僻字可能没有对应的拼音、注音或五笔数据</li>
+          <li>转换过程完全在浏览器中进行，不会上传您的文本</li>
+        </ul>
+      </div>
       </ScCard>
     </div>
   </div>
@@ -482,9 +385,7 @@ const convert = () => {
 
           // 处理声调
           if (options.removeTone) {
-            converted = converted
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "");
+            converted = converted.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           } else if (options.toneType) {
             // 转换为数字声调
             converted = convertToNumberTone(converted);
@@ -572,9 +473,7 @@ const copyResult = async () => {
   }
 
   try {
-    const textToCopy = resultDisplay.value
-      .map((item) => item.converted)
-      .join(options.addSpace ? " " : "");
+    const textToCopy = resultDisplay.value.map((item) => item.converted).join(options.addSpace ? " " : "");
 
     await copyText(textToCopy, true);
   } catch (error) {
@@ -627,9 +526,7 @@ const searchCharInfo = () => {
     charInfo.wubi = wubiMap[char] || "暂无数据";
 
     // 随机模拟部首和笔画数据
-    charInfo.radical = ["氵", "亻", "口", "木", "火", "土", "艹"][
-      Math.floor(Math.random() * 7)
-    ];
+    charInfo.radical = ["氵", "亻", "口", "木", "火", "土", "艹"][Math.floor(Math.random() * 7)];
     charInfo.strokes = Math.floor(Math.random() * 15) + 1;
   }, 300);
 };
@@ -687,9 +584,7 @@ const processBatch = () => {
     convert();
 
     // 生成结果
-    batchResult.value = resultDisplay.value
-      .map((item) => item.converted)
-      .join(options.addSpace ? " " : "");
+    batchResult.value = resultDisplay.value.map((item) => item.converted).join(options.addSpace ? " " : "");
 
     // 恢复设置
     convertType.value = currentType;
@@ -712,9 +607,7 @@ const downloadResult = () => {
     return;
   }
 
-  const blob = new Blob([batchResult.value], {
-    type: "text/plain;charset=utf-8",
-  });
+  const blob = new Blob([batchResult.value], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
 
@@ -751,11 +644,7 @@ onMounted(() => {
   padding: 20px;
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-info-light-3) 0%,
-      var(--el-color-info) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-info-light-3) 0%, var(--el-color-info) 100%);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;
@@ -973,13 +862,13 @@ onMounted(() => {
 
   &__usage-guide ul,
   &__usage-guide ol {
-    padding-left: 20px;
-    margin-bottom: 16px;
-  }
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
 
   &__usage-guide li {
-    margin-bottom: 8px;
-  }
+  margin-bottom: 8px;
+}
 
   @media (max-width: 768px) {
     &__converter-container,

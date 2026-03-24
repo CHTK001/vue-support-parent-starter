@@ -17,25 +17,25 @@
     @copy-code="handleCopyCode"
   >
     <template #title-extra>
-      <ScTag
+      <el-tag
         size="small"
         :type="nodeInfo.status === 'ONLINE' ? 'success' : 'danger'"
       >
         {{ nodeInfo.status === "ONLINE" ? "在线" : "离线" }}
-      </ScTag>
+      </el-tag>
     </template>
 
     <template #sidebar-header>
       <!-- 节点地址切换 -->
-      <div v-if="sameNameNodes.length > 1" class="node-selector">
+      <div class="node-selector" v-if="sameNameNodes.length > 1">
         <label class="selector-label">节点地址:</label>
-        <ScSelect
+        <el-select
           v-model="currentNodeAddress"
+          @change="switchNode"
           size="small"
           style="width: 100%"
-          @change="switchNode"
         >
-          <ScOption
+          <el-option
             v-for="node in sameNameNodes"
             :key="node.address"
             :label="`${node.address} (${node.status})`"
@@ -43,15 +43,15 @@
           >
             <div class="node-option">
               <span class="node-address">{{ node.address }}</span>
-              <ScTag
+              <el-tag
                 :type="node.status === 'ONLINE' ? 'success' : 'danger'"
                 size="small"
               >
                 {{ node.status === "ONLINE" ? "在线" : "离线" }}
-              </ScTag>
+              </el-tag>
             </div>
-          </ScOption>
-        </ScSelect>
+          </el-option>
+        </el-select>
       </div>
     </template>
   </ApiDocViewer>
@@ -158,7 +158,7 @@ const loadSameNameNodes = async () => {
 // 切换节点
 const switchNode = async (newAddress: string) => {
   const selectedNode = sameNameNodes.value.find(
-    (node) => node.address === newAddress,
+    (node) => node.address === newAddress
   );
   if (!selectedNode) return;
 
@@ -177,7 +177,7 @@ const loadApiDocs = async () => {
     const response = await fetchNodeApiDocs(
       nodeInfo.nodeId,
       nodeInfo.nodeAddress,
-      nodeInfo.contextPath,
+      nodeInfo.contextPath
     );
 
     if (response.success && response.data) {
@@ -381,6 +381,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -389,4 +390,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

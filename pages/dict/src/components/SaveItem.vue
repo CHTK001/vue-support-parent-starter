@@ -7,7 +7,7 @@ import {
 import { message } from "@repo/utils";
 import { pinyin } from "pinyin-pro";
 import { defineAsyncComponent, defineComponent } from "vue";
-import { IconSelect } from "@repo/components";
+import { IconSelect } from "@repo/components/ReIcon";
 export default defineComponent({
   components: {
     IconSelect,
@@ -128,7 +128,7 @@ export default defineComponent({
       @close="close"
     >
       <div class="dialog-content">
-        <ScForm
+        <ScForm 
           ref="dialogForm"
           :model="form"
           :rules="rules"
@@ -144,7 +144,7 @@ export default defineComponent({
             <ScRow :gutter="16">
               <ScCol :span="12">
                 <ScFormItem label="字典项名称" prop="sysDictItemName">
-                  <ScInput
+                  <ScInput 
                     v-model="form.sysDictItemName"
                     placeholder="输入名称"
                     clearable
@@ -157,7 +157,7 @@ export default defineComponent({
               </ScCol>
               <ScCol :span="12">
                 <ScFormItem label="字典项编码" prop="sysDictItemCode">
-                  <ScInput
+                  <ScInput 
                     v-model="form.sysDictItemCode"
                     placeholder="输入编码"
                     clearable
@@ -185,7 +185,7 @@ export default defineComponent({
               </ScCol>
               <ScCol :span="8">
                 <ScFormItem label="优先级" prop="sysDictItemSort">
-                  <ScInputNumber
+                  <ScInputNumber 
                     v-model="form.sysDictItemSort"
                     :min="1"
                     :max="999"
@@ -203,7 +203,7 @@ export default defineComponent({
               高级设置
             </div>
             <ScFormItem label="国际化标识 (i18n)" prop="sysDictItemI18n">
-              <ScInput
+              <ScInput 
                 v-model="form.sysDictItemI18n"
                 placeholder="输入i18n标识"
                 clearable
@@ -214,7 +214,7 @@ export default defineComponent({
               </ScInput>
             </ScFormItem>
             <ScFormItem label="备注描述" prop="sysDictItemRemark">
-              <ScInput
+              <ScInput 
                 v-model="form.sysDictItemRemark"
                 type="textarea"
                 :rows="3"
@@ -230,7 +230,7 @@ export default defineComponent({
       <template #footer>
         <div class="dialog-footer">
           <ScButton @click="visible = false">取消</ScButton>
-          <ScButton
+          <ScButton 
             v-if="mode != 'show'"
             type="primary"
             :loading="loading"

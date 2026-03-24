@@ -13,7 +13,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showLogo: true,
+  showLogo: true
 });
 
 // Emits
@@ -28,43 +28,43 @@ const { layout } = useNav();
 
 // 处理菜单点击事件
 function handleMenuClick(menu: MenuItem) {
-  emit("menuClick", menu);
+  emit('menuClick', menu);
 }
 
 // 处理收藏切换事件
 function handleFavoriteToggle(menu: MenuItem, isFavorited: boolean) {
-  emit("favoriteToggle", menu, isFavorited);
+  emit('favoriteToggle', menu, isFavorited);
 }
 </script>
 
 <template>
   <!-- 根据布局模式选择对应的导航组件 -->
-  <NavVertical
+  <NavVertical 
     v-if="layout === 'vertical'"
     :show-logo="props.showLogo"
     @menu-click="handleMenuClick"
     @favorite-toggle="handleFavoriteToggle"
   />
-  <NavHorizontal
+  <NavHorizontal 
     v-else-if="layout === 'horizontal'"
     :show-logo="props.showLogo"
     @menu-click="handleMenuClick"
     @favorite-toggle="handleFavoriteToggle"
   />
-  <NavMix
+  <NavMix 
     v-else-if="layout === 'mix'"
     :show-logo="props.showLogo"
     @menu-click="handleMenuClick"
     @favorite-toggle="handleFavoriteToggle"
   />
-  <NavDouble
+  <NavDouble 
     v-else-if="layout === 'double'"
     :show-logo="props.showLogo"
     @menu-click="handleMenuClick"
     @favorite-toggle="handleFavoriteToggle"
   />
   <!-- 默认使用垂直导航 -->
-  <NavVertical
+  <NavVertical 
     v-else
     :show-logo="props.showLogo"
     @menu-click="handleMenuClick"

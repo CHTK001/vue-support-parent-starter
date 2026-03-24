@@ -68,24 +68,14 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@pages/video": resolve(root, "pages/video/src"),
     "@pages/pay": resolve(root, "pages/pay/src"),
     "@pages/doc": resolve(root, "pages/doc/src"),
-    "@pages/common": resolve(root, "pages/common"),
-    "@layout/default": resolve(root, "layout/default/src"),
+    "@repo": resolve(root, "packages"),
     "@repo/assets": resolve(root, "packages/assets"),
     "@repo/components": resolve(root, "packages/components"),
     "@repo/config": resolve(root, "packages/config"),
     "@repo/core": resolve(root, "packages/core"),
+    "@repo/pages": resolve(root, "packages/pages"),
     "@repo/utils": resolve(root, "packages/utils"),
     "@repo/codec-wasm": resolve(root, "packages/codec-wasm"),
-    // standalone 目录下的可视化/大组件包：避免被错误解析到 packages/{name}
-    "@repo/scCodeEditor": resolve(root, "packages/standalone/ScCodeEditor"),
-    "@repo/scEchartsMap3D": resolve(root, "packages/standalone/ScEchartsMap3D"),
-    "@repo/scLayer": resolve(root, "packages/standalone/ScLayer"),
-    "@repo/scMap": resolve(root, "packages/standalone/ScMap"),
-    "@repo/scReteEditor": resolve(root, "packages/standalone/ScReteEditor"),
-    // 兼容历史引用：@repo/sc-visualization/* -> packages/standalone/*
-    "@repo/sc-visualization": resolve(root, "packages/standalone"),
-    // 注意：基础 @repo 必须放在最后，避免抢占更具体的 @repo/xxx 映射
-    "@repo": resolve(root, "packages"),
   };
 };
 
@@ -117,8 +107,7 @@ export const wrapperEnv = (envConf: any): ViteEnv => {
 
   for (const envName of Object.keys(envConf)) {
     let realName = envConf[envName].replace(/\n/g, "\n");
-    realName =
-      realName === "true" ? true : realName === "false" ? false : realName;
+    realName = realName === "true" ? true : realName === "false" ? false : realName;
 
     if (envName === "VITE_PORT") {
       realName = Number(realName);
@@ -179,10 +168,7 @@ export const getDirSize = (dirPath: string): Promise<number> => {
  * @param options.folder 目录，相对项目根目录，默认 dist
  * @param options.callback 计算完成后的回调
  */
-export const getPackageSize = (options: {
-  folder?: string;
-  callback?: (size: string | number) => void;
-}) => {
+export const getPackageSize = (options: { folder?: string; callback?: (size: string | number) => void }) => {
   const { folder = "dist", callback } = options;
   const targetDir = resolve(root, folder);
 

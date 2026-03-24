@@ -19,25 +19,17 @@ export function triggerTokenList(data) {
 }
 
 export function triggerTokenAllType(data) {
-  return http.get(
-    "/system/trigger/all-type",
-    { params: data },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/system/trigger/all-type", { params: data }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export function triggerTokenDelete(data) {
-  return http.get(
-    "/system/trigger/delete",
-    { params: data },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/system/trigger/delete", { params: data }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }

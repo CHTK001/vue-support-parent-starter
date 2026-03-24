@@ -107,18 +107,14 @@ export const getConfigDetail = (id: number) => {
  * 新增配置
  */
 export const createConfig = (data: MonitorConfig) => {
-  return http.request<ReturnResult<MonitorConfig>>("post", "/v1/config", {
-    data,
-  });
+  return http.request<ReturnResult<MonitorConfig>>("post", "/v1/config", { data });
 };
 
 /**
  * 更新配置
  */
 export const updateConfig = (data: MonitorConfig) => {
-  return http.request<ReturnResult<MonitorConfig>>("put", "/v1/config", {
-    data,
-  });
+  return http.request<ReturnResult<MonitorConfig>>("put", "/v1/config", { data });
 };
 
 /**
@@ -132,9 +128,7 @@ export const deleteConfig = (id: number) => {
  * 批量删除配置
  */
 export const batchDeleteConfig = (ids: number[]) => {
-  return http.request<ReturnResult<void>>("delete", "/v1/config/batch", {
-    data: ids,
-  });
+  return http.request<ReturnResult<void>>("delete", "/v1/config/batch", { data: ids });
 };
 
 /**
@@ -155,90 +149,61 @@ export const getAppList = () => {
  * 获取配置统计信息
  */
 export const getConfigStats = () => {
-  return http.request<ReturnResult<ConfigStats>>(
-    "get",
-    "/v1/config/statistics",
-  );
+  return http.request<ReturnResult<ConfigStats>>("get", "/v1/config/statistics");
 };
 
 /**
  * 下发配置到节点
  */
 export const pushConfigToNodes = (data: ConfigPushRequest) => {
-  return http.request<ReturnResult<ConfigPushResult>>(
-    "post",
-    "/v1/config/push",
-    { data },
-  );
+  return http.request<ReturnResult<ConfigPushResult>>("post", "/v1/config/push", { data });
 };
 
 /**
  * 获取配置下发历史
  */
 export const getConfigPushHistory = (data: PushHistoryQuery) => {
-  return http.request<ReturnResult<any>>("post", "/v1/config/push-history", {
-    data,
-  });
+  return http.request<ReturnResult<any>>("post", "/v1/config/push-history", { data });
 };
 
 /**
  * 从历史还原推送
  */
 export const repushFromHistory = (historyId: number) => {
-  return http.request<ReturnResult<ConfigPushResult>>(
-    "post",
-    `/v1/config/push-history/${historyId}/repush`,
-  );
+  return http.request<ReturnResult<ConfigPushResult>>("post", `/v1/config/push-history/${historyId}/repush`);
 };
 
 /**
  * 批量从历史还原推送
  */
 export const batchRepushFromHistory = (historyIds: number[]) => {
-  return http.request<ReturnResult<ConfigPushResult>>(
-    "post",
-    "/v1/config/push-history/batch-repush",
-    { data: historyIds },
-  );
+  return http.request<ReturnResult<ConfigPushResult>>("post", "/v1/config/push-history/batch-repush", { data: historyIds });
 };
 
 /**
  * 删除推送历史
  */
 export const deletePushHistory = (historyId: number) => {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `/v1/config/push-history/${historyId}`,
-  );
+  return http.request<ReturnResult<boolean>>("delete", `/v1/config/push-history/${historyId}`);
 };
 
 /**
  * 批量删除推送历史
  */
 export const batchDeletePushHistory = (historyIds: number[]) => {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    "/v1/config/push-history/batch",
-    { data: historyIds },
-  );
+  return http.request<ReturnResult<boolean>>("delete", "/v1/config/push-history/batch", { data: historyIds });
 };
 
 /**
  * 导出配置
  */
 export const exportConfigs = (configIds: number[]) => {
-  return http.request<ReturnResult<MonitorConfig[]>>(
-    "post",
-    "/v1/config/export",
-    { data: configIds },
-  );
+  return http.request<ReturnResult<MonitorConfig[]>>("post", "/v1/config/export", { data: configIds });
 };
 
 /**
  * 导入配置
  */
 export const importConfigs = (data: MonitorConfig[]) => {
-  return http.request<ReturnResult<number>>("post", "/v1/config/import", {
-    data,
-  });
+  return http.request<ReturnResult<number>>("post", "/v1/config/import", { data });
 };

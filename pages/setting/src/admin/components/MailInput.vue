@@ -3,7 +3,7 @@
     <!-- 邮件配置表单 -->
     <ScForm :model="mailConfig" label-position="top" class="mail-form">
       <ScFormItem label="SMTP服务器">
-        <ScInput
+        <ScInput 
           v-model="mailConfig.host"
           placeholder="例如: smtp.example.com"
           :disabled="disabled"
@@ -15,7 +15,7 @@
       </ScFormItem>
 
       <ScFormItem label="端口">
-        <ScInputNumber
+        <ScInputNumber 
           v-model="mailConfig.port"
           :min="1"
           :max="65535"
@@ -26,7 +26,7 @@
       </ScFormItem>
 
       <ScFormItem label="用户名">
-        <ScInput
+        <ScInput 
           v-model="mailConfig.username"
           placeholder="邮箱账号"
           :disabled="disabled"
@@ -38,7 +38,7 @@
       </ScFormItem>
 
       <ScFormItem label="密码">
-        <ScInput
+        <ScInput 
           v-model="mailConfig.password"
           type="password"
           placeholder="邮箱密码或授权码"
@@ -52,7 +52,7 @@
       </ScFormItem>
 
       <ScFormItem label="发件人">
-        <ScInput
+        <ScInput 
           v-model="mailConfig.from"
           placeholder="发件人邮箱"
           :disabled="disabled"
@@ -78,7 +78,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { ScSwitch } from "@repo/components"
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+
 /**
  * 组件属性定义
  */
@@ -145,7 +146,7 @@ watch(
     const jsonString = JSON.stringify(val);
     emit("update:modelValue", jsonString);
   },
-  { deep: true },
+  { deep: true }
 );
 
 /**
@@ -155,7 +156,7 @@ watch(
   () => props.modelValue,
   () => {
     initMailConfig();
-  },
+  }
 );
 
 // 初始化

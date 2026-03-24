@@ -1,8 +1,0 @@
-{
-  "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@repo/tsconfig/web.json",
-  "include": ["**/*.ts", "**/*.vue"],
-  "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
-}
-
-

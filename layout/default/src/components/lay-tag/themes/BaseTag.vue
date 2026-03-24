@@ -5,22 +5,15 @@ import {
   getTopMenu,
   handleAliveRoute,
   useMultiTagsStoreHook,
+  useSettingStoreHook,
 } from "@repo/core";
 import { RouteConfigs } from "../../../types";
 import { useTags } from "../../../hooks/useTag";
 import { routerArrays } from "../../../types";
+import { onClickOutside } from "@vueuse/core";
 import TagChrome from "../components/TagChrome.vue";
-import TagContextMenu from "../components/TagContextMenu.vue";
 import { usePermissionStoreHook } from "@repo/core";
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  ref,
-  toRaw,
-  unref,
-  watch,
-} from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
 import {
   delay,
   isAllEmpty,
@@ -29,7 +22,7 @@ import {
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import CloseIcon from "@iconify-icons/ep/close";
 
 // 接收主题类名和背景配置
@@ -40,6 +33,7 @@ const props = defineProps<{
 }>();
 
 const {
+  Close,
   route,
   router,
   visible,
@@ -72,16 +66,11 @@ const {
 const tabDom = ref();
 const containerDom = ref();
 const scrollbarDom = ref();
+const contextmenuRef = ref();
 const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
 const { VITE_HIDE_HOME } = import.meta.env;
 const { $storage } = useGlobal<GlobalPropertiesApi>();
-const CONTEXT_MENU_WIDTH = 180;
-const CONTEXT_MENU_ITEM_HEIGHT = 36;
-const CONTEXT_MENU_EDGE_PADDING = 8;
-const contextMenuStyle = computed(
-  () => getContextMenuStyle.value as Record<string, string>,
-);
 
 // 标签页是否显示图标
 const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
@@ -160,10 +149,10 @@ const moveToView = async (index: number): Promise<void> => {
 const handleScroll = (offset: number): void => {
   const scrollbar = unref(scrollbarDom);
   if (!scrollbar) return;
-
+  
   const currentScrollLeft = scrollbar.scrollLeft;
   const targetScrollLeft = currentScrollLeft + offset;
-
+  
   scrollbar.scrollTo({
     left: targetScrollLeft,
     behavior: "smooth",
@@ -173,17 +162,17 @@ const handleScroll = (offset: number): void => {
 const handleWheel = (event: WheelEvent): void => {
   const scrollbar = unref(scrollbarDom);
   if (!scrollbar) return;
-
+  
   const scrollWidth = scrollbar.scrollWidth;
   const clientWidth = scrollbar.clientWidth;
-
+  
   // 只有当内容溢出时才处理滚轮事件
   if (scrollWidth > clientWidth) {
-    if (Math.abs(event.deltaX) > 0) {
-      scrollbar.scrollLeft += event.deltaX;
-    } else {
-      scrollbar.scrollLeft += event.deltaY;
-    }
+     if (Math.abs(event.deltaX) > 0) {
+       scrollbar.scrollLeft += event.deltaX;
+     } else {
+       scrollbar.scrollLeft += event.deltaY;
+     }
   }
 };
 
@@ -223,7 +212,7 @@ function onFresh(tag?: any) {
   const targetRoute = tag || unref(route);
   const fullPath = targetRoute.path || targetRoute.fullPath;
   const query = targetRoute.query || {};
-
+  
   router.replace({
     path: "/redirect" + fullPath,
     query,
@@ -249,7 +238,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
   const spliceRoute = (
     startIndex?: number,
     length?: number,
-    other?: boolean,
+    other?: boolean
   ): void => {
     if (other) {
       multiTagsStore.handleTags(
@@ -257,7 +246,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
         [
           VITE_HIDE_HOME === "false" ? fixedTags : toRaw(getTopMenu()),
           obj,
-        ].flat(),
+        ].flat()
       );
     } else {
       multiTagsStore.handleTags("splice", "", {
@@ -398,7 +387,7 @@ function disabledMenus(value: boolean, fixedTag = false) {
 function showMenuModel(
   currentPath: string,
   query: object = {},
-  refresh = false,
+  refresh = false
 ) {
   const allRoute = multiTags.value;
   const routeLength = multiTags.value.length;
@@ -471,20 +460,19 @@ function openMenu(tag, e) {
   }
 
   currentSelect.value = tag;
-  const visibleMenuCount =
-    tagsViews.slice(0, 6).filter(item => item.show).length || 1;
-  const estimatedMenuHeight = visibleMenuCount * CONTEXT_MENU_ITEM_HEIGHT + 12;
-  const maxLeft = window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_EDGE_PADDING;
-  const maxTop = window.innerHeight - estimatedMenuHeight - CONTEXT_MENU_EDGE_PADDING;
-
-  buttonLeft.value = Math.min(
-    Math.max(CONTEXT_MENU_EDGE_PADDING, e.clientX + 8),
-    Math.max(CONTEXT_MENU_EDGE_PADDING, maxLeft),
-  );
-  buttonTop.value = Math.min(
-    Math.max(CONTEXT_MENU_EDGE_PADDING, e.clientY + 8),
-    Math.max(CONTEXT_MENU_EDGE_PADDING, maxTop),
-  );
+  const menuMinWidth = 140;
+  const offsetLeft = unref(containerDom).getBoundingClientRect().left;
+  const offsetWidth = unref(containerDom).offsetWidth;
+  const maxLeft = offsetWidth - menuMinWidth;
+  const left = e.clientX - offsetLeft + 5;
+  if (left > maxLeft) {
+    buttonLeft.value = maxLeft;
+  } else {
+    buttonLeft.value = left;
+  }
+  useSettingStoreHook().hiddenSideBar
+    ? (buttonTop.value = e.clientY)
+    : (buttonTop.value = e.clientY - 40);
   nextTick(() => {
     visible.value = true;
   });
@@ -513,20 +501,14 @@ function tagOnClick(item) {
   }
 }
 
-const handleDocumentPointerDown = () => {
-  closeMenu();
-};
-
-const handleViewportContextChange = () => {
-  if (visible.value) {
-    closeMenu();
-  }
-};
+onClickOutside(contextmenuRef, closeMenu, {
+  detectIframe: true,
+});
 
 watch(route, () => {
   // 忽略 redirect 路径，避免刷新时闪烁
-  if (route.path.startsWith("/redirect")) return;
-
+  if (route.path.startsWith('/redirect')) return;
+  
   activeIndex.value = -1;
   dynamicRouteTag(route.path);
   dynamicTagView();
@@ -539,7 +521,7 @@ onMounted(() => {
   emitter.off("tagViewsChange");
   emitter.off("tagViewsShowModel");
   emitter.off("changLayoutRoute");
-
+  
   emitter.on("tagViewsChange", (key: any) => {
     if (unref(showTags as any) === key) return;
     (showTags as any).value = key;
@@ -556,18 +538,12 @@ onMounted(() => {
     });
   });
 
-  document.addEventListener("mousedown", handleDocumentPointerDown);
-  window.addEventListener("resize", handleViewportContextChange);
-  window.addEventListener("scroll", handleViewportContextChange, true);
   useResizeObserver(scrollbarDom, dynamicTagView);
   delay().then(() => dynamicTagView());
 });
 
 onBeforeUnmount(() => {
   emitter.off("showTagIconChange");
-  document.removeEventListener("mousedown", handleDocumentPointerDown);
-  window.removeEventListener("resize", handleViewportContextChange);
-  window.removeEventListener("scroll", handleViewportContextChange, true);
 });
 
 const deferTag = useDefer(tagsViews?.length);
@@ -579,11 +555,11 @@ const deferTag = useDefer(tagsViews?.length);
     <div v-if="useCustomBackground" class="tags-view-background">
       <slot name="background" />
     </div>
-
+    
     <!-- 增加左侧滚动按钮 -->
-    <span
-      v-show="isShowArrow"
-      class="arrow-left"
+    <span 
+      v-show="isShowArrow" 
+      class="arrow-left" 
       :class="{ 'glass-arrow': showModel === 'glass' }"
       @click="handleScroll(-200)"
     >
@@ -665,19 +641,38 @@ const deferTag = useDefer(tagsViews?.length);
         </div>
       </div>
     </div>
-
+    
     <!-- 增加右侧滚动按钮 -->
-    <span
-      v-show="isShowArrow"
-      class="arrow-right"
+    <span 
+      v-show="isShowArrow" 
+      class="arrow-right" 
       :class="{ 'glass-arrow': showModel === 'glass' }"
       @click="handleScroll(200)"
     >
       <IconifyIconOnline icon="ri:arrow-right-s-line" />
     </span>
+    
+    <!-- 右键菜单 -->
+    <ul
+      v-show="visible"
+      ref="contextmenuRef"
+      :key="Math.random()"
+      :style="getContextMenuStyle"
+      class="contextmenu"
+    >
+      <li 
+        v-for="(item, key) in tagsViews.slice(0, 6)"
+        :key="key"
+        v-show="item.show"
+        @click="selectTag(key, item)"
+      >
+        <IconifyIconOffline :icon="item.icon" />
+        {{ transformI18n(item.text) }}
+      </li>
+    </ul>
 
     <!-- 右侧功能按钮 -->
-    <ScDropdown
+    <el-dropdown
       trigger="click"
       placement="bottom-end"
       popper-class="tag-function-dropdown-popper"
@@ -685,15 +680,12 @@ const deferTag = useDefer(tagsViews?.length);
       @command="handleCommand"
     >
       <span class="arrow-down">
-        <IconifyIconOnline
-          icon="ri:arrow-down-s-line"
-          class="dark:text-white"
-        />
+        <IconifyIconOnline icon="ri:arrow-down-s-line" class="dark:text-white" />
       </span>
       <template #dropdown>
-        <ScDropdownMenu>
+        <el-dropdown-menu>
           <span v-for="(item, key) in tagsViews" :key="key">
-            <ScDropdownItem
+            <el-dropdown-item
               v-if="deferTag(key)"
               :key="key"
               :command="{ key, item }"
@@ -702,11 +694,11 @@ const deferTag = useDefer(tagsViews?.length);
             >
               <IconifyIconOnline :icon="item.icon" />
               {{ transformI18n(item.text) }}
-            </ScDropdownItem>
+            </el-dropdown-item>
           </span>
-        </ScDropdownMenu>
+        </el-dropdown-menu>
       </template>
-    </ScDropdown>
+    </el-dropdown>
   </div>
 </template>
 
@@ -734,22 +726,22 @@ const deferTag = useDefer(tagsViews?.length);
     cursor: pointer;
     z-index: 10;
     color: var(--el-text-color-primary);
-
+    
     &:hover {
       background-color: var(--el-fill-color-light);
     }
   }
 
   .scroll-container {
-    flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    // 隐藏滚动条
-    &::-webkit-scrollbar {
-      display: none;
-    }
-    scrollbar-width: none;
+     flex: 1;
+     overflow-x: auto;
+     overflow-y: hidden;
+     white-space: nowrap;
+     // 隐藏滚动条
+     &::-webkit-scrollbar {
+       display: none;
+     }
+     scrollbar-width: none;
   }
 }
 
@@ -791,7 +783,7 @@ const deferTag = useDefer(tagsViews?.length);
     .chrome-tab-divider {
       opacity: 0;
     }
-
+    
     // 悬停时背景色
     .chrome-tab__bg {
       color: var(--el-fill-color-hover);
@@ -831,9 +823,8 @@ const deferTag = useDefer(tagsViews?.length);
     fill: currentColor;
     color: currentColor;
   }
-
-  :deep(path),
-  :deep(use) {
+  
+  :deep(path), :deep(use) {
     fill: currentColor;
     color: currentColor;
   }
@@ -846,7 +837,7 @@ const deferTag = useDefer(tagsViews?.length);
   .tag-title {
     color: #fff !important;
   }
-
+  
   // 修复选中状态下图标颜色为白色
   .tag-icon,
   .chrome-close-btn {
@@ -856,7 +847,7 @@ const deferTag = useDefer(tagsViews?.length);
       color: #fff !important;
     }
   }
-
+  
   .chrome-close-btn:hover {
     background-color: rgba(255, 255, 255, 0.2);
     color: #fff !important;
@@ -877,6 +868,40 @@ const deferTag = useDefer(tagsViews?.length);
   }
 }
 
+.contextmenu {
+  position: absolute;
+  margin: 0;
+  padding: 5px 0;
+  background: var(--el-bg-color-overlay);
+  z-index: 3000;
+  list-style-type: none;
+  border-radius: 4px;
+  box-shadow: var(--el-box-shadow-light);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-regular);
+  min-width: 100px;
+
+  li {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+      color: var(--el-color-primary);
+    }
+
+    :deep(svg) {
+      margin-right: 8px;
+      font-size: 14px;
+    }
+  }
+}
+
 // 滚动按钮基础样式
 .arrow-left,
 .arrow-right {
@@ -890,7 +915,7 @@ const deferTag = useDefer(tagsViews?.length);
   transition: all 0.3s;
   background: var(--el-bg-color);
   z-index: 10;
-
+  
   &:hover {
     color: var(--el-color-primary);
     background: var(--el-fill-color-light);
@@ -938,14 +963,14 @@ const deferTag = useDefer(tagsViews?.length);
       color: var(--el-color-primary);
     }
   }
-
+  
   .el-icon-close {
     margin-left: 6px;
     padding: 2px;
     border-radius: 50%;
     font-size: 12px;
     transition: all 0.2s;
-
+    
     &:hover {
       background: rgba(var(--el-color-rgb), 0.1);
       color: var(--el-color-primary);
@@ -989,7 +1014,7 @@ const deferTag = useDefer(tagsViews?.length);
   background-color: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-lighter);
   border-bottom: none;
-
+  
   .tag-icon {
     margin-right: 2px;
     vertical-align: -2px;
@@ -1004,7 +1029,7 @@ const deferTag = useDefer(tagsViews?.length);
     color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
     border-color: var(--el-border-color-lighter);
-
+    
     &::after {
       content: "";
       position: absolute;
@@ -1024,7 +1049,7 @@ const deferTag = useDefer(tagsViews?.length);
     border-radius: 50%;
     font-size: 12px;
     transition: all 0.2s;
-
+    
     &:hover {
       background-color: var(--el-color-danger);
       color: #fff;
@@ -1047,7 +1072,7 @@ const deferTag = useDefer(tagsViews?.length);
   cursor: pointer;
   transition: all 0.3s;
   background-color: transparent;
-
+  
   .tag-icon {
     margin-right: 2px;
     vertical-align: -2px;
@@ -1070,7 +1095,7 @@ const deferTag = useDefer(tagsViews?.length);
     border-radius: 50%;
     font-size: 12px;
     transition: all 0.2s;
-
+    
     &:hover {
       background-color: var(--el-color-danger);
       color: #fff;
@@ -1083,12 +1108,12 @@ html.dark {
   .glass-item {
     background: rgba(0, 0, 0, 0.3);
     border-color: rgba(255, 255, 255, 0.08);
-
+    
     &:hover {
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
     }
-
+    
     &.is-active {
       background: rgba(var(--el-color-primary-rgb), 0.3);
       border-color: var(--el-color-primary);

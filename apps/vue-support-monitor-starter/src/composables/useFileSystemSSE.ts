@@ -334,7 +334,7 @@ export function useFileSystemSSE() {
             "解析文件系统SSE消息失败 (event.data):",
             event.data,
             "error:",
-            error,
+            error
           );
         }
       };
@@ -363,7 +363,7 @@ export function useFileSystemSSE() {
               `解析文件系统SSE消息失败 (${eventType}):`,
               event.data,
               "error:",
-              error,
+              error
             );
           }
         });
@@ -393,7 +393,7 @@ export function useFileSystemSSE() {
             if (state.value.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
               state.value.reconnectAttempts++;
               console.log(
-                `文件系统SSE重连尝试 ${state.value.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`,
+                `文件系统SSE重连尝试 ${state.value.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`
               );
 
               // 清理旧的重连定时器
@@ -507,7 +507,7 @@ export function useFileSystemSSE() {
    */
   const onMessage = (
     type: SSE_MESSAGE_TYPE,
-    handler: (message: FileSystemSSEMessage) => void,
+    handler: (message: FileSystemSSEMessage) => void
   ) => {
     if (!messageHandlers.has(type)) {
       messageHandlers.set(type, new Set());

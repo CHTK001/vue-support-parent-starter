@@ -1,165 +1,79 @@
 ﻿<template>
-  <sc-dialog
-    v-model="dialogVisible"
-    draggable
-    title="设备详情"
-    width="700px"
-    :close-on-click-modal="true"
-    :destroy-on-close="true"
-    class="device-detail-dialog"
-    @close="handleClose"
-  >
+  <sc-dialog v-model="dialogVisible" draggable title="设备详情" width="700px" :close-on-click-modal="true" :destroy-on-close="true" class="device-detail-dialog" @close="handleClose">
     <div class="device-detail-container">
       <div class="device-detail-left">
         <div
           class="device-detail-svg-container"
-          @click="
-            deviceData.sysDeviceResourceType === 'CAMERA' &&
-            deviceData.sysDeviceOnline == 1
-              ? deviceInstance.handlePreviewUrl(
-                  cameraPreviewDialogRef,
-                  deviceData,
-                  'view',
-                )
-              : null
-          "
+          @click="deviceData.sysDeviceResourceType === 'CAMERA' && deviceData.sysDeviceOnline == 1 ? deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, deviceData, 'view') : null"
           :class="{
             'device-detail-online': deviceData.sysDeviceOnline == 1,
             'device-detail-offline': deviceData.sysDeviceOnline != 1,
-            'device-detail-clickable':
-              deviceData.sysDeviceResourceType === 'CAMERA' &&
-              deviceData.sysDeviceOnline == 1,
+            'device-detail-clickable': deviceData.sysDeviceResourceType === 'CAMERA' && deviceData.sysDeviceOnline == 1,
           }"
         >
-          <IconifyIconOnline
-            :icon="getDeviceIcon(deviceData.sysDeviceResourceType)"
-            class="device-detail-svg-icon"
-          />
+          <IconifyIconOnline :icon="getDeviceIcon(deviceData.sysDeviceResourceType)" class="device-detail-svg-icon" />
           <div class="device-detail-status-indicator"></div>
         </div>
-        <div
-          class="device-detail-status-text"
-          :class="{
-            'device-detail-online-text': deviceData.sysDeviceOnline == 1,
-            'device-detail-offline-text': deviceData.sysDeviceOnline != 1,
-          }"
-        >
+        <div class="device-detail-status-text" :class="{ 'device-detail-online-text': deviceData.sysDeviceOnline == 1, 'device-detail-offline-text': deviceData.sysDeviceOnline != 1 }">
           {{ deviceData.sysDeviceOnline == 1 ? "在线" : "离线" }}
         </div>
       </div>
       <div class="device-detail-right">
-        <ScDescriptions :column="1" border class="device-detail-descriptions">
-          <ScDescriptionsItem label="设备名称" class="device-detail-item">
-            <div class="device-detail-value">
-              {{ deviceData.sysDeviceName || "暂无" }}
-            </div>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="设备序列号" class="device-detail-item">
+        <el-descriptions :column="1" border class="device-detail-descriptions">
+          <el-descriptions-item label="设备名称" class="device-detail-item">
+            <div class="device-detail-value">{{ deviceData.sysDeviceName || "暂无" }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="设备序列号" class="device-detail-item">
             <div class="device-detail-copy-container">
-              <span class="device-detail-value">{{
-                deviceData.sysDeviceSerialNumber || "暂无"
-              }}</span>
-              <ScButton
-                v-if="deviceData.sysDeviceSerialNumber"
-                v-copy:click="deviceData.sysDeviceSerialNumber"
-                type="primary"
-                link
-                size="small"
-                :icon="useRenderIcon('ep:copy-document')"
-                class="device-detail-copy-btn"
-              ></ScButton>
+              <span class="device-detail-value">{{ deviceData.sysDeviceSerialNumber || "暂无" }}</span>
+              <ScButton v-if="deviceData.sysDeviceSerialNumber" v-copy:click="deviceData.sysDeviceSerialNumber" type="primary" link size="small" :icon="useRenderIcon('ep:copy-document')" class="device-detail-copy-btn"></ScButton>
             </div>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="网络地址" class="device-detail-item">
-            <ScIp
-              :ip="deviceData.sysDeviceNetAddress"
-              :physical-address="deviceData.sysDeviceNetPhysicalAddress"
-            />
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="设备版本" class="device-detail-item">
-            <div class="device-detail-value">
-              {{ deviceData.sysDeviceVersion || "暂无" }}
-            </div>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="设备管道数" class="device-detail-item">
-            <div class="device-detail-value">
-              {{ deviceData.sysDeviceChannelCount || "0" }}
-            </div>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="组织信息" class="device-detail-item">
-            <div
-              v-if="deviceData.sysDeviceOrgName || deviceData.sysDeviceOrgCode"
-              class="device-detail-org"
-            >
-              <div class="device-detail-value">
-                {{ deviceData.sysDeviceOrgName || "暂无" }}
-              </div>
-              <div class="device-detail-secondary">
-                {{ deviceData.sysDeviceOrgCode || "暂无" }}
-              </div>
+          </el-descriptions-item>
+          <el-descriptions-item label="网络地址" class="device-detail-item">
+            <ScIp :ip="deviceData.sysDeviceNetAddress" :physical-address="deviceData.sysDeviceNetPhysicalAddress" />
+          </el-descriptions-item>
+          <el-descriptions-item label="设备版本" class="device-detail-item">
+            <div class="device-detail-value">{{ deviceData.sysDeviceVersion || "暂无" }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="设备管道数" class="device-detail-item">
+            <div class="device-detail-value">{{ deviceData.sysDeviceChannelCount || "0" }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="组织信息" class="device-detail-item">
+            <div v-if="deviceData.sysDeviceOrgName || deviceData.sysDeviceOrgCode" class="device-detail-org">
+              <div class="device-detail-value">{{ deviceData.sysDeviceOrgName || "暂无" }}</div>
+              <div class="device-detail-secondary">{{ deviceData.sysDeviceOrgCode || "暂无" }}</div>
             </div>
             <span v-else class="device-detail-empty">暂无</span>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="位置信息" class="device-detail-item">
-            <div class="device-detail-value">
-              {{ deviceData.sysDevicePosition || "暂无" }}
-            </div>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="最后更新时间" class="device-detail-item">
+          </el-descriptions-item>
+          <el-descriptions-item label="位置信息" class="device-detail-item">
+            <div class="device-detail-value">{{ deviceData.sysDevicePosition || "暂无" }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="最后更新时间" class="device-detail-item">
             <div class="device-detail-time">
-              <div class="device-detail-value">
-                {{ getTimeAgo(deviceData.updateTime || deviceData.createTime) }}
-              </div>
-              <div class="device-detail-secondary">
-                {{ deviceData.updateTime || deviceData.createTime || "暂无" }}
-              </div>
+              <div class="device-detail-value">{{ getTimeAgo(deviceData.updateTime || deviceData.createTime) }}</div>
+              <div class="device-detail-secondary">{{ deviceData.updateTime || deviceData.createTime || "暂无" }}</div>
             </div>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="设备状态" class="device-detail-item">
-            <ScTag
-              :type="deviceData.sysDeviceStatus === 0 ? 'success' : 'danger'"
-              class="device-detail-tag"
-            >
+          </el-descriptions-item>
+          <el-descriptions-item label="设备状态" class="device-detail-item">
+            <ScTag :type="deviceData.sysDeviceStatus === 0 ? 'success' : 'danger'" class="device-detail-tag">
               {{ deviceData.sysDeviceStatus === 0 ? "启用" : "禁用" }}
             </ScTag>
-          </ScDescriptionsItem>
-        </ScDescriptions>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <!-- 添加管道信息展示 -->
-        <div
-          v-if="deviceData.channelList && deviceData.channelList.length > 0"
-          class="device-detail-channels"
-        >
+        <div v-if="deviceData.channelList && deviceData.channelList.length > 0" class="device-detail-channels">
           <div class="device-detail-channels-title">
-            <IconifyIconOnline
-              icon="mdi:pipe"
-              class="device-detail-channels-icon"
-            />
+            <IconifyIconOnline icon="mdi:pipe" class="device-detail-channels-icon" />
             <span>管道信息</span>
           </div>
           <div class="device-detail-channels-list">
-            <ScTag
-              v-for="(channel, index) in deviceData.channelList"
-              :key="index"
-              :type="
-                channel.sysDeviceChannelStatus === 1 ? 'success' : 'danger'
-              "
-              class="device-detail-channel-tag"
-            >
+            <ScTag v-for="(channel, index) in deviceData.channelList" :key="index" :type="channel.sysDeviceChannelStatus === 1 ? 'success' : 'danger'" class="device-detail-channel-tag">
               {{ channel.sysDeviceChannelName || "未命名" }}
-              <span class="device-detail-channel-no"
-                >({{ channel.sysDeviceChannelNo || "无编号" }})</span
-              >
+              <span class="device-detail-channel-no">({{ channel.sysDeviceChannelNo || "无编号" }})</span>
             </ScTag>
 
-            <div
-              v-if="
-                !deviceData.channelList || deviceData.channelList.length === 0
-              "
-              class="device-detail-empty"
-            >
-              暂无管道信息
-            </div>
+            <div v-if="!deviceData.channelList || deviceData.channelList.length === 0" class="device-detail-empty">暂无管道信息</div>
           </div>
         </div>
       </div>
@@ -168,21 +82,13 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components";
-import { useRenderIcon } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { deepClean, getTimeAgo } from "@repo/utils";
-import {
-  defineAsyncComponent,
-  defineExpose,
-  reactive,
-  ref,
-  shallowRef,
-} from "vue";
+import { defineAsyncComponent, defineExpose, reactive, ref, shallowRef } from "vue";
 import { useRouter } from "vue-router";
 import { createDevice } from "../../template/device/hook/device";
-const ScIp = defineAsyncComponent(
-  () => import("@repo/components"),
-);
+const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
 const deviceInstance = createDevice();
 const cameraPreviewDialogRef = shallowRef();
 
@@ -340,7 +246,7 @@ defineExpose({
   transition: all 0.3s ease;
 
   .device-detail-offline & {
-    color: var(--el-text-color-primary);
+     color: var(--el-text-color-primary);
   }
 }
 
@@ -435,7 +341,7 @@ defineExpose({
 
 .device-detail-secondary {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   margin-top: 4px;
 }
 

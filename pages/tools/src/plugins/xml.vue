@@ -144,10 +144,7 @@ const minifyXML = () => {
       throw new Error("请输入XML内容");
     }
 
-    env.outputXML = vkbeautify.xmlmin(
-      env.inputXML,
-      env.formatOptions.preserveComments,
-    );
+    env.outputXML = vkbeautify.xmlmin(env.inputXML, env.formatOptions.preserveComments);
 
     // 添加到历史记录
     addToHistory("压缩XML", env.inputXML, env.outputXML);
@@ -302,13 +299,7 @@ const queryXPath = () => {
     }
 
     // 执行XPath查询
-    const result = xmlDoc.evaluate(
-      env.xpathOptions.query,
-      xmlDoc,
-      null,
-      XPathResult.ANY_TYPE,
-      null,
-    );
+    const result = xmlDoc.evaluate(env.xpathOptions.query, xmlDoc, null, XPathResult.ANY_TYPE, null);
 
     // 收集结果
     const results = [];
@@ -348,9 +339,7 @@ const queryXPath = () => {
     if (results.length === 0) {
       message("XPath查询未找到匹配结果", { type: "warning" });
     } else {
-      message(`XPath查询成功，找到 ${results.length} 个结果`, {
-        type: "success",
-      });
+      message(`XPath查询成功，找到 ${results.length} 个结果`, { type: "success" });
     }
 
     // 高亮显示
@@ -398,10 +387,7 @@ const xmlToJson = (xml) => {
       const nodeName = item.nodeName;
 
       // 忽略注释和处理指令
-      if (
-        nodeName === "#comment" ||
-        (nodeName === "#text" && item.nodeValue.trim() === "")
-      ) {
+      if (nodeName === "#comment" || (nodeName === "#text" && item.nodeValue.trim() === "")) {
         continue;
       }
 
@@ -611,9 +597,7 @@ onMounted(() => {
         <div class="xml-tool__header">
           <div class="xml-tool__header-inner">
             <h1 class="xml-tool__header-title">XML处理工具</h1>
-            <p class="xml-tool__header-subtitle">
-              格式化、压缩、验证XML，支持XML与JSON互转，XPath查询等功能
-            </p>
+            <p class="xml-tool__header-subtitle">格式化、压缩、验证XML，支持XML与JSON互转，XPath查询等功能</p>
           </div>
         </div>
       </div>
@@ -625,10 +609,7 @@ onMounted(() => {
           <ScCard class="xml-tool__input-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:code-box-line"
-                  class="xml-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:code-box-line" class="xml-tool__card-icon" />
                 <span>XML处理</span>
               </div>
             </template>
@@ -636,10 +617,7 @@ onMounted(() => {
             <ScForm label-position="top">
               <!-- 操作类型选择 -->
               <ScFormItem label="操作类型">
-                <ScRadioGroup
-                  v-model="env.operationType"
-                  class="xml-tool__radio-group"
-                >
+                <ScRadioGroup v-model="env.operationType" class="xml-tool__radio-group">
                   <ScRadio label="format">
                     <div class="xml-tool__radio-content">
                       <IconifyIconOnline icon="ri:format-line" />
@@ -680,56 +658,24 @@ onMounted(() => {
               </ScFormItem>
 
               <!-- XML输入 -->
-              <ScFormItem
-                v-if="env.operationType !== 'json2xml'"
-                label="XML内容"
-              >
-                <ScInput
-                  v-model="env.inputXML"
-                  type="textarea"
-                  :rows="12"
-                  placeholder="请输入XML内容"
-                  resize="vertical"
-                  class="xml-tool__input"
-                />
+              <ScFormItem v-if="env.operationType !== 'json2xml'" label="XML内容">
+                <ScInput v-model="env.inputXML" type="textarea" :rows="12" placeholder="请输入XML内容" resize="vertical" class="xml-tool__input" />
               </ScFormItem>
 
               <!-- JSON输入 (仅JSON转XML模式) -->
-              <ScFormItem
-                v-if="env.operationType === 'json2xml'"
-                label="JSON内容"
-              >
-                <ScInput
-                  v-model="env.convertOptions.inputJSON"
-                  type="textarea"
-                  :rows="12"
-                  placeholder="请输入JSON内容"
-                  resize="vertical"
-                  class="xml-tool__input"
-                />
+              <ScFormItem v-if="env.operationType === 'json2xml'" label="JSON内容">
+                <ScInput v-model="env.convertOptions.inputJSON" type="textarea" :rows="12" placeholder="请输入JSON内容" resize="vertical" class="xml-tool__input" />
               </ScFormItem>
 
               <!-- XPath查询 (仅XPath查询模式) -->
-              <ScFormItem
-                v-if="env.operationType === 'xpath'"
-                label="XPath表达式"
-              >
-                <ScInput
-                  v-model="env.xpathOptions.query"
-                  placeholder="例如: //person[@id='1']/name"
-                  class="xml-tool__input"
-                />
+              <ScFormItem v-if="env.operationType === 'xpath'" label="XPath表达式">
+                <ScInput v-model="env.xpathOptions.query" placeholder="例如: //person[@id='1']/name" class="xml-tool__input" />
               </ScFormItem>
 
               <!-- 示例选择 -->
               <ScFormItem v-if="env.operationType !== 'json2xml'" label="示例">
                 <div class="xml-tool__examples">
-                  <ScButton
-                    v-for="example in env.examples"
-                    :key="example.name"
-                    size="small"
-                    @click="applyExample(example)"
-                  >
+                  <ScButton v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
                     {{ example.name }}
                   </ScButton>
                 </div>
@@ -737,12 +683,7 @@ onMounted(() => {
 
               <!-- 操作按钮 -->
               <div class="xml-tool__actions">
-                <ScButton
-                  type="primary"
-                  :loading="env.loading"
-                  class="xml-tool__execute-btn"
-                  @click="executeOperation"
-                >
+                <ScButton type="primary" :loading="env.loading" class="xml-tool__execute-btn" @click="executeOperation">
                   <IconifyIconOnline icon="ri:play-line" />
                   <span>执行操作</span>
                 </ScButton>
@@ -762,44 +703,22 @@ onMounted(() => {
           <ScCard class="xml-tool__result-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:file-list-line"
-                  class="xml-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:file-list-line" class="xml-tool__card-icon" />
                 <span>处理结果</span>
               </div>
             </template>
 
-            <ScEmpty
-              v-if="
-                !env.outputXML &&
-                !env.convertOptions.outputJSON &&
-                !env.xpathOptions.results.length
-              "
-              description="请先执行操作"
-              class="xml-tool__empty"
-            >
+            <ScEmpty v-if="!env.outputXML && !env.convertOptions.outputJSON && !env.xpathOptions.results.length" description="请先执行操作" class="xml-tool__empty">
               <template #image>
-                <IconifyIconOnline
-                  icon="ri:code-box-line"
-                  class="xml-tool__empty-icon"
-                />
+                <IconifyIconOnline icon="ri:code-box-line" class="xml-tool__empty-icon" />
               </template>
             </ScEmpty>
 
             <!-- XML输出结果 -->
-            <div
-              v-if="env.outputXML && env.operationType !== 'xml2json'"
-              class="xml-tool__result-content"
-            >
+            <div v-if="env.outputXML && env.operationType !== 'xml2json'" class="xml-tool__result-content">
               <div class="xml-tool__result-header">
                 <span>XML结果</span>
-                <ScButton
-                  type="primary"
-                  link
-                  size="small"
-                  @click="copyToClipboard(env.outputXML)"
-                >
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.outputXML)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
                 </ScButton>
@@ -810,66 +729,31 @@ onMounted(() => {
             </div>
 
             <!-- JSON输出结果 -->
-            <div
-              v-if="
-                env.convertOptions.outputJSON &&
-                env.operationType === 'xml2json'
-              "
-              class="xml-tool__result-content"
-            >
+            <div v-if="env.convertOptions.outputJSON && env.operationType === 'xml2json'" class="xml-tool__result-content">
               <div class="xml-tool__result-header">
                 <span>JSON结果</span>
-                <ScButton
-                  type="primary"
-                  link
-                  size="small"
-                  @click="copyToClipboard(env.convertOptions.outputJSON)"
-                >
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.convertOptions.outputJSON)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                   <span>复制</span>
                 </ScButton>
               </div>
-              <pre
-                class="language-json line-numbers"
-              ><code>{{ env.convertOptions.outputJSON }}</code></pre>
+              <pre class="language-json line-numbers"><code>{{ env.convertOptions.outputJSON }}</code></pre>
             </div>
 
             <!-- XPath查询结果 -->
-            <div
-              v-if="
-                env.xpathOptions.results.length > 0 &&
-                env.operationType === 'xpath'
-              "
-              class="xml-tool__result-content"
-            >
+            <div v-if="env.xpathOptions.results.length > 0 && env.operationType === 'xpath'" class="xml-tool__result-content">
               <div class="xml-tool__result-header">
-                <span
-                  >XPath查询结果 ({{ env.xpathOptions.results.length }}个)</span
-                >
+                <span>XPath查询结果 ({{ env.xpathOptions.results.length }}个)</span>
               </div>
-              <div
-                v-for="(result, index) in env.xpathOptions.results"
-                :key="index"
-                class="xml-tool__xpath-result"
-              >
+              <div v-for="(result, index) in env.xpathOptions.results" :key="index" class="xml-tool__xpath-result">
                 <div class="xml-tool__xpath-result-header">
                   <span>结果 #{{ index + 1 }} ({{ result.type }})</span>
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="copyToClipboard(result.value)"
-                  >
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
-                <pre
-                  v-if="result.type === '节点'"
-                  class="language-xml"
-                ><code>{{ result.value }}</code></pre>
-                <div v-else class="xml-tool__xpath-value">
-                  {{ result.value }}
-                </div>
+                <pre v-if="result.type === '节点'" class="language-xml"><code>{{ result.value }}</code></pre>
+                <div v-else class="xml-tool__xpath-value">{{ result.value }}</div>
               </div>
             </div>
           </ScCard>
@@ -878,48 +762,27 @@ onMounted(() => {
           <ScCard class="xml-tool__history-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:history-line"
-                  class="xml-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:history-line" class="xml-tool__card-icon" />
                 <span>历史记录</span>
               </div>
             </template>
 
-            <ScEmpty
-              v-if="!env.history.length"
-              description="暂无历史记录"
-              class="xml-tool__empty"
-            >
+            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="xml-tool__empty">
               <template #image>
-                <IconifyIconOnline
-                  icon="ri:history-line"
-                  class="xml-tool__empty-icon"
-                />
+                <IconifyIconOnline icon="ri:history-line" class="xml-tool__empty-icon" />
               </template>
             </ScEmpty>
 
             <div v-else class="xml-tool__history">
-              <div
-                v-for="item in env.history"
-                :key="item.id"
-                class="xml-tool__history-item"
-              >
+              <div v-for="item in env.history" :key="item.id" class="xml-tool__history-item">
                 <div class="xml-tool__history-content">
-                  <div class="xml-tool__history-operation">
-                    {{ item.operation }}
-                  </div>
+                  <div class="xml-tool__history-operation">{{ item.operation }}</div>
                   <div class="xml-tool__history-meta">
                     <span class="xml-tool__history-date">{{ item.date }}</span>
                   </div>
                 </div>
                 <div class="xml-tool__history-actions">
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="loadFromHistory(item)"
-                  >
+                  <ScButton type="primary" link size="small" @click="loadFromHistory(item)">
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
                   </ScButton>
@@ -932,35 +795,28 @@ onMounted(() => {
           <ScCard class="xml-tool__help-card" shadow="hover">
             <template #header>
               <div class="xml-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:question-line"
-                  class="xml-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:question-line" class="xml-tool__card-icon" />
                 <span>帮助信息</span>
               </div>
             </template>
 
-            <ScCollapse accordion>
-              <ScCollapseItem title="XML格式化" name="format">
+            <el-collapse accordion>
+              <el-collapse-item title="XML格式化" name="format">
                 <div class="xml-tool__help-content">
-                  <p>
-                    将XML内容进行格式化，使其具有良好的缩进和换行，便于阅读和编辑。
-                  </p>
+                  <p>将XML内容进行格式化，使其具有良好的缩进和换行，便于阅读和编辑。</p>
                 </div>
-              </ScCollapseItem>
-              <ScCollapseItem title="XML压缩" name="minify">
+              </el-collapse-item>
+              <el-collapse-item title="XML压缩" name="minify">
                 <div class="xml-tool__help-content">
-                  <p>
-                    移除XML中的空白字符、换行符和缩进，生成紧凑的XML内容，减小文件体积。
-                  </p>
+                  <p>移除XML中的空白字符、换行符和缩进，生成紧凑的XML内容，减小文件体积。</p>
                 </div>
-              </ScCollapseItem>
-              <ScCollapseItem title="XML验证" name="validate">
+              </el-collapse-item>
+              <el-collapse-item title="XML验证" name="validate">
                 <div class="xml-tool__help-content">
                   <p>检查XML内容是否符合XML语法规范，验证XML的有效性。</p>
                 </div>
-              </ScCollapseItem>
-              <ScCollapseItem title="XML转JSON" name="xml2json">
+              </el-collapse-item>
+              <el-collapse-item title="XML转JSON" name="xml2json">
                 <div class="xml-tool__help-content">
                   <p>将XML内容转换为JSON格式，便于在JavaScript中处理。</p>
                   <p>转换规则：</p>
@@ -970,8 +826,8 @@ onMounted(() => {
                     <li>相同名称的子元素转换为数组</li>
                   </ul>
                 </div>
-              </ScCollapseItem>
-              <ScCollapseItem title="JSON转XML" name="json2xml">
+              </el-collapse-item>
+              <el-collapse-item title="JSON转XML" name="json2xml">
                 <div class="xml-tool__help-content">
                   <p>将JSON内容转换为XML格式。</p>
                   <p>转换规则：</p>
@@ -981,27 +837,21 @@ onMounted(() => {
                     <li>数组转换为多个相同名称的XML元素</li>
                   </ul>
                 </div>
-              </ScCollapseItem>
-              <ScCollapseItem title="XPath查询" name="xpath">
+              </el-collapse-item>
+              <el-collapse-item title="XPath查询" name="xpath">
                 <div class="xml-tool__help-content">
                   <p>使用XPath表达式查询XML文档中的节点。</p>
                   <p>常用XPath语法：</p>
                   <ul>
                     <li><code>//元素名</code> - 选择所有指定元素</li>
-                    <li>
-                      <code>//元素名[@属性='值']</code> -
-                      选择具有特定属性值的元素
-                    </li>
-                    <li>
-                      <code>//元素名[子元素='值']</code> -
-                      选择具有特定子元素值的元素
-                    </li>
+                    <li><code>//元素名[@属性='值']</code> - 选择具有特定属性值的元素</li>
+                    <li><code>//元素名[子元素='值']</code> - 选择具有特定子元素值的元素</li>
                     <li><code>//元素名[position()=n]</code> - 选择第n个元素</li>
                     <li><code>//元素名/子元素</code> - 选择所有子元素</li>
                   </ul>
                 </div>
-              </ScCollapseItem>
-            </ScCollapse>
+              </el-collapse-item>
+            </el-collapse>
           </ScCard>
         </ScCol>
       </ScRow>
@@ -1026,11 +876,7 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-danger-light-3) 0%,
-      var(--el-color-danger) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-danger-light-3) 0%, var(--el-color-danger) 100%);
     border-radius: 12px;
     padding: 30px;
     color: #fff;

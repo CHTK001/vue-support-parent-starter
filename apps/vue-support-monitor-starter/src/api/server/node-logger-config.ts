@@ -75,7 +75,7 @@ export interface NodesListResponse {
 export const getNodeLoggers = (nodeUrl: string) => {
   return http.request<ReturnResult<any[]>>(
     "get",
-    `/node/plugin/node-logger/nodes/${nodeUrl}/loggers`,
+    `/node/plugin/node-logger/nodes/${nodeUrl}/loggers`
   );
 };
 
@@ -87,7 +87,7 @@ export const getNodeLoggers = (nodeUrl: string) => {
 export const getLoggerConfig = (nodeUrl: string, loggerName: string) => {
   return http.request<LoggerDetailsResponse>(
     "get",
-    `/node/plugin/node-logger/nodes/${nodeUrl}/loggers/${encodeURIComponent(loggerName)}`,
+    `/node/plugin/node-logger/nodes/${nodeUrl}/loggers/${encodeURIComponent(loggerName)}`
   );
 };
 
@@ -100,14 +100,14 @@ export const getLoggerConfig = (nodeUrl: string, loggerName: string) => {
 export const setLoggerLevel = (
   nodeUrl: string,
   loggerName: string,
-  level: string,
+  level: string
 ) => {
   return http.request<ReturnResult<boolean>>(
     "post",
     `/node/plugin/node-logger/nodes/${nodeUrl}/loggers/${encodeURIComponent(loggerName)}/level`,
     {
       params: { level },
-    },
+    }
   );
 };
 
@@ -120,14 +120,14 @@ export const setLoggerLevel = (
 export const setLoggerLevelForAllNodes = (
   applicationName: string,
   loggerName: string,
-  level: string,
+  level: string
 ) => {
   return http.request<BatchSetResponse>(
     "post",
     `/node/plugin/node-logger/applications/${encodeURIComponent(applicationName)}/loggers/${encodeURIComponent(loggerName)}/level`,
     {
       params: { level },
-    },
+    }
   );
 };
 
@@ -138,7 +138,7 @@ export const setLoggerLevelForAllNodes = (
 export const getNodesByApplicationName = (applicationName: string) => {
   return http.request<NodesListResponse>(
     "get",
-    `/node/plugin/node-logger/applications/${encodeURIComponent(applicationName)}/nodes`,
+    `/node/plugin/node-logger/applications/${encodeURIComponent(applicationName)}/nodes`
   );
 };
 
@@ -149,7 +149,7 @@ export const getNodesByApplicationName = (applicationName: string) => {
 export const refreshNodeLoggers = (nodeUrl: string) => {
   return http.request<ReturnResult<any[]>>(
     "post",
-    `/node/plugin/node-logger/nodes/${nodeUrl}/refresh`,
+    `/node/plugin/node-logger/nodes/${nodeUrl}/refresh`
   );
 };
 
@@ -159,7 +159,7 @@ export const refreshNodeLoggers = (nodeUrl: string) => {
 export const getAllApplicationNames = () => {
   return http.request<ReturnResult<string[]>>(
     "get",
-    "/node/plugin/node-logger/applications",
+    "/node/plugin/node-logger/applications"
   );
 };
 
@@ -186,7 +186,7 @@ export const getLoggerConfigStats = (nodeUrl: string) => {
 export const resetLoggerLevel = (nodeUrl: string, loggerName: string) => {
   return http.request<LoggerConfigResponse>(
     "delete",
-    `/node/plugin/node-logger/nodes/${nodeUrl}/loggers/${encodeURIComponent(loggerName)}/level`,
+    `/node/plugin/node-logger/nodes/${nodeUrl}/loggers/${encodeURIComponent(loggerName)}/level`
   );
 };
 
@@ -197,11 +197,11 @@ export const resetLoggerLevel = (nodeUrl: string, loggerName: string) => {
  */
 export const resetLoggerLevelForAllNodes = (
   applicationName: string,
-  loggerName: string,
+  loggerName: string
 ) => {
   return http.request<BatchSetResponse>(
     "delete",
-    `/node/plugin/node-logger/applications/${encodeURIComponent(applicationName)}/loggers/${encodeURIComponent(loggerName)}/level`,
+    `/node/plugin/node-logger/applications/${encodeURIComponent(applicationName)}/loggers/${encodeURIComponent(loggerName)}/level`
   );
 };
 
@@ -233,7 +233,7 @@ export const decodeNodeUrl = (encodedUrl: string): string => {
 
 // 工具函数：获取日志等级标签类型
 export const getLevelTagType = (
-  level?: LogLevel,
+  level?: LogLevel
 ): "success" | "danger" | "warning" | "info" | "primary" => {
   switch (level) {
     case "ERROR":

@@ -129,7 +129,7 @@ watch(
       activeTab.value = newTabs[0].key;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 </script>
 
