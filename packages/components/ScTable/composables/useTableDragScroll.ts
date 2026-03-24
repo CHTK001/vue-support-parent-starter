@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, onMounted, onUnmounted, type Ref } from "vue";
+import { ref, onMounted, onUnmounted, type Ref } from 'vue';
 
 export interface DragScrollOptions {
   /** 是否启用拖拽滚动 */
@@ -37,18 +37,23 @@ export interface DragScrollReturn {
  * @returns DragScrollReturn
  */
 export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollReturn {
-  const { enabled = true, speedMultiplier = 1, threshold = 5, showGrabCursor = true } = options;
+  const {
+    enabled = true,
+    speedMultiplier = 1,
+    threshold = 5,
+    showGrabCursor = true,
+  } = options;
 
   const isDragging = ref(false);
   const isEnabled = ref(enabled);
-
+  
   // 内部状态
   let containerEl: HTMLElement | null = null;
   let scrollableEl: HTMLElement | null = null;
   let startX = 0;
   let startScrollLeft = 0;
   let hasMoved = false;
-  let originalCursor = "";
+  let originalCursor = '';
 
   /**
    * 找到可滚动的表格容器元素
@@ -56,15 +61,15 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
    */
   const findScrollableElement = (container: HTMLElement): HTMLElement | null => {
     // el-table 的滚动容器
-    const elTableBody = container.querySelector(".el-table__body-wrapper") as HTMLElement;
+    const elTableBody = container.querySelector('.el-table__body-wrapper') as HTMLElement;
     if (elTableBody) return elTableBody;
 
     // el-table-v2 的滚动容器
-    const elTableV2Body = container.querySelector(".el-table-v2__body") as HTMLElement;
+    const elTableV2Body = container.querySelector('.el-table-v2__body') as HTMLElement;
     if (elTableV2Body) return elTableV2Body;
 
     // 通用滚动容器
-    const scrollWrapper = container.querySelector(".scroll-wrapper") as HTMLElement;
+    const scrollWrapper = container.querySelector('.scroll-wrapper') as HTMLElement;
     if (scrollWrapper) return scrollWrapper;
 
     // 如果容器本身可滚动
@@ -80,15 +85,15 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
    */
   const handleMouseDown = (e: MouseEvent) => {
     if (!isEnabled.value || !scrollableEl) return;
-
+    
     // 忽略右键和中键
     if (e.button !== 0) return;
-
+    
     // 忽略在输入框、按钮等交互元素上的点击
     const target = e.target as HTMLElement;
-    const interactiveElements = ["INPUT", "TEXTAREA", "BUTTON", "SELECT", "A"];
+    const interactiveElements = ['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'A'];
     if (interactiveElements.includes(target.tagName)) return;
-
+    
     // 忽略在可点击元素上的操作
     if (target.closest('button, a, input, select, textarea, [role="button"], .el-checkbox, .el-radio')) {
       return;
@@ -102,9 +107,9 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
     hasMoved = false;
 
     // 添加事件监听
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
     // 防止选中文本
     e.preventDefault();
   };
@@ -116,7 +121,7 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
     if (!scrollableEl) return;
 
     const deltaX = e.pageX - startX;
-
+    
     // 检查是否超过阈值
     if (!hasMoved && Math.abs(deltaX) < threshold) {
       return;
@@ -126,15 +131,15 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
     if (!hasMoved) {
       hasMoved = true;
       isDragging.value = true;
-
+      
       // 设置拖拽光标
       if (showGrabCursor) {
         originalCursor = document.body.style.cursor;
-        document.body.style.cursor = "grabbing";
+        document.body.style.cursor = 'grabbing';
       }
-
+      
       // 禁用文本选择
-      document.body.style.userSelect = "none";
+      document.body.style.userSelect = 'none';
     }
 
     // 计算滚动位置（向左拖动时向右滚动，所以取负值）
@@ -147,14 +152,14 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
    */
   const handleMouseUp = (e: MouseEvent) => {
     // 移除事件监听
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
 
     // 恢复光标和文本选择
     if (showGrabCursor && hasMoved) {
       document.body.style.cursor = originalCursor;
     }
-    document.body.style.userSelect = "";
+    document.body.style.userSelect = '';
 
     // 如果发生了拖拽，阻止后续的 click 事件
     if (hasMoved) {
@@ -180,22 +185,22 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
    */
   const initDragScroll = (container: HTMLElement) => {
     if (!container) return;
-
+    
     containerEl = container;
     scrollableEl = findScrollableElement(container);
-
+    
     if (!scrollableEl) {
-      console.warn("[useTableDragScroll] 未找到可滚动的容器元素");
+      console.warn('[useTableDragScroll] 未找到可滚动的容器元素');
       return;
     }
 
     // 绑定事件
-    containerEl.addEventListener("mousedown", handleMouseDown);
-    containerEl.addEventListener("click", handleClick, true);
-
+    containerEl.addEventListener('mousedown', handleMouseDown);
+    containerEl.addEventListener('click', handleClick, true);
+    
     // 设置默认光标
     if (showGrabCursor && scrollableEl.scrollWidth > scrollableEl.clientWidth) {
-      scrollableEl.style.cursor = "grab";
+      scrollableEl.style.cursor = 'grab';
     }
   };
 
@@ -204,18 +209,18 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
    */
   const destroyDragScroll = () => {
     if (containerEl) {
-      containerEl.removeEventListener("mousedown", handleMouseDown);
-      containerEl.removeEventListener("click", handleClick, true);
+      containerEl.removeEventListener('mousedown', handleMouseDown);
+      containerEl.removeEventListener('click', handleClick, true);
     }
-
-    document.removeEventListener("mousemove", handleMouseMove);
-    document.removeEventListener("mouseup", handleMouseUp);
-
+    
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    
     // 恢复光标
     if (scrollableEl) {
-      scrollableEl.style.cursor = "";
+      scrollableEl.style.cursor = '';
     }
-
+    
     containerEl = null;
     scrollableEl = null;
   };
@@ -225,13 +230,13 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
    */
   const toggleEnabled = (value?: boolean) => {
     isEnabled.value = value !== undefined ? value : !isEnabled.value;
-
+    
     // 更新光标样式
     if (scrollableEl && showGrabCursor) {
       if (isEnabled.value && scrollableEl.scrollWidth > scrollableEl.clientWidth) {
-        scrollableEl.style.cursor = "grab";
+        scrollableEl.style.cursor = 'grab';
       } else {
-        scrollableEl.style.cursor = "";
+        scrollableEl.style.cursor = '';
       }
     }
   };
@@ -246,7 +251,7 @@ export function useTableDragScroll(options: DragScrollOptions = {}): DragScrollR
     destroyDragScroll,
     isDragging,
     isEnabled,
-    toggleEnabled
+    toggleEnabled,
   };
 }
 

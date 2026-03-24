@@ -1,8 +1,8 @@
 <template>
   <div ref="item" class="flex flex-1 justify-start">
-    <ScIcon class="top-[4px]">
+    <el-icon class="top-[4px]">
       <component :is="useRenderIcon(menu.icon)" />
-    </ScIcon>
+    </el-icon>
     <span style="margin-left: 10px">
       {{ menu.name }}
     </span>
@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default {
   name: "RightMenuItem",
   props: {
@@ -138,17 +138,17 @@ export default {
 }
 
 .right_item_light:hover {
-  background-color: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-.right_item_dark {
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-}
-.right_item_dark:hover {
-  background-color: var(--el-fill-color);
-  color: var(--el-color-primary);
-}
+    background-color: var(--el-fill-color-light);
+    color: var(--el-color-primary);
+  }
+  .right_item_dark {
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+  }
+  .right_item_dark:hover {
+    background-color: var(--el-fill-color);
+    color: var(--el-color-primary);
+  }
 .right_item_enable_light {
   color: #b6b6b6;
 }

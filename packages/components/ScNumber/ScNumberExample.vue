@@ -53,7 +53,15 @@
         </div>
         <div class="example-item example-item--wide">
           <label>带标记点</label>
-          <ScNumber v-model="values.slider3" layout="slider" :min="0" :max="100" :step="10" show-stops :marks="sliderMarks" />
+          <ScNumber
+            v-model="values.slider3"
+            layout="slider"
+            :min="0"
+            :max="100"
+            :step="10"
+            show-stops
+            :marks="sliderMarks"
+          />
           <span class="value-display">值: {{ values.slider3 }}</span>
         </div>
         <div class="example-item example-item--wide">
@@ -86,7 +94,11 @@
         </div>
         <div class="example-item">
           <label>自定义颜色</label>
-          <ScNumber v-model="values.rate4" layout="rate" :colors="['#99A9BF', '#F7BA2A', '#FF9900']" />
+          <ScNumber
+            v-model="values.rate4"
+            layout="rate"
+            :colors="['#99A9BF', '#F7BA2A', '#FF9900']"
+          />
           <span class="value-display">值: {{ values.rate4 }}</span>
         </div>
       </div>
@@ -114,7 +126,13 @@
         </div>
         <div class="example-item">
           <label>格式化显示</label>
-          <ScNumber v-model="values.stepper4" layout="stepper" :min="0" :max="999" :value-format="val => `¥${val}`" />
+          <ScNumber
+            v-model="values.stepper4"
+            layout="stepper"
+            :min="0"
+            :max="999"
+            :value-format="(val) => `¥${val}`"
+          />
           <span class="value-display">值: {{ values.stepper4 }}</span>
         </div>
       </div>
@@ -142,7 +160,13 @@
         </div>
         <div class="example-item example-item--wide">
           <label>自定义颜色</label>
-          <ScNumber v-model="values.progress4" layout="progress" :min="0" :max="100" :progress-color="progressColors" />
+          <ScNumber
+            v-model="values.progress4"
+            layout="progress"
+            :min="0"
+            :max="100"
+            :progress-color="progressColors"
+          />
           <span class="value-display">值: {{ values.progress4 }}</span>
         </div>
       </div>
@@ -170,7 +194,13 @@
         </div>
         <div class="example-item">
           <label>渐变颜色</label>
-          <ScNumber v-model="values.circle4" layout="circle" :min="0" :max="100" :progress-color="progressColors" />
+          <ScNumber
+            v-model="values.circle4"
+            layout="circle"
+            :min="0"
+            :max="100"
+            :progress-color="progressColors"
+          />
           <span class="value-display">值: {{ values.circle4 }}</span>
         </div>
       </div>

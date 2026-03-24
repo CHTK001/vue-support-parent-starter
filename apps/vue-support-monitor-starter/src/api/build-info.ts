@@ -22,8 +22,8 @@ export function getBuildList(params, loading) {
   return http.post("/build/list", params, {
     headers: {
       loading: loading === false ? "no" : "",
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -36,8 +36,8 @@ export function getBuildList(params, loading) {
 export function getBuildGet(params) {
   return http.get("/build/get", params, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -50,8 +50,8 @@ export function getBuildGet(params) {
 export function getBuildEnvironment(params) {
   return http.post("/build/manage/environment", params, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -59,15 +59,11 @@ export function getBuildEnvironment(params) {
  * 构建分组
  */
 export function getBuildGroupAll() {
-  return http.get(
-    "/build/list_group_all",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.get("/build/list_group_all", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -80,8 +76,8 @@ export function getBranchList(params) {
   return http.post("/build/branch-list", params, {
     timeout: 0,
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -119,12 +115,12 @@ export function editBuild(params) {
     buildMode: params.buildMode,
     aliasCode: params.aliasCode,
     resultKeepDay: params.resultKeepDay,
-    buildEnvParameter: params.buildEnvParameter,
+    buildEnvParameter: params.buildEnvParameter
   };
   return http.post("/build/edit", data, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -133,22 +129,18 @@ export function editBuild(params) {
  * @param {*} id
  */
 export function deleteBuild(id) {
-  return http.post(
-    "/build/delete",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/build/delete", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 export function deleteatchBuild(data) {
   return http.post("/build/batch-delete", data, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -159,8 +151,8 @@ export function deleteatchBuild(data) {
 export function getTriggerUrl(data) {
   return http.post("/build/trigger/url", data, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -177,15 +169,11 @@ export function getTriggerUrl(data) {
  * @param {*} id
  */
 export function clearBuid(id) {
-  return http.post(
-    "/build/clean-source",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/build/clean-source", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -201,8 +189,8 @@ export function loadBuildLog(params) {
     headers: {
       tip: "no",
       loading: "no",
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -213,8 +201,8 @@ export function loadBuildLog(params) {
 export function startBuild(data) {
   return http.post("/build/manage/start", data, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -223,15 +211,11 @@ export function startBuild(data) {
  * @param {*} id
  */
 export function stopBuild(id) {
-  return http.post(
-    "/build/manage/cancel",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/build/manage/cancel", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -244,8 +228,8 @@ export function stopBuild(id) {
 export function geteBuildHistory(params) {
   return http.post("/build/history/history_list.json", params, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -255,7 +239,7 @@ export function geteBuildHistory(params) {
  */
 export function downloadBuildLog(logId) {
   return loadRouterBase("/build/history/download_log", {
-    logId: logId,
+    logId: logId
   });
 }
 
@@ -265,7 +249,7 @@ export function downloadBuildLog(logId) {
  */
 export function downloadBuildFile(logId) {
   return loadRouterBase("/build/history/download_file", {
-    logId: logId,
+    logId: logId
   });
 }
 
@@ -276,7 +260,7 @@ export function downloadBuildFile(logId) {
 export function downloadBuildFileByBuild(id, numberId) {
   return loadRouterBase("/build/history/download_file_by_build", {
     buildId: id,
-    buildNumberId: numberId,
+    buildNumberId: numberId
   });
 }
 
@@ -286,15 +270,11 @@ export function downloadBuildFileByBuild(id, numberId) {
  * @returns
  */
 export function rollback(logId) {
-  return http.post(
-    "/build/manage/reRelease",
-    { logId },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/build/manage/reRelease", { logId }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 /**
@@ -302,22 +282,18 @@ export function rollback(logId) {
  * @param {*} logId
  */
 export function deleteBuildHistory(logId) {
-  return http.post(
-    "/build/history/delete_log.json",
-    { logId },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
-    },
-  );
+  return http.post("/build/history/delete_log.json", { logId }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
+  });
 }
 
 export function sortItem(params) {
   return http.get("/build/sort-item", params, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    },
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+    }
   });
 }
 
@@ -331,7 +307,7 @@ export const statusMap = {
   7: t("i18n_b4fc1ac02c"),
   8: t("i18n_979b7d10b0"),
   9: t("i18n_81afd9e713"),
-  10: t("i18n_8160b4be4e"),
+  10: t("i18n_8160b4be4e")
 };
 export const statusColor = {
   1: "orange",
@@ -343,7 +319,7 @@ export const statusColor = {
   7: "",
   8: "blue",
   9: "orange",
-  10: "red",
+  10: "red"
 };
 
 export const releaseMethodMap = {
@@ -352,17 +328,17 @@ export const releaseMethodMap = {
   2: t("i18n_31ecc0e65b"),
   3: "SSH",
   4: t("i18n_b71a7e6aab"),
-  5: t("i18n_9136e1859a"),
+  5: t("i18n_9136e1859a")
 };
 
 export const triggerBuildTypeMap = {
   0: t("i18n_2a3e7f5c38"),
   1: t("i18n_4696724ed3"),
   2: t("i18n_72ebfe28b0"),
-  3: t("i18n_31070fd376"),
+  3: t("i18n_31070fd376")
 };
 
 export const buildModeMap = {
   0: t("i18n_69c3b873c1"),
-  1: t("i18n_685e5de706"),
+  1: t("i18n_685e5de706")
 };

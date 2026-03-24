@@ -1,292 +1,292 @@
 ﻿<template>
-  <ScInput v-model="defaultValue" v-bind="$attrs">
+  <el-input v-model="defaultValue" v-bind="$attrs">
     <template #append>
-      <ScDropdown size="medium" @command="handleShortcuts">
-        <ScButton :icon="useRenderIcon('ep:arrow-down')" />
+      <el-dropdown size="medium" @command="handleShortcuts">
+        <el-button :icon="useRenderIcon('ep:arrow-down')" />
         <template #dropdown>
-          <ScDropdownMenu>
-            <ScDropdownItem command="0 * * * * ?">每分钟</ScDropdownItem>
-            <ScDropdownItem command="0 0 * * * ?">每小时</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 * * ?">每天零点</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 1 * ?">每月一号零点</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 L * ?">每月最后一天零点</ScDropdownItem>
-            <ScDropdownItem command="0 0 0 ? * 1">每周星期日零点</ScDropdownItem>
-            <ScDropdownItem v-for="(item, index) in shortcuts" :key="item.value" :divided="index == 0" :command="item.value">
+          <el-dropdown-menu>
+            <el-dropdown-item command="0 * * * * ?">每分钟</el-dropdown-item>
+            <el-dropdown-item command="0 0 * * * ?">每小时</el-dropdown-item>
+            <el-dropdown-item command="0 0 0 * * ?">每天零点</el-dropdown-item>
+            <el-dropdown-item command="0 0 0 1 * ?">每月一号零点</el-dropdown-item>
+            <el-dropdown-item command="0 0 0 L * ?">每月最后一天零点</el-dropdown-item>
+            <el-dropdown-item command="0 0 0 ? * 1">每周星期日零点</el-dropdown-item>
+            <el-dropdown-item v-for="(item, index) in shortcuts" :key="item.value" :divided="index == 0" :command="item.value">
               {{ item.text }}
-            </ScDropdownItem>
-            <ScDropdownItem :icon="useRenderIcon('ep:plus')" divided command="custom">自定义</ScDropdownItem>
-          </ScDropdownMenu>
+            </el-dropdown-item>
+            <el-dropdown-item :icon="useRenderIcon('ep:plus')" divided command="custom">自定义</el-dropdown-item>
+          </el-dropdown-menu>
         </template>
-      </ScDropdown>
+      </el-dropdown>
     </template>
-  </ScInput>
+  </el-input>
 
   <sc-dialog v-model="dialogVisible" title="cron规则生成器" :width="580" destroy-on-close append-to-body>
     <div class="sc-cron">
-      <ScTabs>
-        <ScTabPane>
+      <el-tabs>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>秒</h2>
               <h4>{{ value_second }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScFormItem label="类型">
-              <ScRadioGroup v-model="value.second.type">
+          <el-form>
+            <el-form-item label="类型">
+              <el-radio-group v-model="value.second.type">
                 <el-radio-button label="0">任意值</el-radio-button>
                 <el-radio-button label="1">范围</el-radio-button>
                 <el-radio-button label="2">间隔</el-radio-button>
                 <el-radio-button label="3">指定</el-radio-button>
-              </ScRadioGroup>
-            </ScFormItem>
-            <ScFormItem v-if="value.second.type == 1" label="范围">
-              <ScInputNumber v-model="value.second.range.start" :min="0" :max="59" controls-position="right" />
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="value.second.type == 1" label="范围">
+              <el-input-number v-model="value.second.range.start" :min="0" :max="59" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <ScInputNumber v-model="value.second.range.end" :min="0" :max="59" controls-position="right" />
-            </ScFormItem>
-            <ScFormItem v-if="value.second.type == 2" label="间隔">
-              <ScInputNumber v-model="value.second.loop.start" :min="0" :max="59" controls-position="right" />
+              <el-input-number v-model="value.second.range.end" :min="0" :max="59" controls-position="right" />
+            </el-form-item>
+            <el-form-item v-if="value.second.type == 2" label="间隔">
+              <el-input-number v-model="value.second.loop.start" :min="0" :max="59" controls-position="right" />
               秒开始，每
-              <ScInputNumber v-model="value.second.loop.end" :min="0" :max="59" controls-position="right" />
+              <el-input-number v-model="value.second.loop.end" :min="0" :max="59" controls-position="right" />
               秒执行一次
-            </ScFormItem>
-            <ScFormItem v-if="value.second.type == 3" label="指定">
-              <ScSelect v-model="value.second.appoint" multiple style="width: 100%">
-                <ScOption v-for="(item, index) in data.second" :key="index" :label="item" :value="item" />
-              </ScSelect>
-            </ScFormItem>
-          </ScForm>
-        </ScTabPane>
-        <ScTabPane>
+            </el-form-item>
+            <el-form-item v-if="value.second.type == 3" label="指定">
+              <el-select v-model="value.second.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.second" :key="index" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>分钟</h2>
               <h4>{{ value_minute }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScFormItem label="类型">
-              <ScRadioGroup v-model="value.minute.type">
+          <el-form>
+            <el-form-item label="类型">
+              <el-radio-group v-model="value.minute.type">
                 <el-radio-button label="0">任意值</el-radio-button>
                 <el-radio-button label="1">范围</el-radio-button>
                 <el-radio-button label="2">间隔</el-radio-button>
                 <el-radio-button label="3">指定</el-radio-button>
-              </ScRadioGroup>
-            </ScFormItem>
-            <ScFormItem v-if="value.minute.type == 1" label="范围">
-              <ScInputNumber v-model="value.minute.range.start" :min="0" :max="59" controls-position="right" />
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="value.minute.type == 1" label="范围">
+              <el-input-number v-model="value.minute.range.start" :min="0" :max="59" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <ScInputNumber v-model="value.minute.range.end" :min="0" :max="59" controls-position="right" />
-            </ScFormItem>
-            <ScFormItem v-if="value.minute.type == 2" label="间隔">
-              <ScInputNumber v-model="value.minute.loop.start" :min="0" :max="59" controls-position="right" />
+              <el-input-number v-model="value.minute.range.end" :min="0" :max="59" controls-position="right" />
+            </el-form-item>
+            <el-form-item v-if="value.minute.type == 2" label="间隔">
+              <el-input-number v-model="value.minute.loop.start" :min="0" :max="59" controls-position="right" />
               分钟开始，每
-              <ScInputNumber v-model="value.minute.loop.end" :min="0" :max="59" controls-position="right" />
+              <el-input-number v-model="value.minute.loop.end" :min="0" :max="59" controls-position="right" />
               分钟执行一次
-            </ScFormItem>
-            <ScFormItem v-if="value.minute.type == 3" label="指定">
-              <ScSelect v-model="value.minute.appoint" multiple style="width: 100%">
-                <ScOption v-for="(item, index) in data.minute" :key="index" :label="item" :value="item" />
-              </ScSelect>
-            </ScFormItem>
-          </ScForm>
-        </ScTabPane>
-        <ScTabPane>
+            </el-form-item>
+            <el-form-item v-if="value.minute.type == 3" label="指定">
+              <el-select v-model="value.minute.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.minute" :key="index" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>小时</h2>
               <h4>{{ value_hour }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScFormItem label="类型">
-              <ScRadioGroup v-model="value.hour.type">
+          <el-form>
+            <el-form-item label="类型">
+              <el-radio-group v-model="value.hour.type">
                 <el-radio-button label="0">任意值</el-radio-button>
                 <el-radio-button label="1">范围</el-radio-button>
                 <el-radio-button label="2">间隔</el-radio-button>
                 <el-radio-button label="3">指定</el-radio-button>
-              </ScRadioGroup>
-            </ScFormItem>
-            <ScFormItem v-if="value.hour.type == 1" label="范围">
-              <ScInputNumber v-model="value.hour.range.start" :min="0" :max="23" controls-position="right" />
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="value.hour.type == 1" label="范围">
+              <el-input-number v-model="value.hour.range.start" :min="0" :max="23" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <ScInputNumber v-model="value.hour.range.end" :min="0" :max="23" controls-position="right" />
-            </ScFormItem>
-            <ScFormItem v-if="value.hour.type == 2" label="间隔">
-              <ScInputNumber v-model="value.hour.loop.start" :min="0" :max="23" controls-position="right" />
+              <el-input-number v-model="value.hour.range.end" :min="0" :max="23" controls-position="right" />
+            </el-form-item>
+            <el-form-item v-if="value.hour.type == 2" label="间隔">
+              <el-input-number v-model="value.hour.loop.start" :min="0" :max="23" controls-position="right" />
               小时开始，每
-              <ScInputNumber v-model="value.hour.loop.end" :min="0" :max="23" controls-position="right" />
+              <el-input-number v-model="value.hour.loop.end" :min="0" :max="23" controls-position="right" />
               小时执行一次
-            </ScFormItem>
-            <ScFormItem v-if="value.hour.type == 3" label="指定">
-              <ScSelect v-model="value.hour.appoint" multiple style="width: 100%">
-                <ScOption v-for="(item, index) in data.hour" :key="index" :label="item" :value="item" />
-              </ScSelect>
-            </ScFormItem>
-          </ScForm>
-        </ScTabPane>
-        <ScTabPane>
+            </el-form-item>
+            <el-form-item v-if="value.hour.type == 3" label="指定">
+              <el-select v-model="value.hour.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.hour" :key="index" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>日</h2>
               <h4>{{ value_day }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScFormItem label="类型">
-              <ScRadioGroup v-model="value.day.type">
+          <el-form>
+            <el-form-item label="类型">
+              <el-radio-group v-model="value.day.type">
                 <el-radio-button label="0">任意值</el-radio-button>
                 <el-radio-button label="1">范围</el-radio-button>
                 <el-radio-button label="2">间隔</el-radio-button>
                 <el-radio-button label="3">指定</el-radio-button>
                 <el-radio-button label="4">本月最后一天</el-radio-button>
                 <el-radio-button label="5">不指定</el-radio-button>
-              </ScRadioGroup>
-            </ScFormItem>
-            <ScFormItem v-if="value.day.type == 1" label="范围">
-              <ScInputNumber v-model="value.day.range.start" :min="1" :max="31" controls-position="right" />
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="value.day.type == 1" label="范围">
+              <el-input-number v-model="value.day.range.start" :min="1" :max="31" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <ScInputNumber v-model="value.day.range.end" :min="1" :max="31" controls-position="right" />
-            </ScFormItem>
-            <ScFormItem v-if="value.day.type == 2" label="间隔">
-              <ScInputNumber v-model="value.day.loop.start" :min="1" :max="31" controls-position="right" />
+              <el-input-number v-model="value.day.range.end" :min="1" :max="31" controls-position="right" />
+            </el-form-item>
+            <el-form-item v-if="value.day.type == 2" label="间隔">
+              <el-input-number v-model="value.day.loop.start" :min="1" :max="31" controls-position="right" />
               号开始，每
-              <ScInputNumber v-model="value.day.loop.end" :min="1" :max="31" controls-position="right" />
+              <el-input-number v-model="value.day.loop.end" :min="1" :max="31" controls-position="right" />
               天执行一次
-            </ScFormItem>
-            <ScFormItem v-if="value.day.type == 3" label="指定">
-              <ScSelect v-model="value.day.appoint" multiple style="width: 100%">
-                <ScOption v-for="(item, index) in data.day" :key="index" :label="item" :value="item" />
-              </ScSelect>
-            </ScFormItem>
-          </ScForm>
-        </ScTabPane>
-        <ScTabPane>
+            </el-form-item>
+            <el-form-item v-if="value.day.type == 3" label="指定">
+              <el-select v-model="value.day.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.day" :key="index" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>月</h2>
               <h4>{{ value_month }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScFormItem label="类型">
-              <ScRadioGroup v-model="value.month.type">
+          <el-form>
+            <el-form-item label="类型">
+              <el-radio-group v-model="value.month.type">
                 <el-radio-button label="0">任意值</el-radio-button>
                 <el-radio-button label="1">范围</el-radio-button>
                 <el-radio-button label="2">间隔</el-radio-button>
                 <el-radio-button label="3">指定</el-radio-button>
-              </ScRadioGroup>
-            </ScFormItem>
-            <ScFormItem v-if="value.month.type == 1" label="范围">
-              <ScInputNumber v-model="value.month.range.start" :min="1" :max="12" controls-position="right" />
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="value.month.type == 1" label="范围">
+              <el-input-number v-model="value.month.range.start" :min="1" :max="12" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <ScInputNumber v-model="value.month.range.end" :min="1" :max="12" controls-position="right" />
-            </ScFormItem>
-            <ScFormItem v-if="value.month.type == 2" label="间隔">
-              <ScInputNumber v-model="value.month.loop.start" :min="1" :max="12" controls-position="right" />
+              <el-input-number v-model="value.month.range.end" :min="1" :max="12" controls-position="right" />
+            </el-form-item>
+            <el-form-item v-if="value.month.type == 2" label="间隔">
+              <el-input-number v-model="value.month.loop.start" :min="1" :max="12" controls-position="right" />
               月开始，每
-              <ScInputNumber v-model="value.month.loop.end" :min="1" :max="12" controls-position="right" />
+              <el-input-number v-model="value.month.loop.end" :min="1" :max="12" controls-position="right" />
               月执行一次
-            </ScFormItem>
-            <ScFormItem v-if="value.month.type == 3" label="指定">
-              <ScSelect v-model="value.month.appoint" multiple style="width: 100%">
-                <ScOption v-for="(item, index) in data.month" :key="index" :label="item" :value="item" />
-              </ScSelect>
-            </ScFormItem>
-          </ScForm>
-        </ScTabPane>
-        <ScTabPane>
+            </el-form-item>
+            <el-form-item v-if="value.month.type == 3" label="指定">
+              <el-select v-model="value.month.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.month" :key="index" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>周</h2>
               <h4>{{ value_week }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScForm>
-              <ScFormItem label="类型">
-                <ScRadioGroup v-model="value.week.type">
+          <el-form>
+            <el-form>
+              <el-form-item label="类型">
+                <el-radio-group v-model="value.week.type">
                   <el-radio-button label="0">任意值</el-radio-button>
                   <el-radio-button label="1">范围</el-radio-button>
                   <el-radio-button label="2">间隔</el-radio-button>
                   <el-radio-button label="3">指定</el-radio-button>
                   <el-radio-button label="4">本月最后一周</el-radio-button>
                   <el-radio-button label="5">不指定</el-radio-button>
-                </ScRadioGroup>
-              </ScFormItem>
-              <ScFormItem v-if="value.week.type == 1" label="范围">
-                <ScSelect v-model="value.week.range.start">
-                  <ScOption v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
-                </ScSelect>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item v-if="value.week.type == 1" label="范围">
+                <el-select v-model="value.week.range.start">
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
+                </el-select>
                 <span style="padding: 0 15px">-</span>
-                <ScSelect v-model="value.week.range.end">
-                  <ScOption v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
-                </ScSelect>
-              </ScFormItem>
-              <ScFormItem v-if="value.week.type == 2" label="间隔">
+                <el-select v-model="value.week.range.end">
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="value.week.type == 2" label="间隔">
                 第
-                <ScInputNumber v-model="value.week.loop.start" :min="1" :max="4" controls-position="right" />
+                <el-input-number v-model="value.week.loop.start" :min="1" :max="4" controls-position="right" />
                 周的星期
-                <ScSelect v-model="value.week.loop.end">
-                  <ScOption v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
-                </ScSelect>
+                <el-select v-model="value.week.loop.end">
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
+                </el-select>
                 执行一次
-              </ScFormItem>
-              <ScFormItem v-if="value.week.type == 3" label="指定">
-                <ScSelect v-model="value.week.appoint" multiple style="width: 100%">
-                  <ScOption v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
-                </ScSelect>
-              </ScFormItem>
-              <ScFormItem v-if="value.week.type == 4" label="最后一周">
-                <ScSelect v-model="value.week.last">
-                  <ScOption v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
-                </ScSelect>
-              </ScFormItem>
-            </ScForm>
-          </ScForm>
-        </ScTabPane>
-        <ScTabPane>
+              </el-form-item>
+              <el-form-item v-if="value.week.type == 3" label="指定">
+                <el-select v-model="value.week.appoint" multiple style="width: 100%">
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item v-if="value.week.type == 4" label="最后一周">
+                <el-select v-model="value.week.last">
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+            </el-form>
+          </el-form>
+        </el-tab-pane>
+        <el-tab-pane>
           <template #label>
             <div class="sc-cron-num">
               <h2>年</h2>
               <h4>{{ value_year }}</h4>
             </div>
           </template>
-          <ScForm>
-            <ScFormItem label="类型">
-              <ScRadioGroup v-model="value.year.type">
+          <el-form>
+            <el-form-item label="类型">
+              <el-radio-group v-model="value.year.type">
                 <el-radio-button label="-1">忽略</el-radio-button>
                 <el-radio-button label="0">任意值</el-radio-button>
                 <el-radio-button label="1">范围</el-radio-button>
                 <el-radio-button label="2">间隔</el-radio-button>
                 <el-radio-button label="3">指定</el-radio-button>
-              </ScRadioGroup>
-            </ScFormItem>
-            <ScFormItem v-if="value.year.type == 1" label="范围">
-              <ScInputNumber v-model="value.year.range.start" controls-position="right" />
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="value.year.type == 1" label="范围">
+              <el-input-number v-model="value.year.range.start" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <ScInputNumber v-model="value.year.range.end" controls-position="right" />
-            </ScFormItem>
-            <ScFormItem v-if="value.year.type == 2" label="间隔">
-              <ScInputNumber v-model="value.year.loop.start" controls-position="right" />
+              <el-input-number v-model="value.year.range.end" controls-position="right" />
+            </el-form-item>
+            <el-form-item v-if="value.year.type == 2" label="间隔">
+              <el-input-number v-model="value.year.loop.start" controls-position="right" />
               年开始，每
-              <ScInputNumber v-model="value.year.loop.end" :min="1" controls-position="right" />
+              <el-input-number v-model="value.year.loop.end" :min="1" controls-position="right" />
               年执行一次
-            </ScFormItem>
-            <ScFormItem v-if="value.year.type == 3" label="指定">
-              <ScSelect v-model="value.year.appoint" multiple style="width: 100%">
-                <ScOption v-for="(item, index) in data.year" :key="index" :label="item" :value="item" />
-              </ScSelect>
-            </ScFormItem>
-          </ScForm>
-        </ScTabPane>
-      </ScTabs>
+            </el-form-item>
+            <el-form-item v-if="value.year.type == 3" label="指定">
+              <el-select v-model="value.year.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.year" :key="index" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <template #footer>
-      <ScButton @click="dialogVisible = false">取 消</ScButton>
-      <ScButton type="primary" @click="submit()">确 认</ScButton>
+      <el-button @click="dialogVisible = false">取 消</el-button>
+      <el-button type="primary" @click="submit()">确 认</el-button>
     </template>
   </sc-dialog>
 </template>

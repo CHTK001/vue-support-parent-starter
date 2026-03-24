@@ -27,7 +27,7 @@ export function getServerTunnelAddress(serverId: number) {
  */
 export function setServerTunnelAddress(
   serverId: number,
-  tunnelAddress: string,
+  tunnelAddress: string
 ) {
   return request({
     url: "/v1/arthas/tunnel-address/set",

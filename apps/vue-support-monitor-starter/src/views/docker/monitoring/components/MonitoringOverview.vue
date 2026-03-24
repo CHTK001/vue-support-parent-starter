@@ -42,21 +42,22 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from "vue";
+import { defineProps } from 'vue'
 
 interface Props {
-  avgCpuUsage: number;
-  avgMemoryUsage: number;
-  totalContainers: number;
-  runningContainers: number;
+  avgCpuUsage: number
+  avgMemoryUsage: number
+  totalContainers: number
+  runningContainers: number
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
-const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+const formatPercent = (value: number) => `${value.toFixed(1)}%`
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -89,6 +90,7 @@ const formatPercent = (value: number) => `${value.toFixed(1)}%`;
     z-index: 1;
   }
 }
+
 
 .monitoring-overview {
   margin-bottom: 20px;

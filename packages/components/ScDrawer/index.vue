@@ -55,9 +55,9 @@
  */
 import { ref, computed, watch, onMounted, type PropType } from "vue";
 import { ElDrawer } from "element-plus";
+import { localStorageProxy } from "@repo/utils";
 import { ScButton } from "../ScButton";
 import { useThemeComponent } from "../hooks/useThemeComponent";
-import { useDrawerMemory } from "./composables";
 
 /** 抽屉方向类型 */
 type DrawerDirection = "ltr" | "rtl" | "ttb" | "btt";
@@ -169,18 +169,48 @@ const visible = ref(props.modelValue);
 // 使用主题组件系统 V2.0
 const { currentComponent } = useThemeComponent("ElDrawer");
 
-// 记忆存储 key（统一走 useDrawerMemory）
-const internalMemoryKey = computed(() => {
+// 记忆存储 key
+const memoryStorageKey = computed(() => {
   const id = props.memoryId;
-  if (id === 0 || id === "0" || id === "" || typeof id === "undefined") {
-    return "shared";
+  // 如果 memoryId 为 0 或空字符串，使用共享 key
+  if (id === 0 || id === "0" || id === "") {
+    return "sc_drawer_memory_shared";
   }
-  return String(id);
+  return `sc_drawer_memory_${id}`;
 });
 
-const { memoryData, loadMemory, updateMemory } = useDrawerMemory(internalMemoryKey.value, {
-  enabled: props.memoryEnabled
-});
+/**
+ * 从 localStorage 加载记忆状态
+ */
+const loadMemory = (): void => {
+  if (!props.memoryEnabled) return;
+
+  try {
+    const memory = localStorageProxy().getItem(memoryStorageKey.value);
+    if (memory && typeof memory.isOpen === "boolean") {
+      visible.value = memory.isOpen;
+      emit("update:modelValue", memory.isOpen);
+    }
+  } catch (error) {
+    console.error("加载抽屉记忆失败:", error);
+  }
+};
+
+/**
+ * 保存记忆状态到 localStorage
+ */
+const saveMemory = (): void => {
+  if (!props.memoryEnabled) return;
+
+  try {
+    const memory = localStorageProxy().getItem(memoryStorageKey.value) || {};
+    memory.isOpen = visible.value;
+    memory.timestamp = Date.now();
+    localStorageProxy().setItem(memoryStorageKey.value, memory);
+  } catch (error) {
+    console.error("保存抽屉记忆失败:", error);
+  }
+};
 
 /**
  * 处理关闭前回调
@@ -261,42 +291,13 @@ watch(
 // 同步内部状态变化到外部，并保存记忆
 watch(visible, val => {
   emit("update:modelValue", val);
-  if (props.memoryEnabled) {
-    updateMemory({
-      isOpen: val
-    });
-  }
+  saveMemory();
 });
 
 // 组件挂载时加载记忆
 onMounted(() => {
-  if (!props.memoryEnabled) {
-    return;
-  }
-  const memory = loadMemory();
-  if (memory && typeof memory.isOpen === "boolean") {
-    visible.value = memory.isOpen;
-    emit("update:modelValue", memory.isOpen);
-  }
+  loadMemory();
 });
-
-/**
- * 记录位置
- * @description 由业务侧调用，用于保存滚动位置或自定义位置
- */
-const setMemoryPosition = (position: number): void => {
-  if (!props.memoryEnabled) {
-    return;
-  }
-  updateMemory({ position });
-};
-
-/**
- * 读取已记录的位置
- */
-const getMemoryPosition = (): number | undefined => {
-  return memoryData.value?.position;
-};
 
 // 暴露方法
 defineExpose({
@@ -305,11 +306,7 @@ defineExpose({
   /** 关闭抽屉 */
   close,
   /** 获取当前可见状态 */
-  isVisible: () => visible.value,
-  /** 记录位置（供外部滚动等场景调用） */
-  setMemoryPosition,
-  /** 读取已记录的位置 */
-  getMemoryPosition
+  isVisible: () => visible.value
 });
 </script>
 

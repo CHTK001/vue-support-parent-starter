@@ -1,6 +1,6 @@
 <template>
   <div class="sc-upload-multiple">
-    <ScUpload
+    <el-upload
       ref="uploader"
       v-model:file-list="defaultFileList"
       list-type="picture-card"
@@ -21,14 +21,14 @@
       :on-exceed="handleExceed"
     >
       <slot>
-        <ScIcon><el-icon-plus /></ScIcon>
+        <el-icon><el-icon-plus /></el-icon>
       </slot>
       <template #tip>
         <div v-if="tip" class="el-upload__tip">{{ tip }}</div>
       </template>
       <template #file="{ file }">
         <div class="sc-upload-list-item">
-          <ScImage
+          <el-image
             class="el-upload-list__item-thumbnail"
             :src="file.url"
             fit="cover"
@@ -41,20 +41,20 @@
             <template #placeholder>
               <div class="sc-upload-multiple-image-slot">Loading...</div>
             </template>
-          </ScImage>
+          </el-image>
           <div class="sc-upload__item-actions">
             <span class="del" @click="handleRemove(file)">
-              <ScIcon><el-icon-delete /></ScIcon>
+              <el-icon><el-icon-delete /></el-icon>
             </span>
           </div>
           <!-- <div v-if="file.status=='ready' || file.status=='uploading'" class="sc-upload__item-progress">
-						<ScProgress :percentage="file.percentage" :text-inside="true" :stroke-width="16"/>
+						<el-progress :percentage="file.percentage" :text-inside="true" :stroke-width="16"/>
 					</div> -->
         </div>
       </template>
-    </ScUpload>
+    </el-upload>
     <span style="display: none !important">
-      <ScInput v-model="value" />
+      <el-input v-model="value" />
     </span>
   </div>
 </template>
@@ -100,7 +100,7 @@ export default {
   computed: {
     // 版本号用于监听 defaultFileList 变化，避免深度监听
     fileListVersion() {
-      return this.defaultFileList.map(f => f.url || f.name).join(",");
+      return this.defaultFileList.map(f => f.url || f.name).join(',');
     }
   },
   watch: {

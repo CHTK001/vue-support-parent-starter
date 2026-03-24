@@ -11,12 +11,12 @@
       @close="handleClose"
     >
       <ScRow class="justify-end mb-2">
-        <ScButton
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ep:plus')"
           @click="handleSaveForm"
         ></ScButton>
-        <ScButton
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ri:save-2-line')"
           type="primary"
@@ -25,11 +25,11 @@
       </ScRow>
       <ScRow class="h-[65vh]">
         <ScCol :span="12" class="h-full overflow-auto">
-          <ScSkeleton animated :loading="loadingConfig.loading">
+          <el-skeleton animated :loading="loadingConfig.loading">
             <template #default>
               <ScEmpty v-if="listData.length == 0"></ScEmpty>
               <ScRow v-else>
-                <ScCol
+                <ScCol 
                   :span="7"
                   v-for="item in listData"
                   @click="handleSetForm(item)"
@@ -39,7 +39,7 @@
                     <ScTag class="!absolute top-0 left-0 z-[10]">
                       {{ item.sysAiVincentStyleName }}
                     </ScTag>
-                    <ScButton
+                    <ScButton 
                       type="default"
                       size="small"
                       plain
@@ -57,11 +57,11 @@
                 </ScCol>
               </ScRow>
             </template>
-          </ScSkeleton>
+          </el-skeleton>
         </ScCol>
         <ScCol :span="12" class="h-full overflow-auto">
           <ScEmpty v-if="!form.sysAiModuleId"></ScEmpty>
-          <ScForm
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
@@ -75,14 +75,14 @@
             </ScFormItem>
 
             <ScFormItem label="风格名称" prop="sysAiVincentStyleName">
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentStyleName"
                 placeholder="请输入风格名称"
                 clearable
               ></ScInput>
             </ScFormItem>
             <ScFormItem label="风格编码" prop="sysAiVincentStyleCode">
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentStyleCode"
                 placeholder="请输入风格编码"
                 clearable
@@ -91,13 +91,13 @@
 
             <ScFormItem label="风格图片" prop="sysAiVincentStyleImage">
               <div class="flex justify-between gap-1 h-[50px] w-full">
-                <ScImage
+                <ScImage 
                   class="!h-[50px] !w-[50px]"
                   fit="cover"
                   v-if="form.sysAiVincentStyleImage"
                   :src="form.sysAiVincentStyleImage"
                 ></ScImage>
-                <ScInput
+                <ScInput 
                   type="textarea"
                   class="w-full"
                   v-model="form.sysAiVincentStyleImage"
@@ -113,7 +113,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { clearObject, message } from "@repo/utils";
 import { defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";

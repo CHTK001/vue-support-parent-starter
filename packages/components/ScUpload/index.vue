@@ -8,12 +8,12 @@
       <ScImage v-if="file.isImage || isImageFile(file.raw?.type)" class="image" :src="file.tempFile" fit="cover" />
       <!-- 非图片文件显示文件图标 -->
       <div v-else class="sc-upload__file-preview">
-        <ScIcon class="file-icon"><component :is="useRenderIcon('ep:document')" /></ScIcon>
+        <el-icon class="file-icon"><component :is="useRenderIcon('ep:document')" /></el-icon>
         <span class="file-name">{{ file.name }}</span>
       </div>
       <div class="sc-upload__img-actions always">
         <span class="del" @click="handleRemove()">
-          <ScIcon><component :is="useRenderIcon('ep:delete')" /></ScIcon>
+          <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
         </span>
       </div>
     </div>
@@ -31,12 +31,12 @@
       </template>
       <!-- 非图片文件显示文件信息 -->
       <div v-else class="sc-upload__file-preview">
-        <ScIcon class="file-icon"><component :is="useRenderIcon('ep:document')" /></ScIcon>
+        <el-icon class="file-icon"><component :is="useRenderIcon('ep:document')" /></el-icon>
         <span class="file-name">{{ file.name || "文件已上传" }}</span>
       </div>
       <div v-if="!disabled" class="sc-upload__img-actions">
         <span class="del" @click="handleRemove()">
-          <ScIcon><component :is="useRenderIcon('ep:delete')" /></ScIcon>
+          <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
         </span>
       </div>
     </div>
@@ -63,16 +63,16 @@
       <slot>
         <div class="el-upload--picture-card">
           <div class="file-empty">
-            <ScIcon>
+            <el-icon>
               <component :is="useRenderIcon(icon)" />
-            </ScIcon>
+            </el-icon>
             <h4 v-if="title">{{ title }}</h4>
           </div>
         </div>
       </slot>
     </component>
     <span style="display: none !important">
-      <ScInput v-model="value" />
+      <el-input v-model="value" />
     </span>
     <sc-dialog :append-to-body="true" v-model="cropperDialogVisible" title="剪裁" draggable :width="680" destroy-on-close @closed="cropperClosed">
       <sc-cropper ref="cropper" :src="cropperFile.tempCropperFile" :compress="compress" :aspectRatio="aspectRatio" />
@@ -89,8 +89,8 @@ import { defineAsyncComponent, computed } from "vue";
 import { genFileId, ElUpload } from "element-plus";
 import { useRenderIcon } from "../ReIcon/src/hooks";
 import { useThemeComponent } from "../hooks/useThemeComponent";
-import { ScButton } from "@repo/components"
-import { ScProgress } from "@repo/components"
+import ScButton from "@repo/components/ScButton/index.vue";
+import ScProgress from "@repo/components/ScProgress/index.vue";
 import { ScImage } from "@repo/components/ScImage";
 
 const scCropper = defineAsyncComponent(() => import("../scCropper/index.vue"));

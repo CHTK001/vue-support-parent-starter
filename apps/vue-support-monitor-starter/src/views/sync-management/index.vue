@@ -1,370 +1,313 @@
 ﻿<template>
   <div class="sync-management system-container modern-bg">
     <!-- 页面切换 -->
-    <ScTabs v-model="activeTab" class="main-tabs">
-      <ScTabPane label="任务列表" name="list">
-        <!-- 统计卡片 -->
-        <ScRow :gutter="16" class="stats-row">
-          <ScCol :span="6">
-            <ScCard class="stat-card" shadow="hover">
-              <div class="stat-content">
-                <div class="stat-icon total">
-                  <ScIcon><List /></ScIcon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ stats.total }}</div>
-                  <div class="stat-label">任务总数</div>
-                </div>
-              </div>
-            </ScCard>
-          </ScCol>
-          <ScCol :span="6">
-            <ScCard class="stat-card" shadow="hover">
-              <div class="stat-content">
-                <div class="stat-icon running">
-                  <ScIcon><VideoPlay /></ScIcon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ stats.running }}</div>
-                  <div class="stat-label">运行中</div>
-                </div>
-              </div>
-            </ScCard>
-          </ScCol>
-          <ScCol :span="6">
-            <ScCard class="stat-card" shadow="hover">
-              <div class="stat-content">
-                <div class="stat-icon success">
-                  <ScIcon><CircleCheck /></ScIcon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ stats.successRate }}%</div>
-                  <div class="stat-label">成功率</div>
-                </div>
-              </div>
-            </ScCard>
-          </ScCol>
-          <ScCol :span="6">
-            <ScCard class="stat-card" shadow="hover">
-              <div class="stat-content">
-                <div class="stat-icon error">
-                  <ScIcon><WarningFilled /></ScIcon>
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ stats.error }}</div>
-                  <div class="stat-label">异常任务</div>
-                </div>
-              </div>
-            </ScCard>
-          </ScCol>
-        </ScRow>
-
-        <ScCard class="filter-card">
-          <ScForm :inline="true" :model="queryParams" class="filter-form">
-            <ScFormItem label="任务名称">
-              <ScInput
-                v-model="queryParams.taskName"
-                placeholder="请输入任务名称"
-                clearable
-                style="width: 200px"
-                @keyup.enter="handleSearch"
-              />
-            </ScFormItem>
-            <ScFormItem label="状态">
-              <ScSelect
-                v-model="queryParams.taskStatus"
-                placeholder="全部"
-                clearable
-                style="width: 120px"
-              >
-                <ScOption label="已停止" value="STOPPED" />
-                <ScOption label="运行中" value="RUNNING" />
-                <ScOption label="异常" value="ERROR" />
-              </ScSelect>
-            </ScFormItem>
-            <ScFormItem>
-              <ScButton type="primary" @click="handleSearch">
-                <ScIcon><Search /></ScIcon>
-                查询
-              </ScButton>
-              <ScButton @click="handleReset">
-                <ScIcon><RefreshRight /></ScIcon>
-                重置
-              </ScButton>
-              <ScButton :loading="refreshing" @click="handleRefresh">
-                <ScIcon><Refresh /></ScIcon>
-                刷新
-              </ScButton>
-            </ScFormItem>
-            <ScFormItem style="margin-left: auto">
-              <ScSwitch
-                v-model="autoRefresh"
-                active-text="自动刷新"
-                inactive-text=""
-                @change="handleAutoRefreshChange"
-              />
-            </ScFormItem>
-          </ScForm>
-        </ScCard>
-
-        <ScCard class="table-card">
-          <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <span>同步任务列表</span>
-                <ScTag
-                  v-if="selectedRows.length > 0"
-                  type="info"
-                  class="selection-tag"
-                >
-                  已选择 {{ selectedRows.length }} 项
-                </ScTag>
-              </div>
-              <div class="header-right">
-                <el-button-group
-                  v-if="selectedRows.length > 0"
-                  class="batch-actions"
-                >
-                  <ScButton size="small" @click="handleBatchStart">
-                    <ScIcon><VideoPlay /></ScIcon>
-                    批量启动
-                  </ScButton>
-                  <ScButton size="small" @click="handleBatchStop">
-                    <ScIcon><VideoPause /></ScIcon>
-                    批量停止
-                  </ScButton>
-                  <ScButton
-                    size="small"
-                    type="danger"
-                    @click="handleBatchDelete"
-                  >
-                    <ScIcon><Delete /></ScIcon>
-                    批量删除
-                  </ScButton>
-                </el-button-group>
-                <ScDropdown trigger="click" @command="handleExportCommand">
-                  <ScButton>
-                    <ScIcon><Download /></ScIcon>
-                    导出
-                    <ScIcon class="el-icon--right"><ArrowDown /></ScIcon>
-                  </ScButton>
-                  <template #dropdown>
-                    <ScDropdownMenu>
-                      <ScDropdownItem command="json"
-                        >导出 JSON</el-dropdown-item
-                      >
-                      <ScDropdownItem command="excel"
-                        >导出 Excel</el-dropdown-item
-                      >
-                    </ScDropdownMenu>
-                  </template>
-                </ScDropdown>
-                <ScUpload
-                  :show-file-list="false"
-                  accept=".json"
-                  :before-upload="handleImport"
-                >
-                  <ScButton>
-                    <ScIcon><Upload /></ScIcon>
-                    导入
-                  </ScButton>
-                </ScUpload>
-                <ScButton type="primary" @click="handleCreate">
-                  <ScIcon><Plus /></ScIcon>
-                  新建任务
-                </ScButton>
-              </div>
+    <el-tabs v-model="activeTab" class="main-tabs">
+      <el-tab-pane label="任务列表" name="list">
+    <!-- 统计卡片 -->
+    <el-row :gutter="16" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon total">
+              <el-icon><List /></el-icon>
             </div>
-          </template>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.total }}</div>
+              <div class="stat-label">任务总数</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon running">
+              <el-icon><VideoPlay /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.running }}</div>
+              <div class="stat-label">运行中</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon success">
+              <el-icon><CircleCheck /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.successRate }}%</div>
+              <div class="stat-label">成功率</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="stat-card" shadow="hover">
+          <div class="stat-content">
+            <div class="stat-icon error">
+              <el-icon><WarningFilled /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ stats.error }}</div>
+              <div class="stat-label">异常任务</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-          <ScTable
-            ref="tableRef"
-            v-loading="loading"
-            :data="taskList"
-            border
-            stripe
-            @selection-change="handleSelectionChange"
-          >
-            <ScTableColumn type="selection" width="55" />
-            <ScTableColumn prop="syncTaskId" label="ID" width="80" sortable />
-            <ScTableColumn
-              prop="syncTaskName"
-              label="任务名称"
-              min-width="150"
-            />
-            <ScTableColumn
-              prop="syncTaskDesc"
-              label="描述"
-              min-width="200"
-              show-overflow-tooltip
-            />
-            <ScTableColumn prop="syncTaskStatus" label="状态" width="100">
-              <template #default="{ row }">
-                <ScTag :type="getStatusType(row.syncTaskStatus)">
-                  {{ getStatusText(row.syncTaskStatus) }}
-                </ScTag>
-              </template>
-            </ScTableColumn>
-            <ScTableColumn label="执行统计" width="180">
-              <template #default="{ row }">
-                <span class="stat-item">
-                  总: {{ row.syncTaskRunCount || 0 }}
-                </span>
-                <span class="stat-item success">
-                  成功: {{ row.syncTaskSuccessCount || 0 }}
-                </span>
-                <span class="stat-item fail">
-                  失败: {{ row.syncTaskFailCount || 0 }}
-                </span>
-              </template>
-            </ScTableColumn>
-            <ScTableColumn
-              prop="syncTaskLastRunTime"
-              label="最后执行时间"
-              width="180"
-            />
-            <ScTableColumn
-              prop="syncTaskCreateTime"
-              label="创建时间"
-              width="180"
-            />
-            <ScTableColumn label="操作" width="280" fixed="right">
-              <template #default="{ row }">
-                <ScButton link type="primary" @click="handleDesign(row)">
-                  设计
-                </ScButton>
-                <ScButton link type="primary" @click="handleEdit(row)">
-                  编辑
-                </ScButton>
-                <ScButton
-                  v-if="row.syncTaskStatus !== 'RUNNING'"
-                  link
-                  type="success"
-                  @click="handleStart(row)"
-                >
-                  启动
-                </ScButton>
-                <ScButton v-else link type="warning" @click="handleStop(row)">
-                  停止
-                </ScButton>
-                <ScButton link type="info" @click="handleExecuteOnce(row)">
-                  执行
-                </ScButton>
-                <ScButton link type="primary" @click="handleLogs(row)">
-                  日志
-                </ScButton>
-                <ScButton link type="danger" @click="handleDelete(row)">
-                  删除
-                </ScButton>
-              </template>
-            </ScTableColumn>
-          </ScTable>
-
-          <ScPagination
-            v-model:current-page="queryParams.page"
-            v-model:page-size="queryParams.size"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="total"
-            layout="total, sizes, prev, pager, next, jumper"
-            class="pagination"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
+    <el-card class="filter-card">
+      <el-form :inline="true" :model="queryParams" class="filter-form">
+        <el-form-item label="任务名称">
+          <el-input
+            v-model="queryParams.taskName"
+            placeholder="请输入任务名称"
+            clearable
+            style="width: 200px"
+            @keyup.enter="handleSearch"
           />
-        </ScCard>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="queryParams.taskStatus" placeholder="全部" clearable style="width: 120px">
+            <el-option label="已停止" value="STOPPED" />
+            <el-option label="运行中" value="RUNNING" />
+            <el-option label="异常" value="ERROR" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>
+            查询
+          </el-button>
+          <el-button @click="handleReset">
+            <el-icon><RefreshRight /></el-icon>
+            重置
+          </el-button>
+          <el-button :loading="refreshing" @click="handleRefresh">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </el-form-item>
+        <el-form-item style="margin-left: auto">
+          <el-switch
+            v-model="autoRefresh"
+            active-text="自动刷新"
+            inactive-text=""
+            @change="handleAutoRefreshChange"
+          />
+        </el-form-item>
+      </el-form>
+    </el-card>
 
-        <!-- 新建/编辑任务对话框 -->
-        <sc-dialog
-          v-model="dialogVisible"
-          :title="dialogTitle"
-          width="600px"
-          destroy-on-close
-        >
-          <ScForm
-            ref="formRef"
-            :model="formData"
-            :rules="formRules"
-            label-width="120px"
-          >
-            <ScFormItem label="任务名称" prop="syncTaskName">
-              <ScInput
-                v-model="formData.syncTaskName"
-                placeholder="请输入任务名称"
-              />
-            </ScFormItem>
-            <ScFormItem label="任务描述" prop="syncTaskDesc">
-              <ScInput
-                v-model="formData.syncTaskDesc"
-                type="textarea"
-                :rows="3"
-                placeholder="请输入任务描述"
-              />
-            </ScFormItem>
-            <ScFormItem label="批次大小" prop="syncTaskBatchSize">
-              <ScInputNumber
-                v-model="formData.syncTaskBatchSize"
-                :min="1"
-                :max="100000"
-              />
-            </ScFormItem>
-            <ScFormItem label="重试次数" prop="syncTaskRetryCount">
-              <ScInputNumber
-                v-model="formData.syncTaskRetryCount"
-                :min="0"
-                :max="100"
-              />
-            </ScFormItem>
-            <ScFormItem label="重试间隔(ms)" prop="syncTaskRetryInterval">
-              <ScInputNumber
-                v-model="formData.syncTaskRetryInterval"
-                :min="0"
-                :step="1000"
-              />
-            </ScFormItem>
-            <ScFormItem label="同步间隔(ms)" prop="syncTaskSyncInterval">
-              <ScInputNumber
-                v-model="formData.syncTaskSyncInterval"
-                :min="0"
-                :step="1000"
-              />
-            </ScFormItem>
-            <ScFormItem label="CRON表达式" prop="syncTaskCron">
-              <ScInput
-                v-model="formData.syncTaskCron"
-                placeholder="如: 0 0 * * * ?"
-              />
-            </ScFormItem>
-            <ScFormItem label="启用ACK" prop="syncTaskAckEnabled">
-              <ScSwitch
-                v-model="formData.syncTaskAckEnabled"
-                :active-value="1"
-                :inactive-value="0"
-              />
-            </ScFormItem>
-            <ScFormItem label="启用事务" prop="syncTaskTransactionEnabled">
-              <ScSwitch
-                v-model="formData.syncTaskTransactionEnabled"
-                :active-value="1"
-                :inactive-value="0"
-              />
-            </ScFormItem>
-          </ScForm>
-          <template #footer>
-            <ScButton @click="dialogVisible = false">取消</ScButton>
-            <ScButton
-              type="primary"
-              :loading="submitLoading"
-              @click="handleSubmit"
+    <el-card class="table-card">
+      <template #header>
+        <div class="card-header">
+          <div class="header-left">
+            <span>同步任务列表</span>
+            <el-tag v-if="selectedRows.length > 0" type="info" class="selection-tag">
+              已选择 {{ selectedRows.length }} 项
+            </el-tag>
+          </div>
+          <div class="header-right">
+            <el-button-group v-if="selectedRows.length > 0" class="batch-actions">
+              <el-button size="small" @click="handleBatchStart">
+                <el-icon><VideoPlay /></el-icon>
+                批量启动
+              </el-button>
+              <el-button size="small" @click="handleBatchStop">
+                <el-icon><VideoPause /></el-icon>
+                批量停止
+              </el-button>
+              <el-button size="small" type="danger" @click="handleBatchDelete">
+                <el-icon><Delete /></el-icon>
+                批量删除
+              </el-button>
+            </el-button-group>
+            <el-dropdown trigger="click" @command="handleExportCommand">
+              <el-button>
+                <el-icon><Download /></el-icon>
+                导出
+                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="json">导出 JSON</el-dropdown-item>
+                  <el-dropdown-item command="excel">导出 Excel</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-upload
+              :show-file-list="false"
+              accept=".json"
+              :before-upload="handleImport"
             >
-              确定
-            </ScButton>
-          </template>
-        </sc-dialog>
-      </ScTabPane>
+              <el-button>
+                <el-icon><Upload /></el-icon>
+                导入
+              </el-button>
+            </el-upload>
+            <el-button type="primary" @click="handleCreate">
+              <el-icon><Plus /></el-icon>
+              新建任务
+            </el-button>
+          </div>
+        </div>
+      </template>
 
-      <ScTabPane label="执行统计" name="statistics">
+      <el-table
+        ref="tableRef"
+        v-loading="loading"
+        :data="taskList"
+        border
+        stripe
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="55" />
+        <el-table-column prop="syncTaskId" label="ID" width="80" sortable />
+        <el-table-column prop="syncTaskName" label="任务名称" min-width="150" />
+        <el-table-column prop="syncTaskDesc" label="描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="syncTaskStatus" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.syncTaskStatus)">
+              {{ getStatusText(row.syncTaskStatus) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="执行统计" width="180">
+          <template #default="{ row }">
+            <span class="stat-item">
+              总: {{ row.syncTaskRunCount || 0 }}
+            </span>
+            <span class="stat-item success">
+              成功: {{ row.syncTaskSuccessCount || 0 }}
+            </span>
+            <span class="stat-item fail">
+              失败: {{ row.syncTaskFailCount || 0 }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="syncTaskLastRunTime" label="最后执行时间" width="180" />
+        <el-table-column prop="syncTaskCreateTime" label="创建时间" width="180" />
+        <el-table-column label="操作" width="280" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleDesign(row)">
+              设计
+            </el-button>
+            <el-button link type="primary" @click="handleEdit(row)">
+              编辑
+            </el-button>
+            <el-button
+              v-if="row.syncTaskStatus !== 'RUNNING'"
+              link
+              type="success"
+              @click="handleStart(row)"
+            >
+              启动
+            </el-button>
+            <el-button
+              v-else
+              link
+              type="warning"
+              @click="handleStop(row)"
+            >
+              停止
+            </el-button>
+            <el-button link type="info" @click="handleExecuteOnce(row)">
+              执行
+            </el-button>
+            <el-button link type="primary" @click="handleLogs(row)">
+              日志
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-pagination
+        v-model:current-page="queryParams.page"
+        v-model:page-size="queryParams.size"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        class="pagination"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </el-card>
+
+    <!-- 新建/编辑任务对话框 -->
+    <sc-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="600px"
+      destroy-on-close
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="120px"
+      >
+        <el-form-item label="任务名称" prop="syncTaskName">
+          <el-input v-model="formData.syncTaskName" placeholder="请输入任务名称" />
+        </el-form-item>
+        <el-form-item label="任务描述" prop="syncTaskDesc">
+          <el-input
+            v-model="formData.syncTaskDesc"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入任务描述"
+          />
+        </el-form-item>
+        <el-form-item label="批次大小" prop="syncTaskBatchSize">
+          <el-input-number v-model="formData.syncTaskBatchSize" :min="1" :max="100000" />
+        </el-form-item>
+        <el-form-item label="重试次数" prop="syncTaskRetryCount">
+          <el-input-number v-model="formData.syncTaskRetryCount" :min="0" :max="100" />
+        </el-form-item>
+        <el-form-item label="重试间隔(ms)" prop="syncTaskRetryInterval">
+          <el-input-number v-model="formData.syncTaskRetryInterval" :min="0" :step="1000" />
+        </el-form-item>
+        <el-form-item label="同步间隔(ms)" prop="syncTaskSyncInterval">
+          <el-input-number v-model="formData.syncTaskSyncInterval" :min="0" :step="1000" />
+        </el-form-item>
+        <el-form-item label="CRON表达式" prop="syncTaskCron">
+          <el-input v-model="formData.syncTaskCron" placeholder="如: 0 0 * * * ?" />
+        </el-form-item>
+        <el-form-item label="启用ACK" prop="syncTaskAckEnabled">
+          <el-switch
+            v-model="formData.syncTaskAckEnabled"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+        <el-form-item label="启用事务" prop="syncTaskTransactionEnabled">
+          <el-switch
+            v-model="formData.syncTaskTransactionEnabled"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+          确定
+        </el-button>
+      </template>
+    </sc-dialog>
+
+      </el-tab-pane>
+
+      <el-tab-pane label="执行统计" name="statistics">
         <StatisticsCharts v-if="activeTab === 'statistics'" />
-      </ScTabPane>
-    </ScTabs>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 执行监控对话框 -->
     <ExecutionMonitor
@@ -380,36 +323,28 @@
       width="900px"
       destroy-on-close
     >
-      <ScTable v-loading="logsLoading" :data="logsList" border>
-        <ScTableColumn prop="syncLogId" label="ID" width="80" />
-        <ScTableColumn prop="syncLogStatus" label="状态" width="100">
+      <el-table v-loading="logsLoading" :data="logsList" border>
+        <el-table-column prop="syncLogId" label="ID" width="80" />
+        <el-table-column prop="syncLogStatus" label="状态" width="100">
           <template #default="{ row }">
-            <ScTag :type="getLogStatusType(row.syncLogStatus)">
+            <el-tag :type="getLogStatusType(row.syncLogStatus)">
               {{ row.syncLogStatus }}
-            </ScTag>
+            </el-tag>
           </template>
-        </ScTableColumn>
-        <ScTableColumn
-          prop="syncLogTriggerType"
-          label="触发类型"
-          width="100"
-        />
-        <ScTableColumn label="数据统计" width="200">
+        </el-table-column>
+        <el-table-column prop="syncLogTriggerType" label="触发类型" width="100" />
+        <el-table-column label="数据统计" width="200">
           <template #default="{ row }">
             <div>读取: {{ row.syncLogReadCount || 0 }}</div>
             <div>写入: {{ row.syncLogWriteCount || 0 }}</div>
             <div>成功: {{ row.syncLogSuccessCount || 0 }}</div>
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="syncLogCost" label="耗时(ms)" width="100" />
-        <ScTableColumn prop="syncLogStartTime" label="开始时间" width="180" />
-        <ScTableColumn
-          prop="syncLogMessage"
-          label="消息"
-          show-overflow-tooltip
-        />
-      </ScTable>
-      <ScPagination
+        </el-table-column>
+        <el-table-column prop="syncLogCost" label="耗时(ms)" width="100" />
+        <el-table-column prop="syncLogStartTime" label="开始时间" width="180" />
+        <el-table-column prop="syncLogMessage" label="消息" show-overflow-tooltip />
+      </el-table>
+      <el-pagination
         v-model:current-page="logsPage"
         v-model:page-size="logsSize"
         :total="logsTotal"
@@ -424,12 +359,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type TableInstance,
-} from "element-plus";
+import { ElMessage, ElMessageBox, type FormInstance, type TableInstance } from "element-plus";
 import {
   Search,
   RefreshRight,
@@ -489,22 +419,11 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null;
 // 统计数据
 const stats = computed(() => {
   const total = taskList.value.length;
-  const running = taskList.value.filter(
-    (t) => t.syncTaskStatus === "RUNNING",
-  ).length;
-  const error = taskList.value.filter(
-    (t) => t.syncTaskStatus === "ERROR",
-  ).length;
-  const totalRuns = taskList.value.reduce(
-    (sum, t) => sum + (t.syncTaskRunCount || 0),
-    0,
-  );
-  const successRuns = taskList.value.reduce(
-    (sum, t) => sum + (t.syncTaskSuccessCount || 0),
-    0,
-  );
-  const successRate =
-    totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 100;
+  const running = taskList.value.filter((t) => t.syncTaskStatus === "RUNNING").length;
+  const error = taskList.value.filter((t) => t.syncTaskStatus === "ERROR").length;
+  const totalRuns = taskList.value.reduce((sum, t) => sum + (t.syncTaskRunCount || 0), 0);
+  const successRuns = taskList.value.reduce((sum, t) => sum + (t.syncTaskSuccessCount || 0), 0);
+  const successRate = totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 100;
   return { total, running, error, successRate };
 });
 
@@ -670,21 +589,19 @@ const handleSubmit = async () => {
 const handleDelete = (row: SyncTask) => {
   ElMessageBox.confirm(`确定删除任务「${row.syncTaskName}」吗？`, "提示", {
     type: "warning",
-  })
-    .then(async () => {
-      try {
-        const res = await deleteSyncTask(row.syncTaskId!);
-        if (res.data?.success) {
-          ElMessage.success("删除成功");
-          loadTaskList();
-        } else {
-          ElMessage.error(res.data?.msg || "删除失败");
-        }
-      } catch (e) {
-        console.error(e);
+  }).then(async () => {
+    try {
+      const res = await deleteSyncTask(row.syncTaskId!);
+      if (res.data?.success) {
+        ElMessage.success("删除成功");
+        loadTaskList();
+      } else {
+        ElMessage.error(res.data?.msg || "删除失败");
       }
-    })
-    .catch(() => {});
+    } catch (e) {
+      console.error(e);
+    }
+  }).catch(() => {});
 };
 
 // 设计任务
@@ -748,11 +665,7 @@ const loadLogs = async () => {
   if (!currentTaskId.value) return;
   logsLoading.value = true;
   try {
-    const res = await getSyncTaskLogs(
-      currentTaskId.value,
-      logsPage.value,
-      logsSize.value,
-    );
+    const res = await getSyncTaskLogs(currentTaskId.value, logsPage.value, logsSize.value);
     if (res.data?.success) {
       logsList.value = res.data.data?.records || [];
       logsTotal.value = res.data.data?.total || 0;
@@ -796,104 +709,80 @@ const handleSelectionChange = (rows: SyncTask[]) => {
 
 // 批量启动
 const handleBatchStart = async () => {
-  const stoppedTasks = selectedRows.value.filter(
-    (t) => t.syncTaskStatus !== "RUNNING",
-  );
+  const stoppedTasks = selectedRows.value.filter((t) => t.syncTaskStatus !== "RUNNING");
   if (stoppedTasks.length === 0) {
     ElMessage.warning("没有可启动的任务");
     return;
   }
-
-  ElMessageBox.confirm(
-    `确定启动选中的 ${stoppedTasks.length} 个任务吗？`,
-    "提示",
-    {
-      type: "warning",
-    },
-  )
-    .then(async () => {
-      let successCount = 0;
-      for (const task of stoppedTasks) {
-        try {
-          const res = await startSyncTask(task.syncTaskId!);
-          if (res.data?.success) successCount++;
-        } catch (e) {
-          console.error(e);
-        }
+  
+  ElMessageBox.confirm(`确定启动选中的 ${stoppedTasks.length} 个任务吗？`, "提示", {
+    type: "warning",
+  }).then(async () => {
+    let successCount = 0;
+    for (const task of stoppedTasks) {
+      try {
+        const res = await startSyncTask(task.syncTaskId!);
+        if (res.data?.success) successCount++;
+      } catch (e) {
+        console.error(e);
       }
-      ElMessage.success(`成功启动 ${successCount} 个任务`);
-      loadTaskList();
-      tableRef.value?.clearSelection();
-    })
-    .catch(() => {});
+    }
+    ElMessage.success(`成功启动 ${successCount} 个任务`);
+    loadTaskList();
+    tableRef.value?.clearSelection();
+  }).catch(() => {});
 };
 
 // 批量停止
 const handleBatchStop = async () => {
-  const runningTasks = selectedRows.value.filter(
-    (t) => t.syncTaskStatus === "RUNNING",
-  );
+  const runningTasks = selectedRows.value.filter((t) => t.syncTaskStatus === "RUNNING");
   if (runningTasks.length === 0) {
     ElMessage.warning("没有运行中的任务");
     return;
   }
-
-  ElMessageBox.confirm(
-    `确定停止选中的 ${runningTasks.length} 个任务吗？`,
-    "提示",
-    {
-      type: "warning",
-    },
-  )
-    .then(async () => {
-      let successCount = 0;
-      for (const task of runningTasks) {
-        try {
-          const res = await stopSyncTask(task.syncTaskId!);
-          if (res.data?.success) successCount++;
-        } catch (e) {
-          console.error(e);
-        }
+  
+  ElMessageBox.confirm(`确定停止选中的 ${runningTasks.length} 个任务吗？`, "提示", {
+    type: "warning",
+  }).then(async () => {
+    let successCount = 0;
+    for (const task of runningTasks) {
+      try {
+        const res = await stopSyncTask(task.syncTaskId!);
+        if (res.data?.success) successCount++;
+      } catch (e) {
+        console.error(e);
       }
-      ElMessage.success(`成功停止 ${successCount} 个任务`);
-      loadTaskList();
-      tableRef.value?.clearSelection();
-    })
-    .catch(() => {});
+    }
+    ElMessage.success(`成功停止 ${successCount} 个任务`);
+    loadTaskList();
+    tableRef.value?.clearSelection();
+  }).catch(() => {});
 };
 
 // 批量删除
 const handleBatchDelete = async () => {
-  const deletableTasks = selectedRows.value.filter(
-    (t) => t.syncTaskStatus !== "RUNNING",
-  );
+  const deletableTasks = selectedRows.value.filter((t) => t.syncTaskStatus !== "RUNNING");
   if (deletableTasks.length === 0) {
     ElMessage.warning("运行中的任务不能删除");
     return;
   }
-
-  ElMessageBox.confirm(
-    `确定删除选中的 ${deletableTasks.length} 个任务吗？此操作不可恢复！`,
-    "警告",
-    {
-      type: "warning",
-    },
-  )
-    .then(async () => {
-      let successCount = 0;
-      for (const task of deletableTasks) {
-        try {
-          const res = await deleteSyncTask(task.syncTaskId!);
-          if (res.data?.success) successCount++;
-        } catch (e) {
-          console.error(e);
-        }
+  
+  ElMessageBox.confirm(`确定删除选中的 ${deletableTasks.length} 个任务吗？此操作不可恢复！`, "警告", {
+    type: "warning",
+  }).then(async () => {
+    let successCount = 0;
+    for (const task of deletableTasks) {
+      try {
+        const res = await deleteSyncTask(task.syncTaskId!);
+        if (res.data?.success) successCount++;
+      } catch (e) {
+        console.error(e);
       }
-      ElMessage.success(`成功删除 ${successCount} 个任务`);
-      loadTaskList();
-      tableRef.value?.clearSelection();
-    })
-    .catch(() => {});
+    }
+    ElMessage.success(`成功删除 ${successCount} 个任务`);
+    loadTaskList();
+    tableRef.value?.clearSelection();
+  }).catch(() => {});
 };
 
 // 导出
@@ -906,11 +795,8 @@ const handleExportCommand = (command: string) => {
 };
 
 const exportAsJson = () => {
-  const data =
-    selectedRows.value.length > 0 ? selectedRows.value : taskList.value;
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
+  const data = selectedRows.value.length > 0 ? selectedRows.value : taskList.value;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -927,37 +813,31 @@ const handleImport = (file: File) => {
     try {
       const content = e.target?.result as string;
       const tasks = JSON.parse(content) as SyncTask[];
-
+      
       if (!Array.isArray(tasks)) {
         ElMessage.error("文件格式错误");
         return;
       }
-
-      ElMessageBox.confirm(
-        `检测到 ${tasks.length} 个任务，确定导入吗？`,
-        "导入确认",
-        {
-          type: "info",
-        },
-      )
-        .then(async () => {
-          let successCount = 0;
-          for (const task of tasks) {
-            try {
-              // 移除ID，作为新任务创建
-              const newTask = { ...task };
-              delete newTask.syncTaskId;
-              newTask.syncTaskName = `${task.syncTaskName}_imported`;
-              const res = await createSyncTask(newTask);
-              if (res.data?.success) successCount++;
-            } catch (err) {
-              console.error(err);
-            }
+      
+      ElMessageBox.confirm(`检测到 ${tasks.length} 个任务，确定导入吗？`, "导入确认", {
+        type: "info",
+      }).then(async () => {
+        let successCount = 0;
+        for (const task of tasks) {
+          try {
+            // 移除ID，作为新任务创建
+            const newTask = { ...task };
+            delete newTask.syncTaskId;
+            newTask.syncTaskName = `${task.syncTaskName}_imported`;
+            const res = await createSyncTask(newTask);
+            if (res.data?.success) successCount++;
+          } catch (err) {
+            console.error(err);
           }
-          ElMessage.success(`成功导入 ${successCount} 个任务`);
-          loadTaskList();
-        })
-        .catch(() => {});
+        }
+        ElMessage.success(`成功导入 ${successCount} 个任务`);
+        loadTaskList();
+      }).catch(() => {});
     } catch (err) {
       ElMessage.error("解析文件失败");
     }
@@ -978,6 +858,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1010,6 +891,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .sync-management {
   padding: 16px;
@@ -1125,6 +1007,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1133,4 +1016,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import BaseCustomMix from "./BaseCustomMix.vue";
-import "../../components/custom-menu/themes/default.scss";
+import BaseCustomMix from './BaseCustomMix.vue';
+import '../../components/custom-menu/themes/default.scss';
 </script>
 
 <template>
-  <BaseCustomMix
-    theme-class="default-mix"
+  <BaseCustomMix 
+    theme-class="default-mix" 
     popper-class="default-custom-popper"
   />
 </template>

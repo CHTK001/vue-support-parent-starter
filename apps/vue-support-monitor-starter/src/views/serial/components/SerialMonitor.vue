@@ -1,40 +1,24 @@
 <template>
   <div class="serial-monitor-container system-container modern-bg">
     <!-- 工具栏 -->
-    <div
-      class="serial-toolbar flex justify-between items-center p-3 border-b border-[var(--el-border-color-light)]"
-    >
+    <div class="serial-toolbar flex justify-between items-center p-3 border-b border-[var(--el-border-color-light)]">
       <div class="serial-info flex items-center">
-        <ScTag :type="isConnected ? 'success' : 'info'" class="mr-2">
+        <el-tag :type="isConnected ? 'success' : 'info'" class="mr-2">
           {{ isConnected ? "已连接" : "未连接" }}
-        </ScTag>
-        <span v-if="serialData.monitorSerialName" class="serial-name text-sm">
-          {{ serialData.monitorSerialName }} ({{
-            serialData.monitorSerialPort || "COM1"
-          }})
-        </span>
-        <span v-else class="text-[var(--el-text-color-placeholder)] text-sm"
-          >未选择串口</span
-        >
+        </el-tag>
+        <span v-if="serialData.monitorSerialName" class="serial-name text-sm"> {{ serialData.monitorSerialName }} ({{ serialData.monitorSerialPort || "COM1" }}) </span>
+        <span v-else class="text-[var(--el-text-color-placeholder)] text-sm">未选择串口</span>
       </div>
       <div class="serial-actions flex gap-2">
         <el-button-group>
-          <ScButton
-            :type="isConnected ? 'danger' : 'primary'"
-            size="small"
-            :disabled="!serialData.monitorSerialId || connecting"
-            @click="toggleConnection"
-          >
-            <IconifyIconOnline
-              :icon="isConnected ? 'ep:close-bold' : 'ep:connection'"
-              class="mr-1"
-            />
+          <el-button :type="isConnected ? 'danger' : 'primary'" size="small" :disabled="!serialData.monitorSerialId || connecting" @click="toggleConnection">
+            <IconifyIconOnline :icon="isConnected ? 'ep:close-bold' : 'ep:connection'" class="mr-1" />
             {{ isConnected ? "断开" : "连接" }}
-          </ScButton>
-          <ScButton type="primary" size="small" @click="clearOutput">
+          </el-button>
+          <el-button type="primary" size="small" @click="clearOutput">
             <IconifyIconOnline icon="ep:delete" class="mr-1" />
             清空
-          </ScButton>
+          </el-button>
         </el-button-group>
       </div>
     </div>
@@ -42,92 +26,40 @@
     <!-- 内容区域 -->
     <div class="serial-content flex-1 flex flex-col">
       <!-- 输出区域 -->
-      <div ref="outputRef" class="serial-output flex-1 p-3 overflow-auto">
-        <div
-          v-if="!serialData.monitorSerialId"
-          class="serial-empty flex flex-col items-center justify-center h-full"
-        >
-          <IconifyIconOnline
-            icon="mdi:serial-port"
-            class="text-5xl text-[var(--el-text-color-disabled)] mb-4"
-          />
-          <p class="text-[var(--el-text-color-placeholder)]">
-            请从左侧列表选择一个串口
-          </p>
+      <div class="serial-output flex-1 p-3 overflow-auto" ref="outputRef">
+        <div v-if="!serialData.monitorSerialId" class="serial-empty flex flex-col items-center justify-center h-full">
+          <IconifyIconOnline icon="mdi:serial-port" class="text-5xl text-[var(--el-text-color-disabled)] mb-4" />
+          <p class="text-[var(--el-text-color-placeholder)]">请从左侧列表选择一个串口</p>
         </div>
-        <pre
-          v-else
-          class="output-content"
-          :class="{ 'text-[var(--el-text-color-placeholder)]': !isConnected }"
-          >{{ outputText }}</pre
-        >
+        <pre v-else class="output-content" :class="{ 'text-[var(--el-text-color-placeholder)]': !isConnected }">{{ outputText }}</pre>
       </div>
 
       <!-- 输入区域 -->
-      <div
-        class="serial-input p-3 border-t border-[var(--el-border-color-light)]"
-      >
+      <div class="serial-input p-3 border-t border-[var(--el-border-color-light)]">
         <div class="flex items-center">
-          <ScInput
-            v-model="inputText"
-            placeholder="输入发送内容"
-            :disabled="!isConnected"
-            class="flex-1"
-            @keyup.enter="handleSend"
-          >
+          <el-input v-model="inputText" placeholder="输入发送内容" :disabled="!isConnected" @keyup.enter="handleSend" class="flex-1">
             <template #append>
-              <ScSelect
-                v-model="sendMode"
-                style="width: 120px"
-                :disabled="!isConnected"
-              >
-                <ScOption label="发送文本" value="text" />
-                <ScOption label="发送HEX" value="hex" />
-              </ScSelect>
+              <el-select v-model="sendMode" style="width: 120px" :disabled="!isConnected">
+                <el-option label="发送文本" value="text" />
+                <el-option label="发送HEX" value="hex" />
+              </el-select>
             </template>
-          </ScInput>
-          <ScButton
-            type="primary"
-            class="ml-2"
-            :disabled="!isConnected"
-            @click="handleSend"
-          >
-            发送
-          </ScButton>
+          </el-input>
+          <el-button type="primary" @click="handleSend" class="ml-2" :disabled="!isConnected"> 发送 </el-button>
         </div>
         <div class="send-options mt-2 flex items-center">
-          <ScCheckbox v-model="autoScroll" :disabled="!isConnected"
-            >自动滚动</el-checkbox
-          >
-          <ScCheckbox
-            v-model="addTimestamp"
-            class="ml-4"
-            :disabled="!isConnected"
-            >添加时间戳</el-checkbox
-          >
-          <ScCheckbox
-            v-model="addNewline"
-            class="ml-4"
-            :disabled="!isConnected"
-            >发送后添加换行</el-checkbox
-          >
+          <el-checkbox v-model="autoScroll" :disabled="!isConnected">自动滚动</el-checkbox>
+          <el-checkbox v-model="addTimestamp" class="ml-4" :disabled="!isConnected">添加时间戳</el-checkbox>
+          <el-checkbox v-model="addNewline" class="ml-4" :disabled="!isConnected">发送后添加换行</el-checkbox>
         </div>
 
         <!-- 快捷命令 -->
-        <div v-if="quickCommands.length > 0" class="quick-commands mt-3">
-          <p class="text-sm text-[var(--el-text-color-regular)] mb-2">
-            快捷命令:
-          </p>
+        <div class="quick-commands mt-3" v-if="quickCommands.length > 0">
+          <p class="text-sm text-[var(--el-text-color-regular)] mb-2">快捷命令:</p>
           <div class="flex flex-wrap gap-2">
-            <ScButton
-              v-for="(cmd, index) in quickCommands"
-              :key="index"
-              size="small"
-              :disabled="!isConnected"
-              @click="sendQuickCommand(cmd)"
-            >
+            <el-button v-for="(cmd, index) in quickCommands" :key="index" size="small" :disabled="!isConnected" @click="sendQuickCommand(cmd)">
               {{ cmd.name }}
-            </ScButton>
+            </el-button>
           </div>
         </div>
       </div>
@@ -180,7 +112,7 @@ watch(
       outputText.value = `准备连接到串口: ${newData.monitorSerialPort || "COM1"}\n`;
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 // 加载快捷命令
@@ -223,10 +155,7 @@ const handleConnect = async () => {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     isConnected.value = true;
-    appendOutput(
-      "系统",
-      `已连接到串口 ${props.serialData.monitorSerialPort}，波特率 ${props.serialData.monitorSerialBaudRate}`,
-    );
+    appendOutput("系统", `已连接到串口 ${props.serialData.monitorSerialPort}，波特率 ${props.serialData.monitorSerialBaudRate}`);
 
     // 发送连接事件
     emit("connect", props.serialData);
@@ -325,9 +254,7 @@ const sendData = (data, mode, forceNewline = null) => {
 
 // 添加输出内容
 const appendOutput = (type, data) => {
-  const timestamp = addTimestamp.value
-    ? `[${new Date().toLocaleTimeString()}] `
-    : "";
+  const timestamp = addTimestamp.value ? `[${new Date().toLocaleTimeString()}] ` : "";
   const prefix = `${timestamp}[${type}] `;
   outputText.value += prefix + data + "\n";
 
@@ -368,6 +295,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -400,6 +328,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .serial-monitor-container {
   height: 100%;
@@ -448,6 +377,7 @@ onMounted(() => {
   padding-top: 8px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -456,4 +386,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

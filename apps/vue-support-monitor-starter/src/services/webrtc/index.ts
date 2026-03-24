@@ -6,8 +6,8 @@
  */
 
 // Socket服务
-export { webrtcSocket, WebRTCSocketService } from "./socket";
-export type { SocketConfig, SocketEvents, SocketStatus } from "./socket";
+export { webrtcSocket, WebRTCSocketService } from './socket';
+export type { SocketConfig, SocketEvents, SocketStatus } from './socket';
 
 // 类型定义
 export interface WebRTCService {
@@ -16,7 +16,7 @@ export interface WebRTCService {
 
 // 创建WebRTC服务实例
 export const webrtcService: WebRTCService = {
-  socket: webrtcSocket,
+  socket: webrtcSocket
 };
 
 // 默认导出

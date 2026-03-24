@@ -22,10 +22,7 @@ export const getRecentDays = (dayNum: number): string[] => {
  * @param format 格式化模式，默认为 'YYYY-MM-DD HH:mm:ss'
  * @returns 格式化后的日期时间字符串
  */
-export function formatDateTime(
-  date: string | Date | null | undefined,
-  format = "YYYY-MM-DD HH:mm:ss",
-): string {
+export function formatDateTime(date: string | Date | null | undefined, format = "YYYY-MM-DD HH:mm:ss"): string {
   if (!date) return "--";
 
   const d = typeof date === "string" ? new Date(date) : date;
@@ -40,13 +37,7 @@ export function formatDateTime(
   const minutes = String(d.getMinutes()).padStart(2, "0");
   const seconds = String(d.getSeconds()).padStart(2, "0");
 
-  return format
-    .replace("YYYY", String(year))
-    .replace("MM", month)
-    .replace("DD", day)
-    .replace("HH", hours)
-    .replace("mm", minutes)
-    .replace("ss", seconds);
+  return format.replace("YYYY", String(year)).replace("MM", month).replace("DD", day).replace("HH", hours).replace("mm", minutes).replace("ss", seconds);
 }
 
 /**
@@ -107,10 +98,7 @@ const formatDate = (date: Date): string => {
  * @param fmt {string} 日期格式化字符串，默认为 'yyyy-MM-dd hh:mm:ss'
  * @returns {string[]} 包含开始日期和结束日期的数组，日期格式由 fmt 参数指定
  */
-export const getDateRang = (
-  val: string,
-  fmt: string = "yyyy-MM-dd hh:mm:ss",
-): string[] => {
+export const getDateRang = (val: string, fmt: string = "yyyy-MM-dd hh:mm:ss"): string[] => {
   const now = new Date();
   const nowDayOfWeek = now.getDay();
   const nowDay = now.getDate();
@@ -158,9 +146,7 @@ export const getDateRang = (
       customTime = val.split(" - ");
       break;
   }
-  return customTime.length
-    ? customTime
-    : [dateFormat(startTime, fmt), dateFormat(endTime, fmt)];
+  return customTime.length ? customTime : [dateFormat(startTime, fmt), dateFormat(endTime, fmt)];
 };
 
 /**
@@ -169,10 +155,7 @@ export const getDateRang = (
  * @param fmt {string} 日期格式化字符串，默认为 'yyyy-MM-dd hh:mm:ss'
  * @returns {string} 格式化后的日期字符串
  */
-export const dateFormat = (
-  date: Date | string | number,
-  fmt: string = "yyyy-MM-dd hh:mm:ss",
-): string => {
+export const dateFormat = (date: Date | string | number, fmt: string = "yyyy-MM-dd hh:mm:ss"): string => {
   date = new Date(date);
   const o: { [key: string]: number } = {
     "M+": date.getMonth() + 1, // 月份
@@ -184,19 +167,11 @@ export const dateFormat = (
     S: date.getMilliseconds(), // 毫秒
   };
   if (/(y+)/.test(fmt)) {
-    fmt = fmt.replace(
-      RegExp.$1,
-      (date.getFullYear() + "").substr(4 - RegExp.$1.length),
-    );
+    fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
   }
   for (const k in o) {
     if (new RegExp("(" + k + ")").test(fmt)) {
-      fmt = fmt.replace(
-        RegExp.$1,
-        RegExp.$1.length === 1
-          ? o[k].toString()
-          : ("00" + o[k]).substr(("" + o[k]).length),
-      );
+      fmt = fmt.replace(RegExp.$1, RegExp.$1.length === 1 ? o[k].toString() : ("00" + o[k]).substr(("" + o[k]).length));
     }
   }
   return fmt;
@@ -207,9 +182,7 @@ export const dateFormat = (
  * @param expirationTime {Date | string | number} 过期时间，可以是 Date 对象、时间字符串或时间戳（毫秒）
  * @returns {boolean} 如果当前时间超过过期时间，则返回 true，否则返回 false
  */
-export const isTimeExpired = (
-  expirationTime: Date | string | number,
-): boolean => {
+export const isTimeExpired = (expirationTime: Date | string | number): boolean => {
   const now = Date.now();
   let expirationTimestamp: number;
 
@@ -224,9 +197,7 @@ export const isTimeExpired = (
   } else if (typeof expirationTime === "number") {
     expirationTimestamp = expirationTime;
   } else {
-    throw new TypeError(
-      "expirationTime 必须是 Date 对象、时间字符串或时间戳（毫秒）",
-    );
+    throw new TypeError("expirationTime 必须是 Date 对象、时间字符串或时间戳（毫秒）");
   }
 
   return now > expirationTimestamp;
@@ -246,10 +217,7 @@ export const getTimeAgo = (date: Date | string): string => {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
   const diffWeek = Math.floor(diffDay / 7);
-  const diffMonth =
-    now.getMonth() -
-    targetDate.getMonth() +
-    (now.getFullYear() - targetDate.getFullYear()) * 12;
+  const diffMonth = now.getMonth() - targetDate.getMonth() + (now.getFullYear() - targetDate.getFullYear()) * 12;
   const diffYear = now.getFullYear() - targetDate.getFullYear();
 
   if (diffSec < 60) {

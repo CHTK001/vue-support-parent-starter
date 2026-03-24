@@ -1,32 +1,27 @@
 <template>
-  <div
-    class="card-chart system-container modern-bg"
-    :style="{ height: height + 'px' }"
-  >
+  <div class="card-chart system-container modern-bg" :style="{ height: height + 'px' }">
     <div v-if="loading" class="loading-container">
-      <ScSkeleton :rows="2" animated />
+      <el-skeleton :rows="2" animated />
     </div>
     <div v-else class="card-content">
       <div class="card-main">
         <div class="card-value">
-          <span class="value-number" :class="getValueClass()">{{
-            formattedValue
-          }}</span>
+          <span class="value-number" :class="getValueClass()">{{ formattedValue }}</span>
           <span v-if="unit" class="value-unit">{{ unit }}</span>
         </div>
         <div v-if="trend" class="card-trend">
-          <IconifyIconOnline
-            :icon="trend > 0 ? 'ri:arrow-up-line' : 'ri:arrow-down-line'"
+          <IconifyIconOnline 
+            :icon="trend > 0 ? 'ri:arrow-up-line' : 'ri:arrow-down-line'" 
             :class="trend > 0 ? 'trend-up' : 'trend-down'"
           />
           <span class="trend-value">{{ Math.abs(trend) }}%</span>
         </div>
       </div>
-
+      
       <div v-if="description" class="card-description">
         {{ description }}
       </div>
-
+      
       <div v-if="queryTime" class="card-footer">
         <span class="update-time">{{ queryTime }}</span>
       </div>
@@ -36,29 +31,29 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => ({}),
+    default: () => ({})
   },
   height: {
     type: [Number, String],
-    default: 200,
+    default: 200
   },
   loading: {
     type: Boolean,
-    default: false,
+    default: false
   },
   chartConfig: {
     type: Object,
-    default: () => ({}),
+    default: () => ({})
   },
   queryTime: {
     type: String,
-    default: "",
-  },
+    default: ""
+  }
 });
 
 // 计算属性
@@ -81,8 +76,8 @@ const description = computed(() => {
 const formattedValue = computed(() => {
   const val = value.value;
   const decimal = props.chartConfig.decimal ?? 2;
-
-  if (typeof val === "number") {
+  
+  if (typeof val === 'number') {
     return val.toFixed(decimal);
   }
   return val;
@@ -94,23 +89,24 @@ const formattedValue = computed(() => {
 const getValueClass = () => {
   const thresholds = props.chartConfig.thresholds || [];
   const val = parseFloat(value.value);
-
-  if (thresholds.length === 0) return "";
-
+  
+  if (thresholds.length === 0) return '';
+  
   // 根据阈值确定颜色
   for (const threshold of thresholds.sort((a, b) => b.value - a.value)) {
     if (val >= threshold.value) {
-      if (threshold.color === "#F56C6C") return "value-danger";
-      if (threshold.color === "#E6A23C") return "value-warning";
-      if (threshold.color === "#67C23A") return "value-success";
+      if (threshold.color === '#F56C6C') return 'value-danger';
+      if (threshold.color === '#E6A23C') return 'value-warning';
+      if (threshold.color === '#67C23A') return 'value-success';
     }
   }
-
-  return "";
+  
+  return '';
 };
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -143,6 +139,7 @@ const getValueClass = () => {
     z-index: 1;
   }
 }
+
 
 .card-chart {
   display: flex;
@@ -183,17 +180,17 @@ const getValueClass = () => {
     font-size: 32px;
     font-weight: 600;
     color: #e0e0e0;
-
+    
     &.value-success {
-      color: #67c23a;
+      color: #67C23A;
     }
-
+    
     &.value-warning {
-      color: #e6a23c;
+      color: #E6A23C;
     }
-
+    
     &.value-danger {
-      color: #f56c6c;
+      color: #F56C6C;
     }
   }
 
@@ -210,11 +207,11 @@ const getValueClass = () => {
   font-size: 14px;
 
   .trend-up {
-    color: #67c23a;
+    color: #67C23A;
   }
 
   .trend-down {
-    color: #f56c6c;
+    color: #F56C6C;
   }
 
   .trend-value {
@@ -234,6 +231,7 @@ const getValueClass = () => {
   text-align: right;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -242,4 +240,5 @@ const getValueClass = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

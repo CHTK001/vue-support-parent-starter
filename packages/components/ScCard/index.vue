@@ -20,6 +20,7 @@ import TechLayout from "./layouts/Tech.vue";
 import { getThemeConfig, type IotCardTheme } from "./themes";
 import { useThemeComponent } from "../hooks/useThemeComponent";
 
+// 布局类型
 type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "stats-simple" | "tech" | "custom";
 
 export default defineComponent({
@@ -33,148 +34,255 @@ export default defineComponent({
     CompactLayout,
     StatsLayout,
     StatsSimpleLayout,
-    TechLayout,
+    TechLayout
   },
   props: {
+    /**
+     * 卡片布局类型
+     */
     layout: {
       type: String as PropType<LayoutType>,
       default: "default",
-      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "stats-simple", "tech", "custom"].includes(val),
+      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "stats-simple", "tech", "custom"].includes(val)
     },
+    /**
+     * 渲染模式，可以选择使用 el-card 或自定义 div
+     */
     renderAs: {
       type: String as PropType<"el-card" | "div">,
       default: "div",
-      validator: (val: string) => ["el-card", "div"].includes(val),
+      validator: (val: string) => ["el-card", "div"].includes(val)
     },
+    /**
+     * 卡片标题
+     */
     title: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 是否可悬停
+     */
     hoverable: {
       type: Boolean,
-      default: false,
+      default: false
     },
+    /**
+     * 阴影显示时机
+     */
     shadow: {
       type: String,
       default: "always",
-      validator: (val: string) => ["always", "hover", "never"].includes(val),
+      validator: (val: string) => ["always", "hover", "never"].includes(val)
     },
+    /**
+     * 卡片尺寸
+     */
     size: {
       type: String as PropType<"small" | "normal" | "large">,
       default: "normal",
-      validator: (val: string) => ["small", "normal", "large"].includes(val),
+      validator: (val: string) => ["small", "normal", "large"].includes(val)
     },
+    /**
+     * 边框加粗显示位置
+     */
     borderPosition: {
       type: String,
       default: "top",
-      validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val),
+      validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val)
     },
+    /**
+     * 媒体位置（仅在 layout="media" 时有效）
+     */
     mediaPosition: {
       type: String,
       default: "left",
-      validator: (val: string) => ["left", "right", "top"].includes(val),
+      validator: (val: string) => ["left", "right", "top"].includes(val)
     },
+    /**
+     * 媒体宽度（仅在 layout="media" 时有效）
+     */
     mediaWidth: {
       type: [String, Number],
-      default: "120px",
+      default: "120px"
     },
+    /**
+     * 媒体高度（仅在 layout="media" 时有效）
+     */
     mediaHeight: {
       type: [String, Number],
-      default: "120px",
+      default: "120px"
     },
+    /**
+     * 媒体背景色（仅在 layout="media" 时有效）
+     */
     mediaBgColor: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 头部高度（仅在 layout="header-content" 时有效）
+     */
     headerHeight: {
       type: [String, Number],
-      default: "120px",
+      default: "120px"
     },
+    /**
+     * 头部背景色（仅在 layout="header-content" 时有效）
+     */
     headerBgColor: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 头部背景图（仅在 layout="header-content" 时有效）
+     */
     headerBgImage: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 3D面板图标（仅在 layout="panel-3d" 时有效）
+     */
     icon: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 主题色（panel-3d/compact/stats/tech 布局有效）
+     * tech布局支持: cyan, blue, green, purple, orange, red
+     */
     theme: {
       type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange" | "cyan" | "red" | "custom">,
-      default: "default",
+      default: "default"
     },
+    /**
+     * 物联网主题
+     * weather: 天气, aircon: 空调, thermostat: 温控, lighting: 照明
+     * security: 安防, energy: 能耗, camera: 摄像头, music: 音乐
+     * curtain: 窗帘, fan: 风扇, lock: 门锁, airQuality: 空气质量
+     * humidity: 湿度, network: 网络, device: 设备, scene: 场景
+     * sensor: 传感器, battery: 电池
+     */
     iotTheme: {
       type: String as PropType<IotCardTheme>,
-      default: undefined,
+      default: undefined
     },
+    /**
+     * 是否显示头部（仅在 layout="panel-3d" 时有效）
+     */
     showHeader: {
       type: Boolean,
-      default: true,
+      default: true
     },
+    /**
+     * 是否激活状态（仅在 layout="panel-3d" 时有效）
+     */
     active: {
       type: Boolean,
-      default: false,
+      default: false
     },
+    /**
+     * 3D效果强度（仅在 layout="panel-3d" 时有效）
+     */
     depth: {
       type: Number,
-      default: 10,
+      default: 10
     },
+    /**
+     * 背景色（仅在 layout="panel-3d" 时有效）
+     */
     backgroundColor: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 边框颜色（仅在 layout="panel-3d" 时有效）
+     */
     borderColor: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 激活时边框颜色（仅在 layout="panel-3d" 时有效）
+     */
     activeBorderColor: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 内边距
+     */
     padding: {
       type: String,
-      default: "20px",
+      default: "20px"
     },
+    /**
+     * 副标题（仅在 layout="compact" 时有效）
+     */
     subtitle: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 图标背景色（仅在 layout="compact" 时有效）
+     */
     iconBgColor: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 数值（仅在 layout="stats" 时有效）
+     */
     value: {
       type: [String, Number],
-      default: 0,
+      default: 0
     },
+    /**
+     * 标签（仅在 layout="stats" 时有效）
+     */
     label: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 趋势图标（仅在 layout="stats" 时有效）
+     */
     trendIcon: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 趋势文本（仅在 layout="stats" 时有效）
+     */
     trendText: {
       type: String,
-      default: "",
+      default: ""
     },
+    /**
+     * 是否正在计数动画（仅在 layout="stats" 时有效）
+     */
     counting: {
       type: Boolean,
-      default: false,
+      default: false
     },
+    /**
+     * 自定义组件（仅在 layout="custom" 时有效）
+     */
     customComponent: {
       type: Object,
-      default: null,
-    },
+      default: null
+    }
   },
   emits: ["click"],
   setup(props, { emit }) {
+    /**
+     * 使用主题组件系统 V2.0
+     * 自动根据 data-skin 加载对应主题的 Card 组件
+     */
     const { currentComponent } = useThemeComponent("ElCard");
 
+    // IoT 主题配置
     const iotThemeConfig = computed(() => {
       if (props.iotTheme) {
         return getThemeConfig(props.iotTheme);
@@ -182,12 +290,15 @@ export default defineComponent({
       return undefined;
     });
 
+    // 根据主题计算的属性
     const computedIcon = computed(() => iotThemeConfig.value?.icon ?? props.icon);
     const computedTitle = computed(() => iotThemeConfig.value?.title ?? props.title);
     const computedLayout = computed(() => iotThemeConfig.value?.layout ?? props.layout);
 
+    // 根据布局类型和渲染模式决定使用哪个组件
     const renderComponent = computed(() => {
       if (props.renderAs === "el-card") {
+        // 使用主题系统的 Card 组件（支持 8bit 等主题）
         return currentComponent.value || ElCard;
       }
 
@@ -213,19 +324,20 @@ export default defineComponent({
       }
     });
 
+    // 根据不同的组件类型，传递不同的属性
     const componentProps = computed(() => {
       const baseProps = {
         title: props.title,
         hoverable: props.hoverable,
         shadow: props.shadow,
-        borderPosition: props.borderPosition,
+        borderPosition: props.borderPosition
       };
 
       if (props.renderAs === "el-card") {
         return {
           header: props.title,
           shadow: props.shadow,
-          bodyStyle: props.padding ? { padding: props.padding } : {},
+          bodyStyle: props.padding ? { padding: props.padding } : {}
         };
       }
 
@@ -237,7 +349,7 @@ export default defineComponent({
             mediaWidth: props.mediaWidth,
             mediaHeight: props.mediaHeight,
             mediaBgColor: props.mediaBgColor,
-            theme: props.theme,
+            theme: props.theme
           };
         case "header-content":
           return {
@@ -245,7 +357,7 @@ export default defineComponent({
             headerHeight: props.headerHeight,
             headerBgColor: props.headerBgColor,
             headerBgImage: props.headerBgImage,
-            theme: props.theme,
+            theme: props.theme
           };
         case "panel-3d":
           return {
@@ -258,7 +370,7 @@ export default defineComponent({
             backgroundColor: props.backgroundColor,
             borderColor: props.borderColor,
             activeBorderColor: props.activeBorderColor,
-            padding: props.padding,
+            padding: props.padding
           };
         case "compact":
           return {
@@ -267,7 +379,7 @@ export default defineComponent({
             subtitle: props.subtitle,
             iconBgColor: props.iconBgColor,
             active: props.active,
-            theme: props.theme,
+            theme: props.theme
           };
         case "stats":
           return {
@@ -280,7 +392,7 @@ export default defineComponent({
             counting: props.counting,
             active: props.active,
             theme: props.theme,
-            size: props.size === "normal" ? "small" : props.size,
+            size: props.size === "normal" ? "small" : props.size
           };
         case "stats-simple":
           return {
@@ -288,9 +400,10 @@ export default defineComponent({
             icon: props.icon,
             value: props.value,
             label: props.label,
-            theme: props.theme,
+            theme: props.theme
           };
         case "tech": {
+          // 映射 ScCard 主题到 TechLayout 主题
           const techThemeMap: Record<string, string> = {
             default: "default",
             primary: "primary",
@@ -304,7 +417,7 @@ export default defineComponent({
             orange: "orange",
             cyan: "cyan",
             red: "red",
-            custom: "cyan",
+            custom: "cyan"
           };
           return {
             ...baseProps,
@@ -313,23 +426,24 @@ export default defineComponent({
             active: props.active,
             theme: techThemeMap[props.theme] || "cyan",
             padding: props.padding,
-            showDataFlow: true,
+            showDataFlow: true
           };
         }
         case "custom":
           return {
             ...baseProps,
             ...props,
-            theme: props.theme,
+            theme: props.theme
           };
         default:
           return {
             ...baseProps,
-            theme: props.theme,
+            theme: props.theme
           };
       }
     });
 
+    // 点击事件处理
     const handleClick = (event: MouseEvent) => {
       emit("click", event);
     };
@@ -341,18 +455,20 @@ export default defineComponent({
       iotThemeConfig,
       computedIcon,
       computedTitle,
-      computedLayout,
+      computedLayout
     };
-  },
+  }
 });
 </script>
 
 <style lang="scss">
+// 全局样式，确保组件在不同场景下的一致性
 .sc-card-wrapper {
   display: block;
   width: 100%;
   height: 100%;
 
+  // 支持Element Plus变量
   --el-color-primary: var(--el-color-primary);
   --el-color-primary-light-3: var(--el-color-primary-light-3);
   --el-color-primary-light-5: var(--el-color-primary-light-5);

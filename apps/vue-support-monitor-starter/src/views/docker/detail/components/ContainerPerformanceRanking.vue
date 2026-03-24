@@ -6,61 +6,57 @@
         <span class="header-title">容器性能排行榜</span>
       </div>
       <div class="header-right">
-        <ScSelect
-          v-model="rankingType"
-          size="small"
-          @change="handleRankingTypeChange"
-        >
-          <ScOption label="CPU使用率" value="cpu" />
-          <ScOption label="内存使用率" value="memory" />
-          <ScOption label="网络IO" value="network" />
-          <ScOption label="磁盘IO" value="disk" />
-        </ScSelect>
+        <el-select v-model="rankingType" size="small" @change="handleRankingTypeChange">
+          <el-option label="CPU使用率" value="cpu" />
+          <el-option label="内存使用率" value="memory" />
+          <el-option label="网络IO" value="network" />
+          <el-option label="磁盘IO" value="disk" />
+        </el-select>
       </div>
     </div>
-
+    
     <div class="ranking-content">
-      <ScTable :data="rankingData" style="width: 100%" :show-header="false">
-        <ScTableColumn prop="rank" width="40">
+      <el-table :data="rankingData" style="width: 100%" :show-header="false">
+        <el-table-column prop="rank" width="40">
           <template #default="{ row }">
             <div class="rank-number" :class="getRankClass(row.rank)">
               {{ row.rank }}
             </div>
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="containerName">
+        </el-table-column>
+        <el-table-column prop="containerName">
           <template #default="{ row }">
             <div class="container-info">
               <div class="container-name">{{ row.containerName }}</div>
               <div class="container-image">{{ row.imageName }}</div>
             </div>
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="value" width="80" align="right">
+        </el-table-column>
+        <el-table-column prop="value" width="80" align="right">
           <template #default="{ row }">
             <div class="value-text">{{ formatValue(row.value, row.unit) }}</div>
           </template>
-        </ScTableColumn>
-      </ScTable>
+        </el-table-column>
+      </el-table>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref } from 'vue'
 
 interface RankingItem {
-  rank: number;
-  containerId: number;
-  containerName: string;
-  imageName: string;
-  value: number;
-  unit: string;
+  rank: number
+  containerId: number
+  containerName: string
+  imageName: string
+  value: number
+  unit: string
 }
 
 // 响应式数据
-const rankingType = ref("cpu");
-const rankingData = ref<RankingItem[]>([]);
+const rankingType = ref('cpu')
+const rankingData = ref<RankingItem[]>([])
 
 // 获取排行榜数据
 const fetchRankingData = async () => {
@@ -70,76 +66,77 @@ const fetchRankingData = async () => {
       {
         rank: 1,
         containerId: 1001,
-        containerName: "nginx-proxy",
-        imageName: "nginx:latest",
+        containerName: 'nginx-proxy',
+        imageName: 'nginx:latest',
         value: 95.2,
-        unit: "%",
+        unit: '%'
       },
       {
         rank: 2,
         containerId: 1002,
-        containerName: "mysql-db",
-        imageName: "mysql:8.0",
+        containerName: 'mysql-db',
+        imageName: 'mysql:8.0',
         value: 87.6,
-        unit: "%",
+        unit: '%'
       },
       {
         rank: 3,
         containerId: 1003,
-        containerName: "redis-cache",
-        imageName: "redis:alpine",
+        containerName: 'redis-cache',
+        imageName: 'redis:alpine',
         value: 72.3,
-        unit: "%",
+        unit: '%'
       },
       {
         rank: 4,
         containerId: 1004,
-        containerName: "node-app",
-        imageName: "node:16-alpine",
+        containerName: 'node-app',
+        imageName: 'node:16-alpine',
         value: 65.8,
-        unit: "%",
+        unit: '%'
       },
       {
         rank: 5,
         containerId: 1005,
-        containerName: "mongo-db",
-        imageName: "mongo:latest",
+        containerName: 'mongo-db',
+        imageName: 'mongo:latest',
         value: 58.4,
-        unit: "%",
-      },
-    ];
-
-    rankingData.value = mockData;
+        unit: '%'
+      }
+    ]
+    
+    rankingData.value = mockData
   } catch (error) {
-    console.error("获取排行榜数据失败:", error);
+    console.error('获取排行榜数据失败:', error)
   }
-};
+}
 
 // 处理排行榜类型变化
 const handleRankingTypeChange = () => {
-  fetchRankingData();
-};
+  fetchRankingData()
+}
 
 // 根据排名获取样式类
 const getRankClass = (rank: number) => {
-  if (rank === 1) return "rank-first";
-  if (rank === 2) return "rank-second";
-  if (rank === 3) return "rank-third";
-  return "";
-};
+  if (rank === 1) return 'rank-first'
+  if (rank === 2) return 'rank-second'
+  if (rank === 3) return 'rank-third'
+  return ''
+}
 
 // 格式化值显示
 const formatValue = (value: number, unit: string) => {
-  return `${value.toFixed(1)}${unit}`;
-};
+  return `${value.toFixed(1)}${unit}`
+}
 
 // 组件挂载时获取数据
 onMounted(() => {
-  fetchRankingData();
-});
+  fetchRankingData()
+})
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -172,6 +169,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .container-performance-ranking {
   background: white;
@@ -260,6 +258,7 @@ onMounted(() => {
   color: #303133;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -268,4 +267,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -4,8 +4,8 @@
   "main": "src/index.ts",
   "private": true,
   "dependencies": {
-    "vue": "catalog:",
+    "vue": "^3.4.0",
     "@repo/tailwind-config": "workspace:*",
-    "@iconify/vue": "catalog:"
+    "@iconify/vue": "^4.1.0"
   }
 }

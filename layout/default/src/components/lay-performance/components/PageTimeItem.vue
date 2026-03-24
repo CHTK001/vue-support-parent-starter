@@ -11,10 +11,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
 defineProps({
-  mode: { type: String, required: true },
+  mode: { type: String, required: true }
 });
 
 const runtime = ref(0);
@@ -24,7 +24,7 @@ const startTime = Date.now();
 
 const updateTime = () => {
   runtime.value = Math.floor((Date.now() - startTime) / 1000);
-
+  
   // 获取页面加载时间
   if (loadTime.value === 0 && performance.timing) {
     const timing = performance.timing;
@@ -36,11 +36,11 @@ const formattedTime = computed(() => {
   const hours = Math.floor(runtime.value / 3600);
   const minutes = Math.floor((runtime.value % 3600) / 60);
   const seconds = runtime.value % 60;
-
+  
   if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   }
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 });
 
 onMounted(() => {
@@ -95,3 +95,4 @@ onBeforeUnmount(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 </style>
+

@@ -2,8 +2,9 @@
 import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
-import { useRenderIcon } from "@repo/components";
-import { ScSwitch } from "@repo/components"
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+
 export default defineComponent({
   components: { ScSwitch },
   props: {

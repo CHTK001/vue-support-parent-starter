@@ -25,103 +25,17 @@ import { defaultRouterArrays } from "@repo/config";
 import { type MenuType } from "../types";
 import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
-// @ts-ignore
-const IFrame = () => import("../../../../pages/common/layout/frame.vue");
-const Layout = () => import("@layout/default");
-// @ts-ignore
-const MissingRouteView = () => import("../../../../pages/common/error/404.vue");
+const IFrame = () => import("@repo/pages/layout/frame.vue");
+// const SettingName = "@repo/pages/setting/index.vue";
+// const SettingFrame = () => import("@repo/pages/setting/index.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 //@ts-ignore
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
+// modulesRoutes[SettingName] = SettingFrame;
 import { getAsyncRoutes } from "../api/routes";
 const CACHE_ROUTER_KEY = "async-routes";
 // 默认图标（Iconify 名称）
 const DEFAULT_MENU_ICON = "ri:menu-line";
-const ROUTE_COMPONENT_ALIASES: Record<string, string> = {
-  "/manage/login/index": "/manage/user/index",
-  "/manage/log/login/index": "/manage/log/user/index",
-};
-const EXTRA_DYNAMIC_ROUTES: RouteRecordRaw[] = [
-  {
-    path: "/manage/user",
-    name: "userAlias",
-    redirect: "/manage/login",
-    meta: {
-      title: "用户管理",
-      showLink: false,
-      hiddenTag: true,
-      backstage: true,
-    },
-  },
-  {
-    path: "/manage/online",
-    name: "online",
-    component: "/manage/online/index" as any,
-    meta: {
-      title: "在线用户",
-      icon: "ep:monitor",
-      auths: [],
-      showLink: false,
-      showParent: false,
-      keepAlive: false,
-      hiddenTag: false,
-      fixedTag: false,
-      backstage: true,
-      rank: 1000,
-      transition: {},
-    },
-  },
-];
-
-function normalizeAsyncRoutePayload(result: any) {
-  if (Array.isArray(result)) {
-    return result;
-  }
-  if (Array.isArray(result?.data)) {
-    return result.data;
-  }
-  return [];
-}
-
-function resolveAsyncRouteComponent(
-  route: RouteRecordRaw,
-  modulesRoutesKeys: string[],
-) {
-  if (route.meta?.frameSrc) {
-    return IFrame;
-  }
-
-  const rawComponent = String(route?.component || "");
-  const componentCandidates = [
-    ROUTE_COMPONENT_ALIASES[rawComponent],
-    rawComponent,
-    route.path as string,
-  ].filter(Boolean) as string[];
-
-  const matchedKey = componentCandidates
-    .map(
-      (candidate) =>
-        modulesRoutesKeys.find((ev) => include(ev, candidate)) ||
-        modulesRoutesKeys.find((ev) =>
-          include(ev, candidate.replace(/^@repo\/pages\//, "/pages/")),
-        ),
-    )
-    .find(Boolean);
-
-  if (matchedKey) {
-    return modulesRoutes[matchedKey];
-  }
-
-  if (route?.children && route.children.length) {
-    return Layout;
-  }
-
-  console.warn(
-    `[router] Missing async route component for path "${route.path}" and component "${rawComponent}", fallback to 404 view.`,
-  );
-  return MissingRouteView;
-}
-
 function handRank(routeInfo: any) {
   const { name, path, parentId, meta } = routeInfo;
   return isAllEmpty(parentId)
@@ -144,14 +58,14 @@ function ascending(arr: any[]) {
   return arr.sort(
     (a: { meta: { rank: number } }, b: { meta: { rank: number } }) => {
       return a?.meta.rank - b?.meta.rank;
-    },
+    }
   );
 }
 
 /** 过滤meta中showLink为false的菜单，并为缺省图标的菜单设置默认图标 */
 function filterTree(data: RouteComponent[]) {
   const newTree = cloneDeep(data).filter(
-    (v: any) => v.meta?.showLink !== false,
+    (v: any) => v.meta?.showLink !== false
   );
   newTree.forEach((v: any) => {
     v.meta = v.meta || {};
@@ -252,21 +166,8 @@ function addPathMatch() {
   }
 }
 
-function getDynamicRouteContainer() {
-  const rootRoute = router.options.routes.find(
-    (route) => route.path === "/" && Array.isArray(route.children),
-  );
-  if (rootRoute) {
-    rootRoute.children = rootRoute.children || [];
-    return rootRoute.children;
-  }
-  return router.options.routes;
-}
-
 /** 处理动态路由（后端返回的路由） */
 function handleAsyncRoutes(routeList) {
-  const dynamicRouteContainer = getDynamicRouteContainer();
-  const wholeMenuRoutes = Array.isArray(routeList) ? cloneDeep(routeList) : [];
   if (!routeList || routeList.length === 0) {
     usePermissionStoreHook().handleWholeMenus(routeList || []);
   } else {
@@ -278,48 +179,31 @@ function handleAsyncRoutes(routeList) {
         }
         // 防止重复添加路由
         if (
-          dynamicRouteContainer.findIndex((value) => value.path === v.path) !==
-          -1
+          router.options.routes[0].children.findIndex(
+            (value) => value.path === v.path
+          ) !== -1
         ) {
           return;
         } else {
-          dynamicRouteContainer.push(v);
-          ascending(dynamicRouteContainer);
-          if (!v?.name || !router.hasRoute(v.name)) {
-            router.addRoute(v);
-          }
+          // 切记将路由push到routes后还需要使用addRoute，这样路由才能正常跳转
+          router.options.routes[0].children.push(v);
+          // 最终路由进行升序
+          ascending(router.options.routes[0].children);
+          if (!router.hasRoute(v?.name)) router.addRoute(v);
           const flattenRouters: any = router
             .getRoutes()
             .find((n) => n.path === "/");
-          if (flattenRouters) {
-            router.addRoute(flattenRouters);
-          }
+          router.addRoute(flattenRouters);
         }
-      },
+      }
     );
-    formatFlatteningRoutes(
-      addAsyncRoutes(cloneDeep(EXTRA_DYNAMIC_ROUTES)) || [],
-    ).forEach((route: RouteRecordRaw) => {
-      if (
-        dynamicRouteContainer.findIndex(
-          (value) => value.path === route.path,
-        ) !== -1
-      ) {
-        return;
-      }
-      dynamicRouteContainer.push(route);
-      ascending(dynamicRouteContainer);
-      if (!route?.name || !router.hasRoute(route.name)) {
-        router.addRoute(route);
-      }
-    });
-    usePermissionStoreHook().handleWholeMenus(wholeMenuRoutes);
+    usePermissionStoreHook().handleWholeMenus(routeList);
   }
   if (!useMultiTagsStoreHook().getMultiTagsCache) {
     useMultiTagsStoreHook().handleTags("equal", [
       ...defaultRouterArrays,
       ...usePermissionStoreHook().flatteningRoutes.filter(
-        (v) => v?.meta?.fixedTag,
+        (v) => v?.meta?.fixedTag
       ),
     ]);
   }
@@ -340,7 +224,7 @@ export function clearRouter() {
     return new Promise((resolve, reject) => {
       getAsyncRoutes()
         .then((res) => {
-          const data = normalizeAsyncRoutePayload(res);
+          const { data } = res;
           handleAsyncRoutes(cloneDeep(data));
           localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
           resolve(router);
@@ -366,7 +250,7 @@ function initRouter() {
       return new Promise((resolve, reject) => {
         getAsyncRoutes()
           .then((res) => {
-            const data = normalizeAsyncRoutePayload(res);
+            const { data } = res;
             handleAsyncRoutes(cloneDeep(data));
             localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
             resolve(router);
@@ -380,7 +264,7 @@ function initRouter() {
     return new Promise((resolve, reject) => {
       getAsyncRoutes()
         .then((res) => {
-          const data = normalizeAsyncRoutePayload(res);
+          const { data } = res;
           handleAsyncRoutes(cloneDeep(data));
           resolve(router);
         })
@@ -475,10 +359,6 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
   if (!arrRoutes || !arrRoutes.length) return;
   const modulesRoutesKeys = Object.keys(modulesRoutes);
   arrRoutes.forEach((v: RouteRecordRaw) => {
-    if (!v.meta) {
-      //@ts-ignore
-      v.meta = {};
-    }
     // 将backstage属性加入meta，标识此路由为后端返回路由
     v.meta.backstage = true;
     // 父级的redirect属性取值：如果子级存在且父级的redirect属性不存在，默认取第一个子级的path；如果子级存在且父级的redirect属性存在，取存在的redirect属性，会覆盖默认值
@@ -487,7 +367,23 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
     // 父级的name属性取值：如果子级存在且父级的name属性不存在，默认取第一个子级的name；如果子级存在且父级的name属性存在，取存在的name属性，会覆盖默认值（注意：测试中发现父级的name不能和子级name重复，如果重复会造成重定向无效（跳转404），所以这里给父级的name起名的时候后面会自动加上`Parent`，避免重复）
     if (v?.children && v.children.length && !v.name)
       v.name = (v.children[0].name as string) + "Parent";
-    v.component = resolveAsyncRouteComponent(v, modulesRoutesKeys);
+    if (v.meta?.frameSrc) {
+      v.component = IFrame;
+      // } else if (/*@ts-ignore*/ (v?.component as String)?.startsWith("@")) {
+      //   const name = `${v?.component as String}`;
+      //   v.component = () => import(name);
+    } else {
+      // 对后端传component组件路径和不传做兼容（如果后端传component组件路径，那么path可以随便写，如果不传，component组件路径会跟path保持一致）
+      //@ts-ignore
+      const index = v?.component
+        ? modulesRoutesKeys.findIndex((ev) =>
+            include(ev, v?.component as string)
+          )
+        : modulesRoutesKeys.findIndex((ev) =>
+            include(ev, v.path as string)
+          );
+      v.component = modulesRoutes[modulesRoutesKeys[index]];
+    }
     if (v?.children && v.children.length) {
       addAsyncRoutes(v.children);
     }
@@ -573,37 +469,12 @@ function handleTopMenu(route) {
   }
 }
 
-function findFirstAvailableMenu(routes: MenuType[] = []): MenuType | undefined {
-  const routeGroups = [
-    routes.filter(
-      (route) => route?.meta?.backstage && route?.meta?.showLink !== false,
-    ),
-    routes.filter(
-      (route) =>
-        route?.meta?.showLink !== false &&
-        route?.path !== "/login" &&
-        !String(route?.path || "").startsWith("/error"),
-    ),
-    routes,
-  ];
-
-  for (const group of routeGroups) {
-    for (const route of group) {
-      if (!route) {
-        continue;
-      }
-      return handleTopMenu(route);
-    }
-  }
-  return undefined;
-}
-
 /** 获取所有菜单中的第一个菜单（顶级菜单）*/
 function getTopMenu(tag = false): MenuType {
-  const topMenu = findFirstAvailableMenu(usePermissionStoreHook().wholeMenus);
-  if (tag && topMenu) {
-    useMultiTagsStoreHook().handleTags("push", topMenu);
-  }
+  const topMenu = handleTopMenu(
+    usePermissionStoreHook().wholeMenus[0]?.children[0]
+  );
+  tag && useMultiTagsStoreHook().handleTags("push", topMenu);
   return topMenu;
 }
 

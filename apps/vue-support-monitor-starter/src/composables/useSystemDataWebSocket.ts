@@ -21,11 +21,7 @@ export type TopicHandler = (message: SystemDataMessage) => void;
 
 export function useSystemDataWebSocket() {
   const client = ref<any>(null);
-  const state = ref<SystemDataWebSocketState>({
-    connected: false,
-    connecting: false,
-    error: null,
-  });
+  const state = ref<SystemDataWebSocketState>({ connected: false, connecting: false, error: null });
 
   const connect = async (): Promise<boolean> => {
     if (client.value) {
@@ -44,9 +40,7 @@ export function useSystemDataWebSocket() {
       state.value.error = e?.message || "连接失败";
       state.value.connected = false;
       state.value.connecting = false;
-      setTimeout(() => {
-        if (!state.value.connected) connect();
-      }, 5000);
+      setTimeout(() => { if (!state.value.connected) connect(); }, 5000);
       return false;
     }
   };
@@ -55,8 +49,7 @@ export function useSystemDataWebSocket() {
     if (!client.value) return;
     try {
       if (typeof client.value.close === "function") client.value.close();
-      else if (typeof client.value.disconnect === "function")
-        client.value.disconnect();
+      else if (typeof client.value.disconnect === "function") client.value.disconnect();
     } catch (_) {}
     client.value = null;
     state.value.connected = false;
@@ -68,12 +61,7 @@ export function useSystemDataWebSocket() {
     if (!client.value) return () => {};
     const callback = (raw: any) => {
       try {
-        const payload =
-          typeof raw === "string"
-            ? JSON.parse(raw)
-            : raw?.data
-              ? JSON.parse(raw.data)
-              : raw;
+        const payload = typeof raw === "string" ? JSON.parse(raw) : (raw?.data ? JSON.parse(raw.data) : raw);
         handler(payload as SystemDataMessage);
       } catch {
         handler({ data: raw });
@@ -89,3 +77,5 @@ export function useSystemDataWebSocket() {
 
   return { state, connect, disconnect, onTopic };
 }
+
+

@@ -1,7 +1,7 @@
 <template>
   <div class="container-status-stats system-container modern-bg">
     <div class="stats-grid">
-      <div v-for="stat in statsData" :key="stat.status" class="stat-card">
+      <div class="stat-card" v-for="stat in statsData" :key="stat.status">
         <div class="stat-icon" :class="stat.status">
           <IconifyIconOnline :icon="stat.icon" />
         </div>
@@ -15,69 +15,40 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from "vue";
+import { defineProps } from 'vue'
 
 interface ContainerStatusStat {
-  status: string;
-  count: number;
-  label: string;
-  icon: string;
+  status: string
+  count: number
+  label: string
+  icon: string
 }
 
 interface Props {
   stats: {
-    total?: number;
-    running?: number;
-    stopped?: number;
-    paused?: number;
-    exited?: number;
-    dead?: number;
-  };
+    total?: number
+    running?: number
+    stopped?: number
+    paused?: number
+    exited?: number
+    dead?: number
+  }
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
 const statsData: ContainerStatusStat[] = [
-  {
-    status: "total",
-    count: props.stats.total || 0,
-    label: "总计",
-    icon: "ri:container-line",
-  },
-  {
-    status: "running",
-    count: props.stats.running || 0,
-    label: "运行中",
-    icon: "ri:play-circle-line",
-  },
-  {
-    status: "stopped",
-    count: props.stats.stopped || 0,
-    label: "已停止",
-    icon: "ri:stop-circle-line",
-  },
-  {
-    status: "paused",
-    count: props.stats.paused || 0,
-    label: "已暂停",
-    icon: "ri:pause-circle-line",
-  },
-  {
-    status: "exited",
-    count: props.stats.exited || 0,
-    label: "已退出",
-    icon: "ri:logout-box-line",
-  },
-  {
-    status: "dead",
-    count: props.stats.dead || 0,
-    label: "已死亡",
-    icon: "ri:skull-line",
-  },
-];
+  { status: 'total', count: props.stats.total || 0, label: '总计', icon: 'ri:container-line' },
+  { status: 'running', count: props.stats.running || 0, label: '运行中', icon: 'ri:play-circle-line' },
+  { status: 'stopped', count: props.stats.stopped || 0, label: '已停止', icon: 'ri:stop-circle-line' },
+  { status: 'paused', count: props.stats.paused || 0, label: '已暂停', icon: 'ri:pause-circle-line' },
+  { status: 'exited', count: props.stats.exited || 0, label: '已退出', icon: 'ri:logout-box-line' },
+  { status: 'dead', count: props.stats.dead || 0, label: '已死亡', icon: 'ri:skull-line' }
+]
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -110,6 +81,7 @@ const statsData: ContainerStatusStat[] = [
     z-index: 1;
   }
 }
+
 
 .container-status-stats {
   margin-bottom: 20px;

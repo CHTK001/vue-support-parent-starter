@@ -35,15 +35,15 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <ScButton @click="reload">
+        <el-button @click="reload">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton type="primary" @click="openEdit()">
+        </el-button>
+        <el-button type="primary" @click="openEdit()">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增配置
-        </ScButton>
-        <ScInput
+        </el-button>
+        <el-input
           v-model="params.keyword"
           placeholder="搜索配置键/值/描述"
           class="search-input"
@@ -53,49 +53,44 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
+        </el-input>
+        <el-select
           v-model="params.env"
           placeholder="环境"
           clearable
           class="filter-select"
           @change="reload"
         >
-          <ScOption label="全部环境" value="" />
-          <ScOption
-            v-for="env in envList"
-            :key="env"
-            :label="env"
-            :value="env"
-          />
-        </ScSelect>
-        <ScSelect
+          <el-option label="全部环境" value="" />
+          <el-option v-for="env in envList" :key="env" :label="env" :value="env" />
+        </el-select>
+        <el-select
           v-model="params.status"
           placeholder="状态"
           clearable
           class="filter-select"
           @change="reload"
         >
-          <ScOption label="启用" :value="1" />
-          <ScOption label="禁用" :value="0" />
-        </ScSelect>
-        <ScButton type="primary" @click="reload">
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
+        <el-button type="primary" @click="reload">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
-        </ScButton>
+        </el-button>
       </div>
       <div class="toolbar-right">
-        <ScButton @click="openHistoryDialog">
+        <el-button @click="openHistoryDialog">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           推送历史
-        </ScButton>
-        <ScButton
-          :disabled="selectedConfigs.length === 0"
+        </el-button>
+        <el-button 
+          :disabled="selectedConfigs.length === 0" 
           @click="openPushDialog"
         >
           <IconifyIconOnline icon="ri:send-plane-line" class="mr-1" />
           下发配置 ({{ selectedConfigs.length }})
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -114,54 +109,44 @@
         @selection-change="handleSelectionChange"
       >
         <template #default="{ row }">
-          <div
-            class="config-card"
-            :class="{ disabled: row.monitorSysGenConfigStatus === 0 }"
-          >
+          <div class="config-card" :class="{ disabled: row.monitorSysGenConfigStatus === 0 }">
             <div class="card-header">
               <div class="config-key">
-                <ScCheckbox
-                  :model-value="isSelected(row)"
+                <el-checkbox 
+                  :model-value="isSelected(row)" 
                   @change="toggleSelect(row)"
                   @click.stop
                 />
                 <span class="key-text">{{ row.monitorSysGenConfigKey }}</span>
               </div>
               <div class="config-badges">
-                <ScTag
-                  size="small"
-                  :type="
-                    row.monitorSysGenConfigStatus === 1 ? 'success' : 'info'
-                  "
+                <el-tag 
+                  size="small" 
+                  :type="row.monitorSysGenConfigStatus === 1 ? 'success' : 'info'"
                 >
-                  {{ row.monitorSysGenConfigStatus === 1 ? "启用" : "禁用" }}
-                </ScTag>
-                <ScTag
-                  v-if="row.monitorSysGenConfigEnv"
-                  size="small"
+                  {{ row.monitorSysGenConfigStatus === 1 ? '启用' : '禁用' }}
+                </el-tag>
+                <el-tag 
+                  v-if="row.monitorSysGenConfigEnv" 
+                  size="small" 
                   :type="getEnvTagType(row.monitorSysGenConfigEnv)"
                 >
                   {{ row.monitorSysGenConfigEnv }}
-                </ScTag>
+                </el-tag>
               </div>
             </div>
             <div class="card-body">
               <div class="config-value">
                 <IconifyIconOnline icon="ri:code-line" class="value-icon" />
                 <span class="value-text" :title="row.monitorSysGenConfigValue">
-                  {{ row.monitorSysGenConfigValue || "—" }}
+                  {{ row.monitorSysGenConfigValue || '—' }}
                 </span>
               </div>
-              <div
-                v-if="row.monitorSysGenConfigDescription"
-                class="config-desc"
-              >
+              <div class="config-desc" v-if="row.monitorSysGenConfigDescription">
                 <IconifyIconOnline icon="ri:file-text-line" class="desc-icon" />
-                <span class="desc-text">{{
-                  row.monitorSysGenConfigDescription
-                }}</span>
+                <span class="desc-text">{{ row.monitorSysGenConfigDescription }}</span>
               </div>
-              <div v-if="row.monitorSysGenConfigApp" class="config-app">
+              <div class="config-app" v-if="row.monitorSysGenConfigApp">
                 <IconifyIconOnline icon="ri:apps-line" class="app-icon" />
                 <span class="app-text">{{ row.monitorSysGenConfigApp }}</span>
               </div>
@@ -172,25 +157,15 @@
                 {{ formatTime(row.updateTime) }}
               </div>
               <div class="card-actions">
-                <ScButton
-                  size="small"
-                  type="primary"
-                  plain
-                  @click.stop="openEdit(row)"
-                >
+                <el-button size="small" type="primary" plain @click.stop="openEdit(row)">
                   <IconifyIconOnline icon="ri:edit-line" />
-                </ScButton>
-                <ScButton size="small" plain @click.stop="openPushSingle(row)">
+                </el-button>
+                <el-button size="small" plain @click.stop="openPushSingle(row)">
                   <IconifyIconOnline icon="ri:send-plane-line" />
-                </ScButton>
-                <ScButton
-                  size="small"
-                  type="danger"
-                  plain
-                  @click.stop="handleDelete(row)"
-                >
+                </el-button>
+                <el-button size="small" type="danger" plain @click.stop="handleDelete(row)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </ScButton>
+                </el-button>
               </div>
             </div>
           </div>
@@ -199,8 +174,8 @@
     </div>
 
     <!-- 编辑对话框 -->
-    <ConfigEditDialog
-      v-model:visible="editVisible"
+    <ConfigEditDialog 
+      v-model:visible="editVisible" 
       :config="currentConfig"
       :env-list="envList"
       @success="onEditSuccess"
@@ -214,27 +189,29 @@
     />
 
     <!-- 推送历史对话框 -->
-    <PushHistoryDialog v-model:visible="historyVisible" />
+    <PushHistoryDialog
+      v-model:visible="historyVisible"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
-import { ElMessageBox } from "element-plus";
-import { message } from "@repo/utils";
-import { ScTable } from "@repo/components"
-import { ScCard } from "@repo/components";
-import {
-  getConfigPageList,
-  deleteConfig,
+import { ref, reactive, onMounted } from 'vue';
+import { ElMessageBox } from 'element-plus';
+import { message } from '@repo/utils';
+import ScTable from '@repo/components/ScTable/index.vue';
+import { ScCard } from '@repo/components';
+import { 
+  getConfigPageList, 
+  deleteConfig, 
   getEnvList as fetchEnvList,
   getConfigStats,
   type MonitorConfig,
-  type ConfigStats,
-} from "@/api/config";
-import ConfigEditDialog from "./components/ConfigEditDialog.vue";
-import ConfigPushDialog from "./components/ConfigPushDialog.vue";
-import PushHistoryDialog from "./components/PushHistoryDialog.vue";
+  type ConfigStats
+} from '@/api/config';
+import ConfigEditDialog from './components/ConfigEditDialog.vue';
+import ConfigPushDialog from './components/ConfigPushDialog.vue';
+import PushHistoryDialog from './components/PushHistoryDialog.vue';
 
 const tableRef = ref();
 const editVisible = ref(false);
@@ -245,8 +222,8 @@ const selectedConfigs = ref<MonitorConfig[]>([]);
 const envList = ref<string[]>([]);
 
 const params = reactive({
-  keyword: "",
-  env: "",
+  keyword: '',
+  env: '',
   status: undefined as number | undefined,
 });
 
@@ -261,11 +238,11 @@ const stats = reactive<ConfigStats>({
 async function loadEnvList() {
   try {
     const res: any = await fetchEnvList();
-    if (res?.code === "00000") {
+    if (res?.code === '00000') {
       envList.value = res.data || [];
     }
   } catch (e) {
-    console.error("加载环境列表失败", e);
+    console.error('加载环境列表失败', e);
   }
 }
 
@@ -273,11 +250,11 @@ async function loadEnvList() {
 async function loadStats() {
   try {
     const res: any = await getConfigStats();
-    if (res?.code === "00000" && res.data) {
+    if (res?.code === '00000' && res.data) {
       Object.assign(stats, res.data);
     }
   } catch (e) {
-    console.error("加载统计数据失败", e);
+    console.error('加载统计数据失败', e);
   }
 }
 
@@ -296,7 +273,7 @@ function openEdit(config?: MonitorConfig) {
 // 打开下发对话框（批量）
 function openPushDialog() {
   if (selectedConfigs.value.length === 0) {
-    return message("请选择要下发的配置", { type: "warning" });
+    return message('请选择要下发的配置', { type: 'warning' });
   }
   pushVisible.value = true;
 }
@@ -317,20 +294,20 @@ async function handleDelete(config: MonitorConfig) {
   try {
     await ElMessageBox.confirm(
       `确认删除配置 "${config.monitorSysGenConfigKey}"？`,
-      "删除确认",
-      { type: "warning" },
+      '删除确认',
+      { type: 'warning' }
     );
-
+    
     const res: any = await deleteConfig(config.monitorSysGenConfigId!);
-    if (res?.code === "00000") {
-      message("删除成功", { type: "success" });
+    if (res?.code === '00000') {
+      message('删除成功', { type: 'success' });
       reload();
     } else {
-      message(res?.msg || "删除失败", { type: "error" });
+      message(res?.msg || '删除失败', { type: 'error' });
     }
   } catch (e) {
-    if (e !== "cancel") {
-      console.error("删除失败", e);
+    if (e !== 'cancel') {
+      console.error('删除失败', e);
     }
   }
 }
@@ -342,15 +319,13 @@ function handleSelectionChange(selection: MonitorConfig[]) {
 
 // 检查是否选中
 function isSelected(config: MonitorConfig): boolean {
-  return selectedConfigs.value.some(
-    (c) => c.monitorSysGenConfigId === config.monitorSysGenConfigId,
-  );
+  return selectedConfigs.value.some(c => c.monitorSysGenConfigId === config.monitorSysGenConfigId);
 }
 
 // 切换选择
 function toggleSelect(config: MonitorConfig) {
   const index = selectedConfigs.value.findIndex(
-    (c) => c.monitorSysGenConfigId === config.monitorSysGenConfigId,
+    c => c.monitorSysGenConfigId === config.monitorSysGenConfigId
   );
   if (index === -1) {
     selectedConfigs.value.push(config);
@@ -370,26 +345,26 @@ function onPushSuccess() {
 }
 
 // 获取环境标签类型
-function getEnvTagType(env: string): "success" | "warning" | "danger" | "info" {
+function getEnvTagType(env: string): 'success' | 'warning' | 'danger' | 'info' {
   switch (env?.toLowerCase()) {
-    case "prod":
-    case "production":
-      return "danger";
-    case "test":
-    case "testing":
-      return "warning";
-    case "dev":
-    case "development":
-      return "success";
+    case 'prod':
+    case 'production':
+      return 'danger';
+    case 'test':
+    case 'testing':
+      return 'warning';
+    case 'dev':
+    case 'development':
+      return 'success';
     default:
-      return "info";
+      return 'info';
   }
 }
 
 // 格式化时间
 function formatTime(time: string): string {
-  if (!time) return "—";
-  return new Date(time).toLocaleString("zh-CN");
+  if (!time) return '—';
+  return new Date(time).toLocaleString('zh-CN');
 }
 
 onMounted(() => {
@@ -523,7 +498,7 @@ onMounted(() => {
       font-size: $font-sm;
       color: var(--el-text-color-regular);
       word-break: break-all;
-      font-family: "Monaco", "Consolas", monospace;
+      font-family: 'Monaco', 'Consolas', monospace;
       background: var(--el-fill-color-light);
       padding: 4px $spacing-sm;
       border-radius: $radius-sm;

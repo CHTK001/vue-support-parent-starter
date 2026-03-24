@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <ScIcon :size="28"><Monitor /></ScIcon>
+          <el-icon :size="28"><Monitor /></el-icon>
         </div>
         <div class="header-text">
           <h2>服务列表</h2>
@@ -12,20 +12,15 @@
         </div>
       </div>
       <div class="header-actions">
-        <ScSelect
-          v-model="filterForm.configId"
-          placeholder="选择配置"
-          style="width: 180px"
-          @change="handleConfigChange"
-        >
-          <ScOption
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="handleConfigChange" style="width: 180px">
+          <el-option
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </ScSelect>
-        <ScDatePicker
+        </el-select>
+        <el-date-picker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -33,37 +28,20 @@
           end-placeholder="结束"
           format="MM-DD HH:mm"
           value-format="YYYY-MM-DD HHmm"
-          style="width: 280px"
           @change="handleTimeChange"
+          style="width: 280px"
         />
-        <ScSelect
-          v-model="filterForm.layer"
-          placeholder="选择层"
-          clearable
-          style="width: 120px"
-        >
-          <ScOption
-            v-for="layer in layerList"
-            :key="layer"
-            :label="layer"
-            :value="layer"
-          />
-        </ScSelect>
-        <ScInput
-          v-model="filterForm.keyword"
-          placeholder="服务名关键字"
-          clearable
-          style="width: 160px"
-        />
-        <ScButton type="primary" :icon="Search" @click="fetchData"
-          >查询</el-button
-        >
-        <ScButton :icon="RefreshRight" @click="resetFilter">重置</ScButton>
+        <el-select v-model="filterForm.layer" placeholder="选择层" clearable style="width: 120px">
+          <el-option v-for="layer in layerList" :key="layer" :label="layer" :value="layer" />
+        </el-select>
+        <el-input v-model="filterForm.keyword" placeholder="服务名关键字" clearable style="width: 160px" />
+        <el-button type="primary" :icon="Search" @click="fetchData">查询</el-button>
+        <el-button :icon="RefreshRight" @click="resetFilter">重置</el-button>
       </div>
     </div>
 
     <!-- 服务列表 -->
-    <ScCard v-loading="loading" class="table-card" shadow="never">
+    <el-card class="table-card" shadow="never" v-loading="loading">
       <template #header>
         <div class="card-header">
           <span>服务列表</span>
@@ -71,168 +49,106 @@
         </div>
       </template>
 
-      <ScTable
-        :data="filteredList"
-        stripe
-        border
-        style="width: 100%"
-        max-height="calc(100vh - 340px)"
-      >
-        <ScTableColumn
-          prop="name"
-          label="服务名称"
-          min-width="200"
-          show-overflow-tooltip
-        >
+      <el-table :data="filteredList" stripe border style="width: 100%" max-height="calc(100vh - 340px)">
+        <el-table-column prop="name" label="服务名称" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">
-            <ScLink type="primary" @click="viewServiceDetail(row)">{{
-              row.name
-            }}</ScLink>
+            <el-link type="primary" @click="viewServiceDetail(row)">{{ row.name }}</el-link>
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="layer" label="层" width="120" align="center">
+        </el-table-column>
+        <el-table-column prop="layer" label="层" width="120" align="center">
           <template #default="{ row }">
-            <ScTag size="small">{{ row.layer || "-" }}</ScTag>
+            <el-tag size="small">{{ row.layer || '-' }}</el-tag>
           </template>
-        </ScTableColumn>
-        <ScTableColumn prop="group" label="分组" width="120" align="center">
+        </el-table-column>
+        <el-table-column prop="group" label="分组" width="120" align="center">
           <template #default="{ row }">
-            {{ row.group || "-" }}
+            {{ row.group || '-' }}
           </template>
-        </ScTableColumn>
-        <ScTableColumn
-          prop="shortName"
-          label="短名称"
-          min-width="150"
-          show-overflow-tooltip
-        />
-        <ScTableColumn label="是否正常" width="100" align="center">
+        </el-table-column>
+        <el-table-column prop="shortName" label="短名称" min-width="150" show-overflow-tooltip />
+        <el-table-column label="是否正常" width="100" align="center">
           <template #default="{ row }">
-            <ScTag
-              :type="row.normal === false ? 'danger' : 'success'"
-              size="small"
-            >
-              {{ row.normal === false ? "异常" : "正常" }}
-            </ScTag>
+            <el-tag :type="row.normal === false ? 'danger' : 'success'" size="small">
+              {{ row.normal === false ? '异常' : '正常' }}
+            </el-tag>
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="操作" width="180" align="center" fixed="right">
+        </el-table-column>
+        <el-table-column label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
-            <ScButton
-              type="primary"
-              link
-              size="small"
-              @click="viewServiceDetail(row)"
-              >详情</el-button
-            >
-            <ScButton
-              type="primary"
-              link
-              size="small"
-              @click="viewServiceTopology(row)"
-              >拓扑</el-button
-            >
-            <ScButton
-              type="primary"
-              link
-              size="small"
-              @click="viewServiceTrace(row)"
-              >链路</el-button
-            >
+            <el-button type="primary" link size="small" @click="viewServiceDetail(row)">详情</el-button>
+            <el-button type="primary" link size="small" @click="viewServiceTopology(row)">拓扑</el-button>
+            <el-button type="primary" link size="small" @click="viewServiceTrace(row)">链路</el-button>
           </template>
-        </ScTableColumn>
-      </ScTable>
-    </ScCard>
+        </el-table-column>
+      </el-table>
+    </el-card>
 
     <!-- 服务详情抽屉 -->
     <sc-drawer v-model="drawerVisible" title="服务详情" size="720px">
       <template v-if="selectedService">
         <!-- 指标概览卡片 -->
-        <ScRow :gutter="12" class="metrics-overview">
-          <ScCol :span="6">
+        <el-row :gutter="12" class="metrics-overview">
+          <el-col :span="6">
             <div class="metric-item">
               <div class="metric-value">{{ serviceMetrics.cpm }}</div>
               <div class="metric-label">CPM</div>
             </div>
-          </ScCol>
-          <ScCol :span="6">
+          </el-col>
+          <el-col :span="6">
             <div class="metric-item">
               <div class="metric-value">{{ serviceMetrics.respTime }} ms</div>
               <div class="metric-label">响应时间</div>
             </div>
-          </ScCol>
-          <ScCol :span="6">
+          </el-col>
+          <el-col :span="6">
             <div class="metric-item">
-              <div class="metric-value">
-                {{ (serviceMetrics.sla / 100).toFixed(2) }}%
-              </div>
+              <div class="metric-value">{{ (serviceMetrics.sla / 100).toFixed(2) }}%</div>
               <div class="metric-label">成功率</div>
             </div>
-          </ScCol>
-          <ScCol :span="6">
+          </el-col>
+          <el-col :span="6">
             <div class="metric-item">
-              <div class="metric-value">
-                {{ (serviceMetrics.apdex / 10000).toFixed(2) }}
-              </div>
+              <div class="metric-value">{{ (serviceMetrics.apdex / 10000).toFixed(2) }}</div>
               <div class="metric-label">Apdex</div>
             </div>
-          </ScCol>
-        </ScRow>
+          </el-col>
+        </el-row>
 
         <!-- 趋势图表 -->
         <div class="section-title">指标趋势</div>
-        <ScTabs v-model="activeMetricTab">
-          <ScTabPane label="CPM" name="cpm">
-            <div ref="serviceCpmChartRef" class="service-chart" />
-          </ScTabPane>
-          <ScTabPane label="响应时间" name="respTime">
-            <div ref="serviceRespTimeChartRef" class="service-chart" />
-          </ScTabPane>
-          <ScTabPane label="成功率" name="sla">
-            <div ref="serviceSlaChartRef" class="service-chart" />
-          </ScTabPane>
-        </ScTabs>
+        <el-tabs v-model="activeMetricTab">
+          <el-tab-pane label="CPM" name="cpm">
+            <div ref="serviceCpmChartRef" class="service-chart"></div>
+          </el-tab-pane>
+          <el-tab-pane label="响应时间" name="respTime">
+            <div ref="serviceRespTimeChartRef" class="service-chart"></div>
+          </el-tab-pane>
+          <el-tab-pane label="成功率" name="sla">
+            <div ref="serviceSlaChartRef" class="service-chart"></div>
+          </el-tab-pane>
+        </el-tabs>
 
-        <ScDescriptions :column="2" border class="service-info">
-          <ScDescriptionsItem label="服务ID">{{
-            selectedService.id
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="服务名称">{{
-            selectedService.name
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="短名称">{{
-            selectedService.shortName || "-"
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="层">{{
-            selectedService.layer || "-"
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="分组">{{
-            selectedService.group || "-"
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="状态">
-            <ScTag
-              :type="selectedService.normal === false ? 'danger' : 'success'"
-              size="small"
-            >
-              {{ selectedService.normal === false ? "异常" : "正常" }}
-            </ScTag>
-          </ScDescriptionsItem>
-        </ScDescriptions>
+        <el-descriptions :column="2" border class="service-info">
+          <el-descriptions-item label="服务ID">{{ selectedService.id }}</el-descriptions-item>
+          <el-descriptions-item label="服务名称">{{ selectedService.name }}</el-descriptions-item>
+          <el-descriptions-item label="短名称">{{ selectedService.shortName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="层">{{ selectedService.layer || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="分组">{{ selectedService.group || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="selectedService.normal === false ? 'danger' : 'success'" size="small">
+              {{ selectedService.normal === false ? '异常' : '正常' }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <div class="drawer-actions">
-          <ScButton
-            type="primary"
-            @click="viewServiceTopology(selectedService)"
-            >查看拓扑</el-button
-          >
-          <ScButton type="primary" @click="viewServiceTrace(selectedService)"
-            >查看链路</el-button
-          >
+          <el-button type="primary" @click="viewServiceTopology(selectedService)">查看拓扑</el-button>
+          <el-button type="primary" @click="viewServiceTrace(selectedService)">查看链路</el-button>
         </div>
 
         <!-- 服务实例列表 -->
         <div class="section-title">服务实例</div>
-        <ScTable
+        <el-table
           v-loading="instanceLoading"
           :data="serviceInstances"
           stripe
@@ -240,48 +156,23 @@
           size="small"
           style="width: 100%"
         >
-          <ScTableColumn prop="name" label="实例名称" show-overflow-tooltip />
-          <ScTableColumn
-            prop="language"
-            label="语言"
-            width="80"
-            align="center"
-          />
-          <ScTableColumn
-            prop="id"
-            label="ID"
-            width="180"
-            show-overflow-tooltip
-          />
-        </ScTable>
-        <ScEmpty
-          v-if="!instanceLoading && !serviceInstances.length"
-          description="暂无实例数据"
-          :image-size="60"
-        />
+          <el-table-column prop="name" label="实例名称" show-overflow-tooltip />
+          <el-table-column prop="language" label="语言" width="80" align="center" />
+          <el-table-column prop="id" label="ID" width="180" show-overflow-tooltip />
+        </el-table>
+        <el-empty v-if="!instanceLoading && !serviceInstances.length" description="暂无实例数据" :image-size="60" />
       </template>
     </sc-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  reactive,
-  computed,
-  onMounted,
-  onUnmounted,
-  watch,
-  nextTick,
-} from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Search, RefreshRight, Monitor } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
-import {
-  getEnabledSkywalkingConfigs,
-  type SkywalkingConfig,
-} from "@/api/skywalking/config";
+import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
   getSkywalkingServices,
   getSkywalkingLayers,
@@ -349,7 +240,7 @@ const filteredList = computed(() => {
     list = list.filter(
       (s) =>
         s.name?.toLowerCase().includes(keyword) ||
-        s.shortName?.toLowerCase().includes(keyword),
+        s.shortName?.toLowerCase().includes(keyword)
     );
   }
   return list;
@@ -477,66 +368,36 @@ const renderServiceCharts = () => {
   const data = serviceTrend.value;
   // CPM
   if (serviceCpmChartRef.value) {
-    if (!serviceCpmChart)
-      serviceCpmChart = echarts.init(serviceCpmChartRef.value);
+    if (!serviceCpmChart) serviceCpmChart = echarts.init(serviceCpmChartRef.value);
     serviceCpmChart.setOption({
       tooltip: { trigger: "axis" },
       xAxis: { type: "category", data: data.timestamps, boundaryGap: false },
       yAxis: { type: "value" },
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
-      series: [
-        {
-          name: "CPM",
-          type: "line",
-          data: data.cpm,
-          smooth: true,
-          areaStyle: { opacity: 0.2 },
-          itemStyle: { color: "#409EFF" },
-        },
-      ],
+      series: [{ name: "CPM", type: "line", data: data.cpm, smooth: true, areaStyle: { opacity: 0.2 }, itemStyle: { color: "#409EFF" } }],
     });
   }
   // 响应时间
   if (serviceRespTimeChartRef.value) {
-    if (!serviceRespTimeChart)
-      serviceRespTimeChart = echarts.init(serviceRespTimeChartRef.value);
+    if (!serviceRespTimeChart) serviceRespTimeChart = echarts.init(serviceRespTimeChartRef.value);
     serviceRespTimeChart.setOption({
       tooltip: { trigger: "axis", formatter: "{b}<br/>{a}: {c} ms" },
       xAxis: { type: "category", data: data.timestamps, boundaryGap: false },
       yAxis: { type: "value", name: "ms" },
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
-      series: [
-        {
-          name: "响应时间",
-          type: "line",
-          data: data.respTime,
-          smooth: true,
-          areaStyle: { opacity: 0.2 },
-          itemStyle: { color: "#E6A23C" },
-        },
-      ],
+      series: [{ name: "响应时间", type: "line", data: data.respTime, smooth: true, areaStyle: { opacity: 0.2 }, itemStyle: { color: "#E6A23C" } }],
     });
   }
   // SLA
   if (serviceSlaChartRef.value) {
-    if (!serviceSlaChart)
-      serviceSlaChart = echarts.init(serviceSlaChartRef.value);
+    if (!serviceSlaChart) serviceSlaChart = echarts.init(serviceSlaChartRef.value);
     const slaPercent = data.sla.map((v) => (v / 100).toFixed(2));
     serviceSlaChart.setOption({
       tooltip: { trigger: "axis", formatter: "{b}<br/>{a}: {c}%" },
       xAxis: { type: "category", data: data.timestamps, boundaryGap: false },
       yAxis: { type: "value", name: "%", min: 90, max: 100 },
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
-      series: [
-        {
-          name: "成功率",
-          type: "line",
-          data: slaPercent,
-          smooth: true,
-          areaStyle: { opacity: 0.2 },
-          itemStyle: { color: "#67C23A" },
-        },
-      ],
+      series: [{ name: "成功率", type: "line", data: slaPercent, smooth: true, areaStyle: { opacity: 0.2 }, itemStyle: { color: "#67C23A" } }],
     });
   }
 };
@@ -603,6 +464,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -619,6 +481,8 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -653,6 +517,7 @@ onUnmounted(() => {
   }
 }
 
+
 .skywalking-service {
   padding: 20px;
   min-height: 100vh;
@@ -680,7 +545,7 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
         border-radius: 10px;
         color: #fff;
       }
@@ -800,6 +665,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -808,4 +674,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -1,16 +1,8 @@
-import {
-  storageLocal,
-  storageSession,
-  type ProxyStorage,
-} from "@pureadmin/utils";
+import { storageLocal, storageSession, type ProxyStorage } from "@pureadmin/utils";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { getConfig } from "@repo/config";
-// 导入WASM版本存储加密函数（禁止降级到JS实现）
-import {
-  encryptStorageKey,
-  encryptStorageValue,
-  decryptStorageValue,
-} from "@repo/codec-wasm";
+// 导入WASM版本的加密函数
+import { encryptStorageKey, encryptStorageValue, decryptStorageValue } from "@repo/codec-wasm";
 // 导入IndexedDB存储
 import { indexedDBProxy, asyncIndexedDB } from "./indexedDB";
 
@@ -38,7 +30,7 @@ class SyncSessionStorageProxy {
       const value = storageSession().getItem(key);
       return value as T;
     }
-
+    
     const config = getConfig();
     const value = storageSession().getItem(key);
     if (config.StorageEncode) {
@@ -70,13 +62,13 @@ class SyncLocalStorageProxy {
     if (!key) {
       return;
     }
-
+    
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageLocal().setItem(key, value);
       return;
     }
-
+    
     // 同步方式处理存储
     let storageValue: any = value;
     if (config.StorageEncode && !key.startsWith(responsiveStorageNameSpace())) {
@@ -94,16 +86,13 @@ class SyncLocalStorageProxy {
     if (!key) {
       return null as T;
     }
-
+    
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().getItem(key) as T;
     }
 
     const value = storageLocal().getItem(key);
-    if (!value) {
-      return null as T;
-    }
     if (config.StorageEncode) {
       try {
         // 同步方式处理存储值解密（简化处理，不使用WASM解密）
@@ -134,28 +123,19 @@ class CustomSessionStorageProxy {
     if (!key) {
       return;
     }
-
+    
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageSession().setItem(key, value);
       return;
     }
-
-    // 使用WASM处理存储加密
+    
+    // 使用同步方式处理存储
     let storageValue: any = value;
     if (config.StorageEncode && !key.startsWith(responsiveStorageNameSpace())) {
       try {
-        const plain = JSON.stringify(value);
-        // 仅允许调用 WASM 加密，不允许降级
-        const encrypted = encryptStorageValue(
-          plain,
-          config.StorageKey,
-          config.SystemCode,
-          config.StorageKey,
-          config.StorageEncode,
-        );
-        // 如果WASM异常返回空字符串，则保持明文写入，避免写入空值
-        storageValue = encrypted || plain;
+        // 使用同步方式处理存储值加密
+        storageValue = encryptStorageValue(JSON.stringify(value), key, config.SystemCode, config.StorageKey, config.StorageEncode);
       } catch (error) {
         console.error("存储值加密失败:", error);
         storageValue = JSON.stringify(value);
@@ -169,29 +149,14 @@ class CustomSessionStorageProxy {
       const value = storageSession().getItem(key);
       return value as T;
     }
-
+    
     const config = getConfig();
     const value = storageSession().getItem(key);
-    if (!value) {
-      return null as T;
-    }
-
     if (config.StorageEncode) {
       try {
-        const cipher = value as string;
-        // 仅允许调用 WASM 解密，不允许降级
-        const decrypted = decryptStorageValue(
-          cipher,
-          config.StorageKey,
-          config.SystemCode,
-          config.StorageKey,
-          config.StorageEncode,
-        );
-        // 解密返回空串时直接返回原始值，避免JSON解析异常
-        if (!decrypted) {
-          return value as T;
-        }
-        return JSON.parse(decrypted) as T;
+        // 使用同步方式处理存储值解密
+        const decryptedValue = decryptStorageValue(value as string, key, config.SystemCode, config.StorageKey, config.StorageEncode);
+        return JSON.parse(decryptedValue) as T;
       } catch (error) {
         return value as T;
       }
@@ -217,32 +182,21 @@ class CustomLocalStorageProxy {
     if (!key) {
       return;
     }
-
+    
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageLocal().setItem(key, value);
       return;
     }
-
+    
     // 使用同步方式处理存储key加密
     const newKey = encryptStorageKey(key, config.SystemCode);
-
+    
     let storageValue: any = value;
     if (config.StorageEncode) {
       try {
-        const plain = JSON.stringify(value);
-        // 仅使用 WASM 加密，不允许降级
-        const encryptedRaw = encryptStorageValue(
-          plain,
-          config.StorageKey,
-          config.SystemCode,
-          config.StorageKey,
-          config.StorageEncode,
-        );
-        // WASM 理论上应返回字符串，这里做一次兜底，任何非字符串结果都视作加密失败
-        const encrypted = typeof encryptedRaw === "string" ? encryptedRaw : "";
-        // 如果 WASM 异常返回空字符串，则保持明文写入，避免写入空值或 number 等脏数据
-        storageValue = encrypted || plain;
+        // 使用同步方式处理存储值加密
+        storageValue = encryptStorageValue(JSON.stringify(value), key, config.SystemCode, config.StorageKey, config.StorageEncode);
       } catch (error) {
         console.error("存储值加密失败:", error);
         storageValue = JSON.stringify(value);
@@ -255,7 +209,7 @@ class CustomLocalStorageProxy {
     if (!key) {
       return null as T;
     }
-
+    
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().getItem(key) as T;
@@ -269,31 +223,13 @@ class CustomLocalStorageProxy {
       console.error("存储key加密失败:", error);
       newKey = key;
     }
-
+    
     const value = storageLocal().getItem(newKey);
-    if (!value) {
-      return null as T;
-    }
     if (config.StorageEncode) {
       try {
-        // 历史上可能写入过 number 等非字符串，这里仅在字符串场景尝试解密
-        const cipher = typeof value === "string" ? value : "";
-        if (!cipher) {
-          return value as T;
-        }
-        // 仅使用 WASM 解密，不允许降级
-        const decrypted = decryptStorageValue(
-          cipher,
-          config.StorageKey,
-          config.SystemCode,
-          config.StorageKey,
-          config.StorageEncode,
-        );
-        // 解密返回空串时直接返回原始值
-        if (!decrypted) {
-          return value as T;
-        }
-        return JSON.parse(decrypted) as T;
+        // 使用同步方式处理存储值解密
+        const decryptedValue = decryptStorageValue(value as string, key, config.SystemCode, config.StorageKey, config.StorageEncode);
+        return JSON.parse(decryptedValue) as T;
       } catch (error) {
         return value as T;
       }
@@ -305,13 +241,13 @@ class CustomLocalStorageProxy {
     if (!key) {
       return;
     }
-
+    
     const config = getConfig();
     if (key.startsWith(responsiveStorageNameSpace())) {
       storageLocal().removeItem(key);
       return;
     }
-
+    
     // 使用同步方式处理存储key加密
     const newKey = encryptStorageKey(key, config.SystemCode);
     storageLocal().removeItem(newKey);

@@ -4,8 +4,8 @@
     title="服务配置"
     width="1200px"
     :close-on-click-modal="false"
-    class="server-config-dialog"
     @close="handleClose"
+    class="server-config-dialog"
   >
     <div class="config-container">
       <!-- 左侧：可用的 Filter -->
@@ -21,23 +21,18 @@
             </div>
           </div>
           <div class="panel-actions">
-            <ScTag type="info" size="small" effect="plain" round>
+            <el-tag type="info" size="small" effect="plain" round>
               {{ availableFilters.length }} 个可用
-            </ScTag>
-            <ScTooltip content="刷新列表" placement="top">
-              <ScButton
-                type="primary"
-                size="small"
-                circle
-                @click="refreshAvailableFilters"
-              >
+            </el-tag>
+            <el-tooltip content="刷新列表" placement="top">
+              <el-button type="primary" size="small" circle @click="refreshAvailableFilters">
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </ScButton>
-            </ScTooltip>
+              </el-button>
+            </el-tooltip>
           </div>
         </div>
 
-        <ScScrollbar v-loading="availableLoading" class="panel-content">
+        <el-scrollbar class="panel-content" v-loading="availableLoading">
           <div class="filter-list">
             <div
               v-for="(filter, index) in availableFilters"
@@ -47,37 +42,33 @@
               <div class="card-index">{{ index + 1 }}</div>
               <div class="card-body">
                 <div class="card-header">
-                  <span class="card-name">{{
-                    filter.describe || filter.name
-                  }}</span>
-                  <span class="card-type">{{
-                    filter.describe ? filter.name : filter.describeType
-                  }}</span>
+                  <span class="card-name">{{ filter.describe || filter.name }}</span>
+                  <span class="card-type">{{ filter.describe ? filter.name : filter.describeType }}</span>
                 </div>
-                <div v-if="filter.describeDetail" class="card-desc">
+                <div class="card-desc" v-if="filter.describeDetail">
                   {{ filter.describeDetail }}
                 </div>
               </div>
               <div class="card-action">
-                <ScButton
+                <el-button
                   type="primary"
                   size="small"
-                  :loading="installLoading[filter.type]"
                   @click="installFilter(filter)"
+                  :loading="installLoading[filter.type]"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
                   安装
-                </ScButton>
+                </el-button>
               </div>
             </div>
           </div>
 
-          <ScEmpty
+          <el-empty
             v-if="!availableLoading && availableFilters.length === 0"
             description="暂无可用的组件"
             :image-size="80"
           />
-        </ScScrollbar>
+        </el-scrollbar>
       </div>
 
       <!-- 右侧：已安装的 Filter -->
@@ -93,27 +84,22 @@
             </div>
           </div>
           <div class="panel-actions">
-            <ScTag type="success" size="small" effect="plain" round>
+            <el-tag type="success" size="small" effect="plain" round>
               {{ installedFilters.length }} 个已装
-            </ScTag>
-            <ScTooltip content="刷新列表" placement="top">
-              <ScButton size="small" circle @click="refreshInstalledFilters">
+            </el-tag>
+            <el-tooltip content="刷新列表" placement="top">
+              <el-button size="small" circle @click="refreshInstalledFilters">
                 <IconifyIconOnline icon="ri:refresh-line" />
-              </ScButton>
-            </ScTooltip>
-            <ScButton
-              type="success"
-              size="small"
-              :loading="saveLoading"
-              @click="saveOrder"
-            >
+              </el-button>
+            </el-tooltip>
+            <el-button type="success" size="small" @click="saveOrder" :loading="saveLoading">
               <IconifyIconOnline icon="ri:save-line" />
               保存排序
-            </ScButton>
+            </el-button>
           </div>
         </div>
 
-        <ScScrollbar v-loading="installedLoading" class="panel-content">
+        <el-scrollbar class="panel-content" v-loading="installedLoading">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
@@ -133,110 +119,75 @@
                 <div class="card-status">
                   <span
                     class="status-dot"
-                    :class="
-                      filter.systemServerSettingEnabled ? 'active' : 'inactive'
-                    "
-                  />
+                    :class="filter.systemServerSettingEnabled ? 'active' : 'inactive'"
+                  ></span>
                 </div>
                 <div class="card-body">
                   <div class="card-header">
-                    <span
-                      class="card-name clickable"
-                      @click="openConfigDialog(filter)"
-                    >
+                    <span class="card-name clickable" @click="openConfigDialog(filter)">
                       {{ filter.systemServerSettingName }}
                     </span>
-                    <ScTag
-                      :type="
-                        filter.systemServerSettingEnabled ? 'success' : 'info'
-                      "
+                    <el-tag
+                      :type="filter.systemServerSettingEnabled ? 'success' : 'info'"
                       size="small"
                       effect="light"
                     >
-                      {{
-                        filter.systemServerSettingEnabled ? "已启用" : "已禁用"
-                      }}
-                    </ScTag>
+                      {{ filter.systemServerSettingEnabled ? '已启用' : '已禁用' }}
+                    </el-tag>
                   </div>
                   <div class="card-meta">
-                    <span class="meta-type">{{
-                      filter.systemServerSettingType
-                    }}</span>
+                    <span class="meta-type">{{ filter.systemServerSettingType }}</span>
                   </div>
-                  <div
-                    v-if="filter.systemServerSettingDescription"
-                    class="card-desc"
-                  >
+                  <div class="card-desc" v-if="filter.systemServerSettingDescription">
                     {{ filter.systemServerSettingDescription }}
                   </div>
                 </div>
                 <div class="card-actions">
-                  <ScTooltip
-                    :content="
-                      filter.systemServerSettingEnabled ? '禁用' : '启用'
-                    "
-                    placement="top"
-                  >
-                    <ScButton
-                      :type="
-                        filter.systemServerSettingEnabled
-                          ? 'warning'
-                          : 'success'
-                      "
+                  <el-tooltip :content="filter.systemServerSettingEnabled ? '禁用' : '启用'" placement="top">
+                    <el-button
+                      :type="filter.systemServerSettingEnabled ? 'warning' : 'success'"
                       size="small"
                       circle
-                      :loading="toggleLoading[filter.systemServerSettingId]"
                       @click="toggleFilterStatus(filter)"
+                      :loading="toggleLoading[filter.systemServerSettingId]"
                     >
                       <IconifyIconOnline
-                        :icon="
-                          filter.systemServerSettingEnabled
-                            ? 'ri:pause-fill'
-                            : 'ri:play-fill'
-                        "
+                        :icon="filter.systemServerSettingEnabled ? 'ri:pause-fill' : 'ri:play-fill'"
                       />
-                    </ScButton>
-                  </ScTooltip>
-                  <ScTooltip content="配置" placement="top">
-                    <ScButton
-                      size="small"
-                      circle
-                      @click="openConfigDialog(filter)"
-                    >
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="配置" placement="top">
+                    <el-button size="small" circle @click="openConfigDialog(filter)">
                       <IconifyIconOnline icon="ri:settings-3-line" />
-                    </ScButton>
-                  </ScTooltip>
-                  <ScTooltip content="卸载" placement="top">
-                    <ScButton
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="卸载" placement="top">
+                    <el-button
                       type="danger"
                       size="small"
                       circle
-                      :loading="uninstallLoading[filter.systemServerSettingId]"
                       @click="uninstallFilter(filter)"
+                      :loading="uninstallLoading[filter.systemServerSettingId]"
                     >
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </ScButton>
-                  </ScTooltip>
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
             </template>
           </draggable>
 
-          <ScEmpty
+          <el-empty
             v-if="!installedLoading && installedFilters.length === 0"
             description="暂无已安装的组件"
             :image-size="80"
           >
-            <ScButton
-              type="primary"
-              size="small"
-              @click="refreshAvailableFilters"
-            >
+            <el-button type="primary" size="small" @click="refreshAvailableFilters">
               <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
               从左侧选择安装
-            </ScButton>
-          </ScEmpty>
-        </ScScrollbar>
+            </el-button>
+          </el-empty>
+        </el-scrollbar>
       </div>
     </div>
 
@@ -253,10 +204,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">
+        <el-button @click="handleClose">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -366,7 +317,7 @@ const loadAvailableFilters = async () => {
         }
 
         return item.supportedTypes.includes(
-          props.server?.systemServerType?.toLocaleUpperCase(),
+          props.server?.systemServerType?.toLocaleUpperCase()
         );
       });
     } else {
@@ -441,13 +392,13 @@ const uninstallFilter = async (filter: SystemServerSetting) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
     uninstallLoading.value[filter.systemServerSettingId!] = true;
 
     const response = await uninstallServletFilter(
-      filter.systemServerSettingId!,
+      filter.systemServerSettingId!
     );
     if (response.success) {
       message("卸载成功", { type: "success" });
@@ -475,9 +426,9 @@ const toggleFilterStatus = async (filter: SystemServerSetting) => {
     const response = await apiCall(filter.systemServerSettingId!);
 
     if (response.success) {
-      message(filter.systemServerSettingEnabled ? "禁用成功" : "启用成功", {
-        type: "success",
-      });
+      message(
+        filter.systemServerSettingEnabled ? "禁用成功" : "启用成功"
+      , { type: "success" });
       loadInstalledFilters();
     } else {
       message(response.msg || "操作失败", { type: "error" });
@@ -511,7 +462,7 @@ const saveOrder = async () => {
 
     const response = await updateServletFilterOrder(
       props.serverId,
-      settingOrders,
+      settingOrders
     );
     if (response.success) {
       message("排序保存成功", { type: "success" });
@@ -555,7 +506,7 @@ const getFilterComponent = (filterType: string) => {
 const openConfigDialog = (filter: SystemServerSetting) => {
   currentFilterSetting.value = filter;
   activeFilterComponent.value = getFilterComponent(
-    filter.systemServerSettingType || "",
+    filter.systemServerSettingType || ""
   );
   showFilterDialog.value = true;
 };
@@ -592,7 +543,7 @@ watch(
       loadAvailableFilters();
       loadInstalledFilters();
     }
-  },
+  }
 );
 </script>
 
@@ -605,11 +556,7 @@ watch(
   .el-dialog__header {
     padding: 20px 24px;
     margin: 0;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     .el-dialog__title {
@@ -666,19 +613,11 @@ watch(
 }
 
 .available-panel .panel-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-bg-color) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
 }
 
 .installed-panel .panel-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-success-light-9) 0%,
-    var(--el-bg-color) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-bg-color) 100%);
 }
 
 .panel-title {
@@ -696,21 +635,13 @@ watch(
     font-size: 20px;
 
     &.available-icon {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
       color: #fff;
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
     }
 
     &.installed-icon {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-success) 0%,
-        var(--el-color-success-light-3) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
       color: #fff;
       box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
     }
@@ -775,11 +706,7 @@ watch(
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      var(--el-color-primary-light-3) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
     color: #fff;
     font-size: 13px;
     font-weight: 600;
@@ -937,6 +864,7 @@ watch(
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -945,4 +873,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

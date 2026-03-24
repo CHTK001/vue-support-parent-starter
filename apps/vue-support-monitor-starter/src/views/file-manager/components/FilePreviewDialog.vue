@@ -19,25 +19,21 @@
           <div class="file-details">
             <h3 class="file-name">{{ file?.name }}</h3>
             <div class="file-meta">
-              <span class="file-size">{{
-                formatFileSize(file?.size || 0)
-              }}</span>
+              <span class="file-size">{{ formatFileSize(file?.size || 0) }}</span>
               <span class="file-type">{{ getFileType(file) }}</span>
-              <span class="file-date">{{
-                formatDate(file?.lastModified || 0)
-              }}</span>
+              <span class="file-date">{{ formatDate(file?.lastModified || 0) }}</span>
             </div>
           </div>
         </div>
         <div class="file-actions">
-          <ScButton type="primary" @click="downloadFile">
+          <el-button @click="downloadFile" type="primary">
             <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
             下载
-          </ScButton>
-          <ScButton @click="copyPath">
+          </el-button>
+          <el-button @click="copyPath">
             <IconifyIconOnline icon="ri:file-copy-line" class="btn-icon" />
             复制路径
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -45,7 +41,7 @@
       <div class="preview-content">
         <!-- 图片预览 -->
         <div v-if="isImage" class="image-preview">
-          <ScImage
+          <el-image
             :src="previewUrl"
             :alt="file?.name"
             fit="contain"
@@ -60,33 +56,33 @@
                 <p>图片加载失败</p>
               </div>
             </template>
-          </ScImage>
+          </el-image>
         </div>
 
         <!-- 文本预览 -->
         <div v-else-if="isText" class="text-preview">
           <div class="text-toolbar">
             <el-button-group>
-              <ScButton
+              <el-button
                 :type="textWrap ? 'primary' : 'default'"
-                size="small"
                 @click="textWrap = !textWrap"
+                size="small"
               >
                 <IconifyIconOnline icon="ri:text-wrap" />
                 自动换行
-              </ScButton>
-              <ScButton size="small" @click="copyTextContent">
+              </el-button>
+              <el-button @click="copyTextContent" size="small">
                 <IconifyIconOnline icon="ri:file-copy-line" />
                 复制内容
-              </ScButton>
+              </el-button>
             </el-button-group>
           </div>
           <div class="text-content" :class="{ 'text-wrap': textWrap }">
             <pre v-if="textContent" class="text-pre">{{ textContent }}</pre>
             <div v-else-if="textLoading" class="text-loading">
-              <ScIcon class="is-loading">
+              <el-icon class="is-loading">
                 <Loading />
-              </ScIcon>
+              </el-icon>
               <span>加载中...</span>
             </div>
             <div v-else class="text-error">
@@ -100,12 +96,16 @@
         <div v-else-if="isPdf" class="pdf-preview">
           <div class="pdf-toolbar">
             <span class="pdf-info">PDF文档预览</span>
-            <ScButton type="primary" size="small" @click="openInNewTab">
+            <el-button @click="openInNewTab" type="primary" size="small">
               <IconifyIconOnline icon="ri:external-link-line" />
               在新标签页中打开
-            </ScButton>
+            </el-button>
           </div>
-          <iframe :src="previewUrl" class="pdf-iframe" frameborder="0" />
+          <iframe
+            :src="previewUrl"
+            class="pdf-iframe"
+            frameborder="0"
+          ></iframe>
         </div>
 
         <!-- 音频预览 -->
@@ -129,20 +129,17 @@
         <div v-else-if="isCode" class="code-preview">
           <div class="code-toolbar">
             <span class="code-language">{{ getCodeLanguage() }}</span>
-            <ScButton size="small" @click="copyTextContent">
+            <el-button @click="copyTextContent" size="small">
               <IconifyIconOnline icon="ri:file-copy-line" />
               复制代码
-            </ScButton>
+            </el-button>
           </div>
           <div class="code-content">
-            <pre
-              v-if="textContent"
-              class="code-pre"
-            ><code>{{ textContent }}</code></pre>
+            <pre v-if="textContent" class="code-pre"><code>{{ textContent }}</code></pre>
             <div v-else-if="textLoading" class="code-loading">
-              <ScIcon class="is-loading">
+              <el-icon class="is-loading">
                 <Loading />
-              </ScIcon>
+              </el-icon>
               <span>加载中...</span>
             </div>
             <div v-else class="code-error">
@@ -155,16 +152,13 @@
         <!-- 不支持预览的文件类型 -->
         <div v-else class="unsupported-preview">
           <div class="unsupported-content">
-            <IconifyIconOnline
-              icon="ri:file-unknow-line"
-              class="unsupported-icon"
-            />
+            <IconifyIconOnline icon="ri:file-unknow-line" class="unsupported-icon" />
             <h3>无法预览此文件类型</h3>
             <p>{{ file?.name }} ({{ getFileType(file) }})</p>
-            <ScButton type="primary" size="large" @click="downloadFile">
+            <el-button @click="downloadFile" type="primary" size="large">
               <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
               下载文件
-            </ScButton>
+            </el-button>
           </div>
         </div>
       </div>
@@ -172,383 +166,343 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
-        <ScButton type="primary" @click="downloadFile">
+        <el-button @click="handleClose">关闭</el-button>
+        <el-button @click="downloadFile" type="primary">
           <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
           下载
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch, nextTick } from 'vue'
 import { message } from "@repo/utils";
-import { Loading } from "@element-plus/icons-vue";
-import { formatBytes } from "@pureadmin/utils";
-import dayjs from "dayjs";
+import { Loading } from '@element-plus/icons-vue'
+import { formatBytes } from '@pureadmin/utils'
+import dayjs from 'dayjs'
 
 // 类型定义
 interface FileItem {
-  name: string;
-  path: string;
-  size: number;
-  lastModified: number;
-  isDirectory: boolean;
-  extension?: string;
-  mimeType?: string;
+  name: string
+  path: string
+  size: number
+  lastModified: number
+  isDirectory: boolean
+  extension?: string
+  mimeType?: string
 }
 
 // Props
 interface Props {
-  modelValue: boolean;
-  file: FileItem | null;
+  modelValue: boolean
+  file: FileItem | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
-  file: null,
-});
+  file: null
+})
 
 // Emits
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean];
-  close: [];
-}>();
+  'update:modelValue': [value: boolean]
+  close: []
+}>()
 
 // 响应式数据
 const dialogVisible = computed({
   get: () => props.modelValue,
-  set: (value) => emit("update:modelValue", value),
-});
+  set: (value) => emit('update:modelValue', value)
+})
 
-const textContent = ref("");
-const textLoading = ref(false);
-const textWrap = ref(true);
+const textContent = ref('')
+const textLoading = ref(false)
+const textWrap = ref(true)
 
 // 计算属性
 const dialogTitle = computed(() => {
-  return props.file ? `预览 - ${props.file.name}` : "文件预览";
-});
+  return props.file ? `预览 - ${props.file.name}` : '文件预览'
+})
 
 const previewUrl = computed(() => {
-  if (!props.file) return "";
+  if (!props.file) return ''
   // 这里应该返回实际的文件预览URL
-  return `/api/files/preview/${encodeURIComponent(props.file.path)}`;
-});
+  return `/api/files/preview/${encodeURIComponent(props.file.path)}`
+})
 
 const fileExtension = computed(() => {
-  return props.file?.extension?.toLowerCase() || "";
-});
+  return props.file?.extension?.toLowerCase() || ''
+})
 
 const isImage = computed(() => {
-  const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"];
-  return imageExts.includes(fileExtension.value);
-});
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']
+  return imageExts.includes(fileExtension.value)
+})
 
 const isText = computed(() => {
-  const textExts = [
-    "txt",
-    "md",
-    "json",
-    "xml",
-    "csv",
-    "log",
-    "ini",
-    "conf",
-    "yaml",
-    "yml",
-  ];
-  return textExts.includes(fileExtension.value);
-});
+  const textExts = ['txt', 'md', 'json', 'xml', 'csv', 'log', 'ini', 'conf', 'yaml', 'yml']
+  return textExts.includes(fileExtension.value)
+})
 
 const isPdf = computed(() => {
-  return fileExtension.value === "pdf";
-});
+  return fileExtension.value === 'pdf'
+})
 
 const isAudio = computed(() => {
-  const audioExts = ["mp3", "wav", "flac", "aac", "ogg", "m4a"];
-  return audioExts.includes(fileExtension.value);
-});
+  const audioExts = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a']
+  return audioExts.includes(fileExtension.value)
+})
 
 const isVideo = computed(() => {
-  const videoExts = ["mp4", "avi", "mkv", "mov", "wmv", "flv", "webm"];
-  return videoExts.includes(fileExtension.value);
-});
+  const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm']
+  return videoExts.includes(fileExtension.value)
+})
 
 const isCode = computed(() => {
   const codeExts = [
-    "js",
-    "ts",
-    "jsx",
-    "tsx",
-    "vue",
-    "html",
-    "css",
-    "scss",
-    "sass",
-    "less",
-    "java",
-    "py",
-    "cpp",
-    "c",
-    "h",
-    "cs",
-    "php",
-    "rb",
-    "go",
-    "rs",
-    "swift",
-    "kt",
-    "scala",
-    "sh",
-    "bat",
-    "ps1",
-    "sql",
-    "r",
-    "matlab",
-    "m",
-  ];
-  return codeExts.includes(fileExtension.value);
-});
+    'js', 'ts', 'jsx', 'tsx', 'vue', 'html', 'css', 'scss', 'sass', 'less',
+    'java', 'py', 'cpp', 'c', 'h', 'cs', 'php', 'rb', 'go', 'rs', 'swift',
+    'kt', 'scala', 'sh', 'bat', 'ps1', 'sql', 'r', 'matlab', 'm'
+  ]
+  return codeExts.includes(fileExtension.value)
+})
 
 // 方法
 const getFileIcon = (file: FileItem | null) => {
   if (!file || file.isDirectory) {
-    return "ri:folder-line";
+    return 'ri:folder-line'
   }
-
-  const ext = file.extension?.toLowerCase();
+  
+  const ext = file.extension?.toLowerCase()
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-    case "svg":
-      return "ri:image-line";
-    case "pdf":
-      return "ri:file-pdf-line";
-    case "doc":
-    case "docx":
-      return "ri:file-word-line";
-    case "xls":
-    case "xlsx":
-      return "ri:file-excel-line";
-    case "ppt":
-    case "pptx":
-      return "ri:file-ppt-line";
-    case "txt":
-    case "md":
-      return "ri:file-text-line";
-    case "zip":
-    case "rar":
-    case "7z":
-      return "ri:file-zip-line";
-    case "mp3":
-    case "wav":
-    case "flac":
-      return "ri:file-music-line";
-    case "mp4":
-    case "avi":
-    case "mkv":
-      return "ri:file-video-line";
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return 'ri:image-line'
+    case 'pdf':
+      return 'ri:file-pdf-line'
+    case 'doc':
+    case 'docx':
+      return 'ri:file-word-line'
+    case 'xls':
+    case 'xlsx':
+      return 'ri:file-excel-line'
+    case 'ppt':
+    case 'pptx':
+      return 'ri:file-ppt-line'
+    case 'txt':
+    case 'md':
+      return 'ri:file-text-line'
+    case 'zip':
+    case 'rar':
+    case '7z':
+      return 'ri:file-zip-line'
+    case 'mp3':
+    case 'wav':
+    case 'flac':
+      return 'ri:file-music-line'
+    case 'mp4':
+    case 'avi':
+    case 'mkv':
+      return 'ri:file-video-line'
     default:
-      return "ri:file-line";
+      return 'ri:file-line'
   }
-};
+}
 
 const getFileIconClass = (file: FileItem | null) => {
   if (!file || file.isDirectory) {
-    return "folder-icon";
+    return 'folder-icon'
   }
-
-  const ext = file.extension?.toLowerCase();
+  
+  const ext = file.extension?.toLowerCase()
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-    case "svg":
-      return "image-icon";
-    case "pdf":
-      return "pdf-icon";
-    case "doc":
-    case "docx":
-      return "word-icon";
-    case "xls":
-    case "xlsx":
-      return "excel-icon";
-    case "ppt":
-    case "pptx":
-      return "ppt-icon";
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return 'image-icon'
+    case 'pdf':
+      return 'pdf-icon'
+    case 'doc':
+    case 'docx':
+      return 'word-icon'
+    case 'xls':
+    case 'xlsx':
+      return 'excel-icon'
+    case 'ppt':
+    case 'pptx':
+      return 'ppt-icon'
     default:
-      return "file-icon";
+      return 'file-icon'
   }
-};
+}
 
 const getFileType = (file: FileItem | null) => {
   if (!file || file.isDirectory) {
-    return "文件夹";
+    return '文件夹'
   }
-
-  const ext = file.extension?.toLowerCase();
+  
+  const ext = file.extension?.toLowerCase()
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-    case "svg":
-      return "图片";
-    case "pdf":
-      return "PDF文档";
-    case "doc":
-    case "docx":
-      return "Word文档";
-    case "xls":
-    case "xlsx":
-      return "Excel表格";
-    case "ppt":
-    case "pptx":
-      return "PowerPoint演示文稿";
-    case "txt":
-      return "文本文件";
-    case "md":
-      return "Markdown文档";
-    case "zip":
-    case "rar":
-    case "7z":
-      return "压缩文件";
-    case "mp3":
-    case "wav":
-    case "flac":
-      return "音频文件";
-    case "mp4":
-    case "avi":
-    case "mkv":
-      return "视频文件";
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return '图片'
+    case 'pdf':
+      return 'PDF文档'
+    case 'doc':
+    case 'docx':
+      return 'Word文档'
+    case 'xls':
+    case 'xlsx':
+      return 'Excel表格'
+    case 'ppt':
+    case 'pptx':
+      return 'PowerPoint演示文稿'
+    case 'txt':
+      return '文本文件'
+    case 'md':
+      return 'Markdown文档'
+    case 'zip':
+    case 'rar':
+    case '7z':
+      return '压缩文件'
+    case 'mp3':
+    case 'wav':
+    case 'flac':
+      return '音频文件'
+    case 'mp4':
+    case 'avi':
+    case 'mkv':
+      return '视频文件'
     default:
-      return file.extension
-        ? `${file.extension.toUpperCase()}文件`
-        : "未知类型";
+      return file.extension ? `${file.extension.toUpperCase()}文件` : '未知类型'
   }
-};
+}
 
 const getCodeLanguage = () => {
-  const ext = fileExtension.value;
+  const ext = fileExtension.value
   const languageMap: Record<string, string> = {
-    js: "JavaScript",
-    ts: "TypeScript",
-    jsx: "React JSX",
-    tsx: "React TSX",
-    vue: "Vue",
-    html: "HTML",
-    css: "CSS",
-    scss: "SCSS",
-    sass: "Sass",
-    less: "Less",
-    java: "Java",
-    py: "Python",
-    cpp: "C++",
-    c: "C",
-    h: "C Header",
-    cs: "C#",
-    php: "PHP",
-    rb: "Ruby",
-    go: "Go",
-    rs: "Rust",
-    swift: "Swift",
-    kt: "Kotlin",
-    scala: "Scala",
-    sh: "Shell",
-    bat: "Batch",
-    ps1: "PowerShell",
-    sql: "SQL",
-    r: "R",
-    matlab: "MATLAB",
-    m: "Objective-C",
-  };
-
-  return languageMap[ext] || ext.toUpperCase();
-};
+    js: 'JavaScript',
+    ts: 'TypeScript',
+    jsx: 'React JSX',
+    tsx: 'React TSX',
+    vue: 'Vue',
+    html: 'HTML',
+    css: 'CSS',
+    scss: 'SCSS',
+    sass: 'Sass',
+    less: 'Less',
+    java: 'Java',
+    py: 'Python',
+    cpp: 'C++',
+    c: 'C',
+    h: 'C Header',
+    cs: 'C#',
+    php: 'PHP',
+    rb: 'Ruby',
+    go: 'Go',
+    rs: 'Rust',
+    swift: 'Swift',
+    kt: 'Kotlin',
+    scala: 'Scala',
+    sh: 'Shell',
+    bat: 'Batch',
+    ps1: 'PowerShell',
+    sql: 'SQL',
+    r: 'R',
+    matlab: 'MATLAB',
+    m: 'Objective-C'
+  }
+  
+  return languageMap[ext] || ext.toUpperCase()
+}
 
 const formatFileSize = (size: number) => {
-  return formatBytes(size);
-};
+  return formatBytes(size)
+}
 
 const formatDate = (timestamp: number) => {
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
-};
+  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
+}
 
 const loadTextContent = async () => {
-  if (!props.file || (!isText.value && !isCode.value)) return;
-
-  textLoading.value = true;
+  if (!props.file || (!isText.value && !isCode.value)) return
+  
+  textLoading.value = true
   try {
     // 这里应该调用实际的API获取文件内容
     // const response = await getFileContent(props.file.path)
     // textContent.value = response.data
-
+    
     // 模拟加载
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    textContent.value = `// 这是 ${props.file.name} 的内容\n// 实际内容需要通过API获取\n\nconsole.log('Hello, World!');`;
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    textContent.value = `// 这是 ${props.file.name} 的内容\n// 实际内容需要通过API获取\n\nconsole.log('Hello, World!');`
   } catch (error) {
-    console.error("加载文件内容失败:", error);
-    textContent.value = "";
+    console.error('加载文件内容失败:', error)
+    textContent.value = ''
   } finally {
-    textLoading.value = false;
+    textLoading.value = false
   }
-};
+}
 
 const downloadFile = async () => {
-  if (!props.file) return;
-
+  if (!props.file) return
+  
   try {
     // 这里应该调用实际的下载API
-    message(`开始下载 ${props.file.name}`, { type: "success" });
+    message(`开始下载 ${props.file.name}`, { type: "success" })
   } catch (error) {
-    message("下载失败", { type: "error" });
-    console.error(error);
+    message('下载失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const copyPath = async () => {
-  if (!props.file) return;
-
+  if (!props.file) return
+  
   try {
-    await navigator.clipboard.writeText(props.file.path);
-    message("文件路径已复制到剪贴板", { type: "success" });
+    await navigator.clipboard.writeText(props.file.path)
+    message('文件路径已复制到剪贴板', { type: "success" })
   } catch (error) {
-    message("复制失败", { type: "error" });
-    console.error(error);
+    message('复制失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const copyTextContent = async () => {
-  if (!textContent.value) return;
-
+  if (!textContent.value) return
+  
   try {
-    await navigator.clipboard.writeText(textContent.value);
-    message("内容已复制到剪贴板", { type: "success" });
+    await navigator.clipboard.writeText(textContent.value)
+    message('内容已复制到剪贴板', { type: "success" })
   } catch (error) {
-    message("复制失败", { type: "error" });
-    console.error(error);
+    message('复制失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const openInNewTab = () => {
   if (previewUrl.value) {
-    window.open(previewUrl.value, "_blank");
+    window.open(previewUrl.value, '_blank')
   }
-};
+}
 
 const handleClose = () => {
-  dialogVisible.value = false;
-  emit("close");
-};
+  dialogVisible.value = false
+  emit('close')
+}
 
 // 监听文件变化
 watch(
@@ -556,14 +510,14 @@ watch(
   (newFile) => {
     if (newFile && (isText.value || isCode.value)) {
       nextTick(() => {
-        loadTextContent();
-      });
+        loadTextContent()
+      })
     } else {
-      textContent.value = "";
+      textContent.value = ''
     }
   },
-  { immediate: true },
-);
+  { immediate: true }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -633,7 +587,7 @@ watch(
             .file-type,
             .file-date {
               &::before {
-                content: "•";
+                content: '•';
                 margin-right: 8px;
                 color: #bdc3c7;
               }
@@ -712,7 +666,7 @@ watch(
           .code-pre {
             margin: 0;
             padding: 20px;
-            font-family: "Consolas", "Monaco", "Courier New", monospace;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
             line-height: 1.6;
             background: #fff;
@@ -727,7 +681,7 @@ watch(
 
           .code-pre {
             background: var(--el-bg-color-overlay);
-
+            
             code {
               font-family: inherit;
             }

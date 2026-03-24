@@ -1,6 +1,6 @@
 <template>
   <div class="page system-container modern-bg">
-    <ScEmpty description="邮件控制台功能开发中" />
+    <el-empty description="邮件控制台功能开发中" />
   </div>
 </template>
 <script setup lang="ts">
@@ -9,6 +9,7 @@ import { useRoute } from "vue-router";
 const id = computed(() => Number(useRoute().query.id));
 </script>
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -42,10 +43,12 @@ const id = computed(() => Number(useRoute().query.id));
   }
 }
 
+
 .page {
   padding: 8px;
   height: 100%;
 }
+
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -55,4 +58,5 @@ const id = computed(() => Number(useRoute().query.id));
     padding: 12px 16px;
   }
 }
+
 </style>

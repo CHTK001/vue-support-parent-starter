@@ -5,27 +5,27 @@
     width="560px"
     @open="onOpen"
   >
-    <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <ScFormItem label="软件名称">
-        <ScInput :value="soft?.systemSoftName" disabled />
-      </ScFormItem>
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form-item label="软件名称">
+        <el-input :value="soft?.systemSoftName" disabled />
+      </el-form-item>
 
-      <ScFormItem label="镜像地址">
-        <ScInput :value="soft?.systemSoftDockerImage" disabled />
-      </ScFormItem>
+      <el-form-item label="镜像地址">
+        <el-input :value="soft?.systemSoftDockerImage" disabled />
+      </el-form-item>
 
-      <ScFormItem label="镜像标签" prop="imageTag">
-        <ScInput v-model="form.imageTag" placeholder="latest" />
-      </ScFormItem>
+      <el-form-item label="镜像标签" prop="imageTag">
+        <el-input v-model="form.imageTag" placeholder="latest" />
+      </el-form-item>
 
-      <ScFormItem label="目标服务器" prop="serverId">
-        <ScSelect
+      <el-form-item label="目标服务器" prop="serverId">
+        <el-select
           v-model="form.serverId"
           placeholder="选择服务器"
           class="w-full"
           filterable
         >
-          <ScOption
+          <el-option
             v-for="server in serverList"
             :key="server.systemServerId"
             :label="`${server.systemServerName} (${server.systemServerHost})`"
@@ -34,24 +34,24 @@
             <div class="server-option">
               <span class="server-name">{{ server.systemServerName }}</span>
               <span class="server-host">{{ server.systemServerHost }}</span>
-              <ScTag
+              <el-tag
                 :type="server.systemServerStatus === 1 ? 'success' : 'danger'"
                 size="small"
               >
                 {{ server.systemServerStatus === 1 ? "在线" : "离线" }}
-              </ScTag>
+              </el-tag>
             </div>
-          </ScOption>
-        </ScSelect>
-      </ScFormItem>
-    </ScForm>
+          </el-option>
+        </el-select>
+      </el-form-item>
+    </el-form>
 
     <template #footer>
-      <ScButton @click="visibleProxy = false">取消</ScButton>
-      <ScButton type="primary" :loading="loading" @click="handlePull">
+      <el-button @click="visibleProxy = false">取消</el-button>
+      <el-button type="primary" :loading="loading" @click="handlePull">
         <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
         开始下载
-      </ScButton>
+      </el-button>
     </template>
   </sc-dialog>
 </template>
@@ -112,7 +112,7 @@ const loadServerList = async () => {
   try {
     const res = await http.request<ReturnResult<any[]>>(
       "get",
-      "/api/monitor/gen-server/list",
+      "/api/monitor/gen-server/list"
     );
     if (res.code === "00000") {
       serverList.value = res.data || [];
@@ -148,7 +148,7 @@ const handlePull = async () => {
 
   // 添加到操作监控
   const server = serverList.value.find(
-    (s) => s.systemServerId === form.serverId,
+    (s) => s.systemServerId === form.serverId
   );
   const operationId = operationStore.addOperation({
     type: "pull",
@@ -210,6 +210,7 @@ onMounted(() => {
   width: 100%;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -218,4 +219,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

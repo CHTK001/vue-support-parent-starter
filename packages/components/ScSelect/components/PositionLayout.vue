@@ -1,25 +1,22 @@
 <template>
   <div class="sc-select-position-layout">
-    <!-- 9 格模式：3x3，8 个可选位置（中心不可选） -->
-    <div v-if="mode === '9'" class="position-grid grid-9">
-      <div class="position-cell" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-left')" title="左上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'top-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-center')" title="中上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-right')" title="右上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'left-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('left-center')" title="左中"></div>
-      <div class="position-cell center-disabled"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'right-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('right-center')" title="右中"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-left')" title="左下"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-center')" title="中下"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-right')" title="右下"></div>
-      <div class="screen-content-mock"></div>
-    </div>
+    <div class="position-grid">
+      <!-- Top Row -->
+      <div class="position-cell top-left" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-left')" title="左上"></div>
+      <div class="position-cell top-center" :class="{ active: modelValue === 'top-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-center')" title="中上"></div>
+      <div class="position-cell top-right" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-right')" title="右上"></div>
 
-    <!-- 4 格模式：2x2，仅四角 -->
-    <div v-else class="position-grid grid-4">
-      <div class="position-cell" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-left')" title="左上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-right')" title="右上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-left')" title="左下"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-right')" title="右下"></div>
+      <!-- Middle Row -->
+      <div class="position-cell left-center" :class="{ active: modelValue === 'left-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('left-center')" title="左中"></div>
+      <div class="position-cell center-disabled"></div>
+      <div class="position-cell right-center" :class="{ active: modelValue === 'right-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('right-center')" title="右中"></div>
+
+      <!-- Bottom Row -->
+      <div class="position-cell bottom-left" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-left')" title="左下"></div>
+      <div class="position-cell bottom-center" :class="{ active: modelValue === 'bottom-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-center')" title="中下"></div>
+      <div class="position-cell bottom-right" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-right')" title="右下"></div>
+
+      <!-- Screen Content Mockup -->
       <div class="screen-content-mock"></div>
     </div>
   </div>
@@ -36,11 +33,6 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
-  },
-  /** 布局模式：9=3x3九格（含四边中点），4=2x2四角 */
-  mode: {
-    type: String as () => "4" | "9",
-    default: "9"
   }
 });
 
@@ -60,38 +52,25 @@ const handleSelect = (value: string) => {
   padding: 4px;
 
   .position-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     gap: 4px;
+    width: 90px;
+    height: 70px;
     background: var(--el-bg-color-page);
     border: 1px solid var(--el-border-color);
     border-radius: 4px;
     padding: 4px;
     position: relative;
 
-    /* 9 格：3x3 */
-    &.grid-9 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      grid-template-rows: 1fr 1fr 1fr;
-      width: 90px;
-      height: 70px;
-    }
-
-    /* 4 格：2x2 */
-    &.grid-4 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      width: 64px;
-      height: 52px;
-    }
-
     .screen-content-mock {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 50%;
-      height: 50%;
+      width: 50px;
+      height: 36px;
       background: var(--el-border-color-lighter);
       border-radius: 2px;
       pointer-events: none;

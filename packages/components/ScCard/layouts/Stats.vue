@@ -152,21 +152,11 @@ export default defineComponent({
     box-shadow: 0 4px 20px color-mix(in srgb, var(--el-color-#{$type}), transparent 75%);
   }
 
-  &.theme--primary {
-    @include theme-variant("primary");
-  }
-  &.theme--success {
-    @include theme-variant("success");
-  }
-  &.theme--warning {
-    @include theme-variant("warning");
-  }
-  &.theme--danger {
-    @include theme-variant("danger");
-  }
-  &.theme--info {
-    @include theme-variant("info");
-  }
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   &.is-hoverable:hover {
     transform: translateY(-6px) scale(1.02);

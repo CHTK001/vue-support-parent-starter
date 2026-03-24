@@ -23,18 +23,18 @@ const ALL_TEXT = "全部";
 CodeToText[""] = ALL_TEXT;
 
 // 计算省
-Object.keys(provinceObject).forEach((prop) => {
+Object.keys(provinceObject).forEach(prop => {
   const provinceText = provinceObject[prop];
   regionData.push({
     value: prop, // 省份code值
-    label: provinceText, // 省份汉字
+    label: provinceText // 省份汉字
   });
   CodeToText[prop] = provinceText;
   TextToCode[provinceText] = {
-    code: prop,
+    code: prop
   };
   TextToCode[provinceText][ALL_TEXT] = {
-    code: "",
+    code: ""
   };
 });
 
@@ -45,17 +45,17 @@ regionData.forEach((item: ProvinceData) => {
   const provinceChildren = [];
   const provinceData = REGION_DATA[provinceCode] ?? {};
 
-  Object.keys(provinceData).forEach((prop) => {
+  Object.keys(provinceData).forEach(prop => {
     provinceChildren.push({
       value: prop,
-      label: provinceData[prop],
+      label: provinceData[prop]
     });
     CodeToText[prop] = provinceData[prop];
     TextToCode[provinceText][provinceData[prop]] = {
-      code: prop,
+      code: prop
     };
     TextToCode[provinceText][provinceData[prop]][ALL_TEXT] = {
-      code: "",
+      code: ""
     };
   });
 
@@ -71,20 +71,20 @@ regionData.forEach((item: ProvinceData) => {
   const provinceText = item.label;
 
   if (province) {
-    province.forEach((pItem) => {
+    province.forEach(pItem => {
       const cityCode = pItem.value;
       const cityText = pItem.label;
       const cityChildren = [];
       const cityData = REGION_DATA[cityCode] ?? {};
 
-      Object.keys(cityData).forEach((prop) => {
+      Object.keys(cityData).forEach(prop => {
         cityChildren.push({
           value: prop,
-          label: cityData[prop],
+          label: cityData[prop]
         });
         CodeToText[prop] = cityData[prop];
         TextToCode[provinceText][cityText][cityData[prop]] = {
-          code: prop,
+          code: prop
         };
       });
 
@@ -99,7 +99,7 @@ regionData.forEach((item: ProvinceData) => {
 const provinceAndCityDataPlus = cloneDeep(provinceAndCityData);
 provinceAndCityDataPlus.unshift({
   value: "",
-  label: ALL_TEXT,
+  label: ALL_TEXT
 });
 provinceAndCityDataPlus.forEach((item: ProvinceData) => {
   const province = item.children;
@@ -107,16 +107,16 @@ provinceAndCityDataPlus.forEach((item: ProvinceData) => {
   if (province?.length) {
     province.unshift({
       value: "",
-      label: ALL_TEXT,
+      label: ALL_TEXT
     });
 
-    province.forEach((pItem) => {
+    province.forEach(pItem => {
       const city = pItem.children;
 
       if (city?.length) {
         city.unshift({
           value: "",
-          label: ALL_TEXT,
+          label: ALL_TEXT
         });
       }
     });
@@ -126,7 +126,7 @@ provinceAndCityDataPlus.forEach((item: ProvinceData) => {
 const regionDataPlus = cloneDeep(regionData);
 regionDataPlus.unshift({
   value: "",
-  label: ALL_TEXT,
+  label: ALL_TEXT
 });
 regionDataPlus.forEach((item: ProvinceData) => {
   const province = item.children;
@@ -134,15 +134,15 @@ regionDataPlus.forEach((item: ProvinceData) => {
   if (province?.length) {
     province.unshift({
       value: "",
-      label: ALL_TEXT,
+      label: ALL_TEXT
     });
-    province.forEach((pItem) => {
+    province.forEach(pItem => {
       const city = pItem.children;
 
       if (city?.length) {
         city.unshift({
           value: "",
-          label: ALL_TEXT,
+          label: ALL_TEXT
         });
       }
     });
@@ -156,11 +156,7 @@ regionDataPlus.forEach((item: ProvinceData) => {
  * @param regionText 区
  * @returns
  */
-function convertTextToCode(
-  provinceText: string,
-  cityText: string,
-  regionText?: string,
-): string {
+function convertTextToCode(provinceText: string, cityText: string, regionText?: string): string {
   let code = "";
   if (provinceText && TextToCode[provinceText]) {
     const province = TextToCode[provinceText];
@@ -177,12 +173,4 @@ function convertTextToCode(
   }
   return code;
 }
-export {
-  provinceAndCityData,
-  regionData,
-  provinceAndCityDataPlus,
-  regionDataPlus,
-  CodeToText,
-  TextToCode,
-  convertTextToCode,
-};
+export { provinceAndCityData, regionData, provinceAndCityDataPlus, regionDataPlus, CodeToText, TextToCode, convertTextToCode };

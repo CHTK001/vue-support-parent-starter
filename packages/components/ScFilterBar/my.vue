@@ -1,26 +1,26 @@
 <template>
   <div class="sc-filter-my">
     <div v-if="loading" class="sc-filter-my-loading">
-      <ScSkeleton :rows="2" animated />
+      <el-skeleton :rows="2" animated />
     </div>
     <template v-else>
-      <ScEmpty v-if="myFilter.length <= 0" :image-size="100">
+      <el-empty v-if="myFilter.length <= 0" :image-size="100">
         <template #description>
           <h2>没有常用的过滤</h2>
           <p style="margin-top: 10px; max-width: 300px">常用过滤可以将多个过滤条件保存为一个集合，方便下次进行相同条件的过滤</p>
         </template>
-      </ScEmpty>
+      </el-empty>
       <ul v-else class="sc-filter-my-list">
         <h2>我的常用过滤</h2>
         <li v-for="(item, index) in myFilter" :key="index" @click="selectMyfilter(item)">
           <label>{{ item.title }}</label>
-          <ScPopconfirm title="确认删除此常用过滤吗？" @confirm="closeMyfilter(item, index)">
+          <el-popconfirm title="确认删除此常用过滤吗？" @confirm="closeMyfilter(item, index)">
             <template #reference>
-              <ScIcon class="del" @click.stop="() => {}">
+              <el-icon class="del" @click.stop="() => {}">
                 <el-icon-delete />
-              </ScIcon>
+              </el-icon>
             </template>
-          </ScPopconfirm>
+          </el-popconfirm>
         </li>
       </ul>
     </template>

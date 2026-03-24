@@ -12,11 +12,7 @@ export type MonitorSysGenServer = ServerInfo;
  * @returns 代理连接URL
  */
 export function getGuacamoleProxyUrl(id: string) {
-  return http.request<ReturnResult<string>>(
-    "get",
-    "v1/gen/server/proxy/guacamole",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<string>>("get", "v1/gen/server/proxy/guacamole", { params: { id } });
 }
 
 /**
@@ -25,9 +21,6 @@ export function getGuacamoleProxyUrl(id: string) {
  * @returns 测试结果
  */
 export function testServerProxyConnection(id: string) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/gen/server/proxy/test",
-    { params: { id } },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/proxy/test", { params: { id } });
 }
+

@@ -36,7 +36,7 @@
       <!-- 空数据插槽 -->
       <template #empty>
         <slot name="empty">
-          <ScEmpty description="暂无数据" :image-size="60" />
+          <el-empty description="暂无数据" :image-size="60" />
         </slot>
       </template>
       <!-- 动态列插槽 - 透传所有列的自定义渲染 -->

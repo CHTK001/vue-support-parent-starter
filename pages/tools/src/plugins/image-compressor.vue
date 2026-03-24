@@ -2,15 +2,10 @@
   <div class="image-compressor-tool">
     <div class="image-compressor-tool__header">
       <div class="image-compressor-tool__header-content">
-        <IconifyIconOnline
-          icon="ri:image-edit-line"
-          class="image-compressor-tool__header-icon"
-        />
+        <IconifyIconOnline icon="ri:image-edit-line" class="image-compressor-tool__header-icon" />
         <div>
           <h2 class="image-compressor-tool__header-title">图片压缩工具</h2>
-          <p class="image-compressor-tool__header-desc">
-            快速压缩图片大小，支持多种格式，压缩效果清晰可见
-          </p>
+          <p class="image-compressor-tool__header-desc">快速压缩图片大小，支持多种格式，压缩效果清晰可见</p>
         </div>
       </div>
     </div>
@@ -25,38 +20,16 @@
       <ScCol :span="12">
         <ScCard class="image-compressor-tool__card" shadow="hover">
           <div class="image-compressor-tool__upload-area">
-            <div
-              v-if="!originalImage.url"
-              class="image-compressor-tool__drop-area"
-              @dragover.prevent
-              @drop="handleDrop"
-            >
-              <ScUpload
-                drag
-                action="#"
-                :auto-upload="false"
-                :show-file-list="false"
-                :on-change="handleFileChange"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-              >
-                <IconifyIconOnline
-                  icon="ri:upload-cloud-2-line"
-                  class="image-compressor-tool__upload-icon"
-                />
-                <div class="el-upload__text">
-                  拖拽图片到此处或 <em>点击上传</em>
-                </div>
+            <div v-if="!originalImage.url" class="image-compressor-tool__drop-area" @dragover.prevent @drop="handleDrop">
+              <ScUpload drag action="#" :auto-upload="false" :show-file-list="false" :on-change="handleFileChange" accept="image/jpeg,image/png,image/gif,image/webp">
+                <IconifyIconOnline icon="ri:upload-cloud-2-line" class="image-compressor-tool__upload-icon" />
+                <div class="el-upload__text">拖拽图片到此处或 <em>点击上传</em></div>
                 <template #tip>
-                  <div class="el-upload__tip">
-                    支持 JPG、PNG、GIF、WebP 格式，单个文件不超过10MB
-                  </div>
+                  <div class="el-upload__tip">支持 JPG、PNG、GIF、WebP 格式，单个文件不超过10MB</div>
                 </template>
               </ScUpload>
             </div>
-            <div
-              v-else
-              class="image-compressor-tool__image-preview image-compressor-tool__image-preview--original"
-            >
+            <div v-else class="image-compressor-tool__image-preview image-compressor-tool__image-preview--original">
               <div class="image-compressor-tool__image-header">
                 <h3>原始图片</h3>
                 <div class="image-compressor-tool__image-info">
@@ -81,20 +54,13 @@
       <ScCol :span="12">
         <ScCard class="image-compressor-tool__card" shadow="hover">
           <div class="image-compressor-tool__compression-area">
-            <div
-              v-if="compressedImage.url"
-              class="image-compressor-tool__image-preview image-compressor-tool__image-preview--compressed"
-            >
+            <div v-if="compressedImage.url" class="image-compressor-tool__image-preview image-compressor-tool__image-preview--compressed">
               <div class="image-compressor-tool__image-header">
                 <h3>压缩图片</h3>
                 <div class="image-compressor-tool__image-info">
                   <span>{{ compressedImage.size }}</span>
                   <span>{{ compressedImage.dimensions }}</span>
-                  <span
-                    class="image-compressor-tool__saving-info"
-                    v-if="savingPercent"
-                    >节省 {{ savingPercent }}%</span
-                  >
+                  <span class="image-compressor-tool__saving-info" v-if="savingPercent">节省 {{ savingPercent }}%</span>
                 </div>
               </div>
               <div class="image-compressor-tool__image-container">
@@ -107,20 +73,12 @@
                 </ScButton>
               </div>
             </div>
-            <div
-              v-else-if="originalImage.url"
-              class="image-compressor-tool__compression-placeholder"
-            >
+            <div v-else-if="originalImage.url" class="image-compressor-tool__compression-placeholder">
               <div class="image-compressor-tool__compression-controls">
                 <h3>压缩设置</h3>
                 <div class="image-compressor-tool__quality-slider">
                   <span>压缩质量：{{ quality }}%</span>
-                  <ScSlider
-                    v-model="quality"
-                    :min="1"
-                    :max="100"
-                    @change="compressImage"
-                  />
+                  <ScSlider v-model="quality" :min="1" :max="100" @change="compressImage" />
                 </div>
                 <div class="image-compressor-tool__format-selector">
                   <span>输出格式：</span>
@@ -131,51 +89,22 @@
                   </ScRadioGroup>
                 </div>
                 <div class="image-compressor-tool__resize-control">
-                  <ScCheckbox v-model="shouldResize" @change="compressImage"
-                    >调整图片大小</ScCheckbox
-                  >
-                  <div
-                    v-if="shouldResize"
-                    class="image-compressor-tool__resize-inputs"
-                  >
-                    <ScInputNumber
-                      v-model="resizeWidth"
-                      :min="10"
-                      :max="5000"
-                      @change="compressImage"
-                      size="small"
-                    />
+                  <ScCheckbox v-model="shouldResize" @change="compressImage">调整图片大小</ScCheckbox>
+                  <div v-if="shouldResize" class="image-compressor-tool__resize-inputs">
+                    <ScInputNumber v-model="resizeWidth" :min="10" :max="5000" @change="compressImage" size="small" />
                     <span>×</span>
-                    <ScInputNumber
-                      v-model="resizeHeight"
-                      :min="10"
-                      :max="5000"
-                      @change="compressImage"
-                      size="small"
-                    />
-                    <ScCheckbox
-                      v-model="keepAspectRatio"
-                      @change="handleAspectRatioChange"
-                      >保持比例</ScCheckbox
-                    >
+                    <ScInputNumber v-model="resizeHeight" :min="10" :max="5000" @change="compressImage" size="small" />
+                    <ScCheckbox v-model="keepAspectRatio" @change="handleAspectRatioChange">保持比例</ScCheckbox>
                   </div>
                 </div>
-                <ScButton
-                  type="success"
-                  @click="compressImage"
-                  :loading="isCompressing"
-                  class="image-compressor-tool__compress-btn"
-                >
+                <ScButton type="success" @click="compressImage" :loading="isCompressing" class="image-compressor-tool__compress-btn">
                   <IconifyIconOnline icon="ri:compress-line" />
                   开始压缩
                 </ScButton>
               </div>
             </div>
             <div v-else class="image-compressor-tool__empty-preview">
-              <IconifyIconOnline
-                icon="ri:image-edit-line"
-                class="image-compressor-tool__empty-icon"
-              />
+              <IconifyIconOnline icon="ri:image-edit-line" class="image-compressor-tool__empty-icon" />
               <p>请先上传图片</p>
             </div>
           </div>
@@ -186,10 +115,7 @@
     <ScCard class="image-compressor-tool__tips-card" shadow="hover">
       <template #header>
         <div class="image-compressor-tool__card-header">
-          <IconifyIconOnline
-            icon="ri:lightbulb-line"
-            class="image-compressor-tool__card-icon"
-          />
+          <IconifyIconOnline icon="ri:lightbulb-line" class="image-compressor-tool__card-icon" />
           <span>图片压缩小贴士</span>
         </div>
       </template>
@@ -345,12 +271,7 @@ const compressImage = async () => {
     ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
     // 将 canvas 转换为 blob
-    const mimeType =
-      outputFormat.value === "jpeg"
-        ? "image/jpeg"
-        : outputFormat.value === "png"
-          ? "image/png"
-          : "image/webp";
+    const mimeType = outputFormat.value === "jpeg" ? "image/jpeg" : outputFormat.value === "png" ? "image/png" : "image/webp";
 
     canvas.toBlob(
       (blob) => {
@@ -371,7 +292,7 @@ const compressImage = async () => {
         }
       },
       mimeType,
-      quality.value / 100,
+      quality.value / 100
     );
   } catch (error) {
     console.error("压缩图片失败:", error);
@@ -389,15 +310,9 @@ const downloadImage = () => {
 
   // 设置文件名
   const originalName = originalImage.value.file.name;
-  const extension =
-    outputFormat.value === "jpeg"
-      ? ".jpg"
-      : outputFormat.value === "png"
-        ? ".png"
-        : ".webp";
+  const extension = outputFormat.value === "jpeg" ? ".jpg" : outputFormat.value === "png" ? ".png" : ".webp";
 
-  const baseName =
-    originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
+  const baseName = originalName.substring(0, originalName.lastIndexOf(".")) || originalName;
   a.download = `${baseName}_compressed${extension}`;
 
   document.body.appendChild(a);
@@ -466,11 +381,7 @@ onBeforeUnmount(() => {
   padding: 20px;
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-3) 0%,
-      var(--el-color-primary) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
     padding: 24px;
     margin-bottom: 20px;
@@ -592,11 +503,7 @@ onBeforeUnmount(() => {
     justify-content: center;
     align-items: center;
     padding: 20px;
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-lighter) 0%,
-      var(--el-fill-color-light) 100%
-    );
+    background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
 
     img {
       max-width: 100%;

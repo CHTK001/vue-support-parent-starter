@@ -43,10 +43,10 @@
 
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <ScCard class="search-card" shadow="never">
+      <el-card class="search-card" shadow="never">
         <div class="search-container">
           <div class="search-left">
-            <ScInput
+            <el-input
               v-model="searchKeyword"
               placeholder="搜索节点名称、IP地址或应用名称"
               class="search-input"
@@ -56,37 +56,37 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
-            </ScInput>
-            <ScSelect
+            </el-input>
+            <el-select
               v-model="selectedApplication"
               placeholder="选择应用"
               class="app-filter"
               clearable
               @change="handleApplicationFilter"
             >
-              <ScOption
+              <el-option
                 v-for="app in applicationList"
                 :key="app"
                 :label="app"
                 :value="app"
               />
-            </ScSelect>
-            <ScSelect
+            </el-select>
+            <el-select
               v-model="selectedStatus"
               placeholder="节点状态"
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
-              <ScOption label="在线" value="ONLINE" />
-              <ScOption label="离线" value="OFFLINE" />
-              <ScOption label="连接中" value="CONNECTING" />
-              <ScOption label="异常" value="ERROR" />
-              <ScOption label="维护中" value="MAINTENANCE" />
-            </ScSelect>
+              <el-option label="在线" value="ONLINE" />
+              <el-option label="离线" value="OFFLINE" />
+              <el-option label="连接中" value="CONNECTING" />
+              <el-option label="异常" value="ERROR" />
+              <el-option label="维护中" value="MAINTENANCE" />
+            </el-select>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 节点列表 -->
@@ -122,14 +122,14 @@
                 </div>
               </div>
               <div class="node-status">
-                <ScTag
+                <el-tag
                   :type="getStatusType(row.status)"
                   :effect="row.status === 'ONLINE' ? 'dark' : 'plain'"
                   class="status-tag"
                 >
                   <IconifyIconOnline :icon="getStatusIcon(row.status)" />
                   {{ getStatusText(row.status) }}
-                </ScTag>
+                </el-tag>
               </div>
             </div>
 
@@ -227,22 +227,22 @@
               </div>
               <div class="card-actions">
                 <el-button-group size="small">
-                  <ScButton
-                    title="API文档"
+                  <el-button
                     @click.stop="openNodeDocumentation(row)"
+                    title="API文档"
                   >
                     <IconifyIconOnline icon="ri:file-text-line" />
-                  </ScButton>
-                  <ScButton
+                  </el-button>
+                  <el-button
+                    @click.stop="handleCheckNodeHealth(row)"
                     :loading="nodeCheckingStatus[row.nodeId]"
                     title="健康检查"
-                    @click.stop="handleCheckNodeHealth(row)"
                   >
                     <IconifyIconOnline icon="ri:stethoscope-line" />
-                  </ScButton>
-                  <ScButton title="查看详情" @click.stop="viewNodeDetail(row)">
+                  </el-button>
+                  <el-button @click.stop="viewNodeDetail(row)" title="查看详情">
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </ScButton>
+                  </el-button>
                 </el-button-group>
               </div>
             </div>
@@ -295,7 +295,10 @@
     />
 
     <!-- URL QPS 统计组件 -->
-    <UrlQps v-model="showUrlQpsDialog" :node-info="selectedNodeForUrlQps" />
+    <UrlQps
+      v-model="showUrlQpsDialog"
+      :node-info="selectedNodeForUrlQps"
+    />
   </div>
 </template>
 
@@ -420,14 +423,14 @@ const getNodePageList = async (params: any) => {
             (node.nodeName && node.nodeName.toLowerCase().includes(keyword)) ||
             (node.applicationName &&
               node.applicationName.toLowerCase().includes(keyword)) ||
-            (node.ipAddress && node.ipAddress.toLowerCase().includes(keyword)),
+            (node.ipAddress && node.ipAddress.toLowerCase().includes(keyword))
         );
       }
 
       // 应用名称筛选
       if (params.applicationName) {
         data = data.filter(
-          (node) => node.applicationName === params.applicationName,
+          (node) => node.applicationName === params.applicationName
         );
       }
 
@@ -582,14 +585,14 @@ const filterByStatus = (status: string) => {
 const getOnlineRate = () => {
   if (nodeStats.value.totalNodes === 0) return 0;
   return Math.round(
-    (nodeStats.value.onlineNodes / nodeStats.value.totalNodes) * 100,
+    (nodeStats.value.onlineNodes / nodeStats.value.totalNodes) * 100
   );
 };
 
 const getHealthRate = () => {
   if (nodeStats.value.totalNodes === 0) return 0;
   return Math.round(
-    (nodeStats.value.healthyNodes / nodeStats.value.totalNodes) * 100,
+    (nodeStats.value.healthyNodes / nodeStats.value.totalNodes) * 100
   );
 };
 
@@ -846,7 +849,7 @@ const handleCheckNodeHealth = async (node: OnlineNodeInfo) => {
     const response = await apiCheckNodeHealth(node.ipAddress, node.port);
     if (response.code === "00000") {
       message.success(
-        `节点 ${node.nodeName || node.applicationName} 健康检查通过`,
+        `节点 ${node.nodeName || node.applicationName} 健康检查通过`
       );
     } else {
       message.warning(`节点健康检查失败: ${response.msg}`);
@@ -866,6 +869,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -898,6 +902,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .node-management-container {
   padding: 16px;

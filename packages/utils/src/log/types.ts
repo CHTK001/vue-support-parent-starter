@@ -2,11 +2,11 @@
  * 日志级别枚举
  */
 export enum LogLevel {
-  DEBUG = "debug",
-  INFO = "info",
-  WARN = "warn",
-  ERROR = "error",
-  FATAL = "fatal",
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+  FATAL = 'fatal'
 }
 
 /**
@@ -39,40 +39,40 @@ export interface Logger {
    * @param level 日志级别
    */
   setLevel(level: LogLevel): void;
-
+  
   /**
    * 设置日志选项
    * @param options 日志选项
    */
   setOptions(options: Partial<LoggerOptions>): void;
-
+  
   /**
    * 调试日志
    * @param args 日志参数
    */
   debug(...args: any[]): void;
-
+  
   /**
    * 信息日志
    * @param args 日志参数
    */
   info(...args: any[]): void;
-
+  
   /**
    * 警告日志
    * @param args 日志参数
    */
   warn(...args: any[]): void;
-
+  
   /**
    * 错误日志
    * @param args 日志参数
    */
   error(...args: any[]): void;
-
+  
   /**
    * 致命错误日志
    * @param args 日志参数
    */
   fatal(...args: any[]): void;
-}
+} 

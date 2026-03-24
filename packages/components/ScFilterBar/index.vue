@@ -2,11 +2,11 @@
   <div class="sc-filter-bar" :class="containerClass">
     <!-- 内联过滤表单 -->
     <div class="filter-inline">
-      <ScForm :inline="layout === 'inline'" :model="formData" class="filter-form" :class="formClass" :style="gridStyle" @submit.prevent="handleSearch">
+      <el-form :inline="layout === 'inline'" :model="formData" class="filter-form" :class="formClass" :style="gridStyle" @submit.prevent="handleSearch">
         <template v-for="(field, index) in visibleFields" :key="field.value">
-          <ScFormItem :label="field.label" class="filter-item" :style="{ '--input-width': field.width || inputWidthValue }">
+          <el-form-item :label="field.label" class="filter-item" :style="{ '--input-width': field.width || inputWidthValue }">
             <!-- 输入框 -->
-            <ScInput
+            <el-input
               v-if="!field.type || field.type === 'text'"
               v-model="formData[field.value]"
               :placeholder="field.placeholder || `请输入${field.label}`"
@@ -16,7 +16,7 @@
               @input="onRealtimeChange"
             />
             <!-- 下拉框 -->
-            <ScSelect
+            <el-select
               v-else-if="field.type === 'select'"
               v-model="formData[field.value]"
               :placeholder="field.placeholder || `请选择${field.label}`"
@@ -30,10 +30,10 @@
               @change="onRealtimeChange"
               @visible-change="visible => handleSelectVisible(field, visible)"
             >
-              <ScOption v-for="opt in getSelectOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" />
-            </ScSelect>
+              <el-option v-for="opt in getSelectOptions(field)" :key="opt.value" :label="opt.label" :value="opt.value" />
+            </el-select>
             <!-- 日期 -->
-            <ScDatePicker
+            <el-date-picker
               v-else-if="field.type === 'date'"
               v-model="formData[field.value]"
               type="date"
@@ -42,7 +42,7 @@
               @change="onRealtimeChange"
             />
             <!-- 日期范围 -->
-            <ScDatePicker
+            <el-date-picker
               v-else-if="field.type === 'daterange'"
               v-model="formData[field.value]"
               type="daterange"
@@ -52,7 +52,7 @@
               @change="onRealtimeChange"
             />
             <!-- 日期时间 -->
-            <ScDatePicker
+            <el-date-picker
               v-else-if="field.type === 'datetime'"
               v-model="formData[field.value]"
               type="datetime"
@@ -61,7 +61,7 @@
               @change="onRealtimeChange"
             />
             <!-- 日期时间范围 -->
-            <ScDatePicker
+            <el-date-picker
               v-else-if="field.type === 'datetimerange'"
               v-model="formData[field.value]"
               type="datetimerange"
@@ -71,11 +71,11 @@
               @change="onRealtimeChange"
             />
             <!-- 时间 -->
-            <ScTimePicker v-else-if="field.type === 'time'" v-model="formData[field.value]" value-format="HH:mm:ss" :placeholder="field.placeholder || '请选择时间'" @change="onRealtimeChange" />
+            <el-time-picker v-else-if="field.type === 'time'" v-model="formData[field.value]" value-format="HH:mm:ss" :placeholder="field.placeholder || '请选择时间'" @change="onRealtimeChange" />
             <!-- 开关 -->
-            <ScSwitch v-else-if="field.type === 'switch'" v-model="formData[field.value]" @change="onRealtimeChange" />
+            <el-switch v-else-if="field.type === 'switch'" v-model="formData[field.value]" @change="onRealtimeChange" />
             <!-- 标签 -->
-            <ScSelect
+            <el-select
               v-else-if="field.type === 'tags'"
               v-model="formData[field.value]"
               multiple
@@ -86,51 +86,51 @@
               @change="onRealtimeChange"
             />
             <!-- 数字 -->
-            <ScInputNumber v-else-if="field.type === 'number'" v-model="formData[field.value]" :placeholder="field.placeholder" controls-position="right" @change="onRealtimeChange" />
-          </ScFormItem>
+            <el-input-number v-else-if="field.type === 'number'" v-model="formData[field.value]" :placeholder="field.placeholder" controls-position="right" @change="onRealtimeChange" />
+          </el-form-item>
         </template>
 
         <!-- 操作按钮 -->
-        <ScFormItem class="filter-actions">
-          <ScButton type="primary" @click="handleSearch">
+        <el-form-item class="filter-actions">
+          <el-button type="primary" @click="handleSearch">
             <IconifyIconOnline icon="ep:search" />
             搜索
-          </ScButton>
-          <ScButton @click="handleReset">
+          </el-button>
+          <el-button @click="handleReset">
             <IconifyIconOnline icon="ep:refresh" />
             重置
-          </ScButton>
-          <ScButton v-if="showAdvanced && hasMoreFields" text @click="toggleExpand">
+          </el-button>
+          <el-button v-if="showAdvanced && hasMoreFields" text @click="toggleExpand">
             {{ isExpanded ? "收起" : "展开" }}
             <IconifyIconOnline :icon="isExpanded ? 'ep:arrow-up' : 'ep:arrow-down'" />
-          </ScButton>
-          <ScButton v-if="showDrawer" text type="primary" @click="openFilter">
+          </el-button>
+          <el-button v-if="showDrawer" text type="primary" @click="openFilter">
             <IconifyIconOnline icon="ep:filter" />
             高级筛选
-          </ScButton>
-        </ScFormItem>
-      </ScForm>
+          </el-button>
+        </el-form-item>
+      </el-form>
     </div>
 
     <!-- 高级过滤抽屉 -->
     <sc-drawer v-if="showDrawer" v-model="drawer" title="高级过滤器" :size="650" append-to-body>
-      <ScContainer v-loading="saveLoading">
-        <ScMain style="padding: 0">
-          <ScTabs class="root">
-            <ScTabPane lazy>
+      <el-container v-loading="saveLoading">
+        <el-main style="padding: 0">
+          <el-tabs class="root">
+            <el-tab-pane lazy>
               <template #label>
                 <div class="tabs-label">过滤项</div>
               </template>
-              <ScScrollbar>
+              <el-scrollbar>
                 <div class="sc-filter-main">
                   <div class="filter-header">
                     <h2>设置过滤条件</h2>
                     <div class="filter-options">
                       <span class="option-label">条件逻辑：</span>
-                      <ScRadioGroup v-model="logicOperator" size="small">
+                      <el-radio-group v-model="logicOperator" size="small">
                         <el-radio-button value="and">AND</el-radio-button>
                         <el-radio-button value="or">OR</el-radio-button>
-                      </ScRadioGroup>
+                      </el-radio-group>
                     </div>
                   </div>
                   <div v-if="filter.length <= 0" class="nodata">没有默认过滤条件，请点击增加过滤项</div>
@@ -144,24 +144,24 @@
                     </colgroup>
                     <tr v-for="(item, index) in filter" :key="index">
                       <td>
-                        <ScTag :disable-transitions="true">
+                        <el-tag :disable-transitions="true">
                           {{ index + 1 }}
-                        </ScTag>
+                        </el-tag>
                       </td>
                       <td>
                         <py-select v-model="item.field" :options="fields" :filter="filter" placeholder="过滤字段" filterable @change="fieldChange(item)" />
                       </td>
                       <td v-if="showOperator">
-                        <ScSelect v-model="item.operator" placeholder="运算符">
-                          <ScOption v-for="ope in item.field.operators || operatorOptions" :key="ope.value" :label="ope.label" :value="ope.value" />
-                        </ScSelect>
+                        <el-select v-model="item.operator" placeholder="运算符">
+                          <el-option v-for="ope in item.field.operators || operatorOptions" :key="ope.value" :label="ope.label" :value="ope.value" />
+                        </el-select>
                       </td>
                       <td>
-                        <ScInput v-if="!item.field.type" v-model="item.value" placeholder="请选择过滤字段" disabled />
+                        <el-input v-if="!item.field.type" v-model="item.value" placeholder="请选择过滤字段" disabled />
                         <!-- 输入框 -->
-                        <ScInput v-if="item.field.type == 'text'" v-model="item.value" :placeholder="item.field.placeholder || '请输入'" />
+                        <el-input v-if="item.field.type == 'text'" v-model="item.value" :placeholder="item.field.placeholder || '请输入'" />
                         <!-- 下拉框 -->
-                        <ScSelect
+                        <el-select
                           v-if="item.field.type == 'select'"
                           v-model="item.value"
                           :placeholder="item.field.placeholder || '请选择'"
@@ -176,10 +176,10 @@
                           "
                           @visible-change="visibleChange($event, item)"
                         >
-                          <ScOption v-for="field in item.field.extend.data" :key="field.value" :label="field.label" :value="field.value" />
-                        </ScSelect>
+                          <el-option v-for="field in item.field.extend.data" :key="field.value" :label="field.label" :value="field.value" />
+                        </el-select>
                         <!-- 日期 -->
-                        <ScDatePicker
+                        <el-date-picker
                           v-if="item.field.type == 'date'"
                           v-model="item.value"
                           type="date"
@@ -188,7 +188,7 @@
                           style="width: 100%"
                         />
                         <!-- 日期范围 -->
-                        <ScDatePicker
+                        <el-date-picker
                           v-if="item.field.type == 'daterange'"
                           v-model="item.value"
                           type="daterange"
@@ -198,7 +198,7 @@
                           style="width: 100%"
                         />
                         <!-- 日期时间 -->
-                        <ScDatePicker
+                        <el-date-picker
                           v-if="item.field.type == 'datetime'"
                           v-model="item.value"
                           type="datetime"
@@ -207,7 +207,7 @@
                           style="width: 100%"
                         />
                         <!-- 日期时间范围 -->
-                        <ScDatePicker
+                        <el-date-picker
                           v-if="item.field.type == 'datetimerange'"
                           v-model="item.value"
                           type="datetimerange"
@@ -217,7 +217,7 @@
                           style="width: 100%"
                         />
                         <!-- 自定义日期 -->
-                        <ScDatePicker
+                        <el-date-picker
                           v-if="item.field.type == 'customDate'"
                           v-model="item.value"
                           :type="item.field.extend.dateType || 'date'"
@@ -228,9 +228,9 @@
                           style="width: 100%"
                         />
                         <!-- 开关 -->
-                        <ScSwitch v-if="item.field.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
+                        <el-switch v-if="item.field.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
                         <!-- 标签 -->
-                        <ScSelect
+                        <el-select
                           v-if="item.field.type == 'tags'"
                           v-model="item.value"
                           multiple
@@ -242,39 +242,39 @@
                         />
                       </td>
                       <td>
-                        <ScIcon class="del" @click="delFilter(index)">
+                        <el-icon class="del" @click="delFilter(index)">
                           <el-icon-delete />
-                        </ScIcon>
+                        </el-icon>
                       </td>
                     </tr>
                   </table>
-                  <ScButton type="primary" text icon="el-icon-plus" @click="addFilter">增加过滤项</ScButton>
+                  <el-button type="primary" text icon="el-icon-plus" @click="addFilter">增加过滤项</el-button>
                 </div>
-              </ScScrollbar>
-            </ScTabPane>
-            <!-- <ScTabPane lazy>
+              </el-scrollbar>
+            </el-tab-pane>
+            <!-- <el-tab-pane lazy>
               <template #label>
                 <div class="tabs-label">常用</div>
               </template>
-              <ScScrollbar>
+              <el-scrollbar>
                 <my ref="my" :data="myFilter" :filterName="filterName" @selectMyfilter="selectMyfilter" />
-              </ScScrollbar>
-            </ScTabPane> -->
-          </ScTabs>
-        </ScMain>
+              </el-scrollbar>
+            </el-tab-pane> -->
+          </el-tabs>
+        </el-main>
         <!-- 表达式预览 -->
         <div v-if="filter.length > 0 && expressionFormat !== 'default'" class="expression-preview">
           <div class="expression-label">
             <span>{{ expressionFormat === "sql" ? "SQL" : "Lucene" }} 表达式：</span>
           </div>
-          <ScInput type="textarea" :value="filterExpression" :rows="2" readonly class="expression-input" />
+          <el-input type="textarea" :value="filterExpression" :rows="2" readonly class="expression-input" />
         </div>
-        <ScFooter class="filter-footer">
-          <ScButton type="primary" :disabled="filter.length <= 0" @click="handleFilter">立即过滤</ScButton>
-          <ScButton @click="clear">清空过滤</ScButton>
-          <ScButton v-if="filter.length > 0" text type="info" @click="copyExpression">复制表达式</ScButton>
-        </ScFooter>
-      </ScContainer>
+        <el-footer class="filter-footer">
+          <el-button type="primary" :disabled="filter.length <= 0" @click="handleFilter">立即过滤</el-button>
+          <el-button @click="clear">清空过滤</el-button>
+          <el-button v-if="filter.length > 0" text type="info" @click="copyExpression">复制表达式</el-button>
+        </el-footer>
+      </el-container>
     </sc-drawer>
   </div>
 </template>

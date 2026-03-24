@@ -36,23 +36,23 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <ScButton @click="reload">
+        <el-button @click="reload">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton type="success" plain @click="syncVisible = true">
+        </el-button>
+        <el-button @click="syncVisible = true" type="success" plain>
           <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
           同步镜像
-        </ScButton>
-        <ScButton @click="onlineVisible = true">
+        </el-button>
+        <el-button @click="onlineVisible = true">
           <IconifyIconOnline icon="ri:search-eye-line" class="mr-1" />
           在线搜索
-        </ScButton>
-        <ScButton v-admin type="primary" @click="openEdit()">
+        </el-button>
+        <el-button type="primary" v-admin @click="openEdit()">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增软件
-        </ScButton>
-        <ScInput
+        </el-button>
+        <el-input
           v-model="params.keyword"
           placeholder="搜索名称/代码"
           class="search-input"
@@ -62,31 +62,31 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
+        </el-input>
+        <el-select
           v-model="params.category"
           placeholder="分类"
           clearable
           class="filter-select"
           @change="reload"
         >
-          <ScOption label="全部" :value="undefined" />
-          <ScOption v-for="c in categories" :key="c" :label="c" :value="c" />
-        </ScSelect>
-        <ScSelect
+          <el-option label="全部" :value="undefined" />
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+        </el-select>
+        <el-select
           v-model="params.status"
           placeholder="状态"
           clearable
           class="filter-select"
           @change="reload"
         >
-          <ScOption label="启用" :value="1" />
-          <ScOption label="禁用" :value="0" />
-        </ScSelect>
-        <ScButton type="primary" @click="reload">
+          <el-option label="启用" :value="1" />
+          <el-option label="禁用" :value="0" />
+        </el-select>
+        <el-button type="primary" @click="reload">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -114,7 +114,7 @@
                 class="soft-card-icon"
               />
               <span class="name">{{ row.systemSoftName }}</span>
-              <ScTag
+              <el-tag
                 v-if="row.systemSoftIsOfficial === 1"
                 size="small"
                 type="warning"
@@ -124,22 +124,22 @@
               >
             </div>
             <div class="soft-badges">
-              <ScTag size="small" effect="plain"
+              <el-tag size="small" effect="plain"
                 ><IconifyIconOnline icon="ri:star-line" class="mr-1" />{{
                   row.systemSoftStarCount ?? 0
                 }}</el-tag
               >
-              <ScTag size="small" effect="plain"
+              <el-tag size="small" effect="plain"
                 ><IconifyIconOnline icon="ri:download-2-line" class="mr-1" />{{
                   row.systemSoftPullCount ?? 0
                 }}</el-tag
               >
-              <ScTag
+              <el-tag
                 size="small"
                 :type="row.systemSoftStatus === 1 ? 'success' : 'info'"
               >
                 {{ row.systemSoftStatus === 1 ? "启用" : "禁用" }}
-              </ScTag>
+              </el-tag>
             </div>
           </div>
           <div class="soft-meta">代码：{{ row.systemSoftCode }}</div>
@@ -147,12 +147,12 @@
             镜像：{{ row.systemSoftDockerImage || "—" }}
           </div>
           <div
-            v-if="row.installedServers && row.installedServers.length > 0"
             class="soft-meta"
+            v-if="row.installedServers && row.installedServers.length > 0"
           >
             <IconifyIconOnline icon="ri:server-line" class="mr-1" />
             已安装：
-            <ScTag
+            <el-tag
               v-for="server in row.installedServers.slice(0, 3)"
               :key="server"
               size="small"
@@ -161,8 +161,8 @@
               class="ml-1"
             >
               {{ server }}
-            </ScTag>
-            <ScTag
+            </el-tag>
+            <el-tag
               v-if="row.installedServers.length > 3"
               size="small"
               type="info"
@@ -170,31 +170,31 @@
               class="ml-1"
             >
               +{{ row.installedServers.length - 3 }}
-            </ScTag>
+            </el-tag>
           </div>
           <div class="soft-desc">
             {{ row.systemSoftDesc || row.systemSoftDescription || "—" }}
           </div>
           <div class="soft-actions">
-            <ScButton
+            <el-button
               size="small"
               type="primary"
               plain
               @click="openInstall(row)"
             >
               <IconifyIconOnline icon="ri:download-line" class="mr-1" /> 安装
-            </ScButton>
-            <ScButton v-role="'admin'" size="small" @click="openEdit(row)">
+            </el-button>
+            <el-button size="small" v-role="'admin'" @click="openEdit(row)">
               <IconifyIconOnline icon="ri:edit-line" class="mr-1" /> 编辑
-            </ScButton>
-            <ScButton
-              v-role="'admin'"
+            </el-button>
+            <el-button
               size="small"
               type="danger"
+              v-role="'admin'"
               @click="onDelete(row)"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" /> 删除
-            </ScButton>
+            </el-button>
           </div>
         </div>
       </template>
@@ -202,30 +202,30 @@
 
     <!-- 新增/编辑软件 -->
     <ScDialog v-model:visible="editVisible" title="软件信息" width="560px">
-      <ScForm ref="formRef" :model="form" :rules="rules" label-width="96px">
-        <ScFormItem label="名称" prop="systemSoftName">
-          <ScInput v-model="form.systemSoftName" />
-        </ScFormItem>
-        <ScFormItem label="代码" prop="systemSoftCode">
-          <ScInput v-model="form.systemSoftCode" />
-        </ScFormItem>
-        <ScFormItem label="分类">
-          <ScInput v-model="form.systemSoftCategory" />
-        </ScFormItem>
-        <ScFormItem label="描述">
-          <ScInput v-model="form.systemSoftDesc" type="textarea" :rows="3" />
-        </ScFormItem>
-        <ScFormItem label="状态">
-          <ScSwitch
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="96px">
+        <el-form-item label="名称" prop="systemSoftName">
+          <el-input v-model="form.systemSoftName" />
+        </el-form-item>
+        <el-form-item label="代码" prop="systemSoftCode">
+          <el-input v-model="form.systemSoftCode" />
+        </el-form-item>
+        <el-form-item label="分类">
+          <el-input v-model="form.systemSoftCategory" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="form.systemSoftDesc" type="textarea" :rows="3" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch
             v-model="form.systemSoftStatus"
             :active-value="1"
             :inactive-value="0"
           />
-        </ScFormItem>
-      </ScForm>
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <ScButton @click="editVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="onSubmit">保存</ScButton>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" @click="onSubmit">保存</el-button>
       </template>
     </ScDialog>
 
@@ -248,8 +248,8 @@
 import { softwareApi } from "@/api/docker";
 import ProgressMonitor from "@/components/ProgressMonitor.vue";
 import { useGlobalSocket, MonitorTopics } from "@repo/core";
-import { ScDialog } from "@repo/components"
-import { ScTable } from "@repo/components"
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components";
 import { message } from "@repo/utils";
 import { ElMessageBox, ElNotification } from "element-plus";
@@ -387,21 +387,16 @@ async function reload() {
 // 加载统计数据
 async function loadStats() {
   try {
-    const { code, data } = await softwareApi.getSoftPageList({
-      page: 1,
-      size: 1000,
-    });
+    const { code, data } = await softwareApi.getSoftPageList({ page: 1, size: 1000 });
     if (code === 0 && data?.records) {
       const list = data.records;
       stats.total = list.length;
       stats.enabled = list.filter((s: any) => s.systemSoftStatus === 1).length;
       stats.disabled = list.filter((s: any) => s.systemSoftStatus === 0).length;
-      stats.official = list.filter(
-        (s: any) => s.systemSoftIsOfficial === 1,
-      ).length;
+      stats.official = list.filter((s: any) => s.systemSoftIsOfficial === 1).length;
     }
   } catch (e) {
-    console.error("加载统计数据失败", e);
+    console.error('加载统计数据失败', e);
   }
 }
 
@@ -492,6 +487,7 @@ function onSyncSuccess() {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -524,6 +520,7 @@ function onSyncSuccess() {
     z-index: 1;
   }
 }
+
 
 .soft-management {
   padding: 16px;

@@ -1,5 +1,6 @@
 <template>
-  <el-sub-menu
+  <component
+    :is="currentComponent"
     class="sc-sub-menu"
     :index="index"
     :disabled="disabled"
@@ -15,19 +16,77 @@
       <slot name="title" />
     </template>
     <slot />
-  </el-sub-menu>
+  </component>
 </template>
 
 <script setup lang="ts">
-defineProps({
-  index: { type: String, required: true },
-  disabled: { type: Boolean, default: false },
-  showTimeout: { type: Number, default: 0 },
-  hideTimeout: { type: Number, default: 0 },
-  popperAppendToBody: { type: Boolean, default: true },
-  popperClass: { type: String, default: "" },
-  popperOffset: { type: Number, default: 0 },
-  teleported: { type: Boolean, default: true },
+/**
+ * ScSubMenu 子菜单组件
+ * 简单封装 Element Plus 的 ElSubMenu，支持主题切换
+ */
+import { ElSubMenu } from "element-plus";
+import { useThemeComponent } from "../../hooks/useThemeComponent";
+import type { PropType } from "vue";
+
+const { currentComponent } = useThemeComponent("ElSubMenu", ElSubMenu);
+
+const props = defineProps({
+  /**
+   * 子菜单的唯一标识
+   */
+  index: {
+    type: String,
+    required: true
+  },
+  /**
+   * 是否禁用
+   */
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  /**
+   * 显示延迟时间（毫秒）
+   */
+  showTimeout: {
+    type: Number,
+    default: 0
+  },
+  /**
+   * 隐藏延迟时间（毫秒）
+   */
+  hideTimeout: {
+    type: Number,
+    default: 0
+  },
+  /**
+   * 是否将弹出菜单追加到 body
+   */
+  popperAppendToBody: {
+    type: Boolean,
+    default: true
+  },
+  /**
+   * 弹出菜单的 CSS 类名
+   */
+  popperClass: {
+    type: String,
+    default: ""
+  },
+  /**
+   * 弹出菜单的偏移量
+   */
+  popperOffset: {
+    type: Number,
+    default: 0
+  },
+  /**
+   * 是否使用 teleport
+   */
+  teleported: {
+    type: Boolean,
+    default: true
+  }
 });
 </script>
 

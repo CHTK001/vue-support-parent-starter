@@ -189,38 +189,28 @@ export default defineComponent({
 
     &.is-hoverable:hover {
       border-color: #{$light};
-
+      
       .sc-card-compact__icon {
         box-shadow: 0 8px 24px #{$bg};
         color: #{$color};
       }
-
+      
       .sc-card-compact__title {
         color: #{$color};
       }
     }
-
+    
     .sc-card-compact__icon {
       color: #{$color};
       background: #{$bg};
     }
   }
 
-  &.theme--primary {
-    @include theme-variant("primary", var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary-alpha));
-  }
-  &.theme--success {
-    @include theme-variant("success", var(--stitch-lay-success), var(--stitch-lay-success-light), var(--stitch-lay-success-bg));
-  }
-  &.theme--warning {
-    @include theme-variant("warning", var(--stitch-lay-warning), var(--stitch-lay-warning-light), var(--stitch-lay-warning-bg));
-  }
-  &.theme--danger {
-    @include theme-variant("danger", var(--stitch-lay-error), var(--stitch-lay-error-light), var(--stitch-lay-error-bg));
-  }
-  &.theme--info {
-    @include theme-variant("info", var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg));
-  }
+  &.theme--primary { @include theme-variant('primary', var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary-alpha)); }
+  &.theme--success { @include theme-variant('success', var(--stitch-lay-success), var(--stitch-lay-success-light), var(--stitch-lay-success-bg)); }
+  &.theme--warning { @include theme-variant('warning', var(--stitch-lay-warning), var(--stitch-lay-warning-light), var(--stitch-lay-warning-bg)); }
+  &.theme--danger { @include theme-variant('danger', var(--stitch-lay-error), var(--stitch-lay-error-light), var(--stitch-lay-error-bg)); }
+  &.theme--info { @include theme-variant('info', var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg)); }
 
   &.is-hoverable {
     cursor: pointer;
@@ -248,7 +238,7 @@ export default defineComponent({
 
   &.is-active {
     border-color: var(--stitch-lay-primary);
-    background: linear-gradient(135deg, var(--stitch-lay-primary-alpha) 0%, rgba(0, 0, 0, 0) 100%);
+    background: linear-gradient(135deg, var(--stitch-lay-primary-alpha) 0%, rgba(0,0,0,0) 100%);
 
     &::before {
       opacity: 1;

@@ -14,6 +14,7 @@ const id = computed(() => Number(route.query.id));
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -47,10 +48,12 @@ const id = computed(() => Number(route.query.id));
   }
 }
 
+
 .page {
   padding: 8px;
   height: 100%;
 }
+
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -60,4 +63,5 @@ const id = computed(() => Number(route.query.id));
     padding: 12px 16px;
   }
 }
+
 </style>

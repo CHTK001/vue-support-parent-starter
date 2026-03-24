@@ -188,7 +188,7 @@
 </template>
 
 <script setup lang="ts">
-import { ScTree } from "@repo/components"
+import ScTree from "@repo/components/ScTree/index.vue";
 import CodePreview from "./CodePreview.vue";
 import type {
   TreeNode,
@@ -512,7 +512,7 @@ function generateCode() {
   // script部分
   template += '<script setup lang="ts">\n';
   template += "import { ref } from 'vue';\n";
-  template += "import ScTree from '@repo/components';\n";
+  template += "import ScTree from '@repo/components/ScTree/index.vue';\n";
   template +=
     "import type { TreeNodeData, TreeNode, TreeProps } from '@repo/components/ScTree/types';\n\n";
 

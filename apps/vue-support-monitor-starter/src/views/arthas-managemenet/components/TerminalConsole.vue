@@ -1,36 +1,20 @@
 <template>
   <div class="terminal-console system-container modern-bg">
     <div class="toolbar">
-      <ScInput
-        v-model="command"
-        placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler"
-        clearable
-        @keyup.enter.native="sendCommand"
-      />
-      <ScButton type="primary" :disabled="!connected" @click="sendCommand"
-        >执行</el-button
-      >
-      <ScButton @click="clearOutput">清屏</ScButton>
-      <ScButton :disabled="connecting" @click="reconnect">重连</ScButton>
+      <el-input v-model="command" placeholder="输入 Arthas 命令，例如: thread | jvm | heap | logger | profiler" @keyup.enter.native="sendCommand" clearable />
+      <el-button type="primary" @click="sendCommand" :disabled="!connected">执行</el-button>
+      <el-button @click="clearOutput">清屏</el-button>
+      <el-button @click="reconnect" :disabled="connecting">重连</el-button>
     </div>
     <div class="quick-cmds">
-      <ScButton size="small" @click="quick('help')">help</ScButton>
-      <ScButton size="small" @click="quick('thread')">thread</ScButton>
-      <ScButton size="small" @click="quick('jvm')">jvm</ScButton>
-      <ScButton size="small" @click="quick('heap')">heap</ScButton>
-      <ScButton size="small" @click="quick('logger')">logger</ScButton>
-      <ScButton
-        size="small"
-        @click="quick('profiler start; sleep 10; profiler stop')"
-        >profiler</el-button
-      >
+      <el-button size="small" @click="quick('help')">help</el-button>
+      <el-button size="small" @click="quick('thread')">thread</el-button>
+      <el-button size="small" @click="quick('jvm')">jvm</el-button>
+      <el-button size="small" @click="quick('heap')">heap</el-button>
+      <el-button size="small" @click="quick('logger')">logger</el-button>
+      <el-button size="small" @click="quick('profiler start; sleep 10; profiler stop')">profiler</el-button>
     </div>
-    <div
-      ref="xtermRef"
-      class="output"
-      :style="containerStyle"
-      @click="focusTerm"
-    />
+    <div class="output" :style="containerStyle" ref="xtermRef" @click="focusTerm"></div>
   </div>
 </template>
 
@@ -171,9 +155,7 @@ function initialTerm() {
     fixedCols.value = terminal.value.cols + 100;
     fixedRows.value = terminal.value.rows + 100;
     // 锁定容器尺寸为当前像素大小，避免后续布局变化
-    const viewport = xtermRef.value.querySelector(
-      ".xterm-viewport",
-    ) as HTMLElement | null;
+    const viewport = xtermRef.value.querySelector(".xterm-viewport") as HTMLElement | null;
     const box = viewport || xtermRef.value;
     const w = (box as HTMLElement).clientWidth;
     const h = (box as HTMLElement).clientHeight + 350;
@@ -215,7 +197,7 @@ watch(
   () => props.nodeId,
   (n, o) => {
     if (n && n !== o) reconnect();
-  },
+  }
 );
 
 onMounted(() => {
@@ -230,6 +212,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -262,6 +245,7 @@ onBeforeUnmount(() => {
     z-index: 1;
   }
 }
+
 
 .terminal-console {
   display: flex;
@@ -322,6 +306,7 @@ onBeforeUnmount(() => {
   }
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -330,4 +315,5 @@ onBeforeUnmount(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

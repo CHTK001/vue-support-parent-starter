@@ -1,4 +1,5 @@
 ﻿<script setup>
+
 import ScTabPane from "@repo/components/ScTabs";
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
@@ -83,15 +84,7 @@ const testRegex = () => {
         fullMatch: match[0],
         groups: groups.length > 0 ? groups : null,
         index: match.index,
-        input:
-          match.input.substring(Math.max(0, match.index - 20), match.index) +
-          "<mark>" +
-          match[0] +
-          "</mark>" +
-          match.input.substring(
-            match.index + match[0].length,
-            match.index + match[0].length + 20,
-          ),
+        input: match.input.substring(Math.max(0, match.index - 20), match.index) + "<mark>" + match[0] + "</mark>" + match.input.substring(match.index + match[0].length, match.index + match[0].length + 20),
       });
 
       // 如果不是全局模式，手动跳出循环
@@ -142,13 +135,7 @@ const replaceText = () => {
     env.results.replaced = replaced;
 
     // 添加到历史记录
-    addToHistory(
-      "替换文本",
-      env.pattern,
-      env.flags,
-      env.testText,
-      env.replaceText,
-    );
+    addToHistory("替换文本", env.pattern, env.flags, env.testText, env.replaceText);
 
     message("文本替换成功", { type: "success" });
 
@@ -290,13 +277,7 @@ const applyCommonPattern = (pattern) => {
 };
 
 // 添加到历史记录
-const addToHistory = (
-  operation,
-  pattern,
-  flags,
-  testText,
-  replaceText = "",
-) => {
+const addToHistory = (operation, pattern, flags, testText, replaceText = "") => {
   const now = new Date();
   const historyItem = {
     id: now.getTime(),
@@ -329,14 +310,7 @@ const loadFromHistory = (item) => {
   env.flags = item.flags;
   env.testText = item.testText;
   env.replaceText = item.replaceText;
-  env.operationType =
-    item.operation === "替换文本"
-      ? "replace"
-      : item.operation === "提取匹配项"
-        ? "extract"
-        : item.operation === "分割文本"
-          ? "split"
-          : "test";
+  env.operationType = item.operation === "替换文本" ? "replace" : item.operation === "提取匹配项" ? "extract" : item.operation === "分割文本" ? "split" : "test";
 
   // 高亮显示
   setTimeout(() => {
@@ -404,9 +378,7 @@ onMounted(() => {
         <div class="regex-tool__header">
           <div class="regex-tool__header-inner">
             <h1 class="regex-tool__header-title">正则表达式工具</h1>
-            <p class="regex-tool__header-subtitle">
-              测试、替换、提取和分割文本，支持常用正则表达式模板
-            </p>
+            <p class="regex-tool__header-subtitle">测试、替换、提取和分割文本，支持常用正则表达式模板</p>
           </div>
           <div class="regex-tool__header-decoration">
             <div class="regex-tool__header-circle"></div>
@@ -423,10 +395,7 @@ onMounted(() => {
           <ScCard class="regex-tool__input-card" shadow="hover">
             <template #header>
               <div class="regex-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:code-box-line"
-                  class="regex-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:code-box-line" class="regex-tool__card-icon" />
                 <span>正则表达式</span>
               </div>
             </template>
@@ -434,10 +403,7 @@ onMounted(() => {
             <ScForm label-position="top">
               <!-- 操作类型选择 -->
               <ScFormItem label="操作类型">
-                <ScRadioGroup
-                  v-model="env.operationType"
-                  class="regex-tool__radio-group"
-                >
+                <ScRadioGroup v-model="env.operationType" class="regex-tool__radio-group">
                   <ScRadio label="test">
                     <div class="regex-tool__radio-content">
                       <IconifyIconOnline icon="ri:search-line" />
@@ -468,12 +434,7 @@ onMounted(() => {
               <!-- 正则表达式输入 -->
               <ScFormItem label="正则表达式">
                 <div class="regex-tool__pattern-input">
-                  <ScInput
-                    v-model="env.pattern"
-                    placeholder="输入正则表达式，如：\d+"
-                    :class="{ 'is-invalid': !isValidRegex && env.pattern }"
-                    class="regex-tool__input"
-                  >
+                  <ScInput v-model="env.pattern" placeholder="输入正则表达式，如：\d+" :class="{ 'is-invalid': !isValidRegex && env.pattern }" class="regex-tool__input">
                     <template #prefix>
                       <span class="regex-tool__pattern-delimiter">/</span>
                     </template>
@@ -481,16 +442,9 @@ onMounted(() => {
                       <span class="regex-tool__pattern-delimiter">/</span>
                     </template>
                   </ScInput>
-                  <ScInput
-                    v-model="env.flags"
-                    placeholder="标志"
-                    class="regex-tool__flags-input"
-                  />
+                  <ScInput v-model="env.flags" placeholder="标志" class="regex-tool__flags-input" />
                 </div>
-                <div
-                  v-if="!isValidRegex && env.pattern"
-                  class="regex-tool__error-message"
-                >
+                <div v-if="!isValidRegex && env.pattern" class="regex-tool__error-message">
                   <IconifyIconOnline icon="ri:error-warning-line" />
                   <span>正则表达式语法错误</span>
                 </div>
@@ -498,23 +452,12 @@ onMounted(() => {
 
               <!-- 测试文本 -->
               <ScFormItem label="测试文本">
-                <ScInput
-                  v-model="env.testText"
-                  type="textarea"
-                  :rows="6"
-                  placeholder="输入要测试的文本"
-                  resize="vertical"
-                  class="regex-tool__input"
-                />
+                <ScInput v-model="env.testText" type="textarea" :rows="6" placeholder="输入要测试的文本" resize="vertical" class="regex-tool__input" />
               </ScFormItem>
 
               <!-- 替换文本 (仅替换模式) -->
               <ScFormItem v-if="env.operationType === 'replace'" label="替换为">
-                <ScInput
-                  v-model="env.replaceText"
-                  placeholder="输入替换文本，可使用$1, $2等引用捕获组"
-                  class="regex-tool__input"
-                >
+                <ScInput v-model="env.replaceText" placeholder="输入替换文本，可使用$1, $2等引用捕获组" class="regex-tool__input">
                   <template #prefix>
                     <IconifyIconOnline icon="ri:replace-line" />
                   </template>
@@ -524,12 +467,7 @@ onMounted(() => {
               <!-- 示例选择 -->
               <ScFormItem label="示例">
                 <div class="regex-tool__examples">
-                  <ScButton
-                    v-for="example in env.examples"
-                    :key="example.name"
-                    size="small"
-                    @click="applyExample(example)"
-                  >
+                  <ScButton v-for="example in env.examples" :key="example.name" size="small" @click="applyExample(example)">
                     {{ example.name }}
                   </ScButton>
                 </div>
@@ -537,13 +475,7 @@ onMounted(() => {
 
               <!-- 操作按钮 -->
               <div class="regex-tool__actions">
-                <ScButton
-                  type="primary"
-                  :loading="env.loading"
-                  :disabled="!isValidRegex && env.pattern"
-                  class="regex-tool__execute-btn"
-                  @click="executeOperation"
-                >
+                <ScButton type="primary" :loading="env.loading" :disabled="!isValidRegex && env.pattern" class="regex-tool__execute-btn" @click="executeOperation">
                   <IconifyIconOnline icon="ri:play-line" />
                   <span>执行操作</span>
                 </ScButton>
@@ -563,147 +495,75 @@ onMounted(() => {
           <ScCard class="regex-tool__result-card" shadow="hover">
             <template #header>
               <div class="regex-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:file-list-line"
-                  class="regex-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:file-list-line" class="regex-tool__card-icon" />
                 <span>匹配结果</span>
               </div>
             </template>
 
-            <ScEmpty
-              v-if="
-                (env.operationType === 'test' && !env.results.matches.length) ||
-                (env.operationType === 'replace' && !env.results.replaced) ||
-                (env.operationType === 'extract' &&
-                  !env.results.extracted.length) ||
-                (env.operationType === 'split' && !env.results.split.length)
-              "
+            <ScEmpty 
+              v-if="(env.operationType === 'test' && !env.results.matches.length) || (env.operationType === 'replace' && !env.results.replaced) || (env.operationType === 'extract' && !env.results.extracted.length) || (env.operationType === 'split' && !env.results.split.length)"
               description="请先执行操作"
               class="regex-tool__empty"
             >
               <template #image>
-                <IconifyIconOnline
-                  icon="ri:search-line"
-                  class="regex-tool__empty-icon"
-                />
+                <IconifyIconOnline icon="ri:search-line" class="regex-tool__empty-icon" />
               </template>
             </ScEmpty>
 
             <!-- 测试匹配结果 -->
-            <div
-              v-if="
-                env.operationType === 'test' && env.results.matches.length > 0
-              "
-              class="regex-tool__result-content"
-            >
+            <div v-if="env.operationType === 'test' && env.results.matches.length > 0" class="regex-tool__result-content">
               <div class="regex-tool__result-header">
                 <span>找到 {{ env.results.matches.length }} 个匹配项</span>
               </div>
-              <div
-                v-for="(match, index) in env.results.matches"
-                :key="index"
-                class="regex-tool__match-item"
-              >
+              <div v-for="(match, index) in env.results.matches" :key="index" class="regex-tool__match-item">
                 <div class="regex-tool__match-header">
                   <span>匹配 #{{ index + 1 }} (位置: {{ match.index }})</span>
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="copyToClipboard(match.fullMatch)"
-                  >
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(match.fullMatch)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
                 <div class="regex-tool__match-full">
                   <div class="regex-tool__match-label">完整匹配:</div>
-                  <div class="regex-tool__match-value">
-                    {{ match.fullMatch }}
-                  </div>
+                  <div class="regex-tool__match-value">{{ match.fullMatch }}</div>
                 </div>
-                <div
-                  v-if="match.groups && match.groups.length > 0"
-                  class="regex-tool__match-groups"
-                >
+                <div v-if="match.groups && match.groups.length > 0" class="regex-tool__match-groups">
                   <div class="regex-tool__match-label">捕获组:</div>
-                  <div
-                    v-for="(group, groupIndex) in match.groups"
-                    :key="groupIndex"
-                    class="regex-tool__match-group"
-                  >
-                    <span class="regex-tool__match-group-index"
-                      >${{ groupIndex + 1 }}:</span
-                    >
-                    <span class="regex-tool__match-group-value">{{
-                      group
-                    }}</span>
+                  <div v-for="(group, groupIndex) in match.groups" :key="groupIndex" class="regex-tool__match-group">
+                    <span class="regex-tool__match-group-index">${{ groupIndex + 1 }}:</span>
+                    <span class="regex-tool__match-group-value">{{ group }}</span>
                   </div>
                 </div>
                 <div class="regex-tool__match-context">
                   <div class="regex-tool__match-label">上下文:</div>
-                  <div
-                    class="regex-tool__match-context-value"
-                    v-html="match.input"
-                  ></div>
+                  <div class="regex-tool__match-context-value" v-html="match.input"></div>
                 </div>
               </div>
             </div>
 
             <!-- 替换结果 -->
-            <div
-              v-if="env.operationType === 'replace' && env.results.replaced"
-              class="regex-tool__result-content"
-            >
+            <div v-if="env.operationType === 'replace' && env.results.replaced" class="regex-tool__result-content">
               <div class="regex-tool__result-header">
                 <span>替换结果</span>
-                <ScButton
-                  type="primary"
-                  link
-                  size="small"
-                  @click="copyToClipboard(env.results.replaced)"
-                >
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.results.replaced)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                 </ScButton>
               </div>
-              <pre
-                class="language-plaintext"
-              ><code>{{ env.results.replaced }}</code></pre>
+              <pre class="language-plaintext"><code>{{ env.results.replaced }}</code></pre>
             </div>
 
             <!-- 提取结果 -->
-            <div
-              v-if="
-                env.operationType === 'extract' &&
-                env.results.extracted.length > 0
-              "
-              class="regex-tool__result-content"
-            >
+            <div v-if="env.operationType === 'extract' && env.results.extracted.length > 0" class="regex-tool__result-content">
               <div class="regex-tool__result-header">
                 <span>提取了 {{ env.results.extracted.length }} 个匹配项</span>
-                <ScButton
-                  type="primary"
-                  link
-                  size="small"
-                  @click="copyToClipboard(env.results.extracted.join('\n'))"
-                >
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.results.extracted.join('\n'))">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                 </ScButton>
               </div>
               <div class="regex-tool__extracted-list">
-                <div
-                  v-for="(item, index) in env.results.extracted"
-                  :key="index"
-                  class="regex-tool__extracted-item"
-                >
+                <div v-for="(item, index) in env.results.extracted" :key="index" class="regex-tool__extracted-item">
                   <span>{{ index + 1 }}. </span>
                   <span>{{ item }}</span>
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="copyToClipboard(item)"
-                  >
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(item)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
@@ -711,37 +571,18 @@ onMounted(() => {
             </div>
 
             <!-- 分割结果 -->
-            <div
-              v-if="
-                env.operationType === 'split' && env.results.split.length > 0
-              "
-              class="regex-tool__result-content"
-            >
+            <div v-if="env.operationType === 'split' && env.results.split.length > 0" class="regex-tool__result-content">
               <div class="regex-tool__result-header">
                 <span>文本被分割为 {{ env.results.split.length }} 部分</span>
-                <ScButton
-                  type="primary"
-                  link
-                  size="small"
-                  @click="copyToClipboard(env.results.split.join('\n'))"
-                >
+                <ScButton type="primary" link size="small" @click="copyToClipboard(env.results.split.join('\n'))">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                 </ScButton>
               </div>
               <div class="regex-tool__split-list">
-                <div
-                  v-for="(item, index) in env.results.split"
-                  :key="index"
-                  class="regex-tool__split-item"
-                >
+                <div v-for="(item, index) in env.results.split" :key="index" class="regex-tool__split-item">
                   <div class="regex-tool__split-item-header">
                     <span>片段 #{{ index + 1 }}</span>
-                    <ScButton
-                      type="primary"
-                      link
-                      size="small"
-                      @click="copyToClipboard(item)"
-                    >
+                    <ScButton type="primary" link size="small" @click="copyToClipboard(item)">
                       <IconifyIconOnline icon="ri:file-copy-line" />
                     </ScButton>
                   </div>
@@ -755,45 +596,30 @@ onMounted(() => {
           <ScCard class="regex-tool__common-card" shadow="hover">
             <template #header>
               <div class="regex-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:bookmark-line"
-                  class="regex-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:bookmark-line" class="regex-tool__card-icon" />
                 <span>常用正则表达式</span>
               </div>
             </template>
 
-            <ScCollapse accordion>
-              <ScCollapseItem
-                v-for="(pattern, index) in env.commonPatterns.slice(0, 8)"
-                :key="index"
-                :name="index"
-              >
+            <el-collapse accordion>
+              <el-collapse-item v-for="(pattern, index) in env.commonPatterns.slice(0, 8)" :key="index" :name="index">
                 <template #title>
                   <div class="regex-tool__common-pattern-title">
                     <span>{{ pattern.name }}</span>
                   </div>
                 </template>
                 <div class="regex-tool__common-pattern-content">
-                  <div class="regex-tool__common-pattern-description">
-                    {{ pattern.description }}
-                  </div>
+                  <div class="regex-tool__common-pattern-description">{{ pattern.description }}</div>
                   <div class="regex-tool__common-pattern-code">
-                    <pre
-                      class="language-regex"
-                    ><code>{{ pattern.pattern }}</code></pre>
+                    <pre class="language-regex"><code>{{ pattern.pattern }}</code></pre>
                   </div>
-                  <ScButton
-                    type="primary"
-                    size="small"
-                    @click="applyCommonPattern(pattern)"
-                  >
+                  <ScButton type="primary" size="small" @click="applyCommonPattern(pattern)">
                     <IconifyIconOnline icon="ri:arrow-right-line" />
                     <span>应用</span>
                   </ScButton>
                 </div>
-              </ScCollapseItem>
-            </ScCollapse>
+              </el-collapse-item>
+            </el-collapse>
 
             <ScDivider>
               <IconifyIconOnline icon="ri:more-line" />
@@ -807,22 +633,12 @@ onMounted(() => {
                 </ScButton>
               </template>
               <div class="regex-tool__more-patterns">
-                <ScTable
-                  :data="env.commonPatterns"
-                  height="300"
-                  style="width: 100%"
-                >
+                <ScTable :data="env.commonPatterns" height="300" style="width: 100%">
                   <ScTableColumn prop="name" label="名称" width="100" />
                   <ScTableColumn prop="description" label="描述" width="180" />
                   <ScTableColumn label="操作" width="80">
                     <template #default="scope">
-                      <ScButton
-                        type="primary"
-                        link
-                        @click="applyCommonPattern(scope.row)"
-                      >
-                        应用
-                      </ScButton>
+                      <ScButton type="primary" link @click="applyCommonPattern(scope.row)"> 应用 </ScButton>
                     </template>
                   </ScTableColumn>
                 </ScTable>
@@ -834,10 +650,7 @@ onMounted(() => {
           <ScCard class="regex-tool__help-card" shadow="hover">
             <template #header>
               <div class="regex-tool__card-header">
-                <IconifyIconOnline
-                  icon="ri:question-line"
-                  class="regex-tool__card-icon"
-                />
+                <IconifyIconOnline icon="ri:question-line" class="regex-tool__card-icon" />
                 <span>正则表达式语法帮助</span>
               </div>
             </template>
@@ -845,71 +658,41 @@ onMounted(() => {
             <ScTabs>
               <ScTabPane label="字符" name="character">
                 <div class="regex-tool__help-content">
-                  <div
-                    v-for="(item, index) in getRegexHelp('character')"
-                    :key="index"
-                    class="regex-tool__help-item"
-                  >
+                  <div v-for="(item, index) in getRegexHelp('character')" :key="index" class="regex-tool__help-item">
                     <div class="regex-tool__help-symbol">{{ item.symbol }}</div>
-                    <div class="regex-tool__help-description">
-                      {{ item.description }}
-                    </div>
+                    <div class="regex-tool__help-description">{{ item.description }}</div>
                   </div>
                 </div>
               </ScTabPane>
               <ScTabPane label="锚点" name="anchor">
                 <div class="regex-tool__help-content">
-                  <div
-                    v-for="(item, index) in getRegexHelp('anchor')"
-                    :key="index"
-                    class="regex-tool__help-item"
-                  >
+                  <div v-for="(item, index) in getRegexHelp('anchor')" :key="index" class="regex-tool__help-item">
                     <div class="regex-tool__help-symbol">{{ item.symbol }}</div>
-                    <div class="regex-tool__help-description">
-                      {{ item.description }}
-                    </div>
+                    <div class="regex-tool__help-description">{{ item.description }}</div>
                   </div>
                 </div>
               </ScTabPane>
               <ScTabPane label="量词" name="quantifier">
                 <div class="regex-tool__help-content">
-                  <div
-                    v-for="(item, index) in getRegexHelp('quantifier')"
-                    :key="index"
-                    class="regex-tool__help-item"
-                  >
+                  <div v-for="(item, index) in getRegexHelp('quantifier')" :key="index" class="regex-tool__help-item">
                     <div class="regex-tool__help-symbol">{{ item.symbol }}</div>
-                    <div class="regex-tool__help-description">
-                      {{ item.description }}
-                    </div>
+                    <div class="regex-tool__help-description">{{ item.description }}</div>
                   </div>
                 </div>
               </ScTabPane>
               <ScTabPane label="分组" name="group">
                 <div class="regex-tool__help-content">
-                  <div
-                    v-for="(item, index) in getRegexHelp('group')"
-                    :key="index"
-                    class="regex-tool__help-item"
-                  >
+                  <div v-for="(item, index) in getRegexHelp('group')" :key="index" class="regex-tool__help-item">
                     <div class="regex-tool__help-symbol">{{ item.symbol }}</div>
-                    <div class="regex-tool__help-description">
-                      {{ item.description }}
-                    </div>
+                    <div class="regex-tool__help-description">{{ item.description }}</div>
                   </div>
                 </div>
               </ScTabPane>
               <ScTabPane label="标志" name="flag">
                 <div class="regex-tool__help-content">
-                  <div
-                    v-for="(item, index) in getRegexHelp('flag')"
-                    :key="index"
-                    class="regex-tool__help-item"
-                  >
+                  <div v-for="(item, index) in getRegexHelp('flag')" :key="index" class="regex-tool__help-item">
                     <div class="regex-tool__help-symbol">{{ item.symbol }}</div>
-                    <div class="regex-tool__help-description">
-                      {{ item.description }}
-                    </div>
+                    <div class="regex-tool__help-description">{{ item.description }}</div>
                   </div>
                 </div>
               </ScTabPane>
@@ -922,24 +705,14 @@ onMounted(() => {
       <ScCard class="regex-tool__history-card" shadow="hover">
         <template #header>
           <div class="regex-tool__card-header">
-            <IconifyIconOnline
-              icon="ri:history-line"
-              class="regex-tool__card-icon"
-            />
+            <IconifyIconOnline icon="ri:history-line" class="regex-tool__card-icon" />
             <span>历史记录</span>
           </div>
         </template>
 
-        <ScEmpty
-          v-if="!env.history.length"
-          description="暂无历史记录"
-          class="regex-tool__empty"
-        >
+        <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="regex-tool__empty">
           <template #image>
-            <IconifyIconOnline
-              icon="ri:history-line"
-              class="regex-tool__empty-icon"
-            />
+            <IconifyIconOnline icon="ri:history-line" class="regex-tool__empty-icon" />
           </template>
         </ScEmpty>
 
@@ -949,16 +722,8 @@ onMounted(() => {
           <ScTableColumn prop="pattern" label="正则表达式" />
           <ScTableColumn label="操作" width="120">
             <template #default="scope">
-              <ScButton type="primary" link @click="loadFromHistory(scope.row)">
-                加载
-              </ScButton>
-              <ScButton
-                type="danger"
-                link
-                @click="env.history.splice(env.history.indexOf(scope.row), 1)"
-              >
-                删除
-              </ScButton>
+              <ScButton type="primary" link @click="loadFromHistory(scope.row)"> 加载 </ScButton>
+              <ScButton type="danger" link @click="env.history.splice(env.history.indexOf(scope.row), 1)"> 删除 </ScButton>
             </template>
           </ScTableColumn>
         </ScTable>
@@ -972,11 +737,7 @@ onMounted(() => {
   padding: 20px;
 }
 .regex-tool__header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-success-light-3) 0%,
-    var(--el-color-success) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%);
   border-radius: 12px;
   padding: 30px;
   color: #fff;
@@ -985,7 +746,7 @@ onMounted(() => {
   align-items: center;
   box-shadow: 0 4px 20px rgba(var(--el-color-success-rgb), 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  
   &:hover {
     box-shadow: 0 6px 24px rgba(var(--el-color-success-rgb), 0.4);
     transform: translateY(-2px);
@@ -1000,11 +761,7 @@ onMounted(() => {
 }
 
 .regex-tool__header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-success-light-3) 0%,
-    var(--el-color-success) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-success-light-3) 0%, var(--el-color-success) 100%);
   border-radius: 12px;
   padding: 30px;
   color: #fff;
@@ -1013,7 +770,7 @@ onMounted(() => {
   align-items: center;
   box-shadow: 0 4px 20px rgba(var(--el-color-success-rgb), 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  
   &:hover {
     box-shadow: 0 6px 24px rgba(var(--el-color-success-rgb), 0.4);
     transform: translateY(-2px);
@@ -1097,7 +854,7 @@ onMounted(() => {
 }
 
 .regex-tool__pattern-delimiter {
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   font-weight: bold;
 }
 
@@ -1135,7 +892,7 @@ onMounted(() => {
 
 .regex-tool__empty-icon {
   font-size: 48px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .regex-tool__result-content {
@@ -1215,11 +972,7 @@ onMounted(() => {
 }
 
 .regex-tool__match-context-value mark {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-warning-light-5) 0%,
-    var(--el-color-warning-light-3) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-warning-light-5) 0%, var(--el-color-warning-light-3) 100%);
   color: var(--el-color-warning-dark-2);
   padding: 2px 4px;
   border-radius: 4px;

@@ -18,9 +18,9 @@
           <div class="preview-content" v-html="basicContent"></div>
         </div>
         <div class="editor-controls">
-          <ScButton @click="clearBasicContent">清空内容</ScButton>
-          <ScButton @click="setBasicContent">设置示例内容</ScButton>
-          <ScButton @click="getBasicContent">获取内容</ScButton>
+          <el-button @click="clearBasicContent">清空内容</el-button>
+          <el-button @click="setBasicContent">设置示例内容</el-button>
+          <el-button @click="getBasicContent">获取内容</el-button>
         </div>
       </div>
     </div>
@@ -40,7 +40,7 @@
             style="margin-bottom: 20px;"
           >
             <template #prepend>高度:</template>
-          </ScSlider>
+          </el-slider>
         </div>
         <div class="editor-container">
           <div :style="{ border: '1px solid #ccc' }">
@@ -145,9 +145,9 @@
           </div>
         </div>
         <div class="readonly-controls">
-          <ScButton @click="toggleReadonly">
+          <el-button @click="toggleReadonly">
             {{ isReadonly ? '启用编辑' : '设为只读' }}
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </div>
@@ -157,26 +157,26 @@
       <h3>表单集成</h3>
       <p>在表单中使用富文本编辑器</p>
       <div class="example-demo">
-        <ScForm :model="formData" :rules="formRules" ref="formRef" label-width="100px">
-          <ScFormItem label="标题" prop="title">
-            <ScInput v-model="formData.title" placeholder="请输入标题" />
-          </ScFormItem>
-          <ScFormItem label="内容" prop="content">
+        <el-form :model="formData" :rules="formRules" ref="formRef" label-width="100px">
+          <el-form-item label="标题" prop="title">
+            <el-input v-model="formData.title" placeholder="请输入标题" />
+          </el-form-item>
+          <el-form-item label="内容" prop="content">
             <ScEditor v-model="formData.content" />
-          </ScFormItem>
-          <ScFormItem label="摘要" prop="summary">
-            <ScInput
+          </el-form-item>
+          <el-form-item label="摘要" prop="summary">
+            <el-input
               v-model="formData.summary"
               type="textarea"
               :rows="3"
               placeholder="请输入摘要"
             />
-          </ScFormItem>
-          <ScFormItem>
-            <ScButton type="primary" @click="submitForm">提交</ScButton>
-            <ScButton @click="resetForm">重置</ScButton>
-          </ScFormItem>
-        </ScForm>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="submitForm">提交</el-button>
+            <el-button @click="resetForm">重置</el-button>
+          </el-form-item>
+        </el-form>
       </div>
     </div>
 

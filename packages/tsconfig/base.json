@@ -19,11 +19,7 @@
     "baseUrl": ".",
     "allowJs": false,
     "resolveJsonModule": true,
-    "lib": ["ESNext", "DOM"],
-    "paths": {
-      "@pages/common": ["pages/common"],
-      "@pages/common/*": ["pages/common/*"]
-    }
+    "lib": ["ESNext", "DOM"]
   },
   "exclude": ["**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }

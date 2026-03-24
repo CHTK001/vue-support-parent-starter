@@ -2,7 +2,7 @@
   <div class="sc-promql-container">
     <div class="sc-promql-header">
       <h3 class="sc-promql-title">{{ t('promql.title') }}</h3>
-      <ScInput
+      <el-input
         v-model="searchQuery"
         :placeholder="t('promql.search')"
         clearable
@@ -12,19 +12,19 @@
     </div>
 
     <div class="sc-promql-categories">
-      <ScTabs v-model="activeCategory" @tab-click="handleCategoryChange">
-        <ScTabPane 
+      <el-tabs v-model="activeCategory" @tab-click="handleCategoryChange">
+        <el-tab-pane 
           v-for="category in categories" 
           :key="category.value" 
           :label="t(`promql.categories.${category.value}`)" 
           :name="category.value"
         />
-      </ScTabs>
+      </el-tabs>
     </div>
 
     <div class="sc-promql-examples">
-      <ScCollapse v-model="activeExamples">
-        <ScCollapseItem 
+      <el-collapse v-model="activeExamples">
+        <el-collapse-item 
           v-for="(example, index) in filteredExamples" 
           :key="index" 
           :name="index"
@@ -32,13 +32,13 @@
           <template #title>
             <div class="example-title">
               <span>{{ example.name }}</span>
-              <ScTag size="small" effect="light">{{ example.category }}</ScTag>
+              <el-tag size="small" effect="light">{{ example.category }}</el-tag>
             </div>
           </template>
           <div class="example-content">
             <div class="example-description">{{ example.description }}</div>
             <div class="example-query">
-              <ScInput
+              <el-input
                 type="textarea"
                 v-model="example.query"
                 :rows="example.query.split('\n').length + 1"
@@ -46,32 +46,32 @@
               />
               <div class="example-actions">
                 <ScTooltip :content="t('promql.copy')" placement="top">
-                  <ScButton 
+                  <el-button 
                     type="primary" 
                     size="small" 
                     circle 
                     @click="copyToClipboard(example.query)"
                   >
-                    <ScIcon><CopyDocument /></ScIcon>
-                  </ScButton>
+                    <el-icon><CopyDocument /></el-icon>
+                  </el-button>
                 </ScTooltip>
                 <ScTooltip :content="t('promql.use')" placement="top">
-                  <ScButton 
+                  <el-button 
                     type="success" 
                     size="small" 
                     circle 
                     @click="useQuery(example.query)"
                   >
-                    <ScIcon><Check /></ScIcon>
-                  </ScButton>
+                    <el-icon><Check /></el-icon>
+                  </el-button>
                 </ScTooltip>
               </div>
             </div>
           </div>
-        </ScCollapseItem>
-      </ScCollapse>
+        </el-collapse-item>
+      </el-collapse>
 
-      <ScEmpty 
+      <el-empty 
         v-if="filteredExamples.length === 0" 
         :description="t('promql.noResults')" 
       />

@@ -1,5 +1,5 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 
 /**
  * 磁盘分区信息
@@ -32,7 +32,7 @@ export interface ServerMetricsData {
   uptime?: number;
   processCount?: number;
   temperature?: number;
-  status?: "online" | "offline" | "error";
+  status?: 'online' | 'offline' | 'error';
   collectTime?: string;
   // 系统信息字段
   osInfo?: string;
@@ -59,7 +59,7 @@ export interface ServerStatusSummary {
  * 服务器指标数据状态管理
  * 移除Socket连接，改为纯数据存储
  */
-export const useServerMetricsStore = defineStore("serverMetrics", () => {
+export const useServerMetricsStore = defineStore('serverMetrics', () => {
   // 服务器指标数据缓存
   const metricsCache = ref<Map<number, ServerMetricsData>>(new Map());
 
@@ -72,10 +72,7 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
   /**
    * 更新服务器指标数据
    */
-  const updateServerMetrics = (
-    serverId: number,
-    data: Partial<ServerMetricsData>,
-  ) => {
+  const updateServerMetrics = (serverId: number, data: Partial<ServerMetricsData>) => {
     const existingData = metricsCache.value.get(serverId);
     const updatedData: ServerMetricsData = {
       serverId,
@@ -84,7 +81,7 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
       diskUsage: 0,
       networkIn: 0,
       networkOut: 0,
-      status: "offline",
+      status: 'offline',
       ...existingData,
       ...data,
     };
@@ -100,7 +97,7 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
   const updateStatusSummary = (data: ServerStatusSummary) => {
     statusSummaryCache.value = data;
     lastUpdateTime.value = Date.now();
-    console.log("更新服务器状态汇总");
+    console.log('更新服务器状态汇总');
   };
 
   /**
@@ -114,12 +111,10 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
    * 获取所有服务器指标数据
    */
   const getAllServerMetrics = computed(() => {
-    return Array.from(metricsCache.value.entries()).map(
-      ([serverId, metrics]) => ({
-        serverId,
-        ...metrics,
-      }),
-    );
+    return Array.from(metricsCache.value.entries()).map(([serverId, metrics]) => ({
+      serverId,
+      ...metrics
+    }));
   });
 
   /**
@@ -145,7 +140,7 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
     metricsCache.value.clear();
     statusSummaryCache.value = null;
     lastUpdateTime.value = 0;
-    console.log("服务器指标缓存已清理");
+    console.log('服务器指标缓存已清理');
   };
 
   /**
@@ -160,8 +155,8 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
    * 获取在线服务器数量
    */
   const getOnlineServerCount = computed(() => {
-    return Array.from(metricsCache.value.values()).filter(
-      (metrics) => metrics.status === "online",
+    return Array.from(metricsCache.value.values()).filter(metrics =>
+      metrics.status === 'online'
     ).length;
   });
 
@@ -170,7 +165,7 @@ export const useServerMetricsStore = defineStore("serverMetrics", () => {
    */
   const getWarningServerCount = computed(() => {
     return Array.from(metricsCache.value.entries()).filter(([serverId]) =>
-      isServerInWarning(serverId),
+      isServerInWarning(serverId)
     ).length;
   });
 

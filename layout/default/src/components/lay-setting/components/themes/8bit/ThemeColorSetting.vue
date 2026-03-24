@@ -12,3 +12,5 @@ import BaseComponent from "../../base/ThemeColorSetting.vue";
 // 8-bit 主题专属主题色样式占位
 // 例如：html[data-skin="8bit"] { }
 </style>
+
+

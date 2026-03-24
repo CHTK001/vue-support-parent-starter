@@ -1,11 +1,9 @@
 <template>
   <component
-    :key="`badge-${currentSkin}`"
     :is="currentComponent || ElBadge"
     :value="value"
     :max="max"
     :is-dot="isDot"
-    :dot="isDot"
     :hidden="hidden"
     :type="type"
     :show-zero="showZero"
@@ -66,5 +64,5 @@ const props = defineProps({
   }
 });
 
-const { currentComponent, currentSkin } = useThemeComponent("ElBadge");
+const { currentComponent } = useThemeComponent("ElBadge");
 </script>

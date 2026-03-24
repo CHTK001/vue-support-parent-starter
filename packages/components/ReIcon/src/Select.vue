@@ -152,9 +152,9 @@ watch(
 
 <template>
   <div class="selector">
-    <ScInput v-model="inputValue" disabled>
+    <el-input v-model="inputValue" disabled>
       <template #append>
-        <ScPopover
+        <el-popover
           :width="350"
           trigger="click"
           popper-class="pure-popper"
@@ -171,11 +171,11 @@ watch(
             </div>
           </template>
 
-          <ScInput v-model="filterValue" class="px-2 pt-2" placeholder="搜索图标" clearable />
+          <el-input v-model="filterValue" class="px-2 pt-2" placeholder="搜索图标" clearable />
 
-          <ScTabs v-model="currentActiveType" @tab-click="handleClick">
-            <ScTabPane v-for="(pane, index) in tabsList" :key="index" :label="pane.label" :name="pane.name">
-              <ScScrollbar height="220px">
+          <el-tabs v-model="currentActiveType" @tab-click="handleClick">
+            <el-tab-pane v-for="(pane, index) in tabsList" :key="index" :label="pane.label" :name="pane.name">
+              <el-scrollbar height="220px">
                 <ul class="flex flex-wrap px-2 ml-2">
                   <li
                     v-for="(item, key) in pageList"
@@ -188,13 +188,13 @@ watch(
                     <IconifyIconOnline :icon="currentActiveType + item" width="20px" height="20px" />
                   </li>
                 </ul>
-                <ScEmpty v-show="pageList.length === 0" :description="`${filterValue} 图标不存在`" :image-size="60" />
-              </ScScrollbar>
-            </ScTabPane>
-          </ScTabs>
+                <el-empty v-show="pageList.length === 0" :description="`${filterValue} 图标不存在`" :image-size="60" />
+              </el-scrollbar>
+            </el-tab-pane>
+          </el-tabs>
 
           <div class="w-full h-9 flex items-center overflow-auto border-t border-[#e5e7eb]">
-            <ScPagination
+            <el-pagination
               class="flex-auto ml-2"
               :total="totalPage"
               :current-page="currentPage"
@@ -205,11 +205,11 @@ watch(
               size="small"
               @current-change="onCurrentChange"
             />
-            <ScButton class="justify-end mr-2 ml-2" type="danger" size="small" text bg @click="onClear">清空</ScButton>
+            <el-button class="justify-end mr-2 ml-2" type="danger" size="small" text bg @click="onClear">清空</el-button>
           </div>
-        </ScPopover>
+        </el-popover>
       </template>
-    </ScInput>
+    </el-input>
   </div>
 </template>
 

@@ -1,12 +1,10 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
 import { fetctSenderProjectForSms } from "../../../api/manage/project-sms";
 
-const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components"),
-);
+const ScFormTable = defineAsyncComponent(() => import("@repo/components/ScFormTable/index.vue"));
 const visible = ref(false);
 let form = reactive({});
 const rules = {
@@ -28,10 +26,7 @@ const handleClose = async () => {
 
 const handleOpen = async (data) => {
   visible.value = true;
-  const keywords =
-    data.sysSmsTemplateContent
-      .match(/\$\{(\w+)\}/g)
-      ?.map((match) => match.replace(/\$\{|\}/g, "")) || [];
+  const keywords = data.sysSmsTemplateContent.match(/\$\{(\w+)\}/g)?.map((match) => match.replace(/\$\{|\}/g, "")) || [];
   form.sysSmsTemplateId = data.sysSmsTemplateId;
   tempData.length = 0;
 
@@ -76,7 +71,7 @@ watch(
       });
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 defineExpose({
   handleOpen,
@@ -85,14 +80,7 @@ defineExpose({
 </script>
 <template>
   <div>
-    <sc-dialog
-      v-model="visible"
-      :title="title"
-      :close-on-click-modal="false"
-      draggable
-      width="55%"
-      @close="handleClose"
-    >
+    <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="55%" @close="handleClose">
       <ScForm ref="formRef" :model="form" :rules="rules" label-width="80px">
         <ScFormItem prop="target" label="被叫号码">
           <ScInput v-model="form.target" placeholder="请输入被叫号码" />
@@ -113,13 +101,7 @@ defineExpose({
         </ScFormItem>
       </ScForm>
       <template #footer>
-        <ScButton
-          type="primary"
-          :loading="loading.send"
-          size="default"
-          :icon="useRenderIcon('bi:send')"
-          @click="handleSubmit"
-        />
+        <ScButton type="primary" :loading="loading.send" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
       </template>
     </sc-dialog>
   </div>

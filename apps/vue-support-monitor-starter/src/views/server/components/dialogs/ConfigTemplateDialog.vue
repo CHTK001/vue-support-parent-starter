@@ -20,7 +20,9 @@
               <IconifyIconOnline :icon="template.icon" class="template-icon" />
               <span>{{ template.name }}</span>
             </div>
-            <ScButton type="primary" text size="small"> 选择 </ScButton>
+            <el-button type="primary" text size="small">
+              选择
+            </el-button>
           </div>
           <div class="template-description">
             {{ template.description }}
@@ -34,7 +36,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">关闭</ScButton>
+        <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -59,191 +61,145 @@ const templateConfigs = {
       name: "基础卡片",
       icon: "ri:dashboard-line",
       description: "显示单个数值的基础卡片配置",
-      config: JSON.stringify(
-        {
-          unit: "%",
-          icon: "ri:dashboard-line",
-        },
-        null,
-        2,
-      ),
+      config: JSON.stringify({
+        unit: "%",
+        icon: "ri:dashboard-line"
+      }, null, 2)
     },
     {
       name: "带阈值卡片",
       icon: "ri:alarm-warning-line",
       description: "带有警告阈值的卡片配置",
-      config: JSON.stringify(
-        {
-          unit: "%",
-          icon: "ri:cpu-line",
-          thresholds: [
-            { value: 70, color: "#E6A23C" },
-            { value: 90, color: "#F56C6C" },
-          ],
-        },
-        null,
-        2,
-      ),
-    },
+      config: JSON.stringify({
+        unit: "%",
+        icon: "ri:cpu-line",
+        thresholds: [
+          { value: 70, color: "#E6A23C" },
+          { value: 90, color: "#F56C6C" }
+        ]
+      }, null, 2)
+    }
   ],
   gauge: [
     {
       name: "基础仪表盘",
       icon: "ri:dashboard-3-line",
       description: "标准的仪表盘配置",
-      config: JSON.stringify(
-        {
-          min: 0,
-          max: 100,
-          unit: "%",
-          thresholds: [
-            { value: 70, color: "#E6A23C" },
-            { value: 90, color: "#F56C6C" },
-          ],
-        },
-        null,
-        2,
-      ),
+      config: JSON.stringify({
+        min: 0,
+        max: 100,
+        unit: "%",
+        thresholds: [
+          { value: 70, color: "#E6A23C" },
+          { value: 90, color: "#F56C6C" }
+        ]
+      }, null, 2)
     },
     {
       name: "自定义范围仪表盘",
       icon: "ri:speed-line",
       description: "自定义数值范围的仪表盘",
-      config: JSON.stringify(
-        {
-          min: 0,
-          max: 1000,
-          unit: "MB/s",
-          thresholds: [
-            { value: 700, color: "#E6A23C" },
-            { value: 900, color: "#F56C6C" },
-          ],
-        },
-        null,
-        2,
-      ),
-    },
+      config: JSON.stringify({
+        min: 0,
+        max: 1000,
+        unit: "MB/s",
+        thresholds: [
+          { value: 700, color: "#E6A23C" },
+          { value: 900, color: "#F56C6C" }
+        ]
+      }, null, 2)
+    }
   ],
   line: [
     {
       name: "基础折线图",
       icon: "ri:line-chart-line",
       description: "标准的折线图配置",
-      config: JSON.stringify(
-        {
-          unit: "%",
-          legend: true,
-          color: "#409EFF",
-          smooth: true,
-        },
-        null,
-        2,
-      ),
+      config: JSON.stringify({
+        unit: "%",
+        legend: true,
+        color: "#409EFF",
+        smooth: true
+      }, null, 2)
     },
     {
       name: "多色折线图",
       icon: "ri:line-chart-fill",
       description: "带有渐变色的折线图",
-      config: JSON.stringify(
-        {
-          unit: "MB",
-          legend: true,
-          color: "#67C23A",
-          smooth: true,
-          gradient: true,
-        },
-        null,
-        2,
-      ),
-    },
+      config: JSON.stringify({
+        unit: "MB",
+        legend: true,
+        color: "#67C23A",
+        smooth: true,
+        gradient: true
+      }, null, 2)
+    }
   ],
   bar: [
     {
       name: "基础柱状图",
       icon: "ri:bar-chart-line",
       description: "标准的柱状图配置",
-      config: JSON.stringify(
-        {
-          unit: "",
-          legend: true,
-          color: "#409EFF",
-        },
-        null,
-        2,
-      ),
+      config: JSON.stringify({
+        unit: "",
+        legend: true,
+        color: "#409EFF"
+      }, null, 2)
     },
     {
       name: "堆叠柱状图",
       icon: "ri:bar-chart-fill",
       description: "堆叠显示的柱状图",
-      config: JSON.stringify(
-        {
-          unit: "GB",
-          legend: true,
-          stack: true,
-          colors: ["#409EFF", "#67C23A", "#E6A23C"],
-        },
-        null,
-        2,
-      ),
-    },
+      config: JSON.stringify({
+        unit: "GB",
+        legend: true,
+        stack: true,
+        colors: ["#409EFF", "#67C23A", "#E6A23C"]
+      }, null, 2)
+    }
   ],
   pie: [
     {
       name: "基础饼图",
       icon: "ri:pie-chart-line",
       description: "标准的饼图配置",
-      config: JSON.stringify(
-        {
-          legend: true,
-          radius: ["40%", "70%"],
-        },
-        null,
-        2,
-      ),
+      config: JSON.stringify({
+        legend: true,
+        radius: ["40%", "70%"]
+      }, null, 2)
     },
     {
       name: "环形饼图",
       icon: "ri:pie-chart-fill",
       description: "环形显示的饼图",
-      config: JSON.stringify(
-        {
-          legend: true,
-          radius: ["50%", "80%"],
-          center: ["50%", "50%"],
-        },
-        null,
-        2,
-      ),
-    },
+      config: JSON.stringify({
+        legend: true,
+        radius: ["50%", "80%"],
+        center: ["50%", "50%"]
+      }, null, 2)
+    }
   ],
   table: [
     {
       name: "基础表格",
       icon: "ri:table-line",
       description: "标准的表格配置",
-      config: JSON.stringify(
-        {
-          columns: [
-            { prop: "name", label: "名称", width: "120" },
-            { prop: "value", label: "值", width: "100" },
-            { prop: "status", label: "状态", width: "80" },
-          ],
-          stripe: true,
-          border: false,
-        },
-        null,
-        2,
-      ),
-    },
-  ],
+      config: JSON.stringify({
+        columns: [
+          { prop: "name", label: "名称", width: "120" },
+          { prop: "value", label: "值", width: "100" },
+          { prop: "status", label: "状态", width: "80" }
+        ],
+        stripe: true,
+        border: false
+      }, null, 2)
+    }
+  ]
 };
 
 // 计算属性
 const templates = computed(() => {
-  return (
-    templateConfigs[componentType.value as keyof typeof templateConfigs] || []
-  );
+  return templateConfigs[componentType.value as keyof typeof templateConfigs] || [];
 });
 
 /**
@@ -390,7 +346,7 @@ defineExpose({
 
         pre {
           margin: 0;
-          font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
           font-size: $font-xs;
           line-height: 1.4;
           color: var(--el-text-color-primary);

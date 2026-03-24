@@ -1,7 +1,7 @@
 <template>
-  <ScSelect v-bind="$attrs" :filter-method="filterMethod" @visible-change="visibleChange">
-    <ScOption v-for="field in optionsList" :key="field.value" :label="field.label" :value="field" :disabled="isDisabled(field.value)" />
-  </ScSelect>
+  <el-select v-bind="$attrs" :filter-method="filterMethod" @visible-change="visibleChange">
+    <el-option v-for="field in optionsList" :key="field.value" :label="field.label" :value="field" :disabled="isDisabled(field.value)" />
+  </el-select>
 </template>
 
 <script>

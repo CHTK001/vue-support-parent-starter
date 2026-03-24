@@ -2,7 +2,7 @@
  * Guacamole Common JS 类型声明
  */
 
-declare module "guacamole-common-js" {
+declare module 'guacamole-common-js' {
   export interface GuacamoleClient {
     currentState: number;
     onstatechange: ((state: number) => void) | null;
@@ -12,7 +12,7 @@ declare module "guacamole-common-js" {
     onfile: ((stream: any, mimetype: string, filename: string) => void) | null;
     onpipe: ((stream: any, mimetype: string, name: string) => void) | null;
     onsync: ((timestamp: number) => void) | null;
-
+    
     connect(): void;
     disconnect(): void;
     getDisplay(): GuacamoleDisplay;
@@ -117,7 +117,7 @@ declare module "guacamole-common-js" {
     Mouse,
     Keyboard,
     StringWriter,
-    ArrayBufferWriter,
+    ArrayBufferWriter
   };
 
   export default Guacamole;

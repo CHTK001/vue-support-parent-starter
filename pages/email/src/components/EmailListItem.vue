@@ -26,15 +26,9 @@ const formattedDate = computed(() => {
   const isToday = date.toDateString() === now.toDateString();
 
   if (isToday) {
-    return date.toLocaleTimeString("zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
   } else {
-    return date.toLocaleDateString("zh-CN", {
-      month: "2-digit",
-      day: "2-digit",
-    });
+    return date.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
   }
 });
 
@@ -44,9 +38,7 @@ const emailLabels = computed(() => {
     return [];
   }
 
-  return props.labels.filter((label) =>
-    props.email.emailLabels.includes(label.emailLabelId),
-  );
+  return props.labels.filter((label) => props.email.emailLabels.includes(label.emailLabelId));
 });
 
 // 获取附件数量
@@ -90,47 +82,26 @@ const handleRead = (e) => {
     <!-- 左侧操作区 -->
     <div class="email-list-item__actions">
       <div class="email-list-item__action" @click="handleRead">
-        <IconifyIconOnline
-          :icon="email.emailIsRead ? 'ri:mail-open-line' : 'ri:mail-line'"
-          :class="{ 'is-active': !email.emailIsRead }"
-        />
+        <IconifyIconOnline :icon="email.emailIsRead ? 'ri:mail-open-line' : 'ri:mail-line'" :class="{ 'is-active': !email.emailIsRead }" />
       </div>
       <div class="email-list-item__action" @click="handleStar">
-        <IconifyIconOnline
-          :icon="email.emailIsStarred ? 'ri:star-fill' : 'ri:star-line'"
-          :class="{ 'is-active': email.emailIsStarred }"
-        />
+        <IconifyIconOnline :icon="email.emailIsStarred ? 'ri:star-fill' : 'ri:star-line'" :class="{ 'is-active': email.emailIsStarred }" />
       </div>
       <div class="email-list-item__action" @click="handleImportant">
-        <IconifyIconOnline
-          :icon="
-            email.emailIsImportant ? 'ri:bookmark-fill' : 'ri:bookmark-line'
-          "
-          :class="{ 'is-active': email.emailIsImportant }"
-        />
+        <IconifyIconOnline :icon="email.emailIsImportant ? 'ri:bookmark-fill' : 'ri:bookmark-line'" :class="{ 'is-active': email.emailIsImportant }" />
       </div>
     </div>
 
     <!-- 发件人头像 -->
     <div class="email-list-item__avatar">
-      <img
-        :src="email.emailSender.emailAvatar"
-        :alt="email.emailSender.emailName"
-      />
+      <img :src="email.emailSender.emailAvatar" :alt="email.emailSender.emailName" />
     </div>
 
     <!-- 邮件内容预览 -->
     <div class="email-list-item__content">
-      <div class="email-list-item__sender">
-        {{ email.emailSender.emailName }}
-      </div>
+      <div class="email-list-item__sender">{{ email.emailSender.emailName }}</div>
       <div class="email-list-item__subject">{{ email.emailSubject }}</div>
-      <div
-        class="email-list-item__preview"
-        v-html="
-          email.emailContent.replace(/<[^>]*>/g, '').substring(0, 80) + '...'
-        "
-      ></div>
+      <div class="email-list-item__preview" v-html="email.emailContent.replace(/<[^>]*>/g, '').substring(0, 80) + '...'"></div>
     </div>
 
     <!-- 右侧信息区 -->
@@ -140,20 +111,10 @@ const handleRead = (e) => {
 
       <!-- 标签 -->
       <div class="email-list-item__labels" v-if="emailLabels.length > 0">
-        <div
-          v-for="label in emailLabels.slice(0, 2)"
-          :key="label.emailLabelId"
-          class="email-list-item__label"
-          :style="{
-            backgroundColor: label.emailLabelColor + '33',
-            color: label.emailLabelColor,
-          }"
-        >
+        <div v-for="label in emailLabels.slice(0, 2)" :key="label.emailLabelId" class="email-list-item__label" :style="{ backgroundColor: label.emailLabelColor + '33', color: label.emailLabelColor }">
           {{ label.emailLabelName }}
         </div>
-        <div class="email-list-item__label-more" v-if="emailLabels.length > 2">
-          +{{ emailLabels.length - 2 }}
-        </div>
+        <div class="email-list-item__label-more" v-if="emailLabels.length > 2">+{{ emailLabels.length - 2 }}</div>
       </div>
 
       <!-- 附件图标 -->

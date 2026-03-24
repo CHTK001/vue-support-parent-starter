@@ -160,27 +160,17 @@ export default defineComponent({
     &::before {
       background: linear-gradient(135deg, var(--el-color-#{$type}) 0%, var(--el-color-#{$type}-light-3) 100%);
     }
-
+    
     &.is-hoverable:hover {
       border-color: var(--el-color-#{$type}-light-5);
     }
   }
 
-  &.theme--primary {
-    @include theme-variant("primary");
-  }
-  &.theme--success {
-    @include theme-variant("success");
-  }
-  &.theme--warning {
-    @include theme-variant("warning");
-  }
-  &.theme--danger {
-    @include theme-variant("danger");
-  }
-  &.theme--info {
-    @include theme-variant("info");
-  }
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   // 边框位置样式
   &.border-position--top::before {

@@ -11,7 +11,7 @@ const routes = [
     meta: {
       title: "限流记录",
       icon: "ri:record-circle-line",
-      rank: 11,
+      rank: 11
     },
   },
 ] satisfies Array<RouteConfigsTable>;

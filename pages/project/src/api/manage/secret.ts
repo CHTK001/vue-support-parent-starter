@@ -10,42 +10,42 @@ export type Secret = {
 /**
  * 删除组织机构
  */
-export const fetchDeleteSecret = (sysSecretId) => {
+export const fetchDeleteSecret = sysSecretId => {
   if (null == sysSecretId) {
     return Promise.reject("参数不能为空");
   }
   const params = { sysSecretId: sysSecretId };
   return http.request<ReturnResult<boolean>>("delete", "/v2/secret/delete", {
-    params,
+    params
   });
 };
 
 /**
  * 新增组织机构
  */
-export const fetchSaveSecret = (params) => {
+export const fetchSaveSecret = params => {
   return http.request<ReturnResult<Secret>>("post", "/v2/secret/save", {
-    data: params,
+    data: params
   });
 };
 
 /**
  * 更新组织机构
  */
-export const fetchUpdateSecret = (params) => {
+export const fetchUpdateSecret = params => {
   if (!params.sysSecretId) {
     return;
   }
   return http.request<ReturnResult<boolean>>("put", "/v2/secret/update", {
-    data: params,
+    data: params
   });
 };
 
 /**
  * 组织机构列表
  */
-export const fetchPageSecret = (params) => {
+export const fetchPageSecret = params => {
   return http.request<ReturnResult<Secret[]>>("get", "/v2/secret/page", {
-    params,
+    params
   });
 };

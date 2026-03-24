@@ -35,7 +35,7 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <ScInput
+        <el-input
           v-model="queryParams.scriptName"
           placeholder="搜索脚本名称..."
           class="search-input"
@@ -45,95 +45,61 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
+        </el-input>
+        <el-select
           v-model="queryParams.scriptType"
           placeholder="脚本类型"
           clearable
           class="filter-select"
           @change="handleFilter"
         >
-          <ScOption label="Shell" value="SHELL">
-            <span class="type-option"
-              ><IconifyIconOnline
-                icon="ri:terminal-line"
-                class="mr-2"
-              />Shell</span
-            >
-          </ScOption>
-          <ScOption label="Python" value="PYTHON">
-            <span class="type-option"
-              ><IconifyIconOnline
-                icon="ri:file-code-line"
-                class="mr-2"
-              />Python</span
-            >
-          </ScOption>
-          <ScOption label="PowerShell" value="POWERSHELL">
-            <span class="type-option"
-              ><IconifyIconOnline
-                icon="ri:windows-line"
-                class="mr-2"
-              />PowerShell</span
-            >
-          </ScOption>
-          <ScOption label="Batch" value="BATCH">
-            <span class="type-option"
-              ><IconifyIconOnline
-                icon="ri:file-text-line"
-                class="mr-2"
-              />Batch</span
-            >
-          </ScOption>
-          <ScOption label="JavaScript" value="JAVASCRIPT">
-            <span class="type-option"
-              ><IconifyIconOnline
-                icon="ri:javascript-line"
-                class="mr-2"
-              />JavaScript</span
-            >
-          </ScOption>
-          <ScOption label="SQL" value="SQL">
-            <span class="type-option"
-              ><IconifyIconOnline
-                icon="ri:database-2-line"
-                class="mr-2"
-              />SQL</span
-            >
-          </ScOption>
-        </ScSelect>
-        <ScSelect
+          <el-option label="Shell" value="SHELL">
+            <span class="type-option"><IconifyIconOnline icon="ri:terminal-line" class="mr-2" />Shell</span>
+          </el-option>
+          <el-option label="Python" value="PYTHON">
+            <span class="type-option"><IconifyIconOnline icon="ri:file-code-line" class="mr-2" />Python</span>
+          </el-option>
+          <el-option label="PowerShell" value="POWERSHELL">
+            <span class="type-option"><IconifyIconOnline icon="ri:windows-line" class="mr-2" />PowerShell</span>
+          </el-option>
+          <el-option label="Batch" value="BATCH">
+            <span class="type-option"><IconifyIconOnline icon="ri:file-text-line" class="mr-2" />Batch</span>
+          </el-option>
+          <el-option label="JavaScript" value="JAVASCRIPT">
+            <span class="type-option"><IconifyIconOnline icon="ri:javascript-line" class="mr-2" />JavaScript</span>
+          </el-option>
+          <el-option label="SQL" value="SQL">
+            <span class="type-option"><IconifyIconOnline icon="ri:database-2-line" class="mr-2" />SQL</span>
+          </el-option>
+        </el-select>
+        <el-select
           v-model="queryParams.scriptStatus"
           placeholder="状态"
           clearable
           class="filter-select"
           @change="handleFilter"
         >
-          <ScOption label="启用" :value="1">
-            <span class="status-option"
-              ><span class="status-dot enabled" />启用</span
-            >
-          </ScOption>
-          <ScOption label="禁用" :value="0">
-            <span class="status-option"
-              ><span class="status-dot disabled" />禁用</span
-            >
-          </ScOption>
-        </ScSelect>
+          <el-option label="启用" :value="1">
+            <span class="status-option"><span class="status-dot enabled" />启用</span>
+          </el-option>
+          <el-option label="禁用" :value="0">
+            <span class="status-option"><span class="status-dot disabled" />禁用</span>
+          </el-option>
+        </el-select>
       </div>
       <div class="toolbar-right">
-        <ScButton @click="tableRef?.refresh()">
+        <el-button @click="tableRef?.refresh()">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton @click="handleViewAllRecords">
+        </el-button>
+        <el-button @click="handleViewAllRecords">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           执行记录
-        </ScButton>
-        <ScButton type="primary" @click="handleCreate">
+        </el-button>
+        <el-button type="primary" @click="handleCreate">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新建脚本
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
@@ -150,6 +116,7 @@
       row-key="monitorSysGenScriptId"
       @loaded="handleDataLoaded"
     >
+
       <!-- 卡片内容 -->
       <template #default="{ row }">
         <div class="script-card" @click="handleEdit(row)">
@@ -161,19 +128,12 @@
 
           <!-- 卡片头部 -->
           <div class="card-header">
-            <div
-              class="script-icon"
-              :class="getIconClass(row.monitorSysGenScriptType)"
-            >
-              <IconifyIconOnline
-                :icon="getScriptTypeIcon(row.monitorSysGenScriptType)"
-              />
+            <div class="script-icon" :class="getIconClass(row.monitorSysGenScriptType)">
+              <IconifyIconOnline :icon="getScriptTypeIcon(row.monitorSysGenScriptType)" />
             </div>
             <div class="script-meta">
               <h3 class="script-name">{{ row.monitorSysGenScriptName }}</h3>
-              <p class="script-desc">
-                {{ row.monitorSysGenScriptDescription || "暂无描述" }}
-              </p>
+              <p class="script-desc">{{ row.monitorSysGenScriptDescription || '暂无描述' }}</p>
             </div>
           </div>
 
@@ -184,12 +144,9 @@
                 <IconifyIconOnline icon="ri:code-box-line" />
                 类型
               </span>
-              <ScTag
-                size="small"
-                :type="getTypeTagType(row.monitorSysGenScriptType)"
-              >
+              <el-tag size="small" :type="getTypeTagType(row.monitorSysGenScriptType)">
                 {{ row.monitorSysGenScriptType }}
-              </ScTag>
+              </el-tag>
             </div>
             <div class="info-row">
               <span class="info-label">
@@ -198,51 +155,49 @@
               </span>
               <span class="info-value">{{ formatTime(row.updateTime) }}</span>
             </div>
-            <div v-if="row.monitorSysGenScriptCategory" class="info-row">
+            <div class="info-row" v-if="row.monitorSysGenScriptCategory">
               <span class="info-label">
                 <IconifyIconOnline icon="ri:folder-line" />
                 分类
               </span>
-              <span class="info-value">{{
-                row.monitorSysGenScriptCategory
-              }}</span>
+              <span class="info-value">{{ row.monitorSysGenScriptCategory }}</span>
             </div>
           </div>
 
           <!-- 卡片底部 -->
           <div class="card-footer" @click.stop>
-            <ScSwitch
+            <el-switch
               v-model="row.monitorSysGenScriptStatus"
               active-value="ENABLED"
               inactive-value="DISABLED"
               @change="handleStatusChange(row)"
             />
             <div class="action-buttons">
-              <ScTooltip content="运行" placement="top">
-                <ScButton text circle type="success" @click="handleRun(row)">
+              <el-tooltip content="运行" placement="top">
+                <el-button text circle type="success" @click="handleRun(row)">
                   <IconifyIconOnline icon="ri:play-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="历史记录" placement="top">
-                <ScButton text circle @click="handleViewRecords(row)">
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="历史记录" placement="top">
+                <el-button text circle @click="handleViewRecords(row)">
                   <IconifyIconOnline icon="ri:history-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="编辑" placement="top">
-                <ScButton text circle @click="handleEdit(row)">
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="编辑" placement="top">
+                <el-button text circle @click="handleEdit(row)">
                   <IconifyIconOnline icon="ri:edit-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="复制" placement="top">
-                <ScButton text circle @click="handleCopy(row)">
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="复制" placement="top">
+                <el-button text circle @click="handleCopy(row)">
                   <IconifyIconOnline icon="ri:file-copy-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="删除" placement="top">
-                <ScButton text circle type="danger" @click="handleDelete(row)">
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button text circle type="danger" @click="handleDelete(row)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </ScButton>
-              </ScTooltip>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -254,10 +209,10 @@
           <IconifyIconOnline icon="ri:file-code-line" class="empty-icon" />
           <p class="empty-title">暂无脚本</p>
           <p class="empty-desc">点击"新建脚本"创建第一个脚本</p>
-          <ScButton type="primary" @click="handleCreate">
+          <el-button type="primary" @click="handleCreate">
             <IconifyIconOnline icon="ri:add-line" />
             新建脚本
-          </ScButton>
+          </el-button>
         </div>
       </template>
     </ScTable>
@@ -291,7 +246,7 @@ import { message } from "@repo/utils";
 import ScriptEditDialog from "./components/ScriptEditDialog.vue";
 import ServerSelectDialog from "./components/ServerSelectDialog.vue";
 import ExecuteRecordDialog from "./components/ExecuteRecordDialog.vue";
-import { ScCard } from "@repo/components"
+import ScCard from "@repo/components/ScCard/index.vue";
 import * as ScriptAPI from "@/api/server/script-management";
 import type { Script } from "./types";
 import { ScriptStatus } from "./types";
@@ -351,7 +306,7 @@ const fetchScripts = async (params: any) => {
 const handleDataLoaded = (data: any) => {
   totalCount.value = data.total || 0;
   enabledCount.value = (data.data || []).filter(
-    (s: Script) => s.monitorSysGenScriptStatus === "ENABLED",
+    (s: Script) => s.monitorSysGenScriptStatus === "ENABLED"
   ).length;
 };
 
@@ -384,11 +339,10 @@ const handleEdit = (script: Script) => {
 // 状态切换
 const handleStatusChange = async (script: Script) => {
   try {
-    const statusValue =
-      script.monitorSysGenScriptStatus === ScriptStatus.ENABLED ? 1 : 0;
+    const statusValue = script.monitorSysGenScriptStatus === ScriptStatus.ENABLED ? 1 : 0;
     const response: any = await ScriptAPI.updateScriptStatus(
       script.monitorSysGenScriptId!,
-      statusValue,
+      statusValue
     );
     if (response.success) {
       message("状态更新成功", { type: "success" });
@@ -413,7 +367,7 @@ const handleCopy = async (script: Script) => {
   try {
     const response: any = await ScriptAPI.copyScript(
       script.monitorSysGenScriptId!,
-      `${script.monitorSysGenScriptName}_副本`,
+      `${script.monitorSysGenScriptName}_副本`
     );
     if (response.success) {
       message("脚本复制成功", { type: "success" });
@@ -436,11 +390,11 @@ const handleDelete = async (script: Script) => {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      },
+      }
     );
 
     const response: any = await ScriptAPI.deleteScript(
-      script.monitorSysGenScriptId!,
+      script.monitorSysGenScriptId!
     );
     if (response.success) {
       message("脚本删除成功", { type: "success" });
@@ -506,13 +460,8 @@ const getIconClass = (type: string) => {
 };
 
 // 获取类型标签颜色
-const getTypeTagType = (
-  type: string,
-): "primary" | "success" | "warning" | "info" | "danger" => {
-  const typeMap: Record<
-    string,
-    "primary" | "success" | "warning" | "info" | "danger"
-  > = {
+const getTypeTagType = (type: string): "primary" | "success" | "warning" | "info" | "danger" => {
+  const typeMap: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
     SHELL: "success",
     PYTHON: "primary",
     POWERSHELL: "info",
@@ -525,6 +474,7 @@ const getTypeTagType = (
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -557,6 +507,7 @@ const getTypeTagType = (
     z-index: 1;
   }
 }
+
 
 .script-management-page {
   min-height: 100%;
@@ -720,11 +671,7 @@ const getTypeTagType = (
     transition: background 0.3s;
 
     &.active {
-      background: linear-gradient(
-        90deg,
-        var(--el-color-success),
-        var(--el-color-success-light-3)
-      );
+      background: linear-gradient(90deg, var(--el-color-success), var(--el-color-success-light-3));
     }
   }
 

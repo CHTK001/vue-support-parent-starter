@@ -19,12 +19,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { ApiDocViewer } from "../src/components";
-import type {
-  ApiGroup,
-  ExecuteApiParams,
-  NodeInfo,
-  ApiDocViewerConfig,
-} from "../src/types";
+import type { ApiGroup, ExecuteApiParams, NodeInfo, ApiDocViewerConfig } from "../src/types";
 
 // 配置
 const config = ref<ApiDocViewerConfig>({
@@ -82,14 +77,8 @@ const parseOpenApiSpec = (spec: any): ApiGroup[] => {
 
   if (spec.paths) {
     for (const [path, methods] of Object.entries(spec.paths)) {
-      for (const [method, operation] of Object.entries(
-        methods as Record<string, any>,
-      )) {
-        if (
-          ["get", "post", "put", "delete", "patch"].includes(
-            method.toLowerCase(),
-          )
-        ) {
+      for (const [method, operation] of Object.entries(methods as Record<string, any>)) {
+        if (["get", "post", "put", "delete", "patch"].includes(method.toLowerCase())) {
           const tags = operation.tags || ["默认分组"];
           const tag = tags[0];
 
@@ -137,9 +126,7 @@ const parseOpenApiSpec = (spec: any): ApiGroup[] => {
 const createAuthHeaders = (): Record<string, string> => {
   const headers: Record<string, string> = {};
   if (authConfig.value.username && authConfig.value.password) {
-    const credentials = btoa(
-      `${authConfig.value.username}:${authConfig.value.password}`,
-    );
+    const credentials = btoa(`${authConfig.value.username}:${authConfig.value.password}`);
     headers["Authorization"] = `Basic ${credentials}`;
   }
   return headers;
@@ -157,7 +144,7 @@ const loadApiSpec = async (specUrl: string) => {
       throw new Error(`HTTP ${response.status}`);
     }
     const spec = await response.json();
-
+    
     // 设置基础 URL
     if (spec.servers && spec.servers.length > 0) {
       baseUrl.value = spec.servers[0].url;
@@ -176,20 +163,16 @@ const loadApiSpec = async (specUrl: string) => {
   } catch (error) {
     console.error("Failed to load API spec:", error);
     // 显示错误状态
-    apiGroups.value = [
-      {
-        name: "错误",
-        apis: [
-          {
-            path: "/error",
-            method: "GET",
-            summary: "加载失败",
-            description: `无法加载 API 规范: ${(error as Error).message}`,
-            parameters: [],
-          },
-        ],
-      },
-    ];
+    apiGroups.value = [{
+      name: "错误",
+      apis: [{
+        path: "/error",
+        method: "GET",
+        summary: "加载失败",
+        description: `无法加载 API 规范: ${(error as Error).message}`,
+        parameters: [],
+      }]
+    }];
   } finally {
     loading.value = false;
   }
@@ -212,7 +195,7 @@ const handleExecute = async (params: ExecuteApiParams) => {
   try {
     // 构建 URL
     let url = params.baseUrl + params.api.path;
-
+    
     // 替换路径参数
     if (params.pathParams) {
       for (const [key, value] of Object.entries(params.pathParams)) {
@@ -236,10 +219,7 @@ const handleExecute = async (params: ExecuteApiParams) => {
         ...authHeaders,
         ...params.headers,
       },
-      body:
-        params.api.method !== "GET" && params.requestBody
-          ? params.requestBody
-          : undefined,
+      body: params.api.method !== "GET" && params.requestBody ? params.requestBody : undefined,
     });
 
     const duration = Date.now() - startTime;
@@ -283,22 +263,22 @@ const handleNodeChange = (node: NodeInfo) => {
 onMounted(async () => {
   // 加载配置文件
   const config = await loadConfig();
-
+  
   // 获取 URL 参数
   const params = getUrlParams();
-
+  
   // 设置认证信息（优先使用 URL 参数，其次使用配置文件）
   authConfig.value = {
     username: params.username || config.username || config.user || "",
     password: params.password || config.password || config.pwd || "",
   };
-
+  
   if (params.baseUrl) {
     baseUrl.value = params.baseUrl;
   } else if (config.baseUrl || config.url) {
     baseUrl.value = config.baseUrl || config.url;
   }
-
+  
   if (params.title) {
     title.value = params.title;
   } else if (config.title) {

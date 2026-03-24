@@ -24,16 +24,11 @@
     @after-enter="handleAfterEnter"
     @after-leave="handleAfterLeave"
   >
-    <!-- 为避免 Element Plus 的 ElOnlyChild 告警，统一用 span 包裹触发内容，确保只有一个根节点 -->
-    <template v-if="$slots.reference" #reference>
-      <span class="sc-popover-trigger">
-        <slot name="reference" />
-      </span>
+    <template v-if="$slots.default" #default>
+      <slot />
     </template>
-    <template v-else-if="$slots.default" #default>
-      <span class="sc-popover-trigger">
-        <slot />
-      </span>
+    <template v-if="$slots.reference" #reference>
+      <slot name="reference" />
     </template>
   </component>
 </template>
@@ -44,6 +39,7 @@
  * 封装 Element Plus Popover 与 PixelUI PxPopover
  * 在 data-skin 为 8bit 时自动切换为像素风弹出框
  */
+import { computed } from "vue";
 import type { PropType } from "vue";
 import { ElPopover } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
@@ -122,6 +118,8 @@ defineProps({
 const emit = defineEmits(["update:visible", "before-enter", "before-leave", "after-enter", "after-leave"]);
 
 const { currentComponent } = useThemeComponent("ElPopover");
+
+
 
 const handleUpdateVisible = (visible: boolean) => {
   emit("update:visible", visible);

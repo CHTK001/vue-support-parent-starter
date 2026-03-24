@@ -15,19 +15,19 @@
         </div>
       </div>
     </div>
-
+    
     <VideoForm />
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from "vue-router";
-import VideoForm from "./components/VideoForm.vue";
+import { useRouter } from 'vue-router';
+import VideoForm from './components/VideoForm.vue';
 
 const router = useRouter();
 
 const goBack = () => {
-  router.push("/video/manage");
+  router.push('/video/manage');
 };
 </script>
 
@@ -51,11 +51,7 @@ const goBack = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-3) 0%,
-    var(--el-color-primary) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   backdrop-filter: blur(10px);
 }
 
@@ -118,4 +114,4 @@ const goBack = () => {
     transform: translateY(0);
   }
 }
-</style>
+</style> 

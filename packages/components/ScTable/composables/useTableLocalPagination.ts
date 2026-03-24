@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, computed, shallowRef, type Ref, type ComputedRef } from "vue";
+import { ref, computed, shallowRef, type Ref, type ComputedRef } from 'vue';
 
 export interface LocalPaginationOptions<T = any> {
   /** 每页条数 */
@@ -68,8 +68,15 @@ export interface LocalPaginationReturn<T = any> {
  * @param options 配置选项
  * @returns LocalPaginationReturn
  */
-export function useTableLocalPagination<T = any>(options: LocalPaginationOptions<T> = {}): LocalPaginationReturn<T> {
-  const { pageSize: initialPageSize = 10, initialPage = 1, fetchData, enabled = true } = options;
+export function useTableLocalPagination<T = any>(
+  options: LocalPaginationOptions<T> = {}
+): LocalPaginationReturn<T> {
+  const {
+    pageSize: initialPageSize = 10,
+    initialPage = 1,
+    fetchData,
+    enabled = true,
+  } = options;
 
   // 使用 shallowRef 优化大数据性能
   const fullData = shallowRef<T[]>([]);
@@ -105,7 +112,7 @@ export function useTableLocalPagination<T = any>(options: LocalPaginationOptions
    */
   const pageData = computed(() => {
     if (!isEnabled.value) return activeData.value;
-
+    
     const start = (currentPage.value - 1) * pageSize.value;
     const end = start + pageSize.value;
     return activeData.value.slice(start, end);
@@ -185,7 +192,7 @@ export function useTableLocalPagination<T = any>(options: LocalPaginationOptions
    */
   const refresh = async () => {
     if (!fetchData) {
-      console.warn("[useTableLocalPagination] fetchData 函数未提供，无法刷新");
+      console.warn('[useTableLocalPagination] fetchData 函数未提供，无法刷新');
       return;
     }
 
@@ -194,7 +201,7 @@ export function useTableLocalPagination<T = any>(options: LocalPaginationOptions
       const data = await fetchData();
       setFullData(data);
     } catch (error) {
-      console.error("[useTableLocalPagination] 数据加载失败:", error);
+      console.error('[useTableLocalPagination] 数据加载失败:', error);
       throw error;
     } finally {
       isLoading.value = false;
@@ -261,7 +268,7 @@ export function useTableLocalPagination<T = any>(options: LocalPaginationOptions
     filterData,
     clearFilter,
     sortData,
-    getPageData
+    getPageData,
   };
 }
 

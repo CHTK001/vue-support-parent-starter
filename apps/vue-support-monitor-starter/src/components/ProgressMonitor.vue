@@ -24,14 +24,14 @@
               <div class="operation-header">
                 <div class="operation-title">{{ operation.title }}</div>
                 <div class="operation-status">
-                  <ScTag :type="getStatusType(operation.status)" size="small">
+                  <el-tag :type="getStatusType(operation.status)" size="small">
                     {{ getStatusText(operation.status) }}
-                  </ScTag>
+                  </el-tag>
                 </div>
               </div>
 
               <div class="operation-progress">
-                <ScProgress
+                <el-progress
                   :percentage="operation.progress"
                   :status="getProgressStatus(operation.status)"
                   :stroke-width="6"
@@ -58,9 +58,9 @@
           <div class="section-title">
             <IconifyIconOnline icon="ri:notification-line" class="title-icon" />
             通知历史
-            <ScButton size="small" text @click="clearAllNotifications">
+            <el-button size="small" text @click="clearAllNotifications">
               清空
-            </ScButton>
+            </el-button>
           </div>
           <div v-if="notifications.length > 0" class="notifications-list">
             <div
@@ -129,7 +129,7 @@
             >{{ operation.progress.toFixed(0) }}%</span
           >
         </div>
-        <ScProgress
+        <el-progress
           :percentage="operation.progress"
           :status="getProgressStatus(operation.status)"
           :stroke-width="3"
@@ -184,7 +184,7 @@ const drawerVisible = ref(false);
 
 // 计算属性
 const activeOperations = computed(() =>
-  Array.from(progressState.activeOperations.values()),
+  Array.from(progressState.activeOperations.values())
 );
 const notifications = computed(() => progressState.notifications);
 const hasActiveOperations = computed(() => activeOperations.value.length > 0);
@@ -268,7 +268,7 @@ const clearAllNotifications = () => {
 const addNotification = (
   type: "success" | "error" | "warning" | "info",
   title: string,
-  message: string,
+  message: string
 ) => {
   const notification: ProgressNotification = {
     id: `notification_${Date.now()}`,
@@ -392,7 +392,7 @@ function setupSocketListeners() {
     addNotification(
       "info",
       "操作开始",
-      `开始${data.operation === "PULL" ? "拉取" : "处理"}镜像: ${data.imageName}`,
+      `开始${data.operation === "PULL" ? "拉取" : "处理"}镜像: ${data.imageName}`
     );
   });
 
@@ -445,7 +445,7 @@ function setupSocketListeners() {
       addNotification(
         "success",
         "操作完成",
-        `镜像 ${data.imageName} ${data.operation === "PULL" ? "拉取" : "处理"}完成`,
+        `镜像 ${data.imageName} ${data.operation === "PULL" ? "拉取" : "处理"}完成`
       );
 
       // 5秒后移除
@@ -486,7 +486,7 @@ function setupSocketListeners() {
       addNotification(
         "error",
         "操作失败",
-        `镜像 ${data.imageName}: ${data.errorMessage || "未知错误"}`,
+        `镜像 ${data.imageName}: ${data.errorMessage || "未知错误"}`
       );
 
       // 10秒后移除
@@ -510,7 +510,7 @@ function setupSocketListeners() {
       addNotification(
         "error",
         "操作失败",
-        `镜像 ${data.imageName}: ${data.errorMessage || "未知错误"}`,
+        `镜像 ${data.imageName}: ${data.errorMessage || "未知错误"}`
       );
 
       setTimeout(() => {

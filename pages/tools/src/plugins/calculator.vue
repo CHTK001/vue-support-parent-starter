@@ -249,8 +249,8 @@
         </div>
       </div>
 
-      <ScCollapse v-if="calculationHistory.length > 0">
-        <ScCollapseItem name="history">
+      <el-collapse v-if="calculationHistory.length > 0">
+        <el-collapse-item name="history">
           <template #title>
             <span class="history-title">
               <IconifyIconOnline icon="ep:time" />
@@ -283,8 +283,8 @@
               </div>
             </div>
           </div>
-        </ScCollapseItem>
-      </ScCollapse>
+        </el-collapse-item>
+      </el-collapse>
 
       <template #footer>
         <div class="memory-panel" v-if="showMemory">
@@ -357,7 +357,8 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";
-import { ScSwitch } from "@repo/components"
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+
 // 复制功能
 const { copyText } = useClipboard();
 

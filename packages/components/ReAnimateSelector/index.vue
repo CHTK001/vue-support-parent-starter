@@ -190,10 +190,10 @@ export default defineComponent({
 </script>
 
 <template>
-  <ScSelect clearable filterable :placeholder="placeholder" popper-class="pure-animate-popper" :model-value="inputValue" :filter-method="filterMethod" @clear="onClear">
+  <el-select clearable filterable :placeholder="placeholder" popper-class="pure-animate-popper" :model-value="inputValue" :filter-method="filterMethod" @clear="onClear">
     <template #empty>
       <div class="w-[280px]">
-        <ScScrollbar noresize height="212px" :view-style="{ overflow: 'hidden' }" class="border-t border-[#e5e7eb]">
+        <el-scrollbar noresize height="212px" :view-style="{ overflow: 'hidden' }" class="border-t border-[#e5e7eb]">
           <ul class="flex flex-wrap justify-around mb-1">
             <li
               v-for="(animate, index) in animatesList"
@@ -209,11 +209,11 @@ export default defineComponent({
               </h4>
             </li>
           </ul>
-          <ScEmpty v-show="animatesList.length === 0" :description="`${searchVal} 动画不存在`" :image-size="60" />
-        </ScScrollbar>
+          <el-empty v-show="animatesList.length === 0" :description="`${searchVal} 动画不存在`" :image-size="60" />
+        </el-scrollbar>
       </div>
     </template>
-  </ScSelect>
+  </el-select>
 </template>
 
 <style scoped>

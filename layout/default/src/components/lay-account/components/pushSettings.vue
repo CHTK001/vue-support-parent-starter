@@ -1,12 +1,7 @@
 ﻿<template>
   <div>
     <h3 class="my-8">{{ $t("buttons.pushSettings") }}</h3>
-    <ScForm
-      ref="form"
-      label-width="180px"
-      label-position="left"
-      style="margin-top: 20px"
-    >
+    <ScForm ref="form" label-width="180px" label-position="left" style="margin-top: 20px">
       <ScFormItem label="有新的待办">
         <ScCheckbox v-model="form.new">短信推送</ScCheckbox>
         <ScCheckbox v-model="form.new_wx">微信推送</ScCheckbox>
@@ -25,10 +20,10 @@ export default {
     return {
       form: {
         new: true,
-        timeout: true,
-      },
+        timeout: true
+      }
     };
-  },
+  }
 };
 </script>
 

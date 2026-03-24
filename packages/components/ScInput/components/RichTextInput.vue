@@ -30,7 +30,7 @@
 import "@wangeditor/editor/dist/css/style.css";
 import "../../ScEditor/style.css";
 import { Editor, Toolbar } from "@wangeditor/editor-for-vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed, ref, shallowRef, onBeforeUnmount, watch, onMounted } from "vue";
 import { validate } from "../validation";
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from "@wangeditor/editor";
@@ -249,9 +249,7 @@ defineExpose({
     transform: translateY(-2px);
 
     .sc-richtext-input-container {
-      box-shadow:
-        0 0 0 4px var(--el-color-primary-light-9),
-        0 6px 16px var(--el-color-primary-light-8);
+      box-shadow: 0 0 0 4px var(--el-color-primary-light-9), 0 6px 16px var(--el-color-primary-light-8);
     }
   }
 }
@@ -355,16 +353,9 @@ defineExpose({
 
 // 动画定义
 @keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-4px);
-  }
-  75% {
-    transform: translateX(4px);
-  }
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 @keyframes fadeInUp {

@@ -10,53 +10,53 @@
       <!-- 执行状态头部 -->
       <div class="status-header">
         <div class="status-info">
-          <ScTag :type="statusTagType" size="large" effect="dark">
-            <ScIcon v-if="executing" class="is-loading"><Loading /></ScIcon>
+          <el-tag :type="statusTagType" size="large" effect="dark">
+            <el-icon v-if="executing" class="is-loading"><Loading /></el-icon>
             {{ statusText }}
-          </ScTag>
+          </el-tag>
           <span class="duration">
-            <ScIcon><Timer /></ScIcon>
+            <el-icon><Timer /></el-icon>
             执行时长: {{ formatDuration(executionDuration) }}
           </span>
         </div>
         <div class="status-actions">
-          <ScButton
+          <el-button
             v-if="canStart"
             type="primary"
             :loading="starting"
             @click="handleStart"
           >
-            <ScIcon><VideoPlay /></ScIcon>
+            <el-icon><VideoPlay /></el-icon>
             开始执行
-          </ScButton>
-          <ScButton
+          </el-button>
+          <el-button
             v-if="canStop"
             type="danger"
             :loading="stopping"
             @click="handleStop"
           >
-            <ScIcon><VideoPause /></ScIcon>
+            <el-icon><VideoPause /></el-icon>
             停止执行
-          </ScButton>
-          <ScButton :loading="refreshing" @click="handleRefresh">
-            <ScIcon><Refresh /></ScIcon>
+          </el-button>
+          <el-button @click="handleRefresh" :loading="refreshing">
+            <el-icon><Refresh /></el-icon>
             刷新
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
       <!-- 执行进度 -->
-      <ScCard shadow="never" class="progress-card">
+      <el-card shadow="never" class="progress-card">
         <template #header>
           <div class="card-header">
-            <ScIcon><TrendCharts /></ScIcon>
+            <el-icon><TrendCharts /></el-icon>
             <span>执行进度</span>
           </div>
         </template>
 
         <div class="progress-content">
           <div class="progress-bar">
-            <ScProgress
+            <el-progress
               :percentage="progress"
               :status="progressStatus"
               :stroke-width="20"
@@ -64,48 +64,40 @@
             />
           </div>
 
-          <ScRow :gutter="24" class="progress-stats">
-            <ScCol :span="6">
+          <el-row :gutter="24" class="progress-stats">
+            <el-col :span="6">
               <div class="stat-item">
                 <span class="stat-label">总记录数</span>
-                <span class="stat-value">{{
-                  formatNumber(stats.totalRecords)
-                }}</span>
+                <span class="stat-value">{{ formatNumber(stats.totalRecords) }}</span>
               </div>
-            </ScCol>
-            <ScCol :span="6">
+            </el-col>
+            <el-col :span="6">
               <div class="stat-item success">
                 <span class="stat-label">成功处理</span>
-                <span class="stat-value">{{
-                  formatNumber(stats.successRecords)
-                }}</span>
+                <span class="stat-value">{{ formatNumber(stats.successRecords) }}</span>
               </div>
-            </ScCol>
-            <ScCol :span="6">
+            </el-col>
+            <el-col :span="6">
               <div class="stat-item error">
                 <span class="stat-label">处理失败</span>
-                <span class="stat-value">{{
-                  formatNumber(stats.failedRecords)
-                }}</span>
+                <span class="stat-value">{{ formatNumber(stats.failedRecords) }}</span>
               </div>
-            </ScCol>
-            <ScCol :span="6">
+            </el-col>
+            <el-col :span="6">
               <div class="stat-item">
                 <span class="stat-label">处理速度</span>
-                <span class="stat-value"
-                  >{{ formatNumber(stats.recordsPerSecond) }} /s</span
-                >
+                <span class="stat-value">{{ formatNumber(stats.recordsPerSecond) }} /s</span>
               </div>
-            </ScCol>
-          </ScRow>
+            </el-col>
+          </el-row>
         </div>
-      </ScCard>
+      </el-card>
 
       <!-- 数据流动可视化 -->
-      <ScCard shadow="never" class="flow-card">
+      <el-card shadow="never" class="flow-card">
         <template #header>
           <div class="card-header">
-            <ScIcon><Connection /></ScIcon>
+            <el-icon><Connection /></el-icon>
             <span>数据流动</span>
           </div>
         </template>
@@ -116,16 +108,13 @@
               v-for="(node, index) in flowNodes"
               :key="node.key"
               class="flow-node"
-              :class="[
-                node.type.toLowerCase(),
-                { active: node.active, error: node.error },
-              ]"
+              :class="[node.type.toLowerCase(), { active: node.active, error: node.error }]"
             >
               <div class="node-icon">
-                <ScIcon v-if="node.type === 'INPUT'"><Download /></ScIcon>
-                <ScIcon v-else-if="node.type === 'OUTPUT'"><Upload /></ScIcon>
-                <ScIcon v-else-if="node.type === 'FILTER'"><Filter /></ScIcon>
-                <ScIcon v-else><Connection /></ScIcon>
+                <el-icon v-if="node.type === 'INPUT'"><Download /></el-icon>
+                <el-icon v-else-if="node.type === 'OUTPUT'"><Upload /></el-icon>
+                <el-icon v-else-if="node.type === 'FILTER'"><Filter /></el-icon>
+                <el-icon v-else><Connection /></el-icon>
               </div>
               <div class="node-info">
                 <span class="node-name">{{ node.name }}</span>
@@ -133,7 +122,7 @@
                   {{ formatNumber(node.processedCount) }} 条
                 </span>
               </div>
-              <div v-if="node.active" class="node-pulse" />
+              <div v-if="node.active" class="node-pulse"></div>
             </div>
 
             <!-- 连接线 -->
@@ -166,21 +155,21 @@
             </svg>
           </div>
         </div>
-      </ScCard>
+      </el-card>
 
       <!-- 执行日志 -->
-      <ScCard shadow="never" class="logs-card">
+      <el-card shadow="never" class="logs-card">
         <template #header>
           <div class="card-header">
-            <ScIcon><Document /></ScIcon>
+            <el-icon><Document /></el-icon>
             <span>执行日志</span>
-            <ScTag size="small" type="info">{{ logs.length }} 条</ScTag>
+            <el-tag size="small" type="info">{{ logs.length }} 条</el-tag>
             <div class="log-actions">
-              <ScCheckbox v-model="autoScroll" label="自动滚动" />
-              <ScButton size="small" text @click="clearLogs">
-                <ScIcon><Delete /></ScIcon>
+              <el-checkbox v-model="autoScroll" label="自动滚动" />
+              <el-button size="small" text @click="clearLogs">
+                <el-icon><Delete /></el-icon>
                 清空
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </template>
@@ -193,37 +182,33 @@
             :class="log.level.toLowerCase()"
           >
             <span class="log-time">{{ log.time }}</span>
-            <ScTag :type="getLogLevelType(log.level)" size="small">
+            <el-tag :type="getLogLevelType(log.level)" size="small">
               {{ log.level }}
-            </ScTag>
+            </el-tag>
             <span class="log-message">{{ log.message }}</span>
           </div>
-          <ScEmpty
-            v-if="logs.length === 0"
-            description="暂无日志"
-            :image-size="60"
-          />
+          <el-empty v-if="logs.length === 0" description="暂无日志" :image-size="60" />
         </div>
-      </ScCard>
+      </el-card>
 
       <!-- 性能指标 -->
-      <ScCard shadow="never" class="metrics-card">
+      <el-card shadow="never" class="metrics-card">
         <template #header>
           <div class="card-header">
-            <ScIcon><Odometer /></ScIcon>
+            <el-icon><Odometer /></el-icon>
             <span>性能指标</span>
           </div>
         </template>
 
-        <ScRow :gutter="16">
-          <ScCol :span="6">
+        <el-row :gutter="16">
+          <el-col :span="6">
             <div class="metric-item">
               <div class="metric-icon cpu">
-                <ScIcon><Cpu /></ScIcon>
+                <el-icon><Cpu /></el-icon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">CPU 使用</span>
-                <ScProgress
+                <el-progress
                   :percentage="metrics.cpuUsage"
                   :stroke-width="6"
                   :show-text="false"
@@ -231,69 +216,54 @@
                 <span class="metric-value">{{ metrics.cpuUsage }}%</span>
               </div>
             </div>
-          </ScCol>
-          <ScCol :span="6">
+          </el-col>
+          <el-col :span="6">
             <div class="metric-item">
               <div class="metric-icon memory">
-                <ScIcon><Coin /></ScIcon>
+                <el-icon><Coin /></el-icon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">内存使用</span>
-                <ScProgress
+                <el-progress
                   :percentage="metrics.memoryUsage"
                   :stroke-width="6"
                   :show-text="false"
                   :color="getMemoryColor(metrics.memoryUsage)"
                 />
-                <span class="metric-value"
-                  >{{ formatBytes(metrics.memoryUsed) }} /
-                  {{ formatBytes(metrics.memoryTotal) }}</span
-                >
+                <span class="metric-value">{{ formatBytes(metrics.memoryUsed) }} / {{ formatBytes(metrics.memoryTotal) }}</span>
               </div>
             </div>
-          </ScCol>
-          <ScCol :span="6">
+          </el-col>
+          <el-col :span="6">
             <div class="metric-item">
               <div class="metric-icon io">
-                <ScIcon><DataLine /></ScIcon>
+                <el-icon><DataLine /></el-icon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">I/O 吞吐</span>
-                <span class="metric-value large"
-                  >{{ formatBytes(metrics.ioThroughput) }}/s</span
-                >
+                <span class="metric-value large">{{ formatBytes(metrics.ioThroughput) }}/s</span>
               </div>
             </div>
-          </ScCol>
-          <ScCol :span="6">
+          </el-col>
+          <el-col :span="6">
             <div class="metric-item">
               <div class="metric-icon latency">
-                <ScIcon><Timer /></ScIcon>
+                <el-icon><Timer /></el-icon>
               </div>
               <div class="metric-content">
                 <span class="metric-label">平均延迟</span>
-                <span class="metric-value large"
-                  >{{ metrics.avgLatency }} ms</span
-                >
+                <span class="metric-value large">{{ metrics.avgLatency }} ms</span>
               </div>
             </div>
-          </ScCol>
-        </ScRow>
-      </ScCard>
+          </el-col>
+        </el-row>
+      </el-card>
     </div>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  reactive,
-  computed,
-  watch,
-  onMounted,
-  onUnmounted,
-  nextTick,
-} from "vue";
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import {
   Loading,
@@ -344,9 +314,7 @@ const visible = computed({
 });
 
 const dialogTitle = computed(() => {
-  return props.task
-    ? `任务执行监控 - ${props.task.syncTaskName}`
-    : "任务执行监控";
+  return props.task ? `任务执行监控 - ${props.task.syncTaskName}` : "任务执行监控";
 });
 
 // 执行状态
@@ -379,9 +347,7 @@ interface FlowNode {
 }
 
 const flowNodes = ref<FlowNode[]>([]);
-const flowSvgWidth = computed(() =>
-  Math.max((flowNodes.value.length - 1) * 200, 0),
-);
+const flowSvgWidth = computed(() => Math.max((flowNodes.value.length - 1) * 200, 0));
 
 interface FlowConnection {
   path: string;
@@ -452,11 +418,7 @@ const progressStatus = computed(() => {
   return undefined;
 });
 
-const canStart = computed(
-  () =>
-    executionStatus.value === "STOPPED" ||
-    executionStatus.value === "COMPLETED",
-);
+const canStart = computed(() => executionStatus.value === "STOPPED" || executionStatus.value === "COMPLETED");
 const canStop = computed(() => executionStatus.value === "RUNNING");
 
 // 刷新定时器
@@ -539,15 +501,8 @@ const loadExecutionData = async () => {
       const taskLogs = logsRes.data.data.records || [];
       logs.value = taskLogs.map((log: SyncTaskLog) => ({
         time: log.syncLogStartTime || new Date().toLocaleTimeString(),
-        level:
-          log.syncLogStatus === "FAIL"
-            ? "ERROR"
-            : log.syncLogStatus === "RUNNING"
-              ? "INFO"
-              : "INFO",
-        message:
-          log.syncLogMessage ||
-          `执行${log.syncLogStatus === "SUCCESS" ? "成功" : log.syncLogStatus === "FAIL" ? "失败" : "中"}: 读取${log.syncLogReadCount || 0}条, 写入${log.syncLogWriteCount || 0}条`,
+        level: log.syncLogStatus === 'FAIL' ? 'ERROR' : (log.syncLogStatus === 'RUNNING' ? 'INFO' : 'INFO'),
+        message: log.syncLogMessage || `执行${log.syncLogStatus === 'SUCCESS' ? '成功' : log.syncLogStatus === 'FAIL' ? '失败' : '中'}: 读取${log.syncLogReadCount || 0}条, 写入${log.syncLogWriteCount || 0}条`,
       }));
       scrollToBottom();
     }
@@ -569,9 +524,9 @@ const updateMetricsFromStore = () => {
   const statusData = syncTaskStore.getTaskStatus(taskId);
   if (statusData) {
     executionStatus.value = statusData.status;
-    executing.value = statusData.status === "RUNNING";
-    if (statusData.status !== "RUNNING" && statusData.status !== "STOPPED") {
-      emit("statusChange", statusData.status);
+    executing.value = statusData.status === 'RUNNING';
+    if (statusData.status !== 'RUNNING' && statusData.status !== 'STOPPED') {
+      emit('statusChange', statusData.status);
     }
   }
 
@@ -582,9 +537,7 @@ const updateMetricsFromStore = () => {
     stats.successRecords = progressData.successCount;
     stats.failedRecords = progressData.failCount;
     stats.totalRecords = progressData.readCount;
-    stats.recordsPerSecond = Math.round(
-      stats.successRecords / Math.max(1, executionDuration.value),
-    );
+    stats.recordsPerSecond = Math.round(stats.successRecords / Math.max(1, executionDuration.value));
   }
 
   // 获取实时指标
@@ -592,9 +545,7 @@ const updateMetricsFromStore = () => {
   if (metricsData) {
     metrics.cpuUsage = metricsData.cpuUsage || 0;
     metrics.memoryUsage = metricsData.memoryUsage || 0;
-    metrics.memoryUsed = Math.round(
-      (metrics.memoryUsage / 100) * 8 * 1024 * 1024 * 1024,
-    );
+    metrics.memoryUsed = Math.round((metrics.memoryUsage / 100) * 8 * 1024 * 1024 * 1024);
     metrics.memoryTotal = 8 * 1024 * 1024 * 1024;
     metrics.ioThroughput = Math.round(metricsData.throughput * 1024); // 转换为字节/秒
     metrics.avgLatency = Math.round(metricsData.avgProcessTime);
@@ -603,7 +554,7 @@ const updateMetricsFromStore = () => {
   // 获取实时日志
   const logsData = syncTaskStore.getTaskLogs(taskId);
   if (logsData.length > 0) {
-    logs.value = logsData.map((log) => ({
+    logs.value = logsData.map(log => ({
       time: log.time,
       level: log.level,
       message: log.message,
@@ -622,39 +573,23 @@ const simulateMetrics = () => {
 
   // WebSocket 不可用时使用模拟数据
   if (executing.value) {
-    metrics.cpuUsage = Math.min(
-      100,
-      Math.max(0, metrics.cpuUsage + (Math.random() - 0.5) * 10),
-    );
-    metrics.memoryUsage = Math.min(
-      100,
-      Math.max(20, metrics.memoryUsage + (Math.random() - 0.5) * 5),
-    );
-    metrics.memoryUsed = Math.round(
-      (metrics.memoryUsage / 100) * 8 * 1024 * 1024 * 1024,
-    );
+    metrics.cpuUsage = Math.min(100, Math.max(0, metrics.cpuUsage + (Math.random() - 0.5) * 10));
+    metrics.memoryUsage = Math.min(100, Math.max(20, metrics.memoryUsage + (Math.random() - 0.5) * 5));
+    metrics.memoryUsed = Math.round((metrics.memoryUsage / 100) * 8 * 1024 * 1024 * 1024);
     metrics.memoryTotal = 8 * 1024 * 1024 * 1024;
     metrics.ioThroughput = Math.round(1024 * 1024 * (1 + Math.random() * 2));
     metrics.avgLatency = Math.round(10 + Math.random() * 20);
 
     // 更新进度
     if (stats.totalRecords > 0) {
-      progress.value = Math.min(
-        100,
-        Math.round(
-          ((stats.successRecords + stats.failedRecords) / stats.totalRecords) *
-            100,
-        ),
-      );
+      progress.value = Math.min(100, Math.round((stats.successRecords + stats.failedRecords) / stats.totalRecords * 100));
     } else {
       progress.value = Math.min(progress.value + Math.random() * 5, 95);
     }
 
     // 更新统计
     stats.successRecords += Math.round(Math.random() * 100);
-    stats.recordsPerSecond = Math.round(
-      stats.successRecords / Math.max(1, executionDuration.value),
-    );
+    stats.recordsPerSecond = Math.round(stats.successRecords / Math.max(1, executionDuration.value));
   }
 };
 
@@ -662,38 +597,10 @@ const simulateMetrics = () => {
 const initFlowNodes = () => {
   // 模拟数据，实际应从任务设计中获取
   flowNodes.value = [
-    {
-      key: "input-1",
-      name: "MySQL输入",
-      type: "INPUT",
-      active: executing.value,
-      error: false,
-      processedCount: stats.successRecords,
-    },
-    {
-      key: "filter-1",
-      name: "数据过滤",
-      type: "FILTER",
-      active: executing.value,
-      error: false,
-      processedCount: Math.round(stats.successRecords * 0.9),
-    },
-    {
-      key: "datacenter-1",
-      name: "数据中心",
-      type: "DATA_CENTER",
-      active: executing.value,
-      error: false,
-      processedCount: Math.round(stats.successRecords * 0.85),
-    },
-    {
-      key: "output-1",
-      name: "ES输出",
-      type: "OUTPUT",
-      active: executing.value,
-      error: false,
-      processedCount: Math.round(stats.successRecords * 0.8),
-    },
+    { key: "input-1", name: "MySQL输入", type: "INPUT", active: executing.value, error: false, processedCount: stats.successRecords },
+    { key: "filter-1", name: "数据过滤", type: "FILTER", active: executing.value, error: false, processedCount: Math.round(stats.successRecords * 0.9) },
+    { key: "datacenter-1", name: "数据中心", type: "DATA_CENTER", active: executing.value, error: false, processedCount: Math.round(stats.successRecords * 0.85) },
+    { key: "output-1", name: "ES输出", type: "OUTPUT", active: executing.value, error: false, processedCount: Math.round(stats.successRecords * 0.8) },
   ];
 };
 
@@ -702,9 +609,7 @@ const startDurationTimer = () => {
   stopDurationTimer();
   durationTimer.value = window.setInterval(() => {
     if (startTime.value) {
-      executionDuration.value = Math.round(
-        (Date.now() - startTime.value) / 1000,
-      );
+      executionDuration.value = Math.round((Date.now() - startTime.value) / 1000);
     }
   }, 1000);
 };
@@ -803,21 +708,9 @@ const handleClosed = () => {
   progress.value = 0;
   logs.value = [];
   flowNodes.value = [];
-  Object.assign(stats, {
-    totalRecords: 0,
-    successRecords: 0,
-    failedRecords: 0,
-    recordsPerSecond: 0,
-  });
-  Object.assign(metrics, {
-    cpuUsage: 0,
-    memoryUsage: 0,
-    memoryUsed: 0,
-    memoryTotal: 0,
-    ioThroughput: 0,
-    avgLatency: 0,
-  });
-
+  Object.assign(stats, { totalRecords: 0, successRecords: 0, failedRecords: 0, recordsPerSecond: 0 });
+  Object.assign(metrics, { cpuUsage: 0, memoryUsage: 0, memoryUsed: 0, memoryTotal: 0, ioThroughput: 0, avgLatency: 0 });
+  
   // 停止监听任务
   if (props.task?.syncTaskId) {
     syncTaskStore.unwatchTask();
@@ -839,13 +732,13 @@ watch(
       }
       initFlowNodes();
       loadExecutionData();
-
+      
       // 初始化 Socket 并开始监听任务
       initSocket();
       syncTaskStore.watchTask(newTask.syncTaskId);
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -854,7 +747,7 @@ watch(
     if (show && props.task) {
       initFlowNodes();
       loadExecutionData();
-
+      
       // 初始化 Socket 并开始监听任务
       initSocket();
       syncTaskStore.watchTask(props.task.syncTaskId);
@@ -862,7 +755,7 @@ watch(
       // 对话框关闭时停止监听
       syncTaskStore.unwatchTask();
     }
-  },
+  }
 );
 
 // 监听 Store 中的实时数据变化
@@ -872,7 +765,7 @@ watch(
     if (props.task?.syncTaskId) {
       updateMetricsFromStore();
     }
-  },
+  }
 );
 
 onMounted(() => {
@@ -1000,27 +893,19 @@ onUnmounted(() => {
 
     &.input {
       border-color: #52c41a;
-      .node-icon {
-        color: #52c41a;
-      }
+      .node-icon { color: #52c41a; }
     }
     &.output {
       border-color: #1890ff;
-      .node-icon {
-        color: #1890ff;
-      }
+      .node-icon { color: #1890ff; }
     }
     &.filter {
       border-color: #faad14;
-      .node-icon {
-        color: #faad14;
-      }
+      .node-icon { color: #faad14; }
     }
     &.data_center {
       border-color: #722ed1;
-      .node-icon {
-        color: #722ed1;
-      }
+      .node-icon { color: #722ed1; }
     }
 
     &.active {
@@ -1209,6 +1094,7 @@ onUnmounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1217,4 +1103,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

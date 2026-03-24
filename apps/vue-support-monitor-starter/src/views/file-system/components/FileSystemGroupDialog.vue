@@ -9,7 +9,7 @@
     append-to-body
   >
     <div class="dialog-content">
-      <ScForm
+      <el-form
         ref="formRef"
         :model="formData"
         :rules="rules"
@@ -17,8 +17,8 @@
         label-position="left"
         class="group-form"
       >
-        <ScFormItem label="分组名称" prop="fileSystemGroupName">
-          <ScInput
+        <el-form-item label="分组名称" prop="fileSystemGroupName">
+          <el-input
             v-model="formData.fileSystemGroupName"
             placeholder="请输入分组名称"
             clearable
@@ -28,11 +28,11 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:folder-line" />
             </template>
-          </ScInput>
-        </ScFormItem>
+          </el-input>
+        </el-form-item>
 
-        <ScFormItem label="分组路径" prop="fileSystemGroupPath">
-          <ScInput
+        <el-form-item label="分组路径" prop="fileSystemGroupPath">
+          <el-input
             v-model="formData.fileSystemGroupPath"
             placeholder="请输入分组路径（英文，用于存储目录）"
             clearable
@@ -42,10 +42,10 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
-          </ScInput>
-        </ScFormItem>
+          </el-input>
+        </el-form-item>
 
-        <ScFormItem label="父级分组" prop="fileSystemGroupParentId">
+        <el-form-item label="父级分组" prop="fileSystemGroupParentId">
           <el-tree-select
             v-model="formData.fileSystemGroupParentId"
             :data="parentGroupOptions"
@@ -56,10 +56,10 @@
             :render-after-expand="false"
             style="width: 100%"
           />
-        </ScFormItem>
+        </el-form-item>
 
-        <ScFormItem label="分组描述" prop="fileSystemGroupDescription">
-          <ScInput
+        <el-form-item label="分组描述" prop="fileSystemGroupDescription">
+          <el-input
             v-model="formData.fileSystemGroupDescription"
             type="textarea"
             :rows="3"
@@ -67,11 +67,11 @@
             maxlength="500"
             show-word-limit
           />
-        </ScFormItem>
+        </el-form-item>
 
-        <ScFormItem label="分组图标" prop="fileSystemGroupIcon">
+        <el-form-item label="分组图标" prop="fileSystemGroupIcon">
           <div class="icon-selector">
-            <ScInput
+            <el-input
               v-model="formData.fileSystemGroupIcon"
               placeholder="请输入图标名称"
               clearable
@@ -82,58 +82,58 @@
                   :style="{ color: formData.fileSystemGroupColor || '#409EFF' }"
                 />
               </template>
-            </ScInput>
+            </el-input>
             <div class="icon-presets">
-              <ScButton
+              <el-button
                 v-for="icon in iconPresets"
                 :key="icon"
                 size="small"
                 text
-                :class="{ 'is-active': formData.fileSystemGroupIcon === icon }"
                 @click="formData.fileSystemGroupIcon = icon"
+                :class="{ 'is-active': formData.fileSystemGroupIcon === icon }"
               >
                 <IconifyIconOnline :icon="icon" />
-              </ScButton>
+              </el-button>
             </div>
           </div>
-        </ScFormItem>
+        </el-form-item>
 
-        <ScFormItem label="分组颜色" prop="fileSystemGroupColor">
-          <ScColorPicker
+        <el-form-item label="分组颜色" prop="fileSystemGroupColor">
+          <el-color-picker
             v-model="formData.fileSystemGroupColor"
             :predefine="colorPresets"
             show-alpha
           />
-        </ScFormItem>
+        </el-form-item>
 
-        <ScFormItem label="排序" prop="fileSystemGroupSort">
-          <ScInputNumber
+        <el-form-item label="排序" prop="fileSystemGroupSort">
+          <el-input-number
             v-model="formData.fileSystemGroupSort"
             :min="0"
             :max="999"
             placeholder="排序值"
             style="width: 200px"
           />
-        </ScFormItem>
+        </el-form-item>
 
-        <ScFormItem label="状态" prop="fileSystemGroupStatus">
-          <ScSwitch
+        <el-form-item label="状态" prop="fileSystemGroupStatus">
+          <el-switch
             v-model="formData.fileSystemGroupStatus"
             :active-value="1"
             :inactive-value="0"
             active-text="启用"
             inactive-text="禁用"
           />
-        </ScFormItem>
-      </ScForm>
+        </el-form-item>
+      </el-form>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? "更新" : "创建" }}
-        </ScButton>
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ isEdit ? '更新' : '创建' }}
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -230,13 +230,7 @@ const rules: FormRules = {
     },
   ],
   fileSystemGroupSort: [
-    {
-      type: "number",
-      min: 0,
-      max: 999,
-      message: "排序值范围为0-999",
-      trigger: "blur",
-    },
+    { type: "number", min: 0, max: 999, message: "排序值范围为0-999", trigger: "blur" },
   ],
 };
 
@@ -255,7 +249,7 @@ watch(
       loadParentGroups();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(visible, (newVal) => {
@@ -323,9 +317,7 @@ const handleSubmit = async () => {
     const res = await apiCall(formData);
 
     if (res.code === "00000" || res.code === 0) {
-      message(isEdit.value ? "更新分组成功" : "创建分组成功", {
-        type: "success",
-      });
+      message(isEdit.value ? "更新分组成功" : "创建分组成功", { type: "success" });
       handleClose();
       emit("success");
     } else {
@@ -395,6 +387,7 @@ defineExpose({
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -403,4 +396,5 @@ defineExpose({
     padding: 12px 16px;
   }
 }
+
 </style>

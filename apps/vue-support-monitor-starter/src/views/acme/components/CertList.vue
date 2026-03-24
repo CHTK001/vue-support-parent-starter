@@ -2,47 +2,47 @@
   <div class="cert-list system-container modern-bg">
     <!-- 工具栏 -->
     <div class="toolbar">
-      <ScForm :inline="true" :model="queryForm" class="search-form">
-        <ScFormItem label="域名">
-          <ScInput
+      <el-form :inline="true" :model="queryForm" class="search-form">
+        <el-form-item label="域名">
+          <el-input
             v-model="queryForm.acmeCertPrimaryDomain"
             placeholder="请输入主域名"
             clearable
             @keyup.enter="handleSearch"
           />
-        </ScFormItem>
-        <ScFormItem label="状态">
-          <ScSelect
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select
             v-model="queryForm.acmeCertStatus"
             placeholder="全部"
             clearable
             style="width: 120px"
           >
-            <ScOption
+            <el-option
               v-for="item in CERT_STATUS"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem>
-          <ScButton type="primary" @click="handleSearch">
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">
             <IconifyIconOnline icon="mdi:magnify" />
             查询
-          </ScButton>
-          <ScButton @click="handleReset">
+          </el-button>
+          <el-button @click="handleReset">
             <IconifyIconOnline icon="mdi:refresh" />
             重置
-          </ScButton>
-        </ScFormItem>
-      </ScForm>
+          </el-button>
+        </el-form-item>
+      </el-form>
       <div class="toolbar-right">
-        <ScTooltip content="检查续签" placement="top">
-          <ScButton type="primary" @click="handleRenewCheck">
+        <el-tooltip content="检查续签" placement="top">
+          <el-button type="primary" @click="handleRenewCheck">
             <IconifyIconOnline icon="mdi:autorenew" />
-          </ScButton>
-        </ScTooltip>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
 
@@ -55,12 +55,12 @@
       class="cert-table"
       height="auto"
     >
-      <ScTableColumn prop="acmeCertId" label="ID" width="80" align="center">
+      <el-table-column prop="acmeCertId" label="ID" width="80" align="center">
         <template #default="{ row }">
           <span class="id-cell">#{{ row.acmeCertId }}</span>
         </template>
-      </ScTableColumn>
-      <ScTableColumn
+      </el-table-column>
+      <el-table-column
         prop="acmeCertPrimaryDomain"
         label="主域名"
         min-width="200"
@@ -72,121 +72,85 @@
             </div>
             <div class="domain-info">
               <span class="domain-name">{{ row.acmeCertPrimaryDomain }}</span>
-              <span v-if="row.acmeCertSan" class="domain-san">
-                +{{ (row.acmeCertSan || "").split(",").length }} 个备用域名
+              <span class="domain-san" v-if="row.acmeCertSan">
+                +{{ (row.acmeCertSan || '').split(',').length }} 个备用域名
               </span>
             </div>
           </div>
         </template>
-      </ScTableColumn>
-      <ScTableColumn
+      </el-table-column>
+      <el-table-column
         prop="acmeCertChallengeType"
         label="验证类型"
         width="120"
         align="center"
       >
         <template #default="{ row }">
-          <div
-            class="challenge-badge"
-            :class="row.acmeCertChallengeType === 'DNS-01' ? 'dns' : 'http'"
-          >
-            <IconifyIconOnline
-              :icon="
-                row.acmeCertChallengeType === 'DNS-01' ? 'mdi:dns' : 'mdi:web'
-              "
-            />
+          <div class="challenge-badge" :class="row.acmeCertChallengeType === 'DNS-01' ? 'dns' : 'http'">
+            <IconifyIconOnline :icon="row.acmeCertChallengeType === 'DNS-01' ? 'mdi:dns' : 'mdi:web'" />
             <span>{{ row.acmeCertChallengeType }}</span>
           </div>
         </template>
-      </ScTableColumn>
-      <ScTableColumn
-        prop="acmeCertStatus"
-        label="状态"
-        width="110"
-        align="center"
-      >
+      </el-table-column>
+      <el-table-column prop="acmeCertStatus" label="状态" width="110" align="center">
         <template #default="{ row }">
-          <ScTooltip
+          <el-tooltip
             v-if="row.acmeCertStatus === 'failed' && row.acmeCertLastError"
             :content="row.acmeCertLastError"
             placement="top"
             :show-after="200"
           >
             <div class="status-badge" :class="`status-${row.acmeCertStatus}`">
-              <span class="status-dot" />
+              <span class="status-dot"></span>
               <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
             </div>
-          </ScTooltip>
-          <div
-            v-else
-            class="status-badge"
-            :class="`status-${row.acmeCertStatus}`"
-          >
-            <span class="status-dot" />
+          </el-tooltip>
+          <div v-else class="status-badge" :class="`status-${row.acmeCertStatus}`">
+            <span class="status-dot"></span>
             <span>{{ getStatusLabel(row.acmeCertStatus) }}</span>
           </div>
         </template>
-      </ScTableColumn>
-      <ScTableColumn prop="acmeCertNotAfter" label="有效期" width="200">
+      </el-table-column>
+      <el-table-column prop="acmeCertNotAfter" label="有效期" width="200">
         <template #default="{ row }">
-          <div v-if="row.acmeCertNotAfter" class="expiry-cell">
+          <div class="expiry-cell" v-if="row.acmeCertNotAfter">
             <div class="expiry-info">
-              <span class="expiry-date">{{
-                formatDate(row.acmeCertNotAfter)
-              }}</span>
-              <span
-                class="expiry-days"
-                :class="getExpiryClass(row.acmeCertNotAfter)"
-              >
+              <span class="expiry-date">{{ formatDate(row.acmeCertNotAfter) }}</span>
+              <span class="expiry-days" :class="getExpiryClass(row.acmeCertNotAfter)">
                 {{ getExpiryText(row.acmeCertNotAfter) }}
               </span>
             </div>
             <div class="expiry-progress">
-              <div
-                class="progress-bar"
-                :class="getExpiryClass(row.acmeCertNotAfter)"
-                :style="{ width: getExpiryProgress(row) + '%' }"
-              />
+              <div class="progress-bar" :class="getExpiryClass(row.acmeCertNotAfter)" :style="{ width: getExpiryProgress(row) + '%' }"></div>
             </div>
           </div>
-          <span v-else class="empty-text">-</span>
+          <span class="empty-text" v-else>-</span>
         </template>
-      </ScTableColumn>
-      <ScTableColumn label="操作" width="220" fixed="right" align="center">
+      </el-table-column>
+      <el-table-column label="操作" width="220" fixed="right" align="center">
         <template #default="{ row }">
           <div class="action-cell">
-            <ScTooltip content="复制申请" placement="top">
+            <el-tooltip content="复制申请" placement="top">
               <button class="action-btn" @click="handleCopy(row)">
                 <IconifyIconOnline icon="mdi:content-copy" />
               </button>
-            </ScTooltip>
-            <ScTooltip content="查看详情" placement="top">
+            </el-tooltip>
+            <el-tooltip content="查看详情" placement="top">
               <button class="action-btn" @click="handleView(row)">
                 <IconifyIconOnline icon="mdi:eye-outline" />
               </button>
-            </ScTooltip>
-            <ScTooltip
-              v-if="row.acmeCertStatus === 'valid'"
-              content="下载证书"
-              placement="top"
-            >
+            </el-tooltip>
+            <el-tooltip content="下载证书" placement="top" v-if="row.acmeCertStatus === 'valid'">
               <button class="action-btn primary" @click="handleDownload(row)">
                 <IconifyIconOnline icon="mdi:download" />
               </button>
-            </ScTooltip>
-            <ScTooltip
-              v-if="row.acmeCertStatus === 'validating'"
-              content="重新验证"
-              placement="top"
-            >
-              <button
-                class="action-btn warning"
-                @click="handleRetryValidation(row)"
-              >
+            </el-tooltip>
+            <el-tooltip content="重新验证" placement="top" v-if="row.acmeCertStatus === 'validating'">
+              <button class="action-btn warning" @click="handleRetryValidation(row)">
                 <IconifyIconOnline icon="mdi:refresh" />
               </button>
-            </ScTooltip>
-            <ScPopconfirm
+            </el-tooltip>
+            <el-popconfirm
               v-if="row.acmeCertStatus === 'valid'"
               title="确定要续签该证书吗？"
               confirm-button-text="续签"
@@ -198,8 +162,8 @@
                   <IconifyIconOnline icon="mdi:autorenew" />
                 </button>
               </template>
-            </ScPopconfirm>
-            <ScPopconfirm
+            </el-popconfirm>
+            <el-popconfirm
               title="确定要删除该证书吗？"
               confirm-button-text="删除"
               cancel-button-text="取消"
@@ -210,10 +174,10 @@
                   <IconifyIconOnline icon="mdi:delete-outline" />
                 </button>
               </template>
-            </ScPopconfirm>
+            </el-popconfirm>
           </div>
         </template>
-      </ScTableColumn>
+      </el-table-column>
     </ScTable>
 
     <!-- 证书详情对话框 -->
@@ -268,7 +232,7 @@ const queryForm = reactive({
  * 获取状态类型
  */
 function getStatusType(
-  status: string,
+  status: string
 ): "success" | "warning" | "danger" | "info" | "primary" {
   const item = CERT_STATUS.find((s) => s.value === status);
   return (item?.type || "info") as
@@ -295,7 +259,7 @@ function isExpiringSoon(notAfter: string) {
   const expireDate = new Date(notAfter);
   const now = new Date();
   const diffDays = Math.ceil(
-    (expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    (expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
   );
   return diffDays <= 30 && diffDays >= 0;
 }
@@ -304,9 +268,9 @@ function isExpiringSoon(notAfter: string) {
  * 格式化日期
  */
 function formatDate(dateStr: string) {
-  if (!dateStr) return "-";
+  if (!dateStr) return '-';
   const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 /**
@@ -316,9 +280,7 @@ function getDaysUntilExpiry(notAfter: string) {
   if (!notAfter) return -1;
   const expireDate = new Date(notAfter);
   const now = new Date();
-  return Math.ceil(
-    (expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  return Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 /**
@@ -326,8 +288,8 @@ function getDaysUntilExpiry(notAfter: string) {
  */
 function getExpiryText(notAfter: string) {
   const days = getDaysUntilExpiry(notAfter);
-  if (days < 0) return "已过期";
-  if (days === 0) return "今天到期";
+  if (days < 0) return '已过期';
+  if (days === 0) return '今天到期';
   if (days <= 7) return `${days}天后到期`;
   if (days <= 30) return `${days}天后`;
   return `${days}天`;
@@ -338,10 +300,10 @@ function getExpiryText(notAfter: string) {
  */
 function getExpiryClass(notAfter: string) {
   const days = getDaysUntilExpiry(notAfter);
-  if (days < 0) return "expired";
-  if (days <= 7) return "critical";
-  if (days <= 30) return "warning";
-  return "normal";
+  if (days < 0) return 'expired';
+  if (days <= 7) return 'critical';
+  if (days <= 30) return 'warning';
+  return 'normal';
 }
 
 /**
@@ -458,6 +420,7 @@ defineExpose({ refresh });
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -490,6 +453,7 @@ defineExpose({ refresh });
     z-index: 1;
   }
 }
+
 
 .cert-list {
   flex: 1;
@@ -677,8 +641,7 @@ defineExpose({ refresh });
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -827,6 +790,7 @@ defineExpose({ refresh });
   font-weight: 500;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -835,4 +799,5 @@ defineExpose({ refresh });
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -52,6 +52,8 @@ const emit = defineEmits(["error"]);
 
 const { currentComponent } = useThemeComponent("ElAvatar");
 
+
+
 const handleError = (event: Event) => {
   emit("error", event);
   return true;

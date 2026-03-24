@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <div class="header-icon">
-          <ScIcon :size="28"><Share /></ScIcon>
+          <el-icon :size="28"><Share /></el-icon>
         </div>
         <div class="header-text">
           <h2>服务拓扑</h2>
@@ -12,20 +12,15 @@
         </div>
       </div>
       <div class="header-actions">
-        <ScSelect
-          v-model="filterForm.configId"
-          placeholder="选择配置"
-          style="width: 180px"
-          @change="handleConfigChange"
-        >
-          <ScOption
+        <el-select v-model="filterForm.configId" placeholder="选择配置" @change="handleConfigChange" style="width: 180px">
+          <el-option
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </ScSelect>
-        <ScDatePicker
+        </el-select>
+        <el-date-picker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -33,81 +28,54 @@
           end-placeholder="结束"
           format="MM-DD HH:mm"
           value-format="YYYY-MM-DD HHmm"
-          style="width: 280px"
           @change="handleTimeChange"
+          style="width: 280px"
         />
-        <ScSelect
-          v-model="filterForm.layer"
-          placeholder="选择层"
-          clearable
-          style="width: 120px"
-        >
-          <ScOption
-            v-for="layer in layerList"
-            :key="layer"
-            :label="layer"
-            :value="layer"
-          />
-        </ScSelect>
-        <ScButton type="primary" :icon="Search" @click="fetchData"
-          >查询</el-button
-        >
+        <el-select v-model="filterForm.layer" placeholder="选择层" clearable style="width: 120px">
+          <el-option v-for="layer in layerList" :key="layer" :label="layer" :value="layer" />
+        </el-select>
+        <el-button type="primary" :icon="Search" @click="fetchData">查询</el-button>
       </div>
     </div>
 
     <!-- 拓扑图区域 -->
-    <ScCard v-loading="loading" class="topology-card" shadow="never">
+    <el-card class="topology-card" shadow="never" v-loading="loading">
       <template #header>
         <div class="card-header">
           <span>服务拓扑图</span>
           <div class="legend">
             <span class="legend-item">
-              <span class="dot real" /> 真实服务
+              <span class="dot real"></span> 真实服务
             </span>
             <span class="legend-item">
-              <span class="dot virtual" /> 虚拟节点
+              <span class="dot virtual"></span> 虚拟节点
             </span>
           </div>
         </div>
       </template>
 
-      <div
-        v-if="topologyData?.nodes?.length"
-        ref="containerRef"
-        class="topology-container"
-      >
+      <div v-if="topologyData?.nodes?.length" class="topology-container" ref="containerRef">
         <div class="topology-graph">
           <!-- 节点 -->
           <div
             v-for="(node, index) in layoutNodes"
             :key="node.id"
             class="topology-node"
-            :class="{
-              'is-virtual': !node.isReal,
-              'is-selected': selectedNode?.id === node.id,
-            }"
+            :class="{ 'is-virtual': !node.isReal, 'is-selected': selectedNode?.id === node.id }"
             :style="{ left: node.x + 'px', top: node.y + 'px' }"
             @click="selectNode(node)"
           >
             <div class="node-icon">
-              <ScIcon :size="24"><Monitor /></ScIcon>
+              <el-icon :size="24"><Monitor /></el-icon>
             </div>
             <div class="node-name">{{ node.name }}</div>
-            <div class="node-layer">{{ node.layer || "-" }}</div>
+            <div class="node-layer">{{ node.layer || '-' }}</div>
           </div>
 
           <!-- 连接线 SVG -->
           <svg class="topology-svg" :width="svgWidth" :height="svgHeight">
             <defs>
-              <marker
-                id="arrow"
-                markerWidth="10"
-                markerHeight="10"
-                refX="9"
-                refY="3"
-                orient="auto"
-                markerUnits="strokeWidth"
-              >
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
                 <path d="M0,0 L0,6 L9,3 z" fill="var(--el-color-primary)" />
               </marker>
             </defs>
@@ -125,56 +93,31 @@
           </svg>
         </div>
       </div>
-      <ScEmpty v-else description="暂无拓扑数据" />
-    </ScCard>
+      <el-empty v-else description="暂无拓扑数据" />
+    </el-card>
 
     <!-- 节点详情抽屉 -->
     <sc-drawer v-model="drawerVisible" title="节点详情" size="400px">
       <template v-if="selectedNode">
-        <ScDescriptions :column="1" border>
-          <ScDescriptionsItem label="节点ID">{{
-            selectedNode.id
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="节点名称">{{
-            selectedNode.name
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="节点类型">{{
-            selectedNode.type || "-"
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="层">{{
-            selectedNode.layer || "-"
-          }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="是否真实">
-            <ScTag
-              :type="selectedNode.isReal ? 'success' : 'info'"
-              size="small"
-            >
-              {{ selectedNode.isReal ? "是" : "否" }}
-            </ScTag>
-          </ScDescriptionsItem>
-        </ScDescriptions>
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="节点ID">{{ selectedNode.id }}</el-descriptions-item>
+          <el-descriptions-item label="节点名称">{{ selectedNode.name }}</el-descriptions-item>
+          <el-descriptions-item label="节点类型">{{ selectedNode.type || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="层">{{ selectedNode.layer || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="是否真实">
+            <el-tag :type="selectedNode.isReal ? 'success' : 'info'" size="small">
+              {{ selectedNode.isReal ? '是' : '否' }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <div class="section-title">调用关系</div>
         <div class="call-list">
-          <div
-            v-for="call in nodeRelatedCalls"
-            :key="call.id"
-            class="call-item"
-          >
-            <span class="call-direction">{{
-              call.source === selectedNode.id ? "调用 →" : "← 被调用"
-            }}</span>
-            <span class="call-target">{{
-              call.source === selectedNode.id
-                ? getNodeName(call.target)
-                : getNodeName(call.source)
-            }}</span>
+          <div v-for="call in nodeRelatedCalls" :key="call.id" class="call-item">
+            <span class="call-direction">{{ call.source === selectedNode.id ? '调用 →' : '← 被调用' }}</span>
+            <span class="call-target">{{ call.source === selectedNode.id ? getNodeName(call.target) : getNodeName(call.source) }}</span>
           </div>
-          <ScEmpty
-            v-if="!nodeRelatedCalls.length"
-            description="暂无调用关系"
-            :image-size="60"
-          />
+          <el-empty v-if="!nodeRelatedCalls.length" description="暂无调用关系" :image-size="60" />
         </div>
       </template>
     </sc-drawer>
@@ -186,10 +129,7 @@ import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Monitor, Share, Search } from "@element-plus/icons-vue";
-import {
-  getEnabledSkywalkingConfigs,
-  type SkywalkingConfig,
-} from "@/api/skywalking/config";
+import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
   getSkywalkingGlobalTopology,
   getSkywalkingServiceTopology,
@@ -269,9 +209,7 @@ const nodeRelatedCalls = computed(() => {
   if (!selectedNode.value) return [];
   const calls = topologyData.value?.calls || [];
   return calls.filter(
-    (call) =>
-      call.source === selectedNode.value!.id ||
-      call.target === selectedNode.value!.id,
+    (call) => call.source === selectedNode.value!.id || call.target === selectedNode.value!.id
   );
 });
 
@@ -384,6 +322,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -400,6 +339,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -434,6 +375,7 @@ onMounted(() => {
   }
 }
 
+
 .skywalking-topology {
   padding: 20px;
   height: 100%;
@@ -463,7 +405,7 @@ onMounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
         border-radius: 10px;
         color: #fff;
       }
@@ -640,6 +582,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -648,4 +591,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

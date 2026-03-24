@@ -19,10 +19,7 @@ import {
   type SocketMessageData,
 } from "../../api/message";
 import { useConfigStore } from "./ConfigStore";
-import {
-  ServiceTopics,
-  getMessageTopicWithUser,
-} from "../../config/socketTopics";
+import { ServiceTopics, getMessageTopicWithUser } from "../../config/socketTopics";
 import { store } from "../utils";
 
 export const useMessageStore = defineStore("message-store", () => {
@@ -57,7 +54,7 @@ export const useMessageStore = defineStore("message-store", () => {
   function removeMessage(messageId: number) {
     messageIdSet.value.delete(messageId);
     const index = unreadMessages.value.findIndex(
-      (m) => m.sysMessageId === messageId,
+      (m) => m.sysMessageId === messageId
     );
     if (index !== -1) {
       unreadMessages.value.splice(index, 1);

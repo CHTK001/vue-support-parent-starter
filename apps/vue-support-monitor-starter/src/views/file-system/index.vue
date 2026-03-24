@@ -2,48 +2,48 @@
   <div class="file-system-page system-container modern-bg">
     <!-- 调试信息面板 -->
     <div v-if="showDebugInfo" class="debug-panel">
-      <ScCard>
+      <el-card>
         <template #header>
           <div class="card-header">
             <span>SSE连接调试信息</span>
-            <ScButton type="primary" size="small" @click="testSSEConnection">
+            <el-button @click="testSSEConnection" type="primary" size="small">
               测试连接
-            </ScButton>
-            <ScButton type="success" size="small" @click="testBackendAPI">
+            </el-button>
+            <el-button @click="testBackendAPI" type="success" size="small">
               测试后端API
-            </ScButton>
+            </el-button>
           </div>
         </template>
         <div class="debug-content">
-          <ScDescriptions :column="2" border>
-            <ScDescriptionsItem label="连接状态">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="连接状态">
               {{ connectionStatusText }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="客户端ID">
+            </el-descriptions-item>
+            <el-descriptions-item label="客户端ID">
               {{ sseState.clientId || "未分配" }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="连接中">
+            </el-descriptions-item>
+            <el-descriptions-item label="连接中">
               {{ sseState.connecting ? "是" : "否" }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="已连接">
+            </el-descriptions-item>
+            <el-descriptions-item label="已连接">
               {{ sseState.connected ? "是" : "否" }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="重连次数">
+            </el-descriptions-item>
+            <el-descriptions-item label="重连次数">
               {{ sseState.reconnectAttempts }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="最后心跳">
+            </el-descriptions-item>
+            <el-descriptions-item label="最后心跳">
               {{
                 sseState.lastHeartbeat
                   ? new Date(sseState.lastHeartbeat).toLocaleString()
                   : "无"
               }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="错误信息" :span="2">
+            </el-descriptions-item>
+            <el-descriptions-item label="错误信息" :span="2">
               {{ sseState.error || "无" }}
-            </ScDescriptionsItem>
-          </ScDescriptions>
+            </el-descriptions-item>
+          </el-descriptions>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 统计卡片 -->
@@ -84,13 +84,13 @@
       <div class="group-tree-container">
         <div class="group-tree-header">
           <h3>文件分组</h3>
-          <ScButton type="primary" size="small" @click="handleCreateGroup">
+          <el-button type="primary" size="small" @click="handleCreateGroup">
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             新建分组
-          </ScButton>
+          </el-button>
         </div>
         <div class="group-tree-content">
-          <ScTree
+          <el-tree
             ref="groupTreeRef"
             :data="groupTree"
             :props="groupTreeProps"
@@ -110,7 +110,7 @@
                 <span class="file-count">({{ data.fileCount || 0 }})</span>
               </div>
             </template>
-          </ScTree>
+          </el-tree>
         </div>
       </div>
 
@@ -119,7 +119,7 @@
         <!-- 工具栏 -->
         <div class="toolbar-section">
           <div class="toolbar-left">
-            <ScInput
+            <el-input
               v-model="searchQuery.fileName"
               placeholder="搜索文件名..."
               class="search-input"
@@ -130,22 +130,22 @@
               <template #prefix>
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
-            </ScInput>
-            <ScSelect
+            </el-input>
+            <el-select
               v-model="searchQuery.fileStatus"
               placeholder="文件状态"
               class="filter-select"
               clearable
               @change="handleSearch"
             >
-              <ScOption label="全部" :value="null" />
-              <ScOption label="待合并" :value="0" />
-              <ScOption label="合并中" :value="1" />
-              <ScOption label="已完成" :value="2" />
-              <ScOption label="合并失败" :value="3" />
-            </ScSelect>
+              <el-option label="全部" :value="null" />
+              <el-option label="待合并" :value="0" />
+              <el-option label="合并中" :value="1" />
+              <el-option label="已完成" :value="2" />
+              <el-option label="合并失败" :value="3" />
+            </el-select>
             <!-- WebSocket连接状态 -->
-            <ScTooltip :content="connectionStatusText" placement="bottom">
+            <el-tooltip :content="connectionStatusText" placement="bottom">
               <div class="status-indicator" :class="connectionStatusClass">
                 <IconifyIconOnline
                   :icon="connectionStatusIcon"
@@ -153,60 +153,54 @@
                 />
                 <span class="status-text">{{ connectionStatusText }}</span>
               </div>
-            </ScTooltip>
+            </el-tooltip>
           </div>
           <div class="toolbar-right">
-            <ScButton
+            <el-button
               :disabled="!selectedFiles.length"
               @click="showMoveToGroupDialog = true"
             >
               <IconifyIconOnline icon="ri:folder-transfer-line" class="mr-1" />
               移动到分组
-            </ScButton>
-            <ScButton
+            </el-button>
+            <el-button
               type="danger"
               :disabled="!selectedFiles.length"
               @click="handleBatchDelete"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               批量删除
-            </ScButton>
-            <ScButton @click="handleCleanExpired">
+            </el-button>
+            <el-button @click="handleCleanExpired">
               <IconifyIconOnline icon="ri:delete-bin-2-line" class="mr-1" />
               清理过期
-            </ScButton>
-            <ScDropdown trigger="click">
-              <ScButton>
+            </el-button>
+            <el-dropdown trigger="click">
+              <el-button>
                 <IconifyIconOnline icon="ri:more-2-fill" class="mr-1" />
                 更多
-              </ScButton>
+              </el-button>
               <template #dropdown>
-                <ScDropdownMenu>
-                  <ScDropdownItem @click="showSettingsDialog = true">
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="showSettingsDialog = true">
                     <IconifyIconOnline icon="ri:settings-3-line" class="mr-2" />
                     设置
-                  </ScDropdownItem>
-                  <ScDropdownItem @click="showMD5TestDialog = true">
-                    <IconifyIconOnline
-                      icon="ri:shield-check-line"
-                      class="mr-2"
-                    />
+                  </el-dropdown-item>
+                  <el-dropdown-item @click="showMD5TestDialog = true">
+                    <IconifyIconOnline icon="ri:shield-check-line" class="mr-2" />
                     MD5测试
-                  </ScDropdownItem>
-                  <ScDropdownItem
-                    divided
-                    @click="showDebugInfo = !showDebugInfo"
-                  >
+                  </el-dropdown-item>
+                  <el-dropdown-item divided @click="showDebugInfo = !showDebugInfo">
                     <IconifyIconOnline icon="ri:bug-line" class="mr-2" />
-                    {{ showDebugInfo ? "关闭调试" : "调试模式" }}
-                  </ScDropdownItem>
-                </ScDropdownMenu>
+                    {{ showDebugInfo ? '关闭调试' : '调试模式' }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </ScDropdown>
-            <ScButton type="primary" @click="showUploadDialog = true">
+            </el-dropdown>
+            <el-button type="primary" @click="showUploadDialog = true">
               <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
               上传文件
-            </ScButton>
+            </el-button>
           </div>
         </div>
 
@@ -220,8 +214,8 @@
             height="auto"
             @selection-change="handleSelectionChange"
           >
-            <ScTableColumn type="selection" width="55" />
-            <ScTableColumn label="文件名" min-width="200">
+            <el-table-column type="selection" width="55" />
+            <el-table-column label="文件名" min-width="200">
               <template #default="{ row }">
                 <div class="file-name-cell">
                   <IconifyIconOnline
@@ -233,28 +227,28 @@
                   </span>
                 </div>
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="文件大小" width="120" align="right">
+            </el-table-column>
+            <el-table-column label="文件大小" width="120" align="right">
               <template #default="{ row }">
                 {{ formatFileSize(row.fileSystemSize) }}
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="状态" width="100" align="center">
+            </el-table-column>
+            <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }">
-                <ScTag :type="getStatusType(row.fileSystemStatus)">
+                <el-tag :type="getStatusType(row.fileSystemStatus)">
                   {{ getStatusText(row.fileSystemStatus) }}
-                </ScTag>
+                </el-tag>
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="进度" width="150">
+            </el-table-column>
+            <el-table-column label="进度" width="150">
               <template #default="{ row }">
                 <div v-if="row.fileSystemChunkTotal > 0" class="progress-cell">
-                  <ScProgress
+                  <el-progress
                     :percentage="
                       Math.round(
                         (row.fileSystemChunkUploaded /
                           row.fileSystemChunkTotal) *
-                          100,
+                          100
                       )
                     "
                     :status="getProgressStatus(row.fileSystemStatus)"
@@ -263,64 +257,64 @@
                 </div>
                 <span v-else>-</span>
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="HTTP访问" width="100" align="center">
+            </el-table-column>
+            <el-table-column label="HTTP访问" width="100" align="center">
               <template #default="{ row }">
-                <ScSwitch
+                <el-switch
                   v-model="row.fileSystemHttpAccessEnabled"
                   :disabled="row.fileSystemStatus !== 2"
                   @change="handleToggleHttpAccess(row)"
                 />
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="创建时间" width="160">
+            </el-table-column>
+            <el-table-column label="创建时间" width="160">
               <template #default="{ row }">
                 {{ formatDateTime(row.createTime) }}
               </template>
-            </ScTableColumn>
-            <ScTableColumn label="操作" width="200" fixed="right">
+            </el-table-column>
+            <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
-                <ScButton
+                <el-button
                   v-if="row.fileSystemStatus === 2"
                   size="small"
                   type="primary"
                   @click="handleDownload(row)"
                 >
                   下载
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-if="row.fileSystemStatus === 2"
                   size="small"
                   type="success"
                   @click="openDistribute(row)"
                 >
                   同步
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-if="row.fileSystemStatus === 3"
                   size="small"
                   type="warning"
                   @click="handleRetryMerge(row)"
                 >
                   重试
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-if="row.fileSystemStatus === 0"
                   size="small"
                   type="success"
                   @click="handleManualMerge(row)"
                 >
                   合并
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   size="small"
                   type="danger"
                   @click="handleDelete(row)"
                 >
                   删除
-                </ScButton>
+                </el-button>
               </template>
-            </ScTableColumn>
+            </el-table-column>
           </ScTable>
         </div>
       </div>
@@ -393,11 +387,11 @@
           </div>
         </div>
 
-        <ScDivider />
+        <el-divider />
 
         <div class="group-selection">
           <p>选择目标分组：</p>
-          <ScTree
+          <el-tree
             ref="moveGroupTreeRef"
             :data="groupTree"
             :props="groupTreeProps"
@@ -416,21 +410,21 @@
                 <span class="file-count">({{ data.fileCount || 0 }})</span>
               </div>
             </template>
-          </ScTree>
+          </el-tree>
         </div>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <ScButton @click="showMoveToGroupDialog = false">取消</ScButton>
-          <ScButton
+          <el-button @click="showMoveToGroupDialog = false">取消</el-button>
+          <el-button
             type="primary"
             :disabled="!selectedMoveGroupId"
             :loading="moveToGroupLoading"
             @click="handleMoveToGroup"
           >
             移动
-          </ScButton>
+          </el-button>
         </div>
       </template>
     </sc-dialog>
@@ -470,7 +464,8 @@ import UploadQueueStatusComponent from "./components/UploadQueueStatus.vue";
 import FileSystemSettings from "./components/FileSystemSettings.vue";
 import MD5TestDialog from "./components/MD5TestDialog.vue";
 import FileSystemGroupDialog from "./components/FileSystemGroupDialog.vue";
-import { ScCard } from "@repo/components"
+import ScCard from "@repo/components/ScCard/index.vue";
+
 // SSE连接
 const {
   state: sseState,
@@ -581,7 +576,7 @@ const handleGroupSelect = (data: FileSystemGroup) => {
     "选择分组:",
     data.fileSystemGroupName,
     "ID:",
-    data.fileSystemGroupId,
+    data.fileSystemGroupId
   );
 };
 
@@ -706,7 +701,7 @@ watch(
   () => {
     tableRef.value?.refresh();
   },
-  { deep: true },
+  { deep: true }
 );
 
 /**
@@ -749,7 +744,7 @@ const getFileIcon = (fileType: string) => {
  * 获取状态类型
  */
 const getStatusType = (
-  status: number,
+  status: number
 ): "success" | "warning" | "info" | "primary" | "danger" => {
   const typeMap: Record<
     number,
@@ -830,7 +825,7 @@ const handleDelete = async (file: FileSystem) => {
       "确认删除",
       {
         type: "warning",
-      },
+      }
     );
 
     const res = await deleteFile(file.fileSystemId!);
@@ -858,7 +853,7 @@ const handleBatchDelete = async () => {
       "确认批量删除",
       {
         type: "warning",
-      },
+      }
     );
 
     const fileIds = selectedFiles.value.map((f) => f.fileSystemId!);
@@ -884,11 +879,11 @@ const handleToggleHttpAccess = async (file: FileSystem) => {
   try {
     const res = await toggleHttpAccess(
       file.fileSystemId!,
-      file.fileSystemHttpAccessEnabled!,
+      file.fileSystemHttpAccessEnabled!
     );
     if (res.code === "00000") {
       message.success(
-        file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问",
+        file.fileSystemHttpAccessEnabled ? "已启用HTTP访问" : "已禁用HTTP访问"
       );
     } else {
       // 恢复原状态
@@ -913,7 +908,7 @@ const handleCleanExpired = async () => {
       "确认清理",
       {
         type: "warning",
-      },
+      }
     );
 
     const res = await cleanExpiredFiles();
@@ -1042,7 +1037,7 @@ const testBackendAPI = async () => {
       console.log(
         "SSE状态端点响应:",
         statusResponse.status,
-        statusResponse.statusText,
+        statusResponse.statusText
       );
 
       if (statusResponse.ok) {
@@ -1063,6 +1058,7 @@ const testBackendAPI = async () => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -1079,6 +1075,8 @@ const testBackendAPI = async () => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -1112,6 +1110,7 @@ const testBackendAPI = async () => {
     z-index: 1;
   }
 }
+
 
 .file-system-page {
   padding: 16px;

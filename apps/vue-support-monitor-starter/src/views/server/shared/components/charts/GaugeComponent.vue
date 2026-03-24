@@ -5,38 +5,50 @@
         <IconifyIconOnline icon="ri:dashboard-3-line" class="gauge-icon" />
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
-      <div v-if="editMode" class="gauge-actions">
-        <ScButton type="primary" text size="small" @click="handleEdit">
+      <div class="gauge-actions" v-if="editMode">
+        <el-button
+          type="primary"
+          text
+          size="small"
+          @click="handleEdit"
+        >
           <IconifyIconOnline icon="ri:edit-line" />
-        </ScButton>
-        <ScButton type="danger" text size="small" @click="handleDelete">
+        </el-button>
+        <el-button
+          type="danger"
+          text
+          size="small"
+          @click="handleDelete"
+        >
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </ScButton>
+        </el-button>
       </div>
     </div>
-
-    <div v-loading="loading" class="gauge-content">
-      <div ref="chartRef" class="gauge-chart" />
+    
+    <div class="gauge-content" v-loading="loading">
+      <div ref="chartRef" class="gauge-chart"></div>
       <div class="gauge-info">
         <div class="current-value">
           <span class="value">{{ displayValue }}</span>
-          <span v-if="unit" class="unit">{{ unit }}</span>
+          <span class="unit" v-if="unit">{{ unit }}</span>
         </div>
-        <div class="last-update">最后更新: {{ lastUpdateTime }}</div>
+        <div class="last-update">
+          最后更新: {{ lastUpdateTime }}
+        </div>
       </div>
     </div>
 
-    <div v-if="!editMode" class="gauge-footer">
-      <ScButton
+    <div class="gauge-footer" v-if="!editMode">
+      <el-button
         type="primary"
         text
         size="small"
-        :loading="refreshing"
         @click="handleRefresh"
+        :loading="refreshing"
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </ScButton>
+      </el-button>
     </div>
   </div>
 </template>
@@ -45,10 +57,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { message } from "@repo/utils";
 import * as echarts from "echarts";
-import {
-  executeComponentQuery,
-  type ServerDetailComponent,
-} from "@/api/server";
+import { executeComponentQuery, type ServerDetailComponent } from "@/api/server";
 
 // 定义属性
 const props = defineProps<{
@@ -83,18 +92,16 @@ const displayValue = computed(() => {
 
 const chartConfig = computed(() => {
   try {
-    const config = JSON.parse(
-      props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}",
-    );
+    const config = JSON.parse(props.componentData.monitorSysGenServerDetailComponentChartConfig || "{}");
     return {
       min: config.min || 0,
       max: config.max || 100,
       unit: config.unit || "%",
       thresholds: config.thresholds || [
         { value: 70, color: "#E6A23C" },
-        { value: 90, color: "#F56C6C" },
+        { value: 90, color: "#F56C6C" }
       ],
-      ...config,
+      ...config
     };
   } catch {
     return {
@@ -103,8 +110,8 @@ const chartConfig = computed(() => {
       unit: "%",
       thresholds: [
         { value: 70, color: "#E6A23C" },
-        { value: 90, color: "#F56C6C" },
-      ],
+        { value: 90, color: "#F56C6C" }
+      ]
     };
   }
 });
@@ -147,74 +154,74 @@ const updateChart = () => {
   const option = {
     series: [
       {
-        type: "gauge",
-        center: ["50%", "60%"],
+        type: 'gauge',
+        center: ['50%', '60%'],
         startAngle: 200,
         endAngle: -20,
         min: config.min,
         max: config.max,
         splitNumber: 5,
         itemStyle: {
-          color: color,
+          color: color
         },
         progress: {
           show: true,
-          width: 8,
+          width: 8
         },
         pointer: {
-          show: false,
+          show: false
         },
         axisLine: {
           lineStyle: {
             width: 8,
-            color: [[1, "#E6EBF8"]],
-          },
+            color: [[1, '#E6EBF8']]
+          }
         },
         axisTick: {
           distance: -45,
           splitNumber: 5,
           lineStyle: {
             width: 2,
-            color: "#999",
-          },
+            color: '#999'
+          }
         },
         splitLine: {
           distance: -52,
           length: 14,
           lineStyle: {
             width: 3,
-            color: "#999",
-          },
+            color: '#999'
+          }
         },
         axisLabel: {
           distance: -20,
-          color: "#999",
-          fontSize: 12,
+          color: '#999',
+          fontSize: 12
         },
         anchor: {
-          show: false,
+          show: false
         },
         title: {
-          show: false,
+          show: false
         },
         detail: {
           valueAnimation: true,
-          width: "60%",
+          width: '60%',
           lineHeight: 40,
           borderRadius: 8,
-          offsetCenter: [0, "-15%"],
+          offsetCenter: [0, '-15%'],
           fontSize: 24,
-          fontWeight: "bolder",
+          fontWeight: 'bolder',
           formatter: `{value}${config.unit}`,
-          color: color,
+          color: color
         },
         data: [
           {
-            value: value,
-          },
-        ],
-      },
-    ],
+            value: value
+          }
+        ]
+      }
+    ]
   };
 
   chartInstance.value.setOption(option);
@@ -235,7 +242,7 @@ const resizeChart = () => {
 const loadData = async () => {
   try {
     loading.value = true;
-
+    
     const timeRange = {
       start: Date.now() - 5 * 60 * 1000, // 最近5分钟
       end: Date.now(),
@@ -243,7 +250,7 @@ const loadData = async () => {
 
     const res = await executeComponentQuery(
       props.componentData.monitorSysGenServerDetailComponentId!,
-      timeRange,
+      timeRange
     );
 
     if (res.code === "00000") {
@@ -256,10 +263,10 @@ const loadData = async () => {
       } else {
         value = parseFloat(res.data) || 0;
       }
-
+      
       data.value = value;
       lastUpdateTime.value = new Date().toLocaleTimeString();
-
+      
       // 更新图表
       nextTick(() => {
         updateChart();
@@ -304,10 +311,8 @@ const handleDelete = () => {
  * 启动自动刷新
  */
 const startAutoRefresh = () => {
-  const interval =
-    (props.componentData.monitorSysGenServerDetailComponentRefreshInterval ||
-      30) * 1000;
-
+  const interval = (props.componentData.monitorSysGenServerDetailComponentRefreshInterval || 30) * 1000;
+  
   refreshTimer.value = setInterval(() => {
     if (!props.editMode) {
       loadData();
@@ -339,29 +344,27 @@ onMounted(() => {
       startAutoRefresh();
     }
   });
-
-  window.addEventListener("resize", handleResize);
+  
+  window.addEventListener('resize', handleResize);
 });
 
 onUnmounted(() => {
   stopAutoRefresh();
-  window.removeEventListener("resize", handleResize);
-
+  window.removeEventListener('resize', handleResize);
+  
   if (chartInstance.value) {
     chartInstance.value.dispose();
   }
 });
 
 // 监听数据变化
-watch(
-  () => data.value,
-  () => {
-    updateChart();
-  },
-);
+watch(() => data.value, () => {
+  updateChart();
+});
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -394,6 +397,7 @@ watch(
     z-index: 1;
   }
 }
+
 
 .gauge-component {
   height: 100%;

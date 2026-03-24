@@ -16,15 +16,7 @@ import { useTags } from "../../../hooks/useTag";
 import { routerArrays } from "../../../types";
 import { onClickOutside } from "@vueuse/core";
 import { usePermissionStoreHook } from "@repo/core";
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  ref,
-  toRaw,
-  unref,
-  watch,
-} from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
 import {
   delay,
   isAllEmpty,
@@ -33,7 +25,7 @@ import {
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";
 import ArrowRightSLine from "@iconify-icons/ri/arrow-right-s-line";
@@ -147,7 +139,7 @@ const moveToView = async (index: number): Promise<void> => {
       scrollbarDomWidth -
         tabItemOffsetWidth -
         tabItemElOffsetLeft -
-        tabNavPadding,
+        tabNavPadding
     );
   } else {
     translateX.value = -(
@@ -169,7 +161,7 @@ const handleScroll = (offset: number): void => {
       if (translateX.value >= -(tabDomWidth - scrollbarDomWidth)) {
         translateX.value = Math.max(
           translateX.value + offset,
-          scrollbarDomWidth - tabDomWidth,
+          scrollbarDomWidth - tabDomWidth
         );
       }
     } else {
@@ -351,8 +343,8 @@ onClickOutside(contextmenuRef, closeMenu, {
 });
 
 watch(route, () => {
-  if (route.path.startsWith("/redirect")) return;
-
+  if (route.path.startsWith('/redirect')) return;
+  
   activeIndex.value = -1;
   dynamicRouteTag(route.path);
   dynamicTagView();
@@ -364,7 +356,7 @@ onMounted(() => {
   showMenuModel(route.fullPath);
   emitter.off("tagViewsChange");
   emitter.off("changLayoutRoute");
-
+  
   emitter.on("tagViewsChange", (key: any) => {
     if (unref(showTags as any) === key) return;
     (showTags as any).value = key;
@@ -441,7 +433,7 @@ const deferTag = useDefer(tagsViews?.length);
     <span v-show="isShowArrow" class="arrow-right">
       <IconifyIconOffline :icon="ArrowRightSLine" @click="handleScroll(-200)" />
     </span>
-
+    
     <!-- 右键菜单 -->
     <ul
       v-show="visible"
@@ -461,9 +453,9 @@ const deferTag = useDefer(tagsViews?.length);
         </li>
       </div>
     </ul>
-
+    
     <!-- 右侧功能按钮 -->
-    <ScDropdown
+    <el-dropdown
       trigger="click"
       placement="bottom-end"
       popper-class="tag-function-dropdown-popper"
@@ -473,9 +465,9 @@ const deferTag = useDefer(tagsViews?.length);
         <IconifyIconOffline :icon="ArrowDown" class="dark:text-white" />
       </span>
       <template #dropdown>
-        <ScDropdownMenu>
+        <el-dropdown-menu>
           <span v-for="(item, key) in tagsViews" :key="key">
-            <ScDropdownItem
+            <el-dropdown-item
               v-if="deferTag(key)"
               :key="key"
               :command="{ key, item }"
@@ -484,11 +476,11 @@ const deferTag = useDefer(tagsViews?.length);
             >
               <IconifyIconOffline :icon="item.icon" />
               {{ transformI18n(item.text) }}
-            </ScDropdownItem>
+            </el-dropdown-item>
           </span>
-        </ScDropdownMenu>
+        </el-dropdown-menu>
       </template>
-    </ScDropdown>
+    </el-dropdown>
   </div>
 </template>
 
@@ -501,5 +493,6 @@ const deferTag = useDefer(tagsViews?.length);
 </style>
 
 <style lang="scss">
-@use "./default.scss";
+@use './default.scss';
+@use './mid-autumn.css';
 </style>

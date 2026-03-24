@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 
 defineOptions({
-  name: "ReSplitPane"
+  name: "ReSplitPane",
 });
 
 const props = withDefaults(
@@ -23,7 +23,7 @@ const props = withDefaults(
     minSize: 50,
     maxSize: Infinity,
     defaultSize: "50%",
-    allowResize: true
+    allowResize: true,
   }
 );
 
@@ -45,14 +45,19 @@ const paneStyle = computed(() => {
 });
 
 const resizerStyle = computed(() => ({
-  cursor: isVertical.value ? "col-resize" : "row-resize"
+  cursor: isVertical.value ? "col-resize" : "row-resize",
 }));
 
-const containerClass = computed(() => ["split-pane-container", isVertical.value ? "split-vertical" : "split-horizontal"]);
+const containerClass = computed(() => [
+  "split-pane-container",
+  isVertical.value ? "split-vertical" : "split-horizontal",
+]);
 
 function getContainerSize() {
   if (!containerRef.value) return 0;
-  return isVertical.value ? containerRef.value.offsetWidth : containerRef.value.offsetHeight;
+  return isVertical.value
+    ? containerRef.value.offsetWidth
+    : containerRef.value.offsetHeight;
 }
 
 function parseDefaultSize(): number {
@@ -85,7 +90,9 @@ function onMouseDown(e: MouseEvent) {
 function onMouseMove(e: MouseEvent) {
   if (!isDragging.value || !containerRef.value) return;
   const rect = containerRef.value.getBoundingClientRect();
-  const newSize = isVertical.value ? e.clientX - rect.left : e.clientY - rect.top;
+  const newSize = isVertical.value
+    ? e.clientX - rect.left
+    : e.clientY - rect.top;
   paneSize.value = clampSize(newSize);
   emit("resize", paneSize.value);
 }
@@ -112,7 +119,12 @@ onUnmounted(() => {
     <div class="split-pane split-pane-first" :style="paneStyle">
       <slot name="first" />
     </div>
-    <div v-if="allowResize" class="split-pane-resizer" :style="resizerStyle" @mousedown="onMouseDown" />
+    <div
+      v-if="allowResize"
+      class="split-pane-resizer"
+      :style="resizerStyle"
+      @mousedown="onMouseDown"
+    />
     <div class="split-pane split-pane-second">
       <slot name="second" />
     </div>

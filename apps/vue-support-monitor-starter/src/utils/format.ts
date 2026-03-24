@@ -10,13 +10,13 @@
  */
 export function formatFileSize(bytes: number, decimals = 2): string {
   if (bytes === 0) return "0 B";
-
+  
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-
+  
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-
+  
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
@@ -26,10 +26,7 @@ export function formatFileSize(bytes: number, decimals = 2): string {
  * @param decimals 小数位数
  * @returns 格式化后的网络速度
  */
-export function formatNetworkSpeed(
-  bytesPerSecond: number,
-  decimals = 1,
-): string {
+export function formatNetworkSpeed(bytesPerSecond: number, decimals = 1): string {
   return formatFileSize(bytesPerSecond, decimals) + "/s";
 }
 
@@ -56,13 +53,13 @@ export function formatNumber(
     separator?: string;
     suffix?: string;
     prefix?: string;
-  } = {},
+  } = {}
 ): string {
   const { decimals = 0, separator = ",", suffix = "", prefix = "" } = options;
-
+  
   const parts = value.toFixed(decimals).split(".");
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, separator);
-
+  
   return prefix + parts.join(".") + suffix;
 }
 
@@ -74,10 +71,10 @@ export function formatNumber(
  */
 export function formatTimestamp(
   timestamp: number | string,
-  format = "YYYY-MM-DD HH:mm:ss",
+  format = "YYYY-MM-DD HH:mm:ss"
 ): string {
   const date = new Date(timestamp);
-
+  
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -85,7 +82,7 @@ export function formatTimestamp(
   const minutes = String(date.getMinutes()).padStart(2, "0");
   const seconds = String(date.getSeconds()).padStart(2, "0");
   const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
-
+  
   return format
     .replace("YYYY", year.toString())
     .replace("MM", month)
@@ -105,14 +102,14 @@ export function formatRelativeTime(timestamp: number | string): string {
   const now = Date.now();
   const time = new Date(timestamp).getTime();
   const diff = now - time;
-
+  
   const minute = 60 * 1000;
   const hour = 60 * minute;
   const day = 24 * hour;
   const week = 7 * day;
   const month = 30 * day;
   const year = 365 * day;
-
+  
   if (diff < minute) {
     return "刚刚";
   } else if (diff < hour) {
@@ -138,19 +135,19 @@ export function formatRelativeTime(timestamp: number | string): string {
  */
 export function formatDuration(seconds: number, showSeconds = true): string {
   if (seconds < 0) return "0秒";
-
+  
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-
+  
   const parts: string[] = [];
-
+  
   if (days > 0) parts.push(`${days}天`);
   if (hours > 0) parts.push(`${hours}小时`);
   if (minutes > 0) parts.push(`${minutes}分钟`);
   if (showSeconds && (secs > 0 || parts.length === 0)) parts.push(`${secs}秒`);
-
+  
   return parts.join("");
 }
 
@@ -161,18 +158,18 @@ export function formatDuration(seconds: number, showSeconds = true): string {
  */
 export function formatIPAddress(ip: string): string {
   if (!ip) return "-";
-
+  
   // IPv4地址验证
   const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
   if (ipv4Regex.test(ip)) {
     return ip;
   }
-
+  
   // IPv6地址简化显示
   if (ip.includes(":")) {
     return ip.length > 20 ? ip.substring(0, 20) + "..." : ip;
   }
-
+  
   return ip;
 }
 
@@ -197,7 +194,7 @@ export function formatPort(port: number | string): string {
  */
 export function formatStatus(
   status: number | string,
-  statusMap: Record<string | number, { text: string; color?: string }>,
+  statusMap: Record<string | number, { text: string; color?: string }>
 ): string {
   const statusInfo = statusMap[status];
   return statusInfo?.text || "未知";
@@ -211,10 +208,10 @@ export function formatStatus(
  */
 export function formatTemperature(
   temperature: number,
-  unit: "C" | "F" = "C",
+  unit: "C" | "F" = "C"
 ): string {
   if (isNaN(temperature)) return "-";
-
+  
   const temp = unit === "F" ? (temperature * 9) / 5 + 32 : temperature;
   return `${temp.toFixed(1)}°${unit}`;
 }
@@ -227,7 +224,7 @@ export function formatTemperature(
 export function formatCPULoad(load: number | string): string {
   const loadNum = Number(load);
   if (isNaN(loadNum)) return "-";
-
+  
   return loadNum.toFixed(2);
 }
 
@@ -239,11 +236,11 @@ export function formatCPULoad(load: number | string): string {
  */
 export function formatMemorySize(bytes: number, showUnit = true): string {
   if (bytes === 0) return showUnit ? "0 B" : "0";
-
+  
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-
+  
   const value = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
   return showUnit ? `${value} ${sizes[i]}` : value.toString();
 }
@@ -257,15 +254,15 @@ export function formatError(error: any): string {
   if (typeof error === "string") {
     return error;
   }
-
+  
   if (error?.message) {
     return error.message;
   }
-
+  
   if (error?.msg) {
     return error.msg;
   }
-
+  
   return "未知错误";
 }
 
@@ -279,12 +276,12 @@ export function formatError(error: any): string {
 export function truncateText(
   text: string,
   maxLength: number,
-  suffix = "...",
+  suffix = "..."
 ): string {
   if (!text || text.length <= maxLength) {
     return text || "";
   }
-
+  
   return text.substring(0, maxLength - suffix.length) + suffix;
 }
 
@@ -298,12 +295,12 @@ export function truncateText(
 export function highlightKeyword(
   text: string,
   keyword: string,
-  className = "highlight",
+  className = "highlight"
 ): string {
   if (!text || !keyword) {
     return text || "";
   }
-
+  
   const regex = new RegExp(`(${keyword})`, "gi");
   return text.replace(regex, `<span class="${className}">$1</span>`);
 }
@@ -317,7 +314,7 @@ export function generateRandomColor(opacity = 1): string {
   const r = Math.floor(Math.random() * 256);
   const g = Math.floor(Math.random() * 256);
   const b = Math.floor(Math.random() * 256);
-
+  
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
@@ -332,7 +329,7 @@ export function getContrastColor(backgroundColor: string): string {
   const r = parseInt(hex.substr(0, 2), 16);
   const g = parseInt(hex.substr(2, 2), 16);
   const b = parseInt(hex.substr(4, 2), 16);
-
+  
   const brightness = (r * 299 + g * 587 + b * 114) / 1000;
   return brightness > 128 ? "#000000" : "#ffffff";
 }

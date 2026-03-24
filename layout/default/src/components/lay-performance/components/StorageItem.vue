@@ -5,21 +5,16 @@
       <span class="label">存储</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-      <div
-        class="gauge-fill"
-        :style="{
-          width: `${Math.min((storage.usedBytes / storage.quotaBytes) * 100, 100)}%`,
-        }"
-      ></div>
+      <div class="gauge-fill" :style="{ width: `${Math.min((storage.usedBytes / storage.quotaBytes) * 100, 100)}%` }"></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 
 defineProps({
-  mode: { type: String, required: true },
+  mode: { type: String, required: true }
 });
 
 interface StorageInfo {
@@ -53,7 +48,7 @@ const updateStorage = () => {
         storage.value = {
           used: (totalUsed / 1024 / 1024).toFixed(2),
           quotaBytes: quota,
-          usedBytes: totalUsed,
+          usedBytes: totalUsed
         };
       });
     } else {
@@ -61,7 +56,7 @@ const updateStorage = () => {
       storage.value = {
         used: (totalUsed / 1024 / 1024).toFixed(2),
         quotaBytes: 5 * 1024 * 1024 * 1024,
-        usedBytes: totalUsed,
+        usedBytes: totalUsed
       };
     }
   } catch (error) {
@@ -113,7 +108,7 @@ onBeforeUnmount(() => {
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;
@@ -125,3 +120,4 @@ onBeforeUnmount(() => {
   transition: width 0.3s;
 }
 </style>
+

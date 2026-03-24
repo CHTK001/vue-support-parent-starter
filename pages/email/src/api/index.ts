@@ -1,28 +1,11 @@
-import {
-  EmailAccount,
-  EmailFolder,
-  EmailInfo,
-  EmailLabel,
-  EmailSearchParams,
-  EmailSearchResult,
-  ApiResponse,
-} from "../types";
-import {
-  allEmails,
-  emailAccounts,
-  emailDraftMessages,
-  emailFolders,
-  emailLabels,
-  emailSentMessages,
-} from "./mockData";
+import { EmailAccount, EmailFolder, EmailInfo, EmailLabel, EmailSearchParams, EmailSearchResult, ApiResponse } from "../types";
+import { allEmails, emailAccounts, emailDraftMessages, emailFolders, emailLabels, emailSentMessages } from "./mockData";
 
 // 模拟延迟
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // 获取所有邮箱账户
-export const fetchEmailAccounts = async (): Promise<
-  ApiResponse<EmailAccount[]>
-> => {
+export const fetchEmailAccounts = async (): Promise<ApiResponse<EmailAccount[]>> => {
   await delay(300);
   return {
     code: "00000",
@@ -33,9 +16,7 @@ export const fetchEmailAccounts = async (): Promise<
 };
 
 // 获取所有文件夹
-export const fetchEmailFolders = async (): Promise<
-  ApiResponse<EmailFolder[]>
-> => {
+export const fetchEmailFolders = async (): Promise<ApiResponse<EmailFolder[]>> => {
   await delay(300);
   return {
     code: "00000",
@@ -46,9 +27,7 @@ export const fetchEmailFolders = async (): Promise<
 };
 
 // 获取所有标签
-export const fetchEmailLabels = async (): Promise<
-  ApiResponse<EmailLabel[]>
-> => {
+export const fetchEmailLabels = async (): Promise<ApiResponse<EmailLabel[]>> => {
   await delay(300);
   return {
     code: "00000",
@@ -59,71 +38,49 @@ export const fetchEmailLabels = async (): Promise<
 };
 
 // 搜索邮件
-export const searchEmails = async (
-  params: EmailSearchParams,
-): Promise<ApiResponse<EmailSearchResult>> => {
+export const searchEmails = async (params: EmailSearchParams): Promise<ApiResponse<EmailSearchResult>> => {
   await delay(500);
 
   let filteredEmails = [...allEmails];
 
   // 按账户过滤
   if (params.accountId) {
-    filteredEmails = filteredEmails.filter(
-      (email) => email.emailAccountId === params.accountId,
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailAccountId === params.accountId);
   }
 
   // 按文件夹过滤
   if (params.folderId) {
-    filteredEmails = filteredEmails.filter(
-      (email) => email.emailFolder === params.folderId,
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailFolder === params.folderId);
   }
 
   // 按标签过滤
   if (params.labelId) {
-    filteredEmails = filteredEmails.filter((email) =>
-      email.emailLabels?.includes(params.labelId),
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailLabels?.includes(params.labelId));
   }
 
   // 按已读/未读过滤
   if (params.isRead !== undefined) {
-    filteredEmails = filteredEmails.filter(
-      (email) => email.emailIsRead === params.isRead,
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailIsRead === params.isRead);
   }
 
   // 按星标过滤
   if (params.isStarred !== undefined) {
-    filteredEmails = filteredEmails.filter(
-      (email) => email.emailIsStarred === params.isStarred,
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailIsStarred === params.isStarred);
   }
 
   // 按重要性过滤
   if (params.isImportant !== undefined) {
-    filteredEmails = filteredEmails.filter(
-      (email) => email.emailIsImportant === params.isImportant,
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailIsImportant === params.isImportant);
   }
 
   // 按关键词搜索
   if (params.keyword) {
     const keyword = params.keyword.toLowerCase();
-    filteredEmails = filteredEmails.filter(
-      (email) =>
-        email.emailSubject.toLowerCase().includes(keyword) ||
-        email.emailContent.toLowerCase().includes(keyword) ||
-        email.emailSender.emailName.toLowerCase().includes(keyword) ||
-        email.emailSender.emailAddress.toLowerCase().includes(keyword),
-    );
+    filteredEmails = filteredEmails.filter((email) => email.emailSubject.toLowerCase().includes(keyword) || email.emailContent.toLowerCase().includes(keyword) || email.emailSender.emailName.toLowerCase().includes(keyword) || email.emailSender.emailAddress.toLowerCase().includes(keyword));
   }
 
   // 按日期排序（最新的在前）
-  filteredEmails.sort(
-    (a, b) => new Date(b.emailDate).getTime() - new Date(a.emailDate).getTime(),
-  );
+  filteredEmails.sort((a, b) => new Date(b.emailDate).getTime() - new Date(a.emailDate).getTime());
 
   // 计算总数
   const total = filteredEmails.length;
@@ -147,9 +104,7 @@ export const searchEmails = async (
 };
 
 // 获取单个邮件详情
-export const fetchEmailDetail = async (
-  emailId: string,
-): Promise<ApiResponse<EmailInfo>> => {
+export const fetchEmailDetail = async (emailId: string): Promise<ApiResponse<EmailInfo>> => {
   await delay(300);
 
   const email = allEmails.find((email) => email.emailId === emailId);
@@ -175,10 +130,7 @@ export const fetchEmailDetail = async (
 };
 
 // 标记邮件状态
-export const markEmailStatus = async (
-  emailId: string,
-  status: { isRead?: boolean; isStarred?: boolean; isImportant?: boolean },
-): Promise<ApiResponse<boolean>> => {
+export const markEmailStatus = async (emailId: string, status: { isRead?: boolean; isStarred?: boolean; isImportant?: boolean }): Promise<ApiResponse<boolean>> => {
   await delay(200);
 
   const email = allEmails.find((email) => email.emailId === emailId);
@@ -213,10 +165,7 @@ export const markEmailStatus = async (
 };
 
 // 移动邮件到文件夹
-export const moveEmailToFolder = async (
-  emailId: string,
-  folderId: string,
-): Promise<ApiResponse<boolean>> => {
+export const moveEmailToFolder = async (emailId: string, folderId: string): Promise<ApiResponse<boolean>> => {
   await delay(300);
 
   const email = allEmails.find((email) => email.emailId === emailId);
@@ -241,11 +190,7 @@ export const moveEmailToFolder = async (
 };
 
 // 添加或移除标签
-export const updateEmailLabels = async (
-  emailId: string,
-  labelId: string,
-  action: "add" | "remove",
-): Promise<ApiResponse<boolean>> => {
+export const updateEmailLabels = async (emailId: string, labelId: string, action: "add" | "remove"): Promise<ApiResponse<boolean>> => {
   await delay(200);
 
   const email = allEmails.find((email) => email.emailId === emailId);
@@ -278,16 +223,7 @@ export const updateEmailLabels = async (
 };
 
 // 发送邮件
-export const sendEmail = async (
-  email: Omit<
-    EmailInfo,
-    | "emailId"
-    | "emailDate"
-    | "emailIsRead"
-    | "emailIsStarred"
-    | "emailIsImportant"
-  >,
-): Promise<ApiResponse<EmailInfo>> => {
+export const sendEmail = async (email: Omit<EmailInfo, "emailId" | "emailDate" | "emailIsRead" | "emailIsStarred" | "emailIsImportant">): Promise<ApiResponse<EmailInfo>> => {
   await delay(800);
 
   const newEmail: EmailInfo = {
@@ -312,16 +248,7 @@ export const sendEmail = async (
 };
 
 // 保存草稿
-export const saveDraft = async (
-  email: Omit<
-    EmailInfo,
-    | "emailId"
-    | "emailDate"
-    | "emailIsRead"
-    | "emailIsStarred"
-    | "emailIsImportant"
-  >,
-): Promise<ApiResponse<EmailInfo>> => {
+export const saveDraft = async (email: Omit<EmailInfo, "emailId" | "emailDate" | "emailIsRead" | "emailIsStarred" | "emailIsImportant">): Promise<ApiResponse<EmailInfo>> => {
   await delay(300);
 
   const newEmail: EmailInfo = {
@@ -346,9 +273,7 @@ export const saveDraft = async (
 };
 
 // 删除邮件
-export const deleteEmail = async (
-  emailId: string,
-): Promise<ApiResponse<boolean>> => {
+export const deleteEmail = async (emailId: string): Promise<ApiResponse<boolean>> => {
   await delay(300);
 
   const email = allEmails.find((email) => email.emailId === emailId);

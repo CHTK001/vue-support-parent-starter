@@ -31,15 +31,11 @@ export function getNodeListAll(params) {
 
 // node group all
 export function getNodeGroupAll() {
-  return http.get(
-    "/node/list_group_all.json",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/node/list_group_all.json", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 // 节点和版本信息
@@ -77,15 +73,11 @@ export function getProjectListAll(params) {
 
 // 同步节点项目
 export function syncProject(nodeId) {
-  return http.get(
-    "/node/sync_project",
-    { nodeId: nodeId },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/node/sync_project", { nodeId: nodeId }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export function syncToWorkspace(params) {
@@ -157,28 +149,20 @@ export function editNode(params) {
 
 // 删除 node
 export function deleteNode(id) {
-  return http.post(
-    "/node/del.json",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/node/del.json", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 // 解绑 node
 export function unbind(id) {
-  return http.get(
-    "/node/unbind.json",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/node/unbind.json", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 // // 节点 top 命令
@@ -267,15 +251,11 @@ export function uploadAgentFileMerge(data) {
  * @returns json
  */
 export function checkVersion() {
-  return http.get(
-    "/node/check_version.json",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/node/check_version.json", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -283,15 +263,11 @@ export function checkVersion() {
  * @returns1
  */
 export function fastInstall() {
-  return http.get(
-    "/node/fast_install.json",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/node/fast_install.json", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -326,15 +302,11 @@ export function confirmFastInstall(params) {
  * @returns json
  */
 export function downloadRemote() {
-  return http.get(
-    "/node/download_remote.json",
-    {},
-    {
-      // 0 表示无超时时间
-      timeout: 0,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/node/download_remote.json", {}, {
+    // 0 表示无超时时间
+    timeout: 0,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }

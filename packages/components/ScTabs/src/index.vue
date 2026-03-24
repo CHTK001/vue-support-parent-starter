@@ -120,6 +120,8 @@ const currentValue = computed({
 
 const { currentComponent } = useThemeComponent("ElTabs");
 
+
+
 const handleTabClick = (tab: any, event: Event) => {
   emit("tab-click", tab, event);
 };

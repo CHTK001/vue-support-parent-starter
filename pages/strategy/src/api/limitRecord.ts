@@ -69,7 +69,7 @@ export interface LimitRecordQueryParams {
  * @returns 限流记录分页列表
  */
 export const fetchLimitRecordPageForStrategy = (
-  params?: LimitRecordQueryParams,
+  params?: LimitRecordQueryParams
 ): Promise<ReturnResult<{ records: SysLimitRecord[]; total: number }>> => {
   return http.request("get", "/v2/strategy/limit-record/page", { params });
 };
@@ -81,15 +81,11 @@ export const fetchLimitRecordPageForStrategy = (
  * @returns 保存结果
  */
 export const saveLimitRecordForStrategy = (
-  data: SysLimitRecord,
+  data: SysLimitRecord
 ): Promise<ReturnResult<SysLimitRecord>> => {
-  return http.request<SysLimitRecord>(
-    "post",
-    "/v2/strategy/limit-record/save",
-    {
-      data,
-    },
-  );
+  return http.request<SysLimitRecord>("post", "/v2/strategy/limit-record/save", {
+    data,
+  });
 };
 
 /**
@@ -99,7 +95,7 @@ export const saveLimitRecordForStrategy = (
  * @returns 删除结果
  */
 export const deleteLimitRecordForStrategy = (
-  id: number,
+  id: number
 ): Promise<ReturnResult<boolean>> => {
   return http.request<boolean>("delete", "/v2/strategy/limit-record/delete", {
     params: { id },
@@ -113,11 +109,11 @@ export const deleteLimitRecordForStrategy = (
  * @returns 删除结果
  */
 export const deleteBatchLimitRecordForStrategy = (
-  ids: number[],
+  ids: number[]
 ): Promise<ReturnResult<boolean>> => {
   return http.request<boolean>(
     "delete",
     "/v2/strategy/limit-record/deleteBatch",
-    { data: ids },
+    { data: ids }
   );
 };

@@ -3,11 +3,9 @@ import { router } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LayAvatar from "../../lay-avatar/index.vue";
-import { ScText } from "@repo/components";
 
 const { t } = useTranslationLang();
-const { logout, username, userAvatar, avatarsStyle, clickClearRouter } =
-  useNav();
+const { logout, username, userAvatar, avatarsStyle, clickClearRouter } = useNav();
 
 /**
  * 跳转到账户设置页面
@@ -18,38 +16,10 @@ const gotoAccountSetting = () => {
 </script>
 
 <template>
-  <ScDropdown
+  <el-dropdown
     trigger="click"
     class="user-dropdown"
     popper-class="user-dropdown-popper"
-    placement="bottom-end"
-    :popper-options="{
-      strategy: 'fixed',
-      modifiers: [
-        {
-          name: 'preventOverflow',
-          options: {
-            boundary: 'viewport',
-            padding: 16,
-            altAxis: true,
-            tether: false
-          }
-        },
-        {
-          name: 'flip',
-          options: {
-            fallbackPlacements: ['bottom-start', 'top-end', 'top-start'],
-            padding: 16
-          }
-        },
-        {
-          name: 'offset',
-          options: {
-            offset: [0, 8]
-          }
-        }
-      ]
-    }"
   >
     <div class="user-trigger">
       <div class="avatar-container">
@@ -57,31 +27,27 @@ const gotoAccountSetting = () => {
         <span class="status-dot"></span>
       </div>
       <div v-if="username" class="user-info">
-        <ScText class="user-name fe-sensitive">{{ username }}</ScText>
-        <ScText class="user-role">在线</ScText>
+        <span class="user-name">{{ username }}</span>
+        <span class="user-role">在线</span>
       </div>
       <span class="dropdown-arrow-wrapper">
         <IconifyIconOnline icon="ri:arrow-down-s-line" class="dropdown-arrow" />
       </span>
     </div>
     <template #dropdown>
-      <ScDropdownMenu class="user-menu">
+      <el-dropdown-menu class="user-menu">
         <!-- 用户信息头部 -->
         <div class="menu-header">
-          <LayAvatar
-            :src="userAvatar"
-            :style="avatarsStyle"
-            class="header-avatar"
-          />
+          <LayAvatar :src="userAvatar" :style="avatarsStyle" class="header-avatar" />
           <div class="header-info">
-            <ScText class="header-name fe-sensitive">{{ username }}</ScText>
-            <ScText class="header-status">当前在线</ScText>
+            <span class="header-name">{{ username }}</span>
+            <span class="header-status">当前在线</span>
           </div>
         </div>
 
         <!-- 菜单项容器 -->
         <div class="menu-body">
-          <ScDropdownItem
+          <el-dropdown-item
             v-menu="['AccountSettings']"
             class="menu-item"
             @click="gotoAccountSetting"
@@ -90,47 +56,34 @@ const gotoAccountSetting = () => {
               <IconifyIconOnline icon="ri:user-settings-line" />
             </div>
             <div class="item-content">
-              <ScText class="item-title">{{
-                t("buttons.accountSetting")
-              }}</ScText>
-              <ScText class="item-desc">管理账户信息与偏好设置</ScText>
+              <span class="item-title">{{ t("buttons.accountSetting") }}</span>
+              <span class="item-desc">管理账户信息与偏好设置</span>
             </div>
-            <IconifyIconOnline
-              icon="ri:arrow-right-s-line"
-              class="item-arrow"
-            />
-          </ScDropdownItem>
+            <IconifyIconOnline icon="ri:arrow-right-s-line" class="item-arrow" />
+          </el-dropdown-item>
 
-          <ScDropdownItem class="menu-item" @click="clickClearRouter">
+          <el-dropdown-item class="menu-item" @click="clickClearRouter">
             <div class="item-icon cache-icon">
               <IconifyIconOnline icon="line-md:backup-restore" />
             </div>
             <div class="item-content">
-              <ScText class="item-title">{{
-                t("buttons.pureClearRouter")
-              }}</ScText>
-              <ScText class="item-desc">清除本地缓存数据</ScText>
+              <span class="item-title">{{ t("buttons.pureClearRouter") }}</span>
+              <span class="item-desc">清除本地缓存数据</span>
             </div>
-            <IconifyIconOnline
-              icon="ri:arrow-right-s-line"
-              class="item-arrow"
-            />
-          </ScDropdownItem>
+            <IconifyIconOnline icon="ri:arrow-right-s-line" class="item-arrow" />
+          </el-dropdown-item>
         </div>
 
         <!-- 退出登录 -->
         <div class="menu-footer">
-          <ScDropdownItem class="logout-item" @click="logout">
-            <IconifyIconOnline
-              icon="ri:logout-circle-r-line"
-              class="logout-icon"
-            />
-            <ScText>{{ t("buttons.pureLoginOut") }}</ScText>
-          </ScDropdownItem>
+          <el-dropdown-item class="logout-item" @click="logout">
+            <IconifyIconOnline icon="ri:logout-circle-r-line" class="logout-icon" />
+            <span>{{ t("buttons.pureLoginOut") }}</span>
+          </el-dropdown-item>
         </div>
-      </ScDropdownMenu>
+      </el-dropdown-menu>
     </template>
-  </ScDropdown>
+  </el-dropdown>
 </template>
 
 <style lang="scss" scoped>
@@ -153,11 +106,7 @@ const gotoAccountSetting = () => {
   }
   padding: 6px 14px 6px 6px;
   border-radius: 28px;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-lighter) 0%,
-    var(--el-fill-color-light) 100%
-  );
+  background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-light) 100%);
   border: 1px solid var(--el-border-color-lighter);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -171,30 +120,17 @@ const gotoAccountSetting = () => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.2),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.5s ease;
   }
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-light) 0%,
-      var(--el-fill-color) 100%
-    );
+    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
     border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.1),
-      0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
     transform: translateY(-1px);
 
-    &::before {
-      left: 100%;
-    }
+    &::before { left: 100%; }
 
     .avatar-img {
       transform: scale(1.05);
@@ -202,15 +138,9 @@ const gotoAccountSetting = () => {
     }
 
     .dropdown-arrow-wrapper {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-8) 0%,
-        var(--el-color-primary-light-9) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
       box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.2);
-      .dropdown-arrow {
-        color: var(--el-color-primary);
-      }
+      .dropdown-arrow { color: var(--el-color-primary); }
     }
   }
 }
@@ -246,13 +176,8 @@ const gotoAccountSetting = () => {
 }
 
 @keyframes pulse-status {
-  0%,
-  100% {
-    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
-  }
+  0%, 100% { box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2); }
+  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1); }
 }
 
 .user-info {
@@ -281,11 +206,7 @@ const gotoAccountSetting = () => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color) 0%,
-    var(--el-fill-color-light) 100%
-  );
+  background: linear-gradient(135deg, var(--el-fill-color) 0%, var(--el-fill-color-light) 100%);
   margin-left: 4px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -1,28 +1,28 @@
 ﻿<template>
   <div class="doc-exporter">
-    <ScDropdown trigger="click" @command="handleExport">
+    <el-dropdown trigger="click" @command="handleExport">
       <ScButton type="primary" plain>
         <i class="ri-download-2-line"></i>
         导出文档
         <i class="ri-arrow-down-s-line"></i>
       </ScButton>
       <template #dropdown>
-        <ScDropdownMenu>
-          <ScDropdownItem command="html">
+        <el-dropdown-menu>
+          <el-dropdown-item command="html">
             <i class="ri-html5-line"></i>
             导出 HTML
-          </ScDropdownItem>
-          <ScDropdownItem command="markdown">
+          </el-dropdown-item>
+          <el-dropdown-item command="markdown">
             <i class="ri-markdown-line"></i>
             导出 Markdown
-          </ScDropdownItem>
-          <ScDropdownItem command="json">
+          </el-dropdown-item>
+          <el-dropdown-item command="json">
             <i class="ri-braces-line"></i>
             导出 JSON
-          </ScDropdownItem>
-        </ScDropdownMenu>
+          </el-dropdown-item>
+        </el-dropdown-menu>
       </template>
-    </ScDropdown>
+    </el-dropdown>
   </div>
 </template>
 
@@ -86,7 +86,7 @@ const exportJson = () => {
       exportedAt: new Date().toISOString(),
     },
     null,
-    2,
+    2
   );
   downloadFile(json, `${props.title || "API文档"}.json`, "application/json");
   ScMessage.success("JSON 文档导出成功");
@@ -161,7 +161,7 @@ const generateHtml = (): string => {
           .map(
             (group, i) => `
           <li><a href="#group-${i}">${escapeHtml(group.name)}</a> (${group.apis.length})</li>
-        `,
+        `
           )
           .join("")}
       </ul>

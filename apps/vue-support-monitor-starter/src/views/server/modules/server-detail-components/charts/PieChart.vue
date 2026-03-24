@@ -1,12 +1,9 @@
 <template>
-  <div
-    class="pie-chart system-container modern-bg"
-    :style="{ height: height - 10 + 'px' }"
-  >
+  <div class="pie-chart system-container modern-bg" :style="{ height: (height - 10) + 'px' }">
     <div v-if="loading" class="loading-container">
-      <ScSkeleton :rows="2" animated />
+      <el-skeleton :rows="2" animated />
     </div>
-    <div v-else ref="chartRef" class="chart-container" />
+    <div v-else ref="chartRef" class="chart-container"></div>
   </div>
 </template>
 
@@ -17,58 +14,51 @@ import * as echarts from "echarts";
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => ({}),
+    default: () => ({})
   },
   height: {
     type: [Number, String],
-    default: 300,
+    default: 300
   },
   loading: {
     type: Boolean,
-    default: false,
+    default: false
   },
   chartConfig: {
     type: Object,
-    default: () => ({}),
-  },
+    default: () => ({})
+  }
 });
 
 const chartRef = ref<HTMLElement>();
 const chart = ref<echarts.ECharts>();
 
 // 监听数据变化
-watch(
-  () => props.chartData,
-  () => {
-    updateChart();
-  },
-  { deep: true },
-);
+watch(() => props.chartData, () => {
+  updateChart();
+}, { deep: true });
 
-watch(
-  () => props.loading,
-  (loading) => {
-    if (!loading) {
-      nextTick(() => {
-        initChart();
-      });
-    }
-  },
-);
+watch(() => props.loading, (loading) => {
+  if (!loading) {
+    nextTick(() => {
+      initChart();
+    });
+  }
+});
 
 // 生命周期
 onMounted(() => {
   if (!props.loading) {
     initChart();
   }
-  window.addEventListener("resize", handleResize);
+  window.addEventListener('resize', handleResize);
 });
 
 onBeforeUnmount(() => {
   if (chart.value) {
     chart.value.dispose();
   }
-  window.removeEventListener("resize", handleResize);
+  window.removeEventListener('resize', handleResize);
 });
 
 /**
@@ -76,8 +66,8 @@ onBeforeUnmount(() => {
  */
 const initChart = () => {
   if (!chartRef.value) return;
-
-  chart.value = echarts.init(chartRef.value, "dark");
+  
+  chart.value = echarts.init(chartRef.value, 'dark');
   updateChart();
 };
 
@@ -86,7 +76,7 @@ const initChart = () => {
  */
 const updateChart = () => {
   if (!chart.value) return;
-
+  
   const option = generateOption();
   chart.value.setOption(option, true);
 };
@@ -97,76 +87,75 @@ const updateChart = () => {
 const generateOption = () => {
   const data = props.chartData;
   const config = props.chartConfig;
-
+  
   // 处理数据格式
-  const seriesData =
-    data.labels?.map((label, index) => ({
-      name: label,
-      value: data.datasets?.[0]?.data?.[index] || 0,
-    })) || [];
-
+  const seriesData = data.labels?.map((label, index) => ({
+    name: label,
+    value: data.datasets?.[0]?.data?.[index] || 0
+  })) || [];
+  
   return {
     title: {
-      text: config.title || "",
+      text: config.title || '',
       textStyle: {
-        color: "#e0e0e0",
-        fontSize: config.fontSize || 14,
-      },
+        color: '#e0e0e0',
+        fontSize: config.fontSize || 14
+      }
     },
     tooltip: {
-      trigger: "item",
-      formatter: "{a} <br/>{b}: {c} ({d}%)",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
-      borderColor: "#333",
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      borderColor: '#333',
       textStyle: {
-        color: "#e0e0e0",
-      },
+        color: '#e0e0e0'
+      }
     },
     legend: {
       show: config.legend?.show !== false,
-      orient: "vertical",
-      left: "left",
+      orient: 'vertical',
+      left: 'left',
       textStyle: {
-        color: "#e0e0e0",
-      },
+        color: '#e0e0e0'
+      }
     },
     series: [
       {
-        name: data.name || "数据分布",
-        type: "pie",
-        radius: ["40%", "70%"],
-        center: ["60%", "50%"],
+        name: data.name || '数据分布',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['60%', '50%'],
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: "#1e1e2e",
-          borderWidth: 2,
+          borderColor: '#1e1e2e',
+          borderWidth: 2
         },
         label: {
           show: false,
-          position: "center",
+          position: 'center'
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 20,
-            fontWeight: "bold",
-            color: "#e0e0e0",
-          },
+            fontWeight: 'bold',
+            color: '#e0e0e0'
+          }
         },
         labelLine: {
-          show: false,
+          show: false
         },
         data: seriesData,
         color: data.datasets?.[0]?.backgroundColor || [
-          "#409EFF",
-          "#67C23A",
-          "#E6A23C",
-          "#F56C6C",
-          "#909399",
-        ],
-      },
-    ],
+          '#409EFF',
+          '#67C23A',
+          '#E6A23C',
+          '#F56C6C',
+          '#909399'
+        ]
+      }
+    ]
   };
 };
 
@@ -181,6 +170,7 @@ const handleResize = () => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -214,6 +204,7 @@ const handleResize = () => {
   }
 }
 
+
 .pie-chart {
   width: 100%;
 }
@@ -231,6 +222,7 @@ const handleResize = () => {
   height: 100%;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -239,4 +231,5 @@ const handleResize = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

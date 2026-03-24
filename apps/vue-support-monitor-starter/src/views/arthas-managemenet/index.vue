@@ -13,68 +13,43 @@
       </div>
       <div class="toolbar-right">
         <NodeSelector
-          v-model="selectedNodeId"
           :nodes="arthasNodes"
           label="在线节点"
           placeholder="选择 Arthas 节点"
-          class="node-selector"
+          v-model="selectedNodeId"
           @change="handleSelectNode"
+          class="node-selector"
         />
         <div class="ops">
-          <ScTooltip
-            content="刷新节点列表"
-            placement="bottom"
-            :show-after="500"
-          >
-            <ScButton
-              type="primary"
-              :disabled="!selectedNode"
-              size="small"
-              @click="reloadNodes"
-            >
+          <el-tooltip content="刷新节点列表" placement="bottom" :show-after="500">
+            <el-button type="primary" :disabled="!selectedNode" @click="reloadNodes" size="small">
               <IconifyIconOnline icon="ep:refresh" class="mr-1" />
               刷新
-            </ScButton>
-          </ScTooltip>
-          <ScTooltip
-            content="连接到选中的节点"
-            placement="bottom"
-            :show-after="500"
-          >
-            <ScButton
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="连接到选中的节点" placement="bottom" :show-after="500">
+            <el-button
               type="primary"
               :disabled="!selectedNode || connected"
-              size="small"
               @click="connectNode"
+              size="small"
             >
               <IconifyIconOnline icon="ep:connection" class="mr-1" />
               连接
-            </ScButton>
-          </ScTooltip>
-          <ScTooltip content="断开连接" placement="bottom" :show-after="500">
-            <ScButton
-              :disabled="!connected"
-              size="small"
-              @click="disconnectNode"
-            >
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="断开连接" placement="bottom" :show-after="500">
+            <el-button :disabled="!connected" @click="disconnectNode" size="small">
               <IconifyIconOnline icon="ep:close" class="mr-1" />
               断开
-            </ScButton>
-          </ScTooltip>
-          <ScTooltip
-            content="配置 Arthas"
-            placement="bottom"
-            :show-after="500"
-          >
-            <ScButton
-              :disabled="!selectedNode"
-              size="small"
-              @click="configVisible = true"
-            >
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="配置 Arthas" placement="bottom" :show-after="500">
+            <el-button :disabled="!selectedNode" @click="configVisible = true" size="small">
               <IconifyIconOnline icon="ep:setting" class="mr-1" />
               配置
-            </ScButton>
-          </ScTooltip>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
     </div>
@@ -90,8 +65,8 @@
         <FeatureMenu
           v-model="activeFeature"
           :features="features"
-          class="feature-menu"
           @select="handleFeatureSelect"
+          class="feature-menu"
         />
       </div>
 
@@ -100,9 +75,7 @@
         <div v-if="!connected" class="empty-state">
           <div class="empty-card">
             <IconifyIconOnline icon="ri:terminal-box-line" class="empty-icon" />
-            <ScEmpty
-              description="请选择包含 Arthas 客户端的在线节点并点击连接"
-            />
+            <el-empty description="请选择包含 Arthas 客户端的在线节点并点击连接" />
           </div>
         </div>
         <div v-else class="feature-container">
@@ -127,7 +100,7 @@
             :node-id="selectedNodeId"
           />
           <div v-else class="console-wrap">
-            <ScAlert
+            <el-alert
               type="info"
               :closable="false"
               show-icon
@@ -151,7 +124,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import NodeSelector from "@/views/arthas-managemenet/components/NodeSelector.vue";
 import FeatureMenu from "@/views/arthas-managemenet/components/FeatureMenu.vue";
 import TerminalConsole from "@/views/arthas-managemenet/components/TerminalConsole.vue";
@@ -183,14 +156,14 @@ const features = [
 ];
 
 const currentFeature = computed(() =>
-  features.find((f) => f.key === activeFeature.value),
+  features.find((f) => f.key === activeFeature.value)
 );
 
 const ARTHAS_META_KEY = "report.client.arthas.port";
 const arthasNodes = computed(() =>
   nodeList.value.filter(
-    (n) => !!n.metadata && ARTHAS_META_KEY in (n.metadata || {}),
-  ),
+    (n) => !!n.metadata && ARTHAS_META_KEY in (n.metadata || {})
+  )
 );
 
 const consoleUrlRef = ref("");
@@ -275,29 +248,29 @@ onMounted(() => {
   @include toolbar-style;
   flex-wrap: wrap;
   gap: $spacing-md;
-
+  
   .toolbar-left {
     @include flex-align-center;
     flex: 1;
     min-width: 200px;
   }
-
+  
   .toolbar-right {
     @include flex-align-center;
     gap: $spacing-md;
     flex-wrap: wrap;
   }
-
+  
   .page-title {
     @include flex-align-center;
     gap: $spacing-md;
-
+    
     .title-icon {
       font-size: 32px;
       color: $primary-color;
       @include gradient-text;
     }
-
+    
     h2 {
       margin: 0 0 $spacing-xs 0;
       font-size: 24px;
@@ -305,7 +278,7 @@ onMounted(() => {
       color: var(--el-text-color-primary);
       @include gradient-text;
     }
-
+    
     p {
       margin: 0;
       color: var(--el-text-color-regular);
@@ -313,16 +286,16 @@ onMounted(() => {
       line-height: 1.5;
     }
   }
-
+  
   .node-selector {
     min-width: 200px;
   }
-
+  
   .ops {
     @include flex-align-center;
     gap: $spacing-sm;
   }
-
+  
   .mr-1 {
     margin-right: $spacing-xs;
   }
@@ -342,25 +315,25 @@ onMounted(() => {
   padding: $spacing-md;
   @include flex-column;
   gap: $spacing-md;
-
+  
   .panel-header {
     @include flex-align-center;
     gap: $spacing-sm;
     padding-bottom: $spacing-md;
     border-bottom: 1px solid $border-light;
-
+    
     .panel-icon {
       font-size: 20px;
       color: $primary-color;
     }
-
+    
     .panel-title {
       font-size: 16px;
       font-weight: 600;
       color: var(--el-text-color-primary);
     }
   }
-
+  
   .feature-menu {
     flex: 1;
     overflow-y: auto;
@@ -378,7 +351,7 @@ onMounted(() => {
   @include flex-center;
   height: 100%;
   padding: $spacing-xl;
-
+  
   .empty-card {
     @include glass-card;
     @include flex-center;
@@ -387,7 +360,7 @@ onMounted(() => {
     padding: $spacing-4xl;
     min-width: 400px;
     max-width: 600px;
-
+    
     .empty-icon {
       font-size: 80px;
       color: $primary-color;
@@ -398,8 +371,7 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 0.6;
     transform: scale(1);
   }
@@ -420,7 +392,7 @@ onMounted(() => {
   @include flex-column;
   height: 100%;
   gap: $spacing-md;
-
+  
   .alert-tip {
     margin-bottom: $spacing-md;
   }
@@ -431,11 +403,11 @@ onMounted(() => {
   .content {
     flex-direction: column;
   }
-
+  
   .left-panel {
     width: 100%;
     max-height: 200px;
-
+    
     .feature-menu {
       display: flex;
       flex-direction: row;
@@ -449,41 +421,41 @@ onMounted(() => {
   .arthas-management {
     padding: $spacing-md;
   }
-
+  
   .toolbar {
     flex-direction: column;
     align-items: stretch;
-
+    
     .toolbar-left,
     .toolbar-right {
       width: 100%;
     }
-
+    
     .page-title {
       flex-direction: column;
       align-items: flex-start;
       gap: $spacing-sm;
-
+      
       .title-icon {
         font-size: 24px;
       }
-
+      
       h2 {
         font-size: 20px;
       }
     }
-
+    
     .ops {
       flex-wrap: wrap;
       width: 100%;
-
+      
       .el-button {
         flex: 1;
         min-width: 80px;
       }
     }
   }
-
+  
   .empty-state {
     .empty-card {
       min-width: auto;

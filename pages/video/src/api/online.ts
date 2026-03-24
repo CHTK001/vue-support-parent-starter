@@ -8,9 +8,5 @@ import { http, type ReturnResult } from "@repo/utils";
  * @returns 视频资源列表
  */
 export const findOnlineResources = (params: any) => {
-  return http.request<ReturnResult<VideoItem[]>>(
-    "post",
-    "/v1/video/online/find",
-    { data: params },
-  );
+  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/online/find", { data: params });
 };

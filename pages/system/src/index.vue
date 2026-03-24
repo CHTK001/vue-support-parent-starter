@@ -10,9 +10,7 @@
             <IconifyIconOnline icon="ri:settings-3-line" class="title-icon" />
             系统管理
           </h1>
-          <p class="page-subtitle">
-            系统配置、日志管理、限流设置等核心能力面板
-          </p>
+          <p class="page-subtitle">系统配置、日志管理、限流设置等核心能力面板</p>
           <div class="meta-row">
             <span class="pill pill-success">运行正常</span>
             <span class="pill pill-muted">实时守护</span>
@@ -20,12 +18,8 @@
           </div>
         </div>
         <div class="header-actions" aria-label="快捷入口">
-          <router-link to="/system/log" class="hero-button primary"
-            >查看日志</router-link
-          >
-          <router-link to="/system/limit" class="hero-button ghost"
-            >前往限流</router-link
-          >
+          <router-link to="/system/log" class="hero-button primary">查看日志</router-link>
+          <router-link to="/system/limit" class="hero-button ghost">前往限流</router-link>
         </div>
       </div>
     </section>
@@ -35,9 +29,7 @@
         <div>
           <p class="eyebrow">核心能力</p>
           <h2 class="section-title">全链路系统控制台</h2>
-          <p class="section-subtitle">
-            以可视化方式快速抵达日志、限流、节假日与文件管理
-          </p>
+          <p class="section-subtitle">以可视化方式快速抵达日志、限流、节假日与文件管理</p>
         </div>
         <div class="section-hint">支持桌面与移动端的自适应布局</div>
       </header>
@@ -51,7 +43,7 @@
           role="listitem"
           :style="{
             '--card-accent': item.accent,
-            '--card-accent-soft': item.accentSoft,
+            '--card-accent-soft': item.accentSoft
           }"
         >
           <div class="feature-icon-wrapper">
@@ -72,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+
 type FeatureItem = {
   to: string;
   title: string;
@@ -119,24 +112,6 @@ const featureItems: FeatureItem[] = [
     accent: "var(--el-color-info)",
     accentSoft: "rgba(144, 147, 153, 0.14)",
   },
-  {
-    to: "/system/job",
-    title: "任务调度",
-    desc: "定时任务配置、执行记录与调度策略",
-    badge: "自动执行",
-    icon: "ri:timer-line",
-    accent: "#9b59b6",
-    accentSoft: "rgba(155, 89, 182, 0.14)",
-  },
-  {
-    to: "/system/jvm",
-    title: "JVM 监控",
-    desc: "实时监控 JVM 内存、线程与性能指标",
-    badge: "性能监控",
-    icon: "ri:dashboard-line",
-    accent: "#f39c12",
-    accentSoft: "rgba(243, 156, 18, 0.14)",
-  },
 ];
 </script>
 
@@ -159,29 +134,16 @@ const featureItems: FeatureItem[] = [
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(
-      circle at 20% 20%,
-      rgba(64, 158, 255, 0.14),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 80% 0%,
-      rgba(245, 108, 108, 0.18),
-      transparent 32%
-    ),
-    radial-gradient(
-      circle at 70% 70%,
-      rgba(103, 194, 58, 0.12),
-      transparent 36%
-    );
+    radial-gradient(circle at 20% 20%, rgba(64, 158, 255, 0.14), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(245, 108, 108, 0.18), transparent 32%),
+    radial-gradient(circle at 70% 70%, rgba(103, 194, 58, 0.12), transparent 36%);
   filter: blur(48px);
   opacity: 0.9;
   z-index: -1;
 }
 
 .page-header {
-  background:
-    linear-gradient(
+  background: linear-gradient(
       135deg,
       rgba(64, 158, 255, 0.25),
       rgba(64, 158, 255, 0.12),
@@ -291,20 +253,13 @@ const featureItems: FeatureItem[] = [
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 86%, transparent);
   color: var(--text-primary);
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    background 180ms ease;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
 
   &:hover,
   &:focus-visible {
     transform: translateY(-2px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-    border-color: color-mix(
-      in srgb,
-      var(--el-color-primary) 30%,
-      var(--border)
-    );
+    border-color: color-mix(in srgb, var(--el-color-primary) 30%, var(--border));
     background: color-mix(in srgb, var(--el-color-primary) 8%, var(--surface));
   }
 }
@@ -373,31 +328,21 @@ const featureItems: FeatureItem[] = [
   padding: 22px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  border: 1px solid
-    color-mix(in srgb, var(--border) 70%, var(--card-accent-soft));
+  border: 1px solid color-mix(in srgb, var(--border) 70%, var(--card-accent-soft));
   text-decoration: none;
   color: var(--text-primary);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  transition:
-    transform 200ms ease,
-    box-shadow 220ms ease,
-    border-color 200ms ease;
+  transition: transform 200ms ease, box-shadow 220ms ease, border-color 200ms ease;
   container-type: inline-size;
 
   &::before {
     content: "";
     position: absolute;
     inset: -20% 50% 50% -20%;
-    background: radial-gradient(
-      circle,
-      var(--card-accent-soft),
-      transparent 60%
-    );
+    background: radial-gradient(circle, var(--card-accent-soft), transparent 60%);
     opacity: 0.4;
-    transition:
-      opacity 200ms ease,
-      transform 220ms ease;
+    transition: opacity 200ms ease, transform 220ms ease;
   }
 
   &:hover,
@@ -413,8 +358,7 @@ const featureItems: FeatureItem[] = [
 
     .feature-icon-wrapper {
       transform: translateY(-2px);
-      box-shadow: 0 10px 24px
-        color-mix(in srgb, var(--card-accent) 32%, transparent);
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--card-accent) 32%, transparent);
     }
 
     .meta-arrow {
@@ -481,9 +425,7 @@ const featureItems: FeatureItem[] = [
 .meta-arrow {
   font-size: 18px;
   opacity: 0.6;
-  transition:
-    transform 180ms ease,
-    opacity 180ms ease;
+  transition: transform 180ms ease, opacity 180ms ease;
 }
 
 @container (max-width: 360px) {

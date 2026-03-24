@@ -32,34 +32,16 @@
             <label>启用监控</label>
             <div class="form-control">
               <label class="switch">
-                <input
-                  v-model="formData.monitorSysGenServerSettingMonitorEnabled"
-                  type="checkbox"
-                  :true-value="1"
-                  :false-value="0"
-                />
-                <span class="slider" />
+                <input type="checkbox" v-model="formData.monitorSysGenServerSettingMonitorEnabled" :true-value="1" :false-value="0">
+                <span class="slider"></span>
               </label>
             </div>
           </div>
 
-          <div
-            v-show="
-              formData.monitorSysGenServerSettingDataReportMethod !== 'API'
-            "
-            class="form-item"
-          >
+          <div class="form-item" v-show="formData.monitorSysGenServerSettingDataReportMethod !== 'API'">
             <label>数据收集频率</label>
             <div class="form-control">
-              <input
-                v-model.number="
-                  formData.monitorSysGenServerSettingDataCollectionFrequency
-                "
-                type="number"
-                min="10"
-                max="3600"
-                step="10"
-              />
+              <input type="number" v-model.number="formData.monitorSysGenServerSettingDataCollectionFrequency" min="10" max="3600" step="10">
               <span class="unit">秒</span>
             </div>
           </div>
@@ -67,14 +49,7 @@
           <div class="form-item">
             <label>数据保留时间</label>
             <div class="form-control">
-              <input
-                v-model.number="
-                  formData.monitorSysGenServerSettingMetricsRetentionDays
-                "
-                type="number"
-                min="1"
-                max="365"
-              />
+              <input type="number" v-model.number="formData.monitorSysGenServerSettingMetricsRetentionDays" min="1" max="365">
               <span class="unit">天</span>
             </div>
           </div>
@@ -91,13 +66,8 @@
             <label>启用上报</label>
             <div class="form-control">
               <label class="switch">
-                <input
-                  v-model="formData.monitorSysGenServerSettingReportEnabled"
-                  type="checkbox"
-                  :true-value="1"
-                  :false-value="0"
-                />
-                <span class="slider" />
+                <input type="checkbox" v-model="formData.monitorSysGenServerSettingReportEnabled" :true-value="1" :false-value="0">
+                <span class="slider"></span>
               </label>
             </div>
           </div>
@@ -105,59 +75,29 @@
           <div class="form-item">
             <label>上报方式</label>
             <div class="form-control">
-              <select
-                v-model="formData.monitorSysGenServerSettingDataReportMethod"
-              >
-                <option
-                  v-for="opt in reportMethodOptions"
-                  :key="opt.value"
-                  :value="opt.value"
-                >
-                  {{ opt.label }}
-                </option>
+              <select v-model="formData.monitorSysGenServerSettingDataReportMethod">
+                <option v-for="opt in reportMethodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
             </div>
           </div>
 
-          <div
-            v-show="
-              formData.monitorSysGenServerSettingDataReportMethod ===
-              'PROMETHEUS'
-            "
-            class="sub-config"
-          >
+          <div v-show="formData.monitorSysGenServerSettingDataReportMethod === 'PROMETHEUS'" class="sub-config">
             <div class="sub-title">Prometheus配置</div>
             <div class="form-item">
               <label>服务器地址</label>
               <div class="form-control">
-                <input
-                  v-model="formData.monitorSysGenServerSettingPrometheusHost"
-                  type="text"
-                  placeholder="Prometheus服务器地址"
-                />
+                <input type="text" v-model="formData.monitorSysGenServerSettingPrometheusHost" placeholder="Prometheus服务器地址">
               </div>
             </div>
             <div class="form-item">
               <label>端口</label>
               <div class="form-control">
-                <input
-                  v-model.number="
-                    formData.monitorSysGenServerSettingPrometheusPort
-                  "
-                  type="number"
-                  min="1"
-                  max="65535"
-                />
+                <input type="number" v-model.number="formData.monitorSysGenServerSettingPrometheusPort" min="1" max="65535">
               </div>
             </div>
           </div>
 
-          <div
-            v-show="
-              formData.monitorSysGenServerSettingDataReportMethod === 'API'
-            "
-            class="info-box"
-          >
+          <div v-show="formData.monitorSysGenServerSettingDataReportMethod === 'API'" class="info-box">
             API上报方式将通过客户端自动推送数据到服务器，无需额外配置。
           </div>
         </div>
@@ -172,15 +112,7 @@
           <div class="form-item">
             <label>监控间隔</label>
             <div class="form-control">
-              <input
-                v-model.number="
-                  formData.monitorSysGenServerSettingMonitorInterval
-                "
-                type="number"
-                min="30"
-                max="3600"
-                step="30"
-              />
+              <input type="number" v-model.number="formData.monitorSysGenServerSettingMonitorInterval" min="30" max="3600" step="30">
               <span class="unit">秒</span>
             </div>
           </div>
@@ -188,14 +120,7 @@
           <div class="form-item">
             <label>数据保留时间</label>
             <div class="form-control">
-              <input
-                v-model.number="
-                  formData.monitorSysGenServerSettingMetricsRetentionDays
-                "
-                type="number"
-                min="1"
-                max="365"
-              />
+              <input type="number" v-model.number="formData.monitorSysGenServerSettingMetricsRetentionDays" min="1" max="365">
               <span class="unit">天</span>
             </div>
           </div>
@@ -212,13 +137,8 @@
             <label>启用告警</label>
             <div class="form-control">
               <label class="switch">
-                <input
-                  v-model="formData.monitorSysGenServerSettingAlertEnabled"
-                  type="checkbox"
-                  :true-value="1"
-                  :false-value="0"
-                />
-                <span class="slider" />
+                <input type="checkbox" v-model="formData.monitorSysGenServerSettingAlertEnabled" :true-value="1" :false-value="0">
+                <span class="slider"></span>
               </label>
             </div>
           </div>
@@ -227,38 +147,17 @@
             <div class="threshold-grid">
               <div class="threshold-card">
                 <div class="threshold-label">CPU阈值</div>
-                <input
-                  v-model.number="
-                    formData.monitorSysGenServerSettingCpuAlertThreshold
-                  "
-                  type="number"
-                  min="1"
-                  max="100"
-                />
+                <input type="number" v-model.number="formData.monitorSysGenServerSettingCpuAlertThreshold" min="1" max="100">
                 <span class="unit">%</span>
               </div>
               <div class="threshold-card">
                 <div class="threshold-label">内存阈值</div>
-                <input
-                  v-model.number="
-                    formData.monitorSysGenServerSettingMemoryAlertThreshold
-                  "
-                  type="number"
-                  min="1"
-                  max="100"
-                />
+                <input type="number" v-model.number="formData.monitorSysGenServerSettingMemoryAlertThreshold" min="1" max="100">
                 <span class="unit">%</span>
               </div>
               <div class="threshold-card">
                 <div class="threshold-label">磁盘阈值</div>
-                <input
-                  v-model.number="
-                    formData.monitorSysGenServerSettingDiskAlertThreshold
-                  "
-                  type="number"
-                  min="1"
-                  max="100"
-                />
+                <input type="number" v-model.number="formData.monitorSysGenServerSettingDiskAlertThreshold" min="1" max="100">
                 <span class="unit">%</span>
               </div>
             </div>
@@ -266,11 +165,7 @@
             <div class="form-item">
               <label>通知方式</label>
               <div class="form-control">
-                <select
-                  v-model="
-                    formData.monitorSysGenServerSettingAlertNotificationMethod
-                  "
-                >
+                <select v-model="formData.monitorSysGenServerSettingAlertNotificationMethod">
                   <option value="EMAIL">邮件</option>
                   <option value="SMS">短信</option>
                   <option value="WEBHOOK">Webhook</option>
@@ -278,23 +173,10 @@
               </div>
             </div>
 
-            <div
-              v-show="
-                formData.monitorSysGenServerSettingAlertNotificationMethod &&
-                formData.monitorSysGenServerSettingAlertNotificationMethod !==
-                  'NONE'
-              "
-              class="form-item"
-            >
+            <div class="form-item" v-show="formData.monitorSysGenServerSettingAlertNotificationMethod && formData.monitorSysGenServerSettingAlertNotificationMethod !== 'NONE'">
               <label>通知地址</label>
               <div class="form-control">
-                <input
-                  v-model="
-                    formData.monitorSysGenServerSettingAlertNotificationAddress
-                  "
-                  type="text"
-                  :placeholder="getNotificationAddressPlaceholder()"
-                />
+                <input type="text" v-model="formData.monitorSysGenServerSettingAlertNotificationAddress" :placeholder="getNotificationAddressPlaceholder()">
               </div>
               <div class="form-tip">{{ getNotificationAddressTip() }}</div>
             </div>
@@ -312,31 +194,17 @@
             <label>启用文件管理</label>
             <div class="form-control">
               <label class="switch">
-                <input
-                  v-model="
-                    formData.monitorSysGenServerSettingFileManagementEnabled
-                  "
-                  type="checkbox"
-                  :true-value="1"
-                  :false-value="0"
-                />
-                <span class="slider" />
+                <input type="checkbox" v-model="formData.monitorSysGenServerSettingFileManagementEnabled" :true-value="1" :false-value="0">
+                <span class="slider"></span>
               </label>
             </div>
           </div>
 
-          <div
-            v-show="formData.monitorSysGenServerSettingFileManagementEnabled"
-          >
+          <div v-show="formData.monitorSysGenServerSettingFileManagementEnabled">
             <div class="form-item">
               <label>连接方式</label>
               <div class="form-control">
-                <select
-                  v-model="
-                    formData.monitorSysGenServerSettingFileManagementMode
-                  "
-                  @change="handleFileManagementModeChange"
-                >
+                <select v-model="formData.monitorSysGenServerSettingFileManagementMode" @change="handleFileManagementModeChange">
                   <option value="NONE">不启用</option>
                   <option value="SSH">SSH连接</option>
                   <option value="NODE">NODE客户端</option>
@@ -345,43 +213,24 @@
               </div>
             </div>
 
-            <div
-              v-show="
-                formData.monitorSysGenServerSettingFileManagementMode === 'API'
-              "
-              class="sub-config"
-            >
+            <div v-show="formData.monitorSysGenServerSettingFileManagementMode === 'API'" class="sub-config">
               <div class="sub-title">API连接配置</div>
               <div class="form-item">
                 <label>API主机地址</label>
                 <div class="form-control">
-                  <input
-                    v-model="apiConfig.apiHost"
-                    type="text"
-                    placeholder="请输入API主机地址"
-                    @change="handleApiConfigChange"
-                  />
+                  <input type="text" v-model="apiConfig.apiHost" placeholder="请输入API主机地址" @change="handleApiConfigChange">
                 </div>
               </div>
               <div class="form-item">
                 <label>API端口</label>
                 <div class="form-control">
-                  <input
-                    v-model.number="apiConfig.apiPort"
-                    type="number"
-                    min="1"
-                    max="65535"
-                    @change="handleApiConfigChange"
-                  />
+                  <input type="number" v-model.number="apiConfig.apiPort" min="1" max="65535" @change="handleApiConfigChange">
                 </div>
               </div>
               <div class="form-item">
                 <label>认证方式</label>
                 <div class="form-control">
-                  <select
-                    v-model="apiConfig.authType"
-                    @change="handleApiConfigChange"
-                  >
+                  <select v-model="apiConfig.authType" @change="handleApiConfigChange">
                     <option value="NONE">无认证</option>
                     <option value="BASIC">Basic认证</option>
                     <option value="TOKEN">Token认证</option>
@@ -391,39 +240,19 @@
               </div>
             </div>
 
-            <div
-              v-show="
-                formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
-              "
-              class="sub-config"
-            >
+            <div v-show="formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'" class="sub-config">
               <div class="sub-title">通用配置</div>
               <div class="form-item">
                 <label>操作超时时间</label>
                 <div class="form-control">
-                  <input
-                    v-model.number="
-                      formData.monitorSysGenServerSettingFileManagementTimeout
-                    "
-                    type="number"
-                    min="30"
-                    max="600"
-                    step="30"
-                  />
+                  <input type="number" v-model.number="formData.monitorSysGenServerSettingFileManagementTimeout" min="30" max="600" step="30">
                   <span class="unit">秒</span>
                 </div>
               </div>
               <div class="form-item">
                 <label>最大重试次数</label>
                 <div class="form-control">
-                  <input
-                    v-model.number="
-                      formData.monitorSysGenServerSettingFileManagementMaxRetries
-                    "
-                    type="number"
-                    min="0"
-                    max="10"
-                  />
+                  <input type="number" v-model.number="formData.monitorSysGenServerSettingFileManagementMaxRetries" min="0" max="10">
                   <span class="unit">次</span>
                 </div>
               </div>
@@ -441,15 +270,7 @@
           <div class="form-item">
             <label>连接超时</label>
             <div class="form-control">
-              <input
-                v-model.number="
-                  formData.monitorSysGenServerSettingConnectionTimeout
-                "
-                type="number"
-                min="5"
-                max="300"
-                step="5"
-              />
+              <input type="number" v-model.number="formData.monitorSysGenServerSettingConnectionTimeout" min="5" max="300" step="5">
               <span class="unit">秒</span>
             </div>
           </div>
@@ -457,13 +278,7 @@
           <div class="form-item">
             <label>读取超时</label>
             <div class="form-control">
-              <input
-                v-model.number="formData.monitorSysGenServerSettingReadTimeout"
-                type="number"
-                min="5"
-                max="300"
-                step="5"
-              />
+              <input type="number" v-model.number="formData.monitorSysGenServerSettingReadTimeout" min="5" max="300" step="5">
               <span class="unit">秒</span>
             </div>
           </div>
@@ -472,65 +287,37 @@
             <label>启用Docker监控</label>
             <div class="form-control">
               <label class="switch">
-                <input
-                  v-model="
-                    formData.monitorSysGenServerSettingDockerMonitorEnabled
-                  "
-                  type="checkbox"
-                  :true-value="1"
-                  :false-value="0"
-                />
-                <span class="slider" />
+                <input type="checkbox" v-model="formData.monitorSysGenServerSettingDockerMonitorEnabled" :true-value="1" :false-value="0">
+                <span class="slider"></span>
               </label>
             </div>
           </div>
 
-          <div
-            v-show="formData.monitorSysGenServerSettingDockerMonitorEnabled"
-            class="sub-config"
-          >
+          <div v-show="formData.monitorSysGenServerSettingDockerMonitorEnabled" class="sub-config">
             <div class="sub-title">Docker配置</div>
             <div class="form-item">
               <label>Docker API主机</label>
               <div class="form-control">
-                <input
-                  v-model="formData.monitorSysGenServerSettingDockerHost"
-                  type="text"
-                  placeholder="127.0.0.1"
-                />
+                <input type="text" v-model="formData.monitorSysGenServerSettingDockerHost" placeholder="127.0.0.1">
               </div>
             </div>
             <div class="form-item">
               <label>Docker API端口</label>
               <div class="form-control">
-                <input
-                  v-model.number="formData.monitorSysGenServerSettingDockerPort"
-                  type="number"
-                  min="1"
-                  max="65535"
-                />
+                <input type="number" v-model.number="formData.monitorSysGenServerSettingDockerPort" min="1" max="65535">
               </div>
             </div>
             <div class="form-item">
               <label>连接超时</label>
               <div class="form-control">
-                <input
-                  v-model.number="dockerConnectTimeoutSeconds"
-                  type="number"
-                  min="1"
-                  max="600"
-                />
+                <input type="number" v-model.number="dockerConnectTimeoutSeconds" min="1" max="600">
                 <span class="unit">秒</span>
               </div>
             </div>
             <div class="form-item">
               <label>Docker API版本</label>
               <div class="form-control">
-                <input
-                  v-model="formData.monitorSysGenServerSettingDockerApiVersion"
-                  type="text"
-                  placeholder="1.40"
-                />
+                <input type="text" v-model="formData.monitorSysGenServerSettingDockerApiVersion" placeholder="1.40">
               </div>
             </div>
           </div>
@@ -538,22 +325,14 @@
           <div class="form-item">
             <label>监控端口</label>
             <div class="form-control">
-              <input
-                v-model="formData.monitorSysGenServerSettingMonitorPorts"
-                type="text"
-                placeholder="80,443,3306"
-              />
+              <input type="text" v-model="formData.monitorSysGenServerSettingMonitorPorts" placeholder="80,443,3306">
             </div>
           </div>
 
           <div class="form-item">
             <label>配置描述</label>
             <div class="form-control">
-              <textarea
-                v-model="formData.monitorSysGenServerSettingDescription"
-                rows="2"
-                placeholder="配置描述信息"
-              />
+              <textarea v-model="formData.monitorSysGenServerSettingDescription" rows="2" placeholder="配置描述信息"></textarea>
             </div>
           </div>
         </div>
@@ -562,16 +341,9 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <button type="button" class="btn btn-default" @click="visible = false">
-          取消
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary"
-          :disabled="loading"
-          @click="handleSubmit"
-        >
-          {{ loading ? "保存中..." : "保存配置" }}
+        <button type="button" class="btn btn-default" @click="visible = false">取消</button>
+        <button type="button" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
+          {{ loading ? '保存中...' : '保存配置' }}
         </button>
       </div>
     </template>
@@ -679,14 +451,11 @@ const formData = reactive<Partial<ServerSetting>>({
 
 const dockerConnectTimeoutSeconds = computed({
   get() {
-    const ms = Number(
-      formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000,
-    );
+    const ms = Number(formData.monitorSysGenServerSettingDockerConnectTimeoutMillis || 30000);
     return Math.max(1, Math.round(ms / 1000));
   },
   set(v: number) {
-    formData.monitorSysGenServerSettingDockerConnectTimeoutMillis =
-      Math.max(1, v) * 1000;
+    formData.monitorSysGenServerSettingDockerConnectTimeoutMillis = Math.max(1, v) * 1000;
   },
 });
 
@@ -724,44 +493,32 @@ const loadServerSetting = async () => {
   }
 };
 
-watch(
-  () => formData.monitorSysGenServerSettingDockerMonitorEnabled,
-  (val) => {
-    if (val === 1) {
-      if (!formData.monitorSysGenServerSettingDockerHost) {
-        formData.monitorSysGenServerSettingDockerHost =
-          currentServer.value?.monitorSysGenServerHost || "127.0.0.1";
-      }
-      if (!formData.monitorSysGenServerSettingDockerPort) {
-        formData.monitorSysGenServerSettingDockerPort = 2376;
-      }
+watch(() => formData.monitorSysGenServerSettingDockerMonitorEnabled, (val) => {
+  if (val === 1) {
+    if (!formData.monitorSysGenServerSettingDockerHost) {
+      formData.monitorSysGenServerSettingDockerHost = currentServer.value?.monitorSysGenServerHost || "127.0.0.1";
     }
-  },
-);
+    if (!formData.monitorSysGenServerSettingDockerPort) {
+      formData.monitorSysGenServerSettingDockerPort = 2376;
+    }
+  }
+});
 
 const getNotificationAddressPlaceholder = () => {
   switch (formData.monitorSysGenServerSettingAlertNotificationMethod) {
-    case "EMAIL":
-      return "邮箱地址，多个用逗号分隔";
-    case "WEBHOOK":
-      return "Webhook URL地址";
-    case "SMS":
-      return "手机号码，多个用逗号分隔";
-    default:
-      return "通知地址";
+    case "EMAIL": return "邮箱地址，多个用逗号分隔";
+    case "WEBHOOK": return "Webhook URL地址";
+    case "SMS": return "手机号码，多个用逗号分隔";
+    default: return "通知地址";
   }
 };
 
 const getNotificationAddressTip = () => {
   switch (formData.monitorSysGenServerSettingAlertNotificationMethod) {
-    case "EMAIL":
-      return "支持多个邮箱地址，用逗号分隔";
-    case "WEBHOOK":
-      return "Webhook URL地址";
-    case "SMS":
-      return "支持多个手机号码，用逗号分隔";
-    default:
-      return "";
+    case "EMAIL": return "支持多个邮箱地址，用逗号分隔";
+    case "WEBHOOK": return "Webhook URL地址";
+    case "SMS": return "支持多个手机号码，用逗号分隔";
+    default: return "";
   }
 };
 
@@ -777,8 +534,7 @@ const handleFileManagementModeChange = () => {
 
 const handleApiConfigChange = () => {
   try {
-    formData.monitorSysGenServerSettingFileManagementApiConfig =
-      JSON.stringify(apiConfig);
+    formData.monitorSysGenServerSettingFileManagementApiConfig = JSON.stringify(apiConfig);
   } catch (error) {
     formData.monitorSysGenServerSettingFileManagementApiConfig = "";
   }
@@ -1108,6 +864,7 @@ input:checked + .slider:before {
   border-radius: 3px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -1116,4 +873,5 @@ input:checked + .slider:before {
     padding: 12px 16px;
   }
 }
+
 </style>

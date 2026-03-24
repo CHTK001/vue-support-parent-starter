@@ -4,6 +4,7 @@
     :class="[`theme--${theme}`, { 'cross-highlight-enabled': config.crossHighlight && config.border, 'is-draggable': draggable }]"
     :style="crossHighlightCssVars"
     @contextmenu.prevent="handleTableContextMenu"
+    @wheel="handleWheel"
   >
     <VueDragScroll v-if="dragScrollEnabled" class="drag-scroll-wrapper" :drag-direction="'horizontal'" :drag-disabled="false">
       <component
@@ -71,22 +72,22 @@
       @expand-change="onExpandChange"
     >
       <!-- 拖拽手柄列 -->
-      <ScTableColumn v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
+      <el-table-column v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
         <template #default>
           <div class="drag-handle">
             <IconifyIconOnline icon="ep:rank" />
           </div>
         </template>
-      </ScTableColumn>
+      </el-table-column>
       <template v-for="(col, index) in userColumn" :key="col.prop || index">
-        <ScTableColumn v-if="!col.hide" v-bind="col" :column-key="col.prop">
+        <el-table-column v-if="!col.hide" v-bind="col" :column-key="col.prop">
           <template #default="scope" v-if="col.slot">
             <slot :name="col.slot" v-bind="scope"></slot>
           </template>
           <template #header="scope" v-if="col.headerSlot">
             <slot :name="col.headerSlot" v-bind="scope"></slot>
           </template>
-        </ScTableColumn>
+        </el-table-column>
       </template>
       <slot></slot>
     </component>
@@ -204,6 +205,8 @@ const emit = defineEmits(["row-click", "selection-change", "sort-change", "heade
 const scTable = ref(null);
 const sortableInstance = ref(null);
 const isDragging = ref(false);
+let scrollContainer = null;
+let wheelHandler = null;
 
 // 使用主题组件系统
 const { currentComponent } = useThemeComponent("ElTable");
@@ -429,10 +432,131 @@ watch(
   { deep: false }
 );
 
+// 处理滚轮事件（直接在模板中绑定）
+const handleWheel = event => {
+  // 只处理 Shift+滚轮的情况
+  if (!event.shiftKey) {
+    return;
+  }
+
+  // 查找表格的滚动容器
+  if (!scTable.value) {
+    return;
+  }
+
+  const tableEl = scTable.value?.$el;
+  if (!tableEl) {
+    return;
+  }
+
+  // 优先查找 el-table__body-wrapper，这是 el-table 的主要滚动容器
+  let targetScrollContainer = tableEl.querySelector(".el-table__body-wrapper");
+  if (!targetScrollContainer) {
+    // 如果找不到，尝试查找 el-scrollbar__wrap
+    targetScrollContainer = tableEl.querySelector(".el-scrollbar__wrap");
+  }
+  if (!targetScrollContainer) {
+    // 最后尝试使用表格元素本身
+    targetScrollContainer = tableEl;
+  }
+
+  if (targetScrollContainer) {
+    // 阻止默认的垂直滚动行为
+    event.preventDefault();
+    event.stopPropagation();
+
+    // 将垂直滚动转换为横向滚动
+    // deltaY 是垂直滚动量，deltaX 是横向滚动量
+    const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
+
+    // 执行横向滚动
+    targetScrollContainer.scrollLeft += deltaX;
+  }
+};
+
+// 初始化 Shift+滚轮横向滚动功能
+const initShiftWheelScroll = () => {
+  if (!scTable.value) {
+    return;
+  }
+
+  nextTick(() => {
+    const tableEl = scTable.value?.$el;
+    if (!tableEl) {
+      return;
+    }
+
+    // 查找表格的滚动容器
+    scrollContainer = tableEl.querySelector(".el-table__body-wrapper");
+    if (!scrollContainer) {
+      scrollContainer = tableEl.querySelector(".el-scrollbar__wrap");
+    }
+    if (!scrollContainer) {
+      scrollContainer = tableEl;
+    }
+
+    if (!scrollContainer) {
+      return;
+    }
+
+    // 创建滚轮事件处理函数
+    wheelHandler = event => {
+      // 检查是否按下了 Shift 键
+      if (event.shiftKey) {
+        // 阻止默认的垂直滚动行为
+        event.preventDefault();
+        event.stopPropagation();
+
+        // 将垂直滚动转换为横向滚动
+        const deltaX = event.deltaY !== 0 ? event.deltaY : event.deltaX || 0;
+        if (scrollContainer) {
+          scrollContainer.scrollLeft += deltaX;
+        }
+      }
+    };
+
+    // 添加滚轮事件监听器到滚动容器
+    // 使用 capture 模式确保事件在捕获阶段被处理
+    scrollContainer.addEventListener("wheel", wheelHandler, { passive: false, capture: true });
+
+    // 同时监听表格容器，确保在表格任何位置都能触发
+    if (tableEl !== scrollContainer) {
+      tableEl.addEventListener("wheel", wheelHandler, { passive: false, capture: true });
+    }
+  });
+};
+
+// 销毁 Shift+滚轮横向滚动功能
+const destroyShiftWheelScroll = () => {
+  if (scTable.value && wheelHandler) {
+    const tableEl = scTable.value?.$el;
+    if (tableEl) {
+      tableEl.removeEventListener("wheel", wheelHandler, { capture: true });
+    }
+  }
+  if (scrollContainer && wheelHandler) {
+    scrollContainer.removeEventListener("wheel", wheelHandler, { capture: true });
+    scrollContainer = null;
+  }
+  wheelHandler = null;
+};
+
+// 监听表格高度变化，重新初始化滚动功能（因为 DOM 可能被重新渲染）
+watch(
+  () => props.config.height,
+  () => {
+    destroyShiftWheelScroll();
+    nextTick(() => {
+      initShiftWheelScroll();
+    });
+  }
+);
+
 onMounted(() => {
   if (props.draggable) {
     initDragSort();
   }
+  initShiftWheelScroll();
 });
 
 // 处理表格右键菜单
@@ -484,6 +608,7 @@ const handleMenuAction = action => {
 
 onBeforeUnmount(() => {
   destroyDragSort();
+  destroyShiftWheelScroll();
 });
 
 // Expose el-table methods

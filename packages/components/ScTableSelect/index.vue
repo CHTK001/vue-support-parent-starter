@@ -160,7 +160,9 @@ const handleClose = async () => {
 };
 
 // 使用版本号避免深度监听
-const modelValueVersion = computed(() => (Array.isArray(props.modelValue) ? props.modelValue.join(",") : String(props.modelValue ?? "")));
+const modelValueVersion = computed(() => 
+  Array.isArray(props.modelValue) ? props.modelValue.join(',') : String(props.modelValue ?? '')
+);
 watch(
   modelValueVersion,
   () => {

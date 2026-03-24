@@ -15,42 +15,42 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <ScFormItem label="启用状态">
-            <ScSwitch v-model="config.enabled" />
-          </ScFormItem>
-          <ScFormItem label="脚本语言">
-            <ScSelect v-model="config.language" style="width: 180px">
-              <ScOption label="Java" value="java" />
-              <ScOption label="Groovy" value="groovy" />
-              <ScOption label="Python" value="python" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="执行阶段">
-            <ScSelect v-model="config.phase" style="width: 180px">
-              <ScOption label="请求前" value="before" />
-              <ScOption label="请求后" value="after" />
-              <ScOption label="全部" value="both" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="匹配路径">
-            <ScInput
+          <el-form-item label="启用状态">
+            <el-switch v-model="config.enabled" />
+          </el-form-item>
+          <el-form-item label="脚本语言">
+            <el-select v-model="config.language" style="width: 180px">
+              <el-option label="Java" value="java" />
+              <el-option label="Groovy" value="groovy" />
+              <el-option label="Python" value="python" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="执行阶段">
+            <el-select v-model="config.phase" style="width: 180px">
+              <el-option label="请求前" value="before" />
+              <el-option label="请求后" value="after" />
+              <el-option label="全部" value="both" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="匹配路径">
+            <el-input
               v-model="config.pathPattern"
               placeholder="留空匹配全部，如: /api/**"
               style="width: 200px"
             />
-          </ScFormItem>
+          </el-form-item>
         </div>
       </div>
 
       <!-- 请求前脚本 -->
       <div
-        v-if="config.phase === 'before' || config.phase === 'both'"
         class="config-section"
+        v-if="config.phase === 'before' || config.phase === 'both'"
       >
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:arrow-right-circle-line" />
           请求前脚本
-          <ScTag size="small" type="warning">Before Request</ScTag>
+          <el-tag size="small" type="warning">Before Request</el-tag>
         </h4>
         <div class="editor-wrapper">
           <CodeEditor
@@ -70,13 +70,13 @@
 
       <!-- 响应后脚本 -->
       <div
-        v-if="config.phase === 'after' || config.phase === 'both'"
         class="config-section"
+        v-if="config.phase === 'after' || config.phase === 'both'"
       >
         <h4 class="section-title">
           <IconifyIconOnline icon="ri:arrow-left-circle-line" />
           响应后脚本
-          <ScTag size="small" type="success">After Response</ScTag>
+          <el-tag size="small" type="success">After Response</el-tag>
         </h4>
         <div class="editor-wrapper">
           <CodeEditor
@@ -101,24 +101,24 @@
           高级配置
         </h4>
         <div class="config-grid">
-          <ScFormItem label="超时时间(ms)">
-            <ScInputNumber
+          <el-form-item label="超时时间(ms)">
+            <el-input-number
               v-model="config.timeout"
               :min="100"
               :max="60000"
               :step="100"
             />
-          </ScFormItem>
-          <ScFormItem label="错误处理">
-            <ScSelect v-model="config.errorHandling" style="width: 180px">
-              <ScOption label="继续执行" value="continue" />
-              <ScOption label="终止请求" value="abort" />
-              <ScOption label="返回错误" value="error" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="调试模式">
-            <ScSwitch v-model="config.debug" />
-          </ScFormItem>
+          </el-form-item>
+          <el-form-item label="错误处理">
+            <el-select v-model="config.errorHandling" style="width: 180px">
+              <el-option label="继续执行" value="continue" />
+              <el-option label="终止请求" value="abort" />
+              <el-option label="返回错误" value="error" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="调试模式">
+            <el-switch v-model="config.debug" />
+          </el-form-item>
         </div>
       </div>
 
@@ -128,23 +128,23 @@
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <ScCard class="config-preview thin-scrollbar">
+        <el-card class="config-preview thin-scrollbar">
           <pre>{{ JSON.stringify(previewConfig, null, 2) }}</pre>
-        </ScCard>
+        </el-card>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleReset">
+        <el-button @click="handleReset">
           <IconifyIconOnline icon="ri:refresh-line" />
           重置
-        </ScButton>
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave">
+        </el-button>
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave">
           <IconifyIconOnline icon="ri:save-line" />
           保存配置
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -294,7 +294,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -481,6 +481,7 @@ function handleClose() {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -489,4 +490,5 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
+
 </style>

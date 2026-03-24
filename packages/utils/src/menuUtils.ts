@@ -17,12 +17,9 @@ export class MenuNewUtils {
    * @param timeLimit 时间限制（小时），可选，默认从配置获取
    * @returns 是否显示新增标识
    */
-  static shouldShowNewBadge(
-    createTime?: string | Date,
-    timeLimit?: number,
-  ): boolean {
+  static shouldShowNewBadge(createTime?: string | Date, timeLimit?: number): boolean {
     const config = getConfig();
-
+    
     // 检查全局配置是否启用新菜单显示
     if (!config.ShowNewMenu) {
       return false;
@@ -36,12 +33,11 @@ export class MenuNewUtils {
     // 计算时间差
     const createTimeDate = new Date(createTime);
     const now = new Date();
-    const diffHours =
-      (now.getTime() - createTimeDate.getTime()) / (1000 * 60 * 60);
-
+    const diffHours = (now.getTime() - createTimeDate.getTime()) / (1000 * 60 * 60);
+    
     // 获取时间限制配置（默认168小时，即7天）
     const limit = timeLimit || config.NewMenuTimeLimit || 168;
-
+    
     // 如果在时间限制内，显示标识
     return diffHours <= limit;
   }
@@ -57,13 +53,8 @@ export class MenuNewUtils {
   static addNewBadgeToMenu(
     menuItem: any,
     createTime: string | Date,
-    badgeType:
-      | "default"
-      | "primary"
-      | "success"
-      | "warning"
-      | "danger" = "primary",
-    badgeText?: string,
+    badgeType: 'default' | 'primary' | 'success' | 'warning' | 'danger' = 'primary',
+    badgeText?: string
   ): any {
     if (!menuItem.meta) {
       menuItem.meta = {};
@@ -71,7 +62,7 @@ export class MenuNewUtils {
 
     menuItem.meta.createTime = createTime;
     menuItem.meta.badgeType = badgeType;
-
+    
     if (badgeText) {
       menuItem.meta.badgeText = badgeText;
     }
@@ -90,12 +81,12 @@ export class MenuNewUtils {
     newMenusConfig: Array<{
       path: string;
       createTime: string | Date;
-      badgeType?: "default" | "primary" | "success" | "warning" | "danger";
+      badgeType?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
       badgeText?: string;
-    }>,
+    }>
   ): any[] {
     const configMap = new Map(
-      newMenusConfig.map((config) => [config.path, config]),
+      newMenusConfig.map(config => [config.path, config])
     );
 
     function processMenu(menu: any): any {
@@ -105,21 +96,19 @@ export class MenuNewUtils {
           menu,
           config.createTime,
           config.badgeType,
-          config.badgeText,
+          config.badgeText
         );
       }
 
       // 递归处理子菜单
       if (menu.children && menu.children.length > 0) {
-        menu.children = menu.children.map((child: any) =>
-          processMenu.call(this, child),
-        );
+        menu.children = menu.children.map((child: any) => processMenu.call(this, child));
       }
 
       return menu;
     }
 
-    return menuList.map((menu) => processMenu.call(this, menu));
+    return menuList.map(menu => processMenu.call(this, menu));
   }
 
   /**
@@ -128,7 +117,7 @@ export class MenuNewUtils {
    */
   static getDefaultBadgeText(): string {
     const config = getConfig();
-    return config.NewMenuText || "new";
+    return config.NewMenuText || 'new';
   }
 
   /**
@@ -156,21 +145,11 @@ export class MenuNewUtils {
  */
 export function withNewBadge(
   createTime: string | Date,
-  badgeType:
-    | "default"
-    | "primary"
-    | "success"
-    | "warning"
-    | "danger" = "primary",
-  badgeText?: string,
+  badgeType: 'default' | 'primary' | 'success' | 'warning' | 'danger' = 'primary',
+  badgeText?: string
 ) {
-  return function (target: any) {
-    return MenuNewUtils.addNewBadgeToMenu(
-      target,
-      createTime,
-      badgeType,
-      badgeText,
-    );
+  return function(target: any) {
+    return MenuNewUtils.addNewBadgeToMenu(target, createTime, badgeType, badgeText);
   };
 }
 
@@ -185,19 +164,14 @@ export function withNewBadge(
 export function createNewMenu(
   menuConfig: any,
   createTime: string | Date,
-  badgeType:
-    | "default"
-    | "primary"
-    | "success"
-    | "warning"
-    | "danger" = "primary",
-  badgeText?: string,
+  badgeType: 'default' | 'primary' | 'success' | 'warning' | 'danger' = 'primary',
+  badgeText?: string
 ): any {
   return MenuNewUtils.addNewBadgeToMenu(
     { ...menuConfig },
     createTime,
     badgeType,
-    badgeText,
+    badgeText
   );
 }
 

@@ -8,7 +8,7 @@
     </div>
 
     <div class="log-progress">
-      <ScProgress :percentage="percentage" :status="progressStatus" :stroke-width="strokeWidth" :format="percentageFormat" />
+      <el-progress :percentage="percentage" :status="progressStatus" :stroke-width="strokeWidth" :format="percentageFormat" />
     </div>
   </div>
 </template>

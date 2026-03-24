@@ -1,18 +1,13 @@
 <template>
   <div class="console-viewer system-container modern-bg">
-    <ScAlert
-      type="info"
-      :closable="false"
-      show-icon
-      class="mb-2"
-      title="提示：控制台由后端代理连接（HTTP/WS），前端仅展示"
-    />
+    <el-alert type="info" :closable="false" show-icon class="mb-2" title="提示：控制台由后端代理连接（HTTP/WS），前端仅展示" />
     <iframe v-if="url" :src="url" class="console-iframe" frameborder="0" />
     <div v-else class="tip">后端未提供控制台代理地址或连接尚未建立</div>
   </div>
 </template>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -46,6 +41,7 @@
   }
 }
 
+
 .console-viewer {
   height: 100%;
   display: flex;
@@ -61,6 +57,7 @@
   margin-bottom: 8px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -69,4 +66,5 @@
     padding: 12px 16px;
   }
 }
+
 </style>

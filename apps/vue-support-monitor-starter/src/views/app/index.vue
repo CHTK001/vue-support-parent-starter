@@ -27,7 +27,7 @@
     <div class="toolbar modern-toolbar">
       <div class="left">
         <div class="search-container">
-          <ScInput
+          <el-input
             v-model="query.keyword"
             class="search-input"
             placeholder="搜索项目名称、平台..."
@@ -36,22 +36,22 @@
             <template #prefix>
               <IconifyIconOnline icon="ep:search" class="search-icon" />
             </template>
-          </ScInput>
+          </el-input>
         </div>
         <div class="filter-container">
-          <ScSelect
+          <el-select
             v-model="query.platform"
             class="platform-select"
             clearable
             placeholder="选择平台"
           >
-            <ScOption label="全部平台" value="">
+            <el-option label="全部平台" value="">
               <div class="option-item">
                 <IconifyIconOnline icon="ri:apps-line" class="option-icon" />
                 <span>全部平台</span>
               </div>
-            </ScOption>
-            <ScOption label="Spring Boot" value="spring">
+            </el-option>
+            <el-option label="Spring Boot" value="spring">
               <div class="option-item">
                 <IconifyIconOnline
                   icon="simple-icons:springboot"
@@ -59,8 +59,8 @@
                 />
                 <span>Spring Boot</span>
               </div>
-            </ScOption>
-            <ScOption label="Node.js" value="node">
+            </el-option>
+            <el-option label="Node.js" value="node">
               <div class="option-item">
                 <IconifyIconOnline
                   icon="simple-icons:nodedotjs"
@@ -68,34 +68,34 @@
                 />
                 <span>Node.js</span>
               </div>
-            </ScOption>
-            <ScOption label="其他" value="other">
+            </el-option>
+            <el-option label="其他" value="other">
               <div class="option-item">
                 <IconifyIconOnline icon="ri:more-line" class="option-icon" />
                 <span>其他</span>
               </div>
-            </ScOption>
-          </ScSelect>
+            </el-option>
+          </el-select>
         </div>
       </div>
       <div class="right">
-        <ScButton class="search-btn" @click="reload">
+        <el-button class="search-btn" @click="reload">
           <IconifyIconOnline icon="ep:search" class="btn-icon" />
           搜索
-        </ScButton>
-        <ScButton type="primary" class="create-btn" @click="handleOpenEit({})">
+        </el-button>
+        <el-button type="primary" class="create-btn" @click="handleOpenEit({})">
           <IconifyIconOnline icon="ri:add-circle-line" class="btn-icon" />
           新建项目
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <div class="relative h-full w-full">
       <ScTable
-        ref="tableRef"
         class="card-grid"
         :url="fetchAppPageList"
         :col-size="4"
+        ref="tableRef"
         layout="card"
       >
         <template #empty>
@@ -105,21 +105,21 @@
             </div>
             <h3 class="empty-title w-full">暂无项目配置</h3>
             <p class="empty-description">开始创建您的第一个项目配置</p>
-            <ScButton
+            <el-button
               type="primary"
               class="empty-action"
               @click="handleOpenEit({})"
             >
               <IconifyIconOnline icon="ri:add-circle-line" class="btn-icon" />
               新建项目
-            </ScButton>
+            </el-button>
           </div>
         </template>
 
         <template #default="{ row: item }">
           <div class="app-card" @click="handleCardClick(item)">
             <!-- 状态指示器 -->
-            <div class="status-indicator" :class="getStatusClass(item)" />
+            <div class="status-indicator" :class="getStatusClass(item)"></div>
 
             <!-- 卡片头部 -->
             <div class="card-header">
@@ -190,50 +190,50 @@
               </div>
 
               <!-- 标签区域 -->
-              <div v-if="item.tags && item.tags.length" class="tags-section">
-                <ScTag
+              <div class="tags-section" v-if="item.tags && item.tags.length">
+                <el-tag
                   v-for="tag in item.tags"
                   :key="tag"
                   size="small"
                   class="app-tag"
                 >
                   {{ tag }}
-                </ScTag>
+                </el-tag>
               </div>
             </div>
 
             <!-- 卡片操作 -->
             <div class="card-actions" @click.stop>
               <div class="action-buttons">
-                <ScTooltip content="查看详情" placement="top">
-                  <ScButton
+                <el-tooltip content="查看详情" placement="top">
+                  <el-button
                     class="action-btn primary"
                     @click.stop="handleViewDetail(item)"
                   >
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </ScButton>
-                </ScTooltip>
-                <ScTooltip content="编辑配置" placement="top">
-                  <ScButton
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="编辑配置" placement="top">
+                  <el-button
                     class="action-btn"
                     @click.stop="handleOpenEit(item)"
                   >
                     <IconifyIconOnline icon="ri:edit-line" />
-                  </ScButton>
-                </ScTooltip>
-                <ScTooltip content="复制配置" placement="top">
-                  <ScButton class="action-btn" @click.stop="handleCopy(item)">
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="复制配置" placement="top">
+                  <el-button class="action-btn" @click.stop="handleCopy(item)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
-                  </ScButton>
-                </ScTooltip>
-                <ScTooltip content="删除" placement="top">
-                  <ScButton
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button
                     class="action-btn danger"
                     @click.stop="handleDelete(item)"
                   >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </ScButton>
-                </ScTooltip>
+                  </el-button>
+                </el-tooltip>
               </div>
             </div>
           </div>
@@ -244,7 +244,7 @@
       :data="currentData"
       :visible="editDialogStatus"
       @success="handleSuccessOpenEit"
-    />
+    ></EditDialog>
 
     <DetailDialog v-model:visible="detailDialogStatus" :data="detailData" />
   </div>
@@ -255,7 +255,7 @@ import { ref, computed, onMounted } from "vue";
 import EditDialog from "./modules/EditDialog.vue";
 import DetailDialog from "./modules/DetailDialog.vue";
 import { fetchAppDelete, fetchAppPageList } from "@/api/monitor/app";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox} from "element-plus";
 import { message } from "@repo/utils";
 
 const tableRef = ref<any>();
@@ -274,7 +274,7 @@ const query = ref<{ keyword: string; platform: string | undefined }>({
 // 统计数据
 const totalApps = computed(() => appList.value.length);
 const activeApps = computed(
-  () => appList.value.filter((app) => app.status === "active").length,
+  () => appList.value.filter((app) => app.status === "active").length
 );
 
 const reload = () => {

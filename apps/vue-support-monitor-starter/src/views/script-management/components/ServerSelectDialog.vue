@@ -1,16 +1,16 @@
 ﻿<template>
   <sc-dialog
     :model-value="visible"
+    @update:model-value="$emit('update:visible', $event)"
     title="选择服务器运行脚本"
     width="600px"
     :close-on-click-modal="false"
     class="server-select-dialog"
-    @update:model-value="$emit('update:visible', $event)"
     @close="handleClose"
   >
     <div class="dialog-content">
       <!-- 脚本信息 -->
-      <div v-if="scriptData" class="script-info">
+      <div class="script-info" v-if="scriptData">
         <div class="info-icon">
           <IconifyIconOnline icon="ri:code-s-slash-line" />
         </div>
@@ -23,7 +23,7 @@
       <!-- 执行方式选择 -->
       <div class="execute-method">
         <label class="section-label">执行方式</label>
-        <ScRadioGroup v-model="executeMethod" class="method-group">
+        <el-radio-group v-model="executeMethod" class="method-group">
           <el-radio-button value="SSH">
             <IconifyIconOnline icon="ri:terminal-line" />
             SSH 执行
@@ -32,13 +32,9 @@
             <IconifyIconOnline icon="ri:server-line" />
             NODE 代理
           </el-radio-button>
-        </ScRadioGroup>
+        </el-radio-group>
         <p class="method-hint">
-          {{
-            executeMethod === "SSH"
-              ? "通过 SSH 连接到服务器执行脚本"
-              : "通过 NODE 代理服务执行脚本"
-          }}
+          {{ executeMethod === 'SSH' ? '通过 SSH 连接到服务器执行脚本' : '通过 NODE 代理服务执行脚本' }}
         </p>
       </div>
 
@@ -46,7 +42,7 @@
       <div class="server-list-section">
         <div class="section-header">
           <label class="section-label">选择服务器</label>
-          <ScInput
+          <el-input
             v-model="searchKeyword"
             placeholder="搜索服务器..."
             clearable
@@ -56,68 +52,46 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </ScInput>
+          </el-input>
         </div>
 
-        <div v-loading="loading" class="server-list">
+        <div class="server-list" v-loading="loading">
           <div
             v-for="server in filteredServers"
             :key="server.monitorSysGenServerId"
             class="server-item"
-            :class="{
-              selected: selectedServerId === server.monitorSysGenServerId,
-            }"
+            :class="{ selected: selectedServerId === server.monitorSysGenServerId }"
             @click="selectServer(server)"
           >
             <div class="server-icon">
               <IconifyIconOnline :icon="getServerIcon(server)" />
             </div>
             <div class="server-info">
-              <div class="server-name">
-                {{ server.monitorSysGenServerName }}
-              </div>
-              <div class="server-host">
-                {{ server.monitorSysGenServerHost }}:{{
-                  server.monitorSysGenServerPort
-                }}
-              </div>
+              <div class="server-name">{{ server.monitorSysGenServerName }}</div>
+              <div class="server-host">{{ server.monitorSysGenServerHost }}:{{ server.monitorSysGenServerPort }}</div>
             </div>
             <div class="server-status">
-              <ScTag
-                :type="
-                  server.monitorSysGenServerConnectionStatus === 1
-                    ? 'success'
-                    : 'info'
-                "
+              <el-tag
+                :type="server.monitorSysGenServerConnectionStatus === 1 ? 'success' : 'info'"
                 size="small"
               >
-                {{
-                  server.monitorSysGenServerConnectionStatus === 1
-                    ? "在线"
-                    : "离线"
-                }}
-              </ScTag>
+                {{ server.monitorSysGenServerConnectionStatus === 1 ? '在线' : '离线' }}
+              </el-tag>
             </div>
-            <div
-              v-if="selectedServerId === server.monitorSysGenServerId"
-              class="check-icon"
-            >
+            <div class="check-icon" v-if="selectedServerId === server.monitorSysGenServerId">
               <IconifyIconOnline icon="ri:check-line" />
             </div>
           </div>
 
-          <ScEmpty
-            v-if="filteredServers.length === 0 && !loading"
-            description="暂无可用服务器"
-          />
+          <el-empty v-if="filteredServers.length === 0 && !loading" description="暂无可用服务器" />
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton
+        <el-button @click="handleClose">取消</el-button>
+        <el-button
           type="primary"
           :disabled="!selectedServerId"
           :loading="executing"
@@ -125,7 +99,7 @@
         >
           <IconifyIconOnline icon="ri:play-line" />
           执行脚本
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -168,7 +142,7 @@ const filteredServers = computed(() => {
   return servers.value.filter(
     (s) =>
       s.monitorSysGenServerName?.toLowerCase().includes(keyword) ||
-      s.monitorSysGenServerHost?.toLowerCase().includes(keyword),
+      s.monitorSysGenServerHost?.toLowerCase().includes(keyword)
   );
 });
 
@@ -180,7 +154,7 @@ watch(
       loadServers();
       selectedServerId.value = null;
     }
-  },
+  }
 );
 
 // 加载服务器列表
@@ -273,11 +247,7 @@ const handleClose = () => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9),
-    var(--el-color-primary-light-8)
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
   border-radius: 12px;
   margin-bottom: 20px;
 
@@ -448,6 +418,7 @@ const handleClose = () => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -456,4 +427,5 @@ const handleClose = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

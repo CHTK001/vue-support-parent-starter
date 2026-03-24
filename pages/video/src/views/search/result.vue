@@ -35,7 +35,7 @@
           <div class="movie-item" @click="goToDetail(row)">
             <!-- 海报 -->
             <div class="poster">
-              <ScImage
+              <ScImage 
                 :src="row.videoCover || '/placeholder.jpg'"
                 fit="cover"
                 class="poster-img"
@@ -56,7 +56,7 @@
             </div>
             <!-- 操作 -->
             <div class="actions">
-              <ScButton
+              <ScButton 
                 type="primary"
                 size="small"
                 @click.stop="downloadFile(row)"
@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 // 已使用 IconifyIconOnline 替代 Element Plus 图标
-import { message, ScNotification } from "@repo/utils";
+import { message , ScNotification} from "@repo/utils";
 
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -236,7 +236,7 @@ watch(
       searchKeyword.value = newKeyword as string;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 组件挂载时获取搜索关键词
@@ -256,18 +256,14 @@ watch(
       currentPage.value = 1;
       // ScTable 会自动监听 searchParams 变化并加载数据
     }
-  },
+  }
 );
 </script>
 
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-3) 0%,
-    var(--el-color-primary) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;

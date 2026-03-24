@@ -234,7 +234,7 @@ export type SocketTopicType = typeof SocketTopics;
 /**
  * 生成带用户ID的消息推送主题
  * 格式: service:message:push@{userId}
- *
+ * 
  * @param userId 用户ID，0表示广播消息
  * @returns 带用户ID的主题字符串
  */
@@ -245,7 +245,7 @@ export function getMessageTopicWithUser(userId: number | string): string {
 /**
  * 生成带用户ID的消息删除/撤回主题
  * 格式: service:message:delete@{userId}
- *
+ * 
  * @param userId 用户ID，0表示广播消息
  * @returns 带用户ID的主题字符串
  */
@@ -255,15 +255,12 @@ export function getMessageDeleteTopicWithUser(userId: number | string): string {
 
 /**
  * 解析带用户ID的主题，提取基础主题和用户ID
- *
+ * 
  * @param topic 带用户ID的主题字符串
  * @returns { baseTopic: string, userId: string | null }
  */
-export function parseTopicWithUser(topic: string): {
-  baseTopic: string;
-  userId: string | null;
-} {
-  const atIndex = topic.lastIndexOf("@");
+export function parseTopicWithUser(topic: string): { baseTopic: string; userId: string | null } {
+  const atIndex = topic.lastIndexOf('@');
   if (atIndex === -1) {
     return { baseTopic: topic, userId: null };
   }

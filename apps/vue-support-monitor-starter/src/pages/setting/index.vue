@@ -30,21 +30,21 @@
           @click="setMode('side')"
         >
           <div class="nav-preview side">
-            <div class="preview-sidebar" />
+            <div class="preview-sidebar"></div>
             <div class="preview-main">
-              <div class="preview-header" />
-              <div class="preview-content" />
+              <div class="preview-header"></div>
+              <div class="preview-content"></div>
             </div>
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <ScRadio :model-value="form.navMode" value="side"
+              <el-radio :model-value="form.navMode" value="side"
                 >侧边导航</el-radio
               >
             </div>
             <p class="nav-desc">左侧垂直菜单，空间利用高，适合功能较多的系统</p>
           </div>
-          <div v-if="form.navMode === 'side'" class="nav-check">
+          <div class="nav-check" v-if="form.navMode === 'side'">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -55,14 +55,14 @@
           @click="setMode('top')"
         >
           <div class="nav-preview top">
-            <div class="preview-topbar" />
+            <div class="preview-topbar"></div>
             <div class="preview-body">
-              <div class="preview-content" />
+              <div class="preview-content"></div>
             </div>
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <ScRadio :model-value="form.navMode" value="top"
+              <el-radio :model-value="form.navMode" value="top"
                 >顶部导航</el-radio
               >
             </div>
@@ -70,7 +70,7 @@
               顶部水平菜单，简洁直观，适合一级模块较少的场景
             </p>
           </div>
-          <div v-if="form.navMode === 'top'" class="nav-check">
+          <div class="nav-check" v-if="form.navMode === 'top'">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -81,15 +81,15 @@
           @click="setMode('mix')"
         >
           <div class="nav-preview mix">
-            <div class="preview-topbar" />
+            <div class="preview-topbar"></div>
             <div class="preview-body">
-              <div class="preview-sidebar" />
-              <div class="preview-content" />
+              <div class="preview-sidebar"></div>
+              <div class="preview-content"></div>
             </div>
           </div>
           <div class="nav-info">
             <div class="nav-name">
-              <ScRadio :model-value="form.navMode" value="mix"
+              <el-radio :model-value="form.navMode" value="mix"
                 >混合导航</el-radio
               >
             </div>
@@ -97,7 +97,7 @@
               顶部一级导航 + 左侧二级导航，层级清晰，适合中大型系统
             </p>
           </div>
-          <div v-if="form.navMode === 'mix'" class="nav-check">
+          <div class="nav-check" v-if="form.navMode === 'mix'">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
         </div>
@@ -106,14 +106,14 @@
 
     <!-- 操作按钮 -->
     <div class="settings-actions">
-      <ScButton type="primary" size="large" @click="save">
+      <el-button type="primary" size="large" @click="save">
         <IconifyIconOnline icon="ri:save-line" class="mr-1" />
         保存设置
-      </ScButton>
-      <ScButton size="large" @click="reset">
+      </el-button>
+      <el-button size="large" @click="reset">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         重置默认
-      </ScButton>
+      </el-button>
     </div>
 
     <div class="settings-tip">

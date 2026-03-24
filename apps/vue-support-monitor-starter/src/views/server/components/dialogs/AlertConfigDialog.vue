@@ -7,23 +7,23 @@
     @close="handleClose"
   >
     <div class="alert-config">
-      <ScTabs v-model="activeTab" type="border-card">
+      <el-tabs v-model="activeTab" type="border-card">
         <!-- 告警规则 -->
-        <ScTabPane label="告警规则" name="rules">
+        <el-tab-pane label="告警规则" name="rules">
           <div class="rules-panel">
             <div class="rules-header">
-              <ScButton type="primary" size="small" @click="addRule">
+              <el-button type="primary" size="small" @click="addRule">
                 <IconifyIconOnline icon="ri:add-line" class="mr-1" />
                 新增规则
-              </ScButton>
-              <ScButton size="small" @click="importRules">
+              </el-button>
+              <el-button size="small" @click="importRules">
                 <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
                 导入规则
-              </ScButton>
-              <ScButton size="small" @click="exportRules">
+              </el-button>
+              <el-button size="small" @click="exportRules">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 导出规则
-              </ScButton>
+              </el-button>
             </div>
 
             <div class="rules-list">
@@ -36,53 +36,47 @@
                 <div class="rule-header">
                   <div class="rule-info">
                     <span class="rule-name">{{ rule.name }}</span>
-                    <ScTag :type="getSeverityType(rule.severity)" size="small">
+                    <el-tag :type="getSeverityType(rule.severity)" size="small">
                       {{ getSeverityText(rule.severity) }}
-                    </ScTag>
-                    <ScTag v-if="!rule.enabled" type="info" size="small"
-                      >已禁用</el-tag
-                    >
+                    </el-tag>
+                    <el-tag v-if="!rule.enabled" type="info" size="small">已禁用</el-tag>
                   </div>
                   <div class="rule-actions">
-                    <ScSwitch
+                    <el-switch
                       v-model="rule.enabled"
                       size="small"
                       @change="updateRule(index)"
                     />
-                    <ScButton size="small" text @click="editRule(index)">
+                    <el-button size="small" text @click="editRule(index)">
                       <IconifyIconOnline icon="ri:edit-line" />
-                    </ScButton>
-                    <ScButton size="small" text @click="deleteRule(index)">
+                    </el-button>
+                    <el-button size="small" text @click="deleteRule(index)">
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </ScButton>
+                    </el-button>
                   </div>
                 </div>
                 <div class="rule-content">
                   <div class="rule-condition">
                     <span class="condition-label">条件:</span>
                     <span class="condition-text">
-                      {{ rule.metric }} {{ getOperatorText(rule.operator) }}
-                      {{ rule.threshold }}{{ getUnitText(rule.metric) }}
+                      {{ rule.metric }} {{ getOperatorText(rule.operator) }} {{ rule.threshold }}{{ getUnitText(rule.metric) }}
                     </span>
                   </div>
-                  <div v-if="rule.description" class="rule-description">
+                  <div class="rule-description" v-if="rule.description">
                     {{ rule.description }}
                   </div>
                 </div>
               </div>
 
-              <ScEmpty
-                v-if="alertRules.length === 0"
-                description="暂无告警规则"
-              />
+              <el-empty v-if="alertRules.length === 0" description="暂无告警规则" />
             </div>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 阈值设置 -->
-        <ScTabPane label="阈值设置" name="thresholds">
+        <el-tab-pane label="阈值设置" name="thresholds">
           <div class="thresholds-panel">
-            <ScAlert
+            <el-alert
               title="阈值配置说明"
               description="设置各项监控指标的告警阈值，当指标值超过设定阈值时将触发相应级别的告警。"
               type="info"
@@ -91,19 +85,19 @@
               style="margin-bottom: 20px"
             />
 
-            <ScForm :model="thresholdConfig" label-width="120px">
+            <el-form :model="thresholdConfig" label-width="120px">
               <!-- CPU阈值设置 -->
-              <ScCard class="threshold-card" shadow="never">
+              <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
                     <IconifyIconOnline icon="ri:cpu-line" class="metric-icon" />
                     <span>CPU使用率阈值</span>
                   </div>
                 </template>
-                <ScRow :gutter="20">
-                  <ScCol :span="8">
-                    <ScFormItem label="正常阈值">
-                      <ScInputNumber
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
                         v-model="thresholdConfig.cpu.normal"
                         :min="0"
                         :max="100"
@@ -112,11 +106,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="警告阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
                         v-model="thresholdConfig.cpu.warning"
                         :min="thresholdConfig.cpu.normal"
                         :max="100"
@@ -125,11 +119,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="危险阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
                         v-model="thresholdConfig.cpu.critical"
                         :min="thresholdConfig.cpu.warning"
                         :max="100"
@@ -138,26 +132,23 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                </ScRow>
-              </ScCard>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
 
               <!-- 内存阈值设置 -->
-              <ScCard class="threshold-card" shadow="never">
+              <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline
-                      icon="ri:database-line"
-                      class="metric-icon"
-                    />
+                    <IconifyIconOnline icon="ri:database-line" class="metric-icon" />
                     <span>内存使用率阈值</span>
                   </div>
                 </template>
-                <ScRow :gutter="20">
-                  <ScCol :span="8">
-                    <ScFormItem label="正常阈值">
-                      <ScInputNumber
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
                         v-model="thresholdConfig.memory.normal"
                         :min="0"
                         :max="100"
@@ -166,11 +157,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="警告阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
                         v-model="thresholdConfig.memory.warning"
                         :min="thresholdConfig.memory.normal"
                         :max="100"
@@ -179,11 +170,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="危险阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
                         v-model="thresholdConfig.memory.critical"
                         :min="thresholdConfig.memory.warning"
                         :max="100"
@@ -192,26 +183,23 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                </ScRow>
-              </ScCard>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
 
               <!-- 磁盘阈值设置 -->
-              <ScCard class="threshold-card" shadow="never">
+              <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline
-                      icon="ri:hard-drive-line"
-                      class="metric-icon"
-                    />
+                    <IconifyIconOnline icon="ri:hard-drive-line" class="metric-icon" />
                     <span>磁盘使用率阈值</span>
                   </div>
                 </template>
-                <ScRow :gutter="20">
-                  <ScCol :span="8">
-                    <ScFormItem label="正常阈值">
-                      <ScInputNumber
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
                         v-model="thresholdConfig.disk.normal"
                         :min="0"
                         :max="100"
@@ -220,11 +208,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="警告阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
                         v-model="thresholdConfig.disk.warning"
                         :min="thresholdConfig.disk.normal"
                         :max="100"
@@ -233,11 +221,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="危险阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
                         v-model="thresholdConfig.disk.critical"
                         :min="thresholdConfig.disk.warning"
                         :max="100"
@@ -246,26 +234,23 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                </ScRow>
-              </ScCard>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
 
               <!-- 温度阈值设置 -->
-              <ScCard class="threshold-card" shadow="never">
+              <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline
-                      icon="ri:temp-hot-line"
-                      class="metric-icon"
-                    />
+                    <IconifyIconOnline icon="ri:temp-hot-line" class="metric-icon" />
                     <span>温度阈值</span>
                   </div>
                 </template>
-                <ScRow :gutter="20">
-                  <ScCol :span="8">
-                    <ScFormItem label="正常阈值">
-                      <ScInputNumber
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
                         v-model="thresholdConfig.temperature.normal"
                         :min="0"
                         :max="100"
@@ -274,11 +259,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">°C</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="警告阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
                         v-model="thresholdConfig.temperature.warning"
                         :min="thresholdConfig.temperature.normal"
                         :max="100"
@@ -287,11 +272,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">°C</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="危险阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
                         v-model="thresholdConfig.temperature.critical"
                         :min="thresholdConfig.temperature.warning"
                         :max="100"
@@ -300,26 +285,23 @@
                         style="width: 100%"
                       />
                       <span class="unit">°C</span>
-                    </ScFormItem>
-                  </ScCol>
-                </ScRow>
-              </ScCard>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
 
               <!-- 网络阈值设置 -->
-              <ScCard class="threshold-card" shadow="never">
+              <el-card class="threshold-card" shadow="never">
                 <template #header>
                   <div class="card-header">
-                    <IconifyIconOnline
-                      icon="ri:wifi-line"
-                      class="metric-icon"
-                    />
+                    <IconifyIconOnline icon="ri:wifi-line" class="metric-icon" />
                     <span>网络使用率阈值</span>
                   </div>
                 </template>
-                <ScRow :gutter="20">
-                  <ScCol :span="8">
-                    <ScFormItem label="正常阈值">
-                      <ScInputNumber
+                <el-row :gutter="20">
+                  <el-col :span="8">
+                    <el-form-item label="正常阈值">
+                      <el-input-number
                         v-model="thresholdConfig.network.normal"
                         :min="0"
                         :max="100"
@@ -328,11 +310,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="警告阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="警告阈值">
+                      <el-input-number
                         v-model="thresholdConfig.network.warning"
                         :min="thresholdConfig.network.normal"
                         :max="100"
@@ -341,11 +323,11 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                  <ScCol :span="8">
-                    <ScFormItem label="危险阈值">
-                      <ScInputNumber
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="危险阈值">
+                      <el-input-number
                         v-model="thresholdConfig.network.critical"
                         :min="thresholdConfig.network.warning"
                         :max="100"
@@ -354,99 +336,88 @@
                         style="width: 100%"
                       />
                       <span class="unit">%</span>
-                    </ScFormItem>
-                  </ScCol>
-                </ScRow>
-              </ScCard>
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-card>
 
               <div class="threshold-actions">
-                <ScButton @click="resetThresholds">重置为默认值</ScButton>
-                <ScButton type="primary" @click="saveThresholds"
-                  >保存阈值配置</el-button
-                >
+                <el-button @click="resetThresholds">重置为默认值</el-button>
+                <el-button type="primary" @click="saveThresholds">保存阈值配置</el-button>
               </div>
-            </ScForm>
+            </el-form>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 通知设置 -->
-        <ScTabPane label="通知设置" name="notifications">
+        <el-tab-pane label="通知设置" name="notifications">
           <div class="notifications-panel">
-            <ScForm :model="notificationConfig" label-width="100px">
-              <ScFormItem label="启用通知">
-                <ScSwitch v-model="notificationConfig.enabled" />
-              </ScFormItem>
+            <el-form :model="notificationConfig" label-width="100px">
+              <el-form-item label="启用通知">
+                <el-switch v-model="notificationConfig.enabled" />
+              </el-form-item>
 
               <template v-if="notificationConfig.enabled">
-                <ScFormItem label="通知方式">
-                  <ScCheckboxGroup v-model="notificationConfig.methods">
-                    <ScCheckbox label="email">邮件通知</ScCheckbox>
-                    <ScCheckbox label="webhook">Webhook</ScCheckbox>
-                    <ScCheckbox label="dingtalk">钉钉</ScCheckbox>
-                    <ScCheckbox label="wechat">企业微信</ScCheckbox>
-                  </ScCheckboxGroup>
-                </ScFormItem>
+                <el-form-item label="通知方式">
+                  <el-checkbox-group v-model="notificationConfig.methods">
+                    <el-checkbox label="email">邮件通知</el-checkbox>
+                    <el-checkbox label="webhook">Webhook</el-checkbox>
+                    <el-checkbox label="dingtalk">钉钉</el-checkbox>
+                    <el-checkbox label="wechat">企业微信</el-checkbox>
+                  </el-checkbox-group>
+                </el-form-item>
 
                 <!-- 邮件配置 -->
                 <template v-if="notificationConfig.methods.includes('email')">
-                  <ScDivider content-position="left">邮件配置</ScDivider>
-                  <ScFormItem label="收件人">
-                    <ScInput
+                  <el-divider content-position="left">邮件配置</el-divider>
+                  <el-form-item label="收件人">
+                    <el-input
                       v-model="notificationConfig.email.recipients"
                       placeholder="多个邮箱用逗号分隔"
                     />
-                  </ScFormItem>
-                  <ScFormItem label="SMTP服务器">
-                    <ScInput v-model="notificationConfig.email.smtpHost" />
-                  </ScFormItem>
-                  <ScFormItem label="SMTP端口">
-                    <ScInputNumber
-                      v-model="notificationConfig.email.smtpPort"
-                      :min="1"
-                      :max="65535"
-                    />
-                  </ScFormItem>
+                  </el-form-item>
+                  <el-form-item label="SMTP服务器">
+                    <el-input v-model="notificationConfig.email.smtpHost" />
+                  </el-form-item>
+                  <el-form-item label="SMTP端口">
+                    <el-input-number v-model="notificationConfig.email.smtpPort" :min="1" :max="65535" />
+                  </el-form-item>
                 </template>
 
                 <!-- Webhook配置 -->
                 <template v-if="notificationConfig.methods.includes('webhook')">
-                  <ScDivider content-position="left">Webhook配置</ScDivider>
-                  <ScFormItem label="Webhook URL">
-                    <ScInput
-                      v-model="notificationConfig.webhook.url"
-                      placeholder="https://..."
-                    />
-                  </ScFormItem>
-                  <ScFormItem label="请求方法">
-                    <ScSelect v-model="notificationConfig.webhook.method">
-                      <ScOption label="POST" value="POST" />
-                      <ScOption label="PUT" value="PUT" />
-                    </ScSelect>
-                  </ScFormItem>
+                  <el-divider content-position="left">Webhook配置</el-divider>
+                  <el-form-item label="Webhook URL">
+                    <el-input v-model="notificationConfig.webhook.url" placeholder="https://..." />
+                  </el-form-item>
+                  <el-form-item label="请求方法">
+                    <el-select v-model="notificationConfig.webhook.method">
+                      <el-option label="POST" value="POST" />
+                      <el-option label="PUT" value="PUT" />
+                    </el-select>
+                  </el-form-item>
                 </template>
 
                 <!-- 钉钉配置 -->
-                <template
-                  v-if="notificationConfig.methods.includes('dingtalk')"
-                >
-                  <ScDivider content-position="left">钉钉配置</ScDivider>
-                  <ScFormItem label="机器人Token">
-                    <ScInput v-model="notificationConfig.dingtalk.token" />
-                  </ScFormItem>
-                  <ScFormItem label="加签密钥">
-                    <ScInput v-model="notificationConfig.dingtalk.secret" />
-                  </ScFormItem>
+                <template v-if="notificationConfig.methods.includes('dingtalk')">
+                  <el-divider content-position="left">钉钉配置</el-divider>
+                  <el-form-item label="机器人Token">
+                    <el-input v-model="notificationConfig.dingtalk.token" />
+                  </el-form-item>
+                  <el-form-item label="加签密钥">
+                    <el-input v-model="notificationConfig.dingtalk.secret" />
+                  </el-form-item>
                 </template>
               </template>
-            </ScForm>
+            </el-form>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 告警历史 -->
-        <ScTabPane label="告警历史" name="history">
+        <el-tab-pane label="告警历史" name="history">
           <div class="history-panel">
             <div class="history-filters">
-              <ScDatePicker
+              <el-date-picker
                 v-model="historyFilters.dateRange"
                 type="datetimerange"
                 range-separator="至"
@@ -454,17 +425,12 @@
                 end-placeholder="结束时间"
                 size="small"
               />
-              <ScSelect
-                v-model="historyFilters.severity"
-                placeholder="告警级别"
-                size="small"
-                clearable
-              >
-                <ScOption label="严重" value="critical" />
-                <ScOption label="警告" value="warning" />
-                <ScOption label="信息" value="info" />
-              </ScSelect>
-              <ScButton size="small" @click="loadAlertHistory">查询</ScButton>
+              <el-select v-model="historyFilters.severity" placeholder="告警级别" size="small" clearable>
+                <el-option label="严重" value="critical" />
+                <el-option label="警告" value="warning" />
+                <el-option label="信息" value="info" />
+              </el-select>
+              <el-button size="small" @click="loadAlertHistory">查询</el-button>
             </div>
 
             <div class="history-list">
@@ -474,16 +440,13 @@
                 class="history-item"
               >
                 <div class="alert-header">
-                  <ScTag :type="getSeverityType(alert.severity)" size="small">
+                  <el-tag :type="getSeverityType(alert.severity)" size="small">
                     {{ getSeverityText(alert.severity) }}
-                  </ScTag>
+                  </el-tag>
                   <span class="alert-time">{{ formatTime(alert.time) }}</span>
-                  <ScTag
-                    :type="alert.resolved ? 'success' : 'danger'"
-                    size="small"
-                  >
-                    {{ alert.resolved ? "已解决" : "未解决" }}
-                  </ScTag>
+                  <el-tag :type="alert.resolved ? 'success' : 'danger'" size="small">
+                    {{ alert.resolved ? '已解决' : '未解决' }}
+                  </el-tag>
                 </div>
                 <div class="alert-content">
                   <div class="alert-title">{{ alert.title }}</div>
@@ -492,14 +455,11 @@
                 </div>
               </div>
 
-              <ScEmpty
-                v-if="alertHistory.length === 0"
-                description="暂无告警历史"
-              />
+              <el-empty v-if="alertHistory.length === 0" description="暂无告警历史" />
             </div>
           </div>
-        </ScTabPane>
-      </ScTabs>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <!-- 规则编辑对话框 -->
@@ -509,81 +469,76 @@
       width="500px"
       append-to-body
     >
-      <ScForm
-        ref="ruleFormRef"
-        :model="currentRule"
-        :rules="ruleRules"
-        label-width="80px"
-      >
-        <ScFormItem label="规则名称" prop="name">
-          <ScInput v-model="currentRule.name" placeholder="请输入规则名称" />
-        </ScFormItem>
-        <ScFormItem label="监控指标" prop="metric">
-          <ScSelect v-model="currentRule.metric" placeholder="选择监控指标">
-            <ScOption label="CPU使用率" value="cpu_usage" />
-            <ScOption label="内存使用率" value="memory_usage" />
-            <ScOption label="磁盘使用率" value="disk_usage" />
-            <ScOption label="网络延迟" value="network_latency" />
-            <ScOption label="磁盘IO" value="disk_io" />
-            <ScOption label="负载平均值" value="load_average" />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem label="比较操作" prop="operator">
-          <ScSelect v-model="currentRule.operator" placeholder="选择比较操作">
-            <ScOption label="大于" value="gt" />
-            <ScOption label="大于等于" value="gte" />
-            <ScOption label="小于" value="lt" />
-            <ScOption label="小于等于" value="lte" />
-            <ScOption label="等于" value="eq" />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem label="阈值" prop="threshold">
-          <ScInputNumber
+      <el-form :model="currentRule" :rules="ruleRules" ref="ruleFormRef" label-width="80px">
+        <el-form-item label="规则名称" prop="name">
+          <el-input v-model="currentRule.name" placeholder="请输入规则名称" />
+        </el-form-item>
+        <el-form-item label="监控指标" prop="metric">
+          <el-select v-model="currentRule.metric" placeholder="选择监控指标">
+            <el-option label="CPU使用率" value="cpu_usage" />
+            <el-option label="内存使用率" value="memory_usage" />
+            <el-option label="磁盘使用率" value="disk_usage" />
+            <el-option label="网络延迟" value="network_latency" />
+            <el-option label="磁盘IO" value="disk_io" />
+            <el-option label="负载平均值" value="load_average" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="比较操作" prop="operator">
+          <el-select v-model="currentRule.operator" placeholder="选择比较操作">
+            <el-option label="大于" value="gt" />
+            <el-option label="大于等于" value="gte" />
+            <el-option label="小于" value="lt" />
+            <el-option label="小于等于" value="lte" />
+            <el-option label="等于" value="eq" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="阈值" prop="threshold">
+          <el-input-number
             v-model="currentRule.threshold"
             :min="0"
             :max="getMaxValue(currentRule.metric)"
             :step="getStepValue(currentRule.metric)"
             style="width: 100%"
           />
-        </ScFormItem>
-        <ScFormItem label="告警级别" prop="severity">
-          <ScSelect v-model="currentRule.severity" placeholder="选择告警级别">
-            <ScOption label="严重" value="critical" />
-            <ScOption label="警告" value="warning" />
-            <ScOption label="信息" value="info" />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem label="持续时间">
-          <ScInputNumber
+        </el-form-item>
+        <el-form-item label="告警级别" prop="severity">
+          <el-select v-model="currentRule.severity" placeholder="选择告警级别">
+            <el-option label="严重" value="critical" />
+            <el-option label="警告" value="warning" />
+            <el-option label="信息" value="info" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="持续时间">
+          <el-input-number
             v-model="currentRule.duration"
             :min="1"
             :max="3600"
             style="width: 100%"
           />
           <span class="duration-unit">秒</span>
-        </ScFormItem>
-        <ScFormItem label="描述">
-          <ScInput
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input
             v-model="currentRule.description"
             type="textarea"
             :rows="3"
             placeholder="请输入规则描述"
           />
-        </ScFormItem>
-        <ScFormItem label="启用规则">
-          <ScSwitch v-model="currentRule.enabled" />
-        </ScFormItem>
-      </ScForm>
+        </el-form-item>
+        <el-form-item label="启用规则">
+          <el-switch v-model="currentRule.enabled" />
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <ScButton @click="ruleDialogVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="saveRule">保存</ScButton>
+        <el-button @click="ruleDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveRule">保存</el-button>
       </template>
     </sc-dialog>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
-        <ScButton type="primary" @click="saveConfig">保存配置</ScButton>
+        <el-button @click="handleClose">关闭</el-button>
+        <el-button type="primary" @click="saveConfig">保存配置</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -592,51 +547,48 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
-import {
-  DEFAULT_THRESHOLDS,
-  type MetricsThresholdConfig,
-} from "@/utils/metricsThreshold";
+import { DEFAULT_THRESHOLDS, type MetricsThresholdConfig } from "@/utils/metricsThreshold";
 
 // 状态
 const visible = ref(false);
-const activeTab = ref("rules");
+const activeTab = ref('rules');
 const ruleDialogVisible = ref(false);
 const editingRuleIndex = ref(-1);
 
 // 告警规则
 const alertRules = ref<any[]>([
   {
-    name: "CPU使用率过高",
-    metric: "cpu_usage",
-    operator: "gt",
+    name: 'CPU使用率过高',
+    metric: 'cpu_usage',
+    operator: 'gt',
     threshold: 80,
-    severity: "warning",
+    severity: 'warning',
     duration: 300,
-    description: "CPU使用率超过80%持续5分钟",
-    enabled: true,
+    description: 'CPU使用率超过80%持续5分钟',
+    enabled: true
   },
   {
-    name: "内存使用率严重",
-    metric: "memory_usage",
-    operator: "gt",
+    name: '内存使用率严重',
+    metric: 'memory_usage',
+    operator: 'gt',
     threshold: 90,
-    severity: "critical",
+    severity: 'critical',
     duration: 60,
-    description: "内存使用率超过90%",
-    enabled: true,
-  },
+    description: '内存使用率超过90%',
+    enabled: true
+  }
 ]);
 
 // 当前编辑的规则
 const currentRule = reactive({
-  name: "",
-  metric: "",
-  operator: "",
+  name: '',
+  metric: '',
+  operator: '',
   threshold: 0,
-  severity: "warning",
+  severity: 'warning',
   duration: 300,
-  description: "",
-  enabled: true,
+  description: '',
+  enabled: true
 });
 
 // 阈值配置
@@ -645,61 +597,71 @@ const thresholdConfig = reactive<MetricsThresholdConfig>({
   memory: { ...DEFAULT_THRESHOLDS.memory },
   disk: { ...DEFAULT_THRESHOLDS.disk },
   temperature: { ...DEFAULT_THRESHOLDS.temperature },
-  network: { ...DEFAULT_THRESHOLDS.network },
+  network: { ...DEFAULT_THRESHOLDS.network }
 });
 
 // 通知配置
 const notificationConfig = reactive({
   enabled: true,
-  methods: ["email"],
+  methods: ['email'],
   email: {
-    recipients: "",
-    smtpHost: "",
-    smtpPort: 587,
+    recipients: '',
+    smtpHost: '',
+    smtpPort: 587
   },
   webhook: {
-    url: "",
-    method: "POST",
+    url: '',
+    method: 'POST'
   },
   dingtalk: {
-    token: "",
-    secret: "",
-  },
+    token: '',
+    secret: ''
+  }
 });
 
 // 告警历史
 const alertHistory = ref<any[]>([
   {
-    title: "CPU使用率过高",
-    description: "server01的CPU使用率达到85%",
-    severity: "warning",
+    title: 'CPU使用率过高',
+    description: 'server01的CPU使用率达到85%',
+    severity: 'warning',
     time: new Date(Date.now() - 3600000),
-    serverName: "server01",
-    resolved: true,
+    serverName: 'server01',
+    resolved: true
   },
   {
-    title: "内存使用率严重",
-    description: "server02的内存使用率达到95%",
-    severity: "critical",
+    title: '内存使用率严重',
+    description: 'server02的内存使用率达到95%',
+    severity: 'critical',
     time: new Date(Date.now() - 1800000),
-    serverName: "server02",
-    resolved: false,
-  },
+    serverName: 'server02',
+    resolved: false
+  }
 ]);
 
 // 历史查询过滤器
 const historyFilters = reactive({
   dateRange: [],
-  severity: "",
+  severity: ''
 });
 
 // 表单验证规则
 const ruleRules = {
-  name: [{ required: true, message: "请输入规则名称", trigger: "blur" }],
-  metric: [{ required: true, message: "请选择监控指标", trigger: "change" }],
-  operator: [{ required: true, message: "请选择比较操作", trigger: "change" }],
-  threshold: [{ required: true, message: "请输入阈值", trigger: "blur" }],
-  severity: [{ required: true, message: "请选择告警级别", trigger: "change" }],
+  name: [
+    { required: true, message: '请输入规则名称', trigger: 'blur' }
+  ],
+  metric: [
+    { required: true, message: '请选择监控指标', trigger: 'change' }
+  ],
+  operator: [
+    { required: true, message: '请选择比较操作', trigger: 'change' }
+  ],
+  threshold: [
+    { required: true, message: '请输入阈值', trigger: 'blur' }
+  ],
+  severity: [
+    { required: true, message: '请选择告警级别', trigger: 'change' }
+  ]
 };
 
 const ruleFormRef = ref();
@@ -728,38 +690,38 @@ const editRule = (index: number) => {
 
 const deleteRule = (index: number) => {
   alertRules.value.splice(index, 1);
-  message.success("规则已删除");
+  message.success('规则已删除');
 };
 
 const updateRule = (index: number) => {
-  message.success("规则状态已更新");
+  message.success('规则状态已更新');
 };
 
 const resetCurrentRule = () => {
   Object.assign(currentRule, {
-    name: "",
-    metric: "",
-    operator: "",
+    name: '',
+    metric: '',
+    operator: '',
     threshold: 0,
-    severity: "warning",
+    severity: 'warning',
     duration: 300,
-    description: "",
-    enabled: true,
+    description: '',
+    enabled: true
   });
 };
 
 const saveRule = async () => {
   try {
     await ruleFormRef.value?.validate();
-
+    
     if (editingRuleIndex.value === -1) {
       alertRules.value.push({ ...currentRule });
-      message.success("规则添加成功");
+      message.success('规则添加成功');
     } else {
       Object.assign(alertRules.value[editingRuleIndex.value], currentRule);
-      message.success("规则更新成功");
+      message.success('规则更新成功');
     }
-
+    
     ruleDialogVisible.value = false;
   } catch (error) {
     // 表单验证失败
@@ -768,29 +730,29 @@ const saveRule = async () => {
 
 const importRules = () => {
   // TODO: 实现规则导入
-  message.info("功能开发中");
+  message.info('功能开发中');
 };
 
 const exportRules = () => {
   const data = JSON.stringify(alertRules.value, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
+  const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  const link = document.createElement('a');
   link.href = url;
   link.download = `alert_rules_${Date.now()}.json`;
   link.click();
   URL.revokeObjectURL(url);
-  message.success("规则导出成功");
+  message.success('规则导出成功');
 };
 
 const loadAlertHistory = () => {
   // TODO: 根据过滤条件加载告警历史
-  message.success("告警历史已刷新");
+  message.success('告警历史已刷新');
 };
 
 const saveConfig = () => {
   // TODO: 保存告警配置
-  message.success("配置保存成功");
+  message.success('配置保存成功');
 };
 
 /**
@@ -802,7 +764,7 @@ const resetThresholds = () => {
   Object.assign(thresholdConfig.disk, DEFAULT_THRESHOLDS.disk);
   Object.assign(thresholdConfig.temperature, DEFAULT_THRESHOLDS.temperature);
   Object.assign(thresholdConfig.network, DEFAULT_THRESHOLDS.network);
-  message.success("阈值已重置为默认值");
+  message.success('阈值已重置为默认值');
 };
 
 /**
@@ -812,51 +774,51 @@ const saveThresholds = async () => {
   try {
     // TODO: 调用API保存阈值配置
     // await saveThresholdConfig(thresholdConfig);
-    message.success("阈值配置保存成功");
+    message.success('阈值配置保存成功');
   } catch (error) {
-    message.error("阈值配置保存失败");
+    message.error('阈值配置保存失败');
   }
 };
 
 const getSeverityType = (severity: string) => {
   const typeMap = {
-    critical: "danger",
-    warning: "warning",
-    info: "info",
+    critical: 'danger',
+    warning: 'warning',
+    info: 'info'
   };
-  return typeMap[severity as keyof typeof typeMap] || "info";
+  return typeMap[severity as keyof typeof typeMap] || 'info';
 };
 
 const getSeverityText = (severity: string) => {
   const textMap = {
-    critical: "严重",
-    warning: "警告",
-    info: "信息",
+    critical: '严重',
+    warning: '警告',
+    info: '信息'
   };
-  return textMap[severity as keyof typeof textMap] || "未知";
+  return textMap[severity as keyof typeof textMap] || '未知';
 };
 
 const getOperatorText = (operator: string) => {
   const textMap = {
-    gt: ">",
-    gte: ">=",
-    lt: "<",
-    lte: "<=",
-    eq: "=",
+    gt: '>',
+    gte: '>=',
+    lt: '<',
+    lte: '<=',
+    eq: '='
   };
   return textMap[operator as keyof typeof textMap] || operator;
 };
 
 const getUnitText = (metric: string) => {
   const unitMap = {
-    cpu_usage: "%",
-    memory_usage: "%",
-    disk_usage: "%",
-    network_latency: "ms",
-    disk_io: "MB/s",
-    load_average: "",
+    cpu_usage: '%',
+    memory_usage: '%',
+    disk_usage: '%',
+    network_latency: 'ms',
+    disk_io: 'MB/s',
+    load_average: ''
   };
-  return unitMap[metric as keyof typeof unitMap] || "";
+  return unitMap[metric as keyof typeof unitMap] || '';
 };
 
 const getMaxValue = (metric: string) => {
@@ -866,7 +828,7 @@ const getMaxValue = (metric: string) => {
     disk_usage: 100,
     network_latency: 10000,
     disk_io: 1000,
-    load_average: 100,
+    load_average: 100
   };
   return maxMap[metric as keyof typeof maxMap] || 100;
 };
@@ -878,7 +840,7 @@ const getStepValue = (metric: string) => {
     disk_usage: 1,
     network_latency: 10,
     disk_io: 10,
-    load_average: 0.1,
+    load_average: 0.1
   };
   return stepMap[metric as keyof typeof stepMap] || 1;
 };
@@ -889,7 +851,7 @@ const formatTime = (time: Date) => {
 
 // 暴露方法
 defineExpose({
-  open,
+  open
 });
 </script>
 

@@ -2,9 +2,9 @@
   <div class="node-wrap">
     <div class="node-wrap-box" @click="show">
       <div class="title" style="background: #3296fa">
-        <ScIcon class="icon"><el-icon-promotion /></ScIcon>
+        <el-icon class="icon"><el-icon-promotion /></el-icon>
         <span>{{ nodeConfig.nodeName }}</span>
-        <ScIcon class="close" @click.stop="delNode()"><el-icon-close /></ScIcon>
+        <el-icon class="close" @click.stop="delNode()"><el-icon-close /></el-icon>
       </div>
       <div class="content">
         <span v-if="toText(nodeConfig)">{{ toText(nodeConfig) }}</span>
@@ -17,30 +17,30 @@
         <div class="node-wrap-drawer__title">
           <label v-if="!isEditTitle" @click="editTitle">
             {{ form.nodeName }}
-            <ScIcon class="node-wrap-drawer__title-edit"><el-icon-edit /></ScIcon>
+            <el-icon class="node-wrap-drawer__title-edit"><el-icon-edit /></el-icon>
           </label>
-          <ScInput v-if="isEditTitle" ref="nodeTitle" v-model="form.nodeName" clearable @blur="saveTitle" @keyup.enter="saveTitle" />
+          <el-input v-if="isEditTitle" ref="nodeTitle" v-model="form.nodeName" clearable @blur="saveTitle" @keyup.enter="saveTitle" />
         </div>
       </template>
-      <ScContainer>
-        <ScMain style="padding: 0 20px 20px 20px">
-          <ScForm label-position="top">
-            <ScFormItem label="选择要抄送的人员">
-              <ScButton type="primary" icon="el-icon-plus" round @click="selectHandle(1, form.nodeUserList)">选择人员</ScButton>
+      <el-container>
+        <el-main style="padding: 0 20px 20px 20px">
+          <el-form label-position="top">
+            <el-form-item label="选择要抄送的人员">
+              <el-button type="primary" icon="el-icon-plus" round @click="selectHandle(1, form.nodeUserList)">选择人员</el-button>
               <div class="tags-list">
-                <ScTag v-for="(user, index) in form.nodeUserList" :key="user.id" closable @close="delUser(index)">{{ user.name }}</ScTag>
+                <el-tag v-for="(user, index) in form.nodeUserList" :key="user.id" closable @close="delUser(index)">{{ user.name }}</el-tag>
               </div>
-            </ScFormItem>
-            <ScFormItem label="">
-              <ScCheckbox v-model="form.userSelectFlag" label="允许发起人自选抄送人" />
-            </ScFormItem>
-          </ScForm>
-        </ScMain>
-        <ScFooter>
-          <ScButton type="primary" @click="save">保存</ScButton>
-          <ScButton @click="drawer = false">取消</ScButton>
-        </ScFooter>
-      </ScContainer>
+            </el-form-item>
+            <el-form-item label="">
+              <el-checkbox v-model="form.userSelectFlag" label="允许发起人自选抄送人" />
+            </el-form-item>
+          </el-form>
+        </el-main>
+        <el-footer>
+          <el-button type="primary" @click="save">保存</el-button>
+          <el-button @click="drawer = false">取消</el-button>
+        </el-footer>
+      </el-container>
     </sc-drawer>
   </div>
 </template>

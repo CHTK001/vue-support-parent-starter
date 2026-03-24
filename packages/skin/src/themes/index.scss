@@ -1,0 +1,16 @@
+/**
+ * 主题皮肤样式集合
+ * 集中导入所有主题样式
+ */
+
+// 基础重置样式
+@use './base-override.scss';
+
+// 默认主题
+@use './default.scss';
+
+// 节日主题
+@use './spring-festival.scss';
+@use './christmas.scss';
+@use './mid-autumn.scss';
+@use './new-year.scss';

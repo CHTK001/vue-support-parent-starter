@@ -11,12 +11,12 @@
     <div ref="sliderRef" class="compare-slider" :class="{ dragging: isDragging }" :style="sliderStyle" @mousedown="handleMouseDown" @touchstart="handleTouchStart">
       <div class="slider-line">
         <div class="slider-handle">
-          <ScIcon>
+          <el-icon>
             <component :is="useRenderIcon(direction === 'horizontal' ? 'ep:d-caret' : 'ep:caret-top')" />
-          </ScIcon>
-          <ScIcon>
+          </el-icon>
+          <el-icon>
             <component :is="useRenderIcon(direction === 'horizontal' ? 'ep:d-caret' : 'ep:caret-bottom')" />
-          </ScIcon>
+          </el-icon>
         </div>
       </div>
     </div>

@@ -20,10 +20,6 @@ export interface PlatformConfigs {
   apiVersion?: string;
   /** 签名密钥 */
   secretKey?: string;
-  /** API 接口地址（优先级高于 BaseUrl；若配置则 HTTP/SSE 统一使用该地址） */
-  ApiAddress?: string;
-  /** 是否自动提示错误信息 */
-  AutoErrorMessage?: boolean;
 
   // ===========================================
   // 角色权限配置
@@ -44,45 +40,18 @@ export interface PlatformConfigs {
   OpenTenantLogin?: boolean;
   /** 是否开启基础登录 */
   OpenBaseLogin?: boolean;
-  /** 是否开启短信登录 */
-  OpenSmsLogin?: boolean;
-  /** 是否开启刷新token */
-  OpenShowRefreshToken?: boolean;
-  /** 是否显示开发态静态登录入口 */
-  ShowStaticLoginEntry?: boolean;
-  /** 开发态静态登录目标路由 */
-  StaticLoginPath?: string;
-  /** 开发态静态登录用户名 */
-  StaticLoginUsername?: string;
-  /** 开发态静态登录密码 */
-  StaticLoginPassword?: string;
-  /** 开发态静态登录昵称 */
-  StaticLoginNickname?: string;
   /** 配置加载失败时是否保持加载页面（默认false，失败后继续进入应用） */
   BlockOnConfigLoadFail?: boolean;
   /** 是否显示错误页面风格切换按钮（默认false） */
   ShowErrorPageStyleSwitcher?: boolean;
-  /** 是否显示加载动画样式切换按钮（默认false） */
-  ShowLoadingPageStyleSwitcher?: boolean;
   /** 系统加载页面风格（默认minimal） */
-  LoadingPageStyle?:
-    | "spinner"
-    | "clock"
-    | "pixel"
-    | "cube"
-    | "dots"
-    | "pulse"
-    | "minimal"
-    | "space"
-    | "servererror";
+  LoadingPageStyle?: "pixel" | "space" | "minimal" | "servererror";
 
   // ===========================================
   // 布局与菜单配置
   // ===========================================
   /** 是否自动远程菜单 */
   RemoteMenu?: boolean;
-  /** 是否在远程菜单基础上合并本地菜单（仅当RemoteMenu为true时生效） */
-  MergeLocalMenu?: boolean;
   /** 是否自动远程布局 */
   RemoteLayout?: boolean;
   /** 是否开启布局远程保存 */
@@ -116,11 +85,9 @@ export interface PlatformConfigs {
   /** 是否显示卡片边框 */
   CardBody?: boolean;
   /** 内容区边距 */
-  contentMargin?: number;
+  contentMargin?: Number;
   /** 是否显示FPS监控 */
   ShowFpsMonitor?: boolean;
-  /** 消息弹窗默认开关 */
-  MessagePopupEnabled?: boolean;
 
   // ===========================================
   // 顶部工具栏配置
@@ -246,37 +213,7 @@ export interface PlatformConfigs {
   // 错误页面配置
   // ===========================================
   /** 错误页面风格: pixel(像素恐龙) | space(太空风) | minimal(极简风) | forbidden(禁止) | notfound(迷路) | servererror(故障) */
-  ErrorPageStyle?:
-    | "pixel"
-    | "space"
-    | "minimal"
-    | "forbidden"
-    | "notfound"
-    | "servererror";
-  /** 账户类型（如 tenant） */
-  AccountType?: string;
-
-  // ===========================================
-  // 登录页主题配置
-  // ===========================================
-  /** 默认登录页主题 */
-  LoginTheme?: string;
-  /** 是否启用节日主题自动切换 */
-  EnableFestivalTheme?: boolean;
-  /** 是否启用后台主题管理（登录主题管理页面） */
-  EnableThemeManagement?: boolean;
-  /** 是否启用登录页主题切换器 */
-  EnableLoginThemeSwitcher?: boolean;
-
-  // ===========================================
-  // 系统设置模块配置
-  // ===========================================
-  /** 是否开启邮箱设置 */
-  OpenSettingEmail?: boolean;
-  /** 是否开启短信设置 */
-  OpenSettingSms?: boolean;
-  /** 是否开启 LLM 设置 */
-  OpenSettingLlm?: boolean;
+  ErrorPageStyle?: 'pixel' | 'space' | 'minimal' | 'forbidden' | 'notfound' | 'servererror';
 
   // ===========================================
   // 页面行为配置
@@ -299,18 +236,6 @@ export interface PlatformConfigs {
    * 注意：启用后加解密将完全使用 WASM 实现，不会降级到 TS 实现
    */
   wasmEnable?: boolean;
-
-  // ===========================================
-  // 热力图配置
-  // ===========================================
-  /** 用户行为热力图配置 */
-  Heatmap?: HeatmapConfig;
-
-  // ===========================================
-  // 兼容旧配置（已废弃/待移除）
-  // ===========================================
-  /** @deprecated 使用 RouterModule 替代 */
-  AutoRouter?: boolean;
 
   // ===========================================
   // 兼容旧配置（已废弃）
@@ -347,8 +272,6 @@ export interface RequestConfig {
   showLoading?: boolean;
   /** 是否启用 */
   enable?: boolean;
-  /** 是否开启请求签名（x-sign），默认 true */
-  enableSign?: boolean;
 }
 
 /**
@@ -379,10 +302,6 @@ export interface PageBehaviorConfig {
   confirmOnLeave?: boolean;
   /** 顶部是否显示时间 */
   showHeaderClock?: boolean;
-  /** 顶部是否显示第二个时间 */
-  headerClockSecondEnabled?: boolean;
-  /** 顶部第二时间的时区 */
-  headerClockSecondTimezone?: string;
   /** 页面缩放比例（0.8 - 1.5） */
   uiScale?: number;
   /** 读屏优化模式 */
@@ -416,31 +335,3 @@ export interface PerformanceConfig {
 }
 
 export type Effect = "light" | "dark";
-
-/**
- * 用户行为热力图配置
- */
-export interface HeatmapConfig {
-  /** 是否启用热力图追踪（默认: false） */
-  enable?: boolean;
-  /** 采样率（0-1），1 表示全量采集（默认: 1） */
-  sampleRate?: number;
-  /** 上报接口地址，为空则仅本地存储 */
-  reportUrl?: string;
-  /** 本地最大存储条数（默认: 1000） */
-  maxLocalEntries?: number;
-  /** 批量上报间隔（毫秒，默认: 5000） */
-  flushInterval?: number;
-  /** 是否追踪点击事件（默认: true） */
-  trackClick?: boolean;
-  /** 是否追踪鼠标移动（默认: false，数据量大） */
-  trackMouseMove?: boolean;
-  /** 是否追踪滚动事件（默认: true） */
-  trackScroll?: boolean;
-  /** 是否显示热力图覆盖层（开发调试用，默认: false，生产环境不建议开启） */
-  show?: boolean;
-  /** 是否启用 AI 分析（默认: false） */
-  aiAnalysis?: boolean;
-  /** AI 分析接口地址（aiAnalysis=true 时生效） */
-  aiAnalysisUrl?: string;
-}

@@ -42,7 +42,7 @@
     </ul>
     <div class="pricing-card__action">
       <slot name="action">
-        <ScButton
+        <ScButton 
           :type="featured ? 'primary' : 'default'"
           size="large"
           class="pricing-card__btn"

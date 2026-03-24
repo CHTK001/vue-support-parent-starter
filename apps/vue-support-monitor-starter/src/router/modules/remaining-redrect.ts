@@ -1,7 +1,6 @@
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
-//@ts-ignore
-const Layout = () => import("../../../../../layout/default/src/index.vue");
+const Layout = () => import("@layout/default");
 
 export default {
   path: "/redirect",
@@ -9,13 +8,13 @@ export default {
   meta: {
     title: $t("status.pureLoad"),
     showLink: false,
-    rank: 102,
+    rank: 102
   },
   children: [
     {
       path: "/redirect/:path(.*)",
       name: "Redirect",
-      component: () => import("../../../../../pages/common/layout/redirect.vue"),
-    },
-  ],
+      component: () => import("@repo/pages/layout/redirect.vue")
+    }
+  ]
 } satisfies RouteConfigsTable;

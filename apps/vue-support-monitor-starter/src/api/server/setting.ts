@@ -270,7 +270,7 @@ export function getServerSettingPageList(params: ServerSettingPageParams) {
 export function getServerSettingById(id: number) {
   return http.request<ReturnResult<ServerSetting>>(
     "get",
-    `v1/gen/server/setting/${id}`,
+    `v1/gen/server/setting/${id}`
   );
 }
 
@@ -282,7 +282,7 @@ export function getServerSettingById(id: number) {
 export function getServerSettingByServerId(serverId: number) {
   return http.request<ReturnResult<ServerSetting>>(
     "get",
-    `v1/gen/server/setting/server/${serverId}`,
+    `v1/gen/server/setting/server/${serverId}`
   );
 }
 
@@ -294,7 +294,7 @@ export function getServerSettingByServerId(serverId: number) {
 export function getOrCreateServerSetting(serverId: number) {
   return http.request<ReturnResult<ServerSetting>>(
     "get",
-    `v1/gen/server/setting/server/${serverId}/or-create`,
+    `v1/gen/server/setting/server/${serverId}/or-create`
   );
 }
 
@@ -307,7 +307,7 @@ export function saveServerSetting(data: Partial<ServerSetting>) {
   return http.request<ReturnResult<ServerSetting>>(
     "post",
     "v1/gen/server/setting/save",
-    { data },
+    { data }
   );
 }
 
@@ -320,7 +320,7 @@ export function updateServerSetting(data: Partial<ServerSetting>) {
   return http.request<ReturnResult<boolean>>(
     "put",
     "v1/gen/server/setting/update",
-    { data },
+    { data }
   );
 }
 
@@ -333,7 +333,7 @@ export function saveOrUpdateServerSetting(data: Partial<ServerSetting>) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/setting/save",
-    { data },
+    { data }
   );
 }
 
@@ -346,7 +346,7 @@ export function deleteServerSetting(id: number) {
   return http.request<ReturnResult<boolean>>(
     "delete",
     "v1/gen/server/setting/delete",
-    { params: { id } },
+    { params: { id } }
   );
 }
 
@@ -359,7 +359,7 @@ export function batchDeleteServerSettings(ids: number[]) {
   return http.request<ReturnResult<boolean>>(
     "delete",
     "v1/gen/server/setting/batch-delete",
-    { data: { ids } },
+    { data: { ids } }
   );
 }
 
@@ -370,7 +370,7 @@ export function batchDeleteServerSettings(ids: number[]) {
 export function getMonitorEnabledSettings() {
   return http.request<ReturnResult<ServerSetting[]>>(
     "get",
-    "v1/gen/server/setting/monitor/enabled",
+    "v1/gen/server/setting/monitor/enabled"
   );
 }
 
@@ -381,7 +381,7 @@ export function getMonitorEnabledSettings() {
 export function getAlertEnabledSettings() {
   return http.request<ReturnResult<ServerSetting[]>>(
     "get",
-    "v1/gen/server/setting/alert/enabled",
+    "v1/gen/server/setting/alert/enabled"
   );
 }
 
@@ -394,7 +394,7 @@ export function getReportEnabledSettings(reportMethod?: string) {
   return http.request<ReturnResult<ServerSetting[]>>(
     "get",
     "v1/gen/server/setting/report/enabled",
-    { params: { reportMethod } },
+    { params: { reportMethod } }
   );
 }
 
@@ -407,7 +407,7 @@ export function batchSaveOrUpdateSettings(settings: Partial<ServerSetting>[]) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/setting/batch-save-or-update",
-    { data: { settings } },
+    { data: { settings } }
   );
 }
 
@@ -420,7 +420,7 @@ export function batchUpdateMonitorEnabled(params: BatchSettingOperationParams) {
   return http.request<ReturnResult<boolean>>(
     "put",
     "v1/gen/server/setting/batch-update-monitor-enabled",
-    { data: params },
+    { data: params }
   );
 }
 
@@ -433,7 +433,7 @@ export function validateServerSetting(setting: Partial<ServerSetting>) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/setting/validate",
-    { data: setting },
+    { data: setting }
   );
 }
 
@@ -445,7 +445,7 @@ export function validateServerSetting(setting: Partial<ServerSetting>) {
 export function testAlertConfiguration(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `v1/gen/server/setting/test-alert/${serverId}`,
+    `v1/gen/server/setting/test-alert/${serverId}`
   );
 }
 
@@ -457,7 +457,7 @@ export function testAlertConfiguration(serverId: number) {
 export function testReportConfiguration(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `v1/gen/server/setting/test-report/${serverId}`,
+    `v1/gen/server/setting/test-report/${serverId}`
   );
 }
 
@@ -470,7 +470,7 @@ export function getSettingTemplate(templateType: string) {
   return http.request<ReturnResult<ServerSetting>>(
     "get",
     "v1/gen/server/setting/template",
-    { params: { templateType } },
+    { params: { templateType } }
   );
 }
 
@@ -482,12 +482,12 @@ export function getSettingTemplate(templateType: string) {
  */
 export function applyTemplateToServers(
   templateType: string,
-  serverIds: number[],
+  serverIds: number[]
 ) {
   return http.request<ReturnResult<boolean>>(
     "post",
     "v1/gen/server/setting/apply-template",
-    { data: { templateType, serverIds } },
+    { data: { templateType, serverIds } }
   );
 }
 
@@ -500,7 +500,7 @@ export function applyTemplateToServers(
 export function updateServerSettingStatus(serverId: number, status: number) {
   return http.request<ReturnResult<boolean>>(
     "put",
-    `v1/gen/server/setting/server/${serverId}/status/${status}`,
+    `v1/gen/server/setting/server/${serverId}/status/${status}`
   );
 }
 
@@ -511,7 +511,7 @@ export function updateServerSettingStatus(serverId: number, status: number) {
 export function getSettingsStatistics() {
   return http.request<ReturnResult<any>>(
     "get",
-    "v1/gen/server/setting/statistics",
+    "v1/gen/server/setting/statistics"
   );
 }
 
@@ -525,7 +525,7 @@ export function getServerSettingHistory(serverId: number, limit: number = 10) {
   return http.request<ReturnResult<any[]>>(
     "get",
     `v1/gen/server/setting/server/${serverId}/history`,
-    { params: { limit } },
+    { params: { limit } }
   );
 }
 
@@ -537,7 +537,7 @@ export function getServerSettingHistory(serverId: number, limit: number = 10) {
 export function testFileManagementConnection(serverId: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `v1/gen/server/setting/test-file-management/${serverId}`,
+    `v1/gen/server/setting/test-file-management/${serverId}`
   );
 }
 
@@ -550,7 +550,7 @@ export function getFileManagementConfigTemplate(mode: string) {
   return http.request<ReturnResult<FileManagementApiConfig>>(
     "get",
     "v1/gen/server/setting/file-management/template",
-    { params: { mode } },
+    { params: { mode } }
   );
 }
 
@@ -563,7 +563,7 @@ export function validateFileManagementConfig(config: FileManagementApiConfig) {
   return http.request<ReturnResult<{ valid: boolean; message?: string }>>(
     "post",
     "v1/gen/server/setting/file-management/validate",
-    { data: config },
+    { data: config }
   );
 }
 
@@ -594,7 +594,7 @@ export interface NodeClient {
 export function getAvailableNodeClients() {
   return http.request<ReturnResult<NodeClient[]>>(
     "get",
-    "v1/gen/server/setting/file-management/node-clients",
+    "v1/gen/server/setting/file-management/node-clients"
   );
 }
 
@@ -625,7 +625,7 @@ export interface MonitorSwitchStatus {
 export function toggleHealthCheckForServer(serverId: number, enabled: boolean) {
   return http.request<ReturnResult<boolean>>(
     "put",
-    `v1/gen/server/setting/server/${serverId}/health-check/${enabled}`,
+    `v1/gen/server/setting/server/${serverId}/health-check/${enabled}`
   );
 }
 
@@ -637,11 +637,11 @@ export function toggleHealthCheckForServer(serverId: number, enabled: boolean) {
  */
 export function toggleMetricsCollectionForServer(
   serverId: number,
-  enabled: boolean,
+  enabled: boolean
 ) {
   return http.request<ReturnResult<boolean>>(
     "put",
-    `v1/gen/server/setting/server/${serverId}/metrics-collection/${enabled}`,
+    `v1/gen/server/setting/server/${serverId}/metrics-collection/${enabled}`
   );
 }
 
@@ -653,7 +653,7 @@ export function toggleMetricsCollectionForServer(
 export function getMonitorSwitchStatusForServer(serverId: number) {
   return http.request<ReturnResult<MonitorSwitchStatus>>(
     "get",
-    `v1/gen/server/setting/server/${serverId}/monitor-switches`,
+    `v1/gen/server/setting/server/${serverId}/monitor-switches`
   );
 }
 
@@ -667,7 +667,7 @@ export function batchToggleHealthCheck(serverIds: number[], enabled: boolean) {
   return http.request<ReturnResult<boolean>>(
     "put",
     "v1/gen/server/setting/batch/health-check",
-    { data: { serverIds, enabled } },
+    { data: { serverIds, enabled } }
   );
 }
 
@@ -679,11 +679,11 @@ export function batchToggleHealthCheck(serverIds: number[], enabled: boolean) {
  */
 export function batchToggleMetricsCollection(
   serverIds: number[],
-  enabled: boolean,
+  enabled: boolean
 ) {
   return http.request<ReturnResult<boolean>>(
     "put",
     "v1/gen/server/setting/batch/metrics-collection",
-    { data: { serverIds, enabled } },
+    { data: { serverIds, enabled } }
   );
 }

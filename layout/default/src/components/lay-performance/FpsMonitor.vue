@@ -11,82 +11,59 @@
   >
     <!-- FPS Item -->
     <FpsItem :fps="fps" :history="history" :mode="performanceMonitorMode" />
-
+    
     <!-- CPU Item -->
-    <CpuItem
-      v-if="cpuMonitorEnabled"
-      :cpu-load="cpuLoad"
-      :mode="performanceMonitorMode"
-    />
+    <CpuItem v-if="cpuMonitorEnabled" :cpu-load="cpuLoad" :mode="performanceMonitorMode" />
 
     <!-- Memory Item -->
-    <MemoryItem
-      v-if="memoryMonitorEnabled"
-      :memory="memory"
-      :mode="performanceMonitorMode"
-    />
+    <MemoryItem v-if="memoryMonitorEnabled" :memory="memory" :mode="performanceMonitorMode" />
 
     <!-- Bandwidth Item -->
-    <BandwidthItem
-      v-if="bandwidthMonitorEnabled"
-      :mode="performanceMonitorMode"
-    />
+    <BandwidthItem v-if="bandwidthMonitorEnabled" :mode="performanceMonitorMode" />
 
     <!-- Battery Item -->
     <BatteryItem v-if="batteryMonitorEnabled" :mode="performanceMonitorMode" />
-
+    
     <!-- Bluetooth Item -->
-    <BluetoothItem
-      v-if="bluetoothMonitorEnabled"
-      :mode="performanceMonitorMode"
-    />
+    <BluetoothItem v-if="bluetoothMonitorEnabled" :mode="performanceMonitorMode" />
 
     <!-- Screen Item -->
     <ScreenItem v-if="screenMonitorEnabled" :mode="performanceMonitorMode" />
 
     <!-- Network Latency Item -->
-    <NetworkLatencyItem
-      v-if="networkLatencyMonitorEnabled"
-      :mode="performanceMonitorMode"
-    />
+    <NetworkLatencyItem v-if="networkLatencyMonitorEnabled" :mode="performanceMonitorMode" />
 
     <!-- Storage Item -->
     <StorageItem v-if="storageMonitorEnabled" :mode="performanceMonitorMode" />
 
     <!-- Device Info Item -->
-    <DeviceInfoItem
-      v-if="deviceInfoMonitorEnabled"
-      :mode="performanceMonitorMode"
-    />
+    <DeviceInfoItem v-if="deviceInfoMonitorEnabled" :mode="performanceMonitorMode" />
 
     <!-- Page Time Item -->
-    <PageTimeItem
-      v-if="pageTimeMonitorEnabled"
-      :mode="performanceMonitorMode"
-    />
+    <PageTimeItem v-if="pageTimeMonitorEnabled" :mode="performanceMonitorMode" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useThemeStore } from "../../stores/themeStore";
 import { storeToRefs } from "pinia";
-import FpsItem from "./components/FpsItem.vue";
-import CpuItem from "./components/CpuItem.vue";
-import MemoryItem from "./components/MemoryItem.vue";
-import BandwidthItem from "./components/BandwidthItem.vue";
-import BatteryItem from "./components/BatteryItem.vue";
-import BluetoothItem from "./components/BluetoothItem.vue";
-import ScreenItem from "./components/ScreenItem.vue";
-import NetworkLatencyItem from "./components/NetworkLatencyItem.vue";
-import StorageItem from "./components/StorageItem.vue";
-import DeviceInfoItem from "./components/DeviceInfoItem.vue";
-import PageTimeItem from "./components/PageTimeItem.vue";
+import FpsItem from './components/FpsItem.vue';
+import CpuItem from './components/CpuItem.vue';
+import MemoryItem from './components/MemoryItem.vue';
+import BandwidthItem from './components/BandwidthItem.vue';
+import BatteryItem from './components/BatteryItem.vue';
+import BluetoothItem from './components/BluetoothItem.vue';
+import ScreenItem from './components/ScreenItem.vue';
+import NetworkLatencyItem from './components/NetworkLatencyItem.vue';
+import StorageItem from './components/StorageItem.vue';
+import DeviceInfoItem from './components/DeviceInfoItem.vue';
+import PageTimeItem from './components/PageTimeItem.vue';
 
 const themeStore = useThemeStore();
-const {
-  memoryMonitorEnabled,
-  cpuMonitorEnabled,
+const { 
+  memoryMonitorEnabled, 
+  cpuMonitorEnabled, 
   bandwidthMonitorEnabled,
   batteryMonitorEnabled,
   bluetoothMonitorEnabled,
@@ -95,11 +72,11 @@ const {
   storageMonitorEnabled,
   deviceInfoMonitorEnabled,
   pageTimeMonitorEnabled,
-  performanceMonitorPosition,
+  performanceMonitorPosition, 
   isPerformanceMonitorVisible,
   performanceMonitorMode,
   performanceMonitorLayout,
-  performanceMonitorDirection,
+  performanceMonitorDirection
 } = storeToRefs(themeStore);
 
 /**
@@ -109,30 +86,30 @@ const {
  * - 其他情况默认纵向
  */
 const effectiveDirection = computed(() => {
-  const rawDirection = performanceMonitorDirection.value || "vertical";
-  if (rawDirection !== "auto") {
+  const rawDirection = performanceMonitorDirection.value || 'vertical';
+  if (rawDirection !== 'auto') {
     return rawDirection;
   }
 
-  const position = performanceMonitorPosition.value || "bottom-right";
+  const position = performanceMonitorPosition.value || 'bottom-right';
 
-  if (position.startsWith("top") || position.startsWith("bottom")) {
-    return "horizontal";
+  if (position.startsWith('top') || position.startsWith('bottom')) {
+    return 'horizontal';
   }
 
-  return "vertical";
+  return 'vertical';
 });
 
 defineProps({
   visible: {
     type: Boolean,
-    default: false,
-  },
+    default: false
+  }
 });
 
 const fps = ref(60);
 const cpuLoad = ref(0);
-const memory = ref<{ used: string; limit: string } | null>(null);
+const memory = ref<{ used: string, limit: string } | null>(null);
 const history = ref<number[]>(new Array(20).fill(60));
 let frameCount = 0;
 let lastTime = performance.now();
@@ -148,24 +125,24 @@ const updateMemory = () => {
     const mem = (performance as any).memory;
     memory.value = {
       used: (mem.usedJSHeapSize / 1048576).toFixed(2),
-      limit: (mem.jsHeapSizeLimit / 1048576).toFixed(2),
+      limit: (mem.jsHeapSizeLimit / 1048576).toFixed(2)
     };
   }
 };
 
 const updateFps = () => {
   const now = performance.now();
-
+  
   // 计算帧时间
   const frameDuration = now - lastFrameTime;
   lastFrameTime = now;
-
+  
   // 收集帧时间用于CPU负载计算（保留最近60帧）
   frameTimes.push(frameDuration);
   if (frameTimes.length > 60) {
     frameTimes.shift();
   }
-
+  
   // 计算平均帧时间（至少需要3帧数据才计算，否则使用当前帧时间）
   let avgFrameTime: number;
   if (frameTimes.length >= 3) {
@@ -173,7 +150,7 @@ const updateFps = () => {
   } else {
     avgFrameTime = frameDuration; // 数据不足时使用当前帧时间
   }
-
+  
   // 基于平均帧时间计算CPU负载
   // 使用线性映射方式：
   // 60FPS（16.67ms）时，CPU负载约10%
@@ -190,36 +167,32 @@ const updateFps = () => {
     load = (avgFrameTime / minFrameTime) * 10;
   } else if (avgFrameTime <= idealFrameTime) {
     // 帧时间在8-16.67ms之间，负载在10-20%之间
-    load =
-      10 +
-      ((avgFrameTime - minFrameTime) / (idealFrameTime - minFrameTime)) * 10;
+    load = 10 + ((avgFrameTime - minFrameTime) / (idealFrameTime - minFrameTime)) * 10;
   } else if (avgFrameTime <= maxFrameTime) {
     // 帧时间在16.67-100ms之间，负载在20-100%之间
-    load =
-      20 +
-      ((avgFrameTime - idealFrameTime) / (maxFrameTime - idealFrameTime)) * 80;
+    load = 20 + ((avgFrameTime - idealFrameTime) / (maxFrameTime - idealFrameTime)) * 80;
   } else {
     // 帧时间 > 100ms，负载为100%
     load = 100;
   }
   cpuLoad.value = Math.min(100, Math.max(0, load)); // 限制在0-100%，保留原始精度
-
+  
   frameCount++;
-
+  
   if (now - lastTime >= 1000) {
     fps.value = Math.round((frameCount * 1000) / (now - lastTime));
 
     frameCount = 0;
     lastTime = now;
-
+    
     history.value.shift();
     history.value.push(fps.value);
-
+    
     if (memoryMonitorEnabled.value) {
       updateMemory();
     }
   }
-
+  
   animationFrameId = requestAnimationFrame(updateFps);
 };
 
@@ -266,44 +239,16 @@ onBeforeUnmount(() => {
 }
 
 /* Position Styles */
-.fps-monitor-container.position-top-left {
-  top: 10px;
-  left: 10px;
-}
-.fps-monitor-container.position-top-center {
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.fps-monitor-container.position-top-right {
-  top: 10px;
-  right: 10px;
-}
+.fps-monitor-container.position-top-left { top: 10px; left: 10px; }
+.fps-monitor-container.position-top-center { top: 10px; left: 50%; transform: translateX(-50%); }
+.fps-monitor-container.position-top-right { top: 10px; right: 10px; }
 
-.fps-monitor-container.position-left-center {
-  top: 50%;
-  left: 10px;
-  transform: translateY(-50%);
-}
-.fps-monitor-container.position-right-center {
-  top: 50%;
-  right: 10px;
-  transform: translateY(-50%);
-}
+.fps-monitor-container.position-left-center { top: 50%; left: 10px; transform: translateY(-50%); }
+.fps-monitor-container.position-right-center { top: 50%; right: 10px; transform: translateY(-50%); }
 
-.fps-monitor-container.position-bottom-left {
-  bottom: 10px;
-  left: 10px;
-}
-.fps-monitor-container.position-bottom-center {
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.fps-monitor-container.position-bottom-right {
-  bottom: 10px;
-  right: 10px;
-}
+.fps-monitor-container.position-bottom-left { bottom: 10px; left: 10px; }
+.fps-monitor-container.position-bottom-center { bottom: 10px; left: 50%; transform: translateX(-50%); }
+.fps-monitor-container.position-bottom-right { bottom: 10px; right: 10px; }
 
 /* Layout Styles */
 
@@ -329,8 +274,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.fps-monitor-container.layout-merged.direction-vertical
-  :deep(.monitor-item:last-child) {
+.fps-monitor-container.layout-merged.direction-vertical :deep(.monitor-item:last-child) {
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: none;
@@ -351,8 +295,7 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-.fps-monitor-container.layout-merged.direction-horizontal
-  :deep(.monitor-item:last-child) {
+.fps-monitor-container.layout-merged.direction-horizontal :deep(.monitor-item:last-child) {
   padding-right: 0;
   border-right: none;
 }

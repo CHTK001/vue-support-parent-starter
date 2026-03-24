@@ -15,8 +15,7 @@
         <div class="header-right">
           <div class="search-wrapper">
             <IconifyIconOnline icon="ri:search-line" class="search-icon" />
-            <!-- 示例页搜索框强制使用 Element Plus 输入框，不跟随 8bit 像素主题 -->
-            <ScInput
+            <ScInput 
               v-model="searchText"
               placeholder="搜索组件..."
               clearable
@@ -29,7 +28,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- 分类筛选 -->
       <div class="category-filter">
         <div
@@ -41,9 +40,7 @@
         >
           <IconifyIconOnline :icon="category.icon" />
           <span>{{ category.label }}</span>
-          <span class="category-count"
-            >({{ getCategoryCount(category.key) }})</span
-          >
+          <span class="category-count">({{ getCategoryCount(category.key) }})</span>
         </div>
       </div>
     </div>
@@ -85,9 +82,11 @@
             <h3 class="card-title">{{ item.name }}</h3>
             <p class="card-desc">{{ item.description }}</p>
             <div class="card-tags" v-if="item.tags && item.tags.length">
-              <span v-for="tag in item.tags" :key="tag" class="card-tag">{{
-                tag
-              }}</span>
+              <span
+                v-for="tag in item.tags"
+                :key="tag"
+                class="card-tag"
+              >{{ tag }}</span>
             </div>
           </div>
 
@@ -151,7 +150,7 @@
 import { message } from "@repo/utils";
 import { computed, defineAsyncComponent, ref, shallowRef } from "vue";
 import { useRouter } from "vue-router";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 路由
 const router = useRouter();
@@ -274,7 +273,7 @@ const openComponentExample = (component) => {
   } catch (error) {
     message(
       `加载 ${component.name} 组件示例失败: ${error.message || "未知错误"}`,
-      { type: "error" },
+      { type: "error" }
     );
     console.error("组件加载错误:", error);
     // 重置状态
@@ -307,7 +306,7 @@ const asyncComponentOptions = {
   loadingComponent: {
     template: `
       <div class="loading-component">
-        <ScSkeleton :rows="10" animated />
+        <el-skeleton :rows="10" animated />
       </div>
     `,
   },
@@ -482,6 +481,23 @@ const components = [
     component: resolveComponent("./components/ScWorkflowExample.vue"),
   },
   {
+    name: "ScMap",
+    icon: "ri:map-pin-range-line",
+    category: "display",
+    tags: ["地图", "定位"],
+    description: "地图组件",
+    component: resolveComponent("./components/ScMapExample.vue"),
+  },
+  {
+    name: "ScLayer",
+    icon: "ri:map-2-line",
+    category: "display",
+    tags: ["地图", "图层"],
+    description:
+      "基于OpenLayers的地图图层组件，提供测距、标记点、形状绘制等功能",
+    component: resolveComponent("./components/ScLayerExample.vue"),
+  },
+  {
     name: "ScCron",
     icon: "carbon:time",
     category: "form",
@@ -532,7 +548,7 @@ const components = [
     description:
       "Socket消息对话框组件，用于显示实时Socket消息、进度等，支持多种布局模式和靠边吸附功能",
     component: resolveComponent(
-      "./components/ScSocketMessageDialogExample.vue",
+      "./components/ScSocketMessageDialogExample.vue"
     ),
   },
   {
@@ -758,9 +774,16 @@ const components = [
     icon: "ri:3d-line",
     category: "media",
     tags: ["3D", "Three.js", "模型"],
-    description:
-      "基于 Three.js 的 3D 渲染组件，支持 glTF/glb 模型加载、场景预设、相机控制等功能",
+    description: "基于 Three.js 的 3D 渲染组件，支持 glTF/glb 模型加载、场景预设、相机控制等功能",
     component: resolveComponent("./components/ScThreeExample.vue"),
+  },
+  {
+    name: "ScThreeMap",
+    icon: "ri:map-3d-line",
+    category: "display",
+    tags: ["3D", "地图", "模型", "联动"],
+    description: "ScThree 与地图组件（ScMap/ScLayer）的联动示例，支持在地图上显示 3D 模型",
+    component: resolveComponent("./components/ScThreeMapExample.vue"),
   },
   {
     name: "Template",
@@ -771,12 +794,19 @@ const components = [
     component: resolveComponent("./components/TemplateExample.vue"),
   },
   {
+    name: "TechUI",
+    icon: "ri:rocket-2-line",
+    category: "display",
+    tags: ["科技", "风格"],
+    description: "TechUI 科幻风格组件，基于 @techui/scifi 的科幻风格 UI 组件封装（独立页面）",
+    route: "/example/techui",
+  },
+  {
     name: "ScReteEditor",
     icon: "ri:node-tree",
     category: "other",
     tags: ["可视化", "编辑器"],
-    description:
-      "可视化节点编辑器组件，基于 Rete.js，支持节点拖拽、连接、小地图、右键菜单等功能",
+    description: "可视化节点编辑器组件，基于 Rete.js，支持节点拖拽、连接、小地图、右键菜单等功能",
     component: resolveComponent("./components/ScReteEditorExample.vue"),
   },
   {
@@ -786,22 +816,6 @@ const components = [
     tags: ["提示", "状态"],
     description: "告警提示组件，支持信息、成功、警告和错误等多种状态样式",
     component: resolveComponent("./components/ScAlertExample.vue"),
-  },
-  {
-    name: "ScTooltip",
-    icon: "ri:question-line",
-    category: "feedback",
-    tags: ["提示", "悬浮"],
-    description: "文字提示组件，支持多种位置、主题、触发方式和自定义内容",
-    component: resolveComponent("./components/ScTooltipExample.vue"),
-  },
-  {
-    name: "ScPopover",
-    icon: "ri:chat-3-line",
-    category: "feedback",
-    tags: ["弹出框", "提示"],
-    description: "弹出框组件，支持标题、内容、多种位置和触发方式，可自定义内容",
-    component: resolveComponent("./components/ScPopoverExample.vue"),
   },
   {
     name: "ScProgress",
@@ -865,17 +879,14 @@ const components = [
     category: "form",
     tags: ["级联", "自动完成"],
     description: "级联选择与自动完成输入组件，适合多级分类与搜索联想场景",
-    component: resolveComponent(
-      "./components/ScCascaderAutocompleteExample.vue",
-    ),
+    component: resolveComponent("./components/ScCascaderAutocompleteExample.vue"),
   },
   {
     name: "ScForm",
     icon: "ri:article-line",
     category: "form",
     tags: ["表单", "布局"],
-    description:
-      "表单容器组件，结合 ScFormItem / ScRow / ScCol 快速搭建表单页面",
+    description: "表单容器组件，结合 ScFormItem / ScRow / ScCol 快速搭建表单页面",
     component: resolveComponent("./components/ScFormExample.vue"),
   },
 ];
@@ -896,8 +907,7 @@ const filteredComponents = computed(() => {
       (item) =>
         item.name.toLowerCase().includes(keyword) ||
         item.description.toLowerCase().includes(keyword) ||
-        (item.tags &&
-          item.tags.some((tag) => tag.toLowerCase().includes(keyword))),
+        (item.tags && item.tags.some((tag) => tag.toLowerCase().includes(keyword)))
     );
   }
 
@@ -1107,12 +1117,7 @@ const filteredComponents = computed(() => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     transition: left 0.5s ease;
   }
 
@@ -1296,8 +1301,7 @@ const filteredComponents = computed(() => {
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     transform: scale(1);
     opacity: 0.4;
   }
@@ -1522,8 +1526,7 @@ const filteredComponents = computed(() => {
 }
 
 @keyframes float {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
   50% {

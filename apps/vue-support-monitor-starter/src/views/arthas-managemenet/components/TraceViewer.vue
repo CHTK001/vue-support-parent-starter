@@ -1,14 +1,9 @@
 <template>
   <div class="trace-viewer system-container modern-bg">
     <div class="toolbar">
-      <ScInput
-        v-model="classPattern"
-        placeholder="类匹配（必填，如 com.example.service.UserService）"
-        style="min-width: 300px"
-        clearable
-      >
+      <el-input v-model="classPattern" placeholder="类匹配（必填，如 com.example.service.UserService）" style="min-width: 300px" clearable>
         <template #suffix>
-          <ScTooltip placement="top">
+          <el-tooltip placement="top">
             <template #content>
               <div style="max-width: 300px">
                 <p><strong>输入要追踪的类名：</strong></p>
@@ -18,102 +13,63 @@
                 <p>• 如果提示匹配类过多，请使用更具体的类名</p>
               </div>
             </template>
-            <ScIcon><QuestionFilled /></ScIcon>
-          </ScTooltip>
+            <el-icon><QuestionFilled /></el-icon>
+          </el-tooltip>
         </template>
-      </ScInput>
-      <ScInput
-        v-model="methodPattern"
-        placeholder="方法匹配（可选，默认 *）"
-        style="min-width: 200px"
-        clearable
-      />
-      <ScInput
-        v-model="condition"
-        placeholder="条件表达式（可选，如 #cost>10）"
-        style="min-width: 220px"
-        clearable
-      />
-      <ScCheckbox v-model="useRegex">正则(-E)</ScCheckbox>
-      <ScInputNumber
-        v-model="count"
-        :min="1"
-        :max="1000"
-        :step="1"
-        controls-position="right"
-        style="width: 120px"
-      />
+      </el-input>
+      <el-input v-model="methodPattern" placeholder="方法匹配（可选，默认 *）" style="min-width: 200px" clearable />
+      <el-input v-model="condition" placeholder="条件表达式（可选，如 #cost>10）" style="min-width: 220px" clearable />
+      <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
+      <el-input-number v-model="count" :min="1" :max="1000" :step="1" controls-position="right" style="width: 120px" />
       <span class="label">-n</span>
-      <ScInputNumber
-        v-model="expand"
-        :min="0"
-        :max="10"
-        :step="1"
-        controls-position="right"
-        style="width: 100px"
-      />
+      <el-input-number v-model="expand" :min="0" :max="10" :step="1" controls-position="right" style="width: 100px" />
       <span class="label">-x</span>
-      <ScCheckbox v-model="autoRefresh">自动刷新</ScCheckbox>
-      <ScSelect
-        v-model="refreshInterval"
-        style="width: 120px"
-        placeholder="拉取间隔"
-        title="设置结果拉取间隔（同时用于自动刷新间隔）"
-      >
-        <ScOption :value="5" label="5秒" />
-        <ScOption :value="10" label="10秒" />
-        <ScOption :value="30" label="30秒" />
-        <ScOption :value="60" label="60秒" />
-      </ScSelect>
-      <ScButton @click="clearData">清空</ScButton>
-      <ScButton
-        type="primary"
-        :disabled="!nodeId || !classPatternTrim || isRunning"
-        :loading="loading"
-        @click="run"
-      >
+      <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
+      <el-select v-model="refreshInterval" style="width: 120px" placeholder="拉取间隔" title="设置结果拉取间隔（同时用于自动刷新间隔）">
+        <el-option :value="5" label="5秒" />
+        <el-option :value="10" label="10秒" />
+        <el-option :value="30" label="30秒" />
+        <el-option :value="60" label="60秒" />
+      </el-select>
+      <el-button @click="clearData">清空</el-button>
+      <el-button type="primary" :disabled="!nodeId || !classPatternTrim || isRunning" :loading="loading" @click="run">
         {{ autoRefresh && countdown > 0 ? `执行(${countdown}s)` : "执行" }}
-      </ScButton>
-      <ScButton
-        :disabled="!isRunning"
-        :type="isRunning ? 'danger' : 'default'"
-        @click="sendStop"
-      >
+      </el-button>
+      <el-button @click="sendStop" :disabled="!isRunning" :type="isRunning ? 'danger' : 'default'">
         {{ isRunning ? "停止追踪" : "停止" }}
-      </ScButton>
+      </el-button>
       <div v-if="isRunning" class="status-indicator">
-        <ScTag type="success" effect="dark">
-          <ScIcon class="rotating"><Loading /></ScIcon>
+        <el-tag type="success" effect="dark">
+          <el-icon class="rotating"><Loading /></el-icon>
           正在追踪...
-        </ScTag>
+        </el-tag>
       </div>
     </div>
 
     <div class="content">
       <div v-if="error" class="error-message">
-        <ScAlert type="error" :title="error" show-icon />
+        <el-alert type="error" :title="error" show-icon />
       </div>
 
       <div v-else-if="traces.length === 0 && !loading" class="empty-state">
-        <ScEmpty>
+        <el-empty>
           <template #description>
             <div class="empty-description">
               <p>暂无链路追踪数据</p>
               <p class="empty-tips">
                 请设置具体的类匹配模式并点击执行<br />
-                <strong>建议：</strong
-                >使用具体的实现类名，避免接口或抽象类<br />
+                <strong>建议：</strong>使用具体的实现类名，避免接口或抽象类<br />
                 <strong>示例：</strong>com.example.service.UserService
               </p>
             </div>
           </template>
-        </ScEmpty>
+        </el-empty>
       </div>
 
       <div v-else class="trace-content">
         <!-- 统计信息 -->
         <div v-if="traceStats" class="trace-stats">
-          <ScCard shadow="never" class="stats-card">
+          <el-card shadow="never" class="stats-card">
             <div class="stats-grid">
               <div class="stat-item">
                 <span class="stat-label">总调用次数</span>
@@ -121,9 +77,7 @@
               </div>
               <div class="stat-item">
                 <span class="stat-label">成功次数</span>
-                <span class="stat-value success">{{
-                  traceStats.successCount
-                }}</span>
+                <span class="stat-value success">{{ traceStats.successCount }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">失败次数</span>
@@ -142,54 +96,33 @@
                 <span class="stat-value">{{ traceStats.minCost }}ms</span>
               </div>
             </div>
-          </ScCard>
+          </el-card>
         </div>
 
         <!-- 链路追踪列表 -->
         <div class="trace-list">
-          <ScCard
-            v-for="(trace, index) in traces"
-            :key="index"
-            shadow="hover"
-            class="trace-card"
-            @click="expandTrace(trace)"
-          >
+          <el-card v-for="(trace, index) in traces" :key="index" shadow="hover" class="trace-card" @click="expandTrace(trace)">
             <div class="trace-header">
               <div class="trace-info">
-                <span class="trace-method"
-                  >{{ trace.className }}.{{ trace.methodName }}</span
-                >
-                <ScTag
-                  :type="trace.success ? 'success' : 'danger'"
-                  size="small"
-                  class="trace-status"
-                >
+                <span class="trace-method">{{ trace.className }}.{{ trace.methodName }}</span>
+                <el-tag :type="trace.success ? 'success' : 'danger'" size="small" class="trace-status">
                   {{ trace.success ? "成功" : "失败" }}
-                </ScTag>
+                </el-tag>
               </div>
               <div class="trace-metrics">
                 <span class="trace-cost">{{ trace.cost }}ms</span>
-                <span class="trace-time">{{
-                  formatTime(trace.timestamp)
-                }}</span>
+                <span class="trace-time">{{ formatTime(trace.timestamp) }}</span>
               </div>
             </div>
 
             <div v-if="trace.expanded" class="trace-details">
               <div class="trace-tree">
-                <div
-                  v-for="(node, nodeIndex) in trace.tree"
-                  :key="nodeIndex"
-                  class="tree-node"
-                  :style="{ paddingLeft: node.depth * 20 + 'px' }"
-                >
+                <div v-for="(node, nodeIndex) in trace.tree" :key="nodeIndex" class="tree-node" :style="{ paddingLeft: node.depth * 20 + 'px' }">
                   <div class="node-content">
-                    <span class="node-method"
-                      >{{ node.className }}.{{ node.methodName }}</span
-                    >
+                    <span class="node-method">{{ node.className }}.{{ node.methodName }}</span>
                     <span class="node-cost">{{ node.cost }}ms</span>
                     <span v-if="node.exception" class="node-exception">
-                      <ScTag type="danger" size="small">异常</ScTag>
+                      <el-tag type="danger" size="small">异常</el-tag>
                     </span>
                   </div>
                   <div v-if="node.exception" class="exception-detail">
@@ -198,7 +131,7 @@
                 </div>
               </div>
             </div>
-          </ScCard>
+          </el-card>
         </div>
       </div>
     </div>
@@ -208,13 +141,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from "vue";
 import { QuestionFilled, Loading } from "@element-plus/icons-vue";
-import {
-  getOrCreateSession,
-  execArthasCommandAsync,
-  pullArthasResults,
-  interruptArthasJob,
-  closeArthasSession,
-} from "@/api/arthas/arthas-http";
+import { getOrCreateSession, execArthasCommandAsync, pullArthasResults, interruptArthasJob, closeArthasSession } from "@/api/arthas/arthas-http";
 
 const props = defineProps<{ nodeId: string }>();
 
@@ -231,9 +158,7 @@ const isRunning = ref(false);
 let pullTimer: NodeJS.Timeout | null = null;
 
 // 表单数据
-const classPattern = ref(
-  "com.chua.starter.monitor.arthas.ArthasCommandController",
-);
+const classPattern = ref("com.chua.starter.monitor.arthas.ArthasCommandController");
 const methodPattern = ref("exec");
 const condition = ref("");
 const useRegex = ref(false);
@@ -564,8 +489,7 @@ async function pullResults() {
       }
 
       // 修复数据结构解析
-      const responseBody =
-        (pullRes.data.body as any)?.body || pullRes.data.body;
+      const responseBody = (pullRes.data.body as any)?.body || pullRes.data.body;
 
       const output = {
         body: responseBody,
@@ -754,7 +678,7 @@ watch(
         startAutoRefresh(); // 如果开启了自动刷新，重新启动
       }
     }
-  },
+  }
 );
 
 // 组件挂载时自动执行
@@ -793,6 +717,7 @@ onBeforeUnmount(async () => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -825,6 +750,7 @@ onBeforeUnmount(async () => {
     z-index: 1;
   }
 }
+
 
 .trace-viewer {
   display: flex;

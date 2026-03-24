@@ -3,7 +3,7 @@
  * 雪花背景装饰组件
  * 用于圣诞节/冬季主题
  */
-import { ref, onMounted } from "vue";
+import { ref, onMounted } from 'vue';
 
 interface Snowflake {
   id: number;
@@ -14,15 +14,12 @@ interface Snowflake {
   opacity: number;
 }
 
-const props = withDefaults(
-  defineProps<{
-    /** 雪花数量 */
-    count?: number;
-  }>(),
-  {
-    count: 15,
-  },
-);
+const props = withDefaults(defineProps<{
+  /** 雪花数量 */
+  count?: number;
+}>(), {
+  count: 15,
+});
 
 const snowflakes = ref<Snowflake[]>([]);
 
@@ -48,8 +45,8 @@ onMounted(() => {
 
 <template>
   <div class="snowfall-background">
-    <div
-      v-for="flake in snowflakes"
+    <div 
+      v-for="flake in snowflakes" 
       :key="flake.id"
       class="snowflake"
       :style="{
@@ -75,12 +72,7 @@ onMounted(() => {
 .snowflake {
   position: absolute;
   top: -10px;
-  background: radial-gradient(
-    circle,
-    #fff 0%,
-    rgba(255, 255, 255, 0.8) 50%,
-    transparent 70%
-  );
+  background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0.8) 50%, transparent 70%);
   border-radius: 50%;
   animation: snowfall linear infinite;
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);

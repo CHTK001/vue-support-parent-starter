@@ -9,16 +9,16 @@
     @close="handleClose"
     class="drawer-custom"
   >
-    <ScHeader v-if="env.params.sysProjectId" class="drawer-header">
+    <el-header v-if="env.params.sysProjectId" class="drawer-header">
       <div class="panel-right">
-        <ScButton
+        <ScButton 
           @click="handleOpenEditDialog({}, 'save')"
           title="新增"
           :icon="useRenderIcon('ep:plus')"
           class="btn-text btn-add"
         ></ScButton>
       </div>
-    </ScHeader>
+    </el-header>
     <ScTable
       ref="tableRef"
       :url="fetchPageProjectForAiModule"
@@ -26,7 +26,7 @@
       class="overflow-auto table-custom"
     >
       <!-- 表格列 -->
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysAiModuleName"
         label="模型名称"
         width="300px"
@@ -35,17 +35,16 @@
       >
         <template #default="{ row }">
           <div class="flex flex-col">
-            <ScTag
+            <ScTag 
               type="primary"
               :class="{ 'tag-custom': true, 'font-bold': row.sysAiModuleName }"
+              >{{ row.sysAiModuleName || "-" }}</el-tag
             >
-              {{ row.sysAiModuleName || "-" }}
-            </ScTag>
           </div>
         </template>
       </ScTableColumn>
       <!-- 其他表格列 -->
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysAiModuleCode"
         label="模型编码"
         width="240px"
@@ -54,7 +53,7 @@
         <template #default="{ row }">
           <div>
             <p>
-              <ScTooltip
+              <ScTooltip 
                 :content="`编码:${row.sysAiModuleCode || '-'}`"
                 placement="top"
               >
@@ -85,16 +84,15 @@
       <ScTableColumn label="支持尺寸" width="220px" align="center">
         <template #default="{ row }">
           <div class="flex flex-wrap">
-            <ScTag
+            <ScTag 
               type="success"
               v-for="item in row.vincentSetting?.sysAiVincentSupportedSize?.split(
-                ',',
+                ','
               )"
               :key="item"
               style="margin: 2px"
+              >{{ item }}</el-tag
             >
-              {{ item }}
-            </ScTag>
           </div>
         </template>
       </ScTableColumn>
@@ -115,7 +113,7 @@
           >
         </template>
       </ScTableColumn>
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysApiModuleManufacturersLabel"
         label="厂家代码"
         width="200px"
@@ -132,7 +130,7 @@
           >
         </template>
       </ScTableColumn>
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysAiModuleType"
         label="模型类型"
         width="160px"
@@ -149,7 +147,7 @@
           >
         </template>
       </ScTableColumn>
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysAiModuleRemark"
         label="说明"
         show-overflow-tooltip
@@ -167,7 +165,7 @@
           >
         </template>
       </ScTableColumn>
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysAiModuleRoleSetting"
         label="是否存在角色设置"
         width="180px"
@@ -185,7 +183,7 @@
           />
         </template>
       </ScTableColumn>
-      <ScTableColumn
+      <ScTableColumn 
         prop="sysAiModuleStatus"
         label="是否启用"
         width="160px"
@@ -206,35 +204,35 @@
       <ScTableColumn label="操作" width="220px" fixed="right">
         <template #default="scope">
           <ScRow class="justify-end">
-            <ScButton
+            <ScButton 
               v-if="scope.row.sysAiModuleType === 'VIDEO'"
               title="文生视频模型设置"
               @click="handleOpenVideoSettingDialog(scope.row, 'edit')"
               :icon="useRenderIcon('ri:settings-2-fill')"
               class="btn-text btn-operation"
             ></ScButton>
-            <ScButton
+            <ScButton 
               v-if="scope.row.sysAiModuleType === 'VINCENT'"
               title="文生图模型设置"
               @click="handleOpenSettingDialog(scope.row, 'edit')"
               :icon="useRenderIcon('ri:settings-2-fill')"
               class="btn-text btn-operation"
             ></ScButton>
-            <ScButton
+            <ScButton 
               v-if="scope.row.sysAiModuleType === 'RESOLUTION'"
               title="超分辨率模型设置"
               @click="handleOpenResolutionSettingDialog(scope.row, 'edit')"
               :icon="useRenderIcon('ri:settings-2-fill')"
               class="btn-text btn-operation"
             ></ScButton>
-            <ScButton
+            <ScButton 
               v-if="scope.row.sysAiModuleType === 'VINCENT'"
               title="文生图模板设置"
               @click="handleOpenTemplateDialog(scope.row, 'edit')"
               :icon="useRenderIcon('ri:menu-add-line')"
               class="btn-text btn-operation"
             ></ScButton>
-            <ScButton
+            <ScButton 
               v-if="scope.row.sysAiModuleType === 'VINCENT'"
               title="文生图样式设置"
               @click="handleEditStyle(scope.row, 'edit')"
@@ -243,19 +241,19 @@
             ></ScButton>
           </ScRow>
           <ScRow class="pt-1 justify-end">
-            <ScButton
+            <ScButton 
               @click="handleOpenEditDialog(scope.row, 'edit')"
               title="编辑"
               :icon="useRenderIcon('ep:edit')"
               class="btn-text btn-operation"
             ></ScButton>
-            <ScButton
+            <ScButton 
               @click="handleCopy(scope.row, 'add')"
               title="复制"
               :icon="useRenderIcon('ep:copy-document')"
               class="btn-text btn-operation"
             ></ScButton>
-            <ScButton
+            <ScButton 
               @click="handleDelete(scope.row)"
               type="danger"
               title="删除"
@@ -288,7 +286,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, shallowRef } from "vue";
@@ -300,22 +298,22 @@ import {
 } from "../../../../api/manage/project-ai-module";
 
 const ModuleUpdateDialog = defineAsyncComponent(
-  () => import("./ModuleUpdateDialog.vue"),
+  () => import("./ModuleUpdateDialog.vue")
 );
 const ModuleResolutionSettingUpdateDialog = defineAsyncComponent(
-  () => import("../../resolution-setting.vue"),
+  () => import("../../resolution-setting.vue")
 );
 const ModuleVideoSettingUpdateDialog = defineAsyncComponent(
-  () => import("../../vincent-video-setting.vue"),
+  () => import("../../vincent-video-setting.vue")
 );
 const ModuleSettingUpdateDialog = defineAsyncComponent(
-  () => import("../../vincent-setting.vue"),
+  () => import("../../vincent-setting.vue")
 );
 const ModuleTemplateUpdateDialog = defineAsyncComponent(
-  () => import("../../vincent-template.vue"),
+  () => import("../../vincent-template.vue")
 );
 const StyleLayout = defineAsyncComponent(
-  () => import("../../vincent-style.vue"),
+  () => import("../../vincent-style.vue")
 );
 
 const styleLayoutRef = shallowRef();

@@ -28,23 +28,19 @@ const normalizeThemeKey = (themeKey?: string | null): string => {
   return themeKey;
 };
 
-const currentTheme = ref<string>(
-  normalizeThemeKey($storage?.configure?.systemTheme),
-);
+const currentTheme = ref<string>(normalizeThemeKey($storage?.configure?.systemTheme));
 
 /**
  * 计算动态样式
  */
 const providerStyles = computed(() => {
   const isGlass = currentTheme.value === "glass";
-
+  
   return {
     "--theme-transition": "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     "--glass-opacity": isGlass ? "0.7" : "1",
     "--glass-blur": isGlass ? "20px" : "0px",
-    "--glass-border-color": isGlass
-      ? "rgba(255, 255, 255, 0.18)"
-      : "transparent",
+    "--glass-border-color": isGlass ? "rgba(255, 255, 255, 0.18)" : "transparent",
     "--glass-shadow": isGlass ? "0 8px 32px 0 rgba(31, 38, 135, 0.37)" : "none",
   };
 });
@@ -60,7 +56,7 @@ watch(
       currentTheme.value = normalizedTheme;
       applyThemeSkin(normalizedTheme);
     }
-  },
+  }
 );
 
 /**
@@ -72,7 +68,6 @@ const applyThemeSkin = (themeKey: string): void => {
 
   // 移除所有主题类
   const themeClasses = [
-    "theme-default",
     "theme-christmas",
     "theme-spring-festival",
     "theme-valentines-day",
@@ -89,6 +84,12 @@ const applyThemeSkin = (themeKey: string): void => {
   });
 
   // 添加新主题类
+  if (themeKey !== "default") {
+    htmlEl.classList.add(`theme-${themeKey}`);
+  }
+  
+  // 设置 data-theme 属性，便于 CSS 选择器使用
+  htmlEl.setAttribute("data-theme", themeKey);
 };
 
 /**
@@ -105,11 +106,11 @@ onMounted(() => {
   height: 100%;
   transition: var(--theme-transition);
   position: relative;
-
+  
   // 基础背景色，可被主题覆盖
   background-color: var(--el-bg-color-page);
   color: var(--el-text-color-primary);
-
+  
   // 确保子元素能够继承这些变量
   :deep(*) {
     transition: inherit;

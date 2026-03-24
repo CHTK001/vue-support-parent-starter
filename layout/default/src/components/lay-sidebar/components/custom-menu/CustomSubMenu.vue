@@ -3,23 +3,14 @@
  * 自定义子菜单组件
  * 用 div + Teleport 实现弹出效果，完全脱离 Element Plus 样式限制
  */
-import {
-  ref,
-  computed,
-  inject,
-  onMounted,
-  onUnmounted,
-  watch,
-  nextTick,
-  type Ref,
-} from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed, inject, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 const props = defineProps<{
   /** 菜单路径 */
   index: string;
   /** 弹出方向：horizontal-横向菜单往下弹，vertical-垂直菜单往右弹 */
-  popperDirection?: "bottom" | "right";
+  popperDirection?: 'bottom' | 'right';
   /** 是否禁用 */
   disabled?: boolean;
   /** 弹出层额外类名 */
@@ -31,7 +22,7 @@ const props = defineProps<{
 const route = useRoute();
 
 // 从父组件注入激活路径
-const activeIndex = inject<Ref<string>>("activeIndex");
+const activeIndex = inject<Ref<string>>('activeIndex');
 
 // 弹出层状态
 const isOpen = ref(false);
@@ -50,14 +41,14 @@ const isActive = computed(() => {
 // 计算弹出层位置
 function updatePopperPosition() {
   if (!triggerRef.value || !isOpen.value) return;
-
+  
   const rect = triggerRef.value.getBoundingClientRect();
-  const direction = props.popperDirection || "bottom";
-
-  if (direction === "bottom") {
+  const direction = props.popperDirection || 'bottom';
+  
+  if (direction === 'bottom') {
     // 横向菜单：弹出层在下方
     popperStyle.value = {
-      position: "fixed",
+      position: 'fixed',
       top: `${rect.bottom + 4}px`,
       left: `${rect.left}px`,
       minWidth: `${Math.max(rect.width, 180)}px`,
@@ -65,10 +56,10 @@ function updatePopperPosition() {
   } else {
     // 垂直菜单：弹出层在右侧
     popperStyle.value = {
-      position: "fixed",
+      position: 'fixed',
       top: `${rect.top}px`,
       left: `${rect.right + 4}px`,
-      minWidth: "180px",
+      minWidth: '180px',
     };
   }
 }
@@ -96,10 +87,7 @@ function handleMouseEnter() {
 function handleMouseLeave(e: MouseEvent) {
   // 检查是否移动到弹出层
   const relatedTarget = e.relatedTarget as HTMLElement;
-  if (
-    popperRef.value?.contains(relatedTarget) ||
-    triggerRef.value?.contains(relatedTarget)
-  ) {
+  if (popperRef.value?.contains(relatedTarget) || triggerRef.value?.contains(relatedTarget)) {
     return;
   }
   closePopper();
@@ -108,10 +96,7 @@ function handleMouseLeave(e: MouseEvent) {
 // 弹出层鼠标离开
 function handlePopperMouseLeave(e: MouseEvent) {
   const relatedTarget = e.relatedTarget as HTMLElement;
-  if (
-    triggerRef.value?.contains(relatedTarget) ||
-    popperRef.value?.contains(relatedTarget)
-  ) {
+  if (triggerRef.value?.contains(relatedTarget) || popperRef.value?.contains(relatedTarget)) {
     return;
   }
   closePopper();
@@ -120,10 +105,7 @@ function handlePopperMouseLeave(e: MouseEvent) {
 // 点击外部关闭
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as HTMLElement;
-  if (
-    !triggerRef.value?.contains(target) &&
-    !popperRef.value?.contains(target)
-  ) {
+  if (!triggerRef.value?.contains(target) && !popperRef.value?.contains(target)) {
     closePopper();
   }
 }
@@ -136,15 +118,15 @@ function handleScroll() {
 }
 
 onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-  window.addEventListener("scroll", handleScroll, true);
-  window.addEventListener("resize", handleScroll);
+  document.addEventListener('click', handleClickOutside);
+  window.addEventListener('scroll', handleScroll, true);
+  window.addEventListener('resize', handleScroll);
 });
 
 onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-  window.removeEventListener("scroll", handleScroll, true);
-  window.removeEventListener("resize", handleScroll);
+  document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('scroll', handleScroll, true);
+  window.removeEventListener('resize', handleScroll);
 });
 </script>
 
@@ -164,20 +146,12 @@ onUnmounted(() => {
     <div class="custom-sub-menu__title">
       <slot name="title" />
       <span v-if="!hideArrow" class="custom-sub-menu__icon-arrow">
-        <svg
-          viewBox="0 0 1024 1024"
-          xmlns="http://www.w3.org/2000/svg"
-          width="12"
-          height="12"
-        >
-          <path
-            fill="currentColor"
-            d="M340.864 149.312a30.592 30.592 0 0 0 0 42.752L652.736 512 340.864 831.872a30.592 30.592 0 0 0 0 42.752 29.12 29.12 0 0 0 41.728 0L714.24 534.336a32 32 0 0 0 0-44.672L382.592 149.376a29.12 29.12 0 0 0-41.728 0z"
-          />
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="12" height="12">
+          <path fill="currentColor" d="M340.864 149.312a30.592 30.592 0 0 0 0 42.752L652.736 512 340.864 831.872a30.592 30.592 0 0 0 0 42.752 29.12 29.12 0 0 0 41.728 0L714.24 534.336a32 32 0 0 0 0-44.672L382.592 149.376a29.12 29.12 0 0 0-41.728 0z" />
         </svg>
       </span>
     </div>
-
+    
     <!-- 弹出层：使用 Teleport 渲染到 body（去除过渡动画，避免弹出/关闭时的动效） -->
     <Teleport to="body">
       <div
@@ -200,7 +174,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .custom-sub-menu {
   position: relative;
-
+  
   &__title {
     display: flex;
     align-items: center;
@@ -212,42 +186,36 @@ onUnmounted(() => {
     cursor: pointer;
     color: var(--custom-menu-text-color, var(--el-text-color-primary));
     background: var(--custom-menu-item-bg, transparent);
-
+    
     &:hover {
-      background: var(
-        --custom-menu-item-hover-bg,
-        rgba(var(--el-color-primary-rgb), 0.08)
-      );
+      background: var(--custom-menu-item-hover-bg, rgba(var(--el-color-primary-rgb), 0.08));
       color: var(--custom-menu-item-hover-color, var(--el-color-primary));
     }
   }
-
+  
   &.is-active > &__title {
     color: var(--custom-menu-sub-active-color, var(--el-color-primary));
-    background: var(
-      --custom-menu-sub-active-bg,
-      rgba(var(--el-color-primary-rgb), 0.1)
-    );
+    background: var(--custom-menu-sub-active-bg, rgba(var(--el-color-primary-rgb), 0.1));
   }
-
+  
   &__icon-arrow {
     display: flex;
     align-items: center;
     margin-left: 8px;
     transform: rotate(90deg); // 默认向下
   }
-
+  
   &.is-open &__icon-arrow {
     transform: rotate(-90deg); // 展开时向上
   }
-
+  
   &.is-disabled {
     opacity: 0.5;
     cursor: not-allowed;
-
+    
     .custom-sub-menu__title {
       cursor: not-allowed;
-
+      
       &:hover {
         background: transparent;
       }
@@ -263,8 +231,7 @@ onUnmounted(() => {
   background: var(--custom-menu-popper-bg, #fff);
   border: 1px solid var(--custom-menu-popper-border, rgba(0, 0, 0, 0.06));
   border-radius: 12px;
-  box-shadow: var(
-    --custom-menu-popper-shadow,
+  box-shadow: var(--custom-menu-popper-shadow, 
     0 12px 32px rgba(0, 0, 0, 0.15),
     0 4px 16px rgba(0, 0, 0, 0.1)
   );

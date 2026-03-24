@@ -6,25 +6,25 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <ScFormItem label="镜像名称" prop="imageName">
-        <ScInput
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form-item label="镜像名称" prop="imageName">
+        <el-input
           v-model="form.imageName"
           placeholder="例如: nginx, mysql, redis"
           clearable
         />
-      </ScFormItem>
-
-      <ScFormItem label="镜像标签" prop="imageTag">
-        <ScInput
+      </el-form-item>
+      
+      <el-form-item label="镜像标签" prop="imageTag">
+        <el-input
           v-model="form.imageTag"
           placeholder="例如: latest, 8.0, alpine"
           clearable
         />
-      </ScFormItem>
-
-      <ScFormItem label="完整镜像" prop="fullImageName">
-        <ScInput
+      </el-form-item>
+      
+      <el-form-item label="完整镜像" prop="fullImageName">
+        <el-input
           v-model="form.fullImageName"
           placeholder="完整镜像名称，如: docker.io/library/nginx:latest"
           clearable
@@ -32,191 +32,193 @@
         <div class="form-tip">
           如果填写了完整镜像名称，将优先使用此项，忽略上面的镜像名称和标签
         </div>
-      </ScFormItem>
-
-      <ScFormItem label="目标服务器" prop="serverId">
-        <ScSelect
+      </el-form-item>
+      
+      <el-form-item label="目标服务器" prop="serverId">
+        <el-select
           v-model="form.serverId"
           placeholder="选择服务器"
           style="width: 100%"
         >
-          <ScOption
+          <el-option
             v-for="server in serverOptions"
             :key="server.id"
             :label="server.name"
             :value="server.id"
           />
-        </ScSelect>
-      </ScFormItem>
-
-      <ScFormItem label="镜像仓库" prop="registryId">
-        <ScSelect
+        </el-select>
+      </el-form-item>
+      
+      <el-form-item label="镜像仓库" prop="registryId">
+        <el-select
           v-model="form.registryId"
           placeholder="选择镜像仓库（可选）"
           clearable
           style="width: 100%"
         >
-          <ScOption
+          <el-option
             v-for="registry in registryOptions"
             :key="registry.id"
             :label="registry.name"
             :value="registry.id"
           />
-        </ScSelect>
-        <div class="form-tip">如果不选择，将使用默认的Docker Hub</div>
-      </ScFormItem>
-    </ScForm>
-
+        </el-select>
+        <div class="form-tip">
+          如果不选择，将使用默认的Docker Hub
+        </div>
+      </el-form-item>
+    </el-form>
+    
     <template #footer>
       <span class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSubmit">
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="loading">
           开始拉取
-        </ScButton>
+        </el-button>
       </span>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from "vue";
+import { ref, reactive, computed, watch } from 'vue'
 import { message } from "@repo/utils";
-import { type FormInstance, type FormRules } from "element-plus";
-import { imageApi, getServerList, registryApi } from "@/api/docker";
-import { useImagePullNotification } from "@/composables/useImagePullNotification";
+import { type FormInstance, type FormRules } from 'element-plus'
+import { imageApi, getServerList, registryApi } from '@/api/docker'
+import { useImagePullNotification } from '@/composables/useImagePullNotification'
 
 interface Props {
-  visible: boolean;
+  visible: boolean
 }
 
 interface Emits {
-  (e: "update:visible", value: boolean): void;
-  (e: "success"): void;
+  (e: 'update:visible', value: boolean): void
+  (e: 'success'): void
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-const formRef = ref<FormInstance>();
-const loading = ref(false);
-const serverOptions = ref<any[]>([]);
-const registryOptions = ref<any[]>([]);
+const formRef = ref<FormInstance>()
+const loading = ref(false)
+const serverOptions = ref<any[]>([])
+const registryOptions = ref<any[]>([])
 
 // 使用拉取通知功能
-const { showPullStart } = useImagePullNotification();
+const { showPullStart } = useImagePullNotification()
 
 const form = reactive({
-  imageName: "",
-  imageTag: "latest",
-  fullImageName: "",
-  serverId: "",
-  registryId: "",
-});
+  imageName: '',
+  imageTag: 'latest',
+  fullImageName: '',
+  serverId: '',
+  registryId: ''
+})
 
 const rules: FormRules = {
-  serverId: [{ required: true, message: "请选择服务器", trigger: "change" }],
-};
+  serverId: [
+    { required: true, message: '请选择服务器', trigger: 'change' }
+  ]
+}
 
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit("update:visible", value),
-});
+  set: (value) => emit('update:visible', value)
+})
 
 // 监听对话框打开
 watch(dialogVisible, (visible) => {
   if (visible) {
-    loadData();
+    loadData()
   }
-});
+})
 
 const loadData = async () => {
   try {
     // 加载服务器列表
-    const serverResponse = await getServerList();
-    if (serverResponse.code === "00000") {
-      serverOptions.value = serverResponse.data || [];
+    const serverResponse = await getServerList()
+    if (serverResponse.code === '00000') {
+      serverOptions.value = serverResponse.data || []
     }
-
+    
     // 加载镜像仓库列表
-    const registryResponse = await registryApi.getRegistryList();
-    if (registryResponse.code === "00000") {
-      registryOptions.value = registryResponse.data || [];
+    const registryResponse = await registryApi.getRegistryList()
+    if (registryResponse.code === '00000') {
+      registryOptions.value = registryResponse.data || []
     }
   } catch (error) {
-    console.error("加载数据失败:", error);
+    console.error('加载数据失败:', error)
   }
-};
+}
 
 const handleSubmit = async () => {
-  if (!formRef.value) return;
-
+  if (!formRef.value) return
+  
   try {
-    await formRef.value.validate();
-    loading.value = true;
-
+    await formRef.value.validate()
+    loading.value = true
+    
     // 构建请求参数
     const params: any = {
       serverId: form.serverId,
-      registryId: form.registryId || undefined,
-    };
-
+      registryId: form.registryId || undefined
+    }
+    
     // 如果填写了完整镜像名称，优先使用
     if (form.fullImageName.trim()) {
-      params.fullImageName = form.fullImageName.trim();
+      params.fullImageName = form.fullImageName.trim()
     } else {
       // 否则使用镜像名称和标签组合
       if (!form.imageName.trim()) {
-        message("请填写镜像名称或完整镜像名称", { type: "error" });
-        return;
+        message('请填写镜像名称或完整镜像名称', { type: "error" })
+        return
       }
-      params.imageName = form.imageName.trim();
-      params.imageTag = form.imageTag.trim() || "latest";
+      params.imageName = form.imageName.trim()
+      params.imageTag = form.imageTag.trim() || 'latest'
     }
-
-    const response = await imageApi.pullImage(params);
-    if (response.code === "00000") {
+    
+    const response = await imageApi.pullImage(params)
+    if (response.code === '00000') {
       // 显示拉取开始通知
-      const imageName = params.fullImageName || params.imageName;
-      const imageTag = params.fullImageName ? undefined : params.imageTag;
-      showPullStart(imageName, imageTag, form.serverId);
-
+      const imageName = params.fullImageName || params.imageName
+      const imageTag = params.fullImageName ? undefined : params.imageTag
+      showPullStart(imageName, imageTag, form.serverId)
+      
       // ProgressMonitor会自动监听并显示进度
       // operationId: response.data?.operationId
       if (response.data?.operationId) {
         // 等待一小段时间让Socket事件传播
-        setTimeout(() => emit("success"), 1000);
+        setTimeout(() => emit('success'), 1000)
       }
-
-      message("镜像拉取任务已启动，请在右下角查看实时进度", {
-        type: "success",
-      });
-      emit("success");
-      handleClose();
+      
+      message('镜像拉取任务已启动，请在右下角查看实时进度', { type: "success" })
+      emit('success')
+      handleClose()
     } else {
-      message(response.message || "镜像拉取失败", { type: "error" });
+      message(response.message || '镜像拉取失败', { type: "error" })
     }
   } catch (error) {
-    message("镜像拉取失败", { type: "error" });
+    message('镜像拉取失败', { type: "error" })
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const handleClose = () => {
   if (!loading.value) {
-    dialogVisible.value = false;
-    resetForm();
+    dialogVisible.value = false
+    resetForm()
   }
-};
+}
 
 const resetForm = () => {
-  form.imageName = "";
-  form.imageTag = "latest";
-  form.fullImageName = "";
-  form.serverId = "";
-  form.registryId = "";
-  formRef.value?.resetFields();
-};
+  form.imageName = ''
+  form.imageTag = 'latest'
+  form.fullImageName = ''
+  form.serverId = ''
+  form.registryId = ''
+  formRef.value?.resetFields()
+}
 </script>
 
 <style scoped lang="scss">
@@ -233,6 +235,7 @@ const resetForm = () => {
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -241,4 +244,5 @@ const resetForm = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

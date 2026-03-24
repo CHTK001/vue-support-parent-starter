@@ -1,6 +1,6 @@
 <template>
   <div ref="dropdownRef" class="dropdown-selector" :class="{ open: isOpen, 'direction-horizontal': dropdownDirection === 'horizontal' }">
-    <ScPopover
+    <el-popover
       v-model:visible="isOpen"
       :placement="popoverPlacement"
       :width="popoverWidth"
@@ -27,7 +27,7 @@
 
       <!-- 下拉面板内容 -->
       <div
-        class="dropdown-panel-content"
+        class="dropdown-panel-content !overflow-hidden"
         :class="{
           'panel-horizontal': dropdownDirection === 'horizontal',
           'panel-cols-2': dropdownCol === 2,
@@ -41,27 +41,12 @@
         <div v-if="title" class="panel-title">{{ title }}</div>
         <!-- 面板顶部自定义内容插槽 -->
         <slot name="header" :item="currentSelectedData" :selectedValues="modelValue" />
-        <!-- 搜索栏 -->
-        <div v-if="showSearchBar" class="panel-search">
-          <ScInput
-            v-model="searchQuery"
-            size="small"
-            clearable
-            :placeholder="placeholder"
-            class="panel-search-input"
-            @input="handleSearch"
-          >
-            <template #prefix>
-              <IconRenderer icon="ri:search-line" />
-            </template>
-          </ScInput>
-        </div>
         <!-- 当前选择数据展示插槽 -->
         <slot name="summary" :item="currentSelectedData" :selectedValues="modelValue" :selectedCount="currentSelectedData.length" />
         <div class="options-grid thin-scroller overflow-y-auto ss" :class="{ 'has-preview': hasPreviewOptions }" :style="getStyle">
           <template v-if="displayMode === 'large'">
             <LargeOptionDisplay
-              v-for="option in filteredOptions"
+              v-for="option in options"
               :key="option.value"
               :option="option"
               :is-selected="isSelected(option.value)"
@@ -75,7 +60,7 @@
           </template>
           <template v-else>
             <NormalOptionDisplay
-              v-for="option in filteredOptions"
+              v-for="option in options"
               :key="option.value"
               :option="option"
               :is-selected="isSelected(option.value)"
@@ -88,16 +73,10 @@
             </NormalOptionDisplay>
           </template>
         </div>
-        <!-- 多选批量操作栏 -->
-        <div v-if="multiple && showBatchActions" class="panel-actions">
-          <ScButton size="small" text @click="handleSelectAll">全选</ScButton>
-          <ScButton size="small" text @click="handleInvertSelection">反选</ScButton>
-          <ScButton size="small" text @click="handleClearSelection">清空</ScButton>
-        </div>
         <!-- 面板底部自定义内容插槽 -->
         <slot name="footer" :item="currentSelectedData" :selectedValues="modelValue" />
       </div>
-    </ScPopover>
+    </el-popover>
   </div>
 </template>
 
@@ -193,40 +172,17 @@ const props = defineProps({
     validator: (value: string) => {
       return ["normal", "large"].includes(value);
     }
-  },
-  // 是否显示搜索栏
-  showSearchBar: {
-    type: Boolean,
-    default: true
-  },
-  // 是否显示多选批量操作栏
-  showBatchActions: {
-    type: Boolean,
-    default: false
   }
 });
 
-const emit = defineEmits(["select", "selectAll", "invertSelection", "clearSelection"]);
+const emit = defineEmits(["select"]);
 
 const isOpen = ref(false);
 const dropdownRef = ref<HTMLElement>();
-const searchQuery = ref("");
 
 // 检测是否有预览选项
 const hasPreviewOptions = computed(() => {
   return props.options.some(option => option.preview);
-});
-
-// 过滤后的选项集合
-const filteredOptions = computed(() => {
-  const keyword = searchQuery.value.trim().toLowerCase();
-  if (!keyword) {
-    return props.options;
-  }
-  return props.options.filter(option => {
-    const label = (option.label || option.describe || option.name || `${option.value || ""}`).toString().toLowerCase();
-    return label.includes(keyword);
-  });
 });
 
 // el-popover 相关计算属性
@@ -266,7 +222,7 @@ const popoverWidth = computed(() => {
 
 const getStyle = computed(() => {
   return {
-    maxHeight: props.height
+    height: props.height
   };
 });
 
@@ -320,24 +276,6 @@ const selectOption = (value: string | number) => {
   if (!props.multiple) {
     isOpen.value = false;
   }
-};
-
-// 搜索
-const handleSearch = () => {
-  // 目前仅依赖计算属性 filteredOptions 即可，保留方法便于后续扩展
-};
-
-// 批量操作
-const handleSelectAll = () => {
-  emit("selectAll");
-};
-
-const handleInvertSelection = () => {
-  emit("invertSelection");
-};
-
-const handleClearSelection = () => {
-  emit("clearSelection");
 };
 </script>
 
@@ -436,9 +374,6 @@ const handleClearSelection = () => {
     color: var(--el-text-color-placeholder);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin-left: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
 
     &.rotated {
       transform: rotate(180deg);
@@ -471,38 +406,6 @@ const handleClearSelection = () => {
       height: 16px;
       background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
       border-radius: 2px;
-    }
-  }
-  .panel-search {
-    padding: 8px 12px 4px;
-
-    .panel-search-input {
-      width: 100%;
-
-      :deep(.el-input__wrapper) {
-        border-radius: 999px;
-        box-shadow: none;
-        padding-left: 32px;
-        background-color: var(--el-fill-color-light);
-
-        &:hover {
-          background-color: var(--el-fill-color);
-        }
-
-        &.is-focus {
-          box-shadow: 0 0 0 1px var(--el-color-primary) inset;
-          background-color: var(--el-bg-color);
-        }
-      }
-
-      :deep(.el-input__prefix-inner) {
-        color: var(--el-text-color-secondary);
-
-        svg {
-          width: 14px;
-          height: 14px;
-        }
-      }
     }
   }
   .ss {

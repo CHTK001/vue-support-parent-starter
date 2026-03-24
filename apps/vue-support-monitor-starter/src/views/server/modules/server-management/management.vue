@@ -8,25 +8,25 @@
           服务器管理
         </h1>
         <div class="page-breadcrumb">
-          <ScBreadcrumb separator="/">
-            <ScBreadcrumbItem>监控中心</ScBreadcrumbItem>
-            <ScBreadcrumbItem>服务器管理</ScBreadcrumbItem>
-          </ScBreadcrumb>
+          <el-breadcrumb separator="/">
+            <el-breadcrumb-item>监控中心</el-breadcrumb-item>
+            <el-breadcrumb-item>服务器管理</el-breadcrumb-item>
+          </el-breadcrumb>
         </div>
       </div>
       <div class="header-right">
-        <ScButton type="primary" @click="handleAddServer">
+        <el-button type="primary" @click="handleAddServer">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新增服务器
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-cards">
-      <ScRow :gutter="16">
-        <ScCol :span="6">
-          <ScCard class="stats-card">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <el-card class="stats-card">
             <div class="stats-content">
               <div class="stats-icon total">
                 <IconifyIconOnline icon="ri:server-line" />
@@ -36,10 +36,10 @@
                 <div class="stats-label">总服务器数</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stats-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stats-card">
             <div class="stats-content">
               <div class="stats-icon online">
                 <IconifyIconOnline icon="ri:checkbox-circle-line" />
@@ -49,10 +49,10 @@
                 <div class="stats-label">在线服务器</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stats-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stats-card">
             <div class="stats-content">
               <div class="stats-icon offline">
                 <IconifyIconOnline icon="ri:close-circle-line" />
@@ -62,10 +62,10 @@
                 <div class="stats-label">离线服务器</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stats-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stats-card">
             <div class="stats-content">
               <div class="stats-icon error">
                 <IconifyIconOnline icon="ri:error-warning-line" />
@@ -75,15 +75,15 @@
                 <div class="stats-label">异常服务器</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-      </ScRow>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 功能标签页 -->
     <div class="main-content">
-      <ScTabs v-model="activeTab" type="card" class="management-tabs">
-        <ScTabPane label="服务器列表" name="servers">
+      <el-tabs v-model="activeTab" type="card" class="management-tabs">
+        <el-tab-pane label="服务器列表" name="servers">
           <ServerList
             ref="serverListRef"
             @edit="handleEditServer"
@@ -97,17 +97,17 @@
             @logs="handleServerLogs"
             @upload="handleFileUpload"
           />
-        </ScTabPane>
+        </el-tab-pane>
 
-        <ScTabPane label="连接状态" name="connections">
+        <el-tab-pane label="连接状态" name="connections">
           <ServerConnectionStatusList
             ref="connectionStatusRef"
             @test="handleTestConnection"
             @batch-test="handleBatchTestConnection"
           />
-        </ScTabPane>
+        </el-tab-pane>
 
-        <ScTabPane label="文件上传" name="uploads">
+        <el-tab-pane label="文件上传" name="uploads">
           <FileUploadTasks
             ref="fileUploadRef"
             @create="handleCreateUploadTask"
@@ -115,9 +115,9 @@
             @pause="handlePauseUploadTask"
             @cancel="handleCancelUploadTask"
           />
-        </ScTabPane>
+        </el-tab-pane>
 
-        <ScTabPane label="脚本管理" name="scripts">
+        <el-tab-pane label="脚本管理" name="scripts">
           <ServerScripts
             ref="serverScriptsRef"
             @create="handleCreateScript"
@@ -125,17 +125,17 @@
             @execute="handleExecuteScript"
             @delete="handleDeleteScript"
           />
-        </ScTabPane>
+        </el-tab-pane>
 
-        <ScTabPane label="日志管理" name="logs">
+        <el-tab-pane label="日志管理" name="logs">
           <ServerLogs
             ref="serverLogsRef"
             @view="handleViewLog"
             @export="handleExportLogs"
             @cleanup="handleCleanupLogs"
           />
-        </ScTabPane>
-      </ScTabs>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <!-- 对话框组件 -->
@@ -183,10 +183,7 @@
 import { ref, onMounted, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import {
-  getServerStatistics,
-  checkRemoteDesktopAvailability,
-} from "@/api/server";
+import { getServerStatistics, checkRemoteDesktopAvailability } from "@/api/server";
 // import { startFileUploadTask, pauseFileUploadTask, cancelFileUploadTask } from "@/api/server";
 
 // 导入组件
@@ -293,32 +290,25 @@ const handleDeleteServer = (server: any) => {
  */
 const handleConnectServer = async (server: any) => {
   // 对于 REMOTE 协议，先检测远程桌面可用性
-  if (server.monitorSysGenServerProtocol === "REMOTE") {
+  if (server.monitorSysGenServerProtocol === 'REMOTE') {
     try {
-      const res = await checkRemoteDesktopAvailability(
-        String(server.monitorSysGenServerId),
-      );
-      if (res.code === "00000" && res.data) {
+      const res = await checkRemoteDesktopAvailability(String(server.monitorSysGenServerId));
+      if (res.code === '00000' && res.data) {
         if (!res.data.available) {
           // 远程桌面不可用，自动降级到 SSH
-          message(res.data.reason || "远程桌面不可用，已自动切换到 SSH 模式", {
-            type: "warning",
-          });
+          message(res.data.reason || '远程桌面不可用，已自动切换到 SSH 模式', { type: 'warning' });
           // 修改协议为推荐的协议（通常是 SSH）
-          server = {
-            ...server,
-            monitorSysGenServerProtocol: res.data.recommendedProtocol || "SSH",
-          };
+          server = { ...server, monitorSysGenServerProtocol: res.data.recommendedProtocol || 'SSH' };
         }
       }
     } catch (error) {
-      console.error("检测远程桌面可用性失败:", error);
+      console.error('检测远程桌面可用性失败:', error);
       // 检测失败时默认降级到 SSH
-      message("检测远程桌面失败，已自动切换到 SSH 模式", { type: "warning" });
-      server = { ...server, monitorSysGenServerProtocol: "SSH" };
+      message('检测远程桌面失败，已自动切换到 SSH 模式', { type: 'warning' });
+      server = { ...server, monitorSysGenServerProtocol: 'SSH' };
     }
   }
-
+  
   serverTerminalDialogRef.value?.setData(server);
   serverTerminalDialogRef.value?.open();
 };
@@ -549,7 +539,7 @@ onMounted(() => {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-
+  
   // 渐变背景
   &::before {
     content: "";
@@ -572,7 +562,7 @@ onMounted(() => {
     pointer-events: none;
     z-index: 0;
   }
-
+  
   > * {
     position: relative;
     z-index: 1;
@@ -588,14 +578,14 @@ onMounted(() => {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 20px;
-    box-shadow:
+    box-shadow: 
       0 4px 24px rgba(0, 0, 0, 0.04),
       0 2px 8px rgba(0, 0, 0, 0.02);
     border: 1px solid rgba(0, 0, 0, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+    
     &:hover {
-      box-shadow:
+      box-shadow: 
         0 8px 32px rgba(0, 0, 0, 0.08),
         0 4px 12px rgba(0, 0, 0, 0.04);
     }
@@ -607,11 +597,7 @@ onMounted(() => {
         margin: 0 0 12px 0;
         font-size: 28px;
         font-weight: 700;
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary) 0%,
-          var(--el-color-primary-light-3) 100%
-        );
+        background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -628,14 +614,14 @@ onMounted(() => {
         font-size: 14px;
       }
     }
-
+    
     .header-right {
       .el-button {
         border-radius: 12px;
         padding: 10px 20px;
         font-weight: 500;
         transition: all 0.2s ease;
-
+        
         &:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -654,19 +640,19 @@ onMounted(() => {
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(0, 0, 0, 0.05);
-      box-shadow:
+      box-shadow: 
         0 2px 8px rgba(0, 0, 0, 0.06),
         0 1px 2px rgba(0, 0, 0, 0.04);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       height: 120px;
-
+      
       &:hover {
-        box-shadow:
+        box-shadow: 
           0 8px 24px rgba(0, 0, 0, 0.12),
           0 4px 8px rgba(0, 0, 0, 0.08);
         transform: translateY(-4px);
       }
-
+      
       .stats-content {
         display: flex;
         align-items: center;
@@ -705,7 +691,7 @@ onMounted(() => {
 
         .stats-info {
           flex: 1;
-
+          
           .stats-value {
             font-size: 32px;
             font-weight: 700;
@@ -731,7 +717,7 @@ onMounted(() => {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border-radius: 20px;
-    box-shadow:
+    box-shadow: 
       0 4px 24px rgba(0, 0, 0, 0.06),
       0 2px 8px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.05);
@@ -744,17 +730,17 @@ onMounted(() => {
         background: rgba(255, 255, 255, 0.5);
         border-bottom: 1px solid rgba(0, 0, 0, 0.06);
       }
-
+      
       :deep(.el-tabs__nav) {
         border: none;
       }
-
+      
       :deep(.el-tabs__item) {
         padding: 16px 24px;
         font-weight: 500;
         transition: all 0.2s ease;
         border-radius: 8px 8px 0 0;
-
+        
         &.is-active {
           color: var(--el-color-primary);
         }

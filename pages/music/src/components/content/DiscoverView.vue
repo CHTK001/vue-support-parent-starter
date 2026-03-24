@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { IconifyIconOnline } from "@iconify/vue";
+import { IconifyIconOnline } from '@iconify/vue';
 
 defineProps({
   env: Object,
-  loadPlaylistDetail: Function,
+  loadPlaylistDetail: Function
 });
 </script>
 
@@ -24,12 +24,8 @@ defineProps({
           </div>
         </div>
         <div class="discover-view__playlist-info">
-          <div class="discover-view__playlist-name">
-            {{ playlist.musicName }}
-          </div>
-          <div class="discover-view__playlist-count">
-            {{ playlist.musicCount }}首歌曲
-          </div>
+          <div class="discover-view__playlist-name">{{ playlist.musicName }}</div>
+          <div class="discover-view__playlist-count">{{ playlist.musicCount }}首歌曲</div>
         </div>
       </div>
     </div>
@@ -46,43 +42,39 @@ defineProps({
     display: flex;
     align-items: center;
     gap: 12px;
-
+    
     &::before {
-      content: "";
+      content: '';
       width: 4px;
       height: 20px;
-      background: linear-gradient(
-        180deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3)
-      );
+      background: linear-gradient(180deg, var(--el-color-primary), var(--el-color-primary-light-3));
       border-radius: 2px;
     }
   }
-
+  
   &__playlist-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 24px;
   }
-
+  
   &__playlist-card {
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
+    
     &:hover {
       transform: translateY(-8px);
-
+      
       .discover-view__playlist-cover {
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
       }
-
+      
       .discover-view__playlist-play {
         opacity: 1;
       }
     }
   }
-
+  
   &__playlist-cover {
     position: relative;
     width: 100%;
@@ -93,7 +85,7 @@ defineProps({
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     background: var(--el-bg-color-page);
-
+    
     img {
       position: absolute;
       top: 0;
@@ -103,12 +95,12 @@ defineProps({
       object-fit: cover;
       transition: transform 0.4s ease;
     }
-
+    
     &:hover img {
       transform: scale(1.1);
     }
   }
-
+  
   &__playlist-play {
     position: absolute;
     top: 0;
@@ -122,23 +114,23 @@ defineProps({
     justify-content: center;
     opacity: 0;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
+    
     .iconify {
       font-size: 48px;
       color: #fff;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
       transition: transform 0.3s ease;
     }
-
+    
     &:hover .iconify {
       transform: scale(1.1);
     }
   }
-
+  
   &__playlist-info {
     padding: 0 4px;
   }
-
+  
   &__playlist-name {
     font-size: 14px;
     font-weight: 500;
@@ -149,11 +141,11 @@ defineProps({
     color: var(--el-text-color-primary);
     transition: color 0.3s ease;
   }
-
+  
   &__playlist-card:hover &__playlist-name {
     color: var(--el-color-primary);
   }
-
+  
   &__playlist-count {
     font-size: 12px;
     color: var(--el-text-color-secondary);

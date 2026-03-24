@@ -158,7 +158,7 @@ export function useServerWebSocket() {
           "未找到消息类型处理器:",
           message.messageType,
           "消息内容:",
-          message,
+          message
         );
       } else {
         console.debug("未找到消息类型处理器:", message.messageType);
@@ -204,7 +204,7 @@ export function useServerWebSocket() {
 
       stompClient.value.emit(
         MonitorTopics.SERVER.STATUS,
-        JSON.stringify(fullMessage),
+        JSON.stringify(fullMessage)
       );
       return true;
     } catch (error) {
@@ -284,7 +284,7 @@ export function useServerMetrics(serverId?: number) {
    * 监听服务器指标数据
    */
   const onServerMetrics = (
-    handler: (metrics: any, message: ServerWebSocketMessage) => void,
+    handler: (metrics: any, message: ServerWebSocketMessage) => void
   ) => {
     return onMessage(MESSAGE_TYPE.SERVER_METRICS, (message) => {
       // 如果指定了serverId，只处理对应服务器的指标
@@ -302,3 +302,4 @@ export function useServerMetrics(serverId?: number) {
     onServerMetrics,
   };
 }
+

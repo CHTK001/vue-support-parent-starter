@@ -27,18 +27,18 @@
               <div class="server-name">
                 {{ server.monitorSysGenServerName }}
               </div>
-              <ScTag
+              <el-tag
                 :type="
                   getStatusType(server.monitorSysGenServerConnectionStatus)
                 "
                 size="small"
               >
                 {{ getStatusText(server.monitorSysGenServerConnectionStatus) }}
-              </ScTag>
+              </el-tag>
             </div>
             <div
-              v-if="selectedServerIds.includes(server.monitorSysGenServerId)"
               class="server-check"
+              v-if="selectedServerIds.includes(server.monitorSysGenServerId)"
             >
               <IconifyIconOnline icon="ri:check-line" />
             </div>
@@ -52,10 +52,10 @@
                 }}</span
               >
             </div>
-            <div v-if="server.monitorSysGenServerTags" class="server-info-row">
+            <div class="server-info-row" v-if="server.monitorSysGenServerTags">
               <IconifyIconOnline icon="ri:price-tag-3-line" class="info-icon" />
               <div class="server-tags">
-                <ScTag
+                <el-tag
                   v-for="tag in server.monitorSysGenServerTags?.split(',')"
                   :key="tag"
                   size="small"
@@ -63,7 +63,7 @@
                   effect="plain"
                 >
                   {{ tag }}
-                </ScTag>
+                </el-tag>
               </div>
             </div>
           </div>
@@ -80,20 +80,20 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <ScButton @click="visibleProxy = false">取消</ScButton>
-        <ScButton
+        <el-button @click="visibleProxy = false">取消</el-button>
+        <el-button
           type="primary"
           :loading="syncing"
           :disabled="selectedServerCount === 0"
           @click="submit"
         >
           <IconifyIconOnline
-            v-if="!syncing"
             icon="ri:refresh-line"
             class="mr-1"
+            v-if="!syncing"
           />
           {{ syncing ? "同步中..." : "开始同步" }}
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -155,7 +155,7 @@ function toggleServerSelect(id: number) {
 
 // 获取状态类型
 function getStatusType(
-  status: number | undefined,
+  status: number | undefined
 ): "success" | "info" | "warning" | "danger" {
   if (status === 1) return "success";
   if (status === 0) return "danger";
@@ -249,7 +249,7 @@ watch(
     } else {
       selectedServerIds.value = [];
     }
-  },
+  }
 );
 </script>
 
@@ -366,6 +366,7 @@ watch(
   gap: 8px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -374,4 +375,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -53,13 +53,13 @@
             <span v-if="showToolbar" class="sc-tree-node__toolbar" @click.stop>
               <slot name="toolbar" :node="node" :data="data">
                 <ScButton v-if="toolbarButtons.includes('add')" type="primary" link size="small" @click="handleToolbarAdd(node, data)">
-                  <ScIcon><component :is="useRenderIcon('ep:plus')" /></ScIcon>
+                  <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
                 </ScButton>
                 <ScButton v-if="toolbarButtons.includes('edit')" type="primary" link size="small" @click="handleToolbarEdit(node, data)">
-                  <ScIcon><component :is="useRenderIcon('ep:edit')" /></ScIcon>
+                  <el-icon><component :is="useRenderIcon('ep:edit')" /></el-icon>
                 </ScButton>
                 <ScButton v-if="toolbarButtons.includes('delete')" type="danger" link size="small" @click="handleToolbarDelete(node, data)">
-                  <ScIcon><component :is="useRenderIcon('ep:delete')" /></ScIcon>
+                  <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
                 </ScButton>
               </slot>
             </span>

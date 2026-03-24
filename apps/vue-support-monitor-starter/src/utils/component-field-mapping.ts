@@ -3,7 +3,7 @@
  * 用于前后端字段转换和数据验证
  */
 
-import type { ServerComponent } from "@/api/server";
+import type { ServerComponent } from '@/api/server';
 
 /**
  * 组件表单数据类型
@@ -37,39 +37,29 @@ export interface ValidationResult {
  * @param formData 表单数据
  * @returns API数据
  */
-export function convertFormDataToApiData(
-  formData: ComponentFormData,
-): Partial<ServerComponent> {
+export function convertFormDataToApiData(formData: ComponentFormData): Partial<ServerComponent> {
   const apiData: Partial<ServerComponent> = {
     monitorSysGenServerId: formData.monitorSysGenServerId,
     monitorSysGenServerComponentName: formData.monitorSysGenServerComponentName,
     monitorSysGenServerComponentType: formData.monitorSysGenServerComponentType,
-    monitorSysGenServerComponentExpressionType:
-      formData.monitorSysGenServerComponentExpressionType,
-    monitorSysGenServerComponentExpression:
-      formData.monitorSysGenServerComponentExpression,
+    monitorSysGenServerComponentExpressionType: formData.monitorSysGenServerComponentExpressionType,
+    monitorSysGenServerComponentExpression: formData.monitorSysGenServerComponentExpression,
     monitorSysGenServerComponentUnit: formData.monitorSysGenServerComponentUnit,
-    monitorSysGenServerComponentDescription:
-      formData.monitorSysGenServerComponentDescription,
-    monitorSysGenServerComponentRefreshInterval:
-      formData.monitorSysGenServerComponentRefreshInterval,
+    monitorSysGenServerComponentDescription: formData.monitorSysGenServerComponentDescription,
+    monitorSysGenServerComponentRefreshInterval: formData.monitorSysGenServerComponentRefreshInterval,
     monitorSysGenServerComponentSort: formData.monitorSysGenServerComponentSort,
-    monitorSysGenServerComponentConfig:
-      formData.monitorSysGenServerComponentConfig,
-    monitorSysGenServerComponentPosition:
-      formData.monitorSysGenServerComponentPosition,
+    monitorSysGenServerComponentConfig: formData.monitorSysGenServerComponentConfig,
+    monitorSysGenServerComponentPosition: formData.monitorSysGenServerComponentPosition,
   };
 
   // 将 enabled (boolean) 转换为 status (number)
   if (formData.monitorSysGenServerComponentEnabled !== undefined) {
-    apiData.monitorSysGenServerComponentStatus =
-      formData.monitorSysGenServerComponentEnabled ? 1 : 0;
+    apiData.monitorSysGenServerComponentStatus = formData.monitorSysGenServerComponentEnabled ? 1 : 0;
   }
 
   // 如果有ID，则包含ID
   if (formData.monitorSysGenServerComponentId) {
-    apiData.monitorSysGenServerComponentId =
-      formData.monitorSysGenServerComponentId;
+    apiData.monitorSysGenServerComponentId = formData.monitorSysGenServerComponentId;
   }
 
   return apiData;
@@ -80,38 +70,29 @@ export function convertFormDataToApiData(
  * @param apiData API数据
  * @returns 表单数据
  */
-export function convertApiDataToFormData(
-  apiData: ServerComponent,
-): ComponentFormData {
+export function convertApiDataToFormData(apiData: ServerComponent): ComponentFormData {
   const formData: ComponentFormData = {
     monitorSysGenServerId: apiData.monitorSysGenServerId,
     monitorSysGenServerComponentName: apiData.monitorSysGenServerComponentName,
     monitorSysGenServerComponentType: apiData.monitorSysGenServerComponentType,
-    monitorSysGenServerComponentExpressionType:
-      apiData.monitorSysGenServerComponentExpressionType,
-    monitorSysGenServerComponentExpression:
-      apiData.monitorSysGenServerComponentExpression,
+    monitorSysGenServerComponentExpressionType: apiData.monitorSysGenServerComponentExpressionType,
+    monitorSysGenServerComponentExpression: apiData.monitorSysGenServerComponentExpression,
     monitorSysGenServerComponentUnit: apiData.monitorSysGenServerComponentUnit,
-    monitorSysGenServerComponentDescription:
-      apiData.monitorSysGenServerComponentDescription,
-    monitorSysGenServerComponentRefreshInterval:
-      apiData.monitorSysGenServerComponentRefreshInterval,
+    monitorSysGenServerComponentDescription: apiData.monitorSysGenServerComponentDescription,
+    monitorSysGenServerComponentRefreshInterval: apiData.monitorSysGenServerComponentRefreshInterval,
     monitorSysGenServerComponentSort: apiData.monitorSysGenServerComponentSort,
-    monitorSysGenServerComponentConfig:
-      apiData.monitorSysGenServerComponentConfig,
-    monitorSysGenServerComponentPosition:
-      apiData.monitorSysGenServerComponentPosition,
+    monitorSysGenServerComponentConfig: apiData.monitorSysGenServerComponentConfig,
+    monitorSysGenServerComponentPosition: apiData.monitorSysGenServerComponentPosition,
   };
 
   // 将 status (number) 转换为 enabled (boolean)
   if (apiData.monitorSysGenServerComponentStatus !== undefined) {
-    formData.monitorSysGenServerComponentEnabled =
-      apiData.monitorSysGenServerComponentStatus === 1;
+    formData.monitorSysGenServerComponentEnabled = apiData.monitorSysGenServerComponentStatus === 1;
   } else if (apiData.monitorSysGenServerComponentEnabled !== undefined) {
     // 兼容直接使用 enabled 字段的情况
-    formData.monitorSysGenServerComponentEnabled =
-      typeof apiData.monitorSysGenServerComponentEnabled === "boolean"
-        ? apiData.monitorSysGenServerComponentEnabled
+    formData.monitorSysGenServerComponentEnabled = 
+      typeof apiData.monitorSysGenServerComponentEnabled === 'boolean' 
+        ? apiData.monitorSysGenServerComponentEnabled 
         : apiData.monitorSysGenServerComponentEnabled === 1;
   } else {
     // 默认启用
@@ -120,8 +101,7 @@ export function convertApiDataToFormData(
 
   // 如果有ID，则包含ID
   if (apiData.monitorSysGenServerComponentId) {
-    formData.monitorSysGenServerComponentId =
-      apiData.monitorSysGenServerComponentId;
+    formData.monitorSysGenServerComponentId = apiData.monitorSysGenServerComponentId;
   }
 
   return formData;
@@ -132,64 +112,44 @@ export function convertApiDataToFormData(
  * @param formData 表单数据
  * @returns 验证结果
  */
-export function validateComponentData(
-  formData: ComponentFormData,
-): ValidationResult {
+export function validateComponentData(formData: ComponentFormData): ValidationResult {
   const errors: string[] = [];
 
   // 验证必填字段
-  if (
-    !formData.monitorSysGenServerComponentName ||
-    formData.monitorSysGenServerComponentName.trim() === ""
-  ) {
-    errors.push("组件名称不能为空");
+  if (!formData.monitorSysGenServerComponentName || formData.monitorSysGenServerComponentName.trim() === '') {
+    errors.push('组件名称不能为空');
   }
 
-  if (
-    !formData.monitorSysGenServerComponentType ||
-    formData.monitorSysGenServerComponentType.trim() === ""
-  ) {
-    errors.push("组件类型不能为空");
+  if (!formData.monitorSysGenServerComponentType || formData.monitorSysGenServerComponentType.trim() === '') {
+    errors.push('组件类型不能为空');
   }
 
   if (!formData.monitorSysGenServerId || formData.monitorSysGenServerId <= 0) {
-    errors.push("服务器ID无效");
+    errors.push('服务器ID无效');
   }
 
   // 验证表达式相关字段
-  if (
-    formData.monitorSysGenServerComponentExpressionType &&
-    !formData.monitorSysGenServerComponentExpression
-  ) {
-    errors.push("选择了表达式类型，必须填写表达式");
+  if (formData.monitorSysGenServerComponentExpressionType && !formData.monitorSysGenServerComponentExpression) {
+    errors.push('选择了表达式类型，必须填写表达式');
   }
 
-  if (
-    formData.monitorSysGenServerComponentExpression &&
-    !formData.monitorSysGenServerComponentExpressionType
-  ) {
-    errors.push("填写了表达式，必须选择表达式类型");
+  if (formData.monitorSysGenServerComponentExpression && !formData.monitorSysGenServerComponentExpressionType) {
+    errors.push('填写了表达式，必须选择表达式类型');
   }
 
   // 验证刷新间隔
-  if (
-    formData.monitorSysGenServerComponentRefreshInterval !== undefined &&
-    formData.monitorSysGenServerComponentRefreshInterval < 0
-  ) {
-    errors.push("刷新间隔不能为负数");
+  if (formData.monitorSysGenServerComponentRefreshInterval !== undefined && formData.monitorSysGenServerComponentRefreshInterval < 0) {
+    errors.push('刷新间隔不能为负数');
   }
 
   // 验证排序
-  if (
-    formData.monitorSysGenServerComponentSort !== undefined &&
-    formData.monitorSysGenServerComponentSort < 0
-  ) {
-    errors.push("排序值不能为负数");
+  if (formData.monitorSysGenServerComponentSort !== undefined && formData.monitorSysGenServerComponentSort < 0) {
+    errors.push('排序值不能为负数');
   }
 
   return {
     isValid: errors.length === 0,
-    errors,
+    errors
   };
 }
 
@@ -200,14 +160,14 @@ export function validateComponentData(
  */
 export function getComponentTypeDisplayName(type: string): string {
   const typeMap: Record<string, string> = {
-    card: "卡片",
-    chart: "图表",
-    table: "表格",
-    gauge: "仪表盘",
-    text: "文本",
-    iframe: "内嵌页面",
-    log: "日志",
-    terminal: "终端",
+    card: '卡片',
+    chart: '图表',
+    table: '表格',
+    gauge: '仪表盘',
+    text: '文本',
+    iframe: '内嵌页面',
+    log: '日志',
+    terminal: '终端'
   };
 
   return typeMap[type] || type;
@@ -220,17 +180,17 @@ export function getComponentTypeDisplayName(type: string): string {
  */
 export function getComponentTypeTagColor(type: string): string {
   const colorMap: Record<string, string> = {
-    card: "primary",
-    chart: "success",
-    table: "info",
-    gauge: "warning",
-    text: "",
-    iframe: "success",
-    log: "info",
-    terminal: "warning",
+    card: 'primary',
+    chart: 'success',
+    table: 'info',
+    gauge: 'warning',
+    text: '',
+    iframe: 'success',
+    log: 'info',
+    terminal: 'warning'
   };
 
-  return colorMap[type] || "";
+  return colorMap[type] || '';
 }
 
 /**
@@ -240,11 +200,11 @@ export function getComponentTypeTagColor(type: string): string {
  */
 export function getExpressionTypeDisplayName(type: string): string {
   const typeMap: Record<string, string> = {
-    PROMETHEUS: "Prometheus",
-    INFLUXDB: "InfluxDB",
-    ELASTICSEARCH: "Elasticsearch",
-    CUSTOM: "自定义",
-    STATIC: "静态值",
+    PROMETHEUS: 'Prometheus',
+    INFLUXDB: 'InfluxDB',
+    ELASTICSEARCH: 'Elasticsearch',
+    CUSTOM: '自定义',
+    STATIC: '静态值'
   };
 
   return typeMap[type] || type;
@@ -256,15 +216,15 @@ export function getExpressionTypeDisplayName(type: string): string {
  * @returns 状态文本
  */
 export function getComponentStatusText(status?: number | boolean): string {
-  if (typeof status === "boolean") {
-    return status ? "启用" : "禁用";
+  if (typeof status === 'boolean') {
+    return status ? '启用' : '禁用';
   }
-
+  
   if (status === undefined || status === null) {
-    return "未知";
+    return '未知';
   }
-
-  return status === 1 ? "启用" : "禁用";
+  
+  return status === 1 ? '启用' : '禁用';
 }
 
 /**
@@ -273,13 +233,14 @@ export function getComponentStatusText(status?: number | boolean): string {
  * @returns 标签颜色类型
  */
 export function getComponentStatusTagType(status?: number | boolean): string {
-  if (typeof status === "boolean") {
-    return status ? "success" : "danger";
+  if (typeof status === 'boolean') {
+    return status ? 'success' : 'danger';
   }
-
+  
   if (status === undefined || status === null) {
-    return "info";
+    return 'info';
   }
-
-  return status === 1 ? "success" : "danger";
+  
+  return status === 1 ? 'success' : 'danger';
 }
+

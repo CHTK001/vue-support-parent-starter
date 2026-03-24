@@ -5,7 +5,7 @@
  * @version 1.0.0
  * @since 2025-12-29
  */
-import { ref, watch, onUnmounted, type Ref } from "vue";
+import { ref, watch, onUnmounted, type Ref } from 'vue';
 
 export interface PrefetchOptions {
   /** 是否启用预加载 */
@@ -72,26 +72,28 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
     prefetchCount: initialPrefetchCount = 3,
     delay = 300,
     cacheExpiry = 5 * 60 * 1000, // 5分钟
-    maxCachePages = 10
+    maxCachePages = 10,
   } = options;
 
   const isEnabled = ref(enabled);
   const prefetchCount = ref(initialPrefetchCount);
   const prefetchingPages = ref<Set<number>>(new Set());
-
+  
   // 缓存存储
   const cache = new Map<number, PageData<T>>();
-
+  
   // 数据获取函数
   let fetchDataFn: ((params: FetchParams) => Promise<{ data: T[]; total: number }>) | null = null;
-
+  
   // 预加载定时器
   let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * 初始化预加载
    */
-  const initPrefetch = (fetchFn: (params: FetchParams) => Promise<{ data: T[]; total: number }>) => {
+  const initPrefetch = (
+    fetchFn: (params: FetchParams) => Promise<{ data: T[]; total: number }>
+  ) => {
     fetchDataFn = fetchFn;
   };
 
@@ -143,10 +145,10 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
         cache.delete(oldestPage);
       }
     }
-
+    
     cache.set(page, {
       ...data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   };
 
@@ -168,7 +170,11 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
   /**
    * 获取页面数据（优先从缓存获取）
    */
-  const getPageData = async (page: number, pageSize: number, params: Record<string, any> = {}): Promise<PageData<T> | null> => {
+  const getPageData = async (
+    page: number,
+    pageSize: number,
+    params: Record<string, any> = {}
+  ): Promise<PageData<T> | null> => {
     // 优先从缓存获取
     const cachedData = getCacheData(page);
     if (cachedData) {
@@ -177,7 +183,7 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
 
     // 缓存未命中，从服务器获取
     if (!fetchDataFn) {
-      console.warn("[useTablePrefetch] fetchDataFn 未初始化");
+      console.warn('[useTablePrefetch] fetchDataFn 未初始化');
       return null;
     }
 
@@ -186,15 +192,15 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
       const pageData: PageData<T> = {
         data: result.data,
         total: result.total,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
+      
       // 存入缓存
       setCacheData(page, pageData);
-
+      
       return pageData;
     } catch (error) {
-      console.error("[useTablePrefetch] 数据加载失败:", error);
+      console.error('[useTablePrefetch] 数据加载失败:', error);
       return null;
     }
   };
@@ -202,7 +208,11 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
   /**
    * 预加载单个页面
    */
-  const prefetchPage = async (page: number, pageSize: number, params: Record<string, any> = {}): Promise<void> => {
+  const prefetchPage = async (
+    page: number,
+    pageSize: number,
+    params: Record<string, any> = {}
+  ): Promise<void> => {
     // 已有缓存或正在加载，跳过
     if (hasCache(page) || prefetchingPages.value.has(page)) {
       return;
@@ -217,12 +227,12 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
       const pageData: PageData<T> = {
         data: result.data,
         total: result.total,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       setCacheData(page, pageData);
     } catch (error) {
       // 预加载失败静默处理，不影响用户操作
-      console.debug("[useTablePrefetch] 预加载失败:", page, error);
+      console.debug('[useTablePrefetch] 预加载失败:', page, error);
     } finally {
       prefetchingPages.value.delete(page);
     }
@@ -231,7 +241,12 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
   /**
    * 触发预加载
    */
-  const triggerPrefetch = (currentPage: number, pageSize: number, total: number, params: Record<string, any> = {}) => {
+  const triggerPrefetch = (
+    currentPage: number,
+    pageSize: number,
+    total: number,
+    params: Record<string, any> = {}
+  ) => {
     if (!isEnabled.value || !fetchDataFn) return;
 
     // 清除之前的定时器
@@ -255,7 +270,7 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
       // 并行预加载（限制并发数）
       const maxConcurrent = 2;
       let loadingCount = 0;
-
+      
       const loadNext = () => {
         while (loadingCount < maxConcurrent && pagesToPrefetch.length > 0) {
           const page = pagesToPrefetch.shift();
@@ -295,7 +310,7 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
     cache.forEach((_, key) => pages.push(key));
     return {
       size: cache.size,
-      pages: pages.sort((a, b) => a - b)
+      pages: pages.sort((a, b) => a - b),
     };
   };
 
@@ -321,7 +336,7 @@ export function useTablePrefetch<T = any>(options: PrefetchOptions = {}): Prefet
     clearCache,
     removeCachePage,
     toggleEnabled,
-    getCacheStats
+    getCacheStats,
   };
 }
 

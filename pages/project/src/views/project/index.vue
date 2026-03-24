@@ -2,8 +2,8 @@
   <div class="project-workspace system-container modern-bg">
     <div class="modern-workspace">
       <div class="project-dashboard">
-        <ScContainer class="dashboard-container">
-          <ScMain class="dashboard-main">
+        <el-container class="dashboard-container">
+          <el-main class="dashboard-main">
             <div class="content-wrapper">
               <ScTable
                 ref="tableRef"
@@ -92,13 +92,12 @@
                       </div>
                     </div>
                     <div class="project-tags">
-                      <ScTag
+                      <ScTag 
                         type="primary"
                         effect="plain"
                         class="project-name-tag"
+                        >{{ row?.sysProjectName }}</el-tag
                       >
-                        {{ row?.sysProjectName }}
-                      </ScTag>
                     </div>
                     <div class="project-actions">
                       <template
@@ -139,7 +138,7 @@
                           size="small"
                           @click.stop="handleDefault(row)"
                         />
-                        <ScDropdown
+                        <el-dropdown
                           class="!z-[101] border-right-color"
                           trigger="click"
                           placement="right"
@@ -152,29 +151,29 @@
                             @click.stop
                           />
                           <template #dropdown>
-                            <ScDropdownMenu>
-                              <ScDropdownItem
+                            <el-dropdown-menu>
+                              <el-dropdown-item
                                 v-if="defer(0) && row?.source?.length > 0"
                                 class="h-[32px]"
                                 :icon="useRenderIcon('ri:settings-5-line')"
                               >
-                                <ScDropdown class="z-[100]" placement="right">
+                                <el-dropdown class="z-[100]" placement="right">
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
-                                    <ScDropdownMenu>
-                                      <ScDropdownItem
+                                    <el-dropdown-menu>
+                                      <el-dropdown-item
                                         v-for="(item1, index) in row.source"
                                         :key="index"
                                         @click="handleUpdateDefault(row, item1)"
                                       >
                                         {{ item1.name }}
                                         <span v-if="item1.label">√</span>
-                                      </ScDropdownItem>
-                                    </ScDropdownMenu>
+                                      </el-dropdown-item>
+                                    </el-dropdown-menu>
                                   </template>
-                                </ScDropdown>
-                              </ScDropdownItem>
-                              <ScDropdownItem
+                                </el-dropdown>
+                              </el-dropdown-item>
+                              <el-dropdown-item
                                 v-for="(item1, index) in row.source"
                                 :key="index"
                                 class="h-[32px]"
@@ -185,32 +184,32 @@
                                 <span v-if="item1.name.length < 4">{{
                                   $t("message.manage")
                                 }}</span>
-                              </ScDropdownItem>
-                              <ScDropdownItem
+                              </el-dropdown-item>
+                              <el-dropdown-item
                                 v-if="defer(3)"
                                 class="h-[32px]"
                                 :icon="useRenderIcon('ep:copy-document')"
                                 @click.stop="handleCopy(row, 'save')"
                                 >复制</el-dropdown-item
                               >
-                              <ScDropdownItem
+                              <el-dropdown-item
                                 v-if="defer(2)"
                                 class="h-[32px]"
                                 :icon="useRenderIcon('ri:delete-bin-6-line')"
                                 @click.prevent="handleDelete(row)"
                                 >删除</el-dropdown-item
                               >
-                            </ScDropdownMenu>
+                            </el-dropdown-menu>
                           </template>
-                        </ScDropdown>
+                        </el-dropdown>
                       </el-button-group>
                     </div>
                   </div>
                 </template>
               </ScTable>
             </div>
-          </ScMain>
-        </ScContainer>
+          </el-main>
+        </el-container>
       </div>
     </div>
     <SaveDialog

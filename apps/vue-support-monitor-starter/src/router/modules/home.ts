@@ -5,8 +5,7 @@ export default [
   {
     path: "/",
     name: "Home",
-    //@ts-ignore
-    component: () => import("../../../../../layout/default/src/index.vue"),
+    component: () => import("@layout/default"),
     redirect: "/home",
     meta: {
       icon: "ep:home-filled",
@@ -17,7 +16,7 @@ export default [
       {
         path: "/home",
         name: "home",
-        component: () => import("../../../../../pages/common/home/default/index.vue"),
+        component: () => import("@repo/pages/home/default/index.vue"),
         meta: {
           title: $t("menus.pureHome"),
           showLink: VITE_HIDE_HOME !== "true",

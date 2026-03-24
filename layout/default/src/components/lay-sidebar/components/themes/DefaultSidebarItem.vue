@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MenuType } from "@repo/core";
 import type { PropType } from "vue";
-import BaseSidebarItem from "../BaseSidebarItem.vue";
+import BaseSidebarItem from '../BaseSidebarItem.vue';
 
 const props = defineProps({
   item: {
@@ -44,9 +44,9 @@ const props = defineProps({
   // 默认（亮色模式）：使用纯色主题色作为背景，白色文字
   --item-active-bg: var(--el-color-primary);
   --item-active-text: #fff;
-
+  
   --item-border-radius: 8px;
-
+  
   :deep(.sidebar-menu-item),
   :deep(.el-sub-menu__title) {
     color: var(--item-text-color) !important;
@@ -56,7 +56,7 @@ const props = defineProps({
     border-radius: var(--item-border-radius);
     height: 48px;
     line-height: 48px;
-
+    
     .el-text,
     span,
     div,
@@ -71,44 +71,45 @@ const props = defineProps({
       background-color: var(--item-hover-bg) !important;
       transform: translateX(4px);
     }
-
+    
     // 兼容 layui 类名 .layui-this
     &.is-active,
     &.layui-this {
       background-color: var(--item-active-bg) !important;
       color: var(--item-active-text) !important;
       font-weight: 600;
-
-      .el-icon,
-      svg,
-      span,
-      div,
-      .el-text {
+      
+      .el-icon, svg, span, div, .el-text {
         color: var(--item-active-text) !important;
       }
 
       &::before {
-        content: "";
+        content: '';
         position: absolute;
         left: 0;
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
+        height: 24px;
+        background-color: var(--el-color-primary);
+        border-radius: 0 4px 4px 0;
+        opacity: 0; 
+        // 默认主题使用背景色区分，这里隐藏左侧条，如果需要可以改为1
       }
     }
   }
-
+  
   :deep(.sidebar-sub-menu) {
     // 兼容 layui 类名 .layui-nav-itemed
     &.is-active > .el-sub-menu__title,
     &.layui-nav-itemed > .el-sub-menu__title {
-      color: var(--item-active-text);
+       color: var(--item-active-text);
     }
 
     .el-sub-menu__title {
       color: var(--item-text-color);
       margin: 4px 8px;
-
+  
       border-radius: var(--item-border-radius);
       height: 48px;
       line-height: 48px;
@@ -117,7 +118,7 @@ const props = defineProps({
       align-items: center;
       position: relative;
       padding-right: 32px; // 为箭头预留空间
-
+      
       .el-text {
         color: inherit;
       }
@@ -160,23 +161,15 @@ const props = defineProps({
       // 默认（亮色）：使用主题色文字
       color: var(--el-color-primary) !important;
       font-weight: 600;
-
-      .el-icon,
-      svg,
-      span,
-      div,
-      .el-sub-menu__icon-arrow {
+      
+      .el-icon, svg, span, div, .el-sub-menu__icon-arrow {
         color: var(--el-color-primary) !important;
       }
 
       // 暗色模式适配
       @at-root html.dark & {
         color: var(--item-active-text) !important;
-        .el-icon,
-        svg,
-        span,
-        div,
-        .el-sub-menu__icon-arrow {
+        .el-icon, svg, span, div, .el-sub-menu__icon-arrow {
           color: var(--item-active-text) !important;
         }
       }
@@ -188,7 +181,7 @@ const props = defineProps({
     .sidebar-sub-menu {
       .el-sub-menu__title {
         padding-right: 32px !important; // 为箭头预留空间
-
+        
         // 确保嵌套菜单的箭头也显示
         .el-sub-menu__icon-arrow {
           display: inline-flex !important;
@@ -218,13 +211,6 @@ html.dark {
   .default-sidebar-item-wrapper {
     --item-hover-bg: rgba(255, 255, 255, 0.05);
     --item-active-bg: rgba(var(--el-color-primary-rgb), 0.15);
-
-    // 暗色模式激活色条改用主题色
-    :deep(.sidebar-menu-item.is-active::before),
-    :deep(.el-menu-item.is-active::before) {
-      background-color: var(--el-color-primary);
-      opacity: 1;
-    }
   }
 }
 </style>

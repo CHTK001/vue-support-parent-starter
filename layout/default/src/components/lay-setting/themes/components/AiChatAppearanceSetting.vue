@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScSelect } from "@repo/components"
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { resolveAiAppearanceComponent } from "../../../lay-ai/appearance";
 
 interface OptionsType {
@@ -77,3 +77,5 @@ const currentAppearanceComponent = computed(() =>
   color: var(--el-text-color-secondary);
 }
 </style>
+
+

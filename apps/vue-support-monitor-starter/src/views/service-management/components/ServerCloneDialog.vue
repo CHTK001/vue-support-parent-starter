@@ -6,8 +6,8 @@
     :close-on-click-modal="false"
     @close="handleClose"
   >
-    <div v-if="sourceServer" class="clone-info">
-      <ScAlert
+    <div class="clone-info" v-if="sourceServer">
+      <el-alert
         :title="`正在克隆服务器: ${sourceServer.systemServerName}`"
         type="info"
         :closable="false"
@@ -15,7 +15,7 @@
       />
     </div>
 
-    <ScForm
+    <el-form
       ref="formRef"
       :model="formData"
       :rules="formRules"
@@ -23,40 +23,40 @@
       label-position="right"
       style="margin-top: 20px"
     >
-      <ScFormItem label="新服务器名称" prop="newName">
-        <ScInput
+      <el-form-item label="新服务器名称" prop="newName">
+        <el-input
           v-model="formData.newName"
           placeholder="请输入新服务器名称"
           clearable
         />
-      </ScFormItem>
+      </el-form-item>
 
-      <ScFormItem label="新服务器端口" prop="newPort">
-        <ScInputNumber
+      <el-form-item label="新服务器端口" prop="newPort">
+        <el-input-number
           v-model="formData.newPort"
           :min="1"
           :max="65535"
           placeholder="请输入新端口号"
           style="width: 100%"
         />
-      </ScFormItem>
+      </el-form-item>
 
-      <ScFormItem label="克隆说明">
-        <ScAlert
+      <el-form-item label="克隆说明">
+        <el-alert
           title="克隆将复制源服务器的所有配置，包括ServletFilter设置"
           type="warning"
           :closable="false"
           show-icon
         />
-      </ScFormItem>
-    </ScForm>
+      </el-form-item>
+    </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSubmit">
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="loading">
           克隆
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -76,13 +76,13 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
-  sourceServer: null,
+  sourceServer: null
 });
 
 // Emits
 const emit = defineEmits<{
-  "update:visible": [value: boolean];
-  success: [];
+  'update:visible': [value: boolean];
+  'success': [];
 }>();
 
 // 响应式数据
@@ -92,53 +92,38 @@ const loading = ref(false);
 // 计算属性
 const dialogVisible = computed({
   get: () => props.visible,
-  set: (value) => emit("update:visible", value),
+  set: (value) => emit('update:visible', value)
 });
 
 // 表单数据
 const formData = reactive({
-  newName: "",
-  newPort: 8080,
+  newName: '',
+  newPort: 8080
 });
 
 // 表单验证规则
 const formRules: FormRules = {
   newName: [
-    { required: true, message: "请输入新服务器名称", trigger: "blur" },
-    {
-      min: 2,
-      max: 100,
-      message: "服务器名称长度在 2 到 100 个字符",
-      trigger: "blur",
-    },
+    { required: true, message: '请输入新服务器名称', trigger: 'blur' },
+    { min: 2, max: 100, message: '服务器名称长度在 2 到 100 个字符', trigger: 'blur' }
   ],
   newPort: [
-    { required: true, message: "请输入新服务器端口", trigger: "blur" },
-    {
-      type: "number",
-      min: 1,
-      max: 65535,
-      message: "端口号必须在 1-65535 之间",
-      trigger: "blur",
-    },
-  ],
+    { required: true, message: '请输入新服务器端口', trigger: 'blur' },
+    { type: 'number', min: 1, max: 65535, message: '端口号必须在 1-65535 之间', trigger: 'blur' }
+  ]
 };
 
 // 监听源服务器变化
-watch(
-  () => props.sourceServer,
-  (newServer) => {
-    if (newServer) {
-      formData.newName = `${newServer.systemServerName}_副本`;
-      formData.newPort = (newServer.systemServerPort || 8080) + 1;
-    }
-  },
-  { immediate: true },
-);
+watch(() => props.sourceServer, (newServer) => {
+  if (newServer) {
+    formData.newName = `${newServer.systemServerName}_副本`;
+    formData.newPort = (newServer.systemServerPort || 8080) + 1;
+  }
+}, { immediate: true });
 
 // 重置表单
 const resetForm = () => {
-  formData.newName = "";
+  formData.newName = '';
   formData.newPort = 8080;
   formRef.value?.clearValidate();
 };
@@ -152,28 +137,28 @@ const handleClose = () => {
 // 提交表单
 const handleSubmit = async () => {
   if (!formRef.value || !props.sourceServer?.systemServerId) return;
-
+  
   try {
     const valid = await formRef.value.validate();
     if (!valid) return;
-
+    
     loading.value = true;
-
+    
     const response = await cloneSystemServer(
       props.sourceServer.systemServerId,
       formData.newName,
-      formData.newPort,
+      formData.newPort
     );
-
+    
     if (response.success) {
-      message("克隆成功", { type: "success" });
-      emit("success");
+      message('克隆成功', { type: "success" });
+      emit('success');
     } else {
-      message(response.msg || "克隆失败", { type: "error" });
+      message(response.msg || '克隆失败', { type: "error" });
     }
   } catch (error) {
-    console.error("克隆服务器失败:", error);
-    message("克隆失败", { type: "error" });
+    console.error('克隆服务器失败:', error);
+    message('克隆失败', { type: "error" });
   } finally {
     loading.value = false;
   }
@@ -191,6 +176,7 @@ const handleSubmit = async () => {
   gap: 12px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -199,4 +185,5 @@ const handleSubmit = async () => {
     padding: 12px 16px;
   }
 }
+
 </style>

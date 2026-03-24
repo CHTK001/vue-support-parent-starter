@@ -1,6 +1,6 @@
 /**
- * 像素主题（@mmt817/pixel-ui）条件导入管理
- * 提供统一的像素组件和 CSS 条件加载能力
+ * PixelUI 条件导入管理
+ * 提供统一的 PixelUI 组件和 CSS 条件加载能力
  * 只在 8bit 主题下加载，其他主题不加载以优化性能
  */
 
@@ -8,59 +8,42 @@ import { computed, watch, onBeforeUnmount, shallowRef, type Component } from "vu
 import { usePixelTheme } from "./usePixelTheme";
 
 /**
- * 像素主题 CSS 样式链接引用（全局单例）
+ * PixelUI CSS 样式链接引用（全局单例）
  */
 let pixelUiStyleLink: HTMLLinkElement | null = null;
 
 /**
- * 像素主题 CSS URL 缓存
+ * PixelUI CSS URL 缓存
  */
 let pixelUiCssUrl: string | null = null;
-const pixeliumModuleSpecifier = "@mmt817/pixel-ui";
-const pixeliumThemeCssSpecifier = "@mmt817/pixel-ui/dist/index.css?url";
-const pixelUiStyleId = "pixel-ui-theme-style";
-const pixelUiGlobalAttr = "data-pixel-ui-global";
-const runtimeImport = new Function(
-  "specifier",
-  "return import(specifier);",
-) as (specifier: string) => Promise<any>;
 
 /**
- * 像素主题 CSS 引用计数（用于多组件实例管理）
+ * PixelUI CSS 引用计数（用于多组件实例管理）
  */
 let pixelUiCssRefCount = 0;
 
-async function importOptionalPixeliumModule(specifier: string): Promise<any | null> {
-  try {
-    return await runtimeImport(specifier);
-  } catch (error) {
-    return null;
-  }
-}
-
 /**
- * 加载像素主题 CSS
+ * 加载 PixelUI CSS
  */
 const loadPixelUiCss = async (): Promise<void> => {
   // 检查是否已存在相同的样式链接
-  const existingLink = document.getElementById(pixelUiStyleId) as HTMLLinkElement;
+  const existingLink = document.getElementById("pixel-ui-style") as HTMLLinkElement;
   if (existingLink) {
     pixelUiStyleLink = existingLink;
     pixelUiCssRefCount++;
     return;
   }
 
-  if (pixelUiStyleLink && document.head.contains(pixelUiStyleLink)) {
+  if (pixelUiStyleLink) {
     pixelUiCssRefCount++;
     return; // 已加载则跳过
   }
 
   try {
+    // 动态导入 CSS 文件获取 URL（使用 ?url 后缀）
     if (!pixelUiCssUrl) {
-      const cssModule = await importOptionalPixeliumModule(pixeliumThemeCssSpecifier);
-      if (!cssModule) {
-        return;
-      }
+      // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
+      const cssModule = await import("@mmt817/pixel-ui/dist/index.css?url");
       pixelUiCssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
     }
 
@@ -68,39 +51,33 @@ const loadPixelUiCss = async (): Promise<void> => {
     pixelUiStyleLink = document.createElement("link");
     pixelUiStyleLink.rel = "stylesheet";
     pixelUiStyleLink.href = pixelUiCssUrl;
-    pixelUiStyleLink.id = pixelUiStyleId;
+    pixelUiStyleLink.id = "pixel-ui-style";
     document.head.appendChild(pixelUiStyleLink);
     pixelUiCssRefCount = 1;
   } catch (error) {
-    console.error("[usePixelUI] 加载像素主题 CSS 失败:", error);
+    console.error("[usePixelUI] 加载 PixelUI CSS 失败:", error);
   }
 };
 
 /**
- * 移除像素主题 CSS（引用计数管理）
+ * 移除 PixelUI CSS（引用计数管理）
  */
 const removePixelUiCss = (): void => {
-  if (pixelUiCssRefCount > 0) {
-    pixelUiCssRefCount--;
-  }
-
+  pixelUiCssRefCount--;
   if (pixelUiCssRefCount <= 0 && pixelUiStyleLink) {
-    const isGlobalStyle = pixelUiStyleLink.getAttribute(pixelUiGlobalAttr) === "true";
-    if (!isGlobalStyle) {
-      pixelUiStyleLink.remove();
-    }
+    pixelUiStyleLink.remove();
     pixelUiStyleLink = null;
     pixelUiCssRefCount = 0;
   }
 };
 
 /**
- * 像素主题组件缓存
+ * PixelUI 组件缓存
  */
 const pixelUIComponentCache = new Map<string, Component>();
 
 /**
- * 条件导入像素主题组件
+ * 条件导入 PixelUI 组件
  * @param componentName 组件名称，如 'PxSlider'
  * @returns 返回组件的响应式引用
  */
@@ -113,7 +90,7 @@ const usePixelUIComponent = (componentName: string) => {
   const component = shallowRef<Component | null>(null);
 
   /**
-   * 动态加载像素主题组件
+   * 动态加载 PixelUI 组件
    */
   const loadComponent = async (): Promise<Component | null> => {
     if (!isPixelTheme.value) {
@@ -128,17 +105,12 @@ const usePixelUIComponent = (componentName: string) => {
     }
 
     try {
-      // 动态导入像素主题组件
-      const pixelUIModule = await importOptionalPixeliumModule(pixeliumModuleSpecifier);
-      if (!pixelUIModule) {
-        console.warn("[usePixelUI] 像素主题依赖未安装，跳过组件加载");
-        component.value = null;
-        return null;
-      }
+      // 动态导入 PixelUI 组件
+      const pixelUIModule = await import("@mmt817/pixel-ui");
       const comp = (pixelUIModule as any)[componentName];
 
       if (!comp) {
-        console.warn(`[usePixelUI] 在像素主题包中找不到组件 ${componentName}`);
+        console.warn(`[usePixelUI] 在 PixelUI 中找不到组件 ${componentName}`);
         component.value = null;
         return null;
       }
@@ -148,7 +120,7 @@ const usePixelUIComponent = (componentName: string) => {
 
       return comp;
     } catch (error) {
-      console.error(`[usePixelUI] 加载像素主题组件 ${componentName} 失败:`, error);
+      console.error(`[usePixelUI] 加载 PixelUI 组件 ${componentName} 失败:`, error);
       component.value = null;
       return null;
     }
@@ -203,7 +175,9 @@ export function usePixelUI(componentName?: string) {
    * 组件卸载时清理 CSS 引用
    */
   onBeforeUnmount(() => {
-    removePixelUiCss();
+    if (!isPixelTheme.value) {
+      removePixelUiCss();
+    }
   });
 
   return {

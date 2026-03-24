@@ -1,10 +1,5 @@
 ﻿<script setup lang="ts">
-import {
-  message,
-  ScMessageBox,
-  type FormInstance,
-  type FormRules,
-} from "@repo/utils";
+import { message, ScMessageBox, type FormInstance, type FormRules } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import draggable from "vuedraggable";
 
@@ -110,7 +105,7 @@ const handleDragEnd = (): void => {
  * @param updatedList 更新后的列表
  */
 const handleBatchUpdate = async (
-  updatedList: SysSettingGroup[],
+  updatedList: SysSettingGroup[]
 ): Promise<void> => {
   try {
     showLoading();
@@ -157,7 +152,7 @@ const handleDelete = async (row: SysSettingGroup): Promise<void> => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
     showLoading();
@@ -274,7 +269,7 @@ onUnmounted((): void => {
       <!-- 骨架屏 -->
       <div v-if="loading" class="skeleton-grid">
         <div v-for="i in 6" :key="i" class="skeleton-card">
-          <ScSkeleton :rows="3" animated />
+          <el-skeleton :rows="3" animated />
         </div>
       </div>
 
@@ -312,7 +307,7 @@ onUnmounted((): void => {
                   <span class="card-code">{{ item.sysSettingGroupCode }}</span>
                 </div>
                 <div class="card-status">
-                  <ScTag
+                  <ScTag 
                     :type="item.sysSettingGroupEnable ? 'success' : 'info'"
                     size="small"
                     effect="light"
@@ -336,7 +331,7 @@ onUnmounted((): void => {
                   <span>拖拽排序</span>
                 </div>
                 <div class="card-actions">
-                  <ScButton
+                  <ScButton 
                     class="action-btn edit"
                     size="small"
                     @click="handleEdit(item)"
@@ -344,7 +339,7 @@ onUnmounted((): void => {
                     <IconifyIconOnline icon="ri:edit-line" />
                     编辑
                   </ScButton>
-                  <ScButton
+                  <ScButton 
                     class="action-btn delete"
                     size="small"
                     @click="handleDelete(item)"
@@ -399,7 +394,7 @@ onUnmounted((): void => {
         </div>
       </template>
 
-      <ScForm
+      <ScForm 
         ref="formRef"
         :model="formData"
         :rules="formRules"
@@ -407,7 +402,7 @@ onUnmounted((): void => {
         class="group-form"
       >
         <ScFormItem label="组名称" prop="sysSettingGroupName">
-          <ScInput
+          <ScInput 
             v-model="formData.sysSettingGroupName"
             placeholder="请输入组名称"
             clearable
@@ -418,7 +413,7 @@ onUnmounted((): void => {
           </ScInput>
         </ScFormItem>
         <ScFormItem label="组编码" prop="sysSettingGroupCode">
-          <ScInput
+          <ScInput 
             v-model="formData.sysSettingGroupCode"
             placeholder="请输入组编码（唯一标识）"
             clearable
@@ -429,7 +424,7 @@ onUnmounted((): void => {
           </ScInput>
         </ScFormItem>
         <ScFormItem label="图标">
-          <ScInput
+          <ScInput 
             v-model="formData.sysSettingGroupIcon"
             placeholder="如：ri:settings-line"
             clearable
@@ -447,7 +442,7 @@ onUnmounted((): void => {
           </ScInput>
         </ScFormItem>
         <ScFormItem label="启用状态">
-          <ScSwitch
+          <ScSwitch 
             v-model="formData.sysSettingGroupEnable"
             active-text="启用"
             inactive-text="禁用"
@@ -455,7 +450,7 @@ onUnmounted((): void => {
           />
         </ScFormItem>
         <ScFormItem label="项目接口">
-          <ScSwitch
+          <ScSwitch 
             v-model="formData.sysSettingGroupUseProjectInterface"
             active-text="是"
             inactive-text="否"
@@ -464,7 +459,7 @@ onUnmounted((): void => {
           <span class="form-tip">开启后使用项目组接口管理</span>
         </ScFormItem>
         <ScFormItem label="描述">
-          <ScInput
+          <ScInput 
             v-model="formData.sysSettingGroupRemark"
             type="textarea"
             :rows="3"

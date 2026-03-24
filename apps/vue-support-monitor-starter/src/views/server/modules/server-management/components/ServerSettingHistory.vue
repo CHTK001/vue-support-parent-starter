@@ -7,101 +7,96 @@
           <IconifyIconOnline icon="ri:history-line" class="mr-2" />
           配置变更历史
         </h3>
-        <ScTag v-if="serverInfo" type="info" size="small">
+        <el-tag v-if="serverInfo" type="info" size="small">
           {{ serverInfo.monitorSysGenServerName }}
-        </ScTag>
+        </el-tag>
       </div>
-
+      
       <div class="header-right">
         <el-button-group>
-          <ScButton size="small" :loading="loading" @click="handleRefresh">
+          <el-button 
+            size="small" 
+            @click="handleRefresh"
+            :loading="loading"
+          >
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
-          </ScButton>
-          <ScButton
-            size="small"
-            :loading="exportLoading"
+          </el-button>
+          <el-button 
+            size="small" 
             @click="handleExport"
+            :loading="exportLoading"
           >
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             导出
-          </ScButton>
+          </el-button>
         </el-button-group>
       </div>
     </div>
 
     <!-- 统计信息卡片 -->
-    <div v-if="statistics" class="statistics-cards">
-      <ScRow :gutter="16">
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+    <div class="statistics-cards" v-if="statistics">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.totalCount || 0 }}</div>
               <div class="stat-label">总变更次数</div>
             </div>
             <IconifyIconOnline icon="ri:file-list-line" class="stat-icon" />
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.createCount || 0 }}</div>
               <div class="stat-label">创建次数</div>
             </div>
-            <IconifyIconOnline
-              icon="ri:add-circle-line"
-              class="stat-icon create"
-            />
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+            <IconifyIconOnline icon="ri:add-circle-line" class="stat-icon create" />
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.updateCount || 0 }}</div>
               <div class="stat-label">更新次数</div>
             </div>
-            <IconifyIconOnline
-              icon="ri:edit-circle-line"
-              class="stat-icon update"
-            />
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="stat-card">
+            <IconifyIconOnline icon="ri:edit-circle-line" class="stat-icon update" />
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="stat-card">
             <div class="stat-content">
               <div class="stat-value">{{ statistics.deleteCount || 0 }}</div>
               <div class="stat-label">删除次数</div>
             </div>
-            <IconifyIconOnline
-              icon="ri:delete-bin-line"
-              class="stat-icon delete"
-            />
-          </ScCard>
-        </ScCol>
-      </ScRow>
+            <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon delete" />
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 筛选条件 -->
     <div class="filter-bar">
-      <ScForm :model="filterForm" inline>
-        <ScFormItem label="变更类型">
-          <ScSelect
-            v-model="filterForm.changeType"
+      <el-form :model="filterForm" inline>
+        <el-form-item label="变更类型">
+          <el-select 
+            v-model="filterForm.changeType" 
             placeholder="全部类型"
             clearable
             @change="handleFilter"
           >
-            <ScOption
-              v-for="(name, type) in ChangeTypeNames"
+            <el-option 
+              v-for="(name, type) in ChangeTypeNames" 
               :key="type"
-              :label="name"
+              :label="name" 
               :value="type"
             />
-          </ScSelect>
-        </ScFormItem>
-
-        <ScFormItem label="时间范围">
-          <ScDatePicker
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="时间范围">
+          <el-date-picker
             v-model="filterForm.timeRange"
             type="datetimerange"
             range-separator="至"
@@ -111,107 +106,106 @@
             value-format="YYYY-MM-DD HH:mm:ss"
             @change="handleFilter"
           />
-        </ScFormItem>
-
-        <ScFormItem label="变更用户">
-          <ScInput
+        </el-form-item>
+        
+        <el-form-item label="变更用户">
+          <el-input
             v-model="filterForm.changeUser"
             placeholder="请输入用户名"
             clearable
             @change="handleFilter"
           />
-        </ScFormItem>
-      </ScForm>
+        </el-form-item>
+      </el-form>
     </div>
 
     <!-- 历史记录列表 -->
     <div class="history-list">
-      <ScTable
+      <el-table 
+        :data="historyList" 
         v-loading="loading"
-        :data="historyList"
         stripe
-        style="cursor: pointer"
         @row-click="handleRowClick"
+        style="cursor: pointer;"
       >
-        <ScTableColumn prop="changeTime" label="变更时间" width="180">
+        <el-table-column prop="changeTime" label="变更时间" width="180">
           <template #default="{ row }">
             <div class="time-cell">
               <IconifyIconOnline icon="ri:time-line" class="mr-1" />
               {{ formatTime(row.changeTime) }}
             </div>
           </template>
-        </ScTableColumn>
-
-        <ScTableColumn prop="changeType" label="变更类型" width="100">
+        </el-table-column>
+        
+        <el-table-column prop="changeType" label="变更类型" width="100">
           <template #default="{ row }">
-            <ScTag :type="ChangeTypeColors[row.changeType]" size="small">
+            <el-tag 
+              :type="ChangeTypeColors[row.changeType]" 
+              size="small"
+            >
               {{ ChangeTypeNames[row.changeType] }}
-            </ScTag>
+            </el-tag>
           </template>
-        </ScTableColumn>
-
-        <ScTableColumn
-          prop="changeDescription"
-          label="变更描述"
-          min-width="200"
-        >
+        </el-table-column>
+        
+        <el-table-column prop="changeDescription" label="变更描述" min-width="200">
           <template #default="{ row }">
             <div class="description-cell">
               {{ row.changeDescription }}
             </div>
           </template>
-        </ScTableColumn>
-
-        <ScTableColumn prop="changeUser" label="变更用户" width="120">
+        </el-table-column>
+        
+        <el-table-column prop="changeUser" label="变更用户" width="120">
           <template #default="{ row }">
             <div class="user-cell">
               <IconifyIconOnline icon="ri:user-line" class="mr-1" />
-              {{ row.changeUser || "系统" }}
+              {{ row.changeUser || '系统' }}
             </div>
           </template>
-        </ScTableColumn>
-
-        <ScTableColumn label="操作" width="200" fixed="right">
+        </el-table-column>
+        
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button-group>
-              <ScButton
-                type="primary"
-                text
+              <el-button 
+                type="primary" 
+                text 
                 size="small"
                 @click.stop="handleViewDetail(row)"
               >
                 <IconifyIconOnline icon="ri:eye-line" class="mr-1" />
                 详情
-              </ScButton>
-
-              <ScButton
+              </el-button>
+              
+              <el-button 
                 v-if="row.settingSnapshot"
-                type="warning"
-                text
+                type="warning" 
+                text 
                 size="small"
                 @click.stop="handleRestore(row)"
               >
                 <IconifyIconOnline icon="ri:restart-line" class="mr-1" />
                 恢复
-              </ScButton>
-
-              <ScButton
-                type="info"
-                text
+              </el-button>
+              
+              <el-button 
+                type="info" 
+                text 
                 size="small"
                 @click.stop="handleCompare(row)"
               >
                 <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
                 对比
-              </ScButton>
+              </el-button>
             </el-button-group>
           </template>
-        </ScTableColumn>
-      </ScTable>
-
+        </el-table-column>
+      </el-table>
+      
       <!-- 分页 -->
       <div class="pagination-wrapper">
-        <ScPagination
+        <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
           :total="pagination.total"
@@ -264,7 +258,7 @@ const ChangeTypeNames = {
   CREATE: "创建",
   UPDATE: "更新",
   DELETE: "删除",
-  RESTORE: "恢复",
+  RESTORE: "恢复"
 } as const;
 
 // 变更类型颜色
@@ -272,7 +266,7 @@ const ChangeTypeColors = {
   CREATE: "success",
   UPDATE: "primary",
   DELETE: "danger",
-  RESTORE: "warning",
+  RESTORE: "warning"
 } as const;
 
 // 定义属性
@@ -302,14 +296,14 @@ const compareDialogVisible = ref(false);
 const filterForm = reactive({
   changeType: "",
   timeRange: [] as string[],
-  changeUser: "",
+  changeUser: ""
 });
 
 // 分页
 const pagination = reactive({
   page: 1,
   pageSize: 20,
-  total: 0,
+  total: 0
 });
 
 /**
@@ -319,12 +313,9 @@ const loadHistoryList = async () => {
   try {
     loading.value = true;
 
-    const result = await getServerSettingHistory(
-      props.serverId,
-      pagination.pageSize,
-    );
+    const result = await getServerSettingHistory(props.serverId, pagination.pageSize);
 
-    if (result.code === "00000") {
+    if (result.code === '00000') {
       historyList.value = result.data || [];
       pagination.total = result.data?.length || 0;
     }
@@ -345,15 +336,11 @@ const loadStatistics = async () => {
       const stats = {
         totalCount: historyList.value.length,
         serverCount: 1,
-        createCount: historyList.value.filter((h) => h.changeType === "CREATE")
-          .length,
-        updateCount: historyList.value.filter((h) => h.changeType === "UPDATE")
-          .length,
-        deleteCount: historyList.value.filter((h) => h.changeType === "DELETE")
-          .length,
-        latestChangeTime: historyList.value[0]?.time || "",
-        earliestChangeTime:
-          historyList.value[historyList.value.length - 1]?.time || "",
+        createCount: historyList.value.filter(h => h.changeType === 'CREATE').length,
+        updateCount: historyList.value.filter(h => h.changeType === 'UPDATE').length,
+        deleteCount: historyList.value.filter(h => h.changeType === 'DELETE').length,
+        latestChangeTime: historyList.value[0]?.time || '',
+        earliestChangeTime: historyList.value[historyList.value.length - 1]?.time || ''
       };
       statistics.value = stats;
     }
@@ -388,12 +375,10 @@ const handleExport = async () => {
     const exportData = {
       serverId: props.serverId,
       exportTime: new Date().toISOString(),
-      historyList: historyList.value,
+      historyList: historyList.value
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -445,10 +430,10 @@ const handleRestore = async (row: ServerSettingHistory) => {
       {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-        type: "warning",
-      },
+        type: "warning"
+      }
     );
-
+    
     // 简化恢复功能，只是提示用户手动恢复
     message.info("请根据历史记录信息手动恢复配置");
     emit("restored", row.id);
@@ -472,9 +457,7 @@ const handleCompare = (row: ServerSettingHistory) => {
  * 处理从详情恢复
  */
 const handleRestoreFromDetail = (historyId: number) => {
-  const history = historyList.value.find(
-    (h) => h.monitorSysGenServerSettingHistoryId === historyId,
-  );
+  const history = historyList.value.find(h => h.monitorSysGenServerSettingHistoryId === historyId);
   if (history) {
     handleRestore(history);
   }
@@ -506,15 +489,11 @@ const handleCurrentChange = (page: number) => {
 };
 
 // 监听服务器ID变化
-watch(
-  () => props.serverId,
-  () => {
-    if (props.serverId) {
-      handleRefresh();
-    }
-  },
-  { immediate: true },
-);
+watch(() => props.serverId, () => {
+  if (props.serverId) {
+    handleRefresh();
+  }
+}, { immediate: true });
 
 // 组件挂载时加载数据
 onMounted(() => {
@@ -525,6 +504,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -557,6 +537,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .server-setting-history {
   .history-header {
@@ -609,7 +590,7 @@ onMounted(() => {
 
         .stat-label {
           font-size: 14px;
-          color: var(--el-text-color-primary);
+           color: var(--el-text-color-primary);
         }
       }
 
@@ -669,6 +650,7 @@ onMounted(() => {
   }
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -677,4 +659,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

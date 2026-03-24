@@ -65,11 +65,9 @@
     <div class="result-header">
       <div class="result-info">
         <IconifyIconOnline icon="ep:video-camera" class="result-icon" />
-        <span class="result-count"
-          >共找到 <strong>{{ totalResults }}</strong> 部视频</span
-        >
+        <span class="result-count">共找到 <strong>{{ totalResults }}</strong> 部视频</span>
       </div>
-      <ScSelect
+      <ScSelect 
         v-model="sortBy"
         size="default"
         class="sort-select"
@@ -78,7 +76,7 @@
         <template #prefix>
           <IconifyIconOnline icon="ep:sort" />
         </template>
-        <ScOption
+        <ScOption 
           v-for="item in VideoOrderByOptions"
           :key="item.value"
           :value="item.value"
@@ -104,7 +102,7 @@
       <template #default="{ row }">
         <div class="video-card">
           <div class="poster">
-            <ScImage
+            <ScImage 
               v-if="row.videoCover"
               :src="(row.videoCover || '').split(',')[0]"
               fit="cover"
@@ -133,8 +131,8 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components";
-import { ScTable } from "@repo/components"
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { computed, defineExpose, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getVideoList } from "../../api/video";
@@ -186,10 +184,10 @@ const MAX_DISPLAY_COUNT = 12;
 const showMoreTypes = computed(() => types.value.length > MAX_DISPLAY_COUNT);
 const showMoreYears = computed(() => years.value.length > MAX_DISPLAY_COUNT);
 const showMoreDistricts = computed(
-  () => districts.value.length > MAX_DISPLAY_COUNT,
+  () => districts.value.length > MAX_DISPLAY_COUNT
 );
 const showMoreLanguages = computed(
-  () => languages.value.length > MAX_DISPLAY_COUNT,
+  () => languages.value.length > MAX_DISPLAY_COUNT
 );
 
 // 计算显示的筛选条件
@@ -391,7 +389,7 @@ watch(
     if (newCategory) {
       selectedCategories.value = newCategory;
     }
-  },
+  }
 );
 
 watch(
@@ -400,7 +398,7 @@ watch(
     if (newKeyword) {
       searchKeyword.value = newKeyword;
     }
-  },
+  }
 );
 
 defineExpose({

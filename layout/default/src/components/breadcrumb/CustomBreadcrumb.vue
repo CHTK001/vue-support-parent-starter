@@ -8,10 +8,9 @@
  */
 import { isEqual, useGlobal } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useRoute, useRouter } from "vue-router";
 import { onBeforeUnmount, onMounted, ref, toRaw, watch, computed } from "vue";
-import { ScIcon, ScTooltip } from "@repo/components";
 import {
   emitter,
   findRouteByPath,
@@ -64,8 +63,8 @@ const breadcrumbMode = ref<string>(
   props.displayMode !== "icon-text"
     ? props.displayMode
     : $storage?.configure?.breadcrumbIconOnly
-      ? "icon"
-      : "icon-text",
+    ? "icon"
+    : "icon-text"
 );
 
 // 监听模式变更
@@ -105,7 +104,7 @@ const getBreadcrumb = (): void => {
   const parentRoutes = getParentPaths(
     router.currentRoute.value.name as string,
     routes,
-    "name",
+    "name"
   );
   const matched: any[] = [];
 
@@ -127,7 +126,7 @@ const getBreadcrumb = (): void => {
   });
 
   levelList.value = matched.filter(
-    (item) => item?.meta && item?.meta.title !== false,
+    (item) => item?.meta && item?.meta.title !== false
   );
 };
 
@@ -200,7 +199,7 @@ watch(
   () => route.path,
   () => {
     getBreadcrumb();
-  },
+  }
 );
 </script>
 
@@ -241,7 +240,7 @@ watch(
 
           <!-- 面包屑项 -->
           <div v-else class="breadcrumb-item">
-            <ScTooltip
+            <ScTooltip 
               v-if="showTooltip"
               :content="transformI18n(item.meta.i18nKey || item.meta.title)"
               placement="bottom"
@@ -257,13 +256,16 @@ watch(
                   },
                 ]"
               >
-                <ScIcon
+                <ScIcon 
                   v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                   class="breadcrumb-icon"
                 >
                   <component :is="useRenderIcon(item.meta.icon)" />
                 </ScIcon>
-                <span v-if="breadcrumbMode !== 'icon'" class="breadcrumb-text">
+                <span
+                  v-if="breadcrumbMode !== 'icon'"
+                  class="breadcrumb-text"
+                >
                   {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
                 </span>
               </a>
@@ -280,7 +282,7 @@ watch(
                 },
               ]"
             >
-              <ScIcon
+              <ScIcon 
                 v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                 class="breadcrumb-icon"
               >
@@ -314,7 +316,7 @@ watch(
           </div>
 
           <div v-else class="breadcrumb-item">
-            <ScTooltip
+            <ScTooltip 
               v-if="showTooltip"
               :content="transformI18n(item.meta.i18nKey || item.meta.title)"
               placement="bottom"
@@ -330,13 +332,16 @@ watch(
                   },
                 ]"
               >
-                <ScIcon
+                <ScIcon 
                   v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                   class="breadcrumb-icon"
                 >
                   <component :is="useRenderIcon(item.meta.icon)" />
                 </ScIcon>
-                <span v-if="breadcrumbMode !== 'icon'" class="breadcrumb-text">
+                <span
+                  v-if="breadcrumbMode !== 'icon'"
+                  class="breadcrumb-text"
+                >
                   {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
                 </span>
               </a>
@@ -353,7 +358,7 @@ watch(
                 },
               ]"
             >
-              <ScIcon
+              <ScIcon 
                 v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
                 class="breadcrumb-icon"
               >

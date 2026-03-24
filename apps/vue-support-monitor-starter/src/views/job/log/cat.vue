@@ -10,8 +10,8 @@
       @close="onClose"
     >
       <div class="container">
-        <ScSkeleton :animated="true" :loading="loadingStatus">
-          <ScEmpty
+        <el-skeleton :animated="true" :loading="loadingStatus">
+          <el-empty
             v-if="!returnResult || !returnResult.logContent"
             description="暂无日志"
           />
@@ -20,7 +20,7 @@
               <pre>{{ returnResult.logContent?.replaceAll('<br>', '\r\n') }}</pre>
             </code>
           </div>
-        </ScSkeleton>
+        </el-skeleton>
       </div>
     </sc-dialog>
   </div>
@@ -107,6 +107,7 @@ export default {
 };
 </script>
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -140,6 +141,7 @@ export default {
   }
 }
 
+
 .code-style {
   overflow-y: auto;
   height: 600px;
@@ -158,6 +160,7 @@ export default {
     monospace;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -166,4 +169,5 @@ export default {
     padding: 12px 16px;
   }
 }
+
 </style>

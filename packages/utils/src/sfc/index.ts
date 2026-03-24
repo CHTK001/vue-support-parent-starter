@@ -48,27 +48,15 @@ const getOptions = (name, sysSfcId) => {
         // self
         path = refPath;
       } else if (relPath.indexOf("iconify-icons") !== -1) {
-        path =
-          String(
-            new URL(
-              relPath.replace("@", "/node_modules/@"),
-              window.location.href,
-            ),
-          ) + ".js";
+        path = String(new URL(relPath.replace("@", "/node_modules/@"), window.location.href)) + ".js";
       } else if (relPath[0] === "@" && relPath.indexOf(".") === -1) {
-        path =
-          String(new URL(relPath.replace("@", "/src/"), window.location.href)) +
-          ".ts";
+        path = String(new URL(relPath.replace("@", "/src/"), window.location.href)) + ".ts";
       } else if (relPath[0] === "@" && relPath.indexOf(".") != -1) {
-        path = String(
-          new URL(relPath.replace("@", "/src/"), window.location.href),
-        );
+        path = String(new URL(relPath.replace("@", "/src/"), window.location.href));
       } else if (relPath[0] !== "." && relPath[0] !== "/") {
         path = relPath;
       } else if (relPath[0] == ".") {
-        path = String(
-          new URL("/src" + relPath.substring(1), window.location.href),
-        );
+        path = String(new URL("/src" + relPath.substring(1), window.location.href));
       } else {
         path = String(new URL(relPath, window.location.href));
       }
@@ -80,25 +68,13 @@ const getOptions = (name, sysSfcId) => {
         const params = {
           sysSfcId: sysSfcId,
         };
-        const code = await http.request<ReturnResult<Boolean>>(
-          "get",
-          "/v2/sfc/get",
-          {
-            params,
-          },
-        );
+        const code = await http.request<ReturnResult<Boolean>>("get", "/v2/sfc/get", {
+          params,
+        });
         return code?.data;
       }
       url = /.*?\.js|.mjs|.ts|.css|.less|.vue$/.test(url) ? url : `${url}.vue`;
-      const type = /.*?\.js|.mjs.*$/.test(url)
-        ? ".mjs"
-        : /.*?\.vue.*$/.test(url)
-          ? ".vue"
-          : /.*?\.css.*$/.test(url)
-            ? ".css"
-            : /.*?\.ts.*$/.test(url)
-              ? ".ts"
-              : ".vue";
+      const type = /.*?\.js|.mjs.*$/.test(url) ? ".mjs" : /.*?\.vue.*$/.test(url) ? ".vue" : /.*?\.css.*$/.test(url) ? ".css" : /.*?\.ts.*$/.test(url) ? ".ts" : ".vue";
       const getContentData = async () => {
         const res = await fetch(url);
         const rs = await res.text();
@@ -123,10 +99,7 @@ const getOptions = (name, sysSfcId) => {
       const sassDepImporter = {
         canonicalize: (str) => new URL(str, "file:"),
         load: async (url) => {
-          const res = options.getResource(
-            { refPath: filename, relPath: url.pathname },
-            options,
-          );
+          const res = options.getResource({ refPath: filename, relPath: url.pathname }, options);
           const content = await res.getContent();
           return {
             contents: await content.getContentData(false),
@@ -161,24 +134,22 @@ const getOptions = (name, sysSfcId) => {
 
 const ErrorComponent = {
   render() {
-    return Vue.h(
-      "div",
-      {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          background: "var(--el-bg-color-page)",
-          color: "var(--el-color-danger)",
-          fontSize: "12px",
-          padding: "8px",
-          border: "1px dashed var(--el-border-color)",
-        },
-      },
-      [Vue.h("span", null, "预览失败")],
-    );
-  },
+    return Vue.h('div', { 
+      style: { 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100%', 
+        background: 'var(--el-bg-color-page)', 
+        color: 'var(--el-color-danger)',
+        fontSize: '12px',
+        padding: '8px',
+        border: '1px dashed var(--el-border-color)'
+      } 
+    }, [
+      Vue.h('span', null, '预览失败')
+    ])
+  }
 };
 
 const cacheLoadModule = {};
@@ -206,9 +177,7 @@ const loadRemoteModule = (name, sysSfcId, sysSfc) => {
         }
         let res = null;
         await loadJS(getConfig().SfcScriptUrl, "js", undefined);
-        const loadModule =
-          exports["vue3-sfc-loader"]?.loadModule ||
-          window["vue3-sfc-loader"]?.loadModule;
+        const loadModule = exports["vue3-sfc-loader"]?.loadModule || window["vue3-sfc-loader"]?.loadModule;
         res = await loadModule(name, getOptions(name, sysSfcId));
         cacheLoadModule[sysSfcId] = {
           timestamp: new Date().getTime(),
@@ -217,19 +186,19 @@ const loadRemoteModule = (name, sysSfcId, sysSfc) => {
         return res;
       } catch (e) {
         console.warn("Component load failed:", name, e);
-        if (Object.prototype.toString.call(e) === "[object Event]") {
-          throw new Error("Network error or script load failed for " + name);
+        if (Object.prototype.toString.call(e) === '[object Event]') {
+           throw new Error("Network error or script load failed for " + name);
         }
         throw e;
       }
     },
     onError(error, retry, fail, attempts) {
-      if (attempts <= 1) {
-        retry();
-      } else {
-        fail();
-      }
-    },
+        if (attempts <= 1) {
+            retry();
+        } else {
+            fail();
+        }
+    }
   });
 };
 let localModule = null;
@@ -245,20 +214,17 @@ const _loadLocationModule = () => {
       import.meta.glob(["../../../module/**/*.json"], {
         eager: true,
         query: "raw",
-      }),
+      })
     ).map(([key, value]: any) => {
       const setting = JSON.parse(value.default);
       setting.vue = key.replace("config.json", "index.vue");
-      localModule[
-        key.replace("../../..", "@repo").replace("config.json", "index.vue") +
-          ""
-      ] = setting;
+      localModule[key.replace("../../..", "@repo").replace("config.json", "index.vue") + ""] = setting;
     });
     return;
   }
 };
 const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
-  return defineAsyncComponent(() => import("../../../../pages/common/layout/simpleFrame.vue"));
+  return defineAsyncComponent(() => import("@repo/pages/layout/simpleFrame.vue"));
 };
 
 const _cacheLoadedModule = {};
@@ -296,8 +262,7 @@ export const loadSfcModule = (name, sysSfcId, sysSfc) => {
   const _loadSfcModule = (name, sysSfcId, sysSfc) => {
     _loadLocationModule();
     if (
-      !sysSfc.sysSfcType ||
-      sysSfc.sysSfcType === 0 ||
+      (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0) ||
       (sysSfc.sysSfcType === 1 && !localModule?.[sysSfc.sysSfcPath])
     ) {
       return loadRemoteModule(name, sysSfcId, sysSfc);

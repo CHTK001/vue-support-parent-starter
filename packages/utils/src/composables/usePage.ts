@@ -52,13 +52,7 @@ export interface PageSyncConfig<T = any> {
  * Page composable，统一处理数据同步
  */
 export function usePage<T = any>(config: PageSyncConfig<T>) {
-  const {
-    fetchFn,
-    initialParams = {},
-    autoLoad = true,
-    onError,
-    transform,
-  } = config;
+  const { fetchFn, initialParams = {}, autoLoad = true, onError, transform } = config;
 
   // 数据列表
   const list: Ref<T[]> = ref([]);
@@ -81,7 +75,7 @@ export function usePage<T = any>(config: PageSyncConfig<T>) {
       loading.value = true;
       const finalParams = { ...pageParams.value, ...params };
       const response = await fetchFn(finalParams);
-
+      
       if (response.success && response.data) {
         const pageData = response.data;
         // 使用 transform 函数或默认处理
@@ -171,3 +165,4 @@ export function usePage<T = any>(config: PageSyncConfig<T>) {
     changePageSize,
   };
 }
+

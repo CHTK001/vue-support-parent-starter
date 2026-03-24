@@ -2,18 +2,18 @@
   <div class="remote-desktop system-container modern-bg">
     <!-- 协议选择面板 -->
     <div v-if="!selectedProtocol" class="protocol-selection">
-      <ScCard shadow="hover" class="protocol-card">
+      <el-card shadow="hover" class="protocol-card">
         <template #header>
           <div class="card-header">
-            <ScIcon><Monitor /></ScIcon>
+            <el-icon><Monitor /></el-icon>
             <span>选择远程桌面协议</span>
           </div>
         </template>
-
+        
         <div class="protocol-options">
           <div class="protocol-option" @click="selectProtocol('rdp')">
             <div class="protocol-icon">
-              <ScIcon size="48"><Monitor /></ScIcon>
+              <el-icon size="48"><Monitor /></el-icon>
             </div>
             <h3>RDP 远程桌面</h3>
             <p>Microsoft Remote Desktop Protocol</p>
@@ -23,12 +23,14 @@
               <li>文件传输支持</li>
               <li>多显示器支持</li>
             </ul>
-            <ScButton type="primary" size="large">选择 RDP</ScButton>
+            <el-button type="primary" size="large">选择 RDP</el-button>
           </div>
+
+
 
           <div class="protocol-option" @click="selectProtocol('vnc')">
             <div class="protocol-icon">
-              <ScIcon size="48"><Monitor /></ScIcon>
+              <el-icon size="48"><Monitor /></el-icon>
             </div>
             <h3>VNC 远程桌面</h3>
             <p>Virtual Network Computing</p>
@@ -38,51 +40,61 @@
               <li>多种编码方式</li>
               <li>只读模式支持</li>
             </ul>
-            <ScButton type="success" size="large">选择 VNC</ScButton>
+            <el-button type="success" size="large">选择 VNC</el-button>
           </div>
         </div>
-
+        
         <div class="protocol-info">
-          <ScAlert title="提示" type="info" :closable="false" show-icon>
+          <el-alert
+            title="提示"
+            type="info"
+            :closable="false"
+            show-icon
+          >
             <template #default>
               <p>请根据目标服务器的操作系统和配置选择合适的远程桌面协议：</p>
               <ul>
-                <li>
-                  <strong>RDP</strong>：适用于 Windows
-                  服务器，提供最佳的用户体验
-                </li>
-                <li>
-                  <strong>VNC</strong>：适用于 Linux/Unix
-                  服务器，或需要跨平台支持的场景
-                </li>
+                <li><strong>RDP</strong>：适用于 Windows 服务器，提供最佳的用户体验</li>
+                <li><strong>VNC</strong>：适用于 Linux/Unix 服务器，或需要跨平台支持的场景</li>
               </ul>
             </template>
-          </ScAlert>
+          </el-alert>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- RDP 桌面组件 -->
-    <SimpleRDPDesktop v-if="selectedProtocol === 'rdp'" :server="server" />
+    <SimpleRDPDesktop
+      v-if="selectedProtocol === 'rdp'"
+      :server="server"
+    />
+
+
 
     <!-- VNC 桌面组件 -->
-    <SimpleVNCDesktop v-if="selectedProtocol === 'vnc'" :server="server" />
+    <SimpleVNCDesktop
+      v-if="selectedProtocol === 'vnc'"
+      :server="server"
+    />
 
     <!-- 返回按钮 -->
     <div v-if="selectedProtocol" class="back-button">
-      <ScButton size="small" @click="goBack">
+      <el-button
+        size="small"
+        @click="goBack"
+      >
         <IconifyIconOnline icon="ep:arrow-left" class="mr-1" />
         返回协议选择
-      </ScButton>
+      </el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed } from 'vue';
 import { message } from "@repo/utils";
-import SimpleRDPDesktop from "./SimpleRDPDesktop.vue";
-import SimpleVNCDesktop from "./SimpleVNCDesktop.vue";
+import SimpleRDPDesktop from './SimpleRDPDesktop.vue';
+import SimpleVNCDesktop from './SimpleVNCDesktop.vue';
 
 interface Props {
   /** 服务器信息 */
@@ -96,30 +108,30 @@ interface Props {
     monitorSysGenServerPassword?: string;
   };
   /** 默认协议 */
-  defaultProtocol?: "rdp" | "vnc";
+  defaultProtocol?: 'rdp' | 'vnc' ;
   /** 是否自动选择协议 */
   autoSelectProtocol?: boolean;
 }
 
 interface Emits {
-  (e: "close"): void;
-  (e: "protocol-change", protocol: "rdp" | "vnc"): void;
+  (e: 'close'): void;
+  (e: 'protocol-change', protocol: 'rdp' | 'vnc' ): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  autoSelectProtocol: false,
+  autoSelectProtocol: false
 });
 
 const emit = defineEmits<Emits>();
 
 // 状态
-const selectedProtocol = ref<"rdp" | "vnc" | null>(null);
+const selectedProtocol = ref<'rdp' | 'vnc'  | null>(null);
 
 // 计算属性
 const serverProtocol = computed(() => {
   if (props.server?.monitorSysGenServerProtocol) {
     const protocol = props.server.monitorSysGenServerProtocol.toLowerCase();
-    if (protocol === "rdp" || protocol === "vnc") {
+    if (protocol === 'rdp' || protocol === 'vnc') {
       return protocol;
     }
   }
@@ -127,9 +139,9 @@ const serverProtocol = computed(() => {
 });
 
 // 方法
-const selectProtocol = (protocol: "rdp" | "vnc") => {
+const selectProtocol = (protocol: 'rdp' | 'vnc' ) => {
   selectedProtocol.value = protocol;
-  emit("protocol-change", protocol);
+  emit('protocol-change', protocol);
 
   message(`已选择 ${protocol.toUpperCase()} 协议`, { type: "success" });
 };
@@ -147,20 +159,20 @@ const initializeProtocol = () => {
       selectedProtocol.value = serverProtocol.value;
       return;
     }
-
+    
     // 其次使用默认协议
     if (props.defaultProtocol) {
       selectedProtocol.value = props.defaultProtocol;
       return;
     }
-
+    
     // 最后根据端口号推测协议
     if (props.server?.monitorSysGenServerPort) {
       const port = props.server.monitorSysGenServerPort;
       if (port === 3389) {
-        selectedProtocol.value = "rdp";
+        selectedProtocol.value = 'rdp';
       } else if (port >= 5900 && port <= 5999) {
-        selectedProtocol.value = "vnc";
+        selectedProtocol.value = 'vnc';
       }
     }
   } else {
@@ -178,6 +190,7 @@ initializeProtocol();
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -210,6 +223,7 @@ initializeProtocol();
     z-index: 1;
   }
 }
+
 
 .remote-desktop {
   display: flex;
@@ -309,7 +323,7 @@ initializeProtocol();
           padding-left: 16px;
 
           &::before {
-            content: "✓";
+            content: '✓';
             position: absolute;
             left: 0;
             color: #67c23a;
@@ -416,7 +430,7 @@ initializeProtocol();
 
       &:hover {
         border-color: #409eff;
-
+        
         .protocol-icon {
           color: #409eff;
         }
@@ -428,7 +442,7 @@ initializeProtocol();
 
       &:hover {
         border-color: #67c23a;
-
+        
         .protocol-icon {
           color: #67c23a;
         }

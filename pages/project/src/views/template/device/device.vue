@@ -1,11 +1,11 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
 import { fetctSenderProjectForDevice } from "../../../api/manage/project-device";
 
 const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScFormTable/index.vue")
 );
 const visible = ref(false);
 let form = reactive({});
@@ -62,7 +62,7 @@ watch(
       });
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 defineExpose({
   handleOpen,
@@ -100,7 +100,7 @@ defineExpose({
         </ScFormItem>
       </ScForm>
       <template #footer>
-        <ScButton
+        <ScButton 
           type="primary"
           :loading="loading.send"
           size="default"

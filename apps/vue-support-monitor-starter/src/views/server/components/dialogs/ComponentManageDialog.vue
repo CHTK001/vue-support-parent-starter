@@ -10,21 +10,24 @@
     <div class="manage-content">
       <div class="toolbar">
         <div class="toolbar-left">
-          <ScButton type="primary" @click="handleAddComponent">
+          <el-button
+            type="primary"
+            @click="handleAddComponent"
+          >
             <IconifyIconOnline icon="ri:add-line" class="mr-1" />
             添加组件
-          </ScButton>
-          <ScButton
+          </el-button>
+          <el-button
             type="success"
-            :loading="initLoading"
             @click="handleInitDefault"
+            :loading="initLoading"
           >
             <IconifyIconOnline icon="ri:magic-line" class="mr-1" />
             初始化默认组件
-          </ScButton>
+          </el-button>
         </div>
         <div class="toolbar-right">
-          <ScInput
+          <el-input
             v-model="searchText"
             placeholder="搜索组件..."
             clearable
@@ -33,94 +36,54 @@
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </ScInput>
+          </el-input>
         </div>
       </div>
 
-      <div v-loading="loading" class="component-list">
-        <ScTable
+      <div class="component-list" v-loading="loading">
+        <el-table
           :data="filteredComponents"
           style="width: 100%"
           @selection-change="handleSelectionChange"
         >
-          <ScTableColumn type="selection" width="55" />
-          <ScTableColumn
-            prop="monitorSysGenServerDetailComponentName"
-            label="组件名称"
-            width="150"
-          />
-          <ScTableColumn
-            prop="monitorSysGenServerDetailComponentTitle"
-            label="组件标题"
-            width="150"
-          />
-          <ScTableColumn
-            prop="monitorSysGenServerDetailComponentType"
-            label="类型"
-            width="100"
-          >
+          <el-table-column type="selection" width="55" />
+          <el-table-column prop="monitorSysGenServerDetailComponentName" label="组件名称" width="150" />
+          <el-table-column prop="monitorSysGenServerDetailComponentTitle" label="组件标题" width="150" />
+          <el-table-column prop="monitorSysGenServerDetailComponentType" label="类型" width="100">
             <template #default="{ row }">
-              <ScTag
-                :type="
-                  getComponentTypeColor(
-                    row.monitorSysGenServerDetailComponentType,
-                  )
-                "
-                size="small"
-              >
-                {{
-                  getComponentTypeName(
-                    row.monitorSysGenServerDetailComponentType,
-                  )
-                }}
-              </ScTag>
+              <el-tag :type="getComponentTypeColor(row.monitorSysGenServerDetailComponentType)" size="small">
+                {{ getComponentTypeName(row.monitorSysGenServerDetailComponentType) }}
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
-            prop="monitorSysGenServerDetailComponentExpressionType"
-            label="表达式类型"
-            width="120"
-          >
+          </el-table-column>
+          <el-table-column prop="monitorSysGenServerDetailComponentExpressionType" label="表达式类型" width="120">
             <template #default="{ row }">
-              <ScTag
-                :type="
-                  row.monitorSysGenServerDetailComponentExpressionType ===
-                  'PROMETHEUS'
-                    ? 'primary'
-                    : 'success'
-                "
+              <el-tag
+                :type="row.monitorSysGenServerDetailComponentExpressionType === 'PROMETHEUS' ? 'primary' : 'success'"
                 size="small"
               >
                 {{ row.monitorSysGenServerDetailComponentExpressionType }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
-            prop="monitorSysGenServerDetailComponentRefreshInterval"
-            label="刷新间隔"
-            width="100"
-          >
+          </el-table-column>
+          <el-table-column prop="monitorSysGenServerDetailComponentRefreshInterval" label="刷新间隔" width="100">
             <template #default="{ row }">
               {{ row.monitorSysGenServerDetailComponentRefreshInterval }}秒
             </template>
-          </ScTableColumn>
-          <ScTableColumn
-            prop="monitorSysGenServerDetailComponentEnabled"
-            label="状态"
-            width="80"
-          >
+          </el-table-column>
+          <el-table-column prop="monitorSysGenServerDetailComponentEnabled" label="状态" width="80">
             <template #default="{ row }">
-              <ScSwitch
+              <el-switch
                 v-model="row.monitorSysGenServerDetailComponentEnabled"
                 :active-value="1"
                 :inactive-value="0"
                 @change="handleToggleEnabled(row)"
               />
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="操作" width="200" fixed="right">
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
-              <ScButton
+              <el-button
                 type="primary"
                 text
                 size="small"
@@ -128,8 +91,8 @@
               >
                 <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
                 编辑
-              </ScButton>
-              <ScButton
+              </el-button>
+              <el-button
                 type="success"
                 text
                 size="small"
@@ -137,8 +100,8 @@
               >
                 <IconifyIconOnline icon="ri:file-copy-line" class="mr-1" />
                 克隆
-              </ScButton>
-              <ScButton
+              </el-button>
+              <el-button
                 type="danger"
                 text
                 size="small"
@@ -146,36 +109,48 @@
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
                 删除
-              </ScButton>
+              </el-button>
             </template>
-          </ScTableColumn>
-        </ScTable>
+          </el-table-column>
+        </el-table>
       </div>
 
-      <div v-if="selectedComponents.length > 0" class="batch-actions">
+      <div class="batch-actions" v-if="selectedComponents.length > 0">
         <div class="selected-info">
           已选择 {{ selectedComponents.length }} 个组件
         </div>
         <div class="actions">
-          <ScButton type="success" size="small" @click="handleBatchEnable">
+          <el-button
+            type="success"
+            @click="handleBatchEnable"
+            size="small"
+          >
             <IconifyIconOnline icon="ri:check-line" class="mr-1" />
             批量启用
-          </ScButton>
-          <ScButton type="warning" size="small" @click="handleBatchDisable">
+          </el-button>
+          <el-button
+            type="warning"
+            @click="handleBatchDisable"
+            size="small"
+          >
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             批量禁用
-          </ScButton>
-          <ScButton type="danger" size="small" @click="handleBatchDelete">
+          </el-button>
+          <el-button
+            type="danger"
+            @click="handleBatchDelete"
+            size="small"
+          >
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             批量删除
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">关闭</ScButton>
+        <el-button @click="visible = false">关闭</el-button>
       </div>
     </template>
 
@@ -195,7 +170,7 @@ import {
   deleteServerDetailComponent,
   toggleComponentEnabled,
   initDefaultComponentsForServer,
-  type ServerDetailComponent,
+  type ServerDetailComponent
 } from "@/api/server";
 
 // 导入子组件
@@ -223,19 +198,12 @@ const filteredComponents = computed(() => {
   if (!searchText.value) {
     return components.value;
   }
-
+  
   const keyword = searchText.value.toLowerCase();
-  return components.value.filter(
-    (component) =>
-      component.monitorSysGenServerDetailComponentName
-        ?.toLowerCase()
-        .includes(keyword) ||
-      component.monitorSysGenServerDetailComponentTitle
-        ?.toLowerCase()
-        .includes(keyword) ||
-      component.monitorSysGenServerDetailComponentType
-        ?.toLowerCase()
-        .includes(keyword),
+  return components.value.filter(component =>
+    component.monitorSysGenServerDetailComponentName?.toLowerCase().includes(keyword) ||
+    component.monitorSysGenServerDetailComponentTitle?.toLowerCase().includes(keyword) ||
+    component.monitorSysGenServerDetailComponentType?.toLowerCase().includes(keyword)
   );
 });
 
@@ -317,11 +285,8 @@ const handleAddComponent = () => {
  */
 const handleInitDefault = async () => {
   try {
-    await messageBox.confirm(
-      "确定要初始化默认组件吗？这将添加一些预设的监控组件。",
-      "确认操作",
-    );
-
+    await messageBox.confirm("确定要初始化默认组件吗？这将添加一些预设的监控组件。", "确认操作");
+    
     initLoading.value = true;
     const res = await initDefaultComponentsForServer(serverId.value);
     if (res.code === "00000") {
@@ -354,10 +319,8 @@ const handleCloneComponent = (component: ServerDetailComponent) => {
   const clonedComponent = {
     ...component,
     monitorSysGenServerDetailComponentId: undefined,
-    monitorSysGenServerDetailComponentName:
-      component.monitorSysGenServerDetailComponentName + "_copy",
-    monitorSysGenServerDetailComponentTitle:
-      component.monitorSysGenServerDetailComponentTitle + " (副本)",
+    monitorSysGenServerDetailComponentName: component.monitorSysGenServerDetailComponentName + "_copy",
+    monitorSysGenServerDetailComponentTitle: component.monitorSysGenServerDetailComponentTitle + " (副本)",
   };
   componentEditDialogRef.value?.open("add", clonedComponent);
 };
@@ -367,14 +330,9 @@ const handleCloneComponent = (component: ServerDetailComponent) => {
  */
 const handleDeleteComponent = async (component: ServerDetailComponent) => {
   try {
-    await messageBox.confirm(
-      `确定要删除组件 "${component.monitorSysGenServerDetailComponentTitle}" 吗？`,
-      "确认删除",
-    );
-
-    const res = await deleteServerDetailComponent(
-      component.monitorSysGenServerDetailComponentId!,
-    );
+    await messageBox.confirm(`确定要删除组件 "${component.monitorSysGenServerDetailComponentTitle}" 吗？`, "确认删除");
+    
+    const res = await deleteServerDetailComponent(component.monitorSysGenServerDetailComponentId!);
     if (res.code === "00000") {
       message.success("删除成功");
       await loadComponents();
@@ -396,26 +354,20 @@ const handleToggleEnabled = async (component: ServerDetailComponent) => {
   try {
     const res = await toggleComponentEnabled(
       component.monitorSysGenServerDetailComponentId!,
-      component.monitorSysGenServerDetailComponentEnabled === 1,
+      component.monitorSysGenServerDetailComponentEnabled === 1
     );
     if (res.code === "00000") {
-      message.success(
-        component.monitorSysGenServerDetailComponentEnabled === 1
-          ? "已启用"
-          : "已禁用",
-      );
+      message.success(component.monitorSysGenServerDetailComponentEnabled === 1 ? "已启用" : "已禁用");
     } else {
       message.error(res.msg || "操作失败");
       // 恢复原状态
-      component.monitorSysGenServerDetailComponentEnabled =
-        component.monitorSysGenServerDetailComponentEnabled === 1 ? 0 : 1;
+      component.monitorSysGenServerDetailComponentEnabled = component.monitorSysGenServerDetailComponentEnabled === 1 ? 0 : 1;
     }
   } catch (error) {
     console.error("切换组件状态失败:", error);
     message.error("操作失败");
     // 恢复原状态
-    component.monitorSysGenServerDetailComponentEnabled =
-      component.monitorSysGenServerDetailComponentEnabled === 1 ? 0 : 1;
+    component.monitorSysGenServerDetailComponentEnabled = component.monitorSysGenServerDetailComponentEnabled === 1 ? 0 : 1;
   }
 };
 
@@ -427,10 +379,7 @@ const handleBatchEnable = async () => {
     for (const component of selectedComponents.value) {
       if (component.monitorSysGenServerDetailComponentEnabled === 0) {
         component.monitorSysGenServerDetailComponentEnabled = 1;
-        await toggleComponentEnabled(
-          component.monitorSysGenServerDetailComponentId!,
-          true,
-        );
+        await toggleComponentEnabled(component.monitorSysGenServerDetailComponentId!, true);
       }
     }
     message.success("批量启用成功");
@@ -448,10 +397,7 @@ const handleBatchDisable = async () => {
     for (const component of selectedComponents.value) {
       if (component.monitorSysGenServerDetailComponentEnabled === 1) {
         component.monitorSysGenServerDetailComponentEnabled = 0;
-        await toggleComponentEnabled(
-          component.monitorSysGenServerDetailComponentId!,
-          false,
-        );
+        await toggleComponentEnabled(component.monitorSysGenServerDetailComponentId!, false);
       }
     }
     message.success("批量禁用成功");
@@ -466,17 +412,12 @@ const handleBatchDisable = async () => {
  */
 const handleBatchDelete = async () => {
   try {
-    await messageBox.confirm(
-      `确定要删除选中的 ${selectedComponents.value.length} 个组件吗？`,
-      "确认删除",
-    );
-
+    await messageBox.confirm(`确定要删除选中的 ${selectedComponents.value.length} 个组件吗？`, "确认删除");
+    
     for (const component of selectedComponents.value) {
-      await deleteServerDetailComponent(
-        component.monitorSysGenServerDetailComponentId!,
-      );
+      await deleteServerDetailComponent(component.monitorSysGenServerDetailComponentId!);
     }
-
+    
     message.success("批量删除成功");
     await loadComponents();
   } catch (error) {
@@ -670,11 +611,7 @@ defineExpose({
     justify-content: space-between;
     align-items: center;
     padding: $spacing-md $spacing-lg;
-    background: linear-gradient(
-      135deg,
-      rgba(99, 102, 241, 0.1),
-      rgba(168, 85, 247, 0.08)
-    );
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.08));
     border-radius: $radius-md;
     border: 1px solid $border-primary;
     box-shadow: $shadow-sm;
@@ -757,8 +694,7 @@ defineExpose({
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
     transform: scale(1);
   }

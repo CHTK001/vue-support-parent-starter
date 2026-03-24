@@ -268,7 +268,7 @@ function clearModels(scene: THREE.Scene): void {
         if (object.geometry) {
           object.geometry.dispose();
         }
-
+        
         // 清理材质和纹理
         if (Array.isArray(object.material)) {
           object.material.forEach(material => disposeMaterial(material));
@@ -277,14 +277,14 @@ function clearModels(scene: THREE.Scene): void {
         }
       }
     });
-
+    
     // 从场景中移除
     scene.remove(model);
   });
-
+  
   // 清空引用
   loadedModelsRef.value = [];
-
+  
   // eslint-disable-next-line no-console
   console.log("[ScThree][cleanup] 已清理所有模型资源");
 }
@@ -665,9 +665,24 @@ function resolveVue3dContext(vue3dInstance: unknown, event: unknown): Vue3dConte
   const eventAny = event as any;
   const instanceAny = vue3dInstance as any;
 
-  const sceneCandidate = eventAny?.scene || instanceAny?.scene || instanceAny?.$refs?.scene || instanceAny?.three?.scene || instanceAny?.$refs?.three?.scene;
-  const rendererCandidate = eventAny?.renderer || instanceAny?.renderer || instanceAny?.$refs?.renderer || instanceAny?.three?.renderer || instanceAny?.$refs?.three?.renderer;
-  const cameraCandidate = eventAny?.camera || instanceAny?.camera || instanceAny?.$refs?.camera || instanceAny?.three?.camera || instanceAny?.$refs?.three?.camera;
+  const sceneCandidate =
+    eventAny?.scene ||
+    instanceAny?.scene ||
+    instanceAny?.$refs?.scene ||
+    instanceAny?.three?.scene ||
+    instanceAny?.$refs?.three?.scene;
+  const rendererCandidate =
+    eventAny?.renderer ||
+    instanceAny?.renderer ||
+    instanceAny?.$refs?.renderer ||
+    instanceAny?.three?.renderer ||
+    instanceAny?.$refs?.three?.renderer;
+  const cameraCandidate =
+    eventAny?.camera ||
+    instanceAny?.camera ||
+    instanceAny?.$refs?.camera ||
+    instanceAny?.three?.camera ||
+    instanceAny?.$refs?.three?.camera;
 
   return {
     scene: sceneCandidate instanceof THREE.Scene ? sceneCandidate : undefined,
@@ -745,7 +760,7 @@ function logTextureOverview(models: THREE.Object3D[]): void {
           missingMapCount++;
         }
 
-        if (anyMat.color instanceof THREE.Color && anyMat.color.getHex && anyMat.color.getHex() === 0xff00ff) {
+        if ((anyMat.color instanceof THREE.Color) && anyMat.color.getHex && anyMat.color.getHex() === 0xff00ff) {
           magentaColorCount++;
           suspicious.push({ meshName: node.name || "(unnamed)", materialType: mat.type, hasMap, colorHex: "#ff00ff" });
         }
@@ -777,7 +792,7 @@ function logTextureOverview(models: THREE.Object3D[]): void {
 // 处理 vue-3d-loader 的 load 事件
 async function handleVue3dLoad(event: any): Promise<void> {
   await nextTick();
-
+  
   // vue-3d-loader 加载完成后，尝试从组件实例获取模型
   const vue3dInstance = vue3dLoaderRef.value;
   if (!vue3dInstance) {
@@ -806,12 +821,12 @@ async function handleVue3dLoad(event: any): Promise<void> {
   // vue-3d-loader 可能通过内部属性暴露场景
   // 由于 vue-3d-loader 的 API 可能不直接暴露模型，我们通过事件参数获取
   const models: THREE.Object3D[] = [];
-
+  
   // 如果事件包含模型信息，使用它
   if (event && event.models) {
     models.push(...(Array.isArray(event.models) ? event.models : [event.models]));
   }
-
+  
   // 尝试从 vue3dLoaderRef 获取场景和模型
   // vue-3d-loader 可能通过 $refs.scene 或类似方式暴露
   try {
@@ -831,7 +846,7 @@ async function handleVue3dLoad(event: any): Promise<void> {
     // eslint-disable-next-line no-console
     console.warn("[ScThree][model] 无法从 vue-3d-loader 获取模型", e);
   }
-
+  
   // 模型去重，避免重复统计/处理
   const uniqueModels = Array.from(new Set(models));
 
@@ -853,10 +868,10 @@ async function handleVue3dLoad(event: any): Promise<void> {
       }
     });
   }
-
+  
   // 保存已加载的模型
   loadedModelsRef.value = uniqueModels;
-
+  
   // 触发 modelLoaded 事件
   if (uniqueModels.length > 0) {
     emits("modelLoaded", uniqueModels);
@@ -864,7 +879,7 @@ async function handleVue3dLoad(event: any): Promise<void> {
 
   // 调试：输出纹理/材质概览
   logTextureOverview(uniqueModels);
-
+  
   // eslint-disable-next-line no-console
   console.log("[ScThree][model] vue-3d-loader 模型加载完成", uniqueModels.length);
 }
@@ -1000,7 +1015,11 @@ defineExpose({
       @error="handleVue3dError"
     />
     <!-- 预设场景的渲染器（当没有模型时显示） -->
-    <canvas v-else ref="canvasRef" :style="{ width: '100%', height: '100%', display: 'block' }" />
+    <canvas
+      v-else
+      ref="canvasRef"
+      :style="{ width: '100%', height: '100%', display: 'block' }"
+    />
     <slot />
   </div>
 </template>

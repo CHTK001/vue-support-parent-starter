@@ -6,39 +6,17 @@
  * @version 1.0.0
  */
 import { reactive } from "vue";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const shortcuts = reactive([
   { name: "Google", url: "https://www.google.com", icon: "logos:google-icon" },
   { name: "GitHub", url: "https://github.com", icon: "logos:github-icon" },
-  {
-    name: "ChatGPT",
-    url: "https://chat.openai.com",
-    icon: "simple-icons:openai",
-  },
-  {
-    name: "Bilibili",
-    url: "https://www.bilibili.com",
-    icon: "ri:bilibili-fill",
-    color: "#FB7299",
-  },
-  {
-    name: "掘金",
-    url: "https://juejin.cn",
-    icon: "ri:code-s-slash-line",
-    color: "#1E80FF",
-  },
-  {
-    name: "Youtube",
-    url: "https://www.youtube.com",
-    icon: "logos:youtube-icon",
-  },
+  { name: "ChatGPT", url: "https://chat.openai.com", icon: "simple-icons:openai" },
+  { name: "Bilibili", url: "https://www.bilibili.com", icon: "ri:bilibili-fill", color: "#FB7299" },
+  { name: "掘金", url: "https://juejin.cn", icon: "ri:code-s-slash-line", color: "#1E80FF" },
+  { name: "Youtube", url: "https://www.youtube.com", icon: "logos:youtube-icon" },
   { name: "Twitter", url: "https://twitter.com", icon: "logos:twitter" },
-  {
-    name: "StackOverflow",
-    url: "https://stackoverflow.com",
-    icon: "logos:stackoverflow-icon",
-  },
+  { name: "StackOverflow", url: "https://stackoverflow.com", icon: "logos:stackoverflow-icon" },
 ]);
 
 const openUrl = (url) => {
@@ -91,11 +69,11 @@ const openUrl = (url) => {
   padding: 12px 4px;
   border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  
   &:hover {
     background: var(--el-fill-color);
     transform: translateY(-2px);
-
+    
     .shortcut-icon {
       transform: scale(1.1);
     }

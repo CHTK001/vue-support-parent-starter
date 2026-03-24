@@ -8,7 +8,6 @@ import { StorageConfigs } from "./type";
 import enLocale from "element-plus/es/locale/lang/en";
 import zhLocale from "element-plus/es/locale/lang/zh-cn";
 import yaml from "js-yaml";
-import { getLogger } from "@repo/utils";
 
 /**
  * 合并对象
@@ -19,11 +18,7 @@ import { getLogger } from "@repo/utils";
 function mergeObjects(obj1, obj2) {
   for (var key in obj2) {
     if (obj2.hasOwnProperty(key)) {
-      if (
-        obj1.hasOwnProperty(key) &&
-        typeof obj1[key] === "object" &&
-        typeof obj2[key] === "object"
-      ) {
+      if (obj1.hasOwnProperty(key) && typeof obj1[key] === "object" && typeof obj2[key] === "object") {
         mergeObjects(obj1[key], obj2[key]);
       } else {
         obj1[key] = obj2[key];
@@ -33,8 +28,6 @@ function mergeObjects(obj1, obj2) {
   return obj1;
 }
 
-const logger = getLogger("[i18n]");
-
 const siphonI18n = (function () {
   /**
    * 加载国际化文件
@@ -43,22 +36,15 @@ const siphonI18n = (function () {
    * @param source - 来源描述（用于调试）
    * @returns 解析后的国际化对象
    */
-  const loadI18nFiles = (
-    globResult: Record<string, any>,
-    parser: (content: string) => any,
-    source: string,
-  ): Record<string, any> => {
+  const loadI18nFiles = (globResult: Record<string, any>, parser: (content: string) => any, source: string): Record<string, any> => {
     try {
       const entries = Object.entries(globResult);
-
+      
       //@ts-ignore
       if (import.meta.env?.DEV) {
-        logger.info(
-          `[i18n] ${source} - 匹配到 ${entries.length} 个文件:`,
-          entries.map(([key]) => key),
-        );
+        console.log(`[i18n] ${source} - 匹配到 ${entries.length} 个文件:`, entries.map(([key]) => key));
       }
-
+      
       if (entries.length === 0) {
         return {};
       }
@@ -68,62 +54,42 @@ const siphonI18n = (function () {
             try {
               const matched = key.match(/([A-Za-z0-9-_]+)\./i);
               if (!matched || !matched[1]) {
-                logger.warn(
-                  `[i18n] ${source} - 无法从路径中提取语言代码: ${key}`,
-                );
+                console.warn(`[i18n] ${source} - 无法从路径中提取语言代码: ${key}`);
                 return null;
               }
               const langCode = matched[1];
               const content = value?.default || value;
               if (!content) {
-                logger.warn(`[i18n] ${source} - 文件内容为空: ${key}`);
+                console.warn(`[i18n] ${source} - 文件内容为空: ${key}`);
                 return null;
               }
               const parsed = parser(content);
-              //@ts-ignore
+      //@ts-ignore
               if (import.meta.env?.DEV) {
-                logger.info(
-                  `[i18n] ${source} - 成功加载: ${key} -> ${langCode}`,
-                );
+                console.log(`[i18n] ${source} - 成功加载: ${key} -> ${langCode}`);
               }
               return [langCode, parsed];
             } catch (error) {
-              logger.error(`[i18n] ${source} - 解析文件失败: ${key}`, error);
+              console.error(`[i18n] ${source} - 解析文件失败: ${key}`, error);
               return null;
             }
           })
-          .filter((entry): entry is [string, any] => entry !== null),
+          .filter((entry): entry is [string, any] => entry !== null)
       );
     } catch (error) {
-      logger.error(`[i18n] ${source} - 加载国际化文件失败`, error);
+      console.error(`[i18n] ${source} - 加载国际化文件失败`, error);
       return {};
     }
   };
 
   // 加载相对路径的 yaml 文件（从 packages/config/src/i18n/index.ts 到 packages/config/locales）
-  const cache1 = loadI18nFiles(
-    import.meta.glob("../../locales/*.y(a)?ml", { eager: true, query: "?raw" }),
-    (content) => yaml.load(content),
-    "相对路径 YAML",
-  );
+  const cache1 = loadI18nFiles(import.meta.glob("../../locales/*.y(a)?ml", { eager: true, query: "?raw" }), (content) => yaml.load(content), "相对路径 YAML");
   // 加载相对路径的 json 文件
-  const cache2 = loadI18nFiles(
-    import.meta.glob("../../locales/*.json", { eager: true, query: "?raw" }),
-    (content) => JSON.parse(content),
-    "相对路径 JSON",
-  );
+  const cache2 = loadI18nFiles(import.meta.glob("../../locales/*.json", { eager: true, query: "?raw" }), (content) => JSON.parse(content), "相对路径 JSON");
   // 加载应用级别的 yaml 文件
-  const extCache = loadI18nFiles(
-    import.meta.glob("@/locales/*.y(a)?ml", { eager: true, query: "?raw" }),
-    (content) => yaml.load(content),
-    "应用级别 YAML",
-  );
+  const extCache = loadI18nFiles(import.meta.glob("@/locales/*.y(a)?ml", { eager: true, query: "?raw" }), (content) => yaml.load(content), "应用级别 YAML");
   // 加载应用级别的 json 文件
-  const extCache2 = loadI18nFiles(
-    import.meta.glob("@/locales/*.json", { eager: true, query: "?raw" }),
-    (content) => JSON.parse(content),
-    "应用级别 JSON",
-  );
+  const extCache2 = loadI18nFiles(import.meta.glob("@/locales/*.json", { eager: true, query: "?raw" }), (content) => JSON.parse(content), "应用级别 JSON");
 
   // 合并所有缓存（应用级别优先级最高，其次为相对路径）
   // 确保每个合并步骤都有默认空对象，防止没有数据时出错
@@ -132,38 +98,26 @@ const siphonI18n = (function () {
   const finalCache = mergeObjects(packageCache, appCache);
 
   // 开发环境下输出调试信息
-  //@ts-ignore
+      //@ts-ignore
   if (import.meta.env?.DEV) {
     const availableLangs = Object.keys(finalCache);
     if (availableLangs.length > 0) {
-      logger.info(`[i18n] 已加载语言: ${availableLangs.join(", ")}`);
-      logger.info("[i18n] 各来源加载情况:");
-      logger.info(
-        `  - 相对路径 YAML: ${Object.keys(cache1).join(", ") || "无"}`,
-      );
-      logger.info(
-        `  - 相对路径 JSON: ${Object.keys(cache2).join(", ") || "无"}`,
-      );
-      logger.info(
-        `  - 应用级别 YAML: ${Object.keys(extCache).join(", ") || "无"}`,
-      );
-      logger.info(
-        `  - 应用级别 JSON: ${Object.keys(extCache2).join(", ") || "无"}`,
-      );
+      console.log(`[i18n] 已加载语言: ${availableLangs.join(", ")}`);
+      console.log(`[i18n] 各来源加载情况:`);
+      console.log(`  - 相对路径 YAML: ${Object.keys(cache1).join(", ") || "无"}`);
+      console.log(`  - 相对路径 JSON: ${Object.keys(cache2).join(", ") || "无"}`);
+      console.log(`  - 应用级别 YAML: ${Object.keys(extCache).join(", ") || "无"}`);
+      console.log(`  - 应用级别 JSON: ${Object.keys(extCache2).join(", ") || "无"}`);
     } else {
-      logger.warn("[i18n] 未找到任何国际化文件");
+      console.warn("[i18n] 未找到任何国际化文件");
     }
   }
 
   const getI18n = (prefix = "zh-CN") => {
     const result = finalCache[prefix];
-    //@ts-ignore
+      //@ts-ignore
     if (!result && import.meta.env?.DEV) {
-      logger.warn(
-        `[i18n] 未找到语言配置: ${prefix}，可用语言: ${Object.keys(
-          finalCache,
-        ).join(", ")}`,
-      );
+      console.warn(`[i18n] 未找到语言配置: ${prefix}，可用语言: ${Object.keys(finalCache).join(", ")}`);
     }
     return result || {};
   };
@@ -179,10 +133,10 @@ const siphonI18n = (function () {
  * 支持在URL中使用短缩写（如 en、zh）自动转换为完整代码（如 en-US、zh-CN）
  */
 const languageShortcutMap: Record<string, string> = {
-  zh: "zh-CN",
-  en: "en-US",
-  cn: "zh-CN",
-  us: "en-US",
+  "zh": "zh-CN",
+  "en": "en-US",
+  "cn": "zh-CN",
+  "us": "en-US",
 };
 
 /**
@@ -309,7 +263,7 @@ export function getAllLanguageConfigs(): LanguageConfig[] {
       {
         code: "en-US",
         ...languageConfigMap["en-US"],
-      },
+      }
     );
   }
 
@@ -359,7 +313,7 @@ const generateLocalesConfigs = (): Record<string, any> => {
     };
     configs["en-US"] = {
       ...siphonI18n("en-US"),
-      ...enLocale,
+    ...enLocale,
     };
     return configs;
   }
@@ -374,7 +328,7 @@ const generateLocalesConfigs = (): Record<string, any> => {
       configs[langCode] = {
         ...i18nMessages,
         ...elementPlusLocale,
-      };
+};
     } else {
       // 如果没有对应的 Element Plus locale，只使用 i18n 消息
       configs[langCode] = i18nMessages;
@@ -422,7 +376,7 @@ const flatI18n = (prefix = "zh-CN") => {
     } else {
       // 如果消息为空，返回空 Set
       cache = new Set<string>();
-      keysCache.set(prefix, cache);
+    keysCache.set(prefix, cache);
     }
   }
   return cache;
@@ -442,14 +396,11 @@ export function transformI18n(message: any = "") {
     if (!i18n?.global) {
       return message;
     }
-    const locale: string | WritableComputedRef<string> | any =
-      i18n.global.locale;
+    const locale: string | WritableComputedRef<string> | any = i18n.global.locale;
     return message[locale?.value];
   }
 
-  const key = message.match(/(\S*)\./)?.input
-    ? message.match(/(\S*)\./)?.input
-    : message;
+  const key = message.match(/(\S*)\./)?.input ? message.match(/(\S*)\./)?.input : message;
 
   // 确保 i18n 和 flatI18n 都已初始化
   if (!i18n?.global || typeof flatI18n !== "function") {
@@ -459,31 +410,20 @@ export function transformI18n(message: any = "") {
   try {
     const flatKeys = flatI18n("zh-CN");
     if (key && flatKeys && flatKeys.has && flatKeys.has(key)) {
-      return i18n.global.t.call(i18n.global.locale, message);
+    return i18n.global.t.call(i18n.global.locale, message);
     } else {
       const zhCNMessages = siphonI18n("zh-CN");
-      if (
-        key &&
-        zhCNMessages &&
-        isObject(zhCNMessages) &&
-        Object.prototype.hasOwnProperty.call(zhCNMessages, key)
-      ) {
-        // 兼容非嵌套形式的国际化写法
-        return i18n.global.t.call(i18n.global.locale, message);
-      } else {
+      if (key && zhCNMessages && isObject(zhCNMessages) && Object.prototype.hasOwnProperty.call(zhCNMessages, key)) {
+    // 兼容非嵌套形式的国际化写法
+    return i18n.global.t.call(i18n.global.locale, message);
+  } else {
         return message;
       }
     }
   } catch (error) {
     // 如果 flatI18n 调用失败，回退到直接检查 siphonI18n
     const zhCNMessages = siphonI18n("zh-CN");
-    if (
-      key &&
-      i18n?.global &&
-      zhCNMessages &&
-      isObject(zhCNMessages) &&
-      Object.prototype.hasOwnProperty.call(zhCNMessages, key)
-    ) {
+    if (key && i18n?.global && zhCNMessages && isObject(zhCNMessages) && Object.prototype.hasOwnProperty.call(zhCNMessages, key)) {
       return i18n.global.t.call(i18n.global.locale, message);
     }
     return message;
@@ -500,10 +440,7 @@ export const $t = (key: string) => {
 const getResponsiveStorageNameSpace = (): string => {
   try {
     // 尝试从 window 对象获取（如果 config 模块已初始化）
-    if (
-      typeof window !== "undefined" &&
-      (window as any).__APP_CONFIG__?.ResponsiveStorageNameSpace
-    ) {
+    if (typeof window !== "undefined" && (window as any).__APP_CONFIG__?.ResponsiveStorageNameSpace) {
       return (window as any).__APP_CONFIG__.ResponsiveStorageNameSpace;
     }
   } catch (e) {
@@ -538,7 +475,7 @@ const normalizeLanguageCode = (langCode: string): string => {
 const getLocale = () => {
   // 默认语言
   const defaultLocale = "zh-CN";
-
+  
   try {
     // 1. 优先从地址栏的 language 参数读取（支持短缩写）
     if (typeof window !== "undefined" && window.location) {
@@ -551,7 +488,7 @@ const getLocale = () => {
         }
       }
     }
-
+    
     // 2. 从 localStorage 读取（支持短缩写）
     const namespace = getResponsiveStorageNameSpace();
     if (typeof localStorage !== "undefined") {
@@ -563,14 +500,14 @@ const getLocale = () => {
             const normalizedLang = normalizeLanguageCode(key);
             if (localesConfigs[normalizedLang]) {
               return normalizedLang;
-            }
+    }
           }
         } catch (e) {
           // 解析失败，忽略
         }
       }
     }
-
+    
     // 3. 默认返回 zh-CN
     return defaultLocale;
   } catch (error) {

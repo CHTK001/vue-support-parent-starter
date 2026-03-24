@@ -1,34 +1,14 @@
 ﻿<template>
   <div class="sc-secret-input">
-    <ScInput
-      v-model="innerValue"
-      type="textarea"
-      :rows="rows"
-      :disabled="disabled"
-      :placeholder="placeholder"
-      :show-password="false"
-      class="secret-textarea"
-    />
+    <ScInput v-model="innerValue" type="textarea" :rows="rows" :disabled="disabled" :placeholder="placeholder" :show-password="false" class="secret-textarea" />
 
     <div class="secret-actions" v-if="!disabled">
-      <ScButton
-        type="primary"
-        plain
-        size="small"
-        @click="generateSecret"
-        class="generate-btn"
-      >
+      <ScButton type="primary" plain size="small" @click="generateSecret" class="generate-btn">
         <IconifyIconOnline icon="ep:refresh-right" />
         生成新密钥
       </ScButton>
 
-      <ScButton
-        type="info"
-        plain
-        size="small"
-        @click="copySecret"
-        class="copy-btn"
-      >
+      <ScButton type="info" plain size="small" @click="copySecret" class="copy-btn">
         <IconifyIconOnline icon="ep:document-copy" />
         复制密钥
       </ScButton>
@@ -81,8 +61,7 @@ const innerValue = computed({
  * 生成随机密钥
  */
 const generateSecret = () => {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let result = "";
 
   // 添加前缀

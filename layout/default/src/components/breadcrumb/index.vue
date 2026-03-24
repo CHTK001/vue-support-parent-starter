@@ -23,10 +23,7 @@ const themeComponents = {
 };
 
 // 使用统一的主题切换 Hook
-const { CurrentComponent, currentTheme } = useThemeComponent(
-  themeComponents,
-  DefaultBreadcrumb,
-);
+const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultBreadcrumb);
 </script>
 
 <template>

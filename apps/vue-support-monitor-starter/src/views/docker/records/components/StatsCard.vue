@@ -1,38 +1,36 @@
 <template>
   <div class="stats-card system-container modern-bg">
     <div class="stats-grid">
-      <div
-        v-for="stat in stats"
+      <div 
+        v-for="stat in stats" 
         :key="stat.key"
         class="stat-item"
         :class="stat.type"
       >
         <div class="stat-icon">
-          <ScIcon :size="24">
+          <el-icon :size="24">
             <component :is="stat.icon" />
-          </ScIcon>
+          </el-icon>
         </div>
-
+        
         <div class="stat-content">
           <div class="stat-value">
             {{ formatValue(stat.value, stat.format) }}
             <span v-if="stat.trend" class="stat-trend" :class="stat.trend.type">
-              <ScIcon :size="12">
-                <component
-                  :is="stat.trend.type === 'up' ? 'ArrowUp' : 'ArrowDown'"
-                />
-              </ScIcon>
+              <el-icon :size="12">
+                <component :is="stat.trend.type === 'up' ? 'ArrowUp' : 'ArrowDown'" />
+              </el-icon>
               {{ stat.trend.value }}
             </span>
           </div>
-
+          
           <div class="stat-label">{{ stat.label }}</div>
-
+          
           <div v-if="stat.description" class="stat-description">
             {{ stat.description }}
           </div>
         </div>
-
+        
         <div v-if="stat.chart" class="stat-chart">
           <div class="mini-chart">
             <!-- 这里可以集成小型图表组件 -->
@@ -41,30 +39,24 @@
         </div>
       </div>
     </div>
-
+    
     <!-- 详细统计信息 -->
     <div v-if="showDetails" class="stats-details">
-      <ScCollapse v-model="activeCollapse">
-        <ScCollapseItem title="软件分布" name="software">
+      <el-collapse v-model="activeCollapse">
+        <el-collapse-item title="软件分布" name="software">
           <div class="detail-section">
             <div class="detail-grid">
               <div class="detail-item">
                 <span class="detail-label">系统软件:</span>
-                <span class="detail-value">{{
-                  details.systemSoftware || 0
-                }}</span>
+                <span class="detail-value">{{ details.systemSoftware || 0 }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">应用软件:</span>
-                <span class="detail-value">{{
-                  details.applicationSoftware || 0
-                }}</span>
+                <span class="detail-value">{{ details.applicationSoftware || 0 }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">开发工具:</span>
-                <span class="detail-value">{{
-                  details.developmentTools || 0
-                }}</span>
+                <span class="detail-value">{{ details.developmentTools || 0 }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">数据库:</span>
@@ -72,102 +64,88 @@
               </div>
             </div>
           </div>
-        </ScCollapseItem>
-
-        <ScCollapseItem title="容器状态" name="containers">
+        </el-collapse-item>
+        
+        <el-collapse-item title="容器状态" name="containers">
           <div class="detail-section">
             <div class="detail-grid">
               <div class="detail-item">
                 <span class="detail-label">运行中:</span>
-                <span class="detail-value running">{{
-                  details.runningContainers || 0
-                }}</span>
+                <span class="detail-value running">{{ details.runningContainers || 0 }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">已停止:</span>
-                <span class="detail-value stopped">{{
-                  details.stoppedContainers || 0
-                }}</span>
+                <span class="detail-value stopped">{{ details.stoppedContainers || 0 }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">异常:</span>
-                <span class="detail-value error">{{
-                  details.errorContainers || 0
-                }}</span>
+                <span class="detail-value error">{{ details.errorContainers || 0 }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">重启中:</span>
-                <span class="detail-value warning">{{
-                  details.restartingContainers || 0
-                }}</span>
+                <span class="detail-value warning">{{ details.restartingContainers || 0 }}</span>
               </div>
             </div>
           </div>
-        </ScCollapseItem>
-
-        <ScCollapseItem title="资源使用" name="resources">
+        </el-collapse-item>
+        
+        <el-collapse-item title="资源使用" name="resources">
           <div class="detail-section">
             <div class="resource-item">
               <div class="resource-header">
                 <span class="resource-label">CPU 使用率</span>
-                <span class="resource-value"
-                  >{{ (details.avgCpuUsage || 0).toFixed(1) }}%</span
-                >
+                <span class="resource-value">{{ (details.avgCpuUsage || 0).toFixed(1) }}%</span>
               </div>
-              <ScProgress
-                :percentage="details.avgCpuUsage || 0"
+              <el-progress 
+                :percentage="details.avgCpuUsage || 0" 
                 :stroke-width="8"
                 :show-text="false"
               />
             </div>
-
+            
             <div class="resource-item">
               <div class="resource-header">
                 <span class="resource-label">内存使用率</span>
-                <span class="resource-value"
-                  >{{ (details.avgMemoryUsage || 0).toFixed(1) }}%</span
-                >
+                <span class="resource-value">{{ (details.avgMemoryUsage || 0).toFixed(1) }}%</span>
               </div>
-              <ScProgress
-                :percentage="details.avgMemoryUsage || 0"
+              <el-progress 
+                :percentage="details.avgMemoryUsage || 0" 
                 :stroke-width="8"
                 :show-text="false"
                 color="#67C23A"
               />
             </div>
-
+            
             <div class="resource-item">
               <div class="resource-header">
                 <span class="resource-label">磁盘使用率</span>
-                <span class="resource-value"
-                  >{{ (details.avgDiskUsage || 0).toFixed(1) }}%</span
-                >
+                <span class="resource-value">{{ (details.avgDiskUsage || 0).toFixed(1) }}%</span>
               </div>
-              <ScProgress
-                :percentage="details.avgDiskUsage || 0"
+              <el-progress 
+                :percentage="details.avgDiskUsage || 0" 
                 :stroke-width="8"
                 :show-text="false"
                 color="#E6A23C"
               />
             </div>
           </div>
-        </ScCollapseItem>
-      </ScCollapse>
+        </el-collapse-item>
+      </el-collapse>
     </div>
-
+    
     <div v-if="showToggle" class="stats-footer">
-      <ScButton size="small" text @click="showDetails = !showDetails">
-        {{ showDetails ? "收起详情" : "查看详情" }}
-        <ScIcon>
+      <el-button size="small" text @click="showDetails = !showDetails">
+        {{ showDetails ? '收起详情' : '查看详情' }}
+        <el-icon>
           <component :is="showDetails ? 'ArrowUp' : 'ArrowDown'" />
-        </ScIcon>
-      </ScButton>
+        </el-icon>
+      </el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed } from 'vue';
 import {
   Box,
   Monitor,
@@ -176,19 +154,19 @@ import {
   ArrowUp,
   ArrowDown,
   Warning,
-  SuccessFilled,
-} from "@element-plus/icons-vue";
+  SuccessFilled
+} from '@element-plus/icons-vue';
 
 interface StatItem {
   key: string;
   label: string;
   value: number | string;
   icon: any;
-  type?: "primary" | "success" | "warning" | "danger" | "info";
-  format?: "number" | "percentage" | "bytes" | "duration";
+  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  format?: 'number' | 'percentage' | 'bytes' | 'duration';
   description?: string;
   trend?: {
-    type: "up" | "down";
+    type: 'up' | 'down';
     value: string;
   };
   chart?: boolean;
@@ -218,40 +196,40 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   details: () => ({}),
   showToggle: true,
-  defaultExpanded: false,
+  defaultExpanded: false
 });
 
 const showDetails = ref(props.defaultExpanded);
-const activeCollapse = ref(["software"]);
+const activeCollapse = ref(['software']);
 
 const formatValue = (value: number | string, format?: string) => {
-  if (typeof value === "string") return value;
-
+  if (typeof value === 'string') return value;
+  
   switch (format) {
-    case "percentage":
+    case 'percentage':
       return `${value.toFixed(1)}%`;
-    case "bytes":
+    case 'bytes':
       return formatBytes(value);
-    case "duration":
+    case 'duration':
       return formatDuration(value);
-    case "number":
+    case 'number':
     default:
       return value.toLocaleString();
   }
 };
 
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B";
+  if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
 const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-
+  
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   } else if (minutes > 0) {
@@ -263,6 +241,7 @@ const formatDuration = (seconds: number) => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -295,6 +274,7 @@ const formatDuration = (seconds: number) => {
     z-index: 1;
   }
 }
+
 
 .stats-card {
   background: var(--el-bg-color-overlay);
@@ -414,7 +394,7 @@ const formatDuration = (seconds: number) => {
 
 .stat-description {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   line-height: 1.4;
 }
 
@@ -479,7 +459,7 @@ const formatDuration = (seconds: number) => {
 }
 
 .detail-value.stopped {
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .detail-value.error {
@@ -524,22 +504,22 @@ const formatDuration = (seconds: number) => {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .stat-item {
     flex-direction: column;
     text-align: center;
   }
-
+  
   .stat-icon {
     margin-right: 0;
     margin-bottom: 12px;
   }
-
+  
   .stat-chart {
     margin-left: 0;
     margin-top: 12px;
   }
-
+  
   .detail-grid {
     grid-template-columns: 1fr;
   }

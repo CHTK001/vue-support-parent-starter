@@ -66,8 +66,8 @@ const ensureRouteIcon = (route: any): void => {
 const loadRemainingRoutes = (): void => {
   // @ts-ignore
   const noInModules: Record<string, any> = import.meta.glob(
-    ["./modules/**/remaining*.ts"],
-    { eager: true },
+    ["./modules/**/remaining*.ts", "@/router/**/remaining*.ts"],
+    { eager: true }
   );
 
   Object.values(noInModules).forEach((module) => {
@@ -103,7 +103,7 @@ const _createAutoRouter = () => {
     {
       eager: true,
       query: "raw",
-    },
+    }
   );
   //  const modulesVue: Record<string, any> = import.meta.glob(["@/views/**/index.vue"], {
   //   eager: true,
@@ -122,7 +122,7 @@ const _createAutoRouter = () => {
     // 处理国际化标题
     if (meta.title?.startsWith("$t")) {
       meta.title = transformI18n(
-        meta.title.substring(4, meta.title.length - 2),
+        meta.title.substring(4, meta.title.length - 2)
       );
     }
 
@@ -153,7 +153,7 @@ const _createAutoRouter = () => {
         const _parentNames = getName(item.node.parentNodes, i);
         const _parentName = _parentNames.join("")?.toLowerCase();
         let _parentNode = templateRoutes.find(
-          (item) => item.name === _parentName,
+          (item) => item.name === _parentName
         );
         if (!_parentNode) {
           const keys = _parentNames.slice(0, -1);
@@ -163,7 +163,7 @@ const _createAutoRouter = () => {
             for (let i = keys.length; i >= 0; i--) {
               _newName = getName(keys, i).join("")?.toLowerCase();
               _parentNode = templateRoutes.find(
-                (item) => item.name === _newName,
+                (item) => item.name === _newName
               );
               if (_parentNode) {
                 break;
@@ -211,8 +211,14 @@ const _createAutoRouter = () => {
 const _createNormalRouter = () => {
   // @ts-ignore
   const modules: Record<string, any> = import.meta.glob(
-    ["./modules/**/*.ts", "!./modules/**/remaining*.ts"],
-    { eager: true },
+    [
+      "./modules/**/*.ts",
+      "!./modules/**/remaining*.ts",
+      "@/router/**/*.ts",
+      "@/router/*.ts",
+      "!@/router/**/remaining*.ts",
+    ],
+    { eager: true }
   );
 
   Object.values(modules).forEach((module) => {
@@ -247,12 +253,12 @@ initRouterMode();
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
 export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
-  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))),
+  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
 );
 
 /** 用于渲染菜单，保持原始层级 */
 export const constantMenus: Array<RouteComponent> = ascending(
-  routes.flat(Infinity),
+  routes.flat(Infinity)
 ).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
@@ -295,8 +301,8 @@ export function resetRouter() {
       router.removeRoute(name);
       router.options.routes = formatTwoStageRoutes(
         formatFlatteningRoutes(
-          buildHierarchyTree(ascending(routes.flat(Infinity))),
-        ),
+          buildHierarchyTree(ascending(routes.flat(Infinity)))
+        )
       );
     }
   });
@@ -366,13 +372,9 @@ router.beforeEach((to: ToRouteType, _from, next) => {
           .then((router: Router) => {
             if (!useMultiTagsStoreHook().getMultiTagsCache) {
               const { path } = to;
-              const routeSearchSpace =
-                router.options.routes.find(
-                  route => route.path === "/" && Array.isArray(route.children),
-                )?.children || router.options.routes;
               const route = findRouteByPath(
                 path,
-                routeSearchSpace,
+                router.options.routes[0].children
               );
               getTopMenu(true);
               // query、params模式路由传参数的标签页不在此处处理

@@ -79,8 +79,11 @@ export function isXmlContentType(contentType: string): boolean {
 /**
  * 提取主要内容类型（去除 charset 等参数）
  */
-export function extractContentType(headers: Record<string, string>): string {
-  const contentType = headers["content-type"] || headers["Content-Type"] || "";
+export function extractContentType(
+  headers: Record<string, string>
+): string {
+  const contentType =
+    headers["content-type"] || headers["Content-Type"] || "";
   return contentType.split(";")[0].trim();
 }
 
@@ -156,7 +159,7 @@ export function buildFullUrl(
   baseUrl: string,
   path: string,
   pathParams: Record<string, string> = {},
-  queryParams: Record<string, string> = {},
+  queryParams: Record<string, string> = {}
 ): string {
   let url = baseUrl + path;
 
@@ -201,7 +204,7 @@ export function generateExampleRequestBody(api: ApiInfo): string {
           lastName: "Doe",
         },
         null,
-        2,
+        2
       );
     } else if (path.includes("product") || path.includes("item")) {
       return JSON.stringify(
@@ -212,7 +215,7 @@ export function generateExampleRequestBody(api: ApiInfo): string {
           category: "electronics",
         },
         null,
-        2,
+        2
       );
     }
   } else if (method === "PUT" || method === "PATCH") {
@@ -224,7 +227,7 @@ export function generateExampleRequestBody(api: ApiInfo): string {
           status: "active",
         },
         null,
-        2,
+        2
       );
     }
   }
@@ -238,7 +241,7 @@ export function generateExampleRequestBody(api: ApiInfo): string {
       status: "active",
     },
     null,
-    2,
+    2
   );
 }
 
@@ -251,7 +254,7 @@ export function generateJavaCode(
   pathParams: Record<string, string>,
   queryParams: Record<string, string>,
   requestBody: string,
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): string {
   const url = buildFullUrl(baseUrl, api.path, pathParams, queryParams);
 
@@ -330,7 +333,7 @@ export function generateJavaScriptCode(
   pathParams: Record<string, string>,
   queryParams: Record<string, string>,
   requestBody: string,
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): string {
   const url = buildFullUrl(baseUrl, api.path, pathParams, queryParams);
 
@@ -383,7 +386,7 @@ export function generatePythonCode(
   pathParams: Record<string, string>,
   queryParams: Record<string, string>,
   requestBody: string,
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): string {
   const url = buildFullUrl(baseUrl, api.path, pathParams, {});
 
@@ -448,7 +451,7 @@ export function generateCurlCode(
   pathParams: Record<string, string>,
   queryParams: Record<string, string>,
   requestBody: string,
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): string {
   const url = buildFullUrl(baseUrl, api.path, pathParams, queryParams);
 
@@ -479,7 +482,7 @@ export function generateCode(
   pathParams: Record<string, string>,
   queryParams: Record<string, string>,
   requestBody: string,
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): string {
   switch (language) {
     case "java":
@@ -489,7 +492,7 @@ export function generateCode(
         pathParams,
         queryParams,
         requestBody,
-        headers,
+        headers
       );
     case "javascript":
       return generateJavaScriptCode(
@@ -498,7 +501,7 @@ export function generateCode(
         pathParams,
         queryParams,
         requestBody,
-        headers,
+        headers
       );
     case "python":
       return generatePythonCode(
@@ -507,7 +510,7 @@ export function generateCode(
         pathParams,
         queryParams,
         requestBody,
-        headers,
+        headers
       );
     case "curl":
       return generateCurlCode(
@@ -516,7 +519,7 @@ export function generateCode(
         pathParams,
         queryParams,
         requestBody,
-        headers,
+        headers
       );
     default:
       return "";

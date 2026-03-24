@@ -76,7 +76,7 @@ export interface SocketManagerConfig {
  * @returns SocketTemplate 实例
  */
 export function createSocketService(
-  config: SocketManagerConfig,
+  config: SocketManagerConfig
 ): SocketTemplate {
   if (config.protocol === "rsocket" && config.rsocket) {
     return createRSocketService(config.rsocket);
@@ -99,7 +99,7 @@ export function createSocketService(
       config.socketio.urls,
       config.socketio.context,
       config.socketio.query,
-      { ...defaultOptions, ...config.socketio.options },
+      { ...defaultOptions, ...config.socketio.options }
     );
     // 转换为 SocketTemplate 接口
     return {
@@ -120,7 +120,7 @@ export function createSocketService(
   }
 
   throw new Error(
-    "[SocketManager] 无效的配置，需要提供 socketio、rsocket 或 sse 配置",
+    "[SocketManager] 无效的配置，需要提供 socketio、rsocket 或 sse 配置"
   );
 }
 
@@ -132,7 +132,7 @@ export function createSocketService(
  * @returns SocketTemplate 实例
  */
 export function provideSocketService(
-  config: SocketManagerConfig,
+  config: SocketManagerConfig
 ): SocketTemplate {
   const service = createSocketService(config);
   provide(SocketTemplateKey, service);
@@ -161,7 +161,7 @@ export function useSocketService(): SocketTemplate | null {
  */
 export function provideNamedSocketService(
   keyName: string,
-  config: SocketManagerConfig,
+  config: SocketManagerConfig
 ): SocketTemplate {
   const service = createSocketService(config);
   const socketTemplateKey = createSocketTemplateKey(keyName);
@@ -204,7 +204,7 @@ export function initSocketByProtocol(
   protocol: ProtocolType = "socketio",
   urls: string[],
   context?: string,
-  options?: Record<string, unknown>,
+  options?: Record<string, unknown>
 ): SocketTemplate {
   if (protocol === "rsocket") {
     // RSocket 使用第一个 URL
@@ -240,7 +240,7 @@ export function initSocketByProtocol(
       reconnection: (options?.reconnection as boolean) ?? true,
       reconnectionAttempts: (options?.reconnectionAttempts as number) || 3,
       reconnectionDelay: (options?.reconnectionDelay as number) || 1000,
-    },
+    }
   );
 
   // 转换为 SocketTemplate

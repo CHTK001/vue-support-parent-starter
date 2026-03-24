@@ -1,6 +1,6 @@
 <template>
   <div class="sc-image-wrapper" :class="wrapperClass" @click="handlePreview">
-    <ScImage
+    <el-image
       v-bind="$attrs"
       :src="src"
       :fit="fit"
@@ -40,7 +40,7 @@
       <template v-if="$slots.viewer" #viewer>
         <slot name="viewer" />
       </template>
-    </ScImage>
+    </el-image>
 
     <!-- 图片遮罩层 -->
     <div v-if="showMask" class="sc-image-mask">

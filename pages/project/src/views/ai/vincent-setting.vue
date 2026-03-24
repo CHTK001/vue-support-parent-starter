@@ -7,9 +7,9 @@
       :close-on-click-modal="false"
       @close="handleClose"
     >
-      <ScSkeleton animated :loading="loadingConfig.loading">
+      <el-skeleton animated :loading="loadingConfig.loading">
         <template #default>
-          <ScForm
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
@@ -20,7 +20,7 @@
             </ScFormItem>
 
             <ScFormItem label="支持尺寸" prop="sysAiVincentSupportedSizeList">
-              <ScSelect
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentSupportedSizeList"
                 placeholder="请选择模块类型"
@@ -28,7 +28,7 @@
                 filterable
                 allow-create
               >
-                <ScOption
+                <ScOption 
                   v-for="item in env.sysAiVincentSupportedSize"
                   :key="item"
                   :label="item"
@@ -70,19 +70,19 @@
             </ScFormItem>
 
             <ScFormItem label="输出张数" prop="sysAiVincentSupportedNumber">
-              <ScInputNumber
+              <ScInputNumber 
                 v-model="form.sysAiVincentSupportedNumber"
                 placeholder="请输入支持输出张数"
               ></ScInputNumber>
             </ScFormItem>
           </ScForm>
         </template>
-      </ScSkeleton>
+      </el-skeleton>
 
       <template #footer>
         <ScButton @click="env.visible = false">取 消</ScButton>
         <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
-          >确 定</ScButton
+          >确 定</el-button
         >
       </template>
     </sc-dialog>

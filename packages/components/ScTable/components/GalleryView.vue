@@ -25,7 +25,7 @@
         <slot :row="item" :index="index">
           <!-- 图片区域 -->
           <div class="gallery-image">
-            <ScImage :src="getImageUrl(item)" :preview-src-list="previewable ? getPreviewList() : []" :initial-index="index" fit="cover" lazy>
+            <el-image :src="getImageUrl(item)" :preview-src-list="previewable ? getPreviewList() : []" :initial-index="index" fit="cover" lazy>
               <template #error>
                 <div class="image-error">
                   <IconifyIconOnline icon="ep:picture" />
@@ -36,24 +36,24 @@
                   <IconifyIconOnline icon="ep:loading" class="is-loading" />
                 </div>
               </template>
-            </ScImage>
+            </el-image>
 
             <!-- 悬浮遮罩 -->
             <div class="gallery-overlay">
               <div class="overlay-actions">
-                <ScButton v-if="previewable" circle size="small" @click.stop="handlePreview(item, index)">
+                <el-button v-if="previewable" circle size="small" @click.stop="handlePreview(item, index)">
                   <IconifyIconOnline icon="ep:zoom-in" />
-                </ScButton>
-                <ScButton v-if="downloadable" circle size="small" @click.stop="handleDownload(item)">
+                </el-button>
+                <el-button v-if="downloadable" circle size="small" @click.stop="handleDownload(item)">
                   <IconifyIconOnline icon="ep:download" />
-                </ScButton>
+                </el-button>
                 <slot name="actions" :row="item" :index="index" />
               </div>
             </div>
 
             <!-- 选择框 -->
             <div v-if="selectable" class="gallery-checkbox" @click.stop>
-              <ScCheckbox v-model="selectedItems" :value="item[rowKey] || index" />
+              <el-checkbox v-model="selectedItems" :value="item[rowKey] || index" />
             </div>
           </div>
 
@@ -69,13 +69,13 @@
     <!-- 空状态 -->
     <div v-else class="gallery-empty">
       <slot name="empty">
-        <ScEmpty :description="emptyText" :image-size="100" />
+        <el-empty :description="emptyText" :image-size="100" />
       </slot>
     </div>
 
     <!-- 加载更多 -->
     <div v-if="paginationType === 'scroll' && tableData.length > 0" class="gallery-load-more">
-      <ScButton v-if="hasMore" :loading="loading" type="primary" link @click="$emit('load-more')">加载更多</ScButton>
+      <el-button v-if="hasMore" :loading="loading" type="primary" link @click="$emit('load-more')">加载更多</el-button>
       <span v-else class="no-more">没有更多了</span>
     </div>
   </div>

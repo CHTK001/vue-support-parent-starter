@@ -27,7 +27,7 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <ScInput
+          <ScInput 
             v-model="searchForm.sysLimitPath"
             placeholder="接口路径"
             clearable
@@ -37,7 +37,7 @@
               ><IconifyIconOnline icon="ri:links-line"
             /></template>
           </ScInput>
-          <ScInput
+          <ScInput 
             v-model="searchForm.sysLimitName"
             placeholder="规则名称"
             clearable
@@ -45,7 +45,7 @@
           >
             <template #prefix><IconifyIconOnline icon="ri:text" /></template>
           </ScInput>
-          <ScInput
+          <ScInput 
             v-model="searchForm.clientIp"
             placeholder="客户端IP"
             clearable
@@ -55,7 +55,7 @@
               ><IconifyIconOnline icon="ri:computer-line"
             /></template>
           </ScInput>
-          <ScDatePicker
+          <ScDatePicker 
             v-model="searchForm.sysLimitTime"
             type="date"
             placeholder="限流时间"
@@ -73,7 +73,7 @@
             <IconifyIconOnline icon="ri:search-line" />
             查询
           </ScButton>
-          <ScButton
+          <ScButton 
             type="danger"
             @click="handleBatchDelete"
             :disabled="selectedRows.length === 0"
@@ -84,7 +84,7 @@
         </div>
       </div>
 
-      <ScTable
+      <ScTable 
         :data="tableData"
         v-loading="loading"
         border
@@ -96,7 +96,7 @@
         <ScTableColumn type="selection" width="55" />
         <ScTableColumn prop="sysLimitName" label="规则名称" min-width="120" />
         <ScTableColumn prop="sysLimitPath" label="接口路径" min-width="150" />
-        <ScTableColumn
+        <ScTableColumn 
           prop="sysLimitDimension"
           label="限流维度"
           min-width="100"
@@ -108,7 +108,7 @@
         <ScTableColumn prop="sysLimitTime" label="限流时间" min-width="150" />
         <ScTableColumn label="操作" fixed="right" min-width="100">
           <template #default="scope">
-            <ScButton
+            <ScButton 
               type="danger"
               link
               :icon="useRenderIcon('ep:delete')"
@@ -121,7 +121,7 @@
       </ScTable>
 
       <div class="pagination-container">
-        <ScPagination
+        <el-pagination
           v-model:current-page="pagination.currentPage"
           v-model:page-size="pagination.pageSize"
           :page-sizes="[10, 20, 50, 100]"
@@ -137,9 +137,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
-import { message, ScMessageBox } from "@repo/utils";
+import { message , ScMessageBox} from "@repo/utils";
 
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   fetchLimitRecordPage,
   deleteLimitRecord,
@@ -250,7 +250,7 @@ const handleBatchDelete = () => {
     "提示",
     {
       type: "warning",
-    },
+    }
   )
     .then(async () => {
       try {

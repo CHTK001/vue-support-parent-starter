@@ -3,7 +3,7 @@
  * 中秋主题标签页
  * 使用专属 MidAutumnTag 组件，不依赖 showModel
  */
-import MidAutumnTag from "./MidAutumnTag.vue";
+import MidAutumnTag from './MidAutumnTag.vue';
 </script>
 
 <template>

@@ -5,7 +5,7 @@
       <div class="page-header-content">
         <IconifyIconOnline icon="ep:video-play" class="page-header-icon" />
         <div>
-          <h2 class="page-header-title">{{ videoTitle || "视频播放" }}</h2>
+          <h2 class="page-header-title">{{ videoTitle || '视频播放' }}</h2>
           <p class="page-header-desc">在线播放视频内容</p>
         </div>
       </div>
@@ -283,11 +283,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 /* 页面头部 */
 .page-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-3) 0%,
-    var(--el-color-primary) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 20px;
@@ -445,7 +441,7 @@ onUnmounted(() => {
   color: var(--el-text-color-primary);
   word-break: break-all;
   flex: 1;
-  font-family: "Courier New", monospace;
+  font-family: 'Courier New', monospace;
   font-size: 13px;
 }
 

@@ -1,0 +1,15 @@
+{
+  "name": "@repo/skin",
+  "version": "1.0.0",
+  "description": "主题皮肤样式包",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {},
+  "keywords": [
+    "theme",
+    "skin",
+    "styles"
+  ],
+  "author": "CH",
+  "license": "MIT"
+}

@@ -15,49 +15,33 @@ import { http } from "@repo/utils";
  * @param data
  */
 export function cronTools(data) {
-  return http.get(
-    "/tools/cron",
-    { params: data },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/tools/cron", { params: data }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export function ipList(data) {
-  return http.get(
-    "/tools/ip-list",
-    { params: data },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/tools/ip-list", { params: data }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export function netPing(data) {
-  return http.get(
-    "/tools/net-ping",
-    { params: data },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/tools/net-ping", { params: data }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export function netTelnet(data) {
-  return http.get(
-    "/tools/net-telnet",
-    { params: data },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/tools/net-telnet", { params: data }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }

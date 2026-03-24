@@ -1,6 +1,6 @@
-import { defineStore } from "pinia";
-import { ref, computed, onUnmounted } from "vue";
-import { useConfigStoreHook, MonitorTopics } from "@repo/core";
+import { defineStore } from 'pinia';
+import { ref, computed, onUnmounted } from 'vue';
+import { useConfigStoreHook, MonitorTopics } from '@repo/core';
 
 /**
  * 同步任务状态数据
@@ -8,7 +8,7 @@ import { useConfigStoreHook, MonitorTopics } from "@repo/core";
 export interface SyncTaskStatus {
   taskId: number;
   taskName?: string;
-  status: "RUNNING" | "STOPPED" | "ERROR";
+  status: 'RUNNING' | 'STOPPED' | 'ERROR';
   message?: string;
   time?: string;
 }
@@ -19,7 +19,7 @@ export interface SyncTaskStatus {
 export interface SyncTaskLog {
   taskId: number;
   logId?: number;
-  level: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
   nodeKey?: string;
   message: string;
   time: string;
@@ -61,7 +61,7 @@ const TOPICS = MonitorTopics.SYNC;
  * 同步任务实时数据状态管理
  * 通过 ConfigStore 的全局 Socket 连接接收实时推送
  */
-export const useSyncTaskStore = defineStore("syncTask", () => {
+export const useSyncTaskStore = defineStore('syncTask', () => {
   // 当前监听的任务ID
   const watchingTaskId = ref<number | null>(null);
 
@@ -94,7 +94,7 @@ export const useSyncTaskStore = defineStore("syncTask", () => {
     const socket = configStore.getSocket();
 
     if (!socket) {
-      console.warn("[SyncTaskStore] Socket 服务未初始化");
+      console.warn('[SyncTaskStore] Socket 服务未初始化');
       return;
     }
 
@@ -120,7 +120,7 @@ export const useSyncTaskStore = defineStore("syncTask", () => {
       handleMetricsMessage(data);
     });
 
-    console.log("[SyncTaskStore] Socket 监听已初始化");
+    console.log('[SyncTaskStore] Socket 监听已初始化');
   };
 
   /**
@@ -140,7 +140,7 @@ export const useSyncTaskStore = defineStore("syncTask", () => {
 
     statusCache.value.set(data.taskId, status);
     lastUpdateTime.value = Date.now();
-    console.log("[SyncTaskStore] 状态更新:", status);
+    console.log('[SyncTaskStore] 状态更新:', status);
   };
 
   /**
@@ -153,9 +153,9 @@ export const useSyncTaskStore = defineStore("syncTask", () => {
     const log: SyncTaskLog = {
       taskId: data.taskId,
       logId: data.logId,
-      level: data.level || "INFO",
+      level: data.level || 'INFO',
       nodeKey: data.nodeKey,
-      message: data.message || "",
+      message: data.message || '',
       time: data.time || new Date().toISOString(),
     };
 
@@ -234,7 +234,7 @@ export const useSyncTaskStore = defineStore("syncTask", () => {
     watchingTaskId.value = taskId;
     // 清空该任务的旧数据
     logsCache.value.set(taskId, []);
-    console.log("[SyncTaskStore] 开始监听任务:", taskId);
+    console.log('[SyncTaskStore] 开始监听任务:', taskId);
   };
 
   /**
@@ -340,7 +340,7 @@ export const useSyncTaskStore = defineStore("syncTask", () => {
       socket.off(TOPICS.METRICS);
     }
 
-    console.log("[SyncTaskStore] Socket 监听已销毁");
+    console.log('[SyncTaskStore] Socket 监听已销毁');
   };
 
   return {

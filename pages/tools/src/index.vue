@@ -59,20 +59,20 @@
           </div>
         </template>
         <component v-if="dynamicComponent" :is="dynamicComponent" />
-        <ScResult
+        <el-result
           v-else-if="loadError"
           icon="error"
           :title="loadError"
           sub-title="请检查路径是否正确"
         >
           <template #extra>
-            <ScButton type="primary" @click="backToList">
-              返回工具列表
-            </ScButton>
+            <ScButton type="primary" @click="backToList"
+              >返回工具列表</el-button
+            >
           </template>
-        </ScResult>
+        </el-result>
         <div v-else class="loading-container">
-          <ScSkeleton :rows="10" animated />
+          <el-skeleton :rows="10" animated />
         </div>
       </ScCard>
     </template>
@@ -343,7 +343,7 @@ const toolsList = computed(() => {
       item.name.toLowerCase().includes(keyword) ||
       item.description.toLowerCase().includes(keyword) ||
       (item.tags &&
-        item.tags.some((tag) => tag.toLowerCase().includes(keyword))),
+        item.tags.some((tag) => tag.toLowerCase().includes(keyword)))
   );
 });
 
@@ -375,7 +375,7 @@ watch(
   () => {
     loadPluginComponent();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 onMounted(() => {

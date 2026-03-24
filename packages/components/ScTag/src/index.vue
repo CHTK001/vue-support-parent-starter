@@ -2,7 +2,6 @@
   <component
     :is="currentComponent || ElTag"
     :type="type"
-    :theme="type"
     :closable="closable"
     :disable-transitions="disableTransitions"
     :hit="hit"
@@ -68,6 +67,8 @@ const props = defineProps({
 const emit = defineEmits(["close", "click"]);
 
 const { currentComponent } = useThemeComponent("ElTag");
+
+
 
 const handleClose = (event: MouseEvent) => {
   emit("close", event);

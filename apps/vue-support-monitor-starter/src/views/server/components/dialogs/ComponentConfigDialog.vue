@@ -8,23 +8,25 @@
     class="component-config-dialog"
   >
     <div class="config-content">
-      <ScAlert
+      <el-alert
         title="组件配置功能开发中"
         type="info"
         description="此功能正在开发中，敬请期待..."
         show-icon
         :closable="false"
       />
-
+      
       <div class="config-placeholder">
-        <ScEmpty description="组件配置功能开发中..." />
+        <el-empty description="组件配置功能开发中..." />
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">关闭</ScButton>
-        <ScButton type="primary" disabled> 保存配置 </ScButton>
+        <el-button @click="visible = false">关闭</el-button>
+        <el-button type="primary" disabled>
+          保存配置
+        </el-button>
       </div>
     </template>
   </sc-dialog>

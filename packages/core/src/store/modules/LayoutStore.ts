@@ -1,15 +1,6 @@
-import {
-  fetchGetUserLayout,
-  fetchMineSfc,
-  fetchUpdateUserLayout,
-} from "@repo/core";
+import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
 import { getConfig } from "@repo/config";
-import {
-  loadSfcModule,
-  localStorageProxy,
-  message,
-  toObject,
-} from "@repo/utils";
+import { loadSfcModule, localStorageProxy, message, toObject } from "@repo/utils";
 import { defineStore } from "pinia";
 
 export const useLayoutStore = defineStore({
@@ -128,11 +119,7 @@ export const useLayoutStore = defineStore({
         this.component.push(item);
       }
       if (layout.join(",") == "24") {
-        this.component[0] = [
-          ...this?.component[0],
-          ...this?.component[1],
-          ...this?.component[2],
-        ];
+        this.component[0] = [...this?.component[0], ...this?.component[1], ...this?.component[2]];
         this.component[1] = [];
         this.component[2] = [];
         if (this.component.length == 4) {

@@ -5,7 +5,7 @@
     </div>
     <div v-else class="examples-container">
       <ScTabs v-model="activeLanguage" class="language-tabs">
-        <ScTabPane
+        <ScTabPane 
           v-for="lang in languages"
           :key="lang.value"
           :label="lang.label"
@@ -28,7 +28,7 @@
                 :read-only="true"
               />
               <div v-else class="empty-code">
-                <ScEmpty
+                <ScEmpty 
                   :description="api ? '正在生成代码...' : '请先选择一个API接口'"
                   :image-size="80"
                 />
@@ -42,6 +42,7 @@
 </template>
 
 <script setup lang="ts">
+
 import ScTabPane from "@repo/components/ScTabs";
 import { computed, ref, watch } from "vue";
 import CodemirrorEditorVue3 from "codemirror-editor-vue3";
@@ -74,7 +75,7 @@ const props = withDefaults(
     headers: () => ({}),
     editorHeight: "100%",
     supportedLanguages: () => ["java", "javascript", "python", "curl"],
-  },
+  }
 );
 
 const emit = defineEmits<{
@@ -125,7 +126,7 @@ const generatedCode = computed(() => {
     props.pathParams,
     props.queryParams,
     props.requestBody,
-    props.headers,
+    props.headers
   );
 });
 
@@ -146,7 +147,7 @@ watch(
       activeLanguage.value = newLanguages[0] || "java";
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 </script>
 

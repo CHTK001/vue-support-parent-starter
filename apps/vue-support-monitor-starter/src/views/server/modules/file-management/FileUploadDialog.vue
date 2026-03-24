@@ -16,7 +16,7 @@
           上传目标路径
         </div>
         <div class="path-input-group">
-          <ScInput
+          <el-input
             v-model="uploadPath"
             placeholder="请输入上传路径，如: /home/user/documents"
             class="path-input"
@@ -24,11 +24,11 @@
             <template #prepend>
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
-          </ScInput>
-          <ScButton type="primary" @click="selectPath">
+          </el-input>
+          <el-button @click="selectPath" type="primary">
             <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
             选择路径
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -73,7 +73,7 @@
       </div>
 
       <!-- 文件列表 -->
-      <div v-if="fileList.length > 0" class="file-list-section">
+      <div class="file-list-section" v-if="fileList.length > 0">
         <div class="section-title">
           <IconifyIconOnline icon="ri:file-list-line" class="mr-2" />
           待上传文件 ({{ fileList.length }})
@@ -103,7 +103,7 @@
 
             <div class="file-status">
               <div v-if="file.uploading" class="upload-progress">
-                <ScProgress
+                <el-progress
                   :percentage="file.progress"
                   :stroke-width="4"
                   :show-text="false"
@@ -134,14 +134,14 @@
             </div>
 
             <div class="file-actions">
-              <ScButton
+              <el-button
                 v-if="!file.uploading && !file.success"
                 size="small"
                 text
                 @click="removeFile(index)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </div>
@@ -154,10 +154,10 @@
           上传选项
         </div>
         <div class="options-content">
-          <ScCheckbox v-model="overwriteExisting">
+          <el-checkbox v-model="overwriteExisting">
             覆盖已存在的文件
-          </ScCheckbox>
-          <ScCheckbox v-model="createDirectory"> 自动创建目录 </ScCheckbox>
+          </el-checkbox>
+          <el-checkbox v-model="createDirectory"> 自动创建目录 </el-checkbox>
         </div>
       </div>
     </div>
@@ -171,19 +171,19 @@
           </span>
         </div>
         <div class="footer-actions">
-          <ScButton @click="closeDialog">取消</ScButton>
-          <ScButton v-if="fileList.length > 0" @click="clearFiles"
+          <el-button @click="closeDialog">取消</el-button>
+          <el-button @click="clearFiles" v-if="fileList.length > 0"
             >清空</el-button
           >
-          <ScButton
+          <el-button
             type="primary"
+            @click="startUpload"
             :disabled="fileList.length === 0 || !uploadPath || isUploading"
             :loading="isUploading"
-            @click="startUpload"
           >
             <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
             {{ isUploading ? "上传中..." : "开始上传" }}
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </template>
@@ -256,7 +256,7 @@ watch(
       uploadPath.value = newPath;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 /**
@@ -473,6 +473,7 @@ const handleDrop = (event: DragEvent) => {
   margin: 0;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -481,4 +482,5 @@ const handleDrop = (event: DragEvent) => {
     padding: 12px 16px;
   }
 }
+
 </style>

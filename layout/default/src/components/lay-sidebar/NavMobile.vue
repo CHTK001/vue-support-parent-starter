@@ -7,7 +7,6 @@
  */
 import { useRoute, useRouter } from "vue-router";
 import { usePermissionStoreHook } from "@repo/core";
-import { ScText } from "@repo/components";
 import { useNav } from "../../hooks/useNav";
 import { isAllEmpty } from "@pureadmin/utils";
 import { computed, ref, watch } from "vue";
@@ -37,7 +36,7 @@ const menuData = computed(() => {
 
 // 当前激活路径
 const defaultActive = computed(() =>
-  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
 );
 
 // 菜单选择事件
@@ -50,6 +49,7 @@ function handleMenuSelect() {
 // 我们可以保留监听路由来关闭抽屉？不用，handleMenuSelect 已经处理了点击。
 // 如果用户通过其他方式（如浏览器后退）改变路由，el-menu 会自动更新 defaultActive。
 // 所以原来的 watch 可以移除。
+
 </script>
 
 <template>
@@ -62,7 +62,7 @@ function handleMenuSelect() {
           <IconifyIconOnline icon="ri:menu-line" class="trigger-icon" />
         </div>
         <!-- Logo/标题 -->
-        <ScText class="app-title" :text="title" />
+        <span class="app-title">{{ title }}</span>
       </div>
       <div class="header-right">
         <!-- 系统设置 -->
@@ -80,7 +80,7 @@ function handleMenuSelect() {
     </div>
 
     <!-- 侧边菜单抽屉 (280px) -->
-    <ScDrawer
+    <el-drawer
       v-model="drawerVisible"
       direction="ltr"
       size="280px"
@@ -90,12 +90,12 @@ function handleMenuSelect() {
       <div class="drawer-container">
         <!-- 抽屉头部 -->
         <div class="drawer-header">
-          <ScText class="drawer-title" text="导航菜单" />
+          <span class="drawer-title">导航菜单</span>
         </div>
-
+        
         <!-- 菜单列表 -->
         <div class="drawer-menu-list thin-scroller">
-          <ScMenu
+          <el-menu
             :default-active="defaultActive"
             class="mobile-menu"
             :collapse="false"
@@ -110,10 +110,10 @@ function handleMenuSelect() {
               :base-path="route.path"
               :collapse="false"
             />
-          </ScMenu>
+          </el-menu>
         </div>
       </div>
-    </ScDrawer>
+    </el-drawer>
   </div>
 </template>
 
@@ -161,12 +161,12 @@ function handleMenuSelect() {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-
+  
   .trigger-icon {
     font-size: 24px;
     color: var(--stitch-lay-text-main, var(--el-text-color-primary));
   }
-
+  
   &:active {
     opacity: 0.7;
   }
@@ -176,6 +176,7 @@ function handleMenuSelect() {
   border-right: none;
   background-color: transparent;
 }
+
 
 .app-title {
   font-size: 18px;
@@ -202,8 +203,7 @@ function handleMenuSelect() {
   display: flex;
   align-items: center;
   padding: 0 20px;
-  border-bottom: 1px solid
-    var(--stitch-lay-border, var(--el-border-color-lighter));
+  border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
   font-size: 16px;
   font-weight: 600;
 }
@@ -212,7 +212,7 @@ function handleMenuSelect() {
   flex: 1;
   overflow-y: auto;
   padding: 10px 0;
-
+  
   .nav-item {
     height: 48px;
     display: flex;
@@ -221,27 +221,27 @@ function handleMenuSelect() {
     cursor: pointer;
     color: var(--el-text-color-regular);
     transition: all 0.2s;
-
+    
     .nav-icon {
       margin-right: 12px;
       font-size: 18px;
       display: flex;
       align-items: center;
     }
-
+    
     .nav-label {
       font-size: 15px;
     }
-
+    
     &.is-active {
       background: var(--theme-color-opacity-8, rgba(64, 158, 255, 0.08));
       color: var(--el-color-primary);
-
+      
       .nav-icon {
         color: var(--el-color-primary);
       }
     }
-
+    
     &:active {
       background: var(--el-fill-color-light);
     }

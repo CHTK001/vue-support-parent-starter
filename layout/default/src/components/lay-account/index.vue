@@ -19,7 +19,6 @@ import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
 import Totp from "./components/Totp.vue";
-import { ScAvatar } from "@repo/components";
 
 defineOptions({
   name: "AccountSettings",
@@ -136,9 +135,9 @@ const findComponent = () => {
 
 <template>
   <div class="account-page">
-    <ScContainer class="account-container">
+    <el-container class="account-container">
       <!-- 侧边导航 -->
-      <ScAside
+      <el-aside
         v-if="isOpen"
         class="account-sidebar"
         :width="deviceDetection() ? '200px' : '280px'"
@@ -158,8 +157,8 @@ const findComponent = () => {
             <span class="online-badge"></span>
           </div>
           <div class="user-details">
-            <h3 class="user-nickname fe-sensitive">{{ userInfo?.sysUserNickname }}</h3>
-            <p class="user-username fe-sensitive">@{{ userInfo?.sysUserUsername }}</p>
+            <h3 class="user-nickname">{{ userInfo?.sysUserNickname }}</h3>
+            <p class="user-username">@{{ userInfo?.sysUserUsername }}</p>
           </div>
         </div>
 
@@ -194,10 +193,10 @@ const findComponent = () => {
             </ul>
           </div>
         </nav>
-      </ScAside>
+      </el-aside>
 
       <!-- 主内容区 -->
-      <ScMain class="account-main">
+      <el-main class="account-main">
         <LaySidebarTopCollapse
           v-if="deviceDetection()"
           class="mobile-toggle"
@@ -212,15 +211,14 @@ const findComponent = () => {
             @updated:user="onUpdated"
           />
         </div>
-      </ScMain>
-    </ScContainer>
+      </el-main>
+    </el-container>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .account-page {
   height: 100vh;
-  width: 100vw;
   background: linear-gradient(
     135deg,
     var(--el-bg-color-page) 0%,
@@ -561,9 +559,9 @@ const findComponent = () => {
 
 .content-component {
   width: 100%;
-  max-width: 100%;
-  margin: 0;
-  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: auto !important;
 
   // 移除内容组件的卡片样式，让子组件自己控制
   :deep(h3) {
@@ -595,6 +593,10 @@ const findComponent = () => {
       font-weight: 500;
       color: var(--el-text-color-primary);
     }
+  }
+
+  @media (max-width: 768px) {
+    max-width: 100%;
   }
 }
 

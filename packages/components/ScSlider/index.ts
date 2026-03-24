@@ -5,3 +5,5 @@ export const ScSliderComponent = withInstall(ScSlider);
 
 export { ScSlider };
 export default ScSliderComponent;
+
+

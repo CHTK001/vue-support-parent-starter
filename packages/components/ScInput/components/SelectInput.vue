@@ -1,7 +1,7 @@
 <template>
   <div class="sc-select-input-wrapper" :class="{ 'is-invalid': !validationResult.valid, 'is-loading': loading }">
     <div class="sc-select-input-container" :class="{ 'is-disabled': disabled }">
-      <ScSelect
+      <el-select
         ref="selectRef"
         v-model="innerValue"
         class="sc-select-input"
@@ -24,27 +24,27 @@
         </template>
         
         <!-- 批量操作按钮 -->
-        <ScOption v-if="multiple && showBatchActions && options.length > 1" :value="'__actions__'" :disabled="true" class="select-actions-option">
+        <el-option v-if="multiple && showBatchActions && options.length > 1" :value="'__actions__'" :disabled="true" class="select-actions-option">
           <div class="select-actions-container" @click.stop>
             <div class="select-action-title">
-              <ScButton type="primary" plain size="small" @click.stop="handleSelectAll">
+              <el-button type="primary" plain size="small" @click.stop="handleSelectAll">
                 <IconifyIconOnline icon="ep:select" />
                 <span>全选</span>
-              </ScButton>
-              <ScButton type="info" plain size="small" @click.stop="handleInvertSelection">
+              </el-button>
+              <el-button type="info" plain size="small" @click.stop="handleInvertSelection">
                 <IconifyIconOnline icon="ep:refresh-right" />
                 <span>反选</span>
-              </ScButton>
-              <ScButton type="danger" plain size="small" @click.stop="handleClearSelection">
+              </el-button>
+              <el-button type="danger" plain size="small" @click.stop="handleClearSelection">
                 <IconifyIconOnline icon="ep:delete" />
                 <span>清空</span>
-              </ScButton>
+              </el-button>
             </div>
           </div>
-        </ScOption>
+        </el-option>
         
         <!-- 选项列表 -->
-        <ScOption
+        <el-option
           v-for="item in options"
           :key="item.value"
           :label="item.label"
@@ -55,8 +55,8 @@
             <IconifyIconOnline v-if="item.icon" :icon="item.icon" class="select-option-icon" />
             <span>{{ item.label }}</span>
           </div>
-        </ScOption>
-      </ScSelect>
+        </el-option>
+      </el-select>
     </div>
     
     <div v-if="!validationResult.valid && showValidationMsg" class="sc-select-input__error">

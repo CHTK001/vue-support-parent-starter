@@ -14,13 +14,9 @@ import { http } from "@repo/utils";
  * 生成分片上传 id
  */
 export function generateShardingId() {
-  return http.get(
-    "/generate-sharding-id",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.get("/generate-sharding-id", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }

@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import {
   clearObject,
   fileToBase64,
@@ -21,10 +21,10 @@ import {
 } from "../../../api/ai/image-resolution";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 const ScLoading = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScLoading/index.vue")
 );
 const ScCompare = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScCompare/index.vue")
 );
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const moduleDialogRef = shallowRef();
@@ -110,7 +110,7 @@ const scaleFactorLabel = computed(() => {
  */
 const requestId = () => {
   const _requestId = localStorageProxy().getItem(
-    "resolution-request-id:" + getKey(),
+    "resolution-request-id:" + getKey()
   );
   return _requestId;
 };
@@ -227,7 +227,7 @@ const handleChange = async (files) => {
     if (width * form.scaleFactor > formSetting.sysAiVincentSupportedMaxSize) {
       message(
         `图片${width}尺寸超过最大值${formSetting.sysAiVincentSupportedMaxSize}, 请重新选择`,
-        { type: "error" },
+        { type: "error" }
       );
       return;
     }
@@ -246,21 +246,19 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div
-    class="resolution-container h-full w-full overflow-hidden system-container modern-bg"
-  >
+  <div class="resolution-container h-full w-full overflow-hidden system-container modern-bg">
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" />
-    <ScButton
+    <ScButton 
       :icon="useRenderIcon('ep:setting')"
       class="fixed right-8 top-1/2 settings-btn z-[99]"
       circle
       size="large"
       @click="handleOpenModuleManager"
     />
-    <ScContainer class="h-full">
-      <ScHeader class="header-panel flex w-full items-center px-6">
+    <el-container class="h-full">
+      <el-header class="header-panel flex w-full items-center px-6">
         <div class="panel-content flex items-center justify-between gap-4">
-          <ScForm
+          <ScForm 
             ref="formRef"
             :model="form"
             :rules="rules"
@@ -269,7 +267,7 @@ onMounted(async () => {
             class="flex-1 flex items-center gap-4"
           >
             <ScFormItem prop="model" class="flex-1 mb-0">
-              <ScSelect
+              <ScSelect 
                 v-model="form.model"
                 filterable
                 placeholder="请选择模型"
@@ -277,7 +275,7 @@ onMounted(async () => {
                 class="!w-full model-select"
                 @change="handleChangeModule"
               >
-                <ScOption
+                <ScOption 
                   v-for="item in modelList"
                   :key="item"
                   class="!h-[70px]"
@@ -285,7 +283,7 @@ onMounted(async () => {
                   :value="item.sysAiModuleCode"
                 >
                   <template #default>
-                    <ScTooltip
+                    <ScTooltip 
                       placement="right"
                       :raw-content="true"
                       :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
@@ -293,7 +291,7 @@ onMounted(async () => {
                       <div
                         class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300"
                       >
-                        <ScImage
+                        <ScImage 
                           :src="item.sysProjectIcon"
                           fit="scale-down"
                           class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
@@ -316,7 +314,7 @@ onMounted(async () => {
                 </ScOption>
                 <template #label="{ label }">
                   <div class="flex items-center gap-3">
-                    <ScImage
+                    <ScImage 
                       class="!w-[32px] !h-[32px] rounded-lg"
                       :src="modelSelectLabel?.sysProjectIcon"
                     >
@@ -329,11 +327,11 @@ onMounted(async () => {
                 </template>
               </ScSelect>
             </ScFormItem>
-            <ScFormItem
+            <ScFormItem 
               v-if="formSetting?.sysAiVincentSupportedSizeList?.length"
               class="mb-0"
             >
-              <ScDropdown trigger="click" class="scale-dropdown">
+              <el-dropdown trigger="click" class="scale-dropdown">
                 <button
                   class="scale-btn flex items-center gap-2 px-4 py-2 rounded-lg border hover:border-primary transition-all duration-300"
                 >
@@ -347,47 +345,47 @@ onMounted(async () => {
                     />
                   </svg>
                   <span>{{ scaleFactorLabel }}</span>
-                  <ScIcon
+                  <ScIcon 
                     ><component :is="useRenderIcon('ep:arrow-down')"
                   /></ScIcon>
                 </button>
                 <template #dropdown>
-                  <ScDropdownMenu class="!p-2">
-                    <ScDropdownItem
+                  <el-dropdown-menu class="!p-2">
+                    <el-dropdown-item
                       class="!rounded !my-1"
                       @click="() => (form.scaleFactor = 1)"
                       >原始尺寸</el-dropdown-item
                     >
-                    <ScDropdownItem
+                    <el-dropdown-item
                       v-for="item in formSetting.sysAiVincentSupportedSizeList"
                       :key="item"
                       class="!rounded !my-1"
                       @click="() => (form.scaleFactor = item)"
                     >
                       {{ item }}倍
-                    </ScDropdownItem>
-                  </ScDropdownMenu>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
                 </template>
-              </ScDropdown>
+              </el-dropdown>
             </ScFormItem>
             <ScFormItem>
-              <ScUpload
+              <ScUpload 
                 :show-file-list="false"
                 :auto-upload="false"
                 accept="image/*"
                 :on-change="handleChange"
               >
-                <ScButton
+                <ScButton 
                   type="primary"
                   class="upload-btn flex items-center gap-2 !px-6"
                 >
-                  <ScIcon
+                  <ScIcon 
                     ><component :is="useRenderIcon('ep:upload')"
                   /></ScIcon>
                   上传图片
                 </ScButton>
               </ScUpload>
-              <ScButton
+              <ScButton 
                 v-if="env.showEdit"
                 class="add-btn !p-3"
                 :icon="useRenderIcon('ep:plus')"
@@ -397,8 +395,8 @@ onMounted(async () => {
             </ScFormItem>
           </ScForm>
         </div>
-      </ScHeader>
-      <ScMain class="main-content">
+      </el-header>
+      <el-main class="main-content">
         <div class="flex justify-center align-middle h-full">
           <div
             class="h-full relativeoverflow-hidden compare-image"
@@ -416,7 +414,7 @@ onMounted(async () => {
                   <p class="empty-text">请上传一张需要提升分辨率的图片</p>
                 </template>
               </ScEmpty>
-              <ScImage
+              <ScImage 
                 v-else
                 :src="showImageUrl"
                 class="h-full img image-preview"
@@ -443,7 +441,7 @@ onMounted(async () => {
               class="absolute bottom-6 right-6 action-buttons"
             >
               <a :href="resolutionImage" download>
-                <ScButton
+                <ScButton 
                   :icon="useRenderIcon('ep:download')"
                   circle
                   size="large"
@@ -453,8 +451,8 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-      </ScMain>
-    </ScContainer>
+      </el-main>
+    </el-container>
   </div>
 </template>
 

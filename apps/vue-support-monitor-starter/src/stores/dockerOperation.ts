@@ -1,29 +1,25 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 
 /**
  * Docker操作类型
  */
-export type DockerOperationType =
-  | "pull" // 拉取镜像
-  | "push" // 推送镜像
-  | "build" // 构建镜像
-  | "create" // 创建容器
-  | "start" // 启动容器
-  | "stop" // 停止容器
-  | "restart" // 重启容器
-  | "remove" // 删除容器/镜像
-  | "export" // 导出镜像
-  | "import"; // 导入镜像
+export type DockerOperationType = 
+  | 'pull'      // 拉取镜像
+  | 'push'      // 推送镜像
+  | 'build'     // 构建镜像
+  | 'create'    // 创建容器
+  | 'start'     // 启动容器
+  | 'stop'      // 停止容器
+  | 'restart'   // 重启容器
+  | 'remove'    // 删除容器/镜像
+  | 'export'    // 导出镜像
+  | 'import';   // 导入镜像
 
 /**
  * Docker操作状态
  */
-export type DockerOperationStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed";
+export type DockerOperationStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 /**
  * Docker操作记录
@@ -52,22 +48,18 @@ export interface DockerOperation {
  * @version 1.0.0
  * @since 2025-12-01
  */
-export const useDockerOperationStore = defineStore("dockerOperation", () => {
+export const useDockerOperationStore = defineStore('dockerOperation', () => {
   // 操作列表
   const operations = ref<DockerOperation[]>([]);
 
   // 计算属性：活跃的操作
-  const activeOperations = computed(() =>
-    operations.value.filter(
-      (op) => op.status === "pending" || op.status === "running",
-    ),
+  const activeOperations = computed(() => 
+    operations.value.filter(op => op.status === 'pending' || op.status === 'running')
   );
 
   // 计算属性：已完成的操作
-  const completedOperations = computed(() =>
-    operations.value.filter(
-      (op) => op.status === "completed" || op.status === "failed",
-    ),
+  const completedOperations = computed(() => 
+    operations.value.filter(op => op.status === 'completed' || op.status === 'failed')
   );
 
   /**
@@ -75,12 +67,10 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    * @param operation 操作信息
    * @returns 操作ID
    */
-  function addOperation(
-    operation: Omit<DockerOperation, "id" | "createdAt" | "updatedAt">,
-  ): string {
+  function addOperation(operation: Omit<DockerOperation, 'id' | 'createdAt' | 'updatedAt'>): string {
     const id = `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = Date.now();
-
+    
     operations.value.unshift({
       ...operation,
       id,
@@ -97,7 +87,7 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    * @param updates 更新内容
    */
   function updateOperation(id: string, updates: Partial<DockerOperation>) {
-    const index = operations.value.findIndex((op) => op.id === id);
+    const index = operations.value.findIndex(op => op.id === id);
     if (index !== -1) {
       operations.value[index] = {
         ...operations.value[index],
@@ -113,7 +103,7 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    * @param progress 进度百分比
    */
   function updateProgress(id: string, progress: number) {
-    updateOperation(id, { progress, status: "running" });
+    updateOperation(id, { progress, status: 'running' });
   }
 
   /**
@@ -121,7 +111,7 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    * @param id 操作ID
    */
   function completeOperation(id: string) {
-    updateOperation(id, { status: "completed", progress: 100 });
+    updateOperation(id, { status: 'completed', progress: 100 });
   }
 
   /**
@@ -130,7 +120,7 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    * @param error 错误信息
    */
   function failOperation(id: string, error: string) {
-    updateOperation(id, { status: "failed", error });
+    updateOperation(id, { status: 'failed', error });
   }
 
   /**
@@ -138,7 +128,7 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    * @param id 操作ID
    */
   function removeOperation(id: string) {
-    const index = operations.value.findIndex((op) => op.id === id);
+    const index = operations.value.findIndex(op => op.id === id);
     if (index !== -1) {
       operations.value.splice(index, 1);
     }
@@ -149,7 +139,7 @@ export const useDockerOperationStore = defineStore("dockerOperation", () => {
    */
   function clearCompleted() {
     operations.value = operations.value.filter(
-      (op) => op.status === "pending" || op.status === "running",
+      op => op.status === 'pending' || op.status === 'running'
     );
   }
 

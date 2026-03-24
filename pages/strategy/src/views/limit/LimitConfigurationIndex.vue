@@ -121,7 +121,7 @@
 
         <!-- 分页 -->
         <div class="pagination-container">
-          <ScPagination
+          <el-pagination
             v-model:current-page="pagination.current"
             v-model:page-size="pagination.size"
             :total="pagination.total"

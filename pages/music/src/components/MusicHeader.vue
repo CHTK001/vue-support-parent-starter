@@ -13,19 +13,12 @@ defineProps({
       <p class="music-header__subtitle">发现和享受你喜爱的音乐</p>
     </div>
     <div class="music-header__search">
-      <ScInput
-        v-model="env.keyword"
-        placeholder="搜索音乐、歌手、专辑..."
-        class="music-header__search-input"
-        @keyup.enter="searchMusic"
-      >
+      <ScInput v-model="env.keyword" placeholder="搜索音乐、歌手、专辑..." class="music-header__search-input" @keyup.enter="searchMusic">
         <template #prefix>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
         <template #append>
-          <ScButton @click="searchMusic" :loading="env.searchLoading">
-            搜索
-          </ScButton>
+          <ScButton @click="searchMusic" :loading="env.searchLoading"> 搜索 </ScButton>
         </template>
       </ScInput>
     </div>
@@ -38,7 +31,7 @@ defineProps({
           <span>热门搜索</span>
         </div>
         <div class="music-header__keyword-list">
-          <ScTag
+          <ScTag 
             v-for="keyword in env.hotKeywords"
             :key="keyword"
             class="music-header__keyword"
@@ -56,12 +49,10 @@ defineProps({
         <div class="music-header__section-title">
           <IconifyIconOnline icon="ri:history-line" />
           <span>搜索历史</span>
-          <ScButton link type="danger" @click="clearSearchHistory">
-            清空
-          </ScButton>
+          <ScButton link type="danger" @click="clearSearchHistory"> 清空 </ScButton>
         </div>
         <div class="music-header__keyword-list">
-          <ScTag
+          <ScTag 
             v-for="keyword in env.searchHistory"
             :key="keyword"
             class="music-header__keyword"
@@ -82,8 +73,7 @@ defineProps({
 <style lang="scss" scoped>
 .music-header {
   padding: 24px;
-  background: linear-gradient(
-    135deg,
+  background: linear-gradient(135deg, 
     color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color)) 0%,
     color-mix(in srgb, var(--el-color-primary) 5%, var(--el-bg-color)) 100%
   );
@@ -101,11 +91,7 @@ defineProps({
     font-size: 28px;
     font-weight: 600;
     margin: 0 0 8px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -122,12 +108,12 @@ defineProps({
 
     &-input {
       width: 100%;
-
+      
       :deep(.el-input__wrapper) {
         border-radius: 24px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         transition: all 0.3s ease;
-
+        
         &:hover {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
@@ -177,11 +163,10 @@ defineProps({
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 16px;
-
+    
     &:hover {
       transform: translateY(-2px) scale(1.05);
-      box-shadow: 0 4px 12px
-        color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
     }
   }
 }

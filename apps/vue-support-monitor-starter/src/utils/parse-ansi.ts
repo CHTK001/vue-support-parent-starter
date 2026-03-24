@@ -15,11 +15,12 @@ const ansiparse: any = function (str: any) {
   //
   let matchingControl = null,
     matchingData = null,
-    matchingText: string = "",
+    matchingText: string = '',
     ansiState: any[] = [],
+    // eslint-disable-next-line prefer-const
     result: any[] = [],
     state: any = {},
-    eraseChar;
+    eraseChar
 
   //
   // General workflow for this thing is:
@@ -35,28 +36,28 @@ const ansiparse: any = function (str: any) {
   //
   // Erases a char from the output
   //
-
+  // eslint-disable-next-line prefer-const
   eraseChar = function () {
-    let index, text;
+    let index, text
     if (matchingText.length) {
-      matchingText = matchingText.substr(0, matchingText.length - 1);
+      matchingText = matchingText.substr(0, matchingText.length - 1)
     } else if (result.length) {
-      index = result.length - 1;
-      text = result[index].text;
+      index = result.length - 1
+      text = result[index].text
       if (text.length === 1) {
         //
         // A result bit was fully deleted, pop it out to simplify the final output
         //
-        result.pop();
+        result.pop()
       } else {
-        result[index].text = text.substr(0, text.length - 1);
+        result[index].text = text.substr(0, text.length - 1)
       }
     }
-  };
+  }
 
   for (let i = 0; i < str.length; i++) {
     if (matchingControl != null) {
-      if (matchingControl == "\x1b" && str[i] == "[") {
+      if (matchingControl == '\x1b' && str[i] == '[') {
         //
         // We've matched full control code. Lets start matching formating data.
         //
@@ -65,41 +66,41 @@ const ansiparse: any = function (str: any) {
         // "emit" matched text with correct state
         //
         if (matchingText) {
-          state.text = matchingText;
-          result.push(state);
-          state = {};
-          matchingText = "";
+          state.text = matchingText
+          result.push(state)
+          state = {}
+          matchingText = ''
         }
 
-        matchingControl = null;
-        matchingData = "";
+        matchingControl = null
+        matchingData = ''
       } else {
         //
         // We failed to match anything - most likely a bad control code. We
         // go back to matching regular strings.
         //
-        matchingText += matchingControl + str[i];
-        matchingControl = null;
+        matchingText += matchingControl + str[i]
+        matchingControl = null
       }
-      continue;
+      continue
     } else if (matchingData != null) {
-      if (str[i] == ";") {
+      if (str[i] == ';') {
         //
         // `;` separates many formatting codes, for example: `\033[33;43m`
         // means that both `33` and `43` should be applied.
         //
         // TODO: this can be simplified by modifying state here.
         //
-        ansiState.push(matchingData);
-        matchingData = "";
-      } else if (str[i] == "m") {
+        ansiState.push(matchingData)
+        matchingData = ''
+      } else if (str[i] == 'm') {
         //
         // `m` finished whole formatting code. We can proceed to matching
         // formatted text.
         //
-        ansiState.push(matchingData);
-        matchingData = null;
-        matchingText = "";
+        ansiState.push(matchingData)
+        matchingData = null
+        matchingText = ''
 
         //
         // Convert matched formatting data into user-friendly state object.
@@ -108,73 +109,73 @@ const ansiparse: any = function (str: any) {
         //
         ansiState.forEach(function (ansiCode) {
           if (ansiparse.foregroundColors[ansiCode]) {
-            state.foreground = ansiparse.foregroundColors[ansiCode];
+            state.foreground = ansiparse.foregroundColors[ansiCode]
           } else if (ansiparse.backgroundColors[ansiCode]) {
-            state.background = ansiparse.backgroundColors[ansiCode];
+            state.background = ansiparse.backgroundColors[ansiCode]
           } else if (ansiCode == 39) {
-            delete state.foreground;
+            delete state.foreground
           } else if (ansiCode == 49) {
-            delete state.background;
+            delete state.background
           } else if (ansiparse.styles[ansiCode]) {
-            state[ansiparse.styles[ansiCode]] = true;
+            state[ansiparse.styles[ansiCode]] = true
           } else if (ansiCode == 22) {
-            state.bold = false;
+            state.bold = false
           } else if (ansiCode == 23) {
-            state.italic = false;
+            state.italic = false
           } else if (ansiCode == 24) {
-            state.underline = false;
+            state.underline = false
           }
-        });
-        ansiState = [];
+        })
+        ansiState = []
       } else {
-        matchingData += str[i];
+        matchingData += str[i]
       }
-      continue;
+      continue
     }
 
-    if (str[i] == "\x1b") {
-      matchingControl = str[i];
-    } else if (str[i] == "\u0008") {
-      eraseChar();
+    if (str[i] == '\x1b') {
+      matchingControl = str[i]
+    } else if (str[i] == '\u0008') {
+      eraseChar()
     } else {
-      matchingText += str[i];
+      matchingText += str[i]
     }
   }
 
   if (matchingText) {
-    state.text = matchingText + (matchingControl ? matchingControl : "");
-    result.push(state);
+    state.text = matchingText + (matchingControl ? matchingControl : '')
+    result.push(state)
   }
-  return result;
-};
+  return result
+}
 
 ansiparse.foregroundColors = {
-  30: "black",
-  31: "red",
-  32: "green",
-  33: "yellow",
-  34: "blue",
-  35: "magenta",
-  36: "cyan",
-  37: "white",
-  90: "grey",
-};
+  30: 'black',
+  31: 'red',
+  32: 'green',
+  33: 'yellow',
+  34: 'blue',
+  35: 'magenta',
+  36: 'cyan',
+  37: 'white',
+  90: 'grey'
+}
 
 ansiparse.backgroundColors = {
-  40: "black",
-  41: "red",
-  42: "green",
-  43: "yellow",
-  44: "blue",
-  45: "magenta",
-  46: "cyan",
-  47: "white",
-};
+  40: 'black',
+  41: 'red',
+  42: 'green',
+  43: 'yellow',
+  44: 'blue',
+  45: 'magenta',
+  46: 'cyan',
+  47: 'white'
+}
 
 ansiparse.styles = {
-  1: "bold",
-  3: "italic",
-  4: "underline",
-};
+  1: 'bold',
+  3: 'italic',
+  4: 'underline'
+}
 
-export default ansiparse;
+export default ansiparse

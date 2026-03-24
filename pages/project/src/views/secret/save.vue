@@ -95,7 +95,7 @@ export default defineComponent({
           const newForm = {};
           Object.assign(newForm, this.form);
           newForm.sysSecretFunction = (this.form.sysSecretFunctions || []).join(
-            ",",
+            ","
           );
           if (this.mode === "save") {
             res = await fetchSaveSecret(newForm);
@@ -127,7 +127,7 @@ export default defineComponent({
       :title="title"
       @close="close"
     >
-      <ScForm
+      <ScForm 
         ref="dialogForm"
         :model="form"
         :rules="rules"
@@ -137,7 +137,7 @@ export default defineComponent({
         <ScRow>
           <ScCol :span="12">
             <ScFormItem label="密钥分组" prop="sysSecretGroup">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSecretGroup"
                 placeholder="请输入密钥分组"
               />
@@ -145,7 +145,7 @@ export default defineComponent({
           </ScCol>
           <ScCol :span="12">
             <ScFormItem label="密钥标识" prop="sysSecretCode">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSecretCode"
                 placeholder="请输入密码标识"
               />
@@ -153,12 +153,12 @@ export default defineComponent({
           </ScCol>
           <ScCol :span="12">
             <ScFormItem label="适用厂家" prop="sysSecretDictItemId">
-              <ScSelect
+              <ScSelect 
                 v-model="form.sysSecretDictItemId"
                 placeholder="请选择厂家"
                 filterable
               >
-                <ScOption
+                <ScOption 
                   v-for="item in dictItem"
                   :key="item.sysDictItemId"
                   :label="item.sysDictItemName"
@@ -170,13 +170,13 @@ export default defineComponent({
 
           <ScCol :span="12">
             <ScFormItem label="同步功能" prop="sysSecretFunction">
-              <ScSelect
+              <ScSelect 
                 v-model="form.sysSecretFunctions"
                 placeholder="请选择支持同步功能"
                 filterable
                 multiple
               >
-                <ScOption
+                <ScOption 
                   v-for="item in sysSecretFunctions"
                   :key="item.value"
                   :label="item.label"
@@ -188,7 +188,7 @@ export default defineComponent({
 
           <ScCol :span="12">
             <ScFormItem label="appId" prop="sysSecretAppId">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSecretAppId"
                 placeholder="请输入AppId"
               />
@@ -197,7 +197,7 @@ export default defineComponent({
 
           <ScCol :span="12">
             <ScFormItem label="appSecret" prop="sysSecretAppSecret">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSecretAppSecret"
                 placeholder="请输入appSecret"
               />
@@ -212,7 +212,7 @@ export default defineComponent({
 
           <ScCol :span="12">
             <ScFormItem label="endpoint" prop="sysSecretEndpoint">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSecretEndpoint"
                 placeholder="请输入endpoint"
               />
@@ -227,7 +227,7 @@ export default defineComponent({
 
           <ScCol :span="24">
             <ScFormItem label="备注" prop="sysSecretRemark">
-              <ScInput
+              <ScInput 
                 v-model="form.sysSecretRemark"
                 placeholder="请输入备注"
                 type="textarea"
@@ -239,14 +239,13 @@ export default defineComponent({
 
       <template #footer>
         <ScButton @click="visible = false">取 消</ScButton>
-        <ScButton
+        <ScButton 
           v-if="mode != 'show'"
           type="primary"
           :loading="loading"
           @click="debounce(submit(), 1000, true)"
+          >保 存</el-button
         >
-          保 存
-        </ScButton>
       </template>
     </sc-dialog>
   </div>

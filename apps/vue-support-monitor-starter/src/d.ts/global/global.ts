@@ -8,12 +8,12 @@
 /// See the Mulan PSL v2 for more details.
 ///
 
-import type { GlobalWindow } from "@/interface/common";
+import { GlobalWindow } from "@/interface/common";
 import { message, notification, Modal } from "ant-design-vue";
 
-import type { ModalFuncProps } from "ant-design-vue/es/modal/Modal";
+import { ModalFuncProps } from "ant-design-vue/es/modal/Modal";
 import { increaseZIndex } from "@/utils/utils";
-import type { NotificationArgsProps } from "ant-design-vue/es/notification";
+import { NotificationArgsProps } from "ant-design-vue/es/notification";
 
 export const jpomWindow = () => {
   return window as unknown as GlobalWindow;
@@ -75,6 +75,7 @@ $notification.config({
 });
 
 $message.config({ duration: 4 });
+
 
 export const router = () => {
   return useRouter();

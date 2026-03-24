@@ -64,7 +64,7 @@ export interface SystemServerSettingPageParams {
  * 分页查询配置设置
  */
 export function getSystemServerSettingPage(
-  params: SystemServerSettingPageParams,
+  params: SystemServerSettingPageParams
 ) {
   return request({
     url: "/system/server/setting/page",
@@ -142,7 +142,7 @@ export function disableServletFilter(id: number) {
  */
 export function updateServletFilterOrder(
   serverId: number,
-  settingOrders: Array<{ id: number; sortOrder: number }>,
+  settingOrders: Array<{ id: number; sortOrder: number }>
 ) {
   return request({
     url: `/system/server/setting/server/${serverId}/order`,
@@ -156,7 +156,7 @@ export function updateServletFilterOrder(
  */
 export function updateServletFilterConfig(
   id: number,
-  config: Record<string, any>,
+  config: Record<string, any>
 ) {
   return request({
     url: `/system/server/setting/${id}/config`,
@@ -200,7 +200,7 @@ export function getAvailableServletFilterObjects() {
  */
 export function batchInstallServletFilters(
   serverId: number,
-  filterTypes: string[],
+  filterTypes: string[]
 ) {
   return request({
     url: "/system/server/setting/batch-install",
@@ -217,7 +217,7 @@ export function batchInstallServletFilters(
  */
 export function batchOperationServletFilter(
   settingIds: number[],
-  operation: string,
+  operation: string
 ) {
   return request({
     url: "/system/server/setting/batch",
@@ -254,7 +254,7 @@ export function exportServerFiltersConfig(serverId: number) {
  */
 export function importServerFiltersConfig(
   serverId: number,
-  configData: Record<string, any>,
+  configData: Record<string, any>
 ) {
   return request({
     url: `/system/server/setting/server/${serverId}/import`,
@@ -288,7 +288,7 @@ export function applyConfigToRunningServer(serverId: number) {
  */
 export function cloneServerSettings(
   sourceServerId: number,
-  targetServerId: number,
+  targetServerId: number
 ) {
   return request({
     url: "/system/server/setting/clone",
@@ -302,7 +302,7 @@ export function cloneServerSettings(
  */
 export function getSystemServerSettingByServerIdAndEnabled(
   serverId: number,
-  enabled: boolean,
+  enabled: boolean
 ) {
   return request({
     url: `/system/server/setting/server/${serverId}/enabled/${enabled}`,
@@ -315,7 +315,7 @@ export function getSystemServerSettingByServerIdAndEnabled(
  */
 export function batchUpdateServletFilterEnabled(
   settingIds: number[],
-  enabled: boolean,
+  enabled: boolean
 ) {
   return request({
     url: "/system/server/setting/batch-enabled",
@@ -382,7 +382,7 @@ export function getServiceDiscoveryMappings(serverId: number) {
 
 export function saveServiceDiscoveryMappings(
   serverId: number,
-  mappings: ServiceDiscoveryMapping[],
+  mappings: ServiceDiscoveryMapping[]
 ) {
   return request({
     url: `/system/server/setting/service-discovery/${serverId}/mappings/save`,
@@ -411,7 +411,7 @@ export function getIpRateLimitRules(serverId: number, settingId: number) {
 export function saveIpRateLimitRules(
   serverId: number,
   settingId: number,
-  rules: IpRateLimitRule[],
+  rules: IpRateLimitRule[]
 ) {
   return request({
     url: `/system/server/setting/rate-limit/ip/${serverId}/${settingId}/save`,
@@ -447,7 +447,7 @@ export function getAddressRateLimitRules(serverId: number, settingId: number) {
 export function saveAddressRateLimitRules(
   serverId: number,
   settingId: number,
-  rules: AddressRateLimitRule[],
+  rules: AddressRateLimitRule[]
 ) {
   return request({
     url: `/system/server/setting/rate-limit/address/${serverId}/${settingId}/save`,
@@ -458,7 +458,7 @@ export function saveAddressRateLimitRules(
 
 export function deleteAddressRateLimitRules(
   serverId: number,
-  settingId: number,
+  settingId: number
 ) {
   return request({
     url: `/system/server/setting/rate-limit/address/${serverId}/${settingId}`,
@@ -482,7 +482,7 @@ export interface QpsRateLimitConfig {
 
 export function saveServletFilterConfig(
   settingId: number,
-  config: Record<string, unknown>,
+  config: Record<string, unknown>
 ) {
   return request({
     url: `/system/server/setting/${settingId}/config`,
@@ -618,7 +618,7 @@ export function addDisabledExtensions(serverId: number, extensions: string[]) {
  */
 export function removeDisabledExtensions(
   serverId: number,
-  extensions: string[],
+  extensions: string[]
 ) {
   return request({
     url: `/system/server/setting/preview-extension/${serverId}/disabled/remove`,
@@ -649,7 +649,7 @@ export function addAllowedExtensions(serverId: number, extensions: string[]) {
  */
 export function removeAllowedExtensions(
   serverId: number,
-  extensions: string[],
+  extensions: string[]
 ) {
   return request({
     url: `/system/server/setting/preview-extension/${serverId}/allowed/remove`,
@@ -756,7 +756,7 @@ export function getViewerConfigForSetting(settingId: number) {
  */
 export function saveViewerConfigForSetting(
   settingId: number,
-  config: ViewerConfig,
+  config: ViewerConfig
 ) {
   return request({
     url: `/system/server/setting/${settingId}/viewer-config`,

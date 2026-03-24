@@ -35,103 +35,74 @@ export interface ConfigPageParams {
  * 分页查询配置列表
  */
 export function getSkywalkingConfigPage(params: ConfigPageParams) {
-  return http.request<
-    ReturnResult<{ records: SkywalkingConfig[]; total: number }>
-  >("get", "v1/skywalking/config/page", { params });
+  return http.request<ReturnResult<{ records: SkywalkingConfig[]; total: number }>>(
+    "get",
+    "v1/skywalking/config/page",
+    { params }
+  );
 }
 
 /**
  * 获取配置详情
  */
 export function getSkywalkingConfigById(id: number) {
-  return http.request<ReturnResult<SkywalkingConfig>>(
-    "get",
-    `v1/skywalking/config/${id}`,
-  );
+  return http.request<ReturnResult<SkywalkingConfig>>("get", `v1/skywalking/config/${id}`);
 }
 
 /**
  * 获取所有启用的配置
  */
 export function getEnabledSkywalkingConfigs() {
-  return http.request<ReturnResult<SkywalkingConfig[]>>(
-    "get",
-    "v1/skywalking/config/enabled",
-  );
+  return http.request<ReturnResult<SkywalkingConfig[]>>("get", "v1/skywalking/config/enabled");
 }
 
 /**
  * 获取所有配置列表
  */
 export function getSkywalkingConfigList() {
-  return http.request<ReturnResult<SkywalkingConfig[]>>(
-    "get",
-    "v1/skywalking/config/list",
-  );
+  return http.request<ReturnResult<SkywalkingConfig[]>>("get", "v1/skywalking/config/list");
 }
 
 /**
  * 新增配置
  */
 export function saveSkywalkingConfig(data: SkywalkingConfig) {
-  return http.request<ReturnResult<SkywalkingConfig>>(
-    "post",
-    "v1/skywalking/config/save",
-    { data },
-  );
+  return http.request<ReturnResult<SkywalkingConfig>>("post", "v1/skywalking/config/save", { data });
 }
 
 /**
  * 更新配置
  */
 export function updateSkywalkingConfig(data: SkywalkingConfig) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    "v1/skywalking/config/update",
-    { data },
-  );
+  return http.request<ReturnResult<boolean>>("put", "v1/skywalking/config/update", { data });
 }
 
 /**
  * 删除配置
  */
 export function deleteSkywalkingConfig(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    "v1/skywalking/config/delete",
-    {
-      params: { id },
-    },
-  );
+  return http.request<ReturnResult<boolean>>("delete", "v1/skywalking/config/delete", {
+    params: { id },
+  });
 }
 
 /**
  * 测试连接
  */
 export function testSkywalkingConnection(data: SkywalkingConfig) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/skywalking/config/test",
-    { data },
-  );
+  return http.request<ReturnResult<boolean>>("post", "v1/skywalking/config/test", { data });
 }
 
 /**
  * 测试已保存配置的连接
  */
 export function testSkywalkingConnectionById(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/skywalking/config/test/${id}`,
-  );
+  return http.request<ReturnResult<boolean>>("post", `v1/skywalking/config/test/${id}`);
 }
 
 /**
  * 切换配置状态
  */
 export function toggleSkywalkingConfigStatus(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    `v1/skywalking/config/toggle-status/${id}`,
-  );
+  return http.request<ReturnResult<boolean>>("put", `v1/skywalking/config/toggle-status/${id}`);
 }

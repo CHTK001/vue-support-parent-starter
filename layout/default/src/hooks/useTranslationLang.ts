@@ -4,9 +4,9 @@ import { useRoute, type RouteLocationNormalizedLoaded } from "vue-router";
 import { watch, onBeforeMount, type Ref } from "vue";
 
 interface TranslationLangReturn {
-  t: Composer["t"];
+  t: Composer['t'];
   route: RouteLocationNormalizedLoaded;
-  locale: Composer["locale"];
+  locale: Composer['locale'];
   translationCh: () => void;
   translationEn: () => void;
   translation: (langCode: string) => void;
@@ -39,7 +39,7 @@ export function useTranslationLang(ref?: Ref): TranslationLangReturn {
     () => locale.value,
     () => {
       changeTitle(route.meta);
-    },
+    }
   );
 
   onBeforeMount(() => {

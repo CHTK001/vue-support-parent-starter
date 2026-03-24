@@ -1,0 +1,256 @@
+// 默认主题变量 ｜ Light 主题变量
+
+:root {
+  // Theme color - 使用新的颜色变量
+  --art-primary: var(--app-primary);
+  --art-success: var(--app-success);
+  --art-warning: var(--app-warning);
+  --art-danger: var(--app-danger);
+  --art-info: var(--app-info);
+
+  --art-color: var(--app-white);
+  --art-light: var(--app-bg-tertiary);
+  --art-dark: var(--app-text-primary);
+
+  // Theme active color
+  --art-primary-active: var(--app-primary-dark);
+  --art-success-active: var(--app-success-dark);
+  --art-warning-active: var(--app-warning-dark);
+  --art-danger-active: var(--app-danger-dark);
+  --art-info-active: var(--app-info-dark);
+
+  --art-light-active: var(--app-bg-secondary);
+
+  // Background color | Hover color - 使用新的灰色系统
+  --art-text-muted: var(--app-text-tertiary);
+  --art-gray-100: var(--app-gray-100);
+  --art-gray-100-rgb: 243, 244, 246;
+  --art-gray-200: var(--app-gray-200);
+  --art-gray-200-rgb: 229, 231, 235;
+  --art-gray-300: var(--app-gray-300);
+  --art-gray-300-rgb: 209, 213, 219;
+  --art-gray-400: var(--app-gray-400);
+  --art-gray-400-rgb: 156, 163, 175;
+  --art-gray-500: var(--app-gray-500);
+  --art-gray-500-rgb: 107, 114, 128;
+  --art-gray-600: var(--app-gray-600);
+  --art-gray-600-rgb: 75, 85, 99;
+  --art-gray-700: var(--app-gray-700);
+  --art-gray-700-rgb: 55, 65, 81;
+  --art-gray-800: var(--app-gray-800);
+  --art-gray-800-rgb: 31, 41, 55;
+  --art-gray-900: var(--app-gray-900);
+  --art-gray-900-rgb: 17, 24, 39;
+
+  // Text color
+  --art-text-muted: var(--app-text-tertiary);
+  --art-text-gray-100: var(--app-gray-100);
+  --art-text-gray-200: var(--app-gray-200);
+  --art-text-gray-300: var(--app-gray-300);
+  --art-text-gray-400: var(--app-gray-400);
+  --art-text-gray-500: var(--app-gray-500);
+  --art-text-gray-600: var(--app-gray-600);
+  --art-text-gray-700: var(--app-gray-700);
+  --art-text-gray-800: var(--app-gray-800);
+  --art-text-gray-900: var(--app-gray-900);
+
+  // Border
+  --art-border-color: var(--app-border-primary);
+  --art-border-dashed-color: var(--app-border-secondary);
+  --art-root-card-border-color: var(--app-border-secondary);
+
+  // Shadow
+  --art-box-shadow-xs: var(--app-shadow-sm);
+  --art-box-shadow-sm: var(--app-shadow);
+  --art-box-shadow: var(--app-shadow-md);
+  --art-box-shadow-lg: var(--app-shadow-lg);
+
+  // Root card box、shadow
+  --art-root-card-box-shadow: var(--app-card-shadow);
+  --art-root-card-border-color: var(--app-card-border);
+
+  // Theme background color
+  --art-bg-color: var(--app-bg-secondary); // 最底部背景颜色
+  --art-main-bg-color: var(--app-bg-primary);
+  
+  // CB Color Variables (Chrome Tab and other UI components)
+  --cb-color-text-primary: var(--app-text-primary);
+  --cb-color-text-primary-strong: var(--app-text-primary);
+  --cb-color-text-secondary: var(--app-text-secondary);
+  --cb-color-text-tertiary: var(--app-text-tertiary);
+  --cb-color-text-disabled: var(--app-text-disabled);
+  --cb-color-text-inverse: var(--app-text-inverse);
+  --cb-color-text-white: var(--app-white);
+  --cb-color-text-brand: var(--app-text-primary); /* 修改为黑色 */
+  --cb-color-text-danger: var(--app-danger);
+  
+  --cb-color-bg-primary: var(--app-bg-primary);
+  --cb-color-bg-secondary: var(--app-bg-secondary);
+  --cb-color-bg-tertiary: var(--app-bg-tertiary);
+  --cb-color-bg-light: var(--app-bg-tertiary);
+  --cb-color-bg-overlay: var(--app-bg-overlay);
+  --cb-color-bg-hover-light: var(--app-bg-tertiary);
+  --cb-color-bg-brand: var(--app-primary);
+  --cb-color-bg-brand-lighter: var(--app-primary-lighter);
+  --cb-color-bg-danger-light: var(--app-danger-lighter);
+  --cb-color-bg-chrome-tab-hover: var(--app-bg-tertiary);
+  --cb-color-bg-chrome-close-hover: var(--app-bg-tertiary);
+  
+  --cb-color-border-primary: var(--app-border-primary);
+  --cb-color-border-secondary: var(--app-border-secondary);
+  --cb-color-border-light: var(--app-border-secondary);
+  --cb-color-border-extra-light: var(--app-border-secondary);
+  --cb-color-border-brand: var(--app-primary);
+  --cb-color-border-brand-light: var(--app-primary-light);
+  --cb-color-border-chrome-tab: var(--app-border-primary);
+  
+  --cb-color-shadow-light: var(--app-shadow-sm);
+  --cb-color-shadow-lighter: var(--app-shadow);
+  --cb-color-shadow-medium: var(--app-shadow-md);
+  --cb-color-shadow-contextmenu: var(--app-shadow-lg);
+  --cb-color-shadow-brand-outline: rgba(var(--app-primary-rgb), 0.2);
+
+  // Menu Active Text Color
+  --pure-menu-active-text-color: var(--app-white); /* 选中状态为白色 */
+}
+
+// Dark 主题变量
+html.dark {
+  // Theme color - 使用新的颜色变量
+  --art-primary: var(--app-primary);
+  --art-success: var(--app-success);
+  --art-warning: var(--app-warning);
+  --art-danger: var(--app-danger);
+  --art-info: var(--app-info);
+
+  --art-color: var(--app-black);
+  --art-light: var(--app-bg-secondary);
+  --art-dark: var(--app-bg-tertiary);
+
+  // Theme active color
+  --art-primary-active: var(--app-primary-light);
+  --art-success-active: var(--app-success-light);
+  --art-warning-active: var(--app-warning-light);
+  --art-danger-active: var(--app-danger-light);
+  --art-info-active: var(--app-info-light);
+
+  --art-light-active: var(--app-bg-tertiary);
+
+  // Background color | Hover color - 使用新的灰色系统(深色主题)
+  --art-text-muted: var(--app-text-disabled);
+  --art-gray-100: var(--app-gray-100);
+  --art-gray-100-rgb: 31, 41, 55;
+  --art-gray-200: var(--app-gray-200);
+  --art-gray-200-rgb: 55, 65, 81;
+  --art-gray-300: var(--app-gray-300);
+  --art-gray-300-rgb: 75, 85, 99;
+  --art-gray-400: var(--app-gray-400);
+  --art-gray-400-rgb: 107, 114, 128;
+  --art-gray-500: var(--app-gray-500);
+  --art-gray-500-rgb: 156, 163, 175;
+  --art-gray-600: var(--app-gray-600);
+  --art-gray-600-rgb: 209, 213, 219;
+  --art-gray-700: var(--app-gray-700);
+  --art-gray-700-rgb: 229, 231, 235;
+  --art-gray-800: var(--app-gray-800);
+  --art-gray-800-rgb: 243, 244, 246;
+  --art-gray-900: var(--app-gray-900);
+  --art-gray-900-rgb: 249, 250, 251;
+
+  // Text color
+  --art-text-muted: var(--app-text-disabled);
+  --art-text-gray-100: var(--app-gray-100);
+  --art-text-gray-200: var(--app-gray-200);
+  --art-text-gray-300: var(--app-gray-300);
+  --art-text-gray-400: var(--app-gray-400);
+  --art-text-gray-500: var(--app-gray-500);
+  --art-text-gray-600: var(--app-gray-600);
+  --art-text-gray-700: var(--app-gray-700);
+  --art-text-gray-800: var(--app-gray-800);
+  --art-text-gray-900: var(--app-gray-900);
+
+  // Border
+  --art-border-color: var(--app-border-primary);
+  --art-border-dashed-color: var(--app-border-secondary);
+  --art-root-card-border-color: var(--app-border-secondary);
+
+  // Shadow
+  --art-box-shadow-xs: var(--app-shadow-sm);
+  --art-box-shadow-sm: var(--app-shadow);
+  --art-box-shadow: var(--app-shadow-md);
+  --art-box-shadow-lg: var(--app-shadow-lg);
+
+  // Root card box、shadow
+  --art-root-card-box-shadow: none;
+  --art-root-card-border-color: var(--app-border-secondary);
+
+  // Theme background color
+  --art-bg-color: var(--app-bg-primary);
+  --art-main-bg-color: var(--app-bg-secondary);
+  
+  // CB Color Variables (Chrome Tab and other UI components) - Dark Theme
+  --cb-color-text-primary: var(--app-text-primary);
+  --cb-color-text-primary-strong: var(--app-text-primary);
+  --cb-color-text-secondary: var(--app-text-secondary);
+  --cb-color-text-tertiary: var(--app-text-tertiary);
+  --cb-color-text-disabled: var(--app-text-disabled);
+  --cb-color-text-inverse: var(--app-text-inverse);
+  --cb-color-text-white: #ffffff; /* 在深色主题下始终为白色 */
+  --cb-color-text-brand: var(--app-white); /* 保持白色 */
+  --cb-color-text-danger: var(--app-danger);
+  
+  --cb-color-bg-primary: var(--app-bg-primary);
+  --cb-color-bg-secondary: var(--app-bg-secondary);
+  --cb-color-bg-tertiary: var(--app-bg-tertiary);
+  --cb-color-bg-light: var(--app-bg-tertiary);
+  --cb-color-bg-overlay: var(--app-bg-overlay);
+  --cb-color-bg-hover-light: var(--app-bg-tertiary);
+  --cb-color-bg-brand: var(--app-primary);
+  --cb-color-bg-brand-lighter: var(--app-primary-lighter);
+  --cb-color-bg-danger-light: var(--app-danger-lighter);
+  --cb-color-bg-chrome-tab-hover: var(--app-bg-tertiary);
+  --cb-color-bg-chrome-close-hover: var(--app-bg-tertiary);
+  
+  --cb-color-border-primary: var(--app-border-primary);
+  --cb-color-border-secondary: var(--app-border-secondary);
+  --cb-color-border-light: var(--app-border-secondary);
+  --cb-color-border-extra-light: var(--app-border-secondary);
+  --cb-color-border-brand: var(--app-primary);
+  --cb-color-border-brand-light: var(--app-primary-light);
+  --cb-color-border-chrome-tab: var(--app-border-primary);
+  
+  --cb-color-shadow-light: var(--app-shadow-sm);
+  --cb-color-shadow-lighter: var(--app-shadow);
+  --cb-color-shadow-medium: var(--app-shadow-md);
+  --cb-color-shadow-contextmenu: var(--app-shadow-lg);
+  --cb-color-shadow-brand-outline: rgba(var(--app-primary-rgb), 0.2);
+
+  // Menu Active Text Color - Dark Theme
+  --pure-menu-active-text-color: #ffffff; /* 选中状态为白色 */
+}
+
+// CSS 全局变量
+:root {
+  --console-margin: 20px; // 工作台盒子间距
+  --art-card-border: rgba(var(--art-gray-300-rgb), 0.7); // 卡片边框颜色
+  --art-card-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.04); // 卡片阴影
+  
+  // 布局尺寸变量（用于 drawer 等组件定位）
+  --pure-header-height: 56px; // 顶部导航栏高度
+  --pure-sidebar-width: 210px; // 侧边栏展开宽度 (vertical/mix)
+  --pure-sidebar-collapsed-width: 54px; // 侧边栏收起宽度
+  --pure-tags-height: 36px; // 标签页高度
+  --pure-transition-duration: 0.25s; // 过渡动画时长
+}
+
+// 媒体查询-设备尺寸
+// notebook
+$device-notebook: 1600px;
+// ipad pro
+$device-ipad-pro: 1180px;
+// ipad
+$device-ipad: 800px;
+// ipad-竖屏
+$device-ipad-vertical: 900px;
+// mobile
+$device-phone: 500px;

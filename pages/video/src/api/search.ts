@@ -6,26 +6,18 @@
  */
 
 import { http } from "@repo/utils";
-import type {
-  ApiResponse,
-  PageResponse,
-  VideoKeyword,
-  PanSouResult,
-  PanType,
-} from "./types";
+import type { ApiResponse, PageResponse, VideoKeyword, PanSouResult, PanType } from './types';
 
 // API基础路径
 const API_BASE = "v1/video/keyword";
-const PANSOU_API_BASE = "/api/pansou";
+const PANSOU_API_BASE = '/api/pansou';
 
 /**
  * 获取热门搜索关键词
  * @param limit 数量限制
  * @returns 热门关键词列表
  */
-export const getHotKeywords = (
-  limit: number = 10,
-): Promise<ApiResponse<VideoKeyword[]>> => {
+export const getHotKeywords = (limit: number = 10): Promise<ApiResponse<VideoKeyword[]>> => {
   return http.get(`${API_BASE}/keywords/hot`, { params: { limit } });
 };
 
@@ -36,13 +28,9 @@ export const getHotKeywords = (
  * @param keyword 搜索关键词
  * @returns 分页关键词列表
  */
-export const getKeywords = (
-  page: number = 1,
-  size: number = 10,
-  keyword?: string,
-): Promise<PageResponse<VideoKeyword>> => {
+export const getKeywords = (page: number = 1, size: number = 10, keyword?: string): Promise<PageResponse<VideoKeyword>> => {
   return http.get(`${API_BASE}/keywords/list`, {
-    params: { page, size, keyword },
+    params: { page, size, keyword }
   });
 };
 
@@ -51,9 +39,7 @@ export const getKeywords = (
  * @param keywordData 关键词信息
  * @returns 操作结果
  */
-export const addKeyword = (
-  keywordData: VideoKeyword,
-): Promise<ApiResponse<string>> => {
+export const addKeyword = (keywordData: VideoKeyword): Promise<ApiResponse<string>> => {
   return http.post(`${API_BASE}/keywords/add`, keywordData);
 };
 
@@ -62,9 +48,7 @@ export const addKeyword = (
  * @param keywordData 关键词信息
  * @returns 操作结果
  */
-export const updateKeyword = (
-  keywordData: VideoKeyword,
-): Promise<ApiResponse<boolean>> => {
+export const updateKeyword = (keywordData: VideoKeyword): Promise<ApiResponse<boolean>> => {
   return http.put(`${API_BASE}/keywords/update`, keywordData);
 };
 
@@ -73,9 +57,7 @@ export const updateKeyword = (
  * @param keywordId 关键词ID
  * @returns 操作结果
  */
-export const deleteKeyword = (
-  keywordId: string,
-): Promise<ApiResponse<boolean>> => {
+export const deleteKeyword = (keywordId: string): Promise<ApiResponse<boolean>> => {
   return http.delete(`${API_BASE}/keywords/delete/${keywordId}`);
 };
 
@@ -87,14 +69,9 @@ export const deleteKeyword = (
  * @param size 每页大小
  * @returns 搜索结果
  */
-export const searchOnlineVideos = (
-  keyword: string,
-  source?: string,
-  page: number = 1,
-  size: number = 20,
-): Promise<ApiResponse<any>> => {
+export const searchOnlineVideos = (keyword: string, source?: string, page: number = 1, size: number = 20): Promise<ApiResponse<any>> => {
   return http.get(`${API_BASE}/online/search`, {
-    params: { keyword, source, page, size },
+    params: { keyword, source, page, size }
   });
 };
 
@@ -106,14 +83,9 @@ export const searchOnlineVideos = (
  * @param size 每页大小
  * @returns 搜索结果
  */
-export const searchPanSouResources = (
-  keyword: string,
-  panType?: PanType,
-  page: number = 1,
-  size: number = 20,
-): Promise<ApiResponse<PanSouResult>> => {
+export const searchPanSouResources = (keyword: string, panType?: PanType, page: number = 1, size: number = 20): Promise<ApiResponse<PanSouResult>> => {
   return http.get(`${PANSOU_API_BASE}/search`, {
-    params: { keyword, panType, page, size },
+    params: { keyword, panType, page, size }
   });
 };
 
@@ -130,9 +102,7 @@ export const getSupportedPanTypes = (): Promise<ApiResponse<PanType[]>> => {
  * @param limit 数量限制
  * @returns 搜索历史列表
  */
-export const getSearchHistory = (
-  limit: number = 10,
-): Promise<ApiResponse<string[]>> => {
+export const getSearchHistory = (limit: number = 10): Promise<ApiResponse<string[]>> => {
   return http.get(`${API_BASE}/search/history`, { params: { limit } });
 };
 
@@ -150,12 +120,9 @@ export const clearSearchHistory = (): Promise<ApiResponse<boolean>> => {
  * @param limit 数量限制
  * @returns 搜索建议列表
  */
-export const getSearchSuggestions = (
-  keyword: string,
-  limit: number = 10,
-): Promise<ApiResponse<string[]>> => {
+export const getSearchSuggestions = (keyword: string, limit: number = 10): Promise<ApiResponse<string[]>> => {
   return http.get(`${API_BASE}/search/suggestions`, {
-    params: { keyword, limit },
+    params: { keyword, limit }
   });
 };
 
@@ -166,15 +133,11 @@ export const getSearchSuggestions = (
  * @param resultCount 结果数量
  * @returns 操作结果
  */
-export const recordSearchBehavior = (
-  keyword: string,
-  source?: string,
-  resultCount?: number,
-): Promise<ApiResponse<boolean>> => {
+export const recordSearchBehavior = (keyword: string, source?: string, resultCount?: number): Promise<ApiResponse<boolean>> => {
   return http.post(`${API_BASE}/page`, {
     keyword,
     source,
-    pageSize: resultCount,
+    pageSize:resultCount,
     timestamp: new Date().toISOString(),
   });
 };
@@ -185,11 +148,8 @@ export const recordSearchBehavior = (
  * @param endDate 结束日期
  * @returns 统计信息
  */
-export const getSearchStats = (
-  startDate?: string,
-  endDate?: string,
-): Promise<ApiResponse<any>> => {
+export const getSearchStats = (startDate?: string, endDate?: string): Promise<ApiResponse<any>> => {
   return http.get(`${API_BASE}/search/stats`, {
-    params: { startDate, endDate },
+    params: { startDate, endDate }
   });
 };

@@ -5,25 +5,17 @@
       <span class="label">MB</span>
     </div>
     <div v-if="mode === 'detailed'" class="mini-bar-gauge">
-      <div
-        class="gauge-fill"
-        :style="{
-          width: `${Math.min((parseFloat(memory.used) / parseFloat(memory.limit)) * 100, 100)}%`,
-        }"
-      ></div>
+       <div class="gauge-fill" :style="{ width: `${Math.min((parseFloat(memory.used) / parseFloat(memory.limit)) * 100, 100)}%` }"></div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { PropType } from "vue";
+import { PropType } from 'vue';
 
 defineProps({
-  memory: {
-    type: Object as PropType<{ used: string; limit: string } | null>,
-    default: null,
-  },
-  mode: { type: String, required: true },
+  memory: { type: Object as PropType<{ used: string, limit: string } | null>, default: null },
+  mode: { type: String, required: true }
 });
 </script>
 
@@ -59,7 +51,7 @@ defineProps({
 
 .mini-bar-gauge {
   height: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255,255,255,0.2);
   margin-top: 4px;
   border-radius: 2px;
   overflow: hidden;

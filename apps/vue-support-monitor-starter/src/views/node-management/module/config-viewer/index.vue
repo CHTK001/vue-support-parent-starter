@@ -18,12 +18,8 @@
           <div class="header-text">
             <h3>配置查看</h3>
             <p v-if="nodeInfo">
-              <span class="node-name">{{
-                nodeInfo.nodeName || nodeInfo.applicationName
-              }}</span>
-              <span class="node-address"
-                >{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span
-              >
+              <span class="node-name">{{ nodeInfo.nodeName || nodeInfo.applicationName }}</span>
+              <span class="node-address">{{ nodeInfo.ipAddress }}:{{ nodeInfo.port }}</span>
             </p>
           </div>
         </div>
@@ -32,9 +28,9 @@
 
     <div class="config-viewer-content">
       <!-- Tab导航 -->
-      <ScTabs v-model="activeTab" class="config-tabs">
+      <el-tabs v-model="activeTab" class="config-tabs">
         <!-- 环境配置 -->
-        <ScTabPane name="environment">
+        <el-tab-pane name="environment">
           <template #label>
             <div class="tab-label">
               <IconifyIconOnline icon="ri:leaf-line" />
@@ -44,7 +40,7 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <ScInput
+                <el-input
                   v-model="envSearchText"
                   placeholder="搜索配置项..."
                   clearable
@@ -53,23 +49,19 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:search-line" />
                   </template>
-                </ScInput>
-                <span v-if="envSearchText" class="search-result">
+                </el-input>
+                <span class="search-result" v-if="envSearchText">
                   找到 <strong>{{ filteredEnvData.length }}</strong> 项
                 </span>
               </div>
-              <ScButton
-                type="primary"
-                :loading="loading.env"
-                @click="loadEnvironment"
-              >
+              <el-button type="primary" @click="loadEnvironment" :loading="loading.env">
                 <IconifyIconOnline v-if="!loading.env" icon="ri:refresh-line" />
                 刷新
-              </ScButton>
+              </el-button>
             </div>
 
             <div class="config-tree-wrapper">
-              <ScTree
+              <el-tree
                 v-if="filteredEnvData.length > 0"
                 :data="filteredEnvData"
                 :props="{ label: 'key', children: 'children' }"
@@ -82,46 +74,27 @@
                 <template #default="{ data }">
                   <div class="tree-node">
                     <div class="node-key-wrapper">
-                      <IconifyIconOnline
-                        :icon="
-                          data.isProfile
-                            ? 'ri:profile-line'
-                            : data.children
-                              ? 'ri:folder-3-line'
-                              : 'ri:code-s-slash-line'
-                        "
+                      <IconifyIconOnline 
+                        :icon="data.isProfile ? 'ri:profile-line' : (data.children ? 'ri:folder-3-line' : 'ri:code-s-slash-line')" 
                         class="node-icon"
-                        :class="{
-                          'is-folder': data.children,
-                          'is-profile': data.isProfile,
-                        }"
+                        :class="{ 'is-folder': data.children, 'is-profile': data.isProfile }"
                       />
                       <span class="node-key">{{ data.key }}</span>
-                      <span v-if="data.propertyCount" class="property-count"
-                        >{{ data.propertyCount }} 项</span
-                      >
+                      <span v-if="data.propertyCount" class="property-count">{{ data.propertyCount }} 项</span>
                     </div>
-                    <span
-                      v-if="data.value !== undefined"
-                      class="node-value"
-                      :title="formatValue(data.value)"
-                    >
+                    <span v-if="data.value !== undefined" class="node-value" :title="formatValue(data.value)">
                       {{ formatValue(data.value) }}
                     </span>
                   </div>
                 </template>
-              </ScTree>
-              <ScEmpty
-                v-else
-                description="暂无环境配置数据"
-                :image-size="80"
-              />
+              </el-tree>
+              <el-empty v-else description="暂无环境配置数据" :image-size="80" />
             </div>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 配置属性 -->
-        <ScTabPane name="configProps">
+        <el-tab-pane name="configProps">
           <template #label>
             <div class="tab-label">
               <IconifyIconOnline icon="ri:list-settings-line" />
@@ -131,7 +104,7 @@
           <div class="tab-content">
             <div class="tab-toolbar">
               <div class="toolbar-left">
-                <ScInput
+                <el-input
                   v-model="propsSearchText"
                   placeholder="搜索配置项..."
                   clearable
@@ -140,26 +113,19 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ri:search-line" />
                   </template>
-                </ScInput>
-                <span v-if="propsSearchText" class="search-result">
+                </el-input>
+                <span class="search-result" v-if="propsSearchText">
                   找到 <strong>{{ filteredPropsData.length }}</strong> 项
                 </span>
               </div>
-              <ScButton
-                type="primary"
-                :loading="loading.props"
-                @click="loadConfigProps"
-              >
-                <IconifyIconOnline
-                  v-if="!loading.props"
-                  icon="ri:refresh-line"
-                />
+              <el-button type="primary" @click="loadConfigProps" :loading="loading.props">
+                <IconifyIconOnline v-if="!loading.props" icon="ri:refresh-line" />
                 刷新
-              </ScButton>
+              </el-button>
             </div>
 
             <div class="config-tree-wrapper">
-              <ScTree
+              <el-tree
                 v-if="filteredPropsData.length > 0"
                 :data="filteredPropsData"
                 :props="{ label: 'key', children: 'children' }"
@@ -170,41 +136,27 @@
                 <template #default="{ data }">
                   <div class="tree-node">
                     <div class="node-key-wrapper">
-                      <IconifyIconOnline
-                        :icon="
-                          data.children
-                            ? 'ri:folder-3-line'
-                            : 'ri:code-s-slash-line'
-                        "
+                      <IconifyIconOnline 
+                        :icon="data.children ? 'ri:folder-3-line' : 'ri:code-s-slash-line'" 
                         class="node-icon"
                         :class="{ 'is-folder': data.children }"
                       />
                       <span class="node-key">{{ data.key }}</span>
-                      <span v-if="data.propertyCount" class="property-count"
-                        >{{ data.propertyCount }} 项</span
-                      >
+                      <span v-if="data.propertyCount" class="property-count">{{ data.propertyCount }} 项</span>
                     </div>
-                    <span
-                      v-if="data.value !== undefined"
-                      class="node-value"
-                      :title="formatValue(data.value)"
-                    >
+                    <span v-if="data.value !== undefined" class="node-value" :title="formatValue(data.value)">
                       {{ formatValue(data.value) }}
                     </span>
                   </div>
                 </template>
-              </ScTree>
-              <ScEmpty
-                v-else
-                description="暂无配置属性数据"
-                :image-size="80"
-              />
+              </el-tree>
+              <el-empty v-else description="暂无配置属性数据" :image-size="80" />
             </div>
           </div>
-        </ScTabPane>
+        </el-tab-pane>
 
         <!-- 系统信息 -->
-        <ScTabPane name="systemInfo">
+        <el-tab-pane name="systemInfo">
           <template #label>
             <div class="tab-label">
               <IconifyIconOnline icon="ri:computer-line" />
@@ -213,18 +165,11 @@
           </template>
           <div class="tab-content">
             <div class="tab-toolbar">
-              <div class="toolbar-left" />
-              <ScButton
-                type="primary"
-                :loading="loading.system"
-                @click="loadSystemInfo"
-              >
-                <IconifyIconOnline
-                  v-if="!loading.system"
-                  icon="ri:refresh-line"
-                />
+              <div class="toolbar-left"></div>
+              <el-button type="primary" @click="loadSystemInfo" :loading="loading.system">
+                <IconifyIconOnline v-if="!loading.system" icon="ri:refresh-line" />
                 刷新
-              </ScButton>
+              </el-button>
             </div>
 
             <div class="system-info-wrapper">
@@ -237,16 +182,14 @@
                     </div>
                     <span class="card-title">健康状态</span>
                   </div>
-                  <ScTag
+                  <el-tag
                     v-if="systemInfo.health"
-                    :type="
-                      systemInfo.health.status === 'UP' ? 'success' : 'danger'
-                    "
+                    :type="systemInfo.health.status === 'UP' ? 'success' : 'danger'"
                     effect="dark"
                     round
                   >
                     {{ systemInfo.health.status }}
-                  </ScTag>
+                  </el-tag>
                 </div>
                 <div v-if="systemInfo.health?.components" class="card-body">
                   <div class="component-grid">
@@ -254,28 +197,17 @@
                       v-for="(value, key) in systemInfo.health.components"
                       :key="key"
                       class="component-item"
-                      :class="{
-                        'is-up': value?.status === 'UP',
-                        'is-down': value?.status !== 'UP',
-                      }"
+                      :class="{ 'is-up': value?.status === 'UP', 'is-down': value?.status !== 'UP' }"
                     >
-                      <IconifyIconOnline
-                        :icon="
-                          value?.status === 'UP'
-                            ? 'ri:checkbox-circle-fill'
-                            : 'ri:close-circle-fill'
-                        "
+                      <IconifyIconOnline 
+                        :icon="value?.status === 'UP' ? 'ri:checkbox-circle-fill' : 'ri:close-circle-fill'" 
                         class="component-icon"
                       />
                       <span class="component-name">{{ key }}</span>
                     </div>
                   </div>
                 </div>
-                <ScEmpty
-                  v-else
-                  description="暂无健康状态数据"
-                  :image-size="60"
-                />
+                <el-empty v-else description="暂无健康状态数据" :image-size="60" />
               </div>
 
               <!-- 应用信息 -->
@@ -300,11 +232,7 @@
                     </div>
                   </div>
                 </div>
-                <ScEmpty
-                  v-else
-                  description="暂无应用信息数据"
-                  :image-size="60"
-                />
+                <el-empty v-else description="暂无应用信息数据" :image-size="60" />
               </div>
 
               <!-- 指标信息 -->
@@ -322,7 +250,7 @@
                 </div>
                 <div v-if="systemInfo.metrics?.names" class="card-body">
                   <div class="metrics-list">
-                    <ScTag
+                    <el-tag
                       v-for="name in systemInfo.metrics.names.slice(0, 50)"
                       :key="name"
                       size="small"
@@ -330,26 +258,23 @@
                       class="metric-tag"
                     >
                       {{ name }}
-                    </ScTag>
-                    <span
-                      v-if="systemInfo.metrics.names.length > 50"
-                      class="more-hint"
-                    >
+                    </el-tag>
+                    <span v-if="systemInfo.metrics.names.length > 50" class="more-hint">
                       +{{ systemInfo.metrics.names.length - 50 }} 更多
                     </span>
                   </div>
                 </div>
-                <ScEmpty v-else description="暂无指标数据" :image-size="60" />
+                <el-empty v-else description="暂无指标数据" :image-size="60" />
               </div>
             </div>
           </div>
-        </ScTabPane>
-      </ScTabs>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
+        <el-button @click="handleClose">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -509,27 +434,17 @@ const actuatorConfigPropsToTree = (data: Record<string, unknown>): any[] => {
       const children: any[] = [];
 
       for (const [beanName, beanData] of Object.entries(beans)) {
-        const beanInfo = beanData as {
-          prefix?: string;
-          properties?: Record<string, unknown>;
-        };
+        const beanInfo = beanData as { prefix?: string; properties?: Record<string, unknown> };
         const prefix = beanInfo.prefix || beanName;
         const properties = beanInfo.properties || {};
 
         const propChildren: any[] = [];
         for (const [propKey, propValue] of Object.entries(properties)) {
-          if (
-            propValue &&
-            typeof propValue === "object" &&
-            !Array.isArray(propValue)
-          ) {
+          if (propValue && typeof propValue === "object" && !Array.isArray(propValue)) {
             propChildren.push({
               key: propKey,
               fullKey: `${prefix}.${propKey}`,
-              children: objectToTree(
-                propValue as Record<string, unknown>,
-                `${prefix}.${propKey}`,
-              ),
+              children: objectToTree(propValue as Record<string, unknown>, `${prefix}.${propKey}`),
             });
           } else {
             propChildren.push({
@@ -573,7 +488,7 @@ const actuatorConfigPropsToTree = (data: Record<string, unknown>): any[] => {
  */
 const flattenObject = (
   obj: Record<string, unknown>,
-  prefix = "",
+  prefix = ""
 ): Record<string, string> => {
   const result: Record<string, string> = {};
 
@@ -583,7 +498,7 @@ const flattenObject = (
     if (value && typeof value === "object" && !Array.isArray(value)) {
       Object.assign(
         result,
-        flattenObject(value as Record<string, unknown>, newKey),
+        flattenObject(value as Record<string, unknown>, newKey)
       );
     } else {
       result[newKey] = String(value);
@@ -667,7 +582,7 @@ const loadEnvironment = async () => {
   try {
     const response = await getEnvironmentForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     if (response.success && response.data) {
       envData.value = actuatorEnvToTree(response.data);
@@ -692,7 +607,7 @@ const loadConfigProps = async () => {
   try {
     const response = await getConfigPropsForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     if (response.success && response.data) {
       propsData.value = actuatorConfigPropsToTree(response.data);
@@ -717,7 +632,7 @@ const loadSystemInfo = async () => {
   try {
     const response = await getSystemInfoForNodeControl(
       props.nodeInfo.ipAddress,
-      props.nodeInfo.port,
+      props.nodeInfo.port
     );
     if (response.success && response.data) {
       systemInfo.value = response.data;
@@ -763,7 +678,7 @@ watch(
       loadCurrentTabData();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(visible, (newVisible) => {
@@ -806,11 +721,7 @@ watch(activeTab, () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-color-primary-light-8) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
   border-bottom: 1px solid var(--el-border-color-lighter);
 
   .header-info {
@@ -824,11 +735,7 @@ watch(activeTab, () => {
       justify-content: center;
       width: 48px;
       height: 48px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-dark-2) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
 
@@ -899,11 +806,7 @@ watch(activeTab, () => {
     :deep(.el-tabs__active-bar) {
       height: 3px;
       border-radius: 3px 3px 0 0;
-      background: linear-gradient(
-        90deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
+      background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
     }
 
     :deep(.el-tabs__item) {
@@ -956,11 +859,7 @@ watch(activeTab, () => {
     align-items: center;
     margin-bottom: 16px;
     padding: 14px 18px;
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-lighter) 0%,
-      var(--el-fill-color-extra-light) 100%
-    );
+    background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-extra-light) 100%);
     border-radius: 12px;
     border: 1px solid var(--el-border-color-extra-light);
 
@@ -1115,11 +1014,7 @@ watch(activeTab, () => {
       text-overflow: ellipsis;
       white-space: nowrap;
       padding: 4px 12px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-9) 0%,
-        var(--el-color-primary-light-8) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
       border-radius: 6px;
       border: 1px solid var(--el-color-primary-light-7);
       font-weight: 500;
@@ -1153,11 +1048,7 @@ watch(activeTab, () => {
         justify-content: space-between;
         align-items: center;
         padding: 16px 20px;
-        background: linear-gradient(
-          135deg,
-          var(--el-fill-color-lighter) 0%,
-          var(--el-fill-color-extra-light) 100%
-        );
+        background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-extra-light) 100%);
         border-bottom: 1px solid var(--el-border-color-extra-light);
 
         .header-left {
@@ -1175,31 +1066,19 @@ watch(activeTab, () => {
             font-size: 18px;
 
             &.health {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-success-light-8) 0%,
-                var(--el-color-success-light-9) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
               color: var(--el-color-success);
               box-shadow: 0 4px 10px rgba(var(--el-color-success-rgb), 0.2);
             }
 
             &.info {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-primary-light-8) 0%,
-                var(--el-color-primary-light-9) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
               color: var(--el-color-primary);
               box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.2);
             }
 
             &.metrics {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-warning-light-8) 0%,
-                var(--el-color-warning-light-9) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-warning-light-8) 0%, var(--el-color-warning-light-9) 100%);
               color: var(--el-color-warning);
               box-shadow: 0 4px 10px rgba(var(--el-color-warning-rgb), 0.2);
             }
@@ -1259,18 +1138,12 @@ watch(activeTab, () => {
             cursor: default;
 
             &.is-up {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-success-light-9) 0%,
-                var(--el-color-success-light-8) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-success-light-9) 0%, var(--el-color-success-light-8) 100%);
               border: 1px solid var(--el-color-success-light-7);
 
               .component-icon {
                 color: var(--el-color-success);
-                filter: drop-shadow(
-                  0 2px 4px rgba(var(--el-color-success-rgb), 0.3)
-                );
+                filter: drop-shadow(0 2px 4px rgba(var(--el-color-success-rgb), 0.3));
               }
 
               &:hover {
@@ -1279,18 +1152,12 @@ watch(activeTab, () => {
             }
 
             &.is-down {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-danger-light-9) 0%,
-                var(--el-color-danger-light-8) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-danger-light-9) 0%, var(--el-color-danger-light-8) 100%);
               border: 1px solid var(--el-color-danger-light-7);
 
               .component-icon {
                 color: var(--el-color-danger);
-                filter: drop-shadow(
-                  0 2px 4px rgba(var(--el-color-danger-rgb), 0.3)
-                );
+                filter: drop-shadow(0 2px 4px rgba(var(--el-color-danger-rgb), 0.3));
               }
 
               &:hover {
@@ -1319,11 +1186,7 @@ watch(activeTab, () => {
             justify-content: space-between;
             align-items: center;
             padding: 10px 14px;
-            background: linear-gradient(
-              135deg,
-              var(--el-fill-color-lighter) 0%,
-              var(--el-fill-color-extra-light) 100%
-            );
+            background: linear-gradient(135deg, var(--el-fill-color-lighter) 0%, var(--el-fill-color-extra-light) 100%);
             border-radius: 10px;
             border: 1px solid var(--el-border-color-extra-light);
             transition: all 0.2s ease;

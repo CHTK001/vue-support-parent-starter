@@ -21,17 +21,6 @@ export type ScTextSize = "large" | "default" | "small";
 export type ScTextEffect = "gradient" | "typing" | "glow" | "shadow" | "none";
 
 /**
- * 主题动效
- */
-export type ScTextThemeMotion =
-  | "none"
-  | "auto"
-  | "neon"
-  | "glitch"
-  | "gold-foil"
-  | "frost";
-
-/**
  * 渐变方向
  */
 export type ScTextGradientDirection = "to-right" | "to-left" | "to-top" | "to-bottom" | "to-top-right" | "to-top-left" | "to-bottom-right" | "to-bottom-left";
@@ -260,12 +249,6 @@ export interface ScTextProps {
    * @default false
    */
   typingLoop?: boolean;
-
-  /**
-   * 主题专属动态表现
-   * @default 'none'
-   */
-  themeMotion?: ScTextThemeMotion;
 
   // ==================== 高亮功能 ====================
   /**

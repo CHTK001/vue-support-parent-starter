@@ -5,16 +5,10 @@
  * @param {string} [callbackName] - 可选，如果远程 JS 文件有回调函数，可用于更有效地判断是否完成加载
  * @returns {Promise<any>} - 返回一个 Promise，当 JS 文件加载成功时解析为全局对象，失败时拒绝并返回错误信息
  */
-export function loadJS(
-  src: string,
-  keyName: string,
-  callbackName?: string,
-): Promise<any> {
+export function loadJS(src: string, keyName: string, callbackName?: string): Promise<any> {
   return new Promise((resolve, reject) => {
     // 检查是否已经加载过该 JS 文件
-    const existingScript = document.head.querySelector(
-      `script[loadKey="${keyName}"]`,
-    );
+    const existingScript = document.head.querySelector(`script[loadKey="${keyName}"]`);
     if (existingScript) {
       return resolve(window[keyName]);
     }
@@ -58,9 +52,7 @@ export function loadJS(
 export function loadCSS(src: string, keyName: string): Promise<void> {
   return new Promise((resolve, reject) => {
     // 检查是否已经加载过该 CSS 文件
-    const existingLink = document.head.querySelector(
-      `link[loadKey="${keyName}"]`,
-    );
+    const existingLink = document.head.querySelector(`link[loadKey="${keyName}"]`);
     if (existingLink) {
       resolve();
       return;

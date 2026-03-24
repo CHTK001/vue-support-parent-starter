@@ -9,15 +9,15 @@
             <IconifyIconOnline :icon="icon" class="mr-2" />
           </slot>
           {{ title }}
-          <ScBadge :value="activeCount" :hidden="activeCount === 0" type="primary" class="ml-2" />
+          <el-badge :value="activeCount" :hidden="activeCount === 0" type="primary" class="ml-2" />
         </div>
         <div class="header-actions">
-          <ScButton size="small" circle @click.stop="handleClear" :disabled="completedCount === 0" title="清除已完成">
+          <el-button size="small" circle @click.stop="handleClear" :disabled="completedCount === 0" title="清除已完成">
             <IconifyIconOnline icon="ri:delete-bin-line" />
-          </ScButton>
-          <ScButton size="small" circle @click.stop="handleClose" title="关闭">
+          </el-button>
+          <el-button size="small" circle @click.stop="handleClose" title="关闭">
             <IconifyIconOnline icon="ri:close-line" />
-          </ScButton>
+          </el-button>
         </div>
       </div>
 
@@ -41,15 +41,15 @@
                   <div class="operation-title">{{ op.title }}</div>
                   <div class="operation-desc">{{ op.description }}</div>
                   <div v-if="op.status === 'running'" class="operation-progress">
-                    <ScProgress :percentage="op.progress || 0" :stroke-width="4" :show-text="false" />
+                    <el-progress :percentage="op.progress || 0" :stroke-width="4" :show-text="false" />
                     <span class="progress-text">{{ op.progress || 0 }}%</span>
                   </div>
                   <div v-if="op.error" class="operation-error">{{ op.error }}</div>
                 </div>
                 <div class="operation-status">
-                  <ScTag :type="getStatusType(op.status)" size="small">
+                  <el-tag :type="getStatusType(op.status)" size="small">
                     {{ getStatusText(op.status) }}
-                  </ScTag>
+                  </el-tag>
                 </div>
               </slot>
             </div>

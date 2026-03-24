@@ -9,39 +9,39 @@ interface PanType {
  */
 export const panTypes: PanType[] = [
   {
-    value: "百度网盘",
-    label: "百度网盘",
-    icon: "ep:folder",
+    value: '百度网盘',
+    label: '百度网盘',
+    icon: 'ep:folder',
   },
   {
-    value: "阿里云盘",
-    label: "阿里云盘",
-    icon: "ep:folder",
+    value: '阿里云盘',
+    label: '阿里云盘',
+    icon: 'ep:folder',
   },
   {
-    value: "天翼网盘",
-    label: "天翼网盘",
-    icon: "ep:folder",
+    value: '天翼网盘',
+    label: '天翼网盘',
+    icon: 'ep:folder',
   },
   {
-    value: "微云",
-    label: "微云",
-    icon: "ep:folder",
+    value: '微云',
+    label: '微云',
+    icon: 'ep:folder',
   },
   {
-    value: "115网盘",
-    label: "115网盘",
-    icon: "ep:folder",
+    value: '115网盘',
+    label: '115网盘',
+    icon: 'ep:folder',
   },
   {
-    value: "迅雷网盘",
-    label: "迅雷网盘",
-    icon: "ep:folder",
+    value: '迅雷网盘',
+    label: '迅雷网盘',
+    icon: 'ep:folder',
   },
   {
-    value: "夸克网盘",
-    label: "夸克网盘",
-    icon: "ep:folder",
+    value: '夸克网盘',
+    label: '夸克网盘',
+    icon: 'ep:folder',
   },
 ];
 
@@ -51,8 +51,8 @@ export const panTypes: PanType[] = [
  * @returns 图标名称
  */
 export const getPanIcon = (type: string): string => {
-  const pan = panTypes.find((item) => item.value === type);
-  return pan?.icon || "ep:folder";
+  const pan = panTypes.find(item => item.value === type);
+  return pan?.icon || 'ep:folder';
 };
 
 /**
@@ -62,11 +62,9 @@ export const getPanIcon = (type: string): string => {
  */
 export const parsePanLinks = (downloadList: any[]): any[] => {
   if (!downloadList || !Array.isArray(downloadList)) return [];
-  return downloadList.filter((item) =>
-    ["网盘资源", ...panTypes.map((type) => type.value)].includes(
-      item.videoDownloadType,
-    ),
+  return downloadList.filter((item) => 
+    ['网盘资源', ...panTypes.map(type => type.value)].includes(item.videoDownloadType)
   );
 };
 
-export default panTypes;
+export default panTypes; 

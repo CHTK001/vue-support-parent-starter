@@ -2,25 +2,16 @@
 import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSidebar from "./themes/Default.vue";
-import EightBitSidebar from "./themes/EightBit.vue";
-import SpringFestivalSidebar from "./themes/SpringFestival.vue";
-import HalloweenSidebar from "./themes/Halloween.vue";
-import ChristmasSidebar from "./themes/Christmas.vue";
 
 // 主题组件映射 - 默认主题静态导入，其他存在的主题懒加载
 const themeComponents = {
   default: DefaultSidebar,
-  "8bit": EightBitSidebar,
-  "spring-festival": SpringFestivalSidebar,
-  halloween: HalloweenSidebar,
-  christmas: ChristmasSidebar,
+  // 仅保留实际存在的未来科技主题，其余已删除的节日主题不再懒加载
   "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
+ 
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(
-  themeComponents,
-  DefaultSidebar,
-);
+const { CurrentComponent, currentTheme } = useThemeComponent(themeComponents, DefaultSidebar);
 </script>
 
 <template>

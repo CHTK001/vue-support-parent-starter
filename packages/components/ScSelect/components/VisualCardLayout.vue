@@ -22,16 +22,30 @@
 
     <!-- 操作区域 -->
     <div class="sc-select-visual-card__action">
-      <ScSelect v-model="modelValue" :placeholder="placeholder" :disabled="disabled" :size="size === 'large' ? 'default' : 'small'" :clearable="clearable" style="width: 120px" @change="handleChange">
-        <ScOption v-for="item in options" :key="item.value" :label="item.label" :value="item.value" :disabled="item.disabled" />
-      </ScSelect>
+      <el-select
+        v-model="modelValue"
+        :placeholder="placeholder"
+        :disabled="disabled"
+        :size="size === 'large' ? 'default' : 'small'"
+        :clearable="clearable"
+        style="width: 120px"
+        @change="handleChange"
+      >
+        <el-option
+          v-for="item in options"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+          :disabled="item.disabled"
+        />
+      </el-select>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 interface OptionItem {
   label: string;
@@ -56,7 +70,7 @@ const emit = defineEmits(["update:modelValue", "change"]);
 
 const modelValue = computed({
   get: () => props.modelValue,
-  set: val => emit("update:modelValue", val)
+  set: (val) => emit("update:modelValue", val),
 });
 
 const handleChange = (val: any) => {
@@ -121,14 +135,14 @@ const handleChange = (val: any) => {
 
   &--small {
     padding: 8px 12px;
-
+    
     .sc-select-visual-card__icon {
       width: 24px;
       height: 24px;
       font-size: 14px;
       border-radius: 6px;
     }
-
+    
     .sc-select-visual-card__label {
       font-size: 13px;
     }

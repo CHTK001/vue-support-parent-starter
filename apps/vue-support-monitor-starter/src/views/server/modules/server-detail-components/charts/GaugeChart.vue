@@ -1,12 +1,9 @@
 <template>
-  <div
-    class="gauge-chart system-container modern-bg"
-    :style="{ height: height + 'px' }"
-  >
+  <div class="gauge-chart system-container modern-bg" :style="{ height: height + 'px' }">
     <div v-if="loading" class="loading-container">
-      <ScSkeleton :rows="2" animated />
+      <el-skeleton :rows="2" animated />
     </div>
-    <div v-else ref="chartRef" class="chart-container" />
+    <div v-else ref="chartRef" class="chart-container"></div>
   </div>
 </template>
 
@@ -17,58 +14,51 @@ import * as echarts from "echarts";
 const props = defineProps({
   chartData: {
     type: Object,
-    default: () => ({}),
+    default: () => ({})
   },
   height: {
     type: [Number, String],
-    default: 300,
+    default: 300
   },
   loading: {
     type: Boolean,
-    default: false,
+    default: false
   },
   chartConfig: {
     type: Object,
-    default: () => ({}),
-  },
+    default: () => ({})
+  }
 });
 
 const chartRef = ref<HTMLElement>();
 const chart = ref<echarts.ECharts>();
 
 // 监听数据变化
-watch(
-  () => props.chartData,
-  () => {
-    updateChart();
-  },
-  { deep: true },
-);
+watch(() => props.chartData, () => {
+  updateChart();
+}, { deep: true });
 
-watch(
-  () => props.loading,
-  (loading) => {
-    if (!loading) {
-      nextTick(() => {
-        initChart();
-      });
-    }
-  },
-);
+watch(() => props.loading, (loading) => {
+  if (!loading) {
+    nextTick(() => {
+      initChart();
+    });
+  }
+});
 
 // 生命周期
 onMounted(() => {
   if (!props.loading) {
     initChart();
   }
-  window.addEventListener("resize", handleResize);
+  window.addEventListener('resize', handleResize);
 });
 
 onBeforeUnmount(() => {
   if (chart.value) {
     chart.value.dispose();
   }
-  window.removeEventListener("resize", handleResize);
+  window.removeEventListener('resize', handleResize);
 });
 
 /**
@@ -76,8 +66,8 @@ onBeforeUnmount(() => {
  */
 const initChart = () => {
   if (!chartRef.value) return;
-
-  chart.value = echarts.init(chartRef.value, "dark");
+  
+  chart.value = echarts.init(chartRef.value, 'dark');
   updateChart();
 };
 
@@ -86,7 +76,7 @@ const initChart = () => {
  */
 const updateChart = () => {
   if (!chart.value) return;
-
+  
   const option = generateOption();
   chart.value.setOption(option, true);
 };
@@ -97,86 +87,86 @@ const updateChart = () => {
 const generateOption = () => {
   const data = props.chartData;
   const config = props.chartConfig;
-
+  
   const value = data.value || 0;
   const max = config.max || data.max || 100;
   const min = config.min || data.min || 0;
-  const unit = config.unit || data.unit || "";
-
+  const unit = config.unit || data.unit || '';
+  
   // 生成阈值颜色
   const thresholds = config.thresholds || [
-    { value: 80, color: "#F56C6C" },
-    { value: 60, color: "#E6A23C" },
-    { value: 0, color: "#67C23A" },
+    { value: 80, color: '#F56C6C' },
+    { value: 60, color: '#E6A23C' },
+    { value: 0, color: '#67C23A' }
   ];
-
+  
   const axisLineColors = thresholds
     .sort((a, b) => a.value - b.value)
-    .map((threshold) => [threshold.value / max, threshold.color]);
-
+    .map(threshold => [threshold.value / max, threshold.color]);
+  
   return {
     title: {
-      text: config.title || "",
+      text: config.title || '',
       textStyle: {
-        color: "#e0e0e0",
-        fontSize: config.fontSize || 14,
-      },
+        color: '#e0e0e0',
+        fontSize: config.fontSize || 14
+      }
     },
     series: [
       {
-        name: "仪表盘",
-        type: "gauge",
+        name: '仪表盘',
+        type: 'gauge',
         min: min,
         max: max,
         splitNumber: 5,
-        radius: "80%",
+        radius: '80%',
         axisLine: {
           lineStyle: {
             width: 10,
-            color: axisLineColors,
-          },
+            color: axisLineColors
+          }
         },
         pointer: {
           itemStyle: {
-            color: "auto",
-          },
+            color: 'auto'
+          }
         },
         axisTick: {
           distance: -30,
           length: 8,
           lineStyle: {
-            color: "#fff",
-            width: 2,
-          },
+            color: '#fff',
+            width: 2
+          }
         },
         splitLine: {
           distance: -30,
           length: 30,
           lineStyle: {
-            color: "#fff",
-            width: 4,
-          },
+            color: '#fff',
+            width: 4
+          }
         },
         axisLabel: {
-          color: "auto",
+          color: 'auto',
           distance: 40,
-          fontSize: 12,
+          fontSize: 12
         },
         detail: {
           valueAnimation: true,
           formatter: `{value}${unit}`,
-          color: "auto",
+          color: 'auto',
           fontSize: 20,
-          offsetCenter: [0, "70%"],
+          offsetCenter: [0, '70%']
         },
         data: [
           {
             value: value,
-            name: data.name || "当前值",
-          },
-        ],
-      },
-    ],
+            name: data.name || '当前值'
+          }
+        ]
+      }
+    ]
   };
 };
 
@@ -191,6 +181,7 @@ const handleResize = () => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -224,6 +215,7 @@ const handleResize = () => {
   }
 }
 
+
 .gauge-chart {
   width: 100%;
 }
@@ -241,6 +233,7 @@ const handleResize = () => {
   height: 100%;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -249,4 +242,5 @@ const handleResize = () => {
     padding: 12px 16px;
   }
 }
+
 </style>

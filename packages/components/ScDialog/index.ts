@@ -36,7 +36,7 @@ export {
   useDialogMemory,
   useDrawerMemory,
   clearAllComponentMemory,
-  getAllMemoryKeys
+  getAllMemoryKeys,
 } from "./composables";
 
 export type {
@@ -53,7 +53,7 @@ export type {
   DrawerMemoryData,
   ComponentMemoryData,
   ComponentMemoryOptions,
-  ComponentMemoryReturn
+  ComponentMemoryReturn,
 } from "./composables";
 
 // 默认导出，用于全局注册

@@ -2,7 +2,8 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { ScSwitch } from "@repo/components"
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+
 // 国际化
 const { t } = useI18n();
 
@@ -177,7 +178,7 @@ const encodeFile = (file) => {
     addToHistory(
       "encode",
       `文件: ${file.name}`,
-      base64String.substring(0, 100) + "...",
+      base64String.substring(0, 100) + "..."
     );
 
     env.loading = false;
@@ -434,7 +435,7 @@ onMounted(() => {
           v-if="env.mode === 'encode'"
           class="base64-tool__input-type-selector"
         >
-          <ScRadioGroup
+          <ScRadioGroup 
             v-model="env.inputType"
             size="default"
             @change="clearAll"
@@ -475,7 +476,7 @@ onMounted(() => {
                   <span>清空</span>
                 </ScButton>
 
-                <ScButton
+                <ScButton 
                   @click="generateExample"
                   size="small"
                   v-if="env.mode === 'encode'"
@@ -485,7 +486,7 @@ onMounted(() => {
                 </ScButton>
               </div>
 
-              <ScInput
+              <ScInput 
                 v-model="env.inputText"
                 type="textarea"
                 :rows="12"
@@ -555,7 +556,7 @@ onMounted(() => {
             </template>
 
             <div class="base64-tool__actions-bottom">
-              <ScButton
+              <ScButton 
                 type="primary"
                 @click="
                   env.mode === 'encode'
@@ -596,7 +597,7 @@ onMounted(() => {
             </template>
 
             <div v-if="env.loading" class="base64-tool__loading">
-              <ScSkeleton :rows="6" animated />
+              <el-skeleton :rows="6" animated />
             </div>
 
             <div v-else-if="env.errorMessage" class="base64-tool__error">
@@ -625,7 +626,7 @@ onMounted(() => {
 
             <div v-else class="base64-tool__result">
               <div class="base64-tool__result-actions">
-                <ScButton
+                <ScButton 
                   type="primary"
                   link
                   size="small"
@@ -636,7 +637,7 @@ onMounted(() => {
                   <span>复制</span>
                 </ScButton>
 
-                <ScButton
+                <ScButton 
                   type="success"
                   link
                   size="small"
@@ -675,7 +676,7 @@ onMounted(() => {
       </ScRow>
 
       <!-- 历史记录 -->
-      <ScCard
+      <ScCard 
         class="base64-tool__history-card"
         shadow="hover"
         v-if="env.history.length > 0"
@@ -687,7 +688,7 @@ onMounted(() => {
               class="base64-tool__card-icon"
             />
             <span>历史记录</span>
-            <ScButton
+            <ScButton 
               type="danger"
               link
               size="small"
@@ -703,7 +704,7 @@ onMounted(() => {
         <ScTable :data="env.history" style="width: 100%" size="small">
           <ScTableColumn label="操作" width="100">
             <template #default="scope">
-              <ScTag
+              <ScTag 
                 :type="scope.row.operation === 'encode' ? 'primary' : 'success'"
                 size="small"
               >
@@ -728,7 +729,7 @@ onMounted(() => {
           </ScTableColumn>
           <ScTableColumn label="操作" width="100" fixed="right">
             <template #default="scope">
-              <ScButton
+              <ScButton 
                 type="primary"
                 link
                 size="small"
@@ -756,41 +757,31 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-warning) 0%,
-      var(--el-color-warning-light-3) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-warning) 0%, var(--el-color-warning-light-3) 100%);
     border-radius: 16px;
     padding: 32px;
     color: #fff;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 8px 24px
-      color-mix(in srgb, var(--el-color-warning) 30%, transparent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--el-color-warning) 30%, transparent);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-
+    
     &::before {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(
-        135deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.1) 100%
-      );
+      background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 100%);
       pointer-events: none;
     }
-
+    
     &:hover {
-      box-shadow: 0 12px 32px
-        color-mix(in srgb, var(--el-color-warning) 40%, transparent);
+      box-shadow: 0 12px 32px color-mix(in srgb, var(--el-color-warning) 40%, transparent);
       transform: translateY(-2px);
     }
   }
@@ -894,32 +885,23 @@ onMounted(() => {
     overflow: hidden;
 
     &::before {
-      content: "";
+      content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(
-        135deg,
-        transparent 0%,
-        color-mix(in srgb, var(--el-color-primary) 5%, transparent) 100%
-      );
+      background: linear-gradient(135deg, transparent 0%, color-mix(in srgb, var(--el-color-primary) 5%, transparent) 100%);
       opacity: 0;
       transition: opacity 0.3s ease;
     }
 
     &:hover {
       border-color: var(--el-color-primary);
-      background: color-mix(
-        in srgb,
-        var(--el-color-primary) 8%,
-        var(--el-bg-color)
-      );
+      background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color));
       transform: translateY(-4px);
-      box-shadow: 0 8px 20px
-        color-mix(in srgb, var(--el-color-primary) 20%, transparent);
-
+      box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+      
       &::before {
         opacity: 1;
       }
@@ -1020,7 +1002,7 @@ onMounted(() => {
     white-space: pre-wrap;
     word-break: break-all;
     transition: all 0.3s ease;
-
+    
     &:hover {
       border-color: var(--el-color-primary);
     }

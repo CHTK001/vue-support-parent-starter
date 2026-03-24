@@ -4,7 +4,7 @@
  * @author AI Assistant
  * @version 1.0.0
  */
-import { ref, computed, onMounted, onUnmounted, type Ref } from "vue";
+import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue';
 
 export interface PerformanceOptions {
   /** 是否启用性能监控（仅开发模式） */
@@ -57,7 +57,12 @@ export interface PerformanceReturn {
  * 表格性能优化 composable
  */
 export function useTablePerformance(options: PerformanceOptions = {}): PerformanceReturn {
-  const { enableMonitor = import.meta.env?.DEV ?? false, layoutDebounce = 50, largeDataThreshold = 500, renderWarnThreshold = 100 } = options;
+  const {
+    enableMonitor = import.meta.env?.DEV ?? false,
+    layoutDebounce = 50,
+    largeDataThreshold = 500,
+    renderWarnThreshold = 100,
+  } = options;
 
   // 性能指标
   const metrics = ref<PerformanceMetrics>({
@@ -65,7 +70,7 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
     avgRenderTime: 0,
     renderCount: 0,
     rowCount: 0,
-    isLargeData: false
+    isLargeData: false,
   });
 
   // 大数据量状态
@@ -75,7 +80,7 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
 
   // 计时器
   let timingStart = 0;
-  let timingLabel = "";
+  let timingLabel = '';
   const renderTimes: number[] = [];
   const MAX_RENDER_HISTORY = 10;
 
@@ -95,10 +100,10 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
 
     layoutTimer = setTimeout(() => {
       if (pendingLayoutFn) {
-        startTiming("doLayout");
+        startTiming('doLayout');
         pendingLayoutFn();
-        const time = endTiming("doLayout");
-
+        const time = endTiming('doLayout');
+        
         if (enableMonitor && time > renderWarnThreshold) {
           console.warn(`[ScTable Performance] doLayout 耗时 ${time}ms，超过阈值 ${renderWarnThreshold}ms`);
         }
@@ -111,7 +116,7 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
   /**
    * 开始计时
    */
-  const startTiming = (label = "render"): void => {
+  const startTiming = (label = 'render'): void => {
     if (!enableMonitor) return;
     timingStart = performance.now();
     timingLabel = label;
@@ -120,7 +125,7 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
   /**
    * 结束计时并记录
    */
-  const endTiming = (label = "render"): number => {
+  const endTiming = (label = 'render'): number => {
     if (!enableMonitor || !timingStart) return 0;
 
     const elapsed = performance.now() - timingStart;
@@ -135,7 +140,9 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
     // 更新指标
     metrics.value.lastRenderTime = Math.round(elapsed * 100) / 100;
     metrics.value.renderCount++;
-    metrics.value.avgRenderTime = Math.round((renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length) * 100) / 100;
+    metrics.value.avgRenderTime = Math.round(
+      (renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length) * 100
+    ) / 100;
 
     // 开发模式输出
     if (enableMonitor && elapsed > renderWarnThreshold) {
@@ -157,9 +164,11 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
     // 首次检测到大数据量时显示提示
     if (isLargeData.value && !wasLarge && !tipDismissed.value) {
       showLargeDataTip.value = true;
-
+      
       if (enableMonitor) {
-        console.warn(`[ScTable Performance] 检测到大数据量 (${count} 行)，建议使用虚拟滚动模式 (layout="virtual")`);
+        console.warn(
+          `[ScTable Performance] 检测到大数据量 (${count} 行)，建议使用虚拟滚动模式 (layout="virtual")`
+        );
       }
     }
   };
@@ -181,7 +190,7 @@ export function useTablePerformance(options: PerformanceOptions = {}): Performan
       avgRenderTime: 0,
       renderCount: 0,
       rowCount: 0,
-      isLargeData: false
+      isLargeData: false,
     };
     renderTimes.length = 0;
     isLargeData.value = false;
@@ -201,7 +210,7 @@ ScTable 性能报告
 渲染次数: ${m.renderCount}
 最近渲染耗时: ${m.lastRenderTime}ms
 平均渲染耗时: ${m.avgRenderTime}ms
-是否大数据量: ${m.isLargeData ? "是" : "否"}
+是否大数据量: ${m.isLargeData ? '是' : '否'}
 大数据量阈值: ${largeDataThreshold}
 渲染警告阈值: ${renderWarnThreshold}ms
     `.trim();
@@ -225,14 +234,17 @@ ScTable 性能报告
     recordDataSize,
     dismissLargeDataTip,
     resetMetrics,
-    getReport
+    getReport,
   };
 }
 
 /**
  * 创建简单防抖函数
  */
-export function createDebounce<T extends (...args: any[]) => void>(fn: T, delay: number): (...args: Parameters<T>) => void {
+export function createDebounce<T extends (...args: any[]) => void>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   return (...args: Parameters<T>) => {
@@ -249,7 +261,10 @@ export function createDebounce<T extends (...args: any[]) => void>(fn: T, delay:
 /**
  * 创建节流函数
  */
-export function createThrottle<T extends (...args: any[]) => void>(fn: T, limit: number): (...args: Parameters<T>) => void {
+export function createThrottle<T extends (...args: any[]) => void>(
+  fn: T,
+  limit: number
+): (...args: Parameters<T>) => void {
   let lastCall = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -264,14 +279,11 @@ export function createThrottle<T extends (...args: any[]) => void>(fn: T, limit:
       if (timer) {
         clearTimeout(timer);
       }
-      timer = setTimeout(
-        () => {
-          lastCall = Date.now();
-          fn(...args);
-          timer = null;
-        },
-        limit - (now - lastCall)
-      );
+      timer = setTimeout(() => {
+        lastCall = Date.now();
+        fn(...args);
+        timer = null;
+      }, limit - (now - lastCall));
     }
   };
 }
@@ -279,7 +291,9 @@ export function createThrottle<T extends (...args: any[]) => void>(fn: T, limit:
 /**
  * RAF 节流（用于滚动等高频事件）
  */
-export function createRAFThrottle<T extends (...args: any[]) => void>(fn: T): (...args: Parameters<T>) => void {
+export function createRAFThrottle<T extends (...args: any[]) => void>(
+  fn: T
+): (...args: Parameters<T>) => void {
   let rafId: number | null = null;
 
   return (...args: Parameters<T>) => {

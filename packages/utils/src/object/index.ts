@@ -14,9 +14,7 @@ interface SplitResult<T extends RouteInput> {
 /**
  * 支持对象或数组传入，返回同类型剩余结构 + 被删节点数组
  */
-export function splitRemainingLeaves<T extends RouteInput>(
-  input: T,
-): SplitResult<T> {
+export function splitRemainingLeaves<T extends RouteInput>(input: T): SplitResult<T> {
   const isArr = Array.isArray(input);
   const copy: RouteItem[] = isArr ? input : [input];
 
@@ -127,11 +125,7 @@ export function countOccurrences(str, search) {
 export function mergeObjects(obj1, obj2) {
   for (var key in obj2) {
     if (obj2.hasOwnProperty(key)) {
-      if (
-        obj1.hasOwnProperty(key) &&
-        typeof obj1[key] === "object" &&
-        typeof obj2[key] === "object"
-      ) {
+      if (obj1.hasOwnProperty(key) && typeof obj1[key] === "object" && typeof obj2[key] === "object") {
         mergeObjects(obj1[key], obj2[key]);
       } else {
         obj1[key] = obj2[key];
@@ -224,15 +218,8 @@ const emailList = [
 export function queryEmail(queryString, callback) {
   let results = [];
   let queryList = [];
-  emailList.map((item) =>
-    queryList.push({ value: queryString.split("@")[0] + item.value }),
-  );
-  results = queryString
-    ? queryList.filter(
-        (item) =>
-          item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0,
-      )
-    : queryList;
+  emailList.map((item) => queryList.push({ value: queryString.split("@")[0] + item.value }));
+  results = queryString ? queryList.filter((item) => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0) : queryList;
   callback(results);
 }
 /**
@@ -292,28 +279,14 @@ export function guid() {
   function S4() {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
   }
-  return (
-    S4() +
-    S4() +
-    "-" +
-    S4() +
-    "-" +
-    S4() +
-    "-" +
-    S4() +
-    "-" +
-    S4() +
-    S4() +
-    S4()
-  );
+  return S4() + S4() + "-" + S4() + "-" + S4() + "-" + S4() + "-" + S4() + S4() + S4();
 }
 
 /**
  * 生成UUID
  */
 export function uuid(len, radix) {
-  var chars =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
+  var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
   var uuid = [],
     i;
   radix = radix || chars.length;
@@ -347,14 +320,11 @@ export function uuid(len, radix) {
  */
 export function generateUUID() {
   var d = new Date().getTime();
-  var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-    /[xy]/g,
-    function (c) {
-      var r = ((d + Math.random() * 16) % 16) | 0;
-      d = Math.floor(d / 16);
-      return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
-    },
-  );
+  var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (d + Math.random() * 16) % 16 | 0;
+    d = Math.floor(d / 16);
+    return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
   return uuid;
 }
 /**
@@ -601,16 +571,9 @@ export function formatDuration(milliseconds, showUnit = true, showOne = false) {
  * @param filePath {string} 文件路径
  * @returns {string} 格式化后的完整路径
  */
-export const formatFilePath = (
-  filePrefix: string | null,
-  filePath: string,
-): string => {
+export const formatFilePath = (filePrefix: string | null, filePath: string): string => {
   // 如果路径已经是完整的 URL，则直接返回
-  if (
-    filePath.startsWith("http://") ||
-    filePath.startsWith("https://") ||
-    filePath.startsWith("ftp://")
-  ) {
+  if (filePath.startsWith("http://") || filePath.startsWith("https://") || filePath.startsWith("ftp://")) {
     return filePath;
   }
   // 将 Windows 路径的反斜杠替换为正斜杠

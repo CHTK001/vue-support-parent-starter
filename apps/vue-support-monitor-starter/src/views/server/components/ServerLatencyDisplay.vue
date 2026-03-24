@@ -2,22 +2,18 @@
   <div class="server-latency-display system-container modern-bg">
     <!-- 延迟指示器 -->
     <div class="latency-indicator" :class="latencyClass">
-      <ScTooltip :content="latencyTooltip" placement="top" :show-after="300">
+      <el-tooltip :content="latencyTooltip" placement="top" :show-after="300">
         <div class="latency-content">
-          <div class="latency-dot" :class="latencyClass" />
+          <div class="latency-dot" :class="latencyClass"></div>
           <span class="latency-text">{{ latencyText }}</span>
         </div>
-      </ScTooltip>
+      </el-tooltip>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  formatLatencyText,
-  getLatencyStatus,
-  type LatencyStatus,
-} from "@/api/server";
+import { formatLatencyText, getLatencyStatus, type LatencyStatus } from "@/api/server";
 import { computed } from "vue";
 
 interface Props {
@@ -125,6 +121,7 @@ const latencyTooltip = computed(() => {
     z-index: 1;
   }
 }
+
 
 .server-latency-display {
   display: inline-flex;

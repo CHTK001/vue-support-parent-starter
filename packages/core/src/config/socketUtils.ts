@@ -31,12 +31,10 @@ export function parseSocketMessage(rawData: unknown): unknown {
     if (rawData === null || rawData === undefined || rawData === "") {
       return rawData;
     }
-
+    
     // 如果是字符串，先解析为对象
     const wrapper: SocketMessageWrapper =
-      typeof rawData === "string"
-        ? JSON.parse(rawData)
-        : (rawData as SocketMessageWrapper);
+      typeof rawData === "string" ? JSON.parse(rawData) : (rawData as SocketMessageWrapper);
 
     // 检查是否为新格式（包含 encrypted 字段）
     if (wrapper && typeof wrapper.encrypted === "boolean") {
@@ -76,7 +74,7 @@ export function parseSocketMessage(rawData: unknown): unknown {
 export function buildAuthUrl(
   baseUrl: string,
   token?: string,
-  query?: Record<string, string>,
+  query?: Record<string, string>
 ): string {
   const url = new URL(baseUrl);
   if (token) {

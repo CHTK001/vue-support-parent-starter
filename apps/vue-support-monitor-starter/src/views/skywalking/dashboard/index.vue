@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-content">
         <div class="header-icon">
-          <ScIcon :size="28"><Monitor /></ScIcon>
+          <el-icon :size="28"><Monitor /></el-icon>
         </div>
         <div class="header-info">
           <h2 class="header-title">SkyWalking 仪表盘</h2>
@@ -12,20 +12,15 @@
         </div>
       </div>
       <div class="header-actions">
-        <ScSelect
-          v-model="filterForm.configId"
-          placeholder="选择服务器"
-          class="config-select"
-          @change="handleConfigChange"
-        >
-          <ScOption
+        <el-select v-model="filterForm.configId" placeholder="选择服务器" @change="handleConfigChange" class="config-select">
+          <el-option
             v-for="item in configList"
             :key="item.skywalkingConfigId"
             :label="item.skywalkingConfigName"
             :value="item.skywalkingConfigId"
           />
-        </ScSelect>
-        <ScDatePicker
+        </el-select>
+        <el-date-picker
           v-model="timeRange"
           type="datetimerange"
           range-separator="-"
@@ -33,242 +28,165 @@
           end-placeholder="结束"
           format="MM-DD HH:mm"
           value-format="YYYY-MM-DD HHmm"
-          class="time-picker"
           @change="handleTimeChange"
+          class="time-picker"
         />
-        <ScButton type="primary" @click="fetchAllData">
-          <ScIcon><Search /></ScIcon>
+        <el-button type="primary" @click="fetchAllData">
+          <el-icon><Search /></el-icon>
           查询
-        </ScButton>
-        <ScButton
-          :type="autoRefresh ? 'success' : 'default'"
-          @click="toggleAutoRefresh"
-        >
-          <ScIcon><Refresh /></ScIcon>
-          {{ autoRefresh ? "刷新中" : "自动刷新" }}
-        </ScButton>
+        </el-button>
+        <el-button :type="autoRefresh ? 'success' : 'default'" @click="toggleAutoRefresh">
+          <el-icon><Refresh /></el-icon>
+          {{ autoRefresh ? '刷新中' : '自动刷新' }}
+        </el-button>
       </div>
     </div>
 
     <!-- 无配置提示 -->
-    <ScCard
-      v-if="!configList.length && !configLoading"
-      class="empty-config-card"
-      shadow="never"
-    >
-      <ScEmpty description="暂无 SkyWalking 配置" :image-size="120">
+    <el-card v-if="!configList.length && !configLoading" class="empty-config-card" shadow="never">
+      <el-empty description="暂无 SkyWalking 配置" :image-size="120">
         <template #description>
           <div class="empty-config-desc">
             <p>请先添加 SkyWalking 服务器配置，才能查看监控数据</p>
           </div>
         </template>
-        <ScButton type="primary" @click="goToConfig">
-          <ScIcon><Plus /></ScIcon>
+        <el-button type="primary" @click="goToConfig">
+          <el-icon><Plus /></el-icon>
           添加配置
-        </ScButton>
-      </ScEmpty>
-    </ScCard>
+        </el-button>
+      </el-empty>
+    </el-card>
 
     <!-- 指标概览卡片 -->
     <template v-if="configList.length">
-      <ScRow :gutter="16" class="metrics-row">
-        <ScCol :span="6">
-          <ScCard class="metric-card" shadow="hover">
-            <div class="metric-content">
-              <div class="metric-icon services">
-                <ScIcon :size="32"><Monitor /></ScIcon>
-              </div>
-              <div class="metric-info">
-                <div class="metric-value">
-                  {{ globalOverview.totalServices }}
-                </div>
-                <div class="metric-label">服务总数</div>
-              </div>
+    <el-row :gutter="16" class="metrics-row">
+      <el-col :span="6">
+        <el-card class="metric-card" shadow="hover">
+          <div class="metric-content">
+            <div class="metric-icon services">
+              <el-icon :size="32"><Monitor /></el-icon>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="metric-card" shadow="hover">
-            <div class="metric-content">
-              <div class="metric-icon cpm">
-                <ScIcon :size="32"><Odometer /></ScIcon>
-              </div>
-              <div class="metric-info">
-                <div class="metric-value">
-                  {{ formatNumber(globalOverview.totalCpm) }}
-                </div>
-                <div class="metric-label">总 CPM</div>
-              </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ globalOverview.totalServices }}</div>
+              <div class="metric-label">服务总数</div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="metric-card" shadow="hover">
-            <div class="metric-content">
-              <div class="metric-icon resptime">
-                <ScIcon :size="32"><Timer /></ScIcon>
-              </div>
-              <div class="metric-info">
-                <div class="metric-value">
-                  {{ globalOverview.avgRespTime }} ms
-                </div>
-                <div class="metric-label">平均响应时间</div>
-              </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="metric-card" shadow="hover">
+          <div class="metric-content">
+            <div class="metric-icon cpm">
+              <el-icon :size="32"><Odometer /></el-icon>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="metric-card" shadow="hover">
-            <div class="metric-content">
-              <div class="metric-icon sla">
-                <ScIcon :size="32"><CircleCheck /></ScIcon>
-              </div>
-              <div class="metric-info">
-                <div class="metric-value">
-                  {{ (globalOverview.avgSla / 100).toFixed(2) }}%
-                </div>
-                <div class="metric-label">平均成功率</div>
-              </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ formatNumber(globalOverview.totalCpm) }}</div>
+              <div class="metric-label">总 CPM</div>
             </div>
-          </ScCard>
-        </ScCol>
-      </ScRow>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="metric-card" shadow="hover">
+          <div class="metric-content">
+            <div class="metric-icon resptime">
+              <el-icon :size="32"><Timer /></el-icon>
+            </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ globalOverview.avgRespTime }} ms</div>
+              <div class="metric-label">平均响应时间</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card class="metric-card" shadow="hover">
+          <div class="metric-content">
+            <div class="metric-icon sla">
+              <el-icon :size="32"><CircleCheck /></el-icon>
+            </div>
+            <div class="metric-info">
+              <div class="metric-value">{{ (globalOverview.avgSla / 100).toFixed(2) }}%</div>
+              <div class="metric-label">平均成功率</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
 
-      <!-- 图表区域 -->
-      <ScRow :gutter="16" class="charts-row">
-        <ScCol :span="12">
-          <ScCard v-loading="trendLoading" class="chart-card" shadow="never">
-            <template #header>
-              <span>CPM 趋势</span>
-            </template>
-            <div
-              v-if="hasTrendData"
-              ref="cpmChartRef"
-              class="chart-container"
-            />
-            <ScEmpty
-              v-else-if="!trendLoading"
-              description="暂无数据"
-              :image-size="100"
-            />
-          </ScCard>
-        </ScCol>
-        <ScCol :span="12">
-          <ScCard v-loading="trendLoading" class="chart-card" shadow="never">
-            <template #header>
-              <span>响应时间趋势</span>
-            </template>
-            <div
-              v-if="hasTrendData"
-              ref="respTimeChartRef"
-              class="chart-container"
-            />
-            <ScEmpty
-              v-else-if="!trendLoading"
-              description="暂无数据"
-              :image-size="100"
-            />
-          </ScCard>
-        </ScCol>
-      </ScRow>
+    <!-- 图表区域 -->
+    <el-row :gutter="16" class="charts-row">
+      <el-col :span="12">
+        <el-card class="chart-card" shadow="never" v-loading="trendLoading">
+          <template #header>
+            <span>CPM 趋势</span>
+          </template>
+          <div v-if="hasTrendData" ref="cpmChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!trendLoading" description="暂无数据" :image-size="100" />
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card class="chart-card" shadow="never" v-loading="trendLoading">
+          <template #header>
+            <span>响应时间趋势</span>
+          </template>
+          <div v-if="hasTrendData" ref="respTimeChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!trendLoading" description="暂无数据" :image-size="100" />
+        </el-card>
+      </el-col>
+    </el-row>
 
-      <ScRow :gutter="16" class="charts-row">
-        <ScCol :span="12">
-          <ScCard
-            v-loading="slowEndpointsLoading"
-            class="chart-card"
-            shadow="never"
-          >
-            <template #header>
-              <span>慢端点排行 (Top 10)</span>
-            </template>
-            <div
-              v-if="slowEndpoints.length"
-              ref="slowEndpointsChartRef"
-              class="chart-container"
-            />
-            <ScEmpty
-              v-else-if="!slowEndpointsLoading"
-              description="暂无数据"
-              :image-size="100"
-            />
-          </ScCard>
-        </ScCol>
-        <ScCol :span="12">
-          <ScCard v-loading="trendLoading" class="chart-card" shadow="never">
-            <template #header>
-              <span>成功率趋势</span>
-            </template>
-            <div
-              v-if="hasTrendData"
-              ref="slaChartRef"
-              class="chart-container"
-            />
-            <ScEmpty
-              v-else-if="!trendLoading"
-              description="暂无数据"
-              :image-size="100"
-            />
-          </ScCard>
-        </ScCol>
-      </ScRow>
+    <el-row :gutter="16" class="charts-row">
+      <el-col :span="12">
+        <el-card class="chart-card" shadow="never" v-loading="slowEndpointsLoading">
+          <template #header>
+            <span>慢端点排行 (Top 10)</span>
+          </template>
+          <div v-if="slowEndpoints.length" ref="slowEndpointsChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!slowEndpointsLoading" description="暂无数据" :image-size="100" />
+        </el-card>
+      </el-col>
+      <el-col :span="12">
+        <el-card class="chart-card" shadow="never" v-loading="trendLoading">
+          <template #header>
+            <span>成功率趋势</span>
+          </template>
+          <div v-if="hasTrendData" ref="slaChartRef" class="chart-container"></div>
+          <el-empty v-else-if="!trendLoading" description="暂无数据" :image-size="100" />
+        </el-card>
+      </el-col>
+    </el-row>
 
-      <!-- 错误服务排行 -->
-      <ScRow :gutter="16" class="charts-row">
-        <ScCol :span="24">
-          <ScCard
-            v-loading="errorServicesLoading"
-            class="table-card"
-            shadow="never"
-          >
-            <template #header>
-              <span>高错误率服务</span>
-            </template>
-            <ScTable
-              v-if="errorServices.length"
-              :data="errorServices"
-              stripe
-              border
-              style="width: 100%"
-              max-height="300"
-            >
-              <ScTableColumn type="index" label="#" width="60" />
-              <ScTableColumn
-                prop="name"
-                label="服务名称"
-                min-width="200"
-                show-overflow-tooltip
-              />
-              <ScTableColumn label="错误率" width="200">
-                <template #default="{ row }">
-                  <ScProgress
-                    :percentage="Math.min(row.value / 100, 100)"
-                    :color="getErrorColor(row.value)"
-                    :stroke-width="16"
-                    :format="() => (row.value / 100).toFixed(2) + '%'"
-                  />
-                </template>
-              </ScTableColumn>
-              <ScTableColumn label="操作" width="120" align="center">
-                <template #default="{ row }">
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="goToService(row)"
-                    >查看详情</el-button
-                  >
-                </template>
-              </ScTableColumn>
-            </ScTable>
-            <ScEmpty
-              v-else-if="!errorServicesLoading"
-              description="暂无数据"
-              :image-size="100"
-            />
-          </ScCard>
-        </ScCol>
-      </ScRow>
+    <!-- 错误服务排行 -->
+    <el-row :gutter="16" class="charts-row">
+      <el-col :span="24">
+        <el-card class="table-card" shadow="never" v-loading="errorServicesLoading">
+          <template #header>
+            <span>高错误率服务</span>
+          </template>
+          <el-table v-if="errorServices.length" :data="errorServices" stripe border style="width: 100%" max-height="300">
+            <el-table-column type="index" label="#" width="60" />
+            <el-table-column prop="name" label="服务名称" min-width="200" show-overflow-tooltip />
+            <el-table-column label="错误率" width="200">
+              <template #default="{ row }">
+                <el-progress
+                  :percentage="Math.min((row.value / 100), 100)"
+                  :color="getErrorColor(row.value)"
+                  :stroke-width="16"
+                  :format="() => (row.value / 100).toFixed(2) + '%'"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" align="center">
+              <template #default="{ row }">
+                <el-button type="primary" link size="small" @click="goToService(row)">查看详情</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-empty v-else-if="!errorServicesLoading" description="暂无数据" :image-size="100" />
+        </el-card>
+      </el-col>
+    </el-row>
     </template>
   </div>
 </template>
@@ -277,20 +195,9 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import {
-  Monitor,
-  Odometer,
-  Timer,
-  CircleCheck,
-  Plus,
-  Search,
-  Refresh,
-} from "@element-plus/icons-vue";
+import { Monitor, Odometer, Timer, CircleCheck, Plus, Search, Refresh } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
-import {
-  getEnabledSkywalkingConfigs,
-  type SkywalkingConfig,
-} from "@/api/skywalking/config";
+import { getEnabledSkywalkingConfigs, type SkywalkingConfig } from "@/api/skywalking/config";
 import {
   getDefaultTimeRange,
   getGlobalMetricsOverview,
@@ -332,12 +239,8 @@ const slowEndpointsLoading = ref(false);
 const errorServicesLoading = ref(false);
 
 // 数据
-const slowEndpoints = ref<Array<{ id: string; name: string; value: number }>>(
-  [],
-);
-const errorServices = ref<Array<{ id: string; name: string; value: number }>>(
-  [],
-);
+const slowEndpoints = ref<Array<{ id: string; name: string; value: number }>>([]);
+const errorServices = ref<Array<{ id: string; name: string; value: number }>>([]);
 const hasTrendData = ref(false);
 
 // 图表引用
@@ -378,7 +281,7 @@ const loadConfigList = async () => {
 
 // 跳转到配置页面
 const goToConfig = () => {
-  router.push("/skywalking/config");
+  router.push('/skywalking/config');
 };
 
 // 配置变更
@@ -435,8 +338,7 @@ const fetchGlobalTrend = async () => {
       endTime: filterForm.endTime,
     });
     if (res.code === "00000" && res.data) {
-      const hasData =
-        res.data.timestamps?.length > 0 || res.data.cpm?.length > 0;
+      const hasData = res.data.timestamps?.length > 0 || res.data.cpm?.length > 0;
       hasTrendData.value = hasData;
       if (hasData) {
         await nextTick();
@@ -499,24 +401,19 @@ const renderCpmChart = (data: { timestamps: string[]; cpm: number[] }) => {
     xAxis: { type: "category", data: data.timestamps, boundaryGap: false },
     yAxis: { type: "value", name: "次/分钟" },
     grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    series: [
-      {
-        name: "CPM",
-        type: "line",
-        data: data.cpm,
-        smooth: true,
-        areaStyle: { opacity: 0.2 },
-        itemStyle: { color: "#409EFF" },
-      },
-    ],
+    series: [{
+      name: "CPM",
+      type: "line",
+      data: data.cpm,
+      smooth: true,
+      areaStyle: { opacity: 0.2 },
+      itemStyle: { color: "#409EFF" },
+    }],
   });
 };
 
 // 渲染响应时间图表
-const renderRespTimeChart = (data: {
-  timestamps: string[];
-  respTime: number[];
-}) => {
+const renderRespTimeChart = (data: { timestamps: string[]; respTime: number[] }) => {
   if (!respTimeChartRef.value) return;
   if (!respTimeChart) {
     respTimeChart = echarts.init(respTimeChartRef.value);
@@ -526,16 +423,14 @@ const renderRespTimeChart = (data: {
     xAxis: { type: "category", data: data.timestamps, boundaryGap: false },
     yAxis: { type: "value", name: "ms" },
     grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    series: [
-      {
-        name: "响应时间",
-        type: "line",
-        data: data.respTime,
-        smooth: true,
-        areaStyle: { opacity: 0.2 },
-        itemStyle: { color: "#E6A23C" },
-      },
-    ],
+    series: [{
+      name: "响应时间",
+      type: "line",
+      data: data.respTime,
+      smooth: true,
+      areaStyle: { opacity: 0.2 },
+      itemStyle: { color: "#E6A23C" },
+    }],
   });
 };
 
@@ -551,16 +446,14 @@ const renderSlaChart = (data: { timestamps: string[]; sla: number[] }) => {
     xAxis: { type: "category", data: data.timestamps, boundaryGap: false },
     yAxis: { type: "value", name: "%", min: 90, max: 100 },
     grid: { left: 60, right: 20, top: 30, bottom: 30 },
-    series: [
-      {
-        name: "成功率",
-        type: "line",
-        data: slaPercent,
-        smooth: true,
-        areaStyle: { opacity: 0.2 },
-        itemStyle: { color: "#67C23A" },
-      },
-    ],
+    series: [{
+      name: "成功率",
+      type: "line",
+      data: slaPercent,
+      smooth: true,
+      areaStyle: { opacity: 0.2 },
+      itemStyle: { color: "#67C23A" },
+    }],
   });
 };
 
@@ -573,33 +466,23 @@ const renderSlowEndpointsChart = () => {
   const names = slowEndpoints.value.map((e) => e.name).reverse();
   const values = slowEndpoints.value.map((e) => e.value).reverse();
   slowEndpointsChart.setOption({
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      formatter: "{b}<br/>响应时间: {c} ms",
-    },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: "{b}<br/>响应时间: {c} ms" },
     xAxis: { type: "value", name: "ms" },
-    yAxis: {
-      type: "category",
-      data: names,
-      axisLabel: { width: 120, overflow: "truncate" },
-    },
+    yAxis: { type: "category", data: names, axisLabel: { width: 120, overflow: "truncate" } },
     grid: { left: 140, right: 20, top: 10, bottom: 30 },
-    series: [
-      {
-        name: "响应时间",
-        type: "bar",
-        data: values,
-        itemStyle: {
-          color: (params: any) => {
-            const v = params.value;
-            if (v > 3000) return "#F56C6C";
-            if (v > 1000) return "#E6A23C";
-            return "#67C23A";
-          },
+    series: [{
+      name: "响应时间",
+      type: "bar",
+      data: values,
+      itemStyle: {
+        color: (params: any) => {
+          const v = params.value;
+          if (v > 3000) return "#F56C6C";
+          if (v > 1000) return "#E6A23C";
+          return "#67C23A";
         },
       },
-    ],
+    }],
   });
 };
 
@@ -664,6 +547,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -680,6 +564,8 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -714,13 +600,10 @@ onUnmounted(() => {
   }
 }
 
+
 .skywalking-dashboard {
   padding: 24px;
-  background: linear-gradient(
-    135deg,
-    var(--el-bg-color) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
+  background: linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-lighter) 100%);
   min-height: 100%;
 
   .page-header {
@@ -745,7 +628,7 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+        background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
         border-radius: 10px;
         color: white;
       }
@@ -811,15 +694,15 @@ onUnmounted(() => {
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 
           &.services {
-            background: linear-gradient(135deg, #409eff, #66b1ff);
+            background: linear-gradient(135deg, #409EFF, #66b1ff);
           }
 
           &.cpm {
-            background: linear-gradient(135deg, #67c23a, #85ce61);
+            background: linear-gradient(135deg, #67C23A, #85ce61);
           }
 
           &.resptime {
-            background: linear-gradient(135deg, #e6a23c, #ebb563);
+            background: linear-gradient(135deg, #E6A23C, #ebb563);
           }
 
           &.sla {
@@ -889,7 +772,7 @@ onUnmounted(() => {
     border-radius: 16px;
     border: 2px dashed var(--el-border-color);
     background: var(--el-fill-color-lighter);
-
+    
     :deep(.el-empty) {
       padding: 80px 0;
     }
@@ -897,7 +780,7 @@ onUnmounted(() => {
     .empty-config-desc {
       text-align: center;
       color: var(--el-text-color-secondary);
-
+      
       p {
         margin: 8px 0 0;
         font-size: 14px;
@@ -905,6 +788,7 @@ onUnmounted(() => {
     }
   }
 }
+
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -914,4 +798,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

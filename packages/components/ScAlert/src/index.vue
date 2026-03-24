@@ -70,6 +70,8 @@ const emit = defineEmits(["close"]);
 
 const { currentComponent } = useThemeComponent("ElAlert");
 
+
+
 const handleClose = () => {
   emit("close");
 };

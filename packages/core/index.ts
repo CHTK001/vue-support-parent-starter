@@ -1,6 +1,5 @@
 export * from "./src/config/socket";
 export * from "./src/config/socketService";
-export * from "./src/config/socketTemplate";
 export * from "./src/config/socketTopics";
 export * from "./src/router";
 export * from "./src/router/utils";

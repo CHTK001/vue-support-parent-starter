@@ -5,14 +5,19 @@
  * @version 1.0.0
  * @since 2025-12-05
 -->
+<template>
+  <ScTooltip v-if="showTooltip" :content="tooltipContent" :placement="tooltipPlacement" :effect="tooltipEffect" :disabled="!shouldShowTooltip" :raw-content="true">
+    <component :is="renderComponent" />
+  </ScTooltip>
+  <component v-else :is="renderComponent" />
+</template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode, getCurrentInstance, resolveComponent as vueResolveComponent } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, h, type VNode } from "vue";
 import { message } from "@repo/utils";
 import TypeIt from "typeit";
 import { ScTooltip } from "../../ScTooltip";
-import { useThemeComponent } from "../../hooks/useThemeComponent";
-import type { ScTextProps, TypeItInstance, ScTextThemeMotion } from "./types";
+import type { ScTextProps, ScTextType, ScTextSize, ScTextEffect, TypeItInstance } from "./types";
 
 defineOptions({
   name: "ScText"
@@ -53,8 +58,7 @@ const props = withDefaults(defineProps<ScTextProps>(), {
   fetchImmediate: true,
   fetchErrorText: "加载失败",
   fetchInterval: 0,
-  useTypeIt: false,
-  themeMotion: "none"
+  useTypeIt: false
 });
 
 const emit = defineEmits<{
@@ -77,22 +81,6 @@ const slots = defineSlots<{
   tooltip?: () => VNode[];
 }>();
 
-function extractTextFromNodes(nodes: VNode[] = []): string {
-  return nodes
-    .map(node => {
-      if (typeof node.children === "string") {
-        return node.children;
-      }
-
-      if (Array.isArray(node.children)) {
-        return extractTextFromNodes(node.children as VNode[]);
-      }
-
-      return "";
-    })
-    .join("");
-}
-
 // ==================== 状态 ====================
 const textRef = ref<HTMLElement | null>(null);
 const typeItRef = ref<HTMLElement | null>(null);
@@ -102,10 +90,7 @@ const editInputRef = ref<HTMLInputElement | null>(null);
 const isTruncated = ref(false);
 const typingText = ref("");
 const typingIndex = ref(0);
-const scrambleText = ref("");
 let typingTimer: ReturnType<typeof setTimeout> | null = null;
-let glitchFrameTimer: ReturnType<typeof setInterval> | null = null;
-let glitchCycleTimer: ReturnType<typeof setInterval> | null = null;
 
 // 远程调用状态
 const fetchedText = ref<string>("");
@@ -164,47 +149,6 @@ const displayText = computed(() => {
 });
 
 /**
- * 主题动效文本
- */
-const resolvedThemeMotion = computed<ScTextThemeMotion>(() => {
-  if (!props.themeMotion || props.themeMotion === "none") {
-    return "none";
-  }
-
-  if (props.themeMotion === "auto") {
-    switch (currentSkin.value) {
-      case "future-tech":
-        return "neon";
-      case "spring-festival":
-        return "gold-foil";
-      case "christmas":
-        return "frost";
-      case "halloween":
-        return "glitch";
-      default:
-        return "none";
-    }
-  }
-
-  return props.themeMotion;
-});
-
-const slotText = computed(() => extractTextFromNodes(slots.default?.() ?? []));
-
-const motionText = computed(() => displayText.value || props.text || slotText.value || "");
-
-const allowMotion = computed(() => {
-  return resolvedThemeMotion.value !== "none" && !props.useTypeIt && !!motionText.value;
-});
-
-const renderedText = computed(() => {
-  if (resolvedThemeMotion.value === "glitch" && scrambleText.value) {
-    return scrambleText.value;
-  }
-  return displayText.value;
-});
-
-/**
  * 是否显示加载状态
  */
 const isLoading = computed(() => {
@@ -212,21 +156,10 @@ const isLoading = computed(() => {
 });
 
 /**
- * 使用主题组件系统
- */
-const { currentSkin } = useThemeComponent("ElText");
-
-/**
  * 容器样式类
  */
 const containerClass = computed(() => {
   const classes = ["sc-text"];
-
-  // 添加 data-skin 主题类，用于 CSS 选择器
-  const skin = currentSkin.value || "default";
-  if (skin && skin !== "default") {
-    classes.push(`sc-text--skin-${skin}`);
-  }
 
   // 类型
   if (props.type && props.type !== "default") {
@@ -260,11 +193,6 @@ const containerClass = computed(() => {
   // 特效
   if (props.effect && props.effect !== "none") {
     classes.push(`sc-text--effect-${props.effect}`);
-  }
-
-  if (allowMotion.value) {
-    classes.push("sc-text--theme-motion");
-    classes.push(`sc-text--motion-${resolvedThemeMotion.value}`);
   }
 
   // 状态
@@ -474,84 +402,6 @@ function stopTypingEffect(): void {
   }
 }
 
-function stopGlitchEffect(): void {
-  if (glitchFrameTimer) {
-    clearInterval(glitchFrameTimer);
-    glitchFrameTimer = null;
-  }
-  scrambleText.value = "";
-}
-
-function randomGlyph(): string {
-  const glyphs = "01#@%&!?/\\\\<>[]{}";
-  return glyphs[Math.floor(Math.random() * glyphs.length)] || "#";
-}
-
-function startGlitchEffect(duration = 480): void {
-  if (resolvedThemeMotion.value !== "glitch" || !allowMotion.value) {
-    return;
-  }
-
-  const source = motionText.value;
-  if (!source) {
-    return;
-  }
-
-  stopGlitchEffect();
-
-  const totalFrames = Math.max(6, Math.min(source.length + 4, 16));
-  let frame = 0;
-
-  glitchFrameTimer = setInterval(() => {
-    frame += 1;
-    const revealCount = Math.min(
-      source.length,
-      Math.floor((frame / totalFrames) * source.length),
-    );
-    const stableText = source.slice(0, revealCount);
-    const scrambledText = source
-      .slice(revealCount)
-      .split("")
-      .map(char => (char.trim() ? randomGlyph() : char))
-      .join("");
-
-    scrambleText.value = `${stableText}${scrambledText}`;
-
-    if (frame >= totalFrames) {
-      stopGlitchEffect();
-    }
-  }, Math.max(28, Math.floor(duration / totalFrames)));
-}
-
-function syncGlitchCycle(): void {
-  if (glitchCycleTimer) {
-    clearInterval(glitchCycleTimer);
-    glitchCycleTimer = null;
-  }
-
-  stopGlitchEffect();
-
-  if (resolvedThemeMotion.value !== "glitch" || !allowMotion.value || !motionText.value) {
-    return;
-  }
-
-  glitchCycleTimer = setInterval(() => {
-    startGlitchEffect(540);
-  }, 3200);
-}
-
-function handleMouseenter(): void {
-  if (resolvedThemeMotion.value === "glitch") {
-    startGlitchEffect(620);
-  }
-}
-
-function handleMouseleave(): void {
-  if (resolvedThemeMotion.value === "glitch") {
-    stopGlitchEffect();
-  }
-}
-
 // ==================== 远程调用方法 ====================
 
 /**
@@ -741,14 +591,9 @@ function highlightText(text: string): VNode[] {
 }
 
 /**
- * 渲染组件（改为函数以避免 ref 上下文丢失）
- * 使用 getCurrentInstance 确保 ref 回调在正确的上下文中执行
+ * 渲染组件
  */
-function renderComponent() {
-  const instance = getCurrentInstance();
-  if (!instance) {
-    console.warn("[ScText] 无法获取组件实例，ref 可能无法正常工作");
-  }
+const renderComponent = computed(() => {
   // 加载状态（包括远程调用加载）
   if (isLoading.value) {
     return h("span", { class: containerClass.value, style: containerStyle.value }, [h("span", { class: "sc-text__skeleton" })]);
@@ -795,33 +640,24 @@ function renderComponent() {
   // 主文本
   if (props.useTypeIt) {
     // TypeIt 模式：创建空容器，由 TypeIt 填充内容
-    // 使用同一个 ref 引用，确保两个 ref 都指向同一个元素
-    const typeItElementRef = (el: HTMLElement | null) => {
-      if (el) {
-        textRef.value = el;
-        typeItRef.value = el;
-      }
-    };
     mainContent.push(
       h("span", {
-        ref: typeItElementRef,
+        ref: (el: HTMLElement | null) => {
+          textRef.value = el;
+          typeItRef.value = el;
+        },
         class: "sc-text__content sc-text__typeit"
       })
     );
   } else {
     // 普通模式
-    const textContent = allowMotion.value && slotText.value
-      ? highlightText(renderedText.value)
-      : slots.default
-        ? slots.default()
-        : highlightText(renderedText.value);
+    const textContent = slots.default ? slots.default() : highlightText(displayText.value);
     mainContent.push(
       h(
         "span",
         {
           ref: textRef,
-          class: "sc-text__content",
-          "data-text": motionText.value,
+          class: "sc-text__content"
         },
         textContent
       )
@@ -894,6 +730,7 @@ function renderComponent() {
   const rootProps: Record<string, unknown> = {
     class: containerClass.value,
     style: containerStyle.value,
+    onClick: handleClick
   };
 
   if (props.href) {
@@ -902,30 +739,13 @@ function renderComponent() {
   }
 
   return h(Tag, rootProps, children);
-}
+});
 
 /**
  * 解析组件（用于图标）
  */
 function resolveComponent(name: string): unknown {
-  const instance = getCurrentInstance();
-  if (instance) {
-    try {
-      // 尝试从应用上下文中解析组件
-      const component = vueResolveComponent(name);
-      if (component && typeof component !== "string") {
-        return component;
-      }
-    } catch {
-      // 如果解析失败，尝试从全局组件注册表中查找
-      const appContext = instance.appContext;
-      const globalComponent = appContext.components[name];
-      if (globalComponent) {
-        return globalComponent;
-      }
-    }
-  }
-  // 如果都找不到，返回组件名字符串，让 Vue 自动解析
+  // 使用全局注册的组件
   return name;
 }
 
@@ -947,8 +767,6 @@ onMounted(() => {
     startTypingEffect();
   }
 
-  syncGlitchCycle();
-
   // TypeIt 效果（如果没有远程调用）
   if (props.useTypeIt && !props.fetchText) {
     initTypeIt();
@@ -958,11 +776,6 @@ onMounted(() => {
 onUnmounted(() => {
   // 清理定时器
   stopTypingEffect();
-  stopGlitchEffect();
-  if (glitchCycleTimer) {
-    clearInterval(glitchCycleTimer);
-    glitchCycleTimer = null;
-  }
   stopFetchInterval();
   destroyTypeIt();
 
@@ -986,13 +799,8 @@ watch(
     if (props.useTypeIt) {
       initTypeIt();
     }
-    syncGlitchCycle();
   }
 );
-
-watch([resolvedThemeMotion, motionText, () => props.useTypeIt], () => {
-  syncGlitchCycle();
-});
 
 // 监听远程调用函数变化
 watch(
@@ -1025,13 +833,6 @@ defineExpose({
 });
 </script>
 
-<template>
-  <ScTooltip v-if="showTooltip" :content="tooltipContent" :placement="tooltipPlacement" :effect="tooltipEffect" :disabled="!shouldShowTooltip" :raw-content="true">
-    <component :is="renderComponent" />
-  </ScTooltip>
-  <component v-else :is="renderComponent" />
-</template>
-
 <style lang="scss" scoped>
 .sc-text {
   display: inline-flex;
@@ -1041,8 +842,6 @@ defineExpose({
   color: var(--el-text-color-regular);
   line-height: 1.5;
   vertical-align: middle;
-  position: relative;
-  isolation: isolate;
   transition: all 0.2s ease;
 
   // ==================== 类型 ====================
@@ -1232,109 +1031,6 @@ defineExpose({
     display: inline;
   }
 
-  &--theme-motion &__content {
-    position: relative;
-    display: inline-block;
-    will-change: transform, filter, text-shadow;
-  }
-
-  &--motion-neon &__content {
-    color: #bffcff;
-    text-shadow:
-      0 0 8px rgba(0, 255, 255, 0.75),
-      0 0 18px rgba(0, 255, 255, 0.45);
-    animation: sc-text-neon-pulse 2.2s ease-in-out infinite;
-  }
-
-  &--motion-neon &__content::after {
-    content: "";
-    position: absolute;
-    inset: auto 0 0 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.9), transparent);
-    box-shadow: 0 0 12px rgba(0, 255, 255, 0.6);
-    animation: sc-text-neon-scan 2.8s linear infinite;
-    pointer-events: none;
-  }
-
-  &--motion-gold-foil &__content {
-    background: linear-gradient(
-      120deg,
-      #fff6bf 0%,
-      #ffd700 18%,
-      #f0b400 35%,
-      #fff0a3 48%,
-      #d89b00 64%,
-      #fff6bf 82%,
-      #ffd700 100%
-    );
-    background-size: 220% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    filter: drop-shadow(0 1px 1px rgba(120, 20, 20, 0.28));
-    animation: sc-text-gold-shimmer 3s ease-in-out infinite;
-  }
-
-  &--motion-gold-foil &__content::after {
-    content: attr(data-text);
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    color: rgba(122, 16, 30, 0.85);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.24);
-    pointer-events: none;
-  }
-
-  &--motion-frost &__content {
-    color: #f6fff8;
-    text-shadow:
-      0 0 8px rgba(255, 255, 255, 0.55),
-      0 0 16px rgba(168, 255, 233, 0.26);
-    animation: sc-text-frost-twinkle 2.8s ease-in-out infinite;
-  }
-
-  &--motion-frost &__content::after {
-    content: "";
-    position: absolute;
-    inset: -2px -6px;
-    border-radius: 999px;
-    background: radial-gradient(circle at 18% 30%, rgba(255, 255, 255, 0.28), transparent 34%),
-      radial-gradient(circle at 82% 65%, rgba(199, 255, 237, 0.22), transparent 32%);
-    opacity: 0.8;
-    z-index: -1;
-    pointer-events: none;
-  }
-
-  &--motion-glitch &__content {
-    color: #ffd6b0;
-    text-shadow:
-      0.03em 0 0 rgba(255, 117, 24, 0.78),
-      -0.03em 0 0 rgba(117, 255, 3, 0.58);
-    animation: sc-text-glitch-jitter 2.6s steps(1, end) infinite;
-  }
-
-  &--motion-glitch &__content::before,
-  &--motion-glitch &__content::after {
-    content: attr(data-text);
-    position: absolute;
-    inset: 0;
-    opacity: 0.45;
-    pointer-events: none;
-  }
-
-  &--motion-glitch &__content::before {
-    color: rgba(255, 117, 24, 0.9);
-    transform: translate(-1px, -1px);
-    clip-path: inset(0 0 55% 0);
-  }
-
-  &--motion-glitch &__content::after {
-    color: rgba(117, 255, 3, 0.85);
-    transform: translate(1px, 1px);
-    clip-path: inset(48% 0 0 0);
-  }
-
   &__subtext {
     font-size: 0.85em;
     color: var(--el-text-color-secondary);
@@ -1435,76 +1131,6 @@ defineExpose({
   }
   100% {
     background-position: -200% 0;
-  }
-}
-
-@keyframes sc-text-neon-pulse {
-  0%,
-  100% {
-    text-shadow:
-      0 0 8px rgba(0, 255, 255, 0.75),
-      0 0 18px rgba(0, 255, 255, 0.45);
-  }
-  50% {
-    text-shadow:
-      0 0 12px rgba(0, 255, 255, 0.95),
-      0 0 26px rgba(0, 255, 255, 0.62);
-  }
-}
-
-@keyframes sc-text-neon-scan {
-  0%,
-  100% {
-    transform: translateY(-0.1em);
-    opacity: 0.12;
-  }
-  45% {
-    opacity: 0.48;
-  }
-  60% {
-    transform: translateY(0.95em);
-    opacity: 0;
-  }
-}
-
-@keyframes sc-text-gold-shimmer {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@keyframes sc-text-frost-twinkle {
-  0%,
-  100% {
-    transform: translateY(0);
-    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.22));
-  }
-  50% {
-    transform: translateY(-1px);
-    filter: drop-shadow(0 0 8px rgba(199, 255, 237, 0.32));
-  }
-}
-
-@keyframes sc-text-glitch-jitter {
-  0%,
-  100% {
-    transform: translate(0);
-  }
-  18% {
-    transform: translate(-1px, 1px);
-  }
-  20% {
-    transform: translate(1px, -1px);
-  }
-  55% {
-    transform: translate(1px, 0);
-  }
-  58% {
-    transform: translate(-1px, 0);
   }
 }
 </style>

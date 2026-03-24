@@ -1,13 +1,6 @@
 ﻿<template>
   <div>
-    <sc-dialog
-      draggable
-      :title="env.title"
-      width="80%"
-      v-model="env.visible"
-      @close="handleClose"
-      :close-on-click-modal="false"
-    >
+    <sc-dialog draggable :title="env.title" width="80%" v-model="env.visible" @close="handleClose" :close-on-click-modal="false">
       <div class="h-[600px]">
         <ScTable :url="fetchPageProjectForEmailLog" :columns="env.columns">
           <ScTableColumn prop="sysEmailRead" label="是否已读">
@@ -18,9 +11,7 @@
           </ScTableColumn>
           <ScTableColumn prop="sysEmailCode" label="状态">
             <template #default="{ row }">
-              <ScTag v-if="row.sysEmailCode === 'SUCCESS'" type="success"
-                >成功</ScTag
-              >
+              <ScTag v-if="row.sysEmailCode === 'SUCCESS'" type="success">成功</ScTag>
               <ScTag v-else type="danger">失败</ScTag>
             </template>
           </ScTableColumn>

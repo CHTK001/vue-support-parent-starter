@@ -7,9 +7,9 @@
       :close-on-click-modal="false"
       @close="handleClose"
     >
-      <ScSkeleton animated :loading="loadingConfig.loading">
+      <el-skeleton animated :loading="loadingConfig.loading">
         <template #default>
-          <ScForm
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
@@ -22,11 +22,11 @@
                 </ScFormItem>
               </ScCol>
               <ScCol :span="24">
-                <ScFormItem
+                <ScFormItem 
                   label="支持尺寸"
                   prop="sysAiVincentSupportedSizeList"
                 >
-                  <ScSelect
+                  <ScSelect 
                     multiple
                     v-model="form.sysAiVincentSupportedSizeList"
                     placeholder="请选择模块类型"
@@ -34,7 +34,7 @@
                     filterable
                     allow-create
                   >
-                    <ScOption
+                    <ScOption 
                       v-for="item in env.sysAiVincentSupportedSize"
                       :key="item"
                       :label="item"
@@ -45,11 +45,11 @@
               </ScCol>
 
               <ScCol :span="24">
-                <ScFormItem
+                <ScFormItem 
                   label="支持风格"
                   prop="sysAiVincentSupportedStyleList"
                 >
-                  <ScSelect
+                  <ScSelect 
                     multiple
                     v-model="form.sysAiVincentSupportedStyleList"
                     placeholder="请选择支持风格"
@@ -57,7 +57,7 @@
                     filterable
                     allow-create
                   >
-                    <ScOption
+                    <ScOption 
                       v-for="item in env.sysAiVincentSupportedStyle"
                       :key="item"
                       :label="getStyleLabel(item)"
@@ -88,7 +88,10 @@
               </ScCol>
 
               <ScCol :span="8">
-                <ScFormItem label="生成AI音效" prop="sysAiVincentSupportAudio">
+                <ScFormItem 
+                  label="生成AI音效"
+                  prop="sysAiVincentSupportAudio"
+                >
                   <el-segmented
                     v-model="form.sysAiVincentSupportAudio"
                     :options="[
@@ -106,7 +109,7 @@
               </ScCol>
 
               <ScCol :span="8">
-                <ScFormItem
+                <ScFormItem 
                   label="支持参考图"
                   prop="sysAiVincentSupportRefImage"
                 >
@@ -144,17 +147,17 @@
                 </ScFormItem>
               </ScCol>
               <ScCol :span="12">
-                <ScFormItem
+                <ScFormItem 
                   label="输出Fps"
                   prop="sysAiVincentSupportedFpsList"
                   v-if="form.sysAiVincentSupportFps == 1"
                 >
-                  <ScSelect
+                  <ScSelect 
                     v-model="form.sysAiVincentSupportedFpsList"
                     placeholder="请选择FPS"
                     multiple
                   >
-                    <ScOption
+                    <ScOption 
                       v-for="item in env.sysAiVincentSupportedFps"
                       :key="item"
                       :label="item"
@@ -166,7 +169,10 @@
               </ScCol>
 
               <ScCol :span="12">
-                <ScFormItem label="支持质量" prop="sysAiVincentSupportQuality">
+                <ScFormItem 
+                  label="支持质量"
+                  prop="sysAiVincentSupportQuality"
+                >
                   <el-segmented
                     v-model="form.sysAiVincentSupportQuality"
                     :options="[
@@ -183,17 +189,17 @@
                 </ScFormItem>
               </ScCol>
               <ScCol :span="12">
-                <ScFormItem
+                <ScFormItem 
                   label="视频质量"
                   prop="sysAiVincentSupportedQuality"
                   v-if="form.sysAiVincentSupportQuality == 1"
                 >
-                  <ScSelect
+                  <ScSelect 
                     v-model="form.sysAiVincentSupportedQuality"
                     placeholder="请选择质量"
                     multiple
                   >
-                    <ScOption
+                    <ScOption 
                       v-for="item in env.sysAiVincentSupportedQuality"
                       :key="item.value"
                       :label="item.label"
@@ -205,8 +211,11 @@
               </ScCol>
 
               <ScCol :span="24">
-                <ScFormItem label="输出张数" prop="sysAiVincentSupportedNumber">
-                  <ScInputNumber
+                <ScFormItem 
+                  label="输出张数"
+                  prop="sysAiVincentSupportedNumber"
+                >
+                  <ScInputNumber 
                     readonly
                     disabled
                     v-model="form.sysAiVincentSupportedNumber"
@@ -217,12 +226,12 @@
             </ScRow>
           </ScForm>
         </template>
-      </ScSkeleton>
+      </el-skeleton>
 
       <template #footer>
         <ScButton @click="env.visible = false">取 消</ScButton>
         <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
-          >确 定</ScButton
+          >确 定</el-button
         >
       </template>
     </sc-dialog>

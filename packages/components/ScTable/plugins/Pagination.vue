@@ -135,12 +135,17 @@ watch(
 
 // 使用版本号避免深度监听 columns
 const columnsVersion = computed(() => props.columns?.length ?? 0);
-watch(columnsVersion, () => {
-  // 在列数据变化时，可以进行处理
-});
+watch(
+  columnsVersion,
+  () => {
+    // 在列数据变化时，可以进行处理
+  }
+);
 
 // 使用版本号避免深度监听 tableConfig
-const tableConfigVersion = computed(() => `${props.tableConfig?.border}-${props.tableConfig?.stripe}-${props.tableConfig?.size}-${props.tableConfig?.draggable}`);
+const tableConfigVersion = computed(() => 
+  `${props.tableConfig?.border}-${props.tableConfig?.stripe}-${props.tableConfig?.size}-${props.tableConfig?.draggable}`
+);
 watch(
   tableConfigVersion,
   () => {
@@ -327,7 +332,7 @@ onMounted(() => {
 <template>
   <div class="pagination-container" :class="[`theme--${props.theme}`]">
     <!-- 标准分页 -->
-    <ScPagination
+    <el-pagination
       v-if="!props.hidePagination && props.paginationType === 'default'"
       v-model:currentPage="currentPageValue"
       background
@@ -343,18 +348,18 @@ onMounted(() => {
     <!-- 操作按钮 -->
     <div class="table-actions">
       <ScTooltip v-if="!props.hideRefresh" content="刷新" placement="top">
-        <ScButton circle size="default" @click="handleRefresh">
+        <el-button circle size="default" @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" />
-        </ScButton>
+        </el-button>
       </ScTooltip>
 
       <!-- 列设置按钮 - 在列表布局和卡片布局下隐藏 -->
       <template v-if="!!showColumnSettings">
-        <ScPopover v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
+        <el-popover v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
           <template #reference>
-            <ScButton circle size="default">
+            <el-button circle size="default">
               <IconifyIconOnline icon="ep:list" />
-            </ScButton>
+            </el-button>
           </template>
           33
           <div class="column-setting-container">
@@ -369,15 +374,15 @@ onMounted(() => {
               @live-update="handleLiveColumnUpdate"
             />
           </div>
-        </ScPopover>
+        </el-popover>
       </template>
 
       <!-- 表格设置按钮 - 仅在标准表格布局和Canvas表格布局下显示 -->
-      <ScPopover v-if="showTableSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+      <el-popover v-if="showTableSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
         <template #reference>
-          <ScButton circle size="default">
+          <el-button circle size="default">
             <IconifyIconOnline icon="ep:setting" />
-          </ScButton>
+          </el-button>
         </template>
 
         <div class="table-settings-container">
@@ -416,7 +421,7 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.border" @change="handleBorderChange" />
+                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
 
@@ -427,7 +432,7 @@ onMounted(() => {
                 <span>斑马纹样式</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.stripe" @change="handleStripeChange" />
+                <el-switch :model-value="tableConfigData.stripe" @change="handleStripeChange" />
               </div>
             </div>
 
@@ -441,7 +446,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
 
@@ -452,7 +457,7 @@ onMounted(() => {
                 <span>单元格十字标记</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
+                <el-switch :model-value="tableConfigData.crossHighlight" @change="handleCrossHighlightChange" />
               </div>
             </div>
 
@@ -469,7 +474,7 @@ onMounted(() => {
                 </ScTooltip>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
+                <el-switch :model-value="tableConfigData.cacheEnabled" @change="handleCacheEnabledChange" />
               </div>
             </div>
 
@@ -483,19 +488,19 @@ onMounted(() => {
                 </ScTooltip>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
+                <el-switch :model-value="tableConfigData.pageMemoryEnabled" @change="handlePageMemoryEnabledChange" />
               </div>
             </div>
           </div>
         </div>
-      </ScPopover>
+      </el-popover>
 
       <!-- 列表设置按钮 - 只显示拖拽排序选项 -->
-      <ScPopover v-if="showListSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+      <el-popover v-if="showListSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
         <template #reference>
-          <ScButton circle size="default">
+          <el-button circle size="default">
             <IconifyIconOnline icon="ep:setting" />
-          </ScButton>
+          </el-button>
         </template>
 
         <div class="table-settings-container">
@@ -512,7 +517,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
             <!-- 边框设置 -->
@@ -522,19 +527,19 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.border" @change="handleBorderChange" />
+                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
           </div>
         </div>
-      </ScPopover>
+      </el-popover>
 
       <!-- 卡片设置按钮 - 显示拖拽排序和边框选项 -->
-      <ScPopover v-if="showCardSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
+      <el-popover v-if="showCardSettings" v-model:visible="tableSettingVisible" placement="bottom" :width="340" trigger="click" popper-class="table-settings-popover">
         <template #reference>
-          <ScButton circle size="default">
+          <el-button circle size="default">
             <IconifyIconOnline icon="ep:setting" />
-          </ScButton>
+          </el-button>
         </template>
 
         <div class="table-settings-container">
@@ -551,7 +556,7 @@ onMounted(() => {
                 <span>启用拖拽排序</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
+                <el-switch :model-value="tableConfigData.draggable" @change="handleDraggableChange" />
               </div>
             </div>
             <!-- 边框设置 -->
@@ -561,12 +566,12 @@ onMounted(() => {
                 <span>显示边框</span>
               </div>
               <div class="setting-control">
-                <ScSwitch :model-value="tableConfigData.border" @change="handleBorderChange" />
+                <el-switch :model-value="tableConfigData.border" @change="handleBorderChange" />
               </div>
             </div>
           </div>
         </div>
-      </ScPopover>
+      </el-popover>
     </div>
     <!-- 滚动分页触发器（卡片/列表布局） -->
     <div v-if="props.paginationType === 'scroll'" class="scroll-pagination-trigger" style="width: 100%; height: 1px; opacity: 0" />
@@ -574,7 +579,7 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-// @use "@/styles/mixins.scss" as *;
+@use "@/styles/mixins.scss" as *;
 
 .pagination-container {
   display: flex;
@@ -592,14 +597,17 @@ onMounted(() => {
   // 主题变体
   @mixin theme-variant($type, $color, $light, $bg) {
     .settings-header {
-      background: linear-gradient(135deg, #{$bg} 0%, var(--stitch-lay-bg-panel) 50%, #{$bg} 100%);
+      background: linear-gradient(135deg, 
+        #{$bg} 0%, 
+        var(--stitch-lay-bg-panel) 50%,
+        #{$bg} 100%);
       box-shadow: 0 2px 8px color-mix(in srgb, #{$color}, transparent 90%);
-
+      
       .settings-icon {
         color: #{$color};
       }
     }
-
+    
     .table-actions .el-button:hover {
       border-color: #{$color};
       color: #{$color};
@@ -617,21 +625,11 @@ onMounted(() => {
     }
   }
 
-  &.theme--primary {
-    @include theme-variant("primary", var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary-alpha));
-  }
-  &.theme--success {
-    @include theme-variant("success", var(--stitch-lay-success), var(--stitch-lay-success-light), var(--stitch-lay-success-bg));
-  }
-  &.theme--warning {
-    @include theme-variant("warning", var(--stitch-lay-warning), var(--stitch-lay-warning-light), var(--stitch-lay-warning-bg));
-  }
-  &.theme--danger {
-    @include theme-variant("danger", var(--stitch-lay-error), var(--stitch-lay-error-light), var(--stitch-lay-error-bg));
-  }
-  &.theme--info {
-    @include theme-variant("info", var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg));
-  }
+  &.theme--primary { @include theme-variant('primary', var(--stitch-lay-primary), var(--stitch-lay-primary-light), var(--stitch-lay-primary-alpha)); }
+  &.theme--success { @include theme-variant('success', var(--stitch-lay-success), var(--stitch-lay-success-light), var(--stitch-lay-success-bg)); }
+  &.theme--warning { @include theme-variant('warning', var(--stitch-lay-warning), var(--stitch-lay-warning-light), var(--stitch-lay-warning-bg)); }
+  &.theme--danger { @include theme-variant('danger', var(--stitch-lay-error), var(--stitch-lay-error-light), var(--stitch-lay-error-bg)); }
+  &.theme--info { @include theme-variant('info', var(--stitch-lay-info), var(--stitch-lay-info-light), var(--stitch-lay-info-bg)); }
 }
 
 .pagination-left {
@@ -675,19 +673,19 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   flex-shrink: 0;
-
+  
   .el-button {
     border-radius: 8px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     border: 1px solid var(--stitch-lay-border);
-
+    
     &:hover {
       transform: translateY(-2px) scale(1.05);
       box-shadow: var(--stitch-lay-shadow-sm);
       border-color: var(--stitch-lay-primary);
     }
-
+    
     &:active {
       transform: translateY(0) scale(1);
     }
@@ -700,20 +698,20 @@ onMounted(() => {
   max-height: 560px;
   overflow-y: auto;
   overflow-x: hidden;
-
+  
   &::-webkit-scrollbar {
     width: 6px;
   }
-
+  
   &::-webkit-scrollbar-track {
     background: var(--stitch-lay-bg-hover);
     border-radius: 3px;
   }
-
+  
   &::-webkit-scrollbar-thumb {
     background: var(--stitch-lay-bg-active);
     border-radius: 3px;
-
+    
     &:hover {
       background: var(--stitch-lay-primary-light);
     }
@@ -726,14 +724,17 @@ onMounted(() => {
   gap: 12px;
   padding: 12px 16px;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, var(--stitch-lay-primary-alpha) 0%, var(--stitch-lay-bg-panel) 50%, var(--stitch-lay-primary-alpha) 100%);
+  background: linear-gradient(135deg, 
+    var(--stitch-lay-primary-alpha) 0%, 
+    var(--stitch-lay-bg-panel) 50%,
+    var(--stitch-lay-primary-alpha) 100%);
   border-radius: 10px;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--stitch-lay-primary), transparent 90%);
   position: relative;
   overflow: hidden;
-
+  
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     left: -100%;
@@ -803,7 +804,7 @@ onMounted(() => {
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
   }
-
+  
   &:active {
     transform: translateX(2px) scale(0.98);
   }
@@ -827,7 +828,7 @@ onMounted(() => {
     transform: translateX(4px);
     box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
   }
-
+  
   &:active {
     transform: translateX(2px) scale(0.98);
   }
@@ -856,7 +857,7 @@ onMounted(() => {
 
 .setting-control-full {
   width: 100%;
-
+  
   :deep(.el-segmented) {
     width: 100%;
   }
@@ -876,14 +877,14 @@ onMounted(() => {
     color: var(--stitch-lay-primary);
     transition: transform 0.3s ease;
   }
-
+  
   .help-icon {
     font-size: 15px;
     color: var(--stitch-lay-text-secondary);
     cursor: help;
     margin-left: 4px;
     transition: all 0.3s ease;
-
+    
     &:hover {
       color: var(--stitch-lay-primary);
       transform: scale(1.15);
@@ -902,7 +903,12 @@ onMounted(() => {
 
 .settings-divider {
   height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--stitch-lay-primary-alpha) 20%, var(--stitch-lay-primary-light) 50%, var(--stitch-lay-primary-alpha) 80%, transparent 100%);
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    var(--stitch-lay-primary-alpha) 20%,
+    var(--stitch-lay-primary-light) 50%,
+    var(--stitch-lay-primary-alpha) 80%,
+    transparent 100%);
   margin: 12px 0;
   border-radius: 1px;
 }

@@ -1,6 +1,6 @@
 <template>
   <div class="button-switch" :class="[size, { 'is-disabled': disabled }]">
-    <ScButton :type="isActive ? 'primary' : 'default'" :size="size" :disabled="disabled" :loading="loading" :class="{ 'active-button': isActive }" @click="toggle">
+    <el-button :type="isActive ? 'primary' : 'default'" :size="size" :disabled="disabled" :loading="loading" :class="{ 'active-button': isActive }" @click="toggle">
       <template #default>
         <div class="button-content">
           <component v-if="activeIcon && isActive" :is="activeIcon" class="icon" />
@@ -9,13 +9,13 @@
           <span v-else>{{ inactiveText || "关闭" }}</span>
         </div>
       </template>
-    </ScButton>
+    </el-button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps({
   modelValue: {

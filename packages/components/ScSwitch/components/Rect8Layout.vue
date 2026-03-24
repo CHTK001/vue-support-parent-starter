@@ -45,9 +45,17 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-type Rect8Position = "top-left" | "top-center" | "top-right" | "left-center" | "right-center" | "bottom-left" | "bottom-center" | "bottom-right";
+type Rect8Position =
+  | "top-left"
+  | "top-center"
+  | "top-right"
+  | "left-center"
+  | "right-center"
+  | "bottom-left"
+  | "bottom-center"
+  | "bottom-right";
 
 interface Rect8Option {
   /** 选项值 */
@@ -128,7 +136,7 @@ const emit = defineEmits(["update:modelValue", "change"]);
 
 const normalizedOptions = computed<Array<Rect8Option>>(() => {
   const options = props.rect8Options?.length ? props.rect8Options : DEFAULT_OPTIONS;
-  return options.filter(opt => !!opt?.value && !!opt?.position);
+  return options.filter((opt) => !!opt?.value && !!opt?.position);
 });
 
 const customStyle = computed(() => ({
@@ -191,9 +199,7 @@ function handleSelect(value: string): void {
   border-radius: 10px;
   background: transparent;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
 
   &:hover:not(:disabled) {
     background: rgba(var(--el-color-primary-rgb), 0.08);
@@ -261,10 +267,7 @@ function handleSelect(value: string): void {
   height: 8px;
   border-radius: 6px;
   background: var(--rect8-inactive-color);
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease,
-    box-shadow 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 
   .is-selected & {
     background: var(--rect8-active-color);
@@ -289,3 +292,5 @@ function handleSelect(value: string): void {
   background: rgba(0, 0, 0, 0.35);
 }
 </style>
+
+

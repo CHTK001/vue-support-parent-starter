@@ -2,22 +2,12 @@
   <div class="server-file-upload-progress system-container modern-bg">
     <!-- Socket.IO连接状态 -->
     <div class="connection-status">
-      <ScCard class="status-card" shadow="hover">
+      <el-card class="status-card" shadow="hover">
         <div class="status-content">
           <div class="status-indicator">
             <div class="status-icon-wrapper" :class="connectionStatusClass">
-              <IconifyIconOnline
-                :icon="connectionStatusIcon"
-                :class="[
-                  'status-icon',
-                  connectionStatusClass,
-                  { rotating: connectionStatus === 'CONNECTING' },
-                ]"
-              />
-              <div
-                v-if="connectionStatus === 'CONNECTED'"
-                class="status-pulse"
-              />
+              <IconifyIconOnline :icon="connectionStatusIcon" :class="['status-icon', connectionStatusClass, { rotating: connectionStatus === 'CONNECTING' }]" />
+              <div class="status-pulse" v-if="connectionStatus === 'CONNECTED'"></div>
             </div>
             <div class="status-info">
               <span class="status-text">{{ connectionStatusText }}</span>
@@ -56,45 +46,26 @@
           </div>
 
           <div class="connection-actions">
-            <ScButton
-              v-if="!isConnected"
-              type="primary"
-              size="default"
-              :loading="connectionStatus === 'CONNECTING'"
-              class="action-button"
-              @click="handleConnect"
-            >
+            <el-button v-if="!isConnected" type="primary" size="default" :loading="connectionStatus === 'CONNECTING'" @click="handleConnect" class="action-button">
               <IconifyIconOnline icon="ep:connection" />
               连接
-            </ScButton>
-            <ScButton
-              v-else
-              type="danger"
-              size="default"
-              class="action-button"
-              @click="handleDisconnect"
-            >
+            </el-button>
+            <el-button v-else type="danger" size="default" @click="handleDisconnect" class="action-button">
               <IconifyIconOnline icon="ep:close-connection" />
               断开
-            </ScButton>
-            <ScButton
-              type="info"
-              size="default"
-              :disabled="connectionStatus !== 'CONNECTED'"
-              class="action-button refresh-btn"
-              @click="handleRefreshStatistics"
-            >
+            </el-button>
+            <el-button type="info" size="default" :disabled="connectionStatus !== 'CONNECTED'" class="action-button refresh-btn" @click="handleRefreshStatistics">
               <IconifyIconOnline icon="ep:refresh" />
               刷新统计
-            </ScButton>
+            </el-button>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 队列状态 -->
     <div class="queue-status">
-      <ScCard class="queue-card" shadow="hover">
+      <el-card class="queue-card" shadow="hover">
         <template #header>
           <div class="section-header">
             <div class="header-icon">
@@ -102,11 +73,7 @@
             </div>
             <span class="header-title">队列状态</span>
             <div class="header-badge">
-              <ScBadge
-                :value="queueStatus.pendingTasks"
-                :max="99"
-                type="primary"
-              />
+              <el-badge :value="queueStatus.pendingTasks" :max="99" type="primary" />
             </div>
           </div>
         </template>
@@ -147,9 +114,7 @@
               <IconifyIconOnline icon="ep:odometer" />
             </div>
             <div class="metric-info">
-              <div class="metric-value">
-                {{ queueStatus.throughput.toFixed(1) }}
-              </div>
+              <div class="metric-value">{{ queueStatus.throughput.toFixed(1) }}</div>
               <div class="metric-label">吞吐量/分</div>
             </div>
           </div>
@@ -158,30 +123,16 @@
         <div class="queue-progress-section">
           <div class="progress-info">
             <span class="progress-label">并发处理进度</span>
-            <span class="progress-text"
-              >{{ queueStatus.currentConcurrent }}/{{
-                queueStatus.maxConcurrent
-              }}</span
-            >
+            <span class="progress-text">{{ queueStatus.currentConcurrent }}/{{ queueStatus.maxConcurrent }}</span>
           </div>
-          <ScProgress
-            :percentage="
-              Math.round(
-                (queueStatus.currentConcurrent / queueStatus.maxConcurrent) *
-                  100,
-              )
-            "
-            :stroke-width="8"
-            :show-text="false"
-            class="concurrency-progress"
-          />
+          <el-progress :percentage="Math.round((queueStatus.currentConcurrent / queueStatus.maxConcurrent) * 100)" :stroke-width="8" :show-text="false" class="concurrency-progress" />
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 活跃任务进度 -->
     <div class="active-tasks">
-      <ScCard class="tasks-card" shadow="hover">
+      <el-card class="tasks-card" shadow="hover">
         <template #header>
           <div class="section-header">
             <div class="header-icon">
@@ -189,21 +140,11 @@
             </div>
             <span class="header-title">活跃任务进度</span>
             <div class="header-actions">
-              <ScBadge
-                :value="activeTaskProgresses.length"
-                :max="99"
-                type="success"
-                class="task-count-badge"
-              />
-              <ScButton
-                type="primary"
-                text
-                class="refresh-button"
-                @click="handleRefresh"
-              >
+              <el-badge :value="activeTaskProgresses.length" :max="99" type="success" class="task-count-badge" />
+              <el-button type="primary" text @click="handleRefresh" class="refresh-button">
                 <IconifyIconOnline icon="ep:refresh" />
                 刷新
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </template>
@@ -217,48 +158,26 @@
         </div>
 
         <div v-else class="task-list">
-          <div
-            v-for="task in activeTaskProgresses"
-            :key="task.taskId"
-            class="task-item"
-            :class="getTaskItemClass(task.status)"
-          >
+          <div v-for="task in activeTaskProgresses" :key="task.taskId" class="task-item" :class="getTaskItemClass(task.status)">
             <div class="task-header">
               <div class="task-info">
                 <div class="task-title">
-                  <IconifyIconOnline
-                    :icon="getTaskIcon(task.status)"
-                    :class="getTaskIconClass(task.status)"
-                  />
+                  <IconifyIconOnline :icon="getTaskIcon(task.status)" :class="getTaskIconClass(task.status)" />
                   <span class="task-id">任务 #{{ task.taskId }}</span>
                   <span class="task-filename">{{ task.fileName }}</span>
                 </div>
-                <ScTag
-                  :type="getStatusType(task.status)"
-                  size="small"
-                  class="task-status-tag"
-                >
+                <el-tag :type="getStatusType(task.status)" size="small" class="task-status-tag">
                   {{ getStatusText(task.status) }}
-                </ScTag>
+                </el-tag>
               </div>
             </div>
 
             <div class="task-progress-section">
               <div class="progress-header">
                 <span class="progress-percentage">{{ task.progress }}%</span>
-                <span class="progress-size"
-                  >{{ formatFileSize(task.transferredBytes) }}/{{
-                    formatFileSize(task.totalBytes)
-                  }}</span
-                >
+                <span class="progress-size">{{ formatFileSize(task.transferredBytes) }}/{{ formatFileSize(task.totalBytes) }}</span>
               </div>
-              <ScProgress
-                :percentage="task.progress"
-                :status="getProgressStatus(task.status)"
-                :stroke-width="12"
-                :show-text="false"
-                class="task-progress-bar"
-              />
+              <el-progress :percentage="task.progress" :status="getProgressStatus(task.status)" :stroke-width="12" :show-text="false" class="task-progress-bar" />
             </div>
 
             <div class="task-metrics">
@@ -269,52 +188,34 @@
               </div>
               <div v-if="task.estimatedTime" class="metric-item">
                 <IconifyIconOnline icon="ep:clock" />
-                <span class="metric-value">{{
-                  formatDuration(task.estimatedTime)
-                }}</span>
+                <span class="metric-value">{{ formatDuration(task.estimatedTime) }}</span>
                 <span class="metric-label">剩余时间</span>
               </div>
               <div v-if="task.startTime" class="metric-item">
                 <IconifyIconOnline icon="ep:timer" />
-                <span class="metric-value">{{
-                  formatDuration(
-                    (Date.now() - new Date(task.startTime).getTime()) / 1000,
-                  )
-                }}</span>
+                <span class="metric-value">{{ formatDuration((Date.now() - new Date(task.startTime).getTime()) / 1000) }}</span>
                 <span class="metric-label">已用时间</span>
               </div>
             </div>
 
             <div class="task-actions">
-              <ScButton
-                size="small"
-                type="danger"
-                plain
-                class="action-btn"
-                @click="handleCancelTask(task.taskId)"
-              >
+              <el-button size="small" type="danger" plain @click="handleCancelTask(task.taskId)" class="action-btn">
                 <IconifyIconOnline icon="ep:close" />
                 取消
-              </ScButton>
-              <ScButton
-                size="small"
-                type="primary"
-                plain
-                class="action-btn"
-                @click="handleViewTaskDetail(task.taskId)"
-              >
+              </el-button>
+              <el-button size="small" type="primary" plain @click="handleViewTaskDetail(task.taskId)" class="action-btn">
                 <IconifyIconOnline icon="ep:view" />
                 详情
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 统计信息 -->
     <div class="statistics">
-      <ScCard class="stats-card" shadow="hover">
+      <el-card class="stats-card" shadow="hover">
         <template #header>
           <div class="section-header">
             <div class="header-icon">
@@ -322,9 +223,7 @@
             </div>
             <span class="header-title">统计信息</span>
             <div class="header-actions">
-              <ScTag type="info" size="small"
-                >成功率: {{ statistics.successRate.toFixed(1) }}%</el-tag
-              >
+              <el-tag type="info" size="small">成功率: {{ statistics.successRate.toFixed(1) }}%</el-tag>
             </div>
           </div>
         </template>
@@ -375,9 +274,7 @@
               <IconifyIconOnline icon="ep:folder" />
             </div>
             <div class="stat-content">
-              <div class="stat-value">
-                {{ formatFileSize(statistics.totalFileSize) }}
-              </div>
+              <div class="stat-value">{{ formatFileSize(statistics.totalFileSize) }}</div>
               <div class="stat-label">总文件大小</div>
             </div>
           </div>
@@ -387,14 +284,12 @@
               <IconifyIconOnline icon="ep:timer" />
             </div>
             <div class="stat-content">
-              <div class="stat-value">
-                {{ formatDuration(statistics.avgUploadTime) }}
-              </div>
+              <div class="stat-value">{{ formatDuration(statistics.avgUploadTime) }}</div>
               <div class="stat-label">平均用时</div>
             </div>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
   </div>
 </template>
@@ -403,10 +298,7 @@
 import { computed } from "vue";
 import { message } from "@repo/utils";
 import { useServerFileUpload } from "@/composables/useServerFileUpload";
-import {
-  cancelServerFileUploadTask,
-  TASK_STATUS,
-} from "@/api/server-file-upload";
+import { cancelServerFileUploadTask, TASK_STATUS } from "@/api/server-file-upload";
 
 // 使用组合式函数
 const {
@@ -423,7 +315,7 @@ const {
   disconnect,
   formatFileSize,
   formatSpeed,
-  formatDuration,
+  formatDuration
 } = useServerFileUpload();
 
 // Emits
@@ -473,11 +365,7 @@ const connectionStatusText = computed(() => {
 });
 
 const activeTaskProgresses = computed(() => {
-  return Array.from(taskProgresses.value.values()).filter(
-    (task) =>
-      task.status === TASK_STATUS.PROCESSING ||
-      task.status === TASK_STATUS.PENDING,
-  );
+  return Array.from(taskProgresses.value.values()).filter(task => task.status === TASK_STATUS.PROCESSING || task.status === TASK_STATUS.PENDING);
 });
 
 // 新增的计算属性和方法
@@ -547,7 +435,7 @@ const handleRefreshStatistics = () => {
   // 通过Socket.IO请求刷新统计信息
   if (socketClient.value && isConnected.value) {
     socketClient.value.emit("server_file_upload_refresh_statistics", {
-      timestamp: Date.now(),
+      timestamp: Date.now()
     });
     message("已请求刷新统计信息", { type: "success" });
   } else {
@@ -574,7 +462,7 @@ const getStatusType = (status: string) => {
     [TASK_STATUS.PROCESSING]: "warning",
     [TASK_STATUS.COMPLETED]: "success",
     [TASK_STATUS.FAILED]: "danger",
-    [TASK_STATUS.CANCELLED]: "info",
+    [TASK_STATUS.CANCELLED]: "info"
   };
   return statusMap[status] || "info";
 };
@@ -585,7 +473,7 @@ const getStatusText = (status: string) => {
     [TASK_STATUS.PROCESSING]: "处理中",
     [TASK_STATUS.COMPLETED]: "已完成",
     [TASK_STATUS.FAILED]: "失败",
-    [TASK_STATUS.CANCELLED]: "已取消",
+    [TASK_STATUS.CANCELLED]: "已取消"
   };
   return statusMap[status] || status;
 };
@@ -623,6 +511,7 @@ const getProgressStatus = (status: string) => {
     z-index: 1;
   }
 }
+
 
 .server-file-upload-progress {
   display: flex;
@@ -792,7 +681,7 @@ const getProgressStatus = (status: string) => {
 
 .status-subtitle {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .connection-metrics {
@@ -843,7 +732,7 @@ const getProgressStatus = (status: string) => {
 
 .metric-label {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .connection-actions {
@@ -873,12 +762,7 @@ const getProgressStatus = (status: string) => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s;
 }
 
@@ -1014,7 +898,7 @@ const getProgressStatus = (status: string) => {
 
 .empty-description {
   font-size: 14px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   margin: 0;
 }
 
@@ -1186,7 +1070,7 @@ const getProgressStatus = (status: string) => {
 
 .metric-label {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 .task-actions {
@@ -1338,7 +1222,7 @@ const getProgressStatus = (status: string) => {
 
 .stat-label {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
 }
 
 /* 响应式设计 */

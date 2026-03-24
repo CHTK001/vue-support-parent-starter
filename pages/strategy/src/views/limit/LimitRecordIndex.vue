@@ -134,7 +134,7 @@
 
         <!-- 分页 -->
         <div class="pagination-container">
-          <ScPagination
+          <el-pagination
             v-model:current-page="pagination.current"
             v-model:page-size="pagination.size"
             :total="pagination.total"
@@ -153,51 +153,51 @@
       title="限流记录详情"
       width="600px"
     >
-      <ScDescriptions :column="2" border>
-        <ScDescriptionsItem label="记录ID">
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="记录ID">
           {{ currentRecord?.sysLimitRecordId }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="规则名称">
+        </el-descriptions-item>
+        <el-descriptions-item label="规则名称">
           {{ currentRecord?.sysLimitName }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="接口路径" :span="2">
+        </el-descriptions-item>
+        <el-descriptions-item label="接口路径" :span="2">
           <ScTag type="warning" size="small">{{ currentRecord?.sysLimitPath }}</ScTag>
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="IP地址">
+        </el-descriptions-item>
+        <el-descriptions-item label="IP地址">
           {{ currentRecord?.clientIp || '-' }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="用户">
+        </el-descriptions-item>
+        <el-descriptions-item label="用户">
           {{ currentRecord?.sysUserName || currentRecord?.sysUserId || '-' }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="限流维度">
+        </el-descriptions-item>
+        <el-descriptions-item label="限流维度">
           <ScTag :type="getDimensionType(currentRecord?.sysLimitDimension)" size="small">
             {{ getDimensionLabel(currentRecord?.sysLimitDimension) }}
           </ScTag>
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="请求方法">
+        </el-descriptions-item>
+        <el-descriptions-item label="请求方法">
           <ScTag :type="getMethodType(currentRecord?.requestMethod)" size="small">
             {{ currentRecord?.requestMethod || '-' }}
           </ScTag>
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="限流键" :span="2">
+        </el-descriptions-item>
+        <el-descriptions-item label="限流键" :span="2">
           <span class="detail-key">{{ currentRecord?.sysLimitKey || '-' }}</span>
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="限流时间">
+        </el-descriptions-item>
+        <el-descriptions-item label="限流时间">
           {{ currentRecord?.sysLimitTime || '-' }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="记录时间">
+        </el-descriptions-item>
+        <el-descriptions-item label="记录时间">
           {{ currentRecord?.createTime }}
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="用户代理" :span="2">
+        </el-descriptions-item>
+        <el-descriptions-item label="用户代理" :span="2">
           <span class="user-agent">{{ currentRecord?.userAgent || '-' }}</span>
-        </ScDescriptionsItem>
-        <ScDescriptionsItem label="请求参数" :span="2">
+        </el-descriptions-item>
+        <el-descriptions-item label="请求参数" :span="2">
           <div v-if="currentRecord?.requestParams" class="json-content">
             <pre>{{ formatJson(currentRecord?.requestParams) }}</pre>
           </div>
           <span v-else>-</span>
-        </ScDescriptionsItem>
-      </ScDescriptions>
+        </el-descriptions-item>
+      </el-descriptions>
       <template #footer>
         <ScButton @click="detailDialogVisible = false">关闭</ScButton>
         <ScButton type="danger" @click="handleDeleteSingle(currentRecord)">

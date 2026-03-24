@@ -8,3 +8,11 @@ export function setupStore(app: App<Element>) {
 
 export { store };
 
+// 应用启动器
+export {
+  createAppBootstrap,
+  quickBootstrap,
+  createStandardApp,
+  AppBootstrap,
+} from "./app-bootstrap";
+export type { BootstrapOptions, StandardAppOptions } from "./app-bootstrap";

@@ -171,13 +171,9 @@ export interface QueryCondition {
  * 获取所有层
  */
 export function getSkywalkingLayers(configId: number) {
-  return http.request<ReturnResult<string[]>>(
-    "get",
-    "v1/skywalking/data/layers",
-    {
-      params: { configId },
-    },
-  );
+  return http.request<ReturnResult<string[]>>("get", "v1/skywalking/data/layers", {
+    params: { configId },
+  });
 }
 
 /**
@@ -190,13 +186,9 @@ export function getSkywalkingServices(params: {
   step?: string;
   layer?: string;
 }) {
-  return http.request<ReturnResult<SkywalkingService[]>>(
-    "get",
-    "v1/skywalking/data/services",
-    {
-      params,
-    },
-  );
+  return http.request<ReturnResult<SkywalkingService[]>>("get", "v1/skywalking/data/services", {
+    params,
+  });
 }
 
 /**
@@ -209,13 +201,9 @@ export function searchSkywalkingServices(params: {
   step?: string;
   keyword?: string;
 }) {
-  return http.request<ReturnResult<SkywalkingService[]>>(
-    "get",
-    "v1/skywalking/data/services/search",
-    {
-      params,
-    },
-  );
+  return http.request<ReturnResult<SkywalkingService[]>>("get", "v1/skywalking/data/services/search", {
+    params,
+  });
 }
 
 /**
@@ -228,12 +216,12 @@ export function getSkywalkingInstances(
     startTime: string;
     endTime: string;
     step?: string;
-  },
+  }
 ) {
   return http.request<ReturnResult<SkywalkingInstance[]>>(
     "get",
     `v1/skywalking/data/services/${serviceId}/instances`,
-    { params },
+    { params }
   );
 }
 
@@ -246,12 +234,12 @@ export function getSkywalkingEndpoints(
     configId: number;
     keyword?: string;
     limit?: number;
-  },
+  }
 ) {
   return http.request<ReturnResult<SkywalkingEndpoint[]>>(
     "get",
     `v1/skywalking/data/services/${serviceId}/endpoints`,
-    { params },
+    { params }
   );
 }
 
@@ -275,24 +263,16 @@ export function querySkywalkingTraces(params: {
   pageNum?: number;
   pageSize?: number;
 }) {
-  return http.request<ReturnResult<TraceBrief>>(
-    "get",
-    "v1/skywalking/data/traces",
-    { params },
-  );
+  return http.request<ReturnResult<TraceBrief>>("get", "v1/skywalking/data/traces", { params });
 }
 
 /**
  * 查询链路详情
  */
 export function getSkywalkingTraceDetail(traceId: string, configId: number) {
-  return http.request<ReturnResult<TraceDetail>>(
-    "get",
-    `v1/skywalking/data/traces/${traceId}`,
-    {
-      params: { configId },
-    },
-  );
+  return http.request<ReturnResult<TraceDetail>>("get", `v1/skywalking/data/traces/${traceId}`, {
+    params: { configId },
+  });
 }
 
 /**
@@ -305,13 +285,9 @@ export function getSkywalkingGlobalTopology(params: {
   step?: string;
   layer?: string;
 }) {
-  return http.request<ReturnResult<Topology>>(
-    "get",
-    "v1/skywalking/data/topology/global",
-    {
-      params,
-    },
-  );
+  return http.request<ReturnResult<Topology>>("get", "v1/skywalking/data/topology/global", {
+    params,
+  });
 }
 
 /**
@@ -324,12 +300,12 @@ export function getSkywalkingServiceTopology(
     startTime: string;
     endTime: string;
     step?: string;
-  },
+  }
 ) {
   return http.request<ReturnResult<Topology>>(
     "get",
     `v1/skywalking/data/topology/service/${serviceId}`,
-    { params },
+    { params }
   );
 }
 
@@ -345,11 +321,7 @@ export function getSkywalkingAlarms(params: {
   pageNum?: number;
   pageSize?: number;
 }) {
-  return http.request<ReturnResult<AlarmList>>(
-    "get",
-    "v1/skywalking/data/alarms",
-    { params },
-  );
+  return http.request<ReturnResult<AlarmList>>("get", "v1/skywalking/data/alarms", { params });
 }
 
 // ==================== 指标相关类型 ====================
@@ -388,11 +360,11 @@ export interface MetricCondition {
  * 服务指标概览
  */
 export interface ServiceMetricsOverview {
-  cpm: number; // 每分钟调用次数
-  sla: number; // SLA百分比 (x100)
-  respTime: number; // 平均响应时间 ms
-  apdex: number; // Apdex 分数 (x10000)
-  percentile?: number[]; // p50, p75, p90, p95, p99
+  cpm: number;               // 每分钟调用次数
+  sla: number;               // SLA百分比 (x100)
+  respTime: number;          // 平均响应时间 ms
+  apdex: number;             // Apdex 分数 (x10000)
+  percentile?: number[];     // p50, p75, p90, p95, p99
 }
 
 /**
@@ -421,7 +393,7 @@ export function getServiceMetricsOverview(params: {
   return http.request<ReturnResult<ServiceMetricsOverview>>(
     "get",
     `v1/skywalking/data/metrics/service/${params.serviceId}/overview`,
-    { params },
+    { params }
   );
 }
 
@@ -438,7 +410,7 @@ export function getServiceMetricsTrend(params: {
   return http.request<ReturnResult<ServiceMetricsTrend>>(
     "get",
     `v1/skywalking/data/metrics/service/${params.serviceId}/trend`,
-    { params },
+    { params }
   );
 }
 
@@ -455,7 +427,7 @@ export function getInstanceMetricsOverview(params: {
   return http.request<ReturnResult<ServiceMetricsOverview>>(
     "get",
     `v1/skywalking/data/metrics/instance/${params.instanceId}/overview`,
-    { params },
+    { params }
   );
 }
 
@@ -472,7 +444,7 @@ export function getEndpointMetricsTrend(params: {
   return http.request<ReturnResult<ServiceMetricsTrend>>(
     "get",
     `v1/skywalking/data/metrics/endpoint/${params.endpointId}/trend`,
-    { params },
+    { params }
   );
 }
 
@@ -485,15 +457,13 @@ export function getGlobalMetricsOverview(params: {
   endTime: string;
   step?: string;
 }) {
-  return http.request<
-    ReturnResult<{
-      totalServices: number;
-      totalEndpoints: number;
-      totalCpm: number;
-      avgRespTime: number;
-      avgSla: number;
-    }>
-  >("get", "v1/skywalking/data/metrics/global/overview", { params });
+  return http.request<ReturnResult<{
+    totalServices: number;
+    totalEndpoints: number;
+    totalCpm: number;
+    avgRespTime: number;
+    avgSla: number;
+  }>>("get", "v1/skywalking/data/metrics/global/overview", { params });
 }
 
 /**
@@ -508,7 +478,7 @@ export function getGlobalMetricsTrend(params: {
   return http.request<ReturnResult<ServiceMetricsTrend>>(
     "get",
     "v1/skywalking/data/metrics/global/trend",
-    { params },
+    { params }
   );
 }
 
@@ -523,15 +493,11 @@ export function getSlowEndpoints(params: {
   step?: string;
   limit?: number;
 }) {
-  return http.request<
-    ReturnResult<
-      Array<{
-        id: string;
-        name: string;
-        value: number;
-      }>
-    >
-  >("get", "v1/skywalking/data/metrics/slow-endpoints", { params });
+  return http.request<ReturnResult<Array<{
+    id: string;
+    name: string;
+    value: number;
+  }>>>("get", "v1/skywalking/data/metrics/slow-endpoints", { params });
 }
 
 /**
@@ -544,15 +510,11 @@ export function getErrorRateServices(params: {
   step?: string;
   limit?: number;
 }) {
-  return http.request<
-    ReturnResult<
-      Array<{
-        id: string;
-        name: string;
-        value: number;
-      }>
-    >
-  >("get", "v1/skywalking/data/metrics/error-rate-services", { params });
+  return http.request<ReturnResult<Array<{
+    id: string;
+    name: string;
+    value: number;
+  }>>>("get", "v1/skywalking/data/metrics/error-rate-services", { params });
 }
 
 // ==================== 自定义查询 API ====================
@@ -571,50 +533,34 @@ export interface CustomQueryRequest {
  * 执行自定义 GraphQL 查询
  */
 export function executeCustomQuery(data: CustomQueryRequest) {
-  return http.request<ReturnResult<any>>(
-    "post",
-    "v1/skywalking/data/custom/query",
-    { data },
-  );
+  return http.request<ReturnResult<any>>("post", "v1/skywalking/data/custom/query", { data });
 }
 
 /**
  * 获取 GraphQL Schema
  */
 export function getGraphQLSchema(configId: number) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    "v1/skywalking/data/custom/schema",
-    {
-      params: { configId },
-    },
-  );
+  return http.request<ReturnResult<any>>("get", "v1/skywalking/data/custom/schema", {
+    params: { configId },
+  });
 }
 
 /**
  * 获取可用的查询列表
  */
 export function getAvailableQueries(configId: number) {
-  return http.request<ReturnResult<any>>(
-    "get",
-    "v1/skywalking/data/custom/queries",
-    {
-      params: { configId },
-    },
-  );
+  return http.request<ReturnResult<any>>("get", "v1/skywalking/data/custom/queries", {
+    params: { configId },
+  });
 }
 
 /**
  * 获取可用的指标名称列表
  */
 export function getAvailableMetrics(configId: number, regex?: string) {
-  return http.request<ReturnResult<string[]>>(
-    "get",
-    "v1/skywalking/data/custom/metrics",
-    {
-      params: { configId, regex: regex || ".*" },
-    },
-  );
+  return http.request<ReturnResult<string[]>>("get", "v1/skywalking/data/custom/metrics", {
+    params: { configId, regex: regex || ".*" },
+  });
 }
 
 // ==================== 工具函数 ====================
@@ -625,7 +571,7 @@ export function getAvailableMetrics(configId: number, regex?: string) {
 export function getDefaultTimeRange(minutes: number = 15) {
   const now = new Date();
   const start = new Date(now.getTime() - minutes * 60 * 1000);
-
+  
   const formatTime = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");

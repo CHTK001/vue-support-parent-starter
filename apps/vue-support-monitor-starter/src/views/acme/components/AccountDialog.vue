@@ -12,21 +12,15 @@
     <template #header>
       <div class="dialog-header">
         <div class="header-icon" :class="isEdit ? 'edit' : 'add'">
-          <IconifyIconOnline
-            :icon="isEdit ? 'mdi:account-edit' : 'mdi:account-plus'"
-          />
+          <IconifyIconOnline :icon="isEdit ? 'mdi:account-edit' : 'mdi:account-plus'" />
         </div>
         <div class="header-info">
-          <h3 class="header-title">
-            {{ isEdit ? "编辑 ACME 账户" : "添加 ACME 账户" }}
-          </h3>
-          <p class="header-desc">
-            {{
-              isEdit
-                ? "修改账户信息后将自动更新关联的证书配置"
-                : "ACME 账户用于与证书颁发机构通信"
-            }}
-          </p>
+          <h3 class="header-title">{{ isEdit ? '编辑 ACME 账户' : '添加 ACME 账户' }}</h3>
+          <p class="header-desc">{{
+            isEdit
+              ? '修改账户信息后将自动更新关联的证书配置'
+              : 'ACME 账户用于与证书颁发机构通信'
+          }}</p>
         </div>
         <button class="close-btn" @click="dialogVisible = false">
           <IconifyIconOnline icon="mdi:close" />
@@ -34,7 +28,7 @@
       </div>
     </template>
 
-    <ScForm
+    <el-form
       ref="formRef"
       :model="form"
       :rules="rules"
@@ -43,7 +37,7 @@
     >
       <!-- 邮箱地址 -->
       <div class="form-section">
-        <ScFormItem prop="acmeAccountEmail">
+        <el-form-item prop="acmeAccountEmail">
           <template #label>
             <div class="form-label">
               <div class="label-icon-wrapper email">
@@ -55,19 +49,19 @@
               </div>
             </div>
           </template>
-          <ScInput
+          <el-input
             v-model="form.acmeAccountEmail"
             placeholder="example@domain.com"
             :disabled="isEdit"
             class="form-input"
             size="large"
           />
-        </ScFormItem>
+        </el-form-item>
       </div>
 
       <!-- ACME 服务器 -->
       <div class="form-section">
-        <ScFormItem prop="acmeAccountServer">
+        <el-form-item prop="acmeAccountServer">
           <template #label>
             <div class="form-label">
               <div class="label-icon-wrapper server">
@@ -79,7 +73,7 @@
               </div>
             </div>
           </template>
-          <ScSelect
+          <el-select
             v-model="form.acmeAccountServer"
             placeholder="请选择 ACME 服务器"
             class="form-select"
@@ -96,31 +90,26 @@
               :key="group.label"
               :label="group.label"
             >
-              <ScOption
+              <el-option
                 v-for="item in group.options"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
               >
                 <div class="server-option">
-                  <IconifyIconOnline
-                    icon="mdi:shield-check"
-                    class="option-icon"
-                  />
+                  <IconifyIconOnline icon="mdi:shield-check" class="option-icon" />
                   <span>{{ item.label }}</span>
-                  <span v-if="isEabRequired(item.value)" class="server-badge"
-                    >EAB</span
-                  >
+                  <span class="server-badge" v-if="isEabRequired(item.value)">EAB</span>
                 </div>
-              </ScOption>
+              </el-option>
             </el-option-group>
-          </ScSelect>
-        </ScFormItem>
+          </el-select>
+        </el-form-item>
       </div>
 
       <!-- EAB 凭证区域 -->
       <transition name="eab-slide">
-        <div v-if="showEabFields && eabConfig" class="eab-section">
+        <div class="eab-section" v-if="showEabFields && eabConfig">
           <div class="eab-header">
             <div class="eab-badge">
               <IconifyIconOnline icon="mdi:key-chain" />
@@ -131,42 +120,39 @@
               <IconifyIconOnline icon="mdi:open-in-new" />
             </a>
           </div>
-
+          
           <div class="eab-tip">
-            <IconifyIconOnline
-              icon="mdi:lightbulb-on-outline"
-              class="tip-icon"
-            />
+            <IconifyIconOnline icon="mdi:lightbulb-on-outline" class="tip-icon" />
             <div class="tip-content">
               <strong>{{ eabConfig.name }}</strong>
               <span>{{ eabConfig.eabTip }}</span>
             </div>
           </div>
-
+          
           <div class="eab-fields">
-            <ScFormItem prop="acmeAccountEabKid">
+            <el-form-item prop="acmeAccountEabKid">
               <template #label>
                 <div class="eab-label">
                   <IconifyIconOnline icon="mdi:identifier" />
                   <span>EAB Key ID (KID)</span>
                 </div>
               </template>
-              <ScInput
+              <el-input
                 v-model="form.acmeAccountEabKid"
                 placeholder="请输入 EAB Key ID"
                 class="form-input"
                 size="large"
               />
-            </ScFormItem>
+            </el-form-item>
 
-            <ScFormItem prop="acmeAccountEabHmacKey">
+            <el-form-item prop="acmeAccountEabHmacKey">
               <template #label>
                 <div class="eab-label">
                   <IconifyIconOnline icon="mdi:shield-key" />
                   <span>EAB HMAC Key</span>
                 </div>
               </template>
-              <ScInput
+              <el-input
                 v-model="form.acmeAccountEabHmacKey"
                 placeholder="请输入 EAB HMAC Key (Base64)"
                 class="form-input"
@@ -174,14 +160,14 @@
                 show-password
                 size="large"
               />
-            </ScFormItem>
+            </el-form-item>
           </div>
         </div>
       </transition>
 
       <!-- 备注 -->
       <div class="form-section">
-        <ScFormItem>
+        <el-form-item>
           <template #label>
             <div class="form-label">
               <div class="label-icon-wrapper remark">
@@ -193,39 +179,35 @@
               </div>
             </div>
           </template>
-          <ScInput
+          <el-input
             v-model="form.acmeAccountRemark"
             type="textarea"
             :rows="3"
             placeholder="例如：生产环境主域名证书申请账户"
             class="form-textarea"
           />
-        </ScFormItem>
+        </el-form-item>
       </div>
-    </ScForm>
+    </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton
-          class="cancel-btn"
-          size="large"
-          @click="dialogVisible = false"
-        >
+        <el-button @click="dialogVisible = false" class="cancel-btn" size="large">
           取消
-        </ScButton>
-        <ScButton
+        </el-button>
+        <el-button
           type="primary"
           :loading="submitting"
+          @click="handleSubmit"
           class="submit-btn"
           size="large"
-          @click="handleSubmit"
         >
           <IconifyIconOnline
             v-if="!submitting"
             :icon="isEdit ? 'mdi:content-save' : 'mdi:plus-circle'"
           />
-          {{ isEdit ? "保存更改" : "创建账户" }}
-        </ScButton>
+          {{ isEdit ? '保存更改' : '创建账户' }}
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -328,7 +310,7 @@ watch(
       }
       formRef.value?.clearValidate();
     }
-  },
+  }
 );
 </script>
 
@@ -686,6 +668,7 @@ watch(
   transform: translateY(-10px);
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -694,6 +677,7 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>
 
 <!-- 全局样式 -->

@@ -33,69 +33,69 @@
     </div>
 
     <!-- 筛选条件 -->
-    <ScCard class="filter-card">
+    <el-card class="filter-card">
       <div class="filter-content">
-        <ScForm :model="queryParams" inline>
-          <ScFormItem label="服务器名称">
-            <ScInput
+        <el-form :model="queryParams" inline>
+          <el-form-item label="服务器名称">
+            <el-input
               v-model="queryParams.serverName"
               placeholder="请输入服务器名称"
               clearable
               style="width: 200px"
             />
-          </ScFormItem>
-          <ScFormItem label="服务器类型">
-            <ScSelect
+          </el-form-item>
+          <el-form-item label="服务器类型">
+            <el-select
               v-model="queryParams.serverType"
               placeholder="请选择服务器类型"
               clearable
               style="width: 200px"
             >
-              <ScOption
+              <el-option
                 v-for="type in serverTypes"
                 :key="getTypeValue(type)"
                 :label="getTypeLabel(type)"
                 :value="getTypeValue(type)"
               />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="运行状态">
-            <ScSelect
+            </el-select>
+          </el-form-item>
+          <el-form-item label="运行状态">
+            <el-select
               v-model="queryParams.status"
               placeholder="请选择运行状态"
               clearable
               style="width: 200px"
             >
-              <ScOption label="运行中" value="RUNNING" />
-              <ScOption label="已停止" value="STOPPED" />
-              <ScOption label="启动中" value="STARTING" />
-              <ScOption label="停止中" value="STOPPING" />
-              <ScOption label="异常" value="ERROR" />
-            </ScSelect>
-          </ScFormItem>
+              <el-option label="运行中" value="RUNNING" />
+              <el-option label="已停止" value="STOPPED" />
+              <el-option label="启动中" value="STARTING" />
+              <el-option label="停止中" value="STOPPING" />
+              <el-option label="异常" value="ERROR" />
+            </el-select>
+          </el-form-item>
 
           <!-- 操作按钮组 -->
-          <ScFormItem class="action-buttons">
-            <ScButton type="primary" @click="handleQuery">
+          <el-form-item class="action-buttons">
+            <el-button type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
               查询
-            </ScButton>
-            <ScButton @click="resetQuery">
+            </el-button>
+            <el-button @click="resetQuery">
               <IconifyIconOnline icon="ri:refresh-line" />
               重置
-            </ScButton>
-            <ScButton @click="refreshData">
+            </el-button>
+            <el-button @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" />
               刷新
-            </ScButton>
-            <ScButton type="primary" @click="showAddDialog = true">
+            </el-button>
+            <el-button type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ri:add-line" />
               新增服务器
-            </ScButton>
-          </ScFormItem>
-        </ScForm>
+            </el-button>
+          </el-form-item>
+        </el-form>
       </div>
-    </ScCard>
+    </el-card>
 
     <!-- 服务器列表 -->
     <div class="server-list">
@@ -108,11 +108,11 @@
         :colSize="5"
       >
         <template #empty>
-          <ScEmpty description="暂无服务器数据">
-            <ScButton type="primary" @click="showAddDialog = true"
+          <el-empty description="暂无服务器数据">
+            <el-button type="primary" @click="showAddDialog = true"
               >新增服务器</el-button
             >
-          </ScEmpty>
+          </el-empty>
         </template>
 
         <template #default="{ row: server }">
@@ -121,7 +121,7 @@
             :class="getServerCardClass(server.systemServerStatus)"
           >
             <!-- 顶部状态条 -->
-            <div class="status-bar" />
+            <div class="status-bar"></div>
 
             <!-- 卡片主体 -->
             <div class="card-content">
@@ -134,7 +134,7 @@
                   <h3 class="server-name">{{ server.systemServerName }}</h3>
                   <div class="server-type">{{ server.systemServerType }}</div>
                 </div>
-                <ScTag
+                <el-tag
                   :type="getStatusTagType(server.systemServerStatus)"
                   size="small"
                   class="status-tag"
@@ -149,7 +149,7 @@
                     class="status-icon"
                   />
                   {{ getStatusText(server.systemServerStatus) }}
-                </ScTag>
+                </el-tag>
               </div>
 
               <!-- 核心信息区 -->
@@ -195,7 +195,7 @@
                   <IconifyIconOnline icon="ri:folder-line" />
                   <span>{{ server.systemServerContextPath || "/" }}</span>
                 </div>
-                <div v-if="server.systemServerTimeout" class="detail-item">
+                <div class="detail-item" v-if="server.systemServerTimeout">
                   <IconifyIconOnline icon="ri:time-line" />
                   <span>{{ server.systemServerTimeout }}ms</span>
                 </div>
@@ -203,70 +203,70 @@
 
               <!-- 操作按钮 -->
               <div class="card-actions">
-                <ScButton
+                <el-button
                   v-if="
                     server.systemServerStatus === 'STOPPED' ||
                     server.systemServerStatus === 'ERROR'
                   "
                   type="success"
+                  @click="startServer(server.systemServerId)"
                   :loading="actionLoading[server.systemServerId]"
                   class="action-btn"
-                  @click="startServer(server.systemServerId)"
                 >
                   <IconifyIconOnline icon="ri:play-fill" />
                   启动
-                </ScButton>
-                <ScButton
+                </el-button>
+                <el-button
                   v-else-if="server.systemServerStatus === 'RUNNING'"
                   type="danger"
+                  @click="stopServer(server.systemServerId)"
                   :loading="actionLoading[server.systemServerId]"
                   class="action-btn"
-                  @click="stopServer(server.systemServerId)"
                 >
                   <IconifyIconOnline icon="ri:stop-fill" />
                   停止
-                </ScButton>
-                <ScButton v-else type="warning" disabled class="action-btn">
+                </el-button>
+                <el-button v-else type="warning" disabled class="action-btn">
                   {{ getStatusText(server.systemServerStatus) }}
-                </ScButton>
+                </el-button>
 
                 <div class="action-group">
-                  <ScTooltip content="设置" placement="top">
-                    <ScButton
+                  <el-tooltip content="设置" placement="top">
+                    <el-button
                       circle
                       @click="openServerConfig(server.systemServerId, server)"
                     >
                       <IconifyIconOnline icon="ri:settings-4-line" />
-                    </ScButton>
-                  </ScTooltip>
-                  <ScTooltip content="日志" placement="top">
-                    <ScButton
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="日志" placement="top">
+                    <el-button
                       circle
-                      :disabled="server.systemServerStatus !== 'RUNNING'"
                       @click="openServerLog(server.systemServerId, server)"
+                      :disabled="server.systemServerStatus !== 'RUNNING'"
                     >
                       <IconifyIconOnline icon="ri:file-list-3-line" />
-                    </ScButton>
-                  </ScTooltip>
-                  <ScDropdown trigger="click" @command="handleServerAction">
-                    <ScButton circle>
+                    </el-button>
+                  </el-tooltip>
+                  <el-dropdown @command="handleServerAction" trigger="click">
+                    <el-button circle>
                       <IconifyIconOnline icon="ri:more-2-fill" />
-                    </ScButton>
+                    </el-button>
                     <template #dropdown>
-                      <ScDropdownMenu>
-                        <ScDropdownItem :command="{ type: 'edit', server }">
+                      <el-dropdown-menu>
+                        <el-dropdown-item :command="{ type: 'edit', server }">
                           <IconifyIconOnline icon="ri:edit-line" /> 编辑
-                        </ScDropdownItem>
-                        <ScDropdownItem :command="{ type: 'clone', server }">
+                        </el-dropdown-item>
+                        <el-dropdown-item :command="{ type: 'clone', server }">
                           <IconifyIconOnline icon="ri:file-copy-line" /> 克隆
-                        </ScDropdownItem>
-                        <ScDropdownItem
+                        </el-dropdown-item>
+                        <el-dropdown-item
                           :command="`restart-${server.systemServerId}`"
                           :disabled="server.systemServerStatus !== 'RUNNING'"
                         >
                           <IconifyIconOnline icon="ri:restart-line" /> 重启
-                        </ScDropdownItem>
-                        <ScDropdownItem
+                        </el-dropdown-item>
+                        <el-dropdown-item
                           :command="`delete-${server.systemServerId}`"
                           divided
                         >
@@ -275,10 +275,10 @@
                             style="color: #ef4444"
                           />
                           <span style="color: #ef4444">删除</span>
-                        </ScDropdownItem>
-                      </ScDropdownMenu>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
                     </template>
-                  </ScDropdown>
+                  </el-dropdown>
                 </div>
               </div>
             </div>
@@ -492,7 +492,7 @@ const handleOpen = async (server) => {
       ? "localhost"
       : server.systemServerHost || "localhost";
   window.open(
-    `http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`,
+    `http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`
   );
 };
 
@@ -642,7 +642,7 @@ const handleDeleteServer = async (serverId: number) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
     const response = await deleteSystemServer(serverId);
@@ -704,6 +704,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -720,6 +721,8 @@ onMounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -753,6 +756,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .service-management-container {
   padding: 24px;

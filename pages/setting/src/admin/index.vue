@@ -8,10 +8,10 @@ import {
 } from "vue";
 import { fetchSettingPage } from "../api";
 import { $t } from "@repo/config";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const ItemSave = defineAsyncComponent(() => import("./save.vue"));
 const ScTable = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScTable/index.vue")
 );
 const config = reactive({
   visible: false,
@@ -53,14 +53,14 @@ defineExpose({
       :destroy-on-close="true"
       @close="handleClose"
     >
-      <ScHeader class="flex !justify-end">
-        <ScButton
+      <el-header class="flex !justify-end">
+        <ScButton 
           :icon="useRenderIcon('ep:plus')"
           @click="handleUpdate({}, 'add')"
           class="text-btn"
         />
-      </ScHeader>
-      <ScMain class="setting-content">
+      </el-header>
+      <el-main class="setting-content">
         <ScTable border :url="fetchSettingPage">
           <ScTableColumn prop="sysSettingGroup" label="数据分组">
             <template #default="scope">
@@ -79,7 +79,7 @@ defineExpose({
           </ScTableColumn>
           <ScTableColumn prop="sysSettingConfig" label="设置">
             <template #default="{ row }">
-              <ScButton
+              <ScButton 
                 :icon="useRenderIcon('ep:setting')"
                 plain
                 circle
@@ -88,7 +88,7 @@ defineExpose({
             </template>
           </ScTableColumn>
         </ScTable>
-      </ScMain>
+      </el-main>
     </sc-drawer>
     <ItemSave ref="itemSaveRef" @close="config.itemSaveStatus = false" />
   </div>

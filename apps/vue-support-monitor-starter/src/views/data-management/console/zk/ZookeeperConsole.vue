@@ -1,12 +1,8 @@
 <template>
-  <div
-    class="console system-container modern-bg"
-    :style="gridStyle"
-    @contextmenu.prevent
-  >
+  <div class="console system-container modern-bg" :style="gridStyle" @contextmenu.prevent>
     <!-- 左侧：搜索 + 树（参考 Redis 实现） -->
     <div class="left overflow-auto thin-scrollbar">
-      <ScInput
+      <el-input
         v-model="keyword"
         placeholder="搜索..."
         size="small"
@@ -16,8 +12,8 @@
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </ScInput>
-      <ScTree
+      </el-input>
+      <el-tree
         class="tree"
         :data="treeData"
         :props="treeProps"
@@ -33,7 +29,7 @@
             <span>{{ data.name }}</span>
           </span>
         </template>
-      </ScTree>
+      </el-tree>
     </div>
 
     <!-- 分割条 -->
@@ -51,22 +47,16 @@
           <span class="ellipsis">{{ path || "未选择" }}</span>
         </div>
         <div class="toolbar">
-          <ScButton size="small" :disabled="!path" @click="refreshNode">
+          <el-button size="small" :disabled="!path" @click="refreshNode">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </ScButton>
+          </el-button>
         </div>
       </div>
       <div class="right-body">
         <template v-if="path">
-          <ScInput
-            v-model="content"
-            type="textarea"
-            :rows="40"
-            disabled
-            readonly
-          />
+          <el-input v-model="content" type="textarea" :rows="40" disabled readonly />
         </template>
-        <ScEmpty v-else description="请选择左侧节点" />
+        <el-empty v-else description="请选择左侧节点" />
       </div>
       <div class="right-status">
         <span v-if="statusText">{{ statusText }}</span>
@@ -101,7 +91,7 @@ async function loadRoot() {
 }
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void,
+  resolve: (children: any[]) => void
 ) => {
   if (!node || node.level === 0) return resolve(treeData.value || []);
   const data = node.data || {};
@@ -183,6 +173,7 @@ onBeforeUnmount(() => onDragEnd());
 onMounted(loadRoot);
 </script>
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -215,6 +206,7 @@ onMounted(loadRoot);
     z-index: 1;
   }
 }
+
 
 .console {
   display: grid;
@@ -295,6 +287,7 @@ onMounted(loadRoot);
   color: var(--el-text-color-secondary);
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -303,4 +296,5 @@ onMounted(loadRoot);
     padding: 12px 16px;
   }
 }
+
 </style>

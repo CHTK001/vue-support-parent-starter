@@ -9,9 +9,9 @@
     <div class="operation-log">
       <!-- 过滤器 -->
       <div class="log-filters">
-        <ScRow :gutter="16">
-          <ScCol :span="5">
-            <ScDatePicker
+        <el-row :gutter="16">
+          <el-col :span="5">
+            <el-date-picker
               v-model="filters.dateRange"
               type="datetimerange"
               range-separator="至"
@@ -20,73 +20,73 @@
               size="small"
               style="width: 100%"
             />
-          </ScCol>
-          <ScCol :span="3">
-            <ScSelect
+          </el-col>
+          <el-col :span="3">
+            <el-select
               v-model="filters.level"
               placeholder="日志级别"
               size="small"
               clearable
             >
-              <ScOption label="调试" value="DEBUG" />
-              <ScOption label="信息" value="INFO" />
-              <ScOption label="警告" value="WARN" />
-              <ScOption label="错误" value="ERROR" />
-              <ScOption label="致命" value="FATAL" />
-            </ScSelect>
-          </ScCol>
-          <ScCol :span="3">
-            <ScSelect
+              <el-option label="调试" value="DEBUG" />
+              <el-option label="信息" value="INFO" />
+              <el-option label="警告" value="WARN" />
+              <el-option label="错误" value="ERROR" />
+              <el-option label="致命" value="FATAL" />
+            </el-select>
+          </el-col>
+          <el-col :span="3">
+            <el-select
               v-model="filters.source"
               placeholder="日志来源"
               size="small"
               clearable
             >
-              <ScOption label="系统日志" value="SYSTEM" />
-              <ScOption label="应用日志" value="APPLICATION" />
-              <ScOption label="安全日志" value="SECURITY" />
-              <ScOption label="访问日志" value="ACCESS" />
-            </ScSelect>
-          </ScCol>
-          <ScCol :span="4">
-            <ScInput
+              <el-option label="系统日志" value="SYSTEM" />
+              <el-option label="应用日志" value="APPLICATION" />
+              <el-option label="安全日志" value="SECURITY" />
+              <el-option label="访问日志" value="ACCESS" />
+            </el-select>
+          </el-col>
+          <el-col :span="4">
+            <el-input
               v-model="filters.keyword"
               placeholder="搜索关键词"
               size="small"
               clearable
             />
-          </ScCol>
-          <ScCol :span="9">
-            <ScButton size="small" type="primary" @click="searchLogs">
+          </el-col>
+          <el-col :span="9">
+            <el-button size="small" type="primary" @click="searchLogs">
               <IconifyIconOnline icon="ri:search-line" class="mr-1" />
               查询
-            </ScButton>
-            <ScButton size="small" @click="resetFilters">
+            </el-button>
+            <el-button size="small" @click="resetFilters">
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               重置
-            </ScButton>
-            <ScButton size="small" @click="exportLogs">
+            </el-button>
+            <el-button size="small" @click="exportLogs">
               <IconifyIconOnline icon="ri:download-line" class="mr-1" />
               导出
-            </ScButton>
-            <ScButton size="small" type="danger" plain @click="clearLogs">
+            </el-button>
+            <el-button size="small" @click="clearLogs" type="danger" plain>
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               清理
-            </ScButton>
-          </ScCol>
-        </ScRow>
+            </el-button>
+          </el-col>
+        </el-row>
       </div>
 
       <!-- 日志列表 -->
-      <div v-loading="loading" class="log-list">
-        <ScTable
+      <div class="log-list" v-loading="loading">
+        <el-table
           :data="logs"
           stripe
           size="small"
           height="450"
           @row-click="showLogDetail"
         >
-          <ScTableColumn
+          <el-table-column
             prop="monitorSysGenServerLogCreateTime"
             label="时间"
             width="160"
@@ -94,71 +94,71 @@
             <template #default="{ row }">
               {{ formatTime(row.monitorSysGenServerLogCreateTime) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn
+          </el-table-column>
+          <el-table-column
             prop="monitorSysGenServerLogLevel"
             label="级别"
             width="80"
           >
             <template #default="{ row }">
-              <ScTag
+              <el-tag
                 :type="getLogLevelType(row.monitorSysGenServerLogLevel)"
                 size="small"
               >
                 {{ getLogLevelText(row.monitorSysGenServerLogLevel) }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
+          </el-table-column>
+          <el-table-column
             prop="monitorSysGenServerLogSource"
             label="来源"
             width="100"
           >
             <template #default="{ row }">
-              <ScTag
+              <el-tag
                 :type="getLogSourceType(row.monitorSysGenServerLogSource)"
                 size="small"
                 effect="plain"
               >
                 {{ getLogSourceText(row.monitorSysGenServerLogSource) }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
+          </el-table-column>
+          <el-table-column
             prop="monitorSysGenServerLogCategory"
             label="分类"
             width="100"
             show-overflow-tooltip
           />
-          <ScTableColumn
+          <el-table-column
             prop="monitorSysGenServerLogContent"
             label="日志内容"
             min-width="300"
             show-overflow-tooltip
           />
-          <ScTableColumn
+          <el-table-column
             prop="monitorSysGenServerLogIp"
             label="IP地址"
             width="120"
           />
-          <ScTableColumn
+          <el-table-column
             prop="monitorSysGenServerLogHostname"
             label="主机名"
             width="120"
             show-overflow-tooltip
           />
-          <ScTableColumn label="操作" width="80" fixed="right">
+          <el-table-column label="操作" width="80" fixed="right">
             <template #default="{ row }">
-              <ScButton size="small" text @click.stop="showLogDetail(row)">
+              <el-button size="small" text @click.stop="showLogDetail(row)">
                 <IconifyIconOnline icon="ri:eye-line" />
-              </ScButton>
+              </el-button>
             </template>
-          </ScTableColumn>
-        </ScTable>
+          </el-table-column>
+        </el-table>
 
         <!-- 分页 -->
         <div class="log-pagination">
-          <ScPagination
+          <el-pagination
             v-model:current-page="pagination.page"
             v-model:page-size="pagination.pageSize"
             :total="pagination.total"
@@ -172,44 +172,44 @@
 
       <!-- 统计信息 -->
       <div class="log-statistics">
-        <ScRow :gutter="16">
-          <ScCol :span="4">
+        <el-row :gutter="16">
+          <el-col :span="4">
             <div class="stat-item">
               <div class="stat-value">{{ statistics.total }}</div>
               <div class="stat-label">总日志数</div>
             </div>
-          </ScCol>
-          <ScCol :span="4">
+          </el-col>
+          <el-col :span="4">
             <div class="stat-item info">
               <div class="stat-value">{{ statistics.info }}</div>
               <div class="stat-label">信息日志</div>
             </div>
-          </ScCol>
-          <ScCol :span="4">
+          </el-col>
+          <el-col :span="4">
             <div class="stat-item warning">
               <div class="stat-value">{{ statistics.warn }}</div>
               <div class="stat-label">警告日志</div>
             </div>
-          </ScCol>
-          <ScCol :span="4">
+          </el-col>
+          <el-col :span="4">
             <div class="stat-item error">
               <div class="stat-value">{{ statistics.error }}</div>
               <div class="stat-label">错误日志</div>
             </div>
-          </ScCol>
-          <ScCol :span="4">
+          </el-col>
+          <el-col :span="4">
             <div class="stat-item">
               <div class="stat-value">{{ statistics.today }}</div>
               <div class="stat-label">今日日志</div>
             </div>
-          </ScCol>
-          <ScCol :span="4">
+          </el-col>
+          <el-col :span="4">
             <div class="stat-item">
               <div class="stat-value">{{ statistics.lastHour }}</div>
               <div class="stat-label">最近1小时</div>
             </div>
-          </ScCol>
-        </ScRow>
+          </el-col>
+        </el-row>
       </div>
     </div>
 
@@ -220,71 +220,71 @@
       width="700px"
       append-to-body
     >
-      <div v-if="selectedLog" class="log-detail">
-        <ScDescriptions :column="2" border>
-          <ScDescriptionsItem label="记录时间">
+      <div class="log-detail" v-if="selectedLog">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="记录时间">
             {{ formatTime(selectedLog.monitorSysGenServerLogCreateTime) }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="服务器时间">
+          </el-descriptions-item>
+          <el-descriptions-item label="服务器时间">
             {{ formatTime(selectedLog.monitorSysGenServerLogServerTime) }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志级别">
-            <ScTag
+          </el-descriptions-item>
+          <el-descriptions-item label="日志级别">
+            <el-tag
               :type="getLogLevelType(selectedLog.monitorSysGenServerLogLevel)"
               size="small"
             >
               {{ getLogLevelText(selectedLog.monitorSysGenServerLogLevel) }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志来源">
-            <ScTag
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="日志来源">
+            <el-tag
               :type="getLogSourceType(selectedLog.monitorSysGenServerLogSource)"
               size="small"
               effect="plain"
             >
               {{ getLogSourceText(selectedLog.monitorSysGenServerLogSource) }}
-            </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志分类">
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="日志分类">
             {{ selectedLog.monitorSysGenServerLogCategory || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="线程名称">
+          </el-descriptions-item>
+          <el-descriptions-item label="线程名称">
             {{ selectedLog.monitorSysGenServerLogThread || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="服务器IP">
+          </el-descriptions-item>
+          <el-descriptions-item label="服务器IP">
             {{ selectedLog.monitorSysGenServerLogIp || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="主机名">
+          </el-descriptions-item>
+          <el-descriptions-item label="主机名">
             {{ selectedLog.monitorSysGenServerLogHostname || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="进程ID">
+          </el-descriptions-item>
+          <el-descriptions-item label="进程ID">
             {{ selectedLog.monitorSysGenServerLogProcessId || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="记录器名称">
+          </el-descriptions-item>
+          <el-descriptions-item label="记录器名称">
             {{ selectedLog.monitorSysGenServerLogLogger || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="文件路径" :span="2">
+          </el-descriptions-item>
+          <el-descriptions-item label="文件路径" :span="2">
             {{ selectedLog.monitorSysGenServerLogFilePath || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="行号">
+          </el-descriptions-item>
+          <el-descriptions-item label="行号">
             {{ selectedLog.monitorSysGenServerLogLineNumber || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志标签">
+          </el-descriptions-item>
+          <el-descriptions-item label="日志标签">
             {{ selectedLog.monitorSysGenServerLogTags || "-" }}
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="日志内容" :span="2">
+          </el-descriptions-item>
+          <el-descriptions-item label="日志内容" :span="2">
             <div class="log-content">
               {{ selectedLog.monitorSysGenServerLogContent }}
             </div>
-          </ScDescriptionsItem>
-        </ScDescriptions>
+          </el-descriptions-item>
+        </el-descriptions>
 
         <!-- 异常堆栈信息 -->
         <div
-          v-if="selectedLog.monitorSysGenServerLogExceptionStack"
           class="detail-content"
+          v-if="selectedLog.monitorSysGenServerLogExceptionStack"
         >
-          <ScDivider content-position="left">异常堆栈信息</ScDivider>
+          <el-divider content-position="left">异常堆栈信息</el-divider>
           <div class="detail-section">
             <pre class="detail-code error">{{
               selectedLog.monitorSysGenServerLogExceptionStack
@@ -294,10 +294,10 @@
 
         <!-- 额外数据 -->
         <div
-          v-if="selectedLog.monitorSysGenServerLogExtraData"
           class="detail-content"
+          v-if="selectedLog.monitorSysGenServerLogExtraData"
         >
-          <ScDivider content-position="left">额外数据</ScDivider>
+          <el-divider content-position="left">额外数据</el-divider>
           <div class="detail-section">
             <pre class="detail-code">{{
               formatExtraData(selectedLog.monitorSysGenServerLogExtraData)
@@ -309,7 +309,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">关闭</ScButton>
+        <el-button @click="handleClose">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -486,7 +486,7 @@ const clearLogs = async () => {
         type: "warning",
         confirmButtonText: "确定",
         cancelButtonText: "取消",
-      },
+      }
     );
 
     const result = await cleanupServerLogs(currentServerId.value);

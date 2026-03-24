@@ -37,7 +37,7 @@
                 </div>
               </div>
               <div class="task-progress">
-                <ScProgress
+                <ScProgress 
                   :percentage="task.progress"
                   :status="getProgressStatus(task.status)"
                   :stroke-width="6"

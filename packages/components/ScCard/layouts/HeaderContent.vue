@@ -224,21 +224,11 @@ export default defineComponent({
     }
   }
 
-  &.theme--primary {
-    @include theme-variant("primary");
-  }
-  &.theme--success {
-    @include theme-variant("success");
-  }
-  &.theme--warning {
-    @include theme-variant("warning");
-  }
-  &.theme--danger {
-    @include theme-variant("danger");
-  }
-  &.theme--info {
-    @include theme-variant("info");
-  }
+  &.theme--primary { @include theme-variant('primary'); }
+  &.theme--success { @include theme-variant('success'); }
+  &.theme--warning { @include theme-variant('warning'); }
+  &.theme--danger { @include theme-variant('danger'); }
+  &.theme--info { @include theme-variant('info'); }
 
   &__title {
     font-size: 18px;

@@ -1,4 +1,4 @@
-import { ref, watch, onUnmounted } from "vue";
+import { ref, watch, onUnmounted } from 'vue';
 
 /**
  * 数值动画配置选项
@@ -29,14 +29,14 @@ const defaultEasing = (t: number): number => {
  */
 export function useNumberAnimation(
   initialValue: number = 0,
-  options: NumberAnimationOptions = {},
+  options: NumberAnimationOptions = {}
 ) {
   const {
     duration = 800,
     easing = defaultEasing,
     formatter = (value: number) => Math.round(value * 100) / 100,
     enabled = true,
-    delay = 0,
+    delay = 0
   } = options;
 
   // 当前显示的数值
@@ -45,7 +45,7 @@ export function useNumberAnimation(
   const targetValue = ref(initialValue);
   // 动画状态
   const isAnimating = ref(false);
-
+  
   let animationId: number | null = null;
   let timeoutId: number | null = null;
 
@@ -65,12 +65,12 @@ export function useNumberAnimation(
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-
+      
       // 应用缓动函数
       const easedProgress = easing(progress);
-
+      
       // 计算当前值
-      const currentValue = from + difference * easedProgress;
+      const currentValue = from + (difference * easedProgress);
       displayValue.value = currentValue;
 
       if (progress < 1) {
@@ -111,13 +111,13 @@ export function useNumberAnimation(
    */
   const setValue = (newValue: number) => {
     if (newValue === targetValue.value) return;
-
+    
     const oldTarget = targetValue.value;
     targetValue.value = newValue;
-
+    
     // 停止当前动画
     stopAnimation();
-
+    
     // 从当前显示值开始新动画
     startAnimation(displayValue.value, newValue);
   };
@@ -135,15 +135,11 @@ export function useNumberAnimation(
    * 获取格式化后的显示值
    */
   const formattedValue = ref(formatter(initialValue));
-
+  
   // 监听显示值变化，更新格式化值
-  watch(
-    displayValue,
-    (newValue) => {
-      formattedValue.value = formatter(newValue);
-    },
-    { immediate: true },
-  );
+  watch(displayValue, (newValue) => {
+    formattedValue.value = formatter(newValue);
+  }, { immediate: true });
 
   // 清理函数
   onUnmounted(() => {
@@ -164,7 +160,7 @@ export function useNumberAnimation(
     /** 立即设置值（无动画） */
     setValueImmediate,
     /** 停止动画 */
-    stopAnimation,
+    stopAnimation
   };
 }
 
@@ -173,11 +169,11 @@ export function useNumberAnimation(
  */
 export function usePercentageAnimation(
   initialValue: number = 0,
-  options: Omit<NumberAnimationOptions, "formatter"> = {},
+  options: Omit<NumberAnimationOptions, 'formatter'> = {}
 ) {
   return useNumberAnimation(initialValue, {
     ...options,
-    formatter: (value: number) => `${Math.round(value * 10) / 10}%`,
+    formatter: (value: number) => `${Math.round(value * 10) / 10}%`
   });
 }
 
@@ -186,19 +182,19 @@ export function usePercentageAnimation(
  */
 export function useBytesAnimation(
   initialValue: number = 0,
-  options: Omit<NumberAnimationOptions, "formatter"> = {},
+  options: Omit<NumberAnimationOptions, 'formatter'> = {}
 ) {
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return "0 B";
+    if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   return useNumberAnimation(initialValue, {
     ...options,
-    formatter: formatBytes,
+    formatter: formatBytes
   });
 }
 
@@ -207,11 +203,11 @@ export function useBytesAnimation(
  */
 export function useIntegerAnimation(
   initialValue: number = 0,
-  options: Omit<NumberAnimationOptions, "formatter"> = {},
+  options: Omit<NumberAnimationOptions, 'formatter'> = {}
 ) {
   return useNumberAnimation(initialValue, {
     ...options,
-    formatter: (value: number) => Math.round(value),
+    formatter: (value: number) => Math.round(value)
   });
 }
 
@@ -220,20 +216,18 @@ export function useIntegerAnimation(
  */
 export function useNetworkSpeedAnimation(
   initialValue: number = 0,
-  options: Omit<NumberAnimationOptions, "formatter"> = {},
+  options: Omit<NumberAnimationOptions, 'formatter'> = {}
 ) {
   const formatSpeed = (bytesPerSecond: number): string => {
-    if (bytesPerSecond === 0) return "0 B/s";
+    if (bytesPerSecond === 0) return '0 B/s';
     const k = 1024;
-    const sizes = ["B/s", "KB/s", "MB/s", "GB/s"];
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
     const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
-    return (
-      parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(1)) + " " + sizes[i]
-    );
+    return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   return useNumberAnimation(initialValue, {
     ...options,
-    formatter: formatSpeed,
+    formatter: formatSpeed
   });
 }

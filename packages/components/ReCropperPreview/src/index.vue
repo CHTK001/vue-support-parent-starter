@@ -35,7 +35,7 @@ defineExpose({ hidePopover });
 
 <template>
   <div v-loading="!showPopover" element-loading-background="transparent">
-    <ScPopover ref="popoverRef" :visible="showPopover" placement="right" width="18vw">
+    <el-popover ref="popoverRef" :visible="showPopover" placement="right" width="18vw">
       <template #reference>
         <div class="w-[18vw]">
           <ReCropper ref="refCropper" :src="imgSrc" circled :options="options" @cropper="onCropper" @readied="showPopover = true" />
@@ -43,12 +43,12 @@ defineExpose({ hidePopover });
         </div>
       </template>
       <div class="flex flex-wrap justify-center items-center text-center">
-        <ScImage v-if="cropperImg" :src="cropperImg" :preview-src-list="Array.of(cropperImg)" fit="cover" />
+        <el-image v-if="cropperImg" :src="cropperImg" :preview-src-list="Array.of(cropperImg)" fit="cover" />
         <div v-if="infos" class="mt-1">
           <p>图像大小：{{ parseInt(infos.width) }} × {{ parseInt(infos.height) }}像素</p>
           <p>文件大小：{{ formatBytes(infos.size) }}（{{ infos.size }} 字节）</p>
         </div>
       </div>
-    </ScPopover>
+    </el-popover>
   </div>
 </template>

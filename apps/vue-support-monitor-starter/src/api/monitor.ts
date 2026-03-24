@@ -57,15 +57,11 @@ export function changeMonitorStatus(params) {
  * @param {*} id
  */
 export function deleteMonitor(id) {
-  return http.post(
-    "/monitor/deleteMonitor",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/monitor/deleteMonitor", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -89,15 +85,11 @@ export function getMonitorLogList(params) {
  * 操作监控日志列表
  */
 export function getMonitorOperateLogList() {
-  return http.post(
-    "/monitor_user_opt/list_data",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/monitor_user_opt/list_data", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -105,15 +97,11 @@ export function getMonitorOperateLogList() {
  * @returns
  */
 export function getMonitorOperateTypeList() {
-  return http.post(
-    "/monitor_user_opt/type_data",
-    {},
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/monitor_user_opt/type_data", {}, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 /**
@@ -142,15 +130,11 @@ export function editMonitorOperate(params) {
  * @returns
  */
 export function deleteMonitorOperate(id) {
-  return http.post(
-    "/monitor_user_opt/delete",
-    { id },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      },
+  return http.post("/monitor_user_opt/delete", { id }, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     },
-  );
+  });
 }
 
 export const notifyStyle = {

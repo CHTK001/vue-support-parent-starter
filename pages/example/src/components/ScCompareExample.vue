@@ -62,20 +62,18 @@
 
 <script setup lang="ts">
 import { reactive, computed } from "vue";
-import { ScCompare } from "@repo/components"
-import { IconifyIconOnline } from "@repo/components";
+import ScCompare from "@repo/components/ScCompare/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-const defaultLeft =
-  "https://via.placeholder.com/600x300/3b82f6/ffffff?text=Before";
-const defaultRight =
-  "https://via.placeholder.com/600x300/10b981/ffffff?text=After";
+const defaultLeft = "https://via.placeholder.com/600x300/3b82f6/ffffff?text=Before";
+const defaultRight = "https://via.placeholder.com/600x300/10b981/ffffff?text=After";
 
 // 配置项
 const config = reactive({
   leftImage: defaultLeft,
   rightImage: defaultRight,
   leftLabel: "原图",
-  rightLabel: "处理后",
+  rightLabel: "处理后"
 });
 
 // 生成示例代码
@@ -101,95 +99,16 @@ function resetImages() {
 </script>
 
 <style scoped lang="scss">
-.sc-compare-example {
-  padding: 20px;
-}
-.example-container {
-  display: flex;
-  gap: 24px;
-  @media (max-width: 900px) {
-    flex-direction: column;
-  }
-}
-.config-panel {
-  width: 320px;
-  flex-shrink: 0;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-  @media (max-width: 900px) {
-    width: 100%;
-  }
-}
-.preview-panel {
-  flex: 1;
-  min-width: 0;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 20px;
-}
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 20px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  .iconify {
-    color: var(--el-color-primary);
-  }
-  .hint {
-    margin-left: auto;
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--el-text-color-placeholder);
-  }
-}
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.preview-area {
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.code-area {
-  margin-top: 20px;
-}
-.code-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  .iconify {
-    color: var(--el-color-primary);
-  }
-}
-.code-content {
-  margin: 0;
-  padding: 16px;
-  background: #1e1e1e;
-  border-radius: 6px;
-  overflow-x: auto;
-  code {
-    font-size: 13px;
-    font-family: "SF Mono", "Monaco", "Consolas", monospace;
-    color: #d4d4d4;
-    line-height: 1.6;
-  }
-}
-:deep(.el-form-item) {
-  margin-bottom: 16px;
-}
-:deep(.el-divider) {
-  margin: 16px 0;
-}
+.sc-compare-example { padding: 20px; }
+.example-container { display: flex; gap: 24px; @media (max-width: 900px) { flex-direction: column; } }
+.config-panel { width: 320px; flex-shrink: 0; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 20px; @media (max-width: 900px) { width: 100%; } }
+.preview-panel { flex: 1; min-width: 0; background: var(--el-bg-color); border: 1px solid var(--el-border-color-lighter); border-radius: 8px; padding: 20px; }
+.panel-title { display: flex; align-items: center; gap: 8px; margin: 0 0 20px; font-size: 16px; font-weight: 600; color: var(--el-text-color-primary); .iconify { color: var(--el-color-primary); } .hint { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--el-text-color-placeholder); } }
+.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.preview-area { background: var(--el-fill-color-lighter); border-radius: 8px; overflow: hidden; }
+.code-area { margin-top: 20px; }
+.code-title { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; font-size: 14px; font-weight: 500; color: var(--el-text-color-primary); .iconify { color: var(--el-color-primary); } }
+.code-content { margin: 0; padding: 16px; background: #1e1e1e; border-radius: 6px; overflow-x: auto; code { font-size: 13px; font-family: "SF Mono", "Monaco", "Consolas", monospace; color: #d4d4d4; line-height: 1.6; } }
+:deep(.el-form-item) { margin-bottom: 16px; }
+:deep(.el-divider) { margin: 16px 0; }
 </style>

@@ -11,23 +11,23 @@
 import { http } from "@repo/utils";
 
 export type UserNotificationType = {
-  level?: "error" | "success" | "warning" | "info" | undefined;
-  closable?: boolean;
-  title?: string;
-  content?: string;
-  enabled?: boolean;
-};
+  level?: 'error' | 'success' | 'warning' | 'info' | undefined
+  closable?: boolean
+  title?: string
+  content?: string
+  enabled?: boolean
+}
 
 // 编辑
 export function saveUserNotification(params: UserNotificationType) {
-  return http.post("/user/notification/save", params);
+  return http.post('/user/notification/save', params);
 }
 
 // 获取通知
 export function getUserNotification() {
-  return http.get("/user/notification/get");
+  return http.get('/user/notification/get');
 }
 
 export function systemNotification() {
-  return http.get("/system-notification");
+  return http.get('/system-notification');
 }

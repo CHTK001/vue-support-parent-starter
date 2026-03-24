@@ -6,9 +6,10 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, ref, computed } from "vue";
-import { IconifyIconOnline } from "@repo/components";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message, dateFormat } from "@repo/utils";
-import { ScDialog } from "@repo/components"
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
+
 const STORAGE_KEY = "sc_module_memory_notes";
 
 const noteColors = [
@@ -107,13 +108,13 @@ onMounted(() => {
   <div class="memory-board">
     <div class="board-header">
       <span class="title">我的便签</span>
-      <ScButton circle size="small" type="primary" @click="openEditor()">
-        <ScIcon><component :is="useRenderIcon('ep:plus')" /></ScIcon>
-      </ScButton>
+      <el-button circle size="small" type="primary" @click="openEditor()">
+        <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+      </el-button>
     </div>
     
     <div class="notes-container">
-      <ScEmpty v-if="env.notes.length === 0" description="暂无便签" :image-size="60" />
+      <el-empty v-if="env.notes.length === 0" description="暂无便签" :image-size="60" />
       <div v-else class="notes-grid">
         <div
           v-for="note in env.notes"
@@ -158,8 +159,8 @@ onMounted(() => {
         </div>
       </div>
       <template #footer>
-        <ScButton @click="dialogVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="saveNote">保存</ScButton>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveNote">保存</el-button>
       </template>
     </sc-dialog>
   </div>

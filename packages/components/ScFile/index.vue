@@ -14,9 +14,9 @@
       @node-click="handleNodeClick"
     >
       <template #default="{ data: { fileName, fileType } }">
-        <ScIcon :color="handleColor(fileName, fileType)">
+        <el-icon :color="handleColor(fileName, fileType)">
           <component :is="useRenderIcon(handleIcon(fileName, fileType))" />
-        </ScIcon>
+        </el-icon>
         {{ fileName }}
       </template>
     </el-tree-select>
@@ -24,7 +24,7 @@
 </template>
 <script setup>
 import { watch, ref, reactive } from "vue";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const selectValue = ref("");
 const treeRef = ref();

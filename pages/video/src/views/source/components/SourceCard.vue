@@ -11,39 +11,27 @@
         </div>
       </div>
       <div class="card-actions">
-        <ScDropdown @command="handleCommand" trigger="click">
+        <el-dropdown @command="handleCommand" trigger="click">
           <ScButton type="text" class="more-btn">
             <IconifyIconOnline icon="ep:more" />
           </ScButton>
           <template #dropdown>
-            <ScDropdownMenu>
-              <ScDropdownItem command="edit">
+            <el-dropdown-menu>
+              <el-dropdown-item command="edit">
                 <IconifyIconOnline icon="ep:edit" class="mr-2" />
                 编辑
-              </ScDropdownItem>
-              <ScDropdownItem
-                :command="source.videoSourceEnable ? 'disable' : 'enable'"
-                :class="
-                  source.videoSourceEnable ? 'text-warning' : 'text-success'
-                "
-              >
-                <IconifyIconOnline
-                  :icon="
-                    source.videoSourceEnable
-                      ? 'ep:video-pause'
-                      : 'ep:video-play'
-                  "
-                  class="mr-2"
-                />
+              </el-dropdown-item>
+              <el-dropdown-item :command="source.videoSourceEnable ? 'disable' : 'enable'" :class="source.videoSourceEnable ? 'text-warning' : 'text-success'">
+                <IconifyIconOnline :icon="source.videoSourceEnable ? 'ep:video-pause' : 'ep:video-play'" class="mr-2" />
                 {{ source.videoSourceEnable ? "禁用" : "启用" }}
-              </ScDropdownItem>
-              <ScDropdownItem command="delete" class="text-danger">
+              </el-dropdown-item>
+              <el-dropdown-item command="delete" class="text-danger">
                 <IconifyIconOnline icon="ep:delete" class="mr-2" />
                 删除
-              </ScDropdownItem>
-            </ScDropdownMenu>
+              </el-dropdown-item>
+            </el-dropdown-menu>
           </template>
-        </ScDropdown>
+        </el-dropdown>
       </div>
     </div>
 
@@ -51,31 +39,21 @@
       <div class="config-grid">
         <div class="config-item">
           <span class="config-label">状态</span>
-          <ScTag
-            :type="source.videoSourceEnable ? 'success' : 'danger'"
-            size="small"
-            class="config-value"
-          >
+          <ScTag :type="source.videoSourceEnable ? 'success' : 'danger'" size="small" class="config-value">
             {{ source.videoSourceEnable ? "启用" : "禁用" }}
           </ScTag>
         </div>
         <div class="config-item">
           <span class="config-label">最大查询数</span>
-          <span class="config-value">{{
-            source.videoSourceMaxResource || "无限制"
-          }}</span>
+          <span class="config-value">{{ source.videoSourceMaxResource || "无限制" }}</span>
         </div>
         <div class="config-item" v-if="source.videoSourceToken">
           <span class="config-label">Token</span>
-          <span class="config-value token-value">{{
-            maskToken(source.videoSourceToken)
-          }}</span>
+          <span class="config-value token-value">{{ maskToken(source.videoSourceToken) }}</span>
         </div>
         <div class="config-item" v-if="source.videoSourceUserAgent">
           <span class="config-label">User Agent</span>
-          <span class="config-value ua-value">{{
-            formatUserAgent(source.videoSourceUserAgent)
-          }}</span>
+          <span class="config-value ua-value">{{ formatUserAgent(source.videoSourceUserAgent) }}</span>
         </div>
       </div>
     </div>
@@ -257,11 +235,7 @@ const handleEdit = () => {
 .platform-icon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -290,7 +264,7 @@ const handleEdit = () => {
 .platform-url {
   margin: 0;
   font-size: 13px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -302,7 +276,7 @@ const handleEdit = () => {
 
 .more-btn {
   padding: 8px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   font-size: 16px;
 }
 
@@ -329,7 +303,7 @@ const handleEdit = () => {
 
 .config-label {
   font-size: 12px;
-  color: var(--el-text-color-primary);
+   color: var(--el-text-color-primary);
   font-weight: 500;
 }
 

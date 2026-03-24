@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import BaseSetting from "./BaseSetting.vue";
+import BaseSetting from './BaseSetting.vue';
 </script>
 
 <template>
@@ -14,33 +14,33 @@ html.theme-future-tech {
   .right-panel {
     background: linear-gradient(180deg, #050a1f 0%, #0a1a3a 100%) !important;
     border-left: 2px solid rgba(0, 255, 255, 0.4) !important;
-
+    
+    .project-configuration {
+      border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important;
+      
       h4 {
         color: #00ffff !important;
         text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
-        font-family: "Rajdhani", "Orbitron", "Consolas", sans-serif;
-        letter-spacing: 0.08em;
       }
-
+      
       svg {
         color: rgba(0, 255, 255, 0.7) !important;
-
+        
         &:hover {
           color: #00ffff !important;
           background: rgba(0, 255, 255, 0.1) !important;
-          filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
         }
       }
     }
-
+    
     .el-divider__text {
       background-color: transparent !important;
       color: rgba(0, 255, 255, 0.6) !important;
     }
-
+    
     .el-switch__label {
       color: rgba(0, 255, 255, 0.7) !important;
-
+      
       &.is-active {
         color: #00ffff !important;
       }
@@ -59,7 +59,6 @@ html.theme-future-tech {
       &.is-checked .el-switch__core {
         background-color: #00ffff !important;
         border-color: #00ffff !important;
-        box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
       }
       .el-switch__core {
         background-color: rgba(0, 0, 0, 0.4);
@@ -95,8 +94,7 @@ html.theme-future-tech {
       .el-input__inner {
         color: rgba(0, 255, 255, 0.9) !important;
       }
-      .el-input-number__decrease,
-      .el-input-number__increase {
+      .el-input-number__decrease, .el-input-number__increase {
         background: transparent !important;
         color: #00ffff !important;
         border-color: rgba(0, 255, 255, 0.4) !important;
@@ -105,7 +103,7 @@ html.theme-future-tech {
         }
       }
     }
-
+    
     .el-select {
       --el-select-border-color-hover: #00ffff;
       --el-select-input-focus-border-color: #00ffff;
@@ -120,7 +118,7 @@ html.theme-future-tech {
         color: rgba(0, 255, 255, 0.9) !important;
       }
     }
-
+    
     .el-input {
       .el-input__wrapper {
         background-color: rgba(0, 0, 0, 0.3) !important;
@@ -133,66 +131,53 @@ html.theme-future-tech {
         color: rgba(0, 255, 255, 0.9) !important;
       }
     }
-
+    
     .el-button {
       border-color: rgba(0, 255, 255, 0.4) !important;
       color: rgba(0, 255, 255, 0.7) !important;
-
+      
       &:hover {
         border-color: #00ffff !important;
         background: rgba(0, 255, 255, 0.1) !important;
         color: #00ffff !important;
-        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
       }
-
+      
       &.el-button--primary {
         background: rgba(0, 255, 255, 0.2) !important;
         border-color: #00ffff !important;
         color: #00ffff !important;
-
+        
         &:hover {
           background: rgba(0, 255, 255, 0.3) !important;
-          box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
         }
       }
     }
-
+    
     .setting-section {
       border-bottom: 1px solid rgba(0, 255, 255, 0.2) !important;
       padding-bottom: 20px;
       margin-bottom: 20px;
-      background: rgba(0, 0, 0, 0.2) !important;
-      border: 1px solid rgba(0, 255, 255, 0.15) !important;
-      border-radius: 12px;
-      position: relative;
-      z-index: 1;
-
-      .section-title {
-        color: #00ffff !important;
-        text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
-      }
     }
-
+    
     .theme-color-item {
       border: 2px solid rgba(0, 255, 255, 0.3) !important;
       box-shadow: 0 0 5px rgba(0, 255, 255, 0.2) !important;
-
+      
       &:hover {
         border-color: rgba(0, 255, 255, 0.6) !important;
         box-shadow: 0 0 10px rgba(0, 255, 255, 0.4) !important;
-        transform: translateY(-2px);
       }
-
+      
       &.is-selected {
         border-color: #00ffff !important;
         box-shadow: 0 0 15px rgba(0, 255, 255, 0.5) !important;
       }
     }
-
+    
     .switch-card-item {
       background: rgba(0, 0, 0, 0.3) !important;
       border: 1px solid rgba(0, 255, 255, 0.3) !important;
-
+      
       &:hover {
         border-color: rgba(0, 255, 255, 0.6) !important;
         background: rgba(0, 255, 255, 0.1) !important;
@@ -201,3 +186,4 @@ html.theme-future-tech {
   }
 }
 </style>
+

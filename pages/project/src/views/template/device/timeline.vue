@@ -8,11 +8,11 @@
       :close-on-click-modal="false"
       class="timeline-dialog"
     >
-      <ScSkeleton :loading="env.loading">
+      <el-skeleton :loading="env.loading">
         <template #default>
           <ScEmpty v-if="tableData.length == 0" />
-          <ScTimeline v-else>
-            <ScTimelineItem
+          <el-timeline v-else>
+            <el-timeline-item
               v-for="(activity, index) in tableData"
               :key="index"
               :timestamp="activity.collectTime"
@@ -20,10 +20,10 @@
               <ScTag :type="activity.online == 1 ? 'success' : 'danger'">
                 {{ activity.online == 1 ? "上线" : "下线" }}
               </ScTag>
-            </ScTimelineItem>
-          </ScTimeline>
+            </el-timeline-item>
+          </el-timeline>
         </template>
-      </ScSkeleton>
+      </el-skeleton>
     </sc-dialog>
   </div>
 </template>

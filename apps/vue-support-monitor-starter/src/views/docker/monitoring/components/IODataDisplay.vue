@@ -1,10 +1,10 @@
 <template>
   <div class="io-data system-container modern-bg">
-    <div v-if="readValue !== undefined" class="io-item">
+    <div class="io-item" v-if="readValue !== undefined">
       <span class="io-label">{{ readLabel }}:</span>
       <span class="io-value">{{ formatBytes(readValue) }}</span>
     </div>
-    <div v-if="writeValue !== undefined" class="io-item">
+    <div class="io-item" v-if="writeValue !== undefined">
       <span class="io-label">{{ writeLabel }}:</span>
       <span class="io-value">{{ formatBytes(writeValue) }}</span>
     </div>
@@ -12,30 +12,31 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from "vue";
+import { defineProps } from 'vue'
 
 interface Props {
-  readValue?: number;
-  writeValue?: number;
-  readLabel?: string;
-  writeLabel?: string;
+  readValue?: number
+  writeValue?: number
+  readLabel?: string
+  writeLabel?: string
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
-const readLabel = props.readLabel || "读取";
-const writeLabel = props.writeLabel || "写入";
+const readLabel = props.readLabel || '读取'
+const writeLabel = props.writeLabel || '写入'
 
 const formatBytes = (bytes: number = 0) => {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-};
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -69,6 +70,7 @@ const formatBytes = (bytes: number = 0) => {
   }
 }
 
+
 .io-data {
   display: flex;
   flex-direction: column;
@@ -90,6 +92,7 @@ const formatBytes = (bytes: number = 0) => {
   font-weight: 500;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -98,4 +101,5 @@ const formatBytes = (bytes: number = 0) => {
     padding: 12px 16px;
   }
 }
+
 </style>

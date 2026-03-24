@@ -2,9 +2,9 @@
   <div class="server-connection-status-list system-container modern-bg">
     <!-- 统计概览 -->
     <div class="status-overview">
-      <ScRow :gutter="16">
-        <ScCol :span="6">
-          <ScCard class="status-card">
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <el-card class="status-card">
             <div class="status-content">
               <div class="status-icon total">
                 <IconifyIconOnline icon="ri:server-line" />
@@ -14,40 +14,36 @@
                 <div class="status-label">总服务器</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="status-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="status-card">
             <div class="status-content">
               <div class="status-icon connected">
                 <IconifyIconOnline icon="ri:checkbox-circle-line" />
               </div>
               <div class="status-info">
-                <div class="status-value">
-                  {{ statistics.connectedServers }}
-                </div>
+                <div class="status-value">{{ statistics.connectedServers }}</div>
                 <div class="status-label">在线</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="status-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="status-card">
             <div class="status-content">
               <div class="status-icon disconnected">
                 <IconifyIconOnline icon="ri:close-circle-line" />
               </div>
               <div class="status-info">
-                <div class="status-value">
-                  {{ statistics.disconnectedServers }}
-                </div>
+                <div class="status-value">{{ statistics.disconnectedServers }}</div>
                 <div class="status-label">离线</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-        <ScCol :span="6">
-          <ScCard class="status-card">
+          </el-card>
+        </el-col>
+        <el-col :span="6">
+          <el-card class="status-card">
             <div class="status-content">
               <div class="status-icon error">
                 <IconifyIconOnline icon="ri:error-warning-line" />
@@ -57,44 +53,40 @@
                 <div class="status-label">异常</div>
               </div>
             </div>
-          </ScCard>
-        </ScCol>
-      </ScRow>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton
-          type="primary"
-          :loading="checkingAll"
-          @click="handleCheckAll"
-        >
+        <el-button type="primary" @click="handleCheckAll" :loading="checkingAll">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           检查所有连接
-        </ScButton>
-
-        <ScButton @click="handleRefresh">
+        </el-button>
+        
+        <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
-
+      
       <div class="toolbar-right">
-        <ScSelect
+        <el-select
           v-model="filterStatus"
           placeholder="连接状态"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <ScOption label="在线" :value="CONNECTION_STATUS.CONNECTED" />
-          <ScOption label="离线" :value="CONNECTION_STATUS.DISCONNECTED" />
-          <ScOption label="连接中" :value="CONNECTION_STATUS.CONNECTING" />
-          <ScOption label="异常" :value="CONNECTION_STATUS.ERROR" />
-        </ScSelect>
-
-        <ScInput
+          <el-option label="在线" :value="CONNECTION_STATUS.CONNECTED" />
+          <el-option label="离线" :value="CONNECTION_STATUS.DISCONNECTED" />
+          <el-option label="连接中" :value="CONNECTION_STATUS.CONNECTING" />
+          <el-option label="异常" :value="CONNECTION_STATUS.ERROR" />
+        </el-select>
+        
+        <el-input
           v-model="searchKeyword"
           placeholder="搜索服务器..."
           clearable
@@ -104,107 +96,93 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </ScInput>
+        </el-input>
       </div>
     </div>
 
     <!-- 连接状态表格 -->
-    <ScTable
+    <el-table
       v-loading="loading"
       :data="paginatedConnectionStatusList"
       stripe
       @selection-change="handleSelectionChange"
     >
-      <ScTableColumn type="selection" width="55" />
-
-      <ScTableColumn label="服务器信息" min-width="200">
+      <el-table-column type="selection" width="55" />
+      
+      <el-table-column label="服务器信息" min-width="200">
         <template #default="{ row }">
           <div class="server-info">
             <div class="server-name">
-              <IconifyIconOnline
-                :icon="getProtocolIcon(row.protocol)"
-                class="protocol-icon"
-              />
+              <IconifyIconOnline :icon="getProtocolIcon(row.protocol)" class="protocol-icon" />
               {{ row.serverName }}
             </div>
             <div class="server-address">{{ row.host }}:{{ row.port }}</div>
           </div>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="连接状态" width="120" align="center">
+      </el-table-column>
+      
+      <el-table-column label="连接状态" width="120" align="center">
         <template #default="{ row }">
-          <ScTag
-            :type="
-              getConnectionStatusColor(row.monitorSysGenServerConnectionStatus)
-            "
+          <el-tag
+            :type="getConnectionStatusColor(row.monitorSysGenServerConnectionStatus)"
             size="small"
             effect="light"
           >
             <IconifyIconOnline
-              :icon="
-                getConnectionStatusIcon(row.monitorSysGenServerConnectionStatus)
-              "
+              :icon="getConnectionStatusIcon(row.monitorSysGenServerConnectionStatus)"
               class="mr-1"
             />
-            {{
-              getConnectionStatusText(row.monitorSysGenServerConnectionStatus)
-            }}
-          </ScTag>
+            {{ getConnectionStatusText(row.monitorSysGenServerConnectionStatus) }}
+          </el-tag>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="响应时间" width="100" align="center">
+      </el-table-column>
+      
+      <el-table-column label="响应时间" width="100" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionResponseTime">
             {{ row.monitorSysGenServerConnectionResponseTime }}ms
           </span>
           <span v-else class="text-muted">-</span>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="最后测试时间" width="160" align="center">
+      </el-table-column>
+      
+      <el-table-column label="最后测试时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionTestTime">
             {{ formatDateTime(row.monitorSysGenServerConnectionTestTime) }}
           </span>
           <span v-else class="text-muted">从未测试</span>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="最后成功时间" width="160" align="center">
+      </el-table-column>
+      
+      <el-table-column label="最后成功时间" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerConnectionLastSuccessTime">
-            {{
-              formatDateTime(row.monitorSysGenServerConnectionLastSuccessTime)
-            }}
+            {{ formatDateTime(row.monitorSysGenServerConnectionLastSuccessTime) }}
           </span>
           <span v-else class="text-muted">从未成功</span>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="重试次数" width="80" align="center">
+      </el-table-column>
+      
+      <el-table-column label="重试次数" width="80" align="center">
         <template #default="{ row }">
           {{ row.monitorSysGenServerConnectionRetryCount || 0 }}
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="错误信息" min-width="200">
+      </el-table-column>
+      
+      <el-table-column label="错误信息" min-width="200">
         <template #default="{ row }">
-          <span
-            v-if="row.monitorSysGenServerConnectionError"
-            class="error-text"
-          >
+          <span v-if="row.monitorSysGenServerConnectionError" class="error-text">
             {{ row.monitorSysGenServerConnectionError }}
           </span>
           <span v-else class="text-muted">无</span>
         </template>
-      </ScTableColumn>
-
-      <ScTableColumn label="操作" width="200" align="center" fixed="right">
+      </el-table-column>
+      
+      <el-table-column label="操作" width="200" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <ScButton
+            <el-button
               size="small"
               type="primary"
               :loading="testingServers.has(row.monitorSysGenServerId)"
@@ -212,25 +190,25 @@
             >
               <IconifyIconOnline icon="ri:wifi-line" />
               测试
-            </ScButton>
-
-            <ScButton size="small" @click="handleViewTrend(row)">
+            </el-button>
+            
+            <el-button size="small" @click="handleViewTrend(row)">
               <IconifyIconOnline icon="ri:line-chart-line" />
               趋势
-            </ScButton>
-
-            <ScButton size="small" @click="handleReset(row)">
+            </el-button>
+            
+            <el-button size="small" @click="handleReset(row)">
               <IconifyIconOnline icon="ri:restart-line" />
               重置
-            </ScButton>
+            </el-button>
           </el-button-group>
         </template>
-      </ScTableColumn>
-    </ScTable>
+      </el-table-column>
+    </el-table>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <ScPagination
+      <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="filteredConnectionStatusList.length"
@@ -255,7 +233,7 @@
           <p>数据点数量: {{ trendData.length }}</p>
         </div>
       </div>
-      <ScEmpty v-else description="暂无趋势数据" />
+      <el-empty v-else description="暂无趋势数据" />
     </sc-dialog>
   </div>
 </template>
@@ -325,18 +303,17 @@ const filteredConnectionStatusList = computed(() => {
 
   // 按状态筛选
   if (filterStatus.value !== "") {
-    result = result.filter(
-      (item) => item.monitorSysGenServerConnectionStatus === filterStatus.value,
+    result = result.filter(item =>
+      item.monitorSysGenServerConnectionStatus === filterStatus.value
     );
   }
 
   // 按关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(
-      (item) =>
-        item.serverName?.toLowerCase().includes(keyword) ||
-        item.host?.toLowerCase().includes(keyword),
+    result = result.filter(item =>
+      item.serverName?.toLowerCase().includes(keyword) ||
+      item.host?.toLowerCase().includes(keyword)
     );
   }
 
@@ -481,10 +458,7 @@ const handleTestConnection = async (connection: any) => {
  */
 const handleViewTrend = async (connection: any) => {
   try {
-    const res = await getServerConnectionTrend(
-      connection.monitorSysGenServerId,
-      24,
-    );
+    const res = await getServerConnectionTrend(connection.monitorSysGenServerId, 24);
     if (res.code === "00000") {
       trendData.value = res.data || [];
       trendDialogVisible.value = true;
@@ -509,12 +483,10 @@ const handleReset = async (connection: any) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
-    const res = await resetServerConnectionStatus(
-      connection.monitorSysGenServerId,
-    );
+    const res = await resetServerConnectionStatus(connection.monitorSysGenServerId);
     if (res.code === "00000") {
       message.success("连接状态重置成功");
       loadConnectionStatusList();
@@ -565,6 +537,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -597,6 +570,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .server-connection-status-list {
   .status-overview {
@@ -645,7 +619,7 @@ onMounted(() => {
 
           .status-label {
             font-size: 14px;
-            color: var(--el-text-color-primary);
+             color: var(--el-text-color-primary);
             margin-top: 4px;
           }
         }
@@ -686,7 +660,7 @@ onMounted(() => {
 
     .server-address {
       font-size: 12px;
-      color: var(--el-text-color-primary);
+       color: var(--el-text-color-primary);
     }
   }
 
@@ -714,10 +688,11 @@ onMounted(() => {
       justify-content: center;
       background: var(--el-bg-color-overlay);
       border-radius: 8px;
-      color: var(--el-text-color-primary);
+       color: var(--el-text-color-primary);
     }
   }
 }
+
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -727,4 +702,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

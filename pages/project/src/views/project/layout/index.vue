@@ -20,7 +20,7 @@ import {
 } from "./column";
 import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
-import { useRenderIcon } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { paginate, deepCopy } from "@repo/utils";
 import { useDateFormat } from "@vueuse/core";
 const columnSetting = markRaw(columnSettingLayout);
@@ -225,7 +225,7 @@ export default defineComponent({
         newTableData,
         pageSize,
         page,
-        this.filter,
+        this.filter
       );
       this.loading = false;
       this.tableData = this.afterLoadedData(data);
@@ -313,7 +313,7 @@ export default defineComponent({
         for (var index = 0; index < this.cachePage; index++) {
           this.cacheData[this.currentPage + index] = this.tableData.slice(
             index * this.scPageSize,
-            (index + 1) * this.scPageSize,
+            (index + 1) * this.scPageSize
           );
         }
         this.tableData = this.afterLoadedData(this.cacheData[this.currentPage]);
@@ -390,7 +390,7 @@ export default defineComponent({
         const column = await columnSettingReset(this.tableName, this.columns);
         this.userColumn = column;
         this.$refs.columnSetting.usercolumn = JSON.parse(
-          JSON.stringify(this.userColumn || []),
+          JSON.stringify(this.userColumn || [])
         );
       } catch (error) {
         this.$message.error("重置失败");
@@ -485,7 +485,7 @@ export default defineComponent({
     removeKey(key, rowKey = this.rowKey) {
       this.tableData.splice(
         this.tableData.findIndex((item) => item[rowKey] === key),
-        1,
+        1
       );
     },
     //根据keys批量删除
@@ -493,7 +493,7 @@ export default defineComponent({
       keys.forEach((key) => {
         this.tableData.splice(
           this.tableData.findIndex((item) => item[rowKey] === key),
-          1,
+          1
         );
       });
     },
@@ -540,16 +540,16 @@ export default defineComponent({
           v-for="item in tableData"
           :key="item.id"
         >
-          <ScSkeleton :loading="loading" animated>
+          <el-skeleton :loading="loading" animated>
             <template #template>
               <div class="top">
-                <ScSkeletonItem
+                <el-skeleton-item
                   variant="image"
                   style="width: 100%; height: 100%; border-radius: 10px"
                 />
                 <div style="padding: 16px 0">
-                  <ScSkeletonItem variant="p" style="width: 80%" />
-                  <ScSkeletonItem
+                  <el-skeleton-item variant="p" style="width: 80%" />
+                  <el-skeleton-item
                     variant="p"
                     style="width: 40%; margin-top: 10px"
                   />
@@ -564,7 +564,7 @@ export default defineComponent({
                 </div>
               </div>
             </template>
-          </ScSkeleton>
+          </el-skeleton>
         </div>
       </div>
     </div>
@@ -576,7 +576,7 @@ export default defineComponent({
   >
     <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
-        <ScPagination
+        <el-pagination
           v-if="!hidePagination"
           v-model:currentPage="currentPage"
           background
@@ -593,14 +593,14 @@ export default defineComponent({
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
-        <ScButton
+        <ScButton 
           v-if="!hideRefresh"
           :icon="icon('ep:refresh')"
           circle
           style="margin-left: 15px"
           @click="refresh"
         />
-        <ScPopover
+        <ScPopover 
           v-if="columns"
           placement="top"
           title="列设置"
@@ -611,7 +611,7 @@ export default defineComponent({
           @after-leave="customColumnShow = false"
         >
           <template #reference>
-            <ScButton
+            <ScButton 
               :icon="icon('ep:set-up')"
               circle
               style="margin-left: 15px"
@@ -626,7 +626,7 @@ export default defineComponent({
             @back="columnSettingBackHandler"
           />
         </ScPopover>
-        <ScPopover
+        <ScPopover 
           v-if="!hideSetting"
           placement="top"
           title="表格设置"
@@ -635,7 +635,7 @@ export default defineComponent({
           :hide-after="0"
         >
           <template #reference>
-            <ScButton
+            <ScButton 
               :icon="icon('ep:setting')"
               circle
               style="margin-left: 15px"
@@ -643,7 +643,7 @@ export default defineComponent({
           </template>
           <ScForm label-width="80px" label-position="left">
             <ScFormItem label="表格尺寸">
-              <ScRadioGroup
+              <ScRadioGroup 
                 v-model="config.size"
                 size="small"
                 @change="configSizeChange"

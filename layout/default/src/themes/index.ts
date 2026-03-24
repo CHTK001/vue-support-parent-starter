@@ -21,7 +21,7 @@ export interface LayoutTheme {
   /** 主题颜色（用于显示） */
   color?: string;
   /** 基础风格：light-浅色, dark-深色 */
-  baseStyle?: "light" | "dark";
+  baseStyle?: 'light' | 'dark';
 }
 
 /**
@@ -33,7 +33,6 @@ export const layoutThemes: LayoutTheme[] = [
     name: "默认",
     key: "default",
     description: "系统默认主题皮肤",
-    stylesheet: "default.scss",
     icon: "ri:settings-3-line",
     type: "regular",
     color: "#409EFF",
@@ -58,37 +57,6 @@ export const layoutThemes: LayoutTheme[] = [
     icon: "ri:rocket-2-line",
     type: "beta",
     color: "#00ffff",
-    baseStyle: "dark",
-  },
-  // === 节日主题 ===
-  {
-    name: "万圣节",
-    key: "halloween",
-    description: "万圣节主题，南瓜橙 + 幽灵紫",
-    stylesheet: "halloween.scss",
-    icon: "ri:ghost-smile-line",
-    type: "festival",
-    color: "#FF6B35",
-    baseStyle: "dark",
-  },
-  {
-    name: "圣诞节",
-    key: "christmas",
-    description: "圣诞节主题，圣诞红 + 松绿 + 金色",
-    stylesheet: "christmas.scss",
-    icon: "ri:gift-line",
-    type: "festival",
-    color: "#C41E3A",
-    baseStyle: "dark",
-  },
-  {
-    name: "春节",
-    key: "spring-festival",
-    description: "春节主题，中国红 + 金黄",
-    stylesheet: "spring-festival.scss",
-    icon: "ri:fire-line",
-    type: "festival",
-    color: "#E74C3C",
     baseStyle: "dark",
   },
 ];
@@ -117,7 +85,7 @@ export const getLayoutTheme = (themeKey: ThemeKey): LayoutTheme | undefined => {
 };
 
 // 动态导入主题样式
-const themeModules = import.meta.glob("./*.{scss,css}");
+const themeModules = import.meta.glob('./*.{scss,css}');
 
 /**
  * 动态加载主题样式表
@@ -129,13 +97,11 @@ export const loadThemeStylesheet = (themeKey: ThemeKey) => {
 
   const path = `./${theme.stylesheet}`;
   if (themeModules[path]) {
-    themeModules[path]()
-      .then(() => {
-        console.debug(`Theme stylesheet loaded: ${path}`);
-      })
-      .catch((e) => {
-        console.error(`Failed to load theme stylesheet: ${path}`, e);
-      });
+    themeModules[path]().then(() => {
+      console.debug(`Theme stylesheet loaded: ${path}`);
+    }).catch((e) => {
+      console.error(`Failed to load theme stylesheet: ${path}`, e);
+    });
   } else {
     console.warn(`Theme stylesheet not found: ${path}`);
   }

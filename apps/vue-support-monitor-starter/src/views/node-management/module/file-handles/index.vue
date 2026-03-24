@@ -1,7 +1,7 @@
 <template>
   <div class="file-handles system-container modern-bg">
     <!-- 工具栏 -->
-    <ScCard class="toolbar-card" shadow="never">
+    <el-card class="toolbar-card" shadow="never">
       <div class="toolbar">
         <div class="toolbar-left">
           <h3>
@@ -10,34 +10,29 @@
           </h3>
         </div>
         <div class="toolbar-right">
-          <ScInput
+          <el-input
             v-model="ipAddress"
             placeholder="IP地址"
             class="ip-input"
             clearable
           />
-          <ScInput
+          <el-input
             v-model="port"
             placeholder="端口"
             class="port-input"
             type="number"
             clearable
           />
-          <ScButton type="primary" @click="loadFileHandles">
+          <el-button type="primary" @click="loadFileHandles">
             <IconifyIconOnline icon="ri:search-line" />
             查询
-          </ScButton>
-          <ScTooltip content="刷新统计" placement="top">
-            <ScButton
-              type="primary"
-              :icon="Refresh"
-              :loading="statsLoading"
-              @click="loadStats"
-            />
-          </ScTooltip>
+          </el-button>
+          <el-tooltip content="刷新统计" placement="top">
+            <el-button type="primary" :icon="Refresh" :loading="statsLoading" @click="loadStats" />
+          </el-tooltip>
         </div>
       </div>
-    </ScCard>
+    </el-card>
 
     <!-- 统计卡片 -->
     <div class="stats-section">
@@ -60,7 +55,7 @@
     </div>
 
     <!-- 节点句柄分布 -->
-    <ScCard class="nodes-card" shadow="never">
+    <el-card class="nodes-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span class="title">
@@ -85,7 +80,7 @@
             <span class="count-value">{{ node.handleCount }}</span>
             <span class="count-label">句柄</span>
           </div>
-          <ScProgress
+          <el-progress
             :percentage="getPercentage(node.handleCount)"
             :stroke-width="6"
             :show-text="false"
@@ -93,28 +88,20 @@
           />
         </div>
 
-        <ScEmpty
-          v-if="!statsLoading && stats.nodes.length === 0"
-          description="暂无节点数据"
-        />
+        <el-empty v-if="!statsLoading && stats.nodes.length === 0" description="暂无节点数据" />
       </div>
-    </ScCard>
+    </el-card>
 
     <!-- 句柄列表 -->
-    <ScCard class="handles-card" shadow="never">
+    <el-card class="handles-card" shadow="never">
       <template #header>
         <div class="card-header">
           <span class="title">
             <IconifyIconOnline icon="ri:list-check" />
             句柄列表
-            <ScTag
-              v-if="selectedNodeAddress"
-              size="small"
-              type="info"
-              class="selected-node"
-            >
+            <el-tag v-if="selectedNodeAddress" size="small" type="info" class="selected-node">
               {{ selectedNodeAddress }}
-            </ScTag>
+            </el-tag>
           </span>
           <span class="count">共 {{ fileHandles.length }} 个</span>
         </div>
@@ -127,15 +114,15 @@
         :show-pagination="false"
       >
         <template #handleType="{ row }">
-          <ScTag :type="getHandleTypeTag(row.handleType)" size="small">
+          <el-tag :type="getHandleTypeTag(row.handleType)" size="small">
             {{ row.handleType || "UNKNOWN" }}
-          </ScTag>
+          </el-tag>
         </template>
 
         <template #mode="{ row }">
-          <ScTag size="small" effect="plain">
+          <el-tag size="small" effect="plain">
             {{ row.mode || "-" }}
-          </ScTag>
+          </el-tag>
         </template>
 
         <template #filePath="{ row }">
@@ -166,17 +153,9 @@
         </template>
       </ScTable>
 
-      <ScEmpty
-        v-if="
-          !handlesLoading && fileHandles.length === 0 && selectedNodeAddress
-        "
-        description="该节点暂无句柄数据"
-      />
-      <ScEmpty
-        v-if="!handlesLoading && !selectedNodeAddress"
-        description="请选择节点或输入IP:端口查询"
-      />
-    </ScCard>
+      <el-empty v-if="!handlesLoading && fileHandles.length === 0 && selectedNodeAddress" description="该节点暂无句柄数据" />
+      <el-empty v-if="!handlesLoading && !selectedNodeAddress" description="请选择节点或输入IP:端口查询" />
+    </el-card>
   </div>
 </template>
 
@@ -217,12 +196,7 @@ const tableColumns = [
   { label: "读写", prop: "bytes", slot: "bytes", width: 180 },
   { label: "PID", prop: "pid", width: 100 },
   { label: "打开时间", prop: "openTime", slot: "openTime", width: 160 },
-  {
-    label: "最后访问",
-    prop: "lastAccessTime",
-    slot: "lastAccessTime",
-    width: 160,
-  },
+  { label: "最后访问", prop: "lastAccessTime", slot: "lastAccessTime", width: 160 },
 ];
 
 /**
@@ -256,12 +230,9 @@ const loadFileHandles = async () => {
 
   handlesLoading.value = true;
   selectedNodeAddress.value = `${ipAddress.value}:${port.value}`;
-
+  
   try {
-    const response = await getFileHandlesForAgent(
-      ipAddress.value,
-      Number(port.value),
-    );
+    const response = await getFileHandlesForAgent(ipAddress.value, Number(port.value));
     if (response.success && response.data) {
       fileHandles.value = response.data;
     } else {
@@ -344,6 +315,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -376,6 +348,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .file-handles {
   padding: 20px;

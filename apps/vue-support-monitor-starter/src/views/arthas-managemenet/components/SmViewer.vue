@@ -3,91 +3,38 @@
     <!-- 控制面板 -->
     <div class="control-panel">
       <div class="control-row">
-        <ScInput
-          v-model="classPattern"
-          placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）"
-          style="min-width: 280px"
-          clearable
-        />
-        <ScInput
-          v-model="methodPattern"
-          placeholder="方法名/通配（可选，默认 *）"
-          style="width: 200px"
-          clearable
-        />
-        <ScCheckbox v-model="useRegex">正则(-E)</ScCheckbox>
-        <ScCheckbox v-model="declaredOnly">仅声明方法(-d)</ScCheckbox>
-        <ScInputNumber
-          v-model="collectMillis"
-          :min="2000"
-          :max="60000"
-          :step="1000"
-          controls-position="right"
-          style="width: 160px"
-        />
+        <el-input v-model="classPattern" placeholder="类名/通配（如 com.example.UserService 或 com.example.*Service）" style="min-width: 280px" clearable />
+        <el-input v-model="methodPattern" placeholder="方法名/通配（可选，默认 *）" style="width: 200px" clearable />
+        <el-checkbox v-model="useRegex">正则(-E)</el-checkbox>
+        <el-checkbox v-model="declaredOnly">仅声明方法(-d)</el-checkbox>
+        <el-input-number v-model="collectMillis" :min="2000" :max="60000" :step="1000" controls-position="right" style="width: 160px" />
         <span class="label">超时(ms)</span>
-        <ScButton
-          type="primary"
-          :disabled="!nodeId || !classPatternTrim"
-          :loading="loading"
-          @click="run"
-        >
-          执行
-        </ScButton>
-        <ScButton @click="clearData">清空</ScButton>
+        <el-button type="primary" :disabled="!nodeId || !classPatternTrim" :loading="loading" @click="run"> 执行 </el-button>
+        <el-button @click="clearData">清空</el-button>
       </div>
     </div>
 
     <!-- 错误提示 -->
-    <ScAlert
-      v-if="error"
-      type="error"
-      :title="error"
-      :closable="false"
-      show-icon
-      class="mb-4"
-    />
+    <el-alert v-if="error" type="error" :title="error" :closable="false" show-icon class="mb-4" />
 
     <!-- 结果表格 -->
-    <ScTable v-if="rows.length > 0" :data="rows" stripe>
-      <ScTableColumn
-        prop="className"
-        label="类名"
-        min-width="260"
-        show-overflow-tooltip
-      />
-      <ScTableColumn prop="methodName" label="方法" width="180" />
-      <ScTableColumn
-        prop="returnType"
-        label="返回类型"
-        width="180"
-        show-overflow-tooltip
-      />
-      <ScTableColumn prop="modifiers" label="修饰符" width="140" />
-      <ScTableColumn
-        prop="parameters"
-        label="参数"
-        min-width="220"
-        show-overflow-tooltip
-      />
-      <ScTableColumn prop="declared" label="声明" width="90">
+    <el-table v-if="rows.length > 0" :data="rows" stripe>
+      <el-table-column prop="className" label="类名" min-width="260" show-overflow-tooltip />
+      <el-table-column prop="methodName" label="方法" width="180" />
+      <el-table-column prop="returnType" label="返回类型" width="180" show-overflow-tooltip />
+      <el-table-column prop="modifiers" label="修饰符" width="140" />
+      <el-table-column prop="parameters" label="参数" min-width="220" show-overflow-tooltip />
+      <el-table-column prop="declared" label="声明" width="90">
         <template #default="{ row }">
-          <ScTag :type="row.declared ? 'success' : 'info'" size="small">{{
-            row.declared ? "是" : "否"
-          }}</ScTag>
+          <el-tag :type="row.declared ? 'success' : 'info'" size="small">{{ row.declared ? "是" : "否" }}</el-tag>
         </template>
-      </ScTableColumn>
-      <ScTableColumn
-        prop="classLoader"
-        label="类加载器"
-        min-width="220"
-        show-overflow-tooltip
-      />
-    </ScTable>
+      </el-table-column>
+      <el-table-column prop="classLoader" label="类加载器" min-width="220" show-overflow-tooltip />
+    </el-table>
 
     <!-- 空状态 -->
     <div v-if="!loading && !error && rows.length === 0" class="empty-state">
-      <ScEmpty description="暂无方法信息，请配置类/方法并点击执行" />
+      <el-empty description="暂无方法信息，请配置类/方法并点击执行" />
     </div>
   </div>
 </template>
@@ -142,13 +89,7 @@ function parseSm(output: any): SmRow[] {
     if (!output?.body?.results) return [];
     const results = output.body.results;
     // Arthas 的 sm 通常返回一个或多个条目，type 可能标识为 "sm" 或包含方法信息
-    const smResults = results.filter(
-      (r: any) =>
-        (r.type || "").toLowerCase().includes("sm") ||
-        r.methodInfo ||
-        r.method ||
-        r.modifier,
-    );
+    const smResults = results.filter((r: any) => (r.type || "").toLowerCase().includes("sm") || r.methodInfo || r.method || r.modifier);
     const parsed: SmRow[] = [];
 
     for (const r of smResults) {
@@ -157,15 +98,10 @@ function parseSm(output: any): SmRow[] {
       const methodName = r.methodName || r.name || r.method || "";
       const returnType = r.returnType || r.return || r.ret || "";
       const paramsArr: any[] = r.parameterTypes || r.parameters || r.args || [];
-      const parameters = Array.isArray(paramsArr)
-        ? paramsArr.join(", ")
-        : typeof paramsArr === "string"
-          ? paramsArr
-          : "";
+      const parameters = Array.isArray(paramsArr) ? paramsArr.join(", ") : typeof paramsArr === "string" ? paramsArr : "";
       const modifiers = r.modifiers || r.modifier || r.access || "";
       const declared = !!(r.declared || r.isDeclared || declaredOnly.value);
-      const classLoader =
-        r.classLoader || r.classLoaderHash || r.loader || undefined;
+      const classLoader = r.classLoader || r.classLoaderHash || r.loader || undefined;
 
       if (klass && methodName) {
         parsed.push({
@@ -182,9 +118,7 @@ function parseSm(output: any): SmRow[] {
       // 有些实现把 methods 放在数组里
       if (Array.isArray(r.methods)) {
         for (const m of r.methods) {
-          const p = Array.isArray(m.parameterTypes)
-            ? m.parameterTypes.join(", ")
-            : m.parameters || "";
+          const p = Array.isArray(m.parameterTypes) ? m.parameterTypes.join(", ") : m.parameters || "";
           parsed.push({
             className: m.className || klass,
             methodName: m.methodName || m.name || methodName,
@@ -214,8 +148,7 @@ async function run() {
     if (res?.success) {
       const parsed = parseSm(res.data?.output);
       rows.value = parsed;
-      if (parsed.length === 0)
-        error.value = "未获取到方法数据，请检查类/方法是否匹配";
+      if (parsed.length === 0) error.value = "未获取到方法数据，请检查类/方法是否匹配";
     } else {
       error.value = res?.msg || "执行失败";
     }
@@ -228,6 +161,7 @@ async function run() {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -261,6 +195,7 @@ async function run() {
   }
 }
 
+
 .sm-viewer {
   display: flex;
   flex-direction: column;
@@ -293,6 +228,7 @@ async function run() {
   justify-content: center;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -301,4 +237,5 @@ async function run() {
     padding: 12px 16px;
   }
 }
+
 </style>

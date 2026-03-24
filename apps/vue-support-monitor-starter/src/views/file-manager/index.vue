@@ -8,137 +8,126 @@
           文件管理器
         </h1>
         <div class="breadcrumb-container">
-          <ScBreadcrumb separator="/">
-            <ScBreadcrumbItem
+          <el-breadcrumb separator="/">
+            <el-breadcrumb-item
               v-for="(item, index) in breadcrumbItems"
               :key="index"
-              :to="
-                index === breadcrumbItems.length - 1
-                  ? undefined
-                  : { path: item.path }
-              "
+              :to="index === breadcrumbItems.length - 1 ? undefined : { path: item.path }"
               class="breadcrumb-item"
             >
               <IconifyIconOnline :icon="item.icon" class="breadcrumb-icon" />
               {{ item.name }}
-            </ScBreadcrumbItem>
-          </ScBreadcrumb>
+            </el-breadcrumb-item>
+          </el-breadcrumb>
         </div>
       </div>
       <div class="header-right">
         <div class="view-controls">
-          <ScTooltip content="列表视图" placement="bottom">
-            <ScButton
+          <el-tooltip content="列表视图" placement="bottom">
+            <el-button
               :type="viewMode === 'list' ? 'primary' : 'default'"
-              class="view-btn"
               @click="viewMode = 'list'"
+              class="view-btn"
             >
               <IconifyIconOnline icon="ri:list-unordered" />
-            </ScButton>
-          </ScTooltip>
-          <ScTooltip content="网格视图" placement="bottom">
-            <ScButton
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="网格视图" placement="bottom">
+            <el-button
               :type="viewMode === 'grid' ? 'primary' : 'default'"
-              class="view-btn"
               @click="viewMode = 'grid'"
+              class="view-btn"
             >
               <IconifyIconOnline icon="ri:grid-line" />
-            </ScButton>
-          </ScTooltip>
+            </el-button>
+          </el-tooltip>
         </div>
-        <ScButton class="action-btn" @click="refreshCurrentDirectory">
+        <el-button @click="refreshCurrentDirectory" class="action-btn">
           <IconifyIconOnline icon="ri:refresh-line" class="btn-icon" />
           刷新
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton
-          type="primary"
-          class="action-btn"
-          @click="showUploadDialog = true"
-        >
+        <el-button type="primary" @click="showUploadDialog = true" class="action-btn">
           <IconifyIconOnline icon="ri:upload-cloud-line" class="btn-icon" />
           上传文件
-        </ScButton>
-        <ScButton class="action-btn" @click="showCreateFolderDialog = true">
+        </el-button>
+        <el-button @click="showCreateFolderDialog = true" class="action-btn">
           <IconifyIconOnline icon="ri:folder-add-line" class="btn-icon" />
           新建文件夹
-        </ScButton>
-        <ScDivider direction="vertical" />
-        <ScButton
+        </el-button>
+        <el-divider direction="vertical" />
+        <el-button
           :disabled="selectedFiles.length === 0"
-          class="action-btn"
           @click="downloadSelected"
+          class="action-btn"
         >
           <IconifyIconOnline icon="ri:download-line" class="btn-icon" />
           下载
-        </ScButton>
-        <ScButton
+        </el-button>
+        <el-button
           :disabled="selectedFiles.length === 0"
           type="danger"
-          class="action-btn"
           @click="deleteSelected"
+          class="action-btn"
         >
           <IconifyIconOnline icon="ri:delete-bin-line" class="btn-icon" />
           删除
-        </ScButton>
+        </el-button>
       </div>
       <div class="toolbar-right">
         <div class="search-container">
-          <ScInput
+          <el-input
             v-model="searchQuery"
             placeholder="搜索文件和文件夹..."
             clearable
-            class="search-input"
             @input="handleSearch"
+            class="search-input"
           >
             <template #prefix>
               <IconifyIconOnline icon="ri:search-line" />
             </template>
-          </ScInput>
+          </el-input>
         </div>
-        <ScDropdown class="sort-dropdown" @command="handleSortChange">
-          <ScButton class="action-btn">
+        <el-dropdown @command="handleSortChange" class="sort-dropdown">
+          <el-button class="action-btn">
             <IconifyIconOnline icon="ri:sort-desc" class="btn-icon" />
             排序
-            <IconifyIconOnline
-              icon="ri:arrow-down-s-line"
-              class="dropdown-icon"
-            />
-          </ScButton>
+            <IconifyIconOnline icon="ri:arrow-down-s-line" class="dropdown-icon" />
+          </el-button>
           <template #dropdown>
-            <ScDropdownMenu>
-              <ScDropdownItem command="name-asc">
+            <el-dropdown-menu>
+              <el-dropdown-item command="name-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
                 名称 (A-Z)
-              </ScDropdownItem>
-              <ScDropdownItem command="name-desc">
+              </el-dropdown-item>
+              <el-dropdown-item command="name-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
                 名称 (Z-A)
-              </ScDropdownItem>
-              <ScDropdownItem command="size-asc">
+              </el-dropdown-item>
+              <el-dropdown-item command="size-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
                 大小 (小到大)
-              </ScDropdownItem>
-              <ScDropdownItem command="size-desc">
+              </el-dropdown-item>
+              <el-dropdown-item command="size-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
                 大小 (大到小)
-              </ScDropdownItem>
-              <ScDropdownItem command="date-asc">
+              </el-dropdown-item>
+              <el-dropdown-item command="date-asc">
                 <IconifyIconOnline icon="ri:sort-asc" class="menu-icon" />
                 修改时间 (旧到新)
-              </ScDropdownItem>
-              <ScDropdownItem command="date-desc">
+              </el-dropdown-item>
+              <el-dropdown-item command="date-desc">
                 <IconifyIconOnline icon="ri:sort-desc" class="menu-icon" />
                 修改时间 (新到旧)
-              </ScDropdownItem>
-            </ScDropdownMenu>
+              </el-dropdown-item>
+            </el-dropdown-menu>
           </template>
-        </ScDropdown>
+        </el-dropdown>
       </div>
     </div>
 
@@ -151,22 +140,18 @@
             <IconifyIconOnline icon="ri:folder-line" class="sidebar-icon" />
             目录结构
           </h3>
-          <ScButton
+          <el-button
+            @click="sidebarCollapsed = !sidebarCollapsed"
             class="collapse-btn"
             size="small"
-            @click="sidebarCollapsed = !sidebarCollapsed"
           >
             <IconifyIconOnline
-              :icon="
-                sidebarCollapsed
-                  ? 'ri:arrow-right-s-line'
-                  : 'ri:arrow-left-s-line'
-              "
+              :icon="sidebarCollapsed ? 'ri:arrow-right-s-line' : 'ri:arrow-left-s-line'"
             />
-          </ScButton>
+          </el-button>
         </div>
-        <div v-show="!sidebarCollapsed" class="directory-tree">
-          <ScTree
+        <div class="directory-tree" v-show="!sidebarCollapsed">
+          <el-tree
             ref="directoryTreeRef"
             :data="directoryTree"
             :props="treeProps"
@@ -174,9 +159,9 @@
             :default-expand-all="false"
             :expand-on-click-node="false"
             :highlight-current="true"
-            class="tree-component"
             @node-click="handleDirectorySelect"
             @node-expand="handleNodeExpand"
+            class="tree-component"
           >
             <template #default="{ node, data }">
               <div class="tree-node">
@@ -187,7 +172,7 @@
                 <span class="node-label">{{ data.name }}</span>
               </div>
             </template>
-          </ScTree>
+          </el-tree>
         </div>
       </div>
 
@@ -204,14 +189,14 @@
             </span>
           </div>
           <div class="list-actions">
-            <ScButton
+            <el-button
               v-if="selectedFiles.length > 0"
+              @click="clearSelection"
               size="small"
               class="clear-btn"
-              @click="clearSelection"
             >
               取消选择
-            </ScButton>
+            </el-button>
           </div>
         </div>
 
@@ -219,16 +204,16 @@
         <div class="file-list" :class="`view-${viewMode}`">
           <!-- 列表视图 -->
           <div v-if="viewMode === 'list'" class="list-view">
-            <ScTable
+            <el-table
               ref="fileTableRef"
               :data="filteredFiles"
-              class="file-table"
-              empty-text="此文件夹为空"
               @selection-change="handleSelectionChange"
               @row-dblclick="handleFileDoubleClick"
+              class="file-table"
+              empty-text="此文件夹为空"
             >
-              <ScTableColumn type="selection" width="55" />
-              <ScTableColumn label="名称" min-width="300">
+              <el-table-column type="selection" width="55" />
+              <el-table-column label="名称" min-width="300">
                 <template #default="{ row }">
                   <div class="file-name-cell">
                     <IconifyIconOnline
@@ -237,70 +222,68 @@
                       :class="getFileIconClass(row)"
                     />
                     <span class="file-name">{{ row.name }}</span>
-                    <ScTag v-if="row.isDirectory" size="small" class="dir-tag">
+                    <el-tag v-if="row.isDirectory" size="small" class="dir-tag">
                       文件夹
-                    </ScTag>
+                    </el-tag>
                   </div>
                 </template>
-              </ScTableColumn>
-              <ScTableColumn label="大小" width="120" align="right">
+              </el-table-column>
+              <el-table-column label="大小" width="120" align="right">
                 <template #default="{ row }">
                   <span v-if="!row.isDirectory" class="file-size">
                     {{ formatFileSize(row.size) }}
                   </span>
                   <span v-else class="dir-indicator">--</span>
                 </template>
-              </ScTableColumn>
-              <ScTableColumn label="类型" width="120">
+              </el-table-column>
+              <el-table-column label="类型" width="120">
                 <template #default="{ row }">
                   <span class="file-type">{{ getFileType(row) }}</span>
                 </template>
-              </ScTableColumn>
-              <ScTableColumn label="修改时间" width="180">
+              </el-table-column>
+              <el-table-column label="修改时间" width="180">
                 <template #default="{ row }">
-                  <span class="file-date">{{
-                    formatDate(row.lastModified)
-                  }}</span>
+                  <span class="file-date">{{ formatDate(row.lastModified) }}</span>
                 </template>
-              </ScTableColumn>
-              <ScTableColumn label="操作" width="200" fixed="right">
+              </el-table-column>
+              <el-table-column label="操作" width="200" fixed="right">
                 <template #default="{ row }">
                   <div class="file-actions">
-                    <ScButton
+                    <el-button
                       v-if="!row.isDirectory"
+                      @click="previewFile(row)"
                       size="small"
                       type="primary"
                       class="action-btn-small"
-                      @click="previewFile(row)"
                     >
                       <IconifyIconOnline icon="ri:eye-line" />
-                    </ScButton>
-                    <ScButton
+                    </el-button>
+                    <el-button
+                      @click="downloadFile(row)"
                       size="small"
                       class="action-btn-small"
-                      @click="downloadFile(row)"
                     >
                       <IconifyIconOnline icon="ri:download-line" />
-                    </ScButton>
-                    <ScButton
+                    </el-button>
+                    <el-button
+                      @click="renameFileValue(row)"
                       size="small"
                       class="action-btn-small"
-                      @click="renameFileValue(row)"
                     >
                       <IconifyIconOnline icon="ri:edit-line" />
-                    </ScButton>
-                    <ScButton
+                    </el-button>
+                    <el-button
+                      @click="deleteFile(row)"
                       size="small"
                       type="danger"
                       class="action-btn-small"
-                      @click="deleteFile(row)"
                     >
                       <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </ScButton>
+                    </el-button>
                   </div>
                 </template>
-              </ScTableColumn>
-            </ScTable>
+              </el-table-column>
+            </el-table>
           </div>
 
           <!-- 网格视图 -->
@@ -322,16 +305,11 @@
                       :class="getFileIconClass(file)"
                     />
                     <div v-if="isFileSelected(file)" class="selection-overlay">
-                      <IconifyIconOnline
-                        icon="ri:check-line"
-                        class="check-icon"
-                      />
+                      <IconifyIconOnline icon="ri:check-line" class="check-icon" />
                     </div>
                   </div>
                   <div class="file-info">
-                    <div class="file-name" :title="file.name">
-                      {{ file.name }}
-                    </div>
+                    <div class="file-name" :title="file.name">{{ file.name }}</div>
                     <div class="file-meta">
                       <span v-if="!file.isDirectory" class="file-size">
                         {{ formatFileSize(file.size) }}
@@ -341,50 +319,41 @@
                   </div>
                 </div>
                 <div class="file-card-actions">
-                  <ScButton
+                  <el-button
                     v-if="!file.isDirectory"
+                    @click.stop="previewFile(file)"
                     size="small"
                     type="primary"
                     circle
                     class="card-action-btn"
-                    @click.stop="previewFile(file)"
                   >
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </ScButton>
-                  <ScButton
+                  </el-button>
+                  <el-button
+                    @click.stop="downloadFile(file)"
                     size="small"
                     circle
                     class="card-action-btn"
-                    @click.stop="downloadFile(file)"
                   >
                     <IconifyIconOnline icon="ri:download-line" />
-                  </ScButton>
-                  <ScDropdown
-                    trigger="click"
-                    @command="(command) => handleFileAction(command, file)"
-                  >
-                    <ScButton size="small" circle class="card-action-btn">
+                  </el-button>
+                  <el-dropdown @command="(command) => handleFileAction(command, file)" trigger="click">
+                    <el-button size="small" circle class="card-action-btn">
                       <IconifyIconOnline icon="ri:more-line" />
-                    </ScButton>
+                    </el-button>
                     <template #dropdown>
-                      <ScDropdownMenu>
-                        <ScDropdownItem command="rename">
-                          <IconifyIconOnline
-                            icon="ri:edit-line"
-                            class="menu-icon"
-                          />
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="rename">
+                          <IconifyIconOnline icon="ri:edit-line" class="menu-icon" />
                           重命名
-                        </ScDropdownItem>
-                        <ScDropdownItem command="delete" class="danger-item">
-                          <IconifyIconOnline
-                            icon="ri:delete-bin-line"
-                            class="menu-icon"
-                          />
+                        </el-dropdown-item>
+                        <el-dropdown-item command="delete" class="danger-item">
+                          <IconifyIconOnline icon="ri:delete-bin-line" class="menu-icon" />
                           删除
-                        </ScDropdownItem>
-                      </ScDropdownMenu>
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
                     </template>
-                  </ScDropdown>
+                  </el-dropdown>
                 </div>
               </div>
             </div>
@@ -424,117 +393,119 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
-import { formatBytes } from "@pureadmin/utils";
-import dayjs from "dayjs";
+import { ElMessageBox } from 'element-plus'
+import { formatBytes } from '@pureadmin/utils'
+import dayjs from 'dayjs'
 
 // 组件引入
-import FilePreviewDialog from "./components/FilePreviewDialog.vue";
-import FileUploadDialog from "./components/FileUploadDialog.vue";
-import CreateFolderDialog from "./components/CreateFolderDialog.vue";
-import RenameDialog from "./components/RenameDialog.vue";
+import FilePreviewDialog from './components/FilePreviewDialog.vue'
+import FileUploadDialog from './components/FileUploadDialog.vue'
+import CreateFolderDialog from './components/CreateFolderDialog.vue'
+import RenameDialog from './components/RenameDialog.vue'
 
 // 类型定义
 interface FileItem {
-  name: string;
-  path: string;
-  size: number;
-  lastModified: number;
-  isDirectory: boolean;
-  extension?: string;
-  mimeType?: string;
+  name: string
+  path: string
+  size: number
+  lastModified: number
+  isDirectory: boolean
+  extension?: string
+  mimeType?: string
 }
 
 interface DirectoryNode {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  children?: DirectoryNode[];
+  name: string
+  path: string
+  isDirectory: boolean
+  children?: DirectoryNode[]
 }
 
 // 响应式数据
-const viewMode = ref<"list" | "grid">("list");
-const sidebarCollapsed = ref(false);
-const currentPath = ref("/");
-const searchQuery = ref("");
-const selectedFiles = ref<FileItem[]>([]);
-const files = ref<FileItem[]>([]);
-const directoryTree = ref<DirectoryNode[]>([]);
-const sortBy = ref("name");
-const sortOrder = ref<"asc" | "desc">("asc");
+const viewMode = ref<'list' | 'grid'>('list')
+const sidebarCollapsed = ref(false)
+const currentPath = ref('/')
+const searchQuery = ref('')
+const selectedFiles = ref<FileItem[]>([])
+const files = ref<FileItem[]>([])
+const directoryTree = ref<DirectoryNode[]>([])
+const sortBy = ref('name')
+const sortOrder = ref<'asc' | 'desc'>('asc')
 
 // 对话框状态
-const showPreviewDialog = ref(false);
-const showUploadDialog = ref(false);
-const showCreateFolderDialog = ref(false);
-const showRenameDialog = ref(false);
-const previewFileValue = ref<FileItem | null>(null);
-const renameFileValue = ref<FileItem | null>(null);
+const showPreviewDialog = ref(false)
+const showUploadDialog = ref(false)
+const showCreateFolderDialog = ref(false)
+const showRenameDialog = ref(false)
+const previewFileValue = ref<FileItem | null>(null)
+const renameFileValue = ref<FileItem | null>(null)
 
 // 引用
-const directoryTreeRef = ref();
-const fileTableRef = ref();
+const directoryTreeRef = ref()
+const fileTableRef = ref()
 
 // 树形组件配置
 const treeProps = {
-  children: "children",
-  label: "name",
-  isLeaf: (data: DirectoryNode) => !data.isDirectory,
-};
+  children: 'children',
+  label: 'name',
+  isLeaf: (data: DirectoryNode) => !data.isDirectory
+}
 
 // 计算属性
 const breadcrumbItems = computed(() => {
-  const items = [{ name: "根目录", path: "/", icon: "ri:home-line" }];
-  if (currentPath.value !== "/") {
-    const pathParts = currentPath.value.split("/").filter(Boolean);
-    let currentPathBuild = "";
-    pathParts.forEach((part) => {
-      currentPathBuild += "/" + part;
+  const items = [{ name: '根目录', path: '/', icon: 'ri:home-line' }]
+  if (currentPath.value !== '/') {
+    const pathParts = currentPath.value.split('/').filter(Boolean)
+    let currentPathBuild = ''
+    pathParts.forEach(part => {
+      currentPathBuild += '/' + part
       items.push({
         name: part,
         path: currentPathBuild,
-        icon: "ri:folder-line",
-      });
-    });
+        icon: 'ri:folder-line'
+      })
+    })
   }
-  return items;
-});
+  return items
+})
 
 const filteredFiles = computed(() => {
-  let result = [...files.value];
-
+  let result = [...files.value]
+  
   // 搜索过滤
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter((file) => file.name.toLowerCase().includes(query));
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(file => 
+      file.name.toLowerCase().includes(query)
+    )
   }
-
+  
   // 排序
   result.sort((a, b) => {
     // 文件夹优先
-    if (a.isDirectory && !b.isDirectory) return -1;
-    if (!a.isDirectory && b.isDirectory) return 1;
-
-    let comparison = 0;
+    if (a.isDirectory && !b.isDirectory) return -1
+    if (!a.isDirectory && b.isDirectory) return 1
+    
+    let comparison = 0
     switch (sortBy.value) {
-      case "name":
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case "size":
-        comparison = a.size - b.size;
-        break;
-      case "date":
-        comparison = a.lastModified - b.lastModified;
-        break;
+      case 'name':
+        comparison = a.name.localeCompare(b.name)
+        break
+      case 'size':
+        comparison = a.size - b.size
+        break
+      case 'date':
+        comparison = a.lastModified - b.lastModified
+        break
     }
-
-    return sortOrder.value === "asc" ? comparison : -comparison;
-  });
-
-  return result;
-});
+    
+    return sortOrder.value === 'asc' ? comparison : -comparison
+  })
+  
+  return result
+})
 
 // 方法
 const loadDirectory = async (path: string) => {
@@ -542,393 +513,393 @@ const loadDirectory = async (path: string) => {
     // 这里应该调用实际的API
     // const response = await getFileList(path)
     // files.value = response.data
-
+    
     // 模拟数据
     files.value = [
       {
-        name: "documents",
-        path: path + "/documents",
+        name: 'documents',
+        path: path + '/documents',
         size: 0,
         lastModified: Date.now() - 86400000,
-        isDirectory: true,
+        isDirectory: true
       },
       {
-        name: "image.jpg",
-        path: path + "/image.jpg",
+        name: 'image.jpg',
+        path: path + '/image.jpg',
         size: 1024000,
         lastModified: Date.now() - 3600000,
         isDirectory: false,
-        extension: "jpg",
-        mimeType: "image/jpeg",
+        extension: 'jpg',
+        mimeType: 'image/jpeg'
       },
       {
-        name: "document.pdf",
-        path: path + "/document.pdf",
+        name: 'document.pdf',
+        path: path + '/document.pdf',
         size: 2048000,
         lastModified: Date.now() - 7200000,
         isDirectory: false,
-        extension: "pdf",
-        mimeType: "application/pdf",
-      },
-    ];
+        extension: 'pdf',
+        mimeType: 'application/pdf'
+      }
+    ]
   } catch (error) {
-    message("加载目录失败", { type: "error" });
-    console.error(error);
+    message('加载目录失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const loadDirectoryTree = async () => {
   try {
     // 这里应该调用实际的API
     // const response = await getDirectoryTree()
     // directoryTree.value = response.data
-
+    
     // 模拟数据
     directoryTree.value = [
       {
-        name: "根目录",
-        path: "/",
+        name: '根目录',
+        path: '/',
         isDirectory: true,
         children: [
           {
-            name: "documents",
-            path: "/documents",
+            name: 'documents',
+            path: '/documents',
             isDirectory: true,
-            children: [],
+            children: []
           },
           {
-            name: "images",
-            path: "/images",
+            name: 'images',
+            path: '/images',
             isDirectory: true,
-            children: [],
-          },
-        ],
-      },
-    ];
+            children: []
+          }
+        ]
+      }
+    ]
   } catch (error) {
-    message("加载目录树失败", { type: "error" });
-    console.error(error);
+    message('加载目录树失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const refreshCurrentDirectory = () => {
-  loadDirectory(currentPath.value);
-};
+  loadDirectory(currentPath.value)
+}
 
 const handleDirectorySelect = (data: DirectoryNode) => {
   if (data.isDirectory) {
-    currentPath.value = data.path;
-    loadDirectory(data.path);
+    currentPath.value = data.path
+    loadDirectory(data.path)
   }
-};
+}
 
 const handleNodeExpand = (data: DirectoryNode) => {
   // 懒加载子目录
   if (data.children && data.children.length === 0) {
     // 加载子目录
   }
-};
+}
 
 const handleSelectionChange = (selection: FileItem[]) => {
-  selectedFiles.value = selection;
-};
+  selectedFiles.value = selection
+}
 
 const handleFileClick = (file: FileItem, event: MouseEvent) => {
   if (event.ctrlKey || event.metaKey) {
     // 多选
-    const index = selectedFiles.value.findIndex((f) => f.path === file.path);
+    const index = selectedFiles.value.findIndex(f => f.path === file.path)
     if (index > -1) {
-      selectedFiles.value.splice(index, 1);
+      selectedFiles.value.splice(index, 1)
     } else {
-      selectedFiles.value.push(file);
+      selectedFiles.value.push(file)
     }
   } else {
     // 单选
-    selectedFiles.value = [file];
+    selectedFiles.value = [file]
   }
-};
+}
 
 const handleFileDoubleClick = (file: FileItem) => {
   if (file.isDirectory) {
-    currentPath.value = file.path;
-    loadDirectory(file.path);
+    currentPath.value = file.path
+    loadDirectory(file.path)
   } else {
-    previewFileValue.value = file;
-    showPreviewDialog.value = true;
+    previewFileValue.value = file
+    showPreviewDialog.value = true
   }
-};
+}
 
 const isFileSelected = (file: FileItem) => {
-  return selectedFiles.value.some((f) => f.path === file.path);
-};
+  return selectedFiles.value.some(f => f.path === file.path)
+}
 
 const clearSelection = () => {
-  selectedFiles.value = [];
+  selectedFiles.value = []
   if (fileTableRef.value) {
-    fileTableRef.value.clearSelection();
+    fileTableRef.value.clearSelection()
   }
-};
+}
 
 const handleSearch = () => {
   // 搜索逻辑已在计算属性中处理
-};
+}
 
 const handleSortChange = (command: string) => {
-  const [field, order] = command.split("-");
-  sortBy.value = field;
-  sortOrder.value = order as "asc" | "desc";
-};
+  const [field, order] = command.split('-')
+  sortBy.value = field
+  sortOrder.value = order as 'asc' | 'desc'
+}
 
 const getFileIcon = (file: FileItem) => {
   if (file.isDirectory) {
-    return "ri:folder-line";
+    return 'ri:folder-line'
   }
-
-  const ext = file.extension?.toLowerCase();
+  
+  const ext = file.extension?.toLowerCase()
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-    case "svg":
-      return "ri:image-line";
-    case "pdf":
-      return "ri:file-pdf-line";
-    case "doc":
-    case "docx":
-      return "ri:file-word-line";
-    case "xls":
-    case "xlsx":
-      return "ri:file-excel-line";
-    case "ppt":
-    case "pptx":
-      return "ri:file-ppt-line";
-    case "txt":
-    case "md":
-      return "ri:file-text-line";
-    case "zip":
-    case "rar":
-    case "7z":
-      return "ri:file-zip-line";
-    case "mp3":
-    case "wav":
-    case "flac":
-      return "ri:file-music-line";
-    case "mp4":
-    case "avi":
-    case "mkv":
-      return "ri:file-video-line";
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return 'ri:image-line'
+    case 'pdf':
+      return 'ri:file-pdf-line'
+    case 'doc':
+    case 'docx':
+      return 'ri:file-word-line'
+    case 'xls':
+    case 'xlsx':
+      return 'ri:file-excel-line'
+    case 'ppt':
+    case 'pptx':
+      return 'ri:file-ppt-line'
+    case 'txt':
+    case 'md':
+      return 'ri:file-text-line'
+    case 'zip':
+    case 'rar':
+    case '7z':
+      return 'ri:file-zip-line'
+    case 'mp3':
+    case 'wav':
+    case 'flac':
+      return 'ri:file-music-line'
+    case 'mp4':
+    case 'avi':
+    case 'mkv':
+      return 'ri:file-video-line'
     default:
-      return "ri:file-line";
+      return 'ri:file-line'
   }
-};
+}
 
 const getFileIconClass = (file: FileItem) => {
   if (file.isDirectory) {
-    return "folder-icon";
+    return 'folder-icon'
   }
-
-  const ext = file.extension?.toLowerCase();
+  
+  const ext = file.extension?.toLowerCase()
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-    case "svg":
-      return "image-icon";
-    case "pdf":
-      return "pdf-icon";
-    case "doc":
-    case "docx":
-      return "word-icon";
-    case "xls":
-    case "xlsx":
-      return "excel-icon";
-    case "ppt":
-    case "pptx":
-      return "ppt-icon";
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return 'image-icon'
+    case 'pdf':
+      return 'pdf-icon'
+    case 'doc':
+    case 'docx':
+      return 'word-icon'
+    case 'xls':
+    case 'xlsx':
+      return 'excel-icon'
+    case 'ppt':
+    case 'pptx':
+      return 'ppt-icon'
     default:
-      return "file-icon";
+      return 'file-icon'
   }
-};
+}
 
 const getFileType = (file: FileItem) => {
   if (file.isDirectory) {
-    return "文件夹";
+    return '文件夹'
   }
-
-  const ext = file.extension?.toLowerCase();
+  
+  const ext = file.extension?.toLowerCase()
   switch (ext) {
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-    case "svg":
-      return "图片";
-    case "pdf":
-      return "PDF文档";
-    case "doc":
-    case "docx":
-      return "Word文档";
-    case "xls":
-    case "xlsx":
-      return "Excel表格";
-    case "ppt":
-    case "pptx":
-      return "PowerPoint演示文稿";
-    case "txt":
-      return "文本文件";
-    case "md":
-      return "Markdown文档";
-    case "zip":
-    case "rar":
-    case "7z":
-      return "压缩文件";
-    case "mp3":
-    case "wav":
-    case "flac":
-      return "音频文件";
-    case "mp4":
-    case "avi":
-    case "mkv":
-      return "视频文件";
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'svg':
+      return '图片'
+    case 'pdf':
+      return 'PDF文档'
+    case 'doc':
+    case 'docx':
+      return 'Word文档'
+    case 'xls':
+    case 'xlsx':
+      return 'Excel表格'
+    case 'ppt':
+    case 'pptx':
+      return 'PowerPoint演示文稿'
+    case 'txt':
+      return '文本文件'
+    case 'md':
+      return 'Markdown文档'
+    case 'zip':
+    case 'rar':
+    case '7z':
+      return '压缩文件'
+    case 'mp3':
+    case 'wav':
+    case 'flac':
+      return '音频文件'
+    case 'mp4':
+    case 'avi':
+    case 'mkv':
+      return '视频文件'
     default:
-      return file.extension
-        ? `${file.extension.toUpperCase()}文件`
-        : "未知类型";
+      return file.extension ? `${file.extension.toUpperCase()}文件` : '未知类型'
   }
-};
+}
 
 const formatFileSize = (size: number) => {
-  return formatBytes(size);
-};
+  return formatBytes(size)
+}
 
 const formatDate = (timestamp: number) => {
-  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
-};
+  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
+}
 
 const previewFile = (file: FileItem) => {
-  previewFileValue.value = file;
-  showPreviewDialog.value = true;
-};
+  previewFileValue.value = file
+  showPreviewDialog.value = true
+}
 
 const downloadFile = async (file: FileItem) => {
   try {
     // 这里应该调用实际的下载API
-    message(`开始下载 ${file.name}`, { type: "success" });
+    message(`开始下载 ${file.name}`, { type: "success" })
   } catch (error) {
-    message("下载失败", { type: "error" });
-    console.error(error);
+    message('下载失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const downloadSelected = async () => {
-  if (selectedFiles.value.length === 0) return;
-
+  if (selectedFiles.value.length === 0) return
+  
   try {
     // 批量下载逻辑
-    message(`开始下载 ${selectedFiles.value.length} 个文件`, {
-      type: "success",
-    });
+    message(`开始下载 ${selectedFiles.value.length} 个文件`, { type: "success" })
   } catch (error) {
-    message("批量下载失败", { type: "error" });
-    console.error(error);
+    message('批量下载失败', { type: "error" })
+    console.error(error)
   }
-};
+}
 
 const renameFile = (file: FileItem) => {
-  renameFileValue.value = file;
-  showRenameDialog.value = true;
-};
+  renameFileValue.value = file
+  showRenameDialog.value = true
+}
 
 const deleteFile = async (file: FileItem) => {
   try {
-    await ElMessageBox.confirm(`确定要删除 "${file.name}" 吗？`, "确认删除", {
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
-
+    await ElMessageBox.confirm(
+      `确定要删除 "${file.name}" 吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
     // 这里应该调用实际的删除API
-    message("删除成功", { type: "success" });
-    refreshCurrentDirectory();
+    message('删除成功', { type: "success" })
+    refreshCurrentDirectory()
   } catch (error) {
-    if (error !== "cancel") {
-      message("删除失败", { type: "error" });
-      console.error(error);
+    if (error !== 'cancel') {
+      message('删除失败', { type: "error" })
+      console.error(error)
     }
   }
-};
+}
 
 const deleteSelected = async () => {
-  if (selectedFiles.value.length === 0) return;
-
+  if (selectedFiles.value.length === 0) return
+  
   try {
     await ElMessageBox.confirm(
       `确定要删除选中的 ${selectedFiles.value.length} 个项目吗？`,
-      "确认批量删除",
+      '确认批量删除',
       {
-        confirmButtonText: "删除",
-        cancelButtonText: "取消",
-        type: "warning",
-      },
-    );
-
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
     // 这里应该调用实际的批量删除API
-    message("批量删除成功", { type: "success" });
-    selectedFiles.value = [];
-    refreshCurrentDirectory();
+    message('批量删除成功', { type: "success" })
+    selectedFiles.value = []
+    refreshCurrentDirectory()
   } catch (error) {
-    if (error !== "cancel") {
-      message("批量删除失败", { type: "error" });
-      console.error(error);
+    if (error !== 'cancel') {
+      message('批量删除失败', { type: "error" })
+      console.error(error)
     }
   }
-};
+}
 
 const handleFileAction = (command: string, file: FileItem) => {
   switch (command) {
-    case "rename":
-      renameFileValue(file);
-      break;
-    case "delete":
-      deleteFile(file);
-      break;
+    case 'rename':
+      renameFileValue(file)
+      break
+    case 'delete':
+      deleteFile(file)
+      break
   }
-};
+}
 
 const handleUploadSuccess = () => {
-  showUploadDialog.value = false;
-  refreshCurrentDirectory();
-  message("文件上传成功", { type: "success" });
-};
+  showUploadDialog.value = false
+  refreshCurrentDirectory()
+  message('文件上传成功', { type: "success" })
+}
 
 const handleFolderCreated = () => {
-  showCreateFolderDialog.value = false;
-  refreshCurrentDirectory();
-  loadDirectoryTree();
-  message("文件夹创建成功", { type: "success" });
-};
+  showCreateFolderDialog.value = false
+  refreshCurrentDirectory()
+  loadDirectoryTree()
+  message('文件夹创建成功', { type: "success" })
+}
 
 const handleRenameSuccess = () => {
-  showRenameDialog.value = false;
-  refreshCurrentDirectory();
-  message("重命名成功", { type: "success" });
-};
+  showRenameDialog.value = false
+  refreshCurrentDirectory()
+  message('重命名成功', { type: "success" })
+}
 
 // 监听路径变化
 watch(currentPath, (newPath) => {
-  loadDirectory(newPath);
-});
+  loadDirectory(newPath)
+})
 
 // 组件挂载
 onMounted(() => {
-  loadDirectory(currentPath.value);
-  loadDirectoryTree();
-});
+  loadDirectory(currentPath.value)
+  loadDirectoryTree()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -990,7 +961,7 @@ onMounted(() => {
         .view-btn {
           border: none;
           background: transparent;
-
+          
           &.el-button--primary {
             background: #3498db;
             color: var(--el-text-color-primary);
@@ -1438,7 +1409,7 @@ onMounted(() => {
         position: absolute;
         z-index: 1000;
         height: 100%;
-
+        
         &.collapsed {
           width: 0;
           overflow: hidden;

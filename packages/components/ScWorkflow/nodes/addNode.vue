@@ -1,27 +1,27 @@
 <template>
   <div class="add-node-btn-box">
     <div class="add-node-btn">
-      <ScPopover placement="right-start" :width="270" trigger="click" :hide-after="0" :show-after="0">
+      <el-popover placement="right-start" :width="270" trigger="click" :hide-after="0" :show-after="0">
         <template #reference>
-          <ScButton type="primary" icon="el-icon-plus" circle />
+          <el-button type="primary" icon="el-icon-plus" circle />
         </template>
         <div class="add-node-popover-body">
           <ul>
             <li>
-              <ScIcon style="color: #ff943e" @click="addType(1)"><el-icon-user-filled /></ScIcon>
+              <el-icon style="color: #ff943e" @click="addType(1)"><el-icon-user-filled /></el-icon>
               <p>审批节点</p>
             </li>
             <li>
-              <ScIcon style="color: #3296fa" @click="addType(2)"><el-icon-promotion /></ScIcon>
+              <el-icon style="color: #3296fa" @click="addType(2)"><el-icon-promotion /></el-icon>
               <p>抄送节点</p>
             </li>
             <li>
-              <ScIcon style="color: #15bc83" @click="addType(4)"><el-icon-share /></ScIcon>
+              <el-icon style="color: #15bc83" @click="addType(4)"><el-icon-share /></el-icon>
               <p>条件分支</p>
             </li>
           </ul>
         </div>
-      </ScPopover>
+      </el-popover>
     </div>
   </div>
 </template>

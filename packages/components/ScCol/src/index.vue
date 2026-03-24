@@ -63,4 +63,6 @@ defineProps({
 });
 
 const { currentComponent } = useThemeComponent("ElCol");
+
+
 </script>

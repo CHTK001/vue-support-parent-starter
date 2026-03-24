@@ -17,18 +17,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits([
-  "close",
-  "reply",
-  "reply-all",
-  "forward",
-  "delete",
-  "star",
-  "mark-important",
-  "add-label",
-  "remove-label",
-  "move-to-folder",
-]);
+const emit = defineEmits(["close", "reply", "reply-all", "forward", "delete", "star", "mark-important", "add-label", "remove-label", "move-to-folder"]);
 
 // 格式化日期
 const formattedDate = computed(() => {
@@ -46,17 +35,11 @@ const formattedDate = computed(() => {
 
 // 获取邮件标签
 const emailLabels = computed(() => {
-  if (
-    !props.email ||
-    !props.email.emailLabels ||
-    props.email.emailLabels.length === 0
-  ) {
+  if (!props.email || !props.email.emailLabels || props.email.emailLabels.length === 0) {
     return [];
   }
 
-  return props.labels.filter((label) =>
-    props.email.emailLabels.includes(label.emailLabelId),
-  );
+  return props.labels.filter((label) => props.email.emailLabels.includes(label.emailLabelId));
 });
 
 // 格式化文件大小
@@ -125,15 +108,12 @@ const handleMoveToFolder = (folderId) => {
   <div class="email-detail">
     <!-- 加载中 -->
     <div class="email-detail__loading" v-if="loading">
-      <ScSkeleton :rows="15" animated />
+      <el-skeleton :rows="15" animated />
     </div>
 
     <!-- 无选中邮件提示 -->
     <div class="email-detail__empty" v-else-if="!email">
-      <IconifyIconOnline
-        icon="ri:mail-open-line"
-        class="email-detail__empty-icon"
-      />
+      <IconifyIconOnline icon="ri:mail-open-line" class="email-detail__empty-icon" />
       <div class="email-detail__empty-text">请选择一封邮件查看详情</div>
     </div>
 
@@ -160,61 +140,29 @@ const handleMoveToFolder = (folderId) => {
         </div>
 
         <div class="email-detail__status">
-          <ScButton
-            :type="email.emailIsStarred ? 'warning' : 'default'"
-            text
-            circle
-            @click="handleStar"
-          >
-            <IconifyIconOnline
-              :icon="email.emailIsStarred ? 'ri:star-fill' : 'ri:star-line'"
-            />
+          <ScButton :type="email.emailIsStarred ? 'warning' : 'default'" text circle @click="handleStar">
+            <IconifyIconOnline :icon="email.emailIsStarred ? 'ri:star-fill' : 'ri:star-line'" />
           </ScButton>
-          <ScButton
-            :type="email.emailIsImportant ? 'primary' : 'default'"
-            text
-            circle
-            @click="handleMarkImportant"
-          >
-            <IconifyIconOnline
-              :icon="
-                email.emailIsImportant ? 'ri:bookmark-fill' : 'ri:bookmark-line'
-              "
-            />
+          <ScButton :type="email.emailIsImportant ? 'primary' : 'default'" text circle @click="handleMarkImportant">
+            <IconifyIconOnline :icon="email.emailIsImportant ? 'ri:bookmark-fill' : 'ri:bookmark-line'" />
           </ScButton>
 
-          <ScDropdown trigger="click">
+          <el-dropdown trigger="click">
             <ScButton type="primary" text circle>
               <IconifyIconOnline icon="ri:price-tag-3-line" />
             </ScButton>
             <template #dropdown>
-              <ScDropdownMenu>
-                <ScDropdownItem
-                  v-for="label in labels"
-                  :key="label.emailLabelId"
-                >
-                  <div
-                    class="email-detail__label-item"
-                    @click="handleAddLabel(label.emailLabelId)"
-                  >
-                    <div
-                      class="email-detail__label-color"
-                      :style="{ backgroundColor: label.emailLabelColor }"
-                    ></div>
+              <el-dropdown-menu>
+                <el-dropdown-item v-for="label in labels" :key="label.emailLabelId">
+                  <div class="email-detail__label-item" @click="handleAddLabel(label.emailLabelId)">
+                    <div class="email-detail__label-color" :style="{ backgroundColor: label.emailLabelColor }"></div>
                     <span>{{ label.emailLabelName }}</span>
-                    <IconifyIconOnline
-                      v-if="
-                        email.emailLabels &&
-                        email.emailLabels.includes(label.emailLabelId)
-                      "
-                      icon="ri:check-line"
-                      class="email-detail__label-check"
-                    />
+                    <IconifyIconOnline v-if="email.emailLabels && email.emailLabels.includes(label.emailLabelId)" icon="ri:check-line" class="email-detail__label-check" />
                   </div>
-                </ScDropdownItem>
-              </ScDropdownMenu>
+                </el-dropdown-item>
+              </el-dropdown-menu>
             </template>
-          </ScDropdown>
+          </el-dropdown>
         </div>
       </div>
 
@@ -223,38 +171,21 @@ const handleMoveToFolder = (folderId) => {
 
       <!-- 邮件标签 -->
       <div class="email-detail__labels" v-if="emailLabels.length > 0">
-        <div
-          v-for="label in emailLabels"
-          :key="label.emailLabelId"
-          class="email-detail__label"
-          :style="{
-            backgroundColor: label.emailLabelColor + '33',
-            color: label.emailLabelColor,
-          }"
-        >
+        <div v-for="label in emailLabels" :key="label.emailLabelId" class="email-detail__label" :style="{ backgroundColor: label.emailLabelColor + '33', color: label.emailLabelColor }">
           {{ label.emailLabelName }}
-          <IconifyIconOnline
-            icon="ri:close-line"
-            class="email-detail__label-remove"
-            @click="handleRemoveLabel(label.emailLabelId)"
-          />
+          <IconifyIconOnline icon="ri:close-line" class="email-detail__label-remove" @click="handleRemoveLabel(label.emailLabelId)" />
         </div>
       </div>
 
       <!-- 发件人信息 -->
       <div class="email-detail__sender">
         <div class="email-detail__sender-avatar">
-          <img
-            :src="email.emailSender.emailAvatar"
-            :alt="email.emailSender.emailName"
-          />
+          <img :src="email.emailSender.emailAvatar" :alt="email.emailSender.emailName" />
         </div>
         <div class="email-detail__sender-info">
           <div class="email-detail__sender-name">
             {{ email.emailSender.emailName }}
-            <span class="email-detail__sender-address"
-              >&lt;{{ email.emailSender.emailAddress }}&gt;</span
-            >
+            <span class="email-detail__sender-address">&lt;{{ email.emailSender.emailAddress }}&gt;</span>
           </div>
           <div class="email-detail__date">{{ formattedDate }}</div>
         </div>
@@ -262,42 +193,17 @@ const handleMoveToFolder = (folderId) => {
 
       <!-- 收件人信息 -->
       <div class="email-detail__recipients">
-        <div
-          class="email-detail__recipients-group"
-          v-if="email.emailRecipients.emailTo.length > 0"
-        >
+        <div class="email-detail__recipients-group" v-if="email.emailRecipients.emailTo.length > 0">
           <div class="email-detail__recipients-label">收件人：</div>
           <div class="email-detail__recipients-list">
-            <span
-              v-for="(recipient, index) in email.emailRecipients.emailTo"
-              :key="index"
-              class="email-detail__recipient"
-            >
-              {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt;{{
-                index < email.emailRecipients.emailTo.length - 1 ? "，" : ""
-              }}
-            </span>
+            <span v-for="(recipient, index) in email.emailRecipients.emailTo" :key="index" class="email-detail__recipient"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt;{{ index < email.emailRecipients.emailTo.length - 1 ? "，" : "" }} </span>
           </div>
         </div>
 
-        <div
-          class="email-detail__recipients-group"
-          v-if="
-            email.emailRecipients.emailCc &&
-            email.emailRecipients.emailCc.length > 0
-          "
-        >
+        <div class="email-detail__recipients-group" v-if="email.emailRecipients.emailCc && email.emailRecipients.emailCc.length > 0">
           <div class="email-detail__recipients-label">抄送：</div>
           <div class="email-detail__recipients-list">
-            <span
-              v-for="(recipient, index) in email.emailRecipients.emailCc"
-              :key="index"
-              class="email-detail__recipient"
-            >
-              {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt;{{
-                index < email.emailRecipients.emailCc.length - 1 ? "，" : ""
-              }}
-            </span>
+            <span v-for="(recipient, index) in email.emailRecipients.emailCc" :key="index" class="email-detail__recipient"> {{ recipient.emailName }} &lt;{{ recipient.emailAddress }}&gt;{{ index < email.emailRecipients.emailCc.length - 1 ? "，" : "" }} </span>
           </div>
         </div>
       </div>
@@ -306,20 +212,13 @@ const handleMoveToFolder = (folderId) => {
       <div class="email-detail__body" v-html="email.emailContent"></div>
 
       <!-- 附件 -->
-      <div
-        class="email-detail__attachments"
-        v-if="email.emailAttachments && email.emailAttachments.length > 0"
-      >
+      <div class="email-detail__attachments" v-if="email.emailAttachments && email.emailAttachments.length > 0">
         <div class="email-detail__attachments-title">
           <IconifyIconOnline icon="ri:attachment-2" />
           <span>附件 ({{ email.emailAttachments.length }})</span>
         </div>
         <div class="email-detail__attachments-list">
-          <div
-            v-for="attachment in email.emailAttachments"
-            :key="attachment.emailAttachmentId"
-            class="email-detail__attachment"
-          >
+          <div v-for="attachment in email.emailAttachments" :key="attachment.emailAttachmentId" class="email-detail__attachment">
             <div class="email-detail__attachment-icon">
               <IconifyIconOnline
                 :icon="
@@ -329,28 +228,18 @@ const handleMoveToFolder = (folderId) => {
                       ? 'ri:file-pdf-line'
                       : attachment.emailAttachmentType.includes('word')
                         ? 'ri:file-word-line'
-                        : attachment.emailAttachmentType.includes('excel') ||
-                            attachment.emailAttachmentType.includes('sheet')
+                        : attachment.emailAttachmentType.includes('excel') || attachment.emailAttachmentType.includes('sheet')
                           ? 'ri:file-excel-line'
                           : 'ri:file-line'
                 "
               />
             </div>
             <div class="email-detail__attachment-info">
-              <div class="email-detail__attachment-name">
-                {{ attachment.emailAttachmentName }}
-              </div>
-              <div class="email-detail__attachment-size">
-                {{ formatFileSize(attachment.emailAttachmentSize) }}
-              </div>
+              <div class="email-detail__attachment-name">{{ attachment.emailAttachmentName }}</div>
+              <div class="email-detail__attachment-size">{{ formatFileSize(attachment.emailAttachmentSize) }}</div>
             </div>
             <div class="email-detail__attachment-actions">
-              <ScButton
-                type="primary"
-                text
-                size="small"
-                @click="window.open(attachment.emailAttachmentUrl, '_blank')"
-              >
+              <ScButton type="primary" text size="small" @click="window.open(attachment.emailAttachmentUrl, '_blank')">
                 <IconifyIconOnline icon="ri:download-line" />
                 <span>下载</span>
               </ScButton>

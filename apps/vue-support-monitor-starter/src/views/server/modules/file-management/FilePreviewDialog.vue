@@ -8,9 +8,9 @@
     class="file-preview-dialog"
     top="5vh"
   >
-    <div v-loading="loading" class="preview-content">
+    <div class="preview-content" v-loading="loading">
       <!-- 文件信息 -->
-      <div v-if="fileInfo" class="file-info">
+      <div class="file-info" v-if="fileInfo">
         <div class="info-item">
           <span class="label">文件名:</span>
           <span class="value">{{ fileInfo.name }}</span>
@@ -35,27 +35,27 @@
         <div v-if="isTextFile && fileContent !== null" class="text-preview">
           <div class="preview-toolbar">
             <el-button-group size="small">
-              <ScButton
+              <el-button
                 :type="viewMode === 'text' ? 'primary' : ''"
                 @click="viewMode = 'text'"
               >
                 <IconifyIconOnline icon="ri:file-text-line" class="mr-1" />
                 文本
-              </ScButton>
-              <ScButton
+              </el-button>
+              <el-button
                 v-if="isCodeFile"
                 :type="viewMode === 'code' ? 'primary' : ''"
                 @click="viewMode = 'code'"
               >
                 <IconifyIconOnline icon="ri:code-line" class="mr-1" />
                 代码
-              </ScButton>
+              </el-button>
             </el-button-group>
             <div class="toolbar-right">
-              <ScButton size="small" @click="downloadFile">
+              <el-button size="small" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 下载
-              </ScButton>
+              </el-button>
             </div>
           </div>
 
@@ -75,10 +75,10 @@
           <div class="preview-toolbar">
             <span class="file-type-label">图片预览</span>
             <div class="toolbar-right">
-              <ScButton size="small" @click="downloadFile">
+              <el-button size="small" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 下载
-              </ScButton>
+              </el-button>
             </div>
           </div>
           <div class="image-container">
@@ -98,10 +98,10 @@
             <p>此文件类型暂不支持预览</p>
             <p class="file-type-hint">{{ getFileTypeHint() }}</p>
             <div class="unsupported-actions">
-              <ScButton type="primary" @click="downloadFile">
+              <el-button type="primary" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                 下载文件
-              </ScButton>
+              </el-button>
             </div>
           </div>
         </div>
@@ -116,8 +116,8 @@
             <p>文件预览失败</p>
             <p class="error-message">{{ error }}</p>
             <div class="error-actions">
-              <ScButton @click="loadFileContent">重试</ScButton>
-              <ScButton type="primary" @click="downloadFile"
+              <el-button @click="loadFileContent">重试</el-button>
+              <el-button type="primary" @click="downloadFile"
                 >下载文件</el-button
               >
             </div>
@@ -128,15 +128,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="closeDialog">关闭</ScButton>
-        <ScButton
+        <el-button @click="closeDialog">关闭</el-button>
+        <el-button
           v-if="isTextFile && fileContent"
           type="primary"
           @click="editFile"
         >
           <IconifyIconOnline icon="ri:edit-line" class="mr-1" />
           编辑
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -145,8 +145,8 @@
 <script setup lang="ts">
 import type { FileInfo } from "@/api/server/file-management";
 import {
-  downloadFile as apiDownloadFile,
-  previewFile,
+    downloadFile as apiDownloadFile,
+    previewFile,
 } from "@/api/server/file-management";
 import { formatBytes } from "@pureadmin/utils";
 import dayjs from "dayjs";
@@ -401,7 +401,7 @@ const loadFileContent = async () => {
       props.serverId,
       props.fileInfo.path,
       "auto",
-      10,
+      10
     );
     if (response.success && response.data) {
       fileContent.value = response.data.content || "";
@@ -482,7 +482,7 @@ watch(
       }
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 监听文件信息变化
@@ -496,7 +496,7 @@ watch(
         await loadFileContent();
       }
     }
-  },
+  }
 );
 </script>
 
@@ -573,7 +573,7 @@ watch(
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: var(--el-bg-color-overlay); /* 设置工具栏背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置工具栏背景为白色 */
   border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
 }
@@ -601,7 +601,7 @@ watch(
   flex: 1;
   overflow: auto;
   padding: 20px;
-  background: var(--el-bg-color-overlay); /* 设置代码内容背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置代码内容背景为白色 */
 }
 
 .text-content pre,

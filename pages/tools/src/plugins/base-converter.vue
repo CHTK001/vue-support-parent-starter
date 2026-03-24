@@ -60,9 +60,7 @@ const convertBase = () => {
 
     for (let i = 0; i < inputValue.length; i++) {
       if (!validChars.includes(inputValue[i])) {
-        throw new Error(
-          `输入值包含无效字符: ${inputValue[i]}，不符合${inputBase}进制`,
-        );
+        throw new Error(`输入值包含无效字符: ${inputValue[i]}，不符合${inputBase}进制`);
       }
     }
 
@@ -149,7 +147,7 @@ const convertBase = () => {
           label: "三十六进制",
           value: decimalValue.toString(36).toUpperCase(),
           icon: "ri:code-box-line",
-        },
+        }
       );
     }
 
@@ -282,9 +280,7 @@ onMounted(() => {
         <div class="base-converter__header">
           <div class="base-converter__header-inner">
             <h1 class="base-converter__header-title">进制转换工具</h1>
-            <p class="base-converter__header-subtitle">
-              支持二进制、八进制、十进制、十六进制等多种进制的相互转换
-            </p>
+            <p class="base-converter__header-subtitle">支持二进制、八进制、十进制、十六进制等多种进制的相互转换</p>
           </div>
         </div>
       </div>
@@ -296,28 +292,12 @@ onMounted(() => {
           <ScCard class="base-converter__input-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
-                <IconifyIconOnline
-                  icon="ri:exchange-line"
-                  class="base-converter__card-icon"
-                />
+                <IconifyIconOnline icon="ri:exchange-line" class="base-converter__card-icon" />
                 <span>进制转换</span>
                 <div class="base-converter__header-actions">
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="toggleExtendedBases"
-                  >
-                    <IconifyIconOnline
-                      :icon="
-                        env.showExtendedBases
-                          ? 'ri:subtract-line'
-                          : 'ri:add-line'
-                      "
-                    />
-                    <span>{{
-                      env.showExtendedBases ? "隐藏扩展进制" : "显示扩展进制"
-                    }}</span>
+                  <ScButton type="primary" link size="small" @click="toggleExtendedBases">
+                    <IconifyIconOnline :icon="env.showExtendedBases ? 'ri:subtract-line' : 'ri:add-line'" />
+                    <span>{{ env.showExtendedBases ? "隐藏扩展进制" : "显示扩展进制" }}</span>
                   </ScButton>
                 </div>
               </div>
@@ -326,27 +306,15 @@ onMounted(() => {
             <ScForm label-position="top">
               <!-- 输入值 -->
               <ScFormItem label="输入值">
-                <ScInput
-                  @keyup.stop="convertBase"
-                  v-model="env.inputValue"
-                  placeholder="输入要转换的数值"
-                  clearable
-                >
+                <ScInput @keyup.stop="convertBase" v-model="env.inputValue" placeholder="输入要转换的数值" clearable>
                   <template #suffix></template>
                 </ScInput>
               </ScFormItem>
 
               <!-- 输入进制选择 -->
               <ScFormItem label="输入进制">
-                <ScRadioGroup
-                  v-model="env.inputBase"
-                  class="base-converter__radio-group"
-                >
-                  <ScRadio
-                    v-for="option in env.baseOptions"
-                    :key="option.value"
-                    :label="option.value"
-                  >
+                <ScRadioGroup v-model="env.inputBase" class="base-converter__radio-group">
+                  <ScRadio v-for="option in env.baseOptions" :key="option.value" :label="option.value">
                     <div class="base-converter__radio-content">
                       <IconifyIconOnline icon="ri:code-box-line" />
                       <span>{{ option.label }}</span>
@@ -354,33 +322,16 @@ onMounted(() => {
                   </ScRadio>
                 </ScRadioGroup>
 
-                <div
-                  v-if="env.showExtendedBases"
-                  class="base-converter__extended-bases"
-                >
-                  <ScSelect
-                    v-model="env.inputBase"
-                    placeholder="选择其他进制"
-                    class="base-converter__select"
-                  >
-                    <ScOption
-                      v-for="option in env.extendedBaseOptions"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
+                <div v-if="env.showExtendedBases" class="base-converter__extended-bases">
+                  <ScSelect v-model="env.inputBase" placeholder="选择其他进制" class="base-converter__select">
+                    <ScOption v-for="option in env.extendedBaseOptions" :key="option.value" :label="option.label" :value="option.value" />
                   </ScSelect>
                 </div>
               </ScFormItem>
 
               <!-- 操作按钮 -->
               <div class="base-converter__actions">
-                <ScButton
-                  type="primary"
-                  :loading="env.loading"
-                  class="base-converter__convert-btn"
-                  @click="convertBase"
-                >
+                <ScButton type="primary" :loading="env.loading" class="base-converter__convert-btn" @click="convertBase">
                   <IconifyIconOnline icon="ri:exchange-line" />
                   <span>转换进制</span>
                 </ScButton>
@@ -397,35 +348,23 @@ onMounted(() => {
           <ScCard class="base-converter__char-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
-                <IconifyIconOnline
-                  icon="ri:text"
-                  class="base-converter__card-icon"
-                />
+                <IconifyIconOnline icon="ri:text" class="base-converter__card-icon" />
                 <span>字符转换</span>
               </div>
             </template>
 
             <ScForm label-position="top">
               <ScFormItem label="输入字符">
-                <ScInput
-                  @keyup.stop="convertChar"
-                  v-model="env.charInput"
-                  placeholder="输入要转换的字符"
-                  clearable
-                />
+                <ScInput @keyup.stop="convertChar" v-model="env.charInput" placeholder="输入要转换的字符" clearable />
               </ScFormItem>
 
               <div class="base-converter__actions">
-                <ScButton
-                  type="primary"
-                  class="base-converter__convert-btn"
-                  @click="convertChar"
-                >
+                <ScButton type="primary" class="base-converter__convert-btn" @click="convertChar">
                   <IconifyIconOnline icon="ri:exchange-line" />
                   <span>转换字符</span>
                 </ScButton>
 
-                <ScButton
+                <ScButton 
                   class="base-converter__clear-btn"
                   @click="
                     env.charInput = '';
@@ -437,10 +376,7 @@ onMounted(() => {
                 </ScButton>
               </div>
 
-              <div
-                v-if="env.charOutput && env.charOutput.length > 0"
-                class="base-converter__char-results"
-              >
+              <div v-if="env.charOutput && env.charOutput.length > 0" class="base-converter__char-results">
                 <ScTable :data="env.charOutput" style="width: 100%">
                   <ScTableColumn prop="char" label="字符" width="80" />
                   <ScTableColumn prop="decimal" label="十进制" />
@@ -459,48 +395,26 @@ onMounted(() => {
           <ScCard class="base-converter__result-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
-                <IconifyIconOnline
-                  icon="ri:code-box-line"
-                  class="base-converter__card-icon"
-                />
+                <IconifyIconOnline icon="ri:code-box-line" class="base-converter__card-icon" />
                 <span>转换结果</span>
               </div>
             </template>
 
-            <ScEmpty
-              v-if="!env.outputResults.length"
-              description="请先进行进制转换"
-              class="base-converter__empty"
-            >
+            <ScEmpty v-if="!env.outputResults.length" description="请先进行进制转换" class="base-converter__empty">
               <template #image>
-                <IconifyIconOnline
-                  icon="ri:exchange-line"
-                  class="base-converter__empty-icon"
-                />
+                <IconifyIconOnline icon="ri:exchange-line" class="base-converter__empty-icon" />
               </template>
             </ScEmpty>
 
             <div v-else class="base-converter__results">
-              <div
-                v-for="(result, index) in env.outputResults"
-                :key="index"
-                class="base-converter__result-item"
-              >
+              <div v-for="(result, index) in env.outputResults" :key="index" class="base-converter__result-item">
                 <div class="base-converter__result-label">
-                  <IconifyIconOnline
-                    :icon="result.icon"
-                    class="base-converter__result-icon"
-                  />
+                  <IconifyIconOnline :icon="result.icon" class="base-converter__result-icon" />
                   <span>{{ result.label }}</span>
                 </div>
                 <div class="base-converter__result-value">
                   <span>{{ result.value }}</span>
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="copyToClipboard(result.value)"
-                  >
+                  <ScButton type="primary" link size="small" @click="copyToClipboard(result.value)">
                     <IconifyIconOnline icon="ri:file-copy-line" />
                   </ScButton>
                 </div>
@@ -512,53 +426,27 @@ onMounted(() => {
           <ScCard class="base-converter__history-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
-                <IconifyIconOnline
-                  icon="ri:history-line"
-                  class="base-converter__card-icon"
-                />
+                <IconifyIconOnline icon="ri:history-line" class="base-converter__card-icon" />
                 <span>历史记录</span>
               </div>
             </template>
 
-            <ScEmpty
-              v-if="!env.history.length"
-              description="暂无历史记录"
-              class="base-converter__empty"
-            >
+            <ScEmpty v-if="!env.history.length" description="暂无历史记录" class="base-converter__empty">
               <template #image>
-                <IconifyIconOnline
-                  icon="ri:history-line"
-                  class="base-converter__empty-icon"
-                />
+                <IconifyIconOnline icon="ri:history-line" class="base-converter__empty-icon" />
               </template>
             </ScEmpty>
 
             <div v-else class="base-converter__history">
-              <div
-                v-for="item in env.history"
-                :key="item.id"
-                class="base-converter__history-item"
-              >
+              <div v-for="item in env.history" :key="item.id" class="base-converter__history-item">
                 <div class="base-converter__history-content">
-                  <div class="base-converter__history-expression">
-                    {{ item.inputValue }} ({{
-                      env.baseOptions.find((o) => o.value === item.inputBase)
-                        ?.label || `${item.inputBase}进制`
-                    }})
-                  </div>
+                  <div class="base-converter__history-expression">{{ item.inputValue }} ({{ env.baseOptions.find((o) => o.value === item.inputBase)?.label || `${item.inputBase}进制` }})</div>
                   <div class="base-converter__history-meta">
-                    <span class="base-converter__history-date">{{
-                      item.date
-                    }}</span>
+                    <span class="base-converter__history-date">{{ item.date }}</span>
                   </div>
                 </div>
                 <div class="base-converter__history-actions">
-                  <ScButton
-                    type="primary"
-                    link
-                    size="small"
-                    @click="loadFromHistory(item)"
-                  >
+                  <ScButton type="primary" link size="small" @click="loadFromHistory(item)">
                     <IconifyIconOnline icon="ri:arrow-go-back-line" />
                     <span>加载</span>
                   </ScButton>
@@ -571,17 +459,14 @@ onMounted(() => {
           <ScCard class="base-converter__reference-card" shadow="hover">
             <template #header>
               <div class="base-converter__card-header">
-                <IconifyIconOnline
-                  icon="ri:information-line"
-                  class="base-converter__card-icon"
-                />
+                <IconifyIconOnline icon="ri:information-line" class="base-converter__card-icon" />
                 <span>使用说明</span>
               </div>
             </template>
 
             <div class="base-converter__reference">
-              <ScCollapse accordion>
-                <ScCollapseItem title="进制转换说明" name="base">
+              <el-collapse accordion>
+                <el-collapse-item title="进制转换说明" name="base">
                   <div class="base-converter__reference-content">
                     <p>进制转换工具可以在不同进制之间转换数值：</p>
                     <ul>
@@ -592,12 +477,10 @@ onMounted(() => {
                     </ul>
                     <p>点击"显示扩展进制"可以查看更多进制的转换结果。</p>
                   </div>
-                </ScCollapseItem>
-                <ScCollapseItem title="字符转换说明" name="char">
+                </el-collapse-item>
+                <el-collapse-item title="字符转换说明" name="char">
                   <div class="base-converter__reference-content">
-                    <p>
-                      字符转换功能可以将输入的字符转换为对应的ASCII码和各种进制表示：
-                    </p>
+                    <p>字符转换功能可以将输入的字符转换为对应的ASCII码和各种进制表示：</p>
                     <ul>
                       <li><strong>十进制</strong>：字符的ASCII/Unicode码值</li>
                       <li><strong>十六进制</strong>：以0x开头的十六进制表示</li>
@@ -605,8 +488,8 @@ onMounted(() => {
                       <li><strong>八进制</strong>：以0开头的八进制表示</li>
                     </ul>
                   </div>
-                </ScCollapseItem>
-                <ScCollapseItem title="常见进制前缀" name="prefix">
+                </el-collapse-item>
+                <el-collapse-item title="常见进制前缀" name="prefix">
                   <div class="base-converter__reference-content">
                     <p>在编程中，不同进制通常有特定的前缀：</p>
                     <ul>
@@ -616,8 +499,8 @@ onMounted(() => {
                     </ul>
                     <p>本工具在输入时不需要添加这些前缀。</p>
                   </div>
-                </ScCollapseItem>
-              </ScCollapse>
+                </el-collapse-item>
+              </el-collapse>
             </div>
           </ScCard>
         </ScCol>
@@ -643,11 +526,7 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-3) 0%,
-      var(--el-color-primary) 100%
-    );
+    background: linear-gradient(135deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 100%);
     border-radius: 12px;
     padding: 30px;
     color: #fff;
@@ -674,17 +553,7 @@ onMounted(() => {
       height: 100%;
       z-index: 1;
       opacity: 0.1;
-      background-image:
-        radial-gradient(
-          circle at 20% 80%,
-          rgba(255, 255, 255, 0.8) 0%,
-          transparent 20%
-        ),
-        radial-gradient(
-          circle at 80% 20%,
-          rgba(255, 255, 255, 0.8) 0%,
-          transparent 20%
-        );
+      background-image: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.8) 0%, transparent 20%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 20%);
     }
 
     &-title {

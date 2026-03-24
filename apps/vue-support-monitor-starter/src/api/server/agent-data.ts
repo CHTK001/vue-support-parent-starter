@@ -104,14 +104,14 @@ export const searchTracesForAgent = (
   startTime?: number,
   endTime?: number,
   page = 1,
-  pageSize = 20,
+  pageSize = 20
 ) => {
   return http.request<ReturnResult<AgentTraceDTO[]>>(
     "get",
     "/v1/agent/data/trace/search",
     {
       params: { keyword, startTime, endTime, page, pageSize },
-    },
+    }
   );
 };
 
@@ -121,7 +121,7 @@ export const searchTracesForAgent = (
 export const getTraceByLinkIdForAgent = (linkId: string) => {
   return http.request<ReturnResult<AgentTraceDTO>>(
     "get",
-    `/v1/agent/data/trace/${linkId}`,
+    `/v1/agent/data/trace/${linkId}`
   );
 };
 
@@ -133,7 +133,7 @@ export const getTraceByLinkIdForAgent = (linkId: string) => {
 export const getServiceTopologyForAgent = () => {
   return http.request<ReturnResult<ServiceTopologyData>>(
     "get",
-    "/v1/agent/data/topology",
+    "/v1/agent/data/topology"
   );
 };
 
@@ -146,7 +146,7 @@ export const getServiceRelationsForAgent = (serviceName: string) => {
     "/v1/agent/data/topology/service",
     {
       params: { serviceName },
-    },
+    }
   );
 };
 
@@ -161,7 +161,7 @@ export const getFileHandlesForAgent = (ipAddress: string, port: number) => {
     "/v1/agent/data/fd/list",
     {
       params: { ipAddress, port },
-    },
+    }
   );
 };
 
@@ -171,6 +171,6 @@ export const getFileHandlesForAgent = (ipAddress: string, port: number) => {
 export const getFileHandleStatsForAgent = () => {
   return http.request<ReturnResult<FileHandleStats>>(
     "get",
-    "/v1/agent/data/fd/stats",
+    "/v1/agent/data/fd/stats"
   );
 };

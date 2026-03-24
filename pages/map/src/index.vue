@@ -756,21 +756,21 @@
 </template>
 
 <script setup lang="ts">
-import ScLayer from "@repo/scLayer/index.vue";
+import ScLayer from "@repo/components/ScLayer/index.vue";
 import type {
   HeatmapPoint,
   ShapeOption,
   WindConfig,
-} from "@repo/scLayer/types";
+} from "@repo/components/ScLayer/types";
 import {
   DEFAULT_MAP_CONFIG,
   ToolbarDirection,
   ToolbarPosition,
-} from "@repo/scLayer/types";
-import { MapTile, MapType } from "@repo/scLayer/types/index";
+} from "@repo/components/ScLayer/types";
+import { MapTile, MapType } from "@repo/components/ScLayer/types/index";
 import { computed, reactive, ref, watch } from "vue";
 // 引入CesiumObject和模型类型定义
-import type { Model3DOptions } from "@repo/scLayer/composables/CesiumModelObject";
+import type { Model3DOptions } from "@repo/components/ScLayer/composables/CesiumModelObject";
 
 // 标记点聚合模式的枚举
 const MarkerClusterMode = {
@@ -782,7 +782,7 @@ import type {
   FlightLineConfig,
   FlightLineData,
   FlightLinePoint,
-} from "@repo/scLayer/types";
+} from "@repo/components/ScLayer/types";
 // 引入Element Plus组件
 import { message } from "@repo/utils";
 
@@ -981,7 +981,7 @@ function onMapClick(evt) {
   const coordinates = evt.coordinates;
   addLog(
     "点击",
-    `地图坐标: [${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}]`,
+    `地图坐标: [${coordinates[0].toFixed(4)}, ${coordinates[1].toFixed(4)}]`
   );
 }
 
@@ -991,7 +991,7 @@ function onMarkerClick(evt) {
   const markerId = data?.id;
   addLog(
     "点击",
-    `标记点: ${data.title || "未命名"} [ID: ${safeSlice(markerId)}]`,
+    `标记点: ${data.title || "未命名"} [ID: ${safeSlice(markerId)}]`
   );
 }
 
@@ -1113,7 +1113,7 @@ function addRandomMarkers(count) {
 
   addLog(
     "操作",
-    `已添加 ${count} 个随机标记点 (不同图标类型${count > 1 ? "和分组" : ""})`,
+    `已添加 ${count} 个随机标记点 (不同图标类型${count > 1 ? "和分组" : ""})`
   );
 }
 
@@ -1412,7 +1412,7 @@ function toggleMarkerPopover(marker: any) {
   updateMarkerList();
   addLog(
     "操作",
-    `已${showPopover ? "显示" : "隐藏"}标记点 ${safeSlice(marker.id)} 的Popover`,
+    `已${showPopover ? "显示" : "隐藏"}标记点 ${safeSlice(marker.id)} 的Popover`
   );
 }
 
@@ -1510,7 +1510,7 @@ function handleInteractionChange() {
 
   addLog(
     "用户交互",
-    `地图交互状态变更: 拖动=${config.dragging}, 滚轮缩放=${config.scrollWheelZoom}`,
+    `地图交互状态变更: 拖动=${config.dragging}, 滚轮缩放=${config.scrollWheelZoom}`
   );
 
   layerRef.value.setInteractions({
@@ -1800,7 +1800,7 @@ function addCustomShapeExample() {
         stroke: { color: "#1890ff", width: 2 },
       },
       data: { type: "complex-part", part: "northeast" },
-    },
+    }
   );
 
   // 左上角圆形
@@ -1814,7 +1814,7 @@ function addCustomShapeExample() {
         stroke: { color: "#52c41a", width: 2 },
       },
       data: { type: "complex-part", part: "northwest" },
-    },
+    }
   );
 
   // 左下角圆形
@@ -1828,7 +1828,7 @@ function addCustomShapeExample() {
         stroke: { color: "#faad14", width: 2 },
       },
       data: { type: "complex-part", part: "southwest" },
-    },
+    }
   );
 
   // 右下角圆形
@@ -1842,7 +1842,7 @@ function addCustomShapeExample() {
         stroke: { color: "#f5222d", width: 2 },
       },
       data: { type: "complex-part", part: "southeast" },
-    },
+    }
   );
 
   // 添加中心点
@@ -1974,7 +1974,7 @@ function toggleShapeVisibility(shape: any) {
   updateShapeList();
   addLog(
     "操作",
-    `已${newVisible ? "显示" : "隐藏"}图形: ${safeSlice(shape.id)}`,
+    `已${newVisible ? "显示" : "隐藏"}图形: ${safeSlice(shape.id)}`
   );
 }
 
@@ -2343,7 +2343,7 @@ const addComplexTrack = () => {
       hasTrack.value = true;
       addLog(
         "info",
-        `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`,
+        `已添加复杂轨迹，包含 ${points.length} 个点，${keyPoints.length} 个关键点`
       );
     } else {
       addLog("error", "获取轨迹对象失败");
@@ -2508,7 +2508,7 @@ const addZigzagTrack = () => {
             {
               key: "时间",
               value: new Date(
-                (now + (i * steps + j) * 60) * 1000,
+                (now + (i * steps + j) * 60) * 1000
               ).toLocaleTimeString(),
             },
             { key: "速度", value: "40 km/h" },
@@ -2619,7 +2619,7 @@ const generateDirectionalTrack = (
   center: [number, number],
   direction: string,
   distance: number,
-  points: number,
+  points: number
 ) => {
   const now = Math.floor(Date.now() / 1000);
   const interval = 60; // 每点间隔1分钟
@@ -2796,7 +2796,7 @@ const addClusteredHeatmapPoints = () => {
 
   addLog(
     "热力图",
-    `添加了${clusters}个聚类，共${clusters * pointsPerCluster}个热力点`,
+    `添加了${clusters}个聚类，共${clusters * pointsPerCluster}个热力点`
   );
 };
 
@@ -2952,7 +2952,7 @@ const addDenseHeatmapPoints = () => {
 
     // 根据距离热点中心的距离计算权重（越近权重越高）
     const distanceFromHotspot = Math.sqrt(
-      latOffset * latOffset + lngOffset * lngOffset,
+      latOffset * latOffset + lngOffset * lngOffset
     );
     const weight = Math.max(0.2, 1 - distanceFromHotspot * 10);
 
@@ -2995,7 +2995,7 @@ const toggleHeatmapPerformanceMode = () => {
 
   addLog(
     "热力图",
-    heatmapPerformanceMode.value ? "启用性能模式" : "禁用性能模式",
+    heatmapPerformanceMode.value ? "启用性能模式" : "禁用性能模式"
   );
 };
 
@@ -3906,7 +3906,7 @@ const playTrackById = (trackId: string) => {
     if (track) {
       addLog(
         "轨迹",
-        `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h`,
+        `正在播放轨迹: ${track.name}，速度: ${trackPlaySpeed.value} km/h`
       );
     }
   } else {
@@ -4068,7 +4068,7 @@ function updateWindOptions() {
 
   addLog(
     "风场图",
-    `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`,
+    `参数已更新: 粒子=${windConfig.paths}, 线宽=${windConfig.lineWidth}, 速度=${windConfig.velocityScale}`
   );
 }
 
@@ -4413,7 +4413,7 @@ const flyToSelectedModel = () => {
       const model = models.value.find((m) => m.id === selectedModelId.value);
       addLog(
         "3D",
-        `已飞行到模型: ${model ? model.name : selectedModelId.value}`,
+        `已飞行到模型: ${model ? model.name : selectedModelId.value}`
       );
     } else {
       addLog("3D", "飞行到模型失败");
@@ -4492,7 +4492,7 @@ const resizeSelectedModel = () => {
       const model = models.value.find((m) => m.id === selectedModelId.value);
       addLog(
         "3D",
-        `已调整模型大小: ${model ? model.name : selectedModelId.value} (${scaleFactor.toFixed(2)}x)`,
+        `已调整模型大小: ${model ? model.name : selectedModelId.value} (${scaleFactor.toFixed(2)}x)`
       );
     } else {
       addLog("3D", "调整模型大小失败");
@@ -4536,7 +4536,7 @@ const changeModelColor = () => {
       const model = models.value.find((m) => m.id === selectedModelId.value);
       addLog(
         "3D",
-        `已更改模型颜色: ${model ? model.name : selectedModelId.value} (${color})`,
+        `已更改模型颜色: ${model ? model.name : selectedModelId.value} (${color})`
       );
     } else {
       addLog("3D", "更改模型颜色失败");

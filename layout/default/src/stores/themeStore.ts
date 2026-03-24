@@ -9,10 +9,10 @@ import { emitter, useUserStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type { ThemeKey } from "../types/theme";
 import { layoutThemes, getLayoutTheme, loadThemeStylesheet } from "../themes";
-import { loadThemeFont } from "../utils/loadThemeFont";
-import { getLogger } from "@repo/utils";
 
-const logger = getLogger("[ThemeStore]");
+// 条件日志函数
+const isDev = import.meta.env.DEV;
+const log = isDev ? console.log.bind(console, "[ThemeStore]") : () => {};
 
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -177,40 +177,13 @@ export const useThemeStore = defineStore("theme", () => {
    */
   function setTheme(themeKey: ThemeKey): void {
     const normalizedThemeKey = normalizeThemeKey(themeKey);
-    if (currentTheme.value === normalizedThemeKey) {
-      return;
-    }
+    if (currentTheme.value === normalizedThemeKey) return;
 
-    const previousTheme = currentTheme.value;
-
-    logger.debug("主题切换: {} -> {}", previousTheme, normalizedThemeKey);
+    log("主题切换:", currentTheme.value, "->", normalizedThemeKey);
     currentTheme.value = normalizedThemeKey;
 
-    // 持久化到 storage（优先更新本地配置，避免 MutationObserver 读取到旧值）
-    if ($storage?.configure) {
-      $storage.configure.systemTheme = normalizedThemeKey;
-    }
-
-    const htmlEl = document.documentElement;
-
-    // 更新 data-skin，用于组件主题系统
-    htmlEl.setAttribute("data-skin", normalizedThemeKey);
-
-    if (normalizedThemeKey === "default") {
-      // 切回默认主题时，移除 8bit / PixelUI 相关标记与样式，避免残留
-      htmlEl.removeAttribute("data-skin");
-      htmlEl.classList.remove("pixelium");
-
-      // 移除可能存在的 8bit 主题样式表（来自 useThemeComponent / usePixelUI）
-      const pixelThemeLinks = ["pixel-theme-style", "theme-8bit-style"];
-      pixelThemeLinks.forEach((linkId) => {
-        const linkEl = document.getElementById(linkId);
-        if (linkEl) {
-          linkEl.remove();
-        }
-      });
-      htmlEl.setAttribute("data-skin", normalizedThemeKey);
-    }
+    // 更新 DOM 属性
+    document.documentElement.setAttribute("data-skin", normalizedThemeKey);
 
     // 更新主题类
     updateThemeClass(normalizedThemeKey);
@@ -218,8 +191,10 @@ export const useThemeStore = defineStore("theme", () => {
     // 加载主题样式表
     loadThemeStylesheet(normalizedThemeKey);
 
-    // 加载主题字体 CSS（仅 8bit 主题需要）
-    loadThemeFont(normalizedThemeKey);
+    // 持久化到 storage
+    if ($storage?.configure) {
+      $storage.configure.systemTheme = normalizedThemeKey;
+    }
 
     // 发送主题变更事件
     emitter.emit("systemThemeChange", normalizedThemeKey);
@@ -296,22 +271,19 @@ export const useThemeStore = defineStore("theme", () => {
 
     // 移除所有主题类
     const themeClasses = [
-      "theme-default",
       "theme-christmas",
       "theme-spring-festival",
       "theme-valentines-day",
       "theme-mid-autumn",
       "theme-national-day",
       "theme-new-year",
-      // 内测 / 像素 / 科技等扩展主题
-      "theme-halloween",
-      "theme-8bit",
-      "theme-future-tech",
     ];
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
 
     // 添加新主题类
-    htmlEl.classList.add(`theme-${themeKey}`);
+    if (themeKey !== "default") {
+      htmlEl.classList.add(`theme-${themeKey}`);
+    }
   }
 
   /**
@@ -322,7 +294,7 @@ export const useThemeStore = defineStore("theme", () => {
     if (isInitialized) return;
     isInitialized = true;
 
-    logger.debug("初始化主题监听器");
+    log("初始化主题监听器");
 
     // 监听 emitter 事件（用于外部切换）
     emitter.on("systemThemeChange", handleExternalThemeChange);
@@ -333,14 +305,6 @@ export const useThemeStore = defineStore("theme", () => {
     if (normalizedDomTheme && normalizedDomTheme !== currentTheme.value) {
       currentTheme.value = normalizedDomTheme;
     }
-
-    const htmlEl = document.documentElement;
-    htmlEl.setAttribute("data-skin", currentTheme.value);
-    updateThemeClass(currentTheme.value);
-    loadThemeStylesheet(currentTheme.value);
-
-    // 初始化时加载当前主题的字体 CSS
-    loadThemeFont(currentTheme.value);
   }
 
   /**
@@ -349,7 +313,7 @@ export const useThemeStore = defineStore("theme", () => {
   function handleExternalThemeChange(themeKey: string): void {
     const normalizedThemeKey = normalizeThemeKey(themeKey);
     if (currentTheme.value !== normalizedThemeKey) {
-      logger.debug("收到外部主题变更: {}", normalizedThemeKey);
+      log("收到外部主题变更:", normalizedThemeKey);
       currentTheme.value = normalizedThemeKey;
     }
   }
@@ -358,7 +322,7 @@ export const useThemeStore = defineStore("theme", () => {
    * 销毁监听器
    */
   function destroyThemeListener(): void {
-    logger.debug("销毁主题监听器");
+    log("销毁主题监听器");
     emitter.off("systemThemeChange", handleExternalThemeChange);
     isInitialized = false;
   }
