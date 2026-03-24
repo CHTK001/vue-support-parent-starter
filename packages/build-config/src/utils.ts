@@ -73,7 +73,7 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@repo/components": resolve(root, "packages/components"),
     "@repo/config": resolve(root, "packages/config"),
     "@repo/core": resolve(root, "packages/core"),
-    "@repo/pages": resolve(root, "packages/pages"),
+    "@pages/common": resolve(root, "pages/common"),
     "@repo/utils": resolve(root, "packages/utils"),
     "@repo/codec-wasm": resolve(root, "packages/codec-wasm"),
   };

@@ -1,10 +1,9 @@
 // @ts-check
 
-import baseConfig from "../../packages/pages/stylelint.config.js";
+import baseConfig from "../../pages/common/stylelint.config.js";
 
 /** @type {import("stylelint").Config} */
 export default {
   ...baseConfig
 };
-
 

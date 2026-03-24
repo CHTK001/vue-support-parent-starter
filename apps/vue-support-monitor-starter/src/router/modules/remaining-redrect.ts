@@ -14,7 +14,7 @@ export default {
     {
       path: "/redirect/:path(.*)",
       name: "Redirect",
-      component: () => import("@repo/pages/layout/redirect.vue")
+      component: () => import("@pages/common/layout/redirect.vue")
     }
   ]
 } satisfies RouteConfigsTable;

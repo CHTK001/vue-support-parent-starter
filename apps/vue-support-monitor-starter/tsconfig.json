@@ -45,7 +45,6 @@
     "src/**/*.vue",
     "vite.config.ts",
     "src/views/monitor/gen/layout/webrtc/stream copy.vue1",
-    "../../packages/pages/tools/time.vue",
     "src/router/modules/tools.ts1",
     "src/router/modules/soft.ts1",
     "src/router/modules/protect-redrect.ts1",
