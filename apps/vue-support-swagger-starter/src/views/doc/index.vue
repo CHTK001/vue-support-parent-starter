@@ -25,12 +25,6 @@
 import { ref, onMounted } from "vue";
 import { ApiDocViewer } from "@pages/doc";
 import type {
-  ApiGroup,
-  ExecuteApiParams,
-  NodeInfo,
-  ApiDocViewerConfig,
-  ApiInfo,
-  ApiResponse,
 } from "@pages/doc";
 import { fetchOpenApiDoc } from "@/api/doc";
 import { http, message } from "@repo/utils";
@@ -39,16 +33,6 @@ import { http, message } from "@repo/utils";
  * 配置
  */
 const config = ref<ApiDocViewerConfig>({
-  showBackButton: false,
-  showRefreshButton: true,
-  showGlobalHeaders: true,
-  showCodeExamples: true,
-  showHistory: true,
-  showExport: true,
-  showMock: true,
-  showNodeSelector: true,
-  editorHeight: "400px",
-  codeLanguages: ["java", "javascript", "python", "curl"],
 });
 
 /**

@@ -153,18 +153,18 @@ const createDefaultFormData = (): SyncTask => ({
   syncTaskName: "",
   syncTaskDesc: "",
   syncTaskSyncMode: "FULL",
-  syncTaskIncrementalField: "",
   syncTaskConflictStrategy: "OVERWRITE",
   syncTaskBatchSize: 1000,
   syncTaskConsumeTimeout: 30000,
   syncTaskRetryCount: 3,
   syncTaskRetryInterval: 1000,
   syncTaskSyncInterval: 0,
-  syncTaskCron: "",
   syncTaskAckEnabled: 1,
   syncTaskTransactionEnabled: 0,
-  syncTaskMaxMemoryMb: 512,
-  syncTaskThreadPoolSize: 5,
+  syncTaskCron: "",
+  syncTaskIncrementalField: "",
+  syncTaskMaxMemoryMb: 1024,
+  syncTaskThreadPoolSize: 4,
 });
 
 const visible = ref(props.modelValue);
@@ -175,7 +175,42 @@ const formData = reactive<SyncTask>(createDefaultFormData());
 const isEdit = computed(() => !!props.task?.syncTaskId);
 
 const rules: FormRules = {
-  syncTaskName: [{ required: true, message: "请输入任务名称", trigger: "blur" }],
+  syncTaskName: [
+    { required: true, message: "请输入任务名称", trigger: "blur" },
+    { min: 2, max: 255, message: "任务名称长度应在 2 到 255 之间", trigger: "blur" },
+  ],
+  syncTaskBatchSize: [
+    { required: true, message: "请输入批次大小", trigger: "change" },
+  ],
+  syncTaskIncrementalField: [
+    {
+      validator: (_rule, value, callback) => {
+        if (formData.syncTaskSyncMode === "INCREMENTAL" && !value) {
+          callback(new Error("增量同步模式必须填写增量字段"));
+          return;
+        }
+        callback();
+      },
+      trigger: "blur",
+    },
+  ],
+  syncTaskCron: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!value) {
+          callback();
+          return;
+        }
+        const parts = String(value).trim().split(/\s+/);
+        if (parts.length < 6 || parts.length > 7) {
+          callback(new Error("CRON 表达式格式不正确"));
+          return;
+        }
+        callback();
+      },
+      trigger: "blur",
+    },
+  ],
 };
 
 const resetFormData = (task?: SyncTask | null) => {

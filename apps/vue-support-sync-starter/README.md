@@ -83,6 +83,24 @@ pnpm build
 
 构建后的文件会自动复制到后端项目的`static`目录,实现嵌入式部署。
 
+### 显式打包到后端项目
+
+```bash
+pnpm build:backend
+```
+
+测试环境构建并复制:
+
+```bash
+pnpm build:backend:staging
+```
+
+如需自定义后端静态目录:
+
+```bash
+SYNC_STATIC_TARGET_DIR=/your/backend/static pnpm build:backend
+```
+
 ### 代码检查
 
 ```bash

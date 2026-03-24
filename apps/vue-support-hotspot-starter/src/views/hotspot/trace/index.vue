@@ -1,6 +1,6 @@
 <template>
   <div class="page flex flex-col h-full">
-    <!-- Í³¼Æ¿¨Æ¬ -->
+    <!-- ç»Ÿè®¡å¡ç‰‡ -->
     <ScRow :gutter="20" class="stats-row">
       <ScCol :span="6">
         <ScCard class="stat-card" shadow="hover">
@@ -10,7 +10,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ dataList.length }}</div>
-              <div class="stat-label">×·×Ù¼ÇÂ¼</div>
+              <div class="stat-label">è¿½è¸ªè®°å½•</div>
             </div>
           </div>
         </ScCard>
@@ -22,8 +22,8 @@
               <IconifyIconOnline icon="ri:wifi-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ wsConnected ? "ÒÑÁ¬½Ó" : "Î´Á¬½Ó" }}</div>
-              <div class="stat-label">WebSocket ×´Ì¬</div>
+              <div class="stat-value">{{ wsConnected ? "å·²è¿æ¥" : "æœªè¿æ¥" }}</div>
+              <div class="stat-label">WebSocket çŠ¶æ€</div>
             </div>
           </div>
         </ScCard>
@@ -35,8 +35,8 @@
               <IconifyIconOnline icon="ri:time-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <div class="stat-value">ÊµÊ±</div>
-              <div class="stat-label">Êı¾İÍÆËÍ</div>
+              <div class="stat-value">å®æ—¶</div>
+              <div class="stat-label">æ•°æ®æ¨é€</div>
             </div>
           </div>
         </ScCard>
@@ -48,15 +48,15 @@
               <IconifyIconOnline icon="ri:delete-bin-line" class="stat-icon" />
             </div>
             <div class="stat-info">
-              <ScButton type="danger" size="small" @click="clearData">Çå¿ÕÊı¾İ</ScButton>
-              <div class="stat-label">²Ù×÷</div>
+              <ScButton type="danger" size="small" @click="clearData">æ¸…ç©ºæ•°æ®</ScButton>
+              <div class="stat-label">æ“ä½œ</div>
             </div>
           </div>
         </ScCard>
       </ScCol>
     </ScRow>
 
-    <!-- ÄÚÈİÇøÓò -->
+    <!-- å†…å®¹åŒºåŸŸ -->
     <div class="flex-1 overflow-hidden">
       <ScCard shadow="never" class="h-full trace-card">
         <div ref="containerRef" class="h-full overflow-auto">
@@ -95,7 +95,7 @@
                         <span v-if="data?.timestamp" style="height: 26px">
                           {{ dateFormat(data?.timestamp * 1) }}
                         </span>
-                        ºÄÊ±:
+                        è€—æ—¶:
                         <span style="height: 26px">{{ data?.costTime }} ms</span>
                         <ScIcon class="z-[10]" @click="handleShowTrack(data)">
                           <component :is="useRenderIcon('ri:information-2-line')" />
@@ -111,7 +111,7 @@
       </ScCard>
     </div>
 
-    <!-- ÏêÇé³éÌë -->
+    <!-- è¯¦æƒ…æŠ½å±‰ -->
     <sc-drawer ref="drawerRef" v-model="config.dialogVisible" :append-to-body="true" size="60%" direction="rtl" class="trace-drawer" :destroy-on-close="true">
       <template #title>
         <span v-html="config.dialogDetailData.description" />
@@ -121,12 +121,12 @@
           <ScDescriptionsItem label="linkId">
             {{ config.dialogDetailData.linkId }}
           </ScDescriptionsItem>
-          <ScDescriptionsItem v-if="config.dialogDetailData.applicationName" label="Ó¦ÓÃµØÖ·">
+          <ScDescriptionsItem v-if="config.dialogDetailData.applicationName" label="åº”ç”¨åœ°å€">
             <ScTag>{{ config.dialogDetailData.applicationName }}</ScTag>
             {{ config.dialogDetailData.applicationHost }}:{{ config.dialogDetailData.applicationPort }}
           </ScDescriptionsItem>
-          <ScDescriptionsItem label="½øÈë·½·¨Ê±¼ä">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</ScDescriptionsItem>
-          <ScDescriptionsItem label="ºÄÊ±">{{ config.dialogDetailData.costTime }} ms</ScDescriptionsItem>
+          <ScDescriptionsItem label="è¿›å…¥æ–¹æ³•æ—¶é—´">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</ScDescriptionsItem>
+          <ScDescriptionsItem label="è€—æ—¶">{{ config.dialogDetailData.costTime }} ms</ScDescriptionsItem>
         </ScDescriptions>
         <div v-if="config.dialogDetailData.headers && config.dialogDetailData.headers.length > 0">
           <div>header</div>
@@ -145,7 +145,7 @@
 
         <div v-if="config.dialogDetailData.stackTrace && config.dialogDetailData.stackTrace.length > 0">
           <ScDivider />
-          <div>¶ÑÕ»</div>
+          <div>å †æ ˆ</div>
           <pre><code class="language-java">{{ config.dialogDetailData.stackTrace  instanceof Array ? config.dialogDetailData.stackTrace?.join('\r\n') : config.dialogDetailData.stackTrace}}</code></pre>
         </div>
       </div>
@@ -153,6 +153,7 @@
   </div>
 </template>
 <script setup>
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import Prism from "prismjs";
 import "prismjs/components/prism-sql.min.js";
 import "prismjs/components/prism-http.min.js";
@@ -163,7 +164,6 @@ import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { format } from "sql-formatter";
 import { dateFormat } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, reactive, ref, computed } from "vue";
-import { useRenderIcon } from "@repo/components";
 import { wsService } from "@/utils/websocket";
 
 const config = reactive({
@@ -180,26 +180,26 @@ const defaultProps = {
 
 let unsubscribe = null;
 
-// WebSocket Á¬½Ó×´Ì¬
+// WebSocket è¿æ¥çŠ¶æ€
 const wsConnected = computed(() => wsService.connected.value);
 
-// Çå¿ÕÊı¾İ
+// æ¸…ç©ºæ•°æ®
 const clearData = () => {
   dataList.length = 0;
 };
 
-// ´¦Àí WebSocket ÏûÏ¢
+// å¤„ç† WebSocket æ¶ˆæ¯
 const handleWsMessage = message => {
   if (message.event === "AGENT_TRACE") {
     try {
       const traceData = typeof message.data === "string" ? JSON.parse(message.data) : message.data;
       dataList.unshift(traceData);
-      // ÏŞÖÆ×î´ó¼ÇÂ¼Êı
+      // é™åˆ¶æœ€å¤§è®°å½•æ•°
       while (dataList.length > 1000) {
         dataList.pop();
       }
     } catch (error) {
-      console.error("½âÎöÁ´Â·Êı¾İÊ§°Ü:", error);
+      console.error("è§£æé“¾è·¯æ•°æ®å¤±è´¥:", error);
     }
   }
 };
@@ -218,27 +218,27 @@ const handleShowTrack = async data => {
   }, 300);
 };
 
-// »ñÈ¡ÀúÊ·×·×Ù¼ÇÂ¼
+// è·å–å†å²è¿½è¸ªè®°å½•
 const fetchHistory = async () => {
   try {
     const response = await fetch("/agent/api/trace?action=list&limit=100");
     const data = await response.json();
     if (data.traces && Array.isArray(data.traces)) {
-      // Çå¿Õ²¢Ìí¼ÓÀúÊ·Êı¾İ
+      // æ¸…ç©ºå¹¶æ·»åŠ å†å²æ•°æ®
       dataList.length = 0;
       data.traces.forEach(trace => dataList.push(trace));
     }
   } catch (error) {
-    console.error("»ñÈ¡Á´Â·ÀúÊ·Ê§°Ü:", error);
+    console.error("è·å–é“¾è·¯å†å²å¤±è´¥:", error);
   }
 };
 
 onMounted(() => {
-  // Á¬½Ó WebSocket
+  // è¿æ¥ WebSocket
   wsService.connect();
-  // ¶©ÔÄÁ´Â·×·×ÙÏûÏ¢
+  // è®¢é˜…é“¾è·¯è¿½è¸ªæ¶ˆæ¯
   unsubscribe = wsService.subscribe("TRACE", "AGENT_TRACE", handleWsMessage);
-  // ¼ÓÔØÀúÊ·Êı¾İ
+  // åŠ è½½å†å²æ•°æ®
   fetchHistory();
 });
 

@@ -79,12 +79,6 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  Box,
-  Edit,
-  Promotion,
-  Document,
-  User,
-  Refresh,
 } from "@element-plus/icons-vue";
 import { useEmailStore } from "../../stores/email";
 

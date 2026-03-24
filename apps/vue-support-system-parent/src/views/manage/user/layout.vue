@@ -1,14 +1,10 @@
 <script>
-import { useRenderIcon } from "@repo/components";
-import {
   defineAsyncComponent,
   defineComponent,
   markRaw,
   ref,
   computed,
-} from "vue";
 
-import {
   fetchDeleteUser,
   fetchPageUser,
   fetchUpdateUser,
@@ -18,7 +14,7 @@ import {
   fetchResetPassword,
   fetchBatchDeleteUsers,
   fetchBatchUpdateUserStatus,
-} from "@repo/core";
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { getTimeAgo, message } from "@repo/utils";
 import Search from "@iconify-icons/ep/search";
 import Delete from "@iconify-icons/ep/delete";
@@ -30,7 +26,6 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
-import { IconifyIconOffline, IconifyIconOnline } from "@repo/components";
 
 const ScIp = defineAsyncComponent(
   () => import("@repo/components"),

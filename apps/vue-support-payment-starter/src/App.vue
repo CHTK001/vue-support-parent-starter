@@ -10,6 +10,10 @@
       </div>
 
       <el-menu :default-active="activeMenu" router class="nav">
+        <el-menu-item index="/home">
+          <el-icon><House /></el-icon>
+          <span>总览首页</span>
+        </el-menu-item>
         <el-menu-item index="/merchants">
           <el-icon><Shop /></el-icon>
           <span>商户与支付方式</span>
@@ -18,9 +22,29 @@
           <el-icon><Tickets /></el-icon>
           <span>订单管理</span>
         </el-menu-item>
+        <el-menu-item index="/refunds">
+          <el-icon><RefreshLeft /></el-icon>
+          <span>退款管理</span>
+        </el-menu-item>
         <el-menu-item index="/transactions">
           <el-icon><CreditCard /></el-icon>
           <span>交易流水</span>
+        </el-menu-item>
+        <el-menu-item index="/wallet-console">
+          <el-icon><Wallet /></el-icon>
+          <span>钱包账户</span>
+        </el-menu-item>
+        <el-menu-item index="/wechat-pay-score">
+          <el-icon><Opportunity /></el-icon>
+          <span>微信支付分</span>
+        </el-menu-item>
+        <el-menu-item index="/wallet-orders">
+          <el-icon><Money /></el-icon>
+          <span>钱包订单</span>
+        </el-menu-item>
+        <el-menu-item index="/operations">
+          <el-icon><Setting /></el-icon>
+          <span>运营中心</span>
         </el-menu-item>
       </el-menu>
 
@@ -28,8 +52,9 @@
         <p class="aside-card__label">能力范围</p>
         <ul class="aside-card__list">
           <li>微信支付 / 支付宝 / 综合支付 / 钱包</li>
+          <li>微信支付分服务订单与回调追踪</li>
           <li>开通指引与配置掩码</li>
-          <li>订单状态机与退款流</li>
+          <li>订单状态机、退款、钱包余额联调</li>
         </ul>
       </div>
     </aside>
@@ -41,7 +66,7 @@
           <h2 class="topbar__title">{{ pageTitle }}</h2>
         </div>
         <div class="topbar__meta">
-          <span>统一接口：`/api/merchant` / `/api/channel` / `/api/order` / `/api/transaction`</span>
+          <span>统一接口：`/api/merchant` / `/api/channel` / `/api/order` / `/api/transaction` / `/api/wechat/payscore/order` / `/api/wallet/order`</span>
         </div>
       </header>
 
@@ -55,18 +80,62 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { CreditCard, Shop, Tickets } from "@element-plus/icons-vue";
+import { CreditCard, House, Money, Opportunity, RefreshLeft, Setting, Shop, Tickets, Wallet } from "@element-plus/icons-vue";
 
 const route = useRoute();
 
-const activeMenu = computed(() => route.path);
+const activeMenu = computed(() => {
+  if (route.path.startsWith("/merchants")) {
+    return "/merchants";
+  }
+  if (route.path.startsWith("/orders")) {
+    return "/orders";
+  }
+  if (route.path.startsWith("/refunds")) {
+    return "/refunds";
+  }
+  if (route.path.startsWith("/transactions")) {
+    return "/transactions";
+  }
+  if (route.path.startsWith("/wallet-console")) {
+    return "/wallet-console";
+  }
+  if (route.path.startsWith("/wechat-pay-score")) {
+    return "/wechat-pay-score";
+  }
+  if (route.path.startsWith("/wallet-orders")) {
+    return "/wallet-orders";
+  }
+  if (route.path.startsWith("/operations")) {
+    return "/operations";
+  }
+  return "/home";
+});
 
 const pageTitle = computed(() => {
+  if (route.path.startsWith("/home")) {
+    return "支付能力总览舱";
+  }
   if (route.path.startsWith("/orders")) {
     return "订单状态与退款执行台";
   }
+  if (route.path.startsWith("/refunds")) {
+    return "退款单执行与核对台";
+  }
   if (route.path.startsWith("/transactions")) {
     return "交易流水追踪台";
+  }
+  if (route.path.startsWith("/wallet-console")) {
+    return "钱包账户与联调控制台";
+  }
+  if (route.path.startsWith("/wechat-pay-score")) {
+    return "微信支付分服务订单台";
+  }
+  if (route.path.startsWith("/wallet-orders")) {
+    return "钱包充值转账提现台";
+  }
+  if (route.path.startsWith("/operations")) {
+    return "支付运营诊断与调度中心";
   }
   return "商户与支付方式配置台";
 });

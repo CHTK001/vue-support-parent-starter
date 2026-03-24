@@ -114,11 +114,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
-import {
-  getSyncLogDetail,
-  getSyncTaskLogs,
-  type SyncTaskLog,
-} from "@/api/sync";
+import { getSyncLogDetail, getSyncTaskLogs, type SyncTaskLog } from "../../api/sync";
 
 const route = useRoute();
 const router = useRouter();

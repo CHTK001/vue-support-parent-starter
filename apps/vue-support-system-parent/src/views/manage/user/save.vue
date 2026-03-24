@@ -266,7 +266,6 @@
 import { ref, reactive } from "vue";
 import { fetchUpdateUser, fetchSaveUser, fetchUploadAvatar } from "@repo/core";
 import { message } from "@repo/utils";
-import { IconifyIconOnline } from "@repo/components";
 import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@pages/common/login/utils/rule";
 import { $t, transformI18n } from "@repo/config";
@@ -298,16 +297,6 @@ const dialogFormRef = ref();
 
 // Reactive state
 const form = ref<UserForm>({
-  sysUserUsername: "",
-  sysUserNickname: "",
-  sysUserPassword: "",
-  sysUserPhone: "",
-  sysUserEmail: "",
-  sysUserAvatar: "",
-  sysUserSex: 1,
-  sysUserStatus: 1,
-  sysUserRemark: "",
-  roleIds: [],
 });
 
 const avatarLoading = ref(false);
@@ -493,9 +482,6 @@ const submit = () => {
 
 // Expose methods to parent
 defineExpose({
-  close,
-  setData,
-  open,
 });
 </script>
 

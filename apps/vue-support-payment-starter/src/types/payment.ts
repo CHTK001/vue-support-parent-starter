@@ -134,6 +134,50 @@ export interface PaymentOrder {
   updatedAt?: string;
 }
 
+export interface RefundOrder {
+  id: number;
+  refundNo: string;
+  orderId: number;
+  orderNo: string;
+  merchantId: number;
+  merchantName?: string;
+  channelId?: number;
+  channelName?: string;
+  sourceOrderStatus?: string;
+  sourceOrderStatusDesc?: string;
+  thirdPartyRefundNo?: string;
+  refundAmount: number;
+  status: string;
+  statusDesc?: string;
+  reason?: string;
+  notifyStatus?: number;
+  requestPayload?: string;
+  responsePayload?: string;
+  operator?: string;
+  remark?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MerchantPaymentConfig {
+  merchantId: number;
+  orderReusable?: boolean;
+  orderTimeoutMinutes?: number;
+  pendingOrderLimit?: number;
+  autoCancelTimeoutOrder?: boolean;
+}
+
+export interface MerchantWalletLimit {
+  merchantId: number;
+  singleRechargeLimit?: number;
+  dailyRechargeLimit?: number;
+  singleWithdrawLimit?: number;
+  dailyWithdrawLimit?: number;
+  singleTransferLimit?: number;
+  dailyTransferLimit?: number;
+  balanceLimit?: number;
+}
+
 export interface OrderStateLog {
   id: number;
   orderId: number;
@@ -161,6 +205,160 @@ export interface TransactionRecord {
   responsePayload?: string;
   remark?: string;
   createdAt?: string;
+}
+
+export interface WalletOrder {
+  id: number;
+  orderNo: string;
+  orderType: string;
+  merchantId: number;
+  userId?: number;
+  relatedUserId?: number;
+  amount: number;
+  status: string;
+  thirdPartyOrderNo?: string;
+  bankAccount?: string;
+  bankName?: string;
+  accountName?: string;
+  requestPayload?: string;
+  responsePayload?: string;
+  operator?: string;
+  remark?: string;
+  notifyUrl?: string;
+  completedAt?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface WalletAccount {
+  id: number;
+  merchantId: number;
+  userId: number;
+  availableBalance: number;
+  frozenBalance: number;
+  status: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WalletAccountLog {
+  id: number;
+  merchantId: number;
+  userId: number;
+  bizType: string;
+  bizNo: string;
+  changeType: string;
+  changeAmount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  operator?: string;
+  remark?: string;
+  createdAt?: string;
+}
+
+export interface PaymentSchedulerTask {
+  taskKey: string;
+  taskName: string;
+  cronExpression: string;
+  enabled: boolean;
+  description?: string;
+  scheduled: boolean;
+  nextExecutionTime?: string;
+  lastStartedAt?: string;
+  lastFinishedAt?: string;
+  lastRunStatus?: string;
+  lastRunMessage?: string;
+}
+
+export interface PaymentCallbackAudit {
+  callbackType: string;
+  callbackName: string;
+  recommendedPattern: string;
+  scopedIdentifier: string;
+  strictScoped: boolean;
+  effectivePriority: string;
+  notes?: string;
+}
+
+export interface PaymentOrderNumberStrategy {
+  businessType: string;
+  fieldName: string;
+  generationRule: string;
+  callerOverrideField: string;
+  idempotentRule: string;
+  notes?: string;
+}
+
+export interface PaymentOpsOverview {
+  callbackAudits: PaymentCallbackAudit[];
+  orderNumberStrategies: PaymentOrderNumberStrategy[];
+}
+
+export interface PaymentNotifyLog {
+  id: number;
+  notifyType: string;
+  merchantId?: number;
+  channelId?: number;
+  channelType?: string;
+  channelSubType?: string;
+  orderNo?: string;
+  refundNo?: string;
+  requestBody?: string;
+  requestParams?: string;
+  processStatus?: string;
+  processResult?: string;
+  errorMessage?: string;
+  retryCount?: number;
+  receivedTime?: string;
+  processedTime?: string;
+}
+
+export interface PaymentNotifyError {
+  id: number;
+  notifyLogId: number;
+  notifyType: string;
+  merchantId?: number;
+  orderNo?: string;
+  refundNo?: string;
+  errorType?: string;
+  errorMessage?: string;
+  retryCount?: number;
+  maxRetryCount?: number;
+  nextRetryTime?: string;
+  status?: string;
+  resolvedAt?: string;
+  remark?: string;
+  createTime?: string;
+}
+
+export interface WechatPayScoreOrder {
+  id: number;
+  merchantId: number;
+  channelId: number;
+  userId?: number;
+  outOrderNo: string;
+  serviceOrderNo?: string;
+  appId?: string;
+  serviceId: string;
+  openId: string;
+  state: string;
+  totalAmount?: number;
+  notifyUrl?: string;
+  serviceIntroduction?: string;
+  startTime?: string;
+  endTime?: string;
+  finishType?: string;
+  reason?: string;
+  finishReason?: string;
+  packageInfo?: string;
+  attach?: string;
+  requestPayload?: string;
+  responsePayload?: string;
+  remark?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  createTime?: string;
+  updateTime?: string;
 }
 
 export interface MerchantForm {
@@ -238,6 +436,98 @@ export interface RefundForm {
   operator?: string;
 }
 
+export interface RefundOperateForm {
+  operator?: string;
+  remark?: string;
+  refundAmount?: number;
+  thirdPartyRefundNo?: string;
+}
+
+export interface WalletRechargeForm {
+  merchantId: number;
+  userId?: number;
+  rechargeNo?: string;
+  notifyUrl?: string;
+  amount: number;
+  operator?: string;
+  remark?: string;
+}
+
+export interface WalletTransferForm {
+  merchantId: number;
+  fromUserId?: number;
+  toUserId?: number;
+  transferNo?: string;
+  notifyUrl?: string;
+  amount: number;
+  operator?: string;
+  remark?: string;
+}
+
+export interface WalletWithdrawForm {
+  merchantId: number;
+  userId?: number;
+  withdrawNo?: string;
+  notifyUrl?: string;
+  amount: number;
+  bankAccount?: string;
+  bankName?: string;
+  accountName?: string;
+  operator?: string;
+  remark?: string;
+}
+
+export interface WalletOrderNotifyForm {
+  status: string;
+  thirdPartyOrderNo?: string;
+  payload?: string;
+  reason?: string;
+}
+
+export interface WechatPayScoreCreateForm {
+  merchantId: number;
+  channelId: number;
+  userId?: number;
+  outOrderNo?: string;
+  serviceId?: string;
+  openId: string;
+  totalAmount?: number;
+  notifyUrl?: string;
+  serviceIntroduction?: string;
+  startTime?: string;
+  endTime?: string;
+  reason?: string;
+  finishType?: string;
+  needUserConfirm?: boolean;
+  attach?: string;
+  postPayments?: Array<Record<string, unknown>>;
+  postDiscounts?: Array<Record<string, unknown>>;
+  extraParams?: Record<string, unknown>;
+  remark?: string;
+}
+
+export interface WechatPayScoreCompleteForm {
+  totalAmount?: number;
+  finishType?: string;
+  reason?: string;
+  endTime?: string;
+  postPayments?: Array<Record<string, unknown>>;
+  postDiscounts?: Array<Record<string, unknown>>;
+  extraParams?: Record<string, unknown>;
+  remark?: string;
+}
+
+export interface WechatPayScoreCancelForm {
+  reason?: string;
+  extraParams?: Record<string, unknown>;
+  remark?: string;
+}
+
+export interface PaymentSchedulerTaskUpdateForm {
+  cronExpression?: string;
+  enabled?: boolean;
+}
+
 export const MerchantStatusMap: Record<number, string> = {
   0: "待审核",
   1: "已激活",
@@ -278,6 +568,35 @@ export const TransactionStatusMap: Record<number, string> = {
   0: "失败",
   1: "成功",
   2: "处理中",
+};
+
+export const WalletOrderTypeMap: Record<string, string> = {
+  RECHARGE: "充值",
+  TRANSFER: "转账",
+  WITHDRAW: "提现",
+};
+
+export const WalletOrderStatusMap: Record<string, string> = {
+  PENDING: "待处理",
+  PROCESSING: "处理中",
+  SUCCESS: "成功",
+  FAILED: "失败",
+};
+
+export const WechatPayScoreStateMap: Record<string, string> = {
+  CREATED: "已创建",
+  DOING: "服务中",
+  COMPLETED: "已完结",
+  CANCELED: "已取消",
+  CANCELLED: "已取消",
+  SUCCESS: "成功",
+};
+
+export const SchedulerRunStatusMap: Record<string, string> = {
+  NEVER: "未执行",
+  RUNNING: "执行中",
+  SUCCESS: "成功",
+  FAILED: "失败",
 };
 
 export const ChannelSubTypeOptions: Record<string, Array<{ label: string; value: string }>> = {

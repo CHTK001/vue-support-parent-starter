@@ -189,8 +189,8 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import {
   applyRefund,
   cancelOrder,
-  completeOrder,
   createOrder,
+  completeOrder,
   deleteOrder,
   getMerchantChannels,
   getMerchantList,
@@ -201,15 +201,15 @@ import {
   markRefundFail,
   markRefundSuccess,
   payOrder,
-  syncOrder,
   startOrderPay,
+  syncOrder,
 } from "../api/payment";
 import type {
   Merchant,
   MerchantChannel,
   OrderForm,
-  PaymentLaunchResult,
   OrderStateLog,
+  PaymentLaunchResult,
   PaymentOrder,
 } from "../types/payment";
 import { OrderStatusMap, isExecutableChannel } from "../types/payment";

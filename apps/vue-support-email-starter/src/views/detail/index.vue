@@ -99,14 +99,7 @@ import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  ArrowLeft,
-  Back,
-  Right,
   Delete,
-  Star,
-  Paperclip,
-  Document,
-  Download,
 } from "@element-plus/icons-vue";
 import { emailApi, type EmailMessage } from "../../api/email";
 import DOMPurify from "dompurify";
@@ -116,15 +109,6 @@ const route = useRoute();
 const loading = ref(false);
 
 const email = ref<EmailMessage>({
-  subject: "",
-  fromAddress: "",
-  toAddresses: [],
-  ccAddresses: [],
-  contentText: "",
-  contentHtml: "",
-  hasAttachments: false,
-  isRead: false,
-  isStarred: false,
 });
 
 interface Attachment {

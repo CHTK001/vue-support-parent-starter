@@ -1,8 +1,6 @@
 ﻿<script setup>
-import {
   fetchSaveServiceModule,
   fetchUpdateServiceModule,
-} from "@/api/service/module";
 import { message } from "@repo/utils";
 import { defineExpose, shallowRef, reactive, ref } from "vue";
 

@@ -146,10 +146,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type FormRules,
 } from "element-plus";
 import { Plus, View, Edit, Delete } from "@element-plus/icons-vue";
 import { templateApi } from "../../api/email";
@@ -163,32 +159,18 @@ const isEdit = ref(false);
 const formRef = ref<FormInstance>();
 
 const form = ref({
-  id: "",
-  name: "",
-  description: "",
-  subject: "",
-  content: "",
-  isHtml: false,
 });
 
 const previewData = ref({
-  subject: "",
-  content: "",
-  isHtml: false,
 });
 
 const testVariables = ref<Record<string, string>>({
-  userName: "张三",
-  appName: "邮箱系统",
 });
 
 const renderedSubject = ref("");
 const renderedContent = ref("");
 
 const rules: FormRules = {
-  name: [{ required: true, message: "请输入模板名称", trigger: "blur" }],
-  subject: [{ required: true, message: "请输入邮件主题", trigger: "blur" }],
-  content: [{ required: true, message: "请输入模板内容", trigger: "blur" }],
 };
 
 const loadTemplates = async () => {

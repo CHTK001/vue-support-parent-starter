@@ -339,12 +339,10 @@ const form = reactive({});
 
 // 定义对话框可见状态
 const visible = reactive({
-  save: false,
 });
 
 // 定义加载状态
 const loading = reactive({
-  query: false,
 });
 
 // 搜索关键词
@@ -412,12 +410,6 @@ const handleSearch = () => {
 
 // 统计数据
 const stats = reactive({
-  total: 0,
-  directories: 0,
-  menus: 0,
-  iframes: 0,
-  links: 0,
-  buttons: 0,
 });
 
 /**
@@ -550,7 +542,6 @@ const onSearch = debounce(
       });
   },
   1000,
-  true,
 );
 
 // 页面加载时执行搜索
@@ -572,7 +563,6 @@ const getOpenDetail = async (row, column, event) => {
 
 // 定义保存对话框的参数
 const saveDialogParams = reactive({
-  mode: "save",
 });
 
 /**

@@ -1,23 +1,9 @@
 <script setup lang="ts">
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { fetchListServiceModule } from "@/api/service/module";
-import {
-  fetchUpdateService,
-  fetchPageService,
   fetchDeleteService,
-  fetchServiceStats,
-  type ServiceStats,
-} from "@/api/service/service";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
 import { message } from "@repo/utils";
-import {
-  defineAsyncComponent,
-  onMounted,
-  reactive,
-  ref,
-  shallowRef,
-} from "vue";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -29,9 +15,6 @@ const formRef = ref();
 
 // 统计数据
 const stats = reactive<ServiceStats>({
-  total: 0,
-  enabled: 0,
-  disabled: 0,
 });
 
 const env = reactive({
@@ -39,12 +22,10 @@ const env = reactive({
     sysServiceName: "",
     sysServiceStatus: null as number | null,
   },
-  moduleList: [] as any[],
 });
 
 const status = reactive({
   delete: false,
-  statsLoading: false,
 });
 
 // 状态选项
@@ -79,7 +60,6 @@ const onSearch = debounce(
     loadData();
   },
   500,
-  true,
 );
 
 const resetForm = () => {

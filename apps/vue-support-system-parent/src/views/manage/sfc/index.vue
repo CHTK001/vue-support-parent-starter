@@ -296,14 +296,12 @@
 </template>
 
 <script setup>
-import {
+import useRenderIcon from "@repo/components/useRenderIcon";
   fetchDeleteSfc,
   fetchInstallSfc,
   fetchPageSfc,
   fetchUpdateSfc,
   fetchUninstallSfc,
-} from "@repo/core";
-import { useRenderIcon } from "@repo/components";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
 import UploadLayout from "./upload.vue";

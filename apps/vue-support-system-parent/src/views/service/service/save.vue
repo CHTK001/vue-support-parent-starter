@@ -1,10 +1,8 @@
 ﻿<script setup>
 import { fetchUploadFile } from "@/api/manage/upload";
-import {
   fetchBindService,
   fetchSaveService,
   fetchUpdateService,
-} from "@/api/service/service";
 import { getRandomIntBelow, message } from "@repo/utils";
 import { defineExpose, shallowRef, reactive } from "vue";
 

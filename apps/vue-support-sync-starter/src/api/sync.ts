@@ -208,6 +208,18 @@ export interface SyncTaskStatistics {
   taskRanking?: TaskRanking[];
 }
 
+export type TransformRuleType = "MAPPING" | "FILTER" | "MASKING" | "SCRIPT";
+
+export interface TransformRule {
+  ruleId?: number;
+  ruleName: string;
+  ruleType: TransformRuleType;
+  ruleConfig: string;
+  ruleDesc?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
 export const isApiSuccess = (code: number | string | undefined) => {
   return (
     code === 200 ||
@@ -241,7 +253,7 @@ api.interceptors.response.use(
     if (!isApiSuccess(data.code)) {
       return Promise.reject(new Error(getApiMessage(data)));
     }
-    return data;
+    return response;
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -252,68 +264,97 @@ api.interceptors.response.use(
   },
 );
 
+const unwrap = <T>(promise: Promise<any>): Promise<ApiPayload<T>> =>
+  promise.then((res) => res.data as ApiPayload<T>);
+
 export function listSyncTasks(params: SyncTaskQuery) {
-  return api.get<any, ApiPayload<{ records: SyncTask[]; total: number }>>(
-    "/task/list",
-    { params },
-  );
+  return unwrap<{ records: SyncTask[]; total: number }>(api.get("/task/list", { params }));
 }
 
 export function createSyncTask(data: SyncTask) {
-  return api.post<any, ApiPayload<SyncTask>>("/task/create", data);
+  return unwrap<SyncTask>(api.post("/task/create", data));
 }
 
 export function updateSyncTask(data: SyncTask) {
-  return api.put<any, ApiPayload<boolean>>("/task/update", data);
+  return unwrap<boolean>(api.put("/task/update", data));
 }
 
 export function deleteSyncTask(taskId: number) {
-  return api.delete<any, ApiPayload<boolean>>(`/task/delete/${taskId}`);
+  return unwrap<boolean>(api.delete(`/task/delete/${taskId}`));
 }
 
 export function getSyncTaskDesign(taskId: number) {
-  return api.get<any, ApiPayload<SyncTaskDesign>>(`/task/design/${taskId}`);
+  return unwrap<SyncTaskDesign>(api.get(`/task/design/${taskId}`));
 }
 
 export function saveSyncTaskDesign(taskId: number, data: SyncTaskDesign) {
-  return api.post<any, ApiPayload<boolean>>(`/task/design/${taskId}`, data);
+  return unwrap<boolean>(api.post(`/task/design/${taskId}`, data));
 }
 
 export function startSyncTask(taskId: number) {
-  return api.post<any, ApiPayload<boolean>>(`/task/start/${taskId}`);
+  return unwrap<boolean>(api.post(`/task/start/${taskId}`));
 }
 
 export function stopSyncTask(taskId: number) {
-  return api.post<any, ApiPayload<boolean>>(`/task/stop/${taskId}`);
+  return unwrap<boolean>(api.post(`/task/stop/${taskId}`));
 }
 
 export function executeSyncTaskOnce(taskId: number) {
-  return api.post<any, ApiPayload<number>>(`/task/execute/${taskId}`);
+  return unwrap<number>(api.post(`/task/execute/${taskId}`));
+}
+
+export function copySyncTask(taskId: number, newName: string) {
+  return unwrap<SyncTask>(api.post(`/task/copy/${taskId}`, null, {
+    params: { newName },
+  }));
+}
+
+export function exportSyncTask(taskId: number) {
+  return unwrap<string>(api.get(`/task/export/${taskId}`));
+}
+
+export function importSyncTask(taskJson: string) {
+  return unwrap<SyncTask>(api.post("/task/import", taskJson, {
+    headers: { "Content-Type": "application/json" },
+  }));
+}
+
+export function batchSyncTaskOperation(taskIds: number[], operation: string) {
+  return unwrap<boolean>(api.post("/task/batch", null, {
+    params: { taskIds, operation },
+    paramsSerializer: {
+      serialize: (params) => {
+        const search = new URLSearchParams();
+        (params.taskIds || []).forEach((id: number) => search.append("taskIds", String(id)));
+        search.append("operation", params.operation);
+        return search.toString();
+      },
+    },
+  }));
 }
 
 export function getSyncTaskLogs(taskId: number, page = 1, size = 10) {
-  return api.get<any, ApiPayload<{ records: SyncTaskLog[]; total: number }>>(
-    `/task/logs/${taskId}`,
-    { params: { page, size } },
+  return unwrap<{ records: SyncTaskLog[]; total: number }>(
+    api.get(`/task/logs/${taskId}`, { params: { page, size } }),
   );
 }
 
 export function getSyncLogDetail(logId: number) {
-  return api.get<any, ApiPayload<SyncTaskLog>>(`/task/log/${logId}`);
+  return unwrap<SyncTaskLog>(api.get(`/task/log/${logId}`));
 }
 
 export function validateSyncTaskDesign(data: SyncTaskDesign) {
-  return api.post<any, ApiPayload<boolean>>("/task/validate", data);
+  return unwrap<boolean>(api.post("/task/validate", data));
 }
 
 export function getAllSpiTypes() {
-  return api.get<any, ApiPayload<SpiTypeList>>("/spi/all");
+  return unwrap<SpiTypeList>(api.get("/spi/all"));
 }
 
 export function getSpiParameters(spiType: string, spiName: string) {
-  return api.get<any, ApiPayload<SpiParameter[]>>("/spi/parameters", {
+  return unwrap<SpiParameter[]>(api.get("/spi/parameters", {
     params: { spiType, spiName },
-  });
+  }));
 }
 
 export function validateSpiConfig(
@@ -321,9 +362,9 @@ export function validateSpiConfig(
   spiName: string,
   config: Record<string, any>,
 ) {
-  return api.post<any, ApiPayload<boolean>>("/spi/validate", config, {
+  return unwrap<boolean>(api.post("/spi/validate", config, {
     params: { spiType, spiName },
-  });
+  }));
 }
 
 export function testSpiConnection(
@@ -331,9 +372,9 @@ export function testSpiConnection(
   spiName: string,
   config: Record<string, any>,
 ) {
-  return api.post<any, ApiPayload<string>>("/spi/test", config, {
+  return unwrap<string>(api.post("/spi/test", config, {
     params: { spiType, spiName },
-  });
+  }));
 }
 
 export function getStatistics(params?: {
@@ -341,19 +382,41 @@ export function getStatistics(params?: {
   endTime?: string;
   granularity?: string;
 }) {
-  return api.get<any, ApiPayload<SyncTaskStatistics>>("/task/statistics", {
+  return unwrap<SyncTaskStatistics>(api.get("/task/statistics", {
     params,
-  });
+  }));
 }
 
 export function getTaskStatistics(
   taskId: number,
   params?: { startTime?: string; endTime?: string; granularity?: string },
 ) {
-  return api.get<any, ApiPayload<SyncTaskStatistics>>(
+  return unwrap<SyncTaskStatistics>(api.get(
     `/task/statistics/${taskId}`,
     { params },
-  );
+  ));
+}
+
+export function listTransformRules() {
+  return unwrap<TransformRule[]>(api.get("/transform/rules"));
+}
+
+export function createTransformRule(data: TransformRule) {
+  return unwrap<number>(api.post("/transform/rules", data));
+}
+
+export function updateTransformRule(ruleId: number, data: TransformRule) {
+  return unwrap<boolean>(api.put(`/transform/rules/${ruleId}`, data));
+}
+
+export function deleteTransformRule(ruleId: number) {
+  return unwrap<boolean>(api.delete(`/transform/rules/${ruleId}`));
+}
+
+export function testTransformRule(ruleId: number, testData: Record<string, any>) {
+  return unwrap<Record<string, any>>(api.post("/transform/rules/test", testData, {
+    params: { ruleId },
+  }));
 }
 
 export default api;

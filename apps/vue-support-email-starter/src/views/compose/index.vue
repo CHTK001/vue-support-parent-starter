@@ -69,18 +69,9 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import {
-  ElMessage,
-  type FormInstance,
-  type FormRules,
-  type UploadFile,
-  type UploadInstance,
 } from "element-plus";
 import { Paperclip } from "@element-plus/icons-vue";
 import {
-  emailApi,
-  accountApi,
-  attachmentApi,
-  type EmailAccount,
 } from "../../api/email";
 import { useEmailStore } from "../../stores/email";
 
@@ -95,18 +86,9 @@ const draftId = ref<string>();
 const fileList = ref<UploadFile[]>([]);
 
 const form = ref({
-  accountId: "",
-  to: "",
-  cc: "",
-  subject: "",
-  content: "",
 });
 
 const rules: FormRules = {
-  accountId: [{ required: true, message: "请选择发件账户", trigger: "change" }],
-  to: [{ required: true, message: "请输入收件人", trigger: "blur" }],
-  subject: [{ required: true, message: "请输入主题", trigger: "blur" }],
-  content: [{ required: true, message: "请输入内容", trigger: "blur" }],
 };
 
 const loadAccounts = async () => {

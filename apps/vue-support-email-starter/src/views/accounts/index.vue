@@ -184,28 +184,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type FormRules,
 } from "element-plus";
 import {
-  Plus,
-  Download,
-  Upload,
-  ArrowDown,
-  Document,
-  Tickets,
-  Check,
-  Close,
-  Connection,
-  Edit,
   Delete,
 } from "@element-plus/icons-vue";
 import {
-  accountApi,
   importExportApi,
-  type EmailAccount,
 } from "../../api/email";
 import { useEmailStore } from "../../stores/email";
 
@@ -221,17 +205,6 @@ const fileInputRef = ref<HTMLInputElement>();
 const importFileType = ref<"json" | "csv">("json");
 
 const form = ref<EmailAccount>({
-  emailAddress: "",
-  displayName: "",
-  smtpHost: "",
-  smtpPort: 465,
-  imapHost: "",
-  imapPort: 993,
-  username: "",
-  password: "",
-  protocol: "imap",
-  sslEnabled: true,
-  isDefault: false,
 });
 
 const rules: FormRules = {
@@ -239,14 +212,6 @@ const rules: FormRules = {
     { required: true, message: "请输入邮箱地址", trigger: "blur" },
     { type: "email", message: "请输入有效的邮箱地址", trigger: "blur" },
   ],
-  displayName: [{ required: true, message: "请输入显示名称", trigger: "blur" }],
-  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  password: [{ required: true, message: "请输入密码", trigger: "blur" }],
-  protocol: [{ required: true, message: "请选择协议", trigger: "change" }],
-  smtpHost: [{ required: true, message: "请输入SMTP主机", trigger: "blur" }],
-  smtpPort: [{ required: true, message: "请输入SMTP端口", trigger: "blur" }],
-  imapHost: [{ required: true, message: "请输入IMAP主机", trigger: "blur" }],
-  imapPort: [{ required: true, message: "请输入IMAP端口", trigger: "blur" }],
 };
 
 const filteredAccounts = computed(() => accounts.value);

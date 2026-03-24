@@ -7,6 +7,7 @@ import {
   deleteSyncTask,
   startSyncTask,
   stopSyncTask,
+  executeSyncTaskOnce,
   type SyncTask,
   type SyncTaskQuery,
 } from "../api/sync";
@@ -64,6 +65,11 @@ export const useTaskStore = defineStore("task", () => {
     return true;
   };
 
+  const executeTaskOnce = async (taskId: number) => {
+    const res = await executeSyncTaskOnce(taskId);
+    return res.data;
+  };
+
   return {
     tasks,
     currentTask,
@@ -75,5 +81,6 @@ export const useTaskStore = defineStore("task", () => {
     deleteTask,
     startTask,
     stopTask,
+    executeTaskOnce,
   };
 });

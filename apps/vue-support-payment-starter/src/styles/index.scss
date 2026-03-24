@@ -1,8 +1,65 @@
-/**
- * 支付系统样式
- */
+@use "./variables.scss" as *;
 
-// 应用特定样式
-.payment-container {
-  // 支付相关样式
+:root {
+  --payment-bg: #f6f1ea;
+  --payment-surface: rgb(255 251 245 / 88%);
+  --payment-border: rgb(114 81 49 / 12%);
+  --payment-shadow: 0 18px 60px rgb(54 37 23 / 8%);
+  --payment-text: #251810;
+  --payment-muted: #715947;
+  --payment-accent: #b77031;
+  --payment-accent-strong: #7a3a2d;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgb(216 157 81 / 12%), transparent 24%),
+    radial-gradient(circle at right bottom, rgb(154 73 48 / 10%), transparent 22%),
+    linear-gradient(180deg, #fffaf3 0%, var(--payment-bg) 100%);
+  color: var(--payment-text);
+}
+
+a {
+  color: inherit;
+}
+
+.el-card {
+  border: 1px solid var(--payment-border);
+  background: var(--payment-surface);
+  box-shadow: var(--payment-shadow);
+}
+
+.el-table {
+  --el-table-header-bg-color: rgb(247 239 228 / 95%);
+  --el-table-row-hover-bg-color: rgb(250 244 236 / 92%);
+  --el-table-border-color: rgb(120 84 46 / 12%);
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner,
+.el-input-number,
+.el-date-editor.el-input__wrapper {
+  box-shadow: 0 0 0 1px rgb(119 84 51 / 12%) inset;
+}
+
+.el-button--primary {
+  background: $gradient-primary;
+  border-color: transparent;
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus-visible {
+  filter: brightness(1.04);
+}
+
+.el-dialog,
+.el-drawer {
+  backdrop-filter: blur(12px);
 }

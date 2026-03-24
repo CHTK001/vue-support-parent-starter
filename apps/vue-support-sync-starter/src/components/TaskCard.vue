@@ -54,12 +54,17 @@
         >
           停止
         </el-button>
+        <el-button size="small" type="primary" @click="$emit('execute', task)">
+          执行
+        </el-button>
         <el-button size="small" type="info" @click="$emit('logs', task)">
           日志
         </el-button>
         <el-button size="small" type="primary" @click="$emit('monitor', task)">
           监控
         </el-button>
+        <el-button size="small" @click="$emit('copy', task)">复制</el-button>
+        <el-button size="small" @click="$emit('export', task)">导出</el-button>
         <el-button size="small" type="danger" @click="$emit('delete', task)">
           删除
         </el-button>
@@ -80,8 +85,11 @@ defineEmits<{
   edit: [task: SyncTask];
   start: [task: SyncTask];
   stop: [task: SyncTask];
+  execute: [task: SyncTask];
   logs: [task: SyncTask];
   monitor: [task: SyncTask];
+  copy: [task: SyncTask];
+  export: [task: SyncTask];
   delete: [task: SyncTask];
 }>();
 

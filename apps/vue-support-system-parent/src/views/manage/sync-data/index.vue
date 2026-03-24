@@ -334,47 +334,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import {
-  ElMessage,
-  ElMessageBox,
-  type FormInstance,
-  type TableInstance,
-} from "element-plus";
-import {
-  Search,
-  RefreshRight,
-  Plus,
-  Refresh,
-  List,
-  VideoPlay,
-  CircleCheck,
-  WarningFilled,
-} from "@element-plus/icons-vue";
-import { IconifyIconOnline } from "@repo/components";
-import {
-  fetchSyncTaskList,
-  fetchCreateSyncTask,
-  fetchUpdateSyncTask,
   fetchDeleteSyncTask,
-  fetchStartSyncTask,
-  fetchStopSyncTask,
-  fetchExecuteSyncTask,
-  fetchSyncTaskLogs,
-  type MonitorSyncTask,
-  type MonitorSyncTaskLog,
-  type SyncTaskQuery,
-} from "@/api/manage/sync-data";
 
 defineOptions({
-  name: "SyncDataManagement",
 });
 
 // 查询参数
 const queryParams = reactive<SyncTaskQuery>({
-  page: 1,
-  size: 10,
-  taskName: "",
-  taskStatus: "",
 });
 
 // 列表数据
@@ -409,15 +375,6 @@ const dialogTitle = ref("新建任务");
 const formRef = ref<FormInstance>();
 const submitLoading = ref(false);
 const formData = reactive<MonitorSyncTask>({
-  syncTaskName: "",
-  syncTaskDesc: "",
-  syncTaskBatchSize: 1000,
-  syncTaskRetryCount: 3,
-  syncTaskRetryInterval: 1000,
-  syncTaskSyncInterval: 0,
-  syncTaskCron: "",
-  syncTaskAckEnabled: 1,
-  syncTaskTransactionEnabled: 0,
 });
 
 const formRules = {

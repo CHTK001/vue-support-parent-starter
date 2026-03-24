@@ -108,9 +108,9 @@
 </template>
 
 <script setup>
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { ref, defineExpose, reactive } from "vue";
 import { loadSfcModule } from "@repo/utils";
-import { useRenderIcon } from "@repo/components";
 
 const emit = defineEmits(["close"]);
 const title = ref("");

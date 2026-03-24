@@ -71,10 +71,12 @@
         </el-table-column>
         <el-table-column prop="channelCount" label="支付方式数" width="120" />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="360" fixed="right">
+        <el-table-column label="操作" width="520" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openMerchantDialog(row)">编辑</el-button>
             <el-button link type="primary" @click="openChannelDrawer(row)">支付方式</el-button>
+            <el-button link type="primary" @click="openPaymentConfigDialog(row)">支付规则</el-button>
+            <el-button link type="primary" @click="openWalletLimitDialog(row)">钱包限额</el-button>
             <el-button v-if="row.status !== 1" link type="success" @click="handleActivate(row)">激活</el-button>
             <el-button v-else link type="warning" @click="handleDeactivate(row)">停用</el-button>
             <el-button link type="danger" @click="handleDeleteMerchant(row)">删除</el-button>
@@ -205,12 +207,13 @@
             {{ row.sandboxMode === 1 ? "是" : "否" }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openChannelDialog(row)">编辑</el-button>
             <el-button link type="primary" @click="openGuideDrawerByChannel(row)">开通指引</el-button>
             <el-button v-if="row.status !== 1 && isExecutableChannel(row.channelType, row.channelSubType)" link type="success" @click="handleEnableChannel(row)">启用</el-button>
             <el-button v-if="row.status === 1" link type="warning" @click="handleDisableChannel(row)">禁用</el-button>
+            <el-button v-if="row.status !== 1" link type="danger" @click="handleDeleteChannel(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -315,8 +318,70 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="paymentConfigDialogVisible" width="720px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付规则` : '支付规则'">
+      <el-form :model="paymentConfigForm" label-width="130px">
+        <div class="form-grid">
+          <el-form-item label="允许重复支付">
+            <el-switch v-model="paymentConfigForm.orderReusable" />
+          </el-form-item>
+          <el-form-item label="自动取消超时订单">
+            <el-switch v-model="paymentConfigForm.autoCancelTimeoutOrder" />
+          </el-form-item>
+          <el-form-item label="订单超时分钟">
+            <el-input-number v-model="paymentConfigForm.orderTimeoutMinutes" :min="1" :max="1440" />
+          </el-form-item>
+          <el-form-item label="待支付订单上限">
+            <el-input-number v-model="paymentConfigForm.pendingOrderLimit" :min="1" :max="9999" />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="paymentConfigDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingPaymentConfig" @click="submitPaymentConfig">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="walletLimitDialogVisible" width="840px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 钱包限额` : '钱包限额'">
+      <el-form :model="walletLimitForm" label-width="130px">
+        <div class="form-grid">
+          <el-form-item label="单笔充值限额">
+            <el-input-number v-model="walletLimitForm.singleRechargeLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="日充值限额">
+            <el-input-number v-model="walletLimitForm.dailyRechargeLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="单笔提现限额">
+            <el-input-number v-model="walletLimitForm.singleWithdrawLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="日提现限额">
+            <el-input-number v-model="walletLimitForm.dailyWithdrawLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="单笔转账限额">
+            <el-input-number v-model="walletLimitForm.singleTransferLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="日转账限额">
+            <el-input-number v-model="walletLimitForm.dailyTransferLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="余额上限">
+            <el-input-number v-model="walletLimitForm.balanceLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="walletLimitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingWalletLimit" @click="submitWalletLimit">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-drawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'">
       <template v-if="currentGuide">
+        <div class="guide-meta">
+          <el-tag type="primary" effect="dark">{{ currentGuide.officialName || "官方平台" }}</el-tag>
+          <el-tag v-if="currentGuide.defaultProviderSpi" effect="plain">默认 SPI：{{ currentGuide.defaultProviderSpi }}</el-tag>
+          <el-tag v-for="item in currentGuide.availableProviderSpis || []" :key="item" effect="plain" type="warning">
+            {{ item }}
+          </el-tag>
+        </div>
         <div class="guide-block">
           <p class="guide-block__label">概述</p>
           <p>{{ currentGuide.summary }}</p>
@@ -357,21 +422,28 @@ import {
   createChannel,
   createMerchant,
   deactivateMerchant,
+  deleteChannel,
   deleteMerchant,
-  disableChannel,
   enableChannel,
   getChannelCatalog,
   getMerchantChannels,
   getMerchantList,
+  getMerchantPaymentConfig,
+  getMerchantWalletLimit,
   getProviderOptions,
   updateChannel,
   updateMerchant,
+  updateMerchantPaymentConfig,
+  updateMerchantWalletLimit,
+  disableChannel,
 } from "../api/payment";
 import type {
   ChannelForm,
   Merchant,
   MerchantChannel,
   MerchantForm,
+  MerchantPaymentConfig,
+  MerchantWalletLimit,
   PaymentMethodGuide,
 } from "../types/payment";
 import {
@@ -387,6 +459,8 @@ const loading = ref(false);
 const channelLoading = ref(false);
 const submittingMerchant = ref(false);
 const submittingChannel = ref(false);
+const savingPaymentConfig = ref(false);
+const savingWalletLimit = ref(false);
 
 const merchantList = ref<Merchant[]>([]);
 const channelList = ref<MerchantChannel[]>([]);
@@ -408,6 +482,8 @@ const merchantDialogVisible = ref(false);
 const channelDrawerVisible = ref(false);
 const channelDialogVisible = ref(false);
 const guideDrawerVisible = ref(false);
+const paymentConfigDialogVisible = ref(false);
+const walletLimitDialogVisible = ref(false);
 
 const editingMerchant = ref<Merchant | null>(null);
 const editingChannel = ref<MerchantChannel | null>(null);
@@ -416,6 +492,23 @@ const currentGuide = ref<PaymentMethodGuide | null>(null);
 
 const merchantForm = reactive<MerchantForm>(createDefaultMerchantForm());
 const channelForm = reactive<ChannelForm>(createDefaultChannelForm());
+const paymentConfigForm = reactive<MerchantPaymentConfig>({
+  merchantId: 0,
+  orderReusable: true,
+  orderTimeoutMinutes: undefined,
+  pendingOrderLimit: undefined,
+  autoCancelTimeoutOrder: true,
+});
+const walletLimitForm = reactive<MerchantWalletLimit>({
+  merchantId: 0,
+  singleRechargeLimit: undefined,
+  dailyRechargeLimit: undefined,
+  singleWithdrawLimit: undefined,
+  dailyWithdrawLimit: undefined,
+  singleTransferLimit: undefined,
+  dailyTransferLimit: undefined,
+  balanceLimit: undefined,
+});
 
 const merchantFormRef = ref();
 
@@ -544,6 +637,63 @@ async function handleDeleteMerchant(row: Merchant) {
   await loadMerchants();
 }
 
+async function openPaymentConfigDialog(merchant: Merchant) {
+  selectedMerchant.value = merchant;
+  const res = await getMerchantPaymentConfig(merchant.id);
+  Object.assign(paymentConfigForm, {
+    merchantId: merchant.id,
+    orderReusable: res.data.orderReusable ?? true,
+    orderTimeoutMinutes: res.data.orderTimeoutMinutes,
+    pendingOrderLimit: res.data.pendingOrderLimit,
+    autoCancelTimeoutOrder: res.data.autoCancelTimeoutOrder ?? true,
+  });
+  paymentConfigDialogVisible.value = true;
+}
+
+async function submitPaymentConfig() {
+  if (!selectedMerchant.value) {
+    return;
+  }
+  savingPaymentConfig.value = true;
+  try {
+    await updateMerchantPaymentConfig(selectedMerchant.value.id, paymentConfigForm);
+    ElMessage.success("商户支付规则已保存");
+    paymentConfigDialogVisible.value = false;
+  } finally {
+    savingPaymentConfig.value = false;
+  }
+}
+
+async function openWalletLimitDialog(merchant: Merchant) {
+  selectedMerchant.value = merchant;
+  const res = await getMerchantWalletLimit(merchant.id);
+  Object.assign(walletLimitForm, {
+    merchantId: merchant.id,
+    singleRechargeLimit: res.data.singleRechargeLimit,
+    dailyRechargeLimit: res.data.dailyRechargeLimit,
+    singleWithdrawLimit: res.data.singleWithdrawLimit,
+    dailyWithdrawLimit: res.data.dailyWithdrawLimit,
+    singleTransferLimit: res.data.singleTransferLimit,
+    dailyTransferLimit: res.data.dailyTransferLimit,
+    balanceLimit: res.data.balanceLimit,
+  });
+  walletLimitDialogVisible.value = true;
+}
+
+async function submitWalletLimit() {
+  if (!selectedMerchant.value) {
+    return;
+  }
+  savingWalletLimit.value = true;
+  try {
+    await updateMerchantWalletLimit(selectedMerchant.value.id, walletLimitForm);
+    ElMessage.success("商户钱包限额已保存");
+    walletLimitDialogVisible.value = false;
+  } finally {
+    savingWalletLimit.value = false;
+  }
+}
+
 async function openChannelDrawer(merchant: Merchant) {
   selectedMerchant.value = merchant;
   channelDrawerVisible.value = true;
@@ -617,6 +767,13 @@ async function handleDisableChannel(row: MerchantChannel) {
   await disableChannel(row.id);
   ElMessage.success("支付方式已禁用");
   await loadChannels();
+}
+
+async function handleDeleteChannel(row: MerchantChannel) {
+  await ElMessageBox.confirm(`确认删除支付方式「${row.channelName}」吗？`, "删除支付方式", { type: "warning" });
+  await deleteChannel(row.id);
+  ElMessage.success("支付方式已删除");
+  await Promise.all([loadChannels(), loadMerchants()]);
 }
 
 function openGuideDrawerByChannel(row: MerchantChannel) {
@@ -875,6 +1032,13 @@ onMounted(async () => {
 
 .guide-actions {
   margin-top: 8px;
+}
+
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .guide-block {

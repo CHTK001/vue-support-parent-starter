@@ -1,24 +1,8 @@
 <script setup lang="ts">
-import {
-  feechSyncTenant,
   fetchDeleteTenant,
-  fetchPageTenant,
-  fetchUpdateTenant,
-  fetchTenantStats,
-  type TenantStats,
-} from "@/api/service/tenant";
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
 import { isTimeExpired, message } from "@repo/utils";
-import {
-  computed,
-  defineAsyncComponent,
-  onMounted,
-  reactive,
-  ref,
-  shallowRef,
-} from "vue";
 import { useI18n } from "vue-i18n";
 import { fetchListService } from "@/api/service/service";
 
@@ -31,10 +15,6 @@ const formRef = ref();
 
 // 统计数据
 const stats = reactive<TenantStats>({
-  total: 0,
-  enabled: 0,
-  disabled: 0,
-  subscribed: 0,
 });
 
 const env = reactive({
@@ -42,14 +22,10 @@ const env = reactive({
     sysTenantName: "",
     sysTenantStatus: null as number | null,
   },
-  loading: false,
-  serviceList: [] as any[],
 });
 
 const status = reactive({
-  async: false,
   delete: false,
-  statsLoading: false,
 });
 
 // 状态选项
@@ -86,7 +62,6 @@ const onSearch = debounce(
     loadData();
   },
   500,
-  true,
 );
 
 const resetForm = () => {

@@ -1,6 +1,6 @@
 ﻿<script setup>
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { ref, reactive } from "vue";
-import { useRenderIcon } from "@repo/components";
 
 const emit = defineEmits(["close"]);
 

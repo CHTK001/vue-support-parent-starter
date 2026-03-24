@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "node ../../node_modules/vite/bin/vite.js",
     "serve": "pnpm dev",
+    "build:web": "node ../../node_modules/vite/bin/vite.js build",
     "build": "node ../../node_modules/vite/bin/vite.js build && node build-copy.js",
+    "build:backend": "pnpm build",
     "build:staging": "node ../../node_modules/vite/bin/vite.js build --mode test && node build-copy.js",
+    "build:backend:staging": "pnpm build:staging",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && vue-tsc --noEmit --skipLibCheck",
     "lint:eslint": "eslint --cache --max-warnings 0 \"{src,mock,build}/**/*.{vue,js,ts,tsx}\" --fix",
@@ -15,6 +18,8 @@
     "lint": "pnpm lint:eslint && pnpm lint:prettier"
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "catalog:",
+    "@element-plus/icons-vue": "catalog:",
     "@layout/default": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "@repo/app-root": "workspace:^",

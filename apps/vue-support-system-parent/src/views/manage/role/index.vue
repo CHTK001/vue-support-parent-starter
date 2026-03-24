@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { defineAsyncComponent, nextTick, reactive, ref, computed } from "vue";
 
-import {
   fetchDeleteRole,
-  fetchPageRole,
-  fetchUpdateRole,
-} from "@/api/manage/role";
 import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -15,10 +10,6 @@ import { BoardCardList } from "./hook";
 
 // 统计数据
 const stats = reactive({
-  total: 0,
-  system: 0,
-  custom: 0,
-  enabled: 0,
 });
 
 // 数据加载完成回调
@@ -34,18 +25,12 @@ const RoleDialog = defineAsyncComponent(() => import("./role.vue"));
 const { t } = useI18n();
 const roleDialogRef = ref();
 const form = reactive({
-  sysRoleName: "",
-  SysRoleCode: "",
 });
 
 const visible = reactive({
-  save: false,
-  role: false,
 });
 
 const loading = reactive({
-  query: false,
-  menu: false,
 });
 const formRef = ref();
 const table = ref(null);
@@ -59,11 +44,9 @@ const onSearch = debounce(
     table.value.reload(form);
   },
   1000,
-  true,
 );
 
 const saveDialogParams = reactive({
-  mode: "save",
 });
 
 const onDelete = async (row, index) => {

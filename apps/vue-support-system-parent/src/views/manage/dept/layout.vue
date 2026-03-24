@@ -1,17 +1,8 @@
 <script setup lang="ts">
-import {
-  defineAsyncComponent,
-  nextTick,
-  onMounted,
-  reactive,
-  ref,
-  watch,
-} from "vue";
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { transformI18n } from "@repo/config";
-import { useRenderIcon } from "@repo/components";
-import { IconifyIconOnline } from "@repo/components";
 import { useI18n } from "vue-i18n";
 
 // Props
@@ -33,26 +24,19 @@ const dicFilterText = ref("");
 const tableData = ref<any[]>([]);
 
 const visible = reactive({
-  save: false,
 });
 
 const loading = reactive({
-  query: false,
 });
 
 const saveDialogParams = reactive({
-  mode: "save" as "save" | "edit",
 });
 
 const params = reactive({
-  sysDeptId: null as string | null,
 });
 
 // 统计数据
 const stats = reactive({
-  total: 0,
-  topLevel: 0,
-  subLevel: 0,
 });
 
 // 监听搜索关键字
@@ -198,7 +182,6 @@ onMounted(() => {
 
 // 暴露给父组件
 defineExpose({
-  onSearch,
 });
 </script>
 <template>

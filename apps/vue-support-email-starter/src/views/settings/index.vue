@@ -204,34 +204,16 @@ const activeTab = ref("general");
 const accounts = ref<EmailAccount[]>([]);
 
 const generalSettings = ref({
-  language: "zh-CN",
-  theme: "light",
-  pageSize: 20,
-  autoRefresh: false,
-  refreshInterval: 5,
 });
 
 const emailSettings = ref({
-  defaultAccount: "",
-  sentFolder: "Sent",
-  autoSaveDraft: true,
-  showHtml: true,
-  autoDownloadImages: false,
-  signature: "",
 });
 
 const notificationSettings = ref({
-  desktop: false,
-  sound: false,
-  newEmail: true,
   importantOnly: false,
 });
 
 const securitySettings = ref({
-  autoLock: false,
-  lockTimeout: 15,
-  rememberPassword: true,
-  encryptStorage: true,
 });
 
 const loadAccounts = async () => {

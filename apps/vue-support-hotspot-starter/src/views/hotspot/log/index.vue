@@ -51,11 +51,10 @@
   </div>
 </template>
 <script setup>
+import { useRenderIcon } from "@repo/components/ScRenderIcon";
 import { nextTick, ref, onUnmounted, reactive, onMounted, computed } from "vue";
 import { AnsiUp } from "ansi_up";
-import { useRenderIcon } from "@repo/components";
 import { wsService } from "@/utils/websocket";
-import { ScSlider } from "@repo/components";
 
 const ansiUp = new AnsiUp();
 const form = reactive({

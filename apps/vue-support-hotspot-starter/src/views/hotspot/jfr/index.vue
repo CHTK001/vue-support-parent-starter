@@ -18,17 +18,12 @@ const wsConnected = computed(() => wsService.connected.value);
 // 新建录制对话框
 const showNewRecordingDialog = ref(false);
 const newRecordingForm = reactive({
-  name: "",
-  duration: 60,
-  maxSize: 100,
   preset: "default"
 });
 
 // 导出对话框
 const showExportDialog = ref(false);
 const exportForm = reactive({
-  recordingId: 0,
-  filename: "",
   recordingName: ""
 });
 

@@ -1,18 +1,14 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components";
-import {
+import useRenderIcon from "@repo/components/useRenderIcon";
   reactive,
   ref,
   computed,
   nextTick,
   defineAsyncComponent,
   onMounted,
-} from "vue";
-import {
   fetchPageFeedback,
   fetchIssueFeedback,
   fetchFeedbackStatistic,
-} from "@/api/manage/feedback";
 import { getTimeAgo } from "@repo/utils";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
