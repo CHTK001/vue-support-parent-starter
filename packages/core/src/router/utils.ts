@@ -36,6 +36,34 @@ import { getAsyncRoutes } from "../api/routes";
 const CACHE_ROUTER_KEY = "async-routes";
 // 默认图标（Iconify 名称）
 const DEFAULT_MENU_ICON = "ri:menu-line";
+
+/**
+ * 统一动态路由返回结构。
+ * 兼容以下几种场景：
+ * 1. 后端直接返回数组
+ * 2. 后端返回 { data: Route[] }
+ * 3. 本地缓存里遗留了对象结构
+ */
+function normalizeAsyncRouteList(payload: any): Array<RouteRecordRaw> {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  if (payload && Array.isArray(payload.records)) {
+    return payload.records;
+  }
+
+  if (payload && Array.isArray(payload.list)) {
+    return payload.list;
+  }
+
+  return [];
+}
+
 function handRank(routeInfo: any) {
   const { name, path, parentId, meta } = routeInfo;
   return isAllEmpty(parentId)
@@ -167,9 +195,10 @@ function addPathMatch() {
 }
 
 /** 处理动态路由（后端返回的路由） */
-function handleAsyncRoutes(routeList) {
+function handleAsyncRoutes(routeListPayload) {
+  const routeList = normalizeAsyncRouteList(routeListPayload);
   if (!routeList || routeList.length === 0) {
-    usePermissionStoreHook().handleWholeMenus(routeList || []);
+    usePermissionStoreHook().handleWholeMenus([]);
   } else {
     formatFlatteningRoutes(addAsyncRoutes(routeList)).map(
       (v: RouteRecordRaw) => {
@@ -225,8 +254,9 @@ export function clearRouter() {
       getAsyncRoutes()
         .then((res) => {
           const { data } = res;
-          handleAsyncRoutes(cloneDeep(data));
-          localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
+          const routeList = normalizeAsyncRouteList(cloneDeep(data));
+          handleAsyncRoutes(routeList);
+          localStorageProxy().setItem(CACHE_ROUTER_KEY, routeList);
           resolve(router);
         })
         .catch((err) => {
@@ -241,9 +271,10 @@ function initRouter() {
   if (getConfig()?.CachingAsyncRoutes) {
     // 开启动态路由缓存本地localStorage
     const asyncRouteList = localStorageProxy().getItem(CACHE_ROUTER_KEY) as any;
-    if (asyncRouteList && asyncRouteList?.length > 0) {
+    const normalizedAsyncRouteList = normalizeAsyncRouteList(asyncRouteList);
+    if (normalizedAsyncRouteList.length > 0) {
       return new Promise((resolve) => {
-        handleAsyncRoutes(asyncRouteList);
+        handleAsyncRoutes(normalizedAsyncRouteList);
         resolve(router);
       });
     } else {
@@ -251,8 +282,9 @@ function initRouter() {
         getAsyncRoutes()
           .then((res) => {
             const { data } = res;
-            handleAsyncRoutes(cloneDeep(data));
-            localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
+            const routeList = normalizeAsyncRouteList(cloneDeep(data));
+            handleAsyncRoutes(routeList);
+            localStorageProxy().setItem(CACHE_ROUTER_KEY, routeList);
             resolve(router);
           })
           .catch((err) => {
@@ -355,10 +387,11 @@ function handleAliveRoute({ name }: ToRouteType, mode?: string) {
 }
 
 /** 过滤后端传来的动态路由 重新生成规范路由 */
-function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
-  if (!arrRoutes || !arrRoutes.length) return;
+function addAsyncRoutes(arrRoutes: any): Array<RouteRecordRaw> {
+  const normalizedRoutes = normalizeAsyncRouteList(arrRoutes);
+  if (!normalizedRoutes.length) return [];
   const modulesRoutesKeys = Object.keys(modulesRoutes);
-  arrRoutes.forEach((v: RouteRecordRaw) => {
+  normalizedRoutes.forEach((v: RouteRecordRaw) => {
     // 将backstage属性加入meta，标识此路由为后端返回路由
     v.meta.backstage = true;
     // 父级的redirect属性取值：如果子级存在且父级的redirect属性不存在，默认取第一个子级的path；如果子级存在且父级的redirect属性存在，取存在的redirect属性，会覆盖默认值
@@ -388,7 +421,7 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       addAsyncRoutes(v.children);
     }
   });
-  return arrRoutes;
+  return normalizedRoutes;
 }
 
 function include(source, target) {
