@@ -24,7 +24,9 @@
     "lib": ["ESNext", "DOM"],
     "paths": {
       "@/*": ["src/*"],
-      "@build/*": ["build/*"]
+      "@build/*": ["build/*"],
+      "@pages/proxy": ["../../pages/proxy/src/index.ts"],
+      "@pages/proxy/*": ["../../pages/proxy/src/*"]
     },
     "types": [
       "node",
