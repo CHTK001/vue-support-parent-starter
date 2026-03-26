@@ -2,7 +2,6 @@ import { createViteConfig } from "@repo/build-config";
 import type { ConfigEnv, UserConfigExport } from "vite";
 import pkg from "./package.json";
 import { resolve } from "path";
-
 const root = resolve(__dirname, "../..");
 
 const baseConfig = createViteConfig(import.meta.url, pkg)
@@ -13,6 +12,7 @@ const baseConfig = createViteConfig(import.meta.url, pkg)
   .alias("@pages/example", resolve(root, "pages/example/src"))
   .alias("@pages/pay", resolve(root, "pages/pay/src"))
   .alias("@pages/project", resolve(root, "pages/project/src"))
+  .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
   .alias("@pages/setting", resolve(root, "pages/setting/src"))
   .alias("@pages/system", resolve(root, "pages/system/src"))
   .alias("@pages/video", resolve(root, "pages/video/src"))
