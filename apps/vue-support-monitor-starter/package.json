@@ -120,6 +120,7 @@
     "@pages/dict": "workspace:^",
     "@pages/system": "workspace:^",
     "@pages/project": "workspace:^",
+    "@pages/proxy": "workspace:^",
     "@pages/video": "workspace:^",
     "@pages/pay": "workspace:^",
     "@pages/doc": "workspace:^"
