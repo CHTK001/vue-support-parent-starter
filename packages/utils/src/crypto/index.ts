@@ -1,5 +1,31 @@
 import * as CryptoJS from "crypto-js";
-export default {
+
+export interface AesConfig {
+  iv?: string;
+  mode?: string;
+  padding?: string;
+}
+
+export function aesEncrypt(
+  data: string,
+  secretKey: string,
+  config: AesConfig = {},
+): string {
+  return cryptoApi.AES.encrypt(data, secretKey, config);
+}
+
+export function aesDecrypt(
+  cipher: string,
+  secretKey: string,
+  config: AesConfig = {},
+): string {
+  if (!cipher) {
+    return "";
+  }
+  return cryptoApi.AES.decrypt(cipher, secretKey, config);
+}
+
+const cryptoApi = {
   md5(word: string) {
     return CryptoJS.MD5(word).toString();
   },
@@ -17,11 +43,7 @@ export default {
     encrypt(
       data,
       secretKey,
-      config = {
-        iv: "",
-        mode: "",
-        padding: "",
-      },
+      config: AesConfig = {},
     ) {
       if (secretKey.length % 8 != 0) {
         console.warn("[error]: 秘钥长度需为8的倍数，否则解密将会失败。");
@@ -40,11 +62,7 @@ export default {
     decrypt(
       cipher,
       secretKey,
-      config = {
-        iv: "",
-        mode: "",
-        padding: "",
-      },
+      config: AesConfig = {},
     ) {
       const result = CryptoJS.AES.decrypt(
         cipher,
@@ -58,4 +76,8 @@ export default {
       return CryptoJS.enc.Utf8.stringify(result);
     },
   },
+};
+
+export default {
+  ...cryptoApi,
 };

@@ -14,5 +14,5 @@ const errorPageStyle = computed(
 </script>
 
 <template>
-  <ErrorPage code="404" :style="errorPageStyle" />
+  <ErrorPage code="404" :page-style="errorPageStyle" />
 </template>

@@ -1,6 +1,6 @@
 import "./index.css";
 import type { OptionsType } from "./type";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { isNumber, isFunction, useResizeObserver } from "@pureadmin/utils";
 import { type PropType, h, ref, toRef, watch, nextTick, defineComponent, getCurrentInstance, computed } from "vue";
 

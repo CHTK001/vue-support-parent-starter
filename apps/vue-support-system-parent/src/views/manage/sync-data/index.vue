@@ -154,8 +154,7 @@
         <ScTableColumn label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <ScButton link type="primary" @click="handleEdit(row)"
-              >编辑</ScButton
-            >
+              >编辑</ScButton>
             <ScButton
               v-if="row.syncTaskStatus !== 'RUNNING'"
               link
@@ -165,17 +164,13 @@
               启动
             </ScButton>
             <ScButton v-else link type="warning" @click="handleStop(row)"
-              >停止</ScButton
-            >
+              >停止</ScButton>
             <ScButton link type="info" @click="handleExecuteOnce(row)"
-              >执行</ScButton
-            >
+              >执行</ScButton>
             <ScButton link type="primary" @click="handleLogs(row)"
-              >日志</ScButton
-            >
+              >日志</ScButton>
             <ScButton link type="danger" @click="handleDelete(row)"
-              >删除</ScButton
-            >
+              >删除</ScButton>
           </template>
         </ScTableColumn>
       </ScTable>

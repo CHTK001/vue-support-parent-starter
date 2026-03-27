@@ -5,14 +5,13 @@ import {
   onMounted,
   reactive,
   ref,
-  unref,
 } from "vue";
 import type { tagsViewsType } from "../types";
 import type { StorageConfigs } from "@repo/config";
 import { $t, responsiveStorageNameSpace, transformI18n } from "@repo/config";
 import { useRoute, useRouter } from "vue-router";
 import { useMultiTagsStoreHook, useSettingStoreHook } from "@repo/core";
-import { hasClass, isBoolean, isEqual, toggleClass } from "@pureadmin/utils";
+import { isBoolean, isEqual } from "@pureadmin/utils";
 import { localStorageProxy } from "@repo/utils";
 
 export function useTags() {
@@ -38,6 +37,9 @@ export function useTags() {
     ) || ({} as StorageConfigs);
 
   /** 显示模式，默认灵动模式 */
+  const showModel = ref(configure.showModel || "smart");
+  /** 是否隐藏标签页，默认显示 */
+  const showTags = ref(configure.hideTabs ?? false);
   const multiTags: any = computed(() => {
     return multiTagsStore.multiTags || [];
   });
@@ -163,20 +165,26 @@ export function useTags() {
   }
 
   /** 鼠标移出恢复默认样式 */
-  function onMouseleave(index) {
+  function onMouseleave() {
     // 移出时仅恢复索引，不触发任何样式动画
     activeIndex.value = -1;
   }
 
   function onContentFullScreen() {
-    pureSetting.hiddenSideBar
-      ? pureSetting.changeSetting({ key: "hiddenSideBar", value: false })
-      : pureSetting.changeSetting({ key: "hiddenSideBar", value: true });
+    pureSetting.changeSetting({
+      key: "hiddenSideBar",
+      value: !pureSetting.hiddenSideBar,
+    });
   }
 
   onMounted(() => {
     if (!showModel.value) {
-      // TODO: add logic here
+      configure.showModel = "chrome";
+      localStorageProxy().setItem(
+        `${responsiveStorageNameSpace()}configure`,
+        configure,
+      );
+      showModel.value = configure.showModel;
     }
   });
 

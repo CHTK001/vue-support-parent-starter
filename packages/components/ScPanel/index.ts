@@ -7,6 +7,14 @@
  */
 import ScPanel from "./src/index.vue";
 
+export type PanelTheme =
+  | "default"
+  | "tech"
+  | "techui"
+  | "glass"
+  | "neon"
+  | "modern"
+  | "gradient";
+
 export default ScPanel;
 export { ScPanel };
-export type { PanelTheme } from "./src/index.vue";

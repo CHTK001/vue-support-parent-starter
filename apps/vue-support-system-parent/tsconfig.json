@@ -18,48 +18,19 @@
     "baseUrl": ".",
     "allowJs": true,
     "resolveJsonModule": true,
-    "lib": [
-      "ESNext",
-      "DOM",
-      "ES2022"
-    ],
+    "lib": ["ESNext", "DOM", "ES2022"],
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@build/*": [
-        "build/*"
-      ],
-      "@repo/codec-wasm": [
-        "../../packages/codec-wasm/src/index.js"
-      ],
-      "@pages/common": [
-        "../../pages/common"
-      ],
-      "@pages/common/*": [
-        "../../pages/common/*"
-      ],
+      "@/*": ["src/*"],
+      "@build/*": ["build/*"],
+      "@repo/codec-wasm": ["../../packages/codec-wasm/src/index.js"],
+      "@repo/components": ["../../packages/components/index.ts"],
       "@repo/components/*": [
-        "../../packages/components/*"
+        "../../packages/components/*",
+        "../../packages/components-standalone/*"
       ],
-      "@repo/components": [
-        "../../packages/components"
-      ],
-      "@repo/config": [
-        "../../packages/config"
-      ],
-      "@repo/core": [
-        "../../packages/core"
-      ],
-      "@repo/utils": [
-        "../../packages/utils"
-      ],
-      "@repo/plugins": [
-        "../../packages/plugins"
-      ],
-      "@layout/default": [
-        "../../layout/default/src"
-      ]
+      "@repo/font-encryption": ["../../packages/font-encryption/src/index.ts"],
+      "@pages/common": ["../../pages/common"],
+      "@pages/common/*": ["../../pages/common/*"]
     },
     "types": [
       "node",

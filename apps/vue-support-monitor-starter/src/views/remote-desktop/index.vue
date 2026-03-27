@@ -2,100 +2,97 @@
   <div class="remote-desktop-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <ScBreadcrumb separator="/">
-        <ScBreadcrumbItem>首页</ScBreadcrumbItem>
-        <ScBreadcrumbItem>远程桌面</ScBreadcrumbItem>
-      </ScBreadcrumb>
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item>首页</el-breadcrumb-item>
+        <el-breadcrumb-item>远程桌面</el-breadcrumb-item>
+      </el-breadcrumb>
       <h1 class="page-title">远程桌面</h1>
       <p class="page-description">通过WebSocket连接远程桌面服务器</p>
     </div>
 
     <!-- 连接配置面板 -->
-    <ScCard v-if="!isConnected" class="config-card" shadow="hover">
+    <el-card v-if="!isConnected" class="config-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <ScIcon><Setting /></ScIcon>
+          <el-icon><Setting /></el-icon>
           <span>连接配置</span>
         </div>
       </template>
-
-      <ScForm :model="config" label-width="120px" class="config-form">
-        <ScFormItem label="服务器ID">
-          <ScInputNumber
+      
+      <el-form :model="config" label-width="120px" class="config-form">
+        <el-form-item label="服务器ID">
+          <el-input-number
             v-model="config.serverId"
             :min="1"
             placeholder="可选，服务器ID"
             style="width: 100%"
           />
-        </ScFormItem>
-        <ScFormItem label="服务器地址">
-          <ScInput v-model="config.host" placeholder="localhost" clearable />
-        </ScFormItem>
-        <ScFormItem label="WebSocket端口">
-          <ScInputNumber
+        </el-form-item>
+        <el-form-item label="服务器地址">
+          <el-input
+            v-model="config.host"
+            placeholder="localhost"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="WebSocket端口">
+          <el-input-number
             v-model="config.websocketPort"
             :min="1"
             :max="65535"
             placeholder="21117"
             style="width: 100%"
           />
-        </ScFormItem>
-        <ScFormItem>
-          <ScButton
-            type="primary"
-            size="large"
-            :loading="connecting"
-            @click="connect"
-          >
-            <ScIcon><Connection /></ScIcon>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="large" @click="connect" :loading="connecting">
+            <el-icon><Connection /></el-icon>
             连接
-          </ScButton>
-          <ScButton @click="loadDefaultConfig">加载默认配置</ScButton>
-          <ScButton :loading="starting" @click="startService"
-            >启动服务</ScButton
-          >
-        </ScFormItem>
-      </ScForm>
-    </ScCard>
+          </el-button>
+          <el-button @click="loadDefaultConfig">加载默认配置</el-button>
+          <el-button @click="startService" :loading="starting">启动服务</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
 
     <!-- 远程桌面显示区域 -->
     <div v-if="isConnected" class="desktop-container">
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <ScTag type="success" effect="light">
-            <ScIcon><CircleCheck /></ScIcon>
+          <el-tag type="success" effect="light">
+            <el-icon><CircleCheck /></el-icon>
             已连接
-          </ScTag>
+          </el-tag>
           <span class="server-info">
             {{ config.host }}:{{ config.websocketPort }}
           </span>
-          <ScTag v-if="fps > 0" type="info" effect="plain" size="small">
+          <el-tag v-if="fps > 0" type="info" effect="plain" size="small">
             FPS: {{ fps }}
-          </ScTag>
-          <ScTag v-if="latency > 0" type="info" effect="plain" size="small">
+          </el-tag>
+          <el-tag v-if="latency > 0" type="info" effect="plain" size="small">
             延迟: {{ latency }}ms
-          </ScTag>
+          </el-tag>
         </div>
         <div class="toolbar-right">
           <el-button-group>
-            <ScTooltip content="全屏" placement="bottom">
-              <ScButton size="small" @click="toggleFullscreen">
-                <ScIcon><FullScreen /></ScIcon>
-              </ScButton>
-            </ScTooltip>
-            <ScTooltip content="截图" placement="bottom">
-              <ScButton size="small" @click="takeScreenshot">
-                <ScIcon><Camera /></ScIcon>
-              </ScButton>
-            </ScTooltip>
-            <ScTooltip content="断开连接" placement="bottom">
-              <ScButton size="small" type="danger" @click="disconnect">
-                <ScIcon><Close /></ScIcon>
+            <el-tooltip content="全屏" placement="bottom">
+              <el-button size="small" @click="toggleFullscreen">
+                <el-icon><FullScreen /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="截图" placement="bottom">
+              <el-button size="small" @click="takeScreenshot">
+                <el-icon><Camera /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="断开连接" placement="bottom">
+              <el-button size="small" type="danger" @click="disconnect">
+                <el-icon><Close /></el-icon>
                 断开
-              </ScButton>
-            </ScTooltip>
-          </ScButton-group>
+              </el-button>
+            </el-tooltip>
+          </el-button-group>
         </div>
       </div>
 
@@ -111,32 +108,30 @@
           @wheel="handleWheel"
           @keydown="handleKeyDown"
           @keyup="handleKeyUp"
-        />
-
+        ></canvas>
+        
         <!-- 加载中 -->
         <div v-if="connecting" class="loading-overlay">
-          <ScIcon class="loading-icon" :size="48"><Loading /></ScIcon>
+          <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
           <p>正在连接远程桌面...</p>
         </div>
-
+        
         <!-- 连接失败 -->
         <div v-if="errorMessage" class="error-overlay">
-          <ScIcon :size="48"><CircleClose /></ScIcon>
+          <el-icon :size="48"><CircleClose /></el-icon>
           <p>{{ errorMessage }}</p>
-          <ScButton type="primary" @click="reconnect">重新连接</ScButton>
+          <el-button type="primary" @click="reconnect">重新连接</el-button>
         </div>
       </div>
     </div>
 
     <!-- 日志面板 -->
-    <ScCard v-if="logs.length > 0" class="log-card" shadow="hover">
+    <el-card v-if="logs.length > 0" class="log-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <ScIcon><Document /></ScIcon>
+          <el-icon><Document /></el-icon>
           <span>连接日志</span>
-          <ScButton type="text" size="small" @click="clearLogs"
-            >清空</ScButton
-          >
+          <el-button type="text" size="small" @click="clearLogs">清空</el-button>
         </div>
       </template>
       <div class="log-container">
@@ -148,7 +143,7 @@
           [{{ log.time }}] {{ log.message }}
         </div>
       </div>
-    </ScCard>
+    </el-card>
   </div>
 </template>
 
@@ -159,7 +154,7 @@
  * @date 2026-01-24
  */
 
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { message } from "@repo/utils";
 import {
   Setting,
@@ -170,27 +165,27 @@ import {
   Close,
   Loading,
   CircleClose,
-  Document,
-} from "@element-plus/icons-vue";
+  Document
+} from '@element-plus/icons-vue';
 import {
   getRemoteDesktopConnectInfo,
   getRemoteDesktopStatus,
   startRemoteDesktopService,
-  stopRemoteDesktopService,
-} from "@/api/remote-desktop";
+  stopRemoteDesktopService
+} from "@pages/system";
 
 // 配置
 const config = ref({
   serverId: undefined as number | undefined,
-  host: "localhost",
-  websocketPort: 21117,
+  host: 'localhost',
+  websocketPort: 21117
 });
 
 // 状态
 const isConnected = ref(false);
 const connecting = ref(false);
 const starting = ref(false);
-const errorMessage = ref("");
+const errorMessage = ref('');
 const remoteCanvas = ref<HTMLCanvasElement | null>(null);
 const canvasContainer = ref<HTMLElement | null>(null);
 const logs = ref<Array<{ time: string; message: string; type: string }>>([]);
@@ -206,14 +201,11 @@ let lastFrameTime = Date.now();
 /**
  * 添加日志
  */
-const addLog = (
-  msg: string,
-  type: "info" | "success" | "error" | "warn" = "info",
-) => {
+const addLog = (msg: string, type: 'info' | 'success' | 'error' | 'warn' = 'info') => {
   logs.value.push({
     time: new Date().toLocaleTimeString(),
     message: msg,
-    type,
+    type
   });
   if (logs.value.length > 100) {
     logs.value.shift();
@@ -234,12 +226,12 @@ const loadDefaultConfig = async () => {
   try {
     const { data } = await getRemoteDesktopStatus();
     if (data.enabled) {
-      config.value.host = data.defaultHost || "localhost";
+      config.value.host = data.defaultHost || 'localhost';
       config.value.websocketPort = data.defaultWebSocketPort || 21117;
-      addLog("已加载默认配置", "success");
+      addLog('已加载默认配置', 'success');
     }
   } catch (error) {
-    console.error("加载默认配置失败:", error);
+    console.error('加载默认配置失败:', error);
   }
 };
 
@@ -256,20 +248,20 @@ const startService = async () => {
     const { data } = await startRemoteDesktopService({
       serverId: config.value.serverId,
       websocketPort: config.value.websocketPort,
-      tcpPort: undefined,
+      tcpPort: undefined
     });
 
     if (data.enabled) {
       config.value.host = data.host;
       config.value.websocketPort = data.websocketPort;
-      addLog("远程桌面服务启动成功", "success");
-      message("远程桌面服务启动成功", { type: "success" });
+      addLog('远程桌面服务启动成功', 'success');
+      message('远程桌面服务启动成功', { type: 'success' });
     } else {
-      throw new Error("远程桌面服务启动失败");
+      throw new Error('远程桌面服务启动失败');
     }
   } catch (error: any) {
-    addLog(`启动服务失败: ${error.message || "未知错误"}`, "error");
-    message(`启动服务失败: ${error.message || "未知错误"}`, { type: "error" });
+    addLog(`启动服务失败: ${error.message || '未知错误'}`, 'error');
+    message(`启动服务失败: ${error.message || '未知错误'}`, { type: 'error' });
   } finally {
     starting.value = false;
   }
@@ -284,29 +276,30 @@ const connect = async () => {
   }
 
   connecting.value = true;
-  errorMessage.value = "";
-  addLog("开始连接远程桌面...", "info");
+  errorMessage.value = '';
+  addLog('开始连接远程桌面...', 'info');
 
   try {
     // 获取连接信息
     const { data } = await getRemoteDesktopConnectInfo({
       serverId: config.value.serverId,
       host: config.value.host,
-      websocketPort: config.value.websocketPort,
+      websocketPort: config.value.websocketPort
     });
 
     if (!data.enabled) {
-      throw new Error("远程桌面服务未启用");
+      throw new Error('远程桌面服务未启用');
     }
 
-    addLog(`连接到 ${data.host}:${data.websocketPort}`, "info");
+    addLog(`连接到 ${data.host}:${data.websocketPort}`, 'info');
 
     // 连接WebSocket
     await connectWebSocket(data.websocketUrl);
+
   } catch (error: any) {
-    errorMessage.value = error.message || "连接失败";
-    addLog(`连接失败: ${errorMessage.value}`, "error");
-    message(`连接失败: ${errorMessage.value}`, { type: "error" });
+    errorMessage.value = error.message || '连接失败';
+    addLog(`连接失败: ${errorMessage.value}`, 'error');
+    message(`连接失败: ${errorMessage.value}`, { type: 'error' });
     connecting.value = false;
   }
 };
@@ -327,21 +320,21 @@ const connectWebSocket = async (url: string): Promise<void> => {
       websocket = new WebSocket(url);
 
       websocket.onopen = () => {
-        addLog("WebSocket连接成功", "success");
+        addLog('WebSocket连接成功', 'success');
         isConnected.value = true;
         connecting.value = false;
         resolve();
       };
 
       websocket.onerror = (error) => {
-        addLog(`WebSocket连接错误: ${error}`, "error");
-        errorMessage.value = "WebSocket连接错误";
+        addLog(`WebSocket连接错误: ${error}`, 'error');
+        errorMessage.value = 'WebSocket连接错误';
         connecting.value = false;
-        reject(new Error("WebSocket连接错误"));
+        reject(new Error('WebSocket连接错误'));
       };
 
       websocket.onclose = () => {
-        addLog("WebSocket连接已断开", "warn");
+        addLog('WebSocket连接已断开', 'warn');
         isConnected.value = false;
         connecting.value = false;
       };
@@ -349,6 +342,7 @@ const connectWebSocket = async (url: string): Promise<void> => {
       websocket.onmessage = (event) => {
         handleWebSocketMessage(event);
       };
+
     } catch (error: any) {
       reject(error);
     }
@@ -362,20 +356,20 @@ const handleWebSocketMessage = (event: MessageEvent) => {
   try {
     if (event.data instanceof Blob) {
       // 二进制数据，可能是图像帧
-      event.data.arrayBuffer().then((buffer) => {
+      event.data.arrayBuffer().then(buffer => {
         handleImageFrame(buffer);
       });
-    } else if (typeof event.data === "string") {
+    } else if (typeof event.data === 'string') {
       // 文本消息，可能是JSON
       try {
         const data = JSON.parse(event.data);
         handleTextMessage(data);
       } catch (e) {
-        addLog(`收到文本消息: ${event.data}`, "info");
+        addLog(`收到文本消息: ${event.data}`, 'info');
       }
     }
   } catch (error: any) {
-    addLog(`处理消息失败: ${error.message}`, "error");
+    addLog(`处理消息失败: ${error.message}`, 'error');
   }
 };
 
@@ -389,7 +383,7 @@ const handleImageFrame = (buffer: ArrayBuffer) => {
 
   try {
     const canvas = remoteCanvas.value;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) {
       return;
     }
@@ -400,7 +394,7 @@ const handleImageFrame = (buffer: ArrayBuffer) => {
     const imageData = new ImageData(
       new Uint8ClampedArray(buffer),
       canvas.width,
-      canvas.height,
+      canvas.height
     );
     ctx.putImageData(imageData, 0, 0);
 
@@ -417,8 +411,9 @@ const handleImageFrame = (buffer: ArrayBuffer) => {
     const frameTime = Date.now();
     latency.value = frameTime - lastFrameTime;
     lastFrameTime = frameTime;
+
   } catch (error: any) {
-    addLog(`渲染图像失败: ${error.message}`, "error");
+    addLog(`渲染图像失败: ${error.message}`, 'error');
   }
 };
 
@@ -426,11 +421,11 @@ const handleImageFrame = (buffer: ArrayBuffer) => {
  * 处理文本消息
  */
 const handleTextMessage = (data: any) => {
-  if (data.type === "error") {
-    addLog(`服务器错误: ${data.message}`, "error");
-    errorMessage.value = data.message || "服务器错误";
-  } else if (data.type === "info") {
-    addLog(data.message || "收到服务器消息", "info");
+  if (data.type === 'error') {
+    addLog(`服务器错误: ${data.message}`, 'error');
+    errorMessage.value = data.message || '服务器错误';
+  } else if (data.type === 'info') {
+    addLog(data.message || '收到服务器消息', 'info');
   }
 };
 
@@ -446,10 +441,10 @@ const handleMouseDown = (e: MouseEvent) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
-  sendInputEvent("mousedown", {
+  sendInputEvent('mousedown', {
     button: e.button,
     x: Math.round(x),
-    y: Math.round(y),
+    y: Math.round(y)
   });
 };
 
@@ -465,10 +460,10 @@ const handleMouseUp = (e: MouseEvent) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
-  sendInputEvent("mouseup", {
+  sendInputEvent('mouseup', {
     button: e.button,
     x: Math.round(x),
-    y: Math.round(y),
+    y: Math.round(y)
   });
 };
 
@@ -484,9 +479,9 @@ const handleMouseMove = (e: MouseEvent) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
-  sendInputEvent("mousemove", {
+  sendInputEvent('mousemove', {
     x: Math.round(x),
-    y: Math.round(y),
+    y: Math.round(y)
   });
 };
 
@@ -498,9 +493,9 @@ const handleWheel = (e: WheelEvent) => {
     return;
   }
 
-  sendInputEvent("wheel", {
+  sendInputEvent('wheel', {
     deltaX: e.deltaX,
-    deltaY: e.deltaY,
+    deltaY: e.deltaY
   });
 };
 
@@ -512,10 +507,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
     return;
   }
 
-  sendInputEvent("keydown", {
+  sendInputEvent('keydown', {
     key: e.key,
     code: e.code,
-    keyCode: e.keyCode,
+    keyCode: e.keyCode
   });
 };
 
@@ -527,10 +522,10 @@ const handleKeyUp = (e: KeyboardEvent) => {
     return;
   }
 
-  sendInputEvent("keyup", {
+  sendInputEvent('keyup', {
     key: e.key,
     code: e.code,
-    keyCode: e.keyCode,
+    keyCode: e.keyCode
   });
 };
 
@@ -539,12 +534,10 @@ const handleKeyUp = (e: KeyboardEvent) => {
  */
 const sendInputEvent = (type: string, data: any) => {
   if (websocket && websocket.readyState === WebSocket.OPEN) {
-    websocket.send(
-      JSON.stringify({
-        type,
-        data,
-      }),
-    );
+    websocket.send(JSON.stringify({
+      type,
+      data
+    }));
   }
 };
 
@@ -558,7 +551,7 @@ const disconnect = () => {
   }
 
   if (remoteCanvas.value) {
-    const ctx = remoteCanvas.value.getContext("2d");
+    const ctx = remoteCanvas.value.getContext('2d');
     if (ctx) {
       ctx.clearRect(0, 0, remoteCanvas.value.width, remoteCanvas.value.height);
     }
@@ -568,7 +561,7 @@ const disconnect = () => {
   connecting.value = false;
   fps.value = 0;
   latency.value = 0;
-  addLog("已断开连接", "info");
+  addLog('已断开连接', 'info');
 };
 
 /**
@@ -607,12 +600,12 @@ const takeScreenshot = () => {
   remoteCanvas.value.toBlob((blob) => {
     if (blob) {
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `screenshot-${Date.now()}.png`;
       a.click();
       URL.revokeObjectURL(url);
-      addLog("截图已保存", "success");
+      addLog('截图已保存', 'success');
     }
   });
 };
@@ -643,14 +636,14 @@ onMounted(() => {
 
 .page-header {
   margin-bottom: 24px;
-
+  
   .page-title {
     font-size: 28px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin: 8px 0;
   }
-
+  
   .page-description {
     color: var(--el-text-color-regular);
     margin-top: 8px;
@@ -659,13 +652,13 @@ onMounted(() => {
 
 .config-card {
   margin-bottom: 24px;
-
+  
   .card-header {
     display: flex;
     align-items: center;
     gap: 8px;
   }
-
+  
   .config-form {
     max-width: 600px;
   }
@@ -681,19 +674,19 @@ onMounted(() => {
     backdrop-filter: blur(20px);
     border-radius: 8px;
     margin-bottom: 16px;
-
+    
     .toolbar-left {
       display: flex;
       align-items: center;
       gap: 12px;
-
+      
       .server-info {
         color: var(--el-text-color-regular);
         font-size: 14px;
       }
     }
   }
-
+  
   .canvas-container {
     position: relative;
     background: #000;
@@ -703,7 +696,7 @@ onMounted(() => {
     display: flex;
     justify-content: center;
     align-items: center;
-
+    
     .remote-canvas {
       width: 100%;
       height: auto;
@@ -711,7 +704,7 @@ onMounted(() => {
       cursor: crosshair;
       outline: none;
     }
-
+    
     .loading-overlay,
     .error-overlay {
       position: absolute;
@@ -725,11 +718,11 @@ onMounted(() => {
       align-items: center;
       background: rgba(0, 0, 0, 0.7);
       color: white;
-
+      
       .loading-icon {
         animation: rotate 2s linear infinite;
       }
-
+      
       p {
         margin: 16px 0;
         font-size: 16px;
@@ -740,40 +733,40 @@ onMounted(() => {
 
 .log-card {
   margin-top: 24px;
-
+  
   .card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
   }
-
+  
   .log-container {
     max-height: 300px;
     overflow-y: auto;
-    font-family: "Courier New", monospace;
+    font-family: 'Courier New', monospace;
     font-size: 12px;
-
+    
     .log-entry {
       padding: 4px 8px;
       margin-bottom: 4px;
       border-radius: 4px;
-
+      
       &.log-info {
         color: #333;
         background: #f5f5f5;
       }
-
+      
       &.log-success {
         color: #44aa44;
         background: #e8f5e9;
       }
-
+      
       &.log-error {
         color: #cc0000;
         background: #ffebee;
       }
-
+      
       &.log-warn {
         color: #ff8800;
         background: #fff3e0;
@@ -791,3 +784,4 @@ onMounted(() => {
   }
 }
 </style>
+

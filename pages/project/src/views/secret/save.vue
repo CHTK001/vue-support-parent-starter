@@ -1,4 +1,4 @@
-﻿<script>
+<script>
 import { fetchListDictItem } from "@repo/core";
 import { defineComponent } from "vue";
 import { fetchSaveSecret, fetchUpdateSecret } from "../../api/manage/secret";
@@ -244,9 +244,7 @@ export default defineComponent({
           type="primary"
           :loading="loading"
           @click="debounce(submit(), 1000, true)"
-        >
-          保 存
-        </ScButton>
+          >保 存</ScButton>
       </template>
     </sc-dialog>
   </div>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import { emitter, usePermissionStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ScText } from "@repo/components/ScText"
-import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
+
+import { ScText } from "@repo/components/ScText";
 import { useNav } from "../../../../hooks/useNav";
 import type { MenuItem } from "../../../../types/menu";
 import { useGlobal } from "@pureadmin/utils";

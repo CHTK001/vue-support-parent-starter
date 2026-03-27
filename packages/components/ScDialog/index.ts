@@ -44,7 +44,7 @@ export type {
   DialogZIndexReturn,
   DialogInteractOptions,
   DialogInteractReturn,
-  SnapConfig,
+  SnapInfo,
   DockPosition,
   DialogState,
   DialogMinimizeOptions,

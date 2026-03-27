@@ -221,14 +221,39 @@ export class AppBootstrap {
   getRouter(): Router | undefined { return this.router; }
   getConfig(): any { return this.config; }
 
+  private hideInitialLoader(): void {
+    if (typeof window === "undefined") return;
+
+    const hide = () => {
+      try {
+        window.hideAppLoader?.();
+        const appLoader = document.getElementById("app-loader");
+        if (appLoader) {
+          appLoader.style.display = "none";
+        }
+      } catch (error) {
+        console.warn("[AppBootstrap] 隐藏首屏加载动画失败:", error);
+      }
+    };
+
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(hide));
+      return;
+    }
+
+    window.setTimeout(hide, 0);
+  }
+
   async mount(selector: string): Promise<void> {
     try {
       await Promise.all(this.initPromises);
       this.app.mount(selector);
+      this.hideInitialLoader();
       console.log("[AppBootstrap] 应用启动成功");
     } catch (error) {
       console.error("[AppBootstrap] 应用启动失败:", error);
       this.app.mount(selector);
+      this.hideInitialLoader();
     }
   }
 
@@ -299,38 +324,69 @@ export async function createStandardApp(
     setup,
   } = options;
 
-  // 1. 异步初始化 WASM（不阻塞 app 启动，后台加载）
-  if (resolveWasmEnabled(enableWasm)) {
-    import("@repo/codec-wasm")
-      .then(({ initializeWasmModule }) => initializeWasmModule())
-      .catch((error) => console.warn("[createStandardApp] WASM 模块加载失败:", error));
-  }
+  // 1. 尽早启动 WASM 初始化，并在 mount 前确保完成
+  const wasmInitPromise = resolveWasmEnabled(enableWasm)
+    ? import("@repo/codec-wasm")
+        .then(async ({ initializeWasmModule }) => {
+          const result = await initializeWasmModule();
+          if (!result) {
+            throw new Error("WASM 模块初始化失败");
+          }
+        })
+    : null;
 
   // 2. 导入必要依赖
   const { createApp } = await import("vue");
   // @ts-ignore - app-root 无类型声明
   const AppRoot = (await import("@repo/app-root")).default;
   const { getPlatformConfig, injectResponsiveStorage, useI18n } = await import("@repo/config");
-  const { router, setupStore, menu, Ripple } = await import("@repo/core");
-  const { useElementPlus } = await import("@repo/plugins");
+  const [{ router }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] = await Promise.all([
+    import("./router"),
+    import("./store"),
+    import("./directives/menu"),
+    import("./directives/ripple"),
+    import("@repo/plugins"),
+  ]);
   const { MotionPlugin } = await import("@vueuse/motion");
   const Table = (await import("@pureadmin/table")).default;
   const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
-  const ScTable = (await import("@repo/components/ScTable")).default;
+  const ScTable = (await import("@repo/components/ScTable/index.vue")).default;
   const { ScTableColumn } = await import("@repo/components/ScTableColumn");
   const { ScButton } = await import("@repo/components/ScButton");
+  const { ScBacktop } = await import("@repo/components/ScBacktop");
+  const { ScCard } = await import("@repo/components/ScCard");
+  const { ScCheckbox, ScCheckboxGroup } = await import("@repo/components/ScCheckbox");
+  const { ScCol } = await import("@repo/components/ScCol");
+  const { ScContainer } = await import("@repo/components/ScContainer");
+  const { ScDatePicker } = await import("@repo/components/ScDatePicker");
+  const { ScDropdown } = await import("@repo/components/ScDropdown");
+  const { ScDropdownItem } = await import("@repo/components/ScDropdownItem");
+  const { ScDropdownMenu } = await import("@repo/components/ScDropdownMenu");
+  const { ScEmpty } = await import("@repo/components/ScEmpty");
+  const { ScForm } = await import("@repo/components/ScForm");
+  const { ScFormItem } = await import("@repo/components/ScFormItem");
+  const { ScHeader } = await import("@repo/components/ScHeader/index.ts");
+  const { ScIcon } = await import("@repo/components/ScIcon");
+  const { ScImage } = await import("@repo/components/ScImage/index.ts");
+  const { ScInput } = await import("@repo/components/ScInput");
+  const { ScInputNumber } = await import("@repo/components/ScInputNumber");
+  const { ScMain } = await import("@repo/components/ScMain");
+  const { ScMenu } = await import("@repo/components/ScMenu");
+  const { ScMenuItem } = await import("@repo/components/ScMenuItem");
+  const { ScOption } = await import("@repo/components/ScOption");
+  const { ScPagination } = await import("@repo/components/ScPagination");
+  const { ScPopover } = await import("@repo/components/ScPopover");
+  const { ScPopconfirm } = await import("@repo/components/ScPopconfirm");
+  const { ScRow } = await import("@repo/components/ScRow");
+  const { ScScrollbar } = await import("@repo/components/ScScrollbar");
   const { ScSelect } = await import("@repo/components/ScSelect");
-  const ScSwitch = (await import("@repo/components/ScSwitch")).default;
+  const ScSwitch = (await import("@repo/components/ScSwitch/index.vue")).default;
+  const { ScTag } = await import("@repo/components/ScTag");
   const { ScText } = await import("@repo/components/ScText");
   const { ScDrawer } = await import("@repo/components/ScDrawer");
   const { ScDialog } = await import("@repo/components/ScDialog");
   const { ScTooltip } = await import("@repo/components/ScTooltip");
-  const { ScDropdown } = await import("@repo/components/ScDropdown");
-  const { ScDropdownItem } = await import("@repo/components/ScDropdownItem");
-  const { ScTag } = await import("@repo/components/ScTag");
-  const { ScDropdownMenu } = await import("@repo/components/ScDropdownMenu");
-  const { ScFormItem } = await import("@repo/components/ScFormItem");
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
@@ -355,6 +411,10 @@ export async function createStandardApp(
 
   // 5. 创建 bootstrap
   const bootstrap = new AppBootstrap(app);
+
+  if (wasmInitPromise) {
+    await bootstrap.registerWasm(() => wasmInitPromise);
+  }
 
   // 5.1 注册核心指令
   if (enableCoreDirectives) {
@@ -418,18 +478,41 @@ export async function createStandardApp(
     .registerComponent("Auth", Auth)
     .registerComponent("ScTable", ScTable)
     .registerComponent("ScTableColumn", ScTableColumn)
+    .registerComponent("ScBacktop", ScBacktop)
     .registerComponent("ScButton", ScButton)
+    .registerComponent("ScCard", ScCard)
+    .registerComponent("ScCheckbox", ScCheckbox)
+    .registerComponent("ScCheckboxGroup", ScCheckboxGroup)
+    .registerComponent("ScCol", ScCol)
+    .registerComponent("ScContainer", ScContainer)
+    .registerComponent("ScDatePicker", ScDatePicker)
+    .registerComponent("ScDropdown", ScDropdown)
+    .registerComponent("ScDropdownItem", ScDropdownItem)
+    .registerComponent("ScDropdownMenu", ScDropdownMenu)
+    .registerComponent("ScEmpty", ScEmpty)
+    .registerComponent("ScForm", ScForm)
+    .registerComponent("ScFormItem", ScFormItem)
+    .registerComponent("ScHeader", ScHeader)
+    .registerComponent("ScIcon", ScIcon)
+    .registerComponent("ScImage", ScImage)
+    .registerComponent("ScInput", ScInput)
+    .registerComponent("ScInputNumber", ScInputNumber)
+    .registerComponent("ScMain", ScMain)
     .registerComponent("ScSelect", ScSelect)
+    .registerComponent("ScMenu", ScMenu)
+    .registerComponent("ScMenuItem", ScMenuItem)
+    .registerComponent("ScOption", ScOption)
+    .registerComponent("ScPagination", ScPagination)
+    .registerComponent("ScPopover", ScPopover)
+    .registerComponent("ScPopconfirm", ScPopconfirm)
+    .registerComponent("ScRow", ScRow)
+    .registerComponent("ScScrollbar", ScScrollbar)
     .registerComponent("ScSwitch", ScSwitch)
+    .registerComponent("ScTag", ScTag)
     .registerComponent("ScDrawer", ScDrawer)
     .registerComponent("ScDialog", ScDialog)
     .registerComponent("ScTooltip", ScTooltip)
-    .registerComponent("ScText", ScText)
-    .registerComponent("ScDropdown", ScDropdown)
-    .registerComponent("ScDropdownItem", ScDropdownItem)
-    .registerComponent("ScTag", ScTag)
-    .registerComponent("ScDropdownMenu", ScDropdownMenu)
-    .registerComponent("ScFormItem", ScFormItem);
+    .registerComponent("ScText", ScText);
 
   if (Object.keys(components).length > 0) {
     bootstrap.registerGlobalComponents(components);
@@ -441,8 +524,12 @@ export async function createStandardApp(
     bootstrap.use(() => { void app.use(VueTippy); });
   }
   if (enableElementPlusX) {
-    const ElementPlusX = (await import("vue-element-plus-x")).default;
-    bootstrap.use(() => { void app.use(ElementPlusX); });
+    try {
+      const ElementPlusX = (await import("vue-element-plus-x")).default;
+      bootstrap.use(() => { void app.use(ElementPlusX); });
+    } catch (error) {
+      console.warn("[createStandardApp] ElementPlusX 加载失败，跳过注册:", error);
+    }
   }
 
   // 5.5 注册核心功能
@@ -481,7 +568,7 @@ export async function createStandardApp(
   if (enableTheme) {
     bootstrap.use(async () => {
       try {
-        const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components");
+        const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components/hooks");
         await autoRegisterThemePlugins(app);
         await initThemeSystem();
       } catch (error) {
@@ -490,17 +577,21 @@ export async function createStandardApp(
     });
   }
 
-  // 5.9 自定义初始化
+  // 5.9 设置全局属性和警告处理器（修复 __proxyIdCheat__ 警告）
+  (app.config.globalProperties as any).__proxyIdCheat__ = 0;
+  app.config.warnHandler = (msg, _instance, trace) => {
+    if (typeof msg === "string") {
+      if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
+      if (msg.includes('Slot "default" invoked outside of the render function')) return;
+      if (msg.includes("Runtime directive used on component with non-element root node")) return;
+      if (msg.includes('[Vue Router warn]: No match found for location with path "/home"')) return;
+      if (msg.includes('[Vue Router warn]: No match found for location with path "/"')) return;
+    }
+    console.warn(msg, trace);
+  };
+
+  // 5.10 自定义初始化
   if (setup) {
-    (app.config.globalProperties as any).__proxyIdCheat__ = 0;
-    app.config.warnHandler = (msg, _instance, trace) => {
-      if (typeof msg === "string") {
-        if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
-        if (msg.includes('Slot "default" invoked outside of the render function')) return;
-        if (msg.includes("Runtime directive used on component with non-element root node")) return;
-      }
-      console.warn(msg, trace);
-    };
     await bootstrap.useAsync(async (app) => { await setup(app, config); });
   }
 

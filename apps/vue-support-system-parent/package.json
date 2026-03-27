@@ -24,6 +24,7 @@
   "dependencies": {
     "@layout/default": "workspace:^",
     "@repo/core": "workspace:^",
+    "@repo/components": "workspace:^",
     "@pages/common": "workspace:^",
     "@element-plus/icons-vue": "catalog:",
     "@microsoft/fetch-event-source": "catalog:",
@@ -130,6 +131,7 @@
     "autoprefixer": "catalog:",
     "boxen": "catalog:",
     "cssnano": "catalog:",
+    "cross-env": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
     "eslint-plugin-prettier": "catalog:",

@@ -73,11 +73,9 @@ import {
   type ApiResponse,
   type ExecuteApiParams,
   type ApiDocViewerConfig,
-} from "@pages/doc";
-import {
   executeNodeApi,
   fetchNodeApiDocs,
-} from "@/api/server/node-documentation";
+} from "@pages/doc";
 
 // 路由相关
 const route = useRoute();

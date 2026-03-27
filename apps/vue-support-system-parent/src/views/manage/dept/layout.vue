@@ -1,14 +1,5 @@
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon";
-
-import {
-  defineAsyncComponent,
-  nextTick,
-  onMounted,
-  reactive,
-  ref,
-  watch,
-} from "vue";
 import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { transformI18n } from "@repo/config";
@@ -33,26 +24,19 @@ const dicFilterText = ref("");
 const tableData = ref<any[]>([]);
 
 const visible = reactive({
-  save: false,
 });
 
 const loading = reactive({
-  query: false,
 });
 
 const saveDialogParams = reactive({
-  mode: "save" as "save" | "edit",
 });
 
 const params = reactive({
-  sysDeptId: null as string | null,
 });
 
 // 统计数据
 const stats = reactive({
-  total: 0,
-  topLevel: 0,
-  subLevel: 0,
 });
 
 // 监听搜索关键字
@@ -198,7 +182,6 @@ onMounted(() => {
 
 // 暴露给父组件
 defineExpose({
-  onSearch,
 });
 </script>
 <template>
@@ -300,8 +283,7 @@ defineExpose({
                       <span
                         v-if="data?.sysDeptCode && data.sysDeptCode !== 'ALL'"
                         class="node-code"
-                        >{{ data.sysDeptCode }}</span
-                      >
+                        >{{ data.sysDeptCode }}</span>
                     </div>
                   </div>
                   <div v-if="data?.sysDeptId" class="node-actions">
@@ -321,7 +303,12 @@ defineExpose({
                     >
                       <template #reference>
                         <ScTooltip content="删除" placement="top">
-                          <ScButton type="danger" link size="small" @click.stop>
+                          <ScButton
+                            type="danger"
+                            link
+                            size="small"
+                            @click.stop
+                          >
                             <IconifyIconOnline icon="ri:delete-bin-line" />
                           </ScButton>
                         </ScTooltip>

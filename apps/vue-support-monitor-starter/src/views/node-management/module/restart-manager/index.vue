@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="节点重启管理"
@@ -91,14 +91,14 @@
         <div class="tip-item">
           <IconifyIconOnline icon="ri:restart-line" class="tip-icon warning" />
           <div class="tip-content">
-            <strong>重启节点</strong
+            <strong>重启节点</strong>
             >：节点将优雅关闭后自动重新启动，通常需要30-60秒完成重启。
           </div>
         </div>
         <div class="tip-item">
           <IconifyIconOnline icon="ri:shut-down-line" class="tip-icon danger" />
           <div class="tip-content">
-            <strong>关闭节点</strong
+            <strong>关闭节点</strong>
             >：节点将优雅关闭，关闭后需要手动重新启动服务。
           </div>
         </div>

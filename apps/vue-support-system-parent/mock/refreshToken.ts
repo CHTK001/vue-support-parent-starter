@@ -1,27 +1,39 @@
 import { defineFakeRoute } from "vite-plugin-fake-server/client";
 
-// 模拟刷新token接口
 export default defineFakeRoute([
   {
-    url: "/refresh-token",
+    url: "/system/api/v2/user/refresh-token",
     method: "post",
     response: ({ body }) => {
       if (body.refreshToken) {
         return {
           success: true,
+          code: 200,
           data: {
-            accessToken: "eyJhbGciOiJIUzUxMiJ9.newAdmin",
-            refreshToken: "eyJhbGciOiJIUzUxMiJ9.newAdminRefresh",
-            // `expires`选择这种日期格式是为了方便调试，后端直接设置时间戳或许更方便（每次都应该递增）。如果后端返回的是时间戳格式，前端开发请来到这个目录`src/utils/auth.ts`，把第`38`行的代码换成expires = data.expires即可。
+            accessToken: "eyJhbGciOiJIUzUxMiJ9.systemRefresh",
+            refreshToken: "eyJhbGciOiJIUzUxMiJ9.systemRefreshNext",
             expires: "2030/10/30 23:59:59",
+            isRemembered: true,
+            userInfo: {
+              sysUserId: 1,
+              sysUserUsername: "admin",
+              sysUserNickname: "开发管理员",
+              sysUserPhone: "13800000000",
+              sysUserEmail: "admin@example.com",
+              avatar: "https://avatars.githubusercontent.com/u/44761321",
+              tenantId: "system-dev",
+              roles: ["admin"],
+              perms: ["system:*:*", "manage:user:page", "manage:role:page"],
+            },
           },
         };
-      } else {
-        return {
-          success: false,
-          data: {},
-        };
       }
+
+      return {
+        success: false,
+        code: 401,
+        data: {},
+      };
     },
   },
 ]);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { $t } from "@repo/config";
+import { $t } from "@repo/config/src/i18n";
 import {
   emitter,
   getTopMenu,
@@ -29,6 +29,9 @@ import {
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import CloseIcon from "@iconify-icons/ep/close";
 
@@ -707,6 +710,14 @@ const deferTag = useDefer(tagsViews?.length);
         </ScDropdownMenu>
       </template>
     </ScDropdown>
+
+    <TagContextMenu
+      :visible="visible"
+      :style="contextMenuStyle"
+      :items="tagsViews"
+      :transform-i18n="transformI18n"
+      @select="selectTag"
+    />
   </div>
 </template>
 

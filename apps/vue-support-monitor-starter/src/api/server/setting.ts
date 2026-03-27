@@ -85,6 +85,8 @@ export interface ServerSetting {
 
   /** 是否启用代理 0:否 1:是 */
   monitorSysGenServerSettingProxyEnabled?: number;
+  /** 引用的代理实例ID */
+  monitorSysGenServerSettingProxyInstanceId?: number;
   /** 代理类型 */
   monitorSysGenServerSettingProxyType?: string;
   /** 代理主机 */
@@ -97,6 +99,10 @@ export interface ServerSetting {
   monitorSysGenServerSettingProxyPassword?: string;
 
   // ==================== 远程桌面配置 ====================
+  /** SSH 端口 */
+  monitorSysGenServerSettingSshPort?: number;
+  /** VNC 端口 */
+  monitorSysGenServerSettingVncPort?: number;
   /** 远程桌面 Agent 端口（默认 8899，用于 utils-support-remote-starter） */
   monitorSysGenServerSettingRemotePort?: number;
 

@@ -1,6 +1,5 @@
-﻿<script>
+<script>
 import { useRenderIcon } from "@repo/components/ReIcon";
-
 import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
 import VueJsonPretty from "vue-json-pretty";
@@ -117,8 +116,7 @@ export default defineComponent({
               <div class="info-item">
                 <span class="info-label">登录时间</span>
                 <span class="info-value"
-                  >{{ getTimeAgo(row.createTime) }} ({{ row.createTime }})</span
-                >
+                  >{{ getTimeAgo(row.createTime) }} ({{ row.createTime }})</span>
               </div>
               <div class="info-item">
                 <span class="info-label">响应耗时</span>
@@ -127,17 +125,14 @@ export default defineComponent({
                     v-if="row.sysLogCost <= 1000"
                     type="success"
                     size="small"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                    >{{ row.sysLogCost || 0 }} ms</ScTag>
                   <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
                     size="small"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                    >{{ row.sysLogCost || 0 }} ms</ScTag>
                   <ScTag v-else type="danger" size="small"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                    >{{ row.sysLogCost || 0 }} ms</ScTag>
                 </span>
               </div>
             </div>

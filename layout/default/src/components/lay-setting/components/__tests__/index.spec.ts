@@ -67,4 +67,9 @@ describe("lay-setting theme registry source", () => {
     expect(registrySource).toContain("SettingAiChat");
     expect(registrySource).toContain("SettingAdvanced");
   });
+
+  it("falls back to the default section map for unsupported themes", () => {
+    expect(registrySource).toContain("isSupportedSettingTheme");
+    expect(registrySource).toContain("themeComponentMaps.default");
+  });
 });

@@ -1,11 +1,10 @@
-import type { Plugin } from "vite";
 import { Plugin as importToCDN } from "vite-plugin-cdn-import";
 
 /**
  * @description 创建 CDN 插件实例，按需延迟初始化，避免在未启用 CDN 时也强依赖本地 vue 等包的 package.json
  * 仅在 VITE_CDN 为 true 时由外部调用此方法生成插件，默认不启用 CDN。
  */
-export const createCdnPlugin = (): Plugin =>
+export const createCdnPlugin = () =>
   importToCDN({
     //（prodUrl解释： name: 对应下面modules的name，version: 自动读取本地package.json中dependencies依赖中对应包的版本号，path: 对应下面modules的path，当然也可写完整路径，会替换prodUrl）
     prodUrl: "https://cdn.bootcdn.net/ajax/libs/{name}/{version}/{path}",
@@ -60,7 +59,7 @@ export const createCdnPlugin = (): Plugin =>
       //   path: "echarts.min.js",
       // },
     ],
-  });
+  }) as any;
 
 // 兼容旧导出名，默认不启用，避免在未开启 CDN 时也触发插件初始化
-export const cdn = null as unknown as Plugin;
+export const cdn = null as any;

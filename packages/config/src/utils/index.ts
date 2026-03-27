@@ -16,18 +16,17 @@ export function resolvePath(relative: string, base: string) {
  * @returns {*|string}
  */
 export function getAssetsImages(name) {
-  if (name) {
-    name = name.toLowerCase();
+  let fileName = typeof name === "string" ? name.toLowerCase() : "";
+  if (fileName && fileName.indexOf(".") == -1) {
+    fileName = fileName + ".png";
   }
-  if (name.indexOf(".") == -1) {
-    name = name + ".png";
-  }
-  const url = new URL(`/src/assets/images/${name}`, import.meta.url).href;
+  const url = fileName
+    ? new URL(`/src/assets/images/${fileName}`, import.meta.url).href
+    : "";
   if (url && !url.endsWith("undefined")) {
     return url;
   }
-  /* @vite-ignore*/
-  return new URL(`/src/assets/images/unknown.png`, import.meta.url).href;
+  return "";
 }
 
 export function stringToColor(str) {

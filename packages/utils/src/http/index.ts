@@ -28,7 +28,7 @@ import type {
   RequestMethods,
 } from "../http/types";
 import { message } from "../message";
-import { isWasmLoaded } from "@repo/codec-wasm";
+import { initializeWasmModule, isWasmLoaded } from "@repo/codec-wasm";
 import {
   getRequestConfig,
   getErrorHandlerConfig,
@@ -89,12 +89,43 @@ class PureHttp {
   /** 存储活跃的请求控制器 */
   private static activeRequests = new Map<string, AbortController>();
 
+  /** 复用 WASM 初始化，避免首批请求并发抢跑 */
+  private static wasmReadyPromise: Promise<void> | null = null;
+
+  private static async ensureWasmReady(): Promise<void> {
+    if (isWasmLoaded()) {
+      return;
+    }
+
+    if (getConfig("wasmEnable") === false) {
+      return;
+    }
+
+    if (!PureHttp.wasmReadyPromise) {
+      PureHttp.wasmReadyPromise = initializeWasmModule()
+        .then((result) => {
+          if (!result || !isWasmLoaded()) {
+            throw new Error("WASM 模块初始化失败");
+          }
+        })
+        .finally(() => {
+          if (!isWasmLoaded()) {
+            PureHttp.wasmReadyPromise = null;
+          }
+        });
+    }
+
+    await PureHttp.wasmReadyPromise;
+  }
+
   /**
    * 确保 x-nonce、x-sign 等安全头存在
    * 根据配置 Request.enableSign 决定是否生成签名
    * WASM 未加载时会使用降级实现（codec-wasm 的 JS 实现）
    */
-  private static ensureXSign(config: PureHttpRequestConfig): void {
+  private static async ensureXSign(
+    config: PureHttpRequestConfig,
+  ): Promise<void> {
     if (!config.headers) {
       config.headers = {};
     }
@@ -106,6 +137,9 @@ class PureHttp {
       }
       return;
     }
+
+    await PureHttp.ensureWasmReady();
+
     // 默认开启签名（enableSign 为 true 或 undefined）
     const timestamp = Date.now();
     const nonce = generateNonce();
@@ -130,18 +164,22 @@ class PureHttp {
 
   /** 重连原始请求 */
   private static retryOriginalRequest(config: PureHttpRequestConfig) {
-    return new Promise((resolve) => {
-      PureHttp.requests.push((token: string) => {
-        const authorization = formatToken(token);
-        if (authorization) {
-          config.headers["Authorization"] = authorization;
+    return new Promise((resolve, reject) => {
+      PureHttp.requests.push(async (token: string) => {
+        try {
+          const authorization = formatToken(token);
+          if (authorization) {
+            config.headers["Authorization"] = authorization;
+          }
+          if (token) {
+            config.headers["x-oauth-token"] = token;
+          }
+          // 确保 x-sign 一定存在
+          await PureHttp.ensureXSign(config);
+          resolve(config);
+        } catch (error) {
+          reject(error);
         }
-        if (token) {
-          config.headers["x-oauth-token"] = token;
-        }
-        // 确保 x-sign 一定存在
-        PureHttp.ensureXSign(config);
-        resolve(config);
       });
     });
   }
@@ -153,6 +191,7 @@ class PureHttp {
         // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
         const apiAddress = getConfig().ApiAddress;
         config.baseURL = apiAddress || getConfig().BaseUrl;
+        await PureHttp.ensureWasmReady();
         config = await uu2(config);
         // 确保headers对象存在
         if (!config.headers) {
@@ -188,55 +227,58 @@ class PureHttp {
         if (typeof config.beforeRequestCallback === "function") {
           config.beforeRequestCallback(config);
           // 在所有处理完成后，最后统一生成 sign
-          PureHttp.ensureXSign(config);
+          await PureHttp.ensureXSign(config);
           return config;
         }
         if (PureHttp.initConfig.beforeRequestCallback) {
           PureHttp.initConfig.beforeRequestCallback(config);
           // 在所有处理完成后，最后统一生成 sign
-          PureHttp.ensureXSign(config);
+          await PureHttp.ensureXSign(config);
           return config;
         }
         // 白名单接口直接放行
         if (WHITE_LIST.some((url) => config.url?.endsWith(url))) {
           // 在所有处理完成后，最后统一生成 sign
-          PureHttp.ensureXSign(config);
+          await PureHttp.ensureXSign(config);
           return config;
         }
         // 需要 token 验证的接口
-        return new Promise((resolve) => {
-          let data = getToken();
-          const openAuth = getConfig().OpenAuth;
-          if (!openAuth && !data) {
-            data = {} as UserResult;
-          }
-          if ((openAuth && data) || !openAuth) {
-            const now = new Date().getTime();
-            const expired =
-              ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
-            if (expired) {
-              if (!PureHttp.isRefreshing) {
-                PureHttp.isRefreshing = true;
-                // token过期刷新
-                handRefreshToken({ refreshToken: data.refreshToken })
-                  .then((res) => {
-                    const token = res.accessToken;
-                    const authorization = formatToken(token);
-                    if (authorization) {
-                      config.headers["Authorization"] = authorization;
-                    }
-                    if (token) {
-                      config.headers["x-oauth-token"] = token;
-                    }
-                    PureHttp.requests.forEach((cb) => cb(token));
-                    PureHttp.requests = [];
-                  })
-                  .finally(() => {
-                    PureHttp.isRefreshing = false;
-                  });
+        return new Promise((resolve, reject) => {
+          void (async () => {
+            let data = getToken();
+            const openAuth = getConfig().OpenAuth;
+            if (!openAuth && !data) {
+              data = {} as UserResult;
+            }
+            if ((openAuth && data) || !openAuth) {
+              const now = new Date().getTime();
+              const expired =
+                ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
+              if (expired) {
+                if (!PureHttp.isRefreshing) {
+                  PureHttp.isRefreshing = true;
+                  // token过期刷新
+                  handRefreshToken({ refreshToken: data.refreshToken })
+                    .then((res) => {
+                      const token = res.accessToken;
+                      const authorization = formatToken(token);
+                      if (authorization) {
+                        config.headers["Authorization"] = authorization;
+                      }
+                      if (token) {
+                        config.headers["x-oauth-token"] = token;
+                      }
+                      PureHttp.requests.forEach((cb) => cb(token));
+                      PureHttp.requests = [];
+                    })
+                    .finally(() => {
+                      PureHttp.isRefreshing = false;
+                    });
+                }
+                resolve(PureHttp.retryOriginalRequest(config));
+                return;
               }
-              resolve(PureHttp.retryOriginalRequest(config));
-            } else {
+
               const authorization = formatToken(data.accessToken);
               if (authorization) {
                 config.headers["Authorization"] = authorization;
@@ -245,14 +287,15 @@ class PureHttp {
                 config.headers["x-oauth-token"] = data.accessToken;
               }
               // 在所有处理完成后，最后统一生成 sign
-              PureHttp.ensureXSign(config);
+              await PureHttp.ensureXSign(config);
               resolve(config);
+              return;
             }
-          } else {
+
             // 在所有处理完成后，最后统一生成 sign
-            PureHttp.ensureXSign(config);
+            await PureHttp.ensureXSign(config);
             resolve(config);
-          }
+          })().catch(reject);
         });
       },
       (error) => {
@@ -306,7 +349,7 @@ class PureHttp {
             }
           } catch (parseError) {
             if (errorConfig.logToConsole) {
-              console.error("HTTP Error blob parse failed:", parseError);
+              logger.error("HTTP Error blob parse failed: {}", parseError);
             }
           }
         }
@@ -335,7 +378,7 @@ class PureHttp {
         if (!$error.isCancelRequest && errorConfig.enable) {
           // 输出到控制台
           if (errorConfig.logToConsole) {
-            console.error("HTTP Error:", {
+            logger.error("HTTP Error: {}", {
               url: error.config?.url,
               status: response?.status,
               message: error.message,
@@ -500,77 +543,84 @@ class PureHttp {
     } = {},
   ): AbortController {
     const controller = new AbortController();
-    const token = getToken();
-    const fingerprint = getOrCreateFingerprint();
-    const authorization = formatToken(token);
+    void (async () => {
+      try {
+        await PureHttp.ensureWasmReady();
 
-    const defaultHeaders: Record<string, string> = {
-      "x-req-fingerprint": fingerprint,
-      ...options.headers,
-    };
-    if (authorization) {
-      defaultHeaders["Authorization"] = authorization;
-    }
-    if (isWasmLoaded()) {
-      const timestamp = Date.now();
-      const nonce = generateNonce();
-      const tempConfig: PureHttpRequestConfig = {
-        url,
-        method: (options.method || "GET") as any,
-        params: {},
-        data:
-          typeof options.body === "object" && options.body !== null
-            ? options.body
-            : {},
-        headers: options.headers || {},
-      };
-      defaultHeaders["x-nonce"] = nonce;
-      defaultHeaders["x-timestamp"] = timestamp.toString();
-      defaultHeaders["x-sign"] = generateSign(
-        tempConfig,
-        timestamp,
-        nonce,
-        fingerprint as string,
-      );
-    }
+        const token = getToken();
+        const fingerprint = getOrCreateFingerprint();
+        const authorization = formatToken(token);
+        const defaultHeaders: Record<string, string> = {
+          "x-req-fingerprint": fingerprint,
+          ...options.headers,
+        };
 
-    // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
-    const sseBaseUrl = getConfig().ApiAddress || getConfig().BaseUrl;
-    fetchEventSource(sseBaseUrl + url, {
-      method: options.method || "GET",
-      //@ts-ignore
-      headers: defaultHeaders,
-      body: options.body,
-      signal: controller.signal,
-      onopen: async (response) => {
-        if (
-          response.ok &&
-          response.headers.get("content-type")?.includes("text/event-stream")
-        ) {
-          options.onopen?.(response);
-        } else {
-          throw new Error(
-            `SSE连接失败: ${response.status} ${response.statusText}`,
+        if (authorization) {
+          defaultHeaders["Authorization"] = authorization;
+        }
+
+        if (isWasmLoaded()) {
+          const timestamp = Date.now();
+          const nonce = generateNonce();
+          const tempConfig: PureHttpRequestConfig = {
+            url,
+            method: (options.method || "GET") as any,
+            params: {},
+            data:
+              typeof options.body === "object" && options.body !== null
+                ? options.body
+                : {},
+            headers: options.headers || {},
+          };
+          defaultHeaders["x-nonce"] = nonce;
+          defaultHeaders["x-timestamp"] = timestamp.toString();
+          defaultHeaders["x-sign"] = generateSign(
+            tempConfig,
+            timestamp,
+            nonce,
+            fingerprint as string,
           );
         }
-      },
-      onmessage: (event) => {
-        //@ts-ignore
-        options.onmessage?.(event);
-      },
-      onerror: (error) => {
-        options.onerror?.(error);
-        throw error;
-      },
-      onclose: () => {
-        options.onclose?.();
-      },
-    }).catch((error) => {
-      if (error.name !== "AbortError") {
-        console.error("SSE连接错误:", error);
-        options.onerror?.(error);
+
+        // 优先使用 ApiAddress，如果未设置则使用 BaseUrl
+        const sseBaseUrl = getConfig().ApiAddress || getConfig().BaseUrl;
+        await fetchEventSource(sseBaseUrl + url, {
+          method: options.method || "GET",
+          //@ts-ignore
+          headers: defaultHeaders,
+          body: options.body,
+          signal: controller.signal,
+          onopen: async (response) => {
+            if (
+              response.ok &&
+              response.headers.get("content-type")?.includes("text/event-stream")
+            ) {
+              options.onopen?.(response);
+            } else {
+              throw new Error(
+                `SSE连接失败: ${response.status} ${response.statusText}`,
+              );
+            }
+          },
+          onmessage: (event) => {
+            //@ts-ignore
+            options.onmessage?.(event);
+          },
+          onerror: (error) => {
+            options.onerror?.(error);
+            throw error;
+          },
+          onclose: () => {
+            options.onclose?.();
+          },
+        });
+      } catch (error: any) {
+        if (error?.name !== "AbortError") {
+          logger.error("SSE连接错误: {}", error);
+          options.onerror?.(error);
+        }
       }
-    });
+    })();
 
     return controller;
   }

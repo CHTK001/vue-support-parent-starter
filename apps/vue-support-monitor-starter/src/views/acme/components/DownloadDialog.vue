@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { downloadCert, type AcmeCertificate } from "@/api/acme";
+import { downloadCert, type AcmeCertificate } from "@pages/system";
 
 defineOptions({
   name: "DownloadDialog",

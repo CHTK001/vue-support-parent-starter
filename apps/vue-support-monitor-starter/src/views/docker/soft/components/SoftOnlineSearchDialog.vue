@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleProxy"
     title="在线搜索软件"
@@ -10,7 +10,7 @@
     <!-- 搜索栏 -->
     <div class="search-header">
       <div class="search-box">
-        <ScInput
+        <el-input
           v-model="keyword"
           placeholder="搜索 Docker 镜像..."
           size="large"
@@ -22,7 +22,7 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" class="search-icon" />
           </template>
-        </ScInput>
+        </el-input>
       </div>
       <div class="search-tip">
         <IconifyIconOnline icon="ri:information-line" />
@@ -63,13 +63,12 @@
               <h3 class="name">{{ row.systemSoftName }}</h3>
               <span class="code">{{ row.systemSoftCode }}</span>
             </div>
-            <ScTag
+            <el-tag
               v-if="row.systemSoftIsOfficial === 1"
               type="warning"
               size="small"
               effect="light"
-              >官方</ScTag
-            >
+              >官方</el-tag>
           </div>
 
           <!-- 镜像信息 -->
@@ -97,13 +96,13 @@
 
           <!-- 操作按钮 -->
           <div class="card-actions">
-            <ScButton
+            <el-button
               type="primary"
               size="small"
               @click="handleImportSingle(row)"
             >
               <IconifyIconOnline icon="ri:add-line" class="mr-1" />添加到软件库
-            </ScButton>
+            </el-button>
           </div>
         </div>
       </template>
@@ -111,16 +110,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visibleProxy = false">关闭</ScButton>
+        <el-button @click="visibleProxy = false">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { ScTable } from "@repo/components/ScTable";
-
 import { softwareApi } from "@/api/docker";
+import ScTable from "@repo/components/ScTable/index.vue";
 import { message } from "@repo/utils";
 import { computed, reactive, ref } from "vue";
 
@@ -201,8 +199,7 @@ async function handleImportSingle(row: any) {
 
 async function handleImport() {
   const selection = tableRef.value?.getSelection?.() || [];
-  if (!selection.length)
-    return message("请选择要导入的软件", { type: "warning" });
+  if (!selection.length) return message("请选择要导入的软件", { type: "warning" });
   try {
     saving.value = true;
     const payload = {
@@ -399,6 +396,7 @@ async function handleImport() {
   justify-content: flex-end;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -407,4 +405,5 @@ async function handleImport() {
     padding: 12px 16px;
   }
 }
+
 </style>

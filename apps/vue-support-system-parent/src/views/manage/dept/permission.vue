@@ -1,7 +1,7 @@
 ﻿<script setup>
 import { fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
-import { defineExpose, reactive, watch } from "vue";
+import { reactive, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { PermissionList } from "./hook";
 const { t } = useI18n();

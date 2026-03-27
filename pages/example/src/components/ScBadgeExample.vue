@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ScBadge } from "@repo/components/ScBadge"
+import { ScBadge } from "@repo/components/ScBadge";
 import { ScButton } from "@repo/components/ScButton";
 import DemoBlock from "./DemoBlock.vue";
 
@@ -53,7 +53,7 @@ const codes = {
 </ScBadge>
 <ScBadge type="warning" is-dot>
   <ScButton>警告</ScButton>
-</ScBadge>`,
+</ScBadge>`
 };
 </script>
 
@@ -69,3 +69,5 @@ const codes = {
   }
 }
 </style>
+
+

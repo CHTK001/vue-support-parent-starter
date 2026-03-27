@@ -114,11 +114,11 @@
       <h3>使用说明</h3>
       <ul>
         <li>
-          <strong>字体加密：</strong
+          <strong>字体加密：</strong>
           >将数字和汉字替换为映射字符，通过自定义字体显示为原始字符
         </li>
         <li>
-          <strong>防复制：</strong
+          <strong>防复制：</strong>
           >用户看到的是正常文本，但复制到的是映射后的字符
         </li>
         <li>

@@ -1,4 +1,5 @@
 import { http, type ReturnResult } from "@repo/utils";
+export * from "../api/monitor-config";
 
 export type Setting = {
   sysSettingId: number;

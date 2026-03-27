@@ -1,8 +1,10 @@
 import NProgress from "nprogress";
 import Cookies from "js-cookie";
 import * as CryptoJS from "./src/crypto/index";
+import { defineAsyncComponent } from "vue";
 
 export { sm2, sm4 } from "sm-crypto";
+export * from "./src/crypto/index";
 export * from "./src/crypto/codec";
 export * as crypto from "./src/crypto";
 export * from "./src/debug";
@@ -10,7 +12,6 @@ export * from "./src/storage";
 export * from "./src/object";
 export * from "./src/tree";
 export * from "./src/string";
-export * from "./src/sfc";
 export * from "./src/load";
 export * from "./src/number";
 export * from "./src/http";
@@ -40,13 +41,16 @@ export * from "./src/composables/usePage";
 export { withInstall } from "@pureadmin/utils";
 export { NProgress, Cookies, CryptoJS, date };
 
-/** 使用 AES-ECB-Pkcs7 加密字符串（StorageKey 作密钥） */
-export function aesEncrypt(data: string, key: string): string {
-  try { return CryptoJS.default.AES.encrypt(data, key); } catch { return data; }
+export function loadSfcModule(...args: any[]) {
+  return defineAsyncComponent(async () => {
+    const { loadSfcModule: innerLoadSfcModule } = await import("./sfc");
+    return innerLoadSfcModule(...args);
+  });
 }
 
-/** 使用 AES-ECB-Pkcs7 解密字符串（StorageKey 作密钥），失败返回原值 */
-export function aesDecrypt(cipher: string, key: string): string {
-  if (!cipher) return cipher;
-  try { return CryptoJS.default.AES.decrypt(cipher, key) || cipher; } catch { return cipher; }
+export function loadRemoteModule(...args: any[]) {
+  return defineAsyncComponent(async () => {
+    const { loadRemoteModule: innerLoadRemoteModule } = await import("./sfc");
+    return innerLoadRemoteModule(...args);
+  });
 }

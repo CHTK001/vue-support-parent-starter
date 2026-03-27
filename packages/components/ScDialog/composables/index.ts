@@ -7,7 +7,7 @@
 export { useDialogZIndex, dialogZIndexManager, type DialogZIndexOptions, type DialogZIndexReturn } from "./useDialogZIndex";
 
 // Interact.js 拖拽/调整大小
-export { useDialogInteract, type DialogInteractOptions, type DialogInteractReturn, type SnapConfig } from "./useDialogInteract";
+export { useDialogInteract, type DialogInteractOptions, type DialogInteractReturn, type SnapInfo } from "./useDialogInteract";
 
 // 最小化/最大化/边缘吸附
 export { useDialogMinimize, type DockPosition, type DialogState, type DialogMinimizeOptions, type DialogMinimizeReturn } from "./useDialogMinimize";

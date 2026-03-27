@@ -16,6 +16,7 @@ import DefaultSidebarItem from "../../components/themes/DefaultSidebarItem.vue";
 import { getConfig, responsiveStorageNameSpace } from "@repo/config";
 import type { StorageConfigs } from "@repo/config";
 import { localStorageProxy } from "@repo/utils";
+import ScMenu from "@repo/components/ScMenu";
 import LayTool from "../../../lay-tool/index.vue";
 
 // 接收主题类名和主题 SidebarItem 组件

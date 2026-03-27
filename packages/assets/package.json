@@ -1,15 +1,20 @@
 {
   "name": "@repo/assets",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "element-plus": "catalog:"
-  }
+  "private": true,
+  "description": "Shared repo assets and style entrypoints",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.less"
+  ],
+  "files": [
+    "fonts",
+    "images",
+    "login",
+    "style",
+    "svg",
+    "README.md"
+  ]
 }

@@ -1,6 +1,31 @@
 ﻿<template>
   <div class="job-log-wrapper system-container modern-bg">
     <div class="job-log-container">
+      <div class="page-guide-banner">
+        <div class="page-guide-copy">
+          <div class="page-guide-badge">执行追踪</div>
+          <div class="page-guide-title-row">
+            <h2 class="page-guide-title">任务日志</h2>
+            <el-tooltip content="查看页面使用指南" placement="top">
+              <button
+                type="button"
+                class="page-guide-icon"
+                @click="pageGuideVisible = true"
+              >
+                <el-icon><QuestionFilled /></el-icon>
+              </button>
+            </el-tooltip>
+          </div>
+          <p class="page-guide-summary">
+            先看近七日趋势判断问题规模，再按时间、执行器和状态过滤，最后进入详情或日志正文定位失败原因。
+          </p>
+        </div>
+        <el-button class="page-guide-action" plain @click="pageGuideVisible = true">
+          <IconifyIconOnline icon="ri:question-line" />
+          使用指南
+        </el-button>
+      </div>
+
       <!-- 统计图表区域 -->
       <div class="chart-section">
         <div class="chart-header" @click="showChart = !showChart">
@@ -14,10 +39,10 @@
           <div class="chart-right">
             <div v-if="showChart" class="chart-legend">
               <span class="legend-item success">
-                <span class="legend-dot" />成功
+                <span class="legend-dot"></span>成功
               </span>
               <span class="legend-item danger">
-                <span class="legend-dot" />失败
+                <span class="legend-dot"></span>失败
               </span>
             </div>
             <IconifyIconOnline
@@ -48,7 +73,7 @@
         <transition name="slide-fade">
           <div v-if="showCondition" class="search-filters">
             <div class="filter-item">
-              <ScDatePicker
+              <el-date-picker
                 v-model="date"
                 value-format="YYYY-MM-DD HH:mm:ss"
                 type="datetimerange"
@@ -59,57 +84,57 @@
               />
             </div>
             <div class="filter-item">
-              <ScSelect
+              <el-select
                 v-model="form.jobLogTriggerCode"
                 clearable
                 placeholder="任务状态"
                 class="filter-select"
               >
-                <ScOption value="" label="全部状态" />
-                <ScOption :value="1" label="成功" />
-                <ScOption :value="0" label="失败" />
-              </ScSelect>
+                <el-option value="" label="全部状态" />
+                <el-option :value="1" label="成功" />
+                <el-option :value="0" label="失败" />
+              </el-select>
             </div>
             <div class="filter-item">
-              <ScSelect
+              <el-select
                 v-model="form.jobLogApp"
                 clearable
                 placeholder="执行器"
                 class="filter-select"
               >
-                <ScOption value="" label="全部执行器" />
-                <ScOption
+                <el-option value="" label="全部执行器" />
+                <el-option
                   v-for="item in executorData"
                   :key="item.monitorId"
                   :value="item.monitorApplicationName"
                   :label="item.monitorName"
                 />
-              </ScSelect>
+              </el-select>
             </div>
             <div class="filter-item">
-              <ScSelect
+              <el-select
                 v-model="form.jobLogProfile"
                 clearable
                 placeholder="环境"
                 class="filter-select"
               >
-                <ScOption value="" label="全部环境" />
-                <ScOption value="dev" label="开发" />
-                <ScOption value="prod" label="生产" />
-                <ScOption value="test" label="测试" />
-              </ScSelect>
+                <el-option value="" label="全部环境" />
+                <el-option value="dev" label="开发" />
+                <el-option value="prod" label="生产" />
+                <el-option value="test" label="测试" />
+              </el-select>
             </div>
             <div class="filter-actions">
-              <ScTooltip content="搜索" placement="top">
-                <ScButton type="primary" class="action-btn" @click="search">
+              <el-tooltip content="搜索" placement="top">
+                <el-button type="primary" class="action-btn" @click="search">
                   <IconifyIconOnline icon="ri:search-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="清理日志" placement="top">
-                <ScButton type="danger" class="action-btn" @click="clear">
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="清理日志" placement="top">
+                <el-button type="danger" class="action-btn" @click="clear">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </ScButton>
-              </ScTooltip>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </transition>
@@ -127,33 +152,36 @@
           height="calc(100vh - 400px)"
           class="log-table"
         >
-          <ScTableColumn label="状态" prop="level" width="70" align="center">
+          <el-table-column label="状态" prop="level" width="70" align="center">
             <template #default="scope">
               <div class="status-cell">
-                <span class="status-dot" :class="getStatusClass(scope.row)" />
+                <span
+                  class="status-dot"
+                  :class="getStatusClass(scope.row)"
+                ></span>
               </div>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="任务ID" prop="jobLogId" width="120">
+          </el-table-column>
+          <el-table-column label="任务ID" prop="jobLogId" width="120">
             <template #default="scope">
               <span class="log-id">#{{ scope.row.jobLogId }}</span>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="系统/环境" prop="jobLogApp" width="180">
+          </el-table-column>
+          <el-table-column label="系统/环境" prop="jobLogApp" width="180">
             <template #default="scope">
               <div class="app-info">
                 <span class="app-name">{{ scope.row.jobLogApp }}</span>
-                <ScTag
+                <el-tag
                   size="small"
                   :type="getEnvType(scope.row.jobLogProfile)"
                   class="env-tag"
                 >
                   {{ scope.row.jobLogProfile || "-" }}
-                </ScTag>
+                </el-tag>
               </div>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
+          </el-table-column>
+          <el-table-column
             label="执行地址"
             prop="jobLogTriggerAddress"
             width="180"
@@ -165,23 +193,27 @@
               />
               <span v-else class="text-placeholder">-</span>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="调度时间" prop="jobLogTriggerTime" width="180">
+          </el-table-column>
+          <el-table-column
+            label="调度时间"
+            prop="jobLogTriggerTime"
+            width="180"
+          >
             <template #default="scope">
               <div class="time-cell">
                 <IconifyIconOnline icon="ri:time-line" class="time-icon" />
                 <span>{{ dateFormat(scope.row.jobLogTriggerTime) }}</span>
               </div>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
+          </el-table-column>
+          <el-table-column
             label="调度结果"
             prop="logMapping"
             width="100"
             align="center"
           >
             <template #default="scope">
-              <ScTag
+              <el-tag
                 :type="
                   scope.row.jobLogTriggerCode !== '00000' ? 'danger' : 'success'
                 "
@@ -196,10 +228,10 @@
                   "
                 />
                 {{ scope.row.jobLogTriggerCode !== "00000" ? "失败" : "成功" }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="执行耗时" prop="jobLogCost" width="120">
+          </el-table-column>
+          <el-table-column label="执行耗时" prop="jobLogCost" width="120">
             <template #default="scope">
               <div
                 class="cost-cell"
@@ -209,8 +241,8 @@
                 <span>{{ scope.row.jobLogCost || 0 }} ms</span>
               </div>
             </template>
-          </ScTableColumn>
-          <ScTableColumn
+          </el-table-column>
+          <el-table-column
             label="错误信息"
             prop="jobLogTriggerMsg"
             min-width="150"
@@ -222,70 +254,74 @@
               }}</span>
               <span v-else class="text-placeholder">-</span>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="操作" width="140" fixed="right">
+          </el-table-column>
+          <el-table-column label="操作" width="140" fixed="right">
             <template #default="scope">
               <div class="action-cell">
-                <ScTooltip content="查看详情" placement="top">
-                  <ScButton class="action-btn-sm" @click="rowClick(scope.row)">
+                <el-tooltip content="查看详情" placement="top">
+                  <el-button class="action-btn-sm" @click="rowClick(scope.row)">
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </ScButton>
-                </ScTooltip>
-                <ScTooltip content="查看日志" placement="top">
-                  <ScButton class="action-btn-sm" @click="cat(scope.row)">
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="查看日志" placement="top">
+                  <el-button class="action-btn-sm" @click="cat(scope.row)">
                     <IconifyIconOnline icon="ri:terminal-box-line" />
-                  </ScButton>
-                </ScTooltip>
+                  </el-button>
+                </el-tooltip>
               </div>
             </template>
-          </ScTableColumn>
+          </el-table-column>
         </scTable>
       </div>
     </div>
     <sc-dialog v-model="clearShow" title="日志清理" @close="clearShow = !1">
-      <ScForm :model="form" label-width="120px">
-        <ScFormItem label="执行器">
-          <ScInput v-model="jobGroupName" disabled readonly />
-        </ScFormItem>
-        <ScFormItem label="任务">
-          <ScInput v-model="jobName" disabled readonly />
-        </ScFormItem>
-        <ScFormItem label="">
-          <ScSelect v-model="clearType" style="width: 100%">
-            <ScOption label="清理一个月之前的日志数据" :value="1" />
-            <ScOption label="清理三个月之前的日志数据" :value="2" />
-            <ScOption label="清理六个月之前的日志数据" :value="3" />
-            <ScOption label="清理一年之前的日志数据" :value="4" />
-            <!-- <ScOption label="清理一千条之前的日志数据" :value="5" />
-            <ScOption label="清理一万条之前的日志数据" :value="6" />
-            <ScOption label="清理三万条之前的日志数据" :value="7" />
-            <ScOption label="清理十万条之前的日志数据" :value="8" /> -->
-            <ScOption label="清理所以日志数据" :value="9" />
-          </ScSelect>
-        </ScFormItem>
-      </ScForm>
+      <el-form :model="form" label-width="120px">
+        <el-form-item label="执行器">
+          <el-input v-model="jobGroupName" disabled readonly />
+        </el-form-item>
+        <el-form-item label="任务">
+          <el-input v-model="jobName" disabled readonly />
+        </el-form-item>
+        <el-form-item label="">
+          <el-select v-model="clearType" style="width: 100%">
+            <el-option label="清理一个月之前的日志数据" :value="1" />
+            <el-option label="清理三个月之前的日志数据" :value="2" />
+            <el-option label="清理六个月之前的日志数据" :value="3" />
+            <el-option label="清理一年之前的日志数据" :value="4" />
+            <!-- <el-option label="清理一千条之前的日志数据" :value="5" />
+            <el-option label="清理一万条之前的日志数据" :value="6" />
+            <el-option label="清理三万条之前的日志数据" :value="7" />
+            <el-option label="清理十万条之前的日志数据" :value="8" /> -->
+            <el-option label="清理所以日志数据" :value="9" />
+          </el-select>
+        </el-form-item>
+      </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <ScButton @click="clearShow = false">取消</ScButton>
-          <ScButton type="primary" @click="clearLog(0)">确定</ScButton>
+          <el-button @click="clearShow = false">取消</el-button>
+          <el-button type="primary" @click="clearLog(0)">确定</el-button>
         </span>
       </template>
     </sc-dialog>
 
     <cat ref="catRef" />
     <info ref="infoRef" />
+    <job-page-guide-dialog v-model="pageGuideVisible" :guide="pageGuide" />
   </div>
 </template>
 
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon";
-
-import { fetchAppList } from "@/api/monitor/app";
+import { fetchAppList } from "@pages/job";
+import JobPageGuideDialog from "@/components/JobPageGuideDialog.vue";
+import { getJobPageGuide } from "@/support/jobPageGuides";
 import {
   fetchJobLogChart,
   fetchJobLogPage,
   fetchJobLogClear,
-} from "@/api/monitor/job";
+} from "@pages/job";
+import { QuestionFilled } from "@element-plus/icons-vue";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { dateFormat, getDateRang, getRecentDays } from "@repo/utils";
 import { defineAsyncComponent, defineComponent } from "vue";
 
@@ -303,16 +339,20 @@ export default {
   name: "log",
   components: {
     info,
+    JobPageGuideDialog,
+    QuestionFilled,
     ScStatusIndicator: defineAsyncComponent(
-      () => import("@repo/components/ScMini/scStatusIndicator.vue"),
+      () => import("@repo/components/ScMini/scStatusIndicator.vue")
     ),
-    ScEcharts,
+    scEcharts,
     cat,
   },
   data() {
     return {
       showCondition: false,
       showChart: true,
+      pageGuideVisible: false,
+      pageGuide: getJobPageGuide("log"),
       clearType: 1,
       catStatus: false,
       loading: !1,
@@ -553,6 +593,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -569,6 +610,8 @@ export default {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -603,6 +646,7 @@ export default {
   }
 }
 
+
 .job-log-wrapper {
   height: 100%;
   overflow: hidden;
@@ -615,6 +659,86 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.page-guide-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(37, 99, 235, 0.08)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.96));
+  border: 1px solid rgba(14, 165, 233, 0.14);
+}
+
+.page-guide-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.page-guide-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.page-guide-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.page-guide-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.page-guide-summary {
+  margin: 10px 0 0;
+  max-width: 760px;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.page-guide-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(14, 165, 233, 0.14);
+  color: #0369a1;
+  cursor: pointer;
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+.page-guide-icon:hover {
+  transform: translateY(-1px);
+  background: rgba(14, 165, 233, 0.2);
+}
+
+.page-guide-action {
+  flex-shrink: 0;
+  align-self: center;
+  border-radius: 10px;
+  border-color: rgba(14, 165, 233, 0.18);
+  color: #0369a1;
 }
 
 /* 页面头部 */
@@ -1046,12 +1170,19 @@ export default {
   font-size: 13px;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
+  .page-guide-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .page-header {
     flex-direction: column;
     gap: 12px;
     padding: 12px 16px;
   }
 }
+
 </style>

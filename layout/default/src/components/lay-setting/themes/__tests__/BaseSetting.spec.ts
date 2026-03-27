@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import BaseSetting from "../BaseSetting.vue";
-import { nextTick, reactive } from "vue";
+import { nextTick, reactive, ref } from "vue";
 
 // Define mocks that need to be accessed inside vi.mock
 const {
@@ -11,6 +11,11 @@ const {
   mockUseDark,
   mockUseDataThemeChange,
   mockGetConfig,
+  mockThemeStoreState,
+  mockThemeSectionComponents,
+  mockMessage,
+  mockHttpRequest,
+  mockStorageLocalApi,
 } = vi.hoisted(() => {
   const mockStorage = {
     configure: {
@@ -91,7 +96,75 @@ const {
     EnableFestivalTheme: false,
     ShowAiChat: true,
     EnableThemeManagement: true,
+    ShowBarSearch: true,
+    ShowBarMessage: true,
+    StorageKey: "test-storage-key",
+    Session: {
+      autoLogout: false,
+      timeout: 1800,
+    },
+    PageBehavior: {
+      showHeaderClock: false,
+      headerClockSecondEnabled: false,
+      headerClockSecondTimezone: "UTC",
+      screenReaderMode: false,
+      highContrastMode: false,
+      uiScale: 1,
+      devLiteTools: false,
+      devRuler: false,
+      devGrid: false,
+      devHoverInspector: false,
+    },
   });
+
+  const mockThemeStoreState = {
+    currentTheme: "default",
+  };
+
+  const mockThemeSectionStub = {
+    name: "MockThemeSection",
+    template: `
+      <div class="preview-container">
+        <button class="el-button">按钮</button>
+        <input class="el-input" />
+        <div class="el-switch"></div>
+        <input type="checkbox" class="el-checkbox" />
+        <div class="el-radio-group"></div>
+      </div>
+    `,
+  };
+
+  const mockThemeSectionComponents = {
+    SettingTheme: mockThemeSectionStub,
+    SettingLayout: mockThemeSectionStub,
+    SettingTabs: mockThemeSectionStub,
+    SettingToolbar: mockThemeSectionStub,
+    SettingDisplay: mockThemeSectionStub,
+    SettingMenu: mockThemeSectionStub,
+    SettingMessage: mockThemeSectionStub,
+    SettingAiChat: mockThemeSectionStub,
+    SettingAdvanced: mockThemeSectionStub,
+  };
+
+  const mockMessage = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+  };
+
+  const mockHttpRequest = vi.fn();
+
+  const mockStorageLocalApi = {
+    getItem: vi.fn((key?: string) => {
+      if (key === "responsive-configure") {
+        return mockStorage.configure;
+      }
+      return null;
+    }),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
+  };
 
   return {
     mockStorage,
@@ -100,6 +173,11 @@ const {
     mockUseDark,
     mockUseDataThemeChange,
     mockGetConfig,
+    mockThemeStoreState,
+    mockThemeSectionComponents,
+    mockMessage,
+    mockHttpRequest,
+    mockStorageLocalApi,
   };
 });
 
@@ -119,10 +197,9 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 // Mock pureadmin utils
-vi.mock("@pureadmin/utils", async () => {
-  const { reactive } = await import("vue");
+vi.mock("@pureadmin/utils", () => {
   return {
-    debounce: (fn: Function) => fn(),
+    debounce: (fn: Function) => fn,
     isNumber: (val: any) => typeof val === "number",
     useDark: mockUseDark,
     useGlobal: () => ({
@@ -130,6 +207,7 @@ vi.mock("@pureadmin/utils", async () => {
     }),
     cloneDeep: (val: any) => JSON.parse(JSON.stringify(val)),
     withInstall: (comp: any) => comp,
+    storageLocal: () => mockStorageLocalApi,
     storage: {
       local: {
         getItem: vi.fn(),
@@ -139,6 +217,16 @@ vi.mock("@pureadmin/utils", async () => {
     },
   };
 });
+
+vi.mock("@repo/utils", () => ({
+  aesEncrypt: (val: string) => val,
+  aesDecrypt: (val: string) => val,
+  withInstall: (comp: any) => comp,
+  http: {
+    request: mockHttpRequest,
+  },
+  message: mockMessage,
+}));
 
 // Mock ReSegmented
 vi.mock("@repo/components/ReSegmented", () => ({
@@ -162,6 +250,58 @@ vi.mock("../../../../hooks/useNav", () => ({
 
 vi.mock("../../../../hooks/useDataThemeChange", () => ({
   useDataThemeChange: mockUseDataThemeChange,
+}));
+
+vi.mock("../../../../hooks/useThemeComponent", () => ({
+  useTheme: () => ({
+    isDark: ref(false),
+    dataTheme: ref(false),
+    overallStyle: ref("light"),
+    layoutTheme: ref({ layout: "vertical", theme: "light" }),
+    themeColors: [],
+    applyOverallStyle: vi.fn(),
+    setLayoutThemeColor: vi.fn(),
+    toggleClass: vi.fn(),
+    fpsMonitorEnabled: ref(false),
+    memoryMonitorEnabled: ref(false),
+    cpuMonitorEnabled: ref(false),
+    bandwidthMonitorEnabled: ref(false),
+    batteryMonitorEnabled: ref(false),
+    bluetoothMonitorEnabled: ref(false),
+    screenMonitorEnabled: ref(false),
+    performanceMonitorPosition: ref("top-left"),
+    performanceMonitorMode: ref("minimal"),
+    performanceMonitorLayout: ref("merged"),
+    performanceMonitorDirection: ref("auto"),
+    isPerformanceMonitorVisible: ref(false),
+  }),
+}));
+
+vi.mock("../../../../hooks/useThemeAnimation", () => ({
+  useThemeAnimation: (callback: () => void) => callback(),
+}));
+
+vi.mock("../../../../stores/themeStore", () => ({
+  useThemeStore: () => ({
+    get currentTheme() {
+      return mockThemeStoreState.currentTheme;
+    },
+    set currentTheme(value: string) {
+      mockThemeStoreState.currentTheme = value;
+    },
+    setTheme: vi.fn((theme: string) => {
+      mockThemeStoreState.currentTheme = theme;
+    }),
+    initThemeListener: vi.fn(),
+    themeConfig: {},
+    isDefaultTheme: true,
+    isFestivalTheme: false,
+    availableThemes: [],
+  }),
+}));
+
+vi.mock("../../components", () => ({
+  getThemeComponents: () => mockThemeSectionComponents,
 }));
 
 vi.mock("@repo/config", () => ({
@@ -251,6 +391,7 @@ describe("BaseSetting.vue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockStorage.configure.systemTheme = "default";
+    mockThemeStoreState.currentTheme = "default";
   });
 
   const mountOptions = {

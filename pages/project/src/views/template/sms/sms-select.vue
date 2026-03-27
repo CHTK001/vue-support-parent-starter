@@ -1,18 +1,11 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
-import {
-  fetchPageProjectForSms,
-  fetctSenderProjectForSms,
-} from "../../../api/manage/project-sms";
+import { fetchPageProjectForSms, fetctSenderProjectForSms } from "../../../api/manage/project-sms";
 
-const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components"),
-);
-const ScTableSelect = defineAsyncComponent(
-  () => import("@repo/components"),
-);
+const ScFormTable = defineAsyncComponent(() => import("@repo/components/ScFormTable/index.vue"));
+const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const visible = ref(false);
 let form = reactive({});
 const title = ref("发送短信");
@@ -84,7 +77,7 @@ watch(
   (val) => {
     form.sysTemplateId = val?.sysTemplateId;
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 watch(
   () => tempData,
@@ -96,7 +89,7 @@ watch(
       });
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 defineExpose({
   handleOpen,
@@ -105,27 +98,10 @@ defineExpose({
 </script>
 <template>
   <div>
-    <sc-dialog
-      v-model="visible"
-      :title="title"
-      :close-on-click-modal="false"
-      draggable
-      width="40%"
-      @close="handleClose"
-    >
+    <sc-dialog v-model="visible" :title="title" :close-on-click-modal="false" draggable width="40%" @close="handleClose">
       <ScForm ref="formRef" :model="form" :rules="rules" label-width="100px">
         <ScFormItem label="模板" class="w-full">
-          <ScTableSelect
-            v-model="sysTemplateObject"
-            placeholder="请选择模板"
-            :keywords="keywords"
-            remoteParameterName="sysSmsTemplateName"
-            :columns="env.columns"
-            :url="fetchPageProjectForSms"
-            :params="params"
-            class="w-full"
-            @selectionChange="handleSelectionChange"
-          />
+          <ScTableSelect v-model="sysTemplateObject" placeholder="请选择模板" :keywords="keywords" remoteParameterName="sysSmsTemplateName" :columns="env.columns" :url="fetchPageProjectForSms" :params="params" class="w-full" @selectionChange="handleSelectionChange" />
           <div v-if="sysTemplateObject?.sysTemplateContent">
             {{ sysTemplateObject?.sysTemplateContent }}
           </div>
@@ -149,12 +125,7 @@ defineExpose({
         </ScFormItem>
       </ScForm>
       <template #footer>
-        <ScButton
-          type="primary"
-          size="default"
-          :icon="useRenderIcon('bi:send')"
-          @click="handleSubmit"
-        />
+        <ScButton type="primary" size="default" :icon="useRenderIcon('bi:send')" @click="handleSubmit" />
       </template>
     </sc-dialog>
   </div>

@@ -42,9 +42,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { ScDatePicker } from "@repo/components/ScDatePicker"
 import { ScTimePicker } from "@repo/components/ScTimePicker";
+import { ref } from "vue";
+import { ScDatePicker } from "@repo/components/ScDatePicker";
+
 import DemoBlock from "./DemoBlock.vue";
 
 const date1 = ref<string | null>(null);
@@ -97,3 +98,5 @@ const codes = {
   }
 }
 </style>
+
+

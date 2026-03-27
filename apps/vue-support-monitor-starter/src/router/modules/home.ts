@@ -1,4 +1,4 @@
-import { $t } from "@repo/config";
+import { t as $t } from "@repo/config";
 const { VITE_HIDE_HOME } = import.meta.env;
 import type { RouteConfigsTable } from "@repo/core";
 export default [

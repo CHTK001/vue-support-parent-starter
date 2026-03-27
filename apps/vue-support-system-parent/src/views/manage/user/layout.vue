@@ -1,6 +1,5 @@
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon";
-
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
 import {
   defineAsyncComponent,
   defineComponent,
@@ -32,8 +31,13 @@ import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
 
-const ScIp = defineAsyncComponent(() => import("@repo/components"));
-const ScFilterBar = defineAsyncComponent(() => import("@repo/components"));
+
+const ScIp = defineAsyncComponent(
+  () => import("@repo/components/ScIp"),
+);
+const ScFilterBar = defineAsyncComponent(
+  () => import("@repo/components/ScFilterBar"),
+);
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({
   components: { SaveDialog, ScFilterBar, ScIp },
@@ -507,8 +511,7 @@ export default defineComponent({
                 type="primary"
                 :icon="Edit"
                 @click="dialogOpen({}, 'save')"
-                >{{ $t("buttons.add") }}</ScButton
-              >
+                >{{ $t("buttons.add") }}</ScButton>
 
               <!-- 批量操作下拉菜单 -->
               <ScDropdown trigger="click" :disabled="!hasSelected">
@@ -639,8 +642,7 @@ export default defineComponent({
                             type="warning"
                             size="small"
                             class="ml-1"
-                            >系统</ScTag
-                          >
+                            >系统</ScTag>
                         </div>
                         <div class="user-id">ID: {{ row.sysUserId }}</div>
                       </div>
@@ -745,6 +747,7 @@ export default defineComponent({
                       v-if="mode != 'view'"
                       v-model="row.sysUserStatus"
                       style="
+
                         --el-switch-on-color: #13ce66;
                         --el-switch-off-color: #ff4949;
                       "
@@ -792,8 +795,7 @@ export default defineComponent({
                         />
                         <span
                           >已离开
-                          {{ getDaysAway(row.sysUserLastLoginTime) }} 天</span
-                        >
+                          {{ getDaysAway(row.sysUserLastLoginTime) }} 天</span>
                       </div>
                     </div>
                     <ScTag v-else type="info" size="small">从未登录</ScTag>

@@ -23,11 +23,11 @@
           </div>
         </div>
         <div v-if="activeSection !== 'history'" class="header-right">
-          <ScButton size="small" @click="handleReset">
+          <el-button size="small" @click="handleReset">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             重置
-          </ScButton>
-          <ScButton
+          </el-button>
+          <el-button
             size="small"
             type="danger"
             plain
@@ -35,7 +35,7 @@
           >
             <IconifyIconOnline icon="ri:toggle-line" class="mr-1" />
             一键关闭
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </template>
@@ -43,45 +43,45 @@
       <div class="config-container">
         <!-- 左侧导航 -->
         <div class="config-nav">
-          <ScMenu
+          <el-menu
             v-model="activeSection"
             mode="vertical"
             class="config-menu"
             @select="handleSectionChange"
           >
-            <ScMenuItem index="connection">
+            <el-menu-item index="connection">
               <IconifyIconOnline icon="ri:link" />
               <span>连接配置</span>
-            </ScMenuItem>
-            <ScMenuItem index="monitor">
+            </el-menu-item>
+            <el-menu-item index="monitor">
               <IconifyIconOnline icon="ri:eye-line" />
               <span>监控配置</span>
-            </ScMenuItem>
-            <ScMenuItem index="alert">
+            </el-menu-item>
+            <el-menu-item index="alert">
               <IconifyIconOnline icon="ri:alarm-warning-line" />
               <span>告警配置</span>
-            </ScMenuItem>
-            <ScMenuItem index="docker">
+            </el-menu-item>
+            <el-menu-item index="docker">
               <IconifyIconOnline icon="simple-icons:docker" />
               <span>Docker</span>
-            </ScMenuItem>
-            <ScMenuItem index="filemanagement">
+            </el-menu-item>
+            <el-menu-item index="filemanagement">
               <IconifyIconOnline icon="ri:folder-line" />
               <span>文件管理</span>
-            </ScMenuItem>
-            <ScMenuItem index="advanced">
+            </el-menu-item>
+            <el-menu-item index="advanced">
               <IconifyIconOnline icon="ri:tools-line" />
               <span>高级配置</span>
-            </ScMenuItem>
-            <ScMenuItem index="tasks">
+            </el-menu-item>
+            <el-menu-item index="tasks">
               <IconifyIconOnline icon="ri:plug-line" />
               <span>端口配置</span>
-            </ScMenuItem>
-            <ScMenuItem index="history">
+            </el-menu-item>
+            <el-menu-item index="history">
               <IconifyIconOnline icon="ri:history-line" />
               <span>配置历史</span>
-            </ScMenuItem>
-          </ScMenu>
+            </el-menu-item>
+          </el-menu>
         </div>
 
         <!-- 右侧配置内容 -->
@@ -103,7 +103,7 @@
             element-loading-text="加载配置中..."
             class="form-container"
           >
-            <ScForm
+            <el-form
               ref="formRef"
               :model="settingData"
               label-width="140px"
@@ -116,16 +116,16 @@
                 v-show="activeSection === 'connection'"
                 class="config-section"
               >
-                <ScFormItem label="连接模式">
-                  <ScRadioGroup v-model="connectionMode">
+                <el-form-item label="连接模式">
+                  <el-radio-group v-model="connectionMode">
                     <el-radio-button label="SSH">SSH</el-radio-button>
                     <el-radio-button label="REMOTE">远程桌面</el-radio-button>
                     <el-radio-button label="GUACAMOLE"
                       >Guacamole</el-radio-button
                     >
                     <el-radio-button label="VNC">VNC</el-radio-button>
-                  </ScRadioGroup>
-                </ScFormItem>
+                  </el-radio-group>
+                </el-form-item>
 
                 <div
                   v-show="
@@ -144,10 +144,10 @@
                   v-show="connectionMode === 'SSH'"
                   class="sub-config-section"
                 >
-                  <ScRow :gutter="20">
-                    <ScCol :span="10">
-                      <ScFormItem label="SSH 端口">
-                        <ScInputNumber
+                  <el-row :gutter="20">
+                    <el-col :span="10">
+                      <el-form-item label="SSH 端口">
+                        <el-input-number
                           v-model="
                             settingData.monitorSysGenServerSettingSshPort
                           "
@@ -158,9 +158,9 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </ScFormItem>
-                    </ScCol>
-                  </ScRow>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
                 </div>
 
                 <!-- 远程桌面配置（REMOTE 模式） -->
@@ -175,10 +175,10 @@
                       Agent（默认端口 8899）。</span
                     >
                   </div>
-                  <ScRow :gutter="20">
-                    <ScCol :span="10">
-                      <ScFormItem label="Agent 端口">
-                        <ScInputNumber
+                  <el-row :gutter="20">
+                    <el-col :span="10">
+                      <el-form-item label="Agent 端口">
+                        <el-input-number
                           v-model="
                             settingData.monitorSysGenServerSettingRemotePort
                           "
@@ -189,9 +189,9 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </ScFormItem>
-                    </ScCol>
-                  </ScRow>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
                 </div>
 
                 <!-- Guacamole 代理配置（GUACAMOLE/VNC 时需要） -->
@@ -199,14 +199,14 @@
                   v-show="['GUACAMOLE', 'VNC'].includes(connectionMode)"
                   class="sub-config-section"
                 >
-                  <ScRow :gutter="20">
-                    <ScCol :span="10">
-                      <ScFormItem
+                  <el-row :gutter="20">
+                    <el-col :span="10">
+                      <el-form-item
                         :label="
                           connectionMode === 'VNC' ? 'VNC 端口' : '连接端口'
                         "
                       >
-                        <ScInputNumber
+                        <el-input-number
                           v-model="
                             settingData.monitorSysGenServerSettingVncPort
                           "
@@ -219,24 +219,113 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </ScFormItem>
-                    </ScCol>
-                  </ScRow>
-                  <ScRow :gutter="20">
-                    <ScCol :span="14">
-                      <ScFormItem label="Guacd 地址">
-                        <ScInput
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <div class="config-tip is-neutral">
+                    <IconifyIconOnline icon="ri:share-forward-line" />
+                    <span
+                      >优先选择独立代理实例；未选择时继续使用手工填写的 Guacd
+                      地址和端口作为兼容兜底。</span
+                    >
+                  </div>
+                  <el-row :gutter="20">
+                    <el-col :span="24">
+                      <el-form-item>
+                        <template #label>
+                          <div class="form-label-with-action">
+                            <span>代理实例</span>
+                            <el-button
+                              link
+                              type="primary"
+                              :loading="loadingProxyServers"
+                              @click.stop="loadProxyServerOptions"
+                            >
+                              刷新
+                            </el-button>
+                          </div>
+                        </template>
+                        <el-select
+                          v-model="
+                            settingData.monitorSysGenServerSettingProxyInstanceId
+                          "
+                          class="proxy-instance-select"
+                          filterable
+                          clearable
+                          :loading="loadingProxyServers"
+                          placeholder="优先选择 Guacamole 代理实例"
+                        >
+                          <el-option
+                            v-for="proxyServer in proxyServerOptions"
+                            :key="proxyServer.systemServerId"
+                            :label="getProxyServerOptionLabel(proxyServer)"
+                            :value="proxyServer.systemServerId"
+                          >
+                            <div class="proxy-option">
+                              <div class="proxy-option__main">
+                                <span class="proxy-option__name">
+                                  {{ proxyServer.systemServerName }}
+                                </span>
+                                <span class="proxy-option__meta">
+                                  {{ proxyServer.systemServerHost }}:{{
+                                    proxyServer.systemServerPort
+                                  }}
+                                  <template
+                                    v-if="proxyServer.systemServerContextPath"
+                                  >
+                                    · {{ proxyServer.systemServerContextPath }}
+                                  </template>
+                                </span>
+                              </div>
+                              <el-tag
+                                :type="
+                                  getProxyServerStatusTagType(
+                                    proxyServer.systemServerStatus,
+                                  )
+                                "
+                                size="small"
+                                effect="plain"
+                              >
+                                {{
+                                  getProxyServerStatusText(
+                                    proxyServer.systemServerStatus,
+                                  )
+                                }}
+                              </el-tag>
+                            </div>
+                          </el-option>
+                        </el-select>
+                        <div class="field-helper-text">
+                          保存时会同时提交代理实例 ID 和旧的 host/port
+                          字段，后端按新字段优先、旧字段兼容回退。
+                        </div>
+                        <div
+                          v-if="
+                            settingData.monitorSysGenServerSettingProxyInstanceId &&
+                            !hasSelectedProxyInstance
+                          "
+                          class="field-helper-text is-warning"
+                        >
+                          当前绑定的代理实例未出现在列表中，保存前请确认该实例仍然可用。
+                        </div>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+                  <el-row :gutter="20">
+                    <el-col :span="14">
+                      <el-form-item label="Guacd 地址">
+                        <el-input
                           v-model="
                             settingData.monitorSysGenServerSettingProxyHost
                           "
                           placeholder="guacd 主机名或IP"
                           @change="handleSettingChange"
                         />
-                      </ScFormItem>
-                    </ScCol>
-                    <ScCol :span="10">
-                      <ScFormItem label="Guacd 端口">
-                        <ScInputNumber
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="10">
+                      <el-form-item label="Guacd 端口">
+                        <el-input-number
                           v-model="
                             settingData.monitorSysGenServerSettingProxyPort
                           "
@@ -247,9 +336,9 @@
                           style="width: 100%"
                           @change="handleSettingChange"
                         />
-                      </ScFormItem>
-                    </ScCol>
-                  </ScRow>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
                 </div>
               </div>
 
@@ -339,7 +428,7 @@
                   @restored="handleHistoryRestored"
                 />
               </div>
-            </ScForm>
+            </el-form>
           </div>
         </div>
       </div>
@@ -347,15 +436,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="visible = false">关闭</ScButton>
-        <ScButton
+        <el-button @click="visible = false">关闭</el-button>
+        <el-button
           v-if="activeSection !== 'history'"
           type="primary"
           :loading="saving"
           @click="handleSave"
         >
           保存配置
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -363,6 +452,7 @@
 
 <script setup lang="ts">
 import { getServerInfo, type ServerInfo, updateServer } from "@/api/server";
+import { getSystemServerPage, type SystemServer } from "@/api/system-server";
 import {
   getServerSettingByServerId,
   saveOrUpdateServerSetting,
@@ -370,7 +460,7 @@ import {
 } from "@/api/server/setting";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { defineAsyncComponent, ref } from "vue";
+import { computed, defineAsyncComponent, ref } from "vue";
 
 // 异步组件
 const ServerSettingForm = defineAsyncComponent(
@@ -390,10 +480,12 @@ const visible = ref(false);
 const loading = ref(false);
 const saving = ref(false);
 const loadingSettings = ref(false);
+const loadingProxyServers = ref(false);
 const activeSection = ref("connection");
 // 当前连接模式（SSH/RDP/VNC/GUACAMOLE）
 const connectionMode = ref("SSH");
 const formRef = ref();
+const proxyServerOptions = ref<SystemServer[]>([]);
 
 // 服务器ID
 const serverId = ref<number | null>(null);
@@ -404,50 +496,96 @@ const currentServer = ref<ServerInfo | null>(null);
 // 服务器设置数据
 const settingData = ref<Partial<ServerSetting>>({});
 
-// 表单验证规则
-const validationRules = {
-  proxy: {
-    monitorSysGenServerSettingProxyHost: [
-      { required: true, message: "请输入代理服务器地址", trigger: "blur" },
-      {
-        pattern: /^[a-zA-Z0-9.-]+$/,
-        message: "请输入有效的主机地址",
-        trigger: "blur",
-      },
-    ],
-    monitorSysGenServerSettingProxyPort: [
-      { required: true, message: "请输入代理端口", trigger: "blur" },
-      {
-        type: "number",
-        min: 1,
-        max: 65535,
-        message: "端口范围为1-65535",
-        trigger: "blur",
-      },
-    ],
-  },
-  metrics: {
-    monitorSysGenServerSettingDataCollectionFrequency: [
-      { required: true, message: "请设置收集频率", trigger: "blur" },
-      {
-        type: "number",
-        min: 10,
-        max: 3600,
-        message: "收集频率范围为10-3600秒",
-        trigger: "blur",
-      },
-    ],
-    monitorSysGenServerSettingMetricsRetentionDays: [
-      { required: true, message: "请设置数据保留天数", trigger: "blur" },
-      {
-        type: "number",
-        min: 1,
-        max: 365,
-        message: "保留天数范围为1-365天",
-        trigger: "blur",
-      },
-    ],
-  },
+const PROXY_SERVER_TYPE = "GUACAMOLE";
+const PROXY_SERVER_STATUS_TEXT = {
+  RUNNING: "运行中",
+  STARTING: "启动中",
+  STOPPING: "停止中",
+  STOPPED: "已停止",
+  ERROR: "异常",
+} as const;
+const PROXY_SERVER_STATUS_TAG = {
+  RUNNING: "success",
+  STARTING: "warning",
+  STOPPING: "warning",
+  STOPPED: "info",
+  ERROR: "danger",
+} as const;
+
+const hasSelectedProxyInstance = computed(() => {
+  const selectedId =
+    settingData.value.monitorSysGenServerSettingProxyInstanceId;
+  return proxyServerOptions.value.some(
+    (server) => server.systemServerId === selectedId,
+  );
+});
+
+const createDefaultSettingData = (): Partial<ServerSetting> => ({
+  monitorSysGenServerId: serverId.value ?? undefined,
+  monitorSysGenServerSettingProxyEnabled: 0,
+  monitorSysGenServerSettingProxyInstanceId: undefined,
+  monitorSysGenServerSettingMonitorEnabled: 1,
+  monitorSysGenServerSettingDataCollectionFrequency: 60,
+  monitorSysGenServerSettingMetricsRetentionDays: 30,
+});
+
+const getProxyServerStatusWeight = (status?: string) => {
+  switch (status) {
+    case "RUNNING":
+      return 0;
+    case "STARTING":
+      return 1;
+    case "STOPPING":
+      return 2;
+    case "STOPPED":
+      return 3;
+    case "ERROR":
+      return 4;
+    default:
+      return 5;
+  }
+};
+
+const getProxyServerStatusText = (status?: string) =>
+  PROXY_SERVER_STATUS_TEXT[status as keyof typeof PROXY_SERVER_STATUS_TEXT] ||
+  "未知";
+
+const getProxyServerStatusTagType = (status?: string) =>
+  PROXY_SERVER_STATUS_TAG[status as keyof typeof PROXY_SERVER_STATUS_TAG] ||
+  "info";
+
+const getProxyServerOptionLabel = (server: SystemServer) =>
+  `${server.systemServerName} (${server.systemServerHost}:${server.systemServerPort})`;
+
+const loadProxyServerOptions = async () => {
+  loadingProxyServers.value = true;
+  try {
+    const result = await getSystemServerPage({
+      current: 1,
+      size: 200,
+      serverType: PROXY_SERVER_TYPE,
+    });
+
+    const records = Array.isArray(result?.data?.records)
+      ? result.data.records
+      : [];
+
+    proxyServerOptions.value = records
+      .filter(
+        (server) =>
+          (server.systemServerType || "").toUpperCase() === PROXY_SERVER_TYPE,
+      )
+      .sort(
+        (left, right) =>
+          getProxyServerStatusWeight(left.systemServerStatus) -
+          getProxyServerStatusWeight(right.systemServerStatus),
+      );
+  } catch (error) {
+    console.error("加载代理实例失败:", error);
+    proxyServerOptions.value = [];
+  } finally {
+    loadingProxyServers.value = false;
+  }
 };
 
 /**
@@ -512,12 +650,12 @@ const handleSectionChange = (section: string) => {
 /**
  * 处理历史配置恢复
  */
-const handleHistoryRestored = (historyId: number) => {
+const handleHistoryRestored = () => {
   message.success("配置已从历史记录恢复");
   // 重新加载当前配置
-  loadServerSetting();
+  void loadServerSetting();
   // 切换到相应的配置节以查看恢复的配置
-  activeSection.value = "proxy";
+  activeSection.value = "connection";
 };
 
 /**
@@ -581,54 +719,6 @@ const handleDisableAllSwitches = async () => {
  */
 const handleReset = () => {
   loadServerData();
-};
-
-/**
- * 验证当前配置节的数据
- */
-const validateCurrentSection = () => {
-  const currentRules =
-    validationRules[activeSection.value as keyof typeof validationRules];
-  if (!currentRules) return true;
-
-  // 特殊处理代理配置节 - 只有在启用代理时才进行校验
-  if (activeSection.value === "proxy") {
-    const proxyEnabled =
-      settingData.value.monitorSysGenServerSettingProxyEnabled;
-    if (!proxyEnabled || proxyEnabled === 0) {
-      // 代理未启用，跳过代理参数校验
-      return true;
-    }
-  }
-
-  for (const [field, rules] of Object.entries(currentRules)) {
-    const value = settingData.value[field as keyof ServerSetting];
-
-    for (const rule of rules as any[]) {
-      if (rule.required && !value && value !== 0) {
-        message.error(rule.message);
-        return false;
-      }
-
-      if (rule.type === "number" && value !== undefined) {
-        if (rule.min !== undefined && value < rule.min) {
-          message.error(rule.message);
-          return false;
-        }
-        if (rule.max !== undefined && value > rule.max) {
-          message.error(rule.message);
-          return false;
-        }
-      }
-
-      if (rule.pattern && value && !rule.pattern.test(String(value))) {
-        message.error(rule.message);
-        return false;
-      }
-    }
-  }
-
-  return true;
 };
 
 /**
@@ -708,32 +798,25 @@ const loadServerInfo = async () => {
 const loadServerSetting = async () => {
   if (!serverId.value) return;
 
+  const defaultSettingData = createDefaultSettingData();
+
   try {
     loadingSettings.value = true;
     const result = await getServerSettingByServerId(serverId.value);
     if (result.code === "00000" && result.data) {
-      settingData.value = result.data;
+      settingData.value = {
+        ...defaultSettingData,
+        ...result.data,
+      };
     } else {
       // 如果没有设置数据，初始化默认值
-      settingData.value = {
-        monitorSysGenServerId: serverId.value,
-        monitorSysGenServerSettingProxyEnabled: 0,
-        monitorSysGenServerSettingMonitorEnabled: 1,
-        monitorSysGenServerSettingDataCollectionFrequency: 60,
-        monitorSysGenServerSettingMetricsRetentionDays: 30,
-      };
+      settingData.value = defaultSettingData;
     }
   } catch (error) {
     console.error("加载服务器设置失败:", error);
     message.error("加载服务器设置失败");
     // 设置默认值
-    settingData.value = {
-      monitorSysGenServerId: serverId.value,
-      monitorSysGenServerSettingProxyEnabled: 0,
-      monitorSysGenServerSettingMonitorEnabled: 1,
-      monitorSysGenServerSettingDataCollectionFrequency: 60,
-      monitorSysGenServerSettingMetricsRetentionDays: 30,
-    };
+    settingData.value = defaultSettingData;
   } finally {
     loadingSettings.value = false;
   }
@@ -750,7 +833,11 @@ const loadServerData = async () => {
 
   loading.value = true;
   try {
-    await Promise.all([loadServerInfo(), loadServerSetting()]);
+    await Promise.all([
+      loadServerInfo(),
+      loadServerSetting(),
+      loadProxyServerOptions(),
+    ]);
   } finally {
     loading.value = false;
   }
@@ -959,6 +1046,18 @@ defineExpose({
   }
 }
 
+.sub-config-section {
+  margin-top: 16px;
+  padding: 20px 20px 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    var(--el-fill-color-extra-light) 0%,
+    var(--el-bg-color) 100%
+  );
+}
+
 .config-tip {
   display: flex;
   align-items: center;
@@ -975,6 +1074,61 @@ defineExpose({
     font-size: 18px;
     flex-shrink: 0;
   }
+}
+
+.config-tip.is-neutral {
+  margin-bottom: 16px;
+  background: var(--el-fill-color-extra-light);
+  border-color: var(--el-border-color-light);
+  color: var(--el-text-color-regular);
+}
+
+.form-label-with-action {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.proxy-instance-select {
+  width: 100%;
+}
+
+.proxy-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.proxy-option__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.proxy-option__name {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.proxy-option__meta {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+}
+
+.field-helper-text {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.field-helper-text.is-warning {
+  color: var(--el-color-warning);
 }
 
 // 菜单项样式

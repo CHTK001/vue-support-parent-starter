@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <sc-dialog
       draggable
@@ -14,8 +14,7 @@
           <ScTableColumn prop="sysDeviceCode" label="状态">
             <template #default="{ row }">
               <ScTag v-if="row.sysDeviceCode === 'SUCCESS'" type="success"
-                >成功</ScTag
-              >
+                >成功</ScTag>
               <ScTag v-else type="danger">失败</ScTag>
             </template>
           </ScTableColumn>

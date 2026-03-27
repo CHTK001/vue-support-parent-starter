@@ -5,7 +5,7 @@
  * @version 3.0.0
  */
 import { App } from "vue";
-import ScHeader from "./src/index.vue";
+import ScHeader from "./index.vue";
 
 export { ScHeader };
 

@@ -7,7 +7,9 @@
  */
 import { ref, onMounted, computed } from "vue";
 import { useWeatherStore } from "@repo/core";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { ScEcharts } from "@repo/components/ScEcharts";
+import { ScDialog } from "@repo/components/ScDialog";
 const weatherStore = useWeatherStore;
 const loading = ref(true);
 const dialogVisible = ref(false);

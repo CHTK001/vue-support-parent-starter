@@ -135,8 +135,7 @@ const props = withDefaults(defineProps<{
         <span
           class="setting-label"
           style="font-size: 14px; display: block; margin-bottom: 8px"
-          >动画方向</span
-        >
+          >动画方向</span>
         <ScSelect
           :model-value="settings.themeAnimationDirection"
           layout="position"

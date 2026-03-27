@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { fetchUploadFile } from "@/api/manage/upload";
 import {
   fetchBindService,
@@ -6,7 +6,7 @@ import {
   fetchUpdateService,
 } from "@/api/service/service";
 import { getRandomIntBelow, message } from "@repo/utils";
-import { defineExpose, shallowRef, reactive } from "vue";
+import { shallowRef, reactive } from "vue";
 
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();

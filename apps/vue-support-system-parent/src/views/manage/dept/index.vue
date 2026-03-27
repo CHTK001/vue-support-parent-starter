@@ -1,7 +1,5 @@
 <script setup>
 // 导入部门管理相关的API请求函数
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import {
   fetchDeleteDept,
   fetchListDept,
@@ -12,6 +10,8 @@ import { debounce } from "@pureadmin/utils";
 // 导入时间处理工具函数
 import { getTimeAgo } from "@repo/utils";
 // 导入渲染图标的钩子函数
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+
 // 导入路由实例
 import { router } from "@repo/core";
 // 导入Base64编码库
@@ -336,8 +336,7 @@ onMounted(async () => {
                           type="info"
                           effect="light"
                           class="ml-2"
-                          >排序: {{ row.sysDeptSort }}</ScTag
-                        >
+                          >排序: {{ row.sysDeptSort }}</ScTag>
                       </div>
                       <div class="dept-code">{{ row.sysDeptCode }}</div>
                     </div>
@@ -384,6 +383,7 @@ onMounted(async () => {
                     :active-value="0"
                     :inactive-value="1"
                     style="
+
                       --el-switch-on-color: #13ce66;
                       --el-switch-off-color: #ff4949;
                     "

@@ -1,6 +1,6 @@
 <script setup>
 // 导入API和响应式API
-import { fetchToolPhantom } from "@/api/monitor/tools";
+import { fetchToolPhantom } from "@pages/tools";
 import { ref } from "vue";
 
 // 响应式数据定义

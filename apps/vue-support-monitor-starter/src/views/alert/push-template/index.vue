@@ -1,36 +1,14 @@
 ﻿<template>
   <div class="page-container system-container modern-bg">
     <div class="toolbar">
-      <ScInput
-        v-model="search.keyword"
-        placeholder="模板名称/通道"
-        clearable
-        style="width: 240px"
-      />
-      <ScSelect
-        v-model="search.channel"
-        placeholder="通道"
-        clearable
-        style="width: 180px; margin-left: 12px"
-      >
-        <ScOption
-          v-for="item in channels"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        />
-      </ScSelect>
-      <ScSwitch
-        v-model="search.enabled"
-        active-text="启用"
-        inactive-text="停用"
-        style="margin-left: 12px"
-      />
-      <ScButton type="primary" style="margin-left: 12px" @click="handleSearch"
-        >查询</ScButton
-      >
-      <ScButton @click="handleReset">重置</ScButton>
-      <ScButton type="success" @click="openEdit()">新增模板</ScButton>
+      <el-input v-model="search.keyword" placeholder="模板名称/通道" clearable style="width: 240px" />
+      <el-select v-model="search.channel" placeholder="通道" clearable style="width: 180px; margin-left: 12px">
+        <el-option v-for="item in channels" :key="item.value" :label="item.label" :value="item.value" />
+      </el-select>
+      <el-switch v-model="search.enabled" active-text="启用" inactive-text="停用" style="margin-left: 12px" />
+      <el-button type="primary" @click="handleSearch" style="margin-left: 12px">查询</el-button>
+      <el-button @click="handleReset">重置</el-button>
+      <el-button type="success" @click="openEdit()">新增模板</el-button>
     </div>
 
     <data-table
@@ -55,108 +33,56 @@
       "
     >
       <template #actions="{ row }">
-        <ScButton type="primary" link @click="openEdit(row)">编辑</ScButton>
-        <ScDivider direction="vertical" />
-        <ScButton type="warning" link @click="handleTest(row)"
-          >测试发送</ScButton
-        >
-        <ScDivider direction="vertical" />
-        <ScPopconfirm title="确认删除该模板？" @confirm="handleDelete(row)">
+        <el-button type="primary" link @click="openEdit(row)">编辑</el-button>
+        <el-divider direction="vertical" />
+        <el-button type="warning" link @click="handleTest(row)">测试发送</el-button>
+        <el-divider direction="vertical" />
+        <el-popconfirm title="确认删除该模板？" @confirm="handleDelete(row)">
           <template #reference>
-            <ScButton type="danger" link>删除</ScButton>
+            <el-button type="danger" link>删除</el-button>
           </template>
-        </ScPopconfirm>
+        </el-popconfirm>
       </template>
     </data-table>
 
-    <sc-dialog
-      v-model="edit.visible"
-      :title="
-        edit.form.monitorSysGenMessagePushTemplateId ? '编辑模板' : '新增模板'
-      "
-      width="680px"
-    >
-      <ScForm
-        ref="formRef"
-        :model="edit.form"
-        :rules="rules"
-        label-width="120px"
-      >
-        <ScFormItem
-          label="模板名称"
-          prop="monitorSysGenMessagePushTemplateName"
-        >
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplateName"
-            placeholder="请输入模板名称"
-          />
-        </ScFormItem>
-        <ScFormItem
-          label="通道"
-          prop="monitorSysGenMessagePushTemplateChannel"
-        >
-          <ScSelect
-            v-model="edit.form.monitorSysGenMessagePushTemplateChannel"
-            placeholder="请选择通道"
-          >
-            <ScOption
-              v-for="item in channels"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </ScSelect>
-        </ScFormItem>
-        <ScFormItem label="启用">
-          <ScSwitch
-            v-model="edit.form.monitorSysGenMessagePushTemplateEnabled"
-          />
-        </ScFormItem>
-        <ScFormItem label="Endpoint/Webhook">
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplateEndpoint"
-            placeholder="https://... 或 邮箱/手机号等"
-          />
-        </ScFormItem>
-        <ScFormItem label="主账号">
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplateMainAccount"
-          />
-        </ScFormItem>
-        <ScFormItem label="用户名">
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplateUsername"
-          />
-        </ScFormItem>
-        <ScFormItem label="密码">
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplatePassword"
-            type="password"
-            show-password
-          />
-        </ScFormItem>
-        <ScFormItem label="Token/密钥">
-          <ScInput v-model="edit.form.monitorSysGenMessagePushTemplateToken" />
-        </ScFormItem>
-        <ScFormItem label="扩展参数(JSON)">
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplateExtra"
-            type="textarea"
-            :rows="3"
-            placeholder='{"key":"value"}'
-          />
-        </ScFormItem>
-        <ScFormItem label="备注">
-          <ScInput
-            v-model="edit.form.monitorSysGenMessagePushTemplateRemark"
-            type="textarea"
-            :rows="2"
-          />
-        </ScFormItem>
-      </ScForm>
+    <sc-dialog v-model="edit.visible" :title="edit.form.monitorSysGenMessagePushTemplateId ? '编辑模板' : '新增模板'" width="680px">
+      <el-form :model="edit.form" :rules="rules" ref="formRef" label-width="120px">
+        <el-form-item label="模板名称" prop="monitorSysGenMessagePushTemplateName">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateName" placeholder="请输入模板名称" />
+        </el-form-item>
+        <el-form-item label="通道" prop="monitorSysGenMessagePushTemplateChannel">
+          <el-select v-model="edit.form.monitorSysGenMessagePushTemplateChannel" placeholder="请选择通道">
+            <el-option v-for="item in channels" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="启用">
+          <el-switch v-model="edit.form.monitorSysGenMessagePushTemplateEnabled" />
+        </el-form-item>
+        <el-form-item label="Endpoint/Webhook">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateEndpoint" placeholder="https://... 或 邮箱/手机号等" />
+        </el-form-item>
+        <el-form-item label="主账号">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateMainAccount" />
+        </el-form-item>
+        <el-form-item label="用户名">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateUsername" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplatePassword" type="password" show-password />
+        </el-form-item>
+        <el-form-item label="Token/密钥">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateToken" />
+        </el-form-item>
+        <el-form-item label="扩展参数(JSON)">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateExtra" type="textarea" :rows="3" placeholder='{"key":"value"}' />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="edit.form.monitorSysGenMessagePushTemplateRemark" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <ScButton @click="edit.visible = false">取消</ScButton>
-        <ScButton type="primary" @click="handleSave">保存</ScButton>
+        <el-button @click="edit.visible = false">取消</el-button>
+        <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
     </sc-dialog>
   </div>
@@ -166,11 +92,11 @@
 import { ref, reactive, onMounted } from "vue";
 import DataTable from "@/components/common/DataTable.vue";
 import {
+  fetchAlertPushTemplateDelete,
   fetchAlertPushTemplatePage,
   fetchAlertPushTemplateSave,
-  fetchAlertPushTemplateDelete,
   fetchAlertPushTemplateTestSend,
-} from "@/api/monitor/alert-push";
+} from "@pages/email";
 import { message } from "@repo/utils";
 
 const tableRef = ref();
@@ -180,7 +106,7 @@ const pagination = reactive({ page: 1, pageSize: 10, total: 0 });
 const search = reactive({
   keyword: "",
   channel: "",
-  enabled: undefined as any,
+  enabled: undefined as any
 });
 
 const channels = [
@@ -188,7 +114,7 @@ const channels = [
   { label: "Email", value: "EMAIL" },
   { label: "钉钉", value: "DINGTALK" },
   { label: "企业微信", value: "WECHAT" },
-  { label: "短信", value: "SMS" },
+  { label: "短信", value: "SMS" }
 ];
 
 const columns = [
@@ -196,41 +122,33 @@ const columns = [
   {
     prop: "monitorSysGenMessagePushTemplateChannel",
     label: "通道",
-    formatter: (_: any, row: any) =>
-      channelLabel(row.monitorSysGenMessagePushTemplateChannel),
+    formatter: (_: any, row: any) => channelLabel(row.monitorSysGenMessagePushTemplateChannel)
   },
   {
     prop: "monitorSysGenMessagePushTemplateEnabled",
     label: "启用",
-    formatter: (_: any, row: any) =>
-      row.monitorSysGenMessagePushTemplateEnabled ? "是" : "否",
+    formatter: (_: any, row: any) => (row.monitorSysGenMessagePushTemplateEnabled ? "是" : "否")
   },
   {
     prop: "monitorSysGenMessagePushTemplateEndpoint",
-    label: "Endpoint/Webhook",
+    label: "Endpoint/Webhook"
   },
   { prop: "monitorSysGenMessagePushTemplateMainAccount", label: "主账号" },
   { prop: "monitorSysGenMessagePushTemplateUsername", label: "用户名" },
   { prop: "monitorSysGenMessagePushTemplateRemark", label: "备注" },
-  { prop: "actions", label: "操作" },
+  { prop: "actions", label: "操作" }
 ];
 
 const edit = reactive({ visible: false, form: {} as any });
 const formRef = ref();
 const rules = {
-  monitorSysGenMessagePushTemplateName: [
-    { required: true, message: "请输入模板名称", trigger: "blur" },
-  ],
-  monitorSysGenMessagePushTemplateChannel: [
-    { required: true, message: "请选择通道", trigger: "change" },
-  ],
+  monitorSysGenMessagePushTemplateName: [{ required: true, message: "请输入模板名称", trigger: "blur" }],
+  monitorSysGenMessagePushTemplateChannel: [{ required: true, message: "请选择通道", trigger: "change" }]
 };
 
 function openEdit(row?: any) {
   edit.visible = true;
-  edit.form = row
-    ? { ...row }
-    : { monitorSysGenMessagePushTemplateEnabled: true };
+  edit.form = row ? { ...row } : { monitorSysGenMessagePushTemplateEnabled: true };
 }
 
 async function handleSave() {
@@ -266,9 +184,7 @@ async function handleSave() {
 async function handleDelete(row: any) {
   try {
     loading.value = true;
-    const res = await fetchAlertPushTemplateDelete(
-      row.monitorSysGenMessagePushTemplateId,
-    );
+    const res = await fetchAlertPushTemplateDelete(row.monitorSysGenMessagePushTemplateId);
     if ((res as any).code === "00000" || (res as any).success) {
       message("删除成功", { type: "success" });
       load();
@@ -297,9 +213,7 @@ function handleReset() {
 
 async function handleTest(row: any) {
   try {
-    const res = await fetchAlertPushTemplateTestSend(
-      row.monitorSysGenMessagePushTemplateId,
-    );
+    const res = await fetchAlertPushTemplateTestSend(row.monitorSysGenMessagePushTemplateId);
     if ((res as any).code === "00000" || (res as any).success) {
       message("测试发送成功", { type: "success" });
     } else {
@@ -318,7 +232,7 @@ async function load() {
       pageSize: pagination.pageSize,
       monitorSysGenMessagePushTemplateName: search.keyword || undefined,
       monitorSysGenMessagePushTemplateChannel: search.channel || undefined,
-      monitorSysGenMessagePushTemplateEnabled: search.enabled,
+      monitorSysGenMessagePushTemplateEnabled: search.enabled
     };
     const res: any = await fetchAlertPushTemplatePage(params);
     if (res && (res.code === "00000" || res.success)) {
@@ -331,7 +245,7 @@ async function load() {
 }
 
 function channelLabel(code: string) {
-  const item = channels.find((c) => c.value === code);
+  const item = channels.find(c => c.value === code);
   return item?.label || code || "";
 }
 
@@ -339,6 +253,7 @@ onMounted(load);
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -372,6 +287,7 @@ onMounted(load);
   }
 }
 
+
 .page-container {
   padding: 16px;
 }
@@ -382,6 +298,7 @@ onMounted(load);
   margin-bottom: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -390,4 +307,5 @@ onMounted(load);
     padding: 12px 16px;
   }
 }
+
 </style>

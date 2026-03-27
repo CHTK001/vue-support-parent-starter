@@ -181,14 +181,15 @@
           </div>
           <div class="layout-name">
             {{ layout.label }}
-            <ScTag 
+            <ScTag
               v-if="selectedLayout === layout.value"
               size="small"
               effect="dark"
               type="success"
               class="active-tag"
-              >当前选中</ScTag
             >
+              当前选中
+            </ScTag>
           </div>
         </div>
       </div>
@@ -212,11 +213,11 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import CodePreview from "./CodePreview.vue";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
+import ScLoading from "@repo/components/ScLoading/index.vue";
 import { computed, onUnmounted, ref } from "vue";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 加载组件引用
 const loadingRef = ref(null);
@@ -374,7 +375,8 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
+import ScLoading from "@repo/components/ScLoading/index.vue";
+
 const loadingRef = ref(null);
 const loadingVisible = ref(false);
 

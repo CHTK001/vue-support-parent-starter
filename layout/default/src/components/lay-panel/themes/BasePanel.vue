@@ -5,6 +5,8 @@ import { onClickOutside, useStorage } from "@vueuse/core";
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 import CloseIcon from "@iconify-icons/ep/close";
+import ScScrollbar from "@repo/components/ScScrollbar";
+import ScButton from "@repo/components/ScButton";
 
 const target = ref(null);
 
@@ -104,6 +106,8 @@ onBeforeUnmount(() => {
           <slot />
         </ScScrollbar>
 
+        <div class="panel-footer">
+          <ScButton
             v-tippy="{
               content: t('panel.pureClearCacheAndToLogin'),
               placement: 'left-start',
@@ -172,6 +176,12 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
+}
+
+.panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px 20px;
 }
 
 .bg-bg_color {

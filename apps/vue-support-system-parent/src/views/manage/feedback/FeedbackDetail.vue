@@ -1,6 +1,5 @@
-﻿<script setup>
+<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon";
-
 import { ref, reactive } from "vue";
 
 const emit = defineEmits(["close"]);
@@ -100,8 +99,7 @@ defineExpose({
           </ScDescriptionsItem>
           <ScDescriptionsItem label="反馈状态">
             <ScTag v-if="feedbackData.sysFeedbackStatus === 1" type="success"
-              >已处理</ScTag
-            >
+              >已处理</ScTag>
             <ScTag v-else type="warning">待处理</ScTag>
           </ScDescriptionsItem>
           <ScDescriptionsItem label="反馈人">

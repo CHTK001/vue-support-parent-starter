@@ -1,9 +1,9 @@
-﻿<template>
+<template>
   <div class="project-workspace system-container modern-bg">
     <div class="modern-workspace">
       <div class="project-dashboard">
-        <ScContainer class="dashboard-container">
-          <ScMain class="dashboard-main">
+        <el-container class="dashboard-container">
+          <el-main class="dashboard-main">
             <div class="content-wrapper">
               <ScTable
                 ref="tableRef"
@@ -27,7 +27,7 @@
                     <div class="card-header">
                       <div class="project-image">
                         <div class="image-container">
-                          <ScImage 
+                          <ScImage
                             :src="row?.sysProjectIcon"
                             fit="cover"
                             lazy
@@ -70,8 +70,7 @@
                         </h3>
                         <div class="project-meta">
                           <span class="project-id"
-                            >#{{ row?.sysProjectId || "001" }}</span
-                          >
+                            >#{{ row?.sysProjectId || "001" }}</span>
                           <span class="project-date">{{
                             formatDate(row?.createTime)
                           }}</span>
@@ -96,24 +95,22 @@
                         type="primary"
                         effect="plain"
                         class="project-name-tag"
-                      >
-                        {{ row?.sysProjectName }}
-                      </ScTag>
+                        >{{ row?.sysProjectName }}</ScTag>
                     </div>
                     <div class="project-actions">
                       <template
                         v-for="(item, index) in row?.sysProjectFunction?.split(
-                          ','
+                          ',',
                         ) || []"
                         :key="index"
                       >
-                        <ScTooltip 
+                        <ScTooltip
                           :content="functionMap[item]?.sysDictItemName"
                           placement="top"
                           effect="light"
                           :offset="8"
                         >
-                          <ScButton 
+                          <ScButton
                             v-if="functionMap[item]"
                             type="primary"
                             circle
@@ -132,49 +129,49 @@
                         v-if="row?.sysProjectFunction"
                         class="ml-[1px] z-[100]"
                       >
-                        <ScButton 
+                        <ScButton
                           v-if="row?.source?.length > 0"
                           :icon="useRenderIcon('ri:landscape-ai-fill')"
                           title="设置默认"
                           size="small"
                           @click.stop="handleDefault(row)"
                         />
-                        <ScDropdown
+                        <el-dropdown
                           class="!z-[101] border-right-color"
                           trigger="click"
                           placement="right"
                           @command="handleDropdownCommand"
                         >
-                          <ScButton 
+                          <ScButton
                             :icon="useRenderIcon('ri:more-2-line')"
                             size="small"
                             title="更多"
                             @click.stop
                           />
                           <template #dropdown>
-                            <ScDropdownMenu>
-                              <ScDropdownItem
+                            <el-dropdown-menu>
+                              <el-dropdown-item
                                 v-if="defer(0) && row?.source?.length > 0"
                                 class="h-[32px]"
                                 :icon="useRenderIcon('ri:settings-5-line')"
                               >
-                                <ScDropdown class="z-[100]" placement="right">
+                                <el-dropdown class="z-[100]" placement="right">
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
-                                    <ScDropdownMenu>
-                                      <ScDropdownItem
+                                    <el-dropdown-menu>
+                                      <el-dropdown-item
                                         v-for="(item1, index) in row.source"
                                         :key="index"
                                         @click="handleUpdateDefault(row, item1)"
                                       >
                                         {{ item1.name }}
                                         <span v-if="item1.label">√</span>
-                                      </ScDropdownItem>
-                                    </ScDropdownMenu>
+                                      </el-dropdown-item>
+                                    </el-dropdown-menu>
                                   </template>
-                                </ScDropdown>
-                              </ScDropdownItem>
-                              <ScDropdownItem
+                                </el-dropdown>
+                              </el-dropdown-item>
+                              <el-dropdown-item
                                 v-for="(item1, index) in row.source"
                                 :key="index"
                                 class="h-[32px]"
@@ -185,32 +182,30 @@
                                 <span v-if="item1.name.length < 4">{{
                                   $t("message.manage")
                                 }}</span>
-                              </ScDropdownItem>
-                              <ScDropdownItem
+                              </el-dropdown-item>
+                              <el-dropdown-item
                                 v-if="defer(3)"
                                 class="h-[32px]"
                                 :icon="useRenderIcon('ep:copy-document')"
                                 @click.stop="handleCopy(row, 'save')"
-                                >复制</el-dropdown-item
-                              >
-                              <ScDropdownItem
+                                >复制</el-dropdown-item>
+                              <el-dropdown-item
                                 v-if="defer(2)"
                                 class="h-[32px]"
                                 :icon="useRenderIcon('ri:delete-bin-6-line')"
                                 @click.prevent="handleDelete(row)"
-                                >删除</el-dropdown-item
-                              >
-                            </ScDropdownMenu>
+                                >删除</el-dropdown-item>
+                            </el-dropdown-menu>
                           </template>
-                        </ScDropdown>
+                        </el-dropdown>
                       </el-button-group>
                     </div>
                   </div>
                 </template>
               </ScTable>
             </div>
-          </ScMain>
-        </ScContainer>
+          </el-main>
+        </el-container>
       </div>
     </div>
     <SaveDialog
@@ -238,7 +233,7 @@ import {
 } from "../../api/manage/project";
 import SaveDialog from "./save.vue";
 const DefaultSetting = defineAsyncComponent(
-  () => import("./defaultSetting.vue")
+  () => import("./defaultSetting.vue"),
 );
 const form = reactive({});
 const defer = useDefer(4);
@@ -458,7 +453,7 @@ const handleUpdateDefault = async (row, item1) => {
         (element, _updateData) => {
           deepCopy(element, _updateData);
           element.source = getDefaultValueArr(element);
-        }
+        },
       );
     }
   });
@@ -692,10 +687,10 @@ const handleAfterLoadedData = (row, total) => {
   // 更新项目统计
   projectStats.total = total;
   projectStats.active = row.filter(
-    (item) => item.status !== "completed"
+    (item) => item.status !== "completed",
   ).length;
   projectStats.completed = row.filter(
-    (item) => item.status === "completed"
+    (item) => item.status === "completed",
   ).length;
 
   return row;

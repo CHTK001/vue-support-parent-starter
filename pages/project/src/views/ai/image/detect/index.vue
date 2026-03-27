@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { fileToBase64, localStorageProxy, message } from "@repo/utils";
 import {
   computed,
@@ -12,10 +12,10 @@ import { useRoute } from "vue-router";
 import { fetchFaceDetection } from "../../../../api/ai/face";
 import { fetchListProjectForAiModule } from "../../../../api/manage/project-ai-module";
 const ScLoading = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScLoading/index.vue")
 );
 const ScCompare = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScCompare/index.vue")
 );
 const ModuleDialog = defineAsyncComponent(() => import("../../module.vue"));
 
@@ -148,7 +148,7 @@ const generateDetectionImage = () => {
           face.bbox.x,
           face.bbox.y,
           face.bbox.width,
-          face.bbox.height,
+          face.bbox.height
         );
 
         // 添加标签
@@ -268,9 +268,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="face-detection-container h-full w-full overflow-hidden system-container modern-bg"
-  >
+  <div class="face-detection-container h-full w-full overflow-hidden system-container modern-bg">
     <!-- 背景装饰 -->
     <div class="background-decoration">
       <!-- 动态粒子背景 -->
@@ -301,7 +299,7 @@ onMounted(() => {
     ></ModuleDialog>
 
     <!-- 现代化设置按钮 -->
-    <ScButton
+    <ScButton 
       :icon="useRenderIcon('ep:setting')"
       @click="handleOpenModuleManager"
       class="fixed right-6 top-1/2 transform -translate-y-1/2 z-[99] settings-btn-modern"
@@ -311,13 +309,13 @@ onMounted(() => {
     </ScButton>
 
     <div class="container-wrapper h-full">
-      <ScContainer class="h-full">
-        <ScHeader
+      <el-container class="h-full">
+        <el-header
           class="header-panel h-auto flex w-full items-center justify-between px-8 py-6 mb-2"
         >
           <div class="panel-left mr-6">
             <div class="model-selection-card flex flex-row">
-              <ScForm
+              <ScForm 
                 ref="formRef"
                 :model="form"
                 :rules="rules"
@@ -326,7 +324,7 @@ onMounted(() => {
               >
                 <ScFormItem prop="model" class="mb-0">
                   <div class="flex items-center gap-1 w-full">
-                    <ScSelect
+                    <ScSelect 
                       filterable
                       v-model="form.model"
                       placeholder="请选择人脸检测模型"
@@ -335,7 +333,7 @@ onMounted(() => {
                       class="model-select-modern flex-1"
                       size="large"
                     >
-                      <ScOption
+                      <ScOption 
                         v-for="item in modelList"
                         class="!h-[80px]"
                         :key="item"
@@ -343,14 +341,14 @@ onMounted(() => {
                         :value="item.sysAiModuleCode"
                       >
                         <template #default>
-                          <ScTooltip
+                          <ScTooltip 
                             placement="right"
                             :raw-content="true"
                             :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
                           >
                             <div class="model-option">
                               <div class="model-icon-wrapper">
-                                <ScImage
+                                <ScImage 
                                   :src="item.sysProjectIcon"
                                   fit="scale-down"
                                   class="model-icon"
@@ -378,7 +376,7 @@ onMounted(() => {
                       <template #label="{ label }">
                         <div class="selected-model">
                           <div class="selected-icon-wrapper">
-                            <ScImage
+                            <ScImage 
                               class="selected-icon"
                               :src="modelSelectLabel?.sysProjectIcon"
                             >
@@ -392,7 +390,7 @@ onMounted(() => {
                       </template>
                     </ScSelect>
 
-                    <ScButton
+                    <ScButton 
                       v-if="env.showEdit"
                       class="add-model-btn"
                       :icon="useRenderIcon('ep:plus')"
@@ -408,7 +406,7 @@ onMounted(() => {
 
           <div class="panel-right">
             <div class="action-buttons-group">
-              <ScUpload
+              <ScUpload 
                 :show-file-list="false"
                 :auto-upload="false"
                 accept="image/*"
@@ -427,7 +425,7 @@ onMounted(() => {
                 </template>
               </ScUpload>
 
-              <ScButton
+              <ScButton 
                 v-if="showImageUrl && !detectionImage"
                 class="detect-btn-modern"
                 @click="handleDetection"
@@ -442,7 +440,7 @@ onMounted(() => {
                 </div>
               </ScButton>
 
-              <ScButton
+              <ScButton 
                 v-if="detectionImage"
                 class="reset-btn-modern"
                 @click="
@@ -462,9 +460,9 @@ onMounted(() => {
               </ScButton>
             </div>
           </div>
-        </ScHeader>
+        </el-header>
 
-        <ScMain class="main-content">
+        <el-main class="main-content">
           <div class="content-wrapper">
             <div
               class="image-display-area"
@@ -486,19 +484,19 @@ onMounted(() => {
                 </p>
                 <div class="empty-features">
                   <div class="feature-item">
-                    <ScIcon
+                    <ScIcon 
                       ><component :is="useRenderIcon('ep:check')"
                     /></ScIcon>
                     <span>高精度检测</span>
                   </div>
                   <div class="feature-item">
-                    <ScIcon
+                    <ScIcon 
                       ><component :is="useRenderIcon('ep:check')"
                     /></ScIcon>
                     <span>实时处理</span>
                   </div>
                   <div class="feature-item">
-                    <ScIcon
+                    <ScIcon 
                       ><component :is="useRenderIcon('ep:check')"
                     /></ScIcon>
                     <span>多人脸识别</span>
@@ -509,7 +507,7 @@ onMounted(() => {
               <!-- 图片预览状态 -->
               <div v-else-if="!detectionImage" class="image-preview-container">
                 <div class="image-wrapper">
-                  <ScImage
+                  <ScImage 
                     :src="showImageUrl"
                     class="preview-image"
                     fit="contain"
@@ -519,7 +517,7 @@ onMounted(() => {
                   >
                     <template #error>
                       <div class="image-error">
-                        <ScIcon
+                        <ScIcon 
                           ><component :is="useRenderIcon('ep:picture-filled')"
                         /></ScIcon>
                         <span>图片加载失败</span>
@@ -559,12 +557,12 @@ onMounted(() => {
                       :href="detectionImage"
                       download="face-detection-result.jpg"
                     >
-                      <ScButton
+                      <ScButton 
                         class="action-btn download-action"
                         circle
                         size="large"
                       >
-                        <ScIcon
+                        <ScIcon 
                           ><component :is="useRenderIcon('ep:download')"
                         /></ScIcon>
                       </ScButton>
@@ -572,12 +570,12 @@ onMounted(() => {
                   </ScTooltip>
 
                   <ScTooltip content="分享结果" placement="left">
-                    <ScButton
+                    <ScButton 
                       class="action-btn share-action"
                       circle
                       size="large"
                     >
-                      <ScIcon
+                      <ScIcon 
                         ><component :is="useRenderIcon('ep:share')"
                       /></ScIcon>
                     </ScButton>
@@ -617,8 +615,8 @@ onMounted(() => {
               </div>
             </div>
           </div>
-        </ScMain>
-      </ScContainer>
+        </el-main>
+      </el-container>
     </div>
   </div>
 </template>

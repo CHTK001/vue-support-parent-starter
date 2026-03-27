@@ -30,28 +30,14 @@
           </ScFormItem>
 
           <ScFormItem label="gap 卡片间距">
-            <ScSlider
-              v-model="config.gap"
-              :min="4"
-              :max="24"
-              :step="4"
-              show-stops
-            />
+            <ScSlider v-model="config.gap" :min="4" :max="24" :step="4" show-stops />
           </ScFormItem>
 
           <ScFormItem label="width 卡片宽度">
-            <ScInputNumber
-              v-model="config.widthValue"
-              :min="60"
-              :max="200"
-              :step="10"
-            />
+            <ScInputNumber v-model="config.widthValue" :min="60" :max="200" :step="10" />
           </ScFormItem>
 
-          <ScFormItem
-            v-if="config.layout === 'card'"
-            label="iconPosition 图标位置"
-          >
+          <ScFormItem v-if="config.layout === 'card'" label="iconPosition 图标位置">
             <ScSelect
               v-model="config.iconPosition"
               layout="card"
@@ -72,15 +58,9 @@
             </div>
             <div class="switch-item" v-if="config.multiple">
               <ScTooltip content="多选限制数量" placement="left">
-                <span>limit 限制 ({{ config.limit || "不限" }})</span>
+                <span>limit 限制 ({{ config.limit || '不限' }})</span>
               </ScTooltip>
-              <ScSlider
-                v-model="config.limit"
-                :min="0"
-                :max="10"
-                :step="1"
-                style="width: 100px"
-              />
+              <ScSlider v-model="config.limit" :min="0" :max="10" :step="1" style="width: 100px" />
             </div>
           </div>
         </ScForm>
@@ -112,9 +92,7 @@
             <IconifyIconOnline icon="ri:terminal-box-line" />
             当前值
           </h4>
-          <pre class="result-content">{{
-            JSON.stringify(selectedValue, null, 2)
-          }}</pre>
+          <pre class="result-content">{{ JSON.stringify(selectedValue, null, 2) }}</pre>
         </div>
 
         <div class="code-area">
@@ -131,10 +109,10 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed, watch } from "vue";
-import { ScSelect } from "@repo/components/ScSelect"
-import { ScSelect } from "@repo/components/ScSelect";
+import ScSelect from "@repo/components/ScSelect/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
-import { ScSelect } from "@repo/components/ScSelect";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 布局选项
 const layoutOptions = [
@@ -142,7 +120,7 @@ const layoutOptions = [
   { label: "卡片", value: "card", icon: "ri:checkbox-blank-line" },
   { label: "长条", value: "pill", icon: "ri:capsule-fill" },
   { label: "下拉", value: "dropdown", icon: "ri:arrow-down-s-fill" },
-  { label: "树形", value: "tree", icon: "ri:node-tree" },
+  { label: "树形", value: "tree", icon: "ri:node-tree" }
 ];
 
 // 选项集合选项
@@ -150,13 +128,13 @@ const optionSetOptions = [
   { label: "基础", value: "basic", icon: "ri:list-check" },
   { label: "平台", value: "platform", icon: "ri:tv-line" },
   { label: "主题", value: "theme", icon: "ri:palette-line" },
-  { label: "社交", value: "social", icon: "ri:wechat-line" },
+  { label: "社交", value: "social", icon: "ri:wechat-line" }
 ];
 
 // 图标位置选项
 const iconPositionOptions = [
   { label: "居中", value: "center", icon: "ri:align-center" },
-  { label: "顶部", value: "top", icon: "ri:align-top" },
+  { label: "顶部", value: "top", icon: "ri:align-top" }
 ];
 
 // 配置项
@@ -167,7 +145,7 @@ const config = reactive({
   widthValue: 100,
   iconPosition: "center" as string,
   multiple: false,
-  limit: 0,
+  limit: 0
 });
 
 // 选项数据集
@@ -177,7 +155,7 @@ const basicOptions = [
   { label: "选项三", value: "option3", icon: "ep:setting" },
   { label: "选项四", value: "option4", icon: "ep:user" },
   { label: "选项五", value: "option5", icon: "ep:message" },
-  { label: "选项六", value: "option6", icon: "ep:star" },
+  { label: "选项六", value: "option6", icon: "ep:star" }
 ];
 
 const platformOptions = [
@@ -185,14 +163,14 @@ const platformOptions = [
   { label: "腾讯视频", value: "tencent", icon: "ri:qq-fill" },
   { label: "优酷", value: "youku", icon: "ri:youtube-fill" },
   { label: "芒果TV", value: "mgtv", icon: "ri:netease-cloud-music-fill" },
-  { label: "哔哩哔哩", value: "bilibili", icon: "ri:bilibili-fill" },
+  { label: "哔哩哔哩", value: "bilibili", icon: "ri:bilibili-fill" }
 ];
 
 const themeOptions = [
   { label: "明亮模式", value: "light", icon: "ep:sunny" },
   { label: "暗黑模式", value: "dark", icon: "ep:moon" },
   { label: "蓝色主题", value: "blue", icon: "ep:cold-drink" },
-  { label: "绿色主题", value: "green", icon: "ep:cherry" },
+  { label: "绿色主题", value: "green", icon: "ep:cherry" }
 ];
 
 const socialOptions = [
@@ -200,20 +178,16 @@ const socialOptions = [
   { label: "微博", value: "weibo", icon: "ri:weibo-fill" },
   { label: "QQ", value: "qq", icon: "ri:qq-fill" },
   { label: "抖音", value: "tiktok", icon: "ri:tiktok-fill" },
-  { label: "知乎", value: "zhihu", icon: "ri:zhihu-fill" },
+  { label: "知乎", value: "zhihu", icon: "ri:zhihu-fill" }
 ];
 
 // 当前选项
 const currentOptions = computed(() => {
   switch (config.optionSet) {
-    case "platform":
-      return platformOptions;
-    case "theme":
-      return themeOptions;
-    case "social":
-      return socialOptions;
-    default:
-      return basicOptions;
+    case "platform": return platformOptions;
+    case "theme": return themeOptions;
+    case "social": return socialOptions;
+    default: return basicOptions;
   }
 });
 
@@ -221,24 +195,14 @@ const currentOptions = computed(() => {
 const selectedValue = ref<any>("option1");
 
 // 监听多选模式变化
-watch(
-  () => config.multiple,
-  (val) => {
-    selectedValue.value = val
-      ? [currentOptions.value[0]?.value]
-      : currentOptions.value[0]?.value;
-  },
-);
+watch(() => config.multiple, (val) => {
+  selectedValue.value = val ? [currentOptions.value[0]?.value] : currentOptions.value[0]?.value;
+});
 
 // 监听选项集变化
-watch(
-  () => config.optionSet,
-  () => {
-    selectedValue.value = config.multiple
-      ? [currentOptions.value[0]?.value]
-      : currentOptions.value[0]?.value;
-  },
-);
+watch(() => config.optionSet, () => {
+  selectedValue.value = config.multiple ? [currentOptions.value[0]?.value] : currentOptions.value[0]?.value;
+});
 
 // 处理选中变化
 function handleChange(value: any) {
@@ -251,15 +215,14 @@ const generatedCode = computed(() => {
   const props: string[] = [];
 
   if (config.layout !== "select") props.push(`layout="${config.layout}"`);
-  props.push(':options="options"');
+  props.push(":options=\"options\"");
   if (config.gap !== 8) props.push(`:gap="${config.gap}"`);
   if (config.widthValue !== 100) props.push(`width="${config.widthValue}px"`);
   if (config.layout === "card" && config.iconPosition !== "center") {
     props.push(`icon-position="${config.iconPosition}"`);
   }
   if (config.multiple) props.push("multiple");
-  if (config.multiple && config.limit > 0)
-    props.push(`:limit="${config.limit}"`);
+  if (config.multiple && config.limit > 0) props.push(`:limit="${config.limit}"`);
 
   const propsStr = props.length > 0 ? "\n  " + props.join("\n  ") + "\n" : " ";
 
@@ -272,6 +235,7 @@ const value = ref(${JSON.stringify(selectedValue.value)});
 const options = ${JSON.stringify(currentOptions.value.slice(0, 3), null, 2)};
 <\/script>`;
 });
+
 </script>
 
 <style scoped lang="scss">

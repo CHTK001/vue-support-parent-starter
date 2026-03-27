@@ -55,14 +55,12 @@
               type="primary"
               :icon="useRenderIcon('ep:search')"
               @click="onSearch"
-              >搜索</ScButton
-            >
+              >搜索</ScButton>
             <ScButton
               type="success"
               :icon="useRenderIcon('ep:plus')"
               @click="doSave({}, 'save')"
-              >新增插件</ScButton
-            >
+              >新增插件</ScButton>
           </ScFormItem>
         </ScForm>
       </div>
@@ -296,8 +294,6 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import {
   fetchDeleteSfc,
   fetchInstallSfc,
@@ -305,6 +301,7 @@ import {
   fetchUpdateSfc,
   fetchUninstallSfc,
 } from "@repo/core";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
 import UploadLayout from "./upload.vue";

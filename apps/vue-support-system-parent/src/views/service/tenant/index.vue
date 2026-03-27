@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import {
   feechSyncTenant,
   fetchDeleteTenant,
@@ -10,6 +8,8 @@ import {
   type TenantStats,
 } from "@/api/service/tenant";
 import { debounce } from "@pureadmin/utils";
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+
 import { isTimeExpired, message } from "@repo/utils";
 import {
   computed,
@@ -54,7 +54,6 @@ const status = reactive({
 
 // 状态选项
 const statusOptions = [
-  { label: "全部", value: null },
   { label: "启用", value: 0 },
   { label: "禁用", value: 1 },
 ];
@@ -86,7 +85,6 @@ const onSearch = debounce(
     loadData();
   },
   500,
-  true,
 );
 
 const resetForm = () => {
@@ -328,11 +326,9 @@ onMounted(async () => {
                           type="success"
                           size="small"
                           class="ml-2"
-                          >启用</ScTag
-                        >
+                          >启用</ScTag>
                         <ScTag v-else type="info" size="small" class="ml-2"
-                          >禁用</ScTag
-                        >
+                          >禁用</ScTag>
                       </div>
                       <div class="tenant-account">
                         <IconifyIconOnline

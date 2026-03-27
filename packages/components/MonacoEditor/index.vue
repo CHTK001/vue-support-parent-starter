@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import * as monaco from "monaco-editor";
 
 export default {

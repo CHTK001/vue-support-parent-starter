@@ -1,5 +1,5 @@
 {
-  "name": "@repo/components-sc-video",
+  "name": "@repo/components/ScVideo",
   "version": "2.0.0",
   "description": "ScVideo 视频播放器组件",
   "main": "./index.ts",

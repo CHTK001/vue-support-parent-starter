@@ -1,6 +1,5 @@
-﻿<script>
-import { IconSelect } from "@repo/components/IconSelect";
-
+<script>
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchListDictItem } from "@repo/core";
 import { fetchSaveSfc, fetchUpdateSfc } from "@repo/core";
 import { defineAsyncComponent } from "vue";
@@ -9,7 +8,7 @@ import { message } from "@repo/utils";
 import { clearObject } from "@repo/config";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-const ScCodeEditor = defineAsyncComponent(() => import("@repo/scCodeEditor"));
+const ScCodeEditor = defineAsyncComponent(() => import("@repo/components/ScCodeEditor"));
 import CodeLayout from "./code.vue";
 export default {
   components: { IconSelect, ScCodeEditor, CodeLayout, ScFormTable },
@@ -197,8 +196,7 @@ export default {
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
           <ScTag v-if="form.sysSfcId" type="info" size="small"
-            >ID: {{ form.sysSfcId }}</ScTag
-          >
+            >ID: {{ form.sysSfcId }}</ScTag>
         </div>
       </template>
 

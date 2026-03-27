@@ -1,0 +1,175 @@
+/**
+ * 字体加密样式（统一放在 assets/layout/default 下）
+ * 说明：与 @repo/font-encryption 运行时注册的加密字体配合使用
+ */
+
+// 从原 layout/default/src/styles/font-encryption.scss 迁移而来
+
+/**
+ * 字体加密类
+ * 当启用字体加密时，应用此类到需要加密的元素
+ */
+.font-encryption-enabled {
+  font-family:
+    "AppTextPrimary",
+    "AppTextSecondary",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/**
+ * 字体渲染优化
+ */
+.font-encryption-enabled {
+  font-feature-settings: "liga" off, "kern" off;
+  text-rendering: optimizeLegibility;
+}
+
+/**
+ * 全局字体加密开关
+ * 当配置启用时，自动应用到 body
+ */
+body.font-encryption-global {
+  font-family:
+    "AppTextPrimary",
+    "AppTextSecondary",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+/**
+ * 特定元素字体加密
+ * 可以针对特定元素启用加密
+ */
+.font-encryption-numbers {
+  font-family:
+    "AppTextPrimary",
+    "AppTextSecondary",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+.font-encryption-chinese {
+  font-family:
+    "AppTextPrimary",
+    "AppTextSecondary",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+/**
+ * 业务语义类：敏感数据统一使用加密字体
+ * 说明：不额外限制选择/右键，按需叠加 .font-encryption-no-select 等类
+ */
+.fe-sensitive,
+.fe-sensitive-number,
+.fe-sensitive-name,
+.fe-sensitive-id,
+.fe-sensitive-phone,
+.fe-sensitive-bank,
+.fe-sensitive-address {
+  font-family:
+    "AppTextPrimary",
+    "AppTextSecondary",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+/**
+ * 禁用文本选择（增强防复制效果）
+ * 注意：这会影响用户体验，建议仅在必要时使用
+ */
+.font-encryption-no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/**
+ * 禁用右键菜单（增强防复制效果）
+ * 注意：这会影响用户体验，建议仅在必要时使用
+ */
+.font-encryption-no-context {
+  -webkit-touch-callout: none;
+}
+
+/**
+ * OCR 噪点（用于干扰 OCR）
+ * 说明：
+ * - 人眼尽量不可察觉：低透明度、小尺寸、轻微模糊
+ * - 仅叠加在目标元素区域，不影响点击与选择（pointer-events: none）
+ */
+.font-encryption-ocr-noise {
+  position: relative;
+}
+
+.font-encryption-ocr-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: var(--fe-ocr-noise-opacity, 0.025);
+  background-image:
+    radial-gradient(
+      circle at var(--fe-ocr-noise-x1, 12%) var(--fe-ocr-noise-y1, 18%),
+      rgba(0, 0, 0, 0.35) 0.45px,
+      transparent 0.55px
+    ),
+    radial-gradient(
+      circle at var(--fe-ocr-noise-x2, 62%) var(--fe-ocr-noise-y2, 68%),
+      rgba(0, 0, 0, 0.25) 0.45px,
+      transparent 0.55px
+    ),
+    radial-gradient(
+      circle at var(--fe-ocr-noise-x3, 32%) var(--fe-ocr-noise-y3, 44%),
+      rgba(0, 0, 0, 0.2) 0.45px,
+      transparent 0.55px
+    );
+  background-size: var(--fe-ocr-noise-size, 3px) var(--fe-ocr-noise-size, 3px);
+  filter: blur(0.2px);
+}

@@ -1,4 +1,4 @@
-﻿<script>
+<script>
 import { fetchListDictItem } from "@repo/core";
 import { getCameraRtspTemplates, message } from "@repo/utils";
 import { defineComponent } from "vue";
@@ -845,9 +845,7 @@ export default defineComponent({
             type="primary"
             :loading="loading"
             @click="submit()"
-          >
-            保 存
-          </ScButton>
+            >保 存</ScButton>
         </div>
       </template>
     </sc-dialog>

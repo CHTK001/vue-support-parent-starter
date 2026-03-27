@@ -1,6 +1,6 @@
 <template>
   <component
-    :is="currentComponent"
+    :is="actualComponent"
     class="sc-scrollbar"
     :height="height"
     :max-height="maxHeight"
@@ -24,11 +24,12 @@
  * ScScrollbar 滚动条组件
  * 简单封装 Element Plus 的 ElScrollbar，支持主题切换
  */
+import { computed } from "vue";
 import { ElScrollbar } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
-import type { PropType } from "vue";
 
-const { currentComponent } = useThemeComponent("ElScrollbar", ElScrollbar);
+const { currentComponent } = useThemeComponent("ElScrollbar");
+const actualComponent = computed(() => currentComponent.value || ElScrollbar);
 
 const props = defineProps({
   /**

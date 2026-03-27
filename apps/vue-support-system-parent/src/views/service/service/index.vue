@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import { fetchListServiceModule } from "@/api/service/module";
 import {
   fetchUpdateService,
@@ -10,6 +8,8 @@ import {
   type ServiceStats,
 } from "@/api/service/service";
 import { debounce } from "@pureadmin/utils";
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+
 import { message } from "@repo/utils";
 import {
   defineAsyncComponent,
@@ -49,7 +49,6 @@ const status = reactive({
 
 // 状态选项
 const statusOptions = [
-  { label: "全部", value: null },
   { label: "启用", value: 0 },
   { label: "禁用", value: 1 },
 ];
@@ -79,7 +78,6 @@ const onSearch = debounce(
     loadData();
   },
   500,
-  true,
 );
 
 const resetForm = () => {
@@ -243,6 +241,7 @@ onMounted(async () => {
               ref="tableRef"
               :url="fetchPageService"
               :params="env.params"
+              layout="card"
               @data-loaded="onDataLoaded"
             >
               <template #default="{ row }">

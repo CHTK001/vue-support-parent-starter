@@ -2,23 +2,29 @@
 /**
  * lay-tag 组件
  * @description 使用 useThemeComponent Hook 统一管理主题切换
- * @version 2.1.0 - 支持主题组件懒加载
+ * @version 2.1.0
  */
-import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultTag from "./themes/Default.vue";
+import NewYearTag from "./themes/NewYearTag.vue";
+import HalloweenTag from "./themes/HalloweenTag.vue";
+import ChristmasTag from "./themes/ChristmasTag.vue";
+import FutureTechTag from "./themes/FutureTechTag.vue";
+import MidAutumnTag from "./themes/MidAutumnTag.vue";
 
-// 主题组件映射 - 默认主题静态导入，其他主题懒加载
+// 主题组件映射
 const themeComponents = {
   default: DefaultTag,
-  // 春节主题复用现有的新年标签组件
+  "8bit": DefaultTag,
+  "future-tech": FutureTechTag,
+  "spring-festival": NewYearTag,
+  halloween: HalloweenTag,
+  christmas: ChristmasTag,
+  "mid-autumn": MidAutumnTag,
+  "new-year": NewYearTag,
 };
 
-// 使用统一的主题切换 Hook
-const { CurrentComponent, currentTheme } = useThemeComponent(
-  themeComponents,
-  DefaultTag,
-);
+const { CurrentComponent } = useThemeComponent(themeComponents, DefaultTag);
 </script>
 
 <template>

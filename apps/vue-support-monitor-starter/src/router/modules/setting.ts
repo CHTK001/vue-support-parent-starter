@@ -1,4 +1,4 @@
-import { $t } from "@repo/config";
+import { t as $t } from "@repo/config";
 
 export default [
   {

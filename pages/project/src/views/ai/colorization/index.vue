@@ -1,5 +1,5 @@
-﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+<script setup>
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import {
   clearObject,
   fileToBase64,
@@ -20,10 +20,10 @@ import {
 } from "../../../api/ai/image-colorization";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
 const ScLoading = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScLoading/index.vue")
 );
 const ScCompare = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScCompare/index.vue")
 );
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const moduleDialogRef = shallowRef();
@@ -106,14 +106,14 @@ const getKey = () => {
  */
 const requestId = () => {
   const _requestId = localStorageProxy().getItem(
-    "colorization-request-id:" + getKey(),
+    "colorization-request-id:" + getKey()
   );
   return _requestId;
 };
 const loadedRequestId = async (row) => {
   localStorageProxy().setItem(
     "colorization-request-id:" + getKey(),
-    row.taskId,
+    row.taskId
   );
 };
 const loadInterval = () => {
@@ -231,14 +231,12 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div
-    class="colorization-container h-full w-full pt-4 px-4 overflow-hidden system-container modern-bg"
-  >
+  <div class="colorization-container h-full w-full pt-4 px-4 overflow-hidden system-container modern-bg">
     <ModuleDialog
       ref="moduleDialogRef"
       @success="handleRefreshEnvironment"
     ></ModuleDialog>
-    <ScButton
+    <ScButton 
       :icon="useRenderIcon('ep:setting')"
       @click="handleOpenModuleManager"
       class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark settings-btn"
@@ -246,12 +244,12 @@ onMounted(async () => {
       size="large"
     >
     </ScButton>
-    <ScContainer class="h-full">
-      <ScHeader
+    <el-container class="h-full">
+      <el-header
         class="header-panel h-auto flex w-full items-center justify-between px-6 py-3 mb-2"
       >
         <div class="panel-left flex-1 mr-4">
-          <ScForm
+          <ScForm 
             ref="formRef"
             :model="form"
             :rules="rules"
@@ -261,7 +259,7 @@ onMounted(async () => {
           >
             <ScFormItem prop="model" class="w-full mb-0">
               <div class="flex justify-start w-full">
-                <ScSelect
+                <ScSelect 
                   filterable
                   v-model="form.model"
                   placeholder="请选择模型"
@@ -269,7 +267,7 @@ onMounted(async () => {
                   @change="handleChangeModule"
                   class="model-select !w-[200px]"
                 >
-                  <ScOption
+                  <ScOption 
                     v-for="item in modelList"
                     class="!h-[70px]"
                     :key="item"
@@ -277,7 +275,7 @@ onMounted(async () => {
                     :value="item.sysAiModuleCode"
                   >
                     <template #default>
-                      <ScTooltip
+                      <ScTooltip 
                         placement="right"
                         :raw-content="true"
                         :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
@@ -289,16 +287,14 @@ onMounted(async () => {
                             :src="item.sysProjectIcon"
                             fit="scale-down"
                             class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
-                          >
-                            <template #error>
-                              <div class="error-icon">AI</div>
-                            </template>
-                          </ScImage>
+                            ><template #error
+                              ><div class="error-icon">AI</div></template>
+                            ></ScImage>
                           <div class="flex flex-col">
                             <span class="text-[15px] font-medium">{{
                               item.sysAiModuleName
-                            }}</span
-                            ><span class="text-gray-500 text-[13px]">{{
+                            }}</span>
+                            <span class="text-gray-500 text-[13px]">{{
                               item.sysProjectName
                             }}</span>
                           </div>
@@ -311,16 +307,14 @@ onMounted(async () => {
                       <ScImage
                         class="!w-[32px] !h-[32px] rounded-lg"
                         :src="modelSelectLabel?.sysProjectIcon"
-                      >
-                        <template #error>
-                          <div class="error-icon">AI</div>
-                        </template>
-                      </ScImage>
+                        ><template #error
+                          ><div class="error-icon">AI</div></template>
+                        ></ScImage>
                       <span>{{ label }}</span>
                     </div>
                   </template>
                 </ScSelect>
-                <ScButton
+                <ScButton 
                   v-if="env.showEdit"
                   class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark add-btn"
                   :icon="useRenderIcon('ep:plus')"
@@ -332,7 +326,7 @@ onMounted(async () => {
           </ScForm>
         </div>
         <div class="panel-right">
-          <ScUpload
+          <ScUpload 
             :show-file-list="false"
             :auto-upload="false"
             accept="image/*"
@@ -340,7 +334,7 @@ onMounted(async () => {
             class="upload-demo"
           >
             <template #trigger>
-              <ScButton
+              <ScButton 
                 type="primary"
                 class="bg-primary text-white hover:bg-primary-dark upload-btn"
               >
@@ -354,8 +348,8 @@ onMounted(async () => {
             </template>
           </ScUpload>
         </div>
-      </ScHeader>
-      <ScMain class="pt-0 pb-4 px-0 overflow-hidden">
+      </el-header>
+      <el-main class="pt-0 pb-4 px-0 overflow-hidden">
         <div class="flex justify-center align-middle h-full relative">
           <div
             class="h-full relative overflow-hidden compare-image rounded-lg shadow-lg flex justify-center flex-1"
@@ -373,7 +367,7 @@ onMounted(async () => {
                     <p class="empty-text">请上传一张需要上色的图片</p>
                   </template>
                 </ScEmpty>
-                <ScImage
+                <ScImage 
                   v-else
                   :src="showImageUrl"
                   class="h-full img rounded-lg image-preview"
@@ -401,7 +395,7 @@ onMounted(async () => {
                 class="absolute bottom-4 right-4 action-buttons"
               >
                 <a :href="resolutionImage" download>
-                  <ScButton
+                  <ScButton 
                     :icon="useRenderIcon('ep:download')"
                     circle
                     size="large"
@@ -413,8 +407,8 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-      </ScMain>
-    </ScContainer>
+      </el-main>
+    </el-container>
   </div>
 </template>
 

@@ -1,5 +1,3 @@
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
-
 <template>
   <div class="data-sync-container system-container modern-bg">
     <!-- 页面头部 -->
@@ -14,26 +12,28 @@ import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
         </div>
       </div>
     </div>
-
+    
     <!-- 内容区域 -->
     <div class="content-area">
       <div class="content-card">
-        <ScEmpty description="数据同步功能开发中...">
+        <el-empty description="数据同步功能开发中...">
           <template #image>
             <div class="empty-icon">
               <IconifyIconOnline icon="ri:refresh-line" />
             </div>
           </template>
-        </ScEmpty>
+        </el-empty>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+
 // 页面标题
 defineOptions({
-  name: "DataSync",
+  name: "DataSync"
 });
 </script>
 
@@ -48,23 +48,23 @@ defineOptions({
 .page-header {
   @include toolbar-style;
   margin-bottom: $spacing-lg;
-
+  
   .header-content {
     @include flex-between;
     width: 100%;
   }
-
+  
   .header-title {
     @include flex-align-center;
     gap: $spacing-md;
-
+    
     .title-icon {
       font-size: 32px;
       color: $primary-color;
       @include gradient-text;
       animation: rotate 3s linear infinite;
     }
-
+    
     h2 {
       margin: 0 0 $spacing-xs 0;
       font-size: 24px;
@@ -72,7 +72,7 @@ defineOptions({
       color: var(--el-text-color-primary);
       @include gradient-text;
     }
-
+    
     p {
       margin: 0;
       color: var(--el-text-color-regular);
@@ -101,7 +101,7 @@ defineOptions({
   @include flex-center;
   min-height: 500px;
   padding: $spacing-4xl;
-
+  
   .empty-icon {
     font-size: 80px;
     color: $primary-color;
@@ -111,8 +111,7 @@ defineOptions({
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 0.6;
     transform: scale(1);
   }
@@ -127,27 +126,27 @@ defineOptions({
   .data-sync-container {
     padding: $spacing-md;
   }
-
+  
   .page-header {
     .header-title {
       flex-direction: column;
       align-items: flex-start;
       gap: $spacing-sm;
-
+      
       .title-icon {
         font-size: 24px;
       }
-
+      
       h2 {
         font-size: 20px;
       }
     }
   }
-
+  
   .content-card {
     min-height: 300px;
     padding: $spacing-lg;
-
+    
     .empty-icon {
       font-size: 60px;
     }

@@ -1,0 +1,122 @@
+// 现代化主题样式
+:root {
+  --app-bg-gradient: linear-gradient(135deg, #f8fafc, #f1f5f9, #eef2ff);
+  --app-card-bg: rgba(255, 255, 255, 0.95);
+  --app-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.01);
+  --app-card-border: 1px solid rgba(255, 255, 255, 0.8);
+  --app-border-radius: 16px;
+  --app-input-radius: 10px;
+  --app-button-radius: 10px;
+  --app-transition: all 0.3s;
+}
+
+// 现代化背景
+.modern-bg {
+  background: var(--app-bg-gradient);
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 0% 0%, rgba(64, 158, 255, 0.08), transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(103, 194, 58, 0.08), transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+// 现代化卡片
+.modern-card {
+  background: var(--app-card-bg);
+  backdrop-filter: blur(20px);
+  border-radius: var(--app-border-radius);
+  box-shadow: var(--app-card-shadow);
+  border: var(--app-card-border);
+  overflow: hidden;
+}
+
+// 现代化按钮
+.modern-button {
+  border-radius: var(--app-button-radius);
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: var(--app-transition);
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+  
+  &.primary {
+    background: linear-gradient(135deg, #409EFF, #79bbff);
+    border: none;
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+    
+    &:hover {
+      box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+    }
+  }
+  
+  &.secondary {
+    background: rgba(64, 158, 255, 0.1);
+    border: none;
+    color: #409EFF;
+    
+    &:hover {
+      background: rgba(64, 158, 255, 0.15);
+    }
+  }
+}
+
+// 现代化输入框
+.modern-input {
+  border-radius: var(--app-input-radius);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06) inset;
+  transition: var(--app-transition);
+  
+  &:hover, &:focus-within {
+    box-shadow: 
+      0 0 0 1px #409EFF inset,
+      0 4px 12px rgba(64, 158, 255, 0.1);
+    transform: translateY(-1px);
+  }
+}
+
+// 现代化标签
+.modern-tag {
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+  border: none;
+  
+  &.primary {
+    background: rgba(64, 158, 255, 0.1);
+    color: #409EFF;
+  }
+  
+  &.success {
+    background: rgba(103, 194, 58, 0.1);
+    color: #67C23A;
+  }
+}
+
+// 现代化滚动条
+.modern-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 3px;
+  }
+}
+
+// 现代化网格布局
+.modern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}

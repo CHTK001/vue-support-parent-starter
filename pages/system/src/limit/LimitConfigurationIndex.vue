@@ -29,7 +29,7 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <ScInput
+          <ScInput 
             v-model="searchForm.sysLimitPath"
             placeholder="接口路径"
             clearable
@@ -39,7 +39,7 @@
               <IconifyIconOnline icon="ri:links-line" />
             </template>
           </ScInput>
-          <ScInput
+          <ScInput 
             v-model="searchForm.sysLimitName"
             placeholder="规则名称"
             clearable
@@ -49,7 +49,7 @@
               <IconifyIconOnline icon="ri:text" />
             </template>
           </ScInput>
-          <ScSelect
+          <ScSelect 
             v-model="searchForm.sysLimitStatus"
             placeholder="状态"
             clearable
@@ -76,28 +76,28 @@
         </div>
       </div>
 
-      <ScForm
+      <ScForm 
         :model="searchForm"
         :inline="true"
         class="search-form"
         style="display: none"
       >
         <ScFormItem label="接口路径">
-          <ScInput
+          <ScInput 
             v-model="searchForm.sysLimitPath"
             placeholder="请输入接口路径"
             clearable
           />
         </ScFormItem>
         <ScFormItem label="规则名称">
-          <ScInput
+          <ScInput 
             v-model="searchForm.sysLimitName"
             placeholder="请输入规则名称"
             clearable
           />
         </ScFormItem>
         <ScFormItem label="状态">
-          <ScSelect
+          <ScSelect 
             v-model="searchForm.sysLimitStatus"
             placeholder="请选择状态"
             clearable
@@ -108,7 +108,7 @@
           </ScSelect>
         </ScFormItem>
         <ScFormItem>
-          <ScButton
+          <ScButton 
             type="primary"
             :icon="useRenderIcon('ep:search')"
             @click="handleSearch"
@@ -121,7 +121,7 @@
         </ScFormItem>
       </ScForm>
 
-      <ScTable
+      <ScTable 
         :data="tableData"
         v-loading="loading"
         border
@@ -131,22 +131,22 @@
       >
         <ScTableColumn prop="sysLimitName" label="规则名称" min-width="120" />
         <ScTableColumn prop="sysLimitPath" label="接口路径" min-width="150" />
-        <ScTableColumn
+        <ScTableColumn 
           prop="sysLimitForPeriod"
           label="许可数量"
           min-width="100"
         />
-        <ScTableColumn
+        <ScTableColumn 
           prop="sysLimitRefreshPeriodSeconds"
           label="刷新周期(秒)"
           min-width="120"
         />
-        <ScTableColumn
+        <ScTableColumn 
           prop="sysLimitTimeoutDurationMillis"
           label="超时时间(毫秒)"
           min-width="120"
         />
-        <ScTableColumn
+        <ScTableColumn 
           prop="sysLimitDimension"
           label="限流维度"
           min-width="100"
@@ -154,7 +154,7 @@
         <ScTableColumn prop="sysLimitSort" label="排序" min-width="80" />
         <ScTableColumn label="状态" min-width="80">
           <template #default="scope">
-            <ScTag
+            <ScTag 
               :type="scope.row.sysLimitStatus === 1 ? 'success' : 'danger'"
             >
               {{ scope.row.sysLimitStatus === 1 ? "启用" : "禁用" }}
@@ -164,7 +164,7 @@
         <ScTableColumn prop="createTime" label="创建时间" min-width="150" />
         <ScTableColumn label="操作" fixed="right" min-width="150">
           <template #default="scope">
-            <ScButton
+            <ScButton 
               type="primary"
               link
               :icon="useRenderIcon('ep:edit')"
@@ -172,7 +172,7 @@
             >
               编辑
             </ScButton>
-            <ScButton
+            <ScButton 
               type="danger"
               link
               :icon="useRenderIcon('ep:delete')"
@@ -185,7 +185,7 @@
       </ScTable>
 
       <div class="pagination-container">
-        <ScPagination
+        <el-pagination
           v-model:current-page="pagination.currentPage"
           v-model:page-size="pagination.pageSize"
           :page-sizes="[10, 20, 50, 100]"
@@ -204,7 +204,7 @@
       width="600px"
       :close-on-click-modal="false"
     >
-      <ScForm
+      <ScForm 
         ref="formRef"
         :model="formData"
         :rules="formRules"
@@ -212,19 +212,19 @@
         label-position="right"
       >
         <ScFormItem label="规则名称" prop="sysLimitName">
-          <ScInput
+          <ScInput 
             v-model="formData.sysLimitName"
             placeholder="请输入规则名称"
           />
         </ScFormItem>
         <ScFormItem label="接口路径" prop="sysLimitPath">
-          <ScInput
+          <ScInput 
             v-model="formData.sysLimitPath"
             placeholder="请输入接口路径"
           />
         </ScFormItem>
         <ScFormItem label="许可数量" prop="sysLimitForPeriod">
-          <ScInputNumber
+          <ScInputNumber 
             v-model="formData.sysLimitForPeriod"
             :min="1"
             :max="10000"
@@ -232,15 +232,18 @@
           />
         </ScFormItem>
         <ScFormItem label="刷新周期(秒)" prop="sysLimitRefreshPeriodSeconds">
-          <ScInputNumber
+          <ScInputNumber 
             v-model="formData.sysLimitRefreshPeriodSeconds"
             :min="1"
             :max="3600"
             placeholder="请输入刷新周期"
           />
         </ScFormItem>
-        <ScFormItem label="超时时间(毫秒)" prop="sysLimitTimeoutDurationMillis">
-          <ScInputNumber
+        <ScFormItem 
+          label="超时时间(毫秒)"
+          prop="sysLimitTimeoutDurationMillis"
+        >
+          <ScInputNumber 
             v-model="formData.sysLimitTimeoutDurationMillis"
             :min="1"
             :max="60000"
@@ -248,7 +251,7 @@
           />
         </ScFormItem>
         <ScFormItem label="限流维度" prop="sysLimitDimension">
-          <ScSelect
+          <ScSelect 
             v-model="formData.sysLimitDimension"
             placeholder="请选择限流维度"
           >
@@ -259,33 +262,33 @@
           </ScSelect>
         </ScFormItem>
         <ScFormItem label="自定义键表达式" prop="sysLimitKeyExpression">
-          <ScInput
+          <ScInput 
             v-model="formData.sysLimitKeyExpression"
             type="textarea"
             placeholder="请输入自定义键表达式（SpEL）"
           />
         </ScFormItem>
         <ScFormItem label="降级方法名称" prop="sysLimitFallbackMethod">
-          <ScInput
+          <ScInput 
             v-model="formData.sysLimitFallbackMethod"
             placeholder="请输入降级方法名称"
           />
         </ScFormItem>
         <ScFormItem label="错误消息" prop="sysLimitMessage">
-          <ScInput
+          <ScInput 
             v-model="formData.sysLimitMessage"
             placeholder="请输入错误消息"
           />
         </ScFormItem>
         <ScFormItem label="描述信息" prop="sysLimitDescription">
-          <ScInput
+          <ScInput 
             v-model="formData.sysLimitDescription"
             type="textarea"
             placeholder="请输入描述信息"
           />
         </ScFormItem>
         <ScFormItem label="排序" prop="sysLimitSort">
-          <ScInputNumber
+          <ScInputNumber 
             v-model="formData.sysLimitSort"
             :min="0"
             :max="999"
@@ -316,8 +319,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from "vue";
 import { message, ScMessageBox, type FormInstance } from "@repo/utils";
-import { useRenderIcon } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon"
+import {  useRenderIcon  } from "@repo/components/ReIcon";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import {
   fetchLimitConfigurationPage,
   fetchLimitConfigurationList,
@@ -456,7 +459,7 @@ const handleDelete = (row: SysLimitConfiguration) => {
     .then(async () => {
       try {
         const res = await deleteLimitConfiguration(
-          row.sysLimitConfigurationId!,
+          row.sysLimitConfigurationId!
         );
         if (res.success) {
           message("删除成功", { type: "success" });
@@ -492,9 +495,7 @@ const handleSubmit = async () => {
           dialogVisible.value = false;
           getData();
         } else {
-          message(res.msg || `${isEdit.value ? "更新" : "新增"}失败`, {
-            type: "error",
-          });
+          message(res.msg || `${isEdit.value ? "更新" : "新增"}失败`, { type: "error" });
         }
       } catch (error) {
         message(`${isEdit.value ? "更新" : "新增"}失败`, { type: "error" });
@@ -537,8 +538,7 @@ onMounted(() => {
   );
   padding: clamp(20px, 3vw, 28px);
   border-radius: 16px;
-  border: 1px solid
-    color-mix(in srgb, var(--el-border-color-lighter) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 70%, transparent);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(8px);
 
@@ -614,8 +614,7 @@ onMounted(() => {
   border-radius: 14px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  border: 1px solid
-    color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   overflow: hidden;
   backdrop-filter: blur(8px);
 

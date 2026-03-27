@@ -24,6 +24,8 @@ import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import type { LayoutType } from "../types/theme";
+import { isValidLayout } from "./useLayout";
 
 const errorInfo =
   "The current routing configuration is incorrect, please check the configuration";
@@ -91,11 +93,11 @@ export function useNav() {
     return pureApp.getDevice;
   });
   const { $storage } = useGlobal<GlobalPropertiesApi>();
-  const layout = computed(() => {
-    const fallbackLayout = "vertical";
+  const layout = computed<LayoutType>(() => {
+    const fallbackLayout: LayoutType = "vertical";
     const rawLayout = $storage?.layout?.layout as string | undefined;
 
-    if (rawLayout && validLayouts.includes(rawLayout)) {
+    if (isValidLayout(rawLayout)) {
       return rawLayout;
     }
 

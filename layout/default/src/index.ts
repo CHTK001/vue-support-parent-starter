@@ -44,8 +44,8 @@ export type {
   StorageConfig,
   StorageLayout,
   GlobalStorage,
-  LayoutEmitterEvents,
 } from "./types/theme";
+export type { LayoutEmitterEvents } from "./types/events";
 
 // Components
 export { Account, LaySidebarTopCollapse };

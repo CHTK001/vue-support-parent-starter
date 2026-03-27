@@ -1,19 +1,18 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleInner"
     title="地址限流配置"
     width="800px"
     :close-on-click-modal="false"
-    draggable
     @close="handleClose"
+    draggable
   >
     <div class="address-limit-container">
       <!-- 规则说明 -->
       <div class="config-tips">
         <IconifyIconOnline icon="ri:information-line" />
         <span
-          >配置URL地址限流规则：可针对特定路径设置访问频率限制或黑白名单</span
-        >
+          >配置URL地址限流规则：可针对特定路径设置访问频率限制或黑白名单</span>
       </div>
 
       <!-- 表头 -->
@@ -27,35 +26,32 @@
 
       <!-- 规则列表 -->
       <div class="rule-list thin-scrollbar">
-        <div v-for="(r, idx) in rules" :key="idx" class="rule-row">
+        <div class="rule-row" v-for="(r, idx) in rules" :key="idx">
           <div class="col-type">
-            <ScSelect v-model="r.addressRateLimitType" placeholder="类型">
-              <ScOption label="限流" value="RATE_LIMIT">
+            <el-select v-model="r.addressRateLimitType" placeholder="类型">
+              <el-option label="限流" value="RATE_LIMIT">
                 <span class="option-item"
-                  ><IconifyIconOnline icon="ri:speed-line" /> 限流</span
-                >
-              </ScOption>
-              <ScOption label="白名单" value="WHITELIST">
+                  ><IconifyIconOnline icon="ri:speed-line" /> 限流</span>
+              </el-option>
+              <el-option label="白名单" value="WHITELIST">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:shield-check-line" />
-                  白名单</span
-                >
-              </ScOption>
-              <ScOption label="黑名单" value="BLACKLIST">
+                  白名单</span>
+              </el-option>
+              <el-option label="黑名单" value="BLACKLIST">
                 <span class="option-item"
-                  ><IconifyIconOnline icon="ri:spam-line" /> 黑名单</span
-                >
-              </ScOption>
-            </ScSelect>
+                  ><IconifyIconOnline icon="ri:spam-line" /> 黑名单</span>
+              </el-option>
+            </el-select>
           </div>
           <div class="col-address">
-            <ScInput
+            <el-input
               v-model="r.addressRateLimitAddress"
               placeholder="例如: /api/user 或 /admin/*"
             />
           </div>
           <div class="col-qps">
-            <ScInputNumber
+            <el-input-number
               v-model="r.addressRateLimitQps"
               :min="1"
               :max="100000"
@@ -64,21 +60,21 @@
             />
           </div>
           <div class="col-status">
-            <ScSwitch
+            <el-switch
               v-model="r.addressRateLimitEnabled"
               active-text="启用"
               inactive-text="禁用"
             />
           </div>
           <div class="col-action">
-            <ScButton
+            <el-button
               type="danger"
               size="small"
               circle
               @click="rules.splice(idx, 1)"
             >
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </ScButton>
+            </el-button>
           </div>
         </div>
 
@@ -91,19 +87,18 @@
 
       <!-- 添加按钮 -->
       <div class="add-rule-btn">
-        <ScButton type="primary" @click="addRule">
+        <el-button type="primary" @click="addRule">
           <IconifyIconOnline icon="ri:add-line" />
           新增规则
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存配置</ScButton
-        >
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave"
+          >保存配置</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -139,7 +134,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true },
+  { immediate: true }
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -148,7 +143,7 @@ async function loadData() {
   try {
     const res = await getAddressRateLimitRules(
       props.serverId,
-      props.filterSettingId,
+      props.filterSettingId
     );
     if (res.success && Array.isArray(res.data)) {
       rules.value = res.data;
@@ -173,7 +168,7 @@ async function handleSave() {
     const res = await saveAddressRateLimitRules(
       props.serverId,
       props.filterSettingId,
-      rules.value,
+      rules.value
     );
     if (res.success) {
       message("保存成功，已热应用", { type: "success" });
@@ -327,6 +322,7 @@ function handleClose() {
   padding: 10px 24px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -335,4 +331,5 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -22,6 +22,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "catalog:",
     "@pureadmin/utils": "catalog:",
+    "@repo/components": "workspace:^",
     "@traptitech/markdown-it-katex": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
     "element-plus": "catalog:",

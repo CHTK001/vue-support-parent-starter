@@ -2,32 +2,30 @@
   <div class="sc-select-position-layout">
     <!-- 9 格模式：3x3，8 个可选位置（中心不可选） -->
     <div v-if="mode === '9'" class="position-grid grid-9">
-      <div class="position-cell" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-left')" title="左上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'top-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-center')" title="中上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-right')" title="右上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'left-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('left-center')" title="左中"></div>
-      <div class="position-cell center-disabled"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'right-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('right-center')" title="右中"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-left')" title="左下"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-center', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-center')" title="中下"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-right')" title="右下"></div>
-      <div class="screen-content-mock"></div>
+      <div class="position-cell" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" title="左上" @click="!disabled && handleSelect('top-left')" />
+      <div class="position-cell" :class="{ active: modelValue === 'top-center', 'is-disabled': disabled }" title="中上" @click="!disabled && handleSelect('top-center')" />
+      <div class="position-cell" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" title="右上" @click="!disabled && handleSelect('top-right')" />
+      <div class="position-cell" :class="{ active: modelValue === 'left-center', 'is-disabled': disabled }" title="左中" @click="!disabled && handleSelect('left-center')" />
+      <div class="position-cell center-disabled" />
+      <div class="position-cell" :class="{ active: modelValue === 'right-center', 'is-disabled': disabled }" title="右中" @click="!disabled && handleSelect('right-center')" />
+      <div class="position-cell" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" title="左下" @click="!disabled && handleSelect('bottom-left')" />
+      <div class="position-cell" :class="{ active: modelValue === 'bottom-center', 'is-disabled': disabled }" title="中下" @click="!disabled && handleSelect('bottom-center')" />
+      <div class="position-cell" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" title="右下" @click="!disabled && handleSelect('bottom-right')" />
+      <div class="screen-content-mock" />
     </div>
 
     <!-- 4 格模式：2x2，仅四角 -->
     <div v-else class="position-grid grid-4">
-      <div class="position-cell" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-left')" title="左上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('top-right')" title="右上"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-left')" title="左下"></div>
-      <div class="position-cell" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" @click="!disabled && handleSelect('bottom-right')" title="右下"></div>
-      <div class="screen-content-mock"></div>
+      <div class="position-cell" :class="{ active: modelValue === 'top-left', 'is-disabled': disabled }" title="左上" @click="!disabled && handleSelect('top-left')" />
+      <div class="position-cell" :class="{ active: modelValue === 'top-right', 'is-disabled': disabled }" title="右上" @click="!disabled && handleSelect('top-right')" />
+      <div class="position-cell" :class="{ active: modelValue === 'bottom-left', 'is-disabled': disabled }" title="左下" @click="!disabled && handleSelect('bottom-left')" />
+      <div class="position-cell" :class="{ active: modelValue === 'bottom-right', 'is-disabled': disabled }" title="右下" @click="!disabled && handleSelect('bottom-right')" />
+      <div class="screen-content-mock" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineEmits, defineProps } from "vue";
-
 const props = defineProps({
   modelValue: {
     type: String,

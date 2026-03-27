@@ -75,9 +75,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import { placeholderImage } from "@/view/video/data";
-import { mockVideoResults } from "@/view/video/data/categories";
-import { getVideoList } from "@/api/video";
+import { placeholderImage } from "../../../data";
+import { mockVideoResults } from "../../../data/categories";
+import { getVideoList } from "../../../api/video";
 import { message } from "@repo/utils";
 
 const router = useRouter();

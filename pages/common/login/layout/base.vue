@@ -1,35 +1,19 @@
-<script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
+<script setup>
+import { useDataThemeChange } from "@layout/default/hooks/useDataThemeChange";
+import { useLayout } from "@layout/default/hooks/useLayout";
+import { useNav } from "@layout/default/hooks/useNav";
+import { useTranslationLang } from "@layout/default/hooks/useTranslationLang";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import TypeIt from "@repo/components/ReTypeit";
-import { ScCode } from "@repo/components/ScCode"
-import { $t, getConfig, transformI18n } from "@repo/config";
-import {
-  fetchSendSmsCode,
-  fetchSmsLogin,
-  fetchVerifyCode,
-  getTopMenu,
-  initRouter,
-  useUserStoreHook,
-} from "@repo/core";
-import {
-  useLayout,
-  useDataThemeChange,
-  useNav,
-  useTranslationLang,
-} from "@layout/default";
+import ScCode from "@repo/components/ScCode/index.vue";
+import { getConfig } from "@repo/config/src/config";
+import { $t, transformI18n } from "@repo/config/src/i18n";
+import { fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
 
 import { getParameter, message, uu3 } from "@repo/utils";
 import $ from "jquery";
 import { Md5 } from "ts-md5";
-import {
-  computed,
-  markRaw,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  reactive,
-  ref,
-} from "vue";
+import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "../components/thirdParty.vue";
@@ -70,19 +54,9 @@ const props = defineProps({
   accountType: {
     type: Number,
   },
-  loginMode: {
-    type: String,
-    default: "password",
-  },
 });
-const isSmsMode = computed(() => props.loginMode === "sms");
-const isTenantMode = computed(() => props.accountType == 2);
-const showCredentialLogin = computed(() => !isSmsMode.value);
 const isShowThirdPartyValue = computed(() => {
-  return (
-    Object.keys(props.ssoSetting).some((item) => props.ssoSetting[item]) &&
-    props.defaultSetting.OpenThirdPartyLogin
-  );
+  return Object.keys(props.ssoSetting).some((item) => props.ssoSetting[item]) && props.defaultSetting.OpenThirdPartyLogin;
 });
 
 const defaultVerifyCode = ref({
@@ -98,72 +72,8 @@ const getVerifyCode = async () => {
 const ruleForm = reactive({
   username: getConfig().defaultUsername,
   password: getConfig().defaultPassword,
-  phone: "",
-  smsCode: "",
   verifyCode: "",
   tenantCode: "",
-});
-const phonePattern = /^1[3-9]\d{9}$/;
-const smsCodePattern = /^\d{4,6}$/;
-const smsSending = ref(false);
-const smsCountdown = ref(0);
-let smsCountdownTimer = null;
-const formRules = computed(() => {
-  if (isSmsMode.value) {
-    return {
-      phone: [
-        {
-          validator: (_rule, value, callback) => {
-            if (!phonePattern.test(value || "")) {
-              callback(new Error(transformI18n($t("login.purePhoneReg"))));
-              return;
-            }
-            callback();
-          },
-          trigger: "blur",
-        },
-      ],
-      smsCode: [
-        {
-          validator: (_rule, value, callback) => {
-            if (!smsCodePattern.test(value || "")) {
-              callback(new Error(transformI18n($t("login.pureSmsCodeReg"))));
-              return;
-            }
-            callback();
-          },
-          trigger: "blur",
-        },
-      ],
-    };
-  }
-  return loginRules;
-});
-
-const clearSmsCountdown = () => {
-  if (smsCountdownTimer) {
-    clearInterval(smsCountdownTimer);
-    smsCountdownTimer = null;
-  }
-};
-
-const startSmsCountdown = () => {
-  clearSmsCountdown();
-  smsCountdown.value = 60;
-  smsCountdownTimer = window.setInterval(() => {
-    smsCountdown.value -= 1;
-    if (smsCountdown.value <= 0) {
-      clearSmsCountdown();
-      smsCountdown.value = 0;
-    }
-  }, 1000);
-};
-
-const smsSendButtonText = computed(() => {
-  if (smsCountdown.value > 0) {
-    return `${smsCountdown.value}s`;
-  }
-  return t("login.pureSendSmsCode");
 });
 
 const openVcode = ref(false);
@@ -171,20 +81,26 @@ const openToptcode = ref(false);
 
 const scCodeRef = ref();
 const currentFormEl = ref({});
+const resolveFormInstance = (formEl) => formEl?.value ?? formEl;
+const handleLoginClick = () => onLogin(ruleFormRef.value);
+const handleLoginCodeClick = () => onLoginCode(ruleFormRef.value);
+const handleLoginToptCodeClick = () => onLoginToptCode(ruleFormRef.value);
 /** 使用验证码 */
 const onLoginCode = async (formEl) => {
+  const resolvedFormEl = resolveFormInstance(formEl);
   openVcode.value = true;
   nextTick(() => {
-    currentFormEl.value = formEl;
+    currentFormEl.value = resolvedFormEl;
     vcodeRef.value?.reset();
   });
 };
 
 /** 使用TOTP */
 const onLoginToptCode = async (formEl) => {
+  const resolvedFormEl = resolveFormInstance(formEl);
   openToptcode.value = true;
   nextTick(() => {
-    currentFormEl.value = formEl;
+    currentFormEl.value = resolvedFormEl;
   });
 };
 
@@ -223,7 +139,7 @@ const handleTotpComplete = () => {
   if (loading.value) {
     return; // 如果正在登录中，不允许重复提交
   }
-  submitCurrentLogin(currentFormEl.value);
+  onLogin(currentFormEl.value);
   vcodeToptClose();
 };
 const vcodeToptClose = () => {
@@ -231,66 +147,23 @@ const vcodeToptClose = () => {
   currentFormEl.value = null;
   scCodeRef.value.clear();
 };
-const navigateToTargetPath = async (targetPath: string) => {
-  const normalizedTargetPath = targetPath.startsWith("/")
-    ? targetPath
-    : `/${targetPath}`;
-  const navigationTask = router.replace(normalizedTargetPath).catch(() => undefined);
-
-  await Promise.race([
-    navigationTask,
-    new Promise((resolve) => window.setTimeout(resolve, 200)),
-  ]);
-
-  if (router.currentRoute.value.path !== normalizedTargetPath) {
-    const hashTarget = normalizedTargetPath.startsWith("#")
-      ? normalizedTargetPath
-      : `#${normalizedTargetPath}`;
-    if (window.location.hash !== hashTarget) {
-      window.location.hash = hashTarget;
-    }
-  }
-};
-
-const handleLoginSuccess = async (data, loginType) => {
-  const userStore = useUserStoreHook();
-  userStore.loginType = loginType;
-  await userStore.load(data);
-  return initRouter()
-    .then(async () => {
-      await navigateToTargetPath(getTopMenu(true)?.path || "/home");
-      message(t("login.pureLoginSuccess"), { type: "success" });
-    })
-    .catch(() => {
-      message("路由初始化失败，请重试", { type: "error" });
-      useUserStoreHook().logOut();
-    });
-};
-
-const handleLoginError = (error, fallbackMessage) => {
-  console.error(fallbackMessage, error);
-  message(error?.message || fallbackMessage, { type: "error" });
-};
-
 const onLogin = async (formEl) => {
+  const resolvedFormEl = resolveFormInstance(formEl);
   vcodeClose();
-  if (!formEl || loading.value) {
+  if (!resolvedFormEl || loading.value) {
     return;
   }
 
   // 验证码检查
-  if (props.defaultSetting.CheckCodeOpen) {
-    if (
-      defaultVerifyCode.value.verifyCodeKey?.toLowerCase() !=
-      ruleForm.verifyCode?.toLowerCase()
-    ) {
+  if (props.defaultSetting.OpenVerifyCode) {
+    if (defaultVerifyCode.value.verifyCodeKey?.toLowerCase() != ruleForm.verifyCode?.toLowerCase()) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
       getVerifyCode();
       return;
     }
   }
 
-  await formEl.validate((valid, fields) => {
+  await resolvedFormEl.validate((valid, fields) => {
     if (valid) {
       // 检查密码是否存在
       if (!ruleForm.password) {
@@ -309,14 +182,29 @@ const onLogin = async (formEl) => {
           verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
           loginType: "WEB",
           tenantCode: ruleForm.tenantCode,
-          accountType: isTenantMode.value ? "tenant" : null,
+          accountType: props.accountType == 2 ? "tenant" : null,
         })
-        .then((res) =>
-          handleLoginSuccess(res, isTenantMode.value ? "tenant" : "web"),
-        )
+        .then((res) => {
+          // 登录成功，获取后端路由
+          return initRouter()
+            .then(() => {
+              router.push(getTopMenu(true).path).then(() => {
+                message(t("login.pureLoginSuccess"), { type: "success" });
+              });
+            })
+            .catch((error) => {
+              // 路由初始化失败
+              message("路由初始化失败，请重试", { type: "error" });
+              useUserStoreHook().logOut();
+            });
+        })
         .catch((error) => {
-          handleLoginError(error, "登录失败，请检查用户名和密码");
-          if (props.defaultSetting.CheckCodeOpen) {
+          // 登录失败
+          console.error("登录失败:", error);
+          message(error.message || "登录失败，请检查用户名和密码", { type: "error" });
+
+          // 刷新验证码
+          if (props.defaultSetting.OpenVerifyCode) {
             getVerifyCode();
           }
         })
@@ -332,67 +220,10 @@ const onLogin = async (formEl) => {
   });
 };
 
-const sendSmsCode = async () => {
-  if (loading.value || smsSending.value || smsCountdown.value > 0) {
-    return;
-  }
-  if (!phonePattern.test(ruleForm.phone || "")) {
-    message(t("login.purePhoneReg"), { type: "error" });
-    return;
-  }
-
-  smsSending.value = true;
-  try {
-    await fetchSendSmsCode({
-      phone: ruleForm.phone,
-      bizType: "login",
-    });
-    message(t("login.pureSmsSendSuccess"), { type: "success" });
-    startSmsCountdown();
-  } catch (error) {
-    handleLoginError(error, "验证码发送失败，请先配置短信通道");
-  } finally {
-    smsSending.value = false;
-  }
-};
-
-const onSmsLogin = async (formEl) => {
-  if (!formEl || loading.value) {
-    return;
-  }
-
-  await formEl.validate((valid) => {
-    if (!valid) {
-      return;
-    }
-
-    loading.value = true;
-    fetchSmsLogin({
-      phone: ruleForm.phone,
-      code: ruleForm.smsCode,
-    })
-      .then(({ data }) => handleLoginSuccess(data, "sms"))
-      .catch((error) => {
-        handleLoginError(error, "短信登录失败，请检查手机号和验证码");
-      })
-      .finally(() => {
-        loading.value = false;
-      });
-  });
-};
-
-const submitCurrentLogin = (formEl) => {
-  if (isSmsMode.value) {
-    onSmsLogin(formEl);
-    return;
-  }
-  onLogin(formEl);
-};
-
 /** 使用公共函数，避免`removeEventListener`失效 */
 function onkeypress({ code }) {
   if (["Enter", "NumpadEnter"].includes(code)) {
-    submitCurrentLogin(ruleFormRef.value);
+    onLogin(ruleFormRef.value);
   }
 }
 const vcodeState = ref(false);
@@ -403,7 +234,6 @@ const vcodeClose = () => {
   openVcode.value = false;
   vcodeRef.value?.reset();
 };
-
 function onSuccess() {
   vcodeState.value = true;
 
@@ -424,7 +254,7 @@ function onSuccess() {
     setTimeout(() => {
       if (!loading.value) {
         // 再次检查loading状态
-        submitCurrentLogin(currentFormEl.value);
+        onLogin(currentFormEl.value);
         currentFormEl.value = null;
         vcodeRef.value?.reset();
         vcodeClose();
@@ -436,7 +266,7 @@ function onSuccess() {
   } else {
     // 如果找不到容器，直接执行登录
     if (!loading.value) {
-      submitCurrentLogin(currentFormEl.value);
+      onLogin(currentFormEl.value);
       currentFormEl.value = null;
       vcodeRef.value?.reset();
       vcodeClose();
@@ -479,10 +309,11 @@ onMounted(() => {
         .then((res) => {
           // 获取后端路由
           return initRouter()
-            .then(async () => {
-              const url = getTopMenu(true)?.path || "/home";
-              await navigateToTargetPath(url);
-              message(t("login.pureLoginSuccess"), { type: "success" });
+            .then(() => {
+              const url = getTopMenu(true).path;
+              router.push(url, { query: {} }).then(() => {
+                message(t("login.pureLoginSuccess"), { type: "success" });
+              });
             })
             .catch((error) => {
               useUserStoreHook().logOut();
@@ -498,7 +329,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  clearSmsCountdown();
   window.document.removeEventListener("keypress", onkeypress);
 });
 </script>
@@ -507,74 +337,23 @@ onBeforeUnmount(() => {
   <div>
     <svg style="display: none">
       <defs>
-        <filter
-          id="noise"
-          color-interpolation-filters="linearRGB"
-          filterUnits="objectBoundingBox"
-          primitiveUnits="userSpaceOnUse"
-        >
-          <feTurbulence
-            type="turbulence"
-            baseFrequency="0 0.4"
-            numOctaves="2"
-            seed="2"
-            stitchTiles="stitch"
-            x="0%"
-            y="0%"
-            width="100%"
-            height="100%"
-            result="turbulence"
-          />
-          <feDisplacementMap
-            in="SourceGraphic"
-            in2="turbulence"
-            scale="30"
-            xChannelSelector="R"
-            yChannelSelector="B"
-            x="0%"
-            y="0%"
-            width="100%"
-            height="100%"
-            result="displacementMap"
-          />
+        <filter id="noise" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+          <feTurbulence type="turbulence" baseFrequency="0 0.4" numOctaves="2" seed="2" stitchTiles="stitch" x="0%" y="0%" width="100%" height="100%" result="turbulence" />
+          <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="30" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
         </filter>
       </defs>
     </svg>
     <!-- 滑动验证码对话框 -->
-    <sc-dialog
-      v-model="openVcode"
-      width="480px"
-      draggable
-      title="滑动验证"
-      @close="vcodeClose"
-      class="modern-dialog vcode-dialog"
-      append-to-body
-    >
-      <div v-if="props.defaultSetting.SlidingBlockOpen" class="vcode-container">
+    <sc-dialog v-model="openVcode" width="480px" draggable title="滑动验证" @close="vcodeClose" class="modern-dialog vcode-dialog" append-to-body>
+      <div v-if="props.defaultSetting.OpenVcode" class="vcode-container">
         <Motion :delay="150">
           <div class="vcode-wrapper">
             <!-- 验证说明 -->
             <div class="verification-notice">
               <div class="notice-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M9 12L11 14L15 10"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
               <div class="notice-content">
@@ -587,32 +366,10 @@ onBeforeUnmount(() => {
             <div class="vcode-component-wrapper">
               <div class="vcode-header">
                 <div class="vcode-title">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M12 2L2 7L12 12L22 7L12 2Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <path
-                      d="M2 17L12 22L22 17"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <path
-                      d="M2 12L12 17L22 12"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                   <span>拼图验证</span>
                 </div>
@@ -620,56 +377,21 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="vcode-puzzle-area">
-                <Vcode
-                  ref="vcodeRef"
-                  :show="props.defaultSetting.SlidingBlockOpen"
-                  type="inside"
-                  :puzzleScale="0.8"
-                  @fail="onFail"
-                  @success="onSuccess"
-                />
+                <Vcode ref="vcodeRef" :show="props.defaultSetting.OpenVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
               </div>
 
               <!-- 操作提示 -->
               <div class="vcode-tips">
                 <div class="tip-item">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M7 10L12 15L17 10"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                   <span>拖动滑块到正确位置</span>
                 </div>
                 <div class="tip-item">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                   <span>仔细观察拼图缺口</span>
                 </div>
@@ -679,25 +401,9 @@ onBeforeUnmount(() => {
             <!-- 验证状态提示 -->
             <div class="verification-status">
               <div class="status-item">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M9 12L11 14L15 10"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <span>安全验证保护您的账户</span>
               </div>
@@ -708,113 +414,39 @@ onBeforeUnmount(() => {
     </sc-dialog>
 
     <!-- TOTP验证码对话框 -->
-    <sc-dialog
-      v-model="openToptcode"
-      width="480px"
-      :close-on-click-modal="false"
-      draggable
-      title="动态验证码验证"
-      @close="vcodeToptClose"
-      class="modern-dialog totp-dialog"
-      append-to-body
-    >
+    <sc-dialog v-model="openToptcode" width="480px" :close-on-click-modal="false" draggable title="动态验证码验证" @close="vcodeToptClose" class="modern-dialog totp-dialog" append-to-body>
       <div class="totp-container">
         <Motion :delay="150">
           <div class="totp-wrapper">
             <!-- 安全提示 -->
             <div class="security-notice">
               <div class="notice-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M12 8V12"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M12 16H12.01"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
               <p class="notice-text">为了您的账户安全，请输入动态验证码</p>
             </div>
 
             <!-- 验证码输入组件 -->
-            <ScCode
-              ref="scCodeRef"
-              :disabled="loading"
-              @onComplete="handleTotpComplete"
-              @onChange="handleTotpChange"
-            />
+            <ScCode ref="scCodeRef" :disabled="loading" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
 
             <!-- 帮助信息 -->
             <div class="help-info">
               <div class="help-item">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 2L2 7L12 12L22 7L12 2Z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M2 17L12 22L22 17"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M2 12L12 17L22 12"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <span>验证码每30秒更新一次</span>
               </div>
               <div class="help-item">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M9 12L11 14L15 10"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                  <path
-                    d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
                 <span>支持粘贴验证码</span>
               </div>
@@ -840,10 +472,7 @@ onBeforeUnmount(() => {
               <div class="avatar-glow-ring"></div>
               <div class="avatar-outer-ring"></div>
               <div class="avatar-inner-wrapper">
-                <avatar
-                  class="enhanced-avatar filter-bolin"
-                  @mouseover="handleTimeline"
-                />
+                <avatar class="enhanced-avatar filter-bolin" @mouseover="handleTimeline" />
                 <div class="avatar-status-indicator"></div>
               </div>
               <div class="avatar-floating-particles">
@@ -861,13 +490,7 @@ onBeforeUnmount(() => {
               <div class="title-wrapper">
                 <h2 class="enhanced-login-title">
                   <span class="title-gradient">
-                    <TypeIt
-                      :options="{
-                        strings: [props.defaultSetting.SystemName || title],
-                        cursor: false,
-                        speed: 100,
-                      }"
-                    />
+                    <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
                   </span>
                 </h2>
                 <div class="title-underline"></div>
@@ -886,24 +509,22 @@ onBeforeUnmount(() => {
 
         <!-- 表单区域 -->
         <div class="form-section">
+          <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large" class="modern-form">
             <!-- 租户编码字段（非必填） -->
-            <Motion
-              :delay="150"
-              v-if="
-                showCredentialLogin &&
-                defaultSetting.OpenTenantLogin &&
-                isTenantMode
-              "
-            >
+            <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && props.accountType == 2">
               <div class="form-field-wrapper">
+                <label class="field-label">租户编码 <span class="optional-hint">(选填)</span></label>
+                <el-form-item prop="tenantCode" class="modern-form-item">
+                  <el-input v-model="ruleForm.tenantCode" clearable :disabled="loading" :placeholder="t('login.pureTenantCode')" :prefix-icon="useRenderIcon('ri:building-fill')" class="modern-input" />
+                </el-form-item>
               </div>
             </Motion>
 
             <!-- 用户名字段 -->
-            <Motion v-if="showCredentialLogin" :delay="100">
+            <Motion :delay="100">
               <div class="form-field-wrapper">
-                <label class="field-label font-encryption-enabled">用户名</label>
-                <ScFormItem
+                <label class="field-label">用户名</label>
+                <el-form-item
                   :rules="[
                     {
                       required: true,
@@ -914,133 +535,33 @@ onBeforeUnmount(() => {
                   prop="username"
                   class="modern-form-item"
                 >
-                  <el-input
-                    v-model="ruleForm.username"
-                    clearable
-                    :disabled="loading"
-                    :placeholder="t('login.pureUsername')"
-                    :prefix-icon="useRenderIcon('ri:user-line')"
-                    class="modern-input"
-                  />
-                </ScFormItem>
-              </div>
-            </Motion>
-
-            <!-- 密码字段 -->
-            <Motion v-if="showCredentialLogin" :delay="150">
-              <div class="form-field-wrapper">
-                <label class="field-label">{{ t("login.purePassword") }}</label>
-                <ScFormItem
-                  :rules="[
-                    {
-                      required: true,
-                      message: transformI18n($t('login.purePasswordReg')),
-                      trigger: 'blur',
-                    },
-                  ]"
-                  prop="password"
-                  class="modern-form-item"
-                >
-                  <el-input
-                    v-model="ruleForm.password"
-                    clearable
-                    show-password
-                    :disabled="loading"
-                    :placeholder="t('login.purePassword')"
-                    :prefix-icon="useRenderIcon('ri:lock-line')"
-                    class="modern-input"
-                  />
-                </ScFormItem>
-              </div>
-            </Motion>
-
-            <Motion v-if="isSmsMode" :delay="100">
-              <div class="form-field-wrapper">
-                <label class="field-label">{{ t("login.purePhone") }}</label>
-                <el-form-item prop="phone" class="modern-form-item">
-                  <el-input
-                    v-model="ruleForm.phone"
-                    clearable
-                    :disabled="loading"
-                    :placeholder="t('login.purePhone')"
-                    :prefix-icon="useRenderIcon('ri:smartphone-line')"
-                    class="modern-input"
-                  />
+                  <el-input v-model="ruleForm.username" clearable :disabled="loading" :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon('ri:user-3-fill')" class="modern-input" />
                 </el-form-item>
               </div>
             </Motion>
 
-            <Motion v-if="isSmsMode" :delay="150">
+            <!-- 密码字段 -->
+            <Motion :delay="150">
               <div class="form-field-wrapper">
-                <div class="field-label-row">
-                  <label class="field-label">{{
-                    t("login.pureSmsCode")
-                  }}</label>
-                  <span class="field-tip">{{
-                    t("login.pureSmsServiceHint")
-                  }}</span>
-                </div>
-                <div class="sms-code-wrapper">
-                  <el-form-item
-                    prop="smsCode"
-                    class="modern-form-item sms-code-input"
-                  >
-                    <el-input
-                      v-model="ruleForm.smsCode"
-                      clearable
-                      :disabled="loading"
-                      :placeholder="t('login.pureSmsCode')"
-                      :prefix-icon="useRenderIcon('ri:message-2-line')"
-                      class="modern-input"
-                    />
-                  </el-form-item>
-                  <el-button
-                    class="sms-code-button"
-                    plain
-                    :loading="smsSending"
-                    :disabled="loading || smsCountdown > 0"
-                    @click="sendSmsCode"
-                  >
-                    {{ smsSendButtonText }}
-                  </ScButton>
-                </div>
+                <label class="field-label">密码</label>
+                <el-form-item prop="password" class="modern-form-item">
+                  <el-input v-model="ruleForm.password" clearable show-password :disabled="loading" :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
+                </el-form-item>
               </div>
             </Motion>
 
             <!-- 验证码字段 -->
-            <Motion
-              v-if="showCredentialLogin && props.defaultSetting.CheckCodeOpen"
-              :delay="200"
-            >
+            <Motion v-if="props.defaultSetting.OpenVerifyCode" :delay="200">
               <div class="form-field-wrapper">
                 <label class="field-label">验证码</label>
                 <div class="verify-code-wrapper">
-                  <ScFormItem
-                    :rules="[
-                      {
-                        required: true,
-                        message: transformI18n($t('login.pureVerifyCode')),
-                        trigger: 'blur',
-                      },
-                    ]"
-                    prop="verifyCode"
-                    class="modern-form-item"
-                  >
-                    <el-input
-                      v-model="ruleForm.verifyCode"
-                      clearable
-                      :disabled="loading"
-                      :placeholder="t('login.pureVerifyCode')"
-                      class="modern-input"
-                    />
-                  </ScFormItem>
-                  <img
-                    v-if="codeUrl"
-                    :src="codeUrl"
-                    alt="验证码"
-                    class="verify-code-image"
-                    @click="getVerifyCode"
-                  />
+                  <el-form-item prop="verifyCode" class="modern-form-item verify-code-input">
+                    <el-input v-model="ruleForm.verifyCode" clearable :disabled="loading" :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
+                  </el-form-item>
+                  <div class="verify-code-image" :class="{ disabled: loading }" @click="!loading && getVerifyCode()">
+                    <el-image :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" class="code-image" />
+                    <div class="refresh-hint">{{ loading ? "登录中..." : "点击刷新" }}</div>
+                  </div>
                 </div>
               </div>
             </Motion>
@@ -1048,17 +569,25 @@ onBeforeUnmount(() => {
             <!-- 登录按钮 -->
             <Motion :delay="250">
               <div class="login-button-wrapper">
-                <ScButton
-                  v-if="!loading"
-                  type="primary"
-                  class="login-button"
-                  @click="onLogin"
-                >
-                  {{ t("login.pureLogin") }}
-                </ScButton>
-                <span v-else>登录中...</span>
+                <el-button v-if="props.defaultSetting.OpenVerifyCode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginClick">
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>登录中...</span>
+                </el-button>
+                <el-button v-else-if="props.defaultSetting.OpenVcode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginCodeClick">
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>验证中...</span>
+                </el-button>
+                <el-button v-else-if="props.defaultSetting.CheckToptOpen" class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginToptCodeClick">
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>验证中...</span>
+                </el-button>
+                <el-button v-else class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginClick">
+                  <span v-if="!loading">{{ t("login.pureLogin") }}</span>
+                  <span v-else>登录中...</span>
+                </el-button>
               </div>
             </Motion>
+          </el-form>
         </div>
 
         <!-- 第三方登录 -->
@@ -1067,10 +596,7 @@ onBeforeUnmount(() => {
             <div class="divider">
               <span class="divider-text">或</span>
             </div>
-            <ThirdPartyLayout
-              :data="props.ssoSetting"
-              class="third-party-component"
-            />
+            <ThirdPartyLayout :data="props.ssoSetting" class="third-party-component" />
           </div>
         </Motion>
       </div>
@@ -1156,14 +682,7 @@ onBeforeUnmount(() => {
         right: -15px;
         bottom: -15px;
         border-radius: 50%;
-        background: conic-gradient(
-          from 0deg,
-          var(--el-color-primary),
-          var(--el-color-primary-light-3),
-          var(--el-color-primary),
-          var(--el-color-primary-light-5),
-          var(--el-color-primary)
-        );
+        background: conic-gradient(from 0deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary), var(--el-color-primary-light-5), var(--el-color-primary));
         opacity: 0.3;
         animation: rotate 8s linear infinite;
         z-index: 1;
@@ -1211,12 +730,7 @@ onBeforeUnmount(() => {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(
-              135deg,
-              transparent 0%,
-              rgba(255, 255, 255, 0.1) 50%,
-              transparent 100%
-            );
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
             border-radius: 50%;
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -1342,12 +856,7 @@ onBeforeUnmount(() => {
           position: relative;
 
           .title-gradient {
-            background: linear-gradient(
-              135deg,
-              var(--el-text-color-primary) 0%,
-              var(--el-color-primary) 50%,
-              var(--el-text-color-primary) 100%
-            );
+            background: linear-gradient(135deg, var(--el-text-color-primary) 0%, var(--el-color-primary) 50%, var(--el-text-color-primary) 100%);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -1363,12 +872,7 @@ onBeforeUnmount(() => {
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(
-                135deg,
-                transparent 0%,
-                rgba(255, 255, 255, 0.2) 50%,
-                transparent 100%
-              );
+              background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
               background-clip: text;
               -webkit-background-clip: text;
               opacity: 0;
@@ -1384,12 +888,7 @@ onBeforeUnmount(() => {
         .title-underline {
           width: 40px; // 从60px减少到40px
           height: 3px; // 从4px减少到3px
-          background: linear-gradient(
-            90deg,
-            var(--el-color-primary),
-            var(--el-color-primary-light-3),
-            var(--el-color-primary)
-          );
+          background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
           border-radius: 2px;
           margin: 0 auto;
           position: relative;
@@ -1402,12 +901,7 @@ onBeforeUnmount(() => {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-              90deg,
-              transparent,
-              rgba(255, 255, 255, 0.6),
-              transparent
-            );
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
             animation: shimmer 2s ease-in-out infinite;
           }
         }
@@ -1444,11 +938,7 @@ onBeforeUnmount(() => {
         align-items: center;
         justify-content: center;
         padding: 6px 16px; // 从8px 20px减少到6px 16px
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-light-9),
-          var(--el-color-primary-light-8)
-        );
+        background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
         border: 1px solid var(--el-color-primary-light-7);
         border-radius: 16px; // 从20px减少到16px
         box-shadow: var(--el-box-shadow-lighter);
@@ -1463,12 +953,7 @@ onBeforeUnmount(() => {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.3),
-            transparent
-          );
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
           transition: left 0.6s ease;
         }
 
@@ -1585,47 +1070,14 @@ onBeforeUnmount(() => {
   }
 
   // 验证码区域
-  .field-label-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
-    margin-bottom: 6px;
-  }
-
-  .field-tip {
-    color: var(--el-text-color-secondary);
-    font-size: 12px;
-    line-height: 1.4;
-    text-align: right;
-  }
-
-  .sms-code-wrapper,
   .verify-code-wrapper {
     display: flex;
     gap: 12px;
     align-items: flex-start;
     flex: 1;
 
-    .sms-code-input,
     .verify-code-input {
       flex: 1;
-    }
-
-    .sms-code-button {
-      min-width: 120px;
-      height: 48px;
-      border-radius: 12px;
-      border-color: rgba(var(--el-color-primary-rgb), 0.2);
-      color: var(--el-color-primary);
-      font-weight: 600;
-      background: rgba(var(--el-color-primary-rgb), 0.04);
-
-      &:hover:not(:disabled) {
-        border-color: rgba(var(--el-color-primary-rgb), 0.36);
-        background: rgba(var(--el-color-primary-rgb), 0.08);
-      }
     }
 
     .verify-code-image {
@@ -1702,11 +1154,7 @@ onBeforeUnmount(() => {
       font-size: 16px;
       font-weight: 600;
       border-radius: 12px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary),
-        var(--el-color-primary-light-3)
-      );
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
       border: none;
       box-shadow: var(--el-box-shadow-light);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1714,11 +1162,7 @@ onBeforeUnmount(() => {
       writing-mode: horizontal-tb;
 
       &:hover {
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-dark-2),
-          var(--el-color-primary)
-        );
+        background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
         box-shadow: var(--el-box-shadow);
         transform: translateY(-2px);
       }
@@ -1914,11 +1358,7 @@ onBeforeUnmount(() => {
           content: "";
           width: 20px;
           height: 20px;
-          background: linear-gradient(
-            135deg,
-            var(--el-color-success),
-            var(--el-color-success-light-3)
-          );
+          background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
           border-radius: 50%;
           display: inline-block;
           position: relative;
@@ -2017,12 +1457,7 @@ onBeforeUnmount(() => {
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(
-          135deg,
-          var(--el-color-primary-light-9) 0%,
-          transparent 50%,
-          var(--el-color-success-light-9) 100%
-        );
+        background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 50%, var(--el-color-success-light-9) 100%);
         opacity: 0.3;
         z-index: 0;
       }
@@ -2044,12 +1479,7 @@ onBeforeUnmount(() => {
         animation: bounceIn 0.6s ease-out;
 
         &::before {
-          background: linear-gradient(
-            135deg,
-            var(--el-color-success-light-8) 0%,
-            transparent 50%,
-            var(--el-color-success-light-7) 100%
-          );
+          background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, transparent 50%, var(--el-color-success-light-7) 100%);
         }
 
         .vcode-header .vcode-title {
@@ -2074,12 +1504,7 @@ onBeforeUnmount(() => {
         animation: shake 0.5s ease-in-out;
 
         &::before {
-          background: linear-gradient(
-            135deg,
-            var(--el-color-error-light-8) 0%,
-            transparent 50%,
-            var(--el-color-error-light-7) 100%
-          );
+          background: linear-gradient(135deg, var(--el-color-error-light-8) 0%, transparent 50%, var(--el-color-error-light-7) 100%);
         }
 
         .vcode-header .vcode-title {
@@ -2199,12 +1624,7 @@ onBeforeUnmount(() => {
 
           // 滑块轨道
           .vcode-slider-track {
-            background: linear-gradient(
-              90deg,
-              var(--el-fill-color-light) 0%,
-              var(--el-fill-color-extra-light) 50%,
-              var(--el-fill-color-light) 100%
-            );
+            background: linear-gradient(90deg, var(--el-fill-color-light) 0%, var(--el-fill-color-extra-light) 50%, var(--el-fill-color-light) 100%);
             border: 2px solid var(--el-border-color-lighter);
             border-radius: 24px;
             height: 48px;
@@ -2220,12 +1640,7 @@ onBeforeUnmount(() => {
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(
-                90deg,
-                transparent 0%,
-                rgba(var(--el-color-primary-rgb), 0.1) 50%,
-                transparent 100%
-              );
+              background: linear-gradient(90deg, transparent 0%, rgba(var(--el-color-primary-rgb), 0.1) 50%, transparent 100%);
               animation: shimmer 2s ease-in-out infinite;
             }
 
@@ -2247,11 +1662,7 @@ onBeforeUnmount(() => {
 
           // 滑块按钮
           .vcode-slider-btn {
-            background: linear-gradient(
-              135deg,
-              var(--el-color-primary) 0%,
-              var(--el-color-primary-light-3) 100%
-            );
+            background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
             border: 3px solid var(--el-bg-color);
             border-radius: 50%;
             width: 44px;
@@ -2291,11 +1702,7 @@ onBeforeUnmount(() => {
             }
 
             &:hover {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-primary-dark-2) 0%,
-                var(--el-color-primary) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
               transform: scale(1.1);
               box-shadow:
                 0 6px 16px rgba(var(--el-color-primary-rgb), 0.4),
@@ -2311,20 +1718,12 @@ onBeforeUnmount(() => {
           // 成功状态
           &.vcode-success {
             .vcode-slider-track {
-              background: linear-gradient(
-                90deg,
-                var(--el-color-success-light-8) 0%,
-                var(--el-color-success-light-9) 100%
-              );
+              background: linear-gradient(90deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
               border-color: var(--el-color-success-light-5);
             }
 
             .vcode-slider-btn {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-success) 0%,
-                var(--el-color-success-light-3) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
 
               &::after {
                 background: var(--el-color-success);
@@ -2335,21 +1734,13 @@ onBeforeUnmount(() => {
           // 失败状态
           &.vcode-error {
             .vcode-slider-track {
-              background: linear-gradient(
-                90deg,
-                var(--el-color-error-light-8) 0%,
-                var(--el-color-error-light-9) 100%
-              );
+              background: linear-gradient(90deg, var(--el-color-error-light-8) 0%, var(--el-color-error-light-9) 100%);
               border-color: var(--el-color-error-light-5);
               animation: shake 0.5s ease-in-out;
             }
 
             .vcode-slider-btn {
-              background: linear-gradient(
-                135deg,
-                var(--el-color-error) 0%,
-                var(--el-color-error-light-3) 100%
-              );
+              background: linear-gradient(135deg, var(--el-color-error) 0%, var(--el-color-error-light-3) 100%);
 
               &::after {
                 background: var(--el-color-error);
@@ -2629,7 +2020,6 @@ onBeforeUnmount(() => {
             }
           }
 
-          .sms-code-wrapper,
           .verify-code-wrapper {
             width: 100%;
           }

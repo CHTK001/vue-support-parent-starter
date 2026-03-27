@@ -12,8 +12,6 @@ import {
   transformI18n,
   userKey,
 } from "@repo/config";
-import type { UserResult } from "@repo/core";
-import { removeToken, useMultiTagsStoreHook } from "@repo/core";
 import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
 import Cookies from "js-cookie";
 import yaml from "js-yaml";
@@ -23,7 +21,10 @@ import {
   type Router,
   type RouteRecordRaw,
 } from "vue-router";
+import type { UserResult } from "../api/common/user";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
+import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
+import { removeToken } from "../utils/auth";
 import {
   ascending,
   findRouteByPath,

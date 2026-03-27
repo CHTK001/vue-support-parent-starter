@@ -1,9 +1,8 @@
 ﻿<script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import ScBreadcrumbItem from "@repo/components/ScBreadcrumb";
 import { isEqual, useGlobal } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { useRoute, useRouter } from "vue-router";
 import { onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue";
 import {

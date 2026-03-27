@@ -15,6 +15,7 @@ import {
   ref,
   watch,
 } from "vue";
+import ScScrollbar from "@repo/components/ScScrollbar";
 import { useRoute, useRouter } from "vue-router";
 import { ScText } from "@repo/components/ScText";
 import { useNav } from "../../../hooks/useNav";
@@ -22,7 +23,7 @@ import { useLayout } from "../../../hooks/useLayout";
 import type { MenuItem } from "../../../types/menu";
 import LaySidebarLeftCollapse from "./SidebarLeftCollapse.vue";
 import LaySidebarLogo from "./SidebarLogo.vue";
-import { ScText } from "@repo/components/ScText";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 // Props
 interface Props {

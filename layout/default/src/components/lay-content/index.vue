@@ -12,6 +12,9 @@ import {
   onErrorCaptured,
 } from "vue";
 import { useLayoutEvents } from "../../hooks/useLayoutEvents";
+import ScBacktop from "@repo/components/ScBacktop";
+import ScCard from "@repo/components/ScCard";
+import ScScrollbar from "@repo/components/ScScrollbar";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { useTags } from "../../hooks/useTag";

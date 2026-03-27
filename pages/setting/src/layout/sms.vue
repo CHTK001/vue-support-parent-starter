@@ -20,38 +20,42 @@
             ></ScTableSelect>
           </ScFormItem>
 
-          <ScFormItem
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="名称"
             prop="sysProjectName"
           >
-            <ScInput v-model="form.sysProjectName" readonly disabled></ScInput>
+            <ScInput 
+              v-model="form.sysProjectName"
+              readonly
+              disabled
+            ></ScInput>
           </ScFormItem>
-          <ScFormItem
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="AppId"
             prop="sysProjectAppId"
           >
             <ScInput v-model="form.sysProjectAppId"></ScInput>
           </ScFormItem>
-          <ScFormItem
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="密钥"
             prop="sysProjectAppSecret"
           >
-            <ScInput
+            <ScInput 
               type="password"
               show-password
               v-model="form.sysProjectAppSecret"
             >
             </ScInput>
           </ScFormItem>
-          <ScFormItem
+          <ScFormItem 
             v-if="form.sysProjectId"
             label="签名"
             prop="sysProjectSign"
           >
-            <ScInput
+            <ScInput 
               type="password"
               show-password
               v-model="form.sysProjectSign"
@@ -60,7 +64,7 @@
           </ScFormItem>
 
           <ScFormItem class="justify-start custom-button">
-            <ScButton
+            <ScButton 
               class="ml-1"
               :icon="useRenderIcon('ri:save-2-fill')"
               type="primary"
@@ -76,7 +80,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import {
   fetchDefaultNameProject,
   fetchDefaultProject,
@@ -94,7 +98,7 @@ import {
   watch,
 } from "vue"; // 添加nextTick和watch
 const ScTableSelect = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScTableSelect/index.vue")
 );
 const form = reactive({});
 const hasAuth = shallowRef(true);
@@ -150,7 +154,7 @@ watch(
         }
       });
     }
-  },
+  }
 );
 
 const initialDefault = async () => {

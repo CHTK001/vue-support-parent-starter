@@ -1,5 +1,5 @@
 {
-  "name": "@repo/components-sc-text",
+  "name": "@repo/components/ScText",
   "version": "1.0.0",
   "description": "ScText 文本组件 - 支持副文本、提示、编辑、复制、远程调用、TypeIt打字机等功能",
   "main": "./index.ts",

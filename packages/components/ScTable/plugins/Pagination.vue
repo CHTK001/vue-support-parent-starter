@@ -1,5 +1,5 @@
 <script setup>
-import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
+import { IconifyIconOnline as IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed, onMounted, ref, watch } from "vue";
 import { getLogger } from "@repo/utils";
 import { config } from "../column";

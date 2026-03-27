@@ -20,11 +20,16 @@ const jsGenerateNonce = (): string => {
   return nonce.slice(0, 32);
 };
 
+const isWasmNotReadyError = (error: unknown): boolean =>
+  error instanceof Error && error.message.includes("WASM 未就绪");
+
 const safeMd5Hash = (value: string): string => {
   try {
     return md5HashWasm(value);
   } catch (error) {
-    console.warn("[http-sign] md5HashWasm failed, fallback to JS md5:", error);
+    if (!isWasmNotReadyError(error)) {
+      console.warn("[http-sign] md5HashWasm failed, fallback to JS md5:", error);
+    }
     return jsMd5Hash(value);
   }
 };
@@ -34,7 +39,9 @@ export const generateNonce = (): string => {
   try {
     return generateNonceWasm();
   } catch (error) {
-    console.warn("[http-sign] generateNonceWasm failed, fallback to JS nonce:", error);
+    if (!isWasmNotReadyError(error)) {
+      console.warn("[http-sign] generateNonceWasm failed, fallback to JS nonce:", error);
+    }
     return jsGenerateNonce();
   }
 };

@@ -1,6 +1,5 @@
-﻿<script setup>
+<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon";
-
 import {
   reactive,
   ref,
@@ -346,8 +345,7 @@ const closeDetail = () => {
       <template #footer>
         <ScButton @click="visible.issue = false">取消</ScButton>
         <ScButton type="primary" :loading="loading.issue" @click="submitIssue"
-          >确认回复</ScButton
-        >
+          >确认回复</ScButton>
       </template>
     </sc-dialog>
 
@@ -536,8 +534,7 @@ const closeDetail = () => {
             >
               <template #default="{ row }">
                 <ScTag v-if="row.sysFeedbackStatus === 1" type="success"
-                  >已处理</ScTag
-                >
+                  >已处理</ScTag>
                 <ScTag v-else type="warning">待处理</ScTag>
               </template>
             </ScTableColumn>
@@ -567,8 +564,7 @@ const closeDetail = () => {
                   回复
                 </ScButton>
                 <ScButton type="primary" link @click.stop="openDetail(row)"
-                  >详情</ScButton
-                >
+                  >详情</ScButton>
               </template>
             </ScTableColumn>
           </ScTable>

@@ -14,9 +14,12 @@ import ImageDetectIndex from "./views/ai/image/detect/index.vue";
 import LlmNewIndex from "./views/ai/llm-new/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
 import VideoIndex from "./views/ai/video/index.vue";
-import DeviceIndex from "./views/device/index.vue";
-import DevicePreview from "./views/template/device/preview/index.vue";
-import DeviceTemplate from "./views/template/device/index.vue";
+import {
+  DeviceIndex,
+  DeviceMerchantPage,
+  DevicePreview,
+  DeviceTemplate,
+} from "@pages/device";
 import EmailTemplate from "./views/template/email/index.vue";
 import SmsTemplate from "./views/template/sms/index.vue";
 
@@ -27,6 +30,7 @@ export default LayoutDefault;
 export {
   ColorizationIndex,
   DeviceIndex,
+  DeviceMerchantPage,
   DevicePreview,
   DeviceTemplate,
   EmailTemplate,
@@ -43,3 +47,4 @@ export {
   VideoIndex,
   VincentIndex,
 };
+export * from "./api/manage/secret";

@@ -4,18 +4,18 @@ import "gridstack/dist/gridstack.min.css";
 import { GridStack } from "gridstack";
 import {
   fetchGetUserLayout,
-  fetchMineSfc,
   fetchUpdateUserLayout,
-} from "@repo/core";
+} from "../../api/common/user";
+import { fetchMineSfc } from "../../api/common/sfc";
 import { getConfig } from "@repo/config";
 import { h, render } from "vue";
 import {
-  loadSfcModule,
   localStorageProxy,
   message,
   toObject,
 } from "@repo/utils";
 import { layout } from "echarts/types/src/layout/barGrid.js";
+import { createLazySfcComponent } from "../utils/lazySfc";
 export const useGridStackStore = defineStore({
   id: "GridStackStore",
   state: () => ({
@@ -55,7 +55,7 @@ export const useGridStackStore = defineStore({
     },
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
-      return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
+      return createLazySfcComponent(sysSfc);
     },
     getComponent(key) {
       return this.modulesWithProps[key];

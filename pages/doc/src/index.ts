@@ -13,5 +13,9 @@ export * from "./utils";
 // 导出存储工具
 export * from "./storage";
 
+// 导出节点 API 文档请求
+export * from "./api/node-documentation";
+export * from "./api/app-document";
+
 // 导出组件
 export * from "./components";

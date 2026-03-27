@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="表达式帮助"
@@ -106,8 +106,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               </div>
               <code
                 >100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) *
-                100)</code
-              >
+                100)</code>
             </div>
             <div
               class="example-item"
@@ -126,8 +125,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               </div>
               <code
                 >(1 - (node_memory_MemAvailable_bytes /
-                node_memory_MemTotal_bytes)) * 100</code
-              >
+                node_memory_MemTotal_bytes)) * 100</code>
             </div>
             <div
               class="example-item"
@@ -146,8 +144,7 @@ sum(rate(http_requests_total[5m]))</code></pre>
               </div>
               <code
                 >(1 - (node_filesystem_avail_bytes /
-                node_filesystem_size_bytes)) * 100</code
-              >
+                node_filesystem_size_bytes)) * 100</code>
             </div>
             <div
               class="example-item"

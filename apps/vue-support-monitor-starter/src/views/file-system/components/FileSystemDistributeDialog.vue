@@ -85,7 +85,7 @@ import { ref, onMounted, watch } from "vue";
 import { message } from "@repo/utils";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
-import { distributeFileSystemFile } from "@/api/monitor/filesystem";
+import { distributeFileSystemFile } from "@pages/system";
 
 interface Props {
   modelValue: boolean;

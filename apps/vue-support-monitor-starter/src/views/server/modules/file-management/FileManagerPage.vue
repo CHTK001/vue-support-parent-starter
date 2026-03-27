@@ -166,10 +166,10 @@
 </template>
 
 <script setup lang="ts">
-import type { FileInfo } from "@/api/server/file-management";
-import { uploadServerFileWithProgress } from "@/api/server/upload";
+import type { FileInfo } from "@pages/system";
+import { uploadServerFileWithProgress } from "@pages/system";
 import { useFileSystemSSE } from "@/composables/useFileSystemSSE";
-import UploadQueueStatusComponent from "@/views/file-system/components/UploadQueueStatus.vue";
+import { SystemUploadQueueStatus as UploadQueueStatusComponent } from "@pages/system";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, ref, watch } from "vue";

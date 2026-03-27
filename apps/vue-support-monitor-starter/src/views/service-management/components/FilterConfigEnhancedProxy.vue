@@ -1,11 +1,11 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleInner"
     title="增强版HTTP代理配置"
     width="900px"
     :close-on-click-modal="false"
-    draggable
     @close="handleClose"
+    draggable
   >
     <div class="proxy-config-container thin-scrollbar">
       <!-- 基础配置 -->
@@ -15,43 +15,39 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <ScFormItem label="启用状态">
-            <ScSwitch
+          <el-form-item label="启用状态">
+            <el-switch
               v-model="config.enabled"
               active-text="启用"
               inactive-text="禁用"
             />
-          </ScFormItem>
-          <ScFormItem label="线程池类型">
-            <ScSelect v-model="config.poolType" style="width: 180px">
-              <ScOption label="固定大小(Fixed)" value="FIXED">
+          </el-form-item>
+          <el-form-item label="线程池类型">
+            <el-select v-model="config.poolType" style="width: 180px">
+              <el-option label="固定大小(Fixed)" value="FIXED">
                 <span class="option-item"
-                  ><IconifyIconOnline icon="ri:group-line" /> 固定大小</span
-                >
-              </ScOption>
-              <ScOption label="缓存型(Cached)" value="CACHED">
+                  ><IconifyIconOnline icon="ri:group-line" /> 固定大小</span>
+              </el-option>
+              <el-option label="缓存型(Cached)" value="CACHED">
                 <span class="option-item"
-                  ><IconifyIconOnline icon="ri:stack-line" /> 缓存型</span
-                >
-              </ScOption>
-              <ScOption label="动态(Dynamic)" value="DYNAMIC">
+                  ><IconifyIconOnline icon="ri:stack-line" /> 缓存型</span>
+              </el-option>
+              <el-option label="动态(Dynamic)" value="DYNAMIC">
                 <span class="option-item"
-                  ><IconifyIconOnline icon="ri:pulse-line" /> 动态调整</span
-                >
-              </ScOption>
-              <ScOption label="工作窃取(WorkStealing)" value="WORK_STEALING">
+                  ><IconifyIconOnline icon="ri:pulse-line" /> 动态调整</span>
+              </el-option>
+              <el-option label="工作窃取(WorkStealing)" value="WORK_STEALING">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:git-branch-line" />
-                  工作窃取</span
-                >
-              </ScOption>
-            </ScSelect>
-          </ScFormItem>
+                  工作窃取</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
         </div>
         <div class="pool-type-desc">
-          <ScTag :type="getPoolTypeTagType(config.poolType) as any">{{
+          <el-tag :type="getPoolTypeTagType(config.poolType) as any">{{
             getPoolTypeDesc(config.poolType)
-          }}</ScTag>
+          }}</el-tag>
         </div>
       </div>
 
@@ -62,24 +58,24 @@
           Netty线程配置
         </h4>
         <div class="config-grid">
-          <ScFormItem label="Boss线程数">
-            <ScInputNumber
+          <el-form-item label="Boss线程数">
+            <el-input-number
               v-model="config.bossThreads"
               :min="1"
               :max="16"
               controls-position="right"
             />
             <div class="form-tip">接收连接的线程数（建议1-2）</div>
-          </ScFormItem>
-          <ScFormItem label="Worker线程数">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="Worker线程数">
+            <el-input-number
               v-model="config.workerThreads"
               :min="1"
               :max="256"
               controls-position="right"
             />
             <div class="form-tip">处理IO的线程数（建议CPU核心数*2）</div>
-          </ScFormItem>
+          </el-form-item>
         </div>
       </div>
 
@@ -90,26 +86,26 @@
           业务线程池配置
         </h4>
         <div class="config-grid">
-          <ScFormItem label="核心线程数">
-            <ScInputNumber
+          <el-form-item label="核心线程数">
+            <el-input-number
               v-model="config.corePoolSize"
               :min="1"
               :max="500"
               controls-position="right"
             />
             <div class="form-tip">建议设置为CPU核心数</div>
-          </ScFormItem>
-          <ScFormItem v-if="config.poolType !== 'FIXED'" label="最大线程数">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="最大线程数" v-if="config.poolType !== 'FIXED'">
+            <el-input-number
               v-model="config.maxPoolSize"
               :min="config.corePoolSize"
               :max="1000"
               controls-position="right"
             />
             <div class="form-tip">建议设置为CPU核心数*4</div>
-          </ScFormItem>
-          <ScFormItem v-if="config.poolType !== 'CACHED'" label="队列容量">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="队列容量" v-if="config.poolType !== 'CACHED'">
+            <el-input-number
               v-model="config.queueCapacity"
               :min="100"
               :max="100000"
@@ -117,9 +113,9 @@
               controls-position="right"
             />
             <div class="form-tip">等待队列的最大任务数</div>
-          </ScFormItem>
-          <ScFormItem v-if="config.poolType !== 'FIXED'" label="空闲存活(秒)">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="空闲存活(秒)" v-if="config.poolType !== 'FIXED'">
+            <el-input-number
               v-model="config.keepAliveSeconds"
               :min="0"
               :max="3600"
@@ -127,7 +123,7 @@
               controls-position="right"
             />
             <div class="form-tip">非核心线程空闲后的存活时间</div>
-          </ScFormItem>
+          </el-form-item>
         </div>
       </div>
 
@@ -138,35 +134,35 @@
           超时与策略
         </h4>
         <div class="config-grid">
-          <ScFormItem label="连接超时(ms)">
-            <ScInputNumber
+          <el-form-item label="连接超时(ms)">
+            <el-input-number
               v-model="config.connectionTimeout"
               :min="1000"
               :max="60000"
               :step="1000"
               controls-position="right"
             />
-          </ScFormItem>
-          <ScFormItem label="读取超时(ms)">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="读取超时(ms)">
+            <el-input-number
               v-model="config.readTimeout"
               :min="1000"
               :max="300000"
               :step="1000"
               controls-position="right"
             />
-          </ScFormItem>
-          <ScFormItem label="写入超时(ms)">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="写入超时(ms)">
+            <el-input-number
               v-model="config.writeTimeout"
               :min="1000"
               :max="300000"
               :step="1000"
               controls-position="right"
             />
-          </ScFormItem>
-          <ScFormItem label="最大内容长度">
-            <ScInputNumber
+          </el-form-item>
+          <el-form-item label="最大内容长度">
+            <el-input-number
               v-model="config.maxContentLength"
               :min="1024"
               :max="104857600"
@@ -174,24 +170,24 @@
               controls-position="right"
             />
             <div class="form-tip">单位：字节</div>
-          </ScFormItem>
+          </el-form-item>
         </div>
         <div class="config-grid">
-          <ScFormItem label="分发策略">
-            <ScSelect v-model="config.dispatchStrategy" style="width: 180px">
-              <ScOption label="轮询" value="ROUND_ROBIN" />
-              <ScOption label="随机" value="RANDOM" />
-              <ScOption label="最小负载" value="LEAST_LOAD" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="拒绝策略">
-            <ScSelect v-model="config.rejectionPolicy" style="width: 180px">
-              <ScOption label="调用者执行" value="CALLER_RUNS" />
-              <ScOption label="抛出异常" value="ABORT" />
-              <ScOption label="直接丢弃" value="DISCARD" />
-              <ScOption label="丢弃最旧" value="DISCARD_OLDEST" />
-            </ScSelect>
-          </ScFormItem>
+          <el-form-item label="分发策略">
+            <el-select v-model="config.dispatchStrategy" style="width: 180px">
+              <el-option label="轮询" value="ROUND_ROBIN" />
+              <el-option label="随机" value="RANDOM" />
+              <el-option label="最小负载" value="LEAST_LOAD" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="拒绝策略">
+            <el-select v-model="config.rejectionPolicy" style="width: 180px">
+              <el-option label="调用者执行" value="CALLER_RUNS" />
+              <el-option label="抛出异常" value="ABORT" />
+              <el-option label="直接丢弃" value="DISCARD" />
+              <el-option label="丢弃最旧" value="DISCARD_OLDEST" />
+            </el-select>
+          </el-form-item>
         </div>
       </div>
 
@@ -233,10 +229,9 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存配置（热重载）</ScButton
-        >
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave"
+          >保存配置（热重载）</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -310,7 +305,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(visibleInner, (v) => emit("update:visible", v));
@@ -346,7 +341,7 @@ async function handleSave() {
   try {
     const res = await saveServletFilterConfig(
       props.filterSettingId,
-      config as any,
+      config as any
     );
     if (res.success) {
       message("增强代理配置保存成功，已热重载", { type: "success" });

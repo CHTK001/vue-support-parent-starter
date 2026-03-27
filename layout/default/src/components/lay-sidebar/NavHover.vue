@@ -1,21 +1,23 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultHover from "./themes/hover/Default.vue";
 import EightBitHover from "./themes/hover/EightBit.vue";
+import FutureTechHover from "./themes/hover/FutureTech.vue";
 import SpringFestivalHover from "./themes/hover/SpringFestival.vue";
 import HalloweenHover from "./themes/hover/Halloween.vue";
 import ChristmasHover from "./themes/hover/Christmas.vue";
 
-// 主题组件映射 - 默认主题静态导入，其他存在的主题懒加载
+// 主题组件映射
 const themeComponents = {
   default: DefaultHover,
+  "8bit": EightBitHover,
+  "future-tech": FutureTechHover,
+  "spring-festival": SpringFestivalHover,
+  halloween: HalloweenHover,
+  christmas: ChristmasHover,
 };
 
-const { CurrentComponent, currentTheme } = useThemeComponent(
-  themeComponents,
-  DefaultHover,
-);
+const { CurrentComponent } = useThemeComponent(themeComponents, DefaultHover);
 </script>
 
 <template>

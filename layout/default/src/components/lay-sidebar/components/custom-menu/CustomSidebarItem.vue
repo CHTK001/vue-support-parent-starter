@@ -13,7 +13,7 @@ import {
 } from "@repo/config";
 import type { MenuType } from "@repo/core";
 import { emitter } from "@repo/core";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 import CustomMenuItem from "./CustomMenuItem.vue";
 import CustomSubMenu from "./CustomSubMenu.vue";
 

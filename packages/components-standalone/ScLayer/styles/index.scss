@@ -1,0 +1,1273 @@
+@use './variables.scss' as *;
+
+/* 全局自定义弹窗动画样式 */
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+.toolbar-item.active .svg-icon path{
+  fill: var(--el-color-white);
+}
+.search-box {
+  position: absolute !important;
+}
+.thin-scrollbar,
+.pure-scrollbar {
+  scrollbar-color: var(--el-color-primary) transparent;
+  /* 滑块颜色、轨道颜色 */
+
+  /* Firefox */
+  scrollbar-width: thin;
+
+  /* 可选值为 'auto', 'thin', 'none' */
+  ::-webkit-scrollbar {
+    width: 6px;
+    /* 滚动条宽度 */
+  }
+
+  /* 滚动条轨道 */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    /* 轨道颜色 */
+  }
+
+  /* 滚动条滑块 */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--el-color-primary-light-1);
+    ;
+    border-radius: 4px;
+  }
+
+  /* 滚动条滑块：hover状态 */
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--el-color-primary);
+    /* 滑块hover颜色 */
+  }
+}
+/* OpenLayers必要样式 */
+.ol-viewport {
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important;
+  /* 确保视口不会覆盖工具栏 */
+  cursor: grab !important;
+}
+
+.ol-viewport.ol-viewport-dragging {
+  cursor: grabbing !important;
+}
+
+.ol-viewport.measure-active {
+  cursor: crosshair !important;
+}
+
+.ol-layers {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0 !important;
+  /* 确保图层不会覆盖工具栏 */
+}
+
+/* OpenLayers容器相关样式，防止其捕获工具栏事件 */
+.ol-overlay-container {
+  pointer-events: none !important;
+  z-index: 999 !important;
+}
+
+.ol-overlaycontainer {
+  pointer-events: none !important;
+}
+
+.ol-overlaycontainer-stopevent {
+  pointer-events: none !important;
+}
+
+/* 隐藏OpenLayers默认控件，但保留比例尺 */
+.ol-control {
+  display: none !important;
+}
+
+/* 允许比例尺控件显示 */
+.ol-scale-line {
+  display: block !important;
+  background-color: var(--el-bg-color-overlay) !important;
+  border-radius: 4px !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  padding: 2px 5px !important;
+  position: absolute !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
+  box-shadow: var(--el-box-shadow-light) !important;
+}
+
+.ol-scale-line-inner {
+  border: 1px solid var(--el-border-color) !important;
+  border-top: none !important;
+  color: var(--el-text-color-primary) !important;
+  font-size: 12px !important;
+  text-align: center !important;
+  margin: 1px !important;
+  will-change: contents, width !important;
+  transition: all 0.25s !important;
+}
+
+/* 自定义比例尺样式 */
+.custom-scale-line {
+  background-color: var(--el-bg-color-overlay) !important;
+  border: 1px solid var(--el-color-primary) !important;
+  padding: 3px 6px !important;
+  font-family: Arial, sans-serif !important;
+  font-weight: normal !important;
+}
+
+.custom-scale-line .ol-scale-line-inner {
+  border-color: var(--el-color-primary) !important;
+  color: var(--el-text-color-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* 特别隐藏缩放按钮 */
+.ol-zoom {
+  display: none !important;
+}
+
+/* 隐藏归属控件 */
+.ol-attribution {
+  display: none !important;
+}
+
+/* 全局工具栏样式覆盖 */
+.map-toolbar {
+  z-index: 2000 !important;
+  position: absolute !important;
+  pointer-events: auto !important;
+}
+
+.toolbar-item {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-collapse {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.toolbar-submenu {
+  pointer-events: auto !important;
+}
+
+/* 确保工具栏子元素可以接收事件 */
+.map-toolbar *,
+.toolbar-item *,
+.toolbar-collapse *,
+.toolbar-submenu * {
+  pointer-events: auto !important;
+}
+
+/* 提示框样式覆盖 */
+.toolbar-tooltip {
+  z-index: 9999 !important; /* 确保提示框显示在最顶层 */
+  pointer-events: none !important; /* 确保提示框不接收鼠标事件 */
+}
+
+/* 自定义弹窗容器样式 */
+.sc-map-custom-popup {
+  position: absolute;
+  z-index: 1000;
+  box-shadow: var(--el-box-shadow);
+  background: var(--el-bg-color-overlay);
+  border-radius: 4px;
+  padding: 10px;
+  max-width: 300px;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  transform: translate(-50%, -100%);
+  animation: popup-fade-in 0.2s ease-out;
+}
+
+/* 自定义弹窗关闭按钮样式 */
+.custom-popup-close-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+}
+
+.custom-popup-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--el-text-color-primary);
+}
+
+.rotated-svg-icon,
+:deep(.rotated-svg-icon) {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+// 迁徙图标签样式
+.migration-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  
+  div {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    padding: 3px 6px;
+    border-radius: 2px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    position: relative;
+    margin-bottom: 5px;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid rgba(0, 0, 0, 0.7);
+    }
+  }
+}
+
+// 自定义AntPath动画样式
+.leaflet-ant-path {
+  pointer-events: auto;
+  // 不干扰用户交互
+  &:hover {
+    cursor: pointer;
+    opacity: 0.9;
+  }
+}
+
+/* 测距样式 */
+.measure-segment-label .segment-distance {
+  background: rgba(24, 144, 255, 0.9);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  white-space: nowrap;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+  animation: measure-fade-in 0.3s ease-out;
+}
+
+.measure-node-label .node-distance {
+  background: rgba(0, 92, 175, 0.9);
+  color: #ffffff;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  animation: measure-fade-in 0.3s ease-out;
+}
+
+.measure-total-label .total-distance-label {
+  background-color: rgba(0, 177, 89, 0.9);
+  color: #ffffff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  animation: measure-scale-in 0.3s ease-out;
+}
+
+.total-distance-label::after {
+  content: attr(data-distance);
+}
+
+/* 测量点样式 */
+.ol-measure-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid #1890ff;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.3);
+  transition: all 0.2s ease;
+  pointer-events: all;
+  cursor: move;
+}
+
+.ol-measure-point:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.4);
+}
+
+/* 测量线样式 */
+.ol-measure-line {
+  stroke: #1890ff;
+  stroke-width: 3px;
+  stroke-dasharray: 5, 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.ol-measure-line:hover {
+  stroke-width: 4px;
+  stroke-dasharray: none;
+}
+
+@keyframes measure-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes measure-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 测量工具样式覆盖 */
+.ol-tooltip {
+  z-index: 1500 !important;
+}
+
+.ol-tooltip.ol-tooltip-measure {
+  background-color: rgba(24, 144, 255, 0.9);
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: all 0.2s ease;
+}
+
+.ol-tooltip.ol-tooltip-static {
+  background-color: rgba(0, 177, 89, 0.9);
+  padding: 6px 10px;
+  border-radius: 4px;
+  transform: translate(-50%, -100%);
+}
+
+// 隐藏原生MousePosition控件显示
+.ol-mouse-position.hidden {
+  display: none !important;
+}
+
+/* Base styles for OpenLayers map */
+.ol-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* Control styles */
+.ol-control {
+  background-color: rgba(255,255,255,0.4);
+  border-radius: 4px;
+  position: absolute;
+  padding: 2px;
+  
+  button {
+    display: block;
+    margin: 1px;
+    padding: 0;
+    color: $primary-color;
+    font-size: 1.14em;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+    height: 1.375em;
+    width: 1.375em;
+    line-height: .4em;
+    background-color: rgba(255,255,255,0.4);
+    border: none;
+    border-radius: 2px;
+    
+    &:hover {
+      background-color: rgba(255,255,255,0.6);
+    }
+  }
+  
+  &:hover {
+    background-color: rgba(255,255,255,0.6);
+  }
+}
+
+/* Attribution */
+.ol-attribution {
+  text-align: right;
+  bottom: .5em;
+  right: .5em;
+  max-width: calc(100% - 1.3em);
+  display: flex;
+  flex-flow: row-reverse;
+  align-items: center;
+  
+  a {
+    color: rgba(0,60,136,0.7);
+    text-decoration: none;
+  }
+}
+
+/* Zoom controls */
+.ol-zoom {
+  top: .5em;
+  left: .5em;
+  
+  &-in {
+    border-radius: 2px 2px 0 0;
+  }
+  
+  &-out {
+    border-radius: 0 0 2px 2px;
+  }
+}
+
+/* Rotate control */
+.ol-rotate {
+  top: .5em;
+  right: .5em;
+  transition: opacity .25s linear, visibility 0s linear;
+  
+  &.ol-hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s linear, visibility 0s linear .25s;
+  }
+}
+
+/* Mouse position */
+.ol-mouse-position {
+  top: 8px;
+  right: 8px;
+  position: absolute;
+}
+
+/* Overview Map */
+/* 特别注意：这些样式将强制覆盖OpenLayers默认样式 */
+.ol-overviewmap {
+  position: absolute !important;
+  left: auto !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  /* 确保控件可见 */
+  z-index: 10000 !important;
+  border: 2px solid rgba(24, 144, 255, 0.8) !important;
+  border-radius: 4px !important;
+  /* 加入阴影提高可见性 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  
+  /* 修复可能的隐藏问题 */
+  display: block !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  
+  /* 控件未折叠时 */
+  &:not(.ol-collapsed) {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    padding: 4px !important;
+    
+    /* 鹰眼地图容器 */
+    .ol-overviewmap-map {
+      min-width: 150px !important;
+      min-height: 150px !important;
+      margin: 2px !important;
+      border: 1px solid #ccc !important;
+    }
+    
+    /* 折叠按钮 */
+    button {
+      top: 2px !important;
+      right: 2px !important;
+      border-radius: 2px !important;
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      color: #333 !important;
+      
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.2) !important;
+      }
+    }
+  }
+  
+  /* 控件折叠时 */
+  &.ol-collapsed {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 4px !important;
+    
+    /* 展开按钮 */
+    button {
+      width: 26px !important;
+      height: 26px !important;
+      border-radius: 2px !important;
+      
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.2) !important;
+      }
+    }
+  }
+  
+  /* 确保鹰眼控件框的样式 */
+  .ol-overviewmap-box {
+    border: 2px solid rgba(24, 144, 255, 0.9) !important;
+  }
+}
+
+/* 自定义清晰版鹰眼控件 */
+.clear-overview-map {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 150px;
+  height: 150px;
+  border: 2px solid rgba(24, 144, 255, 0.8);
+  background-color: var(--el-bg-color-overlay);
+  z-index: 10000;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+/* 添加标记点 Popover 样式 */
+.marker-popover {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 10px 15px;
+  max-width: 300px;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  position: relative;
+  z-index: 1000;
+  pointer-events: auto;
+  margin-bottom: 12px; // 增加底部间距，为箭头留出更多空间
+  transform-origin: center bottom;
+  animation: popover-fade-in 0.3s ease-out;
+  border: 1px solid var(--el-border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+  
+  // 关闭按钮
+  .marker-popover-close {
+    position: absolute;
+    top: 2px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    line-height: 18px;
+    text-align: center;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      color: var(--el-text-color-primary);
+    }
+  }
+  
+  // 箭头
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #fff;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+  }
+  
+  // 标记点内容
+  .marker-popover-content {
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.4;
+    word-break: break-word;
+    padding: 2px 0;
+    
+    // 强调文本
+    strong, b {
+      color: var(--el-color-primary, #1890ff);
+    }
+  }
+  
+  // 自定义模板样式
+  &.marker-popover-with-content {
+    // 允许模板内容自定义样式
+    padding: 10px;
+    overflow: hidden;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.4;
+    word-break: break-word;
+    // 重置箭头位置
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-top: 10px solid #fff;
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+    }
+  }
+}
+
+// 添加 popover 显示动画
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 区划定位淡出动画 */
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
+
+.boundary-location-tip {
+  animation: fade-out 2s ease forwards;
+}
+
+// 添加搜索结果标记的样式
+@keyframes search-result-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// 搜索结果标记样式
+.search-result-marker {
+  animation: search-result-pulse 1.5s infinite ease-in-out;
+  box-shadow: 0 0 15px rgba(24, 144, 255, 0.6);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(24, 144, 255, 0.8);
+  }
+  
+  &.selected {
+    background-color: #f5222d;
+    box-shadow: 0 0 15px rgba(245, 34, 45, 0.6);
+    transform: scale(1.1);
+    animation: none;
+    z-index: 10;
+  }
+}
+
+// 搜索结果标记标签样式
+.search-result-label {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+// 添加起点和终点标记的样式
+.start-point-marker {
+  animation: none;
+  box-shadow: 0 0 15px rgba(82, 196, 26, 0.6);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  z-index: 1000 !important;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(82, 196, 26, 0.8);
+  }
+}
+
+.start-point-label {
+  background: rgba(82, 196, 26, 0.9);
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.end-point-marker {
+  animation: none;
+  box-shadow: 0 0 15px rgba(245, 34, 45, 0.6);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  z-index: 1000 !important;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(245, 34, 45, 0.8);
+  }
+}
+
+.end-point-label {
+  background: rgba(245, 34, 45, 0.9);
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+// 导航路线样式
+.navigation-route {
+  stroke: #1890ff;
+  stroke-width: 4px;
+  stroke-opacity: 0.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  filter: drop-shadow(0 0 5px rgba(24, 144, 255, 0.5));
+  animation: route-dash 1s linear infinite;
+}
+
+@keyframes route-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+// 导航路线背景
+.navigation-route-bg {
+  stroke: white;
+  stroke-width: 6px;
+  stroke-opacity: 0.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+// 交通工具图标样式
+.transport-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  
+  &.driving-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
+  }
+  
+  &.walking-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
+  }
+  
+  &.bicycling-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
+  }
+  
+  &.ebike-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239C27B0'%3E%3Cpath d='M19 7h-.82l-1.7-4.68C16.19 1.53 15.44 1 14.6 1H12v2h2.6l1.46 4h-4.81l-.36-1H12V4H7v2h1.75l1.82 5H9.9c-.44-2.23-2.31-3.88-4.65-3.99C2.45 6.87 0 9.2 0 12c0 2.8 2.2 5 5 5 2.46 0 4.45-1.69 4.9-4h4.2c.44 2.23 2.31 3.88 4.65 3.99 2.8.13 5.25-2.19 5.25-5C24 9.2 21.8 7 19 7zM7.82 13c-.4 1.17-1.49 2-2.82 2-1.68 0-3-1.32-3-3s1.32-3 3-3c1.33 0 2.42.83 2.82 2H5v2h2.82zm6.28-2h-1.4l-.73-2H15c-.44.58-.76 1.25-.9 2zm4.9 4c-1.68 0-3-1.32-3-3 0-.93.41-1.73 1.05-2.28l.96 2.64 1.88-.68-.97-2.67c.03 0 .06-.01.09-.01 1.68 0 3 1.32 3 3s-1.33 3-3.01 3z'/%3E%3C/svg%3E");
+  }
+}
+
+// 导航面板样式
+.navigation-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background-color: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  
+  .transport-type-selector {
+    display: flex;
+    gap: 8px;
+    
+    .transport-type-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        border-color: #3370FF;
+        box-shadow: 0 0 5px rgba(51, 112, 255, 0.3);
+      }
+      
+      &.active {
+        border-color: #3370FF;
+        background-color: #f0f5ff;
+        box-shadow: 0 0 5px rgba(51, 112, 255, 0.3);
+      }
+      
+      .transport-icon {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+  
+  .navigation-button {
+    background-color: #3370FF;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background-color: #2860e0;
+    }
+    
+    .navigation-icon {
+      margin-right: 5px;
+      width: 16px;
+      height: 16px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+    }
+  }
+  
+  .clear-button {
+    background-color: transparent;
+    color: var(--el-text-color-primary);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      border-color: #ff4d4f;
+      color: #ff4d4f;
+    }
+  }
+}
+
+// 路线详情面板样式
+.route-details-panel {
+  position: absolute;
+  top: 60px;
+  width: 320px;
+  max-height: calc(100vh - 120px);
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  
+  // 面板位置类
+  &.panel-left {
+    right: 360px; // 在搜索框左侧
+  }
+  
+  &.panel-right {
+    left: 360px; // 在搜索框右侧
+  }
+  
+  &.panel-top-left {
+    right: 10px;
+    bottom: 60px;
+    top: auto; // 取消顶部定位
+  }
+  
+  &.panel-top-right {
+    left: 10px;
+    bottom: 60px;
+    top: auto; // 取消顶部定位
+  }
+  
+  .route-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: var(--el-bg-color-overlay);
+    border-bottom: 1px solid #e8e8e8;
+    
+    .route-info {
+      display: flex;
+      flex-direction: column;
+      
+      .route-distance {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+      }
+      
+      .route-duration {
+        font-size: 14px;
+        color: var(--el-text-color-primary);
+        margin-top: 4px;
+      }
+    }
+    
+    .close-button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background-color: #f0f0f0;
+      color: var(--el-text-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      
+      &:hover {
+        background-color: #e0e0e0;
+      }
+      
+      .close-icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+    }
+  }
+  
+  .route-steps {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0 10px;
+    
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      background: #aaa;
+    }
+    
+    .route-step {
+      display: flex;
+      padding: 10px 15px;
+      position: relative;
+      
+      &:hover {
+        background-color: #f9f9f9;
+      }
+      
+      .step-icon-container {
+        width: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: 12px;
+        
+        .step-icon {
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background-color: #fff;
+          border: 1px solid #ddd;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          z-index: 2;
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: 14px;
+          
+          &.icon-start {
+            background-color: #1aad19;
+            border-color: #1aad19;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+          }
+          
+          &.icon-end {
+            background-color: #ff525d;
+            border-color: #ff525d;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E");
+          }
+          
+          &.icon-straight {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z'/%3E%3C/svg%3E");
+          }
+          
+          &.icon-left {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z'/%3E%3C/svg%3E");
+          }
+          
+          &.icon-right {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z'/%3E%3C/svg%3E");
+          }
+          
+          &.icon-slight-left {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M14.12 15.88L9.24 11l4.88-4.88L13 5l-6 6 6 6z'/%3E%3C/svg%3E");
+            transform: rotate(-45deg);
+          }
+          
+          &.icon-slight-right {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M9.88 15.88L14.76 11l-4.88-4.88L11 5l6 6-6 6z'/%3E%3C/svg%3E");
+            transform: rotate(45deg);
+          }
+          
+          &.icon-uturn {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M7 18v-6c0-3.31 2.69-6 6-6s6 2.69 6 6v7h2v-7c0-4.42-3.58-8-8-8s-8 3.58-8 8v6H3l4 4 4-4H7z'/%3E%3C/svg%3E");
+          }
+        }
+        
+        .step-line {
+          position: absolute;
+          width: 2px;
+          background-color: #e8e8e8;
+          top: 24px;
+          bottom: 0;
+          left: 12px;
+          z-index: 1;
+        }
+      }
+      
+      .step-content {
+        flex: 1;
+        
+        .step-instruction {
+          font-size: 14px;
+          color: var(--el-text-color-primary);
+          line-height: 1.4;
+          margin-bottom: 4px;
+        }
+        
+        .step-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          color: #999;
+          
+          .road-name {
+            color: var(--el-text-color-primary);
+            margin-right: 8px;
+            font-weight: 500;
+          }
+          
+          .step-distance {
+            color: #999;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 添加路线详情的动画效果
+@keyframes route-panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.route-details-panel {
+  animation: route-panel-slide-in 0.3s ease-out;
+  
+  &.panel-right {
+    animation-name: route-panel-slide-right;
+  }
+}
+
+@keyframes route-panel-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes route-panel-slide-top {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.route-details-panel.panel-top-left,
+.route-details-panel.panel-top-right {
+  animation-name: route-panel-slide-top;
+}
+
+// 添加路线步骤高亮效果
+.route-step {
+  &.active {
+    background-color: #f0f7ff;
+    
+    .step-icon {
+      box-shadow: 0 0 0 4px rgba(51, 112, 255, 0.2);
+    }
+    
+    .step-instruction {
+      color: #3370FF;
+      font-weight: 500;
+    }
+  }
+}
+
+// 添加交通方式图标
+.step-transport-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: middle;
+  
+  &.icon-car {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233370FF'%3E%3Cpath d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
+  }
+  
+  &.icon-walk {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234CAF50'%3E%3Cpath d='M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7'/%3E%3C/svg%3E");
+  }
+  
+  &.icon-bike {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF9800'%3E%3Cpath d='M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z'/%3E%3C/svg%3E");
+  }
+}
+
+// 添加路线详情的响应式样式
+@media screen and (max-width: 768px) {
+  .route-details-panel {
+    width: calc(100% - 20px);
+    max-width: 320px;
+    top: 10px;
+    left: 10px;
+    right: auto;
+    bottom: auto;
+    max-height: 50vh;
+    
+    &.panel-left,
+    &.panel-right,
+    &.panel-top-left,
+    &.panel-top-right {
+      // 移动设备上统一位置
+      top: 10px;
+      left: 10px;
+      right: auto;
+      bottom: auto;
+    }
+  }
+} 

@@ -1,13 +1,29 @@
 import { createViteConfig } from "@repo/build-config";
 import pkg from "./package.json";
 
-/**
- * Vite 配置 - 同步系统
- * 使用链式 API 简化配置
- *
- * 注意：本应用不依赖 @repo/font-encryption，已在 rollupOptions.external 中排除
- */
 export default createViteConfig(import.meta.url, pkg)
   .proxy("/api", "http://127.0.0.1:8080")
   .target("es2015")
+  .cssPreprocessor("scss", {
+    additionalData: `
+      @use "@layout/default/styles/layout/variables.scss" as *;
+      @use "@layout/default/styles/layout/mixin.scss" as *;
+    `,
+  })
+  .packageAlias(
+    "@element-plus/icons-vue",
+    "@element-plus/icons-vue/dist/index.js",
+  )
+  .packageAlias(
+    "@microsoft/fetch-event-source",
+    "@microsoft/fetch-event-source/lib/esm/index.js",
+  )
+  .packageAlias(
+    "vue-i18n",
+    "vue-i18n/dist/vue-i18n.runtime.esm-bundler.js",
+  )
+  .packageAlias(
+    "vue-i18n/dist/vue-i18n.runtime.esm-bundler.js",
+    "vue-i18n/dist/vue-i18n.runtime.esm-bundler.js",
+  )
   .build();

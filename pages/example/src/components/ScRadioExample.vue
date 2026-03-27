@@ -22,9 +22,9 @@
 </template>
 
 <script setup lang="ts">
+import { ScRadioGroup, ScRadio } from "@repo/components/ScRadio";
 import { ref } from "vue";
-import { ScRadio } from "@repo/components/ScRadio"
-import { ScRadioGroup } from "@repo/components/ScRadioGroup";
+
 import DemoBlock from "./DemoBlock.vue";
 
 const value1 = ref<string | number | boolean>("A");
@@ -65,3 +65,5 @@ const codes = {
   }
 }
 </style>
+
+

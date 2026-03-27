@@ -5,6 +5,7 @@ import { storageLocal, useGlobal } from "@pureadmin/utils";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import { emitter, useAppStoreHook } from "@repo/core";
 import { useDataThemeChange } from "../../../../hooks/useDataThemeChange";
+import { type LayoutType, validLayouts } from "../../../../hooks/useLayout";
 
 const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();

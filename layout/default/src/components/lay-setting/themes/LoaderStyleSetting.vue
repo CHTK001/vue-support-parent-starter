@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { message } from "@repo/utils";
-import { LOADER_STYLES } from "@repo/components/ScRouteLoading/loader-manager";
+import {
+  getLoaderStyleEntries,
+  LOADER_PREVIEW_STYLE_TEXT,
+  renderLoaderPreviewMarkup,
+} from "@repo/components/ScRouteLoading/loader-manager";
 
 interface Props {
   modelValue?: string;
@@ -16,14 +20,7 @@ const currentValue = ref<string>(
   props.modelValue || localStorage.getItem("sys-loader-style") || "default",
 );
 
-const loaderEntries = computed(() =>
-  Object.entries(LOADER_STYLES).map(([key, item]) => ({
-    key,
-    name: item.name as string,
-    description: item.description as string,
-    html: item.html as string,
-  })),
-);
+const loaderEntries = computed(() => getLoaderStyleEntries());
 
 let previewStyleTag: HTMLStyleElement | null = null;
 
@@ -38,11 +35,13 @@ function applyAllPreviewStyles(): void {
     document.head.appendChild(previewStyleTag);
   }
 
-  const allCss = Object.values(LOADER_STYLES)
-    .map((item) => item.css)
-    .join("\n");
+  previewStyleTag.textContent = LOADER_PREVIEW_STYLE_TEXT;
+}
 
-  previewStyleTag.textContent = allCss;
+function getPreviewScaleStyle(scale = 1): Record<string, string> {
+  return {
+    "--loader-preview-scale": String(scale),
+  };
 }
 
 function handleCardClick(key: string): void {
@@ -110,9 +109,14 @@ onUnmounted(() => {
           @click="handleCardClick(item.key)"
         >
           <div class="preview-box">
-            <div class="loader-preview-inner" v-html="item.html"></div>
+            <div
+              class="loader-preview-inner"
+              :style="getPreviewScaleStyle(item.previewScale)"
+              v-html="renderLoaderPreviewMarkup(item.key)"
+            />
           </div>
           <span class="preview-label">{{ item.name }}</span>
+          <span class="preview-description">{{ item.description }}</span>
           <div v-if="currentValue === item.key" class="preview-check">
             <IconifyIconOnline icon="ri:check-line" />
           </div>
@@ -243,12 +247,24 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--loader-preview-scale, 1));
+  transform-origin: center;
 }
 
 .preview-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--el-text-color-primary);
+}
+
+.preview-description {
+  min-height: 34px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+  text-align: center;
 }
 
 .preview-check {

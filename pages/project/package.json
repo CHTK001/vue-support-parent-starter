@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "catalog:",
+    "@pages/device": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
     "echarts": "catalog:",

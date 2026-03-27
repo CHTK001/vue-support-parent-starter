@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./index.vue",
-  "module": "./index.vue",
+  "main": "./index.ts",
+  "module": "./index.ts",
   "exports": {
-    ".": "./index.vue"
+    ".": "./index.ts"
   }
 }

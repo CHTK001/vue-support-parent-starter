@@ -1,8 +1,8 @@
-﻿<script lang="ts">
+<script lang="ts">
 import { defineComponent } from "vue";
 import { fetchUpdateRole, fetchSaveRole } from "@/api/manage/role";
 
-import { $t } from "@repo/config";
+import { t as $t } from "@repo/config";
 import { message } from "@repo/utils";
 import { clearObject } from "@repo/config";
 
@@ -135,8 +135,7 @@ export default defineComponent({
           type="primary"
           :loading="loading"
           @click="submit()"
-          >保 存</ScButton
-        >
+          >保 存</ScButton>
       </template>
     </sc-dialog>
   </div>

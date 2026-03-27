@@ -1,6 +1,6 @@
 ﻿<script setup>
 import { ref, computed } from "vue";
-import { IconifyIconOnline } from "@iconify/vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import EmailListItem from "./EmailListItem.vue";
 
 const props = defineProps({

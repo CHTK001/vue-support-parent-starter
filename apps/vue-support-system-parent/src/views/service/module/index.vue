@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import {
   fetchDeleteServiceModule,
   fetchPageServiceModule,
@@ -9,6 +7,8 @@ import {
   type ServiceModuleStats,
 } from "@/api/service/module";
 import { debounce } from "@pureadmin/utils";
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+
 import { message } from "@repo/utils";
 import {
   computed,
@@ -54,14 +54,12 @@ const status = reactive({
 
 // 状态选项
 const statusOptions = [
-  { label: "全部", value: null },
   { label: "启用", value: 0 },
   { label: "禁用", value: 1 },
 ];
 
 // 类型选项
 const typeOptions = [
-  { label: "全部", value: null },
   { label: "接口", value: "API" },
   { label: "服务", value: "SERVICE" },
 ];
@@ -93,7 +91,6 @@ const onSearch = debounce(
     loadData();
   },
   500,
-  true,
 );
 
 const resetForm = () => {

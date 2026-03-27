@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from "vue";
-import { ScSwitch } from "@repo/components/ScSwitch";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 interface Props {
   /** reactive 设置对象引用 */

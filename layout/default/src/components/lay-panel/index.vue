@@ -2,9 +2,17 @@
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
 import { onClickOutside, useStorage } from "@vueuse/core";
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  useSlots,
+} from "vue";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 import CloseIcon from "@iconify-icons/ep/close";
+import ScScrollbar from "@repo/components/ScScrollbar";
 
 /**
  * 设置面板记忆数据
@@ -40,6 +48,8 @@ if (typeof panelMemory.value === "boolean") {
 
 const show = ref<boolean>(panelMemory.value.visible);
 const scrollTop = ref<number>(panelMemory.value.scrollTop ?? 0);
+const slots = useSlots();
+const hasFooter = computed(() => Boolean(slots.footer));
 
 /**
  * 打开设置面板
@@ -163,7 +173,8 @@ onBeforeUnmount(() => {
           <slot />
         </ScScrollbar>
 
-        <div class="panel-footer">
+        <div v-if="hasFooter" class="panel-footer">
+          <slot name="footer" />
         </div>
       </div>
     </div>

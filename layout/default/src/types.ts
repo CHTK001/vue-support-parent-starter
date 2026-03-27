@@ -1,6 +1,6 @@
 import type { IconifyIcon } from "@iconify/vue";
 import type { RouteMetaType } from "@repo/core";
-import { $t } from "@repo/config";
+import { transformI18n as $t } from "@repo/config";
 
 const { VITE_HIDE_HOME } = import.meta.env;
 
@@ -79,7 +79,7 @@ export interface LayoutEmitterEvents {
 
   // 布局相关
   changLayoutRoute: string;
-  openPanel: void;
+  openPanel: undefined;
   logoChange: boolean;
   hideFooterChange: boolean;
   hideHeaderChange: boolean;
@@ -97,8 +97,8 @@ export interface LayoutEmitterEvents {
   keepAliveChange: boolean;
   debugModeChange: boolean;
   debugModeChanged: boolean;
-  messagePopupConfigChange: void;
+  messagePopupConfigChange: undefined;
 
   // 设置面板
-  settingPanelClosed: void;
+  settingPanelClosed: undefined;
 }

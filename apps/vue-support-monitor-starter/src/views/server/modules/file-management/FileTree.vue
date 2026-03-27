@@ -7,32 +7,32 @@
         <span>目录结构</span>
       </div>
       <div class="tree-actions">
-        <ScTooltip content="刷新目录树" placement="top">
-          <ScButton size="small" text @click="refreshTree">
+        <el-tooltip content="刷新目录树" placement="top">
+          <el-button size="small" text @click="refreshTree">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </ScButton>
-        </ScTooltip>
-        <ScTooltip content="展开所有" placement="top">
-          <ScButton size="small" text @click="expandAll">
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="展开所有" placement="top">
+          <el-button size="small" text @click="expandAll">
             <IconifyIconOnline icon="ri:add-box-line" />
-          </ScButton>
-        </ScTooltip>
-        <!-- <ScTooltip content="折叠所有" placement="top">
-          <ScButton size="small" text @click="collapseAll">
+          </el-button>
+        </el-tooltip>
+        <!-- <el-tooltip content="折叠所有" placement="top">
+          <el-button size="small" text @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-box-line" />
-          </ScButton>
-        </ScTooltip> -->
-        <ScTooltip content="关闭" placement="top">
-          <ScButton size="small" text @click="$emit('close')">
+          </el-button>
+        </el-tooltip> -->
+        <el-tooltip content="关闭" placement="top">
+          <el-button size="small" text @click="$emit('close')">
             <IconifyIconOnline icon="ep:close" />
-          </ScButton>
-        </ScTooltip>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
 
     <!-- 文件树 -->
-    <div v-loading="loading" class="tree-content">
-      <ScTree
+    <div class="tree-content" v-loading="loading">
+      <el-tree
         ref="treeRef"
         :data="treeData"
         :props="treeProps"
@@ -54,72 +54,51 @@
             @dragleave.prevent="onDragLeaveNode(data)"
             @drop.stop="onDropToNode($event, data)"
           >
-            <IconifyIconOnline
-              :icon="getNodeIcon(data)"
-              :class="['node-icon', { 'folder-icon': data.isDirectory }]"
-            />
+            <IconifyIconOnline :icon="getNodeIcon(data)" :class="['node-icon', { 'folder-icon': data.isDirectory }]" />
             <span class="node-label" :title="data.name">{{ data.name }}</span>
 
             <!-- 加载状态指示器 -->
-            <IconifyIconOnline
-              v-if="loadingNodes.has(data.path)"
-              icon="ri:loader-4-line"
-              class="node-loading"
-            />
+            <IconifyIconOnline v-if="loadingNodes.has(data.path)" icon="ri:loader-4-line" class="node-loading" />
 
-            <div v-if="data.isDirectory" class="node-actions" @click.stop>
-              <ScTooltip content="新建文件夹" placement="top">
-                <ScButton size="small" text @click="createFolder(data)">
+            <div class="node-actions" v-if="data.isDirectory" @click.stop>
+              <el-tooltip content="新建文件夹" placement="top">
+                <el-button size="small" text @click="createFolder(data)">
                   <IconifyIconOnline icon="ri:folder-add-line" />
-                </ScButton>
-              </ScTooltip>
-              <ScTooltip content="刷新" placement="top">
-                <ScButton
-                  size="small"
-                  text
-                  :loading="loadingNodes.has(data.path)"
-                  @click="refreshNode(node, data)"
-                >
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="刷新" placement="top">
+                <el-button size="small" text @click="refreshNode(node, data)" :loading="loadingNodes.has(data.path)">
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </ScButton>
-              </ScTooltip>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </template>
-      </ScTree>
+      </el-tree>
     </div>
 
     <!-- 新建文件夹对话框 -->
-    <sc-dialog
-      v-model="createFolderVisible"
-      title="新建文件夹"
-      width="400px"
-      :close-on-click-modal="false"
-    >
-      <ScForm :model="createFolderForm" label-width="80px">
-        <ScFormItem label="文件夹名">
-          <ScInput
-            v-model="createFolderForm.name"
-            placeholder="请输入文件夹名称"
-            @keyup.enter="confirmCreateFolder"
-          />
-        </ScFormItem>
-      </ScForm>
+    <sc-dialog v-model="createFolderVisible" title="新建文件夹" width="400px" :close-on-click-modal="false">
+      <el-form :model="createFolderForm" label-width="80px">
+        <el-form-item label="文件夹名">
+          <el-input v-model="createFolderForm.name" placeholder="请输入文件夹名称" @keyup.enter="confirmCreateFolder" />
+        </el-form-item>
+      </el-form>
       <template #footer>
-        <ScButton @click="createFolderVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="confirmCreateFolder">确定</ScButton>
+        <el-button @click="createFolderVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
       </template>
     </sc-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { FileInfo } from "@/api/server/file-management";
+import type { FileInfo } from "@pages/system";
 import {
   createDirectory,
   getFileList,
   getFileTree,
-} from "@/api/server/file-management";
+} from "@pages/system";
 import { message } from "@repo/utils";
 import { ElTree } from "element-plus";
 import { nextTick, onMounted, reactive, ref, watch } from "vue";
@@ -147,7 +126,7 @@ const rootNodeData = ref<FileInfo[]>([]); // 存储根节点数据
 const createFolderVisible = ref(false);
 const createFolderForm = reactive({
   name: "",
-  parentPath: "",
+  parentPath: ""
 });
 
 // 拖拽高亮状态
@@ -161,7 +140,7 @@ const loadingNodes = ref(new Set<string>()); // 正在加载的节点路径
 const treeProps = {
   children: "children",
   label: "name",
-  isLeaf: "leaf", // 使用后端返回的 leaf 属性
+  isLeaf: "leaf" // 使用后端返回的 leaf 属性
 };
 
 /**
@@ -181,11 +160,7 @@ const loadRootNode = async () => {
     const res = await getFileTree(props.serverId, "/", 1, false, true, 100, 0);
     console.log("FileTree: API response", res);
 
-    if (
-      res.code === "00000" &&
-      res.data?.success &&
-      (res.data.fileTree || res.data.tree)
-    ) {
+    if (res.code === "00000" && res.data?.success && (res.data.fileTree || res.data.tree)) {
       // 获取根节点数据
       const treeData = res.data.fileTree || res.data.tree;
       console.log("FileTree: Received tree data", treeData);
@@ -263,7 +238,7 @@ const loadNode = async (node: any, resolve: Function) => {
       nodeData.path,
       false, // includeHidden
       "name", // sortBy
-      "asc", // sortOrder
+      "asc" // sortOrder
     );
 
     console.log("FileTree: getFileList response", res);
@@ -274,7 +249,7 @@ const loadNode = async (node: any, resolve: Function) => {
       console.log("FileTree: Raw children data", children);
 
       // 处理子节点数据，确保正确设置 leaf 属性
-      const processedChildren = children.map((child) => {
+      const processedChildren = children.map(child => {
         // 后端应该已经设置了正确的 leaf 属性
         // 但为了保险起见，我们再次确认
         if (child.leaf === undefined) {
@@ -283,10 +258,7 @@ const loadNode = async (node: any, resolve: Function) => {
         return child;
       });
 
-      console.log(
-        "FileTree: Children loaded with lazy loading",
-        processedChildren,
-      );
+      console.log("FileTree: Children loaded with lazy loading", processedChildren);
 
       resolve(processedChildren);
     } else {
@@ -351,9 +323,7 @@ const onDropToNode = (ev: DragEvent, data: FileInfo) => {
       if (entry) entries.push(entry);
     }
     if (entries.length) {
-      readEntriesRecursive(entries).then((files) =>
-        emit("drop-upload", data.path, files),
-      );
+      readEntriesRecursive(entries).then(files => emit("drop-upload", data.path, files));
       return;
     }
   }
@@ -372,11 +342,11 @@ function onDragLeaveNode(data: FileInfo) {
 async function readEntriesRecursive(entries: any[]): Promise<File[]> {
   const collected: File[] = [];
   async function walk(entry: any, pathPrefix = ""): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (entry.isFile) {
         entry.file((file: File) => {
           Object.defineProperty(file, "webkitRelativePath", {
-            value: pathPrefix + file.name,
+            value: pathPrefix + file.name
           });
           collected.push(file);
           resolve();
@@ -603,7 +573,7 @@ const refreshTree = async () => {
 const expandAll = () => {
   // 遍历所有节点并展开
   const expandNodes = (nodes: any[]) => {
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
       if (node.isDirectory) {
         treeRef.value?.setExpanded(node.path, true);
         if (node.children) {
@@ -621,7 +591,7 @@ const expandAll = () => {
 const collapseAll = () => {
   // 遍历所有节点并折叠
   const collapseNodes = (nodes: any[]) => {
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
       if (node.isDirectory) {
         treeRef.value?.setExpanded(node.path, false);
         if (node.children) {
@@ -708,8 +678,7 @@ const expandToPath = async (targetPath: string) => {
       currentPath += "/" + part;
 
       // 展开当前路径的父节点
-      const parentPath =
-        currentPath.substring(0, currentPath.lastIndexOf("/")) || "/";
+      const parentPath = currentPath.substring(0, currentPath.lastIndexOf("/")) || "/";
       if (parentPath !== "/") {
         await nextTick();
         // 使用 el-tree 的正确方法来展开节点
@@ -735,7 +704,7 @@ const expandToPath = async (targetPath: string) => {
  */
 watch(
   () => props.serverId,
-  (newServerId) => {
+  newServerId => {
     if (newServerId) {
       console.log("FileTree: serverId changed to", newServerId);
       // 清理之前的数据
@@ -745,7 +714,7 @@ watch(
       treeData.value = [];
     }
   },
-  { immediate: false },
+  { immediate: false }
 );
 
 /**
@@ -754,12 +723,7 @@ watch(
 watch(
   () => props.serverId,
   async (newServerId, oldServerId) => {
-    console.log(
-      "FileTree: serverId changed from",
-      oldServerId,
-      "to",
-      newServerId,
-    );
+    console.log("FileTree: serverId changed from", oldServerId, "to", newServerId);
     if (newServerId && newServerId !== oldServerId) {
       // 清理旧数据
       rootNodeData.value = [];
@@ -773,7 +737,7 @@ watch(
       }
     }
   },
-  { immediate: false },
+  { immediate: false }
 );
 
 /**
@@ -796,11 +760,12 @@ onMounted(async () => {
 defineExpose({
   refreshTree,
   setCurrentPath,
-  expandToPath,
+  expandToPath
 });
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -834,11 +799,12 @@ defineExpose({
   }
 }
 
+
 .file-tree {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color-overlay); /* 设置文件树背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置文件树背景为白色 */
   border-right: 1px solid var(--el-border-color-light);
 }
 
@@ -848,7 +814,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--el-bg-color-overlay); /* 设置树头部背景为白色 */
+   background: var(--el-bg-color-overlay); /* 设置树头部背景为白色 */
 }
 
 .tree-title {

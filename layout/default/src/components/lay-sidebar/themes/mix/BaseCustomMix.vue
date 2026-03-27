@@ -37,7 +37,7 @@ import {
   CustomSubMenu,
 } from "../../components/custom-menu";
 import LayTool from "../../../lay-tool/index.vue";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 const props = defineProps<{
   /** 主题类名 */

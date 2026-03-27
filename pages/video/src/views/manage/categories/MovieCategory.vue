@@ -20,11 +20,11 @@
 </template>
 
 <script setup lang="ts">
-import VideoFilter from "@/view/video/components/VideoFilter.vue";
-import VideoResults from "@/view/video/components/VideoResults.vue";
+import VideoFilter from "../components/VideoFilter.vue";
+import VideoResults from "../components/VideoResults.vue";
 import { defineExpose, computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import { getVideoList } from "@/api/video";
+import { getVideoList } from "../../../api/video";
 const router = useRouter();
 
 // 筛选条件

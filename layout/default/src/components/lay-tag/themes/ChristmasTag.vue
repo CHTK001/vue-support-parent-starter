@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import BaseTag from "./BaseTag.vue";
+</script>
+
+<template>
+  <BaseTag theme-class="christmas-tag" />
 </template>
 
 <style lang="scss">

@@ -60,6 +60,19 @@ html.theme-christmas {
 }
 
 // 圣诞节特效样式
+$christmas-nav-containers: (
+  ".default-sidebar",
+  ".future-tech-sidebar",
+  ".default-horizontal",
+  ".future-tech-horizontal",
+  ".default-mix",
+  ".future-tech-mix",
+  ".default-hover .hover-nav-theme-wrapper",
+  ".default-drawer",
+  ".horizontal-custom-menu",
+  ".custom-sub-menu__popper"
+);
+
 html[data-skin="christmas"],
 html.theme-christmas {
   // 页面背景渐变
@@ -571,76 +584,36 @@ html.theme-christmas {
   --sc-theme-card-text-muted: rgba(246, 229, 179, 0.72);
   --sc-theme-card-shadow: 0 20px 42px -30px rgba(4, 22, 10, 0.84);
 
-  .default-sidebar,
-  .future-tech-sidebar,
-  .default-horizontal,
-  .future-tech-horizontal,
-  .default-mix,
-  .future-tech-mix,
-  .default-hover .hover-nav-theme-wrapper,
-  .default-drawer,
-  .horizontal-custom-menu,
-  .custom-sub-menu__popper {
-    background: linear-gradient(180deg, rgba(14, 56, 27, 0.98), rgba(8, 34, 16, 0.96)) !important;
-    border-color: rgba(243, 217, 138, 0.2) !important;
-    box-shadow: 0 18px 36px -30px rgba(3, 18, 8, 0.84) !important;
-  }
+  @each $selector in $christmas-nav-containers {
+    #{$selector} {
+      background: linear-gradient(180deg, rgba(14, 56, 27, 0.98), rgba(8, 34, 16, 0.96)) !important;
+      border-color: rgba(243, 217, 138, 0.2) !important;
+      box-shadow: 0 18px 36px -30px rgba(3, 18, 8, 0.84) !important;
+    }
 
-  .default-sidebar,
-  .future-tech-sidebar,
-  .default-horizontal,
-  .future-tech-horizontal,
-  .default-mix,
-  .future-tech-mix,
-  .default-hover .hover-nav-theme-wrapper,
-  .default-drawer,
-  .horizontal-custom-menu,
-  .custom-sub-menu__popper {
-    .el-menu-item,
-    .el-sub-menu__title,
-    .custom-menu-item,
-    .custom-sub-menu__title {
+    #{$selector} .el-menu-item,
+    #{$selector} .el-sub-menu__title,
+    #{$selector} .custom-menu-item,
+    #{$selector} .custom-sub-menu__title {
       color: #f3d98a !important;
       font-weight: 700;
       border-radius: 12px;
     }
-  }
 
-  .default-sidebar,
-  .future-tech-sidebar,
-  .default-horizontal,
-  .future-tech-horizontal,
-  .default-mix,
-  .future-tech-mix,
-  .default-hover .hover-nav-theme-wrapper,
-  .default-drawer,
-  .horizontal-custom-menu,
-  .custom-sub-menu__popper {
-    .el-menu-item:hover,
-    .el-sub-menu__title:hover,
-    .custom-menu-item:hover,
-    .custom-sub-menu__title:hover {
+    #{$selector} .el-menu-item:hover,
+    #{$selector} .el-sub-menu__title:hover,
+    #{$selector} .custom-menu-item:hover,
+    #{$selector} .custom-sub-menu__title:hover {
       color: #fff8df !important;
       background: linear-gradient(135deg, rgba(24, 86, 41, 0.44), rgba(12, 48, 23, 0.22)) !important;
     }
-  }
 
-  .default-sidebar,
-  .future-tech-sidebar,
-  .default-horizontal,
-  .future-tech-horizontal,
-  .default-mix,
-  .future-tech-mix,
-  .default-hover .hover-nav-theme-wrapper,
-  .default-drawer,
-  .horizontal-custom-menu,
-  .custom-sub-menu__popper {
-    .el-menu-item.is-active,
-    .el-sub-menu__title.is-active,
-    .custom-menu-item.is-active,
-    .custom-sub-menu__title.is-active,
-    .custom-menu-item.active,
-    .custom-sub-menu__title.active {
+    #{$selector} .el-menu-item.is-active,
+    #{$selector} .el-sub-menu__title.is-active,
+    #{$selector} .custom-menu-item.is-active,
+    #{$selector} .custom-sub-menu__title.is-active,
+    #{$selector} .custom-menu-item.active,
+    #{$selector} .custom-sub-menu__title.active {
       color: #0d2d15 !important;
       background: linear-gradient(135deg, rgba(243, 217, 138, 0.98), rgba(230, 184, 84, 0.9)) !important;
       box-shadow: 0 12px 28px -24px rgba(243, 217, 138, 0.78) !important;

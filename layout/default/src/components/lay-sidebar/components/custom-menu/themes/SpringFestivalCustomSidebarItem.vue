@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, provide, ref, onMounted } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import {
   transformI18n,
   resolvePath as configResolvePath,

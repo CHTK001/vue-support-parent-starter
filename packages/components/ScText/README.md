@@ -21,7 +21,7 @@
 ## 安装
 
 ```bash
-pnpm add @repo/components-sc-text
+pnpm add @repo/components/ScText
 ```
 
 ## 基础用法

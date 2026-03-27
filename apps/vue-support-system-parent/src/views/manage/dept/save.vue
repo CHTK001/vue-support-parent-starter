@@ -1,7 +1,4 @@
-﻿<script setup lang="ts">
-import { IconSelect } from "@repo/components/IconSelect";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
-
+<script setup lang="ts">
 import { reactive, ref } from "vue";
 import { fetchSaveDept, fetchUpdateDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
@@ -25,17 +22,6 @@ const checked = ref<any[]>([]);
 
 // 表单数据
 const form = reactive({
-  sysDeptId: "",
-  sysDeptName: "",
-  sysDeptPid: "",
-  sysDeptTreeId: "",
-  sysDeptIcon: "",
-  sysDeptCode: "",
-  sysDeptPrincipal: "",
-  sysDeptContact: "",
-  sysDeptSort: 0,
-  sysDeptStatus: 0,
-  sysDeptRemark: "",
 });
 
 // 验证规则
@@ -55,11 +41,6 @@ const rules = {
 
 // 级联选择器配置
 const defaultProps = {
-  value: "sysDeptId",
-  label: "sysDeptName",
-  children: "children",
-  emitPath: false,
-  checkStrictly: true,
 };
 
 // i18n
@@ -140,9 +121,6 @@ const submit = () => {
 
 // 暴露给父组件
 defineExpose({
-  setData,
-  setTableData,
-  open,
 });
 </script>
 <template>
@@ -197,8 +175,7 @@ defineExpose({
                     }}</span>
                     <span v-else>{{ data.sysDeptName }}</span>
                     <span v-if="!node.isLeaf" class="cascader-count"
-                      >({{ data.children.length }})</span
-                    >
+                      >({{ data.children.length }})</span>
                   </div>
                 </template>
               </ScCascader>

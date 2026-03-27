@@ -220,7 +220,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { message } from "@repo/utils";
-import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
+import { IconifyIconOnline as IconifyIconOnline } from "@repo/components/ReIcon";
 import {
   getGuacamoleProxyUrl,
   testServerProxyConnection,

@@ -1,7 +1,7 @@
-﻿<script setup>
+<script setup>
 import { fetchSaveTenant, fetchUpdateTenant } from "@/api/service/tenant";
 import { dateFormat, message } from "@repo/utils";
-import { defineExpose, shallowRef, reactive, ref } from "vue";
+import { shallowRef, reactive, ref } from "vue";
 
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();

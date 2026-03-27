@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import type { FileInfo } from "@/api/server/file-management";
+import type { FileInfo } from "@pages/system";
 import { ElMessageBox } from "element-plus";
 import { computed } from "vue";
 

@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "path";
 
+const defaultPort = Number(process.env.VITE_PORT || 8848);
+
 // 独立构建配置 - 用于生成 doc-v2.html
 export default defineConfig({
   plugins: [
@@ -41,7 +43,7 @@ export default defineConfig({
     cssCodeSplit: false,
   },
   server: {
-    port: 3100,
+    port: defaultPort,
     open: true,
   },
 });

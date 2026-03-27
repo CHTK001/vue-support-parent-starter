@@ -5,7 +5,7 @@ import type {
   FileSystemRealtimeStatus,
   UploadQueueStatus,
   FileSystem,
-} from "@/api/monitor/filesystem";
+} from "@pages/system";
 
 // WebSocket消息类型
 export const FILE_SYSTEM_WS_MESSAGE_TYPE = {

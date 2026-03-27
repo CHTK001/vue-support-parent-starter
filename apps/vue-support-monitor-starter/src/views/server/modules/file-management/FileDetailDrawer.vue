@@ -74,7 +74,7 @@
 import { computed } from "vue";
 import { formatBytes } from "@pureadmin/utils";
 import dayjs from "dayjs";
-import type { FileInfo } from "@/api/server/file-management";
+import type { FileInfo } from "@pages/system";
 
 // Props
 const props = defineProps<{

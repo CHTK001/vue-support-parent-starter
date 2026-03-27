@@ -256,7 +256,7 @@ const handleReset = (form: Record<string, any>) => {
 </template>
 
 <script setup>
-import { ReMenuNewBadge } from '@repo/components'
+import ReMenuNewBadge from "@repo/components/MenuNewBadge";
 </script>
 ```
 
@@ -422,7 +422,7 @@ const switchValue = ref(false)
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ScMessageDialog } from '@repo/components'
+import { ScMessageDialog } from "@repo/components/ScMessageDialog";
 
 const dialogVisible = ref(false)
 const progressVisible = ref(false)

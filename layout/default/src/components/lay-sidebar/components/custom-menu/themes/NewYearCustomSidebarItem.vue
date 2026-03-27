@@ -22,7 +22,7 @@ import {
 import { type MenuType, emitter } from "@repo/core";
 import CustomMenuItem from "../CustomMenuItem.vue";
 import CustomSubMenu from "../CustomSubMenu.vue";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
 
 const props = defineProps<{
   item: MenuType;

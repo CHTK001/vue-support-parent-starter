@@ -46,29 +46,23 @@
                     size="small"
                     type="primary"
                     @click="simulateProgress(processRef1, 0)"
-                    >开始</el-button
-                  >
+                  >开始</ScButton>
                   <ScButton 
                     size="small"
                     type="success"
                     @click="simulateProgress(processRef1, 100)"
-                    >完成</el-button
-                  >
+                  >完成</ScButton>
                   <ScButton 
                     size="small"
                     type="warning"
                     @click="simulateProgress(processRef1, 50)"
-                    >进行中</el-button
-                  >
+                  >进行中</ScButton>
                   <ScButton 
                     size="small"
                     type="danger"
                     @click="simulateError(processRef1)"
-                    >错误</el-button
-                  >
-                  <ScButton size="small" @click="processRef1?.resetProgress()"
-                    >重置</el-button
-                  >
+                  >错误</ScButton>
+                  <ScButton size="small" @click="processRef1?.resetProgress()">重置</ScButton>
                 </el-button-group>
               </div>
 
@@ -109,20 +103,14 @@
                     size="small"
                     type="primary"
                     @click="addRandomLog(processRef2)"
-                    >添加日志</el-button
-                  >
+                  >添加日志</ScButton>
                   <ScButton 
                     size="small"
                     type="success"
                     @click="simulateLogComplete(processRef2)"
-                    >完成</el-button
-                  >
-                  <ScButton size="small" @click="processRef2?.clearLogs()"
-                    >清空日志</el-button
-                  >
-                  <ScButton size="small" @click="processRef2?.resetProgress()"
-                    >重置</el-button
-                  >
+                  >完成</ScButton>
+                  <ScButton size="small" @click="processRef2?.clearLogs()">清空日志</ScButton>
+                  <ScButton size="small" @click="processRef2?.resetProgress()">重置</ScButton>
                 </el-button-group>
               </div>
 
@@ -190,17 +178,13 @@
                     size="small"
                     type="primary"
                     @click="simulateProgress(processRef3, 30)"
-                    >30%</el-button
-                  >
+                  >30%</ScButton>
                   <ScButton 
                     size="small"
                     type="success"
                     @click="simulateProgress(processRef3, 70)"
-                    >70%</el-button
-                  >
-                  <ScButton size="small" @click="processRef3?.resetProgress()"
-                    >重置</el-button
-                  >
+                  >70%</ScButton>
+                  <ScButton size="small" @click="processRef3?.resetProgress()">重置</ScButton>
                 </el-button-group>
               </div>
 
@@ -279,8 +263,8 @@
             </li>
           </ul>
           <p class="mt-2">
-            <strong>提示：</strong
-            >点击下方按钮显示弹框，弹框支持拖拽移动和调整大小，刷新页面后位置会保持。
+            <strong>提示：</strong>
+            点击下方按钮显示弹框，弹框支持拖拽移动和调整大小，刷新页面后位置会保持。
           </p>
         </ScAlert>
 
@@ -331,21 +315,16 @@
                   <ScButton 
                     size="small"
                     @click="simulateProgress(dialogRef1, 30)"
-                    >更新弹框1进度</el-button
-                  >
-                  <ScButton size="small" @click="addRandomLog(dialogRef2)"
-                    >添加弹框2日志</el-button
-                  >
+                  >更新弹框1进度</ScButton>
+                  <ScButton size="small" @click="addRandomLog(dialogRef2)">添加弹框2日志</ScButton>
                   <ScButton 
                     size="small"
                     @click="simulateProgress(dialogRef3, 70)"
-                    >更新弹框3进度</el-button
-                  >
+                  >更新弹框3进度</ScButton>
                   <ScButton 
                     size="small"
                     @click="simulateProgress(dialogRef4, 100)"
-                    >完成弹框4</el-button
-                  >
+                  >完成弹框4</ScButton>
                 </el-space>
               </div>
             </div>

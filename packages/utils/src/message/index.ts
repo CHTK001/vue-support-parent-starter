@@ -5,15 +5,9 @@ import {
   ElMessage,
   ElMessageBox,
   ElNotification,
-  type MessageOptions,
-  type MessageBoxOptions,
-  type NotificationOptions,
+  type ElMessageBoxOptions,
 } from "element-plus";
-import {
-  ElLoading,
-  type LoadingOptions,
-  type LoadingInstance,
-} from "element-plus";
+import { ElLoading } from "element-plus";
 
 type messageStyle = "el" | "antd";
 type messageTypes = "info" | "success" | "warning" | "error";
@@ -31,6 +25,8 @@ interface MessageParams {
   duration?: number;
   /** 是否显示关闭按钮，默认值 `false` */
   showClose?: boolean;
+  /** 文字是否居中 */
+  center?: boolean;
   /** `Message` 距离窗口顶部的偏移量，默认 `20` */
   offset?: number;
   /** 设置组件的根元素，默认 `document.body` */
@@ -63,7 +59,6 @@ const messageFunction = (
       customClass = "antd",
       duration = 2000,
       showClose = false,
-      center = false,
       offset = 20,
       appendTo = document.body,
       grouping = false,
@@ -77,7 +72,6 @@ const messageFunction = (
       dangerouslyUseHTMLString,
       duration,
       showClose,
-      center,
       offset,
       appendTo,
       grouping,
@@ -208,7 +202,11 @@ export const messageBox = ElMessageBox;
 /**
  * 确认对话框
  */
-export const confirm = (message: string, title?: string, options?: any) => {
+export const confirm = (
+  message: string,
+  title?: string,
+  options?: ElMessageBoxOptions,
+) => {
   return ElMessageBox.confirm(message, title || "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",

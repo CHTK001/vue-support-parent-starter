@@ -1,8 +1,8 @@
 ﻿<script setup lang="ts">
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import { useRenderIcon } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon"
+import {  useRenderIcon  } from "@repo/components/ReIcon";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import {
   fetchDeleteDictItem,
   fetchPageDictItem,
@@ -13,10 +13,10 @@ import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import DictLayout from "./components/layout.vue";
 const SettingDialog = defineAsyncComponent(
-  () => import("./components/itemProperty.vue"),
+  () => import("./components/itemProperty.vue")
 );
 const SaveDialog = defineAsyncComponent(
-  () => import("./components/saveItem.vue"),
+  () => import("./components/saveItem.vue")
 );
 const saveDialog = ref(null);
 const tableRef = ref(null);
@@ -87,8 +87,8 @@ const dialogClose = () => {
       @success="onSearch"
       @close="dialogClose"
     />
-    <ScContainer class="dict-container">
-      <ScAside width="320px" class="dict-aside">
+    <el-container class="dict-container">
+      <el-aside width="320px" class="dict-aside">
         <div class="aside-header">
           <div class="aside-title">
             <ScIcon class="aside-icon"
@@ -98,19 +98,23 @@ const dialogClose = () => {
           </div>
         </div>
         <DictLayout :nodeClick="onClick" />
-      </ScAside>
-      <ScMain class="dict-main">
-        <ScContainer>
-          <ScHeader class="dict-header" v-if="params.sysDictId">
+      </el-aside>
+      <el-main class="dict-main">
+        <el-container>
+          <el-header class="dict-header" v-if="params.sysDictId">
             <div class="toolbar-left">
               <!-- 过滤条件区域 -->
             </div>
             <div class="toolbar-right">
-              <ScButton v-auth="'dict:list'" size="small" @click="onSearch({})">
+              <ScButton 
+                v-auth="'dict:list'"
+                size="small"
+                @click="onSearch({})"
+              >
                 <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                 刷新
               </ScButton>
-              <ScButton
+              <ScButton 
                 v-auth="'dict:add'"
                 type="primary"
                 size="small"
@@ -120,8 +124,8 @@ const dialogClose = () => {
                 新增
               </ScButton>
             </div>
-          </ScHeader>
-          <ScMain class="dict-content thin-scroller">
+          </el-header>
+          <el-main class="dict-content thin-scroller">
             <scTable
               v-if="params.sysDictId"
               ref="tableRef"
@@ -130,14 +134,14 @@ const dialogClose = () => {
               :params="params"
               :row-key="'sysDictItemId'"
             >
-              <ScTableColumn
+              <ScTableColumn 
                 label="序号"
                 type="index"
                 align="center"
                 fixed
                 width="60px"
               />
-              <ScTableColumn
+              <ScTableColumn 
                 prop="sysDictItemName"
                 label="字典项名称"
                 align="center"
@@ -146,7 +150,7 @@ const dialogClose = () => {
               >
                 <template #default="{ row }">
                   <div class="flex flex-1 justify-between">
-                    <ScTag
+                    <ScTag 
                       class="flex-col"
                       :type="row.sysDictItemType"
                       effect="dark"
@@ -163,7 +167,7 @@ const dialogClose = () => {
                       "
                     >
                       <span>{{ row.sysDictItemCode }}</span>
-                      <ScDivider
+                      <ScDivider 
                         v-if="row.sysDictItemIcon"
                         direction="vertical"
                       />
@@ -174,13 +178,13 @@ const dialogClose = () => {
                   </div>
                 </template>
               </ScTableColumn>
-              <ScTableColumn
+              <ScTableColumn 
                 prop="sysDictItemI18n"
                 label="字典项i18n"
                 align="center"
               >
                 <template #default="{ row }">
-                  <ScTag
+                  <ScTag 
                     v-if="row.sysDictItemI18n"
                     :type="row.sysDictItemType"
                     effect="dark"
@@ -192,7 +196,7 @@ const dialogClose = () => {
                   <span v-else class="null-value">NULL</span>
                 </template>
               </ScTableColumn>
-              <ScTableColumn
+              <ScTableColumn 
                 prop="sysDictItemStatus"
                 label="状态"
                 align="center"
@@ -207,13 +211,13 @@ const dialogClose = () => {
                   />
                 </template>
               </ScTableColumn>
-              <ScTableColumn
+              <ScTableColumn 
                 prop="sysDictItemSort"
                 label="排序"
                 align="center"
                 width="60px"
               />
-              <ScTableColumn
+              <ScTableColumn 
                 prop="sysDictItemRemark"
                 label="字典项备注"
                 align="center"
@@ -227,25 +231,25 @@ const dialogClose = () => {
               </ScTableColumn>
               <ScTableColumn label="操作" fixed="right" align="center">
                 <template #default="{ row }">
-                  <ScButton
+                  <ScButton 
                     v-auth="'dict:setting'"
                     class="btn-text"
                     :icon="useRenderIcon('ep:setting')"
                     @click="handleSetting(row)"
                   ></ScButton>
-                  <ScButton
+                  <ScButton 
                     v-auth="'dict:edit'"
                     class="btn-text"
                     :icon="useRenderIcon(EditPen)"
                     @click="dialogOpen(row, 'edit')"
                   ></ScButton>
-                  <ScPopconfirm
+                  <ScPopconfirm 
                     v-if="row.sysSettingInSystem != 1"
                     :title="$t('message.confimDelete')"
                     @confirm="onDelete(row)"
                   >
                     <template #reference>
-                      <ScButton
+                      <ScButton 
                         v-auth="'dict:delete'"
                         type="danger"
                         class="btn-text"
@@ -257,10 +261,10 @@ const dialogClose = () => {
               </ScTableColumn>
             </scTable>
             <ScEmpty v-else />
-          </ScMain>
-        </ScContainer>
-      </ScMain>
-    </ScContainer>
+          </el-main>
+        </el-container>
+      </el-main>
+    </el-container>
   </div>
 </template>
 

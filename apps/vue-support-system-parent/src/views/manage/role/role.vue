@@ -107,9 +107,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
-
-import { computed, defineExpose, reactive, ref, shallowRef } from "vue";
+import { computed, reactive, ref, shallowRef } from "vue";
 import {
   fetchPageRole,
   fetchUpdateRole,
@@ -122,6 +120,7 @@ import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { BoardCardList } from "./hook";
+import { useRenderIcon } from "@repo/components/ReIcon";
 const { t } = useI18n();
 
 const env = reactive({

@@ -1,6 +1,6 @@
-﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon"
+<script setup>
+import {  useRenderIcon  } from "@repo/components/ReIcon";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
@@ -168,8 +168,8 @@ const resetForm = async (ref) => {
     <LogDialog ref="logDialogRef" />
     <EmailDialog ref="emailDialogRef" />
 
-    <ScContainer>
-      <ScHeader>
+    <el-container>
+      <el-header>
         <div class="left-panel">
           <ScForm
             ref="formRef"
@@ -228,8 +228,8 @@ const resetForm = async (ref) => {
             />
           </div>
         </div>
-      </ScHeader>
-      <ScMain>
+      </el-header>
+      <el-main>
         <ScTable
           ref="tableRef"
           border
@@ -388,16 +388,14 @@ const resetForm = async (ref) => {
                     plain
                     link
                     :icon="useRenderIcon('ep:delete')"
-                  >
-                    {{ $t("buttons.delete") }}
-                  </ScButton>
+                    >{{ $t("buttons.delete") }}</ScButton>
                 </template>
               </ScPopconfirm>
             </template>
           </ScTableColumn>
         </ScTable>
-      </ScMain>
-    </ScContainer>
+      </el-main>
+    </el-container>
   </div>
 </template>
 

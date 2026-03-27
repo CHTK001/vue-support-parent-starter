@@ -104,7 +104,7 @@ const encrypt = () => {
     }
 
     if (env.mode !== "ECB" && !env.iv) {
-      message("CBC模式需要提供初始向量(IV, { type: "warning" })");
+      message("CBC模式需要提供初始向量(IV)", { type: "warning" });
       env.loading = false;
       return;
     }
@@ -164,7 +164,7 @@ const decrypt = () => {
     }
 
     if (env.mode !== "ECB" && !env.iv) {
-      message("CBC模式需要提供初始向量(IV, { type: "warning" })");
+      message("CBC模式需要提供初始向量(IV)", { type: "warning" });
       env.loading = false;
       return;
     }

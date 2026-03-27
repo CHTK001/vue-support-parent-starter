@@ -148,7 +148,7 @@ import {
   updateGroup,
   getGroupTree,
   type FileSystemGroup,
-} from "@/api/monitor/filesystem-group";
+} from "@pages/system";
 
 // Props & Emits
 const props = defineProps<{

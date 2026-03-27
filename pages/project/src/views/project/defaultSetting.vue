@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <sc-dialog
       v-model="visible"
@@ -35,15 +35,13 @@
           type="primary"
           :icon="useRenderIcon('ri:save-2-line')"
           @click="handleSubmit"
-        >
-          保存
-        </ScButton>
+          >保存</ScButton>
       </template>
     </sc-dialog>
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { message, stringSplitToNumber } from "@repo/utils";
 import { defineExpose, reactive, ref } from "vue";
 import { fetchUpdateProject } from "../../api/manage/project";

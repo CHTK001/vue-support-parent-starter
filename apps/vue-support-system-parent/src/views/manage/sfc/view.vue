@@ -105,8 +105,7 @@
 
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon";
-
-import { ref, defineExpose, reactive } from "vue";
+import { ref, reactive } from "vue";
 import { loadSfcModule } from "@repo/utils";
 
 const emit = defineEmits(["close"]);

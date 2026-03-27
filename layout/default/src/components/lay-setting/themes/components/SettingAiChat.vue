@@ -165,10 +165,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { ScSwitch } from "@repo/components/ScSwitch"
-import { ScInput } from "@repo/components/ScInput";
-import { ScSwitch } from "@repo/components/ScSwitch"
-import { ScInput } from "@repo/components/ScInput";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScInput from "@repo/components/ScInput/index";
+import ScTooltip from "@repo/components/ScTooltip/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import AiChatAppearanceSetting from "./AiChatAppearanceSetting.vue";
 import { AI_APPEARANCE_OPTIONS } from "../../../lay-ai/appearance";

@@ -105,7 +105,7 @@ import {
   ACME_SERVERS,
   ACCOUNT_STATUS,
   type AcmeAccount,
-} from "@/api/acme";
+} from "@pages/system";
 import AccountDialog from "./AccountDialog.vue";
 
 defineOptions({

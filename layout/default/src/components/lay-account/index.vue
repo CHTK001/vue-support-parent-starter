@@ -3,11 +3,12 @@ import { ScAvatar } from "@repo/components/ScAvatar";
 
 import { getMine, useUserStore } from "@repo/core";
 import { ReText } from "@repo/components/ReText";
-import { LaySidebarTopCollapse, useDataThemeChange } from "@layout/default";
 import { deviceDetection, useGlobal } from "@pureadmin/utils";
 import { onBeforeMount, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
+import { useDataThemeChange } from "../../hooks/useDataThemeChange";
 import AccountManagement from "./components/AccountManagement.vue";
 import Profile from "./components/Profile.vue";
 import ThirdParty from "./components/thirdParty.vue";
@@ -21,6 +22,7 @@ import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
 import Totp from "./components/Totp.vue";
+import { ScAvatar } from "@repo/components/ScAvatar";
 
 defineOptions({
   name: "AccountSettings",

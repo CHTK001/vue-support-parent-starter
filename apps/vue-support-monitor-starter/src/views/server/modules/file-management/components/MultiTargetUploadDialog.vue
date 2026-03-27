@@ -97,9 +97,9 @@ import { ref, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
-import { uploadServerFileWithProgress } from "@/api/server/upload";
+import { uploadServerFileWithProgress } from "@pages/system";
 import { uploadFileToNode } from "@/api/server/node-remote";
-import type { UploadQueueStatus } from "@/api/monitor/filesystem";
+import type { UploadQueueStatus } from "@pages/system";
 
 interface Props {
   modelValue: boolean;

@@ -4,6 +4,7 @@ import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
 // 导入统一接口（自动降级）
 import {
+  encryptSM4,
   uu2_wasm,
   uu1 as uu1Unified,
   uu3 as uu3Unified,
@@ -27,8 +28,14 @@ const STRING_TYPE = "string";
 const OBJECT_TYPE = "object";
 const SETTING_PATH = "/v2/setting";
 const DEFAULT_AES_KEY = "1234567890Oil#@1";
-const REQUEST_CODEC_CONFIG = "requestCodecOpen";
-const CODEC_REQUEST_KEY_CONFIG = "codecRequestKey";
+const REQUEST_CODEC_CONFIG = "CodecRequestOpen";
+const LEGACY_REQUEST_CODEC_CONFIG = "requestCodecOpen";
+const CODEC_REQUEST_KEY_CONFIG = "CodecRequestKey";
+const LEGACY_CODEC_REQUEST_KEY_CONFIG = "codecRequestKey";
+const RESPONSE_CODEC_HEADER = "access-control-no-data";
+const JSON_CONTENT_TYPE = "application/json";
+const REQUEST_ENCRYPT_HEADER = ORIGIN_KEY_HEADER;
+const REQUEST_ENCRYPT_METHODS = new Set(["post", "put", "patch", "delete"]);
 
 // 反重放攻击保护
 class AntiReplayManager {
@@ -152,6 +159,185 @@ const isWasmEnabled = (): boolean => {
   return config !== false;
 };
 
+const isWasmNotReadyError = (error: unknown): boolean =>
+  error instanceof Error && error.message.includes("WASM 未就绪");
+
+const normalizeHeaderValue = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0 ? String(value[0]) : undefined;
+  }
+  return String(value);
+};
+
+const getHeaderValue = (headers: unknown, key: string): string | undefined => {
+  if (!headers || typeof headers !== "object") {
+    return undefined;
+  }
+
+  const lowerKey = key.toLowerCase();
+  const axiosHeaders = headers as {
+    get?: (name: string) => unknown;
+    toJSON?: () => Record<string, unknown>;
+  };
+
+  if (typeof axiosHeaders.get === "function") {
+    const value =
+      axiosHeaders.get(key) ??
+      axiosHeaders.get(lowerKey) ??
+      axiosHeaders.get(key.toUpperCase());
+    const normalized = normalizeHeaderValue(value);
+    if (normalized !== undefined) {
+      return normalized;
+    }
+  }
+
+  const rawHeaders =
+    typeof axiosHeaders.toJSON === "function" ? axiosHeaders.toJSON() : headers;
+  const record = rawHeaders as Record<string, unknown>;
+  const matchedKey = Object.keys(record).find(
+    (item) => item.toLowerCase() === lowerKey,
+  );
+
+  return matchedKey ? normalizeHeaderValue(record[matchedKey]) : undefined;
+};
+
+const normalizeHeaders = (headers: unknown): Record<string, string> => {
+  if (!headers || typeof headers !== "object") {
+    return {};
+  }
+
+  const axiosHeaders = headers as {
+    toJSON?: () => Record<string, unknown>;
+  };
+  const rawHeaders =
+    typeof axiosHeaders.toJSON === "function" ? axiosHeaders.toJSON() : headers;
+
+  return Object.entries(rawHeaders as Record<string, unknown>).reduce(
+    (acc, [key, value]) => {
+      const normalizedValue = normalizeHeaderValue(value);
+      if (normalizedValue !== undefined) {
+        acc[key.toLowerCase()] = normalizedValue;
+      }
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
+};
+
+const getBooleanConfig = (...keys: string[]): boolean => {
+  for (const key of keys) {
+    const value = getConfig(key);
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+    if (typeof value === "boolean") {
+      return value;
+    }
+    if (typeof value === "string") {
+      return value.toLowerCase() === "true";
+    }
+  }
+  return false;
+};
+
+const getStringConfig = (...keys: string[]): string => {
+  for (const key of keys) {
+    const value = getConfig(key);
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+};
+
+const isFileLike = (value: unknown): boolean =>
+  typeof File !== "undefined" && value instanceof File;
+
+const isBlobLike = (value: unknown): boolean =>
+  typeof Blob !== "undefined" && value instanceof Blob;
+
+const isFormDataLike = (value: unknown): boolean =>
+  typeof FormData !== "undefined" && value instanceof FormData;
+
+const isUrlSearchParamsLike = (value: unknown): boolean =>
+  typeof URLSearchParams !== "undefined" && value instanceof URLSearchParams;
+
+const hasBinaryPayload = (value: unknown): boolean => {
+  if (!value || typeof value !== OBJECT_TYPE || Array.isArray(value)) {
+    return false;
+  }
+
+  return Object.values(value as Record<string, unknown>).some(
+    (item) => isFileLike(item) || isBlobLike(item),
+  );
+};
+
+const isRequestCodecEnabled = (): boolean =>
+  getBooleanConfig(REQUEST_CODEC_CONFIG, LEGACY_REQUEST_CODEC_CONFIG);
+
+const getRequestCodecKey = (): string =>
+  getStringConfig(CODEC_REQUEST_KEY_CONFIG, LEGACY_CODEC_REQUEST_KEY_CONFIG);
+
+const shouldEncryptRequest = (request: PureHttpRequestConfig): boolean => {
+  if (!isRequestCodecEnabled()) {
+    return false;
+  }
+
+  if (!request?.data) {
+    return false;
+  }
+
+  const url = request.url || "";
+  if (url.startsWith(SETTING_PATH)) {
+    return false;
+  }
+
+  const method = String(request.method || "get").toLowerCase();
+  if (!REQUEST_ENCRYPT_METHODS.has(method)) {
+    return false;
+  }
+
+  const body = request.data;
+  if (
+    isFormDataLike(body) ||
+    isFileLike(body) ||
+    isBlobLike(body) ||
+    isUrlSearchParamsLike(body)
+  ) {
+    return false;
+  }
+
+  if (hasBinaryPayload(body)) {
+    return false;
+  }
+
+  const contentType = (
+    getHeaderValue(request.headers, "Content-Type") || JSON_CONTENT_TYPE
+  ).toLowerCase();
+
+  return contentType.includes(JSON_CONTENT_TYPE);
+};
+
+const serializeRequestBody = (body: unknown): string => {
+  if (typeof body === STRING_TYPE) {
+    return body as string;
+  }
+  return JSON.stringify(body);
+};
+
+const isEncryptedResponse = (response: PureHttpResponse): boolean =>
+  (getHeaderValue(response?.headers, RESPONSE_CODEC_HEADER) || "").toLowerCase() ===
+  "true";
+
+const normalizeResponse = (response: PureHttpResponse): PureHttpResponse =>
+  ({
+    ...response,
+    headers: normalizeHeaders(response?.headers),
+  }) as PureHttpResponse;
+
 /**
  * uu2 - 请求加密处理
  * 使用统一接口，自动降级：如果 WASM 未加载会自动使用 JS 版本
@@ -160,12 +346,32 @@ const isWasmEnabled = (): boolean => {
 export const uu2 = async (
   request: PureHttpRequestConfig,
 ): Promise<PureHttpRequestConfig> => {
-  try {
-    const result = await uu2_wasm(request);
-    return result as PureHttpRequestConfig;
-  } catch (error) {
-    console.warn("[codec] uu2_wasm failed, fallback to raw request:", error);
+  if (!shouldEncryptRequest(request)) {
     return request;
+  }
+
+  const codecRequestKey = getRequestCodecKey();
+  if (!codecRequestKey) {
+    throw new Error("[codec] 请求加密已开启，但缺少 CodecRequestKey 配置");
+  }
+
+  try {
+    const payload = serializeRequestBody(request.data);
+    const encryptedPayload = encryptSM4(payload, codecRequestKey);
+
+    if (!request.headers) {
+      request.headers = {};
+    }
+
+    request.headers[REQUEST_ENCRYPT_HEADER] = String(Date.now());
+    request.headers["Content-Type"] = `${JSON_CONTENT_TYPE}; charset=UTF-8`;
+    request.data = { data: encryptedPayload };
+
+    return request;
+  } catch (error) {
+    const reason =
+      error instanceof Error ? error.message : "未知错误";
+    throw new Error(`[codec] 请求加密失败: ${reason}`);
   }
 };
 
@@ -175,11 +381,16 @@ export const uu2 = async (
  * 如果启用 WASM 但执行错误，将抛出错误
  */
 export const uu1 = (response: PureHttpResponse) => {
+  const encrypted = isEncryptedResponse(response);
   try {
-    return uu1Unified(response);
+    return uu1Unified(normalizeResponse(response));
   } catch (error) {
-    console.warn("[codec] uu1 failed, fallback to original response:", error);
-    return response;
+    if (!encrypted && !isWasmNotReadyError(error)) {
+      console.warn("[codec] uu1 failed, fallback to original response:", error);
+      return response;
+    }
+    const reason = error instanceof Error ? error.message : "未知错误";
+    throw new Error(`[codec] 响应解密失败: ${reason}`);
   }
 };
 
@@ -192,7 +403,9 @@ export const uu3Wrapper = async (value: string) => {
   try {
     return uu3Unified(value);
   } catch (error) {
-    console.warn("[codec] uu3 failed, fallback to original value:", error);
+    if (!isWasmNotReadyError(error)) {
+      console.warn("[codec] uu3 failed, fallback to original value:", error);
+    }
     return value;
   }
 };
@@ -207,7 +420,9 @@ export const uu4Wrapper = async (response: any) => {
   try {
     result = uu4_wasm(response);
   } catch (error) {
-    console.warn("[codec] uu4 failed, fallback to raw response data:", error);
+    if (!isWasmNotReadyError(error)) {
+      console.warn("[codec] uu4 failed, fallback to raw response data:", error);
+    }
     return response?.data || response;
   }
 

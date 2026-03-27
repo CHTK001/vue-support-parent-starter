@@ -6,8 +6,8 @@ import Edit from "@iconify-icons/line-md/plus";
 import Download from "@iconify-icons/ri/cloud-line";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon"
-import { useRenderIcon } from "@repo/components/ReIcon"
+import ScTable from "@repo/components/ScTable/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { markRaw, nextTick, reactive, ref } from "vue";
 import {
   fetchDeleteSecret,
@@ -61,7 +61,7 @@ const onSearch = debounce(
     table.value.reload();
   },
   1000,
-  true,
+  true
 );
 
 const isShow = (val) => {
@@ -107,17 +107,17 @@ const dialogClose = async () => {
       @close="dialogClose"
     />
     <div class="main">
-      <ScContainer>
-        <ScHeader>
+      <el-container>
+        <el-header>
           <div class="left-panel">
-            <ScForm
+            <ScForm 
               ref="formRef"
               :inline="true"
               :model="form"
               class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
             >
               <ScFormItem label="密钥分组" prop="sysRoleName">
-                <ScInput
+                <ScInput 
                   v-model="form.sysSecretGroup"
                   placeholder="请输入密钥分组"
                   clearable
@@ -125,7 +125,7 @@ const dialogClose = async () => {
                 />
               </ScFormItem>
               <ScFormItem label="密钥编码" prop="SysRoleCode">
-                <ScInput
+                <ScInput 
                   v-model="form.sysSecretCode"
                   placeholder="请输入密钥编码"
                   clearable
@@ -136,38 +136,38 @@ const dialogClose = async () => {
           </div>
           <div class="right-panel">
             <div class="right-panel-search">
-              <ScButton
+              <ScButton 
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 :loading="loading.query"
                 @click="onSearch()"
               />
-              <ScButton
+              <ScButton 
                 :icon="useRenderIcon(Refresh)"
                 @click="resetForm(formRef)"
               />
-              <ScButton
+              <ScButton 
                 :icon="useRenderIcon(Edit)"
                 @click="dialogOpen({}, 'save')"
               />
             </div>
           </div>
-        </ScHeader>
-        <ScMain class="nopadding">
+        </el-header>
+        <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
             <div
               class="h-full w-full"
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
             >
               <ScTable ref="table" :url="fetchPageSecret">
-                <ScTableColumn
+                <ScTableColumn 
                   label="序号"
                   type="index"
                   align="center"
                   width="60px"
                   fixed
                 />
-                <ScTableColumn
+                <ScTableColumn 
                   label="密钥分组"
                   prop="sysSecretGroup"
                   align="center"
@@ -190,7 +190,7 @@ const dialogClose = async () => {
                     </span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="所属厂家"
                   prop="sysSecretDictItemName"
                   align="center"
@@ -203,7 +203,7 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="签名"
                   prop="sysSecretSign"
                   align="center"
@@ -216,7 +216,7 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="appId"
                   prop="sysSecretAppId"
                   align="center"
@@ -229,7 +229,7 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="appSecret"
                   prop="sysSecretAppSecret"
                   align="center"
@@ -242,7 +242,7 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="endpoint"
                   prop="sysSecretAppEndpoint"
                   align="center"
@@ -255,7 +255,7 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="cdn"
                   prop="sysSecretCdn"
                   align="center"
@@ -266,7 +266,7 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="启用"
                   prop="sysSecretStatus"
                   align="center"
@@ -283,13 +283,13 @@ const dialogClose = async () => {
                     />
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="创建时间"
                   prop="createTime"
                   align="center"
                   show-overflow-tooltip
                 />
-                <ScTableColumn
+                <ScTableColumn 
                   label="更新时间"
                   prop="updateTime"
                   align="center"
@@ -300,14 +300,14 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </ScTableColumn>
-                <ScTableColumn
+                <ScTableColumn 
                   label="操作"
                   fixed="right"
                   min-width="130px"
                   align="center"
                 >
                   <template #default="{ row }">
-                    <ScButton
+                    <ScButton 
                       v-if="hasSyncFunction(row)"
                       size="small"
                       plain
@@ -318,7 +318,7 @@ const dialogClose = async () => {
                     >
                       同步
                     </ScButton>
-                    <ScButton
+                    <ScButton 
                       size="small"
                       plain
                       link
@@ -329,9 +329,12 @@ const dialogClose = async () => {
                       编辑
                     </ScButton>
 
-                    <ScPopconfirm title="确认删除吗？" @confirm="onDelete(row)">
+                    <ScPopconfirm 
+                      title="确认删除吗？"
+                      @confirm="onDelete(row)"
+                    >
                       <template #reference>
-                        <ScButton
+                        <ScButton 
                           size="small"
                           type="danger"
                           plain
@@ -347,8 +350,8 @@ const dialogClose = async () => {
               </ScTable>
             </div>
           </div>
-        </ScMain>
-      </ScContainer>
+        </el-main>
+      </el-container>
     </div>
   </div>
 </template>

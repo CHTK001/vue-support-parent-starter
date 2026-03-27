@@ -26,6 +26,31 @@
       "development": "./src/index.ts",
       "default": "./dist/index.mjs"
     },
+    "./server-file-management": {
+      "types": "./src/api/server-file-management.ts",
+      "development": "./src/api/server-file-management.ts",
+      "default": "./dist/api/server-file-management.mjs"
+    },
+    "./server-upload": {
+      "types": "./src/api/server-upload.ts",
+      "development": "./src/api/server-upload.ts",
+      "default": "./dist/api/server-upload.mjs"
+    },
+    "./file-distribute": {
+      "types": "./src/api/file-distribute.ts",
+      "development": "./src/api/file-distribute.ts",
+      "default": "./dist/api/file-distribute.mjs"
+    },
+    "./acme": {
+      "types": "./src/api/acme.ts",
+      "development": "./src/api/acme.ts",
+      "default": "./dist/api/acme.mjs"
+    },
+    "./remote-desktop": {
+      "types": "./src/api/remote-desktop.ts",
+      "development": "./src/api/remote-desktop.ts",
+      "default": "./dist/api/remote-desktop.mjs"
+    },
     "./job": {
       "types": "./src/job/index.ts",
       "development": "./src/job/index.ts",
@@ -57,10 +82,26 @@
     "exports": {
       ".": {
         "default": "./dist/index.mjs"
+      },
+      "./server-file-management": {
+        "default": "./dist/api/server-file-management.mjs"
+      },
+      "./server-upload": {
+        "default": "./dist/api/server-upload.mjs"
+      },
+      "./file-distribute": {
+        "default": "./dist/api/file-distribute.mjs"
+      },
+      "./acme": {
+        "default": "./dist/api/acme.mjs"
+      },
+      "./remote-desktop": {
+        "default": "./dist/api/remote-desktop.mjs"
       }
     }
   },
   "dependencies": {
+    "@repo/config": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
@@ -77,7 +118,6 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@commitlint/types": "catalog:",
-    "@repo/config": "workspace:^",
     "@repo/tailwind-config": "workspace:^",
     "@repo/tsconfig": "workspace:^",
     "@types/node": "catalog:",

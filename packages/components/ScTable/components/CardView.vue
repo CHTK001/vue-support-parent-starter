@@ -119,13 +119,13 @@
 </template>
 
 <script setup>
-import { ScCard } from "@repo/components/ScCard"
+import { ScCard } from "@repo/components/ScCard";
 import { debounce } from "lodash-es";
 import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
 import Sortable from "sortablejs";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
-import { ScCard } from "@repo/components/ScCard";
+import { useRenderIcon } from "@repo/components/ReIcon";
 
 const logger = getLogger("[ScTable][CardView]");
 
@@ -401,8 +401,7 @@ watch(
     } else {
       destroyDragSort();
     }
-  },
-  { immediate: true }
+  }
 );
 
 // 监听 tableData 变化，重新初始化拖拽

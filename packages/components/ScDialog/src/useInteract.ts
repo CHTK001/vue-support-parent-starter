@@ -187,7 +187,7 @@ export function useInteract(options: InteractOptions): InteractReturn {
     const target = dragHandle ? `${dragHandle}` : targetRef.value;
 
     // 配置修改器
-    const modifiers: ReturnType<typeof interact.modifiers.restrict>[] = [];
+    const modifiers: any[] = [];
 
     // 边界限制
     if (boundary) {
@@ -251,7 +251,11 @@ export function useInteract(options: InteractOptions): InteractReturn {
             // 检测边缘吸附
             if (snapToEdge && boundary !== "window") {
               const rect = target.getBoundingClientRect();
-              const parent = typeof boundary === "string" ? document.querySelector(boundary) : boundary === "parent" ? target.parentElement : boundary;
+              const parent = boundary === "parent"
+                ? target.parentElement
+                : typeof boundary === "string"
+                  ? document.querySelector(boundary)
+                  : boundary;
 
               if (parent) {
                 const boundaryRect = (parent as HTMLElement).getBoundingClientRect();

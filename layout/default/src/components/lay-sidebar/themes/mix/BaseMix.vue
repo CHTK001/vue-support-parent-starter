@@ -9,6 +9,8 @@ import { isAllEmpty } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { getConfig, transformI18n } from "@repo/config";
 import { nextTick, onMounted, ref, toRaw, watch } from "vue";
+import ScMenu from "@repo/components/ScMenu";
+import ScMenuItem from "@repo/components/ScMenuItem";
 import { useTranslationLang } from "../../../../hooks/useTranslationLang";
 import LaySidebarExtraIcon from "../../components/SidebarExtraIcon.vue";
 import { useDefer } from "@repo/utils";

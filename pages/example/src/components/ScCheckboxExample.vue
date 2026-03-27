@@ -19,18 +19,16 @@
             <ScCheckbox label="sport">运动</ScCheckbox>
           </ScCheckboxGroup>
         </div>
-        <div class="value-display">
-          当前选择：{{ hobbies.join("，") || "无" }}
-        </div>
+        <div class="value-display">当前选择：{{ hobbies.join("，") || "无" }}</div>
       </div>
     </DemoBlock>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ScCheckboxGroup, ScCheckbox } from "@repo/components/ScCheckbox";
 import { ref } from "vue";
-import { ScCheckbox } from "@repo/components/ScCheckbox"
-import { ScCheckboxGroup } from "@repo/components/ScCheckboxGroup";
+
 import DemoBlock from "./DemoBlock.vue";
 
 const checked1 = ref(true);
@@ -86,3 +84,5 @@ const codes = {
   }
 }
 </style>
+
+

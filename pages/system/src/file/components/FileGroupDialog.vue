@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="分组管理"
@@ -40,9 +40,7 @@
                 v-if="row.sysFileSystemGroupIsDefault"
                 size="small"
                 type="success"
-              >
-                默认
-              </ScTag>
+                >默认</ScTag>
             </div>
           </template>
         </ScTableColumn>
@@ -76,8 +74,7 @@
         <ScTableColumn label="操作" width="140" fixed="right">
           <template #default="{ row }">
             <ScButton type="primary" link size="small" @click="handleEdit(row)"
-              >编辑</ScButton
-            >
+              >编辑</ScButton>
             <ScButton
               type="danger"
               link
@@ -150,8 +147,7 @@
       <template #footer>
         <ScButton @click="showEditDialog = false">取消</ScButton>
         <ScButton type="primary" :loading="saving" @click="handleSave"
-          >保存</ScButton
-        >
+          >保存</ScButton>
       </template>
     </sc-dialog>
   </sc-dialog>

@@ -15,6 +15,10 @@
         </el-tag>
       </div>
       <div class="toolbar-right">
+        <el-button @click="router.push('/sync/transforms')">
+          <el-icon><Connection /></el-icon>
+          转换规则
+        </el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">
           <el-icon><DocumentChecked /></el-icon>
           保存
@@ -221,37 +225,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import {
   ArrowLeft,
-  DocumentChecked,
   CircleCheck,
   Close,
-  Download,
-  Upload,
   Connection,
+  DocumentChecked,
+  Download,
   Filter,
+  Upload,
 } from "@element-plus/icons-vue";
+import { ScReteEditor, type BaseNode, type EditorData, type NodeTypeName } from "@repo/components/ScReteEditor";
 import {
-  ScReteEditor,
-  type EditorData,
-  type NodeTypeName,
-  type BaseNode,
-} from "@repo/scReteEditor";
-import {
-  getSyncTaskDesign,
-  saveSyncTaskDesign,
-  validateSyncTaskDesign,
   getAllSpiTypes,
   getSpiParameters,
+  getSyncTaskDesign,
+  saveSyncTaskDesign,
   testSpiConnection,
-  type SyncTask,
-  type SyncNode,
-  type SyncConnection,
+  validateSyncTaskDesign,
   type SpiInfo,
   type SpiParameter,
+  type SyncConnection,
+  type SyncNode,
+  type SyncTask,
 } from "../../api/sync";
 
 const route = useRoute();
@@ -319,6 +318,8 @@ const editorTypeToSyncType: Record<string, string> = {
   output: "OUTPUT",
   process: "DATA_CENTER",
   condition: "FILTER",
+  merge: "FILTER",
+  delay: "FILTER",
 };
 
 // ============== 数据转换函数 ==============
@@ -392,6 +393,47 @@ function convertFromEditorData(data: EditorData): {
 
 // ============== 事件处理 ==============
 
+async function selectSyncNodeByKey(nodeKey?: string) {
+  if (!nodeKey) {
+    selectedSyncNode.value = null;
+    selectedNodeParams.value = [];
+    return;
+  }
+
+  const syncNode = syncNodes.value.find((n) => n.syncNodeKey === nodeKey);
+  if (!syncNode) {
+    selectedSyncNode.value = null;
+    selectedNodeParams.value = [];
+    return;
+  }
+
+  selectedSyncNode.value = syncNode;
+
+  if (syncNode.syncNodeType && syncNode.syncNodeSpiName) {
+    try {
+      const res = await getSpiParameters(syncNode.syncNodeType, syncNode.syncNodeSpiName);
+      selectedNodeParams.value = res.data || [];
+    } catch (e) {
+      selectedNodeParams.value = [];
+    }
+  } else {
+    selectedNodeParams.value = [];
+  }
+
+  Object.keys(nodeConfig).forEach((key) => delete nodeConfig[key]);
+  if (syncNode.syncNodeConfig) {
+    try {
+      Object.assign(nodeConfig, JSON.parse(syncNode.syncNodeConfig));
+    } catch (e) {}
+  }
+
+  selectedNodeParams.value.forEach((param) => {
+    if (nodeConfig[param.name] === undefined && param.defaultValue !== undefined) {
+      nodeConfig[param.name] = param.defaultValue;
+    }
+  });
+}
+
 // 拖拽开始
 function handleDragStart(event: DragEvent, nodeType: string, spi: SpiInfo) {
   draggedSpi = { nodeType, spiName: spi.name, displayName: spi.displayName };
@@ -448,6 +490,10 @@ function handleDrop(event: DragEvent) {
     nodes: [...editorData.value.nodes, newEditorNode],
   };
 
+  nextTick(() => {
+    selectSyncNodeByKey(newNodeKey);
+  });
+
   // 清除拖拽数据
   draggedSpi = null;
 
@@ -460,44 +506,7 @@ async function handleNodeSelected(node: BaseNode | null) {
     selectedSyncNode.value = null;
     return;
   }
-
-  const syncNode = syncNodes.value.find((n) => n.syncNodeKey === node.id);
-  if (syncNode) {
-    selectedSyncNode.value = syncNode;
-
-    // 加载参数配置
-    if (syncNode.syncNodeType && syncNode.syncNodeSpiName) {
-      try {
-        const res = await getSpiParameters(
-          syncNode.syncNodeType,
-          syncNode.syncNodeSpiName,
-        );
-        if (res.data?.success) {
-          selectedNodeParams.value = res.data.data || [];
-        }
-      } catch (e) {
-        selectedNodeParams.value = [];
-      }
-    }
-
-    // 解析现有配置
-    Object.keys(nodeConfig).forEach((key) => delete nodeConfig[key]);
-    if (syncNode.syncNodeConfig) {
-      try {
-        Object.assign(nodeConfig, JSON.parse(syncNode.syncNodeConfig));
-      } catch (e) {}
-    }
-
-    // 设置默认值
-    selectedNodeParams.value.forEach((param) => {
-      if (
-        nodeConfig[param.name] === undefined &&
-        param.defaultValue !== undefined
-      ) {
-        nodeConfig[param.name] = param.defaultValue;
-      }
-    });
-  }
+  await selectSyncNodeByKey(node.id);
 }
 
 // 数据变化
@@ -530,13 +539,11 @@ function handleDataChanged(data: EditorData) {
 const loadSpiList = async () => {
   try {
     const res = await getAllSpiTypes();
-    if (res.data?.success && res.data.data) {
-      const data = res.data.data;
-      spiMap.INPUT = data.input || [];
-      spiMap.OUTPUT = data.output || [];
-      spiMap.DATA_CENTER = data.dataCenter || [];
-      spiMap.FILTER = data.filter || [];
-    }
+    const data = res.data;
+    spiMap.INPUT = data?.input || [];
+    spiMap.OUTPUT = data?.output || [];
+    spiMap.DATA_CENTER = data?.dataCenter || [];
+    spiMap.FILTER = data?.filter || [];
   } catch (e) {
     console.error(e);
   }
@@ -546,18 +553,12 @@ const loadSpiList = async () => {
 const loadTaskDesign = async () => {
   try {
     const res = await getSyncTaskDesign(taskId.value);
-    if (res.data?.success && res.data.data) {
-      const design = res.data.data;
-      taskData.value = design.task;
-      syncNodes.value = design.nodes || [];
-      syncConnections.value = design.connections || [];
+    const design = res.data;
+    taskData.value = design?.task || null;
+    syncNodes.value = design?.nodes || [];
+    syncConnections.value = design?.connections || [];
 
-      // 转换为编辑器数据
-      editorData.value = convertToEditorData(
-        syncNodes.value,
-        syncConnections.value,
-      );
-    }
+    editorData.value = convertToEditorData(syncNodes.value, syncConnections.value);
   } catch (e) {
     console.error(e);
     ElMessage.error("加载任务设计失败");
@@ -587,10 +588,8 @@ const handleSave = async () => {
       nodes,
       connections,
     });
-    if (res.data?.success) {
+    if (res.data) {
       ElMessage.success("保存成功");
-    } else {
-      ElMessage.error(res.data?.msg || "保存失败");
     }
   } catch (e) {
     console.error(e);
@@ -611,10 +610,8 @@ const handleValidate = async () => {
       nodes,
       connections,
     });
-    if (res.data?.success && res.data.data) {
+    if (res.data) {
       ElMessage.success("验证通过");
-    } else {
-      ElMessage.error(res.data?.msg || "验证失败");
     }
   } catch (e) {
     console.error(e);
@@ -624,7 +621,7 @@ const handleValidate = async () => {
 
 // 返回
 const handleBack = () => {
-  router.push({ name: "SyncManagement" });
+  router.push("/sync/tasks");
 };
 
 // 状态显示
@@ -672,11 +669,7 @@ const handleTestConnection = async () => {
       selectedSyncNode.value.syncNodeSpiName!,
       nodeConfig,
     );
-    if (res.data?.success) {
-      ElMessage.success(res.data.data || "连接成功");
-    } else {
-      ElMessage.error(res.data?.msg || "连接失败");
-    }
+    ElMessage.success(res.data || "连接成功");
   } catch (e) {
     console.error(e);
     ElMessage.error("测试失败");

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
 
 import { defineAsyncComponent, nextTick, reactive, ref, computed } from "vue";
 
@@ -59,7 +59,6 @@ const onSearch = debounce(
     table.value.reload(form);
   },
   1000,
-  true,
 );
 
 const saveDialogParams = reactive({
@@ -238,8 +237,7 @@ const contentRef = ref();
                             type="warning"
                             size="small"
                             class="ml-1"
-                            >系统</ScTag
-                          >
+                            >系统</ScTag>
                         </div>
                         <div class="role-code">{{ row.sysRoleCode }}</div>
                       </div>

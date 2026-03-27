@@ -2,16 +2,21 @@
   <!-- 路由加载时保持 HTML loader 可见，不额外渲染 -->
   <!-- 开发环境切换器 -->
   <div v-if="isDev && showDevSwitcher" class="dev-loader-switch">
-    <div class="trigger" @click="showPanel = !showPanel" title="加载动画预览">⚙️</div>
+    <div class="trigger" title="加载动画预览" @click="showPanel = !showPanel">⚙️</div>
     <div v-if="showPanel" class="panel">
       <div class="panel-header">
         <span class="panel-title">加载动画预览</span>
         <span class="panel-desc">选择加载动画样式</span>
       </div>
       <div class="panel-body">
-        <div v-for="(style, key) in loaderStyles" :key="key" class="style-option" :class="{ active: currentStyle === key }" @click="changeStyle(key)">
-          <div class="preview-mini" v-html="getPreviewHTML(key)"></div>
-          <span class="style-name">{{ style.name }}</span>
+        <div v-for="style in loaderStyles" :key="style.key" class="style-option" :class="{ active: currentStyle === style.key }" @click="changeStyle(style.key)">
+          <div class="preview-mini">
+            <div class="loader-preview-inner" :style="getPreviewScaleStyle(style.previewScale)" v-html="renderLoaderPreviewMarkup(style.key)" />
+          </div>
+          <div class="style-copy">
+            <span class="style-name">{{ style.name }}</span>
+            <span class="style-desc">{{ style.description }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -27,6 +32,7 @@
  */
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import { getLoaderStyleEntries, LOADER_APP_CONTAINER_ID, LOADER_APP_STYLE_ID, LOADER_APP_STYLE_TEXT, LOADER_PREVIEW_STYLE_TEXT, renderLoaderMarkup, renderLoaderPreviewMarkup } from "./loader-manager";
 
 interface Props {
   showDevSwitcher?: boolean;
@@ -40,38 +46,63 @@ const isDev = import.meta.env.DEV;
 const router = useRouter();
 const showPanel = ref(false);
 const currentStyle = ref(localStorage.getItem("sys-loader-style") || "default");
+const loaderStyles = getLoaderStyleEntries();
 
-// 加载动画样式配置
-const loaderStyles = {
-  default: { name: "三个圆点" },
-  rings: { name: "彩色圆环" },
-  simple: { name: "简约圆环" },
-  pulse: { name: "脉冲圆点" },
-  blocks: { name: "跳动方块" },
-  book: { name: "翻书" },
-  writing: { name: "书写加载条" },
-  dinoGame: { name: "恐龙小游戏" }
+let previewStyleTag: HTMLStyleElement | null = null;
+let removeBeforeEach: (() => void) | undefined;
+let removeAfterEach: (() => void) | undefined;
+
+const ensureStyleTag = (id: string, cssText: string) => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  let styleTag = document.getElementById(id) as HTMLStyleElement | null;
+  if (!styleTag) {
+    styleTag = document.createElement("style");
+    styleTag.id = id;
+    document.head.appendChild(styleTag);
+  }
+
+  if (styleTag.textContent !== cssText) {
+    styleTag.textContent = cssText;
+  }
+
+  return styleTag;
 };
 
-const getPreviewHTML = (key: string) => {
-  const previews: Record<string, string> = {
-    default:
-      '<div style="display:flex;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:#406eeb"></div><div style="width:8px;height:8px;border-radius:50%;background:#406eeb"></div><div style="width:8px;height:8px;border-radius:50%;background:#406eeb"></div></div>',
-    rings: '<div style="width:30px;height:30px;border:2px solid #ff6b6b;border-radius:50%;border-right-color:transparent"></div>',
-    simple: '<div style="width:30px;height:30px;border:3px solid rgba(64,110,235,0.2);border-top-color:#406eeb;border-radius:50%"></div>',
-    pulse: '<div style="width:16px;height:16px;background:#406eeb;border-radius:50%"></div>',
-    blocks:
-      '<div style="display:flex;gap:3px"><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div><div style="width:8px;height:8px;background:#406eeb;border-radius:2px"></div></div>',
-    book: '<div style="width:24px;height:20px;border-radius:2px;border:1px solid #e5e7eb;background:linear-gradient(90deg,#f3f4f6 0%,#ffffff 50%,#f3f4f6 100%);position:relative;overflow:hidden"><div style="position:absolute;inset:2px 4px;border-radius:2px;border-left:1px solid #d1d5db"></div></div>',
-    writing:
-      '<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:32px"><div style="width:100%;height:2px;background:#e5e7eb;border-radius:999px;overflow:hidden"><div style="width:60%;height:100%;background:#406eeb"></div></div><div style="width:80%;height:2px;background:#e5e7eb;border-radius:999px"></div><div style="width:50%;height:2px;background:#e5e7eb;border-radius:999px"></div></div>'
-  };
-  return previews[key] || previews.default;
+const ensureHTMLLoader = () => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  ensureStyleTag(LOADER_APP_STYLE_ID, LOADER_APP_STYLE_TEXT);
+
+  let loaderEl = document.getElementById(LOADER_APP_CONTAINER_ID) as HTMLDivElement | null;
+
+  if (!loaderEl) {
+    loaderEl = document.createElement("div");
+    loaderEl.id = LOADER_APP_CONTAINER_ID;
+    document.body.appendChild(loaderEl);
+  }
+
+  loaderEl.className = "";
+  loaderEl.innerHTML = renderLoaderMarkup(currentStyle.value);
+  return loaderEl;
 };
+
+const getPreviewScaleStyle = (scale = 1) => ({
+  "--loader-preview-scale": String(scale)
+});
 
 const changeStyle = (key: string) => {
   currentStyle.value = key;
   localStorage.setItem("sys-loader-style", key);
+
+  const loaderEl = document.getElementById(LOADER_APP_CONTAINER_ID);
+  if (loaderEl) {
+    loaderEl.innerHTML = renderLoaderMarkup(key);
+  }
 
   // 提示用户刷新页面
   if (window.confirm("加载样式已更改，需要刷新页面才能生效。是否立即刷新？")) {
@@ -81,37 +112,22 @@ const changeStyle = (key: string) => {
 
 // 路由守卫：显示/隐藏 HTML loader
 const showHTMLLoader = () => {
-  const app = document.getElementById("app");
-  if (app && app.children.length === 0) {
-    // 如果 app 为空，重新注入 loader
-    const loaderType = localStorage.getItem("sys-loader-style") || "default";
-    const loaderHTML = getLoaderHTML(loaderType);
-    app.innerHTML = loaderHTML;
-  }
-  // 确保 app 可见
-  if (app) {
-    app.style.display = "flex";
+  const loaderEl = ensureHTMLLoader();
+  if (loaderEl) {
+    loaderEl.style.display = "flex";
   }
 };
 
 const hideHTMLLoader = () => {
-  // 不做任何操作，让 Vue 接管 #app
-};
-
-const getLoaderHTML = (type: string) => {
-  const loaders: Record<string, string> = {
-    default: '<div class="loader"></div>',
-    rings: '<div class="loading-spinner"><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div><div class="spinner-ring"></div></div>',
-    simple: '<div class="simple-spinner"></div>',
-    pulse: '<div class="pulse-loader"></div>',
-    blocks: '<div class="blocks-loader"><div class="block"></div><div class="block"></div><div class="block"></div></div>',
-    book: '<div class="book-loader"><div class="book"><div class="page"></div><div class="page"></div><div class="page"></div></div></div>',
-    writing: '<div class="writing-loader"><div class="pen">✒️</div><div class="paper"><div class="line"></div><div class="line"></div><div class="line"></div></div></div>'
-  };
-  return loaders[type] || loaders.default;
+  const loaderEl = document.getElementById(LOADER_APP_CONTAINER_ID);
+  if (loaderEl) {
+    loaderEl.style.display = "none";
+  }
 };
 
 onMounted(async () => {
+  previewStyleTag = ensureStyleTag("route-loader-preview-style", LOADER_PREVIEW_STYLE_TEXT);
+
   // 初始加载时显示 loader
   showHTMLLoader();
 
@@ -124,18 +140,24 @@ onMounted(async () => {
   }
 
   // 路由守卫
-  router.beforeEach(() => {
+  removeBeforeEach = router.beforeEach(() => {
     showHTMLLoader();
+    return true;
   });
 
-  router.afterEach(() => {
-    // 延迟隐藏，让页面有时间渲染
-    setTimeout(hideHTMLLoader, 100);
+  removeAfterEach = router.afterEach(() => {
+    hideHTMLLoader();
   });
 });
 
 onUnmounted(() => {
-  // 清理工作
+  removeBeforeEach?.();
+  removeAfterEach?.();
+
+  if (previewStyleTag?.parentNode) {
+    previewStyleTag.parentNode.removeChild(previewStyleTag);
+  }
+  previewStyleTag = null;
 });
 
 defineExpose({
@@ -251,14 +273,38 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   flex-shrink: 0;
 }
 
+.loader-preview-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--loader-preview-scale, 1));
+  transform-origin: center;
+}
+
+.style-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .style-name {
   font-size: 13px;
   font-weight: 500;
+}
+
+.style-desc {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1.4;
 }
 
 @keyframes slide-up {

@@ -92,6 +92,7 @@ export function useFontEncryptionControl(
   // 创建配置对象
   const createConfig = (): FontEncryptionConfig => ({
     enabled: enabled.value,
+    disableCopy: disableCopy.value,
     encryptNumbers: encryptNumbers.value,
     encryptChinese: encryptChinese.value,
     applyGlobal: applyGlobal.value,
@@ -151,6 +152,9 @@ export function useFontEncryptionControl(
     }
     if (config.applyGlobal !== undefined) {
       applyGlobal.value = config.applyGlobal;
+    }
+    if (config.disableCopy !== undefined) {
+      disableCopy.value = config.disableCopy;
     }
     updateFontConfig(config);
   };

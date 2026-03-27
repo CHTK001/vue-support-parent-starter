@@ -103,6 +103,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { ScButton } from "../../ScButton";
+import { ScInput } from "../../ScInput";
+import { ScPopover } from "../../ScPopover";
 import LargeOptionDisplay from "../display/LargeOptionDisplay.vue";
 import NormalOptionDisplay from "../display/NormalOptionDisplay.vue";
 import IconRenderer from "./IconRenderer.vue";

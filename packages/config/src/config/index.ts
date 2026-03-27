@@ -22,19 +22,20 @@ const putConfig = (key: string, value: any) => {
 
 setConfig(globalSetting);
 //@ts-ignore
-const extConfig = import.meta.glob("@/app*.y(a)?ml", {
+const extConfig = import.meta.glob(["/src/app.y(a)?ml", "/app.y(a)?ml"], {
   eager: true,
-  query: "raw",
+  query: "?raw",
 });
-Object.entries(extConfig).map(([key, value]: any) => {
+Object.values(extConfig).forEach((value: any) => {
   const data = yaml.load(value.default);
   setConfig(data);
 });
 
 /** 版本升级 */
-const upgrade = async (version) => {
-  localStorage.getItem("version") !== version &&
+const upgrade = (version: string) => {
+  if (localStorage.getItem("version") !== version) {
     localStorage.setItem("version", version);
+  }
 };
 
 /** 获取配置组 */
@@ -71,7 +72,10 @@ const getConfig = (key?: string): PlatformConfigs | any => {
 };
 
 /** 获取项目动态全局配置 */
-export const getStaticPlatformConfig = (app: App, callback: Function) => {
+export const getStaticPlatformConfig = (
+  app: App,
+  callback: (config: PlatformConfigs | Record<string, any>) => void,
+) => {
   app.config.globalProperties.$config = getConfig();
   //@ts-ignore
   const viteEnv = window?.__APP_CONFIG__ || {};
@@ -90,9 +94,7 @@ export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
     defaultUsername: viteEnv.VITE_APP_DEFAULT_USERNAME,
     defaultPassword: viteEnv.VITE_APP_DEFAULT_PASSWORD,
   });
-  return new Promise((resolve) => {
-    resolve(config);
-  });
+  return config as PlatformConfigs;
 };
 
 /**
@@ -100,7 +102,7 @@ export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
  * 解释路径
  * @param path 路径
  */
-export const resolveAbsolutePath = (path: String) => {
+export const resolveAbsolutePath = (path: string) => {
   const baseUrl = getConfig()["BaseUrl"] || "";
 
   if (!path) {
@@ -112,4 +114,12 @@ export const resolveAbsolutePath = (path: String) => {
 /** 本地响应式存储的命名空间 */
 const responsiveStorageNameSpace = () => getConfig().ResponsiveStorageNameSpace;
 
-export { getConfig, setConfig, putConfig, responsiveStorageNameSpace, upgrade };
+export {
+  getConfig,
+  getConfigGroup,
+  putConfig,
+  responsiveStorageNameSpace,
+  setConfig,
+  setConfigGroup,
+  upgrade,
+};

@@ -257,11 +257,11 @@
 import { ref, reactive, watch, computed } from "vue";
 import { message } from "@repo/utils";
 import { type FormInstance, type FormRules } from "element-plus";
-import type { FileSystemSetting } from "@/api/monitor/filesystem";
+import type { FileSystemSetting } from "@pages/system";
 import {
   getFileSystemConfig,
   updateFileSystemConfig,
-} from "@/api/monitor/filesystem";
+} from "@pages/system";
 import DirectorySelector from "./DirectorySelector.vue";
 
 // Props & Emits

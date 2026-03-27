@@ -1,11 +1,48 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick, type Component } from "vue";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { PMREMGenerator } from "three";
-// vue-3d-loader 默认导出为插件对象 { install, 0: component }，需取索引 0 获取组件
-import vue3dLoaderPkg from "vue-3d-loader";
-const vue3dLoader = (vue3dLoaderPkg as Record<number, unknown>)[0] as typeof vue3dLoaderPkg;
+
+type Vue3dLoaderModule = {
+  default?: Record<number, unknown> | unknown;
+  [key: number]: unknown;
+};
+
+const vue3dLoaderComponent = shallowRef<Component>();
+let vue3dLoaderComponentPromise: Promise<Component> | null = null;
+
+async function loadVue3dLoaderComponent(): Promise<Component> {
+  const vue3dLoaderModule = (await import("vue-3d-loader")) as Vue3dLoaderModule;
+  const exported = (vue3dLoaderModule.default ?? vue3dLoaderModule) as Record<number, unknown>;
+  const component = (exported[0] ?? vue3dLoaderModule[0]) as Component | undefined;
+
+  if (!component) {
+    throw new Error("[ScThree][engine] 无法解析 vue-3d-loader 组件导出");
+  }
+
+  return component;
+}
+
+async function ensureVue3dLoaderComponent(): Promise<Component> {
+  if (vue3dLoaderComponent.value) {
+    return vue3dLoaderComponent.value;
+  }
+
+  if (!vue3dLoaderComponentPromise) {
+    vue3dLoaderComponentPromise = loadVue3dLoaderComponent()
+      .then(component => {
+        vue3dLoaderComponent.value = component;
+        return component;
+      })
+      .catch(error => {
+        vue3dLoaderComponentPromise = null;
+        throw error;
+      });
+  }
+
+  return await vue3dLoaderComponentPromise;
+}
 
 export interface Props {
   width?: string | number;
@@ -109,7 +146,7 @@ const animationFrameId = ref<number>();
 // 保存已加载的模型列表，用于清理
 const loadedModelsRef = ref<THREE.Object3D[]>([]);
 // vue-3d-loader 组件引用
-const vue3dLoaderRef = ref<InstanceType<typeof vue3dLoader>>();
+const vue3dLoaderRef = ref<any>();
 // three.js 渲染画布（仅在非模型模式下使用）
 const canvasRef = ref<HTMLCanvasElement>();
 // ready 事件只触发一次（不同模式下触发时机不同）
@@ -931,6 +968,11 @@ watch(
     if (resolvedEngine.value === "vue3d" && sceneOwnerRef.value === "internal") {
       disposeInternalThree();
     }
+    if (resolvedEngine.value === "vue3d") {
+      void ensureVue3dLoaderComponent().catch(error => {
+        console.warn("[ScThree][engine] vue-3d-loader 按需加载失败", error);
+      });
+    }
     if (resolvedEngine.value === "threejs") {
       nextTick(() => {
         initInternalThree();
@@ -942,6 +984,9 @@ watch(
 onMounted(() => {
   // 模型模式：由 vue-3d-loader 自行创建并渲染 three 对象，ready 在 @load 时触发
   if (isVue3dMode.value) {
+    void ensureVue3dLoaderComponent().catch(error => {
+      console.warn("[ScThree][engine] vue-3d-loader 按需加载失败", error);
+    });
     return;
   }
 
@@ -985,8 +1030,9 @@ defineExpose({
 <template>
   <div ref="containerRef" class="sc-three" :style="{ width: containerWidth, height: containerHeight }">
     <!-- 使用 vue-3d-loader 加载模型 -->
-    <vue3dLoader
-      v-if="isVue3dMode"
+    <component
+      :is="vue3dLoaderComponent"
+      v-if="isVue3dMode && vue3dLoaderComponent"
       ref="vue3dLoaderRef"
       :filePath="vue3dFilePath"
       :scale="vue3dScale"
@@ -999,6 +1045,7 @@ defineExpose({
       @load="handleVue3dLoad"
       @error="handleVue3dError"
     />
+    <div v-else-if="isVue3dMode" class="sc-three__placeholder" />
     <!-- 预设场景的渲染器（当没有模型时显示） -->
     <canvas v-else ref="canvasRef" :style="{ width: '100%', height: '100%', display: 'block' }" />
     <slot />
@@ -1009,6 +1056,11 @@ defineExpose({
 .sc-three {
   position: relative;
   overflow: hidden;
+
+  &__placeholder {
+    width: 100%;
+    height: 100%;
+  }
 
   :deep(canvas) {
     display: block;

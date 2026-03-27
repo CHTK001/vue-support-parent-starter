@@ -1,7 +1,5 @@
 ﻿<script setup lang="ts">
-import { ScButton } from "@repo/components/ScButton";
 import { ScDivider } from "@repo/components/ScDivider";
-
 import { reactive, ref } from "vue";
 import { fetchBindTotp, fetchUnbindTotp, fetchGetTotpUri } from "@repo/core";
 import { deviceDetection } from "@pureadmin/utils";
@@ -10,6 +8,8 @@ import Password from "./password.vue";
 import Profile from "./Profile.vue";
 import { message } from "@repo/utils";
 import QrcodeVue from "qrcode.vue";
+import { ScButton } from "@repo/components/ScButton";
+
 
 const { t } = useI18n();
 

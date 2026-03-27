@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import "animate.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
-import "@repo/components/ReIcon/src/offlineIcon";
+import "@repo/components/ReIcon/offlineIcon";
 import {
   emitter,
   initRouter,
@@ -17,8 +17,10 @@ import { useResponsiveLayout } from "./hooks/useResponsiveLayout";
 import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 import { useDebugMode } from "./hooks/useDebugMode";
 import { setType } from "./types";
+import ScBacktop from "@repo/components/ScBacktop";
 import { ScDebugConsole } from "@repo/components/ScDebugConsole";
-import { CoolLoading } from "../../../pages/common/dist/login/components/CoolLoading.vue";
+import ScScrollbar from "@repo/components/ScScrollbar";
+import { CoolLoading } from "@pages/common";
 
 import { useGlobal } from "@pureadmin/utils";
 import { storeToRefs } from "pinia";
@@ -55,7 +57,6 @@ import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
 import NavDrawerLayout from "./components/lay-sidebar/NavDrawer.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
-import LayAiChat from "./components/lay-ai-chat/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import FpsMonitor from "./components/lay-performance/FpsMonitor.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
@@ -67,13 +68,6 @@ import FestivalLayer from "./components/lay-festival/index.vue";
 import "./styles/design-tokens.scss";
 // 导入设计 token 覆盖（Element Plus 圆角/间距/阴影统一）
 import "./styles/base-override.scss";
-// 导入主题皮肤样式
-import "./themes/8bit.scss";
-import "./themes/future-tech.scss";
-// 导入节日主题样式
-import "./themes/halloween.scss";
-import "./themes/christmas.scss";
-import "./themes/spring-festival.scss";
 import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 // 导入移动端独立样式
 import "./styles/mobile.scss";
@@ -93,6 +87,9 @@ const CardNavigation = createLayoutAsyncComponent(
 );
 const LayContent = createLayoutAsyncComponent(
   () => import("./components/lay-content/index.vue"),
+);
+const LayAiChat = createLayoutAsyncComponent(
+  () => import("./components/lay-ai-chat/index.vue"),
 );
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
@@ -145,22 +142,13 @@ const aiChatHeaders = computed(() => {
 });
 
 // 向子组件注入 AI 配置（HeatmapOverlay 等通过 inject 获取）
-provide(
-  "heatmapAiConfig",
-  computed(() => ({
-    mode: $storage?.configure?.aiChatMode,
-    vendor: $storage?.configure?.aiChatVendor,
-    apiKey: aesDecrypt(
-      $storage?.configure?.aiChatApiKey ?? "",
-      getConfig().StorageKey,
-    ),
-    apiUrl: aesDecrypt(
-      $storage?.configure?.aiChatApiUrl ?? "",
-      getConfig().StorageKey,
-    ),
-    model: $storage?.configure?.aiChatModel,
-  })),
-);
+provide("heatmapAiConfig", computed(() => ({
+  mode: $storage?.configure?.aiChatMode,
+  vendor: $storage?.configure?.aiChatVendor,
+  apiKey: aesDecrypt($storage?.configure?.aiChatApiKey ?? "", getConfig().StorageKey),
+  apiUrl: aesDecrypt($storage?.configure?.aiChatApiUrl ?? "", getConfig().StorageKey),
+  model: $storage?.configure?.aiChatModel,
+})));
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();
@@ -534,9 +522,7 @@ const LayHeader = defineComponent({
         <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
         <NavDrawer v-if="!pureSetting.hiddenSideBar && layout === 'drawer'" />
         <!-- 卡片导航模式 -->
-        <CardNavigation
-          v-if="!pureSetting.hiddenSideBar && layout === 'card'"
-        />
+        <CardNavigation v-if="!pureSetting.hiddenSideBar && layout === 'card'" />
         <div
           :class="[
             'main-container',

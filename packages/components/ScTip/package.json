@@ -1,5 +1,5 @@
 {
-  "name": "@repo/components-sc-tip",
+  "name": "@repo/components/ScTip",
   "version": "1.0.0",
   "description": "ScTip 提示组件",
   "main": "./index.ts",

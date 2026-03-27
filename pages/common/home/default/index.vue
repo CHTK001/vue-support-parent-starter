@@ -1,4 +1,5 @@
 <script setup>
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import {
@@ -39,7 +40,7 @@ const handlePreviewError = (id) => {
 };
 
 const CustomLayout = defineAsyncComponent(
-  () => import("./layout/DraggableLayout.vue"),
+  () => import("./layout/CustomLayout.vue"),
 );
 const openRemoteLayout = getConfig().RemoteLayout;
 const openLocationLayout = getConfig().LocationLayout;
@@ -53,14 +54,6 @@ const searchKeyword = ref("");
 const selectedCategory = ref("all");
 
 // 设置项
-const showHeader = ref(localStorage.getItem("home-show-header") !== "false");
-watch(showHeader, (val) => {
-  localStorage.setItem("home-show-header", String(val));
-  if (!val) {
-    showHeaderInfo.value = false;
-  }
-});
-
 const showHeaderInfo = ref(
   localStorage.getItem("home-show-header-info") !== "false",
 );
@@ -227,37 +220,8 @@ onUnmounted(() => {
     :class="['widgets-home', customizing.customizing ? 'customizing' : '']"
   >
     <div class="widgets-content">
-      <!-- 头部隐藏时的轻量工具栏（保留自定义能力） -->
-      <div
-        v-if="!showHeader && customizing.hasLayout"
-        class="widgets-toolbar"
-      >
-        <div class="toolbar-left">
-          <div class="toolbar-title">{{ $t("buttons.board") }}</div>
-        </div>
-        <div class="toolbar-right">
-          <ScButton
-            v-if="customizing.customizing"
-            type="primary"
-            :icon="useRenderIcon('ep:check')"
-            round
-            @click="handleUpdate"
-            >{{ $t("buttons.finish") }}</ScButton
-          >
-          <ScButton
-            v-else
-            type="primary"
-            :icon="useRenderIcon('ep:edit')"
-            round
-            @click="handeCustom"
-            >{{ $t("buttons.custom") }}</ScButton
-          >
-        </div>
-      </div>
-
       <!-- 优化后的头部区域 -->
       <div
-        v-if="showHeader"
         class="widgets-header"
         :class="{ 'header-compact': !showHeaderInfo }"
       >
@@ -266,20 +230,14 @@ onUnmounted(() => {
             <div class="greeting-text">
               <span class="greeting-hello">{{ greeting }}，</span>
               <span class="greeting-name">{{
-                userStore?.nickname || userStore?.username || "用户"
+                userStore?.username || "用户"
               }}</span>
             </div>
-            <div class="greeting-subtitle">
-              {{ $t("buttons.board") }}
-              <span class="version-badge">自定义布局版本：vue3-draggable-resizable-v1</span>
-            </div>
+            <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
           </div>
         </div>
         <div class="header-left" v-else>
-          <div class="header-title">
-            {{ $t("buttons.board") }}
-            <span class="version-badge">自定义布局版本：vue3-draggable-resizable-v1</span>
-          </div>
+          <div class="header-title">{{ $t("buttons.board") }}</div>
         </div>
         <div class="header-center" v-if="showHeaderInfo">
           <div class="header-time">
@@ -303,22 +261,20 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="header-actions" v-if="customizing.hasLayout">
-            <ScButton
+            <el-button
               v-if="customizing.customizing"
               type="primary"
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-              >{{ $t("buttons.finish") }}</ScButton
-            >
-            <ScButton
+              >{{ $t("buttons.finish") }}</el-button>
+            <el-button
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-              >{{ $t("buttons.custom") }}</ScButton
-            >
+              >{{ $t("buttons.custom") }}</el-button>
           </div>
         </div>
       </div>
@@ -328,9 +284,9 @@ onUnmounted(() => {
         <div class="widgets-wrapper">
           <div v-if="!customizing.hasLayout" class="empty-state">
             <div class="empty-icon">
-              <ScIcon :size="64">
+              <el-icon :size="64">
                 <component :is="useRenderIcon('ri:dashboard-3-line')" />
-              </ScIcon>
+              </el-icon>
             </div>
             <div class="empty-title">暂无可用部件</div>
             <div class="empty-desc">{{ $t("message.noPlugin") }}</div>
@@ -341,23 +297,23 @@ onUnmounted(() => {
               class="empty-state"
             >
               <div class="empty-icon">
-                <ScIcon :size="64">
+                <el-icon :size="64">
                   <component :is="useRenderIcon('ri:apps-2-add-line')" />
-                </ScIcon>
+                </el-icon>
               </div>
               <div class="empty-title">开始自定义您的仪表板</div>
               <div class="empty-desc">点击右上角「自定义」按钮添加部件</div>
-              <ScButton
+              <el-button
                 type="primary"
                 round
                 @click="handeCustom"
                 class="empty-action"
               >
-                <ScIcon class="mr-1">
+                <el-icon class="mr-1">
                   <component :is="useRenderIcon('ep:plus')" />
-                </ScIcon>
+                </el-icon>
                 添加部件
-              </ScButton>
+              </el-button>
             </div>
             <CustomLayout
               v-else
@@ -372,28 +328,23 @@ onUnmounted(() => {
     <div v-if="customizing.customizing" class="widgets-aside">
       <div class="aside-header">
         <div class="aside-title">
-          <ScIcon :size="20">
+          <el-icon :size="20">
             <component :is="useRenderIcon('ri:apps-2-add-line')" />
-          </ScIcon>
-          <div class="aside-title-text">
-            <span>添加部件</span>
-            <span class="aside-subtitle">
-              已添加 {{ widgetStats.active }} / {{ widgetStats.total }} 个
-            </span>
-          </div>
+          </el-icon>
+          <span>添加部件</span>
         </div>
         <div class="aside-close" @click="handleClose()">
-          <ScIcon :size="18">
+          <el-icon :size="18">
             <component :is="useRenderIcon('ep:close')" />
-          </ScIcon>
+          </el-icon>
         </div>
       </div>
 
       <!-- 搜索栏 -->
       <div class="aside-search">
-        <ScInput
+        <el-input
           v-model="searchKeyword"
-          placeholder="搜索部件（名称或描述）..."
+          placeholder="搜索部件..."
           clearable
           :prefix-icon="useRenderIcon('ep:search')"
         />
@@ -401,7 +352,7 @@ onUnmounted(() => {
 
       <!-- 分类筛选 -->
       <div class="aside-categories">
-        <ScRadioGroup v-model="selectedCategory" size="small">
+        <el-radio-group v-model="selectedCategory" size="small">
           <el-radio-button
             v-for="cat in categories"
             :key="cat.value"
@@ -409,21 +360,16 @@ onUnmounted(() => {
           >
             {{ cat.label }} ({{ cat.count }})
           </el-radio-button>
-        </ScRadioGroup>
+        </el-radio-group>
       </div>
 
       <!-- 部件列表 -->
-      <div class="aside-list thin-scrollbar">
-        <div class="list-tip" v-if="filteredWidgetList.length">
-          当前筛选到
-          <span class="list-tip-count">{{ filteredWidgetList.length }}</span>
-          个部件
-        </div>
+      <div class="aside-list">
         <div v-if="filteredWidgetList.length === 0" class="list-empty">
-          <ScIcon :size="40" color="var(--el-text-color-placeholder)">
+          <el-icon :size="40" color="var(--el-text-color-placeholder)">
             <component :is="useRenderIcon('ri:inbox-line')" />
-          </ScIcon>
-          <p>没有找到匹配的部件，请尝试调整搜索或筛选条件</p>
+          </el-icon>
+          <p>没有找到匹配的部件</p>
         </div>
         <div
           v-for="item in filteredWidgetList"
@@ -432,9 +378,9 @@ onUnmounted(() => {
           @click="push(item)"
         >
           <div class="widget-card-icon">
-            <ScIcon :size="24">
+            <el-icon :size="24">
               <component :is="useRenderIcon(item.icon || 'ri:apps-line')" />
-            </ScIcon>
+            </el-icon>
           </div>
           <div class="widget-card-content">
             <div class="widget-card-title">{{ item.title }}</div>
@@ -442,17 +388,18 @@ onUnmounted(() => {
               {{ item.description || "暂无描述" }}
             </div>
             <div class="widget-card-meta">
-              <ScTag
+              <el-tag
                 size="small"
                 :type="item.type === 1 ? 'success' : 'primary'"
               >
                 {{ item.type === 1 ? "本地" : "远程" }}
-              </ScTag>
+              </el-tag>
             </div>
           </div>
           <div class="widget-card-action">
-            <ScButton type="primary" circle size="small">
-            </ScButton>
+            <el-button type="primary" circle size="small">
+              <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+            </el-button>
           </div>
         </div>
       </div>
@@ -460,20 +407,15 @@ onUnmounted(() => {
       <!-- 底部操作 -->
       <div class="aside-footer">
         <div class="footer-settings">
-          <ScCheckbox v-model="showHeader" size="small">显示头部</ScCheckbox>
-          <ScCheckbox
-            v-if="showHeader"
-            v-model="showHeaderInfo"
-            size="small"
-          >
-            显示头部信息
-          </ScCheckbox>
+          <el-checkbox v-model="showHeaderInfo" size="small"
+            >显示头部信息</el-checkbox>
         </div>
-        <ScButton size="small" @click="backDefault()">
+        <el-button size="small" @click="backDefault()">
+          <el-icon class="mr-1"
             ><component :is="useRenderIcon('ep:refresh')"
-          /></ScIcon>
+          /></el-icon>
           {{ $t("buttons.default") }}
-        </ScButton>
+        </el-button>
       </div>
     </div>
   </div>
@@ -503,24 +445,6 @@ onUnmounted(() => {
   padding: 20px;
   display: flex;
   flex-direction: column;
-}
-
-/* 头部关闭时的工具栏 */
-.widgets-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.toolbar-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
 }
 
 /* 头部区域 */
@@ -565,15 +489,6 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-}
-
-.version-badge {
-  margin-left: 12px;
-  padding: 2px 8px;
-  font-size: 11px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.08);
-  color: var(--el-text-color-secondary);
 }
 
 .header-compact {
@@ -749,22 +664,8 @@ html.dark .widgets-aside {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.aside-title-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
-  span:first-child {
-    font-size: 16px;
-    font-weight: 600;
-  }
-}
-
-.aside-subtitle {
-  font-size: 12px;
-  opacity: 0.9;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .aside-close {
@@ -826,7 +727,6 @@ html.dark .widgets-aside {
   flex: 1;
   overflow-y: auto;
   padding: 0 20px 20px;
-  max-height: 500px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -836,18 +736,6 @@ html.dark .widgets-aside {
     background: var(--el-border-color);
     border-radius: 3px;
   }
-}
-
-.list-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  padding: 8px 2px 6px;
-}
-
-.list-tip-count {
-  color: var(--el-color-primary);
-  font-weight: 600;
-  padding: 0 2px;
 }
 
 .list-empty {

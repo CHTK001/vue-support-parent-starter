@@ -1,8 +1,8 @@
 <script setup>
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
 // 引入 Vue 的响应式和生命周期相关函数
-import { useRenderIcon } from "@repo/components/ReIcon";
-
 import {
   computed,
   defineAsyncComponent,
@@ -18,6 +18,7 @@ import { transformI18n } from "@repo/config";
 // 引入计算时间差的工具函数
 import { getTimeAgo } from "@repo/utils";
 // 引入ScIp组件
+import { ScIp } from "@repo/components/ScIp";
 // 引入刷新图标
 import Refresh from "@iconify-icons/line-md/backup-restore";
 // 引入防抖函数
@@ -251,7 +252,11 @@ const onDataLoaded = (data, total) => {
               </ScSelect>
             </ScFormItem>
             <!-- 状态选择框 -->
-            <ScFormItem label="状态" prop="sysLogStatus" class="log-form-item">
+            <ScFormItem
+              label="状态"
+              prop="sysLogStatus"
+              class="log-form-item"
+            >
               <ScSelect
                 v-model="form.sysLogStatus"
                 class="log-select"
@@ -434,27 +439,22 @@ const onDataLoaded = (data, total) => {
               >
                 <template #default="{ row }">
                   <ScTag v-if="row.sysLogStatus === 1" type="success"
-                    >成功</ScTag
-                  >
+                    >成功</ScTag>
                   <ScTag v-else-if="row.sysLogStatus === 0" type="danger"
-                    >失败</ScTag
-                  >
+                    >失败</ScTag>
                 </template>
               </ScTableColumn>
               <!-- 耗时列，根据耗时显示不同标签 -->
               <ScTableColumn label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
                   <ScTag v-if="row.sysLogCost <= 1000" type="success"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                    >{{ row.sysLogCost || 0 }} ms</ScTag>
                   <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                    >{{ row.sysLogCost || 0 }} ms</ScTag>
                   <ScTag v-else type="danger"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                    >{{ row.sysLogCost || 0 }} ms</ScTag>
                 </template>
               </ScTableColumn>
             </ScTable>

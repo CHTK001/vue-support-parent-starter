@@ -3,7 +3,7 @@
  * TagItem — 单个标签页项
  * 封装标签的图标、标题、关闭按钮渲染逻辑
  */
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import TagChrome from "./TagChrome.vue";
 import CloseIcon from "@iconify-icons/ep/close";
 

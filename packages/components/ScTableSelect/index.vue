@@ -1,203 +1,90 @@
 <template>
-  <div>
-    <t-select-table
-      ref="tSelectTableRef"
-      :defaultSelectVal="defaultSettingValue"
-      class="!w-full"
-      :table="state.table"
-      :columns="state.table.columns"
-      :multiple="props.multiple"
-      :tableWidth="props.tableWidth"
-      :keywords="props.keywords"
-      :filterable="props.filterable"
-      :remote="props.remote"
-      :remote-method="remoteMethod"
-      :max-height="props.maxHeight"
-      isShowPagination
-      :placeholder="placeholder"
-      @selectionChange="selectionChange"
-      @radioChange="selectionChange"
-      @page-change="pageChange"
-    >
-      <template #footer>
-        <slot name="footer" />
-      </template>
-      <template #toolbar>
-        <slot name="toolbar" />
-      </template>
-    </t-select-table>
-  </div>
+  <BaseTableSelect
+    ref="baseRef"
+    :model-value="modelValue"
+    :data="data"
+    :url="url"
+    :params="params"
+    :keywords="keywords"
+    :columns="columns"
+    :multiple="multiple"
+    :placeholder="placeholder"
+    :max-height="maxHeight"
+    :filterable="filterable"
+    :remote="remote"
+    :remote-parameter-name="remoteParameterName"
+    @update:modelValue="(value) => emit('update:modelValue', value)"
+    @selectionChange="(rows, value) => emit('selectionChange', rows, value)"
+    @success="(value) => emit('success', value)"
+    @failure="(error) => emit('failure', error)"
+  >
+    <template #toolbar>
+      <slot name="toolbar" />
+    </template>
+    <template #footer>
+      <slot name="footer" />
+    </template>
+  </BaseTableSelect>
 </template>
 
-<script setup>
-import { TSelectTable } from "@wocwin/t-ui-plus";
-import "@wocwin/t-ui-plus/lib/style.css";
-import { defineExpose, onMounted, reactive, ref, watch } from "vue";
-import config from "./setting.ts";
-const selectedValue = ref(null);
-const emit = defineEmits(["update:modelValue", "selectionChange"]);
-const tSelectTableRef = ref();
-const defaultSettingValue = ref([]);
-const props = defineProps({
-  modelValue: {
-    type: Object
-  },
-  url: {
-    type: Function,
-    default: () => {}
-  },
+<script setup lang="ts">
+import { ref } from "vue";
+import BaseTableSelect from "./BaseTableSelect.vue";
 
-  keywords: {
-    type: Object,
-    default: { label: "label", value: "id" }
+const props = withDefaults(
+  defineProps<{
+    modelValue?: unknown;
+    data?: Record<string, any>[];
+    url?: ((params: Record<string, any>) => Promise<any>) | null;
+    keywords?: Record<string, string>;
+    columns?: Array<Record<string, any>>;
+    params?: Record<string, any>;
+    tableWidth?: string;
+    maxHeight?: number;
+    filterable?: boolean;
+    placeholder?: string;
+    remote?: boolean;
+    multiple?: boolean;
+    remoteParameterName?: string;
+  }>(),
+  {
+    modelValue: "",
+    data: () => [],
+    url: null,
+    keywords: () => ({ label: "label", value: "id" }),
+    columns: () => [],
+    params: () => ({ page: 1, pageSize: 10 }),
+    tableWidth: "100%",
+    maxHeight: 300,
+    filterable: true,
+    placeholder: "请选择",
+    remote: false,
+    multiple: false,
+    remoteParameterName: "keywords",
   },
-  columns: {
-    type: Array,
-    default: () => {}
-  },
-  params: {
-    type: Object,
-    default: () => {
-      return {
-        page: 1,
-        pageSize: 10
-      };
-    }
-  },
-  tableWidth: {
-    type: String,
-    default: "100%"
-  },
-  maxHeight: {
-    type: Number,
-    default: 300
-  },
-  filterable: {
-    type: Boolean,
-    default: true
-  },
-  placeholder: {
-    type: String,
-    default: "请选择"
-  },
-  remote: {
-    type: Boolean,
-    default: false
-  },
-  multiple: {
-    type: Boolean,
-    default: false
-  },
-  remoteParameterName: {
-    type: String,
-    default: "keywords"
-  }
-});
-const condition = reactive({
-  page: 1,
-  pageSize: 10
-});
-const state = reactive({
-  table: {
-    data: [],
-    columns: [],
-    total: 0,
-    currentPage: 1,
-    pageSize: 10
-  }
-});
-
-onMounted(async () => {
-  selectedValue.value = props.modelValue;
-  state.table.columns = props.columns;
-  Object.assign(condition, props.params);
-  state.table.pageSize = condition.pageSize;
-  state.table.currentPage = condition.page;
-  await getData();
-  handleSettingDefault([props.modelValue]);
-});
-
-const reload = async form => {
-  Object.assign(condition, form);
-  getData();
-};
-
-const remoteMethod = query => {
-  if (query) {
-    setTimeout(() => {
-      condition[props.remoteParameterName] = query;
-      getData();
-    }, 200);
-  }
-};
-const getData = async () => {
-  props
-    .url(condition)
-    .then(res => {
-      const response = config.parseData(res);
-      state.table.data = response.data;
-      state.table.total = response.total;
-      emit("success");
-    })
-    .catch(e => {
-      emit("failure", e);
-    });
-};
-const pageChange = val => {
-  state.table.currentPage = val;
-  condition.page = val;
-  getData();
-};
-
-const selectionChange = (val, ids) => {
-  emit("update:modelValue", ids);
-  emit("selectionChange", val, ids);
-};
-
-const handleClose = async () => {
-  tSelectTableRef.value?.clear();
-  tSelectTableRef.value?.blur();
-};
-
-// 使用版本号避免深度监听
-const modelValueVersion = computed(() => (Array.isArray(props.modelValue) ? props.modelValue.join(",") : String(props.modelValue ?? "")));
-watch(
-  modelValueVersion,
-  () => {
-    const val = props.modelValue;
-    if (!val) {
-      return;
-    }
-    if (val instanceof Array) {
-      handleSettingDefault(val);
-      return;
-    }
-    try {
-      handleSettingDefault([val]);
-    } catch (error) {}
-  },
-  { immediate: true }
 );
 
-const handleSettingDefault = val => {
-  defaultSettingValue.value = val;
-};
-const setValue = async val => {
-  defaultSettingValue.value = val;
-};
+const emit = defineEmits(["update:modelValue", "selectionChange", "success", "failure"]);
+const baseRef = ref<InstanceType<typeof BaseTableSelect>>();
+
+const {
+  modelValue,
+  data,
+  url,
+  keywords,
+  columns,
+  params,
+  maxHeight,
+  filterable,
+  placeholder,
+  remote,
+  multiple,
+  remoteParameterName,
+} = props;
+
 defineExpose({
-  reload,
-  setValue,
-  handleClose
+  reload: (form?: Record<string, any>) => baseRef.value?.reload(form),
+  setValue: (value: unknown) => baseRef.value?.setValue(value),
+  handleClose: () => baseRef.value?.handleClose(),
 });
 </script>
-
-<style scoped>
-.sc-table-select__table {
-  padding: 12px;
-}
-
-.sc-table-select__page {
-  padding-top: 12px;
-}
-</style>

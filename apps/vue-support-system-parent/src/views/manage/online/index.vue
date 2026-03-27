@@ -167,7 +167,12 @@
               <!-- 操作系统列 -->
               <ScTableColumn label="操作系统" min-width="120">
                 <template #default="{ row }">
-                  <ScTag type="info" effect="light" size="small" class="os-tag">
+                  <ScTag
+                    type="info"
+                    effect="light"
+                    size="small"
+                    class="os-tag"
+                  >
                     <IconifyIconOnline
                       :icon="getOsIcon(row.os)"
                       class="os-icon"
@@ -246,15 +251,7 @@
 
 <script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon";
-
 import { onMounted, reactive, ref, shallowRef } from "vue";
-import {
-  fetchOnlineUsers,
-  fetchOnlineCount,
-  fetchKickUser,
-  fetchKickUsers,
-  type OnlineUser,
-} from "@/api/manage/online";
 import { getTimeAgo, message } from "@repo/utils";
 import Search from "@iconify-icons/ep/search";
 import Location from "@iconify-icons/ep/location";
@@ -264,8 +261,6 @@ const LocationIcon = useRenderIcon(Location);
 
 // 搜索表单
 const searchForm = reactive({
-  username: "",
-  ip: "",
 });
 
 // 状态
@@ -392,7 +387,6 @@ const getOsIcon = (os: string) => {
  * 获取登录方式标签类型
  */
 const getLoginTypeTag = (
-  type: string,
 ): "primary" | "success" | "warning" | "info" | "danger" => {
   const normalized = (type || "").toLowerCase();
   const types: Record<

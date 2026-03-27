@@ -3,8 +3,9 @@
  * 集中管理 data-skin 主题、第三方组件映射和项目内主题组件映射
  */
 
-import type { App, Component } from "vue";
+import type { App } from "vue";
 import { storageLocal } from "@pureadmin/utils";
+import { PIXEL_UI_PLUGIN } from "./pixelUiShared";
 
 export interface ThemeComponentMap {
   [componentName: string]: string;
@@ -160,11 +161,11 @@ export const THEME_CONFIGS: Record<SupportedThemeKey, ThemeConfig> = {
   "8bit": {
     name: "8bit",
     displayName: "8bit 像素风格",
-    packageName: "@mmt817/pixel-ui",
+    packageName: "pixel-ui",
     cssPath: "dist/index.css",
     enabled: true,
     autoInstallPlugin: true,
-    pluginPackageName: "@mmt817/pixel-ui",
+    pluginPackageName: "pixel-ui",
     group: "beta",
     description: "像素风格，复古游戏风",
     componentMap: PIXEL_COMPONENT_MAP,
@@ -258,8 +259,8 @@ export function hasTheme(skinValue: string): boolean {
   return skinValue in THEME_CONFIGS && THEME_CONFIGS[skinValue as SupportedThemeKey].enabled !== false;
 }
 
-const PLUGIN_IMPORTERS: Record<string, () => Promise<any>> = {
-  "@mmt817/pixel-ui": () => import("@mmt817/pixel-ui"),
+const THEME_PLUGINS: Record<string, any> = {
+  "pixel-ui": PIXEL_UI_PLUGIN,
 };
 
 const REGISTERED_THEME_PLUGINS_BY_APP = new WeakMap<App, Set<string>>();
@@ -338,21 +339,13 @@ async function registerThemePluginForSkin(app: App, skinValue: string): Promise<
 
   const registerPromise = (async () => {
     try {
-      const importer = PLUGIN_IMPORTERS[packageName];
-      if (!importer) {
+      const plugin = THEME_PLUGINS[packageName];
+      if (!plugin) {
         // eslint-disable-next-line no-console
         console.warn(
-          `[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 PLUGIN_IMPORTERS 中注册`,
+          `[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 THEME_PLUGINS 中注册`,
         );
         theme.enabled = false;
-        return;
-      }
-
-      const module: any = await importer();
-      const plugin = module?.default ?? module;
-
-      if (!plugin) {
-        console.warn(`[ThemePlugin] 插件 ${packageName} 加载后返回 null/undefined`);
         return;
       }
 

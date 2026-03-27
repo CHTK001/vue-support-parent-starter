@@ -30,7 +30,7 @@
 // 引入Prism.js
 import Prism from "prismjs";
 // 引入SQL语言插件
-import { fetchJobLogCat } from "@/api/monitor/job";
+import { fetchJobLogCat } from "@pages/job";
 import "highlight.js/styles/atom-one-light.css";
 import "prismjs/components/prism-sql.min.js";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";

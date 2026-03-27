@@ -1,17 +1,6 @@
-﻿<script setup lang="ts">
-import { IconSelect } from "@repo/components/IconSelect";
-
+<script setup lang="ts">
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
-import {
-  ref,
-  reactive,
-  computed,
-  onMounted,
-  nextTick,
-  h,
-  defineComponent,
-} from "vue";
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
@@ -100,10 +89,6 @@ const showLinkOptions = [
 ];
 
 const props = {
-  value: "sysMenuId",
-  label: "sysMenuTitle",
-  emitPath: false,
-  checkStrictly: true,
 };
 
 // Computed rules
@@ -291,10 +276,6 @@ onMounted(() => {
 
 // Expose methods to parent
 defineExpose({
-  close,
-  setData,
-  setTableData,
-  open,
 });
 </script>
 <template>
@@ -344,8 +325,7 @@ defineExpose({
                     </span>
                     <span v-else>{{ data.sysMenuTitle }}</span>
                     <span v-if="!node.isLeaf"
-                      >({{ data.children.length }})</span
-                    >
+                      >({{ data.children.length }})</span>
                   </div>
                 </template>
               </ScCascader>
@@ -607,8 +587,7 @@ defineExpose({
           type="primary"
           :loading="loading"
           @click="submit()"
-          >保 存</ScButton
-        >
+          >保 存</ScButton>
       </template>
     </sc-dialog>
   </div>

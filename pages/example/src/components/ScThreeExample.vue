@@ -2,8 +2,7 @@
   <div class="sc-three-example">
     <h2 class="example-title">ScThree 3D 渲染组件示例</h2>
     <p class="example-desc">
-      基于 Three.js 的 Vue 3D 渲染组件，支持模型加载（glTF/glb
-      格式）、场景预设、相机控制等功能
+      基于 Three.js 的 Vue 3D 渲染组件，支持模型加载（glTF/glb 格式）、场景预设、相机控制等功能
     </p>
 
     <ScDivider content-position="left">基础用法</ScDivider>
@@ -57,12 +56,7 @@
             <ScInputNumber v-model="localModelConfig.position[2]" :step="0.1" />
           </ScFormItem>
           <ScFormItem label="缩放">
-            <ScInputNumber
-              v-model="localModelScale"
-              :step="0.1"
-              :min="0.1"
-              :max="10"
-            />
+            <ScInputNumber v-model="localModelScale" :step="0.1" :min="0.1" :max="10" />
           </ScFormItem>
         </ScForm>
       </div>
@@ -105,12 +99,7 @@
             <ScInputNumber v-model="modelConfig.position[2]" :step="0.1" />
           </ScFormItem>
           <ScFormItem label="缩放">
-            <ScInputNumber
-              v-model="modelScale"
-              :step="0.1"
-              :min="0.1"
-              :max="10"
-            />
+            <ScInputNumber v-model="modelScale" :step="0.1" :min="0.1" :max="10" />
           </ScFormItem>
         </ScForm>
       </div>
@@ -165,7 +154,7 @@
 import { ref, computed } from "vue";
 import * as THREE from "three";
 import { ScThree } from "@repo/components/ScThree";
-import { ScThree } from "@repo/components/ScThree"
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import DemoBlock from "./DemoBlock.vue";
 
 /**
@@ -174,11 +163,7 @@ import DemoBlock from "./DemoBlock.vue";
  */
 
 // 基础场景示例
-function onBasicReady(
-  scene: THREE.Scene,
-  camera: THREE.Camera,
-  renderer: THREE.WebGLRenderer,
-) {
+function onBasicReady(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer) {
   // 添加环境光
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
@@ -223,17 +208,14 @@ const localModelUrls = ref<string[]>([]);
 const localModelConfig = ref({
   position: [0, 0, 0] as [number, number, number],
   scale: 1 as number,
-  rotation: [0, 0, 0] as [number, number, number],
+  rotation: [0, 0, 0] as [number, number, number]
 });
 
 const localModelScale = computed({
-  get: () =>
-    typeof localModelConfig.value.scale === "number"
-      ? localModelConfig.value.scale
-      : 1,
+  get: () => (typeof localModelConfig.value.scale === "number" ? localModelConfig.value.scale : 1),
   set: (val: number) => {
     localModelConfig.value.scale = val;
-  },
+  }
 });
 
 function onLocalModelChange(value: string) {
@@ -254,15 +236,14 @@ const modelUrlInput = ref("");
 const modelConfig = ref({
   position: [0, 0, 0] as [number, number, number],
   scale: 1 as number,
-  rotation: [0, 0, 0] as [number, number, number],
+  rotation: [0, 0, 0] as [number, number, number]
 });
 
 const modelScale = computed({
-  get: () =>
-    typeof modelConfig.value.scale === "number" ? modelConfig.value.scale : 1,
+  get: () => (typeof modelConfig.value.scale === "number" ? modelConfig.value.scale : 1),
   set: (val: number) => {
     modelConfig.value.scale = val;
-  },
+  }
 });
 
 function addModel() {
@@ -285,15 +266,11 @@ const currentPreset = ref<"none" | "chinaMap" | "interior">("none");
 const presetCameraPositions = {
   none: [0, 0, 5] as [number, number, number],
   chinaMap: [0, 15, 15] as [number, number, number],
-  interior: [8, 8, 12] as [number, number, number],
+  interior: [8, 8, 12] as [number, number, number]
 };
 
 // 透明背景示例
-function onAlphaReady(
-  scene: THREE.Scene,
-  camera: THREE.Camera,
-  renderer: THREE.WebGLRenderer,
-) {
+function onAlphaReady(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.WebGLRenderer) {
   // 添加环境光
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
@@ -309,7 +286,7 @@ function onAlphaReady(
     color: 0x00f6ff,
     emissive: 0x004444,
     metalness: 0.8,
-    roughness: 0.2,
+    roughness: 0.2
   });
   const sphere = new THREE.Mesh(geometry, material);
   scene.add(sphere);
@@ -384,7 +361,7 @@ function onReady(scene, camera, renderer) {
   :alpha="true"
   :camera-position="[0, 0, 5]"
   @ready="onReady"
-/>`,
+/>`
 };
 
 // 属性说明
@@ -393,56 +370,56 @@ const propsData = [
     name: "width",
     type: "string | number",
     default: "800",
-    description: "容器宽度",
+    description: "容器宽度"
   },
   {
     name: "height",
     type: "string | number",
     default: "600",
-    description: "容器高度",
+    description: "容器高度"
   },
   {
     name: "backgroundColor",
     type: "string | number",
     default: "0x000000",
-    description: "背景颜色",
+    description: "背景颜色"
   },
   {
     name: "alpha",
     type: "boolean",
     default: "false",
-    description: "是否透明背景",
+    description: "是否透明背景"
   },
   {
     name: "modelUrls",
     type: "string[]",
     default: "[]",
-    description: "模型地址列表，支持 glTF/glb 格式（.glb, .gltf）",
+    description: "模型地址列表，支持 glTF/glb 格式（.glb, .gltf）"
   },
   {
     name: "modelConfig",
     type: "object",
     default: "{ position: [0,0,0], scale: 1, rotation: [0,0,0] }",
-    description: "模型加载配置：位置、缩放、旋转",
+    description: "模型加载配置：位置、缩放、旋转"
   },
   {
     name: "preset",
     type: "'none' | 'chinaMap' | 'interior'",
     default: "'none'",
-    description: "预设场景类型",
+    description: "预设场景类型"
   },
   {
     name: "cameraPosition",
     type: "[number, number, number]",
     default: "[0, 0, 5]",
-    description: "相机位置",
+    description: "相机位置"
   },
   {
     name: "cameraLookAt",
     type: "[number, number, number]",
     default: "[0, 0, 0]",
-    description: "相机朝向",
-  },
+    description: "相机朝向"
+  }
 ];
 </script>
 
@@ -487,3 +464,4 @@ const propsData = [
   }
 }
 </style>
+

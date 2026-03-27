@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <sc-dialog
       v-model="env.visible"
@@ -7,7 +7,7 @@
       :close-on-click-modal="false"
       @close="handleClose"
     >
-      <ScSkeleton animated :loading="loadingConfig.loading">
+      <el-skeleton animated :loading="loadingConfig.loading">
         <template #default>
           <ScForm
             :model="form"
@@ -46,13 +46,12 @@
             </ScFormItem>
           </ScForm>
         </template>
-      </ScSkeleton>
+      </el-skeleton>
 
       <template #footer>
         <ScButton @click="env.visible = false">取 消</ScButton>
         <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
-          >确 定</ScButton
-        >
+          >确 定</ScButton>
       </template>
     </sc-dialog>
   </div>

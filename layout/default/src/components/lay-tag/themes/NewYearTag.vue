@@ -1,11 +1,18 @@
 <script setup lang="ts">
+import BaseTag from "./BaseTag.vue";
+</script>
+
+<template>
+  <BaseTag theme-class="new-year-tag" />
 </template>
 
 <style lang="scss">
 @use "./default.scss";
 
 html[data-skin="spring-festival"],
-html.theme-spring-festival {
+html.theme-spring-festival,
+html[data-skin="new-year"],
+html.theme-new-year {
   .tags-view.new-year-tag {
     background: rgba(107, 0, 0, 0.88) !important;
     border-bottom: 1px solid rgba(255, 215, 0, 0.4) !important;
