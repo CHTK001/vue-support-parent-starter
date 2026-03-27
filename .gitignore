@@ -58,3 +58,5 @@ target/*
 apps/vue-support-sync-starter/.codex/
 apps/vue-support-sync-starter/test-results/
 apps/vue-support-system-parent/.tmp-home.png
+/.runtime/
+/.tmp/
