@@ -125,6 +125,7 @@ menus:
 message:
   bindEmail: Email already bound
   bindPhone: Phone already bound
+  confimDelete: Confirm delete?
   newPassword: Password must be at least 8 characters and include letters, numbers and symbols
   noPlugin: No parts
   tips:

@@ -1,54 +1,54 @@
-﻿<template>
+<template>
   <div class="server-scripts system-container modern-bg">
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton type="primary" @click="$emit('create')">
+        <el-button type="primary" @click="$emit('create')">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建脚本
-        </ScButton>
+        </el-button>
 
-        <ScButton @click="handleRefresh">
+        <el-button @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </ScButton>
+        </el-button>
 
-        <ScButton @click="handleImport">
+        <el-button @click="handleImport">
           <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
           导入脚本
-        </ScButton>
+        </el-button>
       </div>
 
       <div class="toolbar-right">
-        <ScSelect
+        <el-select
           v-model="filterType"
           placeholder="脚本类型"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <ScOption label="Shell" value="SHELL" />
-          <ScOption label="Python" value="PYTHON" />
-          <ScOption label="PowerShell" value="POWERSHELL" />
-          <ScOption label="Batch" value="BATCH" />
-          <ScOption label="JavaScript" value="JAVASCRIPT" />
-        </ScSelect>
+          <el-option label="Shell" value="SHELL" />
+          <el-option label="Python" value="PYTHON" />
+          <el-option label="PowerShell" value="POWERSHELL" />
+          <el-option label="Batch" value="BATCH" />
+          <el-option label="JavaScript" value="JAVASCRIPT" />
+        </el-select>
 
-        <ScSelect
+        <el-select
           v-model="filterCategory"
           placeholder="分类"
           clearable
           style="width: 120px; margin-left: 12px"
           @change="handleFilter"
         >
-          <ScOption label="系统管理" value="system" />
-          <ScOption label="监控检查" value="monitor" />
-          <ScOption label="部署脚本" value="deploy" />
-          <ScOption label="备份脚本" value="backup" />
-          <ScOption label="其他" value="other" />
-        </ScSelect>
+          <el-option label="系统管理" value="system" />
+          <el-option label="监控检查" value="monitor" />
+          <el-option label="部署脚本" value="deploy" />
+          <el-option label="备份脚本" value="backup" />
+          <el-option label="其他" value="other" />
+        </el-select>
 
-        <ScInput
+        <el-input
           v-model="searchKeyword"
           placeholder="搜索脚本名称..."
           clearable
@@ -58,20 +58,20 @@
           <template #prefix>
             <IconifyIconOnline icon="ep:search" />
           </template>
-        </ScInput>
+        </el-input>
       </div>
     </div>
 
     <!-- 脚本表格 -->
-    <ScTable
+    <el-table
       v-loading="loading"
       :data="scriptList"
       stripe
       @selection-change="handleSelectionChange"
     >
-      <ScTableColumn type="selection" width="55" />
+      <el-table-column type="selection" width="55" />
 
-      <ScTableColumn label="脚本信息" min-width="200">
+      <el-table-column label="脚本信息" min-width="200">
         <template #default="{ row }">
           <div class="script-info">
             <div class="script-name">
@@ -85,7 +85,7 @@
               {{ row.monitorSysGenServerScriptDescription || "无描述" }}
             </div>
             <div v-if="row.monitorSysGenServerScriptTags" class="script-tags">
-              <ScTag
+              <el-tag
                 v-for="tag in getTagList(row.monitorSysGenServerScriptTags)"
                 :key="tag"
                 size="small"
@@ -93,47 +93,47 @@
                 effect="plain"
               >
                 {{ tag }}
-              </ScTag>
+              </el-tag>
             </div>
           </div>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="脚本类型" width="100" align="center">
+      <el-table-column label="脚本类型" width="100" align="center">
         <template #default="{ row }">
-          <ScTag
+          <el-tag
             :type="getScriptTypeColor(row.monitorSysGenServerScriptType)"
             size="small"
           >
             {{ row.monitorSysGenServerScriptType }}
-          </ScTag>
+          </el-tag>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="分类" width="100" align="center">
+      <el-table-column label="分类" width="100" align="center">
         <template #default="{ row }">
           <span>{{ row.monitorSysGenServerScriptCategory || "-" }}</span>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="版本" width="80" align="center">
+      <el-table-column label="版本" width="80" align="center">
         <template #default="{ row }">
           <span>{{ row.monitorSysGenServerScriptVersion || "v1.0" }}</span>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="状态" width="80" align="center">
+      <el-table-column label="状态" width="80" align="center">
         <template #default="{ row }">
-          <ScSwitch
+          <el-switch
             v-model="row.monitorSysGenServerScriptStatus"
             :active-value="1"
             :inactive-value="0"
             @change="handleStatusChange(row)"
           />
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="执行统计" width="120" align="center">
+      <el-table-column label="执行统计" width="120" align="center">
         <template #default="{ row }">
           <div class="execution-stats">
             <div>
@@ -144,71 +144,67 @@
             </div>
           </div>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="最后执行" width="160" align="center">
+      <el-table-column label="最后执行" width="160" align="center">
         <template #default="{ row }">
           <span v-if="row.monitorSysGenServerScriptLastExecutionTime">
             {{ formatDateTime(row.monitorSysGenServerScriptLastExecutionTime) }}
           </span>
           <span v-else class="text-muted">从未执行</span>
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="创建者" width="100" align="center">
+      <el-table-column label="创建者" width="100" align="center">
         <template #default="{ row }">
           {{ row.monitorSysGenServerScriptCreateUser }}
         </template>
-      </ScTableColumn>
+      </el-table-column>
 
-      <ScTableColumn label="操作" width="280" align="center" fixed="right">
+      <el-table-column label="操作" width="280" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <ScButton
+            <el-button
               size="small"
               type="primary"
               @click="$emit('execute', row)"
             >
               <IconifyIconOnline icon="ri:play-line" />
               执行
-            </ScButton>
+            </el-button>
 
-            <ScButton size="small" @click="$emit('edit', row)">
+            <el-button size="small" @click="$emit('edit', row)">
               <IconifyIconOnline icon="ri:edit-line" />
               编辑
-            </ScButton>
+            </el-button>
 
-            <ScDropdown @command="(cmd) => handleAction(cmd, row)">
-              <ScButton size="small">
+            <el-dropdown @command="(cmd) => handleAction(cmd, row)">
+              <el-button size="small">
                 <IconifyIconOnline icon="ri:more-line" />
-              </ScButton>
+              </el-button>
               <template #dropdown>
-                <ScDropdownMenu>
-                  <ScDropdownItem command="view">查看代码</ScDropdownItem>
-                  <ScDropdownItem command="duplicate"
-                    >复制脚本</ScDropdownItem
-                  >
-                  <ScDropdownItem command="history"
-                    >执行历史</ScDropdownItem
-                  >
-                  <ScDropdownItem command="export">导出脚本</ScDropdownItem>
-                  <ScDropdownItem command="validate"
-                    >语法检查</ScDropdownItem
-                  >
-                  <ScDropdownItem command="delete" divided
-                    >删除</ScDropdownItem
-                  >
-                </ScDropdownMenu>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="view">查看代码</el-dropdown-item>
+                  <el-dropdown-item command="duplicate"
+                    >复制脚本</el-dropdown-item>
+                  <el-dropdown-item command="history"
+                    >执行历史</el-dropdown-item>
+                  <el-dropdown-item command="export">导出脚本</el-dropdown-item>
+                  <el-dropdown-item command="validate"
+                    >语法检查</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided
+                    >删除</el-dropdown-item>
+                </el-dropdown-menu>
               </template>
-            </ScDropdown>
-          </ScButton-group>
+            </el-dropdown>
+          </el-button-group>
         </template>
-      </ScTableColumn>
-    </ScTable>
+      </el-table-column>
+    </el-table>
 
     <!-- 分页 -->
     <div class="pagination-wrapper">
-      <ScPagination
+      <el-pagination
         v-model:current-page="pagination.page"
         v-model:page-size="pagination.pageSize"
         :total="pagination.total"
@@ -228,17 +224,17 @@
     >
       <div v-if="selectedScript" class="script-code">
         <div class="code-header">
-          <ScDescriptions :column="3" size="small">
-            <ScDescriptionsItem label="脚本名称">
+          <el-descriptions :column="3" size="small">
+            <el-descriptions-item label="脚本名称">
               {{ selectedScript.monitorSysGenScriptName }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="脚本类型">
+            </el-descriptions-item>
+            <el-descriptions-item label="脚本类型">
               {{ selectedScript.monitorSysGenScriptType }}
-            </ScDescriptionsItem>
-            <ScDescriptionsItem label="版本">
+            </el-descriptions-item>
+            <el-descriptions-item label="版本">
               {{ selectedScript.monitorSysGenScriptVersion }}
-            </ScDescriptionsItem>
-          </ScDescriptions>
+            </el-descriptions-item>
+          </el-descriptions>
         </div>
         <div class="code-content">
           <pre><code>{{ selectedScript.monitorSysGenScriptContent }}</code></pre>
@@ -253,7 +249,7 @@
       width="500px"
       destroy-on-close
     >
-      <ScUpload
+      <el-upload
         ref="uploadRef"
         :auto-upload="false"
         :limit="1"
@@ -267,13 +263,12 @@
             支持 .sh, .py, .ps1, .bat, .js 格式的脚本文件
           </div>
         </template>
-      </ScUpload>
+      </el-upload>
 
       <template #footer>
-        <ScButton @click="importDialogVisible = false">取消</ScButton>
-        <ScButton type="primary" @click="handleUploadScript"
-          >确定导入</ScButton
-        >
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleUploadScript"
+          >确定导入</el-button>
       </template>
     </sc-dialog>
   </div>
@@ -523,7 +518,7 @@ const handleValidateScript = async (script: ServerScript) => {
   try {
     const res = await validateScript(
       script.monitorSysGenServerScriptContent,
-      script.monitorSysGenServerScriptType,
+      script.monitorSysGenServerScriptType
     );
     if (res.code === "00000") {
       message.success("脚本语法检查通过");
@@ -548,7 +543,7 @@ const handleDeleteScript = async (script: ServerScript) => {
         confirmButtonText: "确定",
         cancelButtonText: "取消",
         type: "warning",
-      },
+      }
     );
 
     const res = await deleteServerScript(script.monitorSysGenServerScriptId);
@@ -629,6 +624,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -661,6 +657,7 @@ onMounted(() => {
     z-index: 1;
   }
 }
+
 
 .server-scripts {
   .toolbar {
@@ -696,7 +693,7 @@ onMounted(() => {
 
     .script-desc {
       font-size: 12px;
-      color: var(--el-text-color);
+       color: var(--el-text-color);
       margin-bottom: 4px;
     }
 
@@ -765,12 +762,13 @@ onMounted(() => {
   }
 
   .upload-tip {
-    color: var(--el-text-color);
+     color: var(--el-text-color);
     font-size: 12px;
     text-align: center;
     margin-top: 8px;
   }
 }
+
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -780,4 +778,5 @@ onMounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

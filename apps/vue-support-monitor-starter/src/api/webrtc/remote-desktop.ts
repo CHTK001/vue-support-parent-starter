@@ -29,7 +29,9 @@ export function getWebRTCConnectInfo(params?: {
   host?: string;
   port?: number;
 }) {
-  return http.get<WebRTCConnectInfo>("/api/monitor/webrtc/connect", { params });
+  return http.get<WebRTCConnectInfo>("/api/monitor/webrtc/connect", {
+    params,
+  });
 }
 
 /**

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="dialogVisible"
     title="申请 SSL/TLS 证书"
@@ -254,7 +254,7 @@ location /.well-known/acme-challenge/ {
               <span class="step-badge">1</span>
               <div class="step-content">
                 <p>
-                  提交申请后，系统会生成一个<strong>唯一的验证 Token</strong
+                  提交申请后，系统会生成一个<strong>唯一的验证 Token</strong>
                   >（由 ACME 服务器自动生成）
                 </p>
               </div>
@@ -266,8 +266,7 @@ location /.well-known/acme-challenge/ {
                 <code class="code-block"
                   >http://{{
                     form.primaryDomain || "您的域名"
-                  }}/.well-known/acme-challenge/[TOKEN]</code
-                >
+                  }}/.well-known/acme-challenge/[TOKEN]</code>
               </div>
             </div>
             <div class="guide-step">
@@ -282,8 +281,7 @@ location /.well-known/acme-challenge/ {
             <div class="guide-note">
               <IconifyIconOnline icon="mdi:lightbulb-outline" />
               <span
-                >提示：HTTP-01 不支持泛域名证书，泛域名请使用 DNS-01 验证</span
-              >
+                >提示：HTTP-01 不支持泛域名证书，泛域名请使用 DNS-01 验证</span>
             </div>
           </div>
         </template>
@@ -308,8 +306,7 @@ location /.well-known/acme-challenge/ {
                 <p>您需要在 DNS 服务商处添加一条 TXT 记录：</p>
                 <code class="code-block"
                   >_acme-challenge.{{ form.primaryDomain || "您的域名" }} TXT
-                  [验证值]</code
-                >
+                  [验证值]</code>
               </div>
             </div>
             <div class="guide-step">
@@ -324,8 +321,7 @@ location /.well-known/acme-challenge/ {
             <div class="guide-note success">
               <IconifyIconOnline icon="mdi:check-circle-outline" />
               <span
-                >优点：DNS-01 支持泛域名证书，且无需在 Web 服务器上配置</span
-              >
+                >优点：DNS-01 支持泛域名证书，且无需在 Web 服务器上配置</span>
             </div>
           </div>
         </template>
@@ -362,7 +358,7 @@ import {
   applyCert,
   ACME_SERVERS,
   type AcmeAccount,
-} from "@/api/acme";
+} from "@pages/system";
 
 // 验证类型选项
 const challengeOptions = [

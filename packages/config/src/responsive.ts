@@ -1,8 +1,9 @@
 // 响应式storage
 import Storage from "responsive-storage";
 import type { App } from "vue";
-import type { PlatformConfigs } from "../index";
-import { $t, responsiveStorageNameSpace } from "../index";
+import type { PlatformConfigs } from "./types/config";
+import { responsiveStorageNameSpace } from "./config";
+import { $t } from "./i18n";
 
 export const defaultRouterArrays = [
   {

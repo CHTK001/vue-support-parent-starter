@@ -11,6 +11,18 @@
       "types": "./index.ts",
       "default": "./index.ts"
     },
+    "./src/config": {
+      "types": "./src/config/index.ts",
+      "default": "./src/config/index.ts"
+    },
+    "./src/i18n": {
+      "types": "./src/i18n/index.ts",
+      "default": "./src/i18n/index.ts"
+    },
+    "./src/utils": {
+      "types": "./src/utils/index.ts",
+      "default": "./src/utils/index.ts"
+    },
     "./http": {
       "types": "./src/http/types.d.ts"
     },

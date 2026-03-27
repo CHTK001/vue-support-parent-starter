@@ -10,6 +10,13 @@ import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
 import { emitter } from "@repo/core";
+import {
+  PIXEL_UI_MODULE_NAMESPACE,
+  getPixelUiComponent,
+  preloadPixelUiResources,
+  retainPixelUiThemeCss,
+  releasePixelUiThemeCss,
+} from "./pixelUiShared";
 
 /**
  * Element Plus 组件映射表
@@ -27,7 +34,7 @@ const logger = {
   warn: (msg: string, ...args: unknown[]) => getL().warn(msg, ...args),
   error: (msg: string, ...args: unknown[]) => getL().error(msg, ...args),
   info: (msg: string, ...args: unknown[]) => getL().info(msg, ...args),
-  debug: (msg: string, ...args: unknown[]) => getL().debug(msg, ...args),
+  debug: (msg: string, ...args: unknown[]) => getL().debug(msg, ...args)
 };
 
 /**
@@ -55,9 +62,9 @@ export async function preloadTheme(themeName: string): Promise<void> {
   try {
     logger.info(`[useThemeComponent] 开始预加载主题: ${themeName}`);
 
-    // 预加载主题组件库（按已知包名做静态导入，避免浏览器直接解析裸模块路径）
-    if (config.packageName === "@mmt817/pixel-ui") {
-      await import("@mmt817/pixel-ui");
+    // 像素主题已改为静态依赖，这里只触达资源，避免继续走运行时动态导入
+    if (config.packageName === "pixel-ui") {
+      preloadPixelUiResources();
     } else {
       console.warn(`[useThemeComponent] 预加载暂未适配主题包: ${config.packageName}`);
     }
@@ -161,105 +168,7 @@ const themeCssUrls = new Map<string, string>();
  * 主题 CSS 引用计数（按主题名称存储）
  */
 const themeCssRefCounts = new Map<string, number>();
-
 /**
-=======
- * Pixelium 可选 CSS 样式链接引用（normalize.css）
- */
-const pixeliumOptionalStyleLinks = new Map<string, HTMLLinkElement>();
-
-/**
- * Pixelium 可选 CSS URL 缓存
- */
-const pixeliumOptionalCssUrls = new Map<string, string>();
-
-/**
- * Pixelium 可选 CSS 引用计数
- */
-const pixeliumOptionalCssRefCounts = new Map<string, number>();
-
-/**
- * 加载 Pixelium 可选 CSS（normalize.css）
- * @param cssFileName CSS 文件名（normalize.css）
- */
-const loadPixeliumOptionalCss = async (cssFileName: string): Promise<void> => {
-  const linkId = `pixelium-${cssFileName.replace(".css", "")}-style`;
-  const existingLink = document.getElementById(linkId) as HTMLLinkElement;
-
-  if (existingLink) {
-    pixeliumOptionalStyleLinks.set(cssFileName, existingLink);
-    pixeliumOptionalCssRefCounts.set(cssFileName, (pixeliumOptionalCssRefCounts.get(cssFileName) || 0) + 1);
-    return;
-  }
-
-  if (pixeliumOptionalStyleLinks.has(cssFileName)) {
-    pixeliumOptionalCssRefCounts.set(cssFileName, (pixeliumOptionalCssRefCounts.get(cssFileName) || 0) + 1);
-    return;
-  }
-
-  try {
-    // 动态导入 CSS 文件获取 URL（使用静态路径，Vite 需要静态分析）
-    if (!pixeliumOptionalCssUrls.has(cssFileName)) {
-      try {
-        // FIXME: @pixelium/web-vue 包未安装，暂时跳过加载
-        // 可选样式加载失败不影响主题使用，静默跳过
-        logger.debug(`[useThemeComponent] Pixelium CSS 文件 ${cssFileName} 跳过加载（包未安装）`);
-        return;
-
-        // let cssModule: any;
-        // // 使用静态导入路径，Vite 需要静态分析才能正确处理 ?url 后缀
-        // if (cssFileName === "normalize.css") {
-        //   // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
-        //   cssModule = await import("@pixelium/web-vue/dist/normalize.css?url");
-        // } else {
-        //   logger.warn(`[useThemeComponent] 不支持的 Pixelium CSS 文件: ${cssFileName}`);
-        //   return;
-        // }
-        // const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
-        // pixeliumOptionalCssUrls.set(cssFileName, cssUrl);
-      } catch (error) {
-        // 可选样式加载失败不影响主题使用，静默跳过
-        return;
-      }
-    }
-
-    // 创建 link 标签
-    const styleLink = document.createElement("link");
-    styleLink.rel = "stylesheet";
-    styleLink.href = pixeliumOptionalCssUrls.get(cssFileName)!;
-    styleLink.id = linkId;
-    document.head.appendChild(styleLink);
-
-    pixeliumOptionalStyleLinks.set(cssFileName, styleLink);
-    pixeliumOptionalCssRefCounts.set(cssFileName, 1);
-  } catch (error) {
-    // 可选样式加载失败不影响主题使用，静默跳过
-  }
-};
-
-/**
- * 移除 Pixelium 可选 CSS（引用计数管理）
- * @param cssFileName CSS 文件名
- */
-const removePixeliumOptionalCss = (cssFileName: string): void => {
-  const refCount = pixeliumOptionalCssRefCounts.get(cssFileName) || 0;
-  const newRefCount = refCount - 1;
-
-  pixeliumOptionalCssRefCounts.set(cssFileName, newRefCount);
-
-  if (newRefCount <= 0) {
-    const styleLink = pixeliumOptionalStyleLinks.get(cssFileName);
-    if (styleLink) {
-      styleLink.remove();
-      pixeliumOptionalStyleLinks.delete(cssFileName);
-      pixeliumOptionalCssRefCounts.delete(cssFileName);
-      pixeliumOptionalCssUrls.delete(cssFileName);
-    }
-  }
-};
-
-/**
->>>>>>> 0b6528f1dfbf32db414a1a5d12846317583de126
  * 加载主题 CSS
  * @param themeName 主题名称
  */
@@ -267,6 +176,11 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
   const config = getThemeConfig(themeName);
 
   if (!config || !config.cssPath) {
+    return;
+  }
+
+  if (config.packageName === "pixel-ui" && config.cssPath === "dist/index.css") {
+    retainPixelUiThemeCss();
     return;
   }
 
@@ -286,23 +200,9 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
   }
 
   try {
-    // 动态导入 CSS 文件获取 URL
     if (!themeCssUrls.has(themeName)) {
-      try {
-        // 对 @mmt817/pixel-ui 做静态导入适配，其它主题直接走回退路径
-        if (config.packageName === "@mmt817/pixel-ui" && config.cssPath === "dist/index.css") {
-          // @ts-ignore - Vite 支持 ?url 后缀，但 TypeScript 可能不识别
-          const cssModule = await import("@mmt817/pixel-ui/dist/index.css?url");
-          const cssUrl = typeof cssModule === "string" ? cssModule : cssModule.default || cssModule;
-          themeCssUrls.set(themeName, cssUrl);
-        } else {
-          throw new Error("unsupported theme css dynamic import");
-        }
-      } catch {
-        console.warn(`[useThemeComponent] 无法动态导入 ${themeName} 主题 CSS，尝试直接使用路径`);
-        // 如果动态导入失败，尝试直接使用相对路径
-        themeCssUrls.set(themeName, `/${config.packageName}/${config.cssPath}`);
-      }
+      console.warn(`[useThemeComponent] 无法静态解析 ${themeName} 主题 CSS，尝试直接使用路径`);
+      themeCssUrls.set(themeName, `/${config.packageName}/${config.cssPath}`);
     }
 
     // 创建 link 标签
@@ -324,6 +224,12 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
  * @param themeName 主题名称
  */
 const removeThemeCss = (themeName: string): void => {
+  const config = getThemeConfig(themeName);
+  if (config?.packageName === "pixel-ui" && config.cssPath === "dist/index.css") {
+    releasePixelUiThemeCss();
+    return;
+  }
+
   const refCount = themeCssRefCounts.get(themeName) || 0;
   const newRefCount = refCount - 1;
 
@@ -356,14 +262,8 @@ const getThemeCache = (themeName: string): Map<string, Component> => {
   return themeComponentCache.get(themeName)!;
 };
 
-const resolveLocalThemeComponent = async (
-  themeName: string,
-  elementComponentName: string,
-): Promise<Component | null> => {
-  const localComponentConfig = getThemeLocalComponentConfig(
-    themeName,
-    elementComponentName,
-  );
+const resolveLocalThemeComponent = async (themeName: string, elementComponentName: string): Promise<Component | null> => {
+  const localComponentConfig = getThemeLocalComponentConfig(themeName, elementComponentName);
 
   if (!localComponentConfig) {
     return null;
@@ -375,9 +275,7 @@ const resolveLocalThemeComponent = async (
   }
 
   const module = await localComponentConfig.loader();
-  const resolved = localComponentConfig.exportName
-    ? module?.[localComponentConfig.exportName]
-    : module?.default ?? module;
+  const resolved = localComponentConfig.exportName ? module?.[localComponentConfig.exportName] : (module?.default ?? module);
 
   if (!resolved) {
     return null;
@@ -441,30 +339,21 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
       return null;
     }
 
-    // 其他主题：按包名做静态导入映射，避免裸模块在浏览器环境直接解析
-    let themeModule: any;
-    if (config.packageName === "@mmt817/pixel-ui") {
-      themeModule = await import("@mmt817/pixel-ui");
+    // 其他主题：按包名做静态映射，避免运行时再拼接导入路径
+    let component: Component | null = null;
+    if (config.packageName === "pixel-ui") {
+      component = getPixelUiComponent(themeComponentName);
     } else {
       logger.warn(`[useThemeComponent] 动态导入暂未适配主题包: ${config.packageName}`);
       return null;
     }
 
-    let component = (themeModule as any)[themeComponentName];
-
-    // 像素主题组件多通过插件全局注册，根模块未必导出 PxXxx 组件
-    // 尝试从模块的 default 导出中查找（插件可能通过 default 导出）
-    if (!component && themeModule.default) {
-      component = (themeModule.default as any)[themeComponentName];
-    }
-
     // 尝试从模块的所有导出中查找组件（包括命名导出和 default 导出）
-    if (!component && config.packageName === "@mmt817/pixel-ui") {
-      // 检查模块的所有键，尝试找到匹配的组件
-      const moduleKeys = Object.keys(themeModule);
+    if (!component && config.packageName === "pixel-ui") {
+      const moduleKeys = Object.keys(PIXEL_UI_MODULE_NAMESPACE);
       const matchingKey = moduleKeys.find(key => key === themeComponentName || key.toLowerCase() === themeComponentName.toLowerCase());
       if (matchingKey) {
-        component = (themeModule as any)[matchingKey];
+        component = getPixelUiComponent(matchingKey);
         logger.debug(`[useThemeComponent] 从模块导出中找到组件 ${themeComponentName} (导出名: ${matchingKey})`);
       }
     }
@@ -472,7 +361,7 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
     if (!component) {
       // 如果组件是通过插件全局注册的，尝试从全局组件注册表中查找
       // PixelUI 组件通过插件注册后，会以 kebab-case 格式注册（如 px-button）
-      if (config.packageName === "@mmt817/pixel-ui" && /^Px[A-Z]/.test(themeComponentName)) {
+      if (config.packageName === "pixel-ui" && /^Px[A-Z]/.test(themeComponentName)) {
         try {
           // 转换为 kebab-case 格式（Vue 3 全局注册的组件名通常是 kebab-case）
           const withoutPrefix = themeComponentName.replace(/^Px/, "");
@@ -512,12 +401,12 @@ const loadThemeComponent = async (themeName: string, themeComponentName: string,
 
             // 调试信息：列出所有全局注册的组件
             const registeredComponents = Object.keys(appContext.components);
-            const pixeliumComponents = registeredComponents.filter(name => name.toLowerCase().startsWith("px") || name.startsWith("Px") || name.toLowerCase().includes("pixel"));
+            const pixelUiComponents = registeredComponents.filter(name => name.toLowerCase().startsWith("px") || name.startsWith("Px") || name.toLowerCase().includes("pixel"));
 
-            if (pixeliumComponents.length > 0) {
-              logger.debug(`[useThemeComponent] 已全局注册的 PixelUI 相关组件:`, pixeliumComponents);
+            if (pixelUiComponents.length > 0) {
+              logger.debug(`[useThemeComponent] 已全局注册的 PixelUI 相关组件:`, pixelUiComponents);
               logger.debug(`[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`, uniqueNames);
-              logger.warn(`[useThemeComponent] 未找到组件 ${themeComponentName}，已注册的 PixelUI 组件:`, pixeliumComponents);
+              logger.warn(`[useThemeComponent] 未找到组件 ${themeComponentName}，已注册的 PixelUI 组件:`, pixelUiComponents);
             } else {
               logger.warn(`[useThemeComponent] 未找到全局注册的 PixelUI 组件，可能插件尚未加载完成`);
               logger.debug(`[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`, uniqueNames);
@@ -758,11 +647,6 @@ export function useThemeComponent(elementComponentName: string) {
   const themeConfig = computed(() => getThemeConfig(currentSkin.value));
 
   /**
-   * 是否启用了主题
-   */
-  const hasTheme = computed(() => !!themeConfig.value);
-
-  /**
    * 主题组件名称
    */
   const themeComponentName = computed(() => getThemeComponentName(currentSkin.value, elementComponentName));
@@ -784,6 +668,7 @@ export function useThemeComponent(elementComponentName: string) {
   };
 
   const themeComponent = shallowRef<Component | null>(initThemeComponent());
+  let activeThemeCssSkin: string | null = null;
 
   /**
    * 加载状态和错误信息
@@ -800,10 +685,7 @@ export function useThemeComponent(elementComponentName: string) {
   const currentComponent = computed(() => {
     const skin = currentSkin.value;
     const componentName = themeComponentName.value;
-    const localComponentConfig = getThemeLocalComponentConfig(
-      skin,
-      elementComponentName,
-    );
+    const localComponentConfig = getThemeLocalComponentConfig(skin, elementComponentName);
 
     // 8bit 主题特殊处理：ElTable、ElTableColumn 和 ElDrawer 始终使用 Element Plus 组件
     if (skin === "8bit" && (elementComponentName === "ElTable" || elementComponentName === "ElTableColumn" || elementComponentName === "ElDrawer")) {
@@ -853,9 +735,7 @@ export function useThemeComponent(elementComponentName: string) {
     }
 
     if (!skin || !componentName) {
-      const localComponent = skin
-        ? await resolveLocalThemeComponent(skin, elementComponentName)
-        : null;
+      const localComponent = skin ? await resolveLocalThemeComponent(skin, elementComponentName) : null;
       themeComponent.value = localComponent;
       if (!localComponent) {
         themeComponent.value = null;
@@ -864,10 +744,7 @@ export function useThemeComponent(elementComponentName: string) {
     }
 
     try {
-      const localComponent = await resolveLocalThemeComponent(
-        skin,
-        elementComponentName,
-      );
+      const localComponent = await resolveLocalThemeComponent(skin, elementComponentName);
       if (localComponent) {
         themeComponent.value = localComponent;
         return;
@@ -887,8 +764,10 @@ export function useThemeComponent(elementComponentName: string) {
   watch(
     [currentSkin, themeComponentName],
     async ([newSkin, newComponentName], [oldSkin]) => {
-      // 移除旧主题的 CSS（如果旧主题存在且不是 default）
-      if (oldSkin && oldSkin !== "default" && oldSkin !== newSkin) {
+      if (activeThemeCssSkin && activeThemeCssSkin !== newSkin) {
+        removeThemeCss(activeThemeCssSkin);
+        activeThemeCssSkin = null;
+      } else if (!activeThemeCssSkin && oldSkin && oldSkin !== "default" && oldSkin !== newSkin) {
         removeThemeCss(oldSkin);
       }
 
@@ -896,7 +775,10 @@ export function useThemeComponent(elementComponentName: string) {
       if (newSkin && newComponentName) {
         // default 主题不需要加载 CSS 和异步加载组件
         if (newSkin !== "default") {
-          await loadThemeCss(newSkin);
+          if (activeThemeCssSkin !== newSkin) {
+            await loadThemeCss(newSkin);
+            activeThemeCssSkin = newSkin;
+          }
           // 确保主题插件已注册（例如切换到 8bit 主题时需要注册 PixelUI 插件）
           try {
             await ensureThemePluginForCurrentSkin();
@@ -906,6 +788,10 @@ export function useThemeComponent(elementComponentName: string) {
           await loadComponent();
         }
       } else {
+        if (activeThemeCssSkin) {
+          removeThemeCss(activeThemeCssSkin);
+          activeThemeCssSkin = null;
+        }
         // 配置不存在，清空组件
         themeComponent.value = null;
       }
@@ -913,10 +799,25 @@ export function useThemeComponent(elementComponentName: string) {
     { immediate: true }
   );
 
+  onBeforeUnmount(() => {
+    if (activeThemeCssSkin) {
+      removeThemeCss(activeThemeCssSkin);
+      activeThemeCssSkin = null;
+    }
+  });
+
   /**
    * 返回组合式函数的公共 API
    */
   return {
+    /**
+     * 当前主题皮肤
+     */
+    currentSkin,
+    /**
+     * 当前实际渲染的组件
+     */
+    currentComponent,
     /**
      * 当前主题组件实例
      */

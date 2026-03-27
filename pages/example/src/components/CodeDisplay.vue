@@ -3,7 +3,7 @@
     <div class="code-header">
       <h4 v-if="title">{{ title }}</h4>
       <div class="code-actions">
-        <ScButton
+        <ScButton 
           type="primary"
           size="small"
           :icon="useRenderIcon('ep:copy-document')"
@@ -13,7 +13,7 @@
         >
           {{ copyButtonText }}
         </ScButton>
-        <ScButton
+        <ScButton 
           v-if="showFullscreen"
           type="default"
           size="small"
@@ -56,8 +56,8 @@
 </template>
 
 <script setup>
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline, useRenderIcon } from "@repo/components/ReIcon";
+
 import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
 

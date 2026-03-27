@@ -10,10 +10,10 @@
         <div class="calculator-keypad">
           <div class="keypad-section function-keys">
             <ScButton type="info" class="calc-key" @click="clearAll"
-              >AC</el-button
+              >AC</ScButton
             >
             <ScButton type="info" class="calc-key" @click="clearEntry"
-              >CE</el-button
+              >CE</ScButton
             >
             <ScButton type="info" class="calc-key" @click="backspace">
               <IconifyIconOnline icon="ep:delete" />
@@ -26,86 +26,86 @@
               type="warning"
               class="calc-key"
               @click="appendOperator('/')"
-              >/</el-button
+              >/</ScButton
             >
             <ScButton 
               type="warning"
               class="calc-key"
               @click="appendOperator('*')"
-              >×</el-button
+              >×</ScButton
             >
             <ScButton 
               type="warning"
               class="calc-key"
               @click="appendOperator('-')"
-              >-</el-button
+              >-</ScButton
             >
             <ScButton 
               type="warning"
               class="calc-key"
               @click="appendOperator('+')"
-              >+</el-button
+              >+</ScButton
             >
 
             <ScButton type="default" class="calc-key" @click="appendDigit('7')"
-              >7</el-button
+              >7</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('8')"
-              >8</el-button
+              >8</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('9')"
-              >9</el-button
+              >9</ScButton
             >
             <ScButton type="success" class="calc-key" @click="calculateResult"
-              >=</el-button
+              >=</ScButton
             >
 
             <ScButton type="default" class="calc-key" @click="appendDigit('4')"
-              >4</el-button
+              >4</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('5')"
-              >5</el-button
+              >5</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('6')"
-              >6</el-button
+              >6</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('sqrt')"
-              >√</el-button
+              >√</ScButton
             >
 
             <ScButton type="default" class="calc-key" @click="appendDigit('1')"
-              >1</el-button
+              >1</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('2')"
-              >2</el-button
+              >2</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('3')"
-              >3</el-button
+              >3</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('pow')"
-              >x²</el-button
+              >x²</ScButton
             >
 
             <ScButton type="default" class="calc-key" @click="toggleSign"
-              >±</el-button
+              >±</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('0')"
-              >0</el-button
+              >0</ScButton
             >
             <ScButton type="default" class="calc-key" @click="appendDigit('.')"
-              >.</el-button
+              >.</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendConstant('PI')"
-              >π</el-button
+              >π</ScButton
             >
           </div>
 
@@ -114,116 +114,116 @@
               type="primary"
               class="calc-key"
               @click="appendFunction('sin')"
-              >sin</el-button
+              >sin</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('cos')"
-              >cos</el-button
+              >cos</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('tan')"
-              >tan</el-button
+              >tan</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('log')"
-              >log</el-button
+              >log</ScButton
             >
 
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('asin')"
-              >sin⁻¹</el-button
+              >sin⁻¹</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('acos')"
-              >cos⁻¹</el-button
+              >cos⁻¹</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('atan')"
-              >tan⁻¹</el-button
+              >tan⁻¹</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('ln')"
-              >ln</el-button
+              >ln</ScButton
             >
 
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('pow', 3)"
-              >x³</el-button
+              >x³</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendOperator('^')"
-              >xʸ</el-button
+              >xʸ</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('cbrt')"
-              >∛</el-button
+              >∛</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendFunction('exp')"
-              >eˣ</el-button
+              >eˣ</ScButton
             >
 
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendConstant('E')"
-              >e</el-button
+              >e</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendOperator('!')"
-              >!</el-button
+              >!</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendOperator('%')"
-              >%</el-button
+              >%</ScButton
             >
             <ScButton 
               type="primary"
               class="calc-key"
               @click="appendConstant('1/PI')"
-              >1/π</el-button
+              >1/π</ScButton
             >
 
             <ScButton 
               type="info"
               class="calc-key"
               @click="appendParenthesis('(')"
-              >(</el-button
+              >(</ScButton
             >
             <ScButton 
               type="info"
               class="calc-key"
               @click="appendParenthesis(')')"
-              >)</el-button
+              >)</ScButton
             >
             <ScButton type="info" class="calc-key" @click="convertToRad"
-              >DEG</el-button
+              >DEG</ScButton
             >
             <ScButton type="info" class="calc-key" @click="copyResult">
               <IconifyIconOnline icon="ep:document-copy" />
@@ -311,7 +311,7 @@
               <div class="memory-value">{{ formatNumber(value) }}</div>
               <div class="memory-actions">
                 <ScButton type="text" @click="recallMemory(value)" size="small"
-                  >应用</el-button
+                  >应用</ScButton
                 >
                 <ScButton 
                   type="text"

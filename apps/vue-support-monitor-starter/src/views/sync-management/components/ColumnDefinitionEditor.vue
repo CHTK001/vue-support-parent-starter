@@ -226,7 +226,7 @@ import {
   previewCreateTableSql,
   createOutputTable,
   type ColumnDefinition,
-} from "@/api/sync";
+} from "@pages/sync";
 
 interface Props {
   modelValue: ColumnDefinition[];

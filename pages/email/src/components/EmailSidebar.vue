@@ -1,6 +1,6 @@
 ﻿<script setup>
 import { defineEmits } from "vue";
-import { IconifyIconOnline } from "@iconify/vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import EmailAccountSelector from "./EmailAccountSelector.vue";
 
 const props = defineProps({

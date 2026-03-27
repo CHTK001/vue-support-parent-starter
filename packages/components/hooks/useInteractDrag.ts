@@ -175,7 +175,7 @@ export function useInteractDrag(elementRef: Ref<HTMLElement | null>, dragOptions
       if (dragOptions.restrict) {
         dragConfig.modifiers = [
           interact.modifiers.restrict({
-            restriction: dragOptions.restrict.restriction || "parent",
+            restriction: (dragOptions.restrict.restriction || "parent") as any,
             endOnly: dragOptions.restrict.endOnly ?? true,
             elementRect: dragOptions.restrict.elementRect || { top: 0, left: 0, bottom: 1, right: 1 }
           })

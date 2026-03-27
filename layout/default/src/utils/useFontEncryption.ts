@@ -12,8 +12,14 @@ import { watch, onMounted, onUnmounted } from "vue";
 export interface FontEncryptionConfig {
   /** 是否启用字体加密 */
   enabled: boolean;
+  /** 是否加密数字 */
+  encryptNumbers?: boolean;
+  /** 是否加密中文 */
+  encryptChinese?: boolean;
   /** 是否应用到全局 */
   applyGlobal: boolean;
+  /** 是否禁用复制 */
+  disableCopy?: boolean;
   /** 需要加密的选择器（CSS 选择器） */
   selectors?: string[];
   /** 是否启用 OCR 噪点（干扰 OCR 识别） */
@@ -26,7 +32,10 @@ export interface FontEncryptionConfig {
 class FontEncryptionManager {
   private config: FontEncryptionConfig = {
     enabled: false,
+    encryptNumbers: true,
+    encryptChinese: true,
     applyGlobal: false,
+    disableCopy: false,
     selectors: [],
     ocrNoise: false,
   };

@@ -45,9 +45,9 @@
       <template #default="{ node, data }">
         <slot :node="node" :data="data">
           <span class="sc-tree-node" :class="{ 'is-leaf': node.isLeaf, 'has-toolbar': showToolbar }">
-            <slot name="prefix" :node="node" :data="data"></slot>
+            <slot name="prefix" :node="node" :data="data" />
             <span class="sc-tree-node__label">{{ node.label }}</span>
-            <slot name="suffix" :node="node" :data="data"></slot>
+            <slot name="suffix" :node="node" :data="data" />
 
             <!-- 节点工具栏 -->
             <span v-if="showToolbar" class="sc-tree-node__toolbar" @click.stop>
@@ -67,14 +67,14 @@
         </slot>
       </template>
       <template v-if="$slots.empty" #empty>
-        <slot name="empty"></slot>
+        <slot name="empty" />
       </template>
     </component>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, onMounted, defineOptions } from "vue";
+import { ref, watch, computed, nextTick, onMounted } from "vue";
 import { ElTree } from "element-plus";
 import type { TreeProps, TreeNodeData, TreeKey, TreeFilterValue, TreeNode, TreeComponentInstance } from "./types";
 import { useRenderIcon } from "../ReIcon/src/hooks";

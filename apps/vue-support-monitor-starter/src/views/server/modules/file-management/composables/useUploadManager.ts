@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import type { UploadQueueStatus } from "@/api/monitor/filesystem";
+import type { UploadQueueStatus } from "@pages/system";
 
 export interface UploadTask {
   id: number;

@@ -16,6 +16,10 @@
       "types": "./index.ts",
       "default": "./index.ts"
     },
+    "./sfc": {
+      "types": "./sfc.ts",
+      "default": "./sfc.ts"
+    },
     "./http": {
       "types": "./src/http/types.d.ts"
     }

@@ -85,7 +85,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
-import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
+import { IconifyIconOnline as IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 定义属性
 const props = defineProps({

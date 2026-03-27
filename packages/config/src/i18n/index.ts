@@ -8,7 +8,9 @@ import { StorageConfigs } from "./type";
 import enLocale from "element-plus/es/locale/lang/en";
 import zhLocale from "element-plus/es/locale/lang/zh-cn";
 import yaml from "js-yaml";
-import { getLogger } from "@repo/utils";
+
+// 使用 var 避免在循环依赖初始化阶段触发 TDZ。
+export var i18n: I18n;
 
 /**
  * 合并对象
@@ -33,7 +35,7 @@ function mergeObjects(obj1, obj2) {
   return obj1;
 }
 
-const logger = getLogger("[i18n]");
+const logger = console;
 
 const siphonI18n = (function () {
   /**
@@ -114,13 +116,19 @@ const siphonI18n = (function () {
   );
   // 加载应用级别的 yaml 文件
   const extCache = loadI18nFiles(
-    import.meta.glob("@/locales/*.y(a)?ml", { eager: true, query: "?raw" }),
+    import.meta.glob(["/src/locales/*.y(a)?ml", "/locales/*.y(a)?ml"], {
+      eager: true,
+      query: "?raw",
+    }),
     (content) => yaml.load(content),
     "应用级别 YAML",
   );
   // 加载应用级别的 json 文件
   const extCache2 = loadI18nFiles(
-    import.meta.glob("@/locales/*.json", { eager: true, query: "?raw" }),
+    import.meta.glob(["/src/locales/*.json", "/locales/*.json"], {
+      eager: true,
+      query: "?raw",
+    }),
     (content) => JSON.parse(content),
     "应用级别 JSON",
   );
@@ -578,7 +586,7 @@ const getLocale = () => {
     return defaultLocale;
   }
 };
-export const i18n: I18n = createI18n({
+i18n = createI18n({
   legacy: false,
   locale: getLocale(),
   fallbackLocale: "zh-CN",

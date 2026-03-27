@@ -16,3 +16,5 @@ const PixelIcon = pixelIcon;
 const IconSelect = iconSelect;
 
 export { IconifyIconOffline, IconifyIconOnline, IconSelect, FontIcon, PixelIcon };
+export { useRenderIcon } from "./src/hooks";
+export type { iconType } from "./src/types";

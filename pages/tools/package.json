@@ -49,6 +49,7 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
     "element-plus": "catalog:",
     "highlight.js": "catalog:",
     "unbuild": "^2.0.0",

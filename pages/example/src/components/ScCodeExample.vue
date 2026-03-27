@@ -26,9 +26,9 @@
         </div>
         <div class="example-actions">
           <ScButton @click="clearBasic">清空</ScButton>
-          <ScButton @click="setBasicError" type="danger"
-            >设置错误状态</el-button
-          >
+          <ScButton @click="setBasicError" type="danger">
+            设置错误状态
+          </ScButton>
         </div>
       </div>
 
@@ -112,12 +112,12 @@
           </p>
         </div>
         <div class="example-actions">
-          <ScButton @click="simulateSuccess" type="success"
-            >模拟验证成功</el-button
-          >
-          <ScButton @click="simulateError" type="danger"
-            >模拟验证失败</el-button
-          >
+          <ScButton @click="simulateSuccess" type="success">
+            模拟验证成功
+          </ScButton>
+          <ScButton @click="simulateError" type="danger">
+            模拟验证失败
+          </ScButton>
           <ScButton @click="resetDemo">重置</ScButton>
         </div>
       </div>

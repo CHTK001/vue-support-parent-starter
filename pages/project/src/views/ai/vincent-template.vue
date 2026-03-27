@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <sc-dialog
       v-model="env.visible"
@@ -11,12 +11,12 @@
       @close="handleClose"
     >
       <ScRow class="justify-end mb-2">
-        <ScButton
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ep:plus')"
           @click="handleSaveForm"
         ></ScButton>
-        <ScButton
+        <ScButton 
           class="btn-text"
           :icon="useRenderIcon('ri:save-2-line')"
           type="primary"
@@ -25,11 +25,11 @@
       </ScRow>
       <ScRow class="h-[65vh]">
         <ScCol :span="12" class="h-full overflow-auto">
-          <ScSkeleton animated :loading="loadingConfig.loading">
+          <el-skeleton animated :loading="loadingConfig.loading">
             <template #default>
               <ScEmpty v-if="listData.length == 0"></ScEmpty>
               <ScRow v-else>
-                <ScCol
+                <ScCol 
                   :span="7"
                   v-for="item in listData"
                   @click="handleSetForm(item)"
@@ -39,7 +39,7 @@
                     <ScTag class="!absolute top-0 left-0 z-[10]">
                       {{ item.sysAiVincentTemplateName }}
                     </ScTag>
-                    <ScButton
+                    <ScButton 
                       type="default"
                       size="small"
                       plain
@@ -51,7 +51,7 @@
                     </ScButton>
                   </div>
                   <div class="template-item z-1">
-                    <ScImage
+                    <ScImage 
                       :src="item.sysAiVincentTemplateAddress"
                       :z-index="2"
                     >
@@ -60,11 +60,11 @@
                 </ScCol>
               </ScRow>
             </template>
-          </ScSkeleton>
+          </el-skeleton>
         </ScCol>
         <ScCol :span="12" class="h-full overflow-auto">
           <ScEmpty v-if="!form.sysAiModuleId"></ScEmpty>
-          <ScForm
+          <ScForm 
             :model="form"
             ref="formRef"
             :rules="rules"
@@ -73,12 +73,11 @@
           >
             <ScFormItem label="所属模块" prop="sysAiModuleName">
               <el-text
-                >{{ form.sysAiModuleName }}({{ form.sysAiModuleId }})</el-text
-              >
+                >{{ form.sysAiModuleName }}({{ form.sysAiModuleId }})</el-text>
             </ScFormItem>
 
             <ScFormItem label="模板名称" prop="sysAiVincentTemplateName">
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentTemplateName"
                 placeholder="请输入模板名称"
                 clearable
@@ -87,13 +86,13 @@
 
             <ScFormItem label="模板图片" prop="sysAiVincentTemplateAddress">
               <div class="flex justify-between gap-1 h-[50px] w-full">
-                <ScImage
+                <ScImage 
                   class="!h-[50px] !w-[50px]"
                   fit="cover"
                   v-if="form.sysAiVincentTemplateAddress"
                   :src="form.sysAiVincentTemplateAddress"
                 ></ScImage>
-                <ScInput
+                <ScInput 
                   type="textarea"
                   class="w-full"
                   v-model="form.sysAiVincentTemplateAddress"
@@ -104,13 +103,13 @@
             </ScFormItem>
 
             <ScFormItem label="分类" prop="sysAiVincentTemplateCategory">
-              <ScSelect
+              <ScSelect 
                 v-model="form.sysAiVincentTemplateCategory"
                 clearable
                 filterable
                 allow-create
               >
-                <ScOption
+                <ScOption 
                   v-for="item in CATEGORY_TEMPLATE"
                   :key="item.value"
                   :label="item.label"
@@ -120,14 +119,14 @@
             </ScFormItem>
 
             <ScFormItem label="分辨率" prop="sysAiVincentTemplateResolutions">
-              <ScSelect
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentTemplateResolutionsList"
                 clearable
                 filterable
                 allow-create
               >
-                <ScOption
+                <ScOption 
                   v-for="item in DEFAULT_TEMPLATE_RESOLUTION"
                   :key="item"
                   :label="item"
@@ -136,18 +135,18 @@
               </ScSelect>
             </ScFormItem>
 
-            <ScFormItem
+            <ScFormItem 
               label="分辨率"
               prop="sysAiVincentTemplateRecommendPrompt"
             >
-              <ScSelect
+              <ScSelect 
                 multiple
                 v-model="form.sysAiVincentTemplateRecommendPromptList"
                 clearable
                 filterable
                 allow-create
               >
-                <ScOption
+                <ScOption 
                   v-for="item in DEFAULT_TEMPLATE_PROMPT"
                   :key="item"
                   :label="item"
@@ -157,7 +156,7 @@
             </ScFormItem>
 
             <ScFormItem label="关键词" prop="sysAiVincentTemplateWord">
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentTemplateWord"
                 placeholder="请输入关键词"
                 clearable
@@ -165,29 +164,29 @@
             </ScFormItem>
 
             <ScFormItem label="模板模型ID" prop="sysAiVincentTemplateModelId">
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentTemplateModelId"
                 placeholder="请输入模型ID"
                 clearable
               ></ScInput>
             </ScFormItem>
 
-            <ScFormItem
+            <ScFormItem 
               label="模板模型名称"
               prop="sysAiVincentTemplateModelName"
             >
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentTemplateModelName"
                 placeholder="请输入模板模型名称"
                 clearable
               ></ScInput>
             </ScFormItem>
 
-            <ScFormItem
+            <ScFormItem 
               label="训练模型名称"
               prop="sysAiVincentTemplateTrainModel"
             >
-              <ScInput
+              <ScInput 
                 v-model="form.sysAiVincentTemplateTrainModel"
                 placeholder="请输入训练模型名称"
                 clearable
@@ -195,14 +194,14 @@
             </ScFormItem>
 
             <ScFormItem label="优先级" prop="sysAiVincentTemplateSort">
-              <ScInputNumber
+              <ScInputNumber 
                 v-model="form.sysAiVincentTemplateSort"
                 placeholder="请输入优先级"
               ></ScInputNumber>
             </ScFormItem>
 
             <ScFormItem label="备注" prop="sysAiVincentTemplateRemark">
-              <ScInput
+              <ScInput 
                 type="textarea"
                 v-model="form.sysAiVincentTemplateRemark"
                 placeholder="请输入备注"
@@ -215,7 +214,7 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { clearObject, message } from "@repo/utils";
 import { defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";

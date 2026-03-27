@@ -1,4 +1,4 @@
-import { $t } from "@repo/config";
+import { t as $t } from "@repo/config";
 
 export default [
   {
@@ -24,7 +24,10 @@ export default [
           {
             path: "/app-list",
             name: "app-list",
-            component: () => import("@/views/app/index.vue"),
+            component: async () => {
+              const module = await import("@pages/job");
+              return module.JobAppIndex;
+            },
             meta: {
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.app-list"),
@@ -47,7 +50,10 @@ export default [
           {
             path: "/job-list",
             name: "job-list",
-            component: () => import("@/views/job/info/index.vue"),
+            component: async () => {
+              const module = await import("@pages/job");
+              return module.JobIndex;
+            },
             meta: {
               icon: "line-md:bell-twotone-loop",
               title: $t("buttons.monitor.job-list"),
@@ -58,7 +64,10 @@ export default [
           {
             path: "/job-log",
             name: "job-log",
-            component: () => import("@/views/job/log/index.vue"),
+            component: async () => {
+              const module = await import("@pages/job");
+              return module.JobLogIndex;
+            },
             meta: {
               icon: "simple-icons:logmein",
               title: $t("buttons.monitor.job-log"),

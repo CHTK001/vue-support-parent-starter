@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { message } from "@repo/utils";
-import { distributeFile } from "@/api/file-distribute";
+import { distributeFile } from "@pages/system";
 import { getServerList } from "@/api/server/index";
 import { getNodeListAll } from "@/api/server/node";
 

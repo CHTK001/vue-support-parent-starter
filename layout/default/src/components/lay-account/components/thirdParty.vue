@@ -67,10 +67,9 @@
   </div>
 </template>
 <script>
-import { } from @repo/components; } from "@repo/components/} from @repo/components;";
-
 import { defineComponent } from "vue";
-import { $t, transformI18n, uuid } from "@repo/config";
+import { $t, transformI18n } from "@repo/config/src/i18n";
+import { uuid } from "@repo/config/src/utils";
 import {
   fetchThirdBindCode,
   fetchThirdBindInfo,
@@ -78,12 +77,11 @@ import {
 } from "@repo/core";
 import { fetchSetting } from "@pages/setting";
 import { message } from "@repo/utils";
-import {
-  ScDivider,
-  ScEmpty,
-  ScTable,
-  ScTableColumn,
-  ScButton,
+import ScButton from "@repo/components/ScButton";
+import ScDivider from "@repo/components/ScDivider";
+import ScEmpty from "@repo/components/ScEmpty";
+import ScTable from "@repo/components/ScTable/index.vue";
+import ScTableColumn from "@repo/components/ScTableColumn";
 
 export default defineComponent({
   components: {

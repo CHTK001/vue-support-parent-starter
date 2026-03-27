@@ -118,6 +118,7 @@
     "autoprefixer": "catalog:",
     "boxen": "catalog:",
     "code-inspector-plugin": "catalog:",
+    "cross-env": "catalog:",
     "cssnano": "catalog:",
     "devtools-detector": "catalog:",
     "eslint": "catalog:",

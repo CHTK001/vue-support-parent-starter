@@ -354,7 +354,7 @@ import {
   type SyncConnection,
   type SpiInfo,
   type SpiParameter,
-} from "@/api/sync";
+} from "@pages/sync";
 
 const route = useRoute();
 const router = useRouter();

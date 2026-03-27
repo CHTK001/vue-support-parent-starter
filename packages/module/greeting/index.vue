@@ -6,7 +6,7 @@
  * @version 1.1.0
  */
 import { reactive, onMounted, computed, onUnmounted, ref } from "vue";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useUserStoreHook } from "@repo/core";
 import { dateFormat } from "@repo/utils";
 

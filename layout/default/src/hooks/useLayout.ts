@@ -3,11 +3,24 @@ import { useI18n } from "vue-i18n";
 import { routerArrays } from "../types";
 import { useGlobal } from "@pureadmin/utils";
 import { useMultiTagsStore } from "@repo/core";
-import type { StorageLayout } from "../types/theme";
+import type { LayoutType, StorageLayout } from "../types/theme";
 
-/** 布局类型 */
-type LayoutType = "vertical" | "horizontal" | "card" | "double" | "drawer" | "hover";
-const validLayouts: LayoutType[] = ["vertical", "horizontal", "card", "double", "drawer", "hover"];
+export const validLayouts: LayoutType[] = [
+  "vertical",
+  "horizontal",
+  "card",
+  "double",
+  "drawer",
+  "hover",
+  "mix",
+  "mobile",
+];
+
+export const isValidLayout = (
+  layout: string | undefined,
+): layout is LayoutType => {
+  return !!layout && validLayouts.includes(layout as LayoutType);
+};
 
 export function useLayout() {
   const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
@@ -61,18 +74,16 @@ export function useLayout() {
   const layout = computed<LayoutType>(() => {
     const fallbackLayout: LayoutType = "vertical";
 
-    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as
-      | string
-      | undefined;
-    if (rawLayout && (validLayouts as string[]).includes(rawLayout)) {
-      return rawLayout as LayoutType;
+    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as string | undefined;
+    if (isValidLayout(rawLayout)) {
+      return rawLayout;
     }
 
     return fallbackLayout;
   });
 
   const layoutTheme = computed<StorageLayout | undefined>(() => {
-    return $storage?.layout;
+    return $storage?.layout as StorageLayout | undefined;
   });
 
   return {

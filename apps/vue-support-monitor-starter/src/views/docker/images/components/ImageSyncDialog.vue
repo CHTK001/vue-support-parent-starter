@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleProxy"
     title="同步镜像"
@@ -49,8 +49,7 @@
               <span
                 >{{ server.monitorSysGenServerHost }}:{{
                   server.monitorSysGenServerPort
-                }}</span
-              >
+                }}</span>
             </div>
             <div v-if="server.monitorSysGenServerTags" class="server-info-row">
               <IconifyIconOnline icon="ri:price-tag-3-line" class="info-icon" />

@@ -1,15 +1,8 @@
 ﻿<script setup>
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 // 引入 Vue 的响应式和生命周期相关函数
-import {
-  computed,
-  defineAsyncComponent,
-  nextTick,
-  reactive,
-  ref,
-  watch,
-} from "vue";
+import { computed, defineAsyncComponent, nextTick, reactive, ref, watch } from "vue";
 // 引入获取用户日志分页数据的 API 函数
 import { fetchPageLog } from "@repo/core";
 // 引入国际化转换函数
@@ -40,20 +33,7 @@ const form = reactive({
 
 // 计算图标样式类
 const iconClass = computed(() => {
-  return [
-    "w-[22px]",
-    "h-[22px]",
-    "flex",
-    "justify-center",
-    "items-center",
-    "outline-none",
-    "rounded-[4px]",
-    "cursor-pointer",
-    "transition-colors",
-    "hover:bg-[#0000000f]",
-    "dark:hover:bg-[#ffffff1f]",
-    "dark:hover:text-[#ffffffd9]",
-  ];
+  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
 });
 
 // 定义模态框显示状态的对象
@@ -93,7 +73,7 @@ watch(
     form.startDate = newValue?.[0];
     form.endDate = newValue?.[1];
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 
 // 定义表单的引用
@@ -130,7 +110,7 @@ const onSearch = debounce(
     table.value.reload(form);
   },
   1000,
-  true,
+  true
 );
 
 /**
@@ -163,86 +143,39 @@ const moduleOptions = reactive([
 <template>
   <div class="log-main system-container modern-bg">
     <!-- 详情页组件，根据 visible.detail 控制显示 -->
-    <DetailLayout
-      v-if="visible.detail"
-      ref="detailRef"
-      :moduleOptions="moduleOptions"
-    />
-    <ScContainer class="log-container">
+    <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
+    <el-container class="log-container">
       <!-- 头部搜索区域 -->
-      <ScHeader class="log-header">
+      <el-header class="log-header">
         <div class="log-left-panel">
           <!-- 搜索表单 -->
-          <ScForm
-            ref="formRef"
-            label-width="40px"
-            :inline="true"
-            :model="form"
-            class="log-search-form"
-          >
+          <ScForm ref="formRef" label-width="40px" :inline="true" :model="form" class="log-search-form">
             <!-- 账号输入框 -->
-            <ScFormItem
-              label="账号"
-              prop="sysLogUsername"
-              class="log-form-item"
-            >
-              <ScInput
-                v-model="form.sysLogUsername"
-                placeholder="请输入账号名称"
-                clearable
-                class="log-input"
-              />
+            <ScFormItem label="账号" prop="sysLogUsername" class="log-form-item">
+              <ScInput v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="log-input" />
             </ScFormItem>
             <!-- 模块选择框 -->
             <ScFormItem label="模块" prop="sysLogFrom" class="log-form-item">
-              <ScSelect
-                v-model="form.sysLogFrom"
-                placeholder="请选择模块"
-                clearable
-                class="log-select"
-              >
-                <ScOption
-                  v-for="item in moduleOptions"
-                  :key="item.value"
-                  :value="item.value"
-                  :label="item.label"
-                >
+              <ScSelect v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="log-select">
+                <ScOption v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
                   {{ item.label }}
                 </ScOption>
               </ScSelect>
             </ScFormItem>
             <!-- 状态选择框 -->
             <ScFormItem label="状态" prop="sysLogStatus" class="log-form-item">
-              <ScSelect
-                v-model="form.sysLogStatus"
-                class="log-select"
-                clearable
-              >
+              <ScSelect v-model="form.sysLogStatus" class="log-select" clearable>
                 <ScOption :value="1" label="成功">成功</ScOption>
                 <ScOption :value="0" label="失败">失败</ScOption>
               </ScSelect>
             </ScFormItem>
             <!-- IP 输入框 -->
             <ScFormItem label=" IP" prop="sysLogIp" class="log-form-item">
-              <ScInput
-                v-model="form.sysLogIp"
-                placeholder="请输入IP"
-                clearable
-                class="log-input"
-              />
+              <ScInput v-model="form.sysLogIp" placeholder="请输入IP" clearable class="log-input" />
             </ScFormItem>
             <!-- 日期时间范围选择器 -->
             <ScFormItem label="时间" prop="sysLogTime" class="log-form-item">
-              <ScDatePicker
-                v-model="sysLogTime"
-                type="datetimerange"
-                :start-placeholder="transformI18n('module.startDate')"
-                :end-placeholder="transformI18n('module.endDate')"
-                format="YYYY-MM-DD HH:mm:ss"
-                date-format="YYYY-MM-DD ddd"
-                time-format="A hh:mm:ss"
-                class="log-date-picker"
-              />
+              <ScDatePicker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" class="log-date-picker" />
             </ScFormItem>
           </ScForm>
         </div>
@@ -254,145 +187,61 @@ const moduleOptions = reactive([
                   <div class="log-flex-1" />
                   <div class="log-button-container">
                     <!-- 搜索按钮 -->
-                    <ScButton
-                      type="primary"
-                      :icon="useRenderIcon('ri:search-line')"
-                      :loading="loading.query"
-                      @click="onSearch"
-                      class="log-button log-search-button"
-                    />
+                    <ScButton type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" class="log-button log-search-button" />
                     <!-- 重置按钮 -->
-                    <ScButton
-                      :icon="useRenderIcon(Refresh)"
-                      @click="resetForm(formRef)"
-                      class="log-button log-reset-button"
-                    />
+                    <ScButton :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" class="log-button log-reset-button" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </ScHeader>
+      </el-header>
       <!-- 主体表格区域 -->
-      <ScMain class="log-main-content">
+      <el-main class="log-main-content">
         <div ref="contentRef" class="log-content">
-          <div
-            :class="[
-              visible.role
-                ? 'log-table-container-narrow'
-                : 'log-table-container-full',
-            ]"
-          >
+          <div :class="[visible.role ? 'log-table-container-narrow' : 'log-table-container-full']">
             <!-- 表格组件 -->
-            <ScTable
-              ref="table"
-              :url="fetchPageLog"
-              :rowClick="openDetail"
-              class="log-table"
-            >
+            <ScTable ref="table" :url="fetchPageLog" :rowClick="openDetail" class="log-table">
               <!-- 表格列保持不变 -->
-              <ScTableColumn
-                label="账号名称"
-                prop="sysLogUsername"
-                align="center"
-                show-overflow-tooltip
-                min-width="120px"
-              />
-              <ScTableColumn
-                label="模块"
-                prop="sysLogFrom"
-                align="center"
-                show-overflow-tooltip
-              >
+              <ScTableColumn label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
+              <ScTableColumn label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <span class="log-module-text">{{
-                    transform(row.sysLogFrom)
-                  }}</span>
+                  <span class="log-module-text">{{ transform(row.sysLogFrom) }}</span>
                 </template>
               </ScTableColumn>
               <!-- 请求 IP 列，显示物理地址和 IP 地址 -->
-              <ScTableColumn
-                label="请求IP"
-                prop="sysLogIp"
-                align="left"
-                show-overflow-tooltip
-                min-width="160px"
-              >
+              <ScTableColumn label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="160px">
                 <template #default="{ row }">
                   <div v-if="!row.sysLogAddress">
-                    <span
-                      v-if="
-                        row.sysLogIp &&
-                        registerPhysicalAddressByIp(row.sysLogIp)
-                      "
-                      >{{ ipTable[row.sysLogIp] || "-" }}</span
-                    >
+                    <span v-if="row.sysLogIp && registerPhysicalAddressByIp(row.sysLogIp)">{{ ipTable[row.sysLogIp] || "-" }}</span>
                     <span v-else>-</span>
                     <br />
-                    <span
-                      class="text-blue-400 cursor-pointer"
-                      @click.stop="handleOpenIpAddress(row.sysLogIp)"
-                      >{{ row.sysLogIp || "-" }}</span
-                    >
+                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{ row.sysLogIp || "-" }}</span>
                   </div>
                   <div v-else>
-                    <span v-if="row.sysLogIp">{{
-                      row.sysLogAddress || "-"
-                    }}</span>
+                    <span v-if="row.sysLogIp">{{ row.sysLogAddress || "-" }}</span>
                     <span v-else>-</span>
                     <br />
-                    <span
-                      class="text-blue-400 cursor-pointer"
-                      @click.stop="handleOpenIpAddress(row.sysLogIp)"
-                      >{{ row.sysLogIp || "-" }}</span
-                    >
+                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{ row.sysLogIp || "-" }}</span>
                   </div>
                   <span class="text-gray-400">{{ row.sysLogIsp }}</span>
                 </template>
               </ScTableColumn>
               <!-- 地址列 -->
-              <ScTableColumn
-                label="地址"
-                prop="sysLogUrl"
-                align="center"
-                show-overflow-tooltip
-                width="180px"
-              />
+              <ScTableColumn label="地址" prop="sysLogUrl" align="center" show-overflow-tooltip width="180px" />
               <!-- 浏览器指纹列 -->
-              <ScTableColumn
-                label="浏览器指纹"
-                prop="sysLogFingerprint"
-                align="center"
-                show-overflow-tooltip
-              />
+              <ScTableColumn label="浏览器指纹" prop="sysLogFingerprint" align="center" show-overflow-tooltip />
               <!-- 登录方式列，使用国际化转换显示值 -->
-              <ScTableColumn
-                label="登录方式"
-                prop="sysLogLoginType"
-                align="center"
-                width="140px"
-              >
+              <ScTableColumn label="登录方式" prop="sysLogLoginType" align="center" width="140px">
                 <template #default="{ row }">
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>
               </ScTableColumn>
               <!-- userAgent 列 -->
-              <ScTableColumn
-                label="userAgent"
-                prop="sysLogUa"
-                align="center"
-                show-overflow-tooltip
-                min-width="120px"
-              />
+              <ScTableColumn label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip min-width="120px" />
               <!-- 请求时间列，显示时间差和具体时间 -->
-              <ScTableColumn
-                label="请求时间"
-                prop="createTime"
-                align="left"
-                show-overflow-tooltip
-                min-width="120px"
-              >
+              <ScTableColumn label="请求时间" prop="createTime" align="left" show-overflow-tooltip min-width="120px">
                 <template #default="{ row }">
                   <div>
                     <span>{{ getTimeAgo(row.createTime) }}</span>
@@ -402,43 +251,25 @@ const moduleOptions = reactive([
                 </template>
               </ScTableColumn>
               <!-- 状态列，根据状态显示不同标签 -->
-              <ScTableColumn
-                label="状态"
-                prop="sysLogStatus"
-                align="center"
-                width="100px"
-                show-overflow-tooltip
-              >
+              <ScTableColumn label="状态" prop="sysLogStatus" align="center" width="100px" show-overflow-tooltip>
                 <template #default="{ row }">
-                  <ScTag v-if="row.sysLogStatus === 1" type="success"
-                    >成功</ScTag
-                  >
-                  <ScTag v-else-if="row.sysLogStatus === 0" type="danger"
-                    >失败</ScTag
-                  >
+                  <ScTag v-if="row.sysLogStatus === 1" type="success">成功</ScTag>
+                  <ScTag v-else-if="row.sysLogStatus === 0" type="danger">失败</ScTag>
                 </template>
               </ScTableColumn>
               <!-- 耗时列，根据耗时显示不同标签 -->
               <ScTableColumn label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
-                  <ScTag v-if="row.sysLogCost <= 1000" type="success"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
-                  <ScTag
-                    v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
-                    type="warning"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
-                  <ScTag v-else type="danger"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag
-                  >
+                  <ScTag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</ScTag>
+                  <ScTag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost || 0 }} ms</ScTag>
+                  <ScTag v-else type="danger">{{ row.sysLogCost || 0 }} ms</ScTag>
                 </template>
               </ScTableColumn>
             </ScTable>
           </div>
         </div>
-      </ScMain>
-    </ScContainer>
+      </el-main>
+    </el-container>
   </div>
 </template>
 
@@ -484,8 +315,7 @@ const moduleOptions = reactive([
   flex-direction: column;
   border-radius: 14px;
   background: color-mix(in srgb, var(--el-bg-color-overlay) 95%, transparent);
-  border: 1px solid
-    color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
   backdrop-filter: blur(8px);
   overflow: hidden;
@@ -499,8 +329,7 @@ const moduleOptions = reactive([
     rgba(64, 158, 255, 0.08),
     rgba(64, 158, 255, 0.04)
   );
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--el-border-color-lighter) 60%, transparent);
   height: auto !important;
   max-height: 180px;
   transition: all 0.3s ease;
@@ -638,9 +467,7 @@ const moduleOptions = reactive([
 
   :deep(.el-table__row) {
     animation: log-fade-in 0.3s ease-out forwards;
-    animation-delay: calc(
-      var(--el-transition-duration) * 0.05 * var(--row-index, 0)
-    );
+    animation-delay: calc(var(--el-transition-duration) * 0.05 * var(--row-index, 0));
   }
 }
 

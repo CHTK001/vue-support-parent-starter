@@ -97,11 +97,11 @@
    - @pureadmin/utils
 
 2. **各模块只保留特有依赖**
-   - pages/sync: @repo/scReteEditor
+   - pages/sync: @repo/components/ScReteEditor
    - pages/dict: pinyin-pro
    - pages/pay: 支付相关特有依赖
 
-3. **统一使用 @repo/components**
+3. **统一使用 @repo/components/xxx 子路径**
    - 避免各模块重复实现相同组件
    - 共享组件统一维护
 

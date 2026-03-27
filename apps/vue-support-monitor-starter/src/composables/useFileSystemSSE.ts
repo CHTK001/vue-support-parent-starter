@@ -1,10 +1,10 @@
 import { ref, reactive, onUnmounted } from "vue";
-import { message } from "@repo/utils";
 import type {
   FileSystemRealtimeStatus,
   UploadQueueStatus,
   FileSystem,
-} from "@/api/monitor/filesystem";
+} from "@pages/system";
+import { message } from "@repo/utils";
 import { getConfig } from "@repo/config";
 
 // SSE连接状态

@@ -1,11 +1,9 @@
 ﻿<script setup>
 import Error from "@repo/assets/images/error.png";
 import Wait from "@repo/assets/images/wait.apng";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { checkImage } from "@repo/utils";
-import { VideoPlayer } from "@videojs-player/vue";
 import { api as viewerApi } from "v-viewer";
-import "video.js/dist/video-js.css";
 import "viewerjs/dist/viewer.css";
 import { reactive } from "vue";
 
@@ -135,45 +133,19 @@ const handleDownload = (url, localUrl) => {
 
 <template>
   <div class="media-display">
-    <div
-      v-for="(item, index) in mediaCount"
-      :key="index"
-      class="media-item cursor-pointer relative"
-      @mouseover="toolShow[`${rowId}_${index}`] = true"
-      @mouseleave="toolShow[`${rowId}_${index}`] = false"
-    >
+    <div v-for="(item, index) in mediaCount" :key="index" class="media-item cursor-pointer relative" @mouseover="toolShow[`${rowId}_${index}`] = true" @mouseleave="toolShow[`${rowId}_${index}`] = false">
       <!-- 占位符显示 (仅在生成中且没有实际媒体数据时显示) -->
-      <div
-        v-if="isGenerating && placeholderData[index] && !mediaUrls[index]"
-        class="placeholder-container media-content-fallback"
-      >
+      <div v-if="isGenerating && placeholderData[index] && !mediaUrls[index]" class="placeholder-container media-content-fallback">
         <div class="placeholder-content">
-          <b class="progress-text"
-            >进度: {{ placeholderData[index]?.progress || 10 }}%</b
-          >
-          <div
-            class="placeholder-image-wrapper"
-            :style="{
-              transform:
-                'translateY(' +
-                (100 - (placeholderData[index]?.progress || 10)) +
-                '%)',
-            }"
-          >
+          <b class="progress-text">进度: {{ placeholderData[index]?.progress || 10 }}%</b>
+          <div class="placeholder-image-wrapper" :style="{ transform: 'translateY(' + (100 - (placeholderData[index]?.progress || 10)) + '%)' }">
             <img :src="Wait" class="placeholder-image" />
           </div>
         </div>
       </div>
 
       <!-- 图片展示 -->
-      <ScImage
-        v-else-if="
-          mediaType === 'VINCENT' && (mediaUrls[index] || localMediaUrls[index])
-        "
-        :src="mediaUrls[index]"
-        class="media-content"
-        @click.prevent="handlePreview(mediaUrls[index], localMediaUrls[index])"
-      >
+      <ScImage v-else-if="mediaType === 'VINCENT' && (mediaUrls[index] || localMediaUrls[index])" :src="mediaUrls[index]" class="media-content" @click.prevent="handlePreview(mediaUrls[index], localMediaUrls[index])">
         <template #error>
           <ScImage :src="localMediaUrls[index]" class="media-content-fallback">
             <template #error>
@@ -184,49 +156,25 @@ const handleDownload = (url, localUrl) => {
       </ScImage>
 
       <!-- 视频展示 -->
-      <VideoPlayer
+      <video
         v-else-if="mediaType === 'VIDEO' && mediaUrls[index]"
-        :controlBar="{
-          timeDivider: true,
-          durationDisplay: true,
-          remainingTimeDisplay: true,
-          fullscreenToggle: true,
-        }"
-        notSupportedMessage="此视频暂无法播放，请稍后再试"
-        :height="261"
-        :width="261"
         :src="mediaUrls[index]"
         controls
-        :autoplay="false"
-        language="cn"
-        :playbackRates="[0.5, 1, 1.5, 2]"
+        preload="metadata"
         class="video-player"
-      />
+      >
+        此视频暂无法播放，请稍后再试
+      </video>
 
       <ScImage v-else :src="Error" class="media-content-fallback"></ScImage>
 
       <!-- 鼠标悬停显示的操作按钮 -->
-      <div
-        class="hover-tools"
-        v-if="toolShow[`${rowId}_${index}`] && mediaUrls[index]"
-      >
+      <div class="hover-tools" v-if="toolShow[`${rowId}_${index}`] && mediaUrls[index]">
         <ScTooltip content="查看" placement="top">
-          <ScButton
-            circle
-            size="small"
-            :icon="useRenderIcon('ep:view')"
-            @click.stop="handlePreview(mediaUrls[index], localMediaUrls[index])"
-          ></ScButton>
+          <ScButton circle size="small" :icon="useRenderIcon('ep:view')" @click.stop="handlePreview(mediaUrls[index], localMediaUrls[index])"></ScButton>
         </ScTooltip>
         <ScTooltip content="下载" placement="top">
-          <ScButton
-            circle
-            size="small"
-            :icon="useRenderIcon('ep:download')"
-            @click.stop="
-              handleDownload(mediaUrls[index], localMediaUrls[index])
-            "
-          ></ScButton>
+          <ScButton circle size="small" :icon="useRenderIcon('ep:download')" @click.stop="handleDownload(mediaUrls[index], localMediaUrls[index])"></ScButton>
         </ScTooltip>
       </div>
     </div>

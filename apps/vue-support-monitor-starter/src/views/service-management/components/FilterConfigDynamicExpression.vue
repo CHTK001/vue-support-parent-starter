@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleInner"
     title="动态表达式过滤器配置"
@@ -14,22 +14,22 @@
           基础配置
         </h4>
         <div class="config-grid">
-          <ScFormItem label="启用状态">
-            <ScSwitch v-model="config.enabled" />
-          </ScFormItem>
-          <ScFormItem label="表达式类型">
-            <ScSelect v-model="config.type" style="width: 180px">
-              <ScOption label="Java" value="java" />
-              <ScOption label="Groovy" value="groovy" />
-              <ScOption label="JavaScript" value="js" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="指纹(可选)">
-            <ScInput
+          <el-form-item label="启用状态">
+            <el-switch v-model="config.enabled" />
+          </el-form-item>
+          <el-form-item label="表达式类型">
+            <el-select v-model="config.type" style="width: 180px">
+              <el-option label="Java" value="java" />
+              <el-option label="Groovy" value="groovy" />
+              <el-option label="JavaScript" value="js" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="指纹(可选)">
+            <el-input
               v-model="config.fingerprint"
               placeholder="用于热重载比对的标识，可留空自动生成"
             />
-          </ScFormItem>
+          </el-form-item>
         </div>
       </div>
 
@@ -62,18 +62,17 @@
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <ScCard class="config-preview thin-scrollbar">
+        <el-card class="config-preview thin-scrollbar">
           <pre>{{ JSON.stringify(previewConfig, null, 2) }}</pre>
-        </ScCard>
+        </el-card>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">取消</ScButton>
-        <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存配置</ScButton
-        >
+        <el-button @click="handleClose">取消</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSave"
+          >保存配置</el-button>
       </div>
     </template>
   </sc-dialog>
@@ -132,7 +131,7 @@ watch(
     visibleInner.value = v;
     if (v) await loadData();
   },
-  { immediate: true },
+  { immediate: true }
 );
 watch(visibleInner, (v) => emit("update:visible", v));
 
@@ -289,6 +288,7 @@ function handleClose() {
   padding: 10px 24px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -297,4 +297,5 @@ function handleClose() {
     padding: 12px 16px;
   }
 }
+
 </style>

@@ -172,8 +172,7 @@
                       <span
                         class="detail-value"
                         :class="getEnvironmentClass(row.version)"
-                        >java {{ row.version || "N/A" }}</span
-                      >
+                        >java {{ row.version || "N/A" }}</span>
                     </div>
                   </div>
                   <div class="detail-item">

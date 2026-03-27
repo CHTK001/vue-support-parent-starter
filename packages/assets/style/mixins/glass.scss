@@ -1,0 +1,66 @@
+@mixin glass($opacity: 0.6, $blur: 16px, $border-opacity: 0.1) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid rgba(255, 255, 255, $border-opacity);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+
+  html.dark & {
+    background: rgba(15, 23, 42, $opacity); // Darker slate base
+    border-color: rgba(255, 255, 255, $border-opacity);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@mixin glass-frost {
+  @include glass(0.4, 10px, 0.2);
+}
+
+@mixin glass-deep {
+  @include glass(0.8, 24px, 0.1);
+}
+
+@mixin glass-aerogel {
+  @include glass(0.2, 4px, 0.05);
+}
+
+@mixin glass-card {
+  @include glass(0.7, 16px, 0.2);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    html.dark & {
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+@mixin neon-border($color: #3b82f6) {
+  border-color: $color;
+  box-shadow: 0 0 0 1px $color, 0 0 8px rgba($color, 0.4);
+}
+
+@mixin glass-input {
+  @include glass(0.4, 8px, 0.1);
+  color: inherit;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.5);
+    html.dark & {
+      background: rgba(30, 41, 59, 0.5);
+    }
+  }
+
+  &:focus, &:focus-within {
+    outline: none;
+    @include glass(0.6, 12px, 0.3);
+    @include neon-border(var(--el-color-primary));
+  }
+}

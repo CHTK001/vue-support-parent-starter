@@ -5,6 +5,9 @@ import type { LanguageConfig } from "@repo/config";
 import Check from "@iconify-icons/ep/check";
 import { useDefer } from "@repo/utils";
 import { computed } from "vue";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
 import { ScText } from "@repo/components/ScText";
 
 const { locale, translation } = useTranslationLang();

@@ -12,54 +12,20 @@
         <component :is="useRenderIcon('ri:list-settings-fill')" />
       </ScIcon>
     </div>
-    <div
-      class="device-camera-tool"
-      v-if="isShow"
-      :class="{ 'device-camera-tool-show': isShow }"
-    >
+    <div class="device-camera-tool" v-if="isShow" :class="{ 'device-camera-tool-show': isShow }">
       <ScForm :inline="true" class="device-camera-form">
         <ScFormItem>
-          <ScSelect
-            size="small"
-            class="device-camera-select"
-            v-model="playSetting.sysDeviceId"
-            @change="handleChangeDeviceId"
-            placeholder="选择设备"
-            clearable
-          >
-            <ScOption
-              v-for="device in devices"
-              :key="device.sysDeviceId"
-              :label="device.sysDeviceName"
-              :value="device.sysDeviceId"
-            ></ScOption>
+          <ScSelect size="small" class="device-camera-select" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId" placeholder="选择设备" clearable>
+            <ScOption v-for="device in devices" :key="device.sysDeviceId" :label="device.sysDeviceName" :value="device.sysDeviceId"></ScOption>
           </ScSelect>
         </ScFormItem>
         <ScFormItem v-if="playSetting.sysDeviceId">
-          <ScSelect
-            size="small"
-            class="device-camera-select"
-            v-model="playSetting.channelNo"
-            placeholder="选择通道"
-            clearable
-          >
-            <ScOption
-              v-for="item in getChannel"
-              :key="item.sysDeviceChannelId"
-              :label="item.sysDeviceChannelName"
-              :value="item.sysDeviceChannelNo"
-            >
-            </ScOption>
+          <ScSelect size="small" class="device-camera-select" v-model="playSetting.channelNo" placeholder="选择通道" clearable>
+            <ScOption v-for="item in getChannel" :key="item.sysDeviceChannelId" :label="item.sysDeviceChannelName" :value="item.sysDeviceChannelNo"> </ScOption>
           </ScSelect>
         </ScFormItem>
         <ScFormItem v-if="playSetting.sysDeviceId">
-          <ScSelect
-            size="small"
-            class="device-camera-select"
-            v-model="playSetting.subtype"
-            placeholder="选择通道"
-            clearable
-          >
+          <ScSelect size="small" class="device-camera-select" v-model="playSetting.subtype" placeholder="选择通道" clearable>
             <ScOption label="主码流" :value="getMainSubtype"></ScOption>
             <ScOption label="子码流" :value="getSubSubtype"></ScOption>
           </ScSelect>
@@ -67,38 +33,20 @@
       </ScForm>
     </div>
     <div v-if="hideVideo" class="device-camera-placeholder">
-      <ScButton
-        @click="handlePlayer"
-        :icon="useRenderIcon('ri:play-line')"
-        class="device-camera-play-button"
-      ></ScButton>
+      <ScButton @click="handlePlayer" :icon="useRenderIcon('ri:play-line')" class="device-camera-play-button"></ScButton>
     </div>
     <div v-else class="device-camera-video-wrapper">
-      <video
-        :id="'video' + diff"
-        ref="videoPlayer"
-        controls
-        class="device-camera-video"
-      ></video>
+      <video :id="'video' + diff" ref="videoPlayer" controls class="device-camera-video"></video>
     </div>
   </div>
 </template>
 
 <!--脚本部分保持不变-->
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import Hls from "hls.js";
-import {
-  computed,
-  defineExpose,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  reactive,
-  shallowRef,
-  watch,
-} from "vue";
+import { computed, defineExpose, nextTick, onMounted, onUnmounted, reactive, shallowRef, watch } from "vue";
 import { fetchGetProjectForDevicePreviewUrl } from "../../../../api/manage/project-device";
 const props = defineProps({
   form: {
@@ -154,7 +102,7 @@ watch(
   {
     deep: true,
     immediate: true,
-  },
+  }
 );
 watch(
   playSetting.channelNo,
@@ -164,7 +112,7 @@ watch(
   {
     deep: true,
     immediate: true,
-  },
+  }
 );
 watch(
   playSetting.subtype,
@@ -174,7 +122,7 @@ watch(
   {
     deep: true,
     immediate: true,
-  },
+  }
 );
 
 onMounted(async () => {
@@ -182,24 +130,15 @@ onMounted(async () => {
 });
 
 const getChannel = computed(() => {
-  return (
-    props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]
-      ?.channelList || []
-  ).filter((it) => it.sysDeviceChannelUse == 1);
+  return (props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.channelList || []).filter((it) => it.sysDeviceChannelUse == 1);
 });
 
 const getMainSubtype = computed(() => {
-  return (
-    props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]
-      ?.sysDeviceMainSubtype || 0
-  );
+  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceMainSubtype || 0;
 });
 
 const getSubSubtype = computed(() => {
-  return (
-    props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]
-      ?.sysDeviceSubSubtype || 1
-  );
+  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceSubSubtype || 1;
 });
 
 const handlePlayer = async () => {
@@ -218,10 +157,7 @@ const handlePlayer = async () => {
   handlePreviewUrl();
 };
 const handlePreviewUrl = async () => {
-  const device =
-    props.devices.filter(
-      (it) => it.sysDeviceId == playSetting.sysDeviceId,
-    )[0] || {};
+  const device = props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0] || {};
   if (device.sysDeviceRtsp) {
     const url = device.sysDeviceRtsp.replace(/\$\{(\w+)\}/g, (match, key) => {
       return device[key] || playSetting[key] || match; // 如果没有找到对应的键，则保留原值
@@ -232,11 +168,7 @@ const handlePreviewUrl = async () => {
     return;
   }
   const newForm = {};
-  Object.assign(newForm, props.form, {
-    sysDeviceId: playSetting.sysDeviceId,
-    channelNo: playSetting.channelNo,
-    subtype: playSetting.subtype,
-  });
+  Object.assign(newForm, props.form, { sysDeviceId: playSetting.sysDeviceId, channelNo: playSetting.channelNo, subtype: playSetting.subtype });
   fetchGetProjectForDevicePreviewUrl(newForm)
     .then((res) => {
       _autoPlay.value = true;
@@ -250,10 +182,7 @@ const handlePreviewUrl = async () => {
 
 const handleVideo = async (device) => {
   nextTick(() => {
-    if (
-      playSetting.previewUrl.startsWith("http://") ||
-      playSetting.previewUrl.startsWith("https://")
-    ) {
+    if (playSetting.previewUrl.startsWith("http://") || playSetting.previewUrl.startsWith("https://")) {
       handlePlayHls();
       return;
     }
@@ -261,9 +190,7 @@ const handleVideo = async (device) => {
     if (playSetting.previewUrl.startsWith("rtsp://")) {
       if (!device.sysDeviceRtspWebrtc) {
         _autoPlay.value = false;
-        message("暂不支持rtsp, 需要本地安装webrtc-streamer", {
-          type: "warning",
-        });
+        message("暂不支持rtsp, 需要本地安装webrtc-streamer", { type: "warning" });
         return;
       }
       handlePlayWebRtcRtsp(device);
@@ -274,10 +201,7 @@ const webRtcServer = shallowRef();
 const isShow = shallowRef(false);
 
 const handlePlayWebRtcRtsp = async (device) => {
-  webRtcServer.value = new WebRtcStreamer(
-    "video" + props.diff,
-    device.sysDeviceRtspWebrtc,
-  );
+  webRtcServer.value = new WebRtcStreamer("video" + props.diff, device.sysDeviceRtspWebrtc);
   webRtcServer.value.connect(playSetting.previewUrl);
 };
 onUnmounted(() => {
@@ -290,8 +214,7 @@ const handleOpen = async (_isFullscreen) => {
   if (props.devices.length == 1) {
     playSetting.sysDeviceId = props.devices[0]?.sysDeviceId;
     playSetting.subtype = getMainSubtype;
-    playSetting.channelNo =
-      props.devices[0]?.channelList[0]?.sysDeviceChannelNo;
+    playSetting.channelNo = props.devices[0]?.channelList[0]?.sysDeviceChannelNo;
   }
 };
 
@@ -411,11 +334,7 @@ defineExpose({
     0 8px 30px rgba(0, 0, 0, 0.15),
     0 4px 10px rgba(0, 0, 0, 0.12);
   transition: all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
-  background: linear-gradient(
-    145deg,
-    rgba(20, 20, 20, 0.6),
-    rgba(10, 10, 10, 0.8)
-  );
+  background: linear-gradient(145deg, rgba(20, 20, 20, 0.6), rgba(10, 10, 10, 0.8));
 
   &::after {
     content: "";
@@ -424,12 +343,7 @@ defineExpose({
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.05),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
     background-size: 200% 100%;
     animation: device-camera-shine 8s linear infinite;
     pointer-events: none;
@@ -491,11 +405,7 @@ defineExpose({
     left: -1px;
     right: -1px;
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      rgba(var(--el-color-primary-rgb), 0.5),
-      transparent
-    );
+    background: linear-gradient(90deg, rgba(var(--el-color-primary-rgb), 0.5), transparent);
     border-radius: 12px 12px 0 0;
   }
 }
@@ -553,11 +463,7 @@ defineExpose({
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(
-      circle at center,
-      rgba(50, 50, 50, 0.4) 0%,
-      rgba(10, 10, 10, 0.9) 80%
-    );
+    background: radial-gradient(circle at center, rgba(50, 50, 50, 0.4) 0%, rgba(10, 10, 10, 0.9) 80%);
     z-index: 1;
   }
 }
@@ -590,12 +496,7 @@ defineExpose({
     right: -8px;
     bottom: -8px;
     border-radius: 50%;
-    background: linear-gradient(
-      45deg,
-      rgba(var(--el-color-primary-rgb), 0.3),
-      rgba(var(--el-color-primary-rgb), 0.1),
-      rgba(var(--el-color-primary-rgb), 0.3)
-    );
+    background: linear-gradient(45deg, rgba(var(--el-color-primary-rgb), 0.3), rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.3));
     z-index: -1;
     animation: device-camera-rotate 8s linear infinite;
     opacity: 0.6;

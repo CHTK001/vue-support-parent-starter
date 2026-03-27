@@ -115,6 +115,8 @@ export interface PlatformConfigs {
   SidebarStatus?: boolean;
   /** 是否显示卡片边框 */
   CardBody?: boolean;
+  /** 卡片布局颜色模式 */
+  CardColorMode?: "all" | "third" | "white";
   /** 内容区边距 */
   contentMargin?: number;
   /** 是否显示FPS监控 */
@@ -219,8 +221,6 @@ export interface PlatformConfigs {
   NewMenuTimeLimit?: number;
   /** 新菜单动画类型 */
   NewMenuAnimation?: "none" | "bounce" | "pulse" | "shake";
-  /** 是否开启菜单动画 */
-  MenuAnimation?: boolean;
   /** 强制显示新菜单（测试用） */
   ForceNewMenu?: boolean;
 

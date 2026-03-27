@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="图片裁剪"
@@ -61,8 +61,7 @@
     <template #footer>
       <ScButton @click="visible = false">取消</ScButton>
       <ScButton type="primary" :loading="processing" @click="handleCrop"
-        >确定裁剪</ScButton
-      >
+        >确定裁剪</ScButton>
     </template>
   </sc-dialog>
 </template>

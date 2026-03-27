@@ -6,28 +6,30 @@
         <h3 class="server-name">{{ server?.name || "未知服务器" }}</h3>
         <div class="server-details">
           <span class="server-address"
-            >{{ server?.host }}:{{ server?.port }}</span
+            >{{ server?.host }}:{{ server?.port }}</span>
+          <el-tag
+            :type="getOnlineStatusType(server?.onlineStatus)"
+            size="small"
           >
-          <ScTag :type="getOnlineStatusType(server?.onlineStatus)" size="small">
             {{ getOnlineStatusText(server?.onlineStatus) }}
-          </ScTag>
-          <ScTag type="info" size="small">{{ server?.protocol }}</ScTag>
+          </el-tag>
+          <el-tag type="info" size="small">{{ server?.protocol }}</el-tag>
         </div>
       </div>
       <div class="monitor-actions">
-        <ScButton size="small" @click="refreshMetrics">
+        <el-button size="small" @click="refreshMetrics">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </ScButton>
-        <ScButton size="small" @click="$emit('close')">
+        </el-button>
+        <el-button size="small" @click="$emit('close')">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
-        </ScButton>
+        </el-button>
       </div>
     </div>
 
     <!-- 指标卡片 -->
-    <div v-loading="loading" class="metrics-grid modern-scrollbar">
+    <div class="metrics-grid modern-scrollbar" v-loading="loading">
       <!-- CPU使用率 -->
       <div class="metric-card">
         <div class="metric-header">
@@ -41,7 +43,7 @@
           >
             {{ cpuAnimation.formattedValue.value }}
           </div>
-          <ScProgress
+          <el-progress
             :percentage="cpuAnimation.displayValue.value"
             :color="getProgressColor(cpuAnimation.displayValue.value, 'cpu')"
             :show-text="false"
@@ -66,7 +68,7 @@
           >
             {{ memoryAnimation.formattedValue.value }}
           </div>
-          <ScProgress
+          <el-progress
             :percentage="memoryAnimation.displayValue.value"
             :color="
               getProgressColor(memoryAnimation.displayValue.value, 'memory')
@@ -87,9 +89,8 @@
           <span class="metric-title"
             >磁盘使用情况
             <span class="partitions-count"
-              >{{ diskPartitions.length }} 个分区</span
-            ></span
-          >
+              >{{ diskPartitions.length }} 个分区</span>
+            ></span>
         </div>
 
         <!-- 磁盘分区列表 -->
@@ -110,9 +111,9 @@
                     <span class="partition-name">{{
                       partition.name || partition.mount
                     }}</span>
-                    <ScTag size="small" type="info" class="partition-type">
+                    <el-tag size="small" type="info" class="partition-type">
                       {{ partition.type }}
-                    </ScTag>
+                    </el-tag>
                   </div>
                   <div
                     class="partition-usage"
@@ -143,14 +144,12 @@
             <div class="network-item">
               <span class="network-label">入站:</span>
               <span class="network-value"
-                >{{ formatBytes(metrics?.network?.in) }}/s</span
-              >
+                >{{ formatBytes(metrics?.network?.in) }}/s</span>
             </div>
             <div class="network-item">
               <span class="network-label">出站:</span>
               <span class="network-value"
-                >{{ formatBytes(metrics?.network?.out) }}/s</span
-              >
+                >{{ formatBytes(metrics?.network?.out) }}/s</span>
             </div>
           </div>
           <div class="metric-details">
@@ -203,7 +202,7 @@
       </div>
 
       <!-- 温度信息 -->
-      <div v-if="metrics?.temperature" class="metric-card">
+      <div class="metric-card" v-if="metrics?.temperature">
         <div class="metric-header">
           <IconifyIconOnline icon="ri:temp-hot-line" class="metric-icon" />
           <span class="metric-title">温度</span>
@@ -212,11 +211,11 @@
           <div class="metric-value">
             {{ Math.round(metrics?.temperature || 0) }}°C
           </div>
-          <ScProgress
+          <el-progress
             :percentage="
               Math.min(
                 Math.round(((metrics?.temperature || 0) / 100) * 100),
-                100,
+                100
               )
             "
             :color="getProgressColor(metrics?.temperature || 0, 'temperature')"
@@ -227,7 +226,7 @@
     </div>
 
     <!-- 最后更新时间 -->
-    <div v-if="metrics?.collectTime" class="update-time">
+    <div class="update-time" v-if="metrics?.collectTime">
       <IconifyIconOnline icon="ri:time-line" class="mr-1" />
       最后更新: {{ formatTime(metrics.collectTime) }}
     </div>
@@ -368,37 +367,37 @@ watch(
       updateAnimationValueSafely(
         cpuAnimation,
         newMetrics.cpu?.usage,
-        oldMetrics?.cpu?.usage,
+        oldMetrics?.cpu?.usage
       );
       updateAnimationValueSafely(
         memoryAnimation,
         newMetrics.memory?.usage,
-        oldMetrics?.memory?.usage,
+        oldMetrics?.memory?.usage
       );
       updateAnimationValueSafely(
         diskAnimation,
         newMetrics.disk?.usage,
-        oldMetrics?.disk?.usage,
+        oldMetrics?.disk?.usage
       );
       updateAnimationValueSafely(
         networkInAnimation,
         newMetrics.network?.in,
-        oldMetrics?.network?.in,
+        oldMetrics?.network?.in
       );
       updateAnimationValueSafely(
         networkOutAnimation,
         newMetrics.network?.out,
-        oldMetrics?.network?.out,
+        oldMetrics?.network?.out
       );
       updateAnimationValueSafely(
         uptimeAnimation,
         newMetrics.uptime,
-        oldMetrics?.uptime,
+        oldMetrics?.uptime
       );
       updateAnimationValueSafely(
         processCountAnimation,
         newMetrics.processCount,
-        oldMetrics?.processCount,
+        oldMetrics?.processCount
       );
 
       // 温度数据特殊处理
@@ -416,12 +415,12 @@ watch(
       }
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 // 方法
 const getOnlineStatusType = (
-  status: number,
+  status: number
 ): "success" | "warning" | "info" | "primary" | "danger" => {
   const statusMap: Record<
     number,
@@ -494,7 +493,7 @@ const getTempColor = (temp: number) => {
 const updateAnimationValueSafely = (
   animation: any,
   newValue: any,
-  oldValue: any,
+  oldValue: any
 ) => {
   // 如果新值有效，使用新值
   if (newValue !== undefined && newValue !== null && !isNaN(Number(newValue))) {
@@ -710,6 +709,7 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -742,6 +742,7 @@ onUnmounted(() => {
     z-index: 1;
   }
 }
+
 
 .server-monitor {
   height: 100%;

@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, defineExpose, computed, onMounted, onUnmounted } from "vue";
+import { ref, nextTick, computed, onMounted, onUnmounted } from "vue";
 
 // 定义props
 const props = defineProps({

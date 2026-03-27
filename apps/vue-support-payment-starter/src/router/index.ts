@@ -8,22 +8,74 @@ const routes = [
   {
     path: "/home",
     name: "HomeView",
-    component: () => import("@/views/HomeView.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentHomePage;
+    },
   },
   {
     path: "/merchants",
     name: "MerchantList",
-    component: () => import("@/views/MerchantList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentMerchantPage;
+    },
   },
   {
     path: "/orders",
     name: "OrderList",
-    component: () => import("@/views/OrderList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentOrderPage;
+    },
+  },
+  {
+    path: "/refunds",
+    name: "RefundList",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentRefundPage;
+    },
   },
   {
     path: "/transactions",
     name: "TransactionList",
-    component: () => import("@/views/TransactionList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentTransactionPage;
+    },
+  },
+  {
+    path: "/wallet-console",
+    name: "WalletConsole",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWalletConsolePage;
+    },
+  },
+  {
+    path: "/wechat-pay-score",
+    name: "WechatPayScoreList",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWechatPayScorePage;
+    },
+  },
+  {
+    path: "/wallet-orders",
+    name: "WalletOrderList",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWalletOrderPage;
+    },
+  },
+  {
+    path: "/operations",
+    name: "OperationsCenter",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentOperationsCenterPage;
+    },
   },
 ];
 

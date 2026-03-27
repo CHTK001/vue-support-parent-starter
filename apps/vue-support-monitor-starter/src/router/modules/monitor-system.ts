@@ -1,4 +1,4 @@
-﻿import { $t } from "@repo/config";
+import { t } from "@repo/config";
 
 export default [
   {
@@ -28,7 +28,7 @@ export default [
             component: () => import("@/views/server/index.vue"),
             meta: {
               icon: "ri:server-line",
-              title: $t("buttons.monitor.server-management"),
+              title: t("buttons.monitor.server-management"),
               showLink: true,
               showParent: true,
             },
@@ -36,7 +36,10 @@ export default [
           {
             path: "/server/file-system",
             name: "serverFileSystem",
-            component: () => import("@/views/file-system/index.vue"),
+            component: async () => {
+              const { SystemFileSystem } = await import("@pages/system");
+              return SystemFileSystem;
+            },
             meta: {
               icon: "ri:file-list-3-line",
               title: "文件系统管理",

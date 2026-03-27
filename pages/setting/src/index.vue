@@ -1,25 +1,12 @@
 ﻿<script setup lang="ts">
-import {
-  computed,
-  defineComponent,
-  defineAsyncComponent,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  shallowRef,
-  watch,
-} from "vue";
+import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 // 将同步组件改为异步组件
 const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
 
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { localStorageProxy, message, ScLoading } from "@repo/utils";
-import { getConfig } from "@repo/config";
-import { useRenderIcon } from "@repo/components/ReIcon";
 
 import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
@@ -41,7 +28,7 @@ watch(
   (newVal) => {
     headerVisible.value = !newVal;
   },
-  { immediate: false },
+  { immediate: false }
 );
 
 const config = reactive({
@@ -108,35 +95,7 @@ const defaultProductsConfig = [
 const productsConfig = reactive([]);
 
 const products = computed(() => {
-  const cfg = getConfig();
-  const enableThemeManagement = cfg.EnableThemeManagement !== false;
-  const enableEmail = cfg.OpenSettingEmail !== false;
-  const enableSms = cfg.OpenSettingSms !== false;
-  const enableLlm = cfg.OpenSettingLlm !== false;
-  const enableRefreshToken = cfg.OpenShowRefreshToken !== false;
-
-  return productsConfig.filter((it) => {
-    if (it.hide) {
-      return false;
-    }
-    if (it.group === "theme" && !enableThemeManagement) {
-      return false;
-    }
-    if (it.group === "email" && !enableEmail) {
-      return false;
-    }
-    if (it.group === "sms" && !enableSms) {
-      return false;
-    }
-    if (it.group === "llm" && !enableLlm) {
-      return false;
-    }
-    // 可选：如果后端为刷新 token 提供了单独的配置组，可以通过 OpenShowRefreshToken 控制展示
-    if (it.group === "token" && !enableRefreshToken) {
-      return false;
-    }
-    return true;
-  });
+  return productsConfig.filter((it) => !it.hide);
 });
 const saveLayoutRef = ref();
 
@@ -146,19 +105,19 @@ const isComponentMounted = ref(false);
 const componentLoadStatus = reactive({
   saveLayout: false,
   retryCount: 0,
-  maxRetries: 3,
+  maxRetries: 3
 });
 
 // 添加加载状态
 const loadingState = reactive({
   isLoading: true,
-  loadingInstance: null,
+  loadingInstance: null
 });
 
 // 防抖控制
 const debounceState = reactive({
   timeoutId: null,
-  lastClickTime: 0,
+  lastClickTime: 0
 });
 
 const currentItem = ref();
@@ -173,11 +132,13 @@ watch(saveLayoutRef, (newVal) => {
 // 等待组件加载的函数
 const waitForComponentLoad = async (timeout = 1000) => {
   const startTime = Date.now();
-  while (!saveLayoutRef.value && Date.now() - startTime < timeout) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+  while (!saveLayoutRef.value && (Date.now() - startTime) < timeout) {
+    await new Promise(resolve => setTimeout(resolve, 50));
   }
   return !!saveLayoutRef.value;
 };
+
+
 
 // 防抖函数
 const debounceClick = (func, delay = 300) => {
@@ -185,7 +146,7 @@ const debounceClick = (func, delay = 300) => {
     const now = Date.now();
     // 如果距离上次点击时间小于防抖延迟时间，则取消执行
     if (now - debounceState.lastClickTime < delay) {
-      console.log("点击过于频繁，已阻止");
+      console.log('点击过于频繁，已阻止');
       return;
     }
 
@@ -205,7 +166,7 @@ const onRowClick = async (it) => {
   // 防抖检查
   const now = Date.now();
   if (now - debounceState.lastClickTime < 300) {
-    console.log("点击过于频繁，已阻止");
+    console.log('点击过于频繁，已阻止');
     return;
   }
   debounceState.lastClickTime = now;
@@ -213,7 +174,7 @@ const onRowClick = async (it) => {
   try {
     // 确保组件已挂载
     if (!isComponentMounted.value) {
-      console.warn("组件尚未挂载完成，稍后重试");
+      console.warn('组件尚未挂载完成，稍后重试');
       // 等待一小段时间后重试
       setTimeout(() => {
         onRowClick(it);
@@ -228,14 +189,14 @@ const onRowClick = async (it) => {
 
     // 数据验证：确保item存在且有必要的属性
     if (!item) {
-      console.error("未找到对应的配置项:", _tabValue);
-      message("配置项不存在，请刷新页面重试", { type: "error" });
+      console.error('未找到对应的配置项:', _tabValue);
+      message('配置项不存在，请刷新页面重试', { type: "error" });
       return;
     }
 
     if (!item.group) {
-      console.error("配置项缺少group属性:", item);
-      message("配置项数据异常，请联系管理员", { type: "error" });
+      console.error('配置项缺少group属性:', item);
+      message('配置项数据异常，请联系管理员', { type: "error" });
       return;
     }
 
@@ -252,28 +213,21 @@ const onRowClick = async (it) => {
       try {
         // 确保SaveLayoutRaw组件已经加载
         if (!saveLayoutRef.value) {
-          console.warn("SaveLayoutRaw组件未加载，等待组件加载...");
+          console.warn('SaveLayoutRaw组件未加载，等待组件加载...');
 
           // 等待组件加载完成，最多等待1秒
           const isLoaded = await waitForComponentLoad(1000);
 
           // 如果仍然没有加载成功，尝试重试机制
-          if (
-            !isLoaded &&
-            componentLoadStatus.retryCount < componentLoadStatus.maxRetries
-          ) {
+          if (!isLoaded && componentLoadStatus.retryCount < componentLoadStatus.maxRetries) {
             componentLoadStatus.retryCount++;
-            console.warn(
-              `组件加载失败，第${componentLoadStatus.retryCount}次重试`,
-            );
-            await new Promise((resolve) =>
-              setTimeout(resolve, 200 * componentLoadStatus.retryCount),
-            );
+            console.warn(`组件加载失败，第${componentLoadStatus.retryCount}次重试`);
+            await new Promise(resolve => setTimeout(resolve, 200 * componentLoadStatus.retryCount));
             return await onRowClick(it); // 递归调用重试
           }
 
           if (!saveLayoutRef.value) {
-            message("组件加载超时，请刷新页面重试", { type: "error" });
+            message('组件加载超时，请刷新页面重试', { type: "error" });
             componentLoadStatus.retryCount = 0; // 重置重试计数
             return;
           }
@@ -284,15 +238,15 @@ const onRowClick = async (it) => {
 
         // 验证item数据完整性
         if (!item.name) {
-          console.warn("配置项缺少name属性，使用group作为默认名称:", item);
+          console.warn('配置项缺少name属性，使用group作为默认名称:', item);
           item.name = item.group;
         }
 
         await saveLayoutRef.value.setData(item);
         await saveLayoutRef.value.open();
       } catch (error) {
-        console.error("打开设置布局失败:", error);
-        message("打开设置页面失败，请重试", { type: "error" });
+        console.error('打开设置布局失败:', error);
+        message('打开设置页面失败，请重试', { type: "error" });
         componentLoadStatus.retryCount = 0; // 重置重试计数
       }
     }
@@ -362,8 +316,7 @@ const loadProductsConfig = async () => {
         .map((group: SysSettingGroup) => ({
           group: group.sysSettingGroupCode,
           name: group.sysSettingGroupName,
-          description:
-            group.sysSettingGroupRemark || `设置${group.sysSettingGroupName}`,
+          description: group.sysSettingGroupRemark || `设置${group.sysSettingGroupName}`,
           isSetup: true,
           type: 4,
           icon: group.sysSettingGroupIcon || "ri:settings-line",
@@ -371,20 +324,12 @@ const loadProductsConfig = async () => {
         }));
 
       // 确保 default 和 group 配置始终存在，将其作为固定值与远程配置合并
-      const defaultItem = defaultProductsConfig.find(
-        (item) => item.group === "default",
-      );
-      const groupItem = defaultProductsConfig.find(
-        (item) => item.group === "group",
-      );
-      const otherDefaults = defaultProductsConfig.filter(
-        (item) => item.group !== "default" && item.group !== "group",
-      );
+      const defaultItem = defaultProductsConfig.find((item) => item.group === "default");
+      const groupItem = defaultProductsConfig.find((item) => item.group === "group");
+      const otherDefaults = defaultProductsConfig.filter((item) => item.group !== "default" && item.group !== "group");
 
       // 过滤掉远程配置中的 default 和 group 项（如果存在）
-      const filteredApiGroups = apiGroups.filter(
-        (item) => item.group !== "default" && item.group !== "group",
-      );
+      const filteredApiGroups = apiGroups.filter((item) => item.group !== "default" && item.group !== "group");
 
       // 合并配置：default（基础配置）第一位 + 其他默认配置（主题、历史等）+ group（系统组设置）最后 + 远程配置
       const mergedConfig = [];
@@ -436,23 +381,12 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <div
-    class="app-container modern-setting-container system-container modern-bg"
-  >
-    <ScButton
-      :icon="useRenderIcon('ri:settings-4-line')"
-      class="floating-settings-btn"
-      type="primary"
-      circle
-      @click="handleOpenItemDialog"
-    />
-    <ScButton
-      :icon="useRenderIcon('ri:group-line')"
-      class="floating-group-btn"
-      type="success"
-      circle
-      @click="openGroupManagement"
-    />
+  <div class="app-container modern-setting-container system-container modern-bg">
+
+    <ScButton :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle
+      @click="handleOpenItemDialog" />
+    <ScButton :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle
+      @click="openGroupManagement" />
 
     <!-- 页面标题 -->
     <transition name="header-slide">
@@ -464,24 +398,16 @@ onUnmounted(() => {
 
     <!-- 卡片网格布局 -->
     <div class="setting-cards-container">
-      <ScSkeleton
-        :loading="loadingState.loadingInstance"
-        class="setting-skeleton"
-        :rows="6"
-        animated
-      >
+      <el-skeleton :loading="loadingState.loadingInstance" class="setting-skeleton" :rows="6" animated>
         <template #default>
+
           <div class="setting-cards-grid">
-            <div
-              v-for="item in products"
-              :key="item.group"
-              class="setting-card"
-              :class="{ 'setting-card-active': config.tabValue === item.group }"
-              @click="
+
+            <div v-for="item in products" :key="item.group" class="setting-card"
+              :class="{ 'setting-card-active': config.tabValue === item.group }" @click="
                 config.tabValue = item.group;
-                onRowClick(item.group);
-              "
-            >
+              onRowClick(item.group);
+              ">
               <div class="setting-card-icon">
                 <ScIcon>
                   <component :is="useRenderIcon(item.icon)" />
@@ -489,52 +415,29 @@ onUnmounted(() => {
               </div>
               <div class="setting-card-content">
                 <h3 class="setting-card-title">{{ item.name }}</h3>
-                <p class="setting-card-description">
-                  {{ item.description || "设置" + item.name }}
-                </p>
+                <p class="setting-card-description">{{ item.description || "设置" + item.name }}</p>
               </div>
-              <div
-                class="setting-card-indicator"
-                v-if="config.tabValue === item.group"
-              ></div>
+              <div class="setting-card-indicator" v-if="config.tabValue === item.group"></div>
             </div>
           </div>
         </template>
-      </ScSkeleton>
+      </el-skeleton>
+
     </div>
 
     <!-- 设置内容区域 -->
     <div class="setting-content-container" v-if="currentItem">
-      <SaveLayoutRaw
-        ref="saveLayoutRef"
-        @close="close(currentItem.group)"
-        class="w-full"
-      />
+      <SaveLayoutRaw ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
       <template v-if="currentItem.group === 'group'">
         <!-- 配置组管理使用抽屉显示 -->
-        <sc-drawer
-          v-model="drawerVisible.group"
-          size="60%"
-          :title="currentItem.name"
-          destroy-on-close
-          @close="close(currentItem.group)"
-          :z-index="2000"
-          :append-to-body="true"
-          class="setting-drawer"
-        >
+        <sc-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close
+          @close="close(currentItem.group)" :z-index="2000" :append-to-body="true" class="setting-drawer">
           <GroupManagement :data="currentItem" />
         </sc-drawer>
       </template>
       <template v-else>
-        <sc-drawer
-          v-model="drawerVisible[currentItem.group]"
-          size="50%"
-          :title="currentItem.name"
-          :z-index="2000"
-          :append-to-body="true"
-          :destroy-on-close="true"
-          class="setting-drawer"
-        >
+        <sc-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000"
+          :append-to-body="true" :destroy-on-close="true" class="setting-drawer">
           <component :is="layout[currentItem.group]" :data="currentItem" />
         </sc-drawer>
       </template>
@@ -586,11 +489,7 @@ onUnmounted(() => {
     0 2px 8px rgba(0, 0, 0, 0.15),
     0 1px 0 rgba(255, 255, 255, 0.3) inset;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
 
   &:hover {
     box-shadow:
@@ -610,11 +509,7 @@ onUnmounted(() => {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50%;
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.25),
-    0 5px 15px rgba(0, 0, 0, 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.15),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 5px 15px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.3) inset;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   &:hover {
@@ -715,11 +610,7 @@ onUnmounted(() => {
     0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
     0 3px 10px rgba(var(--el-color-primary-rgb), 0.1),
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
-  background: linear-gradient(
-    135deg,
-    var(--app-primary-lighter) 0%,
-    var(--app-primary-lightest) 100%
-  );
+  background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-primary-lightest) 100%);
   transform: translateY(-10px) scale(1.01);
   z-index: 10;
 }
@@ -730,11 +621,7 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--app-primary) 0%,
-    var(--app-primary-light-3) 100%
-  );
+  background: linear-gradient(90deg, var(--app-primary) 0%, var(--app-primary-light-3) 100%);
   border-radius: 0 0 16px 16px;
   animation: fadeIn 0.3s ease-out;
 }
@@ -747,11 +634,7 @@ onUnmounted(() => {
   height: 56px;
   font-size: 26px;
   color: var(--el-color-white);
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary) 0%,
-    var(--el-color-primary-light-3) 100%
-  );
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   border-radius: 14px;
   margin-right: 20px;
   transition: all 0.4s ease;
@@ -772,11 +655,7 @@ onUnmounted(() => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(
-    circle,
-    var(--app-white-transparent) 0%,
-    var(--app-transparent) 70%
-  );
+  background: radial-gradient(circle, var(--app-white-transparent) 0%, var(--app-transparent) 70%);
   opacity: 0;
   transition: opacity 0.5s ease;
 }
@@ -868,13 +747,7 @@ onUnmounted(() => {
       left: 15px;
       right: 15px;
       height: 1px;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        var(--app-border-light) 15%,
-        var(--app-border-light) 85%,
-        transparent 100%
-      );
+      background: linear-gradient(90deg, transparent 0%, var(--app-border-light) 15%, var(--app-border-light) 85%, transparent 100%);
     }
   }
 
@@ -1038,11 +911,7 @@ onUnmounted(() => {
       height: 60px;
       font-size: 28px;
       color: var(--el-color-white);
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
       border-radius: 15px;
       transition: all 0.3s ease;
       box-shadow: 0 5px 15px var(--app-primary-shadow);
@@ -1099,6 +968,7 @@ onUnmounted(() => {
   }
 
   &__disabled {
+
     .list-card-item_detail--name,
     .list-card-item_detail--desc {
       color: var(--el-text-color-disabled);

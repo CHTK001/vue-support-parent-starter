@@ -5,8 +5,8 @@ import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { ScSwitch } from "@repo/components/ScSwitch"
-import { ScTooltip } from "@repo/components/ScTooltip";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScTooltip from "@repo/components/ScTooltip/index";
 import { useThemeStore } from "../../../../stores/themeStore";
 
 const { t } = useI18n();

@@ -60,11 +60,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import { switchTheme as switchThemeUtil } from "@repo/components/hooks/useThemeComponent";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { useThemeAnimation } from "../../hooks/useThemeAnimation";
+import { getAvailableThemes, type LayoutTheme } from "../../themes";
 
 // 节日日期配置
 const festivalDates: Record<string, string> = {
@@ -132,12 +135,6 @@ const switching = ref(false);
 const getThemeIcon = (themeName: string): string => {
   const theme = getAvailableThemes().find((t) => t.key === themeName);
   return theme?.icon || "ri:brush-line";
-};
-
-// 获取主题描述（从主题配置中读取）
-const getThemeDescription = (themeName: string): string => {
-  const theme = getAvailableThemes().find((t) => t.key === themeName);
-  return theme?.description || "自定义主题";
 };
 
 // 获取分组标题

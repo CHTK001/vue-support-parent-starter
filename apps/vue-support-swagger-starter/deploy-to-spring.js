@@ -70,7 +70,7 @@ console.log(`✅ ${cssFileName} -> ${newCssFileName}\n`);
 
 // 5. 复制其他静态资源（如果需要）
 console.log('📋 复制其他静态资源...');
-const staticFiles = ['favicon.ico', 'logo.svg', 'loader.js', 'platform-config.json'];
+const staticFiles = ['favicon.ico', 'logo.svg', 'loader-config.js', 'loader.js', 'platform-config.json'];
 staticFiles.forEach(file => {
   const srcPath = join(distDir, file);
   if (existsSync(srcPath)) {

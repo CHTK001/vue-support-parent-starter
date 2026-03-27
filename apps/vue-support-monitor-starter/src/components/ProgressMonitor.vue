@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="progress-monitor">
     <!-- 进度列表抽屉 -->
     <sc-drawer
@@ -126,8 +126,7 @@
         <div class="mini-progress-info">
           <span class="mini-title">{{ operation.title }}</span>
           <span class="mini-percentage"
-            >{{ operation.progress.toFixed(0) }}%</span
-          >
+            >{{ operation.progress.toFixed(0) }}%</span>
         </div>
         <ScProgress
           :percentage="operation.progress"

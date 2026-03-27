@@ -633,19 +633,21 @@ export const formatFilePath = (
 /**
  * 兼容requestAnimationFrame
  */
-window.requestAnimationFrame = (function () {
-  return (
-    window.requestAnimationFrame ||
+const browserWindow =
+  typeof window === "undefined" ? undefined : (window as Window & typeof globalThis);
+
+if (browserWindow) {
+  browserWindow.requestAnimationFrame =
+    browserWindow.requestAnimationFrame ||
     // @ts-ignore
-    window?.webkitRequestAnimationFrame ||
+    browserWindow.webkitRequestAnimationFrame ||
     // @ts-ignore
-    window?.mozRequestAnimationFrame ||
+    browserWindow.mozRequestAnimationFrame ||
     // @ts-ignore
-    window?.oRequestAnimationFrame ||
+    browserWindow.oRequestAnimationFrame ||
     // @ts-ignore
-    window?.msRequestAnimationFrame ||
+    browserWindow.msRequestAnimationFrame ||
     function (callback) {
-      return window.setTimeout(callback, 1000 / 60);
-    }
-  );
-})();
+      return browserWindow.setTimeout(callback, 1000 / 60);
+    };
+}

@@ -63,7 +63,7 @@ export interface CloneServerParams {
  * 分页查询系统服务器配置
  */
 export function getSystemServerPage(params: SystemServerPageParams) {
-  return request({
+  return request<{ records: SystemServer[]; total: number }>({
     url: "/system/server/page",
     method: "get",
     params,

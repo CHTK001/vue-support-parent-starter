@@ -206,5 +206,14 @@ const themeComponentMaps: Record<SupportedSettingTheme, ComponentMap> = {
   },
 };
 
+function isSupportedSettingTheme(
+  theme: string,
+): theme is SupportedSettingTheme {
+  return supportedSettingThemes.includes(theme as SupportedSettingTheme);
+}
+
 export function getThemeComponents(theme: string): ComponentMap {
+  return isSupportedSettingTheme(theme)
+    ? themeComponentMaps[theme]
+    : themeComponentMaps.default;
 }

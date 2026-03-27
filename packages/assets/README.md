@@ -1,124 +1,55 @@
 # Assets 目录结构说明
 
-## 📁 目录组织
+`packages/assets` 保留一个主样式入口 `style/`，并在该目录内继续按职责分层。
 
-```
+## 主目录
+
+```text
 assets/
-├── fonts/              # 字体文件
-│   ├── iconfont.*     # 图标字体
-│   └── font-cloak-*   # 加密字体
-├── images/            # 图片资源
-│   ├── *.png         # PNG 图片
-│   └── *.apng        # 动画 PNG
-├── svg/              # SVG 图标
-│   ├── status-*.svg  # 状态页图标
-│   ├── login-*.svg   # 登录页图标
-│   └── *.svg         # 其他图标
-├── scss/             # SCSS 样式文件
-│   ├── layout-index.scss      # 布局主样式
-│   ├── font-encryption.scss   # 字体加密样式
-│   └── modern-theme.scss      # 现代主题
-├── style/            # 样式系统
-│   ├── layout/       # 布局样式
-│   ├── colors/       # 颜色系统
-│   ├── element-plus/ # Element Plus 覆盖
-│   ├── stitch-*.scss # Stitch 设计系统
-│   └── *.scss        # 其他样式
-├── css/              # CSS 文件
-├── gridstack/        # GridStack 样式
-└── login/            # 登录页资源
-
+├── fonts/               # 字体与图标字体
+├── images/              # 位图资源
+├── login/               # 登录页独立素材
+├── style/               # 唯一主样式目录
+│   ├── colors/          # 颜色令牌
+│   ├── element-plus/    # Element Plus 覆盖
+│   ├── layout/          # 布局样式
+│   ├── mixins/          # 通用 mixin
+│   ├── pages/           # 页面级样式入口
+│   ├── stitch/          # Stitch 主题/令牌/覆盖
+│   ├── legacy/          # 老入口迁移后的兼容文件（含 map-icons / gridstack）
+│   ├── font-encryption.scss
+│   └── *.scss           # 仅保留兼容转发入口
+└── svg/                 # SVG 图标
 ```
 
-## 🔄 迁移说明
+## 使用规则
 
-### 已移动的文件
+- 新样式统一放到 `style/`
+- 不再维护顶层 `scss/` / `styles/` / `css/` / `gridstack/` 目录
+- 需要迁移老文件时，优先放到 `style/legacy/`
+- `style/` 顶层文件只保留兼容入口，实际实现优先落到子目录
 
-1. **iconfont 目录** → `fonts/`
-   - `iconfont/iconfont.css` → `fonts/iconfont.css`
-   - `iconfont/iconfont.js` → `fonts/iconfont.js`
-   - `iconfont/iconfont.json` → `fonts/iconfont.json`
+## 推荐引入方式
 
-2. **layout 目录** → `scss/`
-   - `layout/index.scss` → `scss/layout-index.scss`
-
-3. **根目录文件** → `images/`
-   - `user.jpg` → `images/user.jpg`
-
-### 已删除的空目录
-
-- `iconfont/` - 已合并到 fonts
-- `layout/` - 已合并到 scss
-- `status/` - 空目录
-- `table-bar/` - 空目录
-
-## 📝 使用方式
-
-### 在 main.ts 中引入
-
-```typescript
-// 字体图标
+```ts
 import "@repo/assets/fonts/iconfont.css";
-import "@repo/assets/fonts/iconfont.js";
-
-// 样式
 import "@repo/assets/style/layout/default/reset.scss";
 import "@repo/assets/style/layout/default/tailwind.css";
 import "@repo/assets/style/layout/default/index.scss";
-import "@repo/assets/style/modern-page.scss";
-import "@repo/assets/style/stitch-global.scss";
+import "@repo/assets/style/pages/modern-page.scss";
+import "@repo/assets/style/font-encryption.scss";
+import "@repo/assets/style/stitch/global.scss";
 ```
 
-### 在组件中引入 SVG
+## Legacy 兼容说明
 
-```vue
-<script setup>
-import LoginAvatar from "@repo/assets/svg/login-avatar.svg?component";
-</script>
+- 旧入口兼容仅保留在 `style/legacy/`
+- 历史遗留的 `map-icons.css`、`gridstack/index.scss` 已迁入 `style/legacy/`
+- 推荐新代码统一改用 `@repo/assets/style/<子目录>/*`
 
-<template>
-  <LoginAvatar />
-</template>
-```
+## 资源放置规范
 
-### 在样式中引入图片
-
-```scss
-.background {
-  background-image: url("@repo/assets/images/bg.png");
-}
-```
-
-## 🎨 设计系统
-
-### Stitch 设计系统文件
-
-- `stitch-global.scss` - 全局样式
-- `stitch-tokens.scss` - 设计令牌
-- `stitch-layout-tokens.scss` - 布局令牌
-- `stitch-utilities.scss` - 工具类
-- `stitch-overrides.scss` - 组件覆盖
-- `stitch-layout-overrides.scss` - 布局覆盖
-
-### 颜色系统
-
-位于 `style/colors/` 目录，包含完整的颜色令牌定义。
-
-## 🔧 维护指南
-
-### 添加新资源
-
-1. **图片** → 放入 `images/` 目录
-2. **SVG 图标** → 放入 `svg/` 目录
-3. **字体** → 放入 `fonts/` 目录
-4. **样式** → 根据类型放入 `scss/` 或 `style/` 目录
-
-### 命名规范
-
-- 图片：使用小写字母和连字符，如 `login-bg.png`
-- SVG：使用小写字母和连字符，如 `status-404.svg`
-- 样式：使用小写字母和连字符，如 `modern-theme.scss`
-
-## 📦 构建配置
-
-字体文件会被 Vite 自动处理，无需额外配置。SVG 可以通过 `?component` 后缀作为组件导入。
+- 图片放 `images/`
+- SVG 放 `svg/`
+- 字体放 `fonts/`
+- 样式放 `style/`

@@ -1,14 +1,14 @@
-import { Account } from "../../../../../layout/default/src/index";
-import { $t } from "@repo/config";
+import { Account } from "@layout/default";
+import { t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
 
 export default [
   {
     path: "/login",
     name: "Login",
-    component: () => import("../../../../../pages/common/login/index.vue"),
+    component: () => import("@pages/common/login/index.vue"),
     meta: {
-      title: $t("menus.pureLogin"),
+      title: t("menus.pureLogin"),
       showLink: false,
       rank: 101,
     },
@@ -21,7 +21,7 @@ export default [
       return Account;
     },
     meta: {
-      title: $t("buttons.accountSetting"),
+      title: t("buttons.accountSetting"),
       showLink: false,
     },
   },

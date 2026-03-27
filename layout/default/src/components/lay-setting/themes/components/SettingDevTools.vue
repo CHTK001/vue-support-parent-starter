@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ScSwitch } from "@repo/components/ScSwitch";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 
 interface Props {
   /** reactive 设置对象引用 */

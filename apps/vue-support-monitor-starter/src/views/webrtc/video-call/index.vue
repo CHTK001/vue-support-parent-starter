@@ -2,16 +2,14 @@
   <div class="video-call-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <ScBreadcrumb separator="/">
-        <ScBreadcrumbItem :to="{ path: '/webrtc' }"
-          >WebRTC管理</ScBreadcrumbItem
-        >
-        <ScBreadcrumbItem>视频通话</ScBreadcrumbItem>
-      </ScBreadcrumb>
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item :to="{ path: '/webrtc' }">WebRTC管理</el-breadcrumb-item>
+        <el-breadcrumb-item>视频通话</el-breadcrumb-item>
+      </el-breadcrumb>
     </div>
 
     <!-- 通话界面 -->
-    <div v-if="inCall" class="call-interface">
+    <div class="call-interface" v-if="inCall">
       <!-- 视频区域 -->
       <div class="video-area">
         <!-- 远程视频 -->
@@ -21,19 +19,15 @@
             class="remote-video"
             autoplay
             playsinline
-          />
-          <div v-if="remoteUser" class="remote-user-info">
+          ></video>
+          <div class="remote-user-info" v-if="remoteUser">
             <span class="user-name">{{ remoteUser.username }}</span>
-            <span class="call-duration">{{
-              formatDuration(callDuration)
-            }}</span>
+            <span class="call-duration">{{ formatDuration(callDuration) }}</span>
           </div>
           <div class="connection-status">
-            <ScTag
-              :type="connectionStatus === 'connected' ? 'success' : 'warning'"
-            >
+            <el-tag :type="connectionStatus === 'connected' ? 'success' : 'warning'">
               {{ getConnectionStatusText(connectionStatus) }}
-            </ScTag>
+            </el-tag>
           </div>
         </div>
 
@@ -45,26 +39,22 @@
             autoplay
             playsinline
             muted
-          />
+          ></video>
           <div class="local-controls">
-            <ScButton
+            <el-button
               :type="videoEnabled ? 'primary' : 'danger'"
               circle
               @click="toggleVideo"
             >
-              <ScIcon
-                ><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else
-              /></ScIcon>
-            </ScButton>
-            <ScButton
+              <el-icon><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else /></el-icon>
+            </el-button>
+            <el-button
               :type="audioEnabled ? 'primary' : 'danger'"
               circle
               @click="toggleAudio"
             >
-              <ScIcon
-                ><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else
-              /></ScIcon>
-            </ScButton>
+              <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+            </el-button>
           </div>
         </div>
       </div>
@@ -72,80 +62,87 @@
       <!-- 控制栏 -->
       <div class="control-bar">
         <div class="control-group">
-          <ScButton
+          <el-button
             :type="audioEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleAudio"
           >
-            <ScIcon
-              ><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else
-            /></ScIcon>
-          </ScButton>
-
-          <ScButton type="danger" size="large" circle @click="endCall">
-            <ScIcon><PhoneFilled /></ScIcon>
-          </ScButton>
-
-          <ScButton
+            <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+          </el-button>
+          
+          <el-button
+            type="danger"
+            size="large"
+            circle
+            @click="endCall"
+          >
+            <el-icon><PhoneFilled /></el-icon>
+          </el-button>
+          
+          <el-button
             :type="videoEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleVideo"
           >
-            <ScIcon
-              ><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else
-            /></ScIcon>
-          </ScButton>
+            <el-icon><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else /></el-icon>
+          </el-button>
         </div>
-
+        
         <div class="additional-controls">
-          <ScButton
+          <el-button
             :type="screenSharing ? 'success' : 'info'"
             size="small"
             @click="toggleScreenShare"
           >
-            <ScIcon><Monitor /></ScIcon>
-            {{ screenSharing ? "停止共享" : "屏幕共享" }}
-          </ScButton>
-
-          <ScButton type="info" size="small" @click="showSettings = true">
-            <ScIcon><Setting /></ScIcon>
+            <el-icon><Monitor /></el-icon>
+            {{ screenSharing ? '停止共享' : '屏幕共享' }}
+          </el-button>
+          
+          <el-button
+            type="info"
+            size="small"
+            @click="showSettings = true"
+          >
+            <el-icon><Setting /></el-icon>
             设置
-          </ScButton>
+          </el-button>
         </div>
       </div>
     </div>
 
     <!-- 等待界面 -->
-    <div v-else-if="waiting" class="waiting-interface">
+    <div class="waiting-interface" v-else-if="waiting">
       <div class="waiting-content">
-        <ScIcon class="waiting-icon"><Loading /></ScIcon>
+        <el-icon class="waiting-icon"><Loading /></el-icon>
         <h3>等待对方接听...</h3>
         <p>正在连接到 {{ targetUser?.username }}</p>
-        <ScButton type="danger" @click="cancelCall"> 取消通话 </ScButton>
+        <el-button type="danger" @click="cancelCall">
+          取消通话
+        </el-button>
       </div>
     </div>
 
     <!-- 主界面 -->
-    <div v-else class="main-interface">
+    <div class="main-interface" v-else>
       <!-- 快速拨号 -->
-      <ScCard class="quick-dial-card" shadow="hover">
+      <el-card class="quick-dial-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>快速拨号</span>
           </div>
         </template>
-
-        <ScForm :model="callForm" label-width="80px">
-          <ScFormItem label="用户选择">
-            <ScSelect
+        
+        <el-form :model="callForm" label-width="80px">
+          <el-form-item label="用户选择">
+            <el-select
               v-model="callForm.targetUserId"
               placeholder="选择要通话的用户"
               filterable
               style="width: 100%"
             >
-              <ScOption
+              <el-option
                 v-for="user in onlineUsers"
                 :key="user.userId"
                 :label="user.username"
@@ -153,125 +150,122 @@
               >
                 <div class="user-option">
                   <span class="user-name">{{ user.username }}</span>
-                  <ScTag size="small" :type="getUserStatusType(user.status)">
+                  <el-tag size="small" :type="getUserStatusType(user.status)">
                     {{ getUserStatusText(user.status) }}
-                  </ScTag>
+                  </el-tag>
                 </div>
-              </ScOption>
-            </ScSelect>
-          </ScFormItem>
-
-          <ScFormItem>
-            <ScButton
+              </el-option>
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item>
+            <el-button
               type="primary"
               size="large"
               :disabled="!callForm.targetUserId"
               :loading="initiating"
               @click="initiateCall"
             >
-              <ScIcon><Phone /></ScIcon>
+              <el-icon><Phone /></el-icon>
               发起通话
-            </ScButton>
-          </ScFormItem>
-        </ScForm>
-      </ScCard>
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
 
       <!-- 通话历史 -->
-      <ScCard class="history-card" shadow="hover">
+      <el-card class="history-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>通话历史</span>
-            <ScButton type="text" @click="loadCallHistory">
-              <ScIcon><Refresh /></ScIcon>
-            </ScButton>
+            <el-button type="text" @click="loadCallHistory">
+              <el-icon><Refresh /></el-icon>
+            </el-button>
           </div>
         </template>
-
-        <ScTable :data="callHistory" style="width: 100%">
-          <ScTableColumn prop="targetUser" label="通话对象" />
-          <ScTableColumn prop="duration" label="通话时长">
+        
+        <el-table :data="callHistory" style="width: 100%">
+          <el-table-column prop="targetUser" label="通话对象" />
+          <el-table-column prop="duration" label="通话时长">
             <template #default="{ row }">
               {{ formatDuration(row.duration) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="startTime" label="开始时间">
+          </el-table-column>
+          <el-table-column prop="startTime" label="开始时间">
             <template #default="{ row }">
               {{ formatTime(row.startTime) }}
             </template>
-          </ScTableColumn>
-          <ScTableColumn prop="status" label="状态">
+          </el-table-column>
+          <el-table-column prop="status" label="状态">
             <template #default="{ row }">
-              <ScTag :type="getCallStatusType(row.status)">
+              <el-tag :type="getCallStatusType(row.status)">
                 {{ getCallStatusText(row.status) }}
-              </ScTag>
+              </el-tag>
             </template>
-          </ScTableColumn>
-          <ScTableColumn label="操作" width="100">
+          </el-table-column>
+          <el-table-column label="操作" width="100">
             <template #default="{ row }">
-              <ScButton
+              <el-button
                 type="primary"
                 size="small"
                 @click="callUser(row.targetUserId)"
               >
                 回拨
-              </ScButton>
+              </el-button>
             </template>
-          </ScTableColumn>
-        </ScTable>
-      </ScCard>
+          </el-table-column>
+        </el-table>
+      </el-card>
     </div>
 
     <!-- 设置对话框 -->
     <sc-dialog v-model="showSettings" title="通话设置" width="500px">
-      <ScForm :model="settings" label-width="120px">
-        <ScFormItem label="摄像头">
-          <ScSelect v-model="settings.videoDeviceId" placeholder="选择摄像头">
-            <ScOption
+      <el-form :model="settings" label-width="120px">
+        <el-form-item label="摄像头">
+          <el-select v-model="settings.videoDeviceId" placeholder="选择摄像头">
+            <el-option
               v-for="device in videoDevices"
               :key="device.deviceId"
               :label="device.label"
               :value="device.deviceId"
             />
-          </ScSelect>
-        </ScFormItem>
-
-        <ScFormItem label="麦克风">
-          <ScSelect v-model="settings.audioDeviceId" placeholder="选择麦克风">
-            <ScOption
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="麦克风">
+          <el-select v-model="settings.audioDeviceId" placeholder="选择麦克风">
+            <el-option
               v-for="device in audioDevices"
               :key="device.deviceId"
               :label="device.label"
               :value="device.deviceId"
             />
-          </ScSelect>
-        </ScFormItem>
-
-        <ScFormItem label="扬声器">
-          <ScSelect
-            v-model="settings.speakerDeviceId"
-            placeholder="选择扬声器"
-          >
-            <ScOption
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="扬声器">
+          <el-select v-model="settings.speakerDeviceId" placeholder="选择扬声器">
+            <el-option
               v-for="device in speakerDevices"
               :key="device.deviceId"
               :label="device.label"
               :value="device.deviceId"
             />
-          </ScSelect>
-        </ScFormItem>
-
-        <ScFormItem label="视频质量">
-          <ScRadioGroup v-model="settings.videoQuality">
-            <ScRadio value="low">低质量</ScRadio>
-            <ScRadio value="medium">中等质量</ScRadio>
-            <ScRadio value="high">高质量</ScRadio>
-          </ScRadioGroup>
-        </ScFormItem>
-      </ScForm>
-
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="视频质量">
+          <el-radio-group v-model="settings.videoQuality">
+            <el-radio value="low">低质量</el-radio>
+            <el-radio value="medium">中等质量</el-radio>
+            <el-radio value="high">高质量</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      
       <template #footer>
-        <ScButton @click="showSettings = false">取消</ScButton>
-        <ScButton type="primary" @click="applySettings">应用</ScButton>
+        <el-button @click="showSettings = false">取消</el-button>
+        <el-button type="primary" @click="applySettings">应用</el-button>
       </template>
     </sc-dialog>
   </div>
@@ -285,9 +279,9 @@
  * @version 1.0.0
  */
 
-import { ref, reactive, onMounted, onUnmounted } from "vue";
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { message } from "@repo/utils";
-import { ElMessageBox } from "element-plus";
+import { ElMessageBox } from 'element-plus';
 import {
   VideoCamera,
   VideoCameraFilled,
@@ -298,10 +292,10 @@ import {
   Monitor,
   Setting,
   Loading,
-  Refresh,
-} from "@element-plus/icons-vue";
+  Refresh
+} from '@element-plus/icons-vue';
 import { getOnlineUsers, type WebRTCUser } from "@/api/webrtc";
-import { useWebRTCCall } from "@/composables/webrtc/useWebRTCCall";
+import { useWebRTCCall } from '@/composables/webrtc/useWebRTCCall';
 
 // WebRTC通话组合式函数
 const {
@@ -319,7 +313,7 @@ const {
   endCall,
   toggleAudio,
   toggleVideo,
-  toggleScreenShare,
+  toggleScreenShare
 } = useWebRTCCall();
 
 // 数据状态
@@ -330,15 +324,15 @@ const targetUser = ref<WebRTCUser | null>(null);
 
 // 表单数据
 const callForm = reactive({
-  targetUserId: "",
+  targetUserId: ''
 });
 
 // 设置数据
 const settings = reactive({
-  videoDeviceId: "",
-  audioDeviceId: "",
-  speakerDeviceId: "",
-  videoQuality: "medium",
+  videoDeviceId: '',
+  audioDeviceId: '',
+  speakerDeviceId: '',
+  videoQuality: 'medium'
 });
 
 // 设备列表
@@ -349,19 +343,19 @@ const speakerDevices = ref<MediaDeviceInfo[]>([]);
 // 通话历史
 const callHistory = ref([
   {
-    targetUser: "张三",
-    targetUserId: "user1",
+    targetUser: '张三',
+    targetUserId: 'user1',
     duration: 180,
-    startTime: "2025-01-10 14:30:00",
-    status: "completed",
+    startTime: '2025-01-10 14:30:00',
+    status: 'completed'
   },
   {
-    targetUser: "李四",
-    targetUserId: "user2",
+    targetUser: '李四',
+    targetUserId: 'user2',
     duration: 0,
-    startTime: "2025-01-10 13:15:00",
-    status: "missed",
-  },
+    startTime: '2025-01-10 13:15:00',
+    status: 'missed'
+  }
 ]);
 
 /**
@@ -370,10 +364,10 @@ const callHistory = ref([
 const loadOnlineUsers = async () => {
   try {
     const { data } = await getOnlineUsers();
-    onlineUsers.value = data.records.filter((user) => user.status === "online");
+    onlineUsers.value = data.records.filter(user => user.status === 'online');
   } catch (error) {
-    console.error("加载在线用户失败:", error);
-    message("加载在线用户失败", { type: "error" });
+    console.error('加载在线用户失败:', error);
+    message('加载在线用户失败', { type: "error" });
   }
 };
 
@@ -382,19 +376,17 @@ const loadOnlineUsers = async () => {
  */
 const initiateCall = async () => {
   if (!callForm.targetUserId) {
-    message("请选择要通话的用户", { type: "warning" });
+    message('请选择要通话的用户', { type: "warning" });
     return;
   }
-
+  
   try {
     initiating.value = true;
-    targetUser.value =
-      onlineUsers.value.find((user) => user.userId === callForm.targetUserId) ||
-      null;
+    targetUser.value = onlineUsers.value.find(user => user.userId === callForm.targetUserId) || null;
     await startCall(callForm.targetUserId);
   } catch (error) {
-    console.error("发起通话失败:", error);
-    message("发起通话失败", { type: "error" });
+    console.error('发起通话失败:', error);
+    message('发起通话失败', { type: "error" });
   } finally {
     initiating.value = false;
   }
@@ -421,7 +413,7 @@ const callUser = (userId: string) => {
  */
 const loadCallHistory = () => {
   // TODO: 实现加载通话历史的逻辑
-  message("通话历史已刷新", { type: "success" });
+  message('通话历史已刷新', { type: "success" });
 };
 
 /**
@@ -430,17 +422,11 @@ const loadCallHistory = () => {
 const getMediaDevices = async () => {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
-    videoDevices.value = devices.filter(
-      (device) => device.kind === "videoinput",
-    );
-    audioDevices.value = devices.filter(
-      (device) => device.kind === "audioinput",
-    );
-    speakerDevices.value = devices.filter(
-      (device) => device.kind === "audiooutput",
-    );
+    videoDevices.value = devices.filter(device => device.kind === 'videoinput');
+    audioDevices.value = devices.filter(device => device.kind === 'audioinput');
+    speakerDevices.value = devices.filter(device => device.kind === 'audiooutput');
   } catch (error) {
-    console.error("获取媒体设备失败:", error);
+    console.error('获取媒体设备失败:', error);
   }
 };
 
@@ -450,7 +436,7 @@ const getMediaDevices = async () => {
 const applySettings = () => {
   // TODO: 实现应用设置的逻辑
   showSettings.value = false;
-  message("设置已应用", { type: "success" });
+  message('设置已应用', { type: "success" });
 };
 
 /**
@@ -458,11 +444,11 @@ const applySettings = () => {
  */
 const getUserStatusType = (status: string) => {
   const typeMap: Record<string, string> = {
-    online: "success",
-    busy: "warning",
-    offline: "info",
+    online: 'success',
+    busy: 'warning',
+    offline: 'info'
   };
-  return typeMap[status] || "info";
+  return typeMap[status] || 'info';
 };
 
 /**
@@ -470,11 +456,11 @@ const getUserStatusType = (status: string) => {
  */
 const getUserStatusText = (status: string) => {
   const textMap: Record<string, string> = {
-    online: "在线",
-    busy: "忙碌",
-    offline: "离线",
+    online: '在线',
+    busy: '忙碌',
+    offline: '离线'
   };
-  return textMap[status] || "未知";
+  return textMap[status] || '未知';
 };
 
 /**
@@ -482,12 +468,12 @@ const getUserStatusText = (status: string) => {
  */
 const getConnectionStatusText = (status: string) => {
   const textMap: Record<string, string> = {
-    connecting: "连接中",
-    connected: "已连接",
-    disconnected: "已断开",
-    failed: "连接失败",
+    connecting: '连接中',
+    connected: '已连接',
+    disconnected: '已断开',
+    failed: '连接失败'
   };
-  return textMap[status] || "未知";
+  return textMap[status] || '未知';
 };
 
 /**
@@ -495,12 +481,12 @@ const getConnectionStatusText = (status: string) => {
  */
 const getCallStatusType = (status: string) => {
   const typeMap: Record<string, string> = {
-    completed: "success",
-    missed: "warning",
-    rejected: "danger",
-    failed: "danger",
+    completed: 'success',
+    missed: 'warning',
+    rejected: 'danger',
+    failed: 'danger'
   };
-  return typeMap[status] || "info";
+  return typeMap[status] || 'info';
 };
 
 /**
@@ -508,12 +494,12 @@ const getCallStatusType = (status: string) => {
  */
 const getCallStatusText = (status: string) => {
   const textMap: Record<string, string> = {
-    completed: "已完成",
-    missed: "未接听",
-    rejected: "已拒绝",
-    failed: "失败",
+    completed: '已完成',
+    missed: '未接听',
+    rejected: '已拒绝',
+    failed: '失败'
   };
-  return textMap[status] || "未知";
+  return textMap[status] || '未知';
 };
 
 /**
@@ -523,11 +509,11 @@ const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-
+  
   if (hours > 0) {
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
-  return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
 /**
@@ -539,7 +525,10 @@ const formatTime = (time: string) => {
 
 // 组件挂载时初始化
 onMounted(async () => {
-  await Promise.all([loadOnlineUsers(), getMediaDevices()]);
+  await Promise.all([
+    loadOnlineUsers(),
+    getMediaDevices()
+  ]);
 });
 
 // 组件卸载时清理
@@ -551,6 +540,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -567,6 +557,8 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -601,6 +593,7 @@ onUnmounted(() => {
   }
 }
 
+
 .video-call-container {
   padding: 20px;
   height: 100vh;
@@ -610,7 +603,7 @@ onUnmounted(() => {
 
 .page-header {
   margin-bottom: 20px;
-
+  
   :deep(.el-breadcrumb__inner) {
     color: var(--el-text-color-primary);
   }
@@ -620,14 +613,14 @@ onUnmounted(() => {
   height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
-
+  
   .video-area {
     flex: 1;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-
+    
     .remote-video-container {
       width: 100%;
       height: 100%;
@@ -635,13 +628,13 @@ onUnmounted(() => {
       background-color: #2a2a2a;
       border-radius: 12px;
       overflow: hidden;
-
+      
       .remote-video {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
-
+      
       .remote-user-info {
         position: absolute;
         top: 20px;
@@ -649,24 +642,24 @@ onUnmounted(() => {
         background-color: rgba(0, 0, 0, 0.7);
         padding: 8px 16px;
         border-radius: 20px;
-
+        
         .user-name {
           font-weight: 600;
           margin-right: 12px;
         }
-
+        
         .call-duration {
           color: #67c23a;
         }
       }
-
+      
       .connection-status {
         position: absolute;
         top: 20px;
         right: 20px;
       }
     }
-
+    
     .local-video-container {
       position: absolute;
       bottom: 20px;
@@ -677,13 +670,13 @@ onUnmounted(() => {
       border-radius: 8px;
       overflow: hidden;
       border: 2px solid #409eff;
-
+      
       .local-video {
         width: 100%;
         height: 100%;
         object-fit: cover;
       }
-
+      
       .local-controls {
         position: absolute;
         bottom: 8px;
@@ -691,7 +684,7 @@ onUnmounted(() => {
         transform: translateX(-50%);
         display: flex;
         gap: 8px;
-
+        
         .el-button {
           width: 32px;
           height: 32px;
@@ -699,7 +692,7 @@ onUnmounted(() => {
       }
     }
   }
-
+  
   .control-bar {
     display: flex;
     justify-content: space-between;
@@ -708,22 +701,22 @@ onUnmounted(() => {
     background-color: rgba(0, 0, 0, 0.8);
     border-radius: 12px;
     margin-top: 20px;
-
+    
     .control-group {
       display: flex;
       gap: 20px;
       align-items: center;
-
+      
       .el-button {
         width: 60px;
         height: 60px;
-
+        
         .el-icon {
           font-size: 24px;
         }
       }
     }
-
+    
     .additional-controls {
       display: flex;
       gap: 12px;
@@ -736,25 +729,25 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-
+  
   .waiting-content {
     text-align: center;
-
+    
     .waiting-icon {
       font-size: 64px;
       color: #409eff;
       margin-bottom: 20px;
       animation: spin 2s linear infinite;
     }
-
+    
     h3 {
       margin: 0 0 12px 0;
       font-size: 24px;
     }
-
+    
     p {
       margin: 0 0 24px 0;
-      color: var(--el-text-color-primary);
+       color: var(--el-text-color-primary);
     }
   }
 }
@@ -764,16 +757,16 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   height: calc(100vh - 100px);
-
+  
   .quick-dial-card,
   .history-card {
     background-color: #2a2a2a;
     border: 1px solid #404040;
-
+    
     :deep(.el-card__header) {
       background-color: var(--el-text-color-primary);
       border-bottom: 1px solid #404040;
-
+      
       .card-header {
         display: flex;
         justify-content: space-between;
@@ -781,17 +774,17 @@ onUnmounted(() => {
         color: var(--el-text-color-primary);
       }
     }
-
+    
     :deep(.el-card__body) {
       color: var(--el-text-color-primary);
     }
   }
-
+  
   .user-option {
     display: flex;
     justify-content: space-between;
     align-items: center;
-
+    
     .user-name {
       flex: 1;
     }
@@ -848,6 +841,7 @@ onUnmounted(() => {
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -856,4 +850,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

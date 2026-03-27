@@ -2,130 +2,120 @@
   <div class="webrtc-container system-container modern-bg">
     <!-- 页面头部 -->
     <div class="page-header">
-      <ScBreadcrumb separator="/">
-        <ScBreadcrumbItem>首页</ScBreadcrumbItem>
-        <ScBreadcrumbItem>WebRTC管理</ScBreadcrumbItem>
-      </ScBreadcrumb>
+      <el-breadcrumb separator="/">
+        <el-breadcrumb-item>首页</el-breadcrumb-item>
+        <el-breadcrumb-item>WebRTC管理</el-breadcrumb-item>
+      </el-breadcrumb>
       <h1 class="page-title">WebRTC管理中心</h1>
       <p class="page-description">管理WebRTC房间、用户和系统配置</p>
     </div>
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
-      <ScCard class="stat-card" shadow="hover">
+      <el-card class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon room-icon">
-            <ScIcon><VideoCamera /></ScIcon>
+            <el-icon><VideoCamera /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ systemStats.activeRooms }}</div>
             <div class="stat-label">活跃房间</div>
           </div>
         </div>
-      </ScCard>
+      </el-card>
 
-      <ScCard class="stat-card" shadow="hover">
+      <el-card class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon user-icon">
-            <ScIcon><User /></ScIcon>
+            <el-icon><User /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ systemStats.onlineUsers }}</div>
             <div class="stat-label">在线用户</div>
           </div>
         </div>
-      </ScCard>
+      </el-card>
 
-      <ScCard class="stat-card" shadow="hover">
+      <el-card class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon total-icon">
-            <ScIcon><DataBoard /></ScIcon>
+            <el-icon><DataBoard /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ systemStats.totalRooms }}</div>
             <div class="stat-label">总房间数</div>
           </div>
         </div>
-      </ScCard>
+      </el-card>
 
-      <ScCard class="stat-card" shadow="hover">
+      <el-card class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon performance-icon">
-            <ScIcon><Monitor /></ScIcon>
+            <el-icon><Monitor /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">
-              {{ systemStats.serverResources.cpuUsage }}%
-            </div>
+            <div class="stat-value">{{ systemStats.serverResources.cpuUsage }}%</div>
             <div class="stat-label">CPU使用率</div>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 功能导航 -->
     <div class="feature-grid">
-      <ScCard
-        v-for="feature in features"
+      <el-card 
+        v-for="feature in features" 
         :key="feature.key"
-        class="feature-card"
+        class="feature-card" 
         shadow="hover"
         @click="navigateToFeature(feature.route)"
       >
         <div class="feature-content">
           <div class="feature-icon" :class="feature.iconClass">
-            <ScIcon><component :is="feature.icon" /></ScIcon>
+            <el-icon><component :is="feature.icon" /></el-icon>
           </div>
           <div class="feature-info">
             <h3 class="feature-title">{{ feature.title }}</h3>
             <p class="feature-description">{{ feature.description }}</p>
           </div>
           <div class="feature-arrow">
-            <ScIcon><ArrowRight /></ScIcon>
+            <el-icon><ArrowRight /></el-icon>
           </div>
         </div>
-      </ScCard>
+      </el-card>
     </div>
 
     <!-- 实时监控 -->
-    <ScCard class="monitoring-card" shadow="hover">
+    <el-card class="monitoring-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span>实时监控</span>
-          <ScButton type="primary" size="small" @click="refreshMonitoring">
-            <ScIcon><Refresh /></ScIcon>
+          <el-button type="primary" size="small" @click="refreshMonitoring">
+            <el-icon><Refresh /></el-icon>
             刷新
-          </ScButton>
+          </el-button>
         </div>
       </template>
-
+      
       <div class="monitoring-content">
         <div class="monitoring-item">
           <span class="monitoring-label">并发连接数:</span>
-          <span class="monitoring-value">{{
-            realtimeData.systemResources.concurrentConnections
-          }}</span>
+          <span class="monitoring-value">{{ realtimeData.systemResources.concurrentConnections }}</span>
         </div>
         <div class="monitoring-item">
           <span class="monitoring-label">网络使用:</span>
-          <span class="monitoring-value"
-            >{{ realtimeData.systemResources.networkUsage }} Mbps</span
-          >
+          <span class="monitoring-value">{{ realtimeData.systemResources.networkUsage }} Mbps</span>
         </div>
         <div class="monitoring-item">
           <span class="monitoring-label">内存使用率:</span>
-          <span class="monitoring-value"
-            >{{ realtimeData.systemResources.memoryUsage }}%</span
-          >
+          <span class="monitoring-value">{{ realtimeData.systemResources.memoryUsage }}%</span>
         </div>
         <div class="monitoring-item">
           <span class="monitoring-label">最后更新:</span>
-          <span class="monitoring-value">{{
-            formatTime(realtimeData.timestamp)
-          }}</span>
+          <span class="monitoring-value">{{ formatTime(realtimeData.timestamp) }}</span>
         </div>
       </div>
-    </ScCard>
+    </el-card>
   </div>
 </template>
 
@@ -137,8 +127,8 @@
  * @version 1.0.0
  */
 
-import { ref, onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { message } from "@repo/utils";
 import {
   VideoCamera,
@@ -150,8 +140,8 @@ import {
   Setting,
   PieChart,
   Share,
-  ChatDotRound,
-} from "@element-plus/icons-vue";
+  ChatDotRound
+} from '@element-plus/icons-vue';
 import { getSystemStatistics, getRealtimeMonitoring } from "@/api/webrtc";
 import type { SystemStatistics } from "@/api/webrtc";
 
@@ -171,74 +161,74 @@ const systemStats = ref<SystemStatistics>({
     cpuUsage: 0,
     memoryUsage: 0,
     networkUsage: 0,
-    concurrentConnections: 0,
-  },
+    concurrentConnections: 0
+  }
 });
 
 // 实时监控数据
 const realtimeData = ref({
-  timestamp: "",
+  timestamp: '',
   activeRooms: 0,
   onlineUsers: 0,
   systemResources: {
     cpuUsage: 0,
     memoryUsage: 0,
     networkUsage: 0,
-    concurrentConnections: 0,
+    concurrentConnections: 0
   },
-  recentEvents: [],
+  recentEvents: []
 });
 
 // 功能列表
 const features = ref([
   {
-    key: "room-management",
-    title: "房间管理",
-    description: "创建、管理和监控WebRTC房间",
+    key: 'room-management',
+    title: '房间管理',
+    description: '创建、管理和监控WebRTC房间',
     icon: VideoCamera,
-    iconClass: "room-feature",
-    route: "/webrtc/rooms",
+    iconClass: 'room-feature',
+    route: '/webrtc/rooms'
   },
   {
-    key: "video-call",
-    title: "视频通话",
-    description: "一对一视频通话功能",
+    key: 'video-call',
+    title: '视频通话',
+    description: '一对一视频通话功能',
     icon: ChatDotRound,
-    iconClass: "call-feature",
-    route: "/webrtc/video-call",
+    iconClass: 'call-feature',
+    route: '/webrtc/video-call'
   },
   {
-    key: "video-conference",
-    title: "视频会议",
-    description: "多人视频会议功能",
+    key: 'video-conference',
+    title: '视频会议',
+    description: '多人视频会议功能',
     icon: Share,
-    iconClass: "conference-feature",
-    route: "/webrtc/video-conference",
+    iconClass: 'conference-feature',
+    route: '/webrtc/video-conference'
   },
   {
-    key: "remote-desktop",
-    title: "远程桌面",
-    description: "WebRTC远程桌面连接",
+    key: 'remote-desktop',
+    title: '远程桌面',
+    description: 'WebRTC远程桌面连接',
     icon: Monitor,
-    iconClass: "desktop-feature",
-    route: "/webrtc/remote-desktop",
+    iconClass: 'desktop-feature',
+    route: '/webrtc/remote-desktop'
   },
   {
-    key: "statistics",
-    title: "统计分析",
-    description: "查看使用统计和分析报告",
+    key: 'statistics',
+    title: '统计分析',
+    description: '查看使用统计和分析报告',
     icon: PieChart,
-    iconClass: "stats-feature",
-    route: "/webrtc/statistics",
+    iconClass: 'stats-feature',
+    route: '/webrtc/statistics'
   },
   {
-    key: "config",
-    title: "系统配置",
-    description: "配置WebRTC系统参数",
+    key: 'config',
+    title: '系统配置',
+    description: '配置WebRTC系统参数',
     icon: Setting,
-    iconClass: "config-feature",
-    route: "/webrtc/config",
-  },
+    iconClass: 'config-feature',
+    route: '/webrtc/config'
+  }
 ]);
 
 // 定时器
@@ -252,8 +242,8 @@ const loadSystemStats = async () => {
     const { data } = await getSystemStatistics();
     systemStats.value = data;
   } catch (error) {
-    console.error("加载系统统计数据失败:", error);
-    message("加载系统统计数据失败", { type: "error" });
+    console.error('加载系统统计数据失败:', error);
+    message('加载系统统计数据失败', { type: "error" });
   }
 };
 
@@ -265,7 +255,7 @@ const loadRealtimeData = async () => {
     const { data } = await getRealtimeMonitoring();
     realtimeData.value = data;
   } catch (error) {
-    console.error("加载实时监控数据失败:", error);
+    console.error('加载实时监控数据失败:', error);
   }
 };
 
@@ -273,8 +263,11 @@ const loadRealtimeData = async () => {
  * 刷新监控数据
  */
 const refreshMonitoring = async () => {
-  await Promise.all([loadSystemStats(), loadRealtimeData()]);
-  message("数据已刷新", { type: "success" });
+  await Promise.all([
+    loadSystemStats(),
+    loadRealtimeData()
+  ]);
+  message('数据已刷新', { type: "success" });
 };
 
 /**
@@ -288,7 +281,7 @@ const navigateToFeature = (route: string) => {
  * 格式化时间
  */
 const formatTime = (timestamp: string) => {
-  if (!timestamp) return "--";
+  if (!timestamp) return '--';
   return new Date(timestamp).toLocaleString();
 };
 
@@ -314,7 +307,10 @@ const stopMonitoring = () => {
 
 // 组件挂载时加载数据
 onMounted(async () => {
-  await Promise.all([loadSystemStats(), loadRealtimeData()]);
+  await Promise.all([
+    loadSystemStats(),
+    loadRealtimeData()
+  ]);
   startMonitoring();
 });
 
@@ -325,6 +321,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -341,6 +338,8 @@ onUnmounted(() => {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
 }
+
+
 
 .modern-bg {
   position: relative;
@@ -375,6 +374,7 @@ onUnmounted(() => {
   }
 }
 
+
 .webrtc-container {
   padding: 20px;
   background-color: #f5f7fa;
@@ -383,16 +383,16 @@ onUnmounted(() => {
 
 .page-header {
   margin-bottom: 24px;
-
+  
   .page-title {
     font-size: 28px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin: 8px 0 4px 0;
   }
-
+  
   .page-description {
-    color: var(--el-text-color-primary);
+     color: var(--el-text-color-primary);
     margin: 0;
   }
 }
@@ -408,7 +408,7 @@ onUnmounted(() => {
   .stat-content {
     display: flex;
     align-items: center;
-
+    
     .stat-icon {
       width: 60px;
       height: 60px;
@@ -417,29 +417,29 @@ onUnmounted(() => {
       align-items: center;
       justify-content: center;
       margin-right: 16px;
-
+      
       .el-icon {
         font-size: 28px;
         color: var(--el-text-color-primary);
       }
-
+      
       &.room-icon {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
-
+      
       &.user-icon {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       }
-
+      
       &.total-icon {
         background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       }
-
+      
       &.performance-icon {
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
       }
     }
-
+    
     .stat-info {
       .stat-value {
         font-size: 32px;
@@ -447,10 +447,10 @@ onUnmounted(() => {
         color: var(--el-text-color-primary);
         line-height: 1;
       }
-
+      
       .stat-label {
         font-size: 14px;
-        color: var(--el-text-color-primary);
+         color: var(--el-text-color-primary);
         margin-top: 4px;
       }
     }
@@ -467,16 +467,16 @@ onUnmounted(() => {
 .feature-card {
   cursor: pointer;
   transition: all 0.3s ease;
-
+  
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   }
-
+  
   .feature-content {
     display: flex;
     align-items: center;
-
+    
     .feature-icon {
       width: 50px;
       height: 50px;
@@ -485,54 +485,54 @@ onUnmounted(() => {
       align-items: center;
       justify-content: center;
       margin-right: 16px;
-
+      
       .el-icon {
         font-size: 24px;
         color: var(--el-text-color-primary);
       }
-
+      
       &.room-feature {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       }
-
+      
       &.call-feature {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
       }
-
+      
       &.conference-feature {
         background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       }
-
+      
       &.stats-feature {
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
       }
-
+      
       &.desktop-feature {
         background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       }
-
+      
       &.config-feature {
         background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
       }
     }
-
+    
     .feature-info {
       flex: 1;
-
+      
       .feature-title {
         font-size: 18px;
         font-weight: 600;
         color: var(--el-text-color-primary);
         margin: 0 0 4px 0;
       }
-
+      
       .feature-description {
         font-size: 14px;
-        color: var(--el-text-color-primary);
+         color: var(--el-text-color-primary);
         margin: 0;
       }
     }
-
+    
     .feature-arrow {
       .el-icon {
         font-size: 20px;
@@ -548,12 +548,12 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
   }
-
+  
   .monitoring-content {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
-
+    
     .monitoring-item {
       display: flex;
       justify-content: space-between;
@@ -561,12 +561,12 @@ onUnmounted(() => {
       padding: 12px;
       background: var(--el-bg-color-overlay);
       border-radius: 8px;
-
+      
       .monitoring-label {
         font-weight: 500;
         color: #606266;
       }
-
+      
       .monitoring-value {
         font-weight: 600;
         color: var(--el-text-color-primary);
@@ -574,6 +574,7 @@ onUnmounted(() => {
     }
   }
 }
+
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -583,4 +584,5 @@ onUnmounted(() => {
     padding: 12px 16px;
   }
 }
+
 </style>

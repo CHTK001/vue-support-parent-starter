@@ -106,7 +106,7 @@ export const initializeWasmModule = async () => {
 
         if (codecWasmInit) {
           // 直接传入 .wasm 文件路径，init 函数会加载它
-          const initResult = await codecWasmInit(wasmPath);
+          const initResult = await codecWasmInit({ module_or_path: wasmPath });
           // 保存绑定模块（用于调用导出的函数）
           wasm = codecWasmModule;
           // 保存 WASM 实例（用于内存访问，虽然使用 wasm-bindgen 时通常不需要）

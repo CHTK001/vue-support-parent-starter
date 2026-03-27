@@ -3,6 +3,28 @@ import { getConfig } from "@repo/config";
 
 // 读取配置，判断是否显示 AI 功能
 const showAiChat = getConfig("ShowAiChat") ?? false;
+const loadLlmNewIndex = async () =>
+  (await import("@pages/project/views/ai/llm-new/index.vue")).default;
+const loadVincentIndex = async () =>
+  (await import("@pages/project/views/ai/generation/index.vue")).default;
+const loadImageDetectIndex = async () =>
+  (await import("@pages/project/views/ai/image/detect/index.vue")).default;
+const loadVideoIndex = async () =>
+  (await import("@pages/project/views/ai/video/index.vue")).default;
+const loadColorizationIndex = async () =>
+  (await import("@pages/project/views/ai/colorization/index.vue")).default;
+const loadResolutionIndex = async () =>
+  (await import("@pages/project/views/ai/resolution/index.vue")).default;
+const loadProjectIndex = async () =>
+  (await import("@pages/project/views/project/index.vue")).default;
+const loadSecretIndex = async () =>
+  (await import("@pages/project/views/secret/index.vue")).default;
+const loadProjectDeviceTemplate = async () =>
+  (await import("@pages/project/views/template/device/index.vue")).default;
+const loadSmsTemplate = async () =>
+  (await import("@pages/project/views/template/sms/index.vue")).default;
+const loadEmailTemplate = async () =>
+  (await import("@pages/project/views/template/email/index.vue")).default;
 
 export default [
   {
@@ -28,11 +50,7 @@ export default [
           {
             path: "/project/ai/llm/web",
             name: "ProjectAiLlmWeb",
-            component: async () => {
-              const { LlmNewIndex } =
-                await import("../../../../../pages/project/src");
-              return LlmNewIndex;
-            },
+            component: loadLlmNewIndex,
             meta: {
               title: "大语言模型",
             },
@@ -52,11 +70,7 @@ export default [
           {
             path: "/project/ai/vincent/web",
             name: "ProjectAiVincentWeb",
-            component: async () => {
-              const { VincentIndex } =
-                await import("../../../../../pages/project/src");
-              return VincentIndex;
-            },
+            component: loadVincentIndex,
             meta: {
               title: "图像生成",
             },
@@ -64,11 +78,7 @@ export default [
           {
             path: "/project/ai/face/detect/web",
             name: "ProjectAiImageDetectionWeb",
-            component: async () => {
-              const { ImageDetectIndex } =
-                await import("../../../../../pages/project/src");
-              return ImageDetectIndex;
-            },
+            component: loadImageDetectIndex,
             meta: {
               title: "人脸检测",
             },
@@ -76,11 +86,7 @@ export default [
           {
             path: "/project/ai/video/web",
             name: "ProjectAiVideoWeb",
-            component: async () => {
-              const { VideoIndex } =
-                await import("../../../../../pages/project/src");
-              return VideoIndex;
-            },
+            component: loadVideoIndex,
             meta: {
               title: "视频生成",
             },
@@ -88,11 +94,7 @@ export default [
           {
             path: "/project/ai/colorization/web",
             name: "ProjectAiColorizationWeb",
-            component: async () => {
-              const { ColorizationIndex } =
-                await import("../../../../../pages/project/src");
-              return ColorizationIndex;
-            },
+            component: loadColorizationIndex,
             meta: {
               title: "图像上色",
             },
@@ -100,11 +102,7 @@ export default [
           {
             path: "/project/ai/resolution/web",
             name: "ProjectAiResolutionWeb",
-            component: async () => {
-              const { ResolutionIndex } =
-                await import("../../../../../pages/project/src");
-              return ResolutionIndex;
-            },
+            component: loadResolutionIndex,
             meta: {
               title: "图像分辨率增强",
             },
@@ -114,11 +112,7 @@ export default [
       {
         path: "/project/manage",
         name: "ProjectManage",
-        component: async () => {
-          const { ProjectIndex } =
-            await import("../../../../../pages/project/src");
-          return ProjectIndex;
-        },
+        component: loadProjectIndex,
         meta: {
           title: "项目管理",
         },
@@ -126,11 +120,7 @@ export default [
       {
         path: "/project/secret",
         name: "ProjectSecret",
-        component: async () => {
-          const { SecretIndex } =
-            await import("../../../../../pages/project/src");
-          return SecretIndex;
-        },
+        component: loadSecretIndex,
         meta: {
           title: "密钥管理",
           showLink: false,
@@ -140,11 +130,7 @@ export default [
       {
         path: "/project/ai/face/detect",
         name: "ProjectAiImageDetection",
-        component: async () => {
-          const { ImageDetectIndex } =
-            await import("../../../../../pages/project/src");
-          return ImageDetectIndex;
-        },
+        component: loadImageDetectIndex,
         meta: {
           title: "人脸检测",
           showLink: false,
@@ -153,11 +139,7 @@ export default [
       {
         path: "/project/ai/llm",
         name: "ProjectAiLlm",
-        component: async () => {
-          const { LlmNewIndex } =
-            await import("../../../../../pages/project/src");
-          return LlmNewIndex;
-        },
+        component: loadLlmNewIndex,
         meta: {
           title: "大语言模型",
           showLink: false,
@@ -166,11 +148,7 @@ export default [
       {
         path: "/project/ai/vincent",
         name: "ProjectAiVincent",
-        component: async () => {
-          const { VincentIndex } =
-            await import("../../../../../pages/project/src");
-          return VincentIndex;
-        },
+        component: loadVincentIndex,
         meta: {
           title: "图像生成",
           showLink: false,
@@ -179,11 +157,7 @@ export default [
       {
         path: "/project/ai/video",
         name: "ProjectAiVideo",
-        component: async () => {
-          const { VideoIndex } =
-            await import("../../../../../pages/project/src");
-          return VideoIndex;
-        },
+        component: loadVideoIndex,
         meta: {
           title: "视频生成",
           showLink: false,
@@ -192,11 +166,7 @@ export default [
       {
         path: "/project/ai/colorization",
         name: "ProjectAiColorization",
-        component: async () => {
-          const { ColorizationIndex } =
-            await import("../../../../../pages/project/src");
-          return ColorizationIndex;
-        },
+        component: loadColorizationIndex,
         meta: {
           title: "图像上色",
           showLink: false,
@@ -205,11 +175,7 @@ export default [
       {
         path: "/project/ai/resolution",
         name: "ProjectAiResolution",
-        component: async () => {
-          const { ResolutionIndex } =
-            await import("../../../../../pages/project/src");
-          return ResolutionIndex;
-        },
+        component: loadResolutionIndex,
         meta: {
           title: "图像分辨率增强",
           showLink: false,
@@ -218,11 +184,7 @@ export default [
       {
         path: "/project/template/device",
         name: "device-template",
-        component: async () => {
-          const { DeviceTemplate } =
-            await import("../../../../../pages/project/src");
-          return DeviceTemplate;
-        },
+        component: loadProjectDeviceTemplate,
         meta: {
           title: "设备模板",
           showLink: false,
@@ -231,11 +193,7 @@ export default [
       {
         path: "/project/template/sms",
         name: "sms-template",
-        component: async () => {
-          const { SmsTemplate } =
-            await import("../../../../../pages/project/src");
-          return SmsTemplate;
-        },
+        component: loadSmsTemplate,
         meta: {
           title: "短信模板",
           showLink: false,
@@ -244,11 +202,7 @@ export default [
       {
         path: "/project/template/email",
         name: "email-template",
-        component: async () => {
-          const { EmailTemplate } =
-            await import("../../../../../pages/project/src");
-          return EmailTemplate;
-        },
+        component: loadEmailTemplate,
         meta: {
           title: "邮件模板",
           showLink: false,

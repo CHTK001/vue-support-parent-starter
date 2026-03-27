@@ -46,10 +46,35 @@ declare module "@repo/components/ReSegmented/index" {
   export default component;
 }
 
+declare module "@repo/app-root" {
+  import type { DefineComponent } from "vue";
+  const component: DefineComponent<Record<string, never>, any, any>;
+  export default component;
+}
+
+declare module "@repo/assets/fonts/iconfont.js" {
+  const iconfontModule: unknown;
+  export default iconfontModule;
+}
+
 /**
  * 全局类型声明，无需引入直接在 `.vue` 、`.ts` 、`.tsx` 文件使用即可获得类型提示
  */
 declare global {
+  interface LoaderRuntimeStyleDefinition {
+    key: string;
+    name: string;
+    description: string;
+    html: string;
+    css: string;
+    previewScale?: number;
+  }
+
+  interface LoaderRuntimeConfig {
+    baseStyleText: string;
+    definitions: LoaderRuntimeStyleDefinition[];
+  }
+
   /**
    * 平台的名称、版本、运行所需的`node`和`pnpm`版本、依赖、最后构建时间的类型提示
    */
@@ -73,6 +98,7 @@ declare global {
   interface Window {
     // Global vue app instance
     __APP__: App<Element>;
+    __GLOBAL_SOCKET__?: unknown;
     webkitCancelAnimationFrame: (handle: number) => void;
     mozCancelAnimationFrame: (handle: number) => void;
     oCancelAnimationFrame: (handle: number) => void;
@@ -81,6 +107,8 @@ declare global {
     mozRequestAnimationFrame: (callback: FrameRequestCallback) => number;
     oRequestAnimationFrame: (callback: FrameRequestCallback) => number;
     msRequestAnimationFrame: (callback: FrameRequestCallback) => number;
+    hideAppLoader?: () => void;
+    __SYS_LOADER_CONFIG__?: LoaderRuntimeConfig;
     // 百度统计
     _hmt?: any[];
   }
@@ -104,7 +132,7 @@ declare global {
     label: string;
     prop: string;
     hide?: boolean;
-    handler?: Function;
+    handler?: (...args: any[]) => unknown;
   }
 
   /**
@@ -138,7 +166,7 @@ declare global {
   /**
    *  继承 `@pureadmin/table` 的 `TableColumns` ，方便全局直接调用
    */
-  interface TableColumnList extends Array<TableColumns> {}
+  type TableColumnList = Array<TableColumns>;
 
   /**
    * 对应 `public/platform-config.json` 文件的类型声明
@@ -166,6 +194,8 @@ declare global {
       contentMargin?: number;
       layoutRadius?: number;
       layoutBlur?: number;
+      systemTheme?: string;
+      debugMode?: boolean;
       grey?: boolean;
       weak?: boolean;
       hideTabs?: boolean;
@@ -199,7 +229,12 @@ declare global {
       /** AI 运行模式：webllm / chrome / vendor */
       aiChatMode?: string;
       // drawer 布局汉堡按钮位置
-      drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+      drawerHamburgerPosition?:
+        | "top-left"
+        | "top-right"
+        | "bottom-left"
+        | "bottom-right";
+      [key: string]: any;
     };
     tags?: Array<any>;
   }
@@ -217,7 +252,7 @@ declare global {
    * 扩展 `Element`
    */
   interface Element {
-    // v-ripple 作用于 src/core/ripple/application.yaml 文件
+    // v-ripple 作用于 src/core/ripple/app.yaml 文件
     _ripple?: {
       enabled?: boolean;
       centered?: boolean;

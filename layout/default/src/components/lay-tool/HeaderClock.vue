@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { ScTooltip } from "@repo/components/ScTooltip";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
 import { emitter } from "@repo/core";
-import { ScText } from "@repo/components/ScText"
-import { ScTooltip } from "@repo/components/ScTooltip";
+import { ScText } from "@repo/components/ScText";
+
 
 const primaryTime = ref<string>("");
 const primaryWeekday = ref<string>("");

@@ -2,7 +2,7 @@
 import { defineAsyncComponent, reactive, ref, computed } from "vue";
 import { GridLayout } from "grid-layout-plus";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { useLayoutLayoutStore } from "@repo/core";
 
 const loadingCollection = {};
@@ -44,7 +44,7 @@ const handleRemove = async (key) => {
   <div class="customizing h-full">
     <GridLayout 
       class="!h-full grid-layout-container" 
-      :row-height="80" 
+      :row-height="200" 
       v-model:layout="userLayoutObject.layout" 
       :is-draggable="props.modelValue" 
       :is-resizable="props.modelValue" 
@@ -56,7 +56,7 @@ const handleRemove = async (key) => {
           <div class="widgets-item">
             <!-- 部件内容 -->
             <div class="widget-content h-full">
-              <ScSkeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
+              <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
                 <template #template>
                   <div class="!w-full !h-full" style="width: 100% !important">
                     <div class="!h-full" v-if="(item.type == 1 && props.modelValue) || !props.modelValue || userLayoutObject.loadRemoteComponent(item.id)">
@@ -71,61 +71,61 @@ const handleRemove = async (key) => {
                       </keep-alive>
                     </div>
                     <div v-else-if="props.modelValue" class="widget-placeholder">
-                      <ScIcon :size="48" color="var(--el-color-primary-light-5)">
+                      <el-icon :size="48" color="var(--el-color-primary-light-5)">
                         <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
-                      </ScIcon>
+                      </el-icon>
                       <span class="placeholder-text">{{ getWidgetTitle(item.id) }}</span>
                     </div>
                   </div>
                 </template>
-              </ScSkeleton>
+              </el-skeleton>
             </div>
             
             <!-- 编辑模式遮罩层 -->
             <div v-if="props.modelValue" class="customize-overlay" :class="{ 'is-local': item.type === 1 }">
               <!-- 操作按钮组 -->
               <div class="overlay-actions">
-                <ScTooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
-                  <ScButton
+                <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
+                  <el-button
                     :type="userLayoutObject.loadRemoteComponent(item.id) ? 'primary' : 'info'"
                     circle
                     size="small"
                     @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
                   >
-                    <ScIcon>
+                    <el-icon>
                       <component :is="useRenderIcon(userLayoutObject.loadRemoteComponent(item.id) ? 'ri:eye-line' : 'ri:eye-close-line')" />
-                    </ScIcon>
-                  </ScButton>
-                </ScTooltip>
-                <ScTooltip content="移除部件" placement="top">
-                  <ScButton type="danger" circle size="small" @click="handleRemove(item.id)">
-                    <ScIcon><component :is="useRenderIcon('ep:delete')" /></ScIcon>
-                  </ScButton>
-                </ScTooltip>
+                    </el-icon>
+                  </el-button>
+                </el-tooltip>
+                <el-tooltip content="移除部件" placement="top">
+                  <el-button type="danger" circle size="small" @click="handleRemove(item.id)">
+                    <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
+                  </el-button>
+                </el-tooltip>
               </div>
               
               <!-- 拖拽区域 -->
               <div class="drag-area" v-if="item.type !== 1">
                 <div class="drag-icon">
-                  <ScIcon :size="28">
+                  <el-icon :size="28">
                     <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
-                  </ScIcon>
+                  </el-icon>
                 </div>
                 <div class="drag-info">
                   <span class="drag-title">{{ getWidgetTitle(item.id) }}</span>
-                  <ScTag size="small" :type="item.type === 1 ? 'success' : 'primary'" class="drag-type">
+                  <el-tag size="small" :type="item.type === 1 ? 'success' : 'primary'" class="drag-type">
                     {{ getTypeLabel(item) }}
-                  </ScTag>
+                  </el-tag>
                 </div>
                 <div class="drag-hint">
-                  <ScIcon :size="14"><component :is="useRenderIcon('ri:drag-move-2-line')" /></ScIcon>
+                  <el-icon :size="14"><component :is="useRenderIcon('ri:drag-move-2-line')" /></el-icon>
                   <span>拖拽移动</span>
                 </div>
               </div>
               
               <!-- 调整大小提示 -->
               <div class="resize-hint">
-                <ScIcon :size="12"><component :is="useRenderIcon('ri:expand-diagonal-line')" /></ScIcon>
+                <el-icon :size="12"><component :is="useRenderIcon('ri:expand-diagonal-line')" /></el-icon>
               </div>
             </div>
           </div>
