@@ -4,7 +4,7 @@
     <div class="page-header">
       <ScBreadcrumb separator="/">
         <ScBreadcrumbItem :to="{ path: '/webrtc' }"
-          >WebRTC管理</el-breadcrumb-item
+          >WebRTC管理</ScBreadcrumbItem
         >
         <ScBreadcrumbItem>房间管理</ScBreadcrumbItem>
       </ScBreadcrumb>
@@ -117,7 +117,7 @@
                   <ScDropdownItem command="edit">编辑</ScDropdownItem>
                   <ScDropdownItem command="users">用户列表</ScDropdownItem>
                   <ScDropdownItem command="delete" divided
-                    >删除</el-dropdown-item
+                    >删除</ScDropdownItem
                   >
                 </ScDropdownMenu>
               </template>

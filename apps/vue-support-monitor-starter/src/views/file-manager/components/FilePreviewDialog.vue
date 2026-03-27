@@ -79,7 +79,7 @@
                 <IconifyIconOnline icon="ri:file-copy-line" />
                 复制内容
               </ScButton>
-            </el-button-group>
+            </ScButton-group>
           </div>
           <div class="text-content" :class="{ 'text-wrap': textWrap }">
             <pre v-if="textContent" class="text-pre">{{ textContent }}</pre>

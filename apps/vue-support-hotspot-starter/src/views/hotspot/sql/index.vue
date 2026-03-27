@@ -7,7 +7,7 @@
           <div class="header-left">
             <IconifyIconOnline icon="ri:database-2-line" class="header-icon" />
             <span>SQL 监控</span>
-            <ScTag type="info" size="small">{{ dataList.length }} 条记�?/ScTag>
+            <ScTag type="info" size="small">{{ dataList.length }} 条记�?</ScTag>
           </div>
           <div class="header-actions">
             <ScButton v-if="config.lock" type="primary" size="small" @click="config.lock = false">
@@ -93,7 +93,7 @@ const handleWsMessage = message => {
       while (dataList.length > 10000) {
         dataList.shift();
       }
-      // 自动滚动到底�?
+      // 自动滚动到底�?
       if (config.lock) {
         nextTick(() => {
           const container = document.querySelector("#containerRef");

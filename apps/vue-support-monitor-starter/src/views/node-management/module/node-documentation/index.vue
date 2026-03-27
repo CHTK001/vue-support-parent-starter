@@ -208,7 +208,7 @@
                   <i class="ri-delete-bin-line" />
                   清空参数
                 </ScButton>
-              </el-button-group>
+              </ScButton-group>
             </div>
           </div>
 
@@ -690,12 +690,7 @@
             <i class="ri-add-line" />
             添加请求头
           </ScButton>
-          <ScButton
-            size="small"
-            type="success"
-            plain
-            @click="addCommonHeaders"
-          >
+          <ScButton size="small" type="success" plain @click="addCommonHeaders">
             <i class="ri-magic-line" />
             添加常用请求头
           </ScButton>

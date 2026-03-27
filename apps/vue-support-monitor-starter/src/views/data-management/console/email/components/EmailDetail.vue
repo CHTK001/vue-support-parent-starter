@@ -12,25 +12,25 @@ import { useRenderIcon } from "@repo/components/ReIcon";
             size="small"
             :icon="useRenderIcon('ri:reply-line')"
             @click="handleReply"
-            >回复</el-button
+            >回复</ScButton
           >
           <ScButton
             size="small"
             :icon="useRenderIcon('ri:reply-all-line')"
             @click="handleReplyAll"
-            >全部回复</el-button
+            >全部回复</ScButton
           >
           <ScButton
             size="small"
             :icon="useRenderIcon('ri:share-forward-line')"
             @click="handleForward"
-            >转发</el-button
+            >转发</ScButton
           >
           <ScButton
             size="small"
             :icon="useRenderIcon('ri:delete-bin-line')"
             @click="handleDelete"
-            >删除</el-button
+            >删除</ScButton
           >-->
         </div>
       </div>
@@ -62,7 +62,7 @@ import { useRenderIcon } from "@repo/components/ReIcon";
               type="primary"
               link
               @click="downloadAttachment"
-              >下载</el-button
+              >下载</ScButton
             >
           </div>
         </div>

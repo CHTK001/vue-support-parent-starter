@@ -165,11 +165,7 @@
           <template #default="{ row }">
             <el-button-group>
               <ScTooltip content="查看详情" placement="top">
-                <ScButton
-                  text
-                  size="small"
-                  @click.stop="handleViewDetail(row)"
-                >
+                <ScButton text size="small" @click.stop="handleViewDetail(row)">
                   <IconifyIconOnline icon="ri:eye-line" />
                 </ScButton>
               </ScTooltip>
@@ -183,7 +179,7 @@
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </ScButton>
               </ScTooltip>
-            </el-button-group>
+            </ScButton-group>
           </template>
         </ScTableColumn>
       </ScTable>

@@ -18,15 +18,11 @@
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             刷新
           </ScButton>
-          <ScButton
-            size="small"
-            :loading="exportLoading"
-            @click="handleExport"
-          >
+          <ScButton size="small" :loading="exportLoading" @click="handleExport">
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             导出
           </ScButton>
-        </el-button-group>
+        </ScButton-group>
       </div>
     </div>
 
@@ -204,7 +200,7 @@
                 <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
                 对比
               </ScButton>
-            </el-button-group>
+            </ScButton-group>
           </template>
         </ScTableColumn>
       </ScTable>

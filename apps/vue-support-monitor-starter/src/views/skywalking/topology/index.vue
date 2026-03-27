@@ -50,7 +50,7 @@
           />
         </ScSelect>
         <ScButton type="primary" :icon="Search" @click="fetchData"
-          >查询</el-button
+          >查询</ScButton
         >
       </div>
     </div>

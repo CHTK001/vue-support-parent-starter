@@ -91,7 +91,7 @@
                     group.serverName || `服务器 #${group.serverId}`
                   }}</span>
                   <ScTag size="small" class="group-count"
-                    >{{ group.containers.length }} 个容器</el-tag
+                    >{{ group.containers.length }} 个容器</ScTag
                   >
                 </div>
                 <div class="group-actions" @click.stop>
@@ -151,7 +151,7 @@
                     group.softName || `软件 #${group.softId}`
                   }}</span>
                   <ScTag size="small" class="group-count"
-                    >{{ group.containers.length }} 个容器</el-tag
+                    >{{ group.containers.length }} 个容器</ScTag
                   >
                 </div>
                 <div class="group-stats">

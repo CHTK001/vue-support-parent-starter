@@ -35,7 +35,7 @@
               />
               <span class="viewer-name">{{ viewer.name }}</span>
               <ScTag size="small" type="info"
-                >优先级: {{ viewer.priority }}</el-tag
+                >优先级: {{ viewer.priority }}</ScTag
               >
               <ScTag
                 size="small"

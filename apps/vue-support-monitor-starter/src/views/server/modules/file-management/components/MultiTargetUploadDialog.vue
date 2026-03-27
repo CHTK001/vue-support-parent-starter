@@ -86,7 +86,7 @@
     <template #footer>
       <ScButton @click="handleClose">取消</ScButton>
       <ScButton type="primary" :loading="submitting" @click="handleConfirm"
-        >开始上传</el-button
+        >开始上传</ScButton
       >
     </template>
   </sc-dialog>

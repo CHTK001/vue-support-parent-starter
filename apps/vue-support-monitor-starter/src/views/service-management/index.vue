@@ -110,7 +110,7 @@
         <template #empty>
           <ScEmpty description="暂无服务器数据">
             <ScButton type="primary" @click="showAddDialog = true"
-              >新增服务器</el-button
+              >新增服务器</ScButton
             >
           </ScEmpty>
         </template>

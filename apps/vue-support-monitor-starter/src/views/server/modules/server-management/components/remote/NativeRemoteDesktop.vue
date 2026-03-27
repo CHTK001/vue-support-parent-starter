@@ -48,7 +48,7 @@
               <IconifyIconOnline icon="ri:close-line" />
             </ScButton>
           </ScTooltip>
-        </el-button-group>
+        </ScButton-group>
       </div>
     </div>
 

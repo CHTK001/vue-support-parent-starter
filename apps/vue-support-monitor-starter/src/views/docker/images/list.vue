@@ -123,10 +123,7 @@
 
         <ScTableColumn label="状态" width="120">
           <template #default="{ row }">
-            <ScTag
-              :type="getStatusTag(row.systemSoftImageStatus)"
-              size="small"
-            >
+            <ScTag :type="getStatusTag(row.systemSoftImageStatus)" size="small">
               {{ getStatusText(row.systemSoftImageStatus) }}
             </ScTag>
           </template>

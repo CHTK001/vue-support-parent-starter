@@ -9,20 +9,20 @@
             <span class="value">{{ traceId }}</span>
             <ScButton type="primary" link size="small" @click="copyTraceId">
               <template #icon
-                ><ScIcon><CopyDocument /></el-icon
+                ><ScIcon><CopyDocument /></ScIcon
               ></template>
               复制
             </ScButton>
           </div>
           <div class="trace-stats">
             <ScTag type="info" size="small"
-              >Span 数量: {{ traceData?.spans?.length || 0 }}</el-tag
+              >Span 数量: {{ traceData?.spans?.length || 0 }}</ScTag
             >
             <ScTag :type="hasError ? 'danger' : 'success'" size="small">
               {{ hasError ? "包含错误" : "正常" }}
             </ScTag>
             <ScTag type="info" size="small"
-              >总耗时: {{ totalDuration }}</el-tag
+              >总耗时: {{ totalDuration }}</ScTag
             >
           </div>
         </div>
@@ -87,7 +87,7 @@
                 link
                 size="small"
                 @click="showSpanDetail(row)"
-                >详情</el-button
+                >详情</ScButton
               >
             </template>
           </ScTableColumn>

@@ -52,7 +52,7 @@
           </ScButton>
           <ScButton @click="loadDefaultConfig">加载默认配置</ScButton>
           <ScButton :loading="starting" @click="startService"
-            >启动服务</el-button
+            >启动服务</ScButton
           >
         </ScFormItem>
       </ScForm>
@@ -95,7 +95,7 @@
                 断开
               </ScButton>
             </ScTooltip>
-          </el-button-group>
+          </ScButton-group>
         </div>
       </div>
 
@@ -135,7 +135,7 @@
           <ScIcon><Document /></ScIcon>
           <span>连接日志</span>
           <ScButton type="text" size="small" @click="clearLogs"
-            >清空</el-button
+            >清空</ScButton
           >
         </div>
       </template>

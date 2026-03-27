@@ -28,11 +28,11 @@
           <ScOption label="禁用" :value="0" />
         </ScSelect>
         <ScButton type="primary" :icon="Search" @click="handleSearch"
-          >查询</el-button
+          >查询</ScButton
         >
         <ScButton :icon="RefreshRight" @click="handleReset">重置</ScButton>
         <ScButton type="success" :icon="Plus" @click="handleAdd"
-          >新增配置</el-button
+          >新增配置</ScButton
         >
       </div>
     </div>
@@ -89,10 +89,10 @@
         <ScTableColumn label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <ScButton type="primary" link size="small" @click="handleTest(row)"
-              >测试</el-button
+              >测试</ScButton
             >
             <ScButton type="primary" link size="small" @click="handleEdit(row)"
-              >编辑</el-button
+              >编辑</ScButton
             >
             <ScPopconfirm
               title="确定删除该配置吗？"
@@ -208,7 +208,7 @@
               />
               <span>认证配置</span>
               <ScTag type="info" size="small" class="optional-tag"
-                >可选</el-tag
+                >可选</ScTag
               >
             </div>
             <div class="section-content">

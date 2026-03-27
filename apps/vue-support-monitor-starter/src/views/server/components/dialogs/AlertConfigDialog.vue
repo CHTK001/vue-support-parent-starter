@@ -40,7 +40,7 @@
                       {{ getSeverityText(rule.severity) }}
                     </ScTag>
                     <ScTag v-if="!rule.enabled" type="info" size="small"
-                      >已禁用</el-tag
+                      >已禁用</ScTag
                     >
                   </div>
                   <div class="rule-actions">
@@ -362,7 +362,7 @@
               <div class="threshold-actions">
                 <ScButton @click="resetThresholds">重置为默认值</ScButton>
                 <ScButton type="primary" @click="saveThresholds"
-                  >保存阈值配置</el-button
+                  >保存阈值配置</ScButton
                 >
               </div>
             </ScForm>

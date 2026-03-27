@@ -29,7 +29,8 @@ const routes = [
             path: "/video/search",
             name: "VideoSearch",
             component: async () => {
-              const { VideoSearch } = await import("../../../../../pages/video/src");
+              const { VideoSearch } =
+                await import("../../../../../pages/video/src");
               return VideoSearch;
             },
             meta: {
@@ -43,7 +44,8 @@ const routes = [
             path: "/video/search/result",
             name: "VideoSearchResult",
             component: async () => {
-              const { VideoSearchResult } = await import("../../../../../pages/video/src");
+              const { VideoSearchResult } =
+                await import("../../../../../pages/video/src");
               return VideoSearchResult;
             },
             meta: {
@@ -56,7 +58,8 @@ const routes = [
             path: "/video/manage/result",
             name: "VideoManageSearchResult",
             component: async () => {
-              const { VideoManageSearchResult } = await import("../../../../../pages/video/src");
+              const { VideoManageSearchResult } =
+                await import("../../../../../pages/video/src");
               return VideoManageSearchResult;
             },
             meta: {
@@ -69,7 +72,8 @@ const routes = [
             path: "/video/detail/result",
             name: "VideoDetailResult",
             component: async () => {
-              const { VideoDetailResult } = await import("../../../../../pages/video/src");
+              const { VideoDetailResult } =
+                await import("../../../../../pages/video/src");
               return VideoDetailResult;
             },
             meta: {
@@ -82,7 +86,8 @@ const routes = [
             path: "/video/add",
             name: "VideoAdd",
             component: async () => {
-              const { VideoAddResult } = await import("../../../../../pages/video/src");
+              const { VideoAddResult } =
+                await import("../../../../../pages/video/src");
               return VideoAddResult;
             },
             meta: {
@@ -95,7 +100,8 @@ const routes = [
             path: "/video/edit",
             name: "VideoEdit",
             component: async () => {
-              const { VideoEditResult } = await import("../../../../../pages/video/src");
+              const { VideoEditResult } =
+                await import("../../../../../pages/video/src");
               return VideoEditResult;
             },
             meta: {
@@ -108,7 +114,8 @@ const routes = [
             path: "/video/parse",
             name: "VideoParse",
             component: async () => {
-              const { VideoParse } = await import("../../../../../pages/video/src");
+              const { VideoParse } =
+                await import("../../../../../pages/video/src");
               return VideoParse;
             },
             meta: {
@@ -121,7 +128,8 @@ const routes = [
             path: "/video/manage",
             name: "VideoManage",
             component: async () => {
-              const { VideoManage } = await import("../../../../../pages/video/src");
+              const { VideoManage } =
+                await import("../../../../../pages/video/src");
               return VideoManage;
             },
             meta: {
@@ -147,7 +155,8 @@ const routes = [
             path: "/video/source",
             name: "VideoSource",
             component: async () => {
-              const { VideoSource } = await import("../../../../../pages/video/src");
+              const { VideoSource } =
+                await import("../../../../../pages/video/src");
               return VideoSource;
             },
             meta: {
@@ -160,7 +169,8 @@ const routes = [
             path: "/video/config",
             name: "VideoConfig",
             component: async () => {
-              const { VideoConfig } = await import("../../../../../pages/video/src");
+              const { VideoConfig } =
+                await import("../../../../../pages/video/src");
               return VideoConfig;
             },
             meta: {

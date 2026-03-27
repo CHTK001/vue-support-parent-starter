@@ -169,10 +169,10 @@
 
             <ScFormItem>
               <ScButton type="info" @click="validateConfig"
-                >验证配置</el-button
+                >验证配置</ScButton
               >
               <ScButton type="warning" @click="resetConfig"
-                >重置配置</el-button
+                >重置配置</ScButton
               >
             </ScFormItem>
           </ScForm>
