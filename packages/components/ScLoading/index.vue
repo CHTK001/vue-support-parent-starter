@@ -1,5 +1,5 @@
 <script setup>
-import { defineExpose, ref, defineAsyncComponent, shallowRef, nextTick } from "vue";
+import { ref, defineAsyncComponent, shallowRef, nextTick } from "vue";
 
 const DefaultLayout = defineAsyncComponent(() => import("./layout/default.vue"));
 const SpiningLayout = defineAsyncComponent(() => import("./layout/spining.vue"));

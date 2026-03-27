@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { message, stringSplitToArray } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, ref, watch } from "vue";
 import {
@@ -8,10 +8,10 @@ import {
 } from "../../../api/manage/project-device";
 
 const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScFormTable/index.vue")
 );
 const ScTableSelect = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScTableSelect/index.vue")
 );
 const visible = ref(false);
 let form = reactive({});
@@ -84,7 +84,7 @@ watch(
   (val) => {
     form.sysTemplateId = val?.sysTemplateId;
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 watch(
   () => tempData,
@@ -96,7 +96,7 @@ watch(
       });
     }
   },
-  { deep: true, immediate: true },
+  { deep: true, immediate: true }
 );
 defineExpose({
   handleOpen,
@@ -150,7 +150,7 @@ defineExpose({
         </ScFormItem>
       </ScForm>
       <template #footer>
-        <ScButton
+        <ScButton 
           type="primary"
           size="default"
           :icon="useRenderIcon('bi:send')"

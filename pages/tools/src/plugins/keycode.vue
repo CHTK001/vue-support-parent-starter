@@ -422,25 +422,25 @@ onBeforeUnmount(() => {
                   size="small"
                   :type="env.currentKey.ctrlKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
-                  >Ctrl</el-tag
+                  >Ctrl</ScTag
                 >
                 <ScTag 
                   size="small"
                   :type="env.currentKey.altKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
-                  >Alt</el-tag
+                  >Alt</ScTag
                 >
                 <ScTag 
                   size="small"
                   :type="env.currentKey.shiftKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
-                  >Shift</el-tag
+                  >Shift</ScTag
                 >
                 <ScTag 
                   size="small"
                   :type="env.currentKey.metaKey ? 'success' : 'info'"
                   class="keycode-tool__modifier-tag"
-                  >Meta</el-tag
+                  >Meta</ScTag
                 >
               </span>
             </div>
@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
                 <ScTag 
                   size="small"
                   :type="env.currentKey.repeat ? 'warning' : 'info'"
-                  >{{ env.currentKey.repeat ? "是" : "否" }}</el-tag
+                  >{{ env.currentKey.repeat ? "是" : "否" }}</ScTag
                 >
               </span>
             </div>
@@ -842,19 +842,19 @@ onBeforeUnmount(() => {
                         size="small"
                         :type="item.ctrlKey ? 'success' : 'info'"
                         class="keycode-tool__modifier-tag"
-                        >Ctrl</el-tag
+                        >Ctrl</ScTag
                       >
                       <ScTag 
                         size="small"
                         :type="item.altKey ? 'success' : 'info'"
                         class="keycode-tool__modifier-tag"
-                        >Alt</el-tag
+                        >Alt</ScTag
                       >
                       <ScTag 
                         size="small"
                         :type="item.shiftKey ? 'success' : 'info'"
                         class="keycode-tool__modifier-tag"
-                        >Shift</el-tag
+                        >Shift</ScTag
                       >
                     </span>
                   </div>

@@ -6,10 +6,10 @@
  * @version 1.0.0
  * @since 2024-12-04
  */
-import { ScAvatar } from "@repo/components/ScAvatar";
 import { ScTag } from "@repo/components/ScTag";
-
 import { computed } from 'vue'
+import { ScAvatar } from "@repo/components/ScAvatar";
+
 
 interface AccountInfoProps {
   userId?: number

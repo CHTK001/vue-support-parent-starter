@@ -1,45 +1,24 @@
 <template>
-  <section class="ops-view merchant-view">
-    <div class="ops-hero">
-      <article class="ops-hero__intro">
-        <p class="ops-kicker">Merchant Ops</p>
-        <h3 class="ops-title">商户、渠道与开通指引统一在一个控制面完成编排</h3>
-        <p class="ops-copy">
-          这里同时承担商户主体管理、支付方式开通、密钥掩码展示和能力状态校验。
-          钱包与综合支付是平台内建能力，微信和支付宝则按已实现的子渠道矩阵开放。
-        </p>
-        <div class="ops-ribbon">
-          <span class="ops-ribbon__item">可执行渠道 {{ executableGuideCount }}</span>
-          <span class="ops-ribbon__item">仅指引能力 {{ guideOnlyGuideCount }}</span>
-          <span class="ops-ribbon__item">默认 Provider SPI 已接入</span>
-        </div>
+  <section class="view">
+    <div class="hero-grid">
+      <article class="hero-card">
+        <p>商户总数</p>
+        <strong>{{ pagination.total }}</strong>
+        <span>统一维护商户主体、默认回调地址和自动关单策略。</span>
       </article>
-
-      <div class="ops-hero__stats">
-        <article class="ops-stat">
-          <p class="ops-stat__label">商户总数</p>
-          <strong class="ops-stat__value">{{ pagination.total }}</strong>
-          <p class="ops-stat__desc">统一维护商户主体、默认回调地址和自动关单策略。</p>
-        </article>
-        <article class="ops-stat">
-          <p class="ops-stat__label">激活商户</p>
-          <strong class="ops-stat__value">{{ activeMerchantCount }}</strong>
-          <p class="ops-stat__desc">只有激活商户才允许继续创建支付订单和钱包账户。</p>
-        </article>
-        <article class="ops-stat">
-          <p class="ops-stat__label">已配置支付方式</p>
-          <strong class="ops-stat__value">{{ totalChannelCount }}</strong>
-          <p class="ops-stat__desc">覆盖微信、支付宝、综合支付与钱包余额四类路径。</p>
-        </article>
-        <article class="ops-stat">
-          <p class="ops-stat__label">当前巡检焦点</p>
-          <strong class="ops-stat__value">{{ activeMerchantCount ? "联调中" : "待开通" }}</strong>
-          <p class="ops-stat__desc">第三方渠道可走 mock，钱包能力可在本地完成真实闭环验证。</p>
-        </article>
-      </div>
+      <article class="hero-card">
+        <p>激活商户</p>
+        <strong>{{ activeMerchantCount }}</strong>
+        <span>只有激活商户才允许继续创建支付订单。</span>
+      </article>
+      <article class="hero-card">
+        <p>已配置支付方式</p>
+        <strong>{{ totalChannelCount }}</strong>
+        <span>商户下支持微信、支付宝、综合支付和钱包。</span>
+      </article>
     </div>
 
-    <el-card class="ops-panel">
+    <el-card class="panel">
       <template #header>
         <div class="panel__header">
           <div>
@@ -50,46 +29,27 @@
         </div>
       </template>
 
-      <div class="ops-toolbar">
-        <el-form :inline="true" :model="searchForm" class="toolbar">
-          <el-form-item label="商户名称">
-            <el-input v-model="searchForm.merchantName" placeholder="请输入商户名称" clearable />
-          </el-form-item>
-          <el-form-item label="商户状态">
-            <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 180px">
-              <el-option v-for="(label, value) in MerchantStatusMap" :key="value" :label="label" :value="Number(value)" />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">查询</el-button>
-            <el-button @click="handleResetSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
+      <el-form :inline="true" :model="searchForm" class="toolbar">
+        <el-form-item label="商户名称">
+          <el-input v-model="searchForm.merchantName" placeholder="请输入商户名称" clearable />
+        </el-form-item>
+        <el-form-item label="商户状态">
+          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 180px">
+            <el-option v-for="(label, value) in MerchantStatusMap" :key="value" :label="label" :value="Number(value)" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleResetSearch">重置</el-button>
+        </el-form-item>
+      </el-form>
 
-        <div class="ops-toolbar__meta">
-          <span class="ops-chip">商户待审核 {{ pendingMerchantCount }}</span>
-          <span class="ops-chip">钱包已开启 {{ walletMerchantCount }}</span>
-          <span class="ops-chip">综合支付已开启 {{ compositeMerchantCount }}</span>
-        </div>
-      </div>
-
-      <div class="ops-table">
-        <el-table :data="merchantList" v-loading="loading" border>
-        <el-table-column label="商户名称" min-width="220">
-          <template #default="{ row }">
-            <div class="merchant-title">
-              <strong>{{ row.merchantName }}</strong>
-              <span>{{ row.contactName || "未填写联系人" }} / {{ row.contactPhone || "未填写手机号" }}</span>
-            </div>
-          </template>
-        </el-table-column>
+      <el-table :data="merchantList" v-loading="loading" class="table" border>
+        <el-table-column prop="merchantName" label="商户名称" min-width="180" />
         <el-table-column prop="merchantNo" label="商户号" width="200" />
-        <el-table-column label="回调配置" min-width="220">
+        <el-table-column label="联系人" width="150">
           <template #default="{ row }">
-            <div class="cell-stack">
-              <span>Notify: {{ row.defaultNotifyUrl || "-" }}</span>
-              <span>Return: {{ row.defaultReturnUrl || "-" }}</span>
-            </div>
+            {{ row.contactName || "-" }}
           </template>
         </el-table-column>
         <el-table-column label="状态" width="120">
@@ -111,17 +71,18 @@
         </el-table-column>
         <el-table-column prop="channelCount" label="支付方式数" width="120" />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="360" fixed="right">
+        <el-table-column label="操作" width="520" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openMerchantDialog(row)">编辑</el-button>
             <el-button link type="primary" @click="openChannelDrawer(row)">支付方式</el-button>
+            <el-button link type="primary" @click="openPaymentConfigDialog(row)">支付规则</el-button>
+            <el-button link type="primary" @click="openWalletLimitDialog(row)">钱包限额</el-button>
             <el-button v-if="row.status !== 1" link type="success" @click="handleActivate(row)">激活</el-button>
             <el-button v-else link type="warning" @click="handleDeactivate(row)">停用</el-button>
             <el-button link type="danger" @click="handleDeleteMerchant(row)">删除</el-button>
           </template>
         </el-table-column>
-        </el-table>
-      </div>
+      </el-table>
 
       <el-pagination
         v-model:current-page="pagination.page"
@@ -129,7 +90,7 @@
         :total="pagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="ops-pager"
+        class="pager"
         @current-change="loadMerchants"
         @size-change="loadMerchants"
       />
@@ -196,33 +157,15 @@
         </div>
       </template>
 
-      <div class="ops-split" v-if="selectedMerchant">
-        <div class="ops-subpanel">
-          <p class="ops-kicker">Merchant Snapshot</p>
-          <h4 class="drawer-title">{{ selectedMerchant.merchantName }}</h4>
-          <p class="ops-section-copy">
-            默认回调：{{ selectedMerchant.defaultNotifyUrl || "未配置" }}<br />
-            返回地址：{{ selectedMerchant.defaultReturnUrl || "未配置" }}
-          </p>
-          <div class="ops-ribbon drawer-ribbon">
-            <span class="ops-ribbon__item">
-              {{ selectedMerchant.statusDesc || MerchantStatusMap[selectedMerchant.status] }}
-            </span>
-            <span class="ops-ribbon__item">
-              自动关单 {{ selectedMerchant.autoCloseEnabled ? `${selectedMerchant.autoCloseMinutes || 30} 分钟` : "关闭" }}
-            </span>
-          </div>
-        </div>
-        <div class="ops-note">
-          <p class="ops-note__label">执行策略</p>
-          <p class="ops-note__text">
-            只有已经实现的子渠道才能启用。第三方渠道缺少密钥时只展示指引，钱包与综合支付会优先走平台内建校验。
-          </p>
-        </div>
+      <div class="drawer-summary" v-if="selectedMerchant">
+        <el-tag :type="merchantStatusTag(selectedMerchant.status)">
+          {{ selectedMerchant.statusDesc || MerchantStatusMap[selectedMerchant.status] }}
+        </el-tag>
+        <span>默认回调：{{ selectedMerchant.defaultNotifyUrl || "未配置" }}</span>
+        <span>自动关单：{{ selectedMerchant.autoCloseEnabled ? `${selectedMerchant.autoCloseMinutes || 30} 分钟` : "关闭" }}</span>
       </div>
 
-      <div class="ops-table">
-        <el-table :data="channelList" v-loading="channelLoading" border>
+      <el-table :data="channelList" v-loading="channelLoading" border>
         <el-table-column label="支付方式" min-width="200">
           <template #default="{ row }">
             <div class="channel-title">
@@ -264,22 +207,33 @@
             {{ row.sandboxMode === 1 ? "是" : "否" }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="300" fixed="right">
+        <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openChannelDialog(row)">编辑</el-button>
             <el-button link type="primary" @click="openGuideDrawerByChannel(row)">开通指引</el-button>
             <el-button v-if="row.status !== 1 && isExecutableChannel(row.channelType, row.channelSubType)" link type="success" @click="handleEnableChannel(row)">启用</el-button>
             <el-button v-if="row.status === 1" link type="warning" @click="handleDisableChannel(row)">禁用</el-button>
+            <el-button v-if="row.status !== 1" link type="danger" @click="handleDeleteChannel(row)">删除</el-button>
           </template>
         </el-table-column>
-        </el-table>
-      </div>
+      </el-table>
     </el-drawer>
 
     <el-dialog v-model="channelDialogVisible" :title="editingChannel ? '编辑支付方式' : '新增支付方式'" width="820px">
       <el-form :model="channelForm" label-width="120px">
         <div class="form-grid">
-          <el-form-item label="渠道类型" required>
+          <el-form-item class="span-2">
+            <el-alert
+              title="字段右侧问号图标提供当前字段的填写说明、官方入口和真实页面截图。"
+              type="success"
+              :closable="false"
+              show-icon
+            />
+          </el-form-item>
+          <el-form-item required>
+            <template #label>
+              <FieldGuideLabel label="渠道类型" @open="openFieldGuide('channelType')" />
+            </template>
             <el-select v-model="channelForm.channelType" @change="handleChannelTypeChange">
               <el-option label="微信支付" value="WECHAT" />
               <el-option label="支付宝" value="ALIPAY" />
@@ -287,7 +241,10 @@
               <el-option label="钱包" value="WALLET" />
             </el-select>
           </el-form-item>
-          <el-form-item label="渠道子类型" required>
+          <el-form-item required>
+            <template #label>
+              <FieldGuideLabel label="渠道子类型" @open="openFieldGuide('channelSubType')" />
+            </template>
             <el-select v-model="channelForm.channelSubType">
               <el-option
                 v-for="item in availableSubTypes"
@@ -305,7 +262,10 @@
               show-icon
             />
           </el-form-item>
-          <el-form-item v-if="providerOptions.length" label="Provider SPI">
+          <el-form-item v-if="providerOptions.length">
+            <template #label>
+              <FieldGuideLabel label="Provider SPI" @open="openFieldGuide('providerSpi')" />
+            </template>
             <el-select v-model="channelForm.providerSpi" clearable placeholder="默认使用后端全局配置">
               <el-option
                 v-for="item in providerOptions"
@@ -315,53 +275,95 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="展示名称">
+          <el-form-item>
+            <template #label>
+              <FieldGuideLabel label="展示名称" @open="openFieldGuide('channelName')" />
+            </template>
             <el-input v-model="channelForm.channelName" placeholder="例如：微信小程序支付" />
           </el-form-item>
-          <el-form-item label="渠道状态">
+          <el-form-item>
+            <template #label>
+              <FieldGuideLabel label="渠道状态" @open="openFieldGuide('status')" />
+            </template>
             <el-select v-model="channelForm.status">
               <el-option label="禁用" :value="0" />
               <el-option label="启用" :value="1" />
             </el-select>
           </el-form-item>
-          <el-form-item v-if="usesThirdPartyCredentials" label="AppID / 应用ID">
+          <el-form-item v-if="usesThirdPartyCredentials">
+            <template #label>
+              <FieldGuideLabel label="AppID / 应用ID" @open="openFieldGuide('appId')" />
+            </template>
             <el-input v-model="channelForm.appId" placeholder="微信 AppID 或支付宝应用 ID" />
           </el-form-item>
-          <el-form-item :label="isCompositeChannel ? '路由标识' : '商户号 / PID'">
+          <el-form-item>
+            <template #label>
+              <FieldGuideLabel :label="isCompositeChannel ? '路由标识' : '商户号 / PID'" @open="openFieldGuide('merchantNo')" />
+            </template>
             <el-input v-model="channelForm.merchantNo" :placeholder="isCompositeChannel ? '可选：内部路由标识' : '商户号、PID 或路由标识'" />
           </el-form-item>
-          <el-form-item v-if="usesThirdPartyCredentials" label="API Key">
+          <el-form-item v-if="usesThirdPartyCredentials">
+            <template #label>
+              <FieldGuideLabel label="API Key" @open="openFieldGuide('apiKey')" />
+            </template>
             <el-input v-model="channelForm.apiKey" type="password" show-password placeholder="留空表示不改动现有密钥" />
           </el-form-item>
-          <el-form-item v-if="usesThirdPartyCredentials" label="私钥">
+          <el-form-item v-if="usesThirdPartyCredentials">
+            <template #label>
+              <FieldGuideLabel label="私钥" @open="openFieldGuide('privateKey')" />
+            </template>
             <el-input v-model="channelForm.privateKey" type="textarea" :rows="3" placeholder="留空表示不改动现有私钥" />
           </el-form-item>
-          <el-form-item v-if="channelForm.channelType === 'ALIPAY'" label="公钥">
+          <el-form-item v-if="channelForm.channelType === 'ALIPAY'">
+            <template #label>
+              <FieldGuideLabel label="公钥" @open="openFieldGuide('publicKey')" />
+            </template>
             <el-input v-model="channelForm.publicKey" type="textarea" :rows="3" placeholder="支付宝公钥或平台公钥" />
           </el-form-item>
-          <el-form-item v-if="channelForm.channelType === 'WECHAT'" label="证书路径">
+          <el-form-item v-if="channelForm.channelType === 'WECHAT'">
+            <template #label>
+              <FieldGuideLabel label="证书路径" @open="openFieldGuide('certPath')" />
+            </template>
             <el-input v-model="channelForm.certPath" placeholder="例如：/data/cert/apiclient_key.pem" />
           </el-form-item>
-          <el-form-item label="支付回调地址" class="span-2">
+          <el-form-item class="span-2">
+            <template #label>
+              <FieldGuideLabel label="支付回调地址" @open="openFieldGuide('notifyUrl')" />
+            </template>
             <el-input v-model="channelForm.notifyUrl" placeholder="当前支付方式专属回调地址" />
           </el-form-item>
-          <el-form-item label="返回地址" class="span-2">
+          <el-form-item class="span-2">
+            <template #label>
+              <FieldGuideLabel label="返回地址" @open="openFieldGuide('returnUrl')" />
+            </template>
             <el-input v-model="channelForm.returnUrl" placeholder="当前支付方式专属返回地址" />
           </el-form-item>
-          <el-form-item label="沙箱模式">
+          <el-form-item>
+            <template #label>
+              <FieldGuideLabel label="沙箱模式" @open="openFieldGuide('sandboxMode')" />
+            </template>
             <el-switch v-model="sandboxEnabled" />
           </el-form-item>
-          <el-form-item label="开通状态">
+          <el-form-item>
+            <template #label>
+              <FieldGuideLabel label="开通状态" @open="openFieldGuide('onboardingStatus')" />
+            </template>
             <el-select v-model="channelForm.onboardingStatus">
               <el-option label="未开始" value="NOT_STARTED" />
               <el-option label="开通中" value="IN_PROGRESS" />
               <el-option label="已开通" value="COMPLETED" />
             </el-select>
           </el-form-item>
-          <el-form-item label="开通链接" class="span-2">
+          <el-form-item class="span-2">
+            <template #label>
+              <FieldGuideLabel label="开通链接" @open="openFieldGuide('onboardingLink')" />
+            </template>
             <el-input v-model="channelForm.onboardingLink" placeholder="可覆盖默认官方开通链接" />
           </el-form-item>
-          <el-form-item label="扩展配置" class="span-2">
+          <el-form-item class="span-2">
+            <template #label>
+              <FieldGuideLabel label="扩展配置" @open="openFieldGuide('extConfig')" />
+            </template>
             <el-input v-model="channelForm.extConfig" type="textarea" :rows="4" :placeholder="extConfigPlaceholder" />
           </el-form-item>
         </div>
@@ -375,24 +377,134 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="paymentConfigDialogVisible" width="720px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付规则` : '支付规则'">
+      <el-form :model="paymentConfigForm" label-width="130px">
+        <div class="form-grid">
+          <el-form-item label="允许重复支付">
+            <el-switch v-model="paymentConfigForm.orderReusable" />
+          </el-form-item>
+          <el-form-item label="自动取消超时订单">
+            <el-switch v-model="paymentConfigForm.autoCancelTimeoutOrder" />
+          </el-form-item>
+          <el-form-item label="订单超时分钟">
+            <el-input-number v-model="paymentConfigForm.orderTimeoutMinutes" :min="1" :max="1440" />
+          </el-form-item>
+          <el-form-item label="待支付订单上限">
+            <el-input-number v-model="paymentConfigForm.pendingOrderLimit" :min="1" :max="9999" />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="paymentConfigDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingPaymentConfig" @click="submitPaymentConfig">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="fieldGuideDialogVisible" width="860px" destroy-on-close>
+      <template #header>
+        <div class="field-guide-dialog__header" v-if="currentFieldGuide">
+          <div>
+            <p class="panel__eyebrow">Field Guide</p>
+            <h3>{{ currentFieldGuide.fieldLabel }}</h3>
+          </div>
+          <el-tag effect="plain" type="warning">{{ ChannelTypeMap[channelForm.channelType] || channelForm.channelType }}</el-tag>
+        </div>
+      </template>
+      <template v-if="currentFieldGuide">
+        <div class="field-guide-hero">
+          <el-icon class="field-guide-hero__icon"><InfoFilled /></el-icon>
+          <div>
+            <strong>{{ currentFieldGuide.headline }}</strong>
+            <p>{{ currentFieldGuide.description }}</p>
+          </div>
+        </div>
+
+        <div class="field-guide-section">
+          <p class="field-guide-section__label">填写要点</p>
+          <ul>
+            <li v-for="item in currentFieldGuide.bullets" :key="item">{{ item }}</li>
+          </ul>
+        </div>
+
+        <div v-if="currentFieldGuide.example" class="field-guide-section">
+          <p class="field-guide-section__label">示例值</p>
+          <pre class="field-guide-example"><code>{{ currentFieldGuide.example }}</code></pre>
+        </div>
+
+        <div v-if="currentFieldGuide.media.length" class="field-guide-section">
+          <p class="field-guide-section__label">真实页面参考</p>
+          <div class="field-guide-media-grid">
+            <article v-for="item in currentFieldGuide.media" :key="item.src" class="field-guide-media-card">
+              <el-image
+                :src="item.src"
+                :preview-src-list="currentFieldGuide.media.map((media) => media.src)"
+                preview-teleported
+                fit="cover"
+                class="field-guide-media-card__image"
+              />
+              <div class="field-guide-media-card__body">
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.caption }}</p>
+                <el-button v-if="item.url" text type="primary" @click="openLink(item.url)">打开来源页面</el-button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div v-if="currentFieldGuide.links.length" class="field-guide-section">
+          <p class="field-guide-section__label">相关入口</p>
+          <div class="guide-links">
+            <el-button v-for="item in currentFieldGuide.links" :key="item.url" @click="openLink(item.url)">
+              {{ item.label }}
+            </el-button>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <el-button @click="fieldGuideDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="walletLimitDialogVisible" width="840px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 钱包限额` : '钱包限额'">
+      <el-form :model="walletLimitForm" label-width="130px">
+        <div class="form-grid">
+          <el-form-item label="单笔充值限额">
+            <el-input-number v-model="walletLimitForm.singleRechargeLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="日充值限额">
+            <el-input-number v-model="walletLimitForm.dailyRechargeLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="单笔提现限额">
+            <el-input-number v-model="walletLimitForm.singleWithdrawLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="日提现限额">
+            <el-input-number v-model="walletLimitForm.dailyWithdrawLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="单笔转账限额">
+            <el-input-number v-model="walletLimitForm.singleTransferLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="日转账限额">
+            <el-input-number v-model="walletLimitForm.dailyTransferLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+          <el-form-item label="余额上限">
+            <el-input-number v-model="walletLimitForm.balanceLimit" :min="0" :precision="2" :step="0.01" />
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="walletLimitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingWalletLimit" @click="submitWalletLimit">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-drawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'">
       <template v-if="currentGuide">
-        <div class="ops-split guide-layout">
-          <div class="ops-subpanel">
-            <p class="ops-kicker">Guide Snapshot</p>
-            <h4 class="drawer-title">{{ currentGuide.title }}</h4>
-            <p class="ops-section-copy">{{ currentGuide.summary }}</p>
-            <div class="ops-ribbon">
-              <span class="ops-ribbon__item">{{ currentGuide.channelType }} / {{ currentGuide.channelSubType }}</span>
-              <span class="ops-ribbon__item">默认 SPI {{ currentGuide.defaultProviderSpi || "default" }}</span>
-            </div>
-          </div>
-          <div class="ops-note">
-            <p class="ops-note__label">指引用途</p>
-            <p class="ops-note__text">
-              开通指引目录会保留 guide-only 能力，避免 FACE_TO_FACE、SANDBOX 这类能力被误当成可直接创建的支付子渠道。
-            </p>
-          </div>
+        <div class="guide-meta">
+          <el-tag type="primary" effect="dark">{{ currentGuide.officialName || "官方平台" }}</el-tag>
+          <el-tag v-if="currentGuide.defaultProviderSpi" effect="plain">默认 SPI：{{ currentGuide.defaultProviderSpi }}</el-tag>
+          <el-tag v-for="item in currentGuide.availableProviderSpis || []" :key="item" effect="plain" type="warning">
+            {{ item }}
+          </el-tag>
         </div>
         <div class="guide-block">
           <p class="guide-block__label">概述</p>
@@ -429,26 +541,34 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { InfoFilled } from "@element-plus/icons-vue";
 import {
   activateMerchant,
   createChannel,
   createMerchant,
   deactivateMerchant,
+  deleteChannel,
   deleteMerchant,
-  disableChannel,
   enableChannel,
   getChannelCatalog,
   getMerchantChannels,
   getMerchantList,
+  getMerchantPaymentConfig,
+  getMerchantWalletLimit,
   getProviderOptions,
   updateChannel,
   updateMerchant,
+  updateMerchantPaymentConfig,
+  updateMerchantWalletLimit,
+  disableChannel,
 } from "../api/payment";
 import type {
   ChannelForm,
   Merchant,
   MerchantChannel,
   MerchantForm,
+  MerchantPaymentConfig,
+  MerchantWalletLimit,
   PaymentMethodGuide,
 } from "../types/payment";
 import {
@@ -459,11 +579,16 @@ import {
   OnboardingStatusMap,
   isExecutableChannel,
 } from "../types/payment";
+import FieldGuideLabel from "../components/FieldGuideLabel.vue";
+import type { ChannelFieldGuideDefinition } from "../support/channelFieldGuides";
+import { getChannelFieldGuide } from "../support/channelFieldGuides";
 
 const loading = ref(false);
 const channelLoading = ref(false);
 const submittingMerchant = ref(false);
 const submittingChannel = ref(false);
+const savingPaymentConfig = ref(false);
+const savingWalletLimit = ref(false);
 
 const merchantList = ref<Merchant[]>([]);
 const channelList = ref<MerchantChannel[]>([]);
@@ -485,24 +610,40 @@ const merchantDialogVisible = ref(false);
 const channelDrawerVisible = ref(false);
 const channelDialogVisible = ref(false);
 const guideDrawerVisible = ref(false);
+const fieldGuideDialogVisible = ref(false);
+const paymentConfigDialogVisible = ref(false);
+const walletLimitDialogVisible = ref(false);
 
 const editingMerchant = ref<Merchant | null>(null);
 const editingChannel = ref<MerchantChannel | null>(null);
 const selectedMerchant = ref<Merchant | null>(null);
 const currentGuide = ref<PaymentMethodGuide | null>(null);
+const currentFieldGuide = ref<ChannelFieldGuideDefinition | null>(null);
 
 const merchantForm = reactive<MerchantForm>(createDefaultMerchantForm());
 const channelForm = reactive<ChannelForm>(createDefaultChannelForm());
+const paymentConfigForm = reactive<MerchantPaymentConfig>({
+  merchantId: 0,
+  orderReusable: true,
+  orderTimeoutMinutes: undefined,
+  pendingOrderLimit: undefined,
+  autoCancelTimeoutOrder: true,
+});
+const walletLimitForm = reactive<MerchantWalletLimit>({
+  merchantId: 0,
+  singleRechargeLimit: undefined,
+  dailyRechargeLimit: undefined,
+  singleWithdrawLimit: undefined,
+  dailyWithdrawLimit: undefined,
+  singleTransferLimit: undefined,
+  dailyTransferLimit: undefined,
+  balanceLimit: undefined,
+});
 
 const merchantFormRef = ref();
 
 const activeMerchantCount = computed(() => merchantList.value.filter((item) => item.status === 1).length);
-const pendingMerchantCount = computed(() => merchantList.value.filter((item) => item.status === 0).length);
-const walletMerchantCount = computed(() => merchantList.value.filter((item) => item.walletEnabled).length);
-const compositeMerchantCount = computed(() => merchantList.value.filter((item) => item.compositeEnabled).length);
 const totalChannelCount = computed(() => merchantList.value.reduce((sum, item) => sum + (item.channelCount || 0), 0));
-const executableGuideCount = computed(() => catalog.value.filter((item) => isExecutableChannel(item.channelType, item.channelSubType)).length);
-const guideOnlyGuideCount = computed(() => Math.max(catalog.value.length - executableGuideCount.value, 0));
 const availableSubTypes = computed(() => ChannelSubTypeOptions[channelForm.channelType] || []);
 const usesThirdPartyCredentials = computed(() => ["WECHAT", "ALIPAY"].includes(channelForm.channelType));
 const isCompositeChannel = computed(() => channelForm.channelType === "COMPOSITE");
@@ -515,6 +656,7 @@ const extConfigPlaceholder = computed(() => {
   }
   return '{"serverUrl":"https://openapi.alipay.com/gateway.do"}';
 });
+const currentCatalogGuide = computed(() => findGuide(channelForm.channelType, channelForm.channelSubType));
 const sandboxEnabled = computed({
   get: () => channelForm.sandboxMode === 1,
   set: (value: boolean) => {
@@ -626,6 +768,63 @@ async function handleDeleteMerchant(row: Merchant) {
   await loadMerchants();
 }
 
+async function openPaymentConfigDialog(merchant: Merchant) {
+  selectedMerchant.value = merchant;
+  const res = await getMerchantPaymentConfig(merchant.id);
+  Object.assign(paymentConfigForm, {
+    merchantId: merchant.id,
+    orderReusable: res.data.orderReusable ?? true,
+    orderTimeoutMinutes: res.data.orderTimeoutMinutes,
+    pendingOrderLimit: res.data.pendingOrderLimit,
+    autoCancelTimeoutOrder: res.data.autoCancelTimeoutOrder ?? true,
+  });
+  paymentConfigDialogVisible.value = true;
+}
+
+async function submitPaymentConfig() {
+  if (!selectedMerchant.value) {
+    return;
+  }
+  savingPaymentConfig.value = true;
+  try {
+    await updateMerchantPaymentConfig(selectedMerchant.value.id, paymentConfigForm);
+    ElMessage.success("商户支付规则已保存");
+    paymentConfigDialogVisible.value = false;
+  } finally {
+    savingPaymentConfig.value = false;
+  }
+}
+
+async function openWalletLimitDialog(merchant: Merchant) {
+  selectedMerchant.value = merchant;
+  const res = await getMerchantWalletLimit(merchant.id);
+  Object.assign(walletLimitForm, {
+    merchantId: merchant.id,
+    singleRechargeLimit: res.data.singleRechargeLimit,
+    dailyRechargeLimit: res.data.dailyRechargeLimit,
+    singleWithdrawLimit: res.data.singleWithdrawLimit,
+    dailyWithdrawLimit: res.data.dailyWithdrawLimit,
+    singleTransferLimit: res.data.singleTransferLimit,
+    dailyTransferLimit: res.data.dailyTransferLimit,
+    balanceLimit: res.data.balanceLimit,
+  });
+  walletLimitDialogVisible.value = true;
+}
+
+async function submitWalletLimit() {
+  if (!selectedMerchant.value) {
+    return;
+  }
+  savingWalletLimit.value = true;
+  try {
+    await updateMerchantWalletLimit(selectedMerchant.value.id, walletLimitForm);
+    ElMessage.success("商户钱包限额已保存");
+    walletLimitDialogVisible.value = false;
+  } finally {
+    savingWalletLimit.value = false;
+  }
+}
+
 async function openChannelDrawer(merchant: Merchant) {
   selectedMerchant.value = merchant;
   channelDrawerVisible.value = true;
@@ -701,18 +900,39 @@ async function handleDisableChannel(row: MerchantChannel) {
   await loadChannels();
 }
 
+async function handleDeleteChannel(row: MerchantChannel) {
+  await ElMessageBox.confirm(`确认删除支付方式「${row.channelName}」吗？`, "删除支付方式", { type: "warning" });
+  await deleteChannel(row.id);
+  ElMessage.success("支付方式已删除");
+  await Promise.all([loadChannels(), loadMerchants()]);
+}
+
 function openGuideDrawerByChannel(row: MerchantChannel) {
   currentGuide.value = findGuide(row.channelType, row.channelSubType);
   guideDrawerVisible.value = true;
 }
 
 function openGuideDrawerByForm() {
-  currentGuide.value = findGuide(channelForm.channelType, channelForm.channelSubType);
+  currentGuide.value = currentCatalogGuide.value;
   if (!currentGuide.value) {
     ElMessage.warning("当前支付方式暂无预置开通指引");
     return;
   }
   guideDrawerVisible.value = true;
+}
+
+function openFieldGuide(fieldKey: string) {
+  currentFieldGuide.value = getChannelFieldGuide({
+    fieldKey,
+    channelType: channelForm.channelType,
+    channelSubType: channelForm.channelSubType,
+    guide: currentCatalogGuide.value,
+  });
+  if (!currentFieldGuide.value) {
+    ElMessage.warning("当前字段暂无图文说明");
+    return;
+  }
+  fieldGuideDialogVisible.value = true;
 }
 
 function findGuide(channelType?: string, channelSubType?: string) {
@@ -831,6 +1051,53 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.hero-card,
+.panel {
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
+}
+
+.hero-card {
+  padding: 20px 22px;
+  background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
+  border: 1px solid rgba(128, 84, 46, 0.08);
+}
+
+.hero-card p,
+.hero-card span {
+  margin: 0;
+}
+
+.hero-card p {
+  color: #8e6945;
+}
+
+.hero-card strong {
+  display: block;
+  margin: 10px 0 12px;
+  font-size: 34px;
+  color: #291b12;
+}
+
+.hero-card span {
+  display: block;
+  color: #705847;
+  line-height: 1.7;
+}
+
 .panel__header,
 .drawer-header {
   display: flex;
@@ -855,35 +1122,24 @@ onMounted(async () => {
 }
 
 .toolbar {
-  flex: 1 1 auto;
+  margin-bottom: 18px;
+}
+
+.table {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.pager {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-
-.merchant-title,
-.channel-title,
-.cell-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.merchant-title strong,
-.channel-title strong,
-.drawer-title {
-  color: #23170f;
-}
-
-.merchant-title span,
-.channel-title span,
-.cell-stack span {
-  color: #7d6450;
-  font-size: 13px;
-  line-height: 1.7;
 }
 
 .form-grid {
@@ -896,18 +1152,38 @@ onMounted(async () => {
   grid-column: 1 / -1;
 }
 
-.drawer-title {
-  margin: 0;
-  font-size: 22px;
-  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
+.drawer-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 16px;
+  color: #6e5744;
 }
 
-.drawer-ribbon {
-  margin-top: 14px;
+.channel-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-title strong {
+  color: #23170f;
+}
+
+.channel-title span {
+  color: #7d6450;
+  font-size: 13px;
 }
 
 .guide-actions {
   margin-top: 8px;
+}
+
+.guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .guide-block {
@@ -943,10 +1219,128 @@ onMounted(async () => {
   gap: 10px;
 }
 
+.field-guide-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.field-guide-dialog__header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
+}
+
+.field-guide-hero {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(255, 245, 232, 0.96) 0%, rgba(255, 255, 255, 0.92) 100%);
+  border: 1px solid rgba(191, 132, 69, 0.12);
+}
+
+.field-guide-hero strong,
+.field-guide-hero p {
+  display: block;
+  margin: 0;
+}
+
+.field-guide-hero strong {
+  color: #2a1d14;
+  font-size: 17px;
+}
+
+.field-guide-hero p {
+  margin-top: 8px;
+  color: #6e5744;
+  line-height: 1.8;
+}
+
+.field-guide-hero__icon {
+  margin-top: 2px;
+  font-size: 22px;
+  color: #bf8445;
+}
+
+.field-guide-section {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: #fbf7f1;
+}
+
+.field-guide-section__label {
+  margin: 0 0 12px;
+  color: #a56b32;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.field-guide-section ul {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.85;
+  color: #4f3d31;
+}
+
+.field-guide-example {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #231911;
+  color: #f9ead2;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.field-guide-media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field-guide-media-card {
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(128, 84, 46, 0.1);
+  box-shadow: 0 12px 32px rgba(54, 37, 23, 0.08);
+}
+
+.field-guide-media-card__image {
+  display: block;
+  width: 100%;
+  height: 220px;
+  background: #f5efe8;
+}
+
+.field-guide-media-card__body {
+  padding: 14px 16px 16px;
+}
+
+.field-guide-media-card__body strong,
+.field-guide-media-card__body p {
+  display: block;
+  margin: 0;
+}
+
+.field-guide-media-card__body strong {
+  color: #261a12;
+}
+
+.field-guide-media-card__body p {
+  margin-top: 8px;
+  color: #6d5644;
+  line-height: 1.75;
+}
+
 @media (max-width: 1100px) {
-  .drawer-header {
-    align-items: flex-start;
-    flex-direction: column;
+  .hero-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -957,6 +1351,10 @@ onMounted(async () => {
 
   .span-2 {
     grid-column: auto;
+  }
+
+  .field-guide-media-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

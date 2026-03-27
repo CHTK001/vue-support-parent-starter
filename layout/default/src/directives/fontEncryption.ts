@@ -53,6 +53,10 @@ function restoreEncryption(el: ElementWithEncryption): void {
  * 禁用复制功能
  */
 function disableCopy(el: ElementWithEncryption): void {
+  const style = el.style as CSSStyleDeclaration & {
+    webkitUserSelect?: string;
+  };
+
   // 阻止复制事件
   el.__copyHandler = (e: ClipboardEvent) => {
     e.preventDefault();
@@ -82,16 +86,18 @@ function disableCopy(el: ElementWithEncryption): void {
   el.addEventListener("contextmenu", el.__contextMenuHandler);
 
   // 禁用文本选择样式
-  el.style.userSelect = "none";
-  el.style.webkitUserSelect = "none";
-  el.style.mozUserSelect = "none";
-  el.style.msUserSelect = "none";
+  style.userSelect = "none";
+  style.webkitUserSelect = "none";
 }
 
 /**
  * 启用复制功能
  */
 function enableCopy(el: ElementWithEncryption): void {
+  const style = el.style as CSSStyleDeclaration & {
+    webkitUserSelect?: string;
+  };
+
   if (el.__copyHandler) {
     el.removeEventListener("copy", el.__copyHandler);
     el.__copyHandler = undefined;
@@ -108,10 +114,8 @@ function enableCopy(el: ElementWithEncryption): void {
   }
 
   // 恢复文本选择样式
-  el.style.userSelect = "";
-  el.style.webkitUserSelect = "";
-  el.style.mozUserSelect = "";
-  el.style.msUserSelect = "";
+  style.userSelect = "";
+  style.webkitUserSelect = "";
 }
 
 /**

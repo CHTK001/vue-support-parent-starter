@@ -66,9 +66,9 @@
   </header>
 
   <!-- Element Plus 原生模式 -->
-  <ScHeader v-else :height="height">
+  <ElHeader v-else :height="height">
     <slot />
-  </ScHeader>
+  </ElHeader>
 </template>
 
 <script setup lang="ts">

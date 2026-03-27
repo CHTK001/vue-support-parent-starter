@@ -1,7 +1,7 @@
 ﻿<script setup>
 import { getMineLogs } from "@repo/core";
 import { deviceDetection } from "@pureadmin/utils";
-import { $t } from "@repo/config";
+import { $t } from "@repo/config/src/i18n";
 
 defineOptions({
   name: "SecurityLog",

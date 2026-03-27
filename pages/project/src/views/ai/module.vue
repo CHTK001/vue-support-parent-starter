@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-container">
     <sc-drawer
       size="70%"
@@ -10,7 +10,7 @@
       @close="handleClose"
       class="drawer-custom"
     >
-      <ScHeader v-if="env.params.sysProjectId" class="drawer-header">
+      <el-header v-if="env.params.sysProjectId" class="drawer-header">
         <div class="panel-right">
           <ScButton
             @click="handleOpenEditDialog({}, 'save')"
@@ -19,7 +19,7 @@
             class="btn-text btn-add"
           ></ScButton>
         </div>
-      </ScHeader>
+      </el-header>
       {{ env }}
       <ScTable
         ref="tableRef"
@@ -43,9 +43,7 @@
                   'tag-custom': true,
                   'font-bold': row.sysAiModuleName,
                 }"
-              >
-                {{ row.sysAiModuleName || "-" }}
-              </ScTag>
+                >{{ row.sysAiModuleName || "-" }}</ScTag>
             </div>
           </template>
         </ScTableColumn>
@@ -97,9 +95,7 @@
                 )"
                 :key="item"
                 style="margin: 2px"
-              >
-                {{ item }}
-              </ScTag>
+                >{{ item }}</ScTag>
             </div>
           </template>
         </ScTableColumn>
@@ -116,8 +112,7 @@
                 'font-bold': row.sysAiModuleVersion,
               }"
             >
-              {{ row.sysAiModuleVersion || "暂无" }}</span
-            >
+              {{ row.sysAiModuleVersion || "暂无" }}</span>
           </template>
         </ScTableColumn>
         <ScTableColumn
@@ -133,8 +128,7 @@
                 'font-bold': row.sysApiModuleManufacturersLabel,
               }"
             >
-              {{ row.sysApiModuleManufacturersLabel || "暂无" }}</span
-            >
+              {{ row.sysApiModuleManufacturersLabel || "暂无" }}</span>
           </template>
         </ScTableColumn>
         <ScTableColumn
@@ -150,8 +144,7 @@
                 'font-bold': row.sysAiModuleType,
               }"
             >
-              {{ row.sysAiModuleType || "暂无" }}</span
-            >
+              {{ row.sysAiModuleType || "暂无" }}</span>
           </template>
         </ScTableColumn>
         <ScTableColumn
@@ -168,8 +161,7 @@
                 'font-bold': row.sysAiModuleRemark,
               }"
             >
-              {{ row.sysAiModuleRemark || "暂无" }}</span
-            >
+              {{ row.sysAiModuleRemark || "暂无" }}</span>
           </template>
         </ScTableColumn>
         <ScTableColumn
@@ -305,7 +297,7 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, shallowRef } from "vue";

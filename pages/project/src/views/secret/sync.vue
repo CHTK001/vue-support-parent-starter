@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="pure-container">
     <div>
       <sc-dialog
@@ -40,9 +40,7 @@
             type="primary"
             :loading="loading"
             @click="debounce(handleSubmit(), 1000, true)"
-          >
-            保 存
-          </ScButton>
+            >保 存</ScButton>
         </template>
       </sc-dialog>
     </div>
@@ -51,7 +49,7 @@
 
 <script>
 import { debounce } from "@pureadmin/utils";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { transformI18n } from "@repo/config";
 import { fetchSmsSync } from "@repo/core";
 import { message } from "@repo/utils";

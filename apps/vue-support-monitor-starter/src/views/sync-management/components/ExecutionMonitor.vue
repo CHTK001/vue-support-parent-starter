@@ -319,7 +319,7 @@ import {
   getSyncTaskLogs,
   type SyncTask,
   type SyncTaskLog,
-} from "@/api/sync";
+} from "@pages/sync";
 import { useSyncTaskStoreHook } from "@/stores/syncTaskStore";
 
 interface Props {

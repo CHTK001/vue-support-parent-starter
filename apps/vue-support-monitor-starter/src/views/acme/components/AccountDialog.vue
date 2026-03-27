@@ -242,7 +242,7 @@ import {
   isEabRequired,
   getEabConfig,
   type AcmeAccount,
-} from "@/api/acme";
+} from "@pages/system";
 
 defineOptions({
   name: "AccountDialog",

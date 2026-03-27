@@ -1,0 +1,13 @@
+export { default } from "./index.vue";
+export { default as PaymentConsolePage } from "./views/console/PaymentConsolePage.vue";
+export { default as PaymentHomePage } from "./views/HomeView.vue";
+export { default as PaymentMerchantPage } from "./views/MerchantList.vue";
+export { default as PaymentOperationsCenterPage } from "./views/OperationsCenter.vue";
+export { default as PaymentOrderPage } from "./views/OrderList.vue";
+export { default as PaymentRefundPage } from "./views/RefundList.vue";
+export { default as PaymentTransactionPage } from "./views/TransactionList.vue";
+export { default as PaymentWalletConsolePage } from "./views/WalletConsole.vue";
+export { default as PaymentWalletOrderPage } from "./views/WalletOrderList.vue";
+export { default as PaymentWechatPayScorePage } from "./views/WechatPayScoreList.vue";
+export { default as PayMerchantPage } from "./views/MerchantList.vue";
+export { default as PayOrderPage } from "./views/OrderList.vue";

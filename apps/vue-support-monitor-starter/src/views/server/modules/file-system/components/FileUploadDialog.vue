@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="文件上传"
@@ -84,11 +84,9 @@
           <ScFormItem v-if="systemConfig" label="配置信息">
             <div class="config-info">
               <span class="config-item"
-                >分片大小: {{ systemConfig.chunkSize }}MB</span
-              >
+                >分片大小: {{ systemConfig.chunkSize }}MB</span>
               <span class="config-item"
-                >最大文件: {{ systemConfig.maxFileSize }}MB</span
-              >
+                >最大文件: {{ systemConfig.maxFileSize }}MB</span>
             </div>
           </ScFormItem>
         </ScForm>
@@ -121,7 +119,8 @@ import {
   uploadChunk,
   checkUploadStatus,
   getFileSystemConfig,
-} from "@/api/monitor/filesystem";
+  type FileSystemConfig,
+} from "@pages/system";
 
 // Props & Emits
 const props = defineProps<{

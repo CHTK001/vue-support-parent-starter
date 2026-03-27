@@ -1431,6 +1431,172 @@ onUnmounted(() => {
 <template>
   <div>
     <LayPanel>
+      <template #default>
+        <div class="lay-setting modern-setting-container">
+          <!-- 主题设置（风格/主题色/动画/皮肤/加载动画） -->
+          <component
+            :is="themeSectionComponents.SettingTheme"
+            :settings="settings"
+            :is-dark="isDark"
+            :data-theme="dataTheme"
+            :overall-style="overallStyle"
+            :layout-theme="layoutTheme"
+            :theme-colors="themeColors"
+            :is-non-default-theme="isNonDefaultTheme"
+            :theme-options="themeOptions"
+            :theme-animation-mode-options="themeAnimationModeOptions"
+            :show-theme-colors="showThemeColors"
+            :get-theme-color-style="getThemeColorStyle"
+            :handle-overall-style-change="handleOverallStyleChange"
+            :handle-set-layout-theme-color="handleSetLayoutThemeColor"
+            :theme-animation-mode-change="themeAnimationModeChange"
+            :theme-animation-direction-change="themeAnimationDirectionChange"
+          />
+
+          <!-- 布局模式设置区域 -->
+          <component
+            :is="themeSectionComponents.SettingLayout"
+            :settings="settings"
+            :layout-theme="layoutTheme"
+            :device="device"
+            :vertical-ref="verticalRef"
+            :horizontal-ref="horizontalRef"
+            :mix-ref="mixRef"
+            :hover-ref="hoverRef"
+            :mobile-ref="mobileRef"
+            :double-ref="doubleRef"
+            :drawer-ref="drawerRef"
+            :set-layout-model="setLayoutModel"
+            :stretch-type-options="stretchTypeOptions"
+            :stretch-type-change="stretchTypeChange"
+            :set-stretch="setStretch"
+            :adjust-value="adjustValue"
+            :handle-keydown="handleKeydown"
+            :handle-input="handleInput"
+            :double-nav-expand-mode-change="doubleNavExpandModeChange"
+            :double-nav-auto-expand-all-change="doubleNavAutoExpandAllChange"
+            :drawer-hamburger-position-change="drawerHamburgerPositionChange"
+          />
+
+          <!-- 标签页样式设置区域 - 非默认主题下隐藏（节日主题优先级大于页签风格） -->
+          <component
+            :is="themeSectionComponents.SettingTabs"
+            :settings="settings"
+            :is-non-default-theme="isNonDefaultTheme"
+            :mark-value="markValue"
+            :mark-options="markOptions"
+            :on-change="onChange"
+            :tags-change="tagsChange"
+            :multi-tags-cache-change="multiTagsCacheChange"
+          />
+
+          <!-- 顶部工具栏配置区域 -->
+          <component
+            :is="themeSectionComponents.SettingToolbar"
+            :settings="settings"
+            :show-search-change="showSearchChange"
+            :show-fullscreen-change="showFullscreenChange"
+            :show-header-clock-change="showHeaderClockChange"
+            :header-clock-second-enabled-change="headerClockSecondEnabledChange"
+            :header-clock-second-timezone-change="headerClockSecondTimezoneChange"
+          />
+
+          <!-- 界面显示设置区域 -->
+          <component
+            :is="themeSectionComponents.SettingDisplay"
+            :settings="settings"
+            :logo-val="logoVal"
+            :card-body-val="cardBodyVal"
+            :card-color-mode="cardColorMode"
+            :card-color-options="cardColorOptions"
+            :logo-change="logoChange"
+            :card-body-change="cardBodyChange"
+            :on-card-color-mode-change="onCardColorModeChange"
+            :grey-change="greyChange"
+            :week-change="weekChange"
+            :invert-change="invertChange"
+            :monochrome-change="monochromeChange"
+            :show-breadcrumb-change="showBreadcrumbChange"
+            :breadcrumb-mode-change="breadcrumbModeChange"
+            :show-tag-icon-change="showTagIconChange"
+            :hide-footer-change="hideFooterChange"
+            :keep-alive-change="keepAliveChange"
+            :tags-change="tagsChange"
+            :multi-tags-cache-change="multiTagsCacheChange"
+          />
+
+          <!-- 菜单设置区域 -->
+          <component
+            :is="themeSectionComponents.SettingMenu"
+            :settings="settings"
+            :transition-type-options="transitionTypeOptions"
+            :menu-animation-change="menuAnimationChange"
+            :transition-type-change="transitionTypeChange"
+            :show-new-menu-change="showNewMenuChange"
+            :new-menu-text-change="newMenuTextChange"
+            :new-menu-time-limit-change="newMenuTimeLimitChange"
+            :new-menu-animation-change="newMenuAnimationChange"
+          />
+
+          <!-- 消息配置区域 -->
+          <component
+            :is="themeSectionComponents.SettingMessage"
+            :settings="settings"
+            :is-development="isDevelopment"
+            :is-test="isTest"
+            :show-message-change="showMessageChange"
+            :message-dropdown-position-change="messageDropdownPositionChange"
+            :send-dev-default-message="sendDevDefaultMessage"
+          />
+
+          <!-- AI 设置区域 -->
+          <component
+            :is="themeSectionComponents.SettingAiChat"
+            :settings="settings"
+            :show-ai-chat="getConfig().ShowAiChat !== false"
+            :ai-chat-enabled-change="aiChatEnabledChange"
+            :ai-chat-api-key-change="aiChatApiKeyChange"
+            :ai-chat-api-url-change="aiChatApiUrlChange"
+            :ai-chat-mode-change="aiChatModeChange"
+            :ai-chat-vendor-change="aiChatVendorChange"
+            :ai-chat-model-change="aiChatModelChange"
+            :ai-chat-skin-change="aiChatSkinChange"
+          />
+
+          <!-- 高级设置区域 -->
+          <component
+            :is="themeSectionComponents.SettingAdvanced"
+            :settings="settings"
+            :is-development="isDevelopment"
+            :is-test="isTest"
+            :show-cloud-sync="showCloudSync"
+            :cloud-sync-url="cloudSyncUrl"
+            :sync-loading="syncLoading"
+            :min-session-timeout-minutes="MIN_SESSION_TIMEOUT_MINUTES"
+            :max-session-timeout-minutes="MAX_SESSION_TIMEOUT_MINUTES"
+            :keep-alive-change="keepAliveChange"
+            :stretch-switch-change="stretchSwitchChange"
+            :debug-mode-change="debugModeChange"
+            :auto-logout-change="autoLogoutChange"
+            :session-timeout-minutes-change="sessionTimeoutMinutesChange"
+            :screen-reader-mode-change="screenReaderModeChange"
+            :high-contrast-mode-change="highContrastModeChange"
+            :ui-scale-change="uiScaleChange"
+            :dev-lite-tools-change="devLiteToolsChange"
+            :dev-ruler-change="devRulerChange"
+            :dev-grid-change="devGridChange"
+            :dev-hover-inspector-change="devHoverInspectorChange"
+            :voice-read-enabled-change="voiceReadEnabledChange"
+            :dev-heatmap-change="devHeatmapChange"
+            :sync-to-cloud="syncToCloud"
+            :sync-from-cloud="syncFromCloud"
+            :clear-local-cache="clearLocalCache"
+            :export-config="exportConfig"
+            :import-config="importConfig"
+            :reset-config="resetConfig"
+          />
+        </div>
+      </template>
       <template #footer>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <el-button plain @click="clearLocalCache">
@@ -1451,170 +1617,6 @@ onUnmounted(() => {
           </el-button>
         </div>
       </template>
-      <div class="lay-setting modern-setting-container">
-        <!-- 主题设置（风格/主题色/动画/皮肤/加载动画） -->
-        <component
-          :is="themeSectionComponents.SettingTheme"
-          :settings="settings"
-          :is-dark="isDark"
-          :data-theme="dataTheme"
-          :overall-style="overallStyle"
-          :layout-theme="layoutTheme"
-          :theme-colors="themeColors"
-          :is-non-default-theme="isNonDefaultTheme"
-          :theme-options="themeOptions"
-          :theme-animation-mode-options="themeAnimationModeOptions"
-          :show-theme-colors="showThemeColors"
-          :get-theme-color-style="getThemeColorStyle"
-          :handle-overall-style-change="handleOverallStyleChange"
-          :handle-set-layout-theme-color="handleSetLayoutThemeColor"
-          :theme-animation-mode-change="themeAnimationModeChange"
-          :theme-animation-direction-change="themeAnimationDirectionChange"
-        />
-
-        <!-- 布局模式设置区域 -->
-        <component
-          :is="themeSectionComponents.SettingLayout"
-          :settings="settings"
-          :layout-theme="layoutTheme"
-          :device="device"
-          :vertical-ref="verticalRef"
-          :horizontal-ref="horizontalRef"
-          :mix-ref="mixRef"
-          :hover-ref="hoverRef"
-          :mobile-ref="mobileRef"
-          :double-ref="doubleRef"
-          :drawer-ref="drawerRef"
-          :set-layout-model="setLayoutModel"
-          :stretch-type-options="stretchTypeOptions"
-          :stretch-type-change="stretchTypeChange"
-          :set-stretch="setStretch"
-          :adjust-value="adjustValue"
-          :handle-keydown="handleKeydown"
-          :handle-input="handleInput"
-          :double-nav-expand-mode-change="doubleNavExpandModeChange"
-          :double-nav-auto-expand-all-change="doubleNavAutoExpandAllChange"
-          :drawer-hamburger-position-change="drawerHamburgerPositionChange"
-        />
-
-        <!-- 标签页样式设置区域 - 非默认主题下隐藏（节日主题优先级大于页签风格） -->
-        <component
-          :is="themeSectionComponents.SettingTabs"
-          :settings="settings"
-          :is-non-default-theme="isNonDefaultTheme"
-          :mark-value="markValue"
-          :mark-options="markOptions"
-          :on-change="onChange"
-          :tags-change="tagsChange"
-          :multi-tags-cache-change="multiTagsCacheChange"
-        />
-
-        <!-- 顶部工具栏配置区域 -->
-        <component
-          :is="themeSectionComponents.SettingToolbar"
-          :settings="settings"
-          :show-search-change="showSearchChange"
-          :show-fullscreen-change="showFullscreenChange"
-          :show-header-clock-change="showHeaderClockChange"
-          :header-clock-second-enabled-change="headerClockSecondEnabledChange"
-          :header-clock-second-timezone-change="headerClockSecondTimezoneChange"
-        />
-
-        <!-- 界面显示设置区域 -->
-        <component
-          :is="themeSectionComponents.SettingDisplay"
-          :settings="settings"
-          :logo-val="logoVal"
-          :card-body-val="cardBodyVal"
-          :card-color-mode="cardColorMode"
-          :card-color-options="cardColorOptions"
-          :logo-change="logoChange"
-          :card-body-change="cardBodyChange"
-          :on-card-color-mode-change="onCardColorModeChange"
-          :grey-change="greyChange"
-          :week-change="weekChange"
-          :invert-change="invertChange"
-          :monochrome-change="monochromeChange"
-          :show-breadcrumb-change="showBreadcrumbChange"
-          :breadcrumb-mode-change="breadcrumbModeChange"
-          :show-tag-icon-change="showTagIconChange"
-          :hide-footer-change="hideFooterChange"
-          :keep-alive-change="keepAliveChange"
-          :tags-change="tagsChange"
-          :multi-tags-cache-change="multiTagsCacheChange"
-        />
-
-        <!-- 菜单设置区域 -->
-        <component
-          :is="themeSectionComponents.SettingMenu"
-          :settings="settings"
-          :transition-type-options="transitionTypeOptions"
-          :menu-animation-change="menuAnimationChange"
-          :transition-type-change="transitionTypeChange"
-          :show-new-menu-change="showNewMenuChange"
-          :new-menu-text-change="newMenuTextChange"
-          :new-menu-time-limit-change="newMenuTimeLimitChange"
-          :new-menu-animation-change="newMenuAnimationChange"
-        />
-
-        <!-- 消息配置区域 -->
-        <component
-          :is="themeSectionComponents.SettingMessage"
-          :settings="settings"
-          :is-development="isDevelopment"
-          :is-test="isTest"
-          :show-message-change="showMessageChange"
-          :message-dropdown-position-change="messageDropdownPositionChange"
-          :send-dev-default-message="sendDevDefaultMessage"
-        />
-
-        <!-- AI 设置区域 -->
-        <component
-          :is="themeSectionComponents.SettingAiChat"
-          :settings="settings"
-          :show-ai-chat="getConfig().ShowAiChat !== false"
-          :ai-chat-enabled-change="aiChatEnabledChange"
-          :ai-chat-api-key-change="aiChatApiKeyChange"
-          :ai-chat-api-url-change="aiChatApiUrlChange"
-          :ai-chat-mode-change="aiChatModeChange"
-          :ai-chat-vendor-change="aiChatVendorChange"
-          :ai-chat-model-change="aiChatModelChange"
-          :ai-chat-skin-change="aiChatSkinChange"
-        />
-
-        <!-- 高级设置区域 -->
-        <component
-          :is="themeSectionComponents.SettingAdvanced"
-          :settings="settings"
-          :is-development="isDevelopment"
-          :is-test="isTest"
-          :show-cloud-sync="showCloudSync"
-          :cloud-sync-url="cloudSyncUrl"
-          :sync-loading="syncLoading"
-          :min-session-timeout-minutes="MIN_SESSION_TIMEOUT_MINUTES"
-          :max-session-timeout-minutes="MAX_SESSION_TIMEOUT_MINUTES"
-          :keep-alive-change="keepAliveChange"
-          :stretch-switch-change="stretchSwitchChange"
-          :debug-mode-change="debugModeChange"
-          :auto-logout-change="autoLogoutChange"
-          :session-timeout-minutes-change="sessionTimeoutMinutesChange"
-          :screen-reader-mode-change="screenReaderModeChange"
-          :high-contrast-mode-change="highContrastModeChange"
-          :ui-scale-change="uiScaleChange"
-          :dev-lite-tools-change="devLiteToolsChange"
-          :dev-ruler-change="devRulerChange"
-          :dev-grid-change="devGridChange"
-          :dev-hover-inspector-change="devHoverInspectorChange"
-          :voice-read-enabled-change="voiceReadEnabledChange"
-          :dev-heatmap-change="devHeatmapChange"
-          :sync-to-cloud="syncToCloud"
-          :sync-from-cloud="syncFromCloud"
-          :clear-local-cache="clearLocalCache"
-          :export-config="exportConfig"
-          :import-config="importConfig"
-          :reset-config="resetConfig"
-        />
-      </div>
     </LayPanel>
   </div>
 </template>

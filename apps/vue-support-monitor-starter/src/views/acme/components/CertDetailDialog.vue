@@ -495,7 +495,7 @@ import {
   getCertDetail,
   CERT_STATUS,
   type AcmeCertificateDetail,
-} from "@/api/acme";
+} from "@pages/system";
 
 defineOptions({
   name: "CertDetailDialog",

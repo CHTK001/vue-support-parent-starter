@@ -1,10 +1,5 @@
 ﻿<template>
-  <sc-dialog
-    v-model="visibleProxy"
-    class="config-push-dialog"
-    :show-close="true"
-    width="720px"
-  >
+  <sc-dialog v-model="visibleProxy" class="config-push-dialog" :show-close="true" width="720px">
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -23,22 +18,12 @@
           待下发配置 ({{ configs.length }}项)
         </div>
         <div class="config-list">
-          <div
-            v-for="config in configs"
-            :key="config.monitorSysGenConfigId"
-            class="config-item"
-          >
+          <div v-for="config in configs" :key="config.monitorSysGenConfigId" class="config-item">
             <div class="config-key">{{ config.monitorSysGenConfigKey }}</div>
-            <div class="config-value">
-              {{ config.monitorSysGenConfigValue || "—" }}
-            </div>
-            <ScTag
-              v-if="config.monitorSysGenConfigEnv"
-              size="small"
-              type="info"
-            >
+            <div class="config-value">{{ config.monitorSysGenConfigValue || '—' }}</div>
+            <el-tag v-if="config.monitorSysGenConfigEnv" size="small" type="info">
               {{ config.monitorSysGenConfigEnv }}
-            </ScTag>
+            </el-tag>
           </div>
         </div>
       </div>
@@ -50,70 +35,37 @@
           选择目标服务器
         </div>
         <div class="server-cards">
-          <div
-            v-for="server in servers"
-            :key="server.monitorSysGenServerId"
-            class="server-card"
-            :class="{
-              selected: selectedServerIds.includes(
-                server.monitorSysGenServerId,
-              ),
-            }"
-            @click="toggleServerSelect(server.monitorSysGenServerId)"
-          >
+          <div v-for="server in servers" :key="server.monitorSysGenServerId" class="server-card"
+            :class="{ selected: selectedServerIds.includes(server.monitorSysGenServerId) }" 
+            @click="toggleServerSelect(server.monitorSysGenServerId)">
             <div class="card-header">
               <div class="server-name">
-                <IconifyIconOnline
-                  icon="ri:checkbox-blank-circle-fill"
-                  :class="[
-                    'status-indicator',
-                    getStatusClass(server.monitorSysGenServerConnectionStatus),
-                  ]"
-                />
-                {{ server.monitorSysGenServerName || "-" }}
+                <IconifyIconOnline icon="ri:checkbox-blank-circle-fill" 
+                  :class="['status-indicator', getStatusClass(server.monitorSysGenServerConnectionStatus)]" />
+                {{ server.monitorSysGenServerName || '-' }}
               </div>
-              <ScTag
-                :type="
-                  getStatusType(
-                    server.monitorSysGenServerConnectionStatus,
-                  ) as any
-                "
-                size="small"
-              >
+              <el-tag :type="getStatusType(server.monitorSysGenServerConnectionStatus) as any" size="small">
                 {{ getStatusText(server.monitorSysGenServerConnectionStatus) }}
-              </ScTag>
+              </el-tag>
             </div>
             <div class="card-body">
               <div class="server-host">
                 <IconifyIconOnline icon="ri:global-line" class="mr-1" />
-                {{ server.monitorSysGenServerHost || "-" }}:{{
-                  server.monitorSysGenServerPort || "-"
-                }}
+                {{ server.monitorSysGenServerHost || '-' }}:{{ server.monitorSysGenServerPort || '-' }}
               </div>
-              <div v-if="server.monitorSysGenServerTags" class="server-tags">
-                <ScTag
-                  v-for="tag in (server.monitorSysGenServerTags || '').split(
-                    ',',
-                  )"
-                  :key="tag"
-                  size="small"
-                  type="info"
-                  >{{ tag }}</ScTag
-                >
+              <div class="server-tags" v-if="server.monitorSysGenServerTags">
+                <el-tag v-for="tag in (server.monitorSysGenServerTags || '').split(',')" 
+                  :key="tag" size="small" type="info">{{ tag }}</el-tag>
               </div>
             </div>
-            <div
-              v-if="selectedServerIds.includes(server.monitorSysGenServerId)"
-              class="card-check"
-            >
+            <div class="card-check" v-if="selectedServerIds.includes(server.monitorSysGenServerId)">
               <IconifyIconOnline icon="ri:checkbox-circle-fill" />
             </div>
           </div>
         </div>
         <div class="server-hint">
           <IconifyIconOnline icon="ri:information-line" class="mr-1" />
-          已选择 <b>{{ selectedServerCount }}</b> 台服务器，配置将通过
-          SyncServer 同步到这些节点
+          已选择 <b>{{ selectedServerCount }}</b> 台服务器，配置将通过 SyncServer 同步到这些节点
         </div>
       </div>
 
@@ -145,52 +97,43 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <ScButton @click="visibleProxy = false">取消</ScButton>
-        <ScButton
-          type="primary"
-          :loading="pushing"
-          :disabled="selectedServerCount === 0"
-          @click="submit"
-        >
-          <IconifyIconOnline
-            v-if="!pushing"
-            icon="ri:send-plane-line"
-            class="mr-1"
-          />
-          {{ pushing ? "下发中..." : "开始下发" }}
-        </ScButton>
+        <el-button @click="visibleProxy = false">取消</el-button>
+        <el-button type="primary" :loading="pushing" :disabled="selectedServerCount === 0" @click="submit">
+          <IconifyIconOnline icon="ri:send-plane-line" class="mr-1" v-if="!pushing" />
+          {{ pushing ? '下发中...' : '开始下发' }}
+        </el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { message } from "@repo/utils";
-import { ElNotification } from "element-plus";
-import { getServerList } from "@/api/docker";
+import { computed, ref, watch } from 'vue';
+import { message } from '@repo/utils';
+import { ElNotification } from 'element-plus';
+import { getServerList } from '@/api/docker';
 import {
   pushConfigToNodes,
-  type MonitorConfig,
   type ConfigPushRequest,
-} from "@/api/config";
+  type MonitorConfig,
+} from "@pages/setting";
 
-interface Props {
+interface Props { 
   visible: boolean;
   configs: MonitorConfig[];
 }
 
-interface Emits {
-  (e: "update:visible", v: boolean): void;
-  (e: "success"): void;
+interface Emits { 
+  (e: 'update:visible', v: boolean): void; 
+  (e: 'success'): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const visibleProxy = computed({
-  get: () => props.visible,
-  set: (v) => emit("update:visible", v),
+const visibleProxy = computed({ 
+  get: () => props.visible, 
+  set: v => emit('update:visible', v) 
 });
 
 const servers = ref<any[]>([]);
@@ -202,13 +145,13 @@ const selectedServerCount = computed(() => selectedServerIds.value.length);
 async function loadServers() {
   try {
     const res: any = await getServerList();
-    if (res?.code === "00000") {
+    if (res?.code === '00000') {
       servers.value = res.data || [];
     } else if (Array.isArray(res)) {
       servers.value = res || [];
     }
   } catch (err) {
-    console.error("加载服务器失败", err);
+    console.error('加载服务器失败', err);
   }
 }
 
@@ -219,117 +162,97 @@ function toggleServerSelect(id: number) {
 }
 
 // 获取服务器连接状态类型
-function getStatusType(
-  status: number | undefined,
-): "success" | "info" | "warning" | "danger" {
+function getStatusType(status: number | undefined): 'success' | 'info' | 'warning' | 'danger' {
   switch (status) {
-    case 1:
-      return "success";
-    case 0:
-      return "info";
-    case 2:
-      return "warning";
-    case 3:
-      return "danger";
-    default:
-      return "info";
+    case 1: return 'success';
+    case 0: return 'info';
+    case 2: return 'warning';
+    case 3: return 'danger';
+    default: return 'info';
   }
 }
 
 // 获取服务器连接状态文本
 function getStatusText(status: number | undefined): string {
   switch (status) {
-    case 1:
-      return "在线";
-    case 0:
-      return "离线";
-    case 2:
-      return "连接中";
-    case 3:
-      return "失败";
-    default:
-      return "未知";
+    case 1: return '在线';
+    case 0: return '离线';
+    case 2: return '连接中';
+    case 3: return '失败';
+    default: return '未知';
   }
 }
 
 // 获取服务器状态样式类
 function getStatusClass(status: number | undefined): string {
   switch (status) {
-    case 1:
-      return "status-online";
-    case 0:
-      return "status-offline";
-    case 2:
-      return "status-connecting";
-    case 3:
-      return "status-error";
-    default:
-      return "status-unknown";
+    case 1: return 'status-online';
+    case 0: return 'status-offline';
+    case 2: return 'status-connecting';
+    case 3: return 'status-error';
+    default: return 'status-unknown';
   }
 }
 
 // 监听对话框打开/关闭
-watch(
-  () => visibleProxy.value,
-  (val) => {
-    if (val) {
-      loadServers();
-    } else {
-      selectedServerIds.value = [];
-    }
-  },
-);
+watch(() => visibleProxy.value, (val) => {
+  if (val) {
+    loadServers();
+  } else {
+    selectedServerIds.value = [];
+  }
+});
 
 async function submit() {
   const serverIds = selectedServerIds.value;
   if (!serverIds.length) {
-    return message("请选择至少一台服务器", { type: "warning" });
+    return message('请选择至少一台服务器', { type: 'warning' });
   }
 
   if (!props.configs.length) {
-    return message("没有要下发的配置", { type: "warning" });
+    return message('没有要下发的配置', { type: 'warning' });
   }
 
   try {
     pushing.value = true;
 
     const payload: ConfigPushRequest = {
-      configIds: props.configs.map((c) => c.monitorSysGenConfigId!),
+      configIds: props.configs.map(c => c.monitorSysGenConfigId!),
       serverIds: serverIds,
     };
 
     const res: any = await pushConfigToNodes(payload);
 
-    if (res?.code === "00000") {
+    if (res?.code === '00000') {
       const results = res.data?.results || [];
       const successCount = results.filter((r: any) => r.success).length;
       const failCount = results.length - successCount;
 
       if (failCount === 0) {
         ElNotification.success({
-          title: "下发成功",
+          title: '下发成功',
           message: `成功下发到 ${successCount} 台服务器`,
-          position: "bottom-right",
+          position: 'bottom-right'
         });
       } else {
         ElNotification.warning({
-          title: "部分下发成功",
+          title: '部分下发成功',
           message: `成功: ${successCount} 台, 失败: ${failCount} 台`,
-          position: "bottom-right",
+          position: 'bottom-right'
         });
       }
 
-      emit("success");
+      emit('success');
       visibleProxy.value = false;
     } else {
-      message(res?.msg || "下发失败", { type: "error" });
+      message(res?.msg || '下发失败', { type: 'error' });
     }
   } catch (error: any) {
-    console.error("下发配置失败", error);
+    console.error('下发配置失败', error);
     ElNotification.error({
-      title: "下发失败",
-      message: error?.message || "请稍后重试",
-      position: "bottom-right",
+      title: '下发失败',
+      message: error?.message || '请稍后重试',
+      position: 'bottom-right'
     });
   } finally {
     pushing.value = false;
@@ -414,7 +337,7 @@ async function submit() {
   flex: 1;
   font-size: 13px;
   color: var(--app-text-secondary);
-  font-family: "Monaco", "Consolas", monospace;
+  font-family: 'Monaco', 'Consolas', monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -448,7 +371,7 @@ async function submit() {
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all .2s ease;
   background: var(--el-bg-color);
 }
 
@@ -585,6 +508,7 @@ async function submit() {
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -593,4 +517,5 @@ async function submit() {
     padding: 12px 16px;
   }
 }
+
 </style>

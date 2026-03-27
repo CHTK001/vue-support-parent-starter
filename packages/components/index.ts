@@ -1,11 +1,13 @@
 /**
- * @repo/components - 按需导入专用
- *
- * 使用方式：
- * import { ScButton } from "@repo/components/ScButton"
- * import { ScSelect } from "@repo/components/ScSelect"
- *
- * 不要从此文件导入，以获得最佳的 tree-shaking 效果
+ * 根入口仅保留最小兼容导出。
+ * 业务代码统一使用 `@repo/components/xxx` 子路径导入。
  */
+export {
+  FontIcon,
+  IconifyIconOffline,
+  IconifyIconOnline,
+  IconSelect,
+  PixelIcon,
+  useRenderIcon,
+} from "./ReIcon";
 
-// 此文件保持为空，所有组件应通过各自的路径导入

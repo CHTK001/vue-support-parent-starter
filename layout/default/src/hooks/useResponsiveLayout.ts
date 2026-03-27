@@ -9,6 +9,8 @@ import {
   useGlobal,
 } from "@pureadmin/utils";
 import { useAppStoreHook } from "@repo/core";
+import type { LayoutType, StorageLayout } from "../types/theme";
+import { isValidLayout } from "./useLayout";
 
 export function useResponsiveLayout(
   appWrapperRef: Ref<HTMLElement | undefined>,
@@ -26,24 +28,24 @@ export function useResponsiveLayout(
    * 处理非法或未初始化的布局值，统一回退到 vertical
    */
   function setTheme(layoutModel: string) {
-    const fallbackLayout = "vertical";
-
-    const targetLayout =
-      (layoutModel as string | undefined) && validLayouts.includes(layoutModel)
-        ? layoutModel
-        : validLayouts.includes(($storage.layout?.layout as string) || "")
-          ? ($storage.layout?.layout as string)
-          : fallbackLayout;
+    const fallbackLayout: LayoutType = "vertical";
+    const storedLayout = $storage.layout?.layout as string | undefined;
+    const targetLayout: LayoutType = isValidLayout(layoutModel)
+      ? layoutModel
+      : isValidLayout(storedLayout)
+        ? storedLayout
+        : fallbackLayout;
+    const currentLayout = $storage.layout as StorageLayout | undefined;
 
     window.document.body.setAttribute("layout", targetLayout);
     $storage.layout = {
-      layout: `${targetLayout}`,
-      theme: $storage.layout?.theme,
-      darkMode: $storage.layout?.darkMode,
-      sidebarStatus: $storage.layout?.sidebarStatus,
-      epThemeColor: $storage.layout?.epThemeColor,
-      themeColor: $storage.layout?.themeColor,
-      overallStyle: $storage.layout?.overallStyle,
+      layout: targetLayout,
+      theme: currentLayout?.theme,
+      darkMode: currentLayout?.darkMode,
+      sidebarStatus: currentLayout?.sidebarStatus,
+      epThemeColor: currentLayout?.epThemeColor,
+      themeColor: currentLayout?.themeColor,
+      overallStyle: currentLayout?.overallStyle,
     };
   }
 
@@ -59,7 +61,7 @@ export function useResponsiveLayout(
    * 初始化响应式监听
    */
   function initResponsiveObserver() {
-    useResizeObserver(appWrapperRef, (entries) => {
+    useResizeObserver(appWrapperRef as Ref<HTMLDivElement | undefined>, (entries) => {
       if (isMobile) return;
 
       const entry = entries[0];

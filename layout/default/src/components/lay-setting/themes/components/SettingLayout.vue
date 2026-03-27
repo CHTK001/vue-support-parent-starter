@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { ScRadio, ScRadioGroup } from "@repo/components/ScRadio";
+import { ScTooltip } from "@repo/components/ScTooltip";
 import { useI18n } from "vue-i18n";
 import Segmented, {
   type OptionsType,
 } from "@repo/components/ReSegmented/index";
-import { ScInputNumber } from "@repo/components/ScInputNumber"
-import { ScRadio } from "@repo/components/ScRadio"
-import { ScRadioGroup } from "@repo/components/ScRadioGroup"
-import { ScTooltip } from "@repo/components/ScTooltip"
-import {  } from "@repo/components/";
+import { ScInputNumber } from "@repo/components/ScInputNumber";
+
+
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { useAppStoreHook } from "@repo/core";
 import { isNumber } from "@pureadmin/utils";

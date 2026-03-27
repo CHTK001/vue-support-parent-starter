@@ -1,6 +1,11 @@
 <template>
   <div class="sc-select-tree-layout">
-    <ScSelect v-model="searchValue" :placeholder="searchPlaceholder" clearable @input="handleSearch">
+    <BaseSelect
+      v-model="searchValue"
+      :placeholder="searchPlaceholder"
+      clearable
+      @input="handleSearch"
+    >
       <template #empty>
         <!-- 树形组件 -->
         <div class="tree-container" :style="{ height: containerHeight }">
@@ -44,14 +49,17 @@
           <div class="selected-count">已选择: {{ selectedCount }} 项</div>
         </div>
       </template>
-    </ScSelect>
+    </BaseSelect>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineOptions, nextTick, ref, watch, type PropType } from "vue";
+import { computed, nextTick, ref, watch, type PropType } from "vue";
+import { ScButton } from "../../ScButton";
+import { ScIcon } from "../../ScIcon";
 import ScTree from "../../ScTree/index.vue";
 import type { TreeKey, TreeNode, TreeNodeData } from "../../ScTree/types";
+import BaseSelect from "../src/index.vue";
 
 // 定义组件名称
 defineOptions({

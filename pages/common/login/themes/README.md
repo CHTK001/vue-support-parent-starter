@@ -36,7 +36,7 @@
 
 ## 配置方式
 
-### 在 `application.yml` 中配置
+### 在 `app.yaml` 中配置
 
 ```yaml
 # 登录页面主题配置

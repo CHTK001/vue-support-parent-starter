@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build",
+    "build:lowmem": "cross-env NODE_OPTIONS=--max-old-space-size=3072 vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pages/pay": "workspace:^",
     "vue": "^3.4.0",
     "vue-router": "^4.2.0",
     "pinia": "^2.1.0",
@@ -17,6 +19,7 @@
     "@element-plus/icons-vue": "^2.3.0"
   },
   "devDependencies": {
+    "@repo/build-config": "workspace:^",
     "@vitejs/plugin-vue": "^5.0.0",
     "cross-env": "catalog:",
     "vite": "^5.0.0",

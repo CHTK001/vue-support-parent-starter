@@ -854,8 +854,7 @@ defineExpose({
                 getHolidayText(customDateCell(data.date).holiday)
               }}</span>
               <span class="days-text"
-                >{{ customDateCell(data.date).daysFromToday }}天</span
-              >
+                >{{ customDateCell(data.date).daysFromToday }}天</span>
             </div>
             <div class="progress-bar">
               <div
@@ -891,8 +890,7 @@ defineExpose({
           >
             <div class="progress-label">
               <span class="days-text"
-                >{{ customDateCell(data.date).daysFromToday }}天</span
-              >
+                >{{ customDateCell(data.date).daysFromToday }}天</span>
             </div>
             <div class="progress-bar">
               <div

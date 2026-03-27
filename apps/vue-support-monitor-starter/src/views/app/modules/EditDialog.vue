@@ -30,7 +30,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { fetchAppSave } from "@/api/monitor/app";
+import { fetchAppSave } from "@pages/job";
 import { message } from "@repo/utils";
 import { reactive, ref, watch } from "vue";
 const form = ref({

@@ -1,3 +1,4 @@
+<<<<<<<< Updated upstream:packages/standalone/TechUI/index.ts
 /**
  * TechUI - 科幻风格组件库封装
  * 基于 @techui/scifi 组件库
@@ -83,3 +84,6 @@ export async function initTechUI(
 export default {
   initTechUI,
 };
+========
+export * from "../../components-standalone/TechUI/index";
+>>>>>>>> Stashed changes:packages/components/TechUI/index.ts

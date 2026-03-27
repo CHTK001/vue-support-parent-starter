@@ -1,4 +1,4 @@
-import { $t } from "@repo/config";
+import { t as $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
 //@ts-ignore
 const Layout = () => import("../../../../../layout/default/src/index.vue");

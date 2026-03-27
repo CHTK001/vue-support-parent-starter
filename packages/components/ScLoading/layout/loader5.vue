@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { defineExpose, ref } from "vue";
+import { ref } from "vue";
 
 const emit = defineEmits(["update:modelValue"]);
 const props = defineProps({

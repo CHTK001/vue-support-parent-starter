@@ -315,7 +315,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 /* 
- * 样式已统一迁移至 packages/assets/style/stitch-overrides.scss
+ * 样式已统一迁移至 packages/assets/style/stitch/overrides.scss
  * 以保持全局风格一致 (Glassmorphism + Neon)
  */
 .sc-drawer {

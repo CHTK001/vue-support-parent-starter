@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div>
     <sc-dialog
       v-model="env.visible"
@@ -113,15 +113,14 @@
       <template #footer>
         <ScButton @click="env.visible = false">取 消</ScButton>
         <ScButton type="primary" @click="debounce(handleUpdate(), 1000, true)"
-          >确 定</ScButton
-        >
+          >确 定</ScButton>
       </template>
     </sc-dialog>
   </div>
 </template>
 <script setup>
 import { debounce } from "@pureadmin/utils";
-import { ScSelect } from "@repo/components/ScSelect"
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, ref, shallowRef } from "vue";

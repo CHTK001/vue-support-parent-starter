@@ -1,7 +1,7 @@
 <template>
   <div class="console system-container modern-bg" :style="gridStyle">
     <div class="left overflow-auto thin-scrollbar" @contextmenu.prevent>
-      <ScInput
+      <el-input
         v-model="keyword"
         placeholder="搜索..."
         size="small"
@@ -11,8 +11,8 @@
         <template #append>
           <IconifyIconOnline icon="ri:search-line" />
         </template>
-      </ScInput>
-      <ScTree
+      </el-input>
+      <el-tree
         ref="treeRef"
         :key="treeVersion"
         class="tree"
@@ -36,15 +36,14 @@
               <span
                 v-if="data.properties?.columnSize"
                 class="el-form-item-msg ml-2 mt-[3px]"
-                >({{ data.properties?.columnSize }})</span
-              >
+                >({{ data.properties?.columnSize }})</span>
             </span>
             <span class="el-form-item-msg ml-2 mt-[3px]">{{
               data.properties?.comment
             }}</span>
           </span>
         </template>
-      </ScTree>
+      </el-tree>
     </div>
     <div
       class="splitter cursor-col-resize"
@@ -57,11 +56,10 @@
           <IconifyIconOnline icon="ri:route-line" class="mr-1" />
           <span class="ellipsis">{{ currentPath || "未选择" }}</span>
           <span v-if="currentComment" class="comment" :title="currentComment"
-            >• 注释：{{ currentComment }}</span
-          >
+            >• 注释：{{ currentComment }}</span>
         </div>
         <div class="toolbar">
-          <ScButton
+          <el-button
             v-if="showEditor"
             type="primary"
             size="small"
@@ -69,39 +67,37 @@
           >
             <IconifyIconOnline :icon="icons.execute" class="mr-1" />
             执行
-          </ScButton>
-          <ScButton v-if="showEditor" size="small" @click="formatSql">
+          </el-button>
+          <el-button v-if="showEditor" size="small" @click="formatSql">
             <IconifyIconOnline :icon="formatIcon" class="mr-1" />
             格式化
-          </ScButton>
-          <ScButton size="small" @click="onRefreshTree">
+          </el-button>
+          <el-button size="small" @click="onRefreshTree">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
-          </ScButton>
-          <ScButton
+          </el-button>
+          <el-button
             size="small"
             :disabled="!currentPath"
             @click="openStructureTab"
           >
             <IconifyIconOnline :icon="icons.structure" class="mr-1" />
             结构
-          </ScButton>
+          </el-button>
           <el-button-group>
-            <ScButton
+            <el-button
               size="small"
               :type="showTableComment ? 'primary' : 'default'"
               :disabled="!searched"
               @click="showTableComment = !showTableComment"
-              >表头注释</ScButton
-            >
-            <ScButton
+              >表头注释</el-button>
+            <el-button
               size="small"
               :type="showFieldComments ? 'primary' : 'default'"
               :disabled="!searched"
               @click="showFieldComments = !showFieldComments"
-              >字段注释</ScButton
-            >
-          </ScButton-group>
-          <ScButton
+              >字段注释</el-button>
+          </el-button-group>
+          <el-button
             size="small"
             :disabled="!currentPath || !columns.length"
             @click="toggleAnalyze"
@@ -111,7 +107,7 @@
               class="mr-1"
             />
             {{ analyzing ? "退出分析" : "分析" }}
-          </ScButton>
+          </el-button>
         </div>
       </div>
       <div class="right-body">
@@ -122,22 +118,22 @@
           :height="'200px'"
           :options="{ mode: 'sql' }"
         />
-        <ScTabs
+        <el-tabs
           v-model="activeTab"
           class="result-tabs"
           type="border-card"
           tab-position="top"
         >
-          <ScTabPane name="result" class="!h-full" label="结果">
-            <div v-if="columns.length" class="result">
-              <ScPopover
+          <el-tab-pane name="result" class="!h-full" label="结果">
+            <div class="result" v-if="columns.length">
+              <el-popover
                 v-model:visible="columnFilterVisible"
                 trigger="click"
                 placement="bottom-end"
                 width="260"
               >
                 <template #reference>
-                  <ScButton
+                  <el-button
                     size="small"
                     text
                     @click.stop="columnFilterVisible = !columnFilterVisible"
@@ -147,45 +143,42 @@
                       class="mr-1"
                     />
                     筛选列
-                  </ScButton>
+                  </el-button>
                 </template>
                 <div class="col-filter">
                   <div class="ops">
-                    <ScLink
+                    <el-link
                       type="primary"
                       :underline="false"
                       @click="selectedColumnNames = [...columns]"
-                      >全选</el-link
-                    >
-                    <ScLink
+                      >全选</el-link>
+                    <el-link
                       type="danger"
                       :underline="false"
                       @click="selectedColumnNames = []"
-                      >清空</el-link
-                    >
+                      >清空</el-link>
                   </div>
-                  <ScScrollbar height="220px">
-                    <ScCheckboxGroup v-model="selectedColumnNames">
-                      <ScCheckbox
+                  <el-scrollbar height="220px">
+                    <el-checkbox-group v-model="selectedColumnNames">
+                      <el-checkbox
                         v-for="col in columns"
                         :key="col"
                         :label="col"
-                        >{{ col }}</ScCheckbox
-                      >
-                    </ScCheckboxGroup>
-                  </ScScrollbar>
+                        >{{ col }}</el-checkbox>
+                    </el-checkbox-group>
+                  </el-scrollbar>
                 </div>
-              </ScPopover>
+              </el-popover>
             </div>
-            <ScTable
-              v-if="columns.length"
+            <el-table
               border
+              v-if="columns.length"
               :data="rows"
               size="small"
               height="580px"
               :row-class-name="rowClassName"
             >
-              <ScTableColumn
+              <el-table-column
                 v-for="col in visibleColumns"
                 :key="col"
                 :prop="col.name"
@@ -216,7 +209,7 @@
                         :key="b.value"
                         class="bar-wrap"
                       >
-                        <ScTooltip
+                        <el-tooltip
                           :content="barTooltip(col.name, b)"
                           placement="top"
                           :show-after="200"
@@ -225,8 +218,8 @@
                             class="bar"
                             :style="barStyle(col.name, b)"
                             @click.stop="toggleFilter(col.name, b.value)"
-                          />
-                        </ScTooltip>
+                          ></div>
+                        </el-tooltip>
                       </div>
                     </div>
                   </div>
@@ -243,11 +236,11 @@
                     <div>{{ row[col.name] }}</div>
                   </div>
                 </template>
-              </ScTableColumn>
-            </ScTable>
-            <ScEmpty v-else description="无结果" />
-          </ScTabPane>
-        </ScTabs>
+              </el-table-column>
+            </el-table>
+            <el-empty v-else description="无结果" />
+          </el-tab-pane>
+        </el-tabs>
       </div>
       <div class="right-status">
         <span v-if="statusText">{{ statusText }}</span>
@@ -396,7 +389,7 @@ async function loadConsoleConfig() {
           copyCreateTable: false,
           addFieldComment: true,
         },
-        parsed.jdbc || {},
+        parsed.jdbc || {}
       );
       consoleConfig.value = parsed;
     } catch (_) {
@@ -457,7 +450,7 @@ async function handleNodeClick(node: any) {
 // 懒加载子节点（结合 hasChildren 展示展开图标）
 const loadChildrenLazy = async (
   node: any,
-  resolve: (children: any[]) => void,
+  resolve: (children: any[]) => void
 ) => {
   // 根节点（node.level === 0）直接返回已有 children
   if (!node || node.level === 0) {
@@ -645,7 +638,7 @@ function barTooltip(col: string, b: { value: string; count: number }) {
 
 const filters = ref<Record<string, Set<string>>>({});
 const hasActiveFilters = computed(() =>
-  Object.values(filters.value).some((s) => s && s.size > 0),
+  Object.values(filters.value).some((s) => s && s.size > 0)
 );
 function toggleFilter(col: string, value: string) {
   if (!filters.value[col]) filters.value[col] = new Set();
@@ -739,7 +732,7 @@ function buildMenuItems(type): MenuItem[] {
   }
   if (
     allow(
-      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE"),
+      consoleConfig.value.jdbc?.viewTableStructure && type.includes("TABLE")
     )
   ) {
     items.push({
@@ -862,11 +855,7 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入新表名：",
           "重命名表",
-          {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
-            inputValue: contextNode.value.name,
-          },
+          { confirmButtonText: "确定", cancelButtonText: "取消",inputValue: contextNode.value.name }
         );
         if (!value || !value.trim()) return;
         await renameTable(props.id, {
@@ -876,7 +865,7 @@ async function onMenuSelect(key: string) {
         ElMessage.success("已重命名");
         contextNode.value.name = value.trim();
         refreshNodeChildren({
-          path: contextNode.value.parentPath,
+          path: contextNode.value.parentPath
         });
         // await refreshContextNodeChildren();
       } catch (_) {}
@@ -893,11 +882,7 @@ async function onMenuSelect(key: string) {
         const { value } = await ElMessageBox.prompt(
           "请输入备份表名：",
           "备份表",
-          {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
-            inputValue: defaultName,
-          },
+          { confirmButtonText: "确定", cancelButtonText: "取消", inputValue: defaultName }
         );
         if (!value || !value.trim()) return;
         await backupTable(props.id, {
@@ -906,7 +891,7 @@ async function onMenuSelect(key: string) {
         });
         ElMessage.success("已发起备份");
         refreshNodeChildren({
-          path: contextNode.value.parentPath,
+          path: contextNode.value.parentPath
         });
       } catch (_) {}
       break;
@@ -935,10 +920,7 @@ async function refreshNodeChildren(node: any) {
   try {
     const res = await getConsoleChildren(props.id, node?.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (
-      treeRef.value &&
-      typeof treeRef.value.updateKeyChildren === "function"
-    ) {
+    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node?.path, records);
     } else {
@@ -961,10 +943,7 @@ async function refreshContextNodeChildren() {
   try {
     const res = await getConsoleChildren(props.id, node.path);
     const records = extractArrayFromApi(res?.data).map(normalizeTreeNode);
-    if (
-      treeRef.value &&
-      typeof treeRef.value.updateKeyChildren === "function"
-    ) {
+    if (treeRef.value && typeof treeRef.value.updateKeyChildren === "function") {
       // 用 API 覆盖子节点，避免越刷越多
       treeRef.value.updateKeyChildren(node.path, records);
     } else {
@@ -1008,7 +987,7 @@ async function copyCreateSql(node: any) {
   const res = await getConsoleNode(props.id, node.path, "ddl");
   const ddl = res?.data?.data || "";
   await navigator.clipboard.writeText(
-    typeof ddl === "string" ? ddl : JSON.stringify(ddl),
+    typeof ddl === "string" ? ddl : JSON.stringify(ddl)
   );
 }
 
@@ -1029,7 +1008,7 @@ async function addFieldComment(node: any) {
         inputType: "textarea",
         inputPlaceholder: "请输入注释...",
         inputValue: node?.properties?.comment || "",
-      },
+      }
     );
     if (!value || !value.trim()) return;
     await saveFieldComment(props.id, {
@@ -1050,6 +1029,7 @@ onMounted(async () => {
 });
 </script>
 <style scoped lang="scss">
+
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1082,6 +1062,7 @@ onMounted(async () => {
     z-index: 1;
   }
 }
+
 
 .console {
   display: grid;
@@ -1245,6 +1226,7 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
+
 // 响应式设计
 @media (max-width: 768px) {
   .page-header {
@@ -1253,4 +1235,5 @@ onMounted(async () => {
     padding: 12px 16px;
   }
 }
+
 </style>

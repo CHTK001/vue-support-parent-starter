@@ -1,12 +1,13 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
+import ScTabPane from "@repo/components/ScTabs";
 import { ScAvatar } from "@repo/components/ScAvatar";
 import { ScBadge } from "@repo/components/ScBadge";
 import { ScIcon } from "@repo/components/ScIcon";
 import { ScEmpty } from "@repo/components/ScEmpty";
 import { ScButton } from "@repo/components/ScButton";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScScrollbar from "@repo/components/ScScrollbar";
 import { ScTabs } from "@repo/components/ScTabs";
-
-import ScTabPane from "@repo/components/ScTabs";
 /**
  * 消息菜单组件
  * 支持异步请求获取消息列表，以及通过Socket.IO实时推�?
@@ -459,7 +460,7 @@ onUnmounted(() => {
           <div class="panel-footer">
             <ScButton link @click="clearAll">清空消息</ScButton>
             <ScButton link type="primary" @click="openMessageCenter"
-              >查看全部</ScButton
+              >查看全部</ScButton>
             >
             >
           </div>

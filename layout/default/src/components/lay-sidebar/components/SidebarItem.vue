@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
-import { ReMenuNewBadge } from "@repo/components/ReMenuNewBadge";
+import { ReMenuNewBadge } from "@repo/components/MenuNewBadge";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import {
   resolvePath as configResolvePath,
   getConfig,
@@ -21,6 +21,7 @@ import {
   onMounted,
   onBeforeUnmount,
 } from "vue";
+import ScMenuItem from "@repo/components/ScMenuItem";
 import { useNav } from "../../../hooks/useNav";
 import { localStorageProxy } from "@repo/utils";
 import { useGlobal } from "@pureadmin/utils";

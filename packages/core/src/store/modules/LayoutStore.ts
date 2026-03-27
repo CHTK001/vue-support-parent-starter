@@ -1,16 +1,16 @@
 import {
   fetchGetUserLayout,
-  fetchMineSfc,
   fetchUpdateUserLayout,
-} from "@repo/core";
+} from "../../api/common/user";
+import { fetchMineSfc } from "../../api/common/sfc";
 import { getConfig } from "@repo/config";
 import {
-  loadSfcModule,
   localStorageProxy,
   message,
   toObject,
 } from "@repo/utils";
 import { defineStore } from "pinia";
+import { createLazySfcComponent } from "../utils/lazySfc";
 
 export const useLayoutStore = defineStore({
   id: "layout-setting",
@@ -44,7 +44,7 @@ export const useLayoutStore = defineStore({
     },
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
-      return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
+      return createLazySfcComponent(sysSfc);
     },
     getComponent(key) {
       return this.modulesWithProps[key];

@@ -24,6 +24,8 @@ import LaySidebarLogo from "../components/SidebarLogo.vue";
 import DefaultSidebarItem from "../components/themes/DefaultSidebarItem.vue";
 import LaySidebarLeftCollapse from "../components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../components/SidebarCenterCollapse.vue";
+import ScMenu from "@repo/components/ScMenu";
+import ScScrollbar from "@repo/components/ScScrollbar";
 import { localStorageProxy } from "@repo/utils";
 
 // 接收主题类名和主题 SidebarItem 组件

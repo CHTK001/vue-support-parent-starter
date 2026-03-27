@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visible"
     title="文件服务设置"
@@ -236,8 +236,7 @@
     <template #footer>
       <ScButton @click="visible = false">取消</ScButton>
       <ScButton type="primary" :loading="loading" @click="handleSubmit"
-        >保存</ScButton
-      >
+        >保存</ScButton>
     </template>
   </sc-dialog>
 </template>

@@ -1,10 +1,5 @@
 ﻿<template>
-  <sc-dialog
-    v-model="visibleProxy"
-    class="push-history-dialog"
-    :show-close="true"
-    width="900px"
-  >
+  <sc-dialog v-model="visibleProxy" class="push-history-dialog" :show-close="true" width="900px">
     <template #header>
       <div class="dlg-header">
         <div class="title">
@@ -18,7 +13,7 @@
     <div class="content">
       <!-- 筛选工具栏 -->
       <div class="toolbar">
-        <ScInput
+        <el-input
           v-model="queryParams.keyword"
           placeholder="搜索配置键"
           class="search-input"
@@ -28,103 +23,89 @@
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
-        </ScInput>
-        <ScSelect
+        </el-input>
+        <el-select
           v-model="queryParams.pushSuccess"
           placeholder="推送状态"
           clearable
           class="filter-select"
           @change="loadHistory"
         >
-          <ScOption label="成功" :value="1" />
-          <ScOption label="失败" :value="0" />
-        </ScSelect>
-        <ScButton type="primary" @click="loadHistory">
+          <el-option label="成功" :value="1" />
+          <el-option label="失败" :value="0" />
+        </el-select>
+        <el-button type="primary" @click="loadHistory">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
-        </ScButton>
-        <ScButton
-          :disabled="selectedHistories.length === 0"
+        </el-button>
+        <el-button 
+          :disabled="selectedHistories.length === 0" 
           @click="handleBatchRepush"
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           批量还原 ({{ selectedHistories.length }})
-        </ScButton>
-        <ScButton
+        </el-button>
+        <el-button 
           type="danger"
-          :disabled="selectedHistories.length === 0"
+          :disabled="selectedHistories.length === 0" 
           @click="handleBatchDelete"
         >
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           批量删除
-        </ScButton>
+        </el-button>
       </div>
 
       <!-- 历史列表 -->
-      <ScTable
+      <el-table
         ref="tableRef"
-        v-loading="loading"
         :data="historyList"
-        max-height="400"
+        v-loading="loading"
         @selection-change="handleSelectionChange"
+        max-height="400"
       >
-        <ScTableColumn type="selection" width="50" />
-        <ScTableColumn label="配置键" prop="configKey" min-width="180">
+        <el-table-column type="selection" width="50" />
+        <el-table-column label="配置键" prop="configKey" min-width="180">
           <template #default="{ row }">
             <span class="config-key">{{ row.configKey }}</span>
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="配置值" prop="configValue" min-width="150">
+        </el-table-column>
+        <el-table-column label="配置值" prop="configValue" min-width="150">
           <template #default="{ row }">
-            <ScTooltip
-              :content="row.configValue"
-              placement="top"
-              :disabled="!row.configValue"
-            >
-              <span class="config-value">{{ row.configValue || "—" }}</span>
-            </ScTooltip>
+            <el-tooltip :content="row.configValue" placement="top" :disabled="!row.configValue">
+              <span class="config-value">{{ row.configValue || '—' }}</span>
+            </el-tooltip>
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="目标服务器" prop="serverName" width="120" />
-        <ScTableColumn label="状态" width="80" align="center">
+        </el-table-column>
+        <el-table-column label="目标服务器" prop="serverName" width="120" />
+        <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
-            <ScTag :type="row.success ? 'success' : 'danger'" size="small">
-              {{ row.success ? "成功" : "失败" }}
-            </ScTag>
+            <el-tag :type="row.success ? 'success' : 'danger'" size="small">
+              {{ row.success ? '成功' : '失败' }}
+            </el-tag>
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="推送时间" width="160">
+        </el-table-column>
+        <el-table-column label="推送时间" width="160">
           <template #default="{ row }">
             {{ formatTime(row.pushTime) }}
           </template>
-        </ScTableColumn>
-        <ScTableColumn label="操作人" prop="operator" width="80" />
-        <ScTableColumn label="操作" width="140" fixed="right">
+        </el-table-column>
+        <el-table-column label="操作人" prop="operator" width="80" />
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <ScButton
-              size="small"
-              type="primary"
-              plain
-              @click="handleRepush(row)"
-            >
+            <el-button size="small" type="primary" plain @click="handleRepush(row)">
               <IconifyIconOnline icon="ri:refresh-line" />
               还原
-            </ScButton>
-            <ScButton
-              size="small"
-              type="danger"
-              plain
-              @click="handleDelete(row)"
-            >
+            </el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </ScButton>
+            </el-button>
           </template>
-        </ScTableColumn>
-      </ScTable>
+        </el-table-column>
+      </el-table>
 
       <!-- 分页 -->
       <div class="pagination">
-        <ScPagination
+        <el-pagination
           v-model:current-page="queryParams.pageNum"
           v-model:page-size="queryParams.pageSize"
           :total="total"
@@ -138,40 +119,40 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <ScButton @click="visibleProxy = false">关闭</ScButton>
+        <el-button @click="visibleProxy = false">关闭</el-button>
       </div>
     </template>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, reactive } from "vue";
-import { ElMessageBox } from "element-plus";
-import { message } from "@repo/utils";
-import {
-  getConfigPushHistory,
-  repushFromHistory,
+import { computed, ref, watch, reactive } from 'vue';
+import { ElMessageBox } from 'element-plus';
+import { message } from '@repo/utils';
+import { 
+  getConfigPushHistory, 
+  repushFromHistory, 
   batchRepushFromHistory,
   deletePushHistory,
   batchDeletePushHistory,
-  type ConfigPushHistory,
-} from "@/api/config";
+  type ConfigPushHistory 
+} from "@pages/setting";
 
-interface Props {
+interface Props { 
   visible: boolean;
   configId?: number;
 }
 
-interface Emits {
-  (e: "update:visible", v: boolean): void;
+interface Emits { 
+  (e: 'update:visible', v: boolean): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const visibleProxy = computed({
-  get: () => props.visible,
-  set: (v) => emit("update:visible", v),
+const visibleProxy = computed({ 
+  get: () => props.visible, 
+  set: v => emit('update:visible', v) 
 });
 
 const loading = ref(false);
@@ -180,7 +161,7 @@ const selectedHistories = ref<ConfigPushHistory[]>([]);
 const total = ref(0);
 
 const queryParams = reactive({
-  keyword: "",
+  keyword: '',
   pushSuccess: undefined as number | undefined,
   pageNum: 1,
   pageSize: 10,
@@ -194,12 +175,12 @@ async function loadHistory() {
       ...queryParams,
       configId: props.configId,
     });
-    if (res?.code === "00000") {
+    if (res?.code === '00000') {
       historyList.value = res.data?.records || [];
       total.value = res.data?.total || 0;
     }
   } catch (e) {
-    console.error("加载推送历史失败", e);
+    console.error('加载推送历史失败', e);
   } finally {
     loading.value = false;
   }
@@ -215,25 +196,25 @@ async function handleRepush(history: ConfigPushHistory) {
   try {
     await ElMessageBox.confirm(
       `确认使用历史记录中的配置值 "${history.configKey}" 重新推送到服务器 "${history.serverName}"？`,
-      "还原推送确认",
-      { type: "warning" },
+      '还原推送确认',
+      { type: 'warning' }
     );
-
+    
     const res: any = await repushFromHistory(history.id);
-    if (res?.code === "00000") {
+    if (res?.code === '00000') {
       const result = res.data;
       if (result.success > 0) {
-        message("还原推送成功", { type: "success" });
+        message('还原推送成功', { type: 'success' });
       } else {
-        message("还原推送失败", { type: "error" });
+        message('还原推送失败', { type: 'error' });
       }
       loadHistory();
     } else {
-      message(res?.msg || "还原推送失败", { type: "error" });
+      message(res?.msg || '还原推送失败', { type: 'error' });
     }
   } catch (e) {
-    if (e !== "cancel") {
-      console.error("还原推送失败", e);
+    if (e !== 'cancel') {
+      console.error('还原推送失败', e);
     }
   }
 }
@@ -241,32 +222,29 @@ async function handleRepush(history: ConfigPushHistory) {
 // 批量还原推送
 async function handleBatchRepush() {
   if (selectedHistories.value.length === 0) return;
-
+  
   try {
     await ElMessageBox.confirm(
       `确认批量还原推送 ${selectedHistories.value.length} 条历史记录？`,
-      "批量还原确认",
-      { type: "warning" },
+      '批量还原确认',
+      { type: 'warning' }
     );
-
-    const ids = selectedHistories.value.map((h) => h.id);
+    
+    const ids = selectedHistories.value.map(h => h.id);
     const res: any = await batchRepushFromHistory(ids);
-    if (res?.code === "00000") {
+    if (res?.code === '00000') {
       const result = res.data;
-      message(
-        `还原推送完成: 成功 ${result.success} 条, 失败 ${result.failed} 条`,
-        {
-          type: result.failed > 0 ? "warning" : "success",
-        },
-      );
+      message(`还原推送完成: 成功 ${result.success} 条, 失败 ${result.failed} 条`, { 
+        type: result.failed > 0 ? 'warning' : 'success' 
+      });
       selectedHistories.value = [];
       loadHistory();
     } else {
-      message(res?.msg || "批量还原推送失败", { type: "error" });
+      message(res?.msg || '批量还原推送失败', { type: 'error' });
     }
   } catch (e) {
-    if (e !== "cancel") {
-      console.error("批量还原推送失败", e);
+    if (e !== 'cancel') {
+      console.error('批量还原推送失败', e);
     }
   }
 }
@@ -274,20 +252,22 @@ async function handleBatchRepush() {
 // 单个删除
 async function handleDelete(history: ConfigPushHistory) {
   try {
-    await ElMessageBox.confirm(`确认删除推送历史记录？`, "删除确认", {
-      type: "warning",
-    });
-
+    await ElMessageBox.confirm(
+      `确认删除推送历史记录？`,
+      '删除确认',
+      { type: 'warning' }
+    );
+    
     const res: any = await deletePushHistory(history.id);
-    if (res?.code === "00000") {
-      message("删除成功", { type: "success" });
+    if (res?.code === '00000') {
+      message('删除成功', { type: 'success' });
       loadHistory();
     } else {
-      message(res?.msg || "删除失败", { type: "error" });
+      message(res?.msg || '删除失败', { type: 'error' });
     }
   } catch (e) {
-    if (e !== "cancel") {
-      console.error("删除失败", e);
+    if (e !== 'cancel') {
+      console.error('删除失败', e);
     }
   }
 }
@@ -295,48 +275,45 @@ async function handleDelete(history: ConfigPushHistory) {
 // 批量删除
 async function handleBatchDelete() {
   if (selectedHistories.value.length === 0) return;
-
+  
   try {
     await ElMessageBox.confirm(
       `确认删除 ${selectedHistories.value.length} 条推送历史记录？`,
-      "批量删除确认",
-      { type: "warning" },
+      '批量删除确认',
+      { type: 'warning' }
     );
-
-    const ids = selectedHistories.value.map((h) => h.id);
+    
+    const ids = selectedHistories.value.map(h => h.id);
     const res: any = await batchDeletePushHistory(ids);
-    if (res?.code === "00000") {
-      message("批量删除成功", { type: "success" });
+    if (res?.code === '00000') {
+      message('批量删除成功', { type: 'success' });
       selectedHistories.value = [];
       loadHistory();
     } else {
-      message(res?.msg || "批量删除失败", { type: "error" });
+      message(res?.msg || '批量删除失败', { type: 'error' });
     }
   } catch (e) {
-    if (e !== "cancel") {
-      console.error("批量删除失败", e);
+    if (e !== 'cancel') {
+      console.error('批量删除失败', e);
     }
   }
 }
 
 // 格式化时间
 function formatTime(time: string): string {
-  if (!time) return "—";
-  return new Date(time).toLocaleString("zh-CN");
+  if (!time) return '—';
+  return new Date(time).toLocaleString('zh-CN');
 }
 
 // 监听对话框打开
-watch(
-  () => visibleProxy.value,
-  (val) => {
-    if (val) {
-      queryParams.pageNum = 1;
-      loadHistory();
-    } else {
-      selectedHistories.value = [];
-    }
-  },
-);
+watch(() => visibleProxy.value, (val) => {
+  if (val) {
+    queryParams.pageNum = 1;
+    loadHistory();
+  } else {
+    selectedHistories.value = [];
+  }
+});
 </script>
 
 <style scoped lang="scss">
@@ -391,7 +368,7 @@ watch(
 }
 
 .config-value {
-  font-family: "Monaco", "Consolas", monospace;
+  font-family: 'Monaco', 'Consolas', monospace;
   font-size: 12px;
   max-width: 150px;
   overflow: hidden;
@@ -412,6 +389,7 @@ watch(
   gap: 12px;
 }
 
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -420,4 +398,5 @@ watch(
     padding: 12px 16px;
   }
 }
+
 </style>

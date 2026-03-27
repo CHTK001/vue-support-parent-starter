@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ScSwitch } from "@repo/components/ScSwitch"
-import { ScTooltip } from "@repo/components/ScTooltip";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScTooltip from "@repo/components/ScTooltip/index";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 
 // ---- Props 定义 ----

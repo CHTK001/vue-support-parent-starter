@@ -7,7 +7,7 @@
         <span>Mock 数据</span>
       </div>
       <div class="header-actions">
-        <ScSwitch
+        <ScSwitch 
           v-model="mockEnabled"
           active-text="启用"
           inactive-text="禁用"
@@ -55,7 +55,7 @@
               <i class="ri-magic-line"></i>
               自动生成
             </ScButton>
-            <ScButton
+            <ScButton 
               size="small"
               type="primary"
               @click="generateWithAI"
@@ -78,7 +78,7 @@
               AI 配置
             </ScButton>
           </div>
-          <ScInput
+          <ScInput 
             v-model="mockConfig.responseData"
             type="textarea"
             :rows="12"
@@ -116,14 +116,12 @@
       <ScDivider content-position="left">
         <span class="rules-title">已配置的 Mock 规则</span>
       </ScDivider>
-      <ScScrollbar max-height="200px">
+      <el-scrollbar max-height="200px">
         <div
           v-for="rule in mockRules"
           :key="rule.id"
           class="rule-item"
-          :class="{
-            active: rule.path === api?.path && rule.method === api?.method,
-          }"
+          :class="{ active: rule.path === api?.path && rule.method === api?.method }"
         >
           <div class="rule-info">
             <ScTag :type="getMethodTagType(rule.method)" size="small">
@@ -132,12 +130,12 @@
             <span class="rule-path">{{ rule.path }}</span>
           </div>
           <div class="rule-actions">
-            <ScSwitch
+            <ScSwitch 
               v-model="rule.enabled"
               size="small"
               @change="handleRuleToggle(rule)"
             />
-            <ScButton
+            <ScButton 
               size="small"
               text
               type="danger"
@@ -147,7 +145,7 @@
             </ScButton>
           </div>
         </div>
-      </ScScrollbar>
+      </el-scrollbar>
     </div>
 
     <!-- AI 配置对话框 -->
@@ -157,11 +155,7 @@
           <ScSwitch v-model="aiConfig.enabled" />
         </ScFormItem>
         <ScFormItem label="服务提供商">
-          <ScSelect
-            v-model="aiConfig.provider"
-            @change="handleProviderChange"
-            style="width: 100%"
-          >
+          <ScSelect v-model="aiConfig.provider" @change="handleProviderChange" style="width: 100%">
             <ScOption label="OpenAI" value="openai" />
             <ScOption label="Anthropic (Claude)" value="anthropic" />
             <ScOption label="Google Gemini" value="gemini" />
@@ -175,12 +169,7 @@
           <ScInput v-model="aiConfig.apiUrl" placeholder="API 端点地址" />
         </ScFormItem>
         <ScFormItem label="API Key">
-          <ScInput
-            v-model="aiConfig.apiKey"
-            type="password"
-            placeholder="输入 API Key"
-            show-password
-          />
+          <ScInput v-model="aiConfig.apiKey" type="password" placeholder="输入 API Key" show-password />
         </ScFormItem>
         <ScFormItem label="模型名称">
           <ScInput v-model="aiConfig.model" placeholder="模型名称" />
@@ -192,15 +181,9 @@
             <div class="tips-content">
               <p>提示：</p>
               <ul>
-                <li>
-                  <strong>OpenAI</strong>: 需要 API Key，推荐 gpt-3.5-turbo
-                </li>
-                <li>
-                  <strong>Gemini</strong>: 免费额度，需要 Google AI API Key
-                </li>
-                <li>
-                  <strong>HuggingFace</strong>: 免费额度，需要 Access Token
-                </li>
+                <li><strong>OpenAI</strong>: 需要 API Key，推荐 gpt-3.5-turbo</li>
+                <li><strong>Gemini</strong>: 免费额度，需要 Google AI API Key</li>
+                <li><strong>HuggingFace</strong>: 免费额度，需要 Access Token</li>
                 <li><strong>Ollama</strong>: 本地运行，无需 API Key</li>
               </ul>
             </div>
@@ -216,19 +199,16 @@
     <!-- 测试结果对话框 -->
     <sc-dialog v-model="testDialogVisible" title="Mock 测试结果" width="600px">
       <div class="test-result">
-        <ScDescriptions :column="2" border size="small">
-          <ScDescriptionsItem label="状态码">
-            <ScTag
-              :type="testResult?.statusCode === 200 ? 'success' : 'danger'"
-              size="small"
-            >
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="状态码">
+            <ScTag :type="testResult?.statusCode === 200 ? 'success' : 'danger'" size="small">
               {{ testResult?.statusCode }}
             </ScTag>
-          </ScDescriptionsItem>
-          <ScDescriptionsItem label="延迟">
+          </el-descriptions-item>
+          <el-descriptions-item label="延迟">
             {{ testResult?.delay }}ms
-          </ScDescriptionsItem>
-        </ScDescriptions>
+          </el-descriptions-item>
+        </el-descriptions>
         <div class="test-response">
           <div class="response-label">响应数据:</div>
           <pre>{{ formatTestResult(testResult?.responseData) }}</pre>
@@ -246,11 +226,7 @@ import { ref, reactive, watch, onMounted, computed } from "vue";
 import { ScMessage, ScMessageBox } from "@repo/utils";
 import type { ApiInfo } from "../types";
 import { DocStorage, type MockRule } from "../storage";
-import {
-  aiService,
-  type AIServiceConfig,
-  type AIProvider,
-} from "../ai-service";
+import { aiService, type AIServiceConfig, type AIProvider } from "../ai-service";
 import { ScSlider } from "@repo/components/ScSlider";
 
 const props = defineProps<{
@@ -292,11 +268,7 @@ const mockConfig = reactive({
 });
 
 // 测试结果
-const testResult = ref<{
-  statusCode: number;
-  delay: number;
-  responseData: any;
-} | null>(null);
+const testResult = ref<{ statusCode: number; delay: number; responseData: any } | null>(null);
 
 // 方法类型颜色
 const getMethodTagType = (method: string): string => {
@@ -444,11 +416,7 @@ const generateMockData = () => {
   // 如果是列表接口
   if (props.api.path.includes("list") || props.api.path.includes("page")) {
     mockData.data = {
-      records: [
-        mockData.data,
-        { ...mockData.data, id: 2 },
-        { ...mockData.data, id: 3 },
-      ],
+      records: [mockData.data, { ...mockData.data, id: 2 }, { ...mockData.data, id: 3 }],
       total: 100,
       current: 1,
       size: 10,
@@ -487,17 +455,13 @@ const generateValueByType = (type: string, fieldName: string): any => {
   if (name.includes("title")) return "示例标题";
   if (name.includes("email")) return "example@email.com";
   if (name.includes("phone") || name.includes("mobile")) return "13800138000";
-  if (name.includes("url") || name.includes("link"))
-    return "https://example.com";
-  if (name.includes("time") || name.includes("date"))
-    return new Date().toISOString();
+  if (name.includes("url") || name.includes("link")) return "https://example.com";
+  if (name.includes("time") || name.includes("date")) return new Date().toISOString();
   if (name.includes("status")) return 1;
   if (name.includes("type")) return "default";
-  if (name.includes("description") || name.includes("desc"))
-    return "这是描述信息";
+  if (name.includes("description") || name.includes("desc")) return "这是描述信息";
   if (name.includes("content")) return "这是内容信息";
-  if (name.includes("image") || name.includes("avatar"))
-    return "https://via.placeholder.com/150";
+  if (name.includes("image") || name.includes("avatar")) return "https://via.placeholder.com/150";
 
   // 根据类型生成
   switch (type) {
@@ -538,9 +502,7 @@ const saveMockRule = async () => {
   // 验证 JSON
   let responseData: any;
   try {
-    responseData = mockConfig.responseData
-      ? JSON.parse(mockConfig.responseData)
-      : null;
+    responseData = mockConfig.responseData ? JSON.parse(mockConfig.responseData) : null;
   } catch {
     ScMessage.error("Mock 数据必须是有效的 JSON 格式");
     return;
@@ -593,9 +555,7 @@ const deleteMockRule = async () => {
 const testMock = () => {
   let responseData: any;
   try {
-    responseData = mockConfig.responseData
-      ? JSON.parse(mockConfig.responseData)
-      : null;
+    responseData = mockConfig.responseData ? JSON.parse(mockConfig.responseData) : null;
   } catch {
     ScMessage.error("Mock 数据必须是有效的 JSON 格式");
     return;
@@ -655,7 +615,7 @@ watch(
   () => {
     loadCurrentRule();
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 // 生命周期

@@ -197,11 +197,9 @@ export const useThemeStore = defineStore("theme", () => {
     htmlEl.setAttribute("data-skin", normalizedThemeKey);
 
     if (normalizedThemeKey === "default") {
-      // 切回默认主题时，移除 8bit / PixelUI 相关标记与样式，避免残留
+      // 切回默认主题时，仅清理历史遗留的旧样式 id，当前样式交给共享引用计数管理
       htmlEl.removeAttribute("data-skin");
-      htmlEl.classList.remove("pixelium");
 
-      // 移除可能存在的 8bit 主题样式表（来自 useThemeComponent / usePixelUI）
       const pixelThemeLinks = ["pixel-theme-style", "theme-8bit-style"];
       pixelThemeLinks.forEach((linkId) => {
         const linkEl = document.getElementById(linkId);

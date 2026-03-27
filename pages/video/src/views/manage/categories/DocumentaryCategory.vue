@@ -19,9 +19,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
-import VideoFilter from "@/view/video/components/VideoFilter.vue";
-import VideoResults from "@/view/video/components/VideoResults.vue";
-import { getVideoList } from "@/api/video";
+import VideoFilter from "../components/VideoFilter.vue";
+import VideoResults from "../components/VideoResults.vue";
+import { getVideoList } from "../../../api/video";
 
 const router = useRouter();
 

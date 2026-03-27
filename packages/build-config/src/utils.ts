@@ -55,6 +55,10 @@ export const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 
 /** 设置别名（基础） */
 export const createAlias = (metaUrl: string): Record<string, string> => {
+  const commonPagesRoot = resolve(root, "pages/common");
+  const codecWasmRoot = resolve(root, "packages/codec-wasm");
+  const codecWasmEntry = resolve(codecWasmRoot, "src/index.js");
+
   return {
     "@": pathResolve("./src", metaUrl),
     // pages 下各业务模块在开发环境直接指向源码入口，方便被各个 app 以包名方式引入
@@ -68,22 +72,47 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@pages/video": resolve(root, "pages/video/src"),
     "@pages/pay": resolve(root, "pages/pay/src"),
     "@pages/doc": resolve(root, "pages/doc/src"),
-    "@pages/common": resolve(root, "pages/common"),
     "@layout/default": resolve(root, "layout/default/src"),
     "@repo/assets": resolve(root, "packages/assets"),
+    // components-standalone 下的大组件统一以 @repo/components/xxx 暴露
+    "@repo/components/ScCodeEditor": resolve(
+      root,
+      "packages/components-standalone/ScCodeEditor",
+    ),
+    "@repo/components/ScEchartsMap3D": resolve(
+      root,
+      "packages/components-standalone/ScEchartsMap3D",
+    ),
+    "@repo/components/ScLayer": resolve(
+      root,
+      "packages/components-standalone/ScLayer",
+    ),
+    "@repo/components/ScMap": resolve(
+      root,
+      "packages/components-standalone/ScMap",
+    ),
+    "@repo/components/ScReteEditor": resolve(
+      root,
+      "packages/components-standalone/ScReteEditor",
+    ),
+    "@repo/components/ScWebLLM": resolve(
+      root,
+      "packages/components-standalone/ScWebLLM",
+    ),
+    "@repo/components/TechUI": resolve(
+      root,
+      "packages/components-standalone/TechUI",
+    ),
     "@repo/components": resolve(root, "packages/components"),
     "@repo/config": resolve(root, "packages/config"),
     "@repo/core": resolve(root, "packages/core"),
+    "@repo/common-pages": commonPagesRoot,
+    "@repo/common-pages/": `${commonPagesRoot}/`,
+    "@repo/pages": commonPagesRoot,
+    "@repo/pages/": `${commonPagesRoot}/`,
     "@repo/utils": resolve(root, "packages/utils"),
-    "@repo/codec-wasm": resolve(root, "packages/codec-wasm"),
-    // standalone 目录下的可视化/大组件包：避免被错误解析到 packages/{name}
-    "@repo/scCodeEditor": resolve(root, "packages/standalone/ScCodeEditor"),
-    "@repo/scEchartsMap3D": resolve(root, "packages/standalone/ScEchartsMap3D"),
-    "@repo/scLayer": resolve(root, "packages/standalone/ScLayer"),
-    "@repo/scMap": resolve(root, "packages/standalone/ScMap"),
-    "@repo/scReteEditor": resolve(root, "packages/standalone/ScReteEditor"),
-    // 兼容历史引用：@repo/sc-visualization/* -> packages/standalone/*
-    "@repo/sc-visualization": resolve(root, "packages/standalone"),
+    "@repo/codec-wasm": codecWasmEntry,
+    "@repo/codec-wasm/": `${resolve(codecWasmRoot, "src")}/`,
     // 注意：基础 @repo 必须放在最后，避免抢占更具体的 @repo/xxx 映射
     "@repo": resolve(root, "packages"),
   };

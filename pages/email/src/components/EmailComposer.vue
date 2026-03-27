@@ -1,6 +1,7 @@
 ﻿<script setup>
 import { ref, computed, watch } from "vue";
-import { IconifyIconOnline } from "@iconify/vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { message } from "@repo/utils";
 
 const props = defineProps({
   accounts: {

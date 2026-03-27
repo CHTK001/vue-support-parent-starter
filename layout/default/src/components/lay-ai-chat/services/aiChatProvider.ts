@@ -4,7 +4,6 @@
  */
 
 import type { AiChatRequest, ChatMessage } from "../types";
-import { generateByWebLlm } from "./webLlmClient";
 
 const DEFAULT_HF_MODEL = "Qwen/Qwen2.5-1.5B-Instruct";
 const HISTORY_LIMIT = 10;
@@ -272,6 +271,7 @@ export async function requestAiReply(
 
   if (req.vendor === "hf") {
     try {
+      const { generateByWebLlm } = await import("./webLlmClient");
       return await generateByWebLlm(
         req.history,
         req.userMessage,

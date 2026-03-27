@@ -198,6 +198,5 @@ html.theme-future-tech {
         background: rgba(0, 255, 255, 0.1) !important;
       }
     }
-  }
 }
 </style>

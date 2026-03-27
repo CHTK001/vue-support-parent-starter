@@ -10,6 +10,7 @@
 // 导出页面组件
 export { default as StrategyLimitIndex } from "./views/limit/LimitConfigurationIndex.vue";
 export { default as StrategyLimitRecordIndex } from "./views/limit/LimitRecordIndex.vue";
+export { default as StrategyConsolePage } from "./views/console/StrategyConsolePage.vue";
 
 // 导出 API
 export * from "./api";

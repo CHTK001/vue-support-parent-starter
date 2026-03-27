@@ -25,12 +25,19 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./monitor-config": {
+      "types": "./src/api/monitor-config.ts",
+      "default": "./src/api/monitor-config.ts"
+    },
     "./*": "./src/*"
   },
   "publishConfig": {
     "exports": {
       ".": {
         "default": "./dist/index.mjs"
+      },
+      "./monitor-config": {
+        "default": "./dist/api/monitor-config.mjs"
       }
     }
   },

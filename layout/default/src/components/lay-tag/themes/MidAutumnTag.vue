@@ -3,7 +3,7 @@
  * 中秋主题专属标签组件
  * 不依赖 showModel，使用独立的月光风格
  */
-import { $t } from "@repo/config";
+import { t as $t } from "@repo/config";
 import {
   emitter,
   getTopMenu,
@@ -33,6 +33,9 @@ import {
   useResizeObserver,
 } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
 import { useRenderIcon } from "@repo/components/ReIcon";
 
 import ArrowDown from "@iconify-icons/ri/arrow-down-s-line";

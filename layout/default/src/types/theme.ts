@@ -39,6 +39,28 @@ export interface ThemeConfig {
 /** 主题组件映射类型 */
 export type ThemeComponentMap<T = any> = Partial<Record<ThemeKey, T>>;
 
+/** 布局模式类型 */
+export type LayoutType =
+  | "vertical"
+  | "horizontal"
+  | "card"
+  | "double"
+  | "drawer"
+  | "hover"
+  | "mix"
+  | "mobile";
+
+/** Storage 布局接口 */
+export interface StorageLayout {
+  layout?: LayoutType;
+  theme?: string;
+  darkMode?: boolean;
+  sidebarStatus?: boolean;
+  epThemeColor?: string;
+  themeColor?: string;
+  overallStyle?: "light" | "dark" | "system" | string;
+}
+
 /** Storage 配置接口 */
 export interface StorageConfig {
   /** 系统主题 */
@@ -212,4 +234,23 @@ export interface StorageConfig {
   /** 开发模式下 AI 设置展示控制 */
   /** drawer 布局汉堡按钮位置 */
   drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+}
+
+/** 全局 storage 结构 */
+export interface GlobalStorage {
+  locale?: {
+    locale?: string;
+  };
+  layout?: StorageLayout;
+  configure?: StorageConfig;
+  tags?: Array<{
+    path?: string;
+    meta?: Record<string, unknown>;
+  }>;
+  user?: {
+    roles?: string[];
+  };
+  userInfo?: {
+    roles?: string[];
+  };
 }

@@ -24,18 +24,43 @@
     ".": {
       "types": "./src/index.ts",
       "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
+      "default": "./src/index.ts"
+    },
+    "./alert-push": {
+      "types": "./src/api/alert-push.ts",
+      "development": "./src/api/alert-push.ts",
+      "default": "./dist/api/alert-push.mjs"
+    },
+    "./alert-config": {
+      "types": "./src/api/alert-config.ts",
+      "development": "./src/api/alert-config.ts",
+      "default": "./dist/api/alert-config.mjs"
+    },
+    "./system-email": {
+      "types": "./src/api/system-email.ts",
+      "development": "./src/api/system-email.ts",
+      "default": "./dist/api/system-email.mjs"
     }
   },
   "publishConfig": {
     "exports": {
       ".": {
         "default": "./dist/index.mjs"
+      },
+      "./alert-push": {
+        "default": "./dist/api/alert-push.mjs"
+      },
+      "./alert-config": {
+        "default": "./dist/api/alert-config.mjs"
+      },
+      "./system-email": {
+        "default": "./dist/api/system-email.mjs"
       }
     }
   },
   "dependencies": {
     "@pureadmin/utils": "catalog:",
+    "@repo/utils": "workspace:^",
     "element-plus": "catalog:",
     "file-saver": "catalog:",
     "highlight.js": "catalog:",

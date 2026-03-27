@@ -46,21 +46,11 @@
 
     <!-- 操作按钮区域 -->
     <div class="action-bar">
-      <ScButton @click="expandAll" type="primary" size="small" plain
-        >展开所有</el-button
-      >
-      <ScButton @click="collapseAll" type="info" size="small" plain
-        >折叠所有</el-button
-      >
-      <ScButton @click="getSelectedData" type="success" size="small" plain
-        >获取选中节点</el-button
-      >
-      <ScButton @click="getAllData" type="warning" size="small" plain
-        >获取所有数据</el-button
-      >
-      <ScButton @click="resetData" type="danger" size="small" plain
-        >重置数据</el-button
-      >
+      <ScButton @click="expandAll" type="primary" size="small" plain>展开所有</ScButton>
+      <ScButton @click="collapseAll" type="info" size="small" plain>折叠所有</ScButton>
+      <ScButton @click="getSelectedData" type="success" size="small" plain>获取选中节点</ScButton>
+      <ScButton @click="getAllData" type="warning" size="small" plain>获取所有数据</ScButton>
+      <ScButton @click="resetData" type="danger" size="small" plain>重置数据</ScButton>
       <ScButton @click="addNode" size="small" plain>添加节点</ScButton>
     </div>
 
@@ -162,9 +152,7 @@
       <div class="result-container">
         <div class="result-header">
           <span>{{ operationResultTitle }}</span>
-          <ScButton type="text" @click="operationResult = null"
-            >关闭</el-button
-          >
+          <ScButton type="text" @click="operationResult = null">关闭</ScButton>
         </div>
         <pre class="result-content">{{ operationResult }}</pre>
       </div>
@@ -188,11 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { template += import ScTree from '@repo/components';
-; } from "@repo/components/template += import ScTree from '@repo/components';
-;";
-
-import { ScTree } from "@repo/components/ScTree"
+import ScTree from "@repo/components/ScTree/index.vue";
 import CodePreview from "./CodePreview.vue";
 import type {
   TreeNode,
@@ -200,7 +184,7 @@ import type {
   TreeProps,
 } from "@repo/components/ScTree/types";
 import { computed, reactive, ref } from "vue";
-import { ScTree } from "@repo/components/ScTree";
+import { ScSlider } from "@repo/components/ScSlider";
 
 // 初始树形数据
 const initialTreeData: TreeNodeData[] = [
@@ -516,6 +500,7 @@ function generateCode() {
   // script部分
   template += '<script setup lang="ts">\n';
   template += "import { ref } from 'vue';\n";
+  template += "import ScTree from '@repo/components/ScTree/index.vue';\n";
   template +=
     "import type { TreeNodeData, TreeNode, TreeProps } from '@repo/components/ScTree/types';\n\n";
 

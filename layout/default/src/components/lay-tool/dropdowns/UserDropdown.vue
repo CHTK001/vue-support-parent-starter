@@ -3,6 +3,9 @@ import { router } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LayAvatar from "../../lay-avatar/index.vue";
+import ScDropdown from "@repo/components/ScDropdown";
+import ScDropdownItem from "@repo/components/ScDropdownItem";
+import ScDropdownMenu from "@repo/components/ScDropdownMenu";
 import { ScText } from "@repo/components/ScText";
 
 const { t } = useTranslationLang();

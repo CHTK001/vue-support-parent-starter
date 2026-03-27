@@ -1,10 +1,10 @@
 <script setup>
-import { useRenderIcon } from "@repo/components/ReIcon";
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
 
 const logger = getLogger("[ScTable]");
-import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
 import { useKeyboard } from "./composables/useKeyboard";
 import { useTableCache } from "./composables/useTableCache";
@@ -23,8 +23,6 @@ import TimelineView from "./components/TimelineView.vue";
 import VirtualTableView from "./components/VirtualTableView.vue";
 import WaterfallView from "./components/WaterfallView.vue";
 import Pagination from "./plugins/Pagination.vue";
-
-const columnSetting = defineAsyncComponent(() => import("./plugins/columnSetting.vue"));
 
 // 定义组件属性
 const props = defineProps({

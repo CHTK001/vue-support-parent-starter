@@ -1,20 +1,18 @@
 ﻿<script setup lang="ts">
-import { ScCropper } from "@repo/components/ScCropper";
-
 import { reactive, ref } from "vue";
 import { message } from "@repo/utils";
 import { fetchUpdateUser, getMine } from "@repo/core";
 import type { FormInstance, FormRules } from "element-plus";
 import { deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
-import {
-  ScAvatar,
-  ScForm,
-  ScFormItem,
-  ScInput,
-  ScAutocomplete,
-  ScButton,
-  ScDialog,
+import { ScCropper } from "@repo/components/ScCropper";
+import { ScAvatar } from "@repo/components/ScAvatar";
+import { ScForm } from "@repo/components/ScForm";
+import { ScFormItem } from "@repo/components/ScFormItem";
+import { ScInput } from "@repo/components/ScInput";
+import { ScAutocomplete } from "@repo/components/ScAutocomplete";
+import { ScButton } from "@repo/components/ScButton";
+import { ScDialog } from "@repo/components/ScDialog";
 
 defineOptions({
   name: "Profile",
