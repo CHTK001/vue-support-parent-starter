@@ -30,7 +30,7 @@
     <template #footer>
       <ScButton @click="close">取消</ScButton>
       <ScButton type="primary" :loading="loading" @click="save"
-        >保存</el-button
+        >保存</ScButton
       >
     </template>
   </sc-dialog>

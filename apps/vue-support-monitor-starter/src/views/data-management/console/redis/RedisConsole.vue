@@ -135,7 +135,7 @@
                 <ScButton
                   size="small"
                   @click="secretVisible = !secretVisible"
-                  >{{ secretVisible ? "隐藏" : "显示" }}</el-button
+                  >{{ secretVisible ? "隐藏" : "显示" }}</ScButton
                 >
               </div>
             </div>

@@ -253,7 +253,7 @@
                       </ScTag>
                     </div>
                     <ScTag v-else type="info" size="small" class="method-tag"
-                      >ALL</el-tag
+                      >ALL</ScTag
                     >
                     <span class="url-path" :title="row.pattern">{{
                       row.pattern

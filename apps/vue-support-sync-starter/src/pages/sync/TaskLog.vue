@@ -29,8 +29,13 @@
               <el-option label="失败" value="FAIL" />
               <el-option label="超时" value="TIMEOUT" />
             </el-select>
-            <el-button :loading="loading" @click="handleRefresh">刷新</el-button>
-            <el-button :disabled="filteredLogs.length === 0" @click="handleExport">
+            <el-button :loading="loading" @click="handleRefresh"
+              >刷新</el-button
+            >
+            <el-button
+              :disabled="filteredLogs.length === 0"
+              @click="handleExport"
+            >
               导出
             </el-button>
             <el-button @click="handleBack">返回</el-button>
@@ -46,14 +51,23 @@
             <div
               v-for="log in filteredLogs"
               :key="log.syncLogId"
-              :class="['log-item', `log-${getStatusClass(log.syncLogStatus)}`, { active: selectedLog?.syncLogId === log.syncLogId }]"
+              :class="[
+                'log-item',
+                `log-${getStatusClass(log.syncLogStatus)}`,
+                { active: selectedLog?.syncLogId === log.syncLogId },
+              ]"
               @click="handleSelectLog(log)"
             >
               <div class="log-item-header">
                 <span class="log-time">
-                  {{ formatDateTime(log.syncLogStartTime || log.syncLogEndTime) }}
+                  {{
+                    formatDateTime(log.syncLogStartTime || log.syncLogEndTime)
+                  }}
                 </span>
-                <el-tag :type="getStatusTagType(log.syncLogStatus)" size="small">
+                <el-tag
+                  :type="getStatusTagType(log.syncLogStatus)"
+                  size="small"
+                >
                   {{ getStatusText(log.syncLogStatus) }}
                 </el-tag>
                 <el-tag size="small" effect="plain" type="info">
@@ -70,7 +84,10 @@
                 <span>吞吐 {{ formatThroughput(log.syncLogThroughput) }}</span>
               </div>
 
-              <div v-if="selectedLog?.syncLogId === log.syncLogId" class="log-detail">
+              <div
+                v-if="selectedLog?.syncLogId === log.syncLogId"
+                class="log-detail"
+              >
                 <div v-if="selectedLog.syncLogMessage" class="detail-block">
                   <div class="detail-label">执行消息</div>
                   <pre>{{ selectedLog.syncLogMessage }}</pre>
@@ -92,7 +109,9 @@
         <div class="log-footer">
           <div class="footer-left">
             <el-checkbox v-model="autoRefresh">自动刷新</el-checkbox>
-            <span>当前页 {{ filteredLogs.length }} 条 / 总计 {{ total }} 条</span>
+            <span
+              >当前页 {{ filteredLogs.length }} 条 / 总计 {{ total }} 条</span
+            >
           </div>
           <el-pagination
             v-model:current-page="page"
@@ -265,8 +284,9 @@ const loadLogs = async (showSuccessMessage = false) => {
 
     if (selectedLog.value?.syncLogId) {
       selectedLog.value =
-        logs.value.find((item) => item.syncLogId === selectedLog.value?.syncLogId) ||
-        null;
+        logs.value.find(
+          (item) => item.syncLogId === selectedLog.value?.syncLogId,
+        ) || null;
     }
 
     if (autoRefresh.value) {

@@ -128,7 +128,7 @@
         <ScButton @click="resetToDefaults">重置为默认值</ScButton>
         <ScButton @click="handleClose">取消</ScButton>
         <ScButton type="primary" :loading="saving" @click="handleSave"
-          >保存配置</el-button
+          >保存配置</ScButton
         >
       </div>
     </template>

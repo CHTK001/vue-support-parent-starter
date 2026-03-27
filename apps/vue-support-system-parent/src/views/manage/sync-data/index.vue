@@ -143,11 +143,7 @@
             </ScTag>
           </template>
         </ScTableColumn>
-        <ScTableColumn
-          prop="syncTaskBatchSize"
-          label="批次大小"
-          width="100"
-        />
+        <ScTableColumn prop="syncTaskBatchSize" label="批次大小" width="100" />
         <ScTableColumn
           prop="syncTaskCron"
           label="CRON表达式"
@@ -274,11 +270,7 @@
       </ScForm>
       <template #footer>
         <ScButton @click="dialogVisible = false">取消</ScButton>
-        <ScButton
-          type="primary"
-          :loading="submitLoading"
-          @click="handleSubmit"
-        >
+        <ScButton type="primary" :loading="submitLoading" @click="handleSubmit">
           确定
         </ScButton>
       </template>
@@ -300,11 +292,7 @@
             </ScTag>
           </template>
         </ScTableColumn>
-        <ScTableColumn
-          prop="syncLogTriggerType"
-          label="触发类型"
-          width="100"
-        />
+        <ScTableColumn prop="syncLogTriggerType" label="触发类型" width="100" />
         <ScTableColumn label="数据统计" width="200">
           <template #default="{ row }">
             <div>读取: {{ row.syncLogReadCount || 0 }}</div>

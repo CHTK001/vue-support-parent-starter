@@ -40,7 +40,7 @@
         style="margin-left: 12px"
       />
       <ScButton type="primary" style="margin-left: 12px" @click="handleSearch"
-        >查询</el-button
+        >查询</ScButton
       >
       <ScButton @click="handleReset">重置</ScButton>
       <ScButton type="success" @click="openEdit()">新增配置</ScButton>

@@ -102,10 +102,7 @@
                 </ScButton>
                 <template #dropdown>
                   <ScDropdownMenu>
-                    <ScDropdownItem
-                      v-if="!row.isDirectory"
-                      command="download"
-                    >
+                    <ScDropdownItem v-if="!row.isDirectory" command="download">
                       <IconifyIconOnline icon="ri:download-line" class="mr-1" />
                       下载
                     </ScDropdownItem>

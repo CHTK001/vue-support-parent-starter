@@ -47,10 +47,7 @@
         </ScSelect>
       </ScFormItem>
 
-      <ScFormItem
-        label="表达式"
-        prop="monitorSysGenServerComponentExpression"
-      >
+      <ScFormItem label="表达式" prop="monitorSysGenServerComponentExpression">
         <ScInput
           v-model="formData.monitorSysGenServerComponentExpression"
           type="textarea"

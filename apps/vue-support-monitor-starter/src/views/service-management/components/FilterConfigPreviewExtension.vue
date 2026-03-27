@@ -103,15 +103,15 @@
             <ScButton
               size="small"
               @click="addQuickDisabled('exe,dll,bat,cmd,sh')"
-              >可执行文件</el-button
+              >可执行文件</ScButton
             >
             <ScButton
               size="small"
               @click="addQuickDisabled('zip,rar,7z,tar,gz')"
-              >压缩包</el-button
+              >压缩包</ScButton
             >
             <ScButton size="small" @click="addQuickDisabled('db,sql,bak')"
-              >数据库文件</el-button
+              >数据库文件</ScButton
             >
           </div>
         </div>
@@ -172,20 +172,20 @@
             <ScButton
               size="small"
               @click="addQuickAllowed('pdf,doc,docx,xls,xlsx,ppt,pptx')"
-              >Office文档</el-button
+              >Office文档</ScButton
             >
             <ScButton
               size="small"
               @click="addQuickAllowed('jpg,jpeg,png,gif,bmp,webp,svg')"
-              >图片</el-button
+              >图片</ScButton
             >
             <ScButton
               size="small"
               @click="addQuickAllowed('txt,md,json,xml,html,css,js')"
-              >文本代码</el-button
+              >文本代码</ScButton
             >
             <ScButton size="small" @click="addQuickAllowed('mp4,mp3,wav,avi')"
-              >音视频</el-button
+              >音视频</ScButton
             >
           </div>
         </div>
@@ -197,7 +197,7 @@
         <ScButton @click="handleClose">取消</ScButton>
         <ScButton type="danger" @click="handleClear">清空配置</ScButton>
         <ScButton type="primary" :loading="saving" @click="handleSave"
-          >保存</el-button
+          >保存</ScButton
         >
       </div>
     </template>

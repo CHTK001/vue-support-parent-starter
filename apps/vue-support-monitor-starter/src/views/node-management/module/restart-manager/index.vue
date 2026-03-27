@@ -24,12 +24,7 @@
 
     <div class="restart-manager-content">
       <!-- 警告提示 -->
-      <ScAlert
-        type="warning"
-        :closable="false"
-        show-icon
-        class="warning-alert"
-      >
+      <ScAlert type="warning" :closable="false" show-icon class="warning-alert">
         <template #title>
           <span class="alert-title">操作警告</span>
         </template>

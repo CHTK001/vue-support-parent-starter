@@ -65,11 +65,7 @@
           <!-- <span>{{nodeValue}}</span> -->
         </div>
         <div class="toolbar">
-          <ScButton
-            size="small"
-            :disabled="!currentPath"
-            @click="refreshValue"
-          >
+          <ScButton size="small" :disabled="!currentPath" @click="refreshValue">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" /> 刷新
           </ScButton>
         </div>

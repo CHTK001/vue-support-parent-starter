@@ -143,8 +143,8 @@ export const fetchOnlineStatus = (userId: string) => {
  * @param userId 用户ID
  */
 export const fetchKickUser = (userId: string) => {
-  return requestJson<boolean>("DELETE", `/v2/online/kick/${userId}`).catch(
-    () => http.request<{ data: boolean }>("delete", `/v2/online/kick/${userId}`),
+  return requestJson<boolean>("DELETE", `/v2/online/kick/${userId}`).catch(() =>
+    http.request<{ data: boolean }>("delete", `/v2/online/kick/${userId}`),
   );
 };
 

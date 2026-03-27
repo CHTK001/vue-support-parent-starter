@@ -243,7 +243,7 @@
                   <ScButton title="查看详情" @click.stop="viewNodeDetail(row)">
                     <IconifyIconOnline icon="ri:eye-line" />
                   </ScButton>
-                </el-button-group>
+                </ScButton-group>
               </div>
             </div>
           </div>

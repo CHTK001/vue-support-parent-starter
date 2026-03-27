@@ -65,11 +65,7 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <ScButton
-          type="primary"
-          :loading="checkingAll"
-          @click="handleCheckAll"
-        >
+        <ScButton type="primary" :loading="checkingAll" @click="handleCheckAll">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           检查所有连接
         </ScButton>
@@ -223,7 +219,7 @@
               <IconifyIconOnline icon="ri:restart-line" />
               重置
             </ScButton>
-          </el-button-group>
+          </ScButton-group>
         </template>
       </ScTableColumn>
     </ScTable>

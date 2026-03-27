@@ -203,7 +203,7 @@
         <span class="dialog-footer">
           <ScButton @click="dialogVisible = false">取消</ScButton>
           <ScButton type="primary" :loading="submitting" @click="submitForm"
-            >确定</el-button
+            >确定</ScButton
           >
         </span>
       </template>
@@ -222,7 +222,7 @@
         <span class="dialog-footer">
           <ScButton @click="deleteDialogVisible = false">取消</ScButton>
           <ScButton type="danger" :loading="deleting" @click="confirmDelete"
-            >确定</el-button
+            >确定</ScButton
           >
         </span>
       </template>

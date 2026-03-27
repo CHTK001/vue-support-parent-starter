@@ -172,7 +172,7 @@
               type="primary"
               size="small"
               @click="handleStartTask(row)"
-              >启动</el-button
+              >启动</ScButton
             >
 
             <ScButton
@@ -184,7 +184,7 @@
               type="warning"
               size="small"
               @click="handleCancelTask(row)"
-              >取消</el-button
+              >取消</ScButton
             >
 
             <ScButton
@@ -192,11 +192,11 @@
               type="success"
               size="small"
               @click="handleRetryTask(row)"
-              >重试</el-button
+              >重试</ScButton
             >
 
             <ScButton type="info" size="small" @click="handleViewTask(row)"
-              >详情</el-button
+              >详情</ScButton
             >
 
             <ScButton
@@ -208,7 +208,7 @@
               type="danger"
               size="small"
               @click="handleDeleteTask(row)"
-              >删除</el-button
+              >删除</ScButton
             >
           </div>
         </template>
@@ -235,13 +235,13 @@
           <span>已选择 {{ selectedTasks.length }} 个任务</span>
           <div class="batch-buttons">
             <ScButton type="warning" @click="handleBatchCancel"
-              >批量取消</el-button
+              >批量取消</ScButton
             >
             <ScButton type="success" @click="handleBatchRetry"
-              >批量重试</el-button
+              >批量重试</ScButton
             >
             <ScButton type="danger" @click="handleBatchDelete"
-              >批量删除</el-button
+              >批量删除</ScButton
             >
           </div>
         </div>

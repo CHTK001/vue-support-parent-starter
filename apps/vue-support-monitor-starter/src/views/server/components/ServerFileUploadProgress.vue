@@ -323,7 +323,7 @@
             <span class="header-title">统计信息</span>
             <div class="header-actions">
               <ScTag type="info" size="small"
-                >成功率: {{ statistics.successRate.toFixed(1) }}%</el-tag
+                >成功率: {{ statistics.successRate.toFixed(1) }}%</ScTag
               >
             </div>
           </div>

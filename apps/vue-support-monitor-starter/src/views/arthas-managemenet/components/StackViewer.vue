@@ -81,7 +81,7 @@
             }}</ScTag>
           </div>
           <ScTag :type="getUsageType(item.depth)" size="small"
-            >深度: {{ item.depth }}</el-tag
+            >深度: {{ item.depth }}</ScTag
           >
         </div>
 

@@ -82,10 +82,7 @@
 
         <ScRow>
           <ScCol :span="24">
-            <ScFormItem
-              label="脚本描述"
-              prop="monitorSysGenScriptDescription"
-            >
+            <ScFormItem label="脚本描述" prop="monitorSysGenScriptDescription">
               <ScInput
                 v-model="scriptForm.monitorSysGenScriptDescription"
                 type="textarea"

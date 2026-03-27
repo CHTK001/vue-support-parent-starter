@@ -102,7 +102,7 @@
       <div class="dialog-footer">
         <ScButton @click="handleClose">取消</ScButton>
         <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存配置</el-button
+          >保存配置</ScButton
         >
       </div>
     </template>

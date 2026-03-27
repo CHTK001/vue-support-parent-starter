@@ -108,7 +108,7 @@
             :on-change="handleFileChange"
           >
             <ScButton :icon="Upload" :disabled="!connected"
-              >选择升级包</el-button
+              >选择升级包</ScButton
             >
           </ScUpload>
           <span v-if="selectedFile" class="text-sm text-gray-500">

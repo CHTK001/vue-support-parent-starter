@@ -78,10 +78,10 @@
       <!-- 查询统计 -->
       <div v-if="queryStats" class="stats-section">
         <ScTag type="success" size="small"
-          >查询时间: {{ queryStats.queryTime }}ms</el-tag
+          >查询时间: {{ queryStats.queryTime }}ms</ScTag
         >
         <ScTag type="info" size="small"
-          >数据点: {{ queryStats.dataPoints }}</el-tag
+          >数据点: {{ queryStats.dataPoints }}</ScTag
         >
         <ScTag size="small">更新时间: {{ queryStats.updateTime }}</ScTag>
       </div>

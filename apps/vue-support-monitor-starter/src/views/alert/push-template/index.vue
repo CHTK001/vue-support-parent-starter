@@ -27,7 +27,7 @@
         style="margin-left: 12px"
       />
       <ScButton type="primary" style="margin-left: 12px" @click="handleSearch"
-        >查询</el-button
+        >查询</ScButton
       >
       <ScButton @click="handleReset">重置</ScButton>
       <ScButton type="success" @click="openEdit()">新增模板</ScButton>
@@ -58,7 +58,7 @@
         <ScButton type="primary" link @click="openEdit(row)">编辑</ScButton>
         <ScDivider direction="vertical" />
         <ScButton type="warning" link @click="handleTest(row)"
-          >测试发送</el-button
+          >测试发送</ScButton
         >
         <ScDivider direction="vertical" />
         <ScPopconfirm title="确认删除该模板？" @confirm="handleDelete(row)">

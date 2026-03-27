@@ -45,7 +45,7 @@
               />
               {{ isFullscreen ? "退出全屏" : "全屏" }}
             </ScButton>
-          </el-button-group>
+          </ScButton-group>
         </div>
       </div>
     </template>
@@ -105,7 +105,7 @@
               type="danger"
               :disabled="!isConnected"
               @click="handleDisconnect('rdp')"
-              >断开连接</el-button
+              >断开连接</ScButton
             >
           </div>
         </div>
@@ -158,7 +158,7 @@
               type="danger"
               :disabled="!isConnected"
               @click="handleDisconnect('vnc')"
-              >断开连接</el-button
+              >断开连接</ScButton
             >
           </div>
         </div>
@@ -191,7 +191,7 @@
             {{ connecting ? "正在连接..." : "连接已断开" }}
           </div>
           <ScButton v-if="!connecting" type="primary" @click="handleConnect"
-            >重新连接</el-button
+            >重新连接</ScButton
           >
         </div>
       </div>

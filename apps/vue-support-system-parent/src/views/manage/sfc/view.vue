@@ -19,11 +19,7 @@
             <span :id="titleId" :class="titleClass">{{ title }}</span>
           </div>
           <div class="header-meta">
-            <ScTag
-              v-if="dataReact.data.sysSfcVersion"
-              type="info"
-              size="small"
-            >
+            <ScTag v-if="dataReact.data.sysSfcVersion" type="info" size="small">
               v{{ dataReact.data.sysSfcVersion }}
             </ScTag>
             <ScTag :type="getStatusType()" size="small">

@@ -133,7 +133,7 @@
                     />
                     <span class="os-title">系统信息</span>
                     <ScTag type="success" size="small" effect="light"
-                      >自动检测</el-tag
+                      >自动检测</ScTag
                     >
                   </div>
                   <div class="os-info-content">

@@ -1,8 +1,5 @@
 import type { App } from "vue";
-import {
-  initGlobalSocketService,
-  getGlobalSocketService,
-} from "@repo/core";
+import { initGlobalSocketService, getGlobalSocketService } from "@repo/core";
 import { getConfig } from "@repo/config";
 
 type Handler = (data: any) => void;
@@ -25,7 +22,10 @@ class GlobalSocketProxy {
         return false;
       }
       // 支持逗号分隔多地址，取第一个
-      const urls = String(url).split(",").map((s) => s.trim()).filter(Boolean);
+      const urls = String(url)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       initGlobalSocketService({ urls, reconnection: true });
       getGlobalSocketService()?.connect();
       return true;

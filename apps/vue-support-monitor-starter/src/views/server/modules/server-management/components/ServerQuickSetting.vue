@@ -31,10 +31,7 @@
         <div class="setting-item">
           <div class="setting-label">
             <span>启用监控</span>
-            <ScTooltip
-              content="开启后将定期收集服务器指标数据"
-              placement="top"
-            >
+            <ScTooltip content="开启后将定期收集服务器指标数据" placement="top">
               <IconifyIconOnline icon="ri:question-line" class="help-icon" />
             </ScTooltip>
           </div>

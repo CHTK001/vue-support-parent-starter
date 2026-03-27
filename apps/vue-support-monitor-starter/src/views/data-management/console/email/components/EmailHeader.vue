@@ -6,7 +6,7 @@
     </div>
     <div class="header-right">
       <ScButton :icon="useRenderIcon('ri:refresh-line')" @click="handleRefresh"
-        >刷新</el-button
+        >刷新</ScButton
       >
       <!--<ScButton type="primary" :icon="useRenderIcon('ri:add-line')" @click="handleCompose">撰写邮件</ScButton>
       <ScButton type="success" :icon="useRenderIcon('ri:cloud-line')" @click="handleCloudSync">云同步</ScButton>

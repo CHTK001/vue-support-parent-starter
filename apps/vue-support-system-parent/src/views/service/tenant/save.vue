@@ -356,12 +356,9 @@ defineExpose({
       </ScRow>
       <template #footer>
         <ScButton @click="handleClose">{{ $t("buttons.cancel") }}</ScButton>
-        <ScButton
-          type="primary"
-          :loading="env.loading"
-          @click="handleUpdate"
-          >{{ $t("buttons.confirm") }}</ScButton
-        >
+        <ScButton type="primary" :loading="env.loading" @click="handleUpdate">{{
+          $t("buttons.confirm")
+        }}</ScButton>
       </template>
     </sc-dialog>
   </div>

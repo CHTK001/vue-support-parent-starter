@@ -25,22 +25,22 @@
                   <template #dropdown>
                     <ScDropdownMenu>
                       <ScDropdownItem command="system_info"
-                        >系统信息</el-dropdown-item
+                        >系统信息</ScDropdownItem
                       >
                       <ScDropdownItem command="disk_usage"
-                        >磁盘使用</el-dropdown-item
+                        >磁盘使用</ScDropdownItem
                       >
                       <ScDropdownItem command="memory_info"
-                        >内存信息</el-dropdown-item
+                        >内存信息</ScDropdownItem
                       >
                       <ScDropdownItem command="process_list"
-                        >进程列表</el-dropdown-item
+                        >进程列表</ScDropdownItem
                       >
                       <ScDropdownItem command="network_info"
-                        >网络信息</el-dropdown-item
+                        >网络信息</ScDropdownItem
                       >
                       <ScDropdownItem command="service_status"
-                        >服务状态</el-dropdown-item
+                        >服务状态</ScDropdownItem
                       >
                     </ScDropdownMenu>
                   </template>
@@ -106,10 +106,10 @@
               <h4>执行结果</h4>
               <div class="result-actions">
                 <ScButton size="small" @click="clearOutput"
-                  >清空输出</el-button
+                  >清空输出</ScButton
                 >
                 <ScButton size="small" @click="downloadOutput"
-                  >下载结果</el-button
+                  >下载结果</ScButton
                 >
               </div>
             </div>

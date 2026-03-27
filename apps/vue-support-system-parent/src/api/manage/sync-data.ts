@@ -38,9 +38,13 @@ export const fetchSyncTaskList = (params: SyncTaskQuery) => {
 };
 
 export const fetchCreateSyncTask = (data: MonitorSyncTask) => {
-  return http.request<ReturnResult<MonitorSyncTask>>("post", "/v2/sync/task/save", {
-    data,
-  });
+  return http.request<ReturnResult<MonitorSyncTask>>(
+    "post",
+    "/v2/sync/task/save",
+    {
+      data,
+    },
+  );
 };
 
 export const fetchUpdateSyncTask = (data: MonitorSyncTask) => {
@@ -73,7 +77,11 @@ export const fetchExecuteSyncTask = (monitorSyncTaskId: number) => {
   });
 };
 
-export const fetchSyncTaskLogs = (params: { monitorSyncTaskId: number; page?: number; size?: number }) => {
+export const fetchSyncTaskLogs = (params: {
+  monitorSyncTaskId: number;
+  page?: number;
+  size?: number;
+}) => {
   return http.request<ReturnResult<any>>("get", "/v2/sync/task/logs", {
     params,
   });

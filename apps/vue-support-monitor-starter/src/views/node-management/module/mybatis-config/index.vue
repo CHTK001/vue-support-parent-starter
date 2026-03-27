@@ -100,7 +100,7 @@
                 <div class="detail-header">
                   <span class="detail-title">SQL 语句列表</span>
                   <ScTag size="small" type="info"
-                    >{{ row.statements.length }} 个</el-tag
+                    >{{ row.statements.length }} 个</ScTag
                   >
                 </div>
                 <ScTable :data="row.statements" size="small" border>

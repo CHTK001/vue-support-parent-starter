@@ -15,7 +15,9 @@
       <div class="task-info">
         <div class="info-item">
           <span class="label">同步模式:</span>
-          <span class="value">{{ getSyncModeText(task.syncTaskSyncMode) }}</span>
+          <span class="value">{{
+            getSyncModeText(task.syncTaskSyncMode)
+          }}</span>
         </div>
         <div class="info-item">
           <span class="label">批次大小:</span>
@@ -33,24 +35,24 @@
         <el-button size="small" @click="$emit('design', task)">设计</el-button>
         <el-button
           size="small"
-          @click="$emit('edit', task)"
           :disabled="task.syncTaskStatus === 'RUNNING'"
+          @click="$emit('edit', task)"
         >
           编辑
         </el-button>
         <el-button
           size="small"
           type="success"
-          @click="$emit('start', task)"
           :disabled="task.syncTaskStatus === 'RUNNING'"
+          @click="$emit('start', task)"
         >
           启动
         </el-button>
         <el-button
           size="small"
           type="warning"
-          @click="$emit('stop', task)"
           :disabled="task.syncTaskStatus !== 'RUNNING'"
+          @click="$emit('stop', task)"
         >
           停止
         </el-button>

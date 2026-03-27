@@ -251,11 +251,7 @@ const onDataLoaded = (data, total) => {
               </ScSelect>
             </ScFormItem>
             <!-- 状态选择框 -->
-            <ScFormItem
-              label="状态"
-              prop="sysLogStatus"
-              class="log-form-item"
-            >
+            <ScFormItem label="状态" prop="sysLogStatus" class="log-form-item">
               <ScSelect
                 v-model="form.sysLogStatus"
                 class="log-select"

@@ -4,7 +4,7 @@
     <div class="page-header">
       <ScBreadcrumb separator="/">
         <ScBreadcrumbItem :to="{ path: '/webrtc' }"
-          >WebRTC管理</el-breadcrumb-item
+          >WebRTC管理</ScBreadcrumbItem
         >
         <ScBreadcrumbItem>远程桌面</ScBreadcrumbItem>
       </ScBreadcrumb>
@@ -85,7 +85,7 @@
                 断开
               </ScButton>
             </ScTooltip>
-          </el-button-group>
+          </ScButton-group>
         </div>
       </div>
 
@@ -122,7 +122,7 @@
           <ScIcon><Document /></ScIcon>
           <span>连接日志</span>
           <ScButton type="text" size="small" @click="clearLogs"
-            >清空</el-button
+            >清空</ScButton
           >
         </div>
       </template>

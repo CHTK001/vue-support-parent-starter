@@ -66,7 +66,7 @@
           <ScOption label="错误" value="ERROR" />
         </ScSelect>
         <ScButton type="primary" :icon="Search" @click="handleSearch"
-          >查询</el-button
+          >查询</ScButton
         >
         <ScButton :icon="RefreshRight" @click="handleReset">重置</ScButton>
       </div>

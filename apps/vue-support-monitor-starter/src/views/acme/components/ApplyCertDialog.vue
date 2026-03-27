@@ -167,10 +167,7 @@
         <ScRow :gutter="12">
           <ScCol :span="16">
             <ScFormItem label="服务器地址" prop="sshHost">
-              <ScInput
-                v-model="form.sshHost"
-                placeholder="域名指向的服务器 IP"
-              >
+              <ScInput v-model="form.sshHost" placeholder="域名指向的服务器 IP">
                 <template #prefix>
                   <IconifyIconOnline icon="mdi:server" />
                 </template>

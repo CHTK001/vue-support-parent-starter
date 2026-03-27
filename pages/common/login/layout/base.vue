@@ -1002,7 +1002,7 @@ onBeforeUnmount(() => {
                     @click="sendSmsCode"
                   >
                     {{ smsSendButtonText }}
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </Motion>

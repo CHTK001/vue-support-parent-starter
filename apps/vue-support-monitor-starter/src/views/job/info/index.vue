@@ -290,13 +290,13 @@
       <template #footer>
         <span class="job-dialog-footer">
           <ScButton :loading="triggerLoadding" @click="triggerShow = false"
-            >取消</el-button
+            >取消</ScButton
           >
           <ScButton
             :loading="triggerLoadding"
             type="primary"
             @click="triggerExecute"
-            >确定</el-button
+            >确定</ScButton
           >
         </span>
       </template>

@@ -69,7 +69,7 @@
             <ScIcon><Setting /></ScIcon>
             <span>参数配置</span>
             <ScTag size="small" type="info"
-              >{{ parameters.length }} 个参数</el-tag
+              >{{ parameters.length }} 个参数</ScTag
             >
           </div>
         </template>
@@ -85,7 +85,7 @@
             <div class="param-label">
               <span>{{ param.label || param.name }}</span>
               <ScTag v-if="param.required" size="small" type="danger"
-                >必填</el-tag
+                >必填</ScTag
               >
             </div>
           </template>

@@ -466,7 +466,7 @@
                   >
                     <IconifyIconOnline icon="ri:arrow-right-s-line" />
                   </ScButton>
-                </el-button-group>
+                </ScButton-group>
                 <ScSelect
                   v-model="pager.limit"
                   size="small"
@@ -627,7 +627,7 @@
       <div class="dialog-footer">
         <ScButton @click="handleClose">取消</ScButton>
         <ScButton type="primary" :loading="loading" @click="handleSave"
-          >保存</el-button
+          >保存</ScButton
         >
       </div>
     </template>

@@ -54,7 +54,7 @@
         <ScTag type="success" size="small">查询时间: {{ queryTime }}ms</ScTag>
         <ScTag type="info" size="small">数据点: {{ dataPointCount }}</ScTag>
         <ScTag type="warning" size="small"
-          >更新时间: {{ lastUpdateTime }}</el-tag
+          >更新时间: {{ lastUpdateTime }}</ScTag
         >
       </div>
     </div>
@@ -64,7 +64,7 @@
       <div v-if="!queryResult" class="empty-state">
         <ScEmpty description="请选择组件并设置时间范围进行查询">
           <ScButton type="primary" @click="handleQuickQuery"
-            >快速查询（最近1小时）</el-button
+            >快速查询（最近1小时）</ScButton
           >
         </ScEmpty>
       </div>

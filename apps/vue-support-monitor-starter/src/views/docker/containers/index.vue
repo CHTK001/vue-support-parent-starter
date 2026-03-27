@@ -124,7 +124,7 @@
             <IconifyIconOnline icon="ri:delete-bin-fill" class="mr-1" />
             删除
           </ScButton>
-        </el-button-group>
+        </ScButton-group>
       </div>
     </div>
 

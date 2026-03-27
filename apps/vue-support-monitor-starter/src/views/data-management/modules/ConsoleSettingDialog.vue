@@ -48,7 +48,7 @@
     <template #footer>
       <ScButton @click="visibleLocal = false">取消</ScButton>
       <ScButton type="primary" :loading="saving" @click="handleSave"
-        >保存</el-button
+        >保存</ScButton
       >
     </template>
   </sc-dialog>

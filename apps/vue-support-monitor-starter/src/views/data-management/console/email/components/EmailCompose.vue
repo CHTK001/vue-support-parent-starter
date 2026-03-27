@@ -5,7 +5,7 @@
       <div class="compose-actions">
         <ScButton size="small" @click="handleSaveDraft">保存草稿</ScButton>
         <ScButton type="primary" size="small" @click="handleSend"
-          >发送</el-button
+          >发送</ScButton
         >
         <ScButton size="small" @click="handleClose">关闭</ScButton>
       </div>

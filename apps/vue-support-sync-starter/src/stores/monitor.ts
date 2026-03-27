@@ -5,7 +5,10 @@ import { monitorApi } from "../api/monitor";
 const resolveWsUrl = () => {
   const configuredUrl = import.meta.env.VITE_WS_URL as string | undefined;
   if (configuredUrl) {
-    if (configuredUrl.startsWith("ws://") || configuredUrl.startsWith("wss://")) {
+    if (
+      configuredUrl.startsWith("ws://") ||
+      configuredUrl.startsWith("wss://")
+    ) {
       return configuredUrl;
     }
     if (configuredUrl.startsWith("/")) {
@@ -24,7 +27,11 @@ const normalizeWebSocketPayload = (raw: any): any => {
   }
 
   if (raw.data && typeof raw.data === "object" && raw.messageType) {
-    return { ...raw.data, messageType: raw.messageType, timestamp: raw.timestamp };
+    return {
+      ...raw.data,
+      messageType: raw.messageType,
+      timestamp: raw.timestamp,
+    };
   }
 
   return raw;

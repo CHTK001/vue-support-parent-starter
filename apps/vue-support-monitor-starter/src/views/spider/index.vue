@@ -138,10 +138,7 @@
 
       <ScTableColumn label="运行状态" width="100" align="center">
         <template #default="{ row }">
-          <ScTag
-            :type="getRunStatusType(row.spiderTaskRunStatus)"
-            size="small"
-          >
+          <ScTag :type="getRunStatusType(row.spiderTaskRunStatus)" size="small">
             {{ row.spiderTaskRunStatus || "IDLE" }}
           </ScTag>
         </template>
@@ -194,7 +191,7 @@
             <ScButton size="small" type="danger" @click="handleDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
             </ScButton>
-          </el-button-group>
+          </ScButton-group>
         </template>
       </ScTableColumn>
     </ScTable>

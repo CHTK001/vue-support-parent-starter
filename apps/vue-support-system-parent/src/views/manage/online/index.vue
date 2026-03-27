@@ -167,12 +167,7 @@
               <!-- 操作系统列 -->
               <ScTableColumn label="操作系统" min-width="120">
                 <template #default="{ row }">
-                  <ScTag
-                    type="info"
-                    effect="light"
-                    size="small"
-                    class="os-tag"
-                  >
+                  <ScTag type="info" effect="light" size="small" class="os-tag">
                     <IconifyIconOnline
                       :icon="getOsIcon(row.os)"
                       class="os-icon"

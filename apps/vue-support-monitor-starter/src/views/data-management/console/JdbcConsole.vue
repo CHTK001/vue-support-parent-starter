@@ -91,16 +91,16 @@
               :type="showTableComment ? 'primary' : 'default'"
               :disabled="!searched"
               @click="showTableComment = !showTableComment"
-              >表头注释</el-button
+              >表头注释</ScButton
             >
             <ScButton
               size="small"
               :type="showFieldComments ? 'primary' : 'default'"
               :disabled="!searched"
               @click="showFieldComments = !showFieldComments"
-              >字段注释</el-button
+              >字段注释</ScButton
             >
-          </el-button-group>
+          </ScButton-group>
           <ScButton
             size="small"
             :disabled="!currentPath || !columns.length"
@@ -170,7 +170,7 @@
                         v-for="col in columns"
                         :key="col"
                         :label="col"
-                        >{{ col }}</el-checkbox
+                        >{{ col }}</ScCheckbox
                       >
                     </ScCheckboxGroup>
                   </ScScrollbar>

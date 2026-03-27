@@ -16,7 +16,9 @@
               <el-option label="按小时" value="hour" />
               <el-option label="按天" value="day" />
             </el-select>
-            <el-button :loading="loading" @click="handleRefresh">刷新</el-button>
+            <el-button :loading="loading" @click="handleRefresh"
+              >刷新</el-button
+            >
             <el-button @click="handleBack">返回</el-button>
           </div>
         </div>
@@ -56,7 +58,7 @@
             <template #header>
               <span>执行趋势</span>
             </template>
-            <div ref="trendChartRef" style="height: 320px"></div>
+            <div ref="trendChartRef" style="height: 320px" />
           </el-card>
         </el-col>
         <el-col :span="12">
@@ -64,7 +66,7 @@
             <template #header>
               <span>状态分布</span>
             </template>
-            <div ref="statusChartRef" style="height: 320px"></div>
+            <div ref="statusChartRef" style="height: 320px" />
           </el-card>
         </el-col>
       </el-row>
@@ -75,7 +77,7 @@
             <template #header>
               <span>触发类型分布</span>
             </template>
-            <div ref="triggerChartRef" style="height: 320px"></div>
+            <div ref="triggerChartRef" style="height: 320px" />
           </el-card>
         </el-col>
         <el-col :span="12">
@@ -83,7 +85,7 @@
             <template #header>
               <span>数据量与平均耗时</span>
             </template>
-            <div ref="dataChartRef" style="height: 320px"></div>
+            <div ref="dataChartRef" style="height: 320px" />
           </el-card>
         </el-col>
       </el-row>
@@ -92,8 +94,16 @@
         <template #header>
           <span>实时任务状态</span>
         </template>
-        <el-table :data="realtimeTasks" max-height="320" v-loading="loadingRealtime">
-          <el-table-column prop="syncTaskName" label="任务名称" min-width="180" />
+        <el-table
+          v-loading="loadingRealtime"
+          :data="realtimeTasks"
+          max-height="320"
+        >
+          <el-table-column
+            prop="syncTaskName"
+            label="任务名称"
+            min-width="180"
+          />
           <el-table-column prop="syncTaskStatus" label="状态" width="120">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.syncTaskStatus)">
@@ -190,7 +200,9 @@ const loading = ref(false);
 const loadingRealtime = ref(false);
 const granularity = ref<"hour" | "day">("day");
 const statistics = ref<SyncTaskStatistics | null>(null);
-const realtimeTasks = ref<Array<SyncTask & { progress?: number; throughput?: number }>>([]);
+const realtimeTasks = ref<
+  Array<SyncTask & { progress?: number; throughput?: number }>
+>([]);
 const alerts = ref<any[]>([]);
 
 const summary = reactive({
@@ -283,12 +295,31 @@ const renderCharts = () => {
     tooltip: { trigger: "axis" },
     legend: { data: ["执行次数", "成功", "失败"], bottom: 0 },
     grid: { left: "3%", right: "4%", bottom: "15%", containLabel: true },
-    xAxis: { type: "category", data: stats.trend.labels, axisLabel: { rotate: 30 } },
+    xAxis: {
+      type: "category",
+      data: stats.trend.labels,
+      axisLabel: { rotate: 30 },
+    },
     yAxis: { type: "value" },
     series: [
-      { name: "执行次数", type: "line", smooth: true, data: stats.trend.executions },
-      { name: "成功", type: "line", smooth: true, data: stats.trend.successCounts },
-      { name: "失败", type: "line", smooth: true, data: stats.trend.failCounts },
+      {
+        name: "执行次数",
+        type: "line",
+        smooth: true,
+        data: stats.trend.executions,
+      },
+      {
+        name: "成功",
+        type: "line",
+        smooth: true,
+        data: stats.trend.successCounts,
+      },
+      {
+        name: "失败",
+        type: "line",
+        smooth: true,
+        data: stats.trend.failCounts,
+      },
     ],
   });
 
@@ -326,7 +357,11 @@ const renderCharts = () => {
     tooltip: { trigger: "axis" },
     legend: { data: ["数据量", "平均耗时(ms)"], bottom: 0 },
     grid: { left: "3%", right: "4%", bottom: "15%", containLabel: true },
-    xAxis: { type: "category", data: stats.trend.labels, axisLabel: { rotate: 30 } },
+    xAxis: {
+      type: "category",
+      data: stats.trend.labels,
+      axisLabel: { rotate: 30 },
+    },
     yAxis: [
       { type: "value", name: "数据量" },
       { type: "value", name: "平均耗时(ms)" },
@@ -349,7 +384,9 @@ const applyRealtimePatch = (data: any) => {
     return;
   }
 
-  const target = realtimeTasks.value.find((item) => item.syncTaskId === taskId.value);
+  const target = realtimeTasks.value.find(
+    (item) => item.syncTaskId === taskId.value,
+  );
   if (!target) {
     return;
   }

@@ -141,7 +141,7 @@
                     <ScIcon><Delete /></ScIcon>
                     批量删除
                   </ScButton>
-                </el-button-group>
+                </ScButton-group>
                 <ScDropdown trigger="click" @command="handleExportCommand">
                   <ScButton>
                     <ScIcon><Download /></ScIcon>
@@ -151,10 +151,10 @@
                   <template #dropdown>
                     <ScDropdownMenu>
                       <ScDropdownItem command="json"
-                        >导出 JSON</el-dropdown-item
+                        >导出 JSON</ScDropdownItem
                       >
                       <ScDropdownItem command="excel"
-                        >导出 Excel</el-dropdown-item
+                        >导出 Excel</ScDropdownItem
                       >
                     </ScDropdownMenu>
                   </template>

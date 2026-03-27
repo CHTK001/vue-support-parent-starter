@@ -69,7 +69,7 @@
       <div class="stats-item">
         <span class="stats-label">查询时间:</span>
         <ScTag type="success" size="small"
-          >{{ queryStats.queryTime }}ms</el-tag
+          >{{ queryStats.queryTime }}ms</ScTag
         >
       </div>
       <div class="stats-item">
@@ -145,7 +145,7 @@
                     <ScDropdownItem command="edit">编辑</ScDropdownItem>
                     <ScDropdownItem command="clone">克隆</ScDropdownItem>
                     <ScDropdownItem command="delete" divided
-                      >删除</el-dropdown-item
+                      >删除</ScDropdownItem
                     >
                   </ScDropdownMenu>
                 </template>

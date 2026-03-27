@@ -6,12 +6,7 @@
         <span class="header-title">主机资源监控</span>
       </div>
       <div class="header-right">
-        <ScButton
-          :loading="loading"
-          size="small"
-          circle
-          @click="handleRefresh"
-        >
+        <ScButton :loading="loading" size="small" circle @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" />
         </ScButton>
       </div>

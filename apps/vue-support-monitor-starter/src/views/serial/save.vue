@@ -183,7 +183,7 @@
               />
               <div class="flex items-center">
                 <ScCheckbox v-model="preset.addNewline"
-                  >发送后添加换行</el-checkbox
+                  >发送后添加换行</ScCheckbox
                 >
                 <ScRadioGroup v-model="preset.type" class="ml-4">
                   <ScRadio label="text">文本</ScRadio>

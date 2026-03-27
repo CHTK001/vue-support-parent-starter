@@ -1735,7 +1735,7 @@
           />
           <div class="form-item-help">
             <ScButton size="small" type="primary" link @click="loadNodeClients"
-              >刷新客户端列表</el-button
+              >刷新客户端列表</ScButton
             >
           </div>
         </ScFormItem>

@@ -321,12 +321,7 @@ defineExpose({
                     >
                       <template #reference>
                         <ScTooltip content="删除" placement="top">
-                          <ScButton
-                            type="danger"
-                            link
-                            size="small"
-                            @click.stop
-                          >
+                          <ScButton type="danger" link size="small" @click.stop>
                             <IconifyIconOnline icon="ri:delete-bin-line" />
                           </ScButton>
                         </ScTooltip>

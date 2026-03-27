@@ -66,7 +66,7 @@
         <!-- 面包屑与上级 -->
         <div class="crumbs">
           <ScButton size="small" :disabled="!canGoUp" @click="goUp"
-            >上级</el-button
+            >上级</ScButton
           >
           <ScBreadcrumb separator="/" class="bc">
             <ScBreadcrumbItem
@@ -123,13 +123,13 @@
             size="small"
             :disabled="pager.page <= 1"
             @click="goPrevPage"
-            >上一页</el-button
+            >上一页</ScButton
           >
           <ScButton
             size="small"
             :disabled="previewItems.length < pager.limit"
             @click="goNextPage"
-            >下一页</el-button
+            >下一页</ScButton
           >
         </div>
       </div>
@@ -231,7 +231,7 @@
                       <div class="img-error">
                         <span>加载失败</span>
                         <ScButton size="small" @click.stop="retryImage(it)"
-                          >重试</el-button
+                          >重试</ScButton
                         >
                       </div>
                     </template>
@@ -286,7 +286,7 @@
                     <div class="img-error">
                       <span>加载失败</span>
                       <ScButton size="small" @click.stop="retryImage(it)"
-                        >重试</el-button
+                        >重试</ScButton
                       >
                     </div>
                   </template>

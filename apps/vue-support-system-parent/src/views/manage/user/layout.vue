@@ -32,12 +32,8 @@ import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
 
-const ScIp = defineAsyncComponent(
-  () => import("@repo/components"),
-);
-const ScFilterBar = defineAsyncComponent(
-  () => import("@repo/components"),
-);
+const ScIp = defineAsyncComponent(() => import("@repo/components"));
+const ScFilterBar = defineAsyncComponent(() => import("@repo/components"));
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({
   components: { SaveDialog, ScFilterBar, ScIp },
@@ -749,7 +745,6 @@ export default defineComponent({
                       v-if="mode != 'view'"
                       v-model="row.sysUserStatus"
                       style="
-
                         --el-switch-on-color: #13ce66;
                         --el-switch-off-color: #ff4949;
                       "

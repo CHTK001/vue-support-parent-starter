@@ -237,7 +237,7 @@
     <template #footer>
       <div class="wizard-footer">
         <ScButton :disabled="installing" @click="visibleProxy = false"
-          >取消</el-button
+          >取消</ScButton
         >
         <ScButton
           v-if="currentStep > 0"

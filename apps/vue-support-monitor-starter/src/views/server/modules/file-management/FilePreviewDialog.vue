@@ -50,7 +50,7 @@
                 <IconifyIconOnline icon="ri:code-line" class="mr-1" />
                 代码
               </ScButton>
-            </el-button-group>
+            </ScButton-group>
             <div class="toolbar-right">
               <ScButton size="small" @click="downloadFile">
                 <IconifyIconOnline icon="ri:download-line" class="mr-1" />
@@ -118,7 +118,7 @@
             <div class="error-actions">
               <ScButton @click="loadFileContent">重试</ScButton>
               <ScButton type="primary" @click="downloadFile"
-                >下载文件</el-button
+                >下载文件</ScButton
               >
             </div>
           </div>

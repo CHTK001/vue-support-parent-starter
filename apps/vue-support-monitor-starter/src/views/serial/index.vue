@@ -69,10 +69,10 @@
           <div class="send-options mt-2 flex items-center">
             <ScCheckbox v-model="autoScroll">自动滚动</ScCheckbox>
             <ScCheckbox v-model="addTimestamp" class="ml-4"
-              >添加时间戳</el-checkbox
+              >添加时间戳</ScCheckbox
             >
             <ScCheckbox v-model="addNewline" class="ml-4"
-              >发送后添加换行</el-checkbox
+              >发送后添加换行</ScCheckbox
             >
           </div>
         </div>
@@ -102,7 +102,7 @@
           </ScSelect>
           <div class="text-right mt-2">
             <ScButton size="small" @click="refreshPorts"
-              >刷新串口列表</el-button
+              >刷新串口列表</ScButton
             >
           </div>
         </ScFormItem>

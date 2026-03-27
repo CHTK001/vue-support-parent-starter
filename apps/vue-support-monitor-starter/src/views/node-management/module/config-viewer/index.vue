@@ -111,11 +111,7 @@
                   </div>
                 </template>
               </ScTree>
-              <ScEmpty
-                v-else
-                description="暂无环境配置数据"
-                :image-size="80"
-              />
+              <ScEmpty v-else description="暂无环境配置数据" :image-size="80" />
             </div>
           </div>
         </ScTabPane>
@@ -194,11 +190,7 @@
                   </div>
                 </template>
               </ScTree>
-              <ScEmpty
-                v-else
-                description="暂无配置属性数据"
-                :image-size="80"
-              />
+              <ScEmpty v-else description="暂无配置属性数据" :image-size="80" />
             </div>
           </div>
         </ScTabPane>

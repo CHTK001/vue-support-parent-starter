@@ -79,12 +79,7 @@
         show-overflow-tooltip
       >
         <template #default="{ row }">
-          <ScLink
-            v-if="row.url"
-            type="primary"
-            :href="row.url"
-            target="_blank"
-          >
+          <ScLink v-if="row.url" type="primary" :href="row.url" target="_blank">
             {{ truncateText(row.url, 50) }}
           </ScLink>
           <span v-else class="text-muted">-</span>

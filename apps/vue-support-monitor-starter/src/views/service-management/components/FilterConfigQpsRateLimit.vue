@@ -90,10 +90,7 @@
               <ScSwitch v-model="config.penaltyPermanent" />
             </ScFormItem>
           </div>
-          <ScFormItem
-            v-if="config.rejectStrategy === 'LIMIT'"
-            label="惩罚阈值"
-          >
+          <ScFormItem v-if="config.rejectStrategy === 'LIMIT'" label="惩罚阈值">
             <ScInputNumber
               v-model="config.penaltyThreshold"
               :min="1"

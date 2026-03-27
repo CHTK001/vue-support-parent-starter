@@ -8,21 +8,21 @@
             size="small"
             :icon="useRenderIcon('ri:delete-bin-line')"
             @click="handleDeleteSelected"
-            >删除</el-button
+            >删除</ScButton
           >
           <ScButton
             size="small"
             :icon="useRenderIcon('ri:star-line')"
             @click="handleStarSelected"
-            >标星</el-button
+            >标星</ScButton
           >
           <ScButton
             size="small"
             :icon="useRenderIcon('ri:mail-check-line')"
             @click="handleMarkAsRead"
-            >标记已读</el-button
+            >标记已读</ScButton
           >
-        </el-button-group>
+        </ScButton-group>
       </div>
       <div class="list-search">
         <ScInput

@@ -148,11 +148,7 @@ defineExpose({
             <IconifyIconOnline icon="ep:close" class="mr-1" />
             {{ t("buttons.cancel") }}
           </ScButton>
-          <ScButton
-            type="primary"
-            :loading="env.loading"
-            @click="handleUpdate"
-          >
+          <ScButton type="primary" :loading="env.loading" @click="handleUpdate">
             <IconifyIconOnline icon="ep:check" class="mr-1" />
             {{ t("buttons.confirm") }}
           </ScButton>

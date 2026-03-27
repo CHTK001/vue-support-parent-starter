@@ -74,7 +74,7 @@
     <template #footer>
       <ScButton @click="handleClose">取消</ScButton>
       <ScButton type="primary" :loading="submitting" @click="handleConfirm"
-        >开始同步</el-button
+        >开始同步</ScButton
       >
     </template>
   </sc-dialog>

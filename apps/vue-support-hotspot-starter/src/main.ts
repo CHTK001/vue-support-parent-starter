@@ -12,5 +12,5 @@ import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 
 createStandardApp({
-  socketPlugins: [WebSocketPlugin],
-}).then((bootstrap) => bootstrap.mount("#app"));
+  socketPlugins: [WebSocketPlugin]
+}).then(bootstrap => bootstrap.mount("#app"));

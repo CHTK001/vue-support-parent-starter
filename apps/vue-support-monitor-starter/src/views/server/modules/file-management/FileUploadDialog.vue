@@ -173,7 +173,7 @@
         <div class="footer-actions">
           <ScButton @click="closeDialog">取消</ScButton>
           <ScButton v-if="fileList.length > 0" @click="clearFiles"
-            >清空</el-button
+            >清空</ScButton
           >
           <ScButton
             type="primary"

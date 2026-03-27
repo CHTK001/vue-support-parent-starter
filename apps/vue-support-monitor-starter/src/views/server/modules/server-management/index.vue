@@ -319,7 +319,7 @@
                 :show-after="500"
               >
                 <ScButton type="primary" @click="showAddDialog"
-                  >新增服务器</el-button
+                  >新增服务器</ScButton
                 >
               </ScTooltip>
             </ScEmpty>
@@ -379,7 +379,7 @@
                             size="small"
                             effect="light"
                             class="ml-1"
-                            >本机</el-tag
+                            >本机</ScTag
                           >
                           <ScTag
                             v-else
@@ -387,7 +387,7 @@
                             size="small"
                             effect="light"
                             class="ml-1"
-                            >远程</el-tag
+                            >远程</ScTag
                           >
                         </div>
                       </ScTooltip>
@@ -617,7 +617,7 @@
                           </template>
                         </ScDropdown>
                       </ScTooltip>
-                    </el-button-group>
+                    </ScButton-group>
                   </div>
                 </div>
               </ScTooltip>
@@ -646,7 +646,7 @@
               :show-after="500"
             >
               <ScButton type="primary" @click="showAddDialog"
-                >新增服务器</el-button
+                >新增服务器</ScButton
               >
             </ScTooltip>
           </ScEmpty>

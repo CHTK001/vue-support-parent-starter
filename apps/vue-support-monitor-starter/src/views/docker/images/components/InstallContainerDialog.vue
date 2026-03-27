@@ -145,7 +145,7 @@
               <template #prepend>Container</template>
             </ScInput>
             <ScCheckbox v-model="volume.readOnly" class="ml-2"
-              >只读</el-checkbox
+              >只读</ScCheckbox
             >
             <ScButton type="danger" text @click="removeVolumeMount(index)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
