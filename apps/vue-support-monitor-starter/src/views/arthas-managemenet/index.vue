@@ -61,11 +61,7 @@
               断开
             </ScButton>
           </ScTooltip>
-          <ScTooltip
-            content="配置 Arthas"
-            placement="bottom"
-            :show-after="500"
-          >
+          <ScTooltip content="配置 Arthas" placement="bottom" :show-after="500">
             <ScButton
               :disabled="!selectedNode"
               size="small"

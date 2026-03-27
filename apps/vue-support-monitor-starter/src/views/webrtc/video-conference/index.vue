@@ -4,7 +4,7 @@
     <div class="page-header">
       <ScBreadcrumb separator="/">
         <ScBreadcrumbItem :to="{ path: '/webrtc' }"
-          >WebRTC管理</el-breadcrumb-item
+          >WebRTC管理</ScBreadcrumbItem
         >
         <ScBreadcrumbItem>视频会议</ScBreadcrumbItem>
       </ScBreadcrumb>
@@ -327,7 +327,7 @@
           <template #default="{ row }">
             <div class="participant-status-list">
               <ScTag v-if="row.isPresenting" type="success" size="small"
-                >演示中</el-tag
+                >演示中</ScTag
               >
               <ScIcon v-if="!row.audioEnabled" class="status-icon muted"
                 ><MicrophoneFilled
@@ -355,7 +355,7 @@
                 <ScDropdownMenu>
                   <ScDropdownItem command="mute">静音</ScDropdownItem>
                   <ScDropdownItem command="kick" divided
-                    >移除</el-dropdown-item
+                    >移除</ScDropdownItem
                   >
                 </ScDropdownMenu>
               </template>

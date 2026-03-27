@@ -4,7 +4,7 @@
     <div class="page-header">
       <ScBreadcrumb separator="/">
         <ScBreadcrumbItem :to="{ path: '/webrtc' }"
-          >WebRTC管理</el-breadcrumb-item
+          >WebRTC管理</ScBreadcrumbItem
         >
         <ScBreadcrumbItem>视频通话</ScBreadcrumbItem>
       </ScBreadcrumb>

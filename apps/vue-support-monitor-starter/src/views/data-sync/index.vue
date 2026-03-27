@@ -31,7 +31,6 @@ import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 </template>
 
 <script setup lang="ts">
-
 // 页面标题
 defineOptions({
   name: "DataSync",

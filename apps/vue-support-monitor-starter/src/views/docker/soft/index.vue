@@ -120,19 +120,19 @@
                 type="warning"
                 round
                 class="ml-2"
-                >官方</el-tag
+                >官方</ScTag
               >
             </div>
             <div class="soft-badges">
               <ScTag size="small" effect="plain"
                 ><IconifyIconOnline icon="ri:star-line" class="mr-1" />{{
                   row.systemSoftStarCount ?? 0
-                }}</el-tag
+                }}</ScTag
               >
               <ScTag size="small" effect="plain"
                 ><IconifyIconOnline icon="ri:download-2-line" class="mr-1" />{{
                   row.systemSoftPullCount ?? 0
-                }}</el-tag
+                }}</ScTag
               >
               <ScTag
                 size="small"

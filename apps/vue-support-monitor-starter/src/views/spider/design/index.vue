@@ -15,7 +15,7 @@
           <ScIcon><VideoPlay /></ScIcon>
           运行任务
         </ScButton>
-      </el-button-group>
+      </ScButton-group>
       <el-button-group style="margin-left: 10px">
         <ScButton @click="handleClear">
           <ScIcon><Delete /></ScIcon>
@@ -25,7 +25,7 @@
           <ScIcon><Back /></ScIcon>
           返回
         </ScButton>
-      </el-button-group>
+      </ScButton-group>
       <div v-if="taskInfo" class="task-info">
         <span>任务: {{ taskInfo.spiderTaskName }}</span>
       </div>
@@ -60,9 +60,7 @@
                   class="component-icon"
                   :style="{ backgroundColor: category.color }"
                 >
-                  <ScIcon
-                    ><component :is="spi.icon || category.icon"
-                  /></ScIcon>
+                  <ScIcon><component :is="spi.icon || category.icon" /></ScIcon>
                 </div>
                 <div class="component-info">
                   <div class="component-name">{{ spi.displayName }}</div>
@@ -245,11 +243,7 @@
                 </div>
               </ScFormItem>
             </template>
-            <ScEmpty
-              v-else
-              description="该组件无需配置参数"
-              :image-size="60"
-            />
+            <ScEmpty v-else description="该组件无需配置参数" :image-size="60" />
 
             <ScFormItem>
               <ScButton

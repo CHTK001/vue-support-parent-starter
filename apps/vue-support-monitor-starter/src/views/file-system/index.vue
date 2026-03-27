@@ -312,11 +312,7 @@
                 >
                   合并
                 </ScButton>
-                <ScButton
-                  size="small"
-                  type="danger"
-                  @click="handleDelete(row)"
-                >
+                <ScButton size="small" type="danger" @click="handleDelete(row)">
                   删除
                 </ScButton>
               </template>

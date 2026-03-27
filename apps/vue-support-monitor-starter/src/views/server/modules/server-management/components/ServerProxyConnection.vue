@@ -60,7 +60,7 @@
               <IconifyIconOnline icon="ri:settings-line" />
               配置代理
             </ScButton>
-          </el-button-group>
+          </ScButton-group>
         </div>
 
         <!-- Guacamole 连接选项 -->

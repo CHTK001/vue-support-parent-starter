@@ -7,7 +7,10 @@
   >
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px">
       <el-form-item label="任务名称" prop="syncTaskName">
-        <el-input v-model="formData.syncTaskName" placeholder="请输入任务名称" />
+        <el-input
+          v-model="formData.syncTaskName"
+          placeholder="请输入任务名称"
+        />
       </el-form-item>
 
       <el-form-item label="任务描述" prop="syncTaskDesc">
@@ -20,7 +23,10 @@
       </el-form-item>
 
       <el-form-item label="同步模式" prop="syncTaskSyncMode">
-        <el-select v-model="formData.syncTaskSyncMode" placeholder="请选择同步模式">
+        <el-select
+          v-model="formData.syncTaskSyncMode"
+          placeholder="请选择同步模式"
+        >
           <el-option label="全量同步" value="FULL" />
           <el-option label="增量同步" value="INCREMENTAL" />
           <el-option label="双向同步" value="BIDIRECTIONAL" />
@@ -175,7 +181,9 @@ const formData = reactive<SyncTask>(createDefaultFormData());
 const isEdit = computed(() => !!props.task?.syncTaskId);
 
 const rules: FormRules = {
-  syncTaskName: [{ required: true, message: "请输入任务名称", trigger: "blur" }],
+  syncTaskName: [
+    { required: true, message: "请输入任务名称", trigger: "blur" },
+  ],
 };
 
 const resetFormData = (task?: SyncTask | null) => {
@@ -189,7 +197,7 @@ watch(
     if (value) {
       resetFormData(props.task);
     }
-  }
+  },
 );
 
 watch(
@@ -199,7 +207,7 @@ watch(
       resetFormData(task);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 watch(visible, (value) => {

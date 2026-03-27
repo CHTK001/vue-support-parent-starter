@@ -62,12 +62,7 @@
             clearable
           >
             <ScOption label="全部类型" value="" />
-            <ScOption
-              v-for="t in typeOptions"
-              :key="t"
-              :label="t"
-              :value="t"
-            />
+            <ScOption v-for="t in typeOptions" :key="t" :label="t" :value="t" />
           </ScSelect>
           <ScSelect v-model="sortKey" class="w-160 ml-8">
             <ScOption label="按名称排序" value="name" />

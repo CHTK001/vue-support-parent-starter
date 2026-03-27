@@ -256,7 +256,7 @@
                     link
                     size="small"
                     @click="goToService(row)"
-                    >查看详情</el-button
+                    >查看详情</ScButton
                   >
                 </template>
               </ScTableColumn>

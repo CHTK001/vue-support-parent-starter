@@ -43,7 +43,7 @@
           style="width: 180px"
         />
         <ScButton type="primary" :icon="Search" @click="fetchData"
-          >查询</el-button
+          >查询</ScButton
         >
         <ScButton :icon="RefreshRight" @click="resetFilter">重置</ScButton>
       </div>

@@ -17,12 +17,7 @@
       stripe
       height="auto"
     >
-      <ScTableColumn
-        prop="acmeAccountId"
-        label="ID"
-        width="80"
-        align="center"
-      >
+      <ScTableColumn prop="acmeAccountId" label="ID" width="80" align="center">
         <template #default="{ row }">
           <span class="id-cell">#{{ row.acmeAccountId }}</span>
         </template>

@@ -93,7 +93,7 @@
               <ScDropdownItem command="copy">复制选中</ScDropdownItem>
               <ScDropdownItem command="paste">粘贴</ScDropdownItem>
               <ScDropdownItem command="cleanup" divided
-                >清屏</el-dropdown-item
+                >清屏</ScDropdownItem
               >
             </ScDropdownMenu>
           </template>

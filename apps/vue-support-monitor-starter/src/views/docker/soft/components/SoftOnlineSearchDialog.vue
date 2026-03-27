@@ -68,7 +68,7 @@
               type="warning"
               size="small"
               effect="light"
-              >官方</el-tag
+              >官方</ScTag
             >
           </div>
 

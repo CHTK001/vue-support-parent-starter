@@ -35,7 +35,8 @@ export default [
         path: "/holiday/index",
         name: "HolidayIndex",
         component: async () => {
-          const { SystemHolidayIndex } = await import("../../../../../pages/system/src");
+          const { SystemHolidayIndex } =
+            await import("../../../../../pages/system/src");
           return SystemHolidayIndex;
         },
         meta: {
@@ -47,7 +48,8 @@ export default [
         path: "/filesystem/index",
         name: "FileSystemIndex",
         component: async () => {
-          const { SystemFileSystem } = await import("../../../../../pages/system/src");
+          const { SystemFileSystem } =
+            await import("../../../../../pages/system/src");
           return SystemFileSystem;
         },
         meta: {
@@ -59,7 +61,8 @@ export default [
         path: "/log/system/index",
         name: "LogSystemIndex",
         component: async () => {
-          const { SystemLogIndex } = await import("../../../../../pages/system/src");
+          const { SystemLogIndex } =
+            await import("../../../../../pages/system/src");
           return SystemLogIndex;
         },
         meta: {

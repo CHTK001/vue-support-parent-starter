@@ -58,7 +58,7 @@
               <ScDropdownItem command="enable">批量启用</ScDropdownItem>
               <ScDropdownItem command="disable">批量禁用</ScDropdownItem>
               <ScDropdownItem command="delete" divided
-                >批量删除</el-dropdown-item
+                >批量删除</ScDropdownItem
               >
             </ScDropdownMenu>
           </template>
@@ -199,18 +199,18 @@
                   <ScDropdownItem command="edit">编辑</ScDropdownItem>
                   <ScDropdownItem command="config">配置管理</ScDropdownItem>
                   <ScDropdownItem command="setting"
-                    >服务器设置</el-dropdown-item
+                    >服务器设置</ScDropdownItem
                   >
                   <ScDropdownItem command="test">测试连接</ScDropdownItem>
                   <ScDropdownItem command="logs">查看日志</ScDropdownItem>
                   <ScDropdownItem command="clone">克隆配置</ScDropdownItem>
                   <ScDropdownItem command="delete" divided
-                    >删除</el-dropdown-item
+                    >删除</ScDropdownItem
                   >
                 </ScDropdownMenu>
               </template>
             </ScDropdown>
-          </el-button-group>
+          </ScButton-group>
         </template>
       </ScTableColumn>
     </ScTable>

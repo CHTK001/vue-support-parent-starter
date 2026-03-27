@@ -39,7 +39,7 @@
               >
                 <template #append>
                   <ScButton :loading="previewLoading" @click="handlePreviewUrl"
-                    >预览</el-button
+                    >预览</ScButton
                   >
                 </template>
               </ScInput>
@@ -191,7 +191,7 @@
               >
                 <template #append>
                   <ScButton size="small" @click="handleTestRule(row)"
-                    >测试</el-button
+                    >测试</ScButton
                   >
                 </template>
               </ScInput>
@@ -397,10 +397,10 @@
       <div class="dialog-footer">
         <ScButton @click="dialogVisible = false">取消</ScButton>
         <ScButton v-if="currentStep > 0" @click="currentStep--"
-          >上一步</el-button
+          >上一步</ScButton
         >
         <ScButton v-if="currentStep < 3" type="primary" @click="handleNextStep"
-          >下一步</el-button
+          >下一步</ScButton
         >
         <ScButton
           v-if="currentStep === 3"

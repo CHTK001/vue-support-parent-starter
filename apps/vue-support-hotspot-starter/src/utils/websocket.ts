@@ -40,7 +40,7 @@ class WebSocketService {
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 5000,
-      heartbeatInterval: 30000,
+      heartbeatInterval: 30000
     });
 
     this.socket.on("connect", () => {

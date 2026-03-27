@@ -1,4 +1,4 @@
-import api from './sync';
+import api from "./sync";
 
 export interface LoginRequest {
   username: string;
@@ -16,7 +16,7 @@ export interface UserInfo {
 }
 
 export const authApi = {
-  login: (data: LoginRequest) => api.post<any, any>('/auth/login', data),
-  logout: () => api.post<any, any>('/auth/logout'),
-  getUserInfo: () => api.get<any, any>('/auth/info'),
+  login: (data: LoginRequest) => api.post<any, any>("/auth/login", data),
+  logout: () => api.post<any, any>("/auth/logout"),
+  getUserInfo: () => api.get<any, any>("/auth/info"),
 };

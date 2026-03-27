@@ -24,12 +24,7 @@
           </ScButton>
         </ScTooltip>
         <ScTooltip content="收起全部" placement="top">
-          <ScButton
-            size="small"
-            circle
-            class="action-btn"
-            @click="collapseAll"
-          >
+          <ScButton size="small" circle class="action-btn" @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-line" />
           </ScButton>
         </ScTooltip>

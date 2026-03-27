@@ -24,7 +24,7 @@
           type="warning"
           size="small"
           class="ml-2"
-          >已修改</el-tag
+          >已修改</ScTag
         >
       </div>
 
@@ -127,13 +127,13 @@
                     />
                     <div class="name-tags">
                       <ScTag v-if="row.primaryKey" type="warning" size="small"
-                        >PK</el-tag
+                        >PK</ScTag
                       >
                       <ScTag v-if="row.autoIncrement" type="info" size="small"
-                        >AI</el-tag
+                        >AI</ScTag
                       >
                       <ScTag v-if="row.__isNew" type="success" size="small"
-                        >新</el-tag
+                        >新</ScTag
                       >
                       <ScTag
                         v-else-if="
@@ -141,7 +141,7 @@
                         "
                         type="primary"
                         size="small"
-                        >改</el-tag
+                        >改</ScTag
                       >
                     </div>
                   </div>

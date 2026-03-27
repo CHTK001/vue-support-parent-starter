@@ -186,22 +186,22 @@
                 <ScDropdownMenu>
                   <ScDropdownItem command="view">查看代码</ScDropdownItem>
                   <ScDropdownItem command="duplicate"
-                    >复制脚本</el-dropdown-item
+                    >复制脚本</ScDropdownItem
                   >
                   <ScDropdownItem command="history"
-                    >执行历史</el-dropdown-item
+                    >执行历史</ScDropdownItem
                   >
                   <ScDropdownItem command="export">导出脚本</ScDropdownItem>
                   <ScDropdownItem command="validate"
-                    >语法检查</el-dropdown-item
+                    >语法检查</ScDropdownItem
                   >
                   <ScDropdownItem command="delete" divided
-                    >删除</el-dropdown-item
+                    >删除</ScDropdownItem
                   >
                 </ScDropdownMenu>
               </template>
             </ScDropdown>
-          </el-button-group>
+          </ScButton-group>
         </template>
       </ScTableColumn>
     </ScTable>
@@ -272,7 +272,7 @@
       <template #footer>
         <ScButton @click="importDialogVisible = false">取消</ScButton>
         <ScButton type="primary" @click="handleUploadScript"
-          >确定导入</el-button
+          >确定导入</ScButton
         >
       </template>
     </sc-dialog>

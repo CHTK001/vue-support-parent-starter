@@ -8,10 +8,7 @@
           <span class="server-address"
             >{{ server?.host }}:{{ server?.port }}</span
           >
-          <ScTag
-            :type="getOnlineStatusType(server?.onlineStatus)"
-            size="small"
-          >
+          <ScTag :type="getOnlineStatusType(server?.onlineStatus)" size="small">
             {{ getOnlineStatusText(server?.onlineStatus) }}
           </ScTag>
           <ScTag type="info" size="small">{{ server?.protocol }}</ScTag>

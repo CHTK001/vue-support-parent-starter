@@ -166,11 +166,7 @@
               <span v-else class="text-placeholder">-</span>
             </template>
           </ScTableColumn>
-          <ScTableColumn
-            label="调度时间"
-            prop="jobLogTriggerTime"
-            width="180"
-          >
+          <ScTableColumn label="调度时间" prop="jobLogTriggerTime" width="180">
             <template #default="scope">
               <div class="time-cell">
                 <IconifyIconOnline icon="ri:time-line" class="time-icon" />

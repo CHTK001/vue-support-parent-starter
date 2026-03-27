@@ -124,7 +124,7 @@
               type="text"
               size="small"
               @click="handleViewFullLog(row)"
-              >查看完整</el-button
+              >查看完整</ScButton
             >
           </div>
         </template>
@@ -147,12 +147,12 @@
                   <ScDropdownItem command="copy">复制内容</ScDropdownItem>
                   <ScDropdownItem command="context">上下文</ScDropdownItem>
                   <ScDropdownItem command="delete" divided
-                    >删除</el-dropdown-item
+                    >删除</ScDropdownItem
                   >
                 </ScDropdownMenu>
               </template>
             </ScDropdown>
-          </el-button-group>
+          </ScButton-group>
         </template>
       </ScTableColumn>
     </ScTable>
@@ -206,7 +206,7 @@
       <template #footer>
         <ScButton @click="logDetailVisible = false">关闭</ScButton>
         <ScButton type="primary" @click="handleCopyLogContent"
-          >复制内容</el-button
+          >复制内容</ScButton
         >
       </template>
     </sc-dialog>
@@ -243,7 +243,7 @@
       <template #footer>
         <ScButton @click="cleanupDialogVisible = false">取消</ScButton>
         <ScButton type="danger" @click="handleConfirmCleanup"
-          >确定清理</el-button
+          >确定清理</ScButton
         >
       </template>
     </sc-dialog>

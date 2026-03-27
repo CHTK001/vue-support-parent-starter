@@ -56,7 +56,7 @@
           style="width: 160px"
         />
         <ScButton type="primary" :icon="Search" @click="fetchData"
-          >查询</el-button
+          >查询</ScButton
         >
         <ScButton :icon="RefreshRight" @click="resetFilter">重置</ScButton>
       </div>
@@ -123,21 +123,21 @@
               link
               size="small"
               @click="viewServiceDetail(row)"
-              >详情</el-button
+              >详情</ScButton
             >
             <ScButton
               type="primary"
               link
               size="small"
               @click="viewServiceTopology(row)"
-              >拓扑</el-button
+              >拓扑</ScButton
             >
             <ScButton
               type="primary"
               link
               size="small"
               @click="viewServiceTrace(row)"
-              >链路</el-button
+              >链路</ScButton
             >
           </template>
         </ScTableColumn>
@@ -223,10 +223,10 @@
           <ScButton
             type="primary"
             @click="viewServiceTopology(selectedService)"
-            >查看拓扑</el-button
+            >查看拓扑</ScButton
           >
           <ScButton type="primary" @click="viewServiceTrace(selectedService)"
-            >查看链路</el-button
+            >查看链路</ScButton
           >
         </div>
 

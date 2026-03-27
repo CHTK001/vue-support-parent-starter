@@ -433,7 +433,7 @@ onUnmounted(() => {
               <ScButton type="danger" size="small" @click="deleteRecording(row)">
                 <IconifyIconOnline icon="ri:delete-bin-line" />
               </ScButton>
-            </el-button-group>
+            </ScButton-group>
           </template>
         </ScTableColumn>
       </ScTable>

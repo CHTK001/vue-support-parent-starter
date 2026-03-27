@@ -3,7 +3,7 @@
     <!-- 工具栏 -->
     <div class="editor-toolbar">
       <ScButton type="primary" :icon="Plus" @click="addColumn"
-        >添加列</el-button
+        >添加列</ScButton
       >
       <ScButton
         :icon="Download"
@@ -101,14 +101,14 @@
               v-model="row.primaryKey"
               size="small"
               @change="emitChange"
-              >主键</el-checkbox
+              >主键</ScCheckbox
             >
             <ScCheckbox
               v-model="row.autoIncrement"
               size="small"
               :disabled="!row.primaryKey"
               @change="emitChange"
-              >自增</el-checkbox
+              >自增</ScCheckbox
             >
           </div>
         </template>

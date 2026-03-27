@@ -62,31 +62,39 @@
             {{ getSyncModeText(row.syncTaskSyncMode) }}
           </template>
         </el-table-column>
-        <el-table-column prop="syncTaskBatchSize" label="批次大小" width="110" />
-        <el-table-column prop="syncTaskLastRunTime" label="最后运行时间" min-width="180" />
+        <el-table-column
+          prop="syncTaskBatchSize"
+          label="批次大小"
+          width="110"
+        />
+        <el-table-column
+          prop="syncTaskLastRunTime"
+          label="最后运行时间"
+          min-width="180"
+        />
         <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="handleDesign(row)">设计</el-button>
             <el-button
               size="small"
-              @click="handleEdit(row)"
               :disabled="row.syncTaskStatus === 'RUNNING'"
+              @click="handleEdit(row)"
             >
               编辑
             </el-button>
             <el-button
               size="small"
               type="success"
-              @click="handleStart(row)"
               :disabled="row.syncTaskStatus === 'RUNNING'"
+              @click="handleStart(row)"
             >
               启动
             </el-button>
             <el-button
               size="small"
               type="warning"
-              @click="handleStop(row)"
               :disabled="row.syncTaskStatus !== 'RUNNING'"
+              @click="handleStop(row)"
             >
               停止
             </el-button>
@@ -263,11 +271,15 @@ const handleStop = async (task: SyncTask) => {
 const handleDelete = async (task: SyncTask) => {
   if (!task.syncTaskId) return;
   try {
-    await ElMessageBox.confirm(`确定要删除任务“${task.syncTaskName}”吗？`, "提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await ElMessageBox.confirm(
+      `确定要删除任务“${task.syncTaskName}”吗？`,
+      "提示",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
     await taskStore.deleteTask(task.syncTaskId);
     ElMessage.success("删除成功");
     await loadTasks();

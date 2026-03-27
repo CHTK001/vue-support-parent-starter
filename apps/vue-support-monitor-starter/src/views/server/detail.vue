@@ -166,11 +166,7 @@
             <ScButton class="cancel-btn" @click="handleCancelEdit">
               取消
             </ScButton>
-            <ScButton
-              type="primary"
-              class="save-btn"
-              @click="handleSaveLayout"
-            >
+            <ScButton type="primary" class="save-btn" @click="handleSaveLayout">
               <IconifyIconOnline icon="ri:save-line" class="mr-1" />
               保存布局
             </ScButton>

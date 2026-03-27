@@ -8,7 +8,7 @@
         @keyup.enter.native="sendCommand"
       />
       <ScButton type="primary" :disabled="!connected" @click="sendCommand"
-        >执行</el-button
+        >执行</ScButton
       >
       <ScButton @click="clearOutput">清屏</ScButton>
       <ScButton :disabled="connecting" @click="reconnect">重连</ScButton>
@@ -22,7 +22,7 @@
       <ScButton
         size="small"
         @click="quick('profiler start; sleep 10; profiler stop')"
-        >profiler</el-button
+        >profiler</ScButton
       >
     </div>
     <div

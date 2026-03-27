@@ -21,11 +21,7 @@
 
         <ScDivider direction="vertical" />
 
-        <ScButton
-          size="small"
-          :disabled="!isConnected"
-          @click="takeScreenshot"
-        >
+        <ScButton size="small" :disabled="!isConnected" @click="takeScreenshot">
           <IconifyIconOnline icon="ri:camera-line" class="mr-1" />
           截图
         </ScButton>

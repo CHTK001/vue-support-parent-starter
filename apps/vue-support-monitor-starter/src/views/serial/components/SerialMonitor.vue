@@ -35,7 +35,7 @@
             <IconifyIconOnline icon="ep:delete" class="mr-1" />
             清空
           </ScButton>
-        </el-button-group>
+        </ScButton-group>
       </div>
     </div>
 
@@ -97,19 +97,19 @@
         </div>
         <div class="send-options mt-2 flex items-center">
           <ScCheckbox v-model="autoScroll" :disabled="!isConnected"
-            >自动滚动</el-checkbox
+            >自动滚动</ScCheckbox
           >
           <ScCheckbox
             v-model="addTimestamp"
             class="ml-4"
             :disabled="!isConnected"
-            >添加时间戳</el-checkbox
+            >添加时间戳</ScCheckbox
           >
           <ScCheckbox
             v-model="addNewline"
             class="ml-4"
             :disabled="!isConnected"
-            >发送后添加换行</el-checkbox
+            >发送后添加换行</ScCheckbox
           >
         </div>
 

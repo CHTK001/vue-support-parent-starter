@@ -98,7 +98,7 @@
                   :key="tag"
                   size="small"
                   type="info"
-                  >{{ tag }}</el-tag
+                  >{{ tag }}</ScTag
                 >
               </div>
             </div>

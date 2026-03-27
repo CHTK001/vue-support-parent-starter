@@ -242,9 +242,7 @@
               placement="top"
             >
               <div class="child-span">
-                <ScTag size="small" effect="plain">{{
-                  child.category
-                }}</ScTag>
+                <ScTag size="small" effect="plain">{{ child.category }}</ScTag>
                 <span class="child-method">{{ child.method }}</span>
                 <span class="child-address">{{ child.address }}</span>
               </div>

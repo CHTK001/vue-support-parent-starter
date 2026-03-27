@@ -73,7 +73,7 @@
 
           <ScFormItem label="版本信息">
             <ScCheckbox v-model="form.includeVersions"
-              >同步版本标签信息</el-checkbox
+              >同步版本标签信息</ScCheckbox
             >
             <div class="form-tip">
               是否同步每个软件的版本标签列表（会增加同步时间）
