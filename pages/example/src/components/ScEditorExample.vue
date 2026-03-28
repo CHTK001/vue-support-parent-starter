@@ -120,7 +120,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScEditor } from "@repo/components/ScEditor"
 const content = ref("<p>编辑器内容</p>");`,
   },
 ]);

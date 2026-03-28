@@ -199,7 +199,6 @@ const codes = {
   basic: `<ScUpload v-model="imageUrl" />
 
 <script setup>
-import { ref } from "vue";
 // v-model 绑定上传后的图片URL
 const imageUrl = ref("");
 <\/script>`,

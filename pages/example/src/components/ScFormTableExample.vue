@@ -130,7 +130,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScFormTable } from "@repo/components/ScFormTable"
 const rows = ref([{ key: "name", value: "demo" }]);`,
   },
 ]);

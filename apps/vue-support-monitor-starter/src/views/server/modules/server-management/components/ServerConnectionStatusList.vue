@@ -219,7 +219,7 @@
               <IconifyIconOnline icon="ri:restart-line" />
               重置
             </ScButton>
-          </ScButton-group>
+          </el-button-group>
         </template>
       </ScTableColumn>
     </ScTable>

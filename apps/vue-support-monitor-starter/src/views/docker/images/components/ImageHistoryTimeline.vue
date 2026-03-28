@@ -188,7 +188,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { message } from "@repo/utils";
-import type { SystemSoftImage } from "@/api/docker";
+import { softRecordApi, type SystemSoftImage } from "@/api/docker";
 
 interface SystemSoftRecord {
   systemSoftRecordId: number;
@@ -231,57 +231,27 @@ async function loadHistory() {
 
   try {
     loading.value = true;
-    // TODO: 调用API获取历史记录
-    // const res = await softRecordApi.getRecordsByImage({
-    //   softId: props.image.systemSoftId,
-    //   operationType: filterType.value,
-    //   status: filterStatus.value
-    // });
+    const res = await softRecordApi.getSoftRecordPage({
+      current: 1,
+      size: 50,
+      softId: props.image.systemSoftId,
+      serverId: props.image.systemSoftImageServerId,
+      operationType: filterType.value,
+      operationStatus: filterStatus.value,
+    });
 
-    // 模拟数据
-    setTimeout(() => {
-      records.value = [
-        {
-          systemSoftRecordId: 1,
-          systemSoftId: props.image!.systemSoftId!,
-          systemServerId: props.image!.systemSoftImageServerId!,
-          systemSoftRecordOperationType: "PULL_IMAGE",
-          systemSoftRecordMethod: "pullImage",
-          systemSoftRecordMessage: "拉取镜像成功",
-          systemSoftRecordParams: `imageName=${props.image!.systemSoftImageName}, imageTag=${props.image!.systemSoftImageTag}`,
-          systemSoftRecordTime: new Date().toISOString(),
-          systemSoftRecordStatus: 1,
-          systemSoftRecordUser: "admin",
-          systemSoftRecordStartTime: new Date(Date.now() - 30000).toISOString(),
-          systemSoftRecordEndTime: new Date().toISOString(),
-          systemSoftRecordDuration: 30000,
-          systemSoftRecordResult: "镜像拉取完成",
-        },
-        {
-          systemSoftRecordId: 2,
-          systemSoftId: props.image!.systemSoftId!,
-          systemServerId: props.image!.systemSoftImageServerId!,
-          systemSoftRecordOperationType: "CREATE_CONTAINER",
-          systemSoftRecordMethod: "createContainer",
-          systemSoftRecordMessage: "创建容器成功",
-          systemSoftRecordParams: `containerName=test-container`,
-          systemSoftRecordTime: new Date(Date.now() - 3600000).toISOString(),
-          systemSoftRecordStatus: 1,
-          systemSoftRecordUser: "admin",
-          systemSoftRecordContainerId: "abc123def456",
-          systemSoftRecordStartTime: new Date(
-            Date.now() - 3600000 - 5000,
-          ).toISOString(),
-          systemSoftRecordEndTime: new Date(Date.now() - 3600000).toISOString(),
-          systemSoftRecordDuration: 5000,
-          systemSoftRecordResult: "容器创建成功，ID: abc123def456",
-        },
-      ];
-      loading.value = false;
-    }, 500);
+    if (res.code === "00000") {
+      records.value = res.data.records || [];
+    } else {
+      records.value = [];
+      message(res.msg || "加载历史记录失败", { type: "error" });
+    }
   } catch (error) {
     console.error("加载历史记录失败:", error);
     message("加载历史记录失败", { type: "error" });
+    records.value = [];
+  }
+  finally {
     loading.value = false;
   }
 }

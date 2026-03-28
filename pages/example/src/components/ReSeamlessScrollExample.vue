@@ -152,7 +152,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ReSeamlessScroll from "@repo/components/ReSeamlessScroll/src/index.vue";
 
 const list = ref(["条目 1", "条目 2", "条目 3"]);
 

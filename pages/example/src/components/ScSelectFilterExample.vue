@@ -96,7 +96,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScSelectFilter } from "@repo/components/ScSelectFilter"
 const value = ref([]);
 
 const options = [

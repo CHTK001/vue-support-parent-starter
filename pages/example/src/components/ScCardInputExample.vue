@@ -188,7 +188,6 @@ import { import ScInput from @repo/components; } from "@repo/components/import S
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { ScInput } from "@repo/components/ScInput"
-import { ScInput } from "@repo/components/ScInput";
 import { InputType } from "@repo/components/ScInput/types";
 import CodePreview from "./CodePreview.vue";
 
@@ -332,7 +331,6 @@ const handleChange = (value) => {
 </template>
 
 <script setup>
-import { ref } from 'vue';
 
 const selectedValue = ref('${variantValues.value.remote}');
 

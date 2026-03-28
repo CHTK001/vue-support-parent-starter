@@ -5,6 +5,7 @@ import {
 } from "@repo/codec-wasm";
 import CryptoJS from "crypto-js";
 import type { PureHttpRequestConfig } from "../http/types";
+import { resolveRequestSecretKey } from "./config-resolver";
 
 const jsMd5Hash = (value: string): string => CryptoJS.MD5(value).toString();
 
@@ -135,10 +136,9 @@ export function collectParams(
 /** 默认签名密钥，需与后端 NonceSignProperties.DEFAULT_SECRET 保持一致 */
 const DEFAULT_SECRET_KEY = "aP9xL3sV7mQ2zT5kB8nR1cY4wH6eD0fJ";
 
-/** 解析 secretKey（前端从 Request.secretKey 统一读取） */
+/** 解析 secretKey（优先 Request.secretKey，其次兼容旧版 top-level secretKey） */
 const resolveSecretKey = (): string => {
-  const requestSecret = getConfig("Request.secretKey");
-  return (requestSecret as string) || DEFAULT_SECRET_KEY;
+  return resolveRequestSecretKey(getConfig(), DEFAULT_SECRET_KEY);
 };
 
 /** 生成 x-sign（必须由 WASM md5Hash 生成） */

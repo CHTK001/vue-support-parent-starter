@@ -3,9 +3,10 @@
  * FooterContent — 页脚内容区
  * 版权信息 + 项目链接
  */
+import { computed } from "vue";
 import { getConfig } from "@repo/config";
 
-const TITLE = getConfig("Title");
+const title = computed(() => getConfig("Title"));
 </script>
 
 <template>
@@ -16,7 +17,7 @@ const TITLE = getConfig("Title");
       href="https://github.com/pure-admin"
       target="_blank"
       rel="noopener noreferrer"
-    >{{ TITLE }}</a>
+    >{{ title }}</a>
   </div>
 </template>
 

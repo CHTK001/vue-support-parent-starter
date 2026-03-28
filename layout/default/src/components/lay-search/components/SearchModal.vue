@@ -49,7 +49,7 @@ const historyPath = ref("");
 const resultOptions = shallowRef([]);
 const historyOptions = shallowRef([]);
 const handleSearch = useDebounceFn(search, 300);
-const historyNum = getConfig().MenuSearchHistory;
+const historyNum = computed(() => getConfig().MenuSearchHistory);
 const inputRef = ref<HTMLInputElement | null>(null);
 
 /** 菜单树形结构 */
@@ -235,9 +235,12 @@ function saveHistory() {
   const existingIndex = searchHistoryList.findIndex(
     (item) => item.path === path,
   );
+  const maxHistory = Number(historyNum.value);
   if (!isCollected) {
     if (existingIndex !== -1) searchHistoryList.splice(existingIndex, 1);
-    if (searchHistoryList.length >= historyNum) searchHistoryList.pop();
+    if (Number.isFinite(maxHistory) && searchHistoryList.length >= maxHistory) {
+      searchHistoryList.pop();
+    }
     searchHistoryList.unshift({ path, meta, type: HISTORY_TYPE });
     localStorageProxy().setItem(LOCALEHISTORYKEY, searchHistoryList);
   }

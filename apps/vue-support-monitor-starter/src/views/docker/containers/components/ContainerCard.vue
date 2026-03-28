@@ -135,7 +135,7 @@
           >
             <IconifyIconOnline icon="ri:restart-line" />
           </ScButton>
-        </ScButton-group>
+        </el-button-group>
 
         <ScDropdown trigger="click" @command="handleCommand">
           <ScButton size="small">

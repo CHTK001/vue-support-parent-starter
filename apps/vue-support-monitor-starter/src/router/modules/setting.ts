@@ -19,7 +19,7 @@ export default [
           icon: "ep:setting",
           rank: 99,
           title: $t("buttons.monitor.setting"),
-          showLink: true,
+          showLink: false,
           showParent: true,
         },
       },

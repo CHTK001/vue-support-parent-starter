@@ -227,7 +227,6 @@
  * @since 2024-12-19
  */
 import { IconSelect } from "@repo/components/IconSelect";
-import { IconSelect } from "@repo/components/IconSelect"
 import { clearObject } from "@repo/utils";
 import type { FormInstance, FormRules } from "element-plus";
 import { computed, reactive, ref, watch } from "vue";

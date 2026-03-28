@@ -1,31 +1,50 @@
 <template>
   <div class="sc-password-input-wrapper">
     <div class="sc-password-input-container">
-      <ScInput
+      <ElInput
         v-model="currentValue"
         class="sc-password-input"
-        type="password"
-        show-password
         v-bind="$attrs"
-        @update:modelValue="handleUpdate"
+        :placeholder="placeholder"
+        :disabled="disabled"
+        :clearable="clearable && !disabled"
+        show-password
+        :maxlength="maxlength"
+        :show-word-limit="showWordLimit"
+        :autofocus="autofocus"
+        type="password"
+        @update:model-value="handleUpdate"
         @change="handleChange"
         @input="handleInput"
         @focus="handleFocus"
         @blur="handleBlur"
         @clear="handleClear"
       >
-        <template v-if="showPrefix && (prefixIcon || defaultPrefixIcon)" #prefix>
-          <IconifyIconOnline :icon="prefixIcon || defaultPrefixIcon" class="sc-password-input__prefix-icon" />
+        <template #prefix>
+          <slot name="prefix">
+            <IconifyIconOnline
+              v-if="showPrefix && (prefixIcon || defaultPrefixIcon)"
+              :icon="prefixIcon || defaultPrefixIcon"
+              class="sc-password-input__prefix-icon"
+            />
+          </slot>
         </template>
-        <template v-if="tip && tipPosition === 'right'" #suffix>
-          <ScTooltip :content="tip" placement="top">
-            <IconifyIconOnline icon="ri:question-line" class="sc-password-input__tip-icon" />
+        <template #suffix>
+          <slot name="suffix" />
+          <ScTooltip v-if="tip && tipPosition === 'right'" :content="tip" placement="top">
+            <IconifyIconOnline
+              icon="ri:question-line"
+              class="sc-password-input__tip-icon"
+            />
           </ScTooltip>
         </template>
-        <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
-          <slot :name="name" v-bind="slotData || {}" />
+        <template v-if="$slots.prepend" #prepend>
+          <slot name="prepend" />
         </template>
-      </ScInput>
+        <template v-if="$slots.append" #append>
+          <slot name="append" />
+        </template>
+      </ElInput>
     </div>
     <div v-if="tip && tipPosition === 'bottom'" class="sc-password-input__tip-bottom">
       {{ tip }}
@@ -53,9 +72,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
+import { ElInput } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import { getDefaultIcon } from "../defaultIcons";
+import { ScTooltip } from "@repo/components/ScTooltip";
 
 interface Props {
   /**

@@ -167,20 +167,6 @@ import { ScDictSelect } from "@repo/components/ScDictSelect"
 import { ScRow } from "@repo/components/ScRow"
 import { ScCol } from "@repo/components/ScCol"
 import {  } from "@repo/components/";
-import { ScDialog } from "@repo/components/ScDialog"
-import { ScForm } from "@repo/components/ScForm"
-import { ScFormItem } from "@repo/components/ScFormItem"
-import { ScInput } from "@repo/components/ScInput"
-import { ScCron } from "@repo/components/ScCron"
-import { ScRadio } from "@repo/components/ScRadio"
-import { ScRadioButton } from "@repo/components/ScRadioButton"
-import { ScSelect } from "@repo/components/ScSelect"
-import { ScOption } from "@repo/components/ScOption"
-import { ScSwitch } from "@repo/components/ScSwitch"
-import { ScDictSelect } from "@repo/components/ScDictSelect"
-import { ScRow } from "@repo/components/ScRow"
-import { ScCol } from "@repo/components/ScCol"
-import {  } from "@repo/components/";
 import { message } from "@repo/utils";
 
 const emit = defineEmits(["success", "close"]);

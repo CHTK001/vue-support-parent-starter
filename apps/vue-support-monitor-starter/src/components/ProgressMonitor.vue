@@ -140,8 +140,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted } from "vue";
-import { useGlobalSocket, MonitorTopics } from "@repo/core";
+import { ref, computed, reactive, onMounted, onUnmounted, inject } from "vue";
+import { GlobalSocketKey, MonitorTopics } from "@repo/core";
+import { ScProgress } from "@repo/components/ScProgress";
 
 // 定义类型
 export interface OperationProgress {
@@ -285,7 +286,7 @@ const addNotification = (
 };
 
 // 获取全局Socket服务
-const globalSocket = useGlobalSocket();
+const globalSocket = inject(GlobalSocketKey, null);
 
 // 处理Socket事件
 function setupSocketListeners() {

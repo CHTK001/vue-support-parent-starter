@@ -5,7 +5,6 @@ import EightBitDrawer from "./themes/drawer/EightBit.vue";
 import SpringFestivalDrawer from "./themes/drawer/SpringFestival.vue";
 import HalloweenDrawer from "./themes/drawer/Halloween.vue";
 import ChristmasDrawer from "./themes/drawer/Christmas.vue";
-import FutureTechDrawer from "./themes/drawer/FutureTech.vue";
 
 // 主题组件映射
 const themeComponents = {
@@ -14,7 +13,7 @@ const themeComponents = {
   "spring-festival": SpringFestivalDrawer,
   halloween: HalloweenDrawer,
   christmas: ChristmasDrawer,
-  "future-tech": FutureTechDrawer,
+  "future-tech": DefaultDrawer,
 };
 
 const { CurrentComponent } = useThemeComponent(themeComponents, DefaultDrawer);

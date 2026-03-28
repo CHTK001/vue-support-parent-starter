@@ -2,6 +2,30 @@
   <div class="container-management system-container modern-bg">
     <ProgressMonitor />
 
+    <div class="page-hero">
+      <div class="hero-copy">
+        <span class="hero-eyebrow">Docker Control Plane</span>
+        <h1 class="hero-title">容器管理</h1>
+        <p class="hero-subtitle">
+          统一同步服务器容器，直接完成启停、重启、日志查看和容器终端操作。
+        </p>
+      </div>
+      <div class="hero-metrics">
+        <div class="metric-pill">
+          <span>同步范围</span>
+          <strong>{{ syncScopeLabel }}</strong>
+        </div>
+        <div class="metric-pill">
+          <span>服务器</span>
+          <strong>{{ serverOptions.length }}</strong>
+        </div>
+        <div class="metric-pill">
+          <span>已选容器</span>
+          <strong>{{ selectedIds.length }}</strong>
+        </div>
+      </div>
+    </div>
+
     <!-- 统计卡片 -->
     <div class="stats-row">
       <ScCard
@@ -313,23 +337,24 @@
 
     <!-- 容器详情对话框 -->
     <ContainerDetailDialog
+      v-if="detailDialogVisible"
       v-model:visible="detailDialogVisible"
       :container-data="currentContainer"
     />
 
     <!-- 容器日志对话框 -->
     <ContainerLogsDialog
+      v-if="logsDialogVisible"
       v-model:visible="logsDialogVisible"
       :container-data="currentContainer"
     />
 
-    <ServerTerminalDialog ref="terminalRef" />
+    <ServerTerminalDialog v-if="terminalMounted" ref="terminalRef" />
   </div>
 </template>
 
 <script setup lang="ts">
 import ProgressMonitor from "@/components/ProgressMonitor.vue";
-import ServerTerminalDialog from "@/views/server/modules/server-management/components/ServerTerminalDialog.vue";
 import { getServerInfo, sendServerData } from "@/api/server";
 import {
   containerApi,
@@ -339,9 +364,27 @@ import {
 import ScTable from "@repo/components/ScTable/index.vue";
 import { ScCard } from "@repo/components/ScCard";
 import { message, messageBox } from "@repo/utils";
-import { computed, onMounted, reactive, ref } from "vue";
-import ContainerDetailDialog from "./components/ContainerDetailDialog.vue";
-import ContainerLogsDialog from "./components/ContainerLogsDialog.vue";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
+
+const ContainerDetailDialog = defineAsyncComponent(
+  () => import("./components/ContainerDetailDialog.vue"),
+);
+const ContainerLogsDialog = defineAsyncComponent(
+  () => import("./components/ContainerLogsDialog.vue"),
+);
+const ServerTerminalDialog = defineAsyncComponent(
+  () =>
+    import(
+      "@/views/server/modules/server-management/components/ServerTerminalDialog.vue"
+    ),
+);
 
 // 响应式数据
 const loading = ref(false);
@@ -351,6 +394,7 @@ const serverOptions = ref<any[]>([]);
 const detailDialogVisible = ref(false);
 const logsDialogVisible = ref(false);
 const currentContainer = ref<SystemSoftContainer | null>(null);
+const terminalMounted = ref(false);
 
 // 统计数据（从后端 API 获取）
 const runningCount = ref(0);
@@ -380,6 +424,23 @@ const searchParams = reactive({
   serverId: "",
   size: 10,
   page: 1,
+});
+
+const selectedServer = computed(() =>
+  serverOptions.value.find(
+    (item) => String(item.id) === String(searchParams.serverId || ""),
+  ),
+);
+
+const syncScopeLabel = computed(() => {
+  if (!selectedServer.value) {
+    return "全部服务器";
+  }
+
+  const hostSuffix = selectedServer.value.host
+    ? ` (${selectedServer.value.host})`
+    : "";
+  return `${selectedServer.value.name}${hostSuffix}`;
 });
 
 // 刷新表格
@@ -550,9 +611,13 @@ const handleDelete = async (container: SystemSoftContainer) => {
 const handleSyncStatus = async () => {
   try {
     syncLoading.value = true;
-    const response = await containerApi.syncContainerStatus();
+    const serverId = searchParams.serverId
+      ? Number(searchParams.serverId)
+      : undefined;
+    const response = await containerApi.syncContainerStatus(serverId);
     if (response.code === "00000") {
-      message.success("容器状态同步成功");
+      const syncCount = Number(response.data || 0);
+      message.success(`容器状态同步成功，已同步 ${syncCount} 条记录`);
       handleRefresh();
     } else {
       message.error(response.msg || "同步失败");
@@ -695,6 +760,14 @@ onMounted(() => {
 
 const terminalRef = ref();
 
+const waitForTerminalDialog = async (timeout = 3000) => {
+  const start = Date.now();
+  while (!terminalRef.value && Date.now() - start < timeout) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return !!terminalRef.value;
+};
+
 async function openExec(row: any) {
   try {
     // 获取服务器信息
@@ -705,6 +778,14 @@ async function openExec(row: any) {
     const { data, code, msg } = await getServerInfo(serverId);
     if (code !== 0 || !data)
       return message.error(msg || "获取服务器信息失败");
+
+    terminalMounted.value = true;
+    await nextTick();
+
+    const terminalReady = await waitForTerminalDialog();
+    if (!terminalReady) {
+      return message.error("终端组件加载失败");
+    }
 
     // 打开终端并设置数据
     // ServerTerminalDialog 暴露 setData/open 方法
@@ -760,6 +841,81 @@ async function openExec(row: any) {
     position: relative;
     z-index: 1;
   }
+}
+
+.page-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 28px;
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.92), rgba(14, 165, 164, 0.82)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  color: #f8fffe;
+  box-shadow: 0 18px 45px rgba(15, 118, 110, 0.18);
+}
+
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(248, 255, 254, 0.9);
+}
+
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
+  gap: 12px;
+  min-width: 360px;
+}
+
+.metric-pill {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 86px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.metric-pill span {
+  font-size: 12px;
+  color: rgba(248, 255, 254, 0.76);
+}
+
+.metric-pill strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 
@@ -1394,6 +1550,20 @@ async function openExec(row: any) {
 @media (max-width: 768px) {
   .container-management {
     padding: 16px;
+  }
+
+  .page-hero {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .hero-title {
+    font-size: 24px;
+  }
+
+  .hero-metrics {
+    grid-template-columns: 1fr;
+    min-width: auto;
   }
 
   .modern-header {

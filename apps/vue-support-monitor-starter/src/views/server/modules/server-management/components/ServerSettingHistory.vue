@@ -22,7 +22,7 @@
             <IconifyIconOnline icon="ri:download-line" class="mr-1" />
             导出
           </ScButton>
-        </ScButton-group>
+        </el-button-group>
       </div>
     </div>
 
@@ -200,7 +200,7 @@
                 <IconifyIconOnline icon="ri:git-compare-line" class="mr-1" />
                 对比
               </ScButton>
-            </ScButton-group>
+            </el-button-group>
           </template>
         </ScTableColumn>
       </ScTable>

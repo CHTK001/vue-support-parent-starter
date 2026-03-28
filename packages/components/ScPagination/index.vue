@@ -1,7 +1,7 @@
 <template>
   <div v-if="!hidePagination || !hideDo" class="scTable-page">
     <div class="scTable-pagination">
-      <ScPagination
+      <ElPagination
         v-if="!hidePagination"
         v-model:currentPage="currentPage"
         background
@@ -19,59 +19,58 @@
     </div>
   </div>
 </template>
-<script>
+<script setup>
+import { ElPagination } from "element-plus";
+import { ref, watch } from "vue";
 import config from "./setting";
 
-export default {
-  name: "scPagination",
-  components: {},
-  props: {
-    pageSize: { type: Number, default: config.pageSize },
-    pageSizes: { type: Array, default: config.pageSizes },
-    hidePagination: { type: Boolean, default: false },
-    size: { type: String, default: "default" },
-    total: { type: Number, default: 0 },
-    dataChange: { type: Function, default: () => {} },
-    hideDo: { type: Boolean, default: false },
-    hideRefresh: { type: Boolean, default: false },
-    paginationLayout: { type: String, default: config.paginationLayout }
+defineOptions({
+  name: "ScPagination",
+});
+
+const props = defineProps({
+  pageSize: { type: Number, default: config.pageSize },
+  pageSizes: { type: Array, default: () => config.pageSizes },
+  hidePagination: { type: Boolean, default: false },
+  size: { type: String, default: "default" },
+  total: { type: Number, default: 0 },
+  hideDo: { type: Boolean, default: false },
+  hideRefresh: { type: Boolean, default: false },
+  paginationLayout: { type: String, default: config.paginationLayout },
+});
+
+const emit = defineEmits(["dataChange"]);
+const scPageSize = ref(props.pageSize);
+const currentPage = ref(1);
+const page = ref(1);
+
+watch(
+  () => props.pageSize,
+  (value) => {
+    scPageSize.value = value;
   },
-  data() {
-    return {
-      scPageSize: this.pageSize,
-      currentPage: 1,
-      customColumnShow: false,
-      summary: {},
-      config: {
-        size: this.size,
-        border: this.border,
-        stripe: this.stripe
-      },
-      page: 1
-    };
-  },
-  mounted() {},
-  methods: {
-    //刷新数据
-    refresh() {
-      this.getData();
-    },
-    //获取数据
-    getData() {
-      this.$emit("dataChange", { pageSize: this.scPageSize, page: this.page });
-    },
-    //分页点击
-    paginationChange(page) {
-      this.page = page;
-      this.getData();
-    },
-    //条数变化
-    pageSizeChange(size) {
-      this.scPageSize = size;
-      this.getData();
-    }
-  }
-};
+);
+
+function getData() {
+  emit("dataChange", { pageSize: scPageSize.value, page: page.value });
+}
+
+function refresh() {
+  getData();
+}
+
+function paginationChange(nextPage) {
+  page.value = nextPage;
+  currentPage.value = nextPage;
+  getData();
+}
+
+function pageSizeChange(nextSize) {
+  scPageSize.value = nextSize;
+  page.value = 1;
+  currentPage.value = 1;
+  getData();
+}
 </script>
 
 <style>

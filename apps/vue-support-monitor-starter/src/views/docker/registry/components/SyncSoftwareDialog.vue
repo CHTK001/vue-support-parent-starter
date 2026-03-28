@@ -278,32 +278,6 @@ const handleSubmit = async () => {
 
     const response = await softwareApi.syncSoftwareFromRegistry(params);
     if (response.code === "00000") {
-      // 开始监听同步进度
-      if (response.data?.operationId) {
-        startOperation({
-          id: response.data.operationId,
-          type: "sync_software",
-          title: "同步软件信息",
-          message: "正在同步软件信息...",
-        });
-
-        // 订阅进度更新
-        const unsubscribe = subscribeOperation(
-          response.data.operationId,
-          (operation) => {
-            if (
-              operation.status === "success" ||
-              operation.status === "error"
-            ) {
-              unsubscribe();
-              if (operation.status === "success") {
-                emit("success");
-              }
-            }
-          },
-        );
-      }
-
       message("软件同步任务已启动，请查看进度", { type: "success" });
       emit("success");
       handleClose();

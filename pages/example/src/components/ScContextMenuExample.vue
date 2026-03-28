@@ -131,7 +131,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScContextMenu } from "@repo/components/ScContextMenu"
 const menuRef = ref();
 
 const menus = [

@@ -144,7 +144,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScFile } from "@repo/components/ScFile"
 const path = ref("");
 
 const loadFiles = async (params) => {

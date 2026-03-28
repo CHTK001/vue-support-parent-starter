@@ -510,7 +510,6 @@
 import { ref, reactive, computed } from "vue";
 import { ScDialog } from "@repo/components/ScDialog"
 import ScDialogTaskbar from "@repo/components/ScDialog/src/ScDialogTaskbar.vue";
-import { ScDialog } from "@repo/components/ScDialog"
 import { message } from "@repo/utils";
 import CodePreview from "./CodePreview.vue";
 

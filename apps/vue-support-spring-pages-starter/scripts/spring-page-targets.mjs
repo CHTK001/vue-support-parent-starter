@@ -63,6 +63,24 @@ export const springPageTargets = {
       "proxy-console",
     ),
   },
+  "spider-console": {
+    label: "Spider Console",
+    pageKey: "spider-console",
+    maxOldSpaceSize: "4096",
+    viteEnv: {
+      VITE_SPRING_API_ROOT: "../v1/spider/",
+      VITE_SPRING_AUTH_BASE_PATH: "../v1/spider/auth/",
+    },
+    targetDir: resolve(
+      springApiRoot,
+      "spring-api-support-monitor-starter",
+      "src",
+      "main",
+      "resources",
+      "static",
+      "spider-console",
+    ),
+  },
   "strategy-console": {
     label: "Strategy Console",
     pageKey: "strategy-console",

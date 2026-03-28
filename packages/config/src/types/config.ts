@@ -24,6 +24,16 @@ export interface PlatformConfigs {
   ApiAddress?: string;
   /** 是否自动提示错误信息 */
   AutoErrorMessage?: boolean;
+  /** 是否开启全局 Socket 能力 */
+  SocketOpen?: boolean;
+  /** 是否在应用启动阶段自动建立默认全局 Socket 连接 */
+  SocketStartupConnect?: boolean;
+  /** 默认全局 Socket 地址，多个地址使用逗号分隔 */
+  SocketUrl?: string;
+  /** 默认全局 Socket 协议 */
+  SocketProtocol?: string;
+  /** 默认全局 Socket 路径 */
+  SocketPath?: string;
 
   // ===========================================
   // 角色权限配置
@@ -349,6 +359,12 @@ export interface RequestConfig {
   enable?: boolean;
   /** 是否开启请求签名（x-sign），默认 true */
   enableSign?: boolean;
+  /** 是否开启请求体加密，默认 false */
+  enableEncrypt?: boolean;
+  /** 请求体加密密钥 */
+  codecRequestKey?: string;
+  /** 请求签名密钥 */
+  secretKey?: string;
 }
 
 /**

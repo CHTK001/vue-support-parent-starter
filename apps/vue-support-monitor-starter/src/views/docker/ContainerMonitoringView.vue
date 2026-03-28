@@ -64,9 +64,11 @@
         :loading="loading"
         :pagination="pagination"
         :show-pagination="true"
+        :show-selection="true"
         @view-detail="handleViewDetail"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
+        @selection-change="handleSelectionChange"
       />
     </ScCard>
 
@@ -92,7 +94,9 @@ import {
   type SystemSoftContainer,
 } from "@/api/docker";
 import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 // 导入组件
 import ContainerActionToolbar from "@/views/docker/detail/components/ContainerActionToolbar.vue";
@@ -112,6 +116,8 @@ const detailDialogVisible = ref(false);
 const logsDialogVisible = ref(false);
 const currentContainer = ref<SystemSoftContainer | null>(null);
 const containerStats = ref<ContainerStatusStatistics>({ total: 0 });
+const selectedContainers = ref<SystemSoftContainer[]>([]);
+const router = useRouter();
 
 // 搜索参数
 const searchParams = reactive({
@@ -277,31 +283,120 @@ const handleResetFilter = () => {
 
 // 创建容器
 const handleCreateContainer = () => {
-  message("创建容器功能待实现", { type: "info" });
+  router.push({ path: "/docker/images" });
+  message("请在镜像管理中选择镜像并创建容器", { type: "info" });
 };
 
 // 导出数据
 const handleExport = () => {
-  message("导出数据功能待实现", { type: "info" });
+  const data =
+    selectedContainers.value.length > 0
+      ? selectedContainers.value
+      : containerList.value;
+  if (!data.length) {
+    return message("没有可导出的容器数据", { type: "warning" });
+  }
+
+  const headers = [
+    "容器ID",
+    "DockerID",
+    "容器名称",
+    "镜像",
+    "状态",
+    "服务器ID",
+    "CPU(%)",
+    "内存(%)",
+    "创建时间",
+  ];
+
+  const rows = data.map((item) => [
+    item.systemSoftContainerId ?? "",
+    item.systemSoftContainerDockerId ?? "",
+    item.systemSoftContainerName ?? "",
+    item.systemSoftContainerImage
+      ? `${item.systemSoftContainerImage}:${item.systemSoftContainerImageTag || "latest"}`
+      : "",
+    item.systemSoftContainerStatus ?? "",
+    item.systemServerId ?? "",
+    item.systemSoftContainerCpuPercent ??
+      item.systemSoftContainerCpuUsage ??
+      "",
+    item.systemSoftContainerMemoryPercent ??
+      item.systemSoftContainerMemoryUsage ??
+      "",
+    item.systemSoftContainerCreatedTime ?? "",
+  ]);
+
+  const csv = [headers, ...rows]
+    .map((row) =>
+      row
+        .map((cell) => {
+          const text = String(cell ?? "");
+          return `"${text.replace(/"/g, '""')}"`;
+        })
+        .join(","),
+    )
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `docker-containers-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 };
 
 // 批量操作
 const handleBatchOperation = (command: string) => {
   switch (command) {
     case "batchStart":
-      message("批量启动功能待实现", { type: "info" });
+      performBatchOperation("start", "启动");
       break;
     case "batchStop":
-      message("批量停止功能待实现", { type: "info" });
+      performBatchOperation("stop", "停止");
       break;
     case "batchRestart":
-      message("批量重启功能待实现", { type: "info" });
+      performBatchOperation("restart", "重启");
       break;
     case "batchRemove":
-      message("批量删除功能待实现", { type: "info" });
+      performBatchOperation("remove", "删除");
       break;
     default:
       message("未知操作", { type: "warning" });
+  }
+};
+
+const performBatchOperation = async (operation: string, label: string) => {
+  const ids = selectedContainers.value
+    .map((item) => item.systemSoftContainerId)
+    .filter((id) => id != null) as number[];
+
+  if (!ids.length) {
+    return message("请先选择容器", { type: "warning" });
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确认批量${label}选中的 ${ids.length} 个容器？`,
+      "提示",
+      { type: "warning" },
+    );
+
+    const res = await containerApi.batchOperateContainers({
+      containerIds: ids,
+      operation,
+    });
+    if (res.code === "00000") {
+      message(`批量${label}完成`, { type: "success" });
+      loadContainerList();
+      loadContainerStats();
+    } else {
+      message(res.msg || `批量${label}失败`, { type: "error" });
+    }
+  } catch (error) {
+    if (String(error) !== "cancel") {
+      message(`批量${label}失败`, { type: "error" });
+    }
   }
 };
 
@@ -315,6 +410,10 @@ const handleViewDetail = (container: SystemSoftContainer) => {
 const handleViewLogs = (container: SystemSoftContainer) => {
   currentContainer.value = container;
   logsDialogVisible.value = true;
+};
+
+const handleSelectionChange = (selection: SystemSoftContainer[]) => {
+  selectedContainers.value = selection;
 };
 
 // 分页处理

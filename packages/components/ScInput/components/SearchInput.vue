@@ -1,28 +1,46 @@
 <template>
-  <ScInput
+  <ElInput
     v-model="currentValue"
     class="sc-search-input"
-    type="search"
     v-bind="$attrs"
-    @update:modelValue="handleUpdate"
+    :placeholder="placeholder"
+    :disabled="disabled"
+    :maxlength="maxlength"
+    :clearable="clearable && !disabled"
+    :show-word-limit="showWordLimit"
+    :autofocus="autofocus"
+    @update:model-value="handleUpdate"
     @change="handleChange"
     @input="handleInput"
     @focus="handleFocus"
     @blur="handleBlur"
     @clear="handleClear"
-    @search="handleSearch"
+    @keyup.enter="handleSearch"
   >
-    <template #prefix v-if="showPrefix">
-      <IconifyIconOnline :icon="prefixIcon || defaultPrefixIcon" class="sc-search-input__prefix-icon" />
+    <template #prefix>
+      <slot name="prefix">
+        <IconifyIconOnline
+          v-if="showPrefix"
+          :icon="prefixIcon || defaultPrefixIcon"
+          class="sc-search-input__prefix-icon"
+        />
+      </slot>
     </template>
-    <template v-for="(_, name) in $slots" v-if="name !== 'prefix'" #[name]="slotData" :key="name">
-      <slot :name="name" v-bind="slotData || {}" />
+    <template v-if="$slots.suffix" #suffix>
+      <slot name="suffix" />
     </template>
-  </ScInput>
+    <template v-if="$slots.prepend" #prepend>
+      <slot name="prepend" />
+    </template>
+    <template v-if="$slots.append" #append>
+      <slot name="append" />
+    </template>
+  </ElInput>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ElInput } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { getDefaultIcon } from "../defaultIcons";
 
@@ -87,7 +105,15 @@ const props = withDefaults(defineProps<Props>(), {
   autofocus: false
 });
 
-const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "search"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "change",
+  "input",
+  "focus",
+  "blur",
+  "clear",
+  "search",
+]);
 
 const currentValue = computed({
   get: () => props.modelValue,

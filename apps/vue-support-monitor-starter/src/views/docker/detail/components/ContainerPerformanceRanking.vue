@@ -47,7 +47,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
+import { containerApi, type SystemSoftContainer } from "@/api/docker";
 
 interface RankingItem {
   rank: number;
@@ -61,57 +62,49 @@ interface RankingItem {
 // 响应式数据
 const rankingType = ref("cpu");
 const rankingData = ref<RankingItem[]>([]);
+const loading = ref(false);
 
 // 获取排行榜数据
 const fetchRankingData = async () => {
-  try {
-    // 这里使用模拟数据，实际应用中应该从API获取真实数据
-    const mockData: RankingItem[] = [
-      {
-        rank: 1,
-        containerId: 1001,
-        containerName: "nginx-proxy",
-        imageName: "nginx:latest",
-        value: 95.2,
-        unit: "%",
-      },
-      {
-        rank: 2,
-        containerId: 1002,
-        containerName: "mysql-db",
-        imageName: "mysql:8.0",
-        value: 87.6,
-        unit: "%",
-      },
-      {
-        rank: 3,
-        containerId: 1003,
-        containerName: "redis-cache",
-        imageName: "redis:alpine",
-        value: 72.3,
-        unit: "%",
-      },
-      {
-        rank: 4,
-        containerId: 1004,
-        containerName: "node-app",
-        imageName: "node:16-alpine",
-        value: 65.8,
-        unit: "%",
-      },
-      {
-        rank: 5,
-        containerId: 1005,
-        containerName: "mongo-db",
-        imageName: "mongo:latest",
-        value: 58.4,
-        unit: "%",
-      },
-    ];
+  if (loading.value) return;
+  loading.value = true;
 
-    rankingData.value = mockData;
+  try {
+    const response = await containerApi.getContainerPageList({
+      page: 1,
+      size: 200,
+    });
+    if (response.code !== "00000") return;
+
+    const records: SystemSoftContainer[] = response.data.records || [];
+    const ranked = records
+      .map((item) => {
+        const value = getMetricValue(item);
+        return {
+          containerId: item.systemSoftContainerId || 0,
+          containerName: item.systemSoftContainerName || "-",
+          imageName: item.systemSoftContainerImage
+            ? `${item.systemSoftContainerImage}:${item.systemSoftContainerImageTag || "latest"}`
+            : "-",
+          value,
+        };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+      .map((item, index) => ({
+        rank: index + 1,
+        containerId: item.containerId,
+        containerName: item.containerName,
+        imageName: item.imageName,
+        value: item.value,
+        unit: getMetricUnit(),
+      }));
+
+    rankingData.value = ranked;
   } catch (error) {
     console.error("获取排行榜数据失败:", error);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -130,11 +123,79 @@ const getRankClass = (rank: number) => {
 
 // 格式化值显示
 const formatValue = (value: number, unit: string) => {
+  if (unit === "%") {
+    return `${value.toFixed(1)}${unit}`;
+  }
+  if (unit === "B") {
+    return formatBytes(value);
+  }
   return `${value.toFixed(1)}${unit}`;
+};
+
+const getMetricUnit = () => {
+  switch (rankingType.value) {
+    case "cpu":
+    case "memory":
+      return "%";
+    case "network":
+    case "disk":
+      return "B";
+    default:
+      return "%";
+  }
+};
+
+const getMetricValue = (item: any) => {
+  switch (rankingType.value) {
+    case "cpu":
+      return Number(
+        item.systemSoftContainerCpuPercent ||
+          item.systemSoftContainerCpuUsage ||
+          0,
+      );
+    case "memory":
+      return Number(
+        item.systemSoftContainerMemoryPercent ||
+          item.systemSoftContainerMemoryUsage ||
+          0,
+      );
+    case "network":
+      return Number(
+        (item.systemSoftContainerStatsNetworkRxBytes ||
+          item.systemSoftContainerNetworkRx ||
+          0) +
+          (item.systemSoftContainerStatsNetworkTxBytes ||
+            item.systemSoftContainerNetworkTx ||
+            0),
+      );
+    case "disk":
+      return Number(
+        (item.systemSoftContainerStatsDiskRead ||
+          item.systemSoftContainerDiskRead ||
+          0) +
+          (item.systemSoftContainerStatsDiskWrite ||
+            item.systemSoftContainerDiskWrite ||
+            0),
+      );
+    default:
+      return 0;
+  }
+};
+
+const formatBytes = (bytes: number) => {
+  if (!bytes) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 };
 
 // 组件挂载时获取数据
 onMounted(() => {
+  fetchRankingData();
+});
+
+watch(rankingType, () => {
   fetchRankingData();
 });
 </script>

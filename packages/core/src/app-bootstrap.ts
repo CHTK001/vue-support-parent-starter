@@ -8,6 +8,37 @@ import type { App, Directive, DirectiveBinding } from "vue";
 import type { Router } from "vue-router";
 import type { SocketServiceConfig } from "./config/socketService";
 
+let coreStylesPromise: Promise<void> | null = null;
+
+function isBootDebugEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return (
+      params.has("__bootDebug") ||
+      window.localStorage?.getItem("sys-boot-debug") === "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function bootDebugLog(message: string, detail?: unknown): void {
+  if (!isBootDebugEnabled()) {
+    return;
+  }
+
+  if (detail === undefined) {
+    console.info(`[AppBootstrap] ${message}`);
+    return;
+  }
+
+  console.info(`[AppBootstrap] ${message}`, detail);
+}
+
 // ─────────────────────────────────────────────
 // 类型定义
 // ─────────────────────────────────────────────
@@ -104,6 +135,27 @@ export class AppBootstrap {
   }
 
   registerCoreStyles(): this {
+    if (!coreStylesPromise) {
+      coreStylesPromise = (async () => {
+        try {
+          bootDebugLog("registerCoreStyles:start");
+          await Promise.all([
+            import("element-plus/dist/index.css"),
+            import("element-plus/theme-chalk/dark/css-vars.css"),
+            import("tippy.js/dist/tippy.css"),
+            import("tippy.js/themes/light.css"),
+            import("@repo/assets/styles/layout/default/reset.scss"),
+            import("@repo/assets/styles/layout/default/tailwind.css"),
+            import("@repo/assets/styles/layout/default/index.scss"),
+          ]);
+          bootDebugLog("registerCoreStyles:done");
+        } catch (error) {
+          console.error("[AppBootstrap] 核心样式加载失败:", error);
+        }
+      })();
+    }
+
+    this.initPromises.push(coreStylesPromise);
     return this;
   }
 
@@ -143,8 +195,10 @@ export class AppBootstrap {
   registerEncryptedFonts(): this {
     const promise = (async () => {
       try {
+        bootDebugLog("registerEncryptedFonts:start");
         const { registerEncryptedFonts } = await import("@repo/font-encryption");
         await registerEncryptedFonts();
+        bootDebugLog("registerEncryptedFonts:done");
       } catch (error) {
         console.warn("[AppBootstrap] 字体加密模块加载失败:", error);
       }
@@ -156,7 +210,12 @@ export class AppBootstrap {
   registerRouter(router: Router): this {
     this.router = router;
     this.app.use(router);
-    this.initPromises.push(router.isReady());
+    bootDebugLog("registerRouter:wait", router.currentRoute.value.fullPath);
+    this.initPromises.push(
+      router.isReady().then(() => {
+        bootDebugLog("registerRouter:ready", router.currentRoute.value.fullPath);
+      }),
+    );
     return this;
   }
 
@@ -173,9 +232,11 @@ export class AppBootstrap {
     const promise = (async () => {
       try {
         const pluginList = typeof plugins === "function" ? await plugins() : plugins;
+        bootDebugLog("registerPlugins:start", pluginList?.length || 0);
         for (const plugin of pluginList) {
           if (plugin) this.app.use(plugin);
         }
+        bootDebugLog("registerPlugins:done", pluginList?.length || 0);
       } catch (error) {
         console.error("[AppBootstrap] 插件注册失败:", error);
       }
@@ -200,7 +261,9 @@ export class AppBootstrap {
 
   async registerWasm(initWasm: () => Promise<void>): Promise<this> {
     try {
+      bootDebugLog("registerWasm:start");
       await initWasm();
+      bootDebugLog("registerWasm:done");
     } catch (error) {
       console.warn("[AppBootstrap] WASM 模块加载失败:", error);
     }
@@ -246,7 +309,9 @@ export class AppBootstrap {
 
   async mount(selector: string): Promise<void> {
     try {
+      bootDebugLog("mount:await-initPromises", this.initPromises.length);
       await Promise.all(this.initPromises);
+      bootDebugLog("mount:initPromises-resolved", selector);
       this.app.mount(selector);
       this.hideInitialLoader();
       console.log("[AppBootstrap] 应用启动成功");
@@ -304,6 +369,7 @@ function resolveWasmEnabled(mode: WasmMode): boolean {
 export async function createStandardApp(
   options: StandardAppOptions = {},
 ): Promise<AppBootstrap> {
+  bootDebugLog("createStandardApp:start");
   const {
     enableWasm = "AUTO",
     enableTippy = true,
@@ -328,6 +394,7 @@ export async function createStandardApp(
   const wasmInitPromise = resolveWasmEnabled(enableWasm)
     ? import("@repo/codec-wasm")
         .then(async ({ initializeWasmModule }) => {
+          bootDebugLog("createStandardApp:wasm-imported");
           const result = await initializeWasmModule();
           if (!result) {
             throw new Error("WASM 模块初始化失败");
@@ -387,12 +454,14 @@ export async function createStandardApp(
   const { ScDrawer } = await import("@repo/components/ScDrawer");
   const { ScDialog } = await import("@repo/components/ScDialog");
   const { ScTooltip } = await import("@repo/components/ScTooltip");
+  bootDebugLog("createStandardApp:base-imports-ready");
 
   // 3. 创建应用实例
   const app = createApp(AppRoot);
 
   // 4. 获取平台配置
   const config = await getPlatformConfig(app);
+  bootDebugLog("createStandardApp:config-ready");
 
   // 4.1 初始化加载动画样式
   try {
@@ -410,7 +479,8 @@ export async function createStandardApp(
   }
 
   // 5. 创建 bootstrap
-  const bootstrap = new AppBootstrap(app);
+  const bootstrap = new AppBootstrap(app).registerCoreStyles();
+  bootDebugLog("createStandardApp:bootstrap-created");
 
   if (wasmInitPromise) {
     await bootstrap.registerWasm(() => wasmInitPromise);
@@ -438,6 +508,7 @@ export async function createStandardApp(
   } else if (Object.keys(directives).length > 0) {
     bootstrap.registerDirectives(directives);
   }
+  bootDebugLog("createStandardApp:directives-ready");
 
   // 5.2 字体加密指令
   if (enableFontEncryption !== false) {
@@ -469,6 +540,7 @@ export async function createStandardApp(
       bootstrap.registerDirective("font-encryption", vFontEncryption);
     }
   }
+  bootDebugLog("createStandardApp:font-directive-ready");
 
   // 5.3 注册核心组件
   bootstrap
@@ -517,6 +589,7 @@ export async function createStandardApp(
   if (Object.keys(components).length > 0) {
     bootstrap.registerGlobalComponents(components);
   }
+  bootDebugLog("createStandardApp:components-ready");
 
   // 5.4 注册第三方插件
   if (enableTippy) {
@@ -546,13 +619,16 @@ export async function createStandardApp(
     .use(() => injectResponsiveStorage(app, config))
     .registerPlugins([...corePlugins, ...plugins, ...socketPlugins])
     .registerEncryptedFonts();
+  bootDebugLog("createStandardApp:core-bootstrap-registered");
 
   // 5.6 全局 Socket 服务初始化
   if (socket) {
     bootstrap.use(async () => {
       try {
+        bootDebugLog("createStandardApp:socket-service:start");
         const { initGlobalSocketService } = await import("./config/socketService");
         initGlobalSocketService(socket);
+        bootDebugLog("createStandardApp:socket-service:done");
       } catch (error) {
         console.warn("[createStandardApp] 全局 Socket 服务初始化失败:", error);
       }
@@ -563,14 +639,17 @@ export async function createStandardApp(
   if (socketSetup) {
     bootstrap.use(() => socketSetup(activeRouter));
   }
+  bootDebugLog("createStandardApp:socket-setup-registered");
 
   // 5.8 主题系统
   if (enableTheme) {
     bootstrap.use(async () => {
       try {
+        bootDebugLog("createStandardApp:theme:start");
         const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components/hooks");
         await autoRegisterThemePlugins(app);
         await initThemeSystem();
+        bootDebugLog("createStandardApp:theme:done");
       } catch (error) {
         console.warn("[createStandardApp] 主题系统初始化失败:", error);
       }
@@ -592,8 +671,11 @@ export async function createStandardApp(
 
   // 5.10 自定义初始化
   if (setup) {
+    bootDebugLog("createStandardApp:custom-setup:start");
     await bootstrap.useAsync(async (app) => { await setup(app, config); });
+    bootDebugLog("createStandardApp:custom-setup:done");
   }
 
+  bootDebugLog("createStandardApp:ready");
   return bootstrap;
 }

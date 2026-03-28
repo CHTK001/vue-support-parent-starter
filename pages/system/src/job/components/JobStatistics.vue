@@ -99,14 +99,6 @@ import { ScRadioButton } from "@repo/components/ScRadioButton"
 import { ScNumber } from "@repo/components/ScNumber"
 import { ScEcharts } from "@repo/components/ScEcharts"
 import {  } from "@repo/components/";
-import { ScCard } from "@repo/components/ScCard"
-import { ScRow } from "@repo/components/ScRow"
-import { ScCol } from "@repo/components/ScCol"
-import { ScRadio } from "@repo/components/ScRadio"
-import { ScRadioButton } from "@repo/components/ScRadioButton"
-import { ScNumber } from "@repo/components/ScNumber"
-import { ScEcharts } from "@repo/components/ScEcharts"
-import {  } from "@repo/components/";
 
 const period = ref("today");
 

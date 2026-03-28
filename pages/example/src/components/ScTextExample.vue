@@ -315,7 +315,6 @@ const codes = {
 />
 
 <script setup>
-import { ref } from "vue";
 const editableText = ref("点击编辑这段文字");
 
 function handleEdit(value) {

@@ -207,15 +207,7 @@ import { ScCol } from "@repo/components/ScCol"
 import { ScNumber } from "@repo/components/ScNumber"
 import { ScButton } from "@repo/components/ScButton"
 import { ScEmpty } from "@repo/components/ScEmpty"
-import {  } from "@repo/components/";
-import { ScCard } from "@repo/components/ScCard"
-import { ScRow } from "@repo/components/ScRow"
-import { ScCol } from "@repo/components/ScCol"
-import { ScNumber } from "@repo/components/ScNumber"
-import { ScButton } from "@repo/components/ScButton"
-import { ScEmpty } from "@repo/components/ScEmpty"
-import {  } from "@repo/components/";
-import { ScMessage } from "@repo/utils";
+import { ScMessage, subscribeClock } from "@repo/utils";
 
 // 用户信息
 const userInfo = reactive({
@@ -287,8 +279,8 @@ const getGreeting = () => {
 };
 
 // 更新时间
-const updateTime = () => {
-  const now = new Date();
+const updateTime = (nowValue = Date.now()) => {
+  const now = new Date(nowValue);
   currentDate.value = now.toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "long",
@@ -322,20 +314,18 @@ const handleQuickAction = (action: string) => {
   // TODO: 实现具体的快捷操作
 };
 
-// 定时器
-let timer: NodeJS.Timeout;
+let stopClockSubscription: (() => void) | null = null;
 
 // 生命周期
 onMounted(() => {
   updateTime();
-  timer = setInterval(updateTime, 1000);
+  stopClockSubscription = subscribeClock(updateTime);
   loadActivities();
 });
 
 onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer);
-  }
+  stopClockSubscription?.();
+  stopClockSubscription = null;
 });
 </script>
 

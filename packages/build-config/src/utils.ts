@@ -113,6 +113,8 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@repo/utils": resolve(root, "packages/utils"),
     "@repo/codec-wasm": codecWasmEntry,
     "@repo/codec-wasm/": `${resolve(codecWasmRoot, "src")}/`,
+    // 不为 @repo/components 设置基础别名，交给 workspace 包导出解析，
+    // 避免 @repo/components/ScXxx 被直接替换成目录路径后失去 exports/index 解析能力。
     // 注意：基础 @repo 必须放在最后，避免抢占更具体的 @repo/xxx 映射
     "@repo": resolve(root, "packages"),
   };

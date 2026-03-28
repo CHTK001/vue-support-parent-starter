@@ -18,6 +18,64 @@ export interface SocketMessageWrapper {
   dataId?: string | number;
 }
 
+const SOCKET_WILDCARD_HOSTS = new Set(["0.0.0.0", "::", "[::]"]);
+
+function getSocketRuntimeHostname(explicitHostname?: string): string | null {
+  if (explicitHostname?.trim()) {
+    return explicitHostname.trim();
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.location.hostname || null;
+}
+
+/**
+ * 将不可路由的 Socket 地址主机替换为当前页面主机，避免服务端下发 0.0.0.0
+ */
+export function normalizeSocketUrl(
+  rawUrl: string,
+  runtimeHostname?: string,
+): string {
+  const urlText = rawUrl?.trim();
+  if (!urlText) {
+    return rawUrl;
+  }
+
+  const baseOrigin =
+    typeof window !== "undefined" ? window.location.origin : undefined;
+
+  try {
+    const url = baseOrigin
+      ? new URL(urlText, baseOrigin)
+      : new URL(urlText);
+    if (!SOCKET_WILDCARD_HOSTS.has(url.hostname)) {
+      return url.toString();
+    }
+
+    const resolvedHostname = getSocketRuntimeHostname(runtimeHostname);
+    if (!resolvedHostname) {
+      return url.toString();
+    }
+
+    url.hostname = resolvedHostname;
+    return url.toString();
+  } catch {
+    return urlText;
+  }
+}
+
+export function normalizeSocketUrls(
+  urls: string[],
+  runtimeHostname?: string,
+): string[] {
+  return urls
+    .map((item) => normalizeSocketUrl(item, runtimeHostname))
+    .filter(Boolean);
+}
+
 /**
  * 解析Socket消息数据
  * 处理后端发送的加密/非加密数据格式
@@ -97,5 +155,5 @@ export function buildAuthUrl(
  * @returns WebSocket URL
  */
 export function toWebSocketUrl(httpUrl: string): string {
-  return httpUrl.replace(/^http/, "ws");
+  return normalizeSocketUrl(httpUrl).replace(/^http/, "ws");
 }

@@ -5,7 +5,6 @@ declare module "*.svg?component" {
 }
 
 declare module "@repo/assets/svg/*.svg?component" {
-  import type { FunctionalComponent, SVGAttributes } from "vue";
   const component: FunctionalComponent<SVGAttributes>;
   export default component;
 }
@@ -25,7 +24,6 @@ declare module "@repo/components/ReSegmented" {
 }
 
 declare module "@repo/components/ReSegmented/index" {
-  import type { DefineComponent } from "vue";
   export interface OptionsType {
     label?: any;
     icon?: any;

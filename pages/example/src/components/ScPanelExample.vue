@@ -399,7 +399,6 @@ const codes = {
 </ScPanel>
 
 <script setup>
-import { message } from "@repo/utils";
 
 function handleClose() {
   message("面板已关闭", { type: "info" });

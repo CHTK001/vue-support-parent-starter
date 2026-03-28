@@ -217,7 +217,7 @@
             <ScDescriptionsItem label="系统CPU"
               >{{
                 (jvmInfo.cpuInfo?.systemCpuLoad || 0).toFixed(1)
-              }}%</el-descriptions-item
+              }}%</ScDescriptionsItem
             >
           </ScDescriptions>
         </ScCard>
@@ -1915,13 +1915,13 @@
             >{{ selectedThread.blockedCount }} /
             {{
               formatDuration(selectedThread.blockedTime)
-            }}</el-descriptions-item
+            }}</ScDescriptionsItem
           >
           <ScDescriptionsItem label="等待次数/时间"
             >{{ selectedThread.waitedCount }} /
             {{
               formatDuration(selectedThread.waitedTime)
-            }}</el-descriptions-item
+            }}</ScDescriptionsItem
           >
           <ScDescriptionsItem
             label="锁信息"
@@ -2939,7 +2939,7 @@
                   (
                     optimizationAdvice.memoryAdvice.currentHeapUsage || 0
                   ).toFixed(1)
-                }}%</el-descriptions-item
+                }}%</ScDescriptionsItem
               >
               <ScDescriptionsItem label="内存压力评估">{{
                 optimizationAdvice.memoryAdvice.memoryPressureAssessment
@@ -3379,7 +3379,7 @@
             <ScDescriptionsItem label="间隔时间"
               >{{
                 ((memoryLeakAnalysis.intervalMs || 0) / 1000).toFixed(1)
-              }}秒</el-descriptions-item
+              }}秒</ScDescriptionsItem
             >
             <ScDescriptionsItem label="堆增长">
               <span

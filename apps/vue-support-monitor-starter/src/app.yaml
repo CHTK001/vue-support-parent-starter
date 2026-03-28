@@ -9,6 +9,17 @@ Title: 运维管理
 # SystemCode: monitor
 # 远程API地址（后端接口基础路径，默认: 空）
 BaseUrl: /monitor/api
+# 默认全局 Socket 开关（默认: true）
+# SocketOpen: true
+# 是否在应用启动阶段自动连接默认全局 Socket（默认: true）
+# 设为 false 后，不会在启动时创建连接，首次使用全局 Socket 时再懒连接
+# SocketStartupConnect: true
+# 默认全局 Socket 协议（默认: socketio）
+# SocketProtocol: socketio
+# 默认全局 Socket 路径（默认: /socket.io）
+# SocketPath: /socket.io
+# 默认全局 Socket 地址，多个地址用逗号分隔
+# SocketUrl: "ws://127.0.0.1:19170"
 # API版本号（接口版本控制，默认: 空）
 # apiVersion: v1
 
@@ -29,13 +40,13 @@ BaseUrl: /monitor/api
 # 鉴权与登录配置
 # ===========================================
 # 是否开启远程权限控制（默认: true）
-OpenAuth: false
+OpenAuth: true
 # 是否开启动态配置面板（默认: true）
 # OpenSetting: true
 # 是否开启租户登录（默认: false）
 # OpenTenantLogin: false
 # 是否开启基础登录（默认: true）
-OpenBaseLogin: false
+OpenBaseLogin: true
 # 是否开启刷新token（默认: false）
 OpenShowRefreshToken: false
 # 配置加载失败时是否保持加载页面（默认: false，失败后继续进入应用）
@@ -227,6 +238,10 @@ Request:
   retryCount: 3 # 重试次数
   retryDelay: 1000 # 重试间隔（毫秒）
   showLoading: true # 显示加载状态
+  enableSign: true # 是否开启请求签名（默认: true）
+  enableEncrypt: false # 是否开启请求体加密（默认: false）
+  # codecRequestKey: "1234567890Oil#@1" # 请求体加密密钥
+  # secretKey: "aP9xL3sV7mQ2zT5kB8nR1cY4wH6eD0fJ" # 请求签名密钥，不配则走默认值
 
 # ===========================================
 # 错误处理配置（默认不启用）

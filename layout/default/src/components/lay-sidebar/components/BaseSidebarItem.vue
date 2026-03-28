@@ -49,23 +49,35 @@ const {
 
 const route = useRoute();
 
-const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
-const forceNewMenu = ref(false); // 强制显示所有新菜单 (测试用)
-const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
+const showNewMenuOverride = ref<boolean | null>(null);
+const forceNewMenuOverride = ref<boolean | null>(null); // 强制显示所有新菜单 (测试用)
+const menuAnimationOverride = ref<boolean | null>(null);
+const newMenuAnimationOverride = ref<string | null>(null);
+const showNewMenu = computed(
+  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
+);
+const forceNewMenu = computed(
+  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
+);
+const menuAnimation = computed(
+  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
+);
+const newMenuAnimation = computed(
+  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
+);
 
 onMounted(() => {
   emitter.on("showNewMenuChange", (val) => {
-    showNewMenu.value = val;
+    showNewMenuOverride.value = val;
   });
   emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenu.value = val;
+    forceNewMenuOverride.value = val;
   });
   emitter.on("menuAnimationChange", (val) => {
-    menuAnimation.value = val;
+    menuAnimationOverride.value = val;
   });
   emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimation.value = val;
+    newMenuAnimationOverride.value = val;
   });
 });
 

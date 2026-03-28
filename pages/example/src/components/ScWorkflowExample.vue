@@ -42,7 +42,6 @@ const codeTabs = [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { reactive } from "vue";
-import { ScWorkflow } from "@repo/components/ScWorkflow"
 const data = reactive({
   name: "请假审批",
   nodeConfig: {

@@ -24,6 +24,11 @@ export function useDataThemeChange() {
 
   const themeColors = ref<Array<themeColorsType>>([
     /* 亮白色 */
+    {
+      color: "#ffffff",
+      themeColor: "light",
+      description: "通透克制的白色主题",
+    },
     /* 深紫罗兰色 */
     {
       color: "#722ed1",
@@ -51,6 +56,36 @@ export function useDataThemeChange() {
       color: "#52c41a",
       themeColor: "auroraGreen",
       description: "生机勃勃的绿色主题",
+    },
+    {
+      color: "#3f51b5",
+      themeColor: "indigo",
+      description: "冷静理性的靛蓝主题",
+    },
+    {
+      color: "#1677ff",
+      themeColor: "oceanBlue",
+      description: "清爽明亮的海洋蓝主题",
+    },
+    {
+      color: "#faad14",
+      themeColor: "amber",
+      description: "高对比暖光的琥珀主题",
+    },
+    {
+      color: "#e11d48",
+      themeColor: "rose",
+      description: "更成熟的玫瑰红主题",
+    },
+    {
+      color: "#0f766e",
+      themeColor: "teal",
+      description: "偏科技感的蓝绿主题",
+    },
+    {
+      color: "#475569",
+      themeColor: "slate",
+      description: "克制稳重的石板灰主题",
     },
     /**紫色 */
     {
@@ -104,14 +139,14 @@ export function useDataThemeChange() {
     // 如果非 isClick，保留之前的 themeColor
     const storageThemeColor = $storage.layout.themeColor;
 
-    const nextLayout: StorageLayout = {
-      layout: layout.value as StorageLayout["layout"],
+    const nextLayout: LayoutConfig = {
+      layout: layout.value as LayoutConfig["layout"],
       theme,
       darkMode: dataTheme.value,
       sidebarStatus: $storage.layout?.sidebarStatus,
       epThemeColor: $storage.layout?.epThemeColor,
       themeColor: isClick ? theme : storageThemeColor,
-      overallStyle: overallStyle.value,
+      overallStyle: overallStyle.value as LayoutConfig["overallStyle"],
     };
 
     const currentLayout = $storage.layout as StorageLayout | undefined;
@@ -139,7 +174,9 @@ export function useDataThemeChange() {
       setEpThemeColor(getConfig().EpThemeColor);
     } else {
       const colors = themeColors.value.find((v) => v.themeColor === theme);
-      setEpThemeColor(colors.color);
+      if (colors) {
+        setEpThemeColor(colors.color);
+      }
     }
   }
 

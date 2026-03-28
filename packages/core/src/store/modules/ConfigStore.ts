@@ -1,6 +1,12 @@
 import { fetchSetting } from "@pages/setting";
 import { useWatermark } from "@pureadmin/utils";
-import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
+import {
+  localStorageProxy,
+  loopDebugger,
+  redirectDebugger,
+  stopLoopDebugger,
+  stopRedirectDebugger,
+} from "@repo/utils";
 import { defineStore } from "pinia";
 import {
   closeGlobalSocketService,
@@ -10,10 +16,69 @@ import {
   type ProtocolType,
 } from "../../config/socketService";
 import { useUserStoreHook } from "../../store/modules/UserStore";
-import { getConfig, putConfig } from "@repo/config";
+import {
+  CONFIG_VERSION_CHANGE_EVENT,
+  getConfig,
+  getInitialConfig,
+  putConfig,
+} from "@repo/config";
 import { useSettingStore } from "./SettingStore";
 
 const { setWatermark, clear } = useWatermark();
+const DEFAULT_SYSTEM_SETTING = {
+  LoopDebuggerOpen: "false",
+  CrashPageOpen: "false",
+  WatermarkOpen: "false",
+  CodecResponseOpen: "false",
+  CodecRequestOpen: "false",
+  SocketStartupConnect: "true",
+  watermarkColor: "#409EFF",
+  CodecRequestKey: null,
+};
+const CONFIG_GROUP_PREFIX = "config:";
+
+type ConfigVersionChangeEventDetail = {
+  version?: string;
+};
+
+let configVersionChangeListenerBound = false;
+let configVersionChangeStore:
+  | { upgrade: (version: string) => Promise<void> | void }
+  | null = null;
+let configVersionChangeHandler:
+  | ((event: Event) => void)
+  | null = null;
+
+export const bindConfigVersionUpgradeListener = (
+  store: { upgrade: (version: string) => Promise<void> | void },
+) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  configVersionChangeStore = store;
+
+  if (!configVersionChangeHandler) {
+    configVersionChangeHandler = (event: Event) => {
+      const version = (event as CustomEvent<ConfigVersionChangeEventDetail>)
+        ?.detail?.version;
+      if (!version) {
+        return;
+      }
+      void configVersionChangeStore?.upgrade(version);
+    };
+  }
+
+  if (configVersionChangeListenerBound) {
+    return;
+  }
+
+  window.addEventListener(
+    CONFIG_VERSION_CHANGE_EVENT,
+    configVersionChangeHandler as EventListener,
+  );
+  configVersionChangeListenerBound = true;
+};
 
 // 百度统计初始化函数
 const initBaiduAnalytics = (hmId: string) => {
@@ -40,13 +105,7 @@ export const useConfigStore = defineStore({
     storageVersionKey: "config-setting-version",
     storageKey: "config-setting",
     systemSetting: {
-      LoopDebuggerOpen: "false",
-      CrashPageOpen: "false",
-      WatermarkOpen: "false",
-      CodecResponseOpen: "false",
-      CodecRequestOpen: "false",
-      watermarkColor: "#409EFF",
-      CodecRequestKey: null,
+      ...DEFAULT_SYSTEM_SETTING,
     },
     config: {},
     // API接口地址，如果设置则所有HTTP请求都走这个地址
@@ -77,15 +136,16 @@ export const useConfigStore = defineStore({
     setApiAddress(address: string | null) {
       this.apiAddress = address;
       // 同步到配置中
-      if (address) {
-        putConfig("ApiAddress", address);
-      }
+      putConfig("ApiAddress", address);
     },
     /** 请求密钥 */
     codecRequestKey() {
       const str = this.systemSetting["config:CodecRequestKey"];
+      if (!str) {
+        return "";
+      }
       var res = "";
-      const sp = str.split("");
+      const sp = String(str).split("");
       for (var i = 0; i < sp.length; i++) {
         res += sp[i].charCodeAt(0).toString(16);
       }
@@ -96,6 +156,8 @@ export const useConfigStore = defineStore({
       return this.systemSetting["config:CodecRequestOpen"] == "true";
     },
     async close() {
+      stopLoopDebugger();
+      stopRedirectDebugger();
       clear();
       closeGlobalSocketService();
     },
@@ -128,6 +190,7 @@ export const useConfigStore = defineStore({
     },
     /** 登入 */
     async load() {
+      bindConfigVersionUpgradeListener(this);
       // 如果已经加载过或正在加载中，直接返回
       if (this.isLoaded || this.isLoading) {
         return;
@@ -240,6 +303,26 @@ export const useConfigStore = defineStore({
         return;
       }
 
+      const loadedNames = new Set<string>();
+      data?.forEach((element) => {
+        if (element?.sysSettingGroup === this.settingGroup && element?.sysSettingName) {
+          loadedNames.add(element.sysSettingName);
+        }
+      });
+
+      Object.keys(this.systemSetting)
+        .filter((key) => key.startsWith(CONFIG_GROUP_PREFIX))
+        .forEach((key) => {
+          const name = key.slice(CONFIG_GROUP_PREFIX.length);
+          if (loadedNames.has(name)) {
+            return;
+          }
+
+          delete this.systemSetting[key];
+          delete this.config[key];
+          putConfig(name, getInitialConfig(name));
+        });
+
       data?.forEach((element) => {
         const key = element.sysSettingGroup + ":" + element.sysSettingName;
         this.config[key] = element.sysSettingConfig;
@@ -258,28 +341,27 @@ export const useConfigStore = defineStore({
       });
       this.version = this.systemSetting["config:Version"] || "1";
       localStorageProxy().setItem(this.storageVersionKey, this.version);
+      stopLoopDebugger();
+      stopRedirectDebugger();
+      clear();
       if (this.systemSetting["config:LoopDebuggerOpen"] == "true") {
         loopDebugger();
       }
       if (this.systemSetting["config:CrashPageOpen"] == "true") {
         redirectDebugger();
       }
-      if (this.systemSetting["config:SystemName"]) {
-        useSettingStore().setSetting(
-          "Title",
-          this.systemSetting["config:SystemName"],
-        );
-      }
-      if (this.systemSetting["config:BaseUrl"]) {
-        useSettingStore().setSetting(
-          "BaseUrl",
-          this.systemSetting["config:BaseUrl"],
-        );
-      }
+      useSettingStore().setSetting(
+        "Title",
+        this.systemSetting["config:SystemName"] || getInitialConfig("Title"),
+      );
+      useSettingStore().setSetting(
+        "BaseUrl",
+        this.systemSetting["config:BaseUrl"] ?? getInitialConfig("BaseUrl"),
+      );
       // 处理 ApiAddress 配置，如果存在则所有HTTP请求都走这个接口地址
-      if (this.systemSetting["config:ApiAddress"]) {
-        this.setApiAddress(this.systemSetting["config:ApiAddress"]);
-      }
+      this.setApiAddress(
+        this.systemSetting["config:ApiAddress"] ?? getInitialConfig("ApiAddress"),
+      );
       if (this.systemSetting["config:WatermarkOpen"] == "true") {
         this.openWatermark();
       }
@@ -297,7 +379,24 @@ export const useConfigStore = defineStore({
         // 缓存全局配置，供 createNamedSocketService 使用
         setGlobalSocketConfig({ protocol, urls, context });
 
-        this.openSocket(urls, context, protocol);
+        const startupConnect =
+          this.systemSetting["config:SocketStartupConnect"] !== "false";
+        const socketService = this.openSocket(
+          urls,
+          context,
+          protocol,
+          startupConnect,
+        );
+        if (!startupConnect) {
+          socketService.disconnect();
+        }
+      } else {
+        setGlobalSocketConfig({
+          protocol: undefined,
+          urls: [],
+          context: undefined,
+        });
+        closeGlobalSocketService();
       }
       // 初始化百度统计
       if (this.systemSetting["config:BaiduHmId"]) {
@@ -312,18 +411,23 @@ export const useConfigStore = defineStore({
      * @param context 上下文路径（Socket.IO 专用）
      * @param protocol 协议类型，默认 socketio
      */
-    async openSocket(
+    openSocket(
       urls: string[],
       context?: string,
       protocol: ProtocolType = "socketio",
+      startupConnect = true,
     ) {
       // 使用统一的 socketService 初始化
       const socket = initGlobalSocketService({
         protocol,
         urls,
         context,
+        autoConnect: startupConnect,
       });
-      socket.connect();
+      if (startupConnect) {
+        socket.connect();
+      }
+      return socket;
     },
     async openWatermark() {
       var config = {

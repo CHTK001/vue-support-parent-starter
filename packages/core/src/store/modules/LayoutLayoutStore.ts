@@ -46,6 +46,10 @@ export const useLayoutLayoutStore = defineStore({
     gridStackRef: null,
     /**组件 */
     modulesWithProps: {},
+    /** 稳定组件引用缓存，避免首页定时刷新时重复生成组件定义 */
+    componentCache: {},
+    /** 稳定 frameInfo 缓存，避免同一部件每次渲染都生成新对象 */
+    frameInfoCache: {},
   }),
   actions: {
     /**
@@ -54,6 +58,10 @@ export const useLayoutLayoutStore = defineStore({
      */
     getGridMeta() {
       return this.gridMeta;
+    },
+    resetRenderCaches() {
+      this.componentCache = {};
+      this.frameInfoCache = {};
     },
 
     /**
@@ -147,14 +155,25 @@ export const useLayoutLayoutStore = defineStore({
     loadFrameInfo(key) {
       const sysSfc = this.getComponent(key);
       if (!sysSfc) {
-        return { frameSrc: "", fullPath: "" };
+        return { frameSrc: "", fullPath: "", key };
       }
-      return {
+      const cacheKey = sysSfc.sysSfcId || key;
+      const cached = this.frameInfoCache[cacheKey];
+      if (
+        cached &&
+        cached.frameSrc === sysSfc.sysSfcPath &&
+        cached.fullPath === sysSfc.sysSfcPath
+      ) {
+        return cached;
+      }
+      const nextFrameInfo = {
         frameSrc: sysSfc.sysSfcPath,
         fullPath: sysSfc.sysSfcPath,
-
-        key: sysSfc.sysSfcId + "#" + new Date().getTime(),
+        // 使用稳定 key，避免首页定时刷新或父组件重渲染时反复卸载/重建部件
+        key: sysSfc.sysSfcId,
       };
+      this.frameInfoCache[cacheKey] = nextFrameInfo;
+      return nextFrameInfo;
     },
     setVue(vue) {
       this.Vue = vue;
@@ -169,7 +188,14 @@ export const useLayoutLayoutStore = defineStore({
       if (!sysSfc) {
         return _NOT_FOUND;
       }
-      return createLazySfcComponent(sysSfc);
+      const cacheKey = sysSfc.sysSfcId || key;
+      const cached = this.componentCache[cacheKey];
+      if (cached) {
+        return cached;
+      }
+      const nextComponent = markRaw(createLazySfcComponent(sysSfc));
+      this.componentCache[cacheKey] = nextComponent;
+      return nextComponent;
     },
 
     /**
@@ -222,22 +248,145 @@ export const useLayoutLayoutStore = defineStore({
       this.remoteComponents[key] = !!value;
       return value;
     },
+    syncModulesWithProps() {
+      const nextModulesWithProps = {};
+      this.allComps.forEach((item) => {
+        if (!item?.sysSfcId) {
+          return;
+        }
+        nextModulesWithProps[item.sysSfcId] = item;
+      });
+      this.modulesWithProps = nextModulesWithProps;
+      this.resetRenderCaches();
+    },
+    normalizeLayoutState() {
+      const columnCount = Number(this.gridMeta?.columnCount || 24);
+      const validIds = new Set(
+        (this.allComps || [])
+          .map((item) => item?.sysSfcId)
+          .filter(Boolean),
+      );
+      const nextLayout = [];
+      const layoutIds = new Set<string>();
+      const normalizeNumber = (value, fallback) => {
+        const num = Number(value);
+        return Number.isFinite(num) ? Math.round(num) : fallback;
+      };
+
+      (Array.isArray(this.layout) ? this.layout : []).forEach((rawItem, index) => {
+        const id = rawItem?.id || rawItem?.i;
+        if (!id || layoutIds.has(id)) {
+          return;
+        }
+        if (validIds.size > 0 && !validIds.has(id)) {
+          return;
+        }
+
+        const w = Math.max(
+          1,
+          Math.min(columnCount, normalizeNumber(rawItem?.w, 1)),
+        );
+        const h = Math.max(1, normalizeNumber(rawItem?.h, 1));
+        const minW = Math.max(
+          1,
+          Math.min(columnCount, normalizeNumber(rawItem?.minW, 1)),
+        );
+        const minH = Math.max(1, normalizeNumber(rawItem?.minH, 1));
+        const maxW = Math.max(
+          minW,
+          Math.min(
+            columnCount,
+            normalizeNumber(rawItem?.maxW, columnCount),
+          ),
+        );
+        const maxHRaw = rawItem?.maxH;
+        const maxH =
+          maxHRaw === undefined || maxHRaw === null
+            ? undefined
+            : Math.max(minH, normalizeNumber(maxHRaw, minH));
+        const x = Math.max(
+          0,
+          Math.min(
+            Math.max(0, columnCount - w),
+            normalizeNumber(rawItem?.x, 0),
+          ),
+        );
+        const y = Math.max(0, normalizeNumber(rawItem?.y, index));
+        const compMeta = this.modulesWithProps[id];
+
+        nextLayout.push({
+          ...rawItem,
+          id,
+          i: id,
+          x,
+          y,
+          w,
+          h,
+          minW,
+          minH,
+          maxW,
+          maxH,
+          static: !!rawItem?.static,
+          type: rawItem?.type ?? compMeta?.sysSfcType,
+        });
+        layoutIds.add(id);
+      });
+
+      const nextComponent = [];
+      const componentIds = new Set<string>();
+      const layoutMap = new Map(nextLayout.map((item) => [item.id, item]));
+
+      (Array.isArray(this.component) ? this.component : []).forEach((rawItem) => {
+        const id =
+          typeof rawItem === "string"
+            ? rawItem
+            : rawItem?.id || rawItem?.i;
+        if (!id || componentIds.has(id) || !layoutIds.has(id)) {
+          return;
+        }
+        const layoutItem = layoutMap.get(id);
+        nextComponent.push({
+          ...(typeof rawItem === "object" ? rawItem : {}),
+          id,
+          x: layoutItem?.x,
+          y: layoutItem?.y,
+          w: layoutItem?.w,
+          h: layoutItem?.h,
+          type: layoutItem?.type,
+        });
+        componentIds.add(id);
+      });
+
+      nextLayout.forEach((layoutItem) => {
+        if (componentIds.has(layoutItem.id)) {
+          return;
+        }
+        nextComponent.push({
+          id: layoutItem.id,
+          x: layoutItem.x,
+          y: layoutItem.y,
+          w: layoutItem.w,
+          h: layoutItem.h,
+          type: layoutItem.type,
+        });
+        componentIds.add(layoutItem.id);
+      });
+
+      this.layout = nextLayout;
+      this.component = nextComponent;
+    },
     /**
      * 获取所有可用组件列表
      * @returns 组件列表数组
      */
     allCompsList() {
-      var allCompsList = [];
-      this.allComps.forEach((item) => {
-        allCompsList.push({
+      const allCompsList = this.allComps.map((item) => ({
           key: item.sysSfcId,
           title: item.sysSfcChineseName,
           icon: item.sysSfcIcon,
           type: item.sysSfcType,
           description: item.sysSfcDesc,
-        });
-        this.modulesWithProps[item.sysSfcId] = item;
-      });
+        }));
       if (Array.isArray(this.component)) {
         for (let comp of allCompsList) {
           const _item = this.component.find((item) => {
@@ -420,6 +569,7 @@ export const useLayoutLayoutStore = defineStore({
       this.component = [[], [], []];
       this.layout = [];
       this.grid = [];
+      this.resetRenderCaches();
     },
     async reset() {
       this.close();
@@ -483,6 +633,7 @@ export const useLayoutLayoutStore = defineStore({
         ] = setting;
         this.allComps.push(setting);
       });
+      this.syncModulesWithProps();
     },
     /**
      * 加载远程组件
@@ -490,6 +641,7 @@ export const useLayoutLayoutStore = defineStore({
     async loadRemoteCompent() {
       const res = await fetchMineSfcByCategory({ sysSfcCategory: "HOME" });
       this.allComps.push(...(res.data as any));
+      this.syncModulesWithProps();
       localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
     async loadSfc() {
@@ -503,6 +655,7 @@ export const useLayoutLayoutStore = defineStore({
       this.allComps = [];
       if (data) {
         this.allComps.push(...(data as any));
+        this.syncModulesWithProps();
         return data;
       }
 
@@ -584,15 +737,16 @@ export const useLayoutLayoutStore = defineStore({
         }
       }
 
-      // Clean up orphaned components
-      if (Array.isArray(this.layout) && Array.isArray(this.component)) {
-        const layoutIds = new Set(this.layout.map((l) => l.id));
-        this.component = this.component.filter((c) => layoutIds.has(c.id));
-      }
-
+      this.syncModulesWithProps();
       // 旧布局迁移（会回写缓存）
       this.upgradeLayoutIfNeeded(data);
-
+      this.normalizeLayoutState();
+      localStorageProxy().setItem(this.storageKey, {
+        grid: this.grid,
+        layout: this.layout,
+        component: this.component,
+        gridMeta: this.gridMeta,
+      });
       await this.allCompsList();
     },
   },

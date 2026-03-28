@@ -116,10 +116,15 @@ const installForm = ref<{
   params: "",
 });
 
+const normalizeContainerStatus = (status?: string) =>
+  status ? status.trim().toLowerCase() : "";
+
 // 计算属性
 const runningContainers = computed(() => {
   return containerList.value.filter(
-    (container) => container.systemSoftContainerStatus === "RUNNING",
+    (container) =>
+      normalizeContainerStatus(container.systemSoftContainerStatus) ===
+      "running",
   ).length;
 });
 
@@ -427,23 +432,25 @@ const getStatusLabel = (status: string) => {
 };
 
 const getContainerStatusType = (status: string) => {
+  const normalized = normalizeContainerStatus(status);
   const statusMap: Record<string, "success" | "info" | "warning" | "danger"> = {
-    RUNNING: "success",
-    STOPPED: "info",
-    PAUSED: "warning",
-    ERROR: "danger",
+    running: "success",
+    stopped: "info",
+    paused: "warning",
+    error: "danger",
   };
-  return statusMap[status] || "info";
+  return statusMap[normalized] || "info";
 };
 
 const getContainerStatusLabel = (status: string) => {
+  const normalized = normalizeContainerStatus(status);
   const statusMap: Record<string, string> = {
-    RUNNING: "运行中",
-    STOPPED: "已停止",
-    PAUSED: "已暂停",
-    ERROR: "错误",
+    running: "运行中",
+    stopped: "已停止",
+    paused: "已暂停",
+    error: "错误",
   };
-  return statusMap[status] || status;
+  return statusMap[normalized] || status;
 };
 
 const getRecordStatusType = (status: string) => {
