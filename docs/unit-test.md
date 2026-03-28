@@ -127,3 +127,52 @@ agent-browser --session qa-check open http://127.0.0.1:8848/#/login
 - 响应加密正常
 - 水印正常
 - 浏览器无新增报错与关键告警
+
+## 2026-03-28 monitor 联调补充
+
+环境与入口：
+
+- 测试环境入口为 `http://172.16.0.40/monitor/`
+- Nginx 已代理 `/monitor/api/ -> 127.0.0.1:19170`，`/socket.io/ -> 127.0.0.1:29181`
+- 浏览器实测登录账号 `sa` 可进入系统
+
+接口与实时能力：
+
+- `GET /monitor/api/v2/user/me` 返回 `00000`
+- `GET /monitor/api/v2/user/menu` 返回 `00000`
+- `GET /socket.io/?EIO=4&transport=polling` 已完成握手，说明全局 socket 默认链路可用
+- 当前设置接口返回 `SocketOpen=true`、`SocketProtocol=socketio`、`SocketPath=/socket.io`
+- 前端已支持 `SocketOpen=false` 时完全不创建全局 socket，支持 `SocketStartupConnect=false` 时注入但启动不自动连接
+
+Docker 可视化联调：
+
+- `/#/docker/images`、`/#/docker/containers`、`/#/docker/registry`、`/#/docker/soft` 已能访问
+- 本轮修复 `/#/docker/records` 缺路由导致的 `404`
+- 本轮补齐 `/docker/monitoring`、`/docker/detail/:id`，并兼容旧 `/soft/*` 地址
+- `route-menu.ts` 已从失效的 `/soft/*`、`/docker/list` 映射切换到实际可访问的 docker 页面
+- `system-soft-image/page`、`system-soft-container/page`、`system/soft/record/page` 在当前环境返回 `00000`，但数据为空，属于环境数据状态，不是前端链路错误
+
+安全链路检查：
+
+- 前端签名、请求加密、响应解密实现已存在于 `packages/utils/src/http` 与 `packages/utils/src/crypto/codec.ts`
+- 后端对应签名校验、请求解密、响应加密能力已存在于 `spring-support-common-starter`
+- 前端防调试逻辑已存在于 `packages/utils/src/debug/index.ts`
+- 水印逻辑已存在于 `packages/core/src/store/modules/ConfigStore.ts` 与 `layout/default/src/hooks/useWatermarkSetup.ts`
+- 当前测试环境设置接口未返回 `WatermarkOpen`、`LoopDebuggerOpen`、`CrashPageOpen` 等开关项，因此本轮主要确认代码链路存在，是否启用取决于运行时配置
+- monitor 全局 socket 已改为接口配置优先：
+  - `OpenSetting=true` 时优先等待 `/v2/setting/list?sysSettingGroup=config`
+  - `OpenSetting=false` 或配置拉取失败时才回退本地 `app.yaml`
+
+已发现并修复/定位的问题：
+
+- 前端 `docker/records` 页面存在未定义 `loadRecords` 的脚本缺口，本轮已补上
+- 后端 `spring-support-oauth-client-starter` 登录失败场景会因空 token 触发 `LoginResult.setToken` 非空异常，本轮已修复为按真实认证结果返回错误信息，不再错误抛 NPE
+- `GET /monitor/api/v1/system/soft/websocket/topics` 与 `GET /monitor/api/api/monitor/system-soft-websocket/topics` 当前仍返回 `S9999C0000`，前端已有 fallback 兜底默认 topic，但后端接口本身仍需继续排查
+
+最新本地回归结果：
+
+- `vitest`：7 个文件、23 个测试通过
+- 新增覆盖：
+  - `monitor-global-socket-bridge.test.ts` 验证远程配置优先
+  - `monitor-global-socket-bridge.test.ts` 验证 `OpenSetting=false` 本地 socket 兜底
+- `apps/vue-support-monitor-starter` 执行 `pnpm build` 通过
