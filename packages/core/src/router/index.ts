@@ -12,8 +12,6 @@ import {
   transformI18n,
   userKey,
 } from "@repo/config";
-import type { UserResult } from "@repo/core";
-import { removeToken, useMultiTagsStoreHook } from "@repo/core";
 import { buildHierarchyTree, localStorageProxy, NProgress } from "@repo/utils";
 import Cookies from "js-cookie";
 import yaml from "js-yaml";
@@ -23,7 +21,10 @@ import {
   type Router,
   type RouteRecordRaw,
 } from "vue-router";
+import type { UserResult } from "../api/common/user";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
+import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
+import { removeToken } from "../utils/auth";
 import {
   ascending,
   findRouteByPath,
@@ -35,6 +36,7 @@ import {
   initRouter,
   isOneOfArray,
 } from "./utils";
+import { shouldLoadLocalBusinessRoutes } from "./route-mode";
 
 /** 默认菜单图标 */
 const DEFAULT_MENU_ICON = "ri:menu-line";
@@ -46,6 +48,36 @@ const { VITE_HIDE_HOME } = import.meta.env;
 
 /** 不参与菜单显示的路由集合 */
 const remainingRouter: RouteRecordRaw[] = [];
+
+const appendRouteRecord = (
+  container: RouteRecordRaw[],
+  route: RouteRecordRaw,
+): void => {
+  if (!route) return;
+
+  ensureRouteIcon(route);
+
+  const duplicatedIndex = container.findIndex((item) => {
+    if (!item) return false;
+    return (
+      (route.name && item.name === route.name) ||
+      (!!route.path && item.path === route.path)
+    );
+  });
+
+  if (duplicatedIndex !== -1) {
+    container[duplicatedIndex] = route;
+    return;
+  }
+
+  container.push(route);
+};
+
+const resolveModuleRoutes = (module: any): RouteRecordRaw[] => {
+  const routes = module?.default;
+  if (!routes) return [];
+  return Array.isArray(routes) ? routes : [routes];
+};
 
 /**
  * 确保路由具有图标，若无则设置默认图标
@@ -66,23 +98,14 @@ const ensureRouteIcon = (route: any): void => {
 const loadRemainingRoutes = (): void => {
   // @ts-ignore
   const noInModules: Record<string, any> = import.meta.glob(
-    ["./modules/**/remaining*.ts", "@/router/**/remaining*.ts"],
-    { eager: true }
+    ["./modules/**/remaining*.ts", "@/router/modules/**/remaining*.ts"],
+    { eager: true },
   );
 
   Object.values(noInModules).forEach((module) => {
-    const routes = module.default;
-    if (!routes) return;
-
-    if (Array.isArray(routes)) {
-      routes.forEach((route) => {
-        ensureRouteIcon(route);
-        remainingRouter.push(route);
-      });
-    } else {
-      ensureRouteIcon(routes);
-      remainingRouter.push(routes);
-    }
+    resolveModuleRoutes(module).forEach((route) => {
+      appendRouteRecord(remainingRouter, route);
+    });
   });
 };
 
@@ -91,6 +114,16 @@ loadRemainingRoutes();
 /** 原始静态路由（未做任何处理） */
 const routes = [];
 const routerNameMapping = new Set();
+// @ts-ignore
+const coreNormalRouteModules: Record<string, any> = import.meta.glob(
+  ["./modules/**/*.ts", "!./modules/**/remaining*.ts"],
+  { eager: true },
+);
+// @ts-ignore
+const appNormalRouteModules: Record<string, any> = import.meta.glob(
+  ["@/router/modules/**/*.ts", "!@/router/modules/**/remaining*.ts"],
+  { eager: true },
+);
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
  * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
@@ -103,7 +136,7 @@ const _createAutoRouter = () => {
     {
       eager: true,
       query: "raw",
-    }
+    },
   );
   //  const modulesVue: Record<string, any> = import.meta.glob(["@/views/**/index.vue"], {
   //   eager: true,
@@ -122,7 +155,7 @@ const _createAutoRouter = () => {
     // 处理国际化标题
     if (meta.title?.startsWith("$t")) {
       meta.title = transformI18n(
-        meta.title.substring(4, meta.title.length - 2)
+        meta.title.substring(4, meta.title.length - 2),
       );
     }
 
@@ -153,7 +186,7 @@ const _createAutoRouter = () => {
         const _parentNames = getName(item.node.parentNodes, i);
         const _parentName = _parentNames.join("")?.toLowerCase();
         let _parentNode = templateRoutes.find(
-          (item) => item.name === _parentName
+          (item) => item.name === _parentName,
         );
         if (!_parentNode) {
           const keys = _parentNames.slice(0, -1);
@@ -163,7 +196,7 @@ const _createAutoRouter = () => {
             for (let i = keys.length; i >= 0; i--) {
               _newName = getName(keys, i).join("")?.toLowerCase();
               _parentNode = templateRoutes.find(
-                (item) => item.name === _newName
+                (item) => item.name === _newName,
               );
               if (_parentNode) {
                 break;
@@ -208,28 +241,23 @@ const _createAutoRouter = () => {
 /**
  * 创建普通路由（基于TS模块）
  */
-const _createNormalRouter = () => {
-  // @ts-ignore
-  const modules: Record<string, any> = import.meta.glob(
-    [
-      "./modules/**/*.ts",
-      "!./modules/**/remaining*.ts",
-      "@/router/**/*.ts",
-      "@/router/*.ts",
-      "!@/router/**/remaining*.ts",
-    ],
-    { eager: true }
-  );
-
+const appendNormalRoutes = (modules: Record<string, any>) => {
   Object.values(modules).forEach((module) => {
-    const route = module.default;
-    if (!route) return;
-
-    // 确保路由有默认图标
-    ensureRouteIcon(route);
-    routes.push(route);
-    routerNameMapping.add(route.name?.toLowerCase());
+    resolveModuleRoutes(module).forEach((route) => {
+      appendRouteRecord(routes, route);
+      if (route.name) {
+        routerNameMapping.add(String(route.name).toLowerCase());
+      }
+    });
   });
+};
+
+const _createCoreNormalRouter = () => {
+  appendNormalRoutes(coreNormalRouteModules);
+};
+
+const _createAppNormalRouter = () => {
+  appendNormalRoutes(appNormalRouteModules);
 };
 
 /**
@@ -238,14 +266,25 @@ const _createNormalRouter = () => {
 const initRouterMode = (): void => {
   const config = getConfig();
   const routerModule = config.RouterModule;
+  const loadLocalBusinessRoutes = shouldLoadLocalBusinessRoutes(config);
 
   if (config.AutoRouter || routerModule === "AUTO") {
-    _createAutoRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAutoRouter();
+    }
   } else if (routerModule === "MIX") {
-    _createAutoRouter();
-    _createNormalRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAutoRouter();
+    }
+    _createCoreNormalRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAppNormalRouter();
+    }
   } else {
-    _createNormalRouter();
+    _createCoreNormalRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAppNormalRouter();
+    }
   }
 };
 
@@ -253,12 +292,12 @@ initRouterMode();
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
 export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
-  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
+  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))),
 );
 
 /** 用于渲染菜单，保持原始层级 */
 export const constantMenus: Array<RouteComponent> = ascending(
-  routes.flat(Infinity)
+  routes.flat(Infinity),
 ).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
@@ -277,19 +316,19 @@ export const router: Router = createRouter({
   routes: constantRoutes.concat(...remainingRouter),
   strict: true,
   scrollBehavior(to, from, savedPosition) {
-    return new Promise((resolve) => {
-      if (savedPosition) {
-        return savedPosition;
-      } else {
-        if (from.meta.saveSrollTop) {
-          //@ts-ignore
-          const top: number =
-            //@ts-ignore
-            document.documentElement.scrollTop || document.body.scrollTop;
-          resolve({ left: 0, top });
-        }
-      }
-    });
+    if (savedPosition) {
+      return savedPosition;
+    }
+
+    if (from.meta.saveSrollTop) {
+      //@ts-ignore
+      const top: number =
+        //@ts-ignore
+        document.documentElement.scrollTop || document.body.scrollTop;
+      return { left: 0, top };
+    }
+
+    return { left: 0, top: 0 };
   },
 });
 
@@ -301,8 +340,8 @@ export function resetRouter() {
       router.removeRoute(name);
       router.options.routes = formatTwoStageRoutes(
         formatFlatteningRoutes(
-          buildHierarchyTree(ascending(routes.flat(Infinity)))
-        )
+          buildHierarchyTree(ascending(routes.flat(Infinity))),
+        ),
       );
     }
   });
@@ -338,6 +377,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   }
 
   const userInfo = localStorageProxy().getItem<UserResult>(userKey);
+  const userRoles = userInfo?.userInfo?.roles || (userInfo as any)?.roles || [];
   /** 如果已经登录并存在登录信息后不能跳转到路由白名单，而是继续保持在当前页面 */
   function toCorrectRoute() {
     whiteList.includes(to.fullPath) ? next(_from.fullPath) : next();
@@ -346,7 +386,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     // 无权限跳转403页面
     if (
       to.meta?.roles &&
-      !isOneOfArray(to.meta?.roles, userInfo?.userInfo?.roles)
+      !isOneOfArray(to.meta?.roles, userRoles)
     ) {
       next({ path: "/error/403" });
     }
@@ -372,9 +412,13 @@ router.beforeEach((to: ToRouteType, _from, next) => {
           .then((router: Router) => {
             if (!useMultiTagsStoreHook().getMultiTagsCache) {
               const { path } = to;
+              const routeSearchSpace =
+                router.options.routes.find(
+                  route => route.path === "/" && Array.isArray(route.children),
+                )?.children || router.options.routes;
               const route = findRouteByPath(
                 path,
-                router.options.routes[0].children
+                routeSearchSpace,
               );
               getTopMenu(true);
               // query、params模式路由传参数的标签页不在此处处理
