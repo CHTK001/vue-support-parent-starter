@@ -1,33 +1,27 @@
 ﻿<script setup lang="ts">
 import { ScAvatar } from "@repo/components/ScAvatar";
 
-import { useUserStore } from "@repo/core";
-import { localStorageProxy } from "@repo/utils";
-import { userKey } from "@repo/config";
-import { deviceDetection } from "@pureadmin/utils";
-import { computed, defineAsyncComponent, ref } from "vue";
+import { getMine, useUserStore } from "@repo/core";
+import { ReText } from "@repo/components/ReText";
+import { deviceDetection, useGlobal } from "@pureadmin/utils";
+import { onBeforeMount, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
+import { useDataThemeChange } from "../../hooks/useDataThemeChange";
+import AccountManagement from "./components/AccountManagement.vue";
+import Profile from "./components/Profile.vue";
+import ThirdParty from "./components/thirdParty.vue";
+import SecurityLog from "./components/SecurityLog.vue";
+import Password from "./components/password.vue";
+import { getConfig } from "@repo/config";
 import leftLine from "@iconify-icons/ri/arrow-left-s-line";
 import UnLock from "@iconify-icons/ri/lock-unlock-line";
 import Lock from "@iconify-icons/ri/lock-2-fill";
 import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
-
-const Profile = defineAsyncComponent(() => import("./components/Profile.vue"));
-const AccountManagement = defineAsyncComponent(
-  () => import("./components/AccountManagement.vue"),
-);
-const ThirdParty = defineAsyncComponent(
-  () => import("./components/thirdParty.vue"),
-);
-const SecurityLog = defineAsyncComponent(
-  () => import("./components/SecurityLog.vue"),
-);
-const Password = defineAsyncComponent(() => import("./components/password.vue"));
-const Totp = defineAsyncComponent(() => import("./components/Totp.vue"));
+import Totp from "./components/Totp.vue";
 
 defineOptions({
   name: "AccountSettings",
@@ -35,19 +29,21 @@ defineOptions({
 
 const { t } = useI18n();
 const router = useRouter();
-const isMobile = deviceDetection();
-const isOpen = ref(!isMobile);
-const cachedUser = localStorageProxy().getItem<any>(userKey) || {};
+const isOpen = ref(!deviceDetection());
+const { $storage } = useGlobal<GlobalPropertiesApi>();
+onBeforeMount(() => {
+  useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
+});
 
 const userInfo: any = ref({
-  sysUserId: cachedUser.sysUserId || 0,
-  sysUserUsername: cachedUser.sysUserUsername || "",
-  sysUserNickname: cachedUser.sysUserNickname || "",
-  sysUserPhone: cachedUser.sysUserPhone || "",
-  sysUserEmail: cachedUser.sysUserEmail || "",
-  avatar: cachedUser.avatar || cachedUser.sysUserAvatar || "",
-  roles: cachedUser.roles || [],
-  perms: cachedUser.perms || [],
+  sysUserId: 0,
+  sysUserUsername: "",
+  sysUserNickname: "",
+  sysUserPhone: "",
+  sysUserEmail: "",
+  avatar: "",
+  roles: [],
+  perms: [],
 });
 
 interface Group {
@@ -123,19 +119,21 @@ groups[2].panel.push({
   component: Totp,
 });
 const witchPane = ref("profile");
+
+getMine().then((res) => {
+  userInfo.value = res.data;
+  useUserStore().upgrade(userInfo.value);
+});
 const onUpdated = (data) => {
-  userInfo.value = {
-    ...userInfo.value,
-    ...data,
-  };
+  userInfo.value = data;
   useUserStore().upgrade(userInfo.value);
 };
 
-const currentPaneComponent = computed(() =>
-  groups
+const findComponent = () => {
+  return groups
     .find((item) => item.panel.some((i) => i.key === witchPane.value))
-    ?.panel.find((item) => item.key === witchPane.value)?.component,
-);
+    ?.panel.find((item) => item.key === witchPane.value)?.component;
+};
 </script>
 
 <template>
@@ -145,7 +143,7 @@ const currentPaneComponent = computed(() =>
       <ScAside
         v-if="isOpen"
         class="account-sidebar"
-        :width="isMobile ? '200px' : '280px'"
+        :width="deviceDetection() ? '200px' : '280px'"
       >
         <!-- 返回按钮 -->
         <div class="sidebar-header">
@@ -179,7 +177,7 @@ const currentPaneComponent = computed(() =>
                 @click="
                   () => {
                     witchPane = item.key;
-                    if (isMobile) {
+                    if (deviceDetection()) {
                       isOpen = !isOpen;
                     }
                   }
@@ -203,14 +201,14 @@ const currentPaneComponent = computed(() =>
       <!-- 主内容区 -->
       <ScMain class="account-main">
         <LaySidebarTopCollapse
-          v-if="isMobile"
+          v-if="deviceDetection()"
           class="mobile-toggle"
           :is-active="isOpen"
           @toggleClick="isOpen = !isOpen"
         />
         <div class="main-content">
           <component
-            :is="currentPaneComponent"
+            :is="findComponent()"
             :userInfo="userInfo"
             class="content-component"
             @updated:user="onUpdated"
@@ -223,19 +221,15 @@ const currentPaneComponent = computed(() =>
 
 <style lang="scss" scoped>
 .account-page {
-  min-height: 100%;
-  width: 100%;
-  display: flex;
-  padding: 18px;
+  height: 100vh;
+  width: 100vw;
   background: linear-gradient(
     135deg,
-    rgba(var(--el-color-primary-rgb), 0.08) 0%,
-    var(--el-bg-color-page) 30%,
+    var(--el-bg-color-page) 0%,
     var(--el-fill-color-lighter) 100%
   );
   position: relative;
   overflow: hidden;
-  box-sizing: border-box;
 
   // 背景装饰
   &::before {
@@ -256,30 +250,18 @@ const currentPaneComponent = computed(() =>
 
 .account-container {
   height: 100%;
-  flex: 1;
-  min-height: 0;
   position: relative;
   z-index: 1;
-  overflow: hidden;
-  border-radius: 32px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.58));
-  box-shadow:
-    0 28px 80px rgba(15, 23, 42, 0.08),
-    0 12px 30px rgba(15, 23, 42, 0.05);
-  backdrop-filter: blur(18px);
 }
 
 // 侧边栏样式
 .account-sidebar {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8));
-  border-right: 1px solid rgba(148, 163, 184, 0.14);
+  background: var(--el-bg-color);
+  border-right: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: none;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-header {
@@ -555,10 +537,9 @@ const currentPaneComponent = computed(() =>
 
 // 主内容区样式
 .account-main {
-  background: transparent;
+  background: var(--el-bg-color-page);
   padding: 0;
   overflow: hidden;
-  min-width: 0;
 }
 
 .mobile-toggle {
@@ -568,12 +549,11 @@ const currentPaneComponent = computed(() =>
 
 .main-content {
   height: 100%;
-  padding: 32px 40px;
+  padding: 40px 60px;
   overflow-y: auto;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.9));
-  border-radius: 0 30px 30px 0;
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.65);
+  background: var(--el-bg-color);
+  border-radius: 24px 0 0 0;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.04);
 
   @media (max-width: 768px) {
     padding: 20px;
@@ -622,15 +602,8 @@ const currentPaneComponent = computed(() =>
 
 // 深色模式适配
 html.dark {
-  .account-container {
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(15, 23, 42, 0.72));
-    border-color: rgba(148, 163, 184, 0.12);
-  }
-
   .account-sidebar {
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.82));
+    background: var(--el-bg-color-overlay);
   }
 
   .user-card {
@@ -647,32 +620,6 @@ html.dark {
 
   .nav-item.active {
     box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
-  }
-}
-
-@media (max-width: 992px) {
-  .account-page {
-    padding: 10px;
-  }
-
-  .account-container {
-    border-radius: 24px;
-  }
-
-  .main-content {
-    padding: 24px;
-  }
-}
-
-@media (max-width: 768px) {
-  .account-page {
-    padding: 0;
-  }
-
-  .account-container {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
   }
 }
 </style>

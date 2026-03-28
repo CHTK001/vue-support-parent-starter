@@ -3,3 +3,4 @@ import component from "./index.vue";
 
 export const ScFile = withInstall(component);
 export default ScFile;
+
