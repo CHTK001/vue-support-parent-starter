@@ -1,8 +1,61 @@
 import { createViteConfig } from "@repo/build-config";
-import type { ConfigEnv, UserConfigExport } from "vite";
+import type { ConfigEnv, Plugin, UserConfigExport } from "vite";
 import pkg from "./package.json";
 import { resolve } from "path";
+import { createRequire } from "module";
+import { readFileSync } from "fs";
+
 const root = resolve(__dirname, "../..");
+const require = createRequire(import.meta.url);
+const elementPlusIconsImport = "@element-plus/icons-vue";
+const elementPlusIconsRuntimeFile = "static/js/element-plus-icons-runtime.js";
+const vueRuntimeFile = "static/js/vue-runtime.js";
+const enableFakeServer = process.env.VITE_ENABLE_FAKE_SERVER === "true";
+
+const vueRuntimeSource = readFileSync(
+  require.resolve("vue/dist/vue.runtime.esm-browser.prod.js"),
+  "utf8",
+);
+
+const elementPlusIconsRuntimeSource = readFileSync(
+  require.resolve("@element-plus/icons-vue/dist/index.min.js"),
+  "utf8",
+)
+  .replaceAll('from"vue"', 'from"./vue-runtime.js"')
+  .replaceAll("from'vue'", 'from"./vue-runtime.js"');
+
+function bundleElementPlusIconsRuntime(): Plugin {
+  return {
+    name: "bundle-element-plus-icons-runtime",
+    enforce: "post",
+    generateBundle(_, bundle) {
+      this.emitFile({
+        type: "asset",
+        fileName: vueRuntimeFile,
+        source: vueRuntimeSource,
+      });
+      this.emitFile({
+        type: "asset",
+        fileName: elementPlusIconsRuntimeFile,
+        source: elementPlusIconsRuntimeSource,
+      });
+
+      for (const item of Object.values(bundle)) {
+        if (item.type !== "chunk") continue;
+        if (!item.code.includes(elementPlusIconsImport)) continue;
+        item.code = item.code
+          .replaceAll(
+            `"${elementPlusIconsImport}"`,
+            '"./element-plus-icons-runtime.js"',
+          )
+          .replaceAll(
+            `'${elementPlusIconsImport}'`,
+            '"./element-plus-icons-runtime.js"',
+          );
+      }
+    },
+  };
+}
 
 const manualChunks = (id: string) => {
   const normalized = id.replace(/\\/g, "/");
@@ -15,75 +68,10 @@ const manualChunks = (id: string) => {
     return "project-ai";
   }
 
-  if (!normalized.includes("/node_modules/")) {
-    return undefined;
-  }
-
-  if (
-    normalized.includes("/vue/") ||
-    normalized.includes("/vue-router/") ||
-    normalized.includes("/pinia/") ||
-    normalized.includes("/vue-i18n/") ||
-    normalized.includes("/@vueuse/")
-  ) {
-    return "framework";
-  }
-
-  if (
-    normalized.includes("/element-plus/") ||
-    normalized.includes("/@element-plus/") ||
-    normalized.includes("/plus-pro-components/")
-  ) {
-    return "element";
-  }
-
-  if (
-    normalized.includes("/echarts/") ||
-    normalized.includes("/@antv/g6/") ||
-    normalized.includes("/@kjgl77/datav-vue3/")
-  ) {
-    return "charts";
-  }
-
-  if (
-    normalized.includes("/codemirror/") ||
-    normalized.includes("/prismjs/") ||
-    normalized.includes("/markdown-it/") ||
-    normalized.includes("/highlight.js/") ||
-    normalized.includes("/@wangeditor/") ||
-    normalized.includes("/diff2html/") ||
-    normalized.includes("/json-editor-vue3/")
-  ) {
-    return "editor";
-  }
-
-  if (
-    normalized.includes("/video.js/") ||
-    normalized.includes("/hls.js/") ||
-    normalized.includes("/viewerjs/") ||
-    normalized.includes("/v-viewer/") ||
-    normalized.includes("/@microsoft/fetch-event-source/") ||
-    normalized.includes("/@mlc-ai/web-llm/")
-  ) {
-    return "media";
-  }
-
-  if (
-    normalized.includes("/xterm/") ||
-    normalized.includes("/xterm-addon-") ||
-    normalized.includes("/@xterm/") ||
-    normalized.includes("/@novnc/") ||
-    normalized.includes("/guacamole-common-js/") ||
-    normalized.includes("/websockify/") ||
-    normalized.includes("/mqtt/")
-  ) {
-    return "remote";
-  }
-
-  return "vendor";
+  return undefined;
 };
 
-const baseConfig = createViteConfig(import.meta.url, pkg)
+const builder = createViteConfig(import.meta.url, pkg)
   .proxy("/api", "http://127.0.0.1:8080")
   .alias("@layout/default", resolve(root, "layout/default/src"))
   .alias("@pages/common", resolve(root, "pages/common"))
@@ -95,7 +83,13 @@ const baseConfig = createViteConfig(import.meta.url, pkg)
   .alias("@pages/setting", resolve(root, "pages/setting/src"))
   .alias("@pages/system", resolve(root, "pages/system/src"))
   .alias("@pages/video", resolve(root, "pages/video/src"))
-  .build();
+  .plugins(bundleElementPlusIconsRuntime());
+
+if (enableFakeServer) {
+  builder.mock(["mock"]);
+}
+
+const baseConfig = builder.build();
 
 export default (env: ConfigEnv): UserConfigExport => {
   const config = baseConfig(env);
