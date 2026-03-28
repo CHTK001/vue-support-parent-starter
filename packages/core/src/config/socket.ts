@@ -7,6 +7,8 @@ import { getToken } from "../utils/auth";
 import { message, uu4 } from "@repo/utils";
 import { io } from "socket.io-client";
 import { inject, provide, ref, type InjectionKey } from "vue";
+import { getGlobalSocketService } from "./socketService";
+import { normalizeSocketUrls } from "./socketUtils";
 import { SystemTopics } from "./socketTopics";
 
 // 从 socketUtils 重新导出 parseSocketMessage 以保持兼容性
@@ -127,6 +129,10 @@ export function createGlobalSocketService(
     callback: Function,
     options?: SocketListenOptions,
   ) => {
+    if (!socketInstance) {
+      connect();
+    }
+
     if (socketInstance) {
       socketInstance.on(event, (rawData: any) => {
         // 解析新格式的消息数据
@@ -159,6 +165,10 @@ export function createGlobalSocketService(
    * 发送事件
    */
   const emit = (event: string, data?: any) => {
+    if (!socketInstance) {
+      connect();
+    }
+
     if (socketInstance) {
       socketInstance.emit(event, data);
     }
@@ -214,13 +224,27 @@ export function provideGlobalSocket(
  * 注入全局Socket服务
  */
 export function useGlobalSocket(): GlobalSocketService {
-  const socketService = inject(GlobalSocketKey);
+  const socketService = inject(GlobalSocketKey, null);
+  if (socketService) {
+    return socketService;
+  }
+
+  const unifiedSocketService = getGlobalSocketService();
+  if (unifiedSocketService) {
+    return unifiedSocketService as unknown as GlobalSocketService;
+  }
+
+  if (typeof window !== "undefined" && window.__GLOBAL_SOCKET__) {
+    return window.__GLOBAL_SOCKET__ as GlobalSocketService;
+  }
+
   if (!socketService) {
     console.log(
       "Global Socket服务未提供，请确保在父组件中调用了provideGlobalSocket()",
     );
     return null;
   }
+
   return socketService;
 }
 
@@ -306,8 +330,9 @@ export const socket = (
   const token = getToken();
   newOptions.query = { "x-oauth-token": token?.accessToken };
   Object.assign(newOptions.query, query);
-  const random = Math.random() * urls.length;
-  const url = urls[~~random];
+  const normalizedUrls = normalizeSocketUrls(urls);
+  const random = Math.random() * normalizedUrls.length;
+  const url = normalizedUrls[~~random];
   const session = io(url, newOptions);
   const socketWrapper = {
     on: function (event, callback) {

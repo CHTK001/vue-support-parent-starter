@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from "vue";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultSidebar from "./themes/Default.vue";
 import EightBitSidebar from "./themes/EightBit.vue";
@@ -14,7 +13,7 @@ const themeComponents = {
   "spring-festival": SpringFestivalSidebar,
   halloween: HalloweenSidebar,
   christmas: ChristmasSidebar,
-  "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
+  "future-tech": DefaultSidebar,
 };
 
 const { CurrentComponent, currentTheme } = useThemeComponent(

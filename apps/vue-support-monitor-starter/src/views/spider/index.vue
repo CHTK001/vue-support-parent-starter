@@ -191,7 +191,7 @@
             <ScButton size="small" type="danger" @click="handleDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
             </ScButton>
-          </ScButton-group>
+          </el-button-group>
         </template>
       </ScTableColumn>
     </ScTable>

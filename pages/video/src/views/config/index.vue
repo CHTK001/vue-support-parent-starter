@@ -156,7 +156,6 @@ import {
 import type { VideoSyncConfig } from "../../api/types";
 
 // 导入组件
-import { ScTable } from "@repo/components/ScTable"
 import { useGlobalSocket } from "@repo/core";
 import { message, ScMessageBox } from "@repo/utils";
 import ConfigCard from "./components/ConfigCard.vue";

@@ -5,7 +5,7 @@
  * @version 2.0.0
  * @since 2025-12-03
  */
-import { addListener, crashBrowserCurrentTab, launch } from "devtools-detector";
+import { addListener, launch, removeListener, stop } from "devtools-detector";
 
 /** 日志类型 */
 export type LogType = "log" | "info" | "warn" | "error" | "debug";
@@ -175,167 +175,158 @@ export const clearLogHistory = (): void => {
   proxyState.logHistory = [];
 };
 
-export const loopDebugger = () => {
-  (() => {
-    function block() {
-      setInterval(() => {
-        // 清除控制台
-        console.clear();
+const DEBUG_GUARD_OVERLAY_ID = "repo-debug-guard-overlay";
+const DEBUG_GUARD_DATASET_KEY = "debugGuardActive";
+const DEFAULT_LOOP_DEBUGGER_INTERVAL = 1200;
 
-        // 无限 debugger
-        (function () {
-          return false;
-        })
-          ["constructor"]("debugger")
-          ["call"]();
-      }, 50);
-    }
-    try {
-      block();
-    } catch (err) {}
-  })();
+let loopDebuggerTimer: ReturnType<typeof setInterval> | null = null;
+let redirectDebuggerCleanup: (() => void) | null = null;
+let devtoolsListener: ((isOpen: boolean) => void) | null = null;
+
+const emitDebugGuardEvent = (isOpen: boolean) => {
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("repo:devtools-detected", {
+      detail: { isOpen },
+    }),
+  );
 };
 
-export const redirectDebugger = () => {
-  // 1. 防止调试器检测
-  addListener((isOpen) => {
-    if (isOpen) {
-      setTimeout(crashBrowserCurrentTab, 10);
-      // 清除浏览器历史记录并跳转到百度
-      if (window.history && window.history.replaceState) {
-        // 清除当前页面的历史记录
-        window.history.replaceState(null, "", "about:blank");
-        // 清除所有历史记录
-        window.history.go(-(window.history.length - 1));
-      }
+const getDebugGuardOverlay = () =>
+  document.getElementById(DEBUG_GUARD_OVERLAY_ID) as HTMLDivElement | null;
 
-      // 使用replace方式跳转，不会在历史记录中留下痕迹
-      window.location.replace("https://www.baidu.com");
-    }
-  });
+const ensureDebugGuardOverlay = () => {
+  if (typeof document === "undefined") {
+    return null;
+  }
 
-  // 2. 防止浏览器后退
-  history.pushState(null, "", location.href);
-  window.addEventListener("popstate", function (event) {
-    history.pushState(null, "", location.href);
-  });
+  const current = getDebugGuardOverlay();
+  if (current) {
+    return current;
+  }
 
-  // 3. 防止页面刷新和常用快捷键
-  document.addEventListener("keydown", function (e) {
-    // 防止F5刷新
-    if (e.key === "F5" || (e.ctrlKey && e.key === "r")) {
-      e.preventDefault();
-      return false;
-    }
-    // 防止Ctrl+Shift+I (开发者工具)
-    if (e.ctrlKey && e.shiftKey && e.key === "I") {
-      e.preventDefault();
-      return false;
-    }
-    // 防止F12 (开发者工具)
-    if (e.key === "F12") {
-      e.preventDefault();
-      return false;
-    }
-    // 防止Ctrl+U (查看源代码)
-    if (e.ctrlKey && e.key === "u") {
-      e.preventDefault();
-      return false;
-    }
-    // 防止Ctrl+S (保存页面)
-    if (e.ctrlKey && e.key === "s") {
-      e.preventDefault();
-      return false;
-    }
-    // 防止Ctrl+A (全选)
-    if (e.ctrlKey && e.key === "a") {
-      e.preventDefault();
-      return false;
-    }
-    // 防止Ctrl+P (打印)
-    if (e.ctrlKey && e.key === "p") {
-      e.preventDefault();
-      return false;
-    }
-  });
+  const overlay = document.createElement("div");
+  overlay.id = DEBUG_GUARD_OVERLAY_ID;
+  overlay.setAttribute("role", "alert");
+  overlay.setAttribute("aria-live", "assertive");
+  overlay.style.cssText = [
+    "position:fixed",
+    "inset:0",
+    "z-index:2147483647",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    "padding:24px",
+    "background:rgba(15,23,42,0.78)",
+    "backdrop-filter:blur(18px)",
+    "color:#f8fafc",
+    "text-align:center",
+  ].join(";");
+  overlay.innerHTML =
+    '<div style="max-width:420px;padding:28px 30px;border-radius:24px;border:1px solid rgba(148,163,184,0.18);background:linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.92));box-shadow:0 24px 48px rgba(2,6,23,0.35);">' +
+    '<div style="font-size:18px;font-weight:700;margin-bottom:10px;">检测到开发者工具已开启</div>' +
+    '<div style="font-size:13px;line-height:1.7;color:rgba(226,232,240,0.82);">当前页面已启用前端源码保护。请关闭开发者工具后继续使用系统。</div>' +
+    "</div>";
+  document.body?.appendChild(overlay);
+  return overlay;
+};
 
-  // 4. 防止右键菜单
-  document.addEventListener("contextmenu", function (e) {
-    e.preventDefault();
-    return false;
-  });
+const setDebugGuardState = (isOpen: boolean) => {
+  if (typeof document === "undefined") {
+    return;
+  }
 
-  // 5. 防止文本选择
-  document.addEventListener("selectstart", function (e) {
-    e.preventDefault();
-    return false;
-  });
+  document.documentElement.dataset[DEBUG_GUARD_DATASET_KEY] = String(isOpen);
 
-  // 6. 防止拖拽
-  document.addEventListener("dragstart", function (e) {
-    e.preventDefault();
-    return false;
-  });
+  if (isOpen) {
+    ensureDebugGuardOverlay();
+    console.warn("[debug-guard] 检测到开发者工具已开启，已限制页面交互。");
+  } else {
+    getDebugGuardOverlay()?.remove();
+  }
 
-  // 7. 监听页面可见性变化，防止切换标签页后返回
-  document.addEventListener("visibilitychange", function () {
+  emitDebugGuardEvent(isOpen);
+};
+
+const isBlockedDebugShortcut = (event: KeyboardEvent) =>
+  event.key === "F12" ||
+  (event.ctrlKey && event.shiftKey && ["I", "J", "C"].includes(event.key)) ||
+  (event.ctrlKey && event.key.toLowerCase() === "u");
+
+export const stopLoopDebugger = (): void => {
+  if (!loopDebuggerTimer) {
+    return;
+  }
+
+  clearInterval(loopDebuggerTimer);
+  loopDebuggerTimer = null;
+};
+
+export const loopDebugger = (
+  intervalMs = DEFAULT_LOOP_DEBUGGER_INTERVAL,
+): (() => void) => {
+  if (loopDebuggerTimer || typeof window === "undefined") {
+    return stopLoopDebugger;
+  }
+
+  loopDebuggerTimer = setInterval(() => {
     if (document.hidden) {
-      // 页面被隐藏时记录状态
-      sessionStorage.setItem("pageHidden", "true");
-    } else {
-      // 页面重新可见时检查
-      if (sessionStorage.getItem("pageHidden") === "true") {
-        // 清除浏览器历史记录并跳转到百度
-        if (window.history && window.history.replaceState) {
-          // 清除当前页面的历史记录
-          window.history.replaceState(null, "", "about:blank");
-          // 清除所有历史记录
-          window.history.go(-(window.history.length - 1));
-        }
-
-        // 使用replace方式跳转，不会在历史记录中留下痕迹
-        window.location.replace("https://www.baidu.com");
-      }
+      return;
     }
-  });
+    try {
+      Function("debugger")();
+    } catch {
+      // noop
+    }
+  }, Math.max(intervalMs, 300));
 
-  // 8. 防止通过历史记录API操作
-  const originalPushState = history.pushState;
-  const originalReplaceState = history.replaceState;
+  return stopLoopDebugger;
+};
 
-  history.pushState = function () {
-    originalPushState.apply(history, arguments);
-    // 确保始终有一个状态阻止后退
-    setTimeout(() => {
-      history.pushState(null, "", location.href);
-    }, 0);
+export const stopRedirectDebugger = (): void => {
+  redirectDebuggerCleanup?.();
+  redirectDebuggerCleanup = null;
+};
+
+export const redirectDebugger = (): (() => void) => {
+  if (redirectDebuggerCleanup || typeof window === "undefined") {
+    return stopRedirectDebugger;
+  }
+
+  const keydownHandler = (event: KeyboardEvent) => {
+    if (!isBlockedDebugShortcut(event)) {
+      return;
+    }
+    event.preventDefault();
   };
 
-  history.replaceState = function () {
-    originalReplaceState.apply(history, arguments);
-    // 确保始终有一个状态阻止后退
-    setTimeout(() => {
-      history.pushState(null, "", location.href);
-    }, 0);
+  devtoolsListener = (isOpen: boolean) => {
+    setDebugGuardState(isOpen);
   };
 
-  // 9. 启动调试器检测
+  addListener(devtoolsListener);
   launch();
+  document.addEventListener("keydown", keydownHandler, true);
 
-  // 10. 定期检查页面完整性
-  setInterval(() => {
-    // 检查关键DOM元素是否被篡改
-    if (!document.body || !document.documentElement) {
-      // 清除浏览器历史记录并跳转到百度
-      if (window.history && window.history.replaceState) {
-        // 清除当前页面的历史记录
-        window.history.replaceState(null, "", "about:blank");
-        // 清除所有历史记录
-        window.history.go(-(window.history.length - 1));
-      }
-
-      // 使用replace方式跳转，不会在历史记录中留下痕迹
-      window.location.replace("https://www.baidu.com");
+  redirectDebuggerCleanup = () => {
+    if (devtoolsListener) {
+      removeListener(devtoolsListener);
+      devtoolsListener = null;
     }
-  }, 1000);
+    document.removeEventListener("keydown", keydownHandler, true);
+    setDebugGuardState(false);
+    delete document.documentElement.dataset[DEBUG_GUARD_DATASET_KEY];
+    stop();
+    redirectDebuggerCleanup = null;
+  };
+
+  return stopRedirectDebugger;
+};
+
+export const __resetDebugRuntimeForTests = (): void => {
+  stopLoopDebugger();
+  stopRedirectDebugger();
 };

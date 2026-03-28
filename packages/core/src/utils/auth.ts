@@ -1,10 +1,10 @@
 import { useUserStoreHook } from "../store/modules/UserStore";
 import type {
   FlatUserResult,
-  UserInfoVO,
   UserResult,
 } from "../api/common/user";
 import { localStorageProxy } from "@repo/utils";
+import { buildStoredUserResult, type StoredUserResult } from "./auth-payload";
 import {
   getToken as getGlobalToken,
   removeToken as removeGlobalToken,
@@ -42,58 +42,29 @@ export function setToken(
       true,
     loginDay: userStore.loginDay ?? 7,
   };
-  const { refreshToken, expires } = setGlobalToken(data, setting);
+  const { accessToken, refreshToken, expires } = setGlobalToken(data, setting);
   setLoginOutFunction(useUserStoreHook().logOut);
   setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
+  const previousUserInfo =
+    localStorageProxy().getItem<StoredUserResult>(userKey) || null;
+  const storedUserInfo = buildStoredUserResult(data, {
+    accessToken,
+    refreshToken,
+    expires,
+    isRemembered: setting.isRemembered,
+    fallback: previousUserInfo,
+  });
 
-  function setUserKey({
-    avatar,
-    sysUserUsername,
-    sysUserNickname,
-    roles,
-    perms,
-  }: UserInfoVO) {
-    localStorageProxy().setItem(userKey, {
-      refreshToken,
-      expires,
-      avatar,
-      sysUserUsername,
-      sysUserNickname,
-      roles: userStore.roles,
-      perms,
-    });
-  }
+  localStorageProxy().setItem(userKey, storedUserInfo);
 
-  if (data?.userInfo?.sysUserUsername && data?.userInfo?.roles) {
-    const { sysUserUsername, roles, perms } = data.userInfo;
-    setUserKey({
-      avatar: data?.userInfo?.avatar ?? "",
-      sysUserUsername,
-      sysUserNickname: data?.userInfo?.sysUserNickname ?? "",
-      roles,
-      perms,
-    } as UserInfoVO);
-  } else {
-    const avatar =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
-    const sysUserUsername =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
-      "";
-    const sysUserNickname =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
-      "";
-    const roles =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
-    const perms =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [];
-    setUserKey({
-      avatar,
-      sysUserUsername,
-      sysUserNickname,
-      roles,
-      perms,
-    } as UserInfoVO);
-  }
+  userStore.SET_AVATAR(storedUserInfo.avatar || "");
+  userStore.sysUserId = storedUserInfo.sysUserId ?? "";
+  userStore.SET_TENANT(storedUserInfo.tenantId || "");
+  userStore.SET_USERNAME(storedUserInfo.sysUserUsername || "");
+  userStore.SET_NICKNAME(storedUserInfo.sysUserNickname || "");
+  userStore.SET_ROLES(storedUserInfo.roles || []);
+  userStore.SET_PERMS(storedUserInfo.perms || []);
+  userStore.SET_ISREMEMBERED(setting.isRemembered);
 }
 
 /** 删除`token`以及key值为`user-info`的localStorage信息 */

@@ -184,7 +184,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScMessageDialog } from "@repo/components/ScMessageDialog"
 const dialogRef = ref();
 const operations = ref([]);
 

@@ -94,6 +94,78 @@ html[data-theme="auroraGreen"] {
   --pure-theme-menu-active-before: var(--app-primary);
 }
 
+/* 靛蓝 */
+html[data-theme="indigo"] {
+  --pure-theme-sub-menu-active-text: var(--app-white);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: rgba(var(--app-primary-rgb), 0.15);
+  --pure-theme-sub-menu-bg: var(--app-bg-secondary);
+  --pure-theme-menu-text: var(--app-text-secondary);
+  --pure-theme-sidebar-logo: var(--app-bg-secondary);
+  --pure-theme-menu-title-hover: var(--app-white);
+  --pure-theme-menu-active-before: var(--app-primary);
+}
+
+/* 海洋蓝 */
+html[data-theme="oceanBlue"] {
+  --pure-theme-sub-menu-active-text: var(--app-white);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: rgba(var(--app-primary-rgb), 0.15);
+  --pure-theme-sub-menu-bg: var(--app-bg-secondary);
+  --pure-theme-menu-text: var(--app-text-secondary);
+  --pure-theme-sidebar-logo: var(--app-bg-secondary);
+  --pure-theme-menu-title-hover: var(--app-white);
+  --pure-theme-menu-active-before: var(--app-primary);
+}
+
+/* 琥珀 */
+html[data-theme="amber"] {
+  --pure-theme-sub-menu-active-text: var(--app-white);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: rgba(var(--app-primary-rgb), 0.15);
+  --pure-theme-sub-menu-bg: var(--app-bg-secondary);
+  --pure-theme-menu-text: rgba(var(--app-white-rgb), 0.7);
+  --pure-theme-sidebar-logo: var(--app-bg-secondary);
+  --pure-theme-menu-title-hover: var(--app-white);
+  --pure-theme-menu-active-before: var(--app-primary);
+}
+
+/* 玫瑰红 */
+html[data-theme="rose"] {
+  --pure-theme-sub-menu-active-text: var(--app-white);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: rgba(var(--app-primary-rgb), 0.15);
+  --pure-theme-sub-menu-bg: var(--app-bg-secondary);
+  --pure-theme-menu-text: rgba(var(--app-white-rgb), 0.7);
+  --pure-theme-sidebar-logo: var(--app-bg-secondary);
+  --pure-theme-menu-title-hover: var(--app-white);
+  --pure-theme-menu-active-before: var(--app-primary);
+}
+
+/* 蓝绿 */
+html[data-theme="teal"] {
+  --pure-theme-sub-menu-active-text: var(--app-white);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: rgba(var(--app-primary-rgb), 0.15);
+  --pure-theme-sub-menu-bg: var(--app-bg-secondary);
+  --pure-theme-menu-text: var(--app-text-secondary);
+  --pure-theme-sidebar-logo: var(--app-bg-secondary);
+  --pure-theme-menu-title-hover: var(--app-white);
+  --pure-theme-menu-active-before: var(--app-primary);
+}
+
+/* 石板灰 */
+html[data-theme="slate"] {
+  --pure-theme-sub-menu-active-text: var(--app-white);
+  --pure-theme-menu-bg: var(--app-bg-primary);
+  --pure-theme-menu-hover: rgba(var(--app-primary-rgb), 0.15);
+  --pure-theme-sub-menu-bg: var(--app-bg-secondary);
+  --pure-theme-menu-text: rgba(var(--app-white-rgb), 0.72);
+  --pure-theme-sidebar-logo: var(--app-bg-secondary);
+  --pure-theme-menu-title-hover: var(--app-white);
+  --pure-theme-menu-active-before: var(--app-primary);
+}
+
 /* 反色模式 */
 html.html-invert {
   filter: invert(1) hue-rotate(180deg);

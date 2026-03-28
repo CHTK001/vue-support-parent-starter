@@ -140,7 +140,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import MonacoEditor from "@repo/components/MonacoEditor/index.vue";
 
 const code = ref("console.log('Hello!')");`,
   },

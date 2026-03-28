@@ -421,7 +421,7 @@ import {
   TechDeco,
   TechGeometry,
   TechPanelTitle,
-} from "@repo/sc-visualization/TechUI";
+} from "@repo/components/TechUI";
 import {
   getNodeMetricsForNodeControl,
   type NodeMetricsDTO,

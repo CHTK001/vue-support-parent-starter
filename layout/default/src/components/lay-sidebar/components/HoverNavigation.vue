@@ -64,25 +64,30 @@ const {
 // 提取 permissionStore 到顶层避免重复调用
 const permissionStore = usePermissionStoreHook();
 
-// 悬浮导航的收缩状态
-const isHoverCollapsed = ref(false);
+// 悬浮导航的收缩状态与全局侧边栏状态保持一致，避免主区域与导航宽度错位
+const isHoverCollapsed = computed(() => isCollapse.value);
 
-const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
-const forceNewMenu = ref(false);
-const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
+const showNewMenuOverride = ref<boolean | null>(null);
+const forceNewMenuOverride = ref<boolean | null>(null);
+const menuAnimationOverride = ref<boolean | null>(null);
+const newMenuAnimationOverride = ref<string | null>(null);
+const showNewMenu = computed(
+  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
+);
+const forceNewMenu = computed(
+  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
+);
+const menuAnimation = computed(
+  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
+);
+const newMenuAnimation = computed(
+  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
+);
 
 // 悬浮导航专用的切换函数
 function toggleHoverSideBar() {
-  // 在悬浮导航模式下，收缩按钮控制导航的收缩状态
-  // 收缩时只显示图标，展开时显示完整菜单
-  isHoverCollapsed.value = !isHoverCollapsed.value;
-
-  // 通过CSS变量通知全局布局状态变化
-  document.documentElement.style.setProperty(
-    "--hover-sidebar-width",
-    isHoverCollapsed.value ? "64px" : "200px",
-  );
+  // 悬浮导航沿用全局侧边栏开关，确保布局宽度与视觉状态一致
+  toggleSideBar();
 }
 
 // 收藏相关数据
@@ -227,11 +232,11 @@ const shouldUseMixedLayout = computed(() => {
 // 动态计算容器宽度 - 根据布局模式调整
 const dynamicContainerWidth = computed(() => {
   const itemCount = totalMenuItems.value;
-  if (itemCount === 0) return "320px";
+  if (itemCount === 0) return "280px";
 
   // 纵向布局时使用固定宽度
   if (shouldUseVerticalLayout.value) {
-    return "360px";
+    return "340px";
   }
 
   // 混合布局时计算宽度
@@ -239,25 +244,25 @@ const dynamicContainerWidth = computed(() => {
     const strategy = layoutStrategy.value;
     // 纵向分组占一列，横向分组每个占一列
     const columns = 1 + strategy.horizontalGroups.length;
-    const baseWidth = 180;
-    const padding = 32;
-    const gap = 16;
+    const baseWidth = 168;
+    const padding = 28;
+    const gap = 12;
     const calculatedWidth = columns * baseWidth + (columns - 1) * gap + padding;
-    return `${Math.min(900, Math.max(400, calculatedWidth))}px`;
+    return `${Math.min(760, Math.max(320, calculatedWidth))}px`;
   }
 
   // 根据列数计算最优宽度
   const columnsNeeded = getGridColumns(itemCount);
-  const baseWidth = 180; // 每列基础宽度（增加以适应横向布局）
-  const padding = 32; // 容器内边距
-  const gap = 16; // 列间距（增加以改善可读性）
+  const baseWidth = 156;
+  const padding = 24;
+  const gap = 12;
 
   const calculatedWidth =
     columnsNeeded * baseWidth + (columnsNeeded - 1) * gap + padding;
 
   // 设置合理的最小和最大宽度
-  const minWidth = 320; // 最小宽度（单列时）
-  const maxWidth = 800; // 最大宽度（四列时）
+  const minWidth = 280;
+  const maxWidth = 720;
 
   return `${Math.min(maxWidth, Math.max(minWidth, calculatedWidth))}px`;
 });
@@ -611,25 +616,33 @@ watch(
   { immediate: true },
 );
 
+watch(
+  isHoverCollapsed,
+  (collapsed) => {
+    document.documentElement.style.setProperty(
+      "--hover-sidebar-width",
+      collapsed ? "64px" : "200px",
+    );
+  },
+  { immediate: true },
+);
+
 onMounted(async () => {
   emitter.on("showNewMenuChange", (val) => {
-    showNewMenu.value = val;
+    showNewMenuOverride.value = val;
   });
   emitter.on("forceNewMenuChange", (val) => {
-    forceNewMenu.value = val;
+    forceNewMenuOverride.value = val;
   });
   emitter.on("menuAnimationChange", (val) => {
-    menuAnimation.value = val;
+    menuAnimationOverride.value = val;
   });
   emitter.on("newMenuAnimationChange", (val) => {
-    newMenuAnimation.value = val;
+    newMenuAnimationOverride.value = val;
   });
 
   // 加载收藏菜单
   await loadFavorites();
-
-  // 初始化CSS变量
-  document.documentElement.style.setProperty("--hover-sidebar-width", "200px");
 });
 
 onBeforeUnmount(() => {
@@ -1426,8 +1439,8 @@ const defer = useDefer(firstLevelMenus.value.length);
 }
 
 .sub-menu-container {
-  min-width: 320px;
-  max-width: 900px;
+  min-width: 280px;
+  max-width: 760px;
   width: fit-content;
   max-height: calc(100vh - 60px);
   background: var(--hover-nav-submenu-bg);
@@ -1521,8 +1534,8 @@ const defer = useDefer(firstLevelMenus.value.length);
   gap: 16px;
 
   .vertical-section {
-    min-width: 160px;
-    max-width: 200px;
+    min-width: 148px;
+    max-width: 188px;
     border-right: 1px solid var(--el-border-color-lighter);
     padding-right: 16px;
     display: flex;
@@ -1537,7 +1550,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   .horizontal-section {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
     gap: 16px;
     align-items: start;
   }
@@ -1589,7 +1602,7 @@ const defer = useDefer(firstLevelMenus.value.length);
 .menu-column {
   display: flex;
   flex-direction: column;
-  min-width: 160px;
+  min-width: 148px;
 
   .column-title {
     font-size: 13px;
@@ -1604,7 +1617,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     position: relative;
 
     /* 浅色风格下文字 */
-    html[data-theme="light"] & {
+    html:not(.dark) & {
       color: #64748b;
     }
 
@@ -1683,7 +1696,7 @@ const defer = useDefer(firstLevelMenus.value.length);
   contain: layout style;
 
   /* 浅色风格下文字为黑色 */
-  html[data-theme="light"] & {
+  html:not(.dark) & {
     color: var(--hover-nav-menu-color, #1e293b);
   }
 
@@ -1701,7 +1714,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     border-color: var(--el-color-primary-light-6);
 
     /* 浅色风格下悬停样式 */
-    html[data-theme="light"] & {
+    html:not(.dark) & {
       color: var(--el-color-primary-dark-2);
     }
 
@@ -1720,7 +1733,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     box-shadow: 0 3px 12px rgba(var(--el-color-primary-rgb), 0.3);
 
     /* 浅色风格下激活样式保持白色 */
-    html[data-theme="light"] & {
+    html:not(.dark) & {
       color: var(--hover-nav-menu-active-color, #ffffff) !important;
       background: var(
         --hover-nav-menu-active-bg,
@@ -1797,7 +1810,7 @@ const defer = useDefer(firstLevelMenus.value.length);
     color: var(--el-text-color-secondary);
 
     /* 浅色风格下文字为黑色 */
-    html[data-theme="light"] & {
+    html:not(.dark) & {
       color: #64748b;
     }
 
@@ -1819,7 +1832,7 @@ const defer = useDefer(firstLevelMenus.value.length);
       color: var(--el-text-color-regular);
 
       /* 浅色风格下文字为黑色 */
-      html[data-theme="light"] & {
+      html:not(.dark) & {
         color: #1e293b;
       }
 
@@ -1835,7 +1848,7 @@ const defer = useDefer(firstLevelMenus.value.length);
       line-height: 1.4;
 
       /* 浅色风格下文字为黑色 */
-      html[data-theme="light"] & {
+      html:not(.dark) & {
         color: #94a3b8;
       }
 
@@ -1873,7 +1886,7 @@ const defer = useDefer(firstLevelMenus.value.length);
       contain: layout style;
 
       /* 浅色风格下文字为黑色 */
-      html[data-theme="light"] & {
+      html:not(.dark) & {
         color: #1e293b;
       }
 
@@ -1897,7 +1910,7 @@ const defer = useDefer(firstLevelMenus.value.length);
           0 2px 6px rgba(var(--el-color-warning-rgb), 0.1);
 
         /* 浅色风格下悬停样式 */
-        html[data-theme="light"] & {
+        html:not(.dark) & {
           background: rgba(255, 255, 255, 0.2);
           color: #ffffff;
           border-color: rgba(255, 255, 255, 0.3);
@@ -1926,7 +1939,7 @@ const defer = useDefer(firstLevelMenus.value.length);
         opacity: 0.6;
 
         /* 浅色风格下文字为黑色 */
-        html[data-theme="light"] & {
+        html:not(.dark) & {
           color: #94a3b8;
         }
 

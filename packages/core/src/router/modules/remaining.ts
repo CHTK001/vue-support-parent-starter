@@ -36,10 +36,7 @@ export default [
   {
     path: "/AccountSettings",
     name: "AccountSettings",
-    component: async () => {
-      const { Account } = await import("@layout/default");
-      return Account;
-    },
+    component: () => import("@layout/default/components/lay-account/index.vue"),
     meta: {
       title: $t("buttons.accountSetting"),
       showLink: false,

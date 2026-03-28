@@ -151,6 +151,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { ScProgress } from "@repo/components/ScProgress";
 
 // Props 定义
 interface Props {

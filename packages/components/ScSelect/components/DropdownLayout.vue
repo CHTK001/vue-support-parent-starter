@@ -9,12 +9,20 @@
       :show-arrow="false"
       :offset="8"
       :teleported="true"
-      :z-index="41000"
+      :z-index="zIndex"
       :popper-options="popoverOptions"
     >
       <template #reference>
         <!-- 触发按钮 -->
-        <div class="dropdown-trigger">
+        <div
+          class="dropdown-trigger"
+          role="button"
+          tabindex="0"
+          :aria-expanded="isOpen"
+          aria-haspopup="listbox"
+          @keydown.enter.prevent="toggleDropdown"
+          @keydown.space.prevent="toggleDropdown"
+        >
           <div class="dropdown-icon">
             <IconRenderer :icon="icon || 'ri:settings-3-line'" />
           </div>
@@ -197,6 +205,10 @@ const props = defineProps({
       return ["normal", "large"].includes(value);
     }
   },
+  zIndex: {
+    type: Number,
+    default: 2000
+  },
   // 是否显示搜索栏
   showSearchBar: {
     type: Boolean,
@@ -260,9 +272,7 @@ const popoverOptions = computed(() => {
 const popoverWidth = computed(() => {
   if (props.matchTriggerWidth && dropdownRef.value) {
     const triggerWidth = dropdownRef.value.offsetWidth;
-    // 让下拉面板整体比触发器稍窄一些，视觉上更“收紧”
-    const narrowedWidth = Math.round(triggerWidth * 0.86);
-    return `${narrowedWidth}px`;
+    return `${Math.max(triggerWidth, 240)}px`;
   }
   return props.width;
 });
@@ -350,6 +360,11 @@ const handleClearSelection = () => {
   display: inline-block;
   width: 100%;
 
+  :deep(.sc-popover-trigger) {
+    display: flex;
+    width: 100%;
+  }
+
   &.direction-horizontal {
     max-width: 600px;
 
@@ -368,6 +383,7 @@ const handleClearSelection = () => {
 .dropdown-trigger {
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 10px 16px;
   background: var(--el-bg-color);
   border: 2px solid var(--el-border-color-lighter);

@@ -97,7 +97,7 @@
                   target="_blank"
                   type="primary"
                   class="url-link"
-                  >{{ row.systemSoftRegistryUrl }}</el-link>
+                  >{{ row.systemSoftRegistryUrl }}</ScLink>
               </div>
               <div class="info-row">
                 <IconifyIconOnline

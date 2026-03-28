@@ -1,0 +1,20 @@
+{
+  "name": "@repo/components/ScEchartsMap3D",
+  "version": "1.0.0",
+  "description": "3D ECharts 地图组件（map3D/bar3D 等）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "dependencies": {
+    "vue": "catalog:",
+    "echarts": "catalog:",
+    "echarts-gl": "catalog:"
+  },
+  "license": "ISC"
+}

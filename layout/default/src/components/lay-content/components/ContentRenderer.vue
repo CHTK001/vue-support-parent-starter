@@ -4,7 +4,7 @@
  * 封装 keep-alive + component 的公共逻辑，避免重复代码
  * 页面级切换不再使用过渡动画，避免点击菜单时整块内容区域产生动画
  */
-import { computed, defineComponent } from "vue";
+import { computed, defineComponent, unref } from "vue";
 
 const props = defineProps<{
   /** 要渲染的组件 */
@@ -58,6 +58,8 @@ const contentStyle = computed(() => {
   style["flex"] = "1";
   return { ...style, ...props.extraStyle };
 });
+
+const resolvedComp = computed(() => unref(props.comp));
 </script>
 
 <template>
@@ -66,20 +68,9 @@ const contentStyle = computed(() => {
     :menu-transition="menuTransition"
     :transition-type="transitionType"
   >
-    <keep-alive v-if="isKeepAlive" :include="cachePageList">
-      <component
-        :is="comp"
-        :key="route.name"
-        :frameInfo="frameInfo"
-        class="main-content"
-        :class="extraClass"
-        :style="contentStyle"
-      />
-    </keep-alive>
     <component
-      v-else
-      :is="comp"
-      :key="route.name"
+      :is="resolvedComp"
+      :key="route.fullPath || route.name"
       :frameInfo="frameInfo"
       class="main-content"
       :class="extraClass"

@@ -1,7 +1,8 @@
 <script setup>
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
-import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
+import { emitter, useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
+import { subscribeClock } from "@repo/utils";
 import {
   computed,
   defineAsyncComponent,
@@ -42,16 +43,17 @@ const handlePreviewError = (id) => {
 const CustomLayout = defineAsyncComponent(
   () => import("./layout/CustomLayout.vue"),
 );
-const openRemoteLayout = getConfig().RemoteLayout;
-const openLocationLayout = getConfig().LocationLayout;
+const hasLayout = computed(
+  () => !!(getConfig().RemoteLayout || getConfig().LocationLayout),
+);
 const customizing = reactive({
   customizing: false,
-  hasLayout: openRemoteLayout || openLocationLayout,
 });
 
 // 搜索和筛选
 const searchKeyword = ref("");
 const selectedCategory = ref("all");
+const currentTheme = ref("default");
 
 // 设置项
 const showHeaderInfo = ref(
@@ -63,7 +65,87 @@ watch(showHeaderInfo, (val) => {
 
 // 当前时间
 const currentTime = ref(new Date());
-let timeInterval = null;
+let stopClockSubscription = null;
+
+const FESTIVAL_THEME_META = {
+  halloween: {
+    badge: "Ghost Lab",
+    description: "把首页切成幽灵紫与南瓜橙的夜巡控制台，卡片更有戏剧感。",
+    highlights: [
+      {
+        icon: "ri:moon-foggy-line",
+        label: "夜巡",
+        title: "雾面氛围层",
+        description: "强化深紫雾感和橙色点光，让页面先有气氛再有内容。",
+      },
+      {
+        icon: "ri:ghost-2-line",
+        label: "装饰",
+        title: "悬浮卡片节奏",
+        description: "让重点卡片有轻微发光边和浮动感，避免只是平铺换色。",
+      },
+      {
+        icon: "ri:flashlight-line",
+        label: "操作",
+        title: "夜间控台交互",
+        description: "按钮和状态强调改成暖橙主导，操作路径更聚焦。",
+      },
+    ],
+  },
+  christmas: {
+    badge: "Aurora Gift",
+    description: "首页变成松绿、礼盒红和暖金光泽的节日仪表舱。",
+    highlights: [
+      {
+        icon: "ri:snowy-line",
+        label: "氛围",
+        title: "冷暖双层光",
+        description: "保留松林深色底，叠加礼盒金色高光，画面更细腻。",
+      },
+      {
+        icon: "ri:gift-2-line",
+        label: "模块",
+        title: "礼盒式信息块",
+        description: "关键信息像礼盒分组陈列，视觉层次更明确。",
+      },
+      {
+        icon: "ri:star-smile-line",
+        label: "细节",
+        title: "节庆高亮节奏",
+        description: "高频按钮和摘要区改成暖金提示，不再只是单色绿红切换。",
+      },
+    ],
+  },
+  "spring-festival": {
+    badge: "Lantern Grid",
+    description: "用灯笼红、鎏金和绸缎光泽把首页做成迎新的值守看板。",
+    highlights: [
+      {
+        icon: "ri:fire-line",
+        label: "节奏",
+        title: "迎新主视觉",
+        description: "大面积中国红配合金色描边，建立更强的节庆识别。",
+      },
+      {
+        icon: "ri:vip-crown-2-line",
+        label: "重点",
+        title: "鎏金信息层",
+        description: "把关键指标和动作区提升成金色高权重信息层。",
+      },
+      {
+        icon: "ri:sparkling-2-line",
+        label: "动态",
+        title: "灯火层次感",
+        description: "装饰不只在背景，卡片本身也带一点灯火反光和温度。",
+      },
+    ],
+  },
+};
+
+const festivalThemeMeta = computed(() => FESTIVAL_THEME_META[currentTheme.value] || null);
+const handleThemeChange = (themeKey) => {
+  currentTheme.value = themeKey || "default";
+};
 
 // 格式化时间
 const formattedTime = computed(() => {
@@ -203,21 +285,27 @@ onBeforeMount(async () => {
 });
 
 onMounted(() => {
-  timeInterval = setInterval(() => {
-    currentTime.value = new Date();
-  }, 1000);
+  handleThemeChange(document.documentElement.dataset.skin || "default");
+  stopClockSubscription = subscribeClock((now) => {
+    currentTime.value = new Date(now);
+  });
+  emitter.on("systemThemeChange", handleThemeChange);
 });
 
 onUnmounted(() => {
-  if (timeInterval) {
-    clearInterval(timeInterval);
-  }
+  stopClockSubscription?.();
+  stopClockSubscription = null;
+  emitter.off("systemThemeChange", handleThemeChange);
 });
 </script>
 <template>
   <div
     ref="main"
-    :class="['widgets-home', customizing.customizing ? 'customizing' : '']"
+    :class="[
+      'widgets-home',
+      customizing.customizing ? 'customizing' : '',
+      `theme-${currentTheme}`,
+    ]"
   >
     <div class="widgets-content">
       <!-- 优化后的头部区域 -->
@@ -225,7 +313,7 @@ onUnmounted(() => {
         class="widgets-header"
         :class="{ 'header-compact': !showHeaderInfo }"
       >
-        <div class="header-left" v-if="showHeaderInfo">
+          <div class="header-left" v-if="showHeaderInfo">
           <div class="header-greeting">
             <div class="greeting-text">
               <span class="greeting-hello">{{ greeting }}，</span>
@@ -234,6 +322,10 @@ onUnmounted(() => {
               }}</span>
             </div>
             <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
+            <div v-if="festivalThemeMeta" class="festival-hero-note">
+              <span class="festival-hero-kicker">{{ festivalThemeMeta.badge }}</span>
+              <span class="festival-hero-copy">{{ festivalThemeMeta.description }}</span>
+            </div>
           </div>
         </div>
         <div class="header-left" v-else>
@@ -248,7 +340,7 @@ onUnmounted(() => {
         <div class="header-right">
           <div
             class="header-stats"
-            v-if="showHeaderInfo && customizing.hasLayout"
+            v-if="showHeaderInfo && hasLayout"
           >
             <div class="stat-item">
               <span class="stat-value">{{ widgetStats.active }}</span>
@@ -260,7 +352,7 @@ onUnmounted(() => {
               <span class="stat-label">可用</span>
             </div>
           </div>
-          <div class="header-actions" v-if="customizing.hasLayout">
+          <div class="header-actions" v-if="hasLayout">
             <el-button
               v-if="customizing.customizing"
               type="primary"
@@ -279,10 +371,25 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <div v-if="festivalThemeMeta" class="festival-story-grid">
+        <div
+          v-for="item in festivalThemeMeta.highlights"
+          :key="item.title"
+          class="festival-story-card"
+        >
+          <div class="festival-story-icon">
+            <IconifyIconOnline :icon="item.icon" />
+          </div>
+          <div class="festival-story-label">{{ item.label }}</div>
+          <div class="festival-story-title">{{ item.title }}</div>
+          <div class="festival-story-desc">{{ item.description }}</div>
+        </div>
+      </div>
+
       <!-- 部件内容区域 -->
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
-          <div v-if="!customizing.hasLayout" class="empty-state">
+          <div v-if="!hasLayout" class="empty-state">
             <div class="empty-icon">
               <el-icon :size="64">
                 <component :is="useRenderIcon('ri:dashboard-3-line')" />
@@ -325,7 +432,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 优化后的部件选择侧边栏 -->
-    <div v-if="customizing.customizing" class="widgets-aside">
+      <div v-if="customizing.customizing" class="widgets-aside">
       <div class="aside-header">
         <div class="aside-title">
           <el-icon :size="20">
@@ -431,20 +538,75 @@ onUnmounted(() => {
 }
 
 .widgets-home {
+  --home-font-family:
+    "Fira Sans",
+    "Segoe UI",
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  --home-page-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  --home-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
+  --home-panel-border: rgba(148, 163, 184, 0.12);
+  --home-panel-shadow: 0 22px 40px -34px rgba(15, 23, 42, 0.2);
+  --home-panel-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 40%);
+  --home-panel-radius: 24px;
+  --home-header-radius: 22px;
+  --home-section-bg: transparent;
+  --home-section-border: transparent;
+  --home-section-shadow: none;
+  --home-section-filter: none;
+  --home-section-radius: 0px;
+  --home-chip-bg: rgba(var(--el-color-primary-rgb), 0.06);
+  --home-chip-border: rgba(var(--el-color-primary-rgb), 0.1);
+  --home-chip-shadow: none;
+  --home-chip-text: var(--el-color-primary);
+  --home-stat-divider: rgba(148, 163, 184, 0.24);
+  --home-title-color: var(--el-text-color-primary);
+  --home-subtitle-color: var(--el-text-color-secondary);
+  --home-time-color: var(--el-text-color-primary);
+  --home-time-shadow: none;
+  --home-heading-shadow: none;
+  --home-empty-title-shadow: none;
+  --home-empty-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.86));
+  --home-empty-border: rgba(var(--el-color-primary-rgb), 0.16);
+  --home-empty-shadow: 0 22px 44px -36px rgba(15, 23, 42, 0.2);
+  --home-empty-icon-bg: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9),
+    rgba(var(--el-color-primary-rgb), 0.18)
+  );
+  --home-empty-icon-color: var(--el-color-primary);
+  --home-empty-icon-shadow:
+    0 16px 32px rgba(var(--el-color-primary-rgb), 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --home-button-shadow: 0 12px 24px -20px rgba(var(--el-color-primary-rgb), 0.3);
+  --home-festival-note-bg: rgba(var(--el-color-primary-rgb), 0.08);
+  --home-festival-note-border: rgba(var(--el-color-primary-rgb), 0.14);
+  --home-festival-note-shadow: 0 16px 28px -24px rgba(var(--el-color-primary-rgb), 0.18);
+  --home-festival-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88));
+  --home-festival-card-border: rgba(148, 163, 184, 0.14);
+  --home-festival-card-shadow: 0 18px 34px -28px rgba(15, 23, 42, 0.16);
+  --home-festival-card-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 55%);
+  --home-festival-icon-bg: rgba(var(--el-color-primary-rgb), 0.12);
+  --home-festival-icon-color: var(--el-color-primary);
+  --home-festival-label: rgba(var(--el-color-primary-rgb), 0.7);
   display: flex;
   flex-direction: row;
   flex: 1;
   min-height: 100%;
-  background: var(--el-bg-color-page);
+  background: var(--home-page-bg);
+  font-family: var(--home-font-family);
+  color: var(--home-title-color);
 }
 
 .widgets-content {
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
+  gap: 14px;
 }
 
 /* 头部区域 */
@@ -452,43 +614,58 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  background: var(--el-bg-color);
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 22px 26px;
+  background: var(--home-panel-bg);
+  border-radius: var(--home-header-radius);
+  border: 1px solid var(--home-panel-border);
+  margin-bottom: 0;
+  box-shadow: var(--home-panel-shadow);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--home-panel-overlay);
+    pointer-events: none;
+  }
 }
 
 .header-left {
   flex: 1;
+  min-width: 0;
 }
 
 .header-greeting {
   .greeting-text {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin-bottom: 4px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--home-title-color);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+    text-shadow: var(--home-heading-shadow);
 
     .greeting-hello {
       color: var(--el-color-primary);
     }
 
     .greeting-name {
-      color: var(--el-text-color-primary);
+      color: var(--home-title-color);
     }
   }
 
   .greeting-subtitle {
     font-size: 14px;
-    color: var(--el-text-color-secondary);
+    color: var(--home-subtitle-color);
   }
 }
 
 .header-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--home-title-color);
+  text-shadow: var(--home-heading-shadow);
 }
 
 .header-compact {
@@ -505,17 +682,23 @@ onUnmounted(() => {
   text-align: center;
 
   .time-display {
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 700;
-    color: var(--el-text-color-primary);
+    color: var(--home-time-color);
     font-variant-numeric: tabular-nums;
-    letter-spacing: 2px;
+    letter-spacing: 0.08em;
+    text-shadow: var(--home-time-shadow);
+    font-family:
+      "Fira Code",
+      "Consolas",
+      "SFMono-Regular",
+      monospace;
   }
 
   .date-display {
     font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin-top: 2px;
+    color: var(--home-subtitle-color);
+    margin-top: 6px;
   }
 }
 
@@ -531,9 +714,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 16px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
+  padding: 10px 18px;
+  background: var(--home-chip-bg);
+  border-radius: 16px;
+  border: 1px solid var(--home-chip-border);
+  box-shadow: var(--home-chip-shadow);
 
   .stat-item {
     text-align: center;
@@ -542,19 +727,19 @@ onUnmounted(() => {
       display: block;
       font-size: 20px;
       font-weight: 700;
-      color: var(--el-color-primary);
+      color: var(--home-chip-text);
     }
 
     .stat-label {
       font-size: 12px;
-      color: var(--el-text-color-secondary);
+      color: var(--home-subtitle-color);
     }
   }
 
   .stat-divider {
     width: 1px;
     height: 30px;
-    background: var(--el-border-color-light);
+    background: var(--home-stat-divider);
   }
 }
 
@@ -562,7 +747,103 @@ onUnmounted(() => {
   :deep(.el-button) {
     padding: 10px 20px;
     font-weight: 500;
+    box-shadow: var(--home-button-shadow);
   }
+}
+
+.festival-hero-note {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 14px;
+  max-width: min(360px, 100%);
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--home-festival-note-bg);
+  border: 1px solid var(--home-festival-note-border);
+  box-shadow: var(--home-festival-note-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.festival-hero-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--home-festival-icon-color);
+}
+
+.festival-hero-copy {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--home-title-color);
+}
+
+.festival-story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.festival-story-card {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  border-radius: 22px;
+  background: var(--home-festival-card-bg);
+  border: 1px solid var(--home-festival-card-border);
+  box-shadow: var(--home-festival-card-shadow);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--home-festival-card-overlay);
+    pointer-events: none;
+  }
+}
+
+.festival-story-icon,
+.festival-story-label,
+.festival-story-title,
+.festival-story-desc {
+  position: relative;
+  z-index: 1;
+}
+
+.festival-story-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  font-size: 22px;
+  background: var(--home-festival-icon-bg);
+  color: var(--home-festival-icon-color);
+}
+
+.festival-story-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--home-festival-label);
+}
+
+.festival-story-title {
+  margin-top: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--home-title-color);
+}
+
+.festival-story-desc {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--home-subtitle-color);
 }
 
 /* 部件内容区域 */
@@ -572,12 +853,24 @@ onUnmounted(() => {
   transition: transform 0.15s;
   flex: 1;
   min-height: 0;
+  padding: 6px 0 0;
+  border-radius: var(--home-section-radius);
+  background: var(--home-section-bg);
+  border: 1px solid var(--home-section-border);
+  box-shadow: var(--home-section-shadow);
+  backdrop-filter: var(--home-section-filter);
 }
 
 .item,
 .widgets > .widgets-wrapper {
   width: 100%;
   height: 100%;
+}
+
+.widgets-wrapper {
+  min-height: 100%;
+  border-radius: var(--home-panel-radius);
+  overflow: visible;
 }
 
 .draggable-box {
@@ -591,55 +884,315 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  min-height: 400px;
+  min-height: clamp(280px, 40vh, 360px);
+  width: 100%;
   text-align: center;
-  padding: 40px;
+  max-width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 44px 40px;
+  border-radius: var(--home-panel-radius);
+  border: 1px dashed var(--home-empty-border);
+  background: var(--home-empty-bg);
+  box-shadow: var(--home-empty-shadow);
 
   .empty-icon {
-    width: 120px;
-    height: 120px;
+    width: 116px;
+    height: 116px;
     border-radius: 50%;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9),
-      var(--el-color-primary-light-7)
-    );
+    background: var(--home-empty-icon-bg);
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
-    color: var(--el-color-primary);
+    color: var(--home-empty-icon-color);
+    box-shadow: var(--home-empty-icon-shadow);
   }
 
   .empty-title {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin-bottom: 8px;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--home-title-color);
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    text-shadow: var(--home-empty-title-shadow);
   }
 
   .empty-desc {
-    font-size: 14px;
-    color: var(--el-text-color-secondary);
-    margin-bottom: 24px;
+    font-size: 15px;
+    color: var(--home-subtitle-color);
+    margin-bottom: 26px;
   }
 
   .empty-action {
-    padding: 12px 28px;
+    padding: 12px 30px;
     font-size: 15px;
+    box-shadow: var(--home-button-shadow);
+  }
+}
+
+html[data-skin="8bit"],
+html.theme-8bit {
+  .widgets-home {
+    --home-font-family:
+      "Fusion Pixel Zh_hans",
+      "Courier New",
+      "Microsoft YaHei",
+      monospace;
+    --home-page-bg:
+      repeating-linear-gradient(
+        90deg,
+        rgba(17, 17, 17, 0.04) 0 1px,
+        transparent 1px 24px
+      ),
+      repeating-linear-gradient(
+        180deg,
+        rgba(17, 17, 17, 0.04) 0 1px,
+        transparent 1px 24px
+      ),
+      linear-gradient(180deg, #eff3f7 0%, #dbe2ea 100%);
+    --home-panel-bg: linear-gradient(180deg, #ffffff, #f2f2f2);
+    --home-panel-border: #111111;
+    --home-panel-shadow: 8px 8px 0 rgba(17, 17, 17, 0.14);
+    --home-panel-overlay: linear-gradient(180deg, transparent, transparent);
+    --home-panel-radius: 0px;
+    --home-header-radius: 0px;
+    --home-chip-bg: #111111;
+    --home-chip-border: #111111;
+    --home-chip-shadow: none;
+    --home-chip-text: #32cd32;
+    --home-stat-divider: rgba(255, 255, 255, 0.2);
+    --home-title-color: #101010;
+    --home-subtitle-color: #494949;
+    --home-time-color: #101010;
+    --home-empty-bg: linear-gradient(180deg, #fafafa, #f0f0f0);
+    --home-empty-border: #101010;
+    --home-empty-shadow: 8px 8px 0 rgba(17, 17, 17, 0.14);
+    --home-empty-icon-bg: linear-gradient(180deg, #9eff9e, #32cd32);
+    --home-empty-icon-color: #101010;
+    --home-empty-icon-shadow: none;
+    --home-button-shadow: 4px 4px 0 rgba(17, 17, 17, 0.18);
+  }
+
+  .widgets-header,
+  .header-stats,
+  .empty-state {
+    border-width: 3px;
+    border-style: solid;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .empty-state {
+    border-style: solid;
+  }
+
+  .empty-state .empty-icon {
+    border-radius: 0;
+  }
+}
+
+html[data-skin="future-tech"],
+html.theme-future-tech {
+  .widgets-home {
+    --home-page-bg:
+      radial-gradient(circle at top, rgba(0, 255, 255, 0.12), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
+    --home-panel-bg: linear-gradient(180deg, rgba(7, 18, 42, 0.86), rgba(5, 12, 30, 0.78));
+    --home-panel-border: rgba(0, 255, 255, 0.22);
+    --home-panel-shadow: 0 28px 52px -36px rgba(0, 255, 255, 0.22);
+    --home-panel-overlay: linear-gradient(135deg, rgba(97, 250, 255, 0.18), transparent 45%);
+    --home-section-bg: linear-gradient(180deg, rgba(7, 18, 42, 0.22), rgba(5, 12, 30, 0.12));
+    --home-section-border: rgba(0, 255, 255, 0.08);
+    --home-section-shadow: inset 0 0 0 1px rgba(0, 255, 255, 0.04);
+    --home-section-radius: 28px;
+    --home-chip-bg: rgba(0, 255, 255, 0.08);
+    --home-chip-border: rgba(0, 255, 255, 0.18);
+    --home-chip-shadow: 0 18px 32px -26px rgba(0, 255, 255, 0.22);
+    --home-chip-text: #66f8ff;
+    --home-stat-divider: rgba(0, 255, 255, 0.18);
+    --home-title-color: #dffcff;
+    --home-subtitle-color: rgba(168, 240, 255, 0.72);
+    --home-time-color: #66f8ff;
+    --home-time-shadow: 0 0 16px rgba(0, 255, 255, 0.35);
+    --home-heading-shadow: 0 0 12px rgba(0, 255, 255, 0.14);
+    --home-empty-title-shadow: 0 0 12px rgba(0, 255, 255, 0.16);
+    --home-empty-bg: linear-gradient(180deg, rgba(8, 23, 54, 0.88), rgba(3, 11, 26, 0.78));
+    --home-empty-border: rgba(0, 255, 255, 0.2);
+    --home-empty-shadow: 0 30px 48px -34px rgba(0, 255, 255, 0.24);
+    --home-empty-icon-bg: radial-gradient(
+      circle at 30% 30%,
+      rgba(0, 255, 255, 0.32),
+      rgba(0, 88, 122, 0.18) 62%,
+      transparent 72%
+    );
+    --home-empty-icon-color: #66f8ff;
+    --home-empty-icon-shadow: 0 0 26px rgba(0, 255, 255, 0.2);
+    --home-button-shadow: 0 0 24px rgba(0, 255, 255, 0.12);
+  }
+}
+
+html[data-skin="halloween"],
+html.theme-halloween {
+  .widgets-home {
+    --home-page-bg:
+      radial-gradient(circle at top, rgba(255, 117, 24, 0.12), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
+    --home-panel-bg: linear-gradient(180deg, rgba(43, 10, 63, 0.88), rgba(23, 4, 35, 0.8));
+    --home-panel-border: rgba(255, 117, 24, 0.22);
+    --home-panel-shadow: 0 26px 48px -34px rgba(255, 117, 24, 0.22);
+    --home-panel-overlay: linear-gradient(135deg, rgba(255, 145, 77, 0.18), transparent 45%);
+    --home-section-bg: linear-gradient(180deg, rgba(43, 10, 63, 0.18), rgba(23, 4, 35, 0.12));
+    --home-section-border: rgba(255, 117, 24, 0.08);
+    --home-section-shadow: inset 0 0 0 1px rgba(255, 117, 24, 0.04);
+    --home-section-radius: 28px;
+    --home-chip-bg: rgba(255, 117, 24, 0.1);
+    --home-chip-border: rgba(255, 117, 24, 0.18);
+    --home-chip-shadow: 0 18px 32px -26px rgba(255, 117, 24, 0.22);
+    --home-chip-text: #ffb05c;
+    --home-stat-divider: rgba(255, 117, 24, 0.2);
+    --home-title-color: #ffe5c8;
+    --home-subtitle-color: rgba(255, 212, 171, 0.72);
+    --home-time-color: #ffb05c;
+    --home-time-shadow: 0 0 14px rgba(255, 117, 24, 0.26);
+    --home-heading-shadow: 0 0 10px rgba(255, 117, 24, 0.1);
+    --home-empty-title-shadow: 0 0 10px rgba(255, 117, 24, 0.12);
+    --home-empty-bg: linear-gradient(180deg, rgba(52, 11, 76, 0.9), rgba(23, 4, 35, 0.8));
+    --home-empty-border: rgba(255, 117, 24, 0.24);
+    --home-empty-shadow: 0 28px 46px -34px rgba(255, 117, 24, 0.24);
+    --home-empty-icon-bg: radial-gradient(
+      circle at 30% 30%,
+      rgba(255, 180, 92, 0.34),
+      rgba(255, 117, 24, 0.18) 62%,
+      transparent 72%
+    );
+    --home-empty-icon-color: #ffb05c;
+    --home-empty-icon-shadow: 0 0 24px rgba(255, 117, 24, 0.18);
+    --home-button-shadow: 0 16px 28px -22px rgba(255, 117, 24, 0.26);
+    --home-festival-note-bg: rgba(255, 176, 92, 0.12);
+    --home-festival-note-border: rgba(255, 176, 92, 0.18);
+    --home-festival-note-shadow: 0 18px 32px -24px rgba(255, 117, 24, 0.24);
+    --home-festival-card-bg: linear-gradient(180deg, rgba(54, 11, 79, 0.92), rgba(23, 4, 35, 0.86));
+    --home-festival-card-border: rgba(255, 176, 92, 0.18);
+    --home-festival-card-shadow: 0 22px 36px -26px rgba(255, 117, 24, 0.22);
+    --home-festival-card-overlay: linear-gradient(135deg, rgba(255, 176, 92, 0.16), transparent 52%);
+    --home-festival-icon-bg: rgba(255, 176, 92, 0.14);
+    --home-festival-icon-color: #ffb05c;
+    --home-festival-label: rgba(255, 212, 171, 0.7);
+  }
+}
+
+html[data-skin="christmas"],
+html.theme-christmas {
+  .widgets-home {
+    --home-page-bg:
+      radial-gradient(circle at top, rgba(255, 225, 138, 0.12), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
+    --home-panel-bg: linear-gradient(180deg, rgba(17, 70, 28, 0.9), rgba(12, 42, 20, 0.82));
+    --home-panel-border: rgba(255, 225, 138, 0.22);
+    --home-panel-shadow: 0 26px 46px -34px rgba(17, 70, 28, 0.28);
+    --home-panel-overlay: linear-gradient(135deg, rgba(255, 225, 138, 0.16), transparent 44%);
+    --home-section-bg: linear-gradient(180deg, rgba(17, 70, 28, 0.18), rgba(12, 42, 20, 0.12));
+    --home-section-border: rgba(255, 225, 138, 0.08);
+    --home-section-shadow: inset 0 0 0 1px rgba(255, 225, 138, 0.04);
+    --home-section-radius: 28px;
+    --home-chip-bg: rgba(255, 225, 138, 0.1);
+    --home-chip-border: rgba(255, 225, 138, 0.18);
+    --home-chip-shadow: 0 18px 32px -26px rgba(255, 225, 138, 0.18);
+    --home-chip-text: #ffe18a;
+    --home-stat-divider: rgba(255, 225, 138, 0.2);
+    --home-title-color: #fff5d1;
+    --home-subtitle-color: rgba(243, 237, 214, 0.72);
+    --home-time-color: #ffe18a;
+    --home-time-shadow: 0 0 12px rgba(255, 225, 138, 0.18);
+    --home-heading-shadow: 0 0 10px rgba(255, 225, 138, 0.08);
+    --home-empty-title-shadow: 0 0 10px rgba(255, 225, 138, 0.1);
+    --home-empty-bg: linear-gradient(180deg, rgba(14, 54, 25, 0.92), rgba(120, 18, 44, 0.66));
+    --home-empty-border: rgba(255, 225, 138, 0.24);
+    --home-empty-shadow: 0 28px 46px -34px rgba(17, 70, 28, 0.3);
+    --home-empty-icon-bg: radial-gradient(
+      circle at 30% 30%,
+      rgba(255, 225, 138, 0.32),
+      rgba(198, 40, 40, 0.18) 62%,
+      transparent 72%
+    );
+    --home-empty-icon-color: #ffe18a;
+    --home-empty-icon-shadow: 0 0 24px rgba(255, 225, 138, 0.16);
+    --home-button-shadow: 0 16px 28px -22px rgba(17, 70, 28, 0.26);
+    --home-festival-note-bg: rgba(255, 225, 138, 0.12);
+    --home-festival-note-border: rgba(255, 225, 138, 0.16);
+    --home-festival-note-shadow: 0 18px 30px -24px rgba(17, 70, 28, 0.22);
+    --home-festival-card-bg: linear-gradient(180deg, rgba(18, 63, 27, 0.92), rgba(120, 18, 44, 0.72));
+    --home-festival-card-border: rgba(255, 225, 138, 0.18);
+    --home-festival-card-shadow: 0 22px 36px -26px rgba(17, 70, 28, 0.26);
+    --home-festival-card-overlay: linear-gradient(135deg, rgba(255, 225, 138, 0.16), transparent 52%);
+    --home-festival-icon-bg: rgba(255, 225, 138, 0.14);
+    --home-festival-icon-color: #ffe18a;
+    --home-festival-label: rgba(243, 237, 214, 0.74);
+  }
+}
+
+html[data-skin="spring-festival"],
+html.theme-spring-festival {
+  .widgets-home {
+    --home-page-bg:
+      radial-gradient(circle at top, rgba(245, 213, 122, 0.14), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
+    --home-panel-bg: linear-gradient(180deg, rgba(111, 4, 20, 0.92), rgba(78, 2, 14, 0.82));
+    --home-panel-border: rgba(245, 213, 122, 0.22);
+    --home-panel-shadow: 0 26px 48px -34px rgba(111, 4, 20, 0.32);
+    --home-panel-overlay: linear-gradient(135deg, rgba(245, 213, 122, 0.16), transparent 44%);
+    --home-section-bg: linear-gradient(180deg, rgba(111, 4, 20, 0.18), rgba(78, 2, 14, 0.12));
+    --home-section-border: rgba(245, 213, 122, 0.08);
+    --home-section-shadow: inset 0 0 0 1px rgba(245, 213, 122, 0.04);
+    --home-section-radius: 28px;
+    --home-chip-bg: rgba(245, 213, 122, 0.1);
+    --home-chip-border: rgba(245, 213, 122, 0.18);
+    --home-chip-shadow: 0 18px 32px -26px rgba(245, 213, 122, 0.18);
+    --home-chip-text: #f8e3a4;
+    --home-stat-divider: rgba(245, 213, 122, 0.18);
+    --home-title-color: #fff2be;
+    --home-subtitle-color: rgba(255, 235, 185, 0.72);
+    --home-time-color: #f8e3a4;
+    --home-time-shadow: 0 0 14px rgba(245, 213, 122, 0.16);
+    --home-heading-shadow: 0 0 10px rgba(245, 213, 122, 0.08);
+    --home-empty-title-shadow: 0 0 10px rgba(245, 213, 122, 0.1);
+    --home-empty-bg: linear-gradient(180deg, rgba(103, 2, 19, 0.94), rgba(63, 1, 12, 0.82));
+    --home-empty-border: rgba(245, 213, 122, 0.24);
+    --home-empty-shadow: 0 28px 48px -34px rgba(111, 4, 20, 0.34);
+    --home-empty-icon-bg: radial-gradient(
+      circle at 30% 30%,
+      rgba(245, 213, 122, 0.34),
+      rgba(210, 85, 40, 0.16) 62%,
+      transparent 72%
+    );
+    --home-empty-icon-color: #f8e3a4;
+    --home-empty-icon-shadow: 0 0 24px rgba(245, 213, 122, 0.16);
+    --home-button-shadow: 0 16px 28px -22px rgba(111, 4, 20, 0.28);
+    --home-festival-note-bg: rgba(245, 213, 122, 0.12);
+    --home-festival-note-border: rgba(245, 213, 122, 0.18);
+    --home-festival-note-shadow: 0 18px 30px -24px rgba(111, 4, 20, 0.26);
+    --home-festival-card-bg: linear-gradient(180deg, rgba(105, 4, 19, 0.94), rgba(63, 1, 12, 0.86));
+    --home-festival-card-border: rgba(245, 213, 122, 0.18);
+    --home-festival-card-shadow: 0 22px 38px -26px rgba(111, 4, 20, 0.3);
+    --home-festival-card-overlay: linear-gradient(135deg, rgba(245, 213, 122, 0.16), transparent 52%);
+    --home-festival-icon-bg: rgba(245, 213, 122, 0.16);
+    --home-festival-icon-color: #f8e3a4;
+    --home-festival-label: rgba(255, 235, 185, 0.74);
   }
 }
 
 /* 部件选择侧边栏 */
 .widgets-aside {
   width: 360px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px) saturate(180%);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--el-border-color-lighter);
   z-index: 100;
+  border-radius: 28px 0 0 28px;
+  overflow: hidden;
 }
 
 html.dark .widgets-aside {
@@ -757,16 +1310,16 @@ html.dark .widgets-aside {
   align-items: center;
   padding: 14px 16px;
   margin-bottom: 12px;
-  border-radius: 12px;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid transparent;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.14);
   cursor: pointer;
   transition: all 0.25s ease;
 
   &:hover {
-    background: var(--el-bg-color);
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.94);
+    border-color: rgba(var(--el-color-primary-rgb), 0.18);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
     transform: translateY(-4px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -992,6 +1545,42 @@ html.dark .widgets-aside {
 
 /* 深色模式 */
 .dark {
+  .widgets-home {
+    --home-page-bg:
+      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.12), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
+    --home-panel-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.84));
+    --home-panel-border: rgba(148, 163, 184, 0.16);
+    --home-panel-shadow: 0 26px 46px -34px rgba(2, 6, 23, 0.52);
+    --home-section-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.14), rgba(15, 23, 42, 0.08));
+    --home-section-border: rgba(148, 163, 184, 0.08);
+    --home-section-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.04);
+    --home-section-radius: 28px;
+    --home-chip-bg: rgba(var(--el-color-primary-rgb), 0.08);
+    --home-chip-border: rgba(var(--el-color-primary-rgb), 0.14);
+    --home-chip-text: var(--el-color-primary-light-3);
+    --home-stat-divider: rgba(148, 163, 184, 0.18);
+    --home-title-color: #f8fafc;
+    --home-subtitle-color: rgba(203, 213, 225, 0.72);
+    --home-time-color: #f8fafc;
+    --home-empty-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.88), rgba(15, 23, 42, 0.78));
+    --home-empty-border: rgba(var(--el-color-primary-rgb), 0.18);
+    --home-empty-shadow: 0 28px 44px -34px rgba(2, 6, 23, 0.54);
+    --home-empty-icon-bg: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.28),
+      rgba(var(--el-color-primary-rgb), 0.16)
+    );
+    --home-empty-icon-color: #f8fafc;
+    --home-empty-icon-shadow: 0 16px 32px rgba(2, 6, 23, 0.34);
+  }
+
+  .widgets-header,
+  .widgets,
+  .empty-state {
+    border-color: rgba(148, 163, 184, 0.16);
+  }
+
   .widgets-aside {
     background: var(--el-bg-color);
   }
@@ -1022,6 +1611,10 @@ html.dark .widgets-aside {
 }
 
 @media (max-width: 992px) {
+  .festival-story-grid {
+    grid-template-columns: 1fr;
+  }
+
   .widgets-header {
     flex-direction: column;
     gap: 16px;
@@ -1057,11 +1650,24 @@ html.dark .widgets-aside {
   }
 
   .widgets-header {
-    padding: 16px;
+    padding: 16px 18px;
+  }
+
+  .widgets {
+    padding-top: 8px;
+  }
+
+  .empty-state {
+    padding: 36px 22px;
+    min-height: 280px;
   }
 
   .header-stats {
     display: none;
+  }
+
+  .festival-hero-note {
+    max-width: 100%;
   }
 }
 </style>

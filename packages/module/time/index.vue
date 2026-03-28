@@ -6,10 +6,10 @@
  * @version 1.0.1
  */
 import { reactive, onMounted, onUnmounted, ref } from "vue";
-import { message, dateFormat } from "@repo/utils";
+import { message, dateFormat, subscribeClock } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { ScDialog } from "@repo/components/ScDialog";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline, useRenderIcon } from "@repo/components/ReIcon";
 
 const { t } = useI18n();
 const dialogVisible = ref(false);
@@ -23,10 +23,10 @@ const env = reactive({
   timezones: ["Asia/Shanghai", "America/New_York", "Europe/London", "Asia/Tokyo", "Australia/Sydney", "UTC"],
 });
 
-let clockTimer = null;
+let stopClockSubscription = null;
 
-const updateCurrentTime = () => {
-  env.currentTime = new Date();
+const updateCurrentTime = (now = Date.now()) => {
+  env.currentTime = new Date(now);
 };
 
 const parseTime = () => {
@@ -83,11 +83,12 @@ const copyToClipboard = (text) => {
 
 onMounted(() => {
   updateCurrentTime();
-  clockTimer = setInterval(updateCurrentTime, 1000);
+  stopClockSubscription = subscribeClock(updateCurrentTime);
 });
 
 onUnmounted(() => {
-  if (clockTimer) clearInterval(clockTimer);
+  stopClockSubscription?.();
+  stopClockSubscription = null;
 });
 </script>
 

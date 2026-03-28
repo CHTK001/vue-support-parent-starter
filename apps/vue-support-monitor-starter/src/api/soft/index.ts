@@ -1,180 +1,376 @@
-﻿import { http, type ReturnResult } from "@repo/utils";
-
-// 从新的docker-management.ts中重新导出API
-export * from "../docker/management";
-
-// 为了向后兼容，保留一些旧的函数名
-export {
-  getSoftPageList,
+import type { ReturnResult } from "@repo/utils";
+import {
+  batchOperateContainers,
+  createContainer,
   createSoft as saveSoft,
-  updateSoft,
+  deleteContainer,
   deleteSoft,
-  syncSoftware as syncSoft,
-  getContainerPageList,
-  getContainersBySoftId,
-  getContainersByServerId,
   getContainerById,
   getContainerLogs,
+  getContainerPageList,
   getContainerStats,
+  getContainersByServerId,
+  getContainersBySoftId,
+  getImageById,
+  getImagePageList,
+  getSoftPageList,
+  getSoftRecordPage,
+  getWebSocketTopics,
+  installSoftware,
+  registryApi,
+  restartContainer,
   startContainer,
   stopContainer,
-  restartContainer,
-  deleteContainer,
-  createContainer,
+  syncContainerStatus,
+  syncSoftware as syncSoft,
+  type SystemSoft,
+} from "../docker/management";
+
+export * from "../docker/management";
+
+export {
   batchOperateContainers,
+  createContainer,
+  deleteSoft,
+  getContainerById,
+  getContainerLogs,
+  getContainerPageList,
+  getContainerStats,
+  getContainersByServerId,
+  getContainersBySoftId,
+  getSoftPageList,
+  getWebSocketTopics,
+  restartContainer,
+  startContainer,
+  stopContainer,
   syncContainerStatus,
 } from "../docker/management";
 
-// 软件仓库API（重新导出为原有的名称）
-export {
-  pageRegistry,
-  getAllRegistries,
-  getRegistryById,
-  createRegistry,
-  updateRegistry,
-  deleteRegistry,
-  batchDeleteRegistries,
-  testRegistryConnection,
-  syncRegistry,
-} from "../docker/management";
-
-// 为了向后兼容，保留一个softRegistryApi对象
-import { registryApi } from "../docker/management";
 export const softRegistryApi = registryApi;
+export { saveSoft, syncSoft };
 
-// 为了兼容现有代码，保留一些遗留函数接口
-export function getSoftVersionPageList(params: any) {
-  return http.request<ReturnResult<{ records: any[]; total: number }>>(
-    "get",
-    "v1/soft/version/page",
-    { params },
+const SUCCESS_CODE = "00000";
+
+const isSuccessCode = (code: unknown) =>
+  code === SUCCESS_CODE || code === 0 || code === "0";
+
+const createResult = <T>(
+  data: T,
+  msg = "",
+  code: string | number = SUCCESS_CODE,
+) =>
+  ({
+    code,
+    data,
+    msg,
+    message: msg,
+    success: isSuccessCode(code),
+  }) as ReturnResult<T>;
+
+const createFailure = <T>(msg: string, data: T) =>
+  createResult(data, msg, "50000");
+
+const normalizePageParams = (params?: Record<string, any>) => ({
+  page: params?.page ?? params?.current ?? 1,
+  size: params?.pageSize ?? params?.size ?? 20,
+});
+
+const tryParseObject = (value?: string) => {
+  if (!value || typeof value !== "string") {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const mapVersion = (row: any) => ({
+  ...row,
+  systemSoftVersionId:
+    row?.systemSoftVersionId ?? row?.systemSoftImageId ?? row?.id,
+  systemSoftId: row?.systemSoftId,
+  version: row?.version ?? row?.imageTag ?? row?.systemSoftImageTag,
+  imageTag: row?.imageTag ?? row?.systemSoftImageTag ?? row?.tag,
+  description:
+    row?.description ?? row?.systemSoftImageDescription ?? row?.name,
+  createTime: row?.createTime ?? row?.systemSoftImageCreated ?? row?.created,
+});
+
+const mapInstallRecord = (row: any) => ({
+  ...row,
+  recordId: row?.recordId ?? row?.systemSoftRecordId,
+  serverId: row?.serverId ?? row?.systemServerId,
+  installMethod:
+    row?.installMethod ??
+    row?.systemSoftRecordMethod ??
+    row?.systemSoftRecordOperationType,
+  installParams: row?.installParams ?? row?.systemSoftRecordParams,
+  startTime: row?.startTime ?? row?.systemSoftRecordStartTime,
+  endTime: row?.endTime ?? row?.systemSoftRecordEndTime,
+  errorMessage: row?.errorMessage ?? row?.systemSoftRecordErrorMessage,
+  duration: row?.duration ?? row?.systemSoftRecordDuration,
+  version:
+    row?.version ??
+    row?.imageTag ??
+    row?.systemSoftImageTag ??
+    row?.systemSoftContainerImageTag,
+  progress:
+    row?.progress ??
+    (row?.status === "SUCCESS" ? 100 : row?.status === "FAILED" ? 0 : 0),
+});
+
+const mapContainer = (row: any) => ({
+  ...row,
+  containerId:
+    row?.containerId ??
+    (row?.systemSoftContainerId !== undefined &&
+    row?.systemSoftContainerId !== null
+      ? String(row.systemSoftContainerId)
+      : undefined),
+  serverId: row?.serverId ?? row?.systemServerId,
+  status: row?.status ?? row?.systemSoftContainerStatus,
+});
+
+const resolveImageTag = async (params: {
+  imageTag?: string;
+  systemSoftVersionId?: number;
+  systemSoftImageId?: number;
+}) => {
+  if (params?.imageTag) {
+    return params.imageTag;
+  }
+
+  const imageId = params?.systemSoftImageId ?? params?.systemSoftVersionId;
+  if (!imageId) {
+    return "latest";
+  }
+
+  const imageResult = await getImageById(Number(imageId));
+  if (!isSuccessCode(imageResult?.code)) {
+    return "latest";
+  }
+
+  return (
+    imageResult.data?.systemSoftImageTag ||
+    (imageResult.data as any)?.imageTag ||
+    "latest"
   );
+};
+
+export function getSoftVersionPageList(params: any) {
+  const paging = normalizePageParams(params);
+  return getImagePageList({
+    ...paging,
+    softId: params?.systemSoftId ?? params?.softId,
+    serverId: params?.serverId,
+    keyword: params?.keyword,
+  }).then((result) => {
+    if (!isSuccessCode(result?.code)) {
+      return result as ReturnResult<{ records: any[]; total: number }>;
+    }
+
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        records: (result.data?.records || []).map(mapVersion),
+      },
+    } as ReturnResult<{ records: any[]; total: number }>;
+  });
 }
 
 export function saveSoftVersion(data: any) {
-  return http.request<ReturnResult<any>>("post", "v1/soft/version/save", {
-    data,
-  });
+  return createFailure("版本管理已切换为镜像管理，请在镜像列表中维护", data);
 }
 
 export function updateSoftVersion(data: any) {
-  return http.request<ReturnResult<boolean>>("put", "v1/soft/version/update", {
-    data,
-  });
+  return createFailure("版本管理已切换为镜像管理，请在镜像列表中维护", data);
 }
 
-export function installSoft(params: {
+export async function installSoft(params: {
   systemSoftId: number;
-  systemSoftVersionId: number;
+  systemSoftVersionId?: number;
+  systemSoftImageId?: number;
   serverIds: number[];
+  imageTag?: string;
   method?: string;
   params?: string;
 }) {
-  return http.request<ReturnResult<boolean>>("post", "v1/soft/record/install", {
-    data: params,
-  });
+  const imageTag = await resolveImageTag(params);
+  const extraConfig = tryParseObject(params?.params);
+
+  return installSoftware({
+    softId: params.systemSoftId,
+    serverIds: params.serverIds || [],
+    imageTag,
+    ...extraConfig,
+  } as any);
 }
 
-export function uninstallSoft(params: {
+export async function uninstallSoft(params: {
   systemSoftId: number;
-  systemSoftVersionId: number;
-  serverIds: number[];
+  systemSoftVersionId?: number;
+  serverIds?: number[];
 }) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/soft/record/uninstall",
-    { data: params },
+  const containerResult = await getContainersBySoftId(params.systemSoftId);
+  if (!isSuccessCode(containerResult?.code)) {
+    return containerResult as ReturnResult<boolean>;
+  }
+
+  const serverIds = Array.isArray(params.serverIds) && params.serverIds.length > 0
+    ? new Set(params.serverIds.map((item) => Number(item)))
+    : null;
+  const containers = (containerResult.data || []).filter((item: any) => {
+    if (!serverIds) {
+      return true;
+    }
+    return serverIds.has(Number(item?.systemServerId ?? item?.serverId));
+  });
+
+  if (containers.length === 0) {
+    return createResult(true, "未找到需要卸载的容器");
+  }
+
+  const results = await Promise.all(
+    containers.map(async (item: any) => {
+      const containerId = Number(
+        item?.systemSoftContainerId ?? item?.containerId,
+      );
+      if (!containerId) {
+        return null;
+      }
+
+      return deleteContainer(containerId, true).catch(() => null);
+    }),
   );
+
+  const success = results.every(
+    (item) => item && isSuccessCode(item.code),
+  );
+
+  return success
+    ? createResult(true, "卸载请求已提交")
+    : createFailure("部分容器卸载失败，请检查容器状态", false);
 }
 
 export function getSoftRecordPageList(params: any) {
-  return http.request<ReturnResult<{ records: any[]; total: number }>>(
-    "get",
-    "v1/soft/record/page",
-    { params },
-  );
+  const paging = normalizePageParams(params);
+  return getSoftRecordPage({
+    current: paging.page,
+    size: paging.size,
+    softId: params?.systemSoftId ?? params?.softId,
+    serverId: params?.serverId,
+    operationType: params?.operationType,
+    operationStatus: params?.operationStatus,
+    operationUser: params?.operationUser,
+  }).then((result) => {
+    if (!isSuccessCode(result?.code)) {
+      return result as ReturnResult<{ records: any[]; total: number }>;
+    }
+
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        records: (result.data?.records || []).map(mapInstallRecord),
+      },
+    } as ReturnResult<{ records: any[]; total: number }>;
+  });
 }
 
-export function getAbnormalContainers() {
-  return http.request<ReturnResult<any[]>>(
-    "get",
-    "v1/system/soft/container/abnormal",
-  );
-}
+export const getSoftInstallRecords = getSoftRecordPageList;
 
-// 新增软件安装记录相关API函数
-export function getSoftInstallRecords(params: any) {
-  return http.request<ReturnResult<{ records: any[]; total: number }>>(
-    "get",
-    "v1/soft/record/page",
-    { params },
-  );
+export async function getAbnormalContainers() {
+  const result = await getContainerPageList({ page: 1, size: 200 });
+  if (!isSuccessCode(result?.code)) {
+    return result as ReturnResult<any[]>;
+  }
+
+  const abnormal = (result.data?.records || [])
+    .map(mapContainer)
+    .filter((item: any) => {
+      const status = String(item?.status || "").toLowerCase();
+      return Boolean(status) && !["running", "created"].includes(status);
+    });
+
+  return createResult(abnormal);
 }
 
 export function retryInstallSoft(data: { recordId: string }) {
-  return http.request<ReturnResult<boolean>>("post", "v1/soft/record/retry", {
-    data,
-  });
+  return createFailure(
+    "当前后端未提供安装记录重试接口",
+    data as unknown as boolean,
+  );
 }
 
 export function cancelInstallSoft(data: { recordId: string }) {
-  return http.request<ReturnResult<boolean>>("post", "v1/soft/record/cancel", {
-    data,
-  });
+  return createFailure(
+    "当前后端未提供安装记录取消接口",
+    data as unknown as boolean,
+  );
 }
 
 export function deleteInstallRecord(data: { recordId: string }) {
-  return http.request<ReturnResult<boolean>>("delete", "v1/soft/record", {
-    data,
-  });
+  return createFailure(
+    "当前后端未提供安装记录删除接口",
+    data as unknown as boolean,
+  );
 }
 
 export function getInstallLogs(params: { recordId: string }) {
-  return http.request<ReturnResult<string>>("get", "v1/soft/record/logs", {
-    params,
-  });
+  return createFailure("当前后端未提供安装记录日志接口", "");
 }
 
-// 软件容器相关API函数
-export function getSoftContainerList(params: any) {
-  return http.request<ReturnResult<any[]>>(
-    "get",
-    "v1/system/soft/container/list",
-    { params },
-  );
+export async function getSoftContainerList(params: any) {
+  if (params?.systemSoftId ?? params?.softId) {
+    const result = await getContainersBySoftId(
+      Number(params.systemSoftId ?? params.softId),
+    );
+    if (!isSuccessCode(result?.code)) {
+      return result as ReturnResult<any[]>;
+    }
+    return createResult((result.data || []).map(mapContainer));
+  }
+
+  if (params?.serverId) {
+    const result = await getContainersByServerId(Number(params.serverId));
+    if (!isSuccessCode(result?.code)) {
+      return result as ReturnResult<any[]>;
+    }
+    return createResult((result.data || []).map(mapContainer));
+  }
+
+  const paging = normalizePageParams(params);
+  const result = await getContainerPageList({
+    ...paging,
+    softId: params?.systemSoftId ?? params?.softId,
+    serverId: params?.serverId,
+  });
+  if (!isSuccessCode(result?.code)) {
+    return result as ReturnResult<any[]>;
+  }
+
+  return createResult((result.data?.records || []).map(mapContainer));
 }
 
 export function startSoftContainer(data: { containerId: string }) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/system/soft/container/start",
-    { data },
-  );
+  return startContainer(Number(data.containerId));
 }
 
 export function stopSoftContainer(data: { containerId: string }) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    "v1/system/soft/container/stop",
-    { data },
-  );
+  return stopContainer(Number(data.containerId));
 }
 
 export function removeSoftContainer(data: { containerId: string }) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    "v1/system/soft/container",
-    { data },
-  );
+  return deleteContainer(Number(data.containerId), true);
 }
 
 export function getSoftContainerLogs(params: { containerId: string }) {
-  return http.request<ReturnResult<string>>(
-    "get",
-    "v1/system/soft/container/logs",
-    { params },
-  );
+  return getContainerLogs(Number(params.containerId));
 }
-
-// 获取WebSocket主题信息
-export { getWebSocketTopics } from "../docker/management";

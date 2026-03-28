@@ -131,8 +131,8 @@
             </ScCol>
           </ScRow>
           <ScFormItem
-            -if="showEmail"
-            vabel="邮箱"
+            v-if="showEmail"
+            label="邮箱"
             prop="systemSoftRegistryEmail"
           >
             <ScInput
@@ -201,8 +201,8 @@
         <ScButton
           type="primary"
           :loading="confirmLoading"
-          ize="large"
-          sclick="handleConfirm
+          size="large"
+          @click="handleConfirm"
         >
           <IconifyIconOnline
             :icon="isEdit ? 'ri:save-line' : 'ri:add-line'"

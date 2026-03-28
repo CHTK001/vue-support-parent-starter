@@ -230,7 +230,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScSocketMessageDialog } from "@repo/components/ScSocketMessageDialog"
 const dialogRef = ref();
 const dialogVisible = ref(false);
 

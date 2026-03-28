@@ -37,6 +37,8 @@ export * from "./src/globalPolyfills";
 export * from "./src/session";
 export * from "./src/page-behavior";
 export * from "./src/performance";
+export * from "./src/time/clock";
+export * from "./src/face";
 export * from "./src/composables/usePage";
 export { withInstall } from "@pureadmin/utils";
 export { NProgress, Cookies, CryptoJS, date };

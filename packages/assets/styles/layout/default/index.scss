@@ -23,7 +23,7 @@
   --zindex-modal: calc(var(--zindex-base) + 10);
   /* 其他z-index变量... */
   --el-text-color-primary-2: #666;
-  --navbar-height: 48px;
+  --navbar-height: 56px;
   /* 左侧菜单展开、收起动画时长 */
   --pure-transition-duration: 0.3s;
 
@@ -72,12 +72,9 @@
 
 body {
   color: var(--el-text-color-primary);
-}
-
-/* 深色模式下 SVG 图标默认为白色 */
-html.dark svg {
-  color: #ffffff;
-  fill: #ffffff;
+  background:
+    radial-gradient(circle at top, rgba(var(--el-color-primary-rgb), 0.06), transparent 32%),
+    var(--el-bg-color-page);
 }
 
 /* 色弱模式 - 优化的色觉辅助滤镜 */

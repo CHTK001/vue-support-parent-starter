@@ -11,9 +11,12 @@
       :page-size="pagination?.pageSize || 10"
       :current-page="pagination?.page || 1"
       table-name="container-monitoring"
+      @selection-change="onSelectionChange"
       @size-change="onSizeChange"
       @current-change="onCurrentChange"
     >
+      <ScTableColumn v-if="showSelection" type="selection" width="55" />
+
       <ScTableColumn label="容器信息" min-width="250">
         <template #default="{ row }">
           <div class="container-info">
@@ -22,7 +25,7 @@
                 {{ row.systemSoftContainerName }}
               </div>
               <div class="container-id">
-                {{ row.systemSoftContainerId?.substring(0, 12) }}
+                {{ getContainerIdDisplay(row) }}
               </div>
             </div>
           </div>
@@ -32,8 +35,12 @@
       <ScTableColumn label="镜像信息" min-width="200">
         <template #default="{ row }">
           <div class="image-info">
-            <div class="image-name">{{ row.systemSoftContainerImageName }}</div>
-            <div class="image-tag">{{ row.systemSoftContainerImageTag }}</div>
+            <div class="image-name">
+              {{ row.systemSoftContainerImage || "-" }}
+            </div>
+            <div class="image-tag">
+              {{ row.systemSoftContainerImageTag || "latest" }}
+            </div>
           </div>
         </template>
       </ScTableColumn>
@@ -169,12 +176,14 @@ interface Props {
   loading?: boolean;
   pagination?: Pagination;
   showPagination?: boolean;
+  showSelection?: boolean;
 }
 
 interface Emits {
   (e: "view-detail", container: SystemSoftContainer): void;
   (e: "size-change", size: number): void;
   (e: "current-change", page: number): void;
+  (e: "selection-change", selection: SystemSoftContainer[]): void;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -182,6 +191,7 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   pagination: () => ({ page: 1, pageSize: 10, total: 0 }),
   showPagination: true,
+  showSelection: false,
 });
 
 const emit = defineEmits<Emits>();
@@ -214,12 +224,23 @@ const onViewDetail = (container: SystemSoftContainer) => {
   emit("view-detail", container);
 };
 
+const onSelectionChange = (selection: SystemSoftContainer[]) => {
+  emit("selection-change", selection);
+};
+
 const onSizeChange = (size: number) => {
   emit("size-change", size);
 };
 
 const onCurrentChange = (page: number) => {
   emit("current-change", page);
+};
+
+const getContainerIdDisplay = (row: any) => {
+  const dockerId = row.systemSoftContainerDockerId || "";
+  if (dockerId) return dockerId.substring(0, 12);
+  const id = row.systemSoftContainerId;
+  return id == null ? "-" : String(id);
 };
 </script>
 

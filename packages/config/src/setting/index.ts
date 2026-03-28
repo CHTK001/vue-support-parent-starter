@@ -41,6 +41,14 @@ export const globalSetting: PlatformConfigs = {
   ErrorPageStyle: "minimal",
   /** 是否自动提示错误信息（默认 true，与历史行为保持一致） */
   AutoErrorMessage: true,
+  /** 是否开启默认全局 Socket 能力 */
+  SocketOpen: true,
+  /** 是否在应用启动时自动连接默认全局 Socket */
+  SocketStartupConnect: true,
+  /** 默认全局 Socket 协议 */
+  SocketProtocol: "socketio",
+  /** 默认全局 Socket 路径 */
+  SocketPath: "/socket.io",
 
   // ===========================================
   // 布局与菜单配置
@@ -219,6 +227,10 @@ export const globalSetting: PlatformConfigs = {
     showLoading: true,
     /** 是否开启请求签名（x-sign），默认 true */
     enableSign: true,
+    /** 是否开启请求体加密 */
+    enableEncrypt: false,
+    /** 请求体加密密钥 */
+    codecRequestKey: "",
   },
 
   // ===========================================
@@ -249,7 +261,7 @@ export const globalSetting: PlatformConfigs = {
     autoRefreshInterval: 0,
     confirmOnLeave: false,
     /** 顶部是否显示时间 */
-    showHeaderClock: false,
+    showHeaderClock: true,
     /** 顶部是否显示第二个时间 */
     headerClockSecondEnabled: false,
     /** 顶部第二时间的时区 */

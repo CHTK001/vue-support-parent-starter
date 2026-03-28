@@ -9,14 +9,13 @@ import DefaultTag from "./themes/Default.vue";
 import NewYearTag from "./themes/NewYearTag.vue";
 import HalloweenTag from "./themes/HalloweenTag.vue";
 import ChristmasTag from "./themes/ChristmasTag.vue";
-import FutureTechTag from "./themes/FutureTechTag.vue";
 import MidAutumnTag from "./themes/MidAutumnTag.vue";
 
 // 主题组件映射
 const themeComponents = {
   default: DefaultTag,
   "8bit": DefaultTag,
-  "future-tech": FutureTechTag,
+  "future-tech": DefaultTag,
   "spring-festival": NewYearTag,
   halloween: HalloweenTag,
   christmas: ChristmasTag,

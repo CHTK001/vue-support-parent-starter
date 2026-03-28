@@ -97,9 +97,11 @@ const handleLanguageChange = (langCode: string) => {
 .lang-style {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 14px 6px 6px;
-  border-radius: 28px;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 16px;
+  max-width: 92px;
   background: linear-gradient(
     135deg,
     var(--el-fill-color-lighter) 0%,
@@ -157,8 +159,8 @@ const handleLanguageChange = (langCode: string) => {
   }
 
   .lang-icon-wrapper {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -172,7 +174,7 @@ const handleLanguageChange = (langCode: string) => {
     box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
     .lang-main-icon {
-      font-size: 16px;
+      font-size: 13px;
       color: #fff;
     }
   }
@@ -180,18 +182,24 @@ const handleLanguageChange = (langCode: string) => {
   .user-info {
     display: flex;
     flex-direction: column;
-    line-height: 1.3;
+    min-width: 0;
+    max-width: 34px;
+    line-height: 1.05;
   }
 
   .user-name {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .user-role {
-    font-size: 11px;
+    display: none;
+    font-size: 10px;
     color: var(--el-text-color-secondary);
     font-weight: 500;
   }
@@ -200,20 +208,20 @@ const handleLanguageChange = (langCode: string) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: linear-gradient(
       135deg,
       var(--el-fill-color) 0%,
       var(--el-fill-color-light) 100%
     );
-    margin-left: 4px;
+    margin-left: 1px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dropdown-arrow {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--el-text-color-placeholder);
     transition: all 0.3s ease;
   }

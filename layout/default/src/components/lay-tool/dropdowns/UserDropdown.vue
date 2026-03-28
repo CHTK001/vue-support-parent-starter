@@ -139,23 +139,18 @@ const gotoAccountSetting = () => {
 <style lang="scss" scoped>
 // 用户下拉触发器
 .user-dropdown {
-  margin-left: 8px;
+  margin-left: 0;
 }
 
 .user-trigger {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 8px;
-  border-radius: 8px;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 18px;
   cursor: pointer;
   transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(0, 0, 0, 0.05);
-  }
-  padding: 6px 14px 6px 6px;
-  border-radius: 28px;
   background: linear-gradient(
     135deg,
     var(--el-fill-color-lighter) 0%,
@@ -220,15 +215,15 @@ const gotoAccountSetting = () => {
 
 .avatar-container {
   position: relative;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 
 .avatar-img {
   width: 100%;
   height: 100%;
-  border-radius: 4px; // 4px 圆角
+  border-radius: 12px;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.8);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -261,7 +256,9 @@ const gotoAccountSetting = () => {
 .user-info {
   display: flex;
   flex-direction: column;
-  line-height: 1.3;
+  line-height: 1.05;
+  min-width: 0;
+  max-width: 72px;
 }
 
 .user-name {
@@ -269,10 +266,13 @@ const gotoAccountSetting = () => {
   font-weight: 600;
   color: var(--el-text-color-primary);
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-role {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--el-text-color-secondary);
   font-weight: 500;
 }
@@ -281,8 +281,8 @@ const gotoAccountSetting = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: linear-gradient(
     135deg,
@@ -294,7 +294,7 @@ const gotoAccountSetting = () => {
 }
 
 .dropdown-arrow {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--el-text-color-placeholder);
   transition: all 0.3s ease;
 }
