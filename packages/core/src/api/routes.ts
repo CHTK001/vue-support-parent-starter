@@ -1,5 +1,6 @@
 import { formatToken, getConfig, getToken } from "@repo/config";
 import { http, type ReturnResult } from "@repo/utils";
+import { resolveRouteSourceMode } from "../router/route-mode";
 
 type Result = {
   success: boolean;
@@ -23,27 +24,6 @@ const extractRouteArray = (payload: any): any[] => {
 };
 
 /**
- * 获取本地路由配置
- * 从 /src/router/modules 目录动态导入所有路由模块
- */
-const getLocalRoutes = async () => {
-  const modules = import.meta.glob("/src/router/modules/*.ts", { eager: true });
-  const localRoutes: any[] = [];
-
-  Object.keys(modules).forEach((key) => {
-    const mod = modules[key] as any;
-    const routes = mod.default || mod;
-    if (Array.isArray(routes)) {
-      localRoutes.push(...routes);
-    } else if (routes) {
-      localRoutes.push(routes);
-    }
-  });
-
-  return localRoutes;
-};
-
-/**
  * 获取异步路由
  * 支持三种模式：
  * 1. RemoteMenu=false: 仅使用本地路由
@@ -52,9 +32,10 @@ const getLocalRoutes = async () => {
  */
 export const getAsyncRoutes = async () => {
   const config = getConfig();
+  const routeSourceMode = resolveRouteSourceMode(config);
 
   // 模式1: 不使用远程菜单，返回空（由路由系统自动加载本地路由）
-  if (!config.RemoteMenu) {
+  if (routeSourceMode === "local-only") {
     return new Promise<ReturnResult<Result>>(resolve => {
       resolve({
         data: [],
@@ -101,35 +82,21 @@ export const getAsyncRoutes = async () => {
       );
     }
 
-    // 模式2: 仅使用远程菜单
-    if (!config.MergeLocalMenu) {
-      return {
-        ...(remoteResult as any),
-        data: remoteRoutes,
-        success: true
-      } as any;
-    }
-
-    // 模式3: 合并远程菜单和本地菜单
-    const localRoutes = await getLocalRoutes();
-
-    // 合并路由：远程路由优先，本地路由作为补充
-    const mergedRoutes = [...remoteRoutes, ...localRoutes];
+    const normalizedRemoteRoutes = extractRouteArray(remoteResult.data);
 
     return {
       ...remoteResult,
-      data: mergedRoutes,
+      data: normalizedRemoteRoutes,
       success: true
     } as any;
   } catch (error) {
     console.error("[路由加载] 远程菜单加载失败:", error);
 
-    // 如果启用了混合模式，降级到本地路由
-    if (config.MergeLocalMenu) {
-      console.warn("[路由加载] 降级使用本地路由");
-      const localRoutes = await getLocalRoutes();
+    // 如果启用了混合模式，保留已静态装配的本地路由
+    if (routeSourceMode === "hybrid") {
+      console.warn("[路由加载] 远程菜单加载失败，保留本地路由");
       return {
-        data: localRoutes,
+        data: [],
         success: true
       } as any;
     }
