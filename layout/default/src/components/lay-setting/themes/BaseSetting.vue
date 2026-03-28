@@ -328,6 +328,15 @@ const cardColorOptions = computed<Array<OptionsType>>(() => {
 
 const getThemeColorStyle = computed(() => {
   return (color: string) => {
+    if (color.toLowerCase() === "#ffffff") {
+      return {
+        background:
+          "linear-gradient(135deg, #ffffff 0%, #f8fafc 48%, #e2e8f0 100%)",
+        borderColor: "rgba(148, 163, 184, 0.36)",
+        boxShadow:
+          "0 10px 24px rgba(148, 163, 184, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.9)",
+      };
+    }
     return { background: color };
   };
 });

@@ -121,12 +121,12 @@ function getThemeClipPathKeyframes(
  * @param callback 执行状态变更的回调函数，支持同步或异步（如切换主题时需要预加载资源）
  * @param event 触发事件（可选），如果提供则从点击位置扩散，否则默认从配置位置扩散
  */
-export function useThemeAnimation(
+export async function useThemeAnimation(
   // 回调允许返回 Promise，兼容需要异步预加载资源的场景
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: () => void | Promise<void> | any,
   event?: MouseEvent,
-) {
+): Promise<void> {
   // 获取配置
   const configure = storageLocal().getItem<any>("responsive-configure");
   const mode = configure?.themeAnimationMode ?? "fixed";
@@ -140,7 +140,7 @@ export function useThemeAnimation(
 
   // 显式禁用时直接执行回调（不做动画）
   if (mode === "disabled") {
-    void runCallback();
+    await runCallback();
     return;
   }
 
@@ -184,8 +184,9 @@ export function useThemeAnimation(
       await nextTick();
     });
 
-    transition.ready.then(() => {
-      document.documentElement.animate(
+    try {
+      await transition.ready;
+      const animation = document.documentElement.animate(
         {
           clipPath,
         },
@@ -195,22 +196,26 @@ export function useThemeAnimation(
           pseudoElement: "::view-transition-new(root)",
         },
       );
-    });
+      await animation.finished.catch(() => undefined);
+      await transition.finished.catch(() => undefined);
+    } catch {
+      await transition.finished.catch(() => undefined);
+    }
     return;
   }
 
   // 不支持 View Transition 时的兼容路径：直接在根节点上做一个 clipPath 动画
-  void runCallback()
-    .then(() => nextTick())
-    .then(() => {
-      document.documentElement.animate(
-        {
-          clipPath,
-        },
-        {
-          duration: 500,
-          easing: "ease-in-out",
-        },
-      );
-    });
+  await runCallback();
+  await nextTick();
+
+  const animation = document.documentElement.animate(
+    {
+      clipPath,
+    },
+    {
+      duration: 500,
+      easing: "ease-in-out",
+    },
+  );
+  await animation.finished.catch(() => undefined);
 }

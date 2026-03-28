@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { ScTooltip } from "@repo/components/ScTooltip";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { getConfig } from "@repo/config";
 import { emitter } from "@repo/core";
 import { ScText } from "@repo/components/ScText";
+import { subscribeClock } from "@repo/utils";
 
 
 const primaryTime = ref<string>("");
 const primaryWeekday = ref<string>("");
 const primaryFull = ref<string>("");
 
-const secondEnabled = ref<boolean>(false);
-const secondTimezone = ref<string>("Europe/London");
 const secondaryTime = ref<string>("");
 const secondaryWeekday = ref<string>("");
 const secondaryFull = ref<string>("");
@@ -21,6 +20,26 @@ const primaryTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const currentTheme = ref<string>($storage.configure?.systemTheme || "default");
+const pageBehavior = computed(() => getConfig().PageBehavior ?? {});
+
+const resolveBooleanOverride = (value: unknown): boolean | null =>
+  typeof value === "boolean" ? value : null;
+
+const secondEnabledOverride = ref<boolean | null>(
+  resolveBooleanOverride($storage?.configure?.headerClockSecondEnabled),
+);
+const secondTimezoneOverride = ref<string | null>(
+  $storage?.configure?.headerClockSecondTimezone || null,
+);
+const secondEnabled = computed<boolean>(
+  () => secondEnabledOverride.value ?? pageBehavior.value.headerClockSecondEnabled ?? false,
+);
+const secondTimezone = computed<string>(
+  () =>
+    secondTimezoneOverride.value ??
+    pageBehavior.value.headerClockSecondTimezone ??
+    "Europe/London",
+);
 
 const textMotion = computed(() => {
   switch (currentTheme.value) {
@@ -32,18 +51,6 @@ const textMotion = computed(() => {
       return "none";
   }
 });
-
-function initSecondConfig(): void {
-  const pageBehavior = getConfig().PageBehavior ?? {};
-  secondEnabled.value =
-    $storage.configure?.headerClockSecondEnabled ??
-    pageBehavior.headerClockSecondEnabled ??
-    false;
-  secondTimezone.value =
-    $storage.configure?.headerClockSecondTimezone ??
-    pageBehavior.headerClockSecondTimezone ??
-    "Europe/London";
-}
 
 function formatWithZone(date: Date, timeZone: string) {
   const formatter = new Intl.DateTimeFormat("zh-CN", {
@@ -79,8 +86,7 @@ function formatWithZone(date: Date, timeZone: string) {
   };
 }
 
-/** Web Worker 计时器，避免主线程繁忙时漂移 */
-let clockWorker: Worker | null = null;
+let stopClockSubscription: (() => void) | null = null;
 
 function updateClock(now: number): void {
   const date = new Date(now);
@@ -108,14 +114,8 @@ function updateClock(now: number): void {
 }
 
 function startClock(): void {
-  if (clockWorker) return;
-  clockWorker = new Worker(
-    new URL("./clock.worker.ts", import.meta.url),
-    { type: "module" },
-  );
-  clockWorker.onmessage = (e: MessageEvent<{ now: number }>) => {
-    updateClock(e.data.now);
-  };
+  if (stopClockSubscription) return;
+  stopClockSubscription = subscribeClock(updateClock);
 }
 
 const secondTimezoneLabel = computed<string>(() => {
@@ -140,33 +140,39 @@ const tooltipContent = computed<string>(() => {
   return `本地时间：${primaryFull.value}<br/>${secondTimezoneLabel.value}：${secondaryFull.value}`;
 });
 
-emitter.on("headerClockSecondEnabledChange", (val: boolean) => {
-  secondEnabled.value = val;
+const handleSecondEnabledChange = (val: boolean) => {
+  secondEnabledOverride.value = val;
   updateClock(Date.now());
-});
+};
 
-emitter.on("headerClockSecondTimezoneChange", (val: string) => {
-  secondTimezone.value = val;
+const handleSecondTimezoneChange = (val: string) => {
+  secondTimezoneOverride.value = val;
   updateClock(Date.now());
-});
+};
 
-emitter.on("systemThemeChange", (themeKey: string) => {
+const handleSystemThemeChange = (themeKey: string) => {
   currentTheme.value = themeKey || "default";
+};
+
+emitter.on("headerClockSecondEnabledChange", handleSecondEnabledChange);
+emitter.on("headerClockSecondTimezoneChange", handleSecondTimezoneChange);
+emitter.on("systemThemeChange", handleSystemThemeChange);
+
+watch([secondEnabled, secondTimezone], () => {
+  updateClock(Date.now());
 });
 
 onMounted(() => {
-  initSecondConfig();
+  updateClock(Date.now());
   startClock();
 });
 
 onBeforeUnmount(() => {
-  emitter.off("headerClockSecondEnabledChange");
-  emitter.off("headerClockSecondTimezoneChange");
-  emitter.off("systemThemeChange");
-  if (clockWorker) {
-    clockWorker.terminate();
-    clockWorker = null;
-  }
+  emitter.off("headerClockSecondEnabledChange", handleSecondEnabledChange);
+  emitter.off("headerClockSecondTimezoneChange", handleSecondTimezoneChange);
+  emitter.off("systemThemeChange", handleSystemThemeChange);
+  stopClockSubscription?.();
+  stopClockSubscription = null;
 });
 </script>
 
@@ -203,23 +209,30 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .header-clock-icon {
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 .header-clock-content {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 /* 每行：时间 + 星期横向排列 */
 .header-clock-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 /* 第二时间行：字号略小，颜色更淡，默认隐藏，hover 时展开 */
@@ -245,14 +258,20 @@ onBeforeUnmount(() => {
 }
 
 .header-clock-time {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .header-clock-weekday {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+  line-height: 1;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .header-clock-separator {

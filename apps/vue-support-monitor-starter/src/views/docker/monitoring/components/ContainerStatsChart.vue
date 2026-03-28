@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { containerApi, type ContainerStatsHistory } from "@/api/docker";
+import { containerApi } from "@/api/docker";
 import * as echarts from "echarts";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 
@@ -79,6 +79,7 @@ const timeRange = ref(props.timeRange || "1h");
 const chartData = ref<ChartData>({ timestamps: [], values: [] });
 const latestStats = ref<StatsSummary | null>(null);
 const loading = ref(false);
+let sampleTimer: ReturnType<typeof setInterval> | null = null;
 
 // 初始化图表
 const initChart = () => {
@@ -167,98 +168,69 @@ const fetchStatsData = async () => {
   loading.value = true;
 
   try {
-    // 将时间范围转换为小时
-    const hours = parseTimeRangeToHours(timeRange.value);
-
-    // 调用API获取历史统计数据
-    const response = await containerApi.getContainerStatsHistory(
-      props.containerId,
-      hours,
-    );
-    if (response.code === "00000") {
-      const historyData = response.data;
-      if (historyData) {
-        // 根据数据类型提取相应的数据
-        const data = extractDataByType(historyData);
-        chartData.value = data;
-        calculateStatsSummary(data);
-        updateChart();
-      }
+    const response = await containerApi.getContainerStats(props.containerId);
+    if (response.code !== "00000" || !response.data) {
+      return;
     }
+
+    const value = pickValue(response.data);
+    appendDataPoint(value);
+    updateChart();
   } catch (error) {
     console.error("获取统计数据失败:", error);
-    // 出错时使用模拟数据
-    const mockData = generateMockData();
-    chartData.value = mockData;
-    calculateStatsSummary(mockData);
-    updateChart();
   } finally {
     loading.value = false;
   }
 };
 
-// 根据时间范围解析小时数
-const parseTimeRangeToHours = (range: string): number => {
-  switch (range) {
-    case "1h":
-      return 1;
-    case "6h":
-      return 6;
-    case "12h":
-      return 12;
-    case "24h":
-      return 24;
-    case "7d":
-      return 168; // 7天
+const pickValue = (stats: any) => {
+  switch (props.dataType) {
+    case "cpu":
+      return Number(stats.systemSoftContainerStatsCpuPercent || 0);
+    case "memory":
+      return Number(stats.systemSoftContainerStatsMemoryUsage || 0);
+    case "diskRead":
+      return Number(stats.systemSoftContainerStatsDiskRead || 0);
+    case "diskWrite":
+      return Number(stats.systemSoftContainerStatsDiskWrite || 0);
+    case "networkRx":
+      return Number(stats.systemSoftContainerStatsNetworkRxBytes || 0);
+    case "networkTx":
+      return Number(stats.systemSoftContainerStatsNetworkTxBytes || 0);
     default:
-      return 1;
+      return 0;
   }
 };
 
-// 根据数据类型提取数据
-const extractDataByType = (history: ContainerStatsHistory): ChartData => {
-  return {
-    timestamps: history.timestamps,
-    values: history[props.dataType] || [],
-  };
+const samplingConfig = () => {
+  switch (timeRange.value) {
+    case "6h":
+      return { intervalMs: 5 * 60_000, maxPoints: 72 };
+    case "12h":
+      return { intervalMs: 10 * 60_000, maxPoints: 72 };
+    case "24h":
+      return { intervalMs: 20 * 60_000, maxPoints: 72 };
+    case "7d":
+      return { intervalMs: 2 * 60 * 60_000, maxPoints: 84 };
+    default:
+      return { intervalMs: 60_000, maxPoints: 60 };
+  }
 };
 
-// 生成模拟数据
-const generateMockData = (): ChartData => {
-  const data: ChartData = { timestamps: [], values: [] };
+const appendDataPoint = (value: number) => {
   const now = new Date();
-  const points = 60; // 默认显示60个数据点
+  chartData.value.timestamps.push(
+    now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  );
+  chartData.value.values.push(value);
 
-  for (let i = points - 1; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60000); // 每分钟一个点
-    data.timestamps.push(
-      time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    );
-
-    // 根据数据类型生成不同的模拟值
-    let value = 0;
-    switch (props.dataType) {
-      case "cpu":
-        value = Math.random() * 100;
-        break;
-      case "memory":
-        value = Math.random() * 1000000000; // 0-1GB
-        break;
-      case "diskRead":
-      case "diskWrite":
-        value = Math.random() * 1000000; // 0-1MB
-        break;
-      case "networkRx":
-      case "networkTx":
-        value = Math.random() * 5000000; // 0-5MB
-        break;
-      default:
-        value = Math.random() * 100;
-    }
-    data.values.push(value);
+  const { maxPoints } = samplingConfig();
+  if (chartData.value.values.length > maxPoints) {
+    chartData.value.values.shift();
+    chartData.value.timestamps.shift();
   }
 
-  return data;
+  calculateStatsSummary(chartData.value);
 };
 
 // 计算统计数据摘要
@@ -280,14 +252,26 @@ const calculateStatsSummary = (data: ChartData) => {
 const onTimeRangeChange = (value: string) => {
   timeRange.value = value;
   emit("update:timeRange", value);
-  fetchStatsData();
+  resetSeries();
+  restartSampling();
 };
 
 // 监听容器ID变化
 watch(
-  () => props.containerId,
+  () => [props.containerId, props.dataType],
   () => {
-    fetchStatsData();
+    resetSeries();
+    restartSampling();
+  },
+);
+
+watch(
+  () => props.timeRange,
+  (value) => {
+    if (!value || value === timeRange.value) return;
+    timeRange.value = value;
+    resetSeries();
+    restartSampling();
   },
 );
 
@@ -297,24 +281,50 @@ watch(chartData, () => {
 });
 
 // 组件挂载
+const resetSeries = () => {
+  chartData.value = { timestamps: [], values: [] };
+  latestStats.value = null;
+  updateChart();
+};
+
+const startSampling = () => {
+  stopSampling();
+  const { intervalMs } = samplingConfig();
+  fetchStatsData();
+  sampleTimer = setInterval(fetchStatsData, intervalMs);
+};
+
+const stopSampling = () => {
+  if (sampleTimer) {
+    clearInterval(sampleTimer);
+    sampleTimer = null;
+  }
+};
+
+const restartSampling = () => {
+  startSampling();
+};
+
+const resizeChart = () => {
+  if (chartInstance) {
+    chartInstance.resize();
+  }
+};
+
 onMounted(() => {
   initChart();
-  fetchStatsData();
-
-  // 添加窗口大小变化监听
-  window.addEventListener("resize", () => {
-    if (chartInstance) {
-      chartInstance.resize();
-    }
-  });
+  startSampling();
+  window.addEventListener("resize", resizeChart);
 });
 
 // 组件卸载
 onUnmounted(() => {
+  stopSampling();
   if (chartInstance) {
     chartInstance.dispose();
     chartInstance = null;
   }
+  window.removeEventListener("resize", resizeChart);
 });
 </script>
 

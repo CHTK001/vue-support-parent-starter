@@ -57,6 +57,7 @@ const configSettings = [
   createSetting(113, "config", "SocketProtocol", "socketio"),
   createSetting(114, "config", "SocketPath", "/socket.io"),
   createSetting(115, "config", "SocketUrl", "ws://127.0.0.1:18170"),
+  createSetting(116, "config", "SocketStartupConnect", "true", "Boolean"),
 ];
 
 const ssoSettings = [

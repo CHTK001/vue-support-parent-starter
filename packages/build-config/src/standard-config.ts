@@ -192,7 +192,6 @@ export function createStandardViteConfig(
         input: {
           index: pathResolve("./index.html", metaUrl),
         },
-        external: ["@element-plus/icons-vue"],
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",

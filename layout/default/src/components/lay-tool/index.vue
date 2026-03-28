@@ -64,10 +64,10 @@ const { CurrentComponent, currentTheme } = useThemeComponent(
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    padding: 24px !important;
-    margin: 8px 10px;
-    margin-bottom: 8px;
-    border-radius: 14px;
+    padding: 12px 14px !important;
+    margin: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 12px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -119,11 +119,11 @@ const { CurrentComponent, currentTheme } = useThemeComponent(
     .lang-item-content {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
     }
 
     .lang-flag {
-      font-size: 28px;
+      font-size: 20px;
       line-height: 1;
       transition: transform 0.3s ease;
     }
@@ -131,22 +131,23 @@ const { CurrentComponent, currentTheme } = useThemeComponent(
     .lang-info {
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
     }
 
     .lang-name {
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 13px;
+      font-weight: 600;
       color: var(--el-text-color-primary);
     }
 
     .lang-desc {
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.2;
       color: var(--el-text-color-secondary);
     }
 
     .lang-check {
-      font-size: 20px;
+      font-size: 16px;
       color: var(--el-color-primary);
       filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
     }

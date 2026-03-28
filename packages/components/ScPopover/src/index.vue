@@ -18,22 +18,21 @@
     :tabindex="tabindex"
     :teleported="teleported"
     :persistent="persistent"
+    :z-index="zIndex"
     @update:visible="handleUpdateVisible"
     @before-enter="handleBeforeEnter"
     @before-leave="handleBeforeLeave"
     @after-enter="handleAfterEnter"
     @after-leave="handleAfterLeave"
   >
-    <!-- 为避免 Element Plus 的 ElOnlyChild 告警，统一用 span 包裹触发内容，确保只有一个根节点 -->
+    <!-- 统一使用 div 包裹触发内容，避免 block 元素嵌套进 span 在部分浏览器被自动改写 -->
     <template v-if="$slots.reference" #reference>
-      <span class="sc-popover-trigger">
+      <div class="sc-popover-trigger">
         <slot name="reference" />
-      </span>
+      </div>
     </template>
-    <template v-else-if="$slots.default" #default>
-      <span class="sc-popover-trigger">
-        <slot />
-      </span>
+    <template v-if="$slots.default" #default>
+      <slot />
     </template>
   </component>
 </template>
@@ -116,6 +115,10 @@ defineProps({
   persistent: {
     type: Boolean,
     default: false
+  },
+  zIndex: {
+    type: Number,
+    default: undefined
   }
 });
 
@@ -143,3 +146,12 @@ const handleAfterLeave = () => {
   emit("after-leave");
 };
 </script>
+
+<style scoped lang="scss">
+.sc-popover-trigger {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  vertical-align: top;
+}
+</style>

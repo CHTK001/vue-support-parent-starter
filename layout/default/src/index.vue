@@ -51,6 +51,8 @@ import {
 } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
+import LayAiChat from "./components/lay-ai-chat/index.vue";
+import LayContent from "./components/lay-content/index.vue";
 import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
@@ -85,12 +87,6 @@ window.onload = () => {
 const CardNavigation = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue"),
 );
-const LayContent = createLayoutAsyncComponent(
-  () => import("./components/lay-content/index.vue"),
-);
-const LayAiChat = createLayoutAsyncComponent(
-  () => import("./components/lay-ai-chat/index.vue"),
-);
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const NavHover = markRaw(NavHoverLayout);
@@ -123,7 +119,10 @@ const themeStore = useThemeStoreHook();
 const { fpsMonitorEnabled } = storeToRefs(themeStore);
 
 // AI 助手相关配置
-const aiChatTheme = ref(getConfig().AiChatTheme || "default");
+const aiChatThemeOverride = ref($storage?.configure?.aiChatTheme || "");
+const aiChatTheme = computed(
+  () => aiChatThemeOverride.value || getConfig().AiChatTheme || "default",
+);
 const aiChatVisible = computed(() => {
   const storageEnabled = $storage?.configure?.aiChatEnabled;
   if (typeof storageEnabled === "boolean") {
@@ -171,9 +170,11 @@ const { isMobile, initResponsiveObserver, initMobile } = useResponsiveLayout(
 );
 
 // 监听 AI 助手主题/皮肤变更
-emitter.on("aiChatThemeChange", (theme: string) => {
-  aiChatTheme.value = theme;
-});
+const handleAiChatThemeChange = (theme: string) => {
+  aiChatThemeOverride.value = theme || "";
+};
+
+emitter.on("aiChatThemeChange", handleAiChatThemeChange);
 
 // 提取 store 引用到顶层避免重复调用
 const set: setType = reactive({
@@ -357,6 +358,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("visibilitychange", handleVisibilityChange);
+  emitter.off("aiChatThemeChange", handleAiChatThemeChange);
   stopSession();
 });
 

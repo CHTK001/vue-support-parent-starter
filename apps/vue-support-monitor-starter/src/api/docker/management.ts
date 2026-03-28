@@ -176,6 +176,278 @@ export interface PageParams<T = any> {
   [k: string]: any;
 }
 
+const SUCCESS_CODE = "00000";
+
+const isSuccessCode = (code: unknown) =>
+  code === SUCCESS_CODE || code === 0 || code === "0";
+
+const withMessage = <T>(result: ReturnResult<T>) => ({
+  ...result,
+  message: result?.message || result?.msg || "",
+}) as ReturnResult<T>;
+
+const mapArrayResult = <T, R>(
+  result: ReturnResult<T[]>,
+  mapper: (item: T) => R,
+) => {
+  if (!Array.isArray(result?.data)) {
+    return withMessage(result as ReturnResult<any[]>) as ReturnResult<R[]>;
+  }
+
+  return withMessage({
+    ...result,
+    data: result.data.map(mapper),
+  } as ReturnResult<R[]>);
+};
+
+const mapPageResult = <T, R>(
+  result: ReturnResult<{ records: T[]; total: number }>,
+  mapper: (item: T) => R,
+) => {
+  const records = Array.isArray(result?.data?.records)
+    ? result.data.records.map(mapper)
+    : [];
+
+  return withMessage({
+    ...result,
+    data: {
+      ...result.data,
+      records,
+    },
+  } as ReturnResult<{ records: R[]; total: number }>);
+};
+
+const mapEntityResult = <T, R>(
+  result: ReturnResult<T>,
+  mapper: (item: T) => R,
+) => {
+  if (!result?.data) {
+    return withMessage(result as ReturnResult<any>) as ReturnResult<R>;
+  }
+
+  return withMessage({
+    ...result,
+    data: mapper(result.data),
+  } as ReturnResult<R>);
+};
+
+const normalizeRegistry = (registry: SystemSoftRegistry) => ({
+  ...registry,
+  id: (registry as any)?.id ?? registry?.systemSoftRegistryId,
+  name: (registry as any)?.name ?? registry?.systemSoftRegistryName,
+  url: (registry as any)?.url ?? registry?.systemSoftRegistryUrl,
+  username:
+    (registry as any)?.username ?? registry?.systemSoftRegistryUsername,
+  type: (registry as any)?.type ?? registry?.systemSoftRegistryType,
+});
+
+const normalizeServer = (server: ServerInfo) => ({
+  ...server,
+  id: (server as any)?.id ?? server?.monitorSysGenServerId,
+  name: (server as any)?.name ?? server?.monitorSysGenServerName,
+  host: (server as any)?.host ?? server?.monitorSysGenServerHost,
+  ip: (server as any)?.ip ?? server?.monitorSysGenServerHost,
+  port: (server as any)?.port ?? server?.monitorSysGenServerPort,
+});
+
+const normalizeImage = (image: SystemSoftImage) => ({
+  ...image,
+  id: (image as any)?.id ?? image?.systemSoftImageId,
+  name: (image as any)?.name ?? image?.systemSoftImageName,
+  tag: (image as any)?.tag ?? image?.systemSoftImageTag,
+  version: (image as any)?.version ?? image?.systemSoftImageTag,
+  imageTag: (image as any)?.imageTag ?? image?.systemSoftImageTag,
+  fullImageName:
+    (image as any)?.fullImageName ?? image?.systemSoftImageFullName,
+  size: (image as any)?.size ?? image?.systemSoftImageSize,
+  created: (image as any)?.created ?? image?.systemSoftImageCreated,
+  systemSoftImageStatus: normalizeImageStatusValue(
+    (image as any)?.status ?? image?.systemSoftImageStatus,
+  ),
+  status: normalizeImageStatusValue(
+    (image as any)?.status ?? image?.systemSoftImageStatus,
+  ),
+});
+
+const normalizeImageStatusValue = (status?: string) => {
+  if (!status) {
+    return status;
+  }
+
+  return status.trim().replace(/-/g, "_").toUpperCase();
+};
+
+const normalizeContainerStatusValue = (status?: string) => {
+  if (!status) {
+    return status;
+  }
+
+  const normalized = status.trim().replace(/-/g, "_").toLowerCase();
+
+  if (normalized === "exited") {
+    return "stopped";
+  }
+
+  if (
+    [
+      "create_failed",
+      "start_failed",
+      "restart_failed",
+      "stop_failed",
+      "delete_failed",
+      "dead",
+    ].includes(normalized)
+  ) {
+    return "error";
+  }
+
+  return normalized;
+};
+
+const normalizeContainer = (container: SystemSoftContainer) => {
+  const primaryId =
+    (container as any)?.systemSoftContainerId ?? (container as any)?.containerId;
+  const normalizedStatus = normalizeContainerStatusValue(
+    (container as any)?.status ?? container?.systemSoftContainerStatus,
+  );
+
+  return {
+    ...container,
+    id: (container as any)?.id ?? primaryId,
+    containerId:
+      (container as any)?.containerId ??
+      (primaryId !== undefined && primaryId !== null ? String(primaryId) : ""),
+    name:
+      (container as any)?.name ?? container?.systemSoftContainerName,
+    image:
+      (container as any)?.image ?? container?.systemSoftContainerImage,
+    imageTag:
+      (container as any)?.imageTag ?? container?.systemSoftContainerImageTag,
+    serverId: (container as any)?.serverId ?? container?.systemServerId,
+    dockerId:
+      (container as any)?.dockerId ?? container?.systemSoftContainerDockerId,
+    systemSoftContainerStatus: normalizedStatus,
+    status: normalizedStatus,
+  };
+};
+
+const normalizePageRequestParams = (
+  params: Record<string, any> = {},
+  keywordField: string,
+) => {
+  const {
+    current,
+    pageSize,
+    keyword,
+    ...rest
+  } = params;
+
+  const requestParams = {
+    ...rest,
+    ...(rest.page === undefined && current !== undefined ? { page: current } : {}),
+    ...(rest.size === undefined && pageSize !== undefined ? { size: pageSize } : {}),
+  };
+
+  if (
+    (requestParams[keywordField] === undefined ||
+      requestParams[keywordField] === "") &&
+    keyword !== undefined &&
+    keyword !== null &&
+    String(keyword).trim() !== ""
+  ) {
+    requestParams[keywordField] = String(keyword).trim();
+  }
+
+  Object.keys(requestParams).forEach((key) => {
+    if (
+      requestParams[key] === undefined ||
+      requestParams[key] === null ||
+      requestParams[key] === ""
+    ) {
+      delete requestParams[key];
+    }
+  });
+
+  return requestParams;
+};
+
+const normalizeRecordStatus = (status: unknown) => {
+  if (typeof status === "string" && status.trim()) {
+    return status;
+  }
+
+  const numeric = Number(status);
+  if (Number.isNaN(numeric)) {
+    return status;
+  }
+
+  if (numeric > 0) {
+    return "SUCCESS";
+  }
+
+  if (numeric === 0) {
+    return "INSTALLING";
+  }
+
+  return "FAILED";
+};
+
+const normalizeRecord = (record: SystemSoftRecord) => ({
+  ...record,
+  recordId:
+    (record as any)?.recordId ??
+    ((record as any)?.systemSoftRecordId !== undefined &&
+    (record as any)?.systemSoftRecordId !== null
+      ? String((record as any).systemSoftRecordId)
+      : undefined),
+  serverId: (record as any)?.serverId ?? record?.systemServerId,
+  installMethod:
+    (record as any)?.installMethod ?? record?.systemSoftRecordMethod,
+  installParams:
+    (record as any)?.installParams ?? record?.systemSoftRecordParams,
+  startTime:
+    (record as any)?.startTime ?? record?.systemSoftRecordStartTime,
+  endTime: (record as any)?.endTime ?? record?.systemSoftRecordEndTime,
+  duration:
+    (record as any)?.duration ?? record?.systemSoftRecordDuration,
+  errorMessage:
+    (record as any)?.errorMessage ?? record?.systemSoftRecordErrorMessage,
+  result: (record as any)?.result ?? record?.systemSoftRecordResult,
+  status: normalizeRecordStatus(
+    (record as any)?.status ?? record?.systemSoftRecordStatus,
+  ),
+});
+
+const DEFAULT_WEB_SOCKET_TOPICS = {
+  containerStatus: "monitor:docker:container_status",
+  containerLogs: "monitor:docker:container_log",
+  containerStatistics: "monitor:docker:container_statistics",
+  containerEvents: "monitor:docker:container_events",
+} as const;
+
+const createSuccessResult = <T>(data: T, msg = "") =>
+  ({
+    code: SUCCESS_CODE,
+    data,
+    msg,
+    message: msg,
+    success: true,
+  }) as ReturnResult<T>;
+
+const extractImageTag = (fullImageName?: string) => {
+  if (!fullImageName) {
+    return undefined;
+  }
+
+  const lastColonIndex = fullImageName.lastIndexOf(":");
+  const lastSlashIndex = fullImageName.lastIndexOf("/");
+  if (lastColonIndex <= lastSlashIndex) {
+    return undefined;
+  }
+
+  return fullImageName.slice(lastColonIndex + 1);
+};
+
 // ========= 1. 软件仓库管理API =========
 
 // 分页查询仓库列表（路径已对齐后端）
@@ -190,7 +462,7 @@ export function getAllRegistries() {
   return http.request<ReturnResult<SystemSoftRegistry[]>>(
     "get",
     "v1/system/soft/registry",
-  );
+  ).then((result) => mapArrayResult(result, normalizeRegistry));
 }
 
 // 根据ID获取仓库详情
@@ -198,7 +470,7 @@ export function getRegistryById(id: number) {
   return http.request<ReturnResult<SystemSoftRegistry>>(
     "get",
     `v1/system/soft/registry/${id}`,
-  );
+  ).then((result) => mapEntityResult(result, normalizeRegistry));
 }
 
 // 创建软件仓库（后端返回实体）
@@ -212,7 +484,7 @@ export function createRegistry(
     "post",
     "v1/system/soft/registry",
     { data },
-  );
+  ).then((result) => mapEntityResult(result, normalizeRegistry));
 }
 
 // 更新软件仓库（后端返回实体）
@@ -221,7 +493,7 @@ export function updateRegistry(id: number, data: Partial<SystemSoftRegistry>) {
     "put",
     `v1/system/soft/registry/${id}`,
     { data },
-  );
+  ).then((result) => mapEntityResult(result, normalizeRegistry));
 }
 
 // 删除软件仓库
@@ -369,7 +641,10 @@ export function getSoftwareStats() {
 export function getImagePageList(params: PageParams<SystemSoftImage>) {
   return http.request<
     ReturnResult<{ records: SystemSoftImage[]; total: number }>
-  >("get", "/api/monitor/system-soft-image/page", { params });
+  >("get", "/api/monitor/system-soft-image/page", {
+    params: normalizePageRequestParams(params, "imageName"),
+  })
+    .then((result) => mapPageResult(result, normalizeImage));
 }
 
 // 使用统一 list 接口按条件查询（serverId/softId）
@@ -378,39 +653,60 @@ export function getImagesByServerId(serverId: number) {
     "get",
     "/api/monitor/system-soft-image/list",
     { params: { serverId } },
-  );
+  ).then((result) => mapArrayResult(result, normalizeImage));
 }
 export function getImagesBySoftId(softId: number) {
   return http.request<ReturnResult<SystemSoftImage[]>>(
     "get",
     "/api/monitor/system-soft-image/list",
     { params: { softId } },
-  );
+  ).then((result) => mapArrayResult(result, normalizeImage));
 }
 
 export function getImageById(id: number) {
   return http.request<ReturnResult<SystemSoftImage>>(
     "get",
     `/api/monitor/system-soft-image/${id}`,
-  );
+  ).then((result) => mapEntityResult(result, normalizeImage));
 }
 
 // 拉取镜像（后端 softId/serverId/imageTag 为请求参数，config 为 body）
 export function pullImage(data: {
-  softId: number;
+  softId?: number;
   serverId: number;
-  imageTag: string;
+  imageTag?: string;
+  imageName?: string;
+  fullImageName?: string;
+  registryId?: number | string;
   config?: any;
 }) {
-  const { softId, serverId, imageTag, config } = data;
+  const {
+    softId,
+    serverId,
+    imageTag,
+    imageName,
+    fullImageName,
+    registryId,
+    config,
+  } = data;
+  const resolvedImageTag =
+    imageTag || extractImageTag(fullImageName) || "latest";
+  const requestData = {
+    ...(config || {}),
+    ...(imageName ? { imageName } : {}),
+    ...(fullImageName ? { fullImageName } : {}),
+    ...(registryId !== undefined && registryId !== null && registryId !== ""
+      ? { registryId }
+      : {}),
+  };
   return http.request<ReturnResult<SystemSoftImage>>(
     "post",
     "/api/monitor/system-soft-image/pull",
     {
-      params: { softId, serverId, imageTag },
-      data: config,
+      params: { softId: softId ?? 0, serverId, imageTag: resolvedImageTag },
+      data: requestData,
     },
-  );
+  ).then((result) => mapEntityResult(result, normalizeImage));
 }
 
 export function deleteImage(id: number, force?: boolean) {
@@ -478,7 +774,10 @@ export function syncImages(data: { serverIds: number[] }) {
 export function getContainerPageList(params: PageParams<SystemSoftContainer>) {
   return http.request<
     ReturnResult<{ records: SystemSoftContainer[]; total: number }>
-  >("get", "/api/monitor/system-soft-container/page", { params });
+  >("get", "/api/monitor/system-soft-container/page", {
+    params: normalizePageRequestParams(params, "containerName"),
+  })
+    .then((result) => mapPageResult(result, normalizeContainer));
 }
 
 // 统一使用 list 接口按条件查询
@@ -487,21 +786,21 @@ export function getContainersBySoftId(softId: number) {
     "get",
     "/api/monitor/system-soft-container/list",
     { params: { softId } },
-  );
+  ).then((result) => mapArrayResult(result, normalizeContainer));
 }
 export function getContainersByServerId(serverId: number) {
   return http.request<ReturnResult<SystemSoftContainer[]>>(
     "get",
     "/api/monitor/system-soft-container/list",
     { params: { serverId } },
-  );
+  ).then((result) => mapArrayResult(result, normalizeContainer));
 }
 
 export function getContainerById(id: number) {
   return http.request<ReturnResult<SystemSoftContainer>>(
     "get",
     `/api/monitor/system-soft-container/${id}`,
-  );
+  ).then((result) => mapEntityResult(result, normalizeContainer));
 }
 
 // 按后端定义：新增/更新均走实体对象（此处保留占位，调用方应传递完整实体）
@@ -608,6 +907,14 @@ export function getContainerOverviewStats() {
   >("get", "/api/monitor/system-soft-container/overview-stats");
 }
 
+// 获取容器状态统计（兼容旧用法）
+export function getContainerStatusStats() {
+  return http.request<ReturnResult<ContainerStatusStatistics>>(
+    "get",
+    "/api/monitor/system-soft-container/overview-stats",
+  );
+}
+
 // 同步容器状态（后端为 GET /sync?serverId=）
 export function syncContainerStatus(serverId?: number) {
   return http.request<ReturnResult<number>>(
@@ -636,7 +943,9 @@ export interface ServerInfo {
  * @returns 服务器列表
  */
 export function getServerList() {
-  return http.request<ReturnResult<ServerInfo[]>>("get", "v1/gen/server/list");
+  return http
+    .request<ReturnResult<ServerInfo[]>>("get", "v1/gen/server/list")
+    .then((result) => mapArrayResult(result, normalizeServer));
 }
 
 export function getWebSocketTopics() {
@@ -647,7 +956,21 @@ export function getWebSocketTopics() {
       containerStatistics: string;
       containerEvents: string;
     }>
-  >("get", "v1/system/soft/websocket/topics");
+  >("get", "v1/system/soft/websocket/topics")
+    .then((result) => {
+      if (isSuccessCode(result?.code) && result?.data) {
+        return withMessage({
+          ...result,
+          data: {
+            ...DEFAULT_WEB_SOCKET_TOPICS,
+            ...result.data,
+          },
+        } as ReturnResult<typeof DEFAULT_WEB_SOCKET_TOPICS>);
+      }
+
+      return createSuccessResult(DEFAULT_WEB_SOCKET_TOPICS);
+    })
+    .catch(() => createSuccessResult(DEFAULT_WEB_SOCKET_TOPICS));
 }
 
 // ========= API对象导出 =========
@@ -658,7 +981,7 @@ export function getDefaultRegistry(serverId?: number) {
     "get",
     "v1/system/soft/registry/default",
     { params: { serverId } },
-  );
+  ).then((result) => mapEntityResult(result, normalizeRegistry));
 }
 
 // 设置默认仓库
@@ -674,7 +997,7 @@ export function getEnabledRegistries() {
   return http.request<ReturnResult<SystemSoftRegistry[]>>(
     "get",
     "v1/system/soft/registry/enabled",
-  );
+  ).then((result) => mapArrayResult(result, normalizeRegistry));
 }
 
 // 根据类型获取仓库列表
@@ -682,7 +1005,7 @@ export function getRegistriesByType(type: string) {
   return http.request<ReturnResult<SystemSoftRegistry[]>>(
     "get",
     `v1/system/soft/registry/type/${type}`,
-  );
+  ).then((result) => mapArrayResult(result, normalizeRegistry));
 }
 
 // 批量更新仓库状态
@@ -697,6 +1020,7 @@ export function batchUpdateRegistryStatus(ids: number[], status: number) {
 export const registryApi = {
   pageRegistry,
   getAllRegistries,
+  getRegistryList: getAllRegistries,
   getRegistryById,
   createRegistry,
   updateRegistry,
@@ -765,6 +1089,26 @@ export const softwareApi = {
   getSoftwareStats,
   searchOnlineSoftware,
   importOnlineSoftware,
+  getSoftwareVersions: async (softId: number) => {
+    const result = await getImagesBySoftId(softId);
+    if (!isSuccessCode(result?.code)) {
+      return result as ReturnResult<any[]>;
+    }
+
+    return createSuccessResult(
+      (result.data || []).map((item) => ({
+        imageId: item.systemSoftImageId,
+        tag: item.systemSoftImageTag || "latest",
+        size: item.systemSoftImageSize,
+        created: item.systemSoftImageCreated,
+        architecture: item.systemSoftImageArchitecture,
+        fullImageName: item.systemSoftImageFullName,
+      })),
+    );
+  },
+  syncSoftwareFromRegistry: (params?: { registryIds?: number[] }) =>
+    syncSoftware(params?.registryIds?.[0]),
+  syncImages,
 };
 
 export const imageApi = {
@@ -797,8 +1141,48 @@ export const containerApi = {
   execContainerCommand,
   getContainerStats,
   getContainerOverviewStats,
+  getContainerStatusStats,
   syncContainerStatus,
   batchOperateContainers,
+};
+
+// ========= 7. 软件操作记录 =========
+export interface SystemSoftRecord {
+  systemSoftRecordId: number;
+  systemSoftId?: number;
+  systemServerId?: number;
+  systemSoftRecordOperationType?: string;
+  systemSoftRecordMethod?: string;
+  systemSoftRecordMessage?: string;
+  systemSoftRecordParams?: string;
+  systemSoftRecordTime?: string;
+  systemSoftRecordStatus?: number;
+  systemSoftRecordUser?: string;
+  systemSoftRecordContainerId?: string;
+  systemSoftRecordStartTime?: string;
+  systemSoftRecordEndTime?: string;
+  systemSoftRecordDuration?: number;
+  systemSoftRecordErrorMessage?: string;
+  systemSoftRecordResult?: string;
+}
+
+export function getSoftRecordPage(params: {
+  current?: number;
+  size?: number;
+  softId?: number;
+  serverId?: number;
+  operationType?: string;
+  operationStatus?: number;
+  operationUser?: string;
+}) {
+  return http.request<
+    ReturnResult<{ records: SystemSoftRecord[]; total: number }>
+  >("get", "/api/system/soft/record/page", { params })
+    .then((result) => mapPageResult(result, normalizeRecord));
+}
+
+export const softRecordApi = {
+  getSoftRecordPage,
 };
 
 export const dockerManagementApi = {

@@ -376,7 +376,6 @@ const basicCodeExample = `<template>
 
 import type { EditorData } from "@repo/components/ScReteEditor";
 import { ref } from 'vue';
-import ScTabs, { ScTabPane } from "@repo/components/ScTabs";
 import { ScReteEditor, type EditorData } from '@repo/components/ScReteEditor';
 
 const editorData = ref<EditorData>({
@@ -429,8 +428,6 @@ const apiCodeExample = `<template>
 
 <script setup>
 
-import { ref } from 'vue';
-import ScTabs, { ScTabPane } from "@repo/components/ScTabs";
 import { ScReteEditor } from '@repo/components/ScReteEditor';
 
 const editorRef = ref<InstanceType<typeof ScReteEditor>>();
@@ -480,8 +477,6 @@ const customNodeCodeExample = `<template>
 <script setup>
 
 import type { NodeTypeName } from "@repo/components/ScReteEditor";
-import { ref } from 'vue';
-import ScTabs, { ScTabPane } from "@repo/components/ScTabs";
 import { ScReteEditor, type NodeTypeName } from '@repo/components/ScReteEditor';
 
 const data = ref({ nodes: [], connections: [] });

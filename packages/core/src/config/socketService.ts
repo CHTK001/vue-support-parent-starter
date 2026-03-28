@@ -9,6 +9,7 @@
  * @since 2024-12-25
  */
 
+import type { App } from "vue";
 import { inject, provide } from "vue";
 import type { SocketTemplate } from "./socketTemplate";
 import { SocketTemplateKey, createSocketTemplateKey } from "./socketTemplate";
@@ -88,6 +89,29 @@ let globalSocketConfig: {
   urls?: string[];
   context?: string;
 } = {};
+
+const getWindowGlobalSocketService = (): SocketTemplate | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return (window.__GLOBAL_SOCKET_SERVICE__ as SocketTemplate | undefined) ?? null;
+};
+
+const syncWindowGlobalSocketService = (
+  service: SocketTemplate | null,
+): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (service) {
+    window.__GLOBAL_SOCKET_SERVICE__ = service;
+    return;
+  }
+
+  delete window.__GLOBAL_SOCKET_SERVICE__;
+};
 
 /**
  * 设置全局 Socket 配置（由 ConfigStore 调用）
@@ -200,16 +224,43 @@ export function initGlobalSocketService(
   }
 
   globalSocketService = createSocketService(config);
-  provide(SocketTemplateKey, globalSocketService);
+  syncWindowGlobalSocketService(globalSocketService);
 
   return globalSocketService;
+}
+
+/**
+ * 将全局 Socket 服务提供到 Vue 应用上下文
+ *
+ * @param app Vue 应用实例
+ * @param service SocketTemplate 实例
+ * @returns SocketTemplate 实例
+ */
+export function provideGlobalSocketService(
+  app: App,
+  service: SocketTemplate,
+): SocketTemplate {
+  globalSocketService = service;
+  syncWindowGlobalSocketService(service);
+  app.provide(SocketTemplateKey, service);
+  return service;
 }
 
 /**
  * 获取全局 Socket 服务
  */
 export function getGlobalSocketService(): SocketTemplate | null {
-  return globalSocketService;
+  if (globalSocketService) {
+    return globalSocketService;
+  }
+
+  const windowService = getWindowGlobalSocketService();
+  if (windowService) {
+    globalSocketService = windowService;
+    return windowService;
+  }
+
+  return null;
 }
 
 /**
@@ -223,17 +274,19 @@ export function useSocketService(): SocketTemplate | null {
   }
 
   // 回退到全局实例
-  return globalSocketService;
+  return getGlobalSocketService();
 }
 
 /**
  * 关闭全局 Socket 服务
  */
 export function closeGlobalSocketService(): void {
-  if (globalSocketService) {
-    globalSocketService.close();
-    globalSocketService = null;
+  const service = getGlobalSocketService();
+  if (service) {
+    service.close();
   }
+  globalSocketService = null;
+  syncWindowGlobalSocketService(null);
 }
 
 // ==================== 命名实例管理 ====================

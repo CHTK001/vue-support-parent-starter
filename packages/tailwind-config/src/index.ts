@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
 
 // @ts-ignore
+import fs from "node:fs";
+// @ts-ignore
 import path from "node:path";
 
 import { addDynamicIconSelectors } from "@iconify/tailwind";
@@ -14,16 +16,59 @@ import { enterAnimationPlugin } from "./plugins/entry";
 
 // import defaultTheme from 'tailwindcss/defaultTheme';
 
-const { packages } = getPackagesSync(process.cwd());
+const resolveWorkspaceRoot = () => {
+  const currentDir = process.cwd();
+  const candidates = [currentDir, path.resolve(currentDir, "../..")];
+  return (
+    candidates.find((dir) => fs.existsSync(path.join(dir, "pnpm-workspace.yaml"))) ??
+    currentDir
+  );
+};
 
+const collectFallbackPackages = (workspaceRoot: string) => {
+  const groups = ["apps", "layout", "pages", "packages"];
+  const dirs = new Set<string>();
+
+  groups.forEach((group) => {
+    const groupDir = path.join(workspaceRoot, group);
+    if (!fs.existsSync(groupDir)) {
+      return;
+    }
+
+    fs.readdirSync(groupDir, { withFileTypes: true }).forEach((entry) => {
+      if (!entry.isDirectory()) {
+        return;
+      }
+
+      const dir = path.join(groupDir, entry.name);
+      dirs.add(dir);
+
+      if (group === "packages") {
+        fs.readdirSync(dir, { withFileTypes: true }).forEach((nestedEntry) => {
+          if (nestedEntry.isDirectory()) {
+            dirs.add(path.join(dir, nestedEntry.name));
+          }
+        });
+      }
+    });
+  });
+
+  return [...dirs];
+};
+
+const workspaceRoot = resolveWorkspaceRoot();
 const tailwindPackages: string[] = [];
 
-packages.forEach((pkg) => {
-  // apps目录下和 @vben-core/tailwind-ui 包需要使用到 tailwindcss ui
-  // if (fs.existsSync(path.join(pkg.dir, 'tailwind.config.mjs'))) {
-  tailwindPackages.push(pkg.dir);
-  // }
-});
+try {
+  const { packages } = getPackagesSync(workspaceRoot);
+  packages.forEach((pkg) => {
+    tailwindPackages.push(pkg.dir);
+  });
+} catch (error) {
+  collectFallbackPackages(workspaceRoot).forEach((dir) => {
+    tailwindPackages.push(dir);
+  });
+}
 
 const shadcnUiColors = {
   accent: {

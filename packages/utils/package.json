@@ -25,6 +25,8 @@
     }
   },
   "dependencies": {
+    "@tensorflow/tfjs": "catalog:",
+    "@tensorflow/tfjs-core": "catalog:",
     "@pureadmin/descriptions": "catalog:",
     "@pureadmin/table": "catalog:",
     "@pureadmin/utils": "catalog:",
@@ -34,6 +36,7 @@
     "crypto-js": "catalog:",
     "devtools-detector": "catalog:",
     "element-plus": "catalog:",
+    "face-api.js": "catalog:",
     "js-base64": "catalog:",
     "js-cookie": "catalog:",
     "localforage": "catalog:",

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useDataThemeChange } from "@layout/default/hooks/useDataThemeChange";
 import { useLayout } from "@layout/default/hooks/useLayout";
-import { useNav } from "@layout/default/hooks/useNav";
 import { useTranslationLang } from "@layout/default/hooks/useTranslationLang";
 import { fetchDefaultSetting } from "@pages/setting";
 import { getConfig, setConfig } from "@repo/config/src/config";
@@ -25,12 +24,8 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
 import ThemeSwitcher from "./components/ThemeSwitcher.vue";
-import { bg, illustration } from "./utils/static";
 import { getLoginTheme as getLoginThemeComponent } from "./themes";
 import { getThemeConfig } from "./utils/themeConfig";
-
-import darkIcon from "@repo/assets/svg/dark.svg?component";
-import dayIcon from "@repo/assets/svg/day.svg?component";
 import globalization from "@repo/assets/svg/globalization.svg?component";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 
@@ -68,7 +63,6 @@ initStorage();
 const { t } = useI18n();
 const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
 dataThemeChange(overallStyle.value);
-const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
 const { locale, translation } = useTranslationLang();
 
 // 获取所有语言配置
@@ -79,6 +73,30 @@ const currentLanguageConfig = computed(() => {
   const currentLocale = typeof locale.value === "string" ? locale.value : locale.value.value;
   return getLanguageConfig(currentLocale);
 });
+
+const isZhCnLocale = computed(() => {
+  const currentLocale =
+    typeof locale.value === "string" ? locale.value : locale.value.value;
+  return currentLocale === "zh-CN";
+});
+
+const isDarkTheme = computed(
+  () => overallStyle.value === "dark" || dataTheme.value,
+);
+
+const themeModeText = computed(() => ({
+  light: isZhCnLocale.value ? "浅色" : "Light",
+  dark: isZhCnLocale.value ? "深色" : "Dark",
+}));
+
+const setLoginThemeMode = (mode: "light" | "dark") => {
+  const nextIsDark = mode === "dark";
+  if (dataTheme.value === nextIsDark && overallStyle.value === mode) {
+    return;
+  }
+  dataTheme.value = nextIsDark;
+  dataThemeChange(mode);
+};
 
 const defaultSetting = reactive({
   OpenVerifyCode: false,
@@ -229,14 +247,26 @@ const envBadgeClass = computed(() => {
 
         <!-- 主题切换 -->
         <div class="theme-switch-container">
-          <el-switch
-            v-model="dataTheme"
-            inline-prompt
-            :active-icon="dayIcon"
-            :inactive-icon="darkIcon"
-            @change="dataThemeChange"
-            class="modern-theme-switch"
-          />
+          <div class="theme-mode-toggle" role="group" aria-label="Theme mode">
+            <button
+              type="button"
+              class="theme-mode-button"
+              :class="{ active: !isDarkTheme }"
+              @click="setLoginThemeMode('light')"
+            >
+              <IconifyIconOnline icon="ri:sun-line" class="theme-mode-icon" />
+              <span>{{ themeModeText.light }}</span>
+            </button>
+            <button
+              type="button"
+              class="theme-mode-button"
+              :class="{ active: isDarkTheme }"
+              @click="setLoginThemeMode('dark')"
+            >
+              <IconifyIconOnline icon="ri:moon-clear-line" class="theme-mode-icon" />
+              <span>{{ themeModeText.dark }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- 语言切换 -->
@@ -484,21 +514,58 @@ const envBadgeClass = computed(() => {
   }
 
   .theme-switch-container {
-    .modern-theme-switch {
-      :deep(.el-switch__core) {
-        border: 2px solid var(--el-border-color-light);
-        background: var(--el-fill-color);
-        transition: all 0.3s ease;
+    .theme-mode-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--el-border-color-lighter);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.06) 0%,
+        var(--el-fill-color-lighter) 100%
+      );
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        0 8px 20px rgba(15, 23, 42, 0.08);
+    }
 
-        &:hover {
-          border-color: var(--el-color-primary-light-5);
-        }
+    .theme-mode-button {
+      appearance: none;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 76px;
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 999px;
+      color: var(--el-text-color-secondary);
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        color: var(--el-text-color-primary);
+        background: rgba(255, 255, 255, 0.45);
       }
 
-      :deep(.el-switch__action) {
+      &.active {
+        color: var(--el-color-primary);
         background: var(--el-bg-color-overlay);
-        box-shadow: var(--el-box-shadow-lighter);
+        box-shadow:
+          0 10px 24px rgba(var(--el-color-primary-rgb), 0.16),
+          0 2px 6px rgba(15, 23, 42, 0.08);
       }
+    }
+
+    .theme-mode-icon {
+      font-size: 15px;
     }
   }
 
@@ -506,9 +573,10 @@ const envBadgeClass = computed(() => {
   .lang-trigger {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 14px 6px 6px;
-    border-radius: 28px;
+    gap: 6px;
+    padding: 4px 8px 4px 4px;
+    border-radius: 20px;
+    max-width: 112px;
     background: linear-gradient(
       135deg,
       var(--el-fill-color-lighter) 0%,
@@ -556,8 +624,8 @@ const envBadgeClass = computed(() => {
 
     .lang-icon-wrapper {
       position: relative;
-      width: 32px;
-      height: 32px;
+      width: 24px;
+      height: 24px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
@@ -571,7 +639,7 @@ const envBadgeClass = computed(() => {
       box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
 
       .lang-main-icon {
-        font-size: 16px;
+        font-size: 12px;
         color: #fff;
       }
     }
@@ -579,18 +647,24 @@ const envBadgeClass = computed(() => {
     .lang-info {
       display: flex;
       flex-direction: column;
-      line-height: 1.3;
+      min-width: 0;
+      max-width: 56px;
+      line-height: 1.15;
     }
 
     .lang-name {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
       color: var(--el-text-color-primary);
       letter-spacing: 0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .lang-role {
-      font-size: 11px;
+      display: none;
+      font-size: 10px;
       color: var(--el-text-color-secondary);
       font-weight: 500;
     }
@@ -599,8 +673,8 @@ const envBadgeClass = computed(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 22px;
-      height: 22px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: linear-gradient(
         135deg,
@@ -612,7 +686,7 @@ const envBadgeClass = computed(() => {
     }
 
     .dropdown-arrow {
-      font-size: 14px;
+      font-size: 11px;
       color: var(--el-text-color-placeholder);
       transition: all 0.3s ease;
     }
@@ -1108,10 +1182,10 @@ const envBadgeClass = computed(() => {
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    padding: 24px !important;
-    margin: 8px 10px;
-    margin-bottom: 8px;
-    border-radius: 14px;
+    padding: 12px 14px !important;
+    margin: 6px 8px;
+    margin-bottom: 6px;
+    border-radius: 12px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -1163,11 +1237,11 @@ const envBadgeClass = computed(() => {
     .lang-item-content {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
     }
 
     .lang-flag {
-      font-size: 28px;
+      font-size: 20px;
       line-height: 1;
       transition: transform 0.3s ease;
     }
@@ -1175,22 +1249,23 @@ const envBadgeClass = computed(() => {
     .lang-item-info {
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
     }
 
     .lang-item-name {
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 13px;
+      font-weight: 600;
       color: var(--el-text-color-primary);
     }
 
     .lang-item-desc {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--el-text-color-secondary);
+      line-height: 1.2;
     }
 
     .lang-check {
-      font-size: 20px;
+      font-size: 16px;
       color: var(--el-color-primary);
       filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
     }

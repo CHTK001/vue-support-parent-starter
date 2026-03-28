@@ -27,6 +27,10 @@ function openPanel(): void {
   panelVisible.value = true;
 }
 
+const handleOpenPanel = (): void => {
+  openPanel();
+};
+
 /**
  * 关闭设置面板
  * @description 更新 UI 状态并写入本地记忆，同时广播关闭事件
@@ -63,14 +67,12 @@ onClickOutside(target, (event: any) => {
   closePanel();
 });
 onMounted(() => {
-  emitter.on("openPanel", () => {
-    openPanel();
-  });
+  emitter.on("openPanel", handleOpenPanel);
 });
 
 onBeforeUnmount(() => {
-  // 解绑`openPanel`公共事件，防止多次触发
-  emitter.off("openPanel");
+  // 只解绑当前实例的监听，避免 HMR/重挂载时误删其它实例监听
+  emitter.off("openPanel", handleOpenPanel);
 });
 </script>
 

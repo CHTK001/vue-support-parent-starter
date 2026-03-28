@@ -1,5 +1,21 @@
 # vue-monitor 测试报告（2026-03-28）
 
+## 0. 最新补充
+
+- 2026-03-28 最新专项结果已同步到 `docs/unit-test.md`
+- 最新回归命令结果为：
+  - 15 个测试文件通过
+  - 42 个测试点通过
+- 新补充结论：
+  - 三大安全链路前后端代码契约已逐条核对
+  - `config` 分组的版本通知与热重载主链路已补齐并通过测试
+  - 运行时 `config` 容器已经改为响应式对象，依赖 `getConfig()` 的模板表达式与 `computed` 读取现在可随配置变化更新
+  - `layout/default` 顶部工具栏已经补上组件级热更新验证，`ShowBarSearch` 与 `PageBehavior.showHeaderClock` 可随后台配置刷新
+  - `sidebar/drawer/custom-menu` 已补齐整批 `override ref + computed fallback` 改造，后台配置不再只在首次挂载时生效
+  - `themeStore` 的性能监控默认配置已补上“无本地覆盖时跟随运行时配置”的能力
+  - `vitest` 已补上 `@vitejs/plugin-vue` 与工作区别名，现有 `.vue` 组件单测可直接执行
+  - 但不能简单下结论为“所有后台配置都支持前端无刷新热更新”
+
 ## 1. 测试范围
 
 - 登录态持久化修复
@@ -55,18 +71,27 @@
 
 ```bash
 pnpm exec vitest run --config packages/utils/vitest.config.ts \
+  packages/config/tests/runtime-config-reactive.test.ts \
   packages/core/src/__tests__/auth-storage.test.ts \
+  packages/core/src/__tests__/config-store-hot-reload.test.ts \
   packages/utils/tests/monitor-global-socket-options.test.ts \
+  packages/utils/tests/monitor-global-socket-bridge.test.ts \
   packages/utils/tests/request-config-resolver.test.ts \
+  packages/utils/tests/request-sign-contract.test.ts \
+  packages/utils/tests/codec-contract.test.ts \
   packages/utils/tests/socket-url-normalizer.test.ts \
   packages/utils/tests/debug-guard.test.ts \
-  packages/utils/tests/monitor-docker-routes.test.ts
+  packages/utils/tests/monitor-docker-routes.test.ts \
+  packages/utils/tests/clock-worker.test.ts \
+  layout/default/src/__tests__/ThemeStoreRuntimeConfig.spec.ts \
+  layout/default/src/components/lay-setting/__tests__/index.spec.ts \
+  layout/default/src/components/lay-tool/themes/__tests__/BaseTool.spec.ts
 ```
 
 结果：
 
-- 7 个测试文件通过
-- 23 个测试点通过
+- 15 个测试文件通过
+- 42 个测试点通过
 - 新增 `auth-storage.test.ts`，覆盖：
   - 无 `expires` 时 token 不立即过期
   - 登录缓存包含 `accessToken + userInfo + flat字段`
@@ -74,6 +99,17 @@ pnpm exec vitest run --config packages/utils/vitest.config.ts \
 - 新增 `monitor-global-socket-bridge.test.ts` 用例，覆盖：
   - monitor 启动时先等 `/v2/setting/list` 返回再回放 socket 操作
   - `OpenSetting=false` 时按本地配置兜底初始化全局 socket
+- 新增 `runtime-config-reactive.test.ts`，覆盖：
+  - `putConfig()` 后依赖 `getConfig().Title` 的计算属性会立即更新
+  - `RemoteLayout / LocationLayout` 的布局可用性判断会跟随运行时配置变化刷新
+- 新增 `BaseTool.spec.ts`，覆盖：
+  - `ShowBarSearch` 更新后顶部搜索入口立即显示/隐藏
+  - `PageBehavior.showHeaderClock` 更新后顶部时钟入口立即显示/隐藏
+- 新增 `ThemeStoreRuntimeConfig.spec.ts`，覆盖：
+  - `ShowFpsMonitor` 在无本地覆盖时可随运行时配置更新
+  - 本地 `localStorage` 覆盖存在时不会被后台值冲掉
+  - `PerformanceMonitorLayout` 默认值会按运行时配置初始化并随之刷新
+- 现有 `layout/default/src/components/lay-setting/__tests__/index.spec.ts` 已验证可在当前 `vitest` 配置下正常执行
 
 ## 5. 构建结果
 
@@ -273,6 +309,10 @@ pnpm build
 - 首页与 Docker 主线页面可进入
 - Docker 核心列表接口可返回成功
 - Socket 开关能力、请求签名配置、调试防护逻辑均有代码与单测支撑
+- 运行时 `config` 响应式更新能力已补齐，并有专项单测覆盖
+- `.vue` 组件测试基建已补齐，layout 顶部工具栏热重载有组件级单测支撑
+- `sidebar/drawer/custom-menu` 核心入口已切换为“本地设置覆盖优先，后台配置响应式兜底”
+- `themeStore` 中一批性能监控默认值已切换为“无本地覆盖时跟随后台配置”
 
 ### 9.2 当前剩余风险
 
@@ -280,6 +320,9 @@ pnpm build
 - 当前测试环境 Docker 数据为空，页面只验证到空列表渲染与接口通达
 - 当前测试环境未显式开启水印 / 调试防护 / 请求加解密开关，无法将其判定为“线上已启用”
 - 当前本地验收环境未形成可用的实时 socket 连接，实时推送仍需在最终测试机地址上补一轮联调
+- 代码库里仍有部分组件在 `setup` 阶段把 `getConfig()` 读成一次性快照，这部分还需要继续逐步改成 `computed` 或 store 驱动
+- 登录页 `/v2/setting/default` 仍是单独初始化链路，不属于当前版本事件热重载范围
+- 组件测试运行时仍会打印 IndexedDB 初始化失败与 Sass legacy API 告警，当前不影响断言结果，但测试环境噪音仍可继续收敛
 
 ### 9.3 结论
 

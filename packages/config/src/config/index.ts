@@ -1,10 +1,15 @@
-import type { App } from "vue";
+import { reactive, toRaw, type App } from "vue";
 import { globalSetting } from "../setting";
 import type { PlatformConfigs } from "../types/config";
 import yaml from "js-yaml";
 
-let config: Record<string, any> = {};
-let configGroup: Record<string, any> = {};
+const config = reactive<Record<string, any>>({});
+const configGroup = reactive<Record<string, any>>({});
+export const CONFIG_VERSION_CHANGE_EVENT = "repo-config-version-change";
+
+const cloneConfig = (value: Record<string, any>) =>
+  JSON.parse(JSON.stringify(toRaw(value ?? {})));
+
 const setConfig = (cfg?: unknown, value?: unknown) => {
   if (typeof cfg === "string") {
     config[cfg] = value;
@@ -12,7 +17,7 @@ const setConfig = (cfg?: unknown, value?: unknown) => {
   }
 
   if (cfg && typeof cfg === "object") {
-    config = Object.assign(config, cfg);
+    Object.assign(config, cfg);
   }
 };
 
@@ -30,11 +35,19 @@ Object.values(extConfig).forEach((value: any) => {
   const data = yaml.load(value.default);
   setConfig(data);
 });
+const initialConfig = cloneConfig(config);
 
 /** 版本升级 */
 const upgrade = (version: string) => {
   if (localStorage.getItem("version") !== version) {
     localStorage.setItem("version", version);
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(
+        new CustomEvent(CONFIG_VERSION_CHANGE_EVENT, {
+          detail: { version },
+        }),
+      );
+    }
   }
 };
 
@@ -69,6 +82,28 @@ const getConfig = (key?: string): PlatformConfigs | any => {
     }
   }
   return config;
+};
+
+/** 获取初始化基线配置 */
+const getInitialConfig = (key?: string): PlatformConfigs | any => {
+  if (!key) {
+    return initialConfig;
+  }
+
+  const arr = key.split(".");
+  if (!arr.length) {
+    return initialConfig;
+  }
+
+  let data: any = initialConfig;
+  arr.forEach((item) => {
+    if (data && typeof data[item] !== "undefined") {
+      data = data[item];
+    } else {
+      data = null;
+    }
+  });
+  return data;
 };
 
 /** 获取项目动态全局配置 */
@@ -116,6 +151,7 @@ const responsiveStorageNameSpace = () => getConfig().ResponsiveStorageNameSpace;
 
 export {
   getConfig,
+  getInitialConfig,
   getConfigGroup,
   putConfig,
   responsiveStorageNameSpace,

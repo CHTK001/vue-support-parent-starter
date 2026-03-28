@@ -82,6 +82,10 @@ import NetworkLatencyItem from "./components/NetworkLatencyItem.vue";
 import StorageItem from "./components/StorageItem.vue";
 import DeviceInfoItem from "./components/DeviceInfoItem.vue";
 import PageTimeItem from "./components/PageTimeItem.vue";
+import {
+  subscribePerformanceMonitor,
+  type MonitorSnapshot,
+} from "./monitor-runtime";
 
 const themeStore = useThemeStore();
 const {
@@ -91,16 +95,18 @@ const {
   batteryMonitorEnabled,
   bluetoothMonitorEnabled,
   screenMonitorEnabled,
-  networkLatencyMonitorEnabled,
-  storageMonitorEnabled,
-  deviceInfoMonitorEnabled,
-  pageTimeMonitorEnabled,
   performanceMonitorPosition,
   isPerformanceMonitorVisible,
   performanceMonitorMode,
   performanceMonitorLayout,
   performanceMonitorDirection,
 } = storeToRefs(themeStore);
+
+// 这些扩展监控项当前未接入主题 store，先保持关闭，避免组件本身出现运行时/类型错误。
+const networkLatencyMonitorEnabled = computed(() => false);
+const storageMonitorEnabled = computed(() => false);
+const deviceInfoMonitorEnabled = computed(() => false);
+const pageTimeMonitorEnabled = computed(() => false);
 
 /**
  * 根据位置自动计算布局方向：
@@ -134,101 +140,22 @@ const fps = ref(60);
 const cpuLoad = ref(0);
 const memory = ref<{ used: string; limit: string } | null>(null);
 const history = ref<number[]>(new Array(20).fill(60));
-let frameCount = 0;
-let lastTime = performance.now();
-let lastFrameTime = performance.now();
-let animationFrameId: number;
-// CPU负载计算相关
-const frameTimes: number[] = [];
-const idealFrameTime = 16.67; // 60FPS的理想帧时间（毫秒）
-const maxFrameTime = 100; // 最大帧时间，超过此值视为100%负载
+let stopMonitorSubscription: (() => void) | null = null;
 
-const updateMemory = () => {
-  if ((performance as any).memory) {
-    const mem = (performance as any).memory;
-    memory.value = {
-      used: (mem.usedJSHeapSize / 1048576).toFixed(2),
-      limit: (mem.jsHeapSizeLimit / 1048576).toFixed(2),
-    };
-  }
-};
-
-const updateFps = () => {
-  const now = performance.now();
-
-  // 计算帧时间
-  const frameDuration = now - lastFrameTime;
-  lastFrameTime = now;
-
-  // 收集帧时间用于CPU负载计算（保留最近60帧）
-  frameTimes.push(frameDuration);
-  if (frameTimes.length > 60) {
-    frameTimes.shift();
-  }
-
-  // 计算平均帧时间（至少需要3帧数据才计算，否则使用当前帧时间）
-  let avgFrameTime: number;
-  if (frameTimes.length >= 3) {
-    avgFrameTime = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
-  } else {
-    avgFrameTime = frameDuration; // 数据不足时使用当前帧时间
-  }
-
-  // 基于平均帧时间计算CPU负载
-  // 使用线性映射方式：
-  // 60FPS（16.67ms）时，CPU负载约10%
-  // 30FPS（33.33ms）时，CPU负载约50%
-  // 10FPS（100ms）时，CPU负载约90%
-  // 公式：负载 = 10 + (实际帧时间 - 16.67) / (100 - 16.67) * 80
-  // 当帧时间 < 16.67ms时，负载 < 10%（性能很好）
-  // 当帧时间 > 100ms时，负载 > 90%（性能很差）
-  const minFrameTime = 8; // 最小帧时间（120FPS），对应负载0%
-  const maxFrameTime = 100; // 最大帧时间（10FPS），对应负载100%
-  let load: number;
-  if (avgFrameTime <= minFrameTime) {
-    // 帧时间 <= 8ms，负载为0-10%
-    load = (avgFrameTime / minFrameTime) * 10;
-  } else if (avgFrameTime <= idealFrameTime) {
-    // 帧时间在8-16.67ms之间，负载在10-20%之间
-    load =
-      10 +
-      ((avgFrameTime - minFrameTime) / (idealFrameTime - minFrameTime)) * 10;
-  } else if (avgFrameTime <= maxFrameTime) {
-    // 帧时间在16.67-100ms之间，负载在20-100%之间
-    load =
-      20 +
-      ((avgFrameTime - idealFrameTime) / (maxFrameTime - idealFrameTime)) * 80;
-  } else {
-    // 帧时间 > 100ms，负载为100%
-    load = 100;
-  }
-  cpuLoad.value = Math.min(100, Math.max(0, load)); // 限制在0-100%，保留原始精度
-
-  frameCount++;
-
-  if (now - lastTime >= 1000) {
-    fps.value = Math.round((frameCount * 1000) / (now - lastTime));
-
-    frameCount = 0;
-    lastTime = now;
-
-    history.value.shift();
-    history.value.push(fps.value);
-
-    if (memoryMonitorEnabled.value) {
-      updateMemory();
-    }
-  }
-
-  animationFrameId = requestAnimationFrame(updateFps);
+const updateMonitorState = (snapshot: MonitorSnapshot) => {
+  fps.value = snapshot.fps;
+  cpuLoad.value = snapshot.cpuLoad;
+  history.value = snapshot.history;
+  memory.value = memoryMonitorEnabled.value ? snapshot.memory : null;
 };
 
 onMounted(() => {
-  updateFps();
+  stopMonitorSubscription = subscribePerformanceMonitor(updateMonitorState);
 });
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(animationFrameId);
+  stopMonitorSubscription?.();
+  stopMonitorSubscription = null;
 });
 </script>
 

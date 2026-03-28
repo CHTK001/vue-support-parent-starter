@@ -19,11 +19,11 @@ $ft-glow: rgba(0, 255, 255, 0.28);
     rgba(5, 10, 31, 0.96),
     rgba(10, 26, 58, 0.92)
   ) !important;
-  border: 1px solid $ft-border !important;
+  border: 1px solid rgba(77, 253, 253, 0.18) !important;
   box-shadow:
-    0 0 18px rgba(0, 255, 255, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(16px);
+    0 22px 38px -32px rgba(0, 0, 0, 0.64),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: none;
 }
 
 @mixin future-menu-item {
@@ -32,26 +32,24 @@ $ft-glow: rgba(0, 255, 255, 0.28);
   &:hover {
     background: linear-gradient(
       135deg,
-      rgba(0, 255, 255, 0.16),
-      rgba(138, 43, 226, 0.14)
+      rgba(0, 255, 255, 0.14),
+      rgba(0, 122, 255, 0.1)
     ) !important;
-    color: $ft-cyan !important;
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.55);
+    color: #e6f9ff !important;
+    text-shadow: none;
   }
 
   &.is-active,
   &.layui-this {
     background: linear-gradient(
       135deg,
-      rgba(0, 255, 255, 0.22),
-      rgba(138, 43, 226, 0.2)
+      rgba(0, 255, 255, 0.24),
+      rgba(0, 122, 255, 0.14)
     ) !important;
-    border-color: $ft-border-strong !important;
-    box-shadow:
-      0 0 18px rgba(0, 255, 255, 0.38),
-      inset 0 0 10px rgba(138, 43, 226, 0.18) !important;
-    color: $ft-cyan !important;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.75);
+    border-color: rgba(77, 253, 253, 0.28) !important;
+    box-shadow: 0 16px 28px -24px rgba(0, 255, 255, 0.2) !important;
+    color: #e6f9ff !important;
+    text-shadow: none;
   }
 }
 
@@ -125,10 +123,8 @@ html.theme-future-tech {
   .lay-header {
     background: rgba(5, 10, 31, 0.8) !important;
     border-bottom: 1px solid $ft-border !important;
-    box-shadow:
-      0 6px 20px rgba(0, 0, 0, 0.4),
-      0 0 18px rgba(0, 255, 255, 0.16) !important;
-    backdrop-filter: blur(16px);
+    box-shadow: 0 18px 34px -28px rgba(0, 0, 0, 0.54) !important;
+    backdrop-filter: none;
   }
 
   .el-card,
@@ -136,18 +132,16 @@ html.theme-future-tech {
   .el-drawer {
     background: rgba(5, 10, 31, 0.72) !important;
     border: 1px solid $ft-border !important;
-    box-shadow:
-      0 0 18px rgba(0, 255, 255, 0.16),
-      0 18px 48px rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 42px -34px rgba(0, 0, 0, 0.58) !important;
+    backdrop-filter: none;
   }
 
   .el-button--primary {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.24), rgba(138, 43, 226, 0.42)) !important;
-    border-color: $ft-border-strong !important;
-    color: $ft-cyan !important;
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.65);
-    box-shadow: 0 0 14px rgba(0, 255, 255, 0.28) !important;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.24), rgba(0, 122, 255, 0.34)) !important;
+    border-color: rgba(77, 253, 253, 0.24) !important;
+    color: #e6f9ff !important;
+    text-shadow: none;
+    box-shadow: 0 14px 24px -20px rgba(0, 255, 255, 0.18) !important;
   }
 
   .default-sidebar,
@@ -268,19 +262,17 @@ html.theme-future-tech {
       background: linear-gradient(
         135deg,
         rgba(0, 255, 255, 0.1),
-        rgba(138, 43, 226, 0.12)
+        rgba(0, 122, 255, 0.12)
       ) !important;
       border: 1px solid $ft-border !important;
       color: $ft-cyan-soft !important;
-      box-shadow:
-        0 0 10px rgba(0, 255, 255, 0.18),
-        inset 0 0 10px rgba(138, 43, 226, 0.08) !important;
+      box-shadow: 0 12px 24px -24px rgba(0, 255, 255, 0.16) !important;
 
       &:hover {
         background: linear-gradient(
           135deg,
-          rgba(0, 255, 255, 0.2),
-          rgba(138, 43, 226, 0.18)
+          rgba(0, 255, 255, 0.18),
+          rgba(0, 122, 255, 0.14)
         ) !important;
         border-color: $ft-border-strong !important;
         color: $ft-cyan !important;
@@ -290,19 +282,17 @@ html.theme-future-tech {
       &.is-active {
         background: linear-gradient(
           135deg,
-          rgba(0, 255, 255, 0.26),
-          rgba(138, 43, 226, 0.24)
+          rgba(0, 255, 255, 0.24),
+          rgba(0, 122, 255, 0.18)
         ) !important;
         border-color: $ft-cyan !important;
-        box-shadow:
-          0 0 24px rgba(0, 255, 255, 0.42),
-          inset 0 0 16px rgba(138, 43, 226, 0.22) !important;
+        box-shadow: 0 16px 28px -22px rgba(0, 255, 255, 0.22) !important;
         color: $ft-cyan !important;
       }
 
       .tag-title {
         color: inherit !important;
-        text-shadow: 0 0 8px rgba(0, 255, 255, 0.56);
+        text-shadow: none;
       }
 
       .el-icon-close {
@@ -310,7 +300,7 @@ html.theme-future-tech {
 
         &:hover {
           color: $ft-cyan !important;
-          text-shadow: 0 0 8px rgba(0, 255, 255, 0.78);
+          text-shadow: none;
         }
       }
     }
@@ -325,17 +315,17 @@ html.theme-future-tech {
     ) !important;
     border-left: 1px solid $ft-border-strong !important;
     box-shadow:
-      -10px 0 28px rgba(0, 0, 0, 0.4),
-      0 0 18px rgba(0, 255, 255, 0.12) inset !important;
+      -12px 0 26px -18px rgba(0, 0, 0, 0.58),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 
     .setting-section {
       background: rgba(10, 26, 58, 0.74) !important;
       border: 1px solid $ft-border !important;
-      box-shadow: 0 0 14px rgba(0, 255, 255, 0.1) !important;
+      box-shadow: 0 18px 32px -28px rgba(0, 0, 0, 0.42) !important;
 
       .section-title {
         color: $ft-cyan !important;
-        text-shadow: 0 0 8px rgba(0, 255, 255, 0.48);
+        text-shadow: none;
       }
     }
   }
@@ -345,16 +335,16 @@ html.theme-future-tech {
     background: linear-gradient(
       135deg,
       rgba(0, 255, 255, 0.1),
-      rgba(138, 43, 226, 0.12)
+      rgba(0, 122, 255, 0.12)
     ) !important;
     border-color: $ft-border !important;
-    box-shadow: 0 0 14px rgba(0, 255, 255, 0.16) !important;
+    box-shadow: 0 14px 24px -20px rgba(0, 255, 255, 0.14) !important;
   }
 
   .header-clock-time,
   .header-clock-weekday {
     color: $ft-cyan !important;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.7) !important;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.32) !important;
   }
 
   .header-clock-weekday {
@@ -365,7 +355,7 @@ html.theme-future-tech {
   .el-avatar {
     position: relative;
     border: 2px solid $ft-cyan;
-    box-shadow: 0 0 18px rgba(0, 255, 255, 0.48);
+    box-shadow: 0 14px 24px -20px rgba(0, 255, 255, 0.22);
 
     &::before {
       content: "";
@@ -373,7 +363,7 @@ html.theme-future-tech {
       inset: -4px;
       border: 1px solid rgba(0, 255, 255, 0.5);
       border-radius: 50%;
-      opacity: 0.65;
+      opacity: 0.36;
       pointer-events: none;
     }
   }
@@ -381,43 +371,43 @@ html.theme-future-tech {
 
 html[data-skin="future-tech"],
 html.theme-future-tech {
-  --sc-theme-surface: rgba(11, 28, 18, 0.96);
-  --sc-theme-surface-hover: rgba(15, 41, 26, 0.98);
-  --sc-theme-surface-active: rgba(22, 56, 36, 0.98);
-  --sc-theme-text: #f2d07a;
-  --sc-theme-text-strong: #ffefb5;
-  --sc-theme-text-muted: rgba(242, 208, 122, 0.72);
-  --sc-theme-border: rgba(105, 164, 117, 0.24);
-  --sc-theme-accent: rgba(105, 164, 117, 0.18);
-  --sc-theme-shadow: 0 20px 42px -30px rgba(2, 10, 6, 0.9);
+  --sc-theme-surface: rgba(7, 18, 42, 0.96);
+  --sc-theme-surface-hover: rgba(11, 30, 62, 0.98);
+  --sc-theme-surface-active: rgba(16, 42, 84, 0.98);
+  --sc-theme-text: #97f4ff;
+  --sc-theme-text-strong: #e0fdff;
+  --sc-theme-text-muted: rgba(151, 244, 255, 0.72);
+  --sc-theme-border: rgba(102, 248, 255, 0.22);
+  --sc-theme-accent: rgba(102, 248, 255, 0.12);
+  --sc-theme-shadow: 0 20px 42px -30px rgba(0, 0, 0, 0.82);
   --sc-theme-font-accent: "Rajdhani", "Orbitron", "Consolas", sans-serif;
-  --sc-theme-button-bg: linear-gradient(135deg, #122f1d, #0a1c11);
-  --sc-theme-button-bg-hover: linear-gradient(135deg, #184126, #0d2617);
-  --sc-theme-button-bg-active: linear-gradient(135deg, #0f2819, #08170f);
-  --sc-theme-button-text: #f2d07a;
-  --sc-theme-button-text-strong: #ffefb5;
-  --sc-theme-button-border: rgba(105, 164, 117, 0.24);
-  --sc-theme-button-shadow: 0 16px 28px -24px rgba(0, 0, 0, 0.76);
-  --sc-theme-button-shadow-hover: 0 20px 34px -24px rgba(0, 0, 0, 0.84);
-  --sc-theme-button-glow: rgba(242, 208, 122, 0.08);
-  --sc-theme-card-surface: linear-gradient(135deg, rgba(10, 27, 17, 0.96), rgba(5, 16, 10, 0.94));
-  --sc-theme-card-border: rgba(105, 164, 117, 0.2);
-  --sc-theme-card-text: #f4dda1;
-  --sc-theme-card-text-muted: rgba(244, 221, 161, 0.72);
+  --sc-theme-button-bg: linear-gradient(135deg, #0e2b5a, #08182f);
+  --sc-theme-button-bg-hover: linear-gradient(135deg, #133a76, #0a203e);
+  --sc-theme-button-bg-active: linear-gradient(135deg, #0b2144, #061427);
+  --sc-theme-button-text: #97f4ff;
+  --sc-theme-button-text-strong: #e0fdff;
+  --sc-theme-button-border: rgba(102, 248, 255, 0.22);
+  --sc-theme-button-shadow: 0 16px 28px -24px rgba(0, 0, 0, 0.72);
+  --sc-theme-button-shadow-hover: 0 20px 34px -24px rgba(0, 0, 0, 0.8);
+  --sc-theme-button-glow: rgba(102, 248, 255, 0.08);
+  --sc-theme-card-surface: linear-gradient(135deg, rgba(7, 18, 42, 0.96), rgba(4, 11, 26, 0.94));
+  --sc-theme-card-border: rgba(102, 248, 255, 0.2);
+  --sc-theme-card-text: #d8fbff;
+  --sc-theme-card-text-muted: rgba(216, 251, 255, 0.72);
   --sc-theme-card-shadow: 0 20px 42px -30px rgba(0, 0, 0, 0.88);
 
   body {
     background:
-      radial-gradient(circle at top, rgba(77, 123, 89, 0.12), transparent 35%),
-      linear-gradient(135deg, #050d08 0%, #0a1b11 48%, #102818 100%);
+      radial-gradient(circle at top, rgba(102, 248, 255, 0.12), transparent 35%),
+      radial-gradient(circle at 78% 18%, rgba(0, 122, 255, 0.12), transparent 24%),
+      linear-gradient(135deg, #030817 0%, #06122b 48%, #0a1b3f 100%);
   }
 
   @each $selector in $future-tech-surface-selectors {
     #{$selector} {
       backdrop-filter: none !important;
-      background:
-        linear-gradient(135deg, rgba(11, 28, 18, 0.98), rgba(7, 18, 12, 0.96)) !important;
-      border-color: rgba(105, 164, 117, 0.22) !important;
+      background: linear-gradient(135deg, rgba(7, 18, 42, 0.98), rgba(4, 11, 26, 0.96)) !important;
+      border-color: rgba(102, 248, 255, 0.2) !important;
       box-shadow: 0 18px 36px -30px rgba(0, 0, 0, 0.84) !important;
     }
   }
@@ -427,8 +417,8 @@ html.theme-future-tech {
     #{$selector} .el-sub-menu__title,
     #{$selector} .custom-menu-item,
     #{$selector} .custom-sub-menu__title {
-      color: #f2d07a !important;
-      font-weight: 700;
+      color: #c9f9ff !important;
+      font-weight: 600;
       text-shadow: none !important;
       border-radius: 12px;
     }
@@ -437,8 +427,8 @@ html.theme-future-tech {
     #{$selector} .el-sub-menu__title:hover,
     #{$selector} .custom-menu-item:hover,
     #{$selector} .custom-sub-menu__title:hover {
-      color: #ffefb5 !important;
-      background: linear-gradient(135deg, rgba(22, 56, 36, 0.52), rgba(11, 28, 18, 0.24)) !important;
+      color: #e0fdff !important;
+      background: linear-gradient(135deg, rgba(16, 42, 84, 0.58), rgba(7, 18, 42, 0.26)) !important;
       box-shadow: none !important;
     }
 
@@ -448,9 +438,9 @@ html.theme-future-tech {
     #{$selector} .custom-sub-menu__title.is-active,
     #{$selector} .custom-menu-item.active,
     #{$selector} .custom-sub-menu__title.active {
-      color: #102818 !important;
-      background: linear-gradient(135deg, rgba(242, 208, 122, 0.98), rgba(208, 175, 92, 0.88)) !important;
-      box-shadow: 0 12px 28px -24px rgba(242, 208, 122, 0.7) !important;
+      color: #04101f !important;
+      background: linear-gradient(135deg, rgba(102, 248, 255, 0.98), rgba(55, 186, 255, 0.88)) !important;
+      box-shadow: 0 12px 28px -24px rgba(102, 248, 255, 0.32) !important;
       text-shadow: none !important;
     }
   }

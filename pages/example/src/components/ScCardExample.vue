@@ -174,8 +174,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from "vue";
 import { ScCard } from "@repo/components/ScCard"
-import { ScCard } from "@repo/components/ScCard"
-import { ScCard } from "@repo/components/ScCard";
 
 // 布局选项
 const layoutOptions = [

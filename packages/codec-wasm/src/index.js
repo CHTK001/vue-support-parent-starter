@@ -99,9 +99,7 @@ export const initializeWasmModule = async () => {
       // 尝试导入 codec_wasm.js 来获取 init 函数
       // init 函数会直接加载 .wasm 文件并绑定所有函数
       try {
-        // 使用动态路径避免 Vite 在构建时检查文件是否存在
-        const modulePath = "../build/" + "codec_wasm.js";
-        const codecWasmModule = await import(/* @vite-ignore */ modulePath);
+        const codecWasmModule = await import("../build/codec_wasm.js");
         const codecWasmInit = codecWasmModule.default || codecWasmModule.init;
 
         if (codecWasmInit) {

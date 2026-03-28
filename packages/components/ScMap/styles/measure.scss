@@ -1,0 +1,144 @@
+/**
+ * 测距功能样式
+ */
+@use './variables.scss' as *;
+
+/* 测量点标记样式 */
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* 测量工具段落距离标签 */
+.measure-segment-label {
+  pointer-events: none;
+
+  .segment-distance {
+    background-color: rgba(255, 71, 87, 0.8);
+    color: var(--el-text-color-primary);
+    border-radius: 2px;
+    padding: 2px 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 0 2px #000;
+    text-align: center;
+  }
+}
+
+/* 测量节点标签样式 */
+.measure-node-label {
+  pointer-events: none;
+  z-index: 1001;
+
+  .node-distance {
+    background-color: rgba(46, 134, 222, 0.8);
+    color: var(--el-text-color-primary);
+    border-radius: 2px;
+    padding: 1px 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    animation: fadeIn 0.3s ease-out;
+    text-shadow: 0 0 2px #000;
+  }
+}
+
+/* 测量总距离标签样式 */
+.measure-total-label {
+  pointer-events: none;
+  z-index: 1002;
+
+  .total-distance-label {
+    background-color: rgba(0, 177, 89, 0.9);
+    color: var(--el-text-color-primary);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 14px;
+    white-space: nowrap;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    animation: scaleIn 0.3s ease-out;
+    text-align: center;
+    text-shadow: 0 0 2px #000;
+  }
+}
+
+/* 测量完成标签样式 */
+.measure-completed {
+  background-color: rgba(76, 175, 80, 0.95) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+  color: white !important;
+  font-weight: bold !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+  padding: 6px 12px !important;
+  font-size: 14px !important;
+  border-radius: 20px !important;
+  animation: measure-pulse 1.5s ease-in-out !important;
+}
+
+@keyframes measure-pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 原有应兼容的样式
+.measure-tooltip {
+  position: relative;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: $tooltip-border-radius;
+  color: $text-color;
+  padding: $tooltip-padding;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  opacity: 1;
+  background-color: rgba($primary-color, 0.9);
+  color: $light-text-color;
+  border: none;
+  font-weight: 500;
+  border-radius: 12px;
+  padding: 4px 8px;
+
+  &::before {
+    border-top-color: rgba($primary-color, 0.9);
+  }
+}

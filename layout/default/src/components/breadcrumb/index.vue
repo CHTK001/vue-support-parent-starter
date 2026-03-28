@@ -12,7 +12,7 @@ import DefaultBreadcrumb from "./themes/Default.vue";
 const themeComponents = {
   default: DefaultBreadcrumb,
   // 未来科技与 8bit 主题有独立组件，按需懒加载
-  "future-tech": defineAsyncComponent(() => import("./themes/FutureTech.vue")),
+  "future-tech": DefaultBreadcrumb,
   "8bit": defineAsyncComponent(() => import("./themes/EightBit.vue")),
   // 其余节日主题暂未提供独立组件，统一复用默认组件，样式由全局 data-skin 控制
   "spring-festival": DefaultBreadcrumb,

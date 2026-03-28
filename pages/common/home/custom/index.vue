@@ -41,11 +41,11 @@ const themeStore = useThemeStore();
 const CustomLayout = defineAsyncComponent(
   () => import("./layout/CustomLayout.vue"),
 );
-const openRemoteLayout = getConfig().RemoteLayout;
-const openLocationLayout = getConfig().LocationLayout;
+const hasLayout = computed(
+  () => !!(getConfig().RemoteLayout || getConfig().LocationLayout),
+);
 const customizing = reactive({
   customizing: true,
-  hasLayout: openRemoteLayout || openLocationLayout,
 });
 
 const handeCustom = async () => {
@@ -108,7 +108,7 @@ onBeforeMount(async () => {
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
           <div
-            v-if="customizing.hasLayout && themeStore.homeCustomizationEnabled"
+            v-if="hasLayout && themeStore.homeCustomizationEnabled"
           >
             <el-button
               v-if="customizing.customizing"
@@ -129,7 +129,7 @@ onBeforeMount(async () => {
       </div>
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
-          <div v-if="!customizing.hasLayout">
+          <div v-if="!hasLayout">
             <el-empty
               :image="widgetsImage"
               :description="$t('message.noPlugin')"

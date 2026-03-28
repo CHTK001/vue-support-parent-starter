@@ -101,12 +101,14 @@ onBeforeUnmount(() => {
 // 基础布局样式 - 所有主题共用
 .base-navbar {
   width: 100%;
-  height: 60px;
+  height: var(--navbar-height, 56px);
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 12px;
+  padding: 0 16px;
   position: relative;
-  // height: 48px; // Removed, used in mixin
+  overflow: hidden;
   @include lay-header-style;
 
   .decor-pattern {
@@ -126,18 +128,24 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    min-width: 280px;
-    padding-right: 16px; // 调整为 16px
-    gap: 16px; // 调整间距
+    min-width: max-content;
+    max-width: 100%;
+    padding-right: 0;
+    gap: 10px;
     margin-left: auto;
+    flex-wrap: nowrap;
+    overflow: visible;
 
-    // 24px 分隔线
+    & > * {
+      flex-shrink: 0;
+    }
+
     &::before {
       content: "";
       width: 1px;
-      height: 24px;
+      height: 28px;
       background: #e5e7eb;
-      margin-right: 8px;
+      margin-right: 2px;
 
       :global(.dark) & {
         background: #4c4d4f;
@@ -146,12 +154,13 @@ onBeforeUnmount(() => {
   }
 
   .breadcrumb-container {
-    margin-left: 20px;
-    height: 38px;
+    margin-left: 8px;
+    height: 40px;
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 16px;
     z-index: 10;
+    min-width: 0;
   }
 }
 
@@ -162,19 +171,20 @@ onBeforeUnmount(() => {
   justify-content: center;
   align-items: center;
   gap: 5px;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.42);
   transition: background 0.2s, transform 0.15s;
   padding: 0;
-  margin-left: 12px;
+  margin-left: 0;
   flex-shrink: 0;
+  backdrop-filter: blur(14px);
 
   &:hover {
-    background: var(--el-color-primary-light-9);
+    background: rgba(var(--el-color-primary-rgb), 0.12);
   }
 
   &.is-active {

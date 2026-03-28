@@ -186,7 +186,7 @@ import {
   TechPanelTitle,
   TechButton,
   TechDeco,
-} from "@repo/sc-visualization/TechUI";
+} from "@repo/components/TechUI";
 import { ScEcharts } from "@repo/components/ScEcharts"
 import * as echarts from "echarts";
 

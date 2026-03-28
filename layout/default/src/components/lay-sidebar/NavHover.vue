@@ -2,7 +2,6 @@
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultHover from "./themes/hover/Default.vue";
 import EightBitHover from "./themes/hover/EightBit.vue";
-import FutureTechHover from "./themes/hover/FutureTech.vue";
 import SpringFestivalHover from "./themes/hover/SpringFestival.vue";
 import HalloweenHover from "./themes/hover/Halloween.vue";
 import ChristmasHover from "./themes/hover/Christmas.vue";
@@ -11,7 +10,7 @@ import ChristmasHover from "./themes/hover/Christmas.vue";
 const themeComponents = {
   default: DefaultHover,
   "8bit": EightBitHover,
-  "future-tech": FutureTechHover,
+  "future-tech": DefaultHover,
   "spring-festival": SpringFestivalHover,
   halloween: HalloweenHover,
   christmas: ChristmasHover,

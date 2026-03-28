@@ -375,7 +375,6 @@ const codeExample = computed(() => {
 
 <script setup>
 import { ref } from 'vue';
-import ScLoading from "@repo/components/ScLoading/index.vue";
 
 const loadingRef = ref(null);
 const loadingVisible = ref(false);

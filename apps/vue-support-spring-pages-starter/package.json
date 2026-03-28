@@ -11,6 +11,7 @@
     "build:job-console": "node ./scripts/run-vite-build.mjs --max-old-space-size=1024 --page job-console",
     "build:payment-console": "node ./scripts/run-vite-build.mjs --max-old-space-size=1024 --page payment-console --api-root ../api/ops/",
     "build:proxy-console": "node ./scripts/run-vite-build.mjs --max-old-space-size=3072 --page proxy-console --api-root ../proxy/",
+    "build:spider-console": "node ./scripts/run-vite-build.mjs --max-old-space-size=4096 --page spider-console --api-root ../v1/spider/ --auth-base-path ../v1/spider/auth/",
     "build:strategy-console": "node ./scripts/run-vite-build.mjs --max-old-space-size=1024 --page strategy-console --api-root ../v2/strategy/ --auth-base-path ../v2/strategy/auth/",
     "build:sync-data-console": "node ./scripts/run-vite-build.mjs --max-old-space-size=1024 --page sync-data-console --api-root ../v1/sync/ --auth-base-path ../v1/sync/auth/",
     "preview": "vite preview",
@@ -18,6 +19,7 @@
     "publish:job-console": "node ./scripts/publish-spring-page.mjs --target scheduler-job-console",
     "publish:payment-console": "node ./scripts/publish-spring-page.mjs --target payment-ops-console",
     "publish:proxy-console": "node ./scripts/publish-spring-page.mjs --target proxy-console",
+    "publish:spider-console": "node ./scripts/publish-spring-page.mjs --target spider-console",
     "publish:strategy-console": "node ./scripts/publish-spring-page.mjs --target strategy-console",
     "publish:sync-data-console": "node ./scripts/publish-spring-page.mjs --target sync-data-console"
   },
@@ -25,6 +27,7 @@
     "@pages/job": "workspace:^",
     "@pages/pay": "workspace:^",
     "@pages/proxy": "workspace:^",
+    "@pages/spider": "workspace:^",
     "@pages/spring": "workspace:^",
     "@pages/strategy": "workspace:^",
     "@pages/sync": "workspace:^",

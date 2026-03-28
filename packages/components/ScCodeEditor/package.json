@@ -1,0 +1,24 @@
+{
+  "name": "@repo/components/ScCodeEditor",
+  "version": "1.0.0",
+  "description": "代码编辑器组件：ScCodeEditor（CodeMirror）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/utils": "workspace:^",
+    "vue": "catalog:",
+    "codemirror": "catalog:"
+  },
+  "license": "ISC"
+}

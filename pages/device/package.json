@@ -21,12 +21,39 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./simple": {
+      "types": "./src/simple.ts",
+      "default": "./src/simple.ts"
+    },
+    "./router/*": {
+      "types": "./src/router/*.ts",
+      "default": "./src/router/*.ts"
+    },
+    "./api/*": {
+      "types": "./src/api/*.ts",
+      "default": "./src/api/*.ts"
+    },
+    "./views/*": {
+      "default": "./src/views/*"
     }
   },
   "publishConfig": {
     "exports": {
       ".": {
         "default": "./dist/index.mjs"
+      },
+      "./simple": {
+        "default": "./dist/simple.mjs"
+      },
+      "./router/*": {
+        "default": "./dist/router/*.mjs"
+      },
+      "./api/*": {
+        "default": "./dist/api/*.mjs"
+      },
+      "./views/*": {
+        "default": "./dist/views/*"
       }
     }
   },

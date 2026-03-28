@@ -26,6 +26,9 @@ class GlobalSocket {
       this.client = useConfigStore().getSocket();
       if (this.client == null) {
         const cfg = getConfig();
+        if (cfg.SocketOpen === false || cfg.SocketOpen === "false") {
+          return false;
+        }
         if (cfg.SocketUrl) {
           this.client = socket(splitToArray(cfg.SocketUrl), undefined, {});
         }

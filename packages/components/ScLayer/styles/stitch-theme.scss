@@ -1,0 +1,159 @@
+@use './variables.scss' as *;
+
+/* Stitch Theme for ScLayer - Futuristic Glassmorphism (Adapted for Element Plus) */
+
+.sc-layer {
+  /* 地图容器背景 */
+  background-color: var(--el-bg-color);
+}
+
+/* 工具栏美化 */
+:deep(.map-toolbar) {
+  .toolbar-item {
+    background-color: var(--el-bg-color-overlay) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--el-border-color-lighter);
+    color: var(--el-text-color-regular) !important;
+    border-radius: 8px !important;
+    margin-bottom: 8px;
+    box-shadow: var(--el-box-shadow-light);
+    transition: all 0.3s ease;
+
+    &:hover, &.active {
+      background-color: var(--el-color-primary-light-9) !important;
+      border-color: var(--el-color-primary);
+      color: var(--el-color-primary) !important;
+      box-shadow: 0 0 10px var(--el-color-primary-light-5);
+      
+      .svg-icon path {
+        fill: var(--el-color-primary) !important;
+      }
+    }
+  }
+
+  /* 子菜单 */
+  .toolbar-submenu {
+    background-color: var(--el-bg-color-overlay) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    
+    .submenu-item {
+      color: var(--el-text-color-regular);
+      &:hover {
+        background-color: var(--el-fill-color-light);
+        color: var(--el-color-primary);
+      }
+    }
+  }
+}
+
+/* 弹窗美化 */
+:deep(.sc-map-custom-popup) {
+  background: var(--el-bg-color-overlay) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: var(--el-box-shadow);
+  color: var(--el-text-color-primary);
+  border-radius: 12px;
+
+  .custom-popup-close-button {
+    color: var(--el-text-color-secondary);
+    &:hover {
+      color: var(--el-text-color-primary);
+      background-color: var(--el-fill-color-light);
+      border-radius: 4px;
+    }
+  }
+}
+
+/* 鹰眼地图美化 */
+:deep(.ol-overviewmap) {
+  &:not(.ol-collapsed) {
+    background-color: var(--el-bg-color-overlay) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--el-border-color-lighter) !important;
+    padding: 6px !important;
+    border-radius: 8px !important;
+
+    .ol-overviewmap-map {
+      border: 1px solid var(--el-border-color) !important;
+    }
+  }
+
+  /* 鹰眼视窗框 */
+  .ol-overviewmap-box {
+    border: 2px solid var(--el-color-primary) !important;
+    background-color: var(--el-color-primary-light-9);
+  }
+
+  button {
+    background-color: var(--el-bg-color-overlay) !important;
+    color: var(--el-text-color-primary) !important;
+    border-radius: 4px !important;
+    border: 1px solid var(--el-border-color-lighter) !important;
+    
+    &:hover {
+      background-color: var(--el-color-primary) !important;
+      color: var(--el-color-white) !important;
+      border-color: var(--el-color-primary) !important;
+    }
+  }
+}
+
+/* 坐标面板与搜索框美化 */
+:deep(.coordinate-panel), :deep(.search-box) {
+  background: var(--el-bg-color-overlay) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-primary);
+  border-radius: 8px;
+  box-shadow: var(--el-box-shadow);
+
+  input {
+    background: var(--el-input-bg-color);
+    border: 1px solid var(--el-border-color);
+    color: var(--el-text-color-primary);
+    
+    &:focus {
+      border-color: var(--el-color-primary);
+    }
+  }
+}
+
+/* 测距 Tooltip */
+:deep(.ol-tooltip) {
+  background: var(--el-bg-color-overlay) !important;
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-primary) !important;
+  box-shadow: var(--el-box-shadow-light);
+  
+  &.ol-tooltip-measure {
+    background: var(--el-color-primary) !important;
+    border-color: var(--el-color-primary);
+    color: var(--el-color-white) !important;
+  }
+  
+  &.ol-tooltip-static {
+    background: var(--el-bg-color-overlay) !important;
+    border-color: var(--el-color-success);
+    color: var(--el-color-success) !important;
+  }
+}
+
+/* 滚动条美化 */
+:deep(::-webkit-scrollbar) {
+  width: 6px;
+  height: 6px;
+}
+:deep(::-webkit-scrollbar-track) {
+  background: transparent;
+}
+:deep(::-webkit-scrollbar-thumb) {
+  background: var(--el-border-color-lighter);
+  border-radius: 3px;
+  &:hover {
+    background: var(--el-border-color);
+  }
+}

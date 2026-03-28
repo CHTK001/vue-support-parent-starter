@@ -31,6 +31,9 @@ export const useSettingStore = defineStore({
       this.CHANGE_SETTING(data);
     },
     setSetting(name, value) {
+      if (Reflect.has(this, name)) {
+        this.CHANGE_SETTING({ key: name, value });
+      }
       setConfig({ [name]: value });
     },
   },

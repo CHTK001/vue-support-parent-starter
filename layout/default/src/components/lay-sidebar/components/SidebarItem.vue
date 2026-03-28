@@ -158,23 +158,35 @@ function resolvePath(routePath: string) {
   }
 }
 
-const forceNewMenu = ref(getConfig()?.ForceNewMenu ?? false);
-const showNewMenu = ref(getConfig()?.ShowNewMenu ?? false);
-const menuAnimation = ref(getConfig()?.MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig()?.NewMenuAnimation || "bounce");
+const forceNewMenuOverride = ref<boolean | null>(null);
+const showNewMenuOverride = ref<boolean | null>(null);
+const menuAnimationOverride = ref<boolean | null>(null);
+const newMenuAnimationOverride = ref<string | null>(null);
+const forceNewMenu = computed(
+  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
+);
+const showNewMenu = computed(
+  () => showNewMenuOverride.value ?? getConfig()?.ShowNewMenu ?? false,
+);
+const menuAnimation = computed(
+  () => menuAnimationOverride.value ?? getConfig()?.MenuAnimation ?? false,
+);
+const newMenuAnimation = computed(
+  () => newMenuAnimationOverride.value ?? (getConfig()?.NewMenuAnimation || "bounce"),
+);
 
 onMounted(() => {
   emitter.on("forceNewMenuChange", (val: boolean) => {
-    forceNewMenu.value = val;
+    forceNewMenuOverride.value = val;
   });
   emitter.on("showNewMenuChange", (val: boolean) => {
-    showNewMenu.value = val;
+    showNewMenuOverride.value = val;
   });
   emitter.on("menuAnimationChange", (val: boolean) => {
-    menuAnimation.value = val;
+    menuAnimationOverride.value = val;
   });
   emitter.on("newMenuAnimationChange", (val: string) => {
-    newMenuAnimation.value = val;
+    newMenuAnimationOverride.value = val;
   });
 });
 

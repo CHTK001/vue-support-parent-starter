@@ -16,7 +16,7 @@
 const routeMenuMap: Record<string, string> = {
   nodeList: "/node/list",
 
-  dockerList: "/docker/list",
+  dockerList: "/docker/containers",
   dockerSwarm: "/docker/swarm",
   sshList: "/ssh",
   commandList: "/ssh/command",
@@ -81,10 +81,15 @@ const routeMenuMap: Record<string, string> = {
   // 节假日管理路由
   holidayIndex: "/holiday/index",
   // 软件管理相关路由
-  softIndex: "/soft/index",
-  softDetail: "/soft/detail",
-  softRecords: "/soft/records",
-  softContainers: "/soft/containers",
+  softIndex: "/docker/soft",
+  softDetail: "/docker/soft",
+  softRecords: "/docker/records",
+  softContainers: "/docker/containers",
+  // 爬虫管理相关路由
+  spiderManagement: "/spider",
+  spiderList: "/spider",
+  spiderTaskList: "/spider",
+  "spider-list": "/spider",
 };
 
 export default routeMenuMap;

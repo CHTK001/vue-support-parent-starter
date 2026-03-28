@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="!currentComponent"
+    v-if="!renderedCardComponent"
     class="sc-card-default h-full"
     :class="{
       'is-hoverable': hoverable,
@@ -26,7 +26,7 @@
   </div>
 
   <component
-    :is="currentComponent"
+    :is="renderedCardComponent"
     v-else
     v-bind="cardProps"
     class="sc-card-default h-full"
@@ -62,7 +62,9 @@
  */
 import { computed } from "vue";
 import type { PropType } from "vue";
+import { ElCard } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
+import { getThemeLocalComponentConfig } from "../../hooks/themeConfig";
 
 const props = defineProps({
   /**
@@ -104,11 +106,23 @@ const props = defineProps({
   }
 });
 
-const { currentComponent } = useThemeComponent("ElCard");
+const { currentSkin, currentComponent } = useThemeComponent("ElCard");
+
+/**
+ * 避免本地主题卡片包装器再次回到 ScCard 默认布局，造成递归渲染。
+ * 对于 future-tech / 节日主题这类本地包装卡，内部统一落回原生 ElCard。
+ */
+const renderedCardComponent = computed(() => {
+  if (getThemeLocalComponentConfig(currentSkin.value, "ElCard")) {
+    return ElCard;
+  }
+
+  return currentComponent.value;
+});
 
 // 只在使用 ElCard 时传递 shadow 属性
 const cardProps = computed(() => {
-  const componentValue = currentComponent.value;
+  const componentValue = renderedCardComponent.value;
   if (componentValue && typeof componentValue !== "string") {
     return { shadow: props.shadow };
   }

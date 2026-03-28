@@ -1,6 +1,6 @@
 ﻿<script setup>
 import { reactive, ref, onMounted, onBeforeUnmount } from "vue";
-import { message } from "@repo/utils";
+import { message, subscribeClock } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { dateFormat } from "@repo/utils";
 
@@ -93,14 +93,13 @@ const env = reactive({
   ],
 });
 
-// 时钟定时器
-let clockTimer = null;
+let stopClockSubscription = null;
 
 /**
  * 更新当前时间
  */
-const updateCurrentTime = () => {
-  env.currentTime = new Date();
+const updateCurrentTime = (now = Date.now()) => {
+  env.currentTime = new Date(now);
 };
 
 /**
@@ -246,15 +245,13 @@ const resetForm = () => {
 onMounted(() => {
   updateCurrentTime();
   getCurrentTimestamp();
-  clockTimer = setInterval(updateCurrentTime, 1000);
+  stopClockSubscription = subscribeClock(updateCurrentTime);
 });
 
 // 组件卸载时清除定时器
 onBeforeUnmount(() => {
-  if (clockTimer) {
-    clearInterval(clockTimer);
-    clockTimer = null;
-  }
+  stopClockSubscription?.();
+  stopClockSubscription = null;
 });
 </script>
 

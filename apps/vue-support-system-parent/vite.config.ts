@@ -20,58 +20,7 @@ const manualChunks = (id: string) => {
   ) {
     return "project-ai";
   }
-
-  if (!normalized.includes("/node_modules/")) {
-    return undefined;
-  }
-
-  if (
-    normalized.includes("/vue/") ||
-    normalized.includes("/vue-router/") ||
-    normalized.includes("/pinia/") ||
-    normalized.includes("/vue-i18n/") ||
-    normalized.includes("/@vueuse/")
-  ) {
-    return "framework";
-  }
-
-  if (
-    normalized.includes("/element-plus/") ||
-    normalized.includes("/@element-plus/") ||
-    normalized.includes("/plus-pro-components/")
-  ) {
-    return "element";
-  }
-
-  if (
-    normalized.includes("/echarts/") ||
-    normalized.includes("/@antv/g6/") ||
-    normalized.includes("/@kjgl77/datav-vue3/")
-  ) {
-    return "charts";
-  }
-
-  if (
-    normalized.includes("/codemirror/") ||
-    normalized.includes("/prismjs/") ||
-    normalized.includes("/markdown-it/") ||
-    normalized.includes("/highlight.js/") ||
-    normalized.includes("/@wangeditor/")
-  ) {
-    return "editor";
-  }
-
-  if (
-    normalized.includes("/video.js/") ||
-    normalized.includes("/hls.js/") ||
-    normalized.includes("/viewerjs/") ||
-    normalized.includes("/v-viewer/") ||
-    normalized.includes("/@microsoft/fetch-event-source/")
-  ) {
-    return "media";
-  }
-
-  return "vendor";
+  return undefined;
 };
 
 const builder = createViteConfig(import.meta.url, pkg)

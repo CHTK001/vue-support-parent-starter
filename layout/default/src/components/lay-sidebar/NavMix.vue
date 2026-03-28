@@ -2,7 +2,6 @@
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import DefaultMix from "./themes/mix/Default.vue";
 import EightBitMix from "./themes/mix/EightBit.vue";
-import FutureTechMix from "./themes/mix/FutureTech.vue";
 import SpringFestivalMix from "./themes/mix/SpringFestival.vue";
 import HalloweenMix from "./themes/mix/Halloween.vue";
 import ChristmasMix from "./themes/mix/Christmas.vue";
@@ -11,7 +10,7 @@ import ChristmasMix from "./themes/mix/Christmas.vue";
 const themeComponents = {
   default: DefaultMix,
   "8bit": EightBitMix,
-  "future-tech": FutureTechMix,
+  "future-tech": DefaultMix,
   "spring-festival": SpringFestivalMix,
   halloween: HalloweenMix,
   christmas: ChristmasMix,

@@ -3,7 +3,7 @@
  * @description 统一管理主题切换逻辑，避免各组件重复实现
  */
 import { defineStore } from "pinia";
-import { ref, computed, onScopeDispose, markRaw } from "vue";
+import { ref, computed, onScopeDispose, markRaw, watch, type Ref } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter, useUserStoreHook } from "@repo/core";
 import { getConfig } from "@repo/config";
@@ -16,6 +16,22 @@ const logger = getLogger("[ThemeStore]");
 
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
+
+  function bindConfigFallback<T>(
+    storageKey: string,
+    source: () => T,
+    target: Ref<T>,
+  ): void {
+    watch(source, (value) => {
+      if (localStorage.getItem(storageKey) === null) {
+        target.value = value;
+      }
+    });
+  }
+
+  function normalizeMonitorLayout(layout?: string | null): string {
+    return layout && !layout.startsWith("split-") ? layout : "merged";
+  }
 
   /**
    * 主题 key 归一化（兼容旧值）
@@ -37,9 +53,9 @@ export const useThemeStore = defineStore("theme", () => {
   // 优先读取 localStorage (新旧key兼容)，如果不存在则读取配置文件
   const STORAGE_KEY_FPS = "sys-fps-monitor-enabled";
   const storedFps = localStorage.getItem(STORAGE_KEY_FPS);
-  const defaultFps = getConfig("ShowFpsMonitor") ?? false;
+  const defaultFps = computed(() => getConfig("ShowFpsMonitor") ?? false);
   const fpsMonitorEnabled = ref(
-    storedFps !== null ? storedFps === "true" : defaultFps,
+    storedFps !== null ? storedFps === "true" : defaultFps.value,
   );
 
   // Memory & CPU Monitor State
@@ -47,75 +63,83 @@ export const useThemeStore = defineStore("theme", () => {
   const STORAGE_KEY_CPU = "sys-cpu-monitor-enabled";
 
   const storedMemory = localStorage.getItem(STORAGE_KEY_MEMORY);
-  const defaultMemory = getConfig("ShowMemoryMonitor") ?? false;
+  const defaultMemory = computed(() => getConfig("ShowMemoryMonitor") ?? false);
   const memoryMonitorEnabled = ref(
-    storedMemory !== null ? storedMemory === "true" : defaultMemory,
+    storedMemory !== null ? storedMemory === "true" : defaultMemory.value,
   );
 
   const storedCpu = localStorage.getItem(STORAGE_KEY_CPU);
-  const defaultCpu = getConfig("ShowCpuMonitor") ?? false;
+  const defaultCpu = computed(() => getConfig("ShowCpuMonitor") ?? false);
   const cpuMonitorEnabled = ref(
-    storedCpu !== null ? storedCpu === "true" : defaultCpu,
+    storedCpu !== null ? storedCpu === "true" : defaultCpu.value,
   );
 
   // Bandwidth Monitor State
   const STORAGE_KEY_BANDWIDTH = "sys-bandwidth-monitor-enabled";
   const storedBandwidth = localStorage.getItem(STORAGE_KEY_BANDWIDTH);
-  const defaultBandwidth = getConfig("ShowBandwidthMonitor") ?? false;
+  const defaultBandwidth = computed(
+    () => getConfig("ShowBandwidthMonitor") ?? false,
+  );
   const bandwidthMonitorEnabled = ref(
-    storedBandwidth !== null ? storedBandwidth === "true" : defaultBandwidth,
+    storedBandwidth !== null ? storedBandwidth === "true" : defaultBandwidth.value,
   );
 
   // Battery Monitor State
   const STORAGE_KEY_BATTERY = "sys-battery-monitor-enabled";
   const storedBattery = localStorage.getItem(STORAGE_KEY_BATTERY);
-  const defaultBattery = getConfig("ShowBatteryMonitor") ?? false;
+  const defaultBattery = computed(() => getConfig("ShowBatteryMonitor") ?? false);
   const batteryMonitorEnabled = ref(
-    storedBattery !== null ? storedBattery === "true" : defaultBattery,
+    storedBattery !== null ? storedBattery === "true" : defaultBattery.value,
   );
 
   // Bluetooth Monitor State
   const STORAGE_KEY_BLUETOOTH = "sys-bluetooth-monitor-enabled";
   const storedBluetooth = localStorage.getItem(STORAGE_KEY_BLUETOOTH);
-  const defaultBluetooth = getConfig("ShowBluetoothMonitor") ?? false;
+  const defaultBluetooth = computed(
+    () => getConfig("ShowBluetoothMonitor") ?? false,
+  );
   const bluetoothMonitorEnabled = ref(
-    storedBluetooth !== null ? storedBluetooth === "true" : defaultBluetooth,
+    storedBluetooth !== null ? storedBluetooth === "true" : defaultBluetooth.value,
   );
 
   // Screen Monitor State
   const STORAGE_KEY_SCREEN = "sys-screen-monitor-enabled";
   const storedScreen = localStorage.getItem(STORAGE_KEY_SCREEN);
-  const defaultScreen = getConfig("ShowScreenMonitor") ?? false;
+  const defaultScreen = computed(() => getConfig("ShowScreenMonitor") ?? false);
   const screenMonitorEnabled = ref(
-    storedScreen !== null ? storedScreen === "true" : defaultScreen,
+    storedScreen !== null ? storedScreen === "true" : defaultScreen.value,
   );
 
   // Monitor Position State
   const STORAGE_KEY_MONITOR_POS = "sys-performance-monitor-position";
   const storedMonitorPos = localStorage.getItem(STORAGE_KEY_MONITOR_POS);
   // 默认显示在左上角，便于快速观察性能
-  const defaultMonitorPos =
-    getConfig("PerformanceMonitorPosition") ?? "top-left";
-  const performanceMonitorPosition = ref(storedMonitorPos || defaultMonitorPos);
+  const defaultMonitorPos = computed(
+    () => getConfig("PerformanceMonitorPosition") ?? "top-left",
+  );
+  const performanceMonitorPosition = ref(storedMonitorPos || defaultMonitorPos.value);
 
   // Monitor Display Mode (Simple/Text vs Detailed/Graph)
   const STORAGE_KEY_MONITOR_MODE = "sys-performance-monitor-mode"; // 'simple' | 'detailed' | 'minimal'
   const storedMonitorMode = localStorage.getItem(STORAGE_KEY_MONITOR_MODE);
   // 默认使用极简模式，减少视觉干扰
-  const defaultMonitorMode = getConfig("PerformanceMonitorMode") ?? "minimal";
-  const performanceMonitorMode = ref(storedMonitorMode || defaultMonitorMode);
+  const defaultMonitorMode = computed(
+    () => getConfig("PerformanceMonitorMode") ?? "minimal",
+  );
+  const performanceMonitorMode = ref(storedMonitorMode || defaultMonitorMode.value);
 
   // Monitor Layout (Merged/Card vs Split/Pills)
   // Options: 'merged', 'split'
   const STORAGE_KEY_MONITOR_LAYOUT = "sys-performance-monitor-layout";
   const storedMonitorLayout = localStorage.getItem(STORAGE_KEY_MONITOR_LAYOUT);
   // Migrate legacy split values to 'split' if needed, or just let them fall through if robust
-  const defaultMonitorLayout =
-    getConfig("PerformanceMonitorLayout") ?? "merged";
+  const defaultMonitorLayout = computed(
+    () => getConfig("PerformanceMonitorLayout") ?? "merged",
+  );
   const performanceMonitorLayout = ref(
-    storedMonitorLayout && !storedMonitorLayout.startsWith("split-")
-      ? storedMonitorLayout
-      : "merged",
+    storedMonitorLayout
+      ? normalizeMonitorLayout(storedMonitorLayout)
+      : normalizeMonitorLayout(defaultMonitorLayout.value),
   );
 
   // Monitor Direction (Vertical / Horizontal / Auto)
@@ -139,6 +163,49 @@ export const useThemeStore = defineStore("theme", () => {
     storedHomeCustomization !== null
       ? storedHomeCustomization === "true"
       : defaultHomeCustomization,
+  );
+
+  bindConfigFallback(STORAGE_KEY_FPS, () => defaultFps.value, fpsMonitorEnabled);
+  bindConfigFallback(
+    STORAGE_KEY_MEMORY,
+    () => defaultMemory.value,
+    memoryMonitorEnabled,
+  );
+  bindConfigFallback(STORAGE_KEY_CPU, () => defaultCpu.value, cpuMonitorEnabled);
+  bindConfigFallback(
+    STORAGE_KEY_BANDWIDTH,
+    () => defaultBandwidth.value,
+    bandwidthMonitorEnabled,
+  );
+  bindConfigFallback(
+    STORAGE_KEY_BATTERY,
+    () => defaultBattery.value,
+    batteryMonitorEnabled,
+  );
+  bindConfigFallback(
+    STORAGE_KEY_BLUETOOTH,
+    () => defaultBluetooth.value,
+    bluetoothMonitorEnabled,
+  );
+  bindConfigFallback(
+    STORAGE_KEY_SCREEN,
+    () => defaultScreen.value,
+    screenMonitorEnabled,
+  );
+  bindConfigFallback(
+    STORAGE_KEY_MONITOR_POS,
+    () => defaultMonitorPos.value,
+    performanceMonitorPosition,
+  );
+  bindConfigFallback(
+    STORAGE_KEY_MONITOR_MODE,
+    () => defaultMonitorMode.value,
+    performanceMonitorMode,
+  );
+  bindConfigFallback(
+    STORAGE_KEY_MONITOR_LAYOUT,
+    () => normalizeMonitorLayout(defaultMonitorLayout.value),
+    performanceMonitorLayout,
   );
 
   // Access Control Logic

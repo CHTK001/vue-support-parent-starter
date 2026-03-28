@@ -171,12 +171,12 @@
                 {{ selectedThread.daemon ? "是" : "否" }}
               </ScTag>
             </ScDescriptionsItem>
-            <ScDescriptionsItem label="CPU使用率"
-              >{{ (selectedThread.cpu || 0).toFixed(2) }}%</el-descriptions-item
-            >
-            <ScDescriptionsItem label="运行时间"
-              >{{ selectedThread.time }}ms</el-descriptions-item
-            >
+            <ScDescriptionsItem label="CPU使用率">
+              {{ (selectedThread.cpu || 0).toFixed(2) }}%
+            </ScDescriptionsItem>
+            <ScDescriptionsItem label="运行时间">
+              {{ selectedThread.time }}ms
+            </ScDescriptionsItem>
             <ScDescriptionsItem label="是否中断">
               <ScTag :type="selectedThread.interrupted ? 'danger' : 'success'">
                 {{ selectedThread.interrupted ? "是" : "否" }}

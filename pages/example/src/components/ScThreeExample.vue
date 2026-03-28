@@ -311,8 +311,6 @@ const codes = {
 />
 
 <script setup>
-import { ScThree } from "@repo/components/ScThree";
-import * as THREE from "three";
 
 function onReady(scene, camera, renderer) {
   // 添加光源和几何体

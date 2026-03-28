@@ -11,6 +11,10 @@
 import { computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
+defineOptions({
+  name: "ScRibbon",
+});
+
 interface Props {
   text?: string;
   icon?: string;

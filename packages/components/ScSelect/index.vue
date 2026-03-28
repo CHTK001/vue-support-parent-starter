@@ -121,6 +121,7 @@
       :dropdown-direction="dropdownDirection"
       :dropdown-col="dropdownCol"
       :display-mode="displayMode"
+      :z-index="zIndex"
       :is-selected="isSelected"
       :is-item-disabled="isItemDisabled"
       @select="handleSelect"
@@ -334,6 +335,10 @@ const props = defineProps({
   height: {
     type: String,
     default: "100%"
+  },
+  zIndex: {
+    type: Number,
+    default: 2000
   },
   // 图标位置
   iconPosition: {

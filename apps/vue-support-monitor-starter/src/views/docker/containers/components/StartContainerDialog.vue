@@ -193,7 +193,7 @@
 import { ref, reactive, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { type FormInstance, type FormRules } from "element-plus";
-import { containerApi, type SystemSoftImage } from "@/api/docker";
+import { imageApi, type SystemSoftImage } from "@/api/docker";
 
 interface Props {
   visible: boolean;
@@ -328,7 +328,10 @@ const handleSubmit = async () => {
         .map((v) => `${v.hostPath}:${v.containerPath}`),
     };
 
-    const response = await containerApi.startContainer(params);
+    const response = await imageApi.startImageAsContainer({
+      imageId: props.imageData.systemSoftImageId!,
+      config: params,
+    });
     if (response.code === "00000") {
       // 开始监听启动进度
       if (response.data?.operationId) {

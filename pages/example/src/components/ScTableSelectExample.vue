@@ -109,7 +109,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScTableSelect } from "@repo/components/ScTableSelect"
 const selected = ref([]);
 
 const columns = [

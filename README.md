@@ -118,6 +118,13 @@ npm run build
 yarn build
 ```
 
+## 文档导航
+
+- [文档索引](./docs/README.md)
+- [vue-monitor 爬虫模块接入文档](./docs/spider-monitor-integration.md)
+- [vue-monitor 测试报告（2026-03-28）](./docs/monitor-test-report-20260328.md)
+- [单元测试与回归验证说明](./docs/unit-test.md)
+
 ## 组件库
 
 ### ScSearch 搜索组件

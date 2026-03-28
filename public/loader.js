@@ -5,6 +5,8 @@
 (function () {
   "use strict";
 
+  var LOADER_STYLE_ID = "app-loader-style";
+  var LOADER_CONTAINER_ID = "app-loader";
   var LOADER_SHELL_CLASS = "sys-loader-shell";
   var LOADER_SHELL_STYLE_TEXT =
     ".sys-loader-shell{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%}";
@@ -63,6 +65,76 @@
     );
   }
 
+  function ensureStyleElement(styleText) {
+    var existingStyle = document.getElementById(LOADER_STYLE_ID);
+    if (existingStyle) {
+      existingStyle.textContent = styleText;
+      return existingStyle;
+    }
+
+    var style = document.createElement("style");
+    style.id = LOADER_STYLE_ID;
+    style.textContent = styleText;
+    (document.head || document.documentElement).appendChild(style);
+    return style;
+  }
+
+  function mountWhenBodyReady(fn) {
+    if (document.body) {
+      fn();
+      return;
+    }
+
+    var mounted = false;
+    var run = function () {
+      if (mounted || !document.body) {
+        return;
+      }
+      mounted = true;
+      fn();
+    };
+
+    document.addEventListener("DOMContentLoaded", run, { once: true });
+
+    var timer = window.setInterval(function () {
+      if (!document.body) {
+        return;
+      }
+      window.clearInterval(timer);
+      run();
+    }, 16);
+  }
+
+  function ensureLoaderElement(loaderMarkup) {
+    mountWhenBodyReady(function () {
+      if (document.getElementById(LOADER_CONTAINER_ID)) {
+        return;
+      }
+
+      var loader = document.createElement("div");
+      loader.id = LOADER_CONTAINER_ID;
+      loader.innerHTML = loaderMarkup;
+      document.body.insertBefore(loader, document.body.firstChild || null);
+    });
+  }
+
+  function appendOptionalScript(src) {
+    mountWhenBodyReady(function () {
+      if (
+        document.querySelector('script[src="' + src + '"]')
+      ) {
+        return;
+      }
+
+      var script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      (document.body || document.head || document.documentElement).appendChild(
+        script,
+      );
+    });
+  }
+
   var loaderType = localStorage.getItem("sys-loader-style") || "default";
   var config = resolveConfig();
   var definitions = Array.isArray(config.definitions) ? config.definitions : [];
@@ -75,19 +147,15 @@
     definitions[0] ||
     fallbackLoader;
 
-  document.write(
-    '<style id="app-loader-style">' +
-      String(config.baseStyleText || fallbackConfig.baseStyleText) +
+  ensureStyleElement(
+    String(config.baseStyleText || fallbackConfig.baseStyleText) +
       LOADER_SHELL_STYLE_TEXT +
-      String(loader.css || fallbackLoader.css) +
-      "</style>",
+      String(loader.css || fallbackLoader.css),
   );
-  document.write(
-    '<div id="app-loader">' + createLoaderMarkup(loader) + "</div>",
-  );
+  ensureLoaderElement(createLoaderMarkup(loader));
 
   window.hideAppLoader = function () {
-    var appLoader = document.getElementById("app-loader");
+    var appLoader = document.getElementById(LOADER_CONTAINER_ID);
     if (appLoader) {
       appLoader.style.display = "none";
     }
@@ -101,10 +169,7 @@
       fetch(src, { method: "HEAD" })
         .then(function (response) {
           if (response.ok) {
-            var script = document.createElement("script");
-            script.src = src;
-            script.async = true;
-            document.body.appendChild(script);
+            appendOptionalScript(src);
           }
         })
         .catch(function () {});

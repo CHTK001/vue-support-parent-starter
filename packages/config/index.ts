@@ -1,6 +1,8 @@
 // 优先显式导出 config 模块的函数，确保正确导出
 export {
+  CONFIG_VERSION_CHANGE_EVENT,
   getConfig,
+  getInitialConfig,
   setConfig,
   putConfig,
   responsiveStorageNameSpace,

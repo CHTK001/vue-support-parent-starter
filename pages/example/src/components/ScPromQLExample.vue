@@ -92,7 +92,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import { ScPromQL } from "@repo/components/ScPromQL"
 const expr = ref("${config.expr}");`,
   },
 ]);

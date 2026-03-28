@@ -234,10 +234,30 @@ const onSuspenseFallback = () => {
 
 // 捕获异步组件加载错误
 const loadError = ref<Error | null>(null);
-onErrorCaptured((err) => {
-  loadError.value = err;
+const captureLoadError = (err: unknown, info?: string) => {
+  const normalizedError =
+    err instanceof Error
+      ? err
+      : new Error(typeof err === "string" ? err : "未知页面渲染错误");
+
+  loadError.value = normalizedError;
   suspenseLoading.value = false;
-  console.error("组件加载错误:", err);
+
+  if (typeof window !== "undefined") {
+    (window as any).__LAY_CONTENT_LAST_ERROR__ = {
+      message: normalizedError.message,
+      stack: normalizedError.stack || "",
+      info: info || "",
+      route: window.location.hash || window.location.pathname,
+      ts: Date.now(),
+    };
+  }
+
+  console.error("组件加载错误:", normalizedError, info);
+};
+
+onErrorCaptured((err, _instance, info) => {
+  captureLoadError(err, info);
   return false; // 阻止错误继续传播
 });
 
@@ -335,7 +355,10 @@ onBeforeUnmount(() => {
                 />
                 <ScCard
                   class="layout sidebar-custom thin-scroller card-height"
-                  :class="{ 'no-card-mode': !cardBody }"
+                  :class="{
+                    'no-card-mode': !cardBody,
+                    'content-shell--home': route.path === '/home',
+                  }"
                   :shadow="cardBody ? 'always' : 'never'"
                   :body-style="{
                     padding: '0',
@@ -385,7 +408,10 @@ onBeforeUnmount(() => {
               >
                 <ScCard
                   class="h-full layout sidebar-custom sssss"
-                  :class="{ 'no-card-mode': !cardBody }"
+                  :class="{
+                    'no-card-mode': !cardBody,
+                    'content-shell--home': route.path === '/home',
+                  }"
                   :shadow="cardBody ? 'always' : 'never'"
                   :body-style="{
                     padding: '0',
@@ -519,6 +545,16 @@ onBeforeUnmount(() => {
       max-width: 100% !important;
       box-sizing: border-box;
     }
+  }
+}
+
+.content-shell--home {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+
+  :deep(.el-card__body) {
+    background: transparent !important;
   }
 }
 

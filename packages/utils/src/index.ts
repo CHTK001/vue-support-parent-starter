@@ -50,3 +50,5 @@ export type {
 
 // 导出会话工具
 export * from "./session";
+export * from "./time/clock";
+export * from "./face";

@@ -1,178 +1,327 @@
-# vue-support-parent-starter 单元测试与回归验证说明
+# vue-monitor 安全链路与配置热重载单元测试文档
 
-## 目标
+更新日期：2026-03-28
 
-覆盖本轮重点链路，保证前端可编译、WASM 加解密可用、sign 开关正确、水印正常、关键业务页可加载。
+## 1. 目标
 
-## 构建验证
+本次文档只覆盖本轮最关键的 3 类问题：
 
-在项目根目录执行：
+- 三大安全链路前后端是否一致并可正常工作
+- 后台下发给前端的配置是否真的支持热重载
+- `vue-support-monitor-starter` 当前前端包是否能通过关键单元测试与生产构建
+
+## 2. 测试范围
+
+- 前端签名 -> 后端验签
+- 前端请求加密 -> 后端请求解密
+- 后端响应加密 -> 前端响应解密
+- 配置版本通知 -> 前端配置热重载
+- monitor 默认全局 socket 启动配置
+- 防调试运行时
+- Docker 可视化关键路由
+- monitor 前端生产构建
+
+## 3. 测试环境
+
+- 前端仓库：`H:\workspace\2\vue-support-parent-starter`
+- 后端仓库：`H:\workspace\2\spring-support-parent-starter`
+- 文档对应前端应用：`apps/vue-support-monitor-starter`
+- 测试方式：
+  - 代码链路分析
+  - Vitest 合约测试
+  - monitor 前端生产构建
+
+说明：
+
+- 本文结论以“前后端代码契约 + 本地单元测试 + monitor 构建”作为判定依据
+- 本文不把“测试环境上某个开关当前是否打开”与“代码链路是否实现”混为一谈
+
+## 4. 三大安全链路结论
+
+### 4.1 前端签名 -> 后端验签
+
+前端实现位置：
+
+- `packages/utils/src/http/sign.ts`
+- `packages/utils/src/http/index.ts`
+
+后端实现位置：
+
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/utils/NonceUtils.java`
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/configuration/ApiFilterConfiguration.java`
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/decode/ApiRequestDecodeBodyAdvice.java`
+
+链路说明：
+
+- 前端请求阶段会补齐 `x-nonce`、`x-timestamp`、`x-req-fingerprint`、`x-sign`
+- 前端签名算法为：
+  - `sign = MD5(nonce + fingerprint + timestamp + paramsMd5 + secretKey)`
+- 后端 `NonceXhrFilter` 与 `ApiRequestDecodeBodyAdvice` 都会复用 `NonceUtils.validateXhrRequest()` 做验签与防重放
+
+已验证内容：
+
+- `request-sign-contract.test.ts` 验证请求参数收集规则与后端 `NonceUtils.collectParams()` 一致
+- `request-sign-contract.test.ts` 验证签名公式与后端 `NonceUtils.generateSign()` 一致
+
+结论：
+
+- 该链路代码契约正常
+- 该链路的前后端算法已对齐
+
+边界说明：
+
+- 前端是否生成签名，主要受运行时配置 `Request.enableSign` 控制
+- 前端签名密钥主要取 `Request.secretKey`，其次兼容顶层 `secretKey`
+- 后端签名密钥来自 `plugin.nonce.sign.secret-key` / `nonce.sign.secret-key` / 环境变量
+- 后端签名密钥当前不是走 `sys_setting` 动态热更新链路，这一点必须单独说明
+
+### 4.2 前端请求加密 -> 后端请求解密
+
+前端实现位置：
+
+- `packages/utils/src/crypto/codec.ts`
+- `packages/utils/src/http/config-resolver.ts`
+
+后端实现位置：
+
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/decode/ApiRequestDecodeBodyAdvice.java`
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/decode/ApiRequestDecodeRegister.java`
+- `spring-support-api-parent/spring-api-support-common-service-starter/src/main/java/com/chua/starter/service/impl/SysSettingServiceImpl.java`
+
+链路说明：
+
+- 前端 `uu2()` 在请求发送前判断是否需要加密
+- 仅对 JSON 请求体、指定 HTTP 方法、且非 `/v2/setting/*` 接口执行请求体加密
+- 加密后请求体会改写为 `{ data: <cipher> }`
+- 后端 `ApiRequestDecodeBodyAdvice` 根据 `access-control-origin-key` 头判断是否走请求解密
+- 后端 `ApiRequestDecodeRegister` 每次取 `GlobalSettingFactory(config)` 当前值，决定是否开启请求解密以及使用哪个密钥
+
+已验证内容：
+
+- `codec-contract.test.ts` 验证开启请求加密后 JSON 请求体会被加密
+- `codec-contract.test.ts` 验证 `/v2/setting/list` 等运行时配置接口不会被错误加密
+- `request-config-resolver.test.ts` 验证 `CodecRequestOpen` / `CodecRequestKey` 与 `Request.enableEncrypt` / `Request.codecRequestKey` 的解析兼容逻辑
+
+结论：
+
+- 该链路代码契约正常
+- 后端请求解密开关与密钥具备随 `sys_setting(config)` 变化生效的能力
+
+边界说明：
+
+- 已经发出的请求不会被追溯重加密
+- 配置变更后，从“下一次请求”开始按新规则生效
+
+### 4.3 后端响应加密 -> 前端响应解密
+
+后端实现位置：
+
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/encode/ApiResponseEncodeResponseBodyAdvice.java`
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/encode/ApiResponseEncodeRegister.java`
+
+前端实现位置：
+
+- `packages/utils/src/crypto/codec.ts`
+
+链路说明：
+
+- 后端开启响应加密后，会把响应改成二进制输出
+- 后端同时写入头 `access-control-no-data=true`
+- 前端 `uu1()` 不是看本地开关决定要不要解密，而是根据响应头判断
+- 只有响应头明确标记加密时，前端才进入统一解密器
+
+已验证内容：
+
+- `codec-contract.test.ts` 验证普通响应不会误入解密器
+- `codec-contract.test.ts` 验证带 `access-control-no-data=true` 的响应会交给统一解密器处理
+
+结论：
+
+- 该链路代码契约正常
+- 响应是否解密以“后端响应头”为准，不以“前端本地开关”为准
+
+边界说明：
+
+- 前端 `ConfigStore` 虽然保留了 `CodecResponseOpen` 默认配置位，但前端真正是否解密，最终还是由响应头决定
+
+## 5. 配置热重载分析结论
+
+### 5.1 热重载主链路
+
+后端版本通知位置：
+
+- `spring-support-common-starter/src/main/java/com/chua/starter/common/support/api/configuration/ApiFilterConfiguration.java`
+
+前端热重载位置：
+
+- `packages/utils/src/http/index.ts`
+- `packages/config/src/config/index.ts`
+- `packages/core/src/store/modules/ConfigStore.ts`
+- `packages/core/src/store/modules/SettingStore.ts`
+
+热重载执行顺序：
+
+1. 后端每个响应头写入 `x-response-version`
+2. 前端 HTTP 响应拦截器读取 `x-response-version`
+3. 前端 `upgrade(version)` 更新本地版本号并派发 `repo-config-version-change`
+4. `ConfigStore` 监听该事件后执行 `reset() -> load()`
+5. `load()` 重新请求 `/v2/setting/list?sysSettingGroup=config`
+6. `doRegister()` 把远程配置写入运行时配置，并对已经被后台删除的配置恢复到本地基线值
+
+已验证内容：
+
+- `config-store-hot-reload.test.ts` 验证版本变更事件会触发配置重载
+- `config-store-hot-reload.test.ts` 验证后台配置移除后，前端会把旧覆盖值清回初始化基线
+- `runtime-config-reactive.test.ts` 验证 `putConfig()` 后，`computed(() => getConfig().Title)` 会随之更新
+- `runtime-config-reactive.test.ts` 验证 `RemoteLayout / LocationLayout` 这类运行时布局开关会触发依赖它们的计算属性重新求值
+- `BaseTool.spec.ts` 验证 `ShowBarSearch` 与 `PageBehavior.showHeaderClock` 改变后，顶部壳层组件会立即重新渲染
+- `ThemeStoreRuntimeConfig.spec.ts` 验证性能监控相关默认值在“无本地覆盖”时会跟随后台运行时配置变化，在“有本地覆盖”时不会被后台值覆盖
+- 已额外对 `sidebar/drawer/custom-menu` 整批入口做脚本级 SFC 定向编译检查，确认新补的 `computed` / `emitter` 改法无语法错误
+
+结论：
+
+- `config` 分组的版本通知与重载主链路正常
+- 之前“只写 localStorage 不通知 store”的缺口已经补上
+- 运行时 `config` 容器已改成响应式对象，依赖 `getConfig()` 的模板表达式和 `computed` 读取现在可以跟随配置更新
+- layout 壳层里一批纯后台配置快照已经改成“本地设置覆盖优先，运行时配置响应式兜底”
+- `themeStore` 中性能监控默认配置已补上“无本地覆盖时跟随运行时配置”的能力
+
+### 5.2 已确认支持热重载的配置
+
+下面这些配置已经进入 `ConfigStore.doRegister()` 明确处理分支：
+
+| 配置项 | 生效方式 | 结论 |
+| --- | --- | --- |
+| `LoopDebuggerOpen` | 重载后立即开/关循环防调试 | 正常 |
+| `CrashPageOpen` | 重载后立即开/关跳转式防调试 | 正常 |
+| `WatermarkOpen` | 重载后立即清除并重新应用水印 | 正常 |
+| `WatermarkColor` / `WatermarkAlpha` / `WatermarkRotate` | 依附水印重新应用 | 正常 |
+| `SocketOpen` | 重载后立即创建或关闭全局 socket 服务 | 正常 |
+| `SocketUrl` / `SocketPath` / `SocketProtocol` | 重载后立即重建默认全局 socket 配置 | 正常 |
+| `SocketStartupConnect` | 重载后立即影响是否自动连接 | 正常 |
+| `SystemName` | 通过 `SettingStore.setSetting(\"Title\")` 更新 | 部分实时 |
+| `BaseUrl` | 更新运行时配置，后续 HTTP/SSE 按新值发送 | 下次请求/重连生效 |
+| `ApiAddress` | 更新运行时配置，后续 HTTP/SSE 按新值发送 | 下次请求/重连生效 |
+| `CodecRequestOpen` | 请求发起时按最新配置判断是否加密 | 下次请求生效 |
+| `CodecRequestKey` | 请求发起时按最新密钥加密 | 下次请求生效 |
+| `ShowBarSearch` | layout 顶部工具栏按最新配置重新渲染 | 正常 |
+| `PageBehavior.showHeaderClock` | layout 顶部时钟入口按最新配置重新渲染 | 正常 |
+| `ShowFpsMonitor` | `themeStore` 在无本地覆盖时按最新配置更新 | 正常 |
+| `PerformanceMonitorLayout` | `themeStore` 在无本地覆盖时按最新配置更新 | 正常 |
+
+### 5.3 不是“全量热重载”的部分
+
+以下内容必须明确写清，否则结论会失真：
+
+1. 不是所有后端配置都具备“页面无刷新立即响应式更新”能力。
+2. 登录页默认配置走 `/v2/setting/default`，只在登录页挂载时拉一次，不走当前版本事件热重载链路。
+3. 请求签名前端开关 `Request.enableSign` 与前端签名密钥 `Request.secretKey` 当前主要还是本地运行时配置路径，不是当前 `sys_setting(config)` 的标准热更新主链路。
+4. 已经建立好的 socket、SSE、WebSocket 连接不会因为 `BaseUrl` / `ApiAddress` 改变而自动迁移，通常需要重连。
+5. 仍有一部分“初始化后长期持有默认值”的 store / 页面逻辑没有完全纳入当前热重载主链路。
+
+当前仍需额外注意的典型例子：
+
+- `pages/common/login/index.vue`
+- `layout/default/src/stores/themeStore.ts`
+
+结论：
+
+- “后台配置前端都能热重载”这个说法不成立
+- 更准确的说法是：
+  - `config` 分组已经具备版本驱动的重载能力
+  - 运行时 `config` 自身已经具备响应式能力，模板直接读和 `computed(() => getConfig()...)` 的场景现在可以跟随变化
+  - 但未重连的长连接、未接入当前热更新链路的登录默认配置，以及少量仍依赖初始化默认值的 store 逻辑，仍不会完整无刷新生效
+  - 仍有一部分 UI 代码只会在重新渲染或刷新页面后体现变化
+
+## 6. 单元测试命令与结果
+
+执行命令：
 
 ```bash
+pnpm exec vitest run --config packages/utils/vitest.config.ts \
+  packages/config/tests/runtime-config-reactive.test.ts \
+  packages/core/src/__tests__/auth-storage.test.ts \
+  packages/core/src/__tests__/config-store-hot-reload.test.ts \
+  packages/utils/tests/request-config-resolver.test.ts \
+  packages/utils/tests/request-sign-contract.test.ts \
+  packages/utils/tests/codec-contract.test.ts \
+  packages/utils/tests/monitor-global-socket-options.test.ts \
+  packages/utils/tests/monitor-global-socket-bridge.test.ts \
+  packages/utils/tests/socket-url-normalizer.test.ts \
+  packages/utils/tests/debug-guard.test.ts \
+  packages/utils/tests/monitor-docker-routes.test.ts \
+  packages/utils/tests/clock-worker.test.ts \
+  layout/default/src/__tests__/ThemeStoreRuntimeConfig.spec.ts \
+  layout/default/src/components/lay-setting/__tests__/index.spec.ts \
+  layout/default/src/components/lay-tool/themes/__tests__/BaseTool.spec.ts
+```
+
+结果：
+
+- 15 个测试文件通过
+- 42 个测试点通过
+
+覆盖点：
+
+- 登录态存储与兼容
+- 配置热重载
+- 运行时配置响应式更新
+- layout 壳层组件热重载
+- theme store 默认值热更新
+- 共享时钟调度
+- 请求配置解析
+- 前后端签名契约
+- 请求/响应加解密契约
+- monitor 默认全局 socket 选项与远程配置桥接
+- socket URL 归一化
+- 防调试运行时
+- Docker 路由
+
+测试中的预期日志：
+
+- `codec-contract.test.ts` 会故意构造“普通响应误进解密器”的场景，控制台会出现一次 fallback 警告，这是测试设计的一部分
+- `debug-guard.test.ts` 会故意触发防调试遮罩，也会打印一次提示日志
+- `.vue` 组件测试现在已经接入 `@vitejs/plugin-vue` 与工作区别名；`BaseTool.spec.ts` 仍会打印 IndexedDB/Sass 相关环境日志，但不影响断言结果
+
+## 7. monitor 构建结果
+
+执行命令：
+
+```bash
+cd apps/vue-support-monitor-starter
 pnpm build
 ```
 
-通过标准：
+结果：
 
-- 所有 workspace 包完成构建
-- `apps/vue-support-spring-pages-starter` 不再因 `NODE_OPTIONS` 被子脚本覆盖而 OOM
+- 生产构建通过
+- `dist` 成功生成
+- 仍存在现有的动态导入提示与大包体积告警，但不阻塞本次结论
 
-## WASM 加解密验证
+## 8. 最终结论
 
-验证点：
+### 8.1 已确认正常
 
-- `wasmEnable: true` 时请求链路必须成功初始化 WASM
-- 前端开启请求加密后，请求可正常发送，页面不出现系统异常
-- 前端加解密走 WASM，不回退到普通 JS 实现
+- 前端签名 -> 后端验签链路正常
+- 前端请求加密 -> 后端请求解密链路正常
+- 后端响应加密 -> 前端响应解密链路正常
+- `config` 分组版本通知 -> 前端重载主链路正常
+- 运行时 `config` 响应式更新链路正常
+- 顶部工具栏搜索入口与顶部时钟入口的组件级热更新已验证
+- `themeStore` 性能监控默认值的热更新已验证
+- monitor 关键单元测试通过
+- monitor 前端生产构建通过
 
-建议检查：
+### 8.2 仍需明确的边界
 
-- 登录后打开系统管理相关页面，触发真实接口请求
-- 浏览器 `console` 无 WASM 初始化失败、解密失败、系统异常类报错
-- 浏览器 `errors` 为空
+- 请求签名密钥后端侧当前不走 `sys_setting` 热更新
+- 登录页 `/v2/setting/default` 不是当前热重载链路的一部分
+- `BaseUrl` / `ApiAddress` 之类配置更多是“下次请求或重连生效”
+- 代码库中仍有部分页面在脚本里把 `getConfig()` 读成一次性快照，因此不能宣称“所有界面配置都能无刷新响应式热更新”
 
-## 请求加密与响应加密验证
+### 8.3 建议后续补强
 
-验证点：
-
-- 前端请求加密开关打开时，请求仍可成功
-- 后端可根据配置决定返回加密或不加密数据
-- 前端根据响应头判断是否为加密数据，并完成正确解密
-- 响应加密开关实时切换后，请求结果与页面展示保持正常
-
-建议检查：
-
-- 打开加密开关后访问登录、模块管理、租户管理页面
-- 关闭加密开关后再次访问相同页面
-- 页面数据可正常展示，无解密异常、无白屏、无系统异常提示
-
-## sign 验证
-
-验证点：
-
-- 前端存在 sign 计算开关
-- 开关打开时，前端计算 sign 并随请求发送
-- 开关关闭时，不再发送 sign
-- 后端根据请求是否携带 sign 做合法性校验
-
-建议检查：
-
-- 分别在 sign 开启和关闭场景访问真实接口
-- 请求均返回符合预期结果
-- 非法 sign 请求会被后端拒绝
-
-## 水印验证
-
-验证点：
-
-- 前后端水印功能启用时页面出现水印
-- 关闭后水印消失
-- 水印切换不影响页面主功能和接口请求
-
-建议检查：
-
-- 登录后检查主体框架与业务页
-- 切换配置后刷新页面，确认水印展示状态正确
-
-## 页面回归
-
-建议优先使用 `agent-browser` 做浏览器回归。
-
-必测页面：
-
-- `/#/login`
-- `/#/service/module`
-- `/#/service/service`
-- `/#/service/tenant`
-
-通过标准：
-
-- 页面主体结构可见
-- 表单、筛选区、表格或卡片区域加载正常
-- `console` 无新的 `warning`
-- `errors` 为空
-
-## 已修复的典型问题
-
-- `ScHeader` 包入口错误，导致全局注册失效
-- `ScHeader` 默认分支错误递归渲染自身，应使用 `ElHeader`
-- 服务管理筛选项使用 `null` 作为 `ElOption` 的 `value`，触发 prop 类型告警
-- 错误页 `style` prop 命名冲突
-- `ScPagination` 包装组件递归渲染自身
-- i18n 缺失 `message.confimDelete`
-- 路由缺页与 `/home`、`/` no-match 警告已做运行时降噪
-
-## 回归命令建议
-
-```bash
-pnpm build
-agent-browser --session qa-check open http://127.0.0.1:8848/#/login
-```
-
-浏览器验证时建议补充：
-
-- `agent-browser --session qa-check console --json`
-- `agent-browser --session qa-check errors --json`
-
-## 结论标准
-
-只有同时满足以下条件才算通过：
-
-- 前端构建成功
-- 登录成功
-- 主体框架正常
-- 关键业务页正常加载
-- WASM 加解密成功
-- sign 开关行为正确
-- 响应加密正常
-- 水印正常
-- 浏览器无新增报错与关键告警
-
-## 2026-03-28 monitor 联调补充
-
-环境与入口：
-
-- 测试环境入口为 `http://172.16.0.40/monitor/`
-- Nginx 已代理 `/monitor/api/ -> 127.0.0.1:19170`，`/socket.io/ -> 127.0.0.1:29181`
-- 浏览器实测登录账号 `sa` 可进入系统
-
-接口与实时能力：
-
-- `GET /monitor/api/v2/user/me` 返回 `00000`
-- `GET /monitor/api/v2/user/menu` 返回 `00000`
-- `GET /socket.io/?EIO=4&transport=polling` 已完成握手，说明全局 socket 默认链路可用
-- 当前设置接口返回 `SocketOpen=true`、`SocketProtocol=socketio`、`SocketPath=/socket.io`
-- 前端已支持 `SocketOpen=false` 时完全不创建全局 socket，支持 `SocketStartupConnect=false` 时注入但启动不自动连接
-
-Docker 可视化联调：
-
-- `/#/docker/images`、`/#/docker/containers`、`/#/docker/registry`、`/#/docker/soft` 已能访问
-- 本轮修复 `/#/docker/records` 缺路由导致的 `404`
-- 本轮补齐 `/docker/monitoring`、`/docker/detail/:id`，并兼容旧 `/soft/*` 地址
-- `route-menu.ts` 已从失效的 `/soft/*`、`/docker/list` 映射切换到实际可访问的 docker 页面
-- `system-soft-image/page`、`system-soft-container/page`、`system/soft/record/page` 在当前环境返回 `00000`，但数据为空，属于环境数据状态，不是前端链路错误
-
-安全链路检查：
-
-- 前端签名、请求加密、响应解密实现已存在于 `packages/utils/src/http` 与 `packages/utils/src/crypto/codec.ts`
-- 后端对应签名校验、请求解密、响应加密能力已存在于 `spring-support-common-starter`
-- 前端防调试逻辑已存在于 `packages/utils/src/debug/index.ts`
-- 水印逻辑已存在于 `packages/core/src/store/modules/ConfigStore.ts` 与 `layout/default/src/hooks/useWatermarkSetup.ts`
-- 当前测试环境设置接口未返回 `WatermarkOpen`、`LoopDebuggerOpen`、`CrashPageOpen` 等开关项，因此本轮主要确认代码链路存在，是否启用取决于运行时配置
-- monitor 全局 socket 已改为接口配置优先：
-  - `OpenSetting=true` 时优先等待 `/v2/setting/list?sysSettingGroup=config`
-  - `OpenSetting=false` 或配置拉取失败时才回退本地 `app.yaml`
-
-已发现并修复/定位的问题：
-
-- 前端 `docker/records` 页面存在未定义 `loadRecords` 的脚本缺口，本轮已补上
-- 后端 `spring-support-oauth-client-starter` 登录失败场景会因空 token 触发 `LoginResult.setToken` 非空异常，本轮已修复为按真实认证结果返回错误信息，不再错误抛 NPE
-- `GET /monitor/api/v1/system/soft/websocket/topics` 与 `GET /monitor/api/api/monitor/system-soft-websocket/topics` 当前仍返回 `S9999C0000`，前端已有 fallback 兜底默认 topic，但后端接口本身仍需继续排查
-
-最新本地回归结果：
-
-- `vitest`：7 个文件、23 个测试通过
-- 新增覆盖：
-  - `monitor-global-socket-bridge.test.ts` 验证远程配置优先
-  - `monitor-global-socket-bridge.test.ts` 验证 `OpenSetting=false` 本地 socket 兜底
-- `apps/vue-support-monitor-starter` 执行 `pnpm build` 通过
+- 把仍然直接读取 `getConfig()` 的 UI 入口逐步迁移到 store/computed
+- 继续梳理 login 默认配置链路和其它仍依赖初始化默认值的 store 逻辑
+- 如果需要让签名密钥也支持后台动态控制，需要补一条后端 `sys_setting -> NonceUtils secretKey` 的正式刷新链路
+- 如果需要让登录页默认配置热更新，需要给 `/v2/setting/default` 引入独立版本通知或复用当前版本事件

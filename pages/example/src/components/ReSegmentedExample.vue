@@ -109,7 +109,6 @@ const codeTabs = computed(() => [
     icon: "ri:javascript-line",
     language: "ts",
     code: `import { ref } from "vue";
-import ReSegmented from "@repo/components/ReSegmented/src/index.tsx";
 
 const index = ref(0);
 

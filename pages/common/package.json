@@ -127,6 +127,7 @@
     "vite-plugin-router-warn": "catalog:",
     "vite-plugin-vue-inspector": "catalog:",
     "vite-svg-loader": "catalog:",
+    "unbuild": "catalog:",
     "vitest": "catalog:",
     "vkbeautify": "catalog:",
     "vue-eslint-parser": "catalog:",

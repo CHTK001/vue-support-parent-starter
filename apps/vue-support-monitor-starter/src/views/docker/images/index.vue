@@ -657,7 +657,6 @@ function openInstallContainer(image: SystemSoftImage) {
 async function handleExportImage(image: SystemSoftImage) {
   try {
     message("正在导出镜像，请稍候...", { type: "info" });
-    // TODO: 调用导出镜像API
     const res = await imageApi.exportImage({
       imageId: image.systemSoftImageId!,
       serverId: image.systemSoftImageServerId!,
@@ -680,7 +679,39 @@ async function handleExportImage(image: SystemSoftImage) {
 async function handleExportServerImages(serverId: number) {
   try {
     message("正在导出服务器所有镜像，请稍候...", { type: "info" });
-    // TODO: 调用批量导出API
+    const listRes = await imageApi.getImagesByServerId(serverId);
+    if (listRes.code !== "00000") {
+      return message(listRes.msg || "获取镜像列表失败", { type: "error" });
+    }
+
+    const images = listRes.data || [];
+    if (!images.length) {
+      return message("该服务器暂无镜像可导出", { type: "warning" });
+    }
+
+    const results = await Promise.allSettled(
+      images.map((image) =>
+        imageApi.exportImage({
+          imageId: image.systemSoftImageId!,
+          serverId: image.systemSoftImageServerId!,
+        }),
+      ),
+    );
+
+    const successCount = results.filter(
+      (item) => item.status === "fulfilled" && item.value.code === "00000",
+    ).length;
+    const failedCount = results.length - successCount;
+
+    if (successCount > 0) {
+      ElNotification.success({
+        title: "批量导出已提交",
+        message: `成功提交 ${successCount} 个镜像导出任务，失败 ${failedCount} 个`,
+        position: "bottom-right",
+      });
+    } else {
+      message("批量导出失败", { type: "error" });
+    }
   } catch (error: any) {
     console.error("导出失败:", error);
     message(error?.message || "导出失败", { type: "error" });

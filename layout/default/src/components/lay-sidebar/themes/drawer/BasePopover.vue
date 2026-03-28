@@ -20,6 +20,7 @@ const router = useRouter();
 const { menuSelect } = useNav();
 const permissionStore = usePermissionStoreHook();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+const PANEL_OFFSET = 56;
 
 // ===== 汉堡按钮位置 =====
 type HamburgerPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right";
@@ -32,11 +33,19 @@ const panelStyle = computed(() => {
   const pos = hamburgerPosition.value;
   const isBottom = pos === "bottom-left" || pos === "bottom-right";
   const isRight = pos === "top-right" || pos === "bottom-right";
-  const base: Record<string, string> = { position: "fixed", zIndex: "1000" };
+  const base: Record<string, string> = { position: "fixed", zIndex: "1200" };
   if (isBottom) {
-    return { ...base, bottom: "60px", ...(isRight ? { right: "0" } : { left: "0" }) };
+    return {
+      ...base,
+      bottom: `${PANEL_OFFSET}px`,
+      ...(isRight ? { right: "0" } : { left: "0" }),
+    };
   }
-  return { ...base, top: "60px", ...(isRight ? { right: "0" } : { left: "0" }) };
+  return {
+    ...base,
+    top: `${PANEL_OFFSET}px`,
+    ...(isRight ? { right: "0" } : { left: "0" }),
+  };
 });
 
 // ===== 菜单面板状态 =====
@@ -50,10 +59,22 @@ const hideTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const showTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
 // ===== 配置 =====
-const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
-const forceNewMenu = ref(false);
-const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
+const showNewMenuOverride = ref<boolean | null>(null);
+const forceNewMenuOverride = ref<boolean | null>(null);
+const menuAnimationOverride = ref<boolean | null>(null);
+const newMenuAnimationOverride = ref<string | null>(null);
+const showNewMenu = computed(
+  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
+);
+const forceNewMenu = computed(
+  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
+);
+const menuAnimation = computed(
+  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
+);
+const newMenuAnimation = computed(
+  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
+);
 
 // ===== 一级菜单 =====
 const firstLevelMenus = computed(() =>
@@ -71,12 +92,23 @@ const totalMenuItems = computed(() => {
   return count;
 });
 
+const maxMenuTitleLength = computed(() => {
+  const titles = currentSubMenus.value.flatMap((sub) => {
+    const children = sub.children?.map((item) => item.meta?.title || "") || [];
+    return [sub.meta?.title || "", ...children];
+  });
+  return titles.reduce((max, title) => Math.max(max, `${title}`.length), 0);
+});
+
 const dynamicContainerWidth = computed(() => {
   const n = totalMenuItems.value;
-  if (n === 0) return "320px";
-  const cols = Math.min(Math.ceil(n / 8), 4);
-  const w = cols * 180 + (cols - 1) * 16 + 32;
-  return `${Math.min(800, Math.max(320, w))}px`;
+  if (n === 0) return "480px";
+  const groupedColumns = currentSubMenus.value.filter((item) => item.children?.length).length;
+  const directColumns = currentSubMenus.value.some((item) => !item.children?.length) ? 1 : 0;
+  const cols = Math.min(groupedColumns + directColumns || Math.ceil(n / 6), 4);
+  const columnWidth = Math.min(360, Math.max(260, 228 + maxMenuTitleLength.value * 11));
+  const width = cols * columnWidth + (cols - 1) * 22 + 64;
+  return `${Math.min(1320, Math.max(480, width))}px`;
 });
 
 function getGridColumns() {
@@ -189,10 +221,10 @@ onMounted(() => {
   emitter.on("drawerHamburgerPositionChange", (v: string) => {
     hamburgerPosition.value = v as HamburgerPosition;
   });
-  emitter.on("showNewMenuChange", (v) => { showNewMenu.value = v; });
-  emitter.on("forceNewMenuChange", (v) => { forceNewMenu.value = v; });
-  emitter.on("menuAnimationChange", (v) => { menuAnimation.value = v; });
-  emitter.on("newMenuAnimationChange", (v) => { newMenuAnimation.value = v; });
+  emitter.on("showNewMenuChange", (v) => { showNewMenuOverride.value = v; });
+  emitter.on("forceNewMenuChange", (v) => { forceNewMenuOverride.value = v; });
+  emitter.on("menuAnimationChange", (v) => { menuAnimationOverride.value = v; });
+  emitter.on("newMenuAnimationChange", (v) => { newMenuAnimationOverride.value = v; });
 });
 
 onBeforeUnmount(() => {
@@ -261,7 +293,7 @@ onBeforeUnmount(() => {
         position: 'fixed',
         top: subMenuPosition.top + 'px',
         left: subMenuPosition.left + 'px',
-        zIndex: 1002,
+        zIndex: 1202,
       }"
       @mouseenter="handleSubMenuHover"
       @mouseleave="handleSubMenuLeave"
@@ -287,7 +319,7 @@ onBeforeUnmount(() => {
                       :class="{ 'is-active': defaultActive === thirdMenu.path }"
                       @click="handleSubMenuClick(thirdMenu, $event)"
                     >
-                      <ScText style="flex:1;overflow:hidden;text-overflow:ellipsis" :text="thirdMenu.meta?.title || ''" />
+                      <ScText style="display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :text="thirdMenu.meta?.title || ''" />
                       <ReMenuNewBadge
                         v-if="showNewMenu"
                         :createTime="thirdMenu.meta?.createTime"
@@ -315,7 +347,7 @@ onBeforeUnmount(() => {
                       :class="{ 'is-active': defaultActive === subMenu.path }"
                       @click="handleSubMenuClick(subMenu, $event)"
                     >
-                      <ScText style="flex:1;overflow:hidden;text-overflow:ellipsis" :text="subMenu.meta?.title || ''" />
+                      <ScText style="display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :text="subMenu.meta?.title || ''" />
                     </router-link>
                   </div>
                 </template>
@@ -422,14 +454,17 @@ onBeforeUnmount(() => {
 
 /* 子菜单弹出层 */
 .sub-menu-container {
-  min-width: 320px;
-  max-width: 900px;
-  max-height: calc(100vh - 60px);
+  min-width: 480px;
+  max-width: 1320px;
+  max-height: calc(100vh - 56px);
   background: var(--el-bg-color-overlay, #fff);
-  border-radius: 12px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
-  border: 1px solid var(--el-border-color-light);
+  border-radius: 18px;
+  box-shadow:
+    0 22px 54px rgba(15, 23, 42, 0.14),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.18);
   overflow: hidden;
+  backdrop-filter: blur(18px);
 
   html.dark & {
     background: rgba(28, 28, 35, 0.98);
@@ -439,18 +474,20 @@ onBeforeUnmount(() => {
 }
 
 .sub-menu-content {
-  padding: 12px;
+  padding: 14px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
 }
 
 .horizontal-columns-grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   align-items: start;
 }
 
 .menu-column {
+  min-width: 0;
+
   .column-title {
     font-size: 12px;
     font-weight: 600;
@@ -459,6 +496,7 @@ onBeforeUnmount(() => {
     display: block;
     border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 4px;
+    white-space: nowrap;
   }
 }
 
@@ -469,13 +507,17 @@ onBeforeUnmount(() => {
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
+  min-height: 42px;
+  padding: 10px 14px;
+  min-width: 0;
+  border-radius: 10px;
   font-size: 13px;
+  line-height: 1.35;
   color: var(--el-text-color-regular);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
   gap: 8px;
+  white-space: nowrap;
 
   &:hover {
     background: var(--el-color-primary-light-9);

@@ -4,6 +4,12 @@
 
 Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus 的监控管理系统前端应用。
 
+## 文档导航
+
+- [爬虫模块接入文档](../../docs/spider-monitor-integration.md)
+- [monitor 联调测试报告](../../docs/monitor-test-report-20260328.md)
+- [文档索引](../../docs/README.md)
+
 ### 数据管理控制台更新（2025-08-18）
 
 - Redis 控制台对齐 JDBC 控制台：

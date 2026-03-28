@@ -9,7 +9,7 @@
 import { ref } from "vue";
 import { io, type Socket } from "socket.io-client";
 import { getToken } from "../utils/auth";
-import { parseSocketMessage } from "./socketUtils";
+import { normalizeSocketUrls, parseSocketMessage } from "./socketUtils";
 
 /**
  * Socket.IO 配置
@@ -31,6 +31,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   const isConnected = ref(false);
   let socketInstance: Socket | null = null;
   const eventListeners = new Map<string, Set<(data: unknown) => void>>();
+  const autoConnect = config.autoConnect ?? true;
+  const normalizedUrls = normalizeSocketUrls(config.urls);
 
   const connect = () => {
     if (socketInstance?.connected) {
@@ -38,13 +40,19 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       return;
     }
 
+    if (socketInstance) {
+      socketInstance.connect();
+      return;
+    }
+
     const token = getToken();
-    const url = config.urls[Math.floor(Math.random() * config.urls.length)];
+    const url =
+      normalizedUrls[Math.floor(Math.random() * normalizedUrls.length)];
 
     socketInstance = io(url, {
       path: config.context || "/socket.io",
       transports: ["websocket"],
-      autoConnect: config.autoConnect ?? true,
+      autoConnect,
       reconnection: config.reconnection ?? true,
       reconnectionAttempts: config.reconnectionAttempts ?? 3,
       reconnectionDelay: config.reconnectionDelay ?? 1000,
@@ -77,6 +85,10 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
         subscribeHandlers.get(key)?.forEach(h => { try { h(msg); } catch {} });
       } catch {}
     });
+
+    if (!autoConnect) {
+      socketInstance.connect();
+    }
   };
 
   const disconnect = () => {
@@ -92,6 +104,10 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     callback: (data: unknown) => void,
     options?: SocketTemplateListenOptions,
   ) => {
+    if (!socketInstance) {
+      connect();
+    }
+
     if (!socketInstance) return;
 
     const wrappedCallback = (rawData: unknown) => {
@@ -121,11 +137,16 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   };
 
   const emit = (event: string, data?: unknown) => {
+    if (!socketInstance) {
+      connect();
+    }
+
     if (socketInstance?.connected) {
       socketInstance.emit(event, data);
-    } else {
-      console.warn("[Socket.IO] 未连接，无法发送消息");
+      return;
     }
+
+    console.warn("[Socket.IO] 未连接，无法发送消息");
   };
 
   const close = () => {

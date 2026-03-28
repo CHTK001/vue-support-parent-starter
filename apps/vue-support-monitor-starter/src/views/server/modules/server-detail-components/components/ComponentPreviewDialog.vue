@@ -127,7 +127,7 @@
               >
                 大
               </ScButton>
-            </ScButton-group>
+            </el-button-group>
           </div>
         </div>
 

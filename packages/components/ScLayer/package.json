@@ -1,0 +1,35 @@
+{
+  "name": "@repo/components/ScLayer",
+  "version": "1.0.0",
+  "description": "地图组件：ScLayer（OpenLayers + Cesium）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "vue": "catalog:",
+    "gcoord": "catalog:",
+    "ol": "catalog:",
+    "ol-contextmenu": "catalog:",
+    "ol-echarts": "catalog:",
+    "ol-ext": "catalog:",
+    "ol-layerswitcher": "catalog:",
+    "ol-wind": "catalog:",
+    "olcs": "catalog:",
+    "cesium": "catalog:",
+    "echarts": "catalog:",
+    "echarts-gl": "catalog:"
+  },
+  "license": "ISC"
+}

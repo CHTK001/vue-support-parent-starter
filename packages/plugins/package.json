@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@repo/utils": "workspace:^",
     "echarts": "catalog:",
     "element-plus": "catalog:",
     "vue": "catalog:"

@@ -65,23 +65,30 @@ const attrs = useAttrs();
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;  // 圆形背景
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 14px;
   cursor: pointer;
   color: var(--el-text-color-regular);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.42);
   border: 1px solid transparent;
   transition: all 0.2s ease;
   font-size: 16px;
   flex-shrink: 0;
   outline: none;
+  backdrop-filter: blur(14px);
 
   &:hover {
-    background: rgba(var(--el-color-primary-rgb), 0.08);
-    border-color: rgba(var(--el-color-primary-rgb), 0.15);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.12),
+      rgba(var(--el-color-primary-rgb), 0.05)
+    );
+    border-color: rgba(var(--el-color-primary-rgb), 0.18);
     color: var(--el-color-primary);
     transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(var(--el-color-primary-rgb), 0.14);
   }
 
   &:active {
@@ -96,7 +103,11 @@ const attrs = useAttrs();
 
   // 激活态
   &--active {
-    background: rgba(var(--el-color-primary-rgb), 0.1);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.16),
+      rgba(var(--el-color-primary-rgb), 0.08)
+    );
     color: var(--el-color-primary);
     border-color: rgba(var(--el-color-primary-rgb), 0.2);
   }

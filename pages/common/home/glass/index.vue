@@ -2,6 +2,7 @@
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
+import { subscribeClock } from "@repo/utils";
 import {
   computed,
   defineAsyncComponent,
@@ -26,11 +27,11 @@ const userStore = useUserStoreHook();
 const CustomLayout = defineAsyncComponent(
   () => import("./layout/CustomLayout.vue")
 );
-const openRemoteLayout = getConfig().RemoteLayout;
-const openLocationLayout = getConfig().LocationLayout;
+const hasLayout = computed(
+  () => !!(getConfig().RemoteLayout || getConfig().LocationLayout),
+);
 const customizing = reactive({
   customizing: false,
-  hasLayout: openRemoteLayout || openLocationLayout,
 });
 
 // 搜索和筛选
@@ -45,7 +46,7 @@ watch(showHeaderInfo, (val) => {
 
 // 当前时间
 const currentTime = ref(new Date());
-let timeInterval = null;
+let stopClockSubscription = null;
 
 // 格式化时间
 const formattedTime = computed(() => {
@@ -172,15 +173,14 @@ onBeforeMount(async () => {
 });
 
 onMounted(() => {
-  timeInterval = setInterval(() => {
-    currentTime.value = new Date();
-  }, 1000);
+  stopClockSubscription = subscribeClock((now) => {
+    currentTime.value = new Date(now);
+  });
 });
 
 onUnmounted(() => {
-  if (timeInterval) {
-    clearInterval(timeInterval);
-  }
+  stopClockSubscription?.();
+  stopClockSubscription = null;
 });
 </script>
 
@@ -223,7 +223,7 @@ onUnmounted(() => {
           </div>
 
           <div class="header-right">
-             <div class="header-stats" v-if="showHeaderInfo && customizing.hasLayout">
+             <div class="header-stats" v-if="showHeaderInfo && hasLayout">
               <div class="stat-item">
                 <span class="stat-value">{{ widgetStats.active }}</span>
                 <span class="stat-label">Active</span>
@@ -235,7 +235,7 @@ onUnmounted(() => {
               </div>
             </div>
             
-            <div class="header-actions" v-if="customizing.hasLayout">
+            <div class="header-actions" v-if="hasLayout">
               <el-button
                 v-if="customizing.customizing"
                 type="success"
@@ -259,7 +259,7 @@ onUnmounted(() => {
         <!-- Widgets Area -->
         <div ref="widgets" class="widgets-area">
           <div class="widgets-wrapper">
-            <div v-if="!customizing.hasLayout" class="empty-state">
+            <div v-if="!hasLayout" class="empty-state">
               <div class="empty-icon glass-panel">
                 <el-icon :size="64">
                   <component :is="useRenderIcon('ri:dashboard-3-line')" />

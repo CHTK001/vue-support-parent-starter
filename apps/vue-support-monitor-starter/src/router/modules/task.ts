@@ -80,6 +80,7 @@ export default [
       {
         path: "/spider-management",
         name: "spiderManagement",
+        redirect: "/spider",
         meta: {
           icon: "ri:bug-2-line",
           title: "爬虫管理",
@@ -88,7 +89,8 @@ export default [
         },
         children: [
           {
-            path: "/spider-list",
+            path: "/spider",
+            alias: ["/spider-list"],
             name: "spider-list",
             component: () => import("@/views/spider/index.vue"),
             meta: {

@@ -84,6 +84,8 @@ catalog:
   postcss-nesting: ^13.0.2
   "@tailwindcss/nesting": 0.0.0-insiders.565cd3e
   "@tailwindcss/typography": ^0.5.15
+  "@tensorflow/tfjs": 1.7.4
+  "@tensorflow/tfjs-core": 1.7.4
   "@traptitech/markdown-it-katex": ^3.6.0
   "@types/archiver": ^6.0.3
   "@types/babel__code-frame": ^7.0.6
@@ -224,6 +226,7 @@ catalog:
   eslint-plugin-vue: ^9.32.0
   execa: ^9.5.1
   file-saver: ^2.0.5
+  face-api.js: 0.22.2
   find-up: ^7.0.0
   "@fingerprintjs/fingerprintjs": ^4.0.0
   get-port: ^7.1.0

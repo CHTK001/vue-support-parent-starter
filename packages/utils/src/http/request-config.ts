@@ -1,6 +1,7 @@
 import type { AxiosRequestConfig, CustomParamsSerializer } from "axios";
 import { stringify } from "qs";
 import { getConfig } from "@repo/config";
+import { resolveRequestConfig } from "./config-resolver";
 
 /** 无权限状态码判断 */
 export const isNoAuth = (code: string | number | null): boolean =>
@@ -12,15 +13,7 @@ export const isSuccess = (code: string | number | null): boolean =>
 
 /** 获取请求配置 */
 export const getRequestConfig = () => {
-  const config = getConfig();
-  return {
-    timeout: config?.Request?.timeout || config?.baseHttpTimeout || 30000,
-    retryCount: config?.Request?.retryCount || 3,
-    retryDelay: config?.Request?.retryDelay || 1000,
-    showLoading: config?.Request?.showLoading !== false,
-    enable: config?.Request?.enable !== false,
-    enableSign: config?.Request?.enableSign !== false,
-  };
+  return resolveRequestConfig(getConfig());
 };
 
 /** 获取错误处理配置 */

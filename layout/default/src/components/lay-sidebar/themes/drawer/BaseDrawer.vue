@@ -18,6 +18,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { themeClass: "" });
 
 type HamburgerPosition = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+type BadgeType = "default" | "danger" | "primary" | "success" | "warning" | "custom";
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const route = useRoute();
@@ -41,7 +42,8 @@ watch(
 
 // ===== 菜单面板状态 =====
 const menuVisible = ref(false);
-const PANEL_WIDTH = 220; // 菜单面板宽度 px
+const PANEL_WIDTH = 236; // 菜单面板宽度 px
+const PANEL_OFFSET = 56;
 
 // ===== 子菜单状态 =====
 const hoveredMenu = ref<MenuItem | null>(null);
@@ -51,10 +53,22 @@ const hideTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const showTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
 // ===== 配置 =====
-const showNewMenu = ref(getConfig().ShowNewMenu ?? true);
-const forceNewMenu = ref(false);
-const menuAnimation = ref(getConfig().MenuAnimation ?? false);
-const newMenuAnimation = ref(getConfig().NewMenuAnimation || "bounce");
+const showNewMenuOverride = ref<boolean | null>(null);
+const forceNewMenuOverride = ref<boolean | null>(null);
+const menuAnimationOverride = ref<boolean | null>(null);
+const newMenuAnimationOverride = ref<string | null>(null);
+const showNewMenu = computed(
+  () => showNewMenuOverride.value ?? getConfig().ShowNewMenu ?? true,
+);
+const forceNewMenu = computed(
+  () => forceNewMenuOverride.value ?? getConfig()?.ForceNewMenu ?? false,
+);
+const menuAnimation = computed(
+  () => menuAnimationOverride.value ?? getConfig().MenuAnimation ?? false,
+);
+const newMenuAnimation = computed(
+  () => newMenuAnimationOverride.value ?? (getConfig().NewMenuAnimation || "bounce"),
+);
 
 // ===== 计算属性 =====
 
@@ -67,8 +81,8 @@ const isRight = computed(() =>
 const hamburgerStyle = computed(() => {
   const pos = hamburgerPosition.value;
   const base: Record<string, string> = { position: "fixed", zIndex: "1001" };
-  if (pos === "top-left")     return { ...base, top: "60px", left: "12px" };
-  if (pos === "top-right")    return { ...base, top: "60px", right: "12px" };
+  if (pos === "top-left")     return { ...base, top: `${PANEL_OFFSET}px`, left: "12px" };
+  if (pos === "top-right")    return { ...base, top: `${PANEL_OFFSET}px`, right: "12px" };
   if (pos === "bottom-left")  return { ...base, bottom: "20px", left: "12px" };
   return                             { ...base, bottom: "20px", right: "12px" };
 });
@@ -80,7 +94,7 @@ const panelStyle = computed(() => {
     top: "0",
     bottom: "0",
     width: `${PANEL_WIDTH}px`,
-    zIndex: "1000",
+    zIndex: "1200",
   };
   return isRight.value ? { ...base, right: "0" } : { ...base, left: "0" };
 });
@@ -101,12 +115,23 @@ const totalMenuItems = computed(() => {
   return count;
 });
 
+const maxMenuTitleLength = computed(() => {
+  const titles = currentSubMenus.value.flatMap((sub) => {
+    const children = sub.children?.map((item) => item.meta?.title || "") || [];
+    return [sub.meta?.title || "", ...children];
+  });
+  return titles.reduce((max, title) => Math.max(max, `${title}`.length), 0);
+});
+
 const dynamicContainerWidth = computed(() => {
   const n = totalMenuItems.value;
-  if (n === 0) return "320px";
-  const cols = Math.min(Math.ceil(n / 8), 4);
-  const w = cols * 180 + (cols - 1) * 16 + 32;
-  return `${Math.min(800, Math.max(320, w))}px`;
+  if (n === 0) return "420px";
+  const groupedColumns = currentSubMenus.value.filter((item) => item.children?.length).length;
+  const directColumns = currentSubMenus.value.some((item) => !item.children?.length) ? 1 : 0;
+  const cols = Math.min(groupedColumns + directColumns || Math.ceil(n / 6), 4);
+  const columnWidth = Math.min(320, Math.max(240, 204 + maxMenuTitleLength.value * 10));
+  const width = cols * columnWidth + (cols - 1) * 20 + 56;
+  return `${Math.min(1180, Math.max(420, width))}px`;
 });
 
 function getGridColumns(n: number) {
@@ -199,6 +224,13 @@ function handleSubMenuClick(menu: MenuItem, event?: Event) {
   router.push(menu.path);
 }
 
+function resolveBadgeType(badgeType?: string): BadgeType {
+  const fallback: BadgeType = "primary";
+  if (!badgeType) return fallback;
+  const allowedTypes: BadgeType[] = ["default", "danger", "primary", "success", "warning", "custom"];
+  return allowedTypes.includes(badgeType as BadgeType) ? (badgeType as BadgeType) : fallback;
+}
+
 // ===== 汉堡按钮 =====
 function toggleMenu() {
   menuVisible.value = !menuVisible.value;
@@ -230,10 +262,10 @@ watch(
 
 onMounted(() => {
   document.addEventListener("click", handleOutsideClick);
-  emitter.on("showNewMenuChange", (v) => { showNewMenu.value = v; });
-  emitter.on("forceNewMenuChange", (v) => { forceNewMenu.value = v; });
-  emitter.on("menuAnimationChange", (v) => { menuAnimation.value = v; });
-  emitter.on("newMenuAnimationChange", (v) => { newMenuAnimation.value = v; });
+  emitter.on("showNewMenuChange", (v) => { showNewMenuOverride.value = v; });
+  emitter.on("forceNewMenuChange", (v) => { forceNewMenuOverride.value = v; });
+  emitter.on("menuAnimationChange", (v) => { menuAnimationOverride.value = v; });
+  emitter.on("newMenuAnimationChange", (v) => { newMenuAnimationOverride.value = v; });
   // 监听汉堡按钮位置变更事件，实时更新
   emitter.on("drawerHamburgerPositionChange", (v) => {
     hamburgerPosition.value = v as HamburgerPosition;
@@ -320,7 +352,7 @@ onBeforeUnmount(() => {
         top: subMenuPosition.top + 'px',
         left: subMenuPosition.right === 'auto' ? subMenuPosition.left + 'px' : 'auto',
         right: subMenuPosition.right !== 'auto' ? subMenuPosition.right : 'auto',
-        zIndex: 1002,
+        zIndex: 1202,
       }"
       @mouseenter="handleSubMenuHover"
       @mouseleave="handleSubMenuLeave"
@@ -346,11 +378,11 @@ onBeforeUnmount(() => {
                       :class="{ 'is-active': defaultActive === thirdMenu.path }"
                       @click="handleSubMenuClick(thirdMenu, $event)"
                     >
-                      <ScText style="flex:1;overflow:hidden;text-overflow:ellipsis" :text="thirdMenu.meta?.title || ''" />
+                      <ScText style="display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :text="thirdMenu.meta?.title || ''" />
                       <ReMenuNewBadge
                         v-if="showNewMenu"
                         :createTime="thirdMenu.meta?.createTime"
-                        :type="thirdMenu.meta?.badgeType || 'primary'"
+                        :type="resolveBadgeType(thirdMenu.meta?.badgeType)"
                         :customText="thirdMenu.meta?.badgeText"
                         :forceShow="forceNewMenu || thirdMenu.meta?.permanentNew"
                         :animation="newMenuAnimation"
@@ -375,7 +407,7 @@ onBeforeUnmount(() => {
                       :class="{ 'is-active': defaultActive === subMenu.path }"
                       @click="handleSubMenuClick(subMenu, $event)"
                     >
-                      <ScText style="flex:1;overflow:hidden;text-overflow:ellipsis" :text="subMenu.meta?.title || ''" />
+                      <ScText style="display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" :text="subMenu.meta?.title || ''" />
                     </router-link>
                   </div>
                 </template>
@@ -542,14 +574,17 @@ onBeforeUnmount(() => {
 
 /* 子菜单弹出层（复用 HoverNavigation 样式） */
 .sub-menu-container {
-  min-width: 320px;
-  max-width: 900px;
-  max-height: calc(100vh - 60px);
+  min-width: 420px;
+  max-width: 1180px;
+  max-height: calc(100vh - 56px);
   background: var(--hover-nav-submenu-bg, #fff);
   border-radius: 16px;
-  box-shadow: 0 12px 24px var(--hover-nav-submenu-shadow, rgba(0, 0, 0, 0.12));
-  border: 1px solid var(--hover-nav-submenu-border, rgba(0, 0, 0, 0.08));
+  box-shadow:
+    0 22px 54px rgba(15, 23, 42, 0.14),
+    0 10px 24px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.18);
   overflow: hidden;
+  backdrop-filter: blur(18px);
 
   html.dark & {
     background: rgba(28, 28, 35, 0.98);
@@ -559,7 +594,7 @@ onBeforeUnmount(() => {
 }
 
 .sub-menu-content {
-  padding: 12px;
+  padding: 14px;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
 }
@@ -571,6 +606,8 @@ onBeforeUnmount(() => {
 }
 
 .menu-column {
+  min-width: 0;
+
   .column-title {
     font-size: 12px;
     font-weight: 600;
@@ -579,6 +616,7 @@ onBeforeUnmount(() => {
     display: block;
     border-bottom: 1px solid var(--el-border-color-lighter);
     margin-bottom: 4px;
+    white-space: nowrap;
   }
 }
 
@@ -589,13 +627,16 @@ onBeforeUnmount(() => {
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
+  min-height: 42px;
+  padding: 9px 12px;
+  min-width: 0;
+  border-radius: 10px;
   font-size: 13px;
   color: var(--el-text-color-regular);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
   gap: 8px;
+  white-space: nowrap;
 
   &:hover {
     background: var(--el-color-primary-light-9);

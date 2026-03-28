@@ -63,7 +63,6 @@
 <script setup lang="ts">
 import { reactive, computed } from "vue";
 import { ScCompare } from "@repo/components/ScCompare"
-import { ScCompare } from "@repo/components/ScCompare";
 
 const defaultLeft =
   "https://via.placeholder.com/600x300/3b82f6/ffffff?text=Before";

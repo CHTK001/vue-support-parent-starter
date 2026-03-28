@@ -123,6 +123,7 @@
         class="records-table"
         table-name="docker-records"
         height="100%"
+        @selection-change="handleSelectionChange"
       >
         <ScTableColumn type="selection" width="55" />
         <ScTableColumn
@@ -266,9 +267,9 @@
               getStatusLabel(currentRecord.status)
             }}</ScTag>
           </ScDescriptionsItem>
-          <ScDescriptionsItem label="进度"
-            >{{ currentRecord.progress || 0 }}%</el-descriptions-item
-          >
+          <ScDescriptionsItem label="进度">
+            {{ currentRecord.progress || 0 }}%
+          </ScDescriptionsItem>
           <ScDescriptionsItem label="开始时间">{{
             formatDate(currentRecord.createTime)
           }}</ScDescriptionsItem>
@@ -477,6 +478,10 @@ const logsContentRef = ref<HTMLElement>();
 // 数据加载（改为通过 ScTable 刷新）
 const reload = () => {
   tableRef.value?.reload?.({ ...pageParams.value, ...searchParams.value }, 1);
+};
+
+const loadRecords = async () => {
+  reload();
 };
 
 const loadServers = async () => {

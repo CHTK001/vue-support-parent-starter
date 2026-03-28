@@ -1,0 +1,46 @@
+{
+  "name": "@repo/components/ScMap",
+  "version": "1.0.0",
+  "description": "地图组件：ScMap（Leaflet）",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./*": {
+      "types": "./*",
+      "default": "./*"
+    }
+  },
+  "dependencies": {
+    "@repo/utils": "workspace:^",
+    "vue": "catalog:",
+    "gcoord": "catalog:",
+    "@turf/turf": "catalog:",
+    "leaflet": "catalog:",
+    "leaflet-ant-path": "catalog:",
+    "leaflet-editable": "catalog:",
+    "leaflet-minimap": "catalog:",
+    "leaflet-polylinedecorator": "catalog:",
+    "leaflet-rotatedmarker": "catalog:",
+    "leaflet-trackplayer": "catalog:",
+    "leaflet-wind": "catalog:",
+    "leaflet.heat": "catalog:",
+    "leaflet.markercluster": "catalog:",
+    "@joakimono/echarts-extension-leaflet": "catalog:",
+    "@sintef/prune-cluster": "catalog:",
+    "mapv": "catalog:",
+    "h3-js": "catalog:",
+    "ngeohash": "catalog:",
+    "ol": "catalog:",
+    "ol-echarts": "catalog:",
+    "ol-ext": "catalog:",
+    "proj4": "catalog:",
+    "uuid": "catalog:",
+    "echarts": "catalog:"
+  },
+  "license": "ISC"
+}

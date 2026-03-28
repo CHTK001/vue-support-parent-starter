@@ -353,8 +353,6 @@
 import { ref } from "vue";
 import { message } from "@repo/utils";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
 import { ScDialog } from "@repo/components/ScDialog";
 
 const showTechDialog = ref(false);

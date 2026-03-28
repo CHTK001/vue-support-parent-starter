@@ -8,7 +8,6 @@ declare module "*.svg?component" {
 }
 
 declare module "@repo/assets/svg/*.svg?component" {
-  import type { FunctionalComponent, SVGAttributes } from "vue";
   const component: FunctionalComponent<SVGAttributes>;
   export default component;
 }
@@ -33,7 +32,6 @@ declare module "@repo/components/ReSegmented" {
 }
 
 declare module "@repo/components/ReSegmented/index" {
-  import type { DefineComponent } from "vue";
   export interface OptionsType {
     label?: any;
     icon?: any;
@@ -47,7 +45,6 @@ declare module "@repo/components/ReSegmented/index" {
 }
 
 declare module "@repo/app-root" {
-  import type { DefineComponent } from "vue";
   const component: DefineComponent<Record<string, never>, any, any>;
   export default component;
 }
@@ -99,6 +96,7 @@ declare global {
     // Global vue app instance
     __APP__: App<Element>;
     __GLOBAL_SOCKET__?: unknown;
+    __GLOBAL_SOCKET_SERVICE__?: unknown;
     webkitCancelAnimationFrame: (handle: number) => void;
     mozCancelAnimationFrame: (handle: number) => void;
     oCancelAnimationFrame: (handle: number) => void;

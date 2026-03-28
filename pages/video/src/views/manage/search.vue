@@ -134,7 +134,6 @@
 
 <script setup lang="ts">
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
 import { computed, defineExpose, nextTick, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getVideoList } from "../../api/video";

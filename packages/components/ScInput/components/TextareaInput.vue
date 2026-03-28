@@ -1,12 +1,17 @@
 <template>
-  <ScInput
+  <ElInput
     v-model="currentValue"
     class="sc-textarea-input"
     type="textarea"
     v-bind="$attrs"
+    :placeholder="placeholder"
+    :disabled="disabled"
+    :maxlength="maxlength"
+    :show-word-limit="showWordLimit"
     :rows="rows"
     :autosize="autosize"
-    @update:modelValue="handleUpdate"
+    :autofocus="autofocus"
+    @update:model-value="handleUpdate"
     @change="handleChange"
     @input="handleInput"
     @focus="handleFocus"
@@ -16,6 +21,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ElInput } from "element-plus";
 
 interface Props {
   /**

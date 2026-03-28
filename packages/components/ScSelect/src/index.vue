@@ -25,7 +25,7 @@
     :loading-text="loadingText"
     :no-match-text="noMatchText"
     :no-data-text="noDataText"
-    :popper-class="popperClass"
+    :popper-class="resolvedPopperClass"
     :reserve-keyword="reserveKeyword"
     :default-first-option="defaultFirstOption"
     :teleported="teleported"
@@ -42,6 +42,7 @@
     :fallback-placements="fallbackPlacements"
     :max-collapse-tags="maxCollapseTags"
     :aria-label="ariaLabel"
+    :z-index="zIndex"
     @change="handleChange"
     @visible-change="handleVisibleChange"
     @remove-tag="handleRemoveTag"
@@ -367,6 +368,13 @@ const props = defineProps({
   ariaLabel: {
     type: String,
     default: ""
+  },
+  /**
+   * 下拉浮层层级
+   */
+  zIndex: {
+    type: Number,
+    default: undefined
   }
 });
 
@@ -383,6 +391,10 @@ const currentValue = computed<SelectValue>({
     emit("update:modelValue", value);
   }
 });
+
+const resolvedPopperClass = computed(() =>
+  ["sc-select-popper", props.popperClass].filter(Boolean).join(" "),
+);
 
 /**
  * 使用 PixelUI 条件导入

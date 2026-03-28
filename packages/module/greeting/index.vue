@@ -8,14 +8,14 @@
 import { reactive, onMounted, computed, onUnmounted, ref } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { useUserStoreHook } from "@repo/core";
-import { dateFormat } from "@repo/utils";
+import { dateFormat, subscribeClock } from "@repo/utils";
 
 const env = reactive({
   currentTime: new Date(),
   username: "",
 });
 
-let timer = null;
+let stopClockSubscription = null;
 const tipFromApi = ref("");
 const loadingTip = ref(false);
 const useOnlineTip = ref(true);
@@ -112,16 +112,17 @@ onMounted(() => {
     env.username = "用户";
   }
 
-  timer = setInterval(() => {
-    env.currentTime = new Date();
-  }, 1000);
+  stopClockSubscription = subscribeClock((now) => {
+    env.currentTime = new Date(now);
+  });
 
   // 初次加载在线问候
   fetchOnlineGreeting();
 });
 
 onUnmounted(() => {
-  if (timer) clearInterval(timer);
+  stopClockSubscription?.();
+  stopClockSubscription = null;
 });
 </script>
 

@@ -2,6 +2,7 @@ import { sm2, sm4 } from "sm-crypto";
 import * as crypto from "./index";
 import type { PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { getConfig } from "@repo/config";
+import { resolveRequestEncryptConfig } from "../http/config-resolver";
 // 导入统一接口（自动降级）
 import {
   encryptSM4,
@@ -28,10 +29,6 @@ const STRING_TYPE = "string";
 const OBJECT_TYPE = "object";
 const SETTING_PATH = "/v2/setting";
 const DEFAULT_AES_KEY = "1234567890Oil#@1";
-const REQUEST_CODEC_CONFIG = "CodecRequestOpen";
-const LEGACY_REQUEST_CODEC_CONFIG = "requestCodecOpen";
-const CODEC_REQUEST_KEY_CONFIG = "CodecRequestKey";
-const LEGACY_CODEC_REQUEST_KEY_CONFIG = "codecRequestKey";
 const RESPONSE_CODEC_HEADER = "access-control-no-data";
 const JSON_CONTENT_TYPE = "application/json";
 const REQUEST_ENCRYPT_HEADER = ORIGIN_KEY_HEADER;
@@ -227,32 +224,6 @@ const normalizeHeaders = (headers: unknown): Record<string, string> => {
   );
 };
 
-const getBooleanConfig = (...keys: string[]): boolean => {
-  for (const key of keys) {
-    const value = getConfig(key);
-    if (value === null || value === undefined || value === "") {
-      continue;
-    }
-    if (typeof value === "boolean") {
-      return value;
-    }
-    if (typeof value === "string") {
-      return value.toLowerCase() === "true";
-    }
-  }
-  return false;
-};
-
-const getStringConfig = (...keys: string[]): string => {
-  for (const key of keys) {
-    const value = getConfig(key);
-    if (typeof value === "string" && value.trim()) {
-      return value.trim();
-    }
-  }
-  return "";
-};
-
 const isFileLike = (value: unknown): boolean =>
   typeof File !== "undefined" && value instanceof File;
 
@@ -275,14 +246,10 @@ const hasBinaryPayload = (value: unknown): boolean => {
   );
 };
 
-const isRequestCodecEnabled = (): boolean =>
-  getBooleanConfig(REQUEST_CODEC_CONFIG, LEGACY_REQUEST_CODEC_CONFIG);
-
-const getRequestCodecKey = (): string =>
-  getStringConfig(CODEC_REQUEST_KEY_CONFIG, LEGACY_CODEC_REQUEST_KEY_CONFIG);
+const getRequestEncryptConfig = () => resolveRequestEncryptConfig(getConfig());
 
 const shouldEncryptRequest = (request: PureHttpRequestConfig): boolean => {
-  if (!isRequestCodecEnabled()) {
+  if (!getRequestEncryptConfig().enableEncrypt) {
     return false;
   }
 
@@ -350,9 +317,11 @@ export const uu2 = async (
     return request;
   }
 
-  const codecRequestKey = getRequestCodecKey();
+  const codecRequestKey = getRequestEncryptConfig().codecRequestKey;
   if (!codecRequestKey) {
-    throw new Error("[codec] 请求加密已开启，但缺少 CodecRequestKey 配置");
+    throw new Error(
+      "[codec] 请求加密已开启，但缺少 Request.codecRequestKey/CodecRequestKey 配置",
+    );
   }
 
   try {

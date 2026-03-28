@@ -52,7 +52,7 @@
  * @version 1.0.0
  */
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline"
+import ScRibbon from "@repo/components/ScRibbon/index.vue";
 import { computed, useSlots } from "vue";
 
 const props = defineProps({

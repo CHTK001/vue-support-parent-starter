@@ -2,6 +2,7 @@ import type { Component } from "vue";
 import { JobConsolePage } from "@pages/job";
 import { PaymentConsolePage } from "@pages/pay";
 import { ProxyConsolePage } from "@pages/proxy";
+import { SpiderConsolePage } from "../../../../pages/spider/src";
 import { StrategyConsolePage } from "@pages/strategy";
 import { SyncDataConsolePage } from "@pages/sync";
 
@@ -41,6 +42,15 @@ export const springPageDefinitions: SpringPageDefinition[] = [
     eyebrow: "Proxy Starter",
     outputDir: "proxy-console",
     component: ProxyConsolePage,
+  },
+  {
+    key: "spider-console",
+    title: "Spider Console",
+    description:
+      "在 Spring 模块内直接维护爬虫任务、节点编排、XPath 可视化和数据库输出表结构。",
+    eyebrow: "Spider Starter",
+    outputDir: "spider-console",
+    component: SpiderConsolePage,
   },
   {
     key: "strategy-console",

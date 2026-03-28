@@ -424,7 +424,6 @@
 import { ref } from "vue";
 import { ScImage } from "@repo/components/ScImage"
 import CodePreview from "./CodePreview.vue";
-import { ScImage } from "@repo/components/ScImage";
 import { message } from "@repo/utils";
 
 // 基础示例

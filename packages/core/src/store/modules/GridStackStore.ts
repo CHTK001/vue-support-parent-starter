@@ -46,8 +46,8 @@ export const useGridStackStore = defineStore({
       return {
         frameSrc: sysSfc.sysSfcPath,
         fullPath: sysSfc.sysSfcPath,
-
-        key: sysSfc.sysSfcId + "#" + new Date().getTime(),
+        // 使用稳定 key，避免父组件重渲染时反复强制重建
+        key: sysSfc.sysSfcId,
       };
     },
     setVue(vue) {

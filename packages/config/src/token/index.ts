@@ -2,6 +2,7 @@ import Cookies from "js-cookie";
 
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
+const TOKEN_EXPIRES_SECOND_THRESHOLD = 1_000_000_000_000;
 
 /**
  * 通过`multiple-tabs`是否在`cookie`中，判断用户是否已经登录系统，
@@ -17,15 +18,48 @@ export function getToken(): any {
   return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : null;
 }
 
+/**
+ * 统一解析后端返回的 token 过期时间
+ * 支持秒级时间戳、毫秒级时间戳、日期字符串和缺省值
+ */
+export function normalizeTokenExpires(expires: unknown): number {
+  if (expires == null) {
+    return 0;
+  }
+
+  if (typeof expires === "number" && Number.isFinite(expires)) {
+    if (expires <= 0) {
+      return 0;
+    }
+    return expires < TOKEN_EXPIRES_SECOND_THRESHOLD ? expires * 1000 : expires;
+  }
+
+  if (typeof expires === "string") {
+    const normalizedValue = expires.trim();
+    if (!normalizedValue) {
+      return 0;
+    }
+
+    const numberValue = Number(normalizedValue);
+    if (Number.isFinite(numberValue)) {
+      return normalizeTokenExpires(numberValue);
+    }
+
+    const dateValue = Date.parse(normalizedValue);
+    return Number.isFinite(dateValue) ? dateValue : 0;
+  }
+
+  return 0;
+}
+
 /** 设置`token` */
 export function setToken(data: any, userSetting: any = {}) {
-  let expires = 0;
   const { accessToken, refreshToken } = data;
   const { isRemembered, loginDay } = userSetting;
-  expires = new Date(~~data.expires * 1000).getTime(); // 如果后端直接设置时间戳，将此处代码改为expires = data.expires，然后把上面的DataInfo<Date>改成DataInfo<number>即可
+  const expires = normalizeTokenExpires(data?.expires);
   const cookieString = JSON.stringify({ accessToken, expires, refreshToken });
 
-  expires >= 0
+  expires > 0
     ? Cookies.set(TokenKey, cookieString, {
         expires: (expires - Date.now()) / 86400000,
       })

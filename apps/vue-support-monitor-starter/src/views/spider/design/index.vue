@@ -15,7 +15,7 @@
           <ScIcon><VideoPlay /></ScIcon>
           运行任务
         </ScButton>
-      </ScButton-group>
+      </el-button-group>
       <el-button-group style="margin-left: 10px">
         <ScButton @click="handleClear">
           <ScIcon><Delete /></ScIcon>
@@ -25,7 +25,7 @@
           <ScIcon><Back /></ScIcon>
           返回
         </ScButton>
-      </ScButton-group>
+      </el-button-group>
       <div v-if="taskInfo" class="task-info">
         <span>任务: {{ taskInfo.spiderTaskName }}</span>
       </div>

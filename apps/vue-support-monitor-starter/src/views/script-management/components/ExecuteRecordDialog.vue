@@ -179,7 +179,7 @@
                   <IconifyIconOnline icon="ri:delete-bin-line" />
                 </ScButton>
               </ScTooltip>
-            </ScButton-group>
+            </el-button-group>
           </template>
         </ScTableColumn>
       </ScTable>

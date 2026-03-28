@@ -74,6 +74,10 @@ async function collectReferencedFiles(distRoot, entryFiles) {
     if (!current || !existsSync(current)) {
       continue;
     }
+    const currentStat = await stat(current);
+    if (!currentStat.isFile()) {
+      continue;
+    }
     const source = await readFile(current, "utf8");
     const extension = extname(current).toLowerCase();
     const patterns = [];
