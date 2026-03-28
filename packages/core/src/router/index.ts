@@ -36,6 +36,7 @@ import {
   initRouter,
   isOneOfArray,
 } from "./utils";
+import { shouldLoadLocalBusinessRoutes } from "./route-mode";
 
 /** 默认菜单图标 */
 const DEFAULT_MENU_ICON = "ri:menu-line";
@@ -47,6 +48,36 @@ const { VITE_HIDE_HOME } = import.meta.env;
 
 /** 不参与菜单显示的路由集合 */
 const remainingRouter: RouteRecordRaw[] = [];
+
+const appendRouteRecord = (
+  container: RouteRecordRaw[],
+  route: RouteRecordRaw,
+): void => {
+  if (!route) return;
+
+  ensureRouteIcon(route);
+
+  const duplicatedIndex = container.findIndex((item) => {
+    if (!item) return false;
+    return (
+      (route.name && item.name === route.name) ||
+      (!!route.path && item.path === route.path)
+    );
+  });
+
+  if (duplicatedIndex !== -1) {
+    container[duplicatedIndex] = route;
+    return;
+  }
+
+  container.push(route);
+};
+
+const resolveModuleRoutes = (module: any): RouteRecordRaw[] => {
+  const routes = module?.default;
+  if (!routes) return [];
+  return Array.isArray(routes) ? routes : [routes];
+};
 
 /**
  * 确保路由具有图标，若无则设置默认图标
@@ -67,23 +98,14 @@ const ensureRouteIcon = (route: any): void => {
 const loadRemainingRoutes = (): void => {
   // @ts-ignore
   const noInModules: Record<string, any> = import.meta.glob(
-    ["./modules/**/remaining*.ts"],
+    ["./modules/**/remaining*.ts", "@/router/modules/**/remaining*.ts"],
     { eager: true },
   );
 
   Object.values(noInModules).forEach((module) => {
-    const routes = module.default;
-    if (!routes) return;
-
-    if (Array.isArray(routes)) {
-      routes.forEach((route) => {
-        ensureRouteIcon(route);
-        remainingRouter.push(route);
-      });
-    } else {
-      ensureRouteIcon(routes);
-      remainingRouter.push(routes);
-    }
+    resolveModuleRoutes(module).forEach((route) => {
+      appendRouteRecord(remainingRouter, route);
+    });
   });
 };
 
@@ -92,6 +114,16 @@ loadRemainingRoutes();
 /** 原始静态路由（未做任何处理） */
 const routes = [];
 const routerNameMapping = new Set();
+// @ts-ignore
+const coreNormalRouteModules: Record<string, any> = import.meta.glob(
+  ["./modules/**/*.ts", "!./modules/**/remaining*.ts"],
+  { eager: true },
+);
+// @ts-ignore
+const appNormalRouteModules: Record<string, any> = import.meta.glob(
+  ["@/router/modules/**/*.ts", "!@/router/modules/**/remaining*.ts"],
+  { eager: true },
+);
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
  * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
@@ -209,22 +241,23 @@ const _createAutoRouter = () => {
 /**
  * 创建普通路由（基于TS模块）
  */
-const _createNormalRouter = () => {
-  // @ts-ignore
-  const modules: Record<string, any> = import.meta.glob(
-    ["./modules/**/*.ts", "!./modules/**/remaining*.ts"],
-    { eager: true },
-  );
-
+const appendNormalRoutes = (modules: Record<string, any>) => {
   Object.values(modules).forEach((module) => {
-    const route = module.default;
-    if (!route) return;
-
-    // 确保路由有默认图标
-    ensureRouteIcon(route);
-    routes.push(route);
-    routerNameMapping.add(route.name?.toLowerCase());
+    resolveModuleRoutes(module).forEach((route) => {
+      appendRouteRecord(routes, route);
+      if (route.name) {
+        routerNameMapping.add(String(route.name).toLowerCase());
+      }
+    });
   });
+};
+
+const _createCoreNormalRouter = () => {
+  appendNormalRoutes(coreNormalRouteModules);
+};
+
+const _createAppNormalRouter = () => {
+  appendNormalRoutes(appNormalRouteModules);
 };
 
 /**
@@ -233,14 +266,25 @@ const _createNormalRouter = () => {
 const initRouterMode = (): void => {
   const config = getConfig();
   const routerModule = config.RouterModule;
+  const loadLocalBusinessRoutes = shouldLoadLocalBusinessRoutes(config);
 
   if (config.AutoRouter || routerModule === "AUTO") {
-    _createAutoRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAutoRouter();
+    }
   } else if (routerModule === "MIX") {
-    _createAutoRouter();
-    _createNormalRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAutoRouter();
+    }
+    _createCoreNormalRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAppNormalRouter();
+    }
   } else {
-    _createNormalRouter();
+    _createCoreNormalRouter();
+    if (loadLocalBusinessRoutes) {
+      _createAppNormalRouter();
+    }
   }
 };
 
@@ -272,19 +316,19 @@ export const router: Router = createRouter({
   routes: constantRoutes.concat(...remainingRouter),
   strict: true,
   scrollBehavior(to, from, savedPosition) {
-    return new Promise((resolve) => {
-      if (savedPosition) {
-        return savedPosition;
-      } else {
-        if (from.meta.saveSrollTop) {
-          //@ts-ignore
-          const top: number =
-            //@ts-ignore
-            document.documentElement.scrollTop || document.body.scrollTop;
-          resolve({ left: 0, top });
-        }
-      }
-    });
+    if (savedPosition) {
+      return savedPosition;
+    }
+
+    if (from.meta.saveSrollTop) {
+      //@ts-ignore
+      const top: number =
+        //@ts-ignore
+        document.documentElement.scrollTop || document.body.scrollTop;
+      return { left: 0, top };
+    }
+
+    return { left: 0, top: 0 };
   },
 });
 
@@ -333,6 +377,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   }
 
   const userInfo = localStorageProxy().getItem<UserResult>(userKey);
+  const userRoles = userInfo?.userInfo?.roles || (userInfo as any)?.roles || [];
   /** 如果已经登录并存在登录信息后不能跳转到路由白名单，而是继续保持在当前页面 */
   function toCorrectRoute() {
     whiteList.includes(to.fullPath) ? next(_from.fullPath) : next();
@@ -341,7 +386,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     // 无权限跳转403页面
     if (
       to.meta?.roles &&
-      !isOneOfArray(to.meta?.roles, userInfo?.userInfo?.roles)
+      !isOneOfArray(to.meta?.roles, userRoles)
     ) {
       next({ path: "/error/403" });
     }
