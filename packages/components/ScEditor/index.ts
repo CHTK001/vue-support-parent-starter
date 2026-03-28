@@ -3,3 +3,4 @@ import component from "./index.vue";
 
 export const ScEditor = withInstall(component);
 export default ScEditor;
+

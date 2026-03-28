@@ -3,3 +3,4 @@ import component from "./index.vue";
 
 export const ScContextMenu = withInstall(component);
 export default ScContextMenu;
+

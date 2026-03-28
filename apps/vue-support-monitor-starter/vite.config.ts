@@ -1,5 +1,6 @@
 import { createViteConfig } from "@repo/build-config";
 import type { ConfigEnv, Plugin, UserConfigExport } from "vite";
+import { loadEnv } from "vite";
 import pkg from "./package.json";
 import { resolve } from "path";
 import { createRequire } from "module";
@@ -10,7 +11,6 @@ const require = createRequire(import.meta.url);
 const elementPlusIconsImport = "@element-plus/icons-vue";
 const elementPlusIconsRuntimeFile = "static/js/element-plus-icons-runtime.js";
 const vueRuntimeFile = "static/js/vue-runtime.js";
-const enableFakeServer = process.env.VITE_ENABLE_FAKE_SERVER === "true";
 
 const vueRuntimeSource = readFileSync(
   require.resolve("vue/dist/vue.runtime.esm-browser.prod.js"),
@@ -71,28 +71,41 @@ const manualChunks = (id: string) => {
   return undefined;
 };
 
-const builder = createViteConfig(import.meta.url, pkg)
-  .proxy("/api", "http://127.0.0.1:8080")
-  .alias("@layout/default", resolve(root, "layout/default/src"))
-  .alias("@pages/common", resolve(root, "pages/common"))
-  .alias("@pages/dict", resolve(root, "pages/dict/src"))
-  .alias("@pages/example", resolve(root, "pages/example/src"))
-  .alias("@pages/pay", resolve(root, "pages/pay/src"))
-  .alias("@pages/project", resolve(root, "pages/project/src"))
-  .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
-  .alias("@pages/setting", resolve(root, "pages/setting/src"))
-  .alias("@pages/system", resolve(root, "pages/system/src"))
-  .alias("@pages/video", resolve(root, "pages/video/src"))
-  .plugins(bundleElementPlusIconsRuntime());
+const resolveEnableFakeServer = (mode: string) => {
+  const env = loadEnv(mode, __dirname, "");
+  return (
+    process.env.VITE_ENABLE_FAKE_SERVER === "true" ||
+    env.VITE_ENABLE_FAKE_SERVER === "true"
+  );
+};
 
-if (enableFakeServer) {
-  builder.mock(["mock"]);
-}
+const createBuilder = (enableFakeServer: boolean) => {
+  const builder = createViteConfig(import.meta.url, pkg)
+    .alias("@layout/default", resolve(root, "layout/default/src"))
+    .alias("@pages/common", resolve(root, "pages/common"))
+    .alias("@pages/dict", resolve(root, "pages/dict/src"))
+    .alias("@pages/example", resolve(root, "pages/example/src"))
+    .alias("@pages/pay", resolve(root, "pages/pay/src"))
+    .alias("@pages/project", resolve(root, "pages/project/src"))
+    .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
+    .alias("@pages/setting", resolve(root, "pages/setting/src"))
+    .alias("@pages/system", resolve(root, "pages/system/src"))
+    .alias("@pages/video", resolve(root, "pages/video/src"))
+    .plugins(bundleElementPlusIconsRuntime());
 
-const baseConfig = builder.build();
+  if (!enableFakeServer) {
+    builder.proxy("/api", "http://127.0.0.1:8080");
+  }
+
+  if (enableFakeServer) {
+    builder.mock(["mock"]);
+  }
+
+  return builder;
+};
 
 export default (env: ConfigEnv): UserConfigExport => {
-  const config = baseConfig(env);
+  const config = createBuilder(resolveEnableFakeServer(env.mode)).build()(env);
   config.build = {
     ...(config.build ?? {}),
     rollupOptions: {
