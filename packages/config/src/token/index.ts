@@ -1,4 +1,6 @@
 import Cookies from "js-cookie";
+import { decryptStorageValue, encryptStorageKey } from "@repo/codec-wasm";
+import { getConfig } from "../config";
 
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
@@ -14,8 +16,78 @@ export const multipleTabsKey = "multiple-tabs";
 
 /** 获取`token` */
 export function getToken(): any {
-  // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : null;
+  const cookieToken = parseTokenPayload(Cookies.get(TokenKey));
+  if (hasAccessToken(cookieToken)) {
+    return cookieToken;
+  }
+
+  const storageToken = readTokenFromUserStorage();
+  if (hasAccessToken(storageToken)) {
+    return {
+      ...(cookieToken || {}),
+      ...storageToken,
+    };
+  }
+
+  return cookieToken || null;
+}
+
+function parseTokenPayload(raw?: string | null) {
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function hasAccessToken(token: any) {
+  return typeof token?.accessToken === "string" && token.accessToken.trim() !== "";
+}
+
+function readTokenFromUserStorage() {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return null;
+  }
+
+  try {
+    const config = getConfig();
+    const encryptedKey = encryptStorageKey(userKey, config.SystemCode);
+    const rawValue =
+      window.localStorage.getItem(encryptedKey) ||
+      window.localStorage.getItem(userKey);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const decodedValue =
+      config.StorageEncode === false
+        ? rawValue
+        : decryptStorageValue(
+            rawValue,
+            config.StorageKey,
+            config.SystemCode,
+            config.StorageKey,
+            config.StorageEncode,
+          );
+
+    const parsedValue = parseTokenPayload(decodedValue || rawValue);
+    if (!hasAccessToken(parsedValue)) {
+      return null;
+    }
+
+    return {
+      accessToken: parsedValue.accessToken,
+      refreshToken: parsedValue.refreshToken || "",
+      expires: normalizeTokenExpires(parsedValue.expires),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -339,6 +339,15 @@ const resolveComponent = (path) => {
 // 组件列表
 const components = [
   {
+    name: "ScFlourishEmbed",
+    icon: "ri:bar-chart-grouped-line",
+    category: "data",
+    tags: ["Flourish", "可视化", "嵌入"],
+    description:
+      "Flourish 数据可视化嵌入组件，支持 Public Embed（公开嵌入）和 Live API（程序化创建）两种模式，无需额外 npm 依赖",
+    component: resolveComponent("./components/ScFlourishEmbedExample.vue"),
+  },
+  {
     name: "ScTable",
     icon: "carbon:table",
     category: "data",

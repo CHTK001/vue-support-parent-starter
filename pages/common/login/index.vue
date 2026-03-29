@@ -7,56 +7,38 @@ import { getConfig, setConfig } from "@repo/config/src/config";
 import {
   getAllLanguageConfigs,
   getLanguageConfig,
-  type LanguageConfig,
 } from "@repo/config/src/i18n";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchVerifyCode } from "@repo/core";
-import { getParameter, localStorageProxy } from "@repo/utils";
-import {
-  computed,
-  defineAsyncComponent,
-  markRaw,
-  onBeforeMount,
-  reactive,
-  ref,
-  toRaw,
-} from "vue";
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
-import ThirdParty from "./components/thirdParty.vue";
 import ThemeSwitcher from "./components/ThemeSwitcher.vue";
 import { getLoginTheme as getLoginThemeComponent } from "./themes";
 import { getThemeConfig } from "./utils/themeConfig";
-import globalization from "@repo/assets/svg/globalization.svg?component";
-import {  useRenderIcon  } from "@repo/components/ReIcon";
 
 defineOptions({
   name: "Login",
 });
 
-// 获取主题配置
 const storedConfig = getThemeConfig();
 const themeConfig = storedConfig.LoginTheme;
 const enableFestival = storedConfig.EnableFestivalTheme;
 const enableThemeSwitcher = getConfig("EnableLoginThemeSwitcher") !== false;
 
-console.debug("[Login] Theme config:", {
-  loginTheme: themeConfig,
-  enableFestival,
-  enableThemeSwitcher,
+const currentTheme = getLoginThemeComponent(themeConfig, enableFestival);
+
+const ThemeComponent = defineAsyncComponent({
+  loader: currentTheme.component,
+  suspensible: false,
+  delay: 0,
 });
 
-const currentTheme = getLoginThemeComponent(themeConfig, enableFestival);
-console.debug("[Login] Theme component loaded:", currentTheme.key || currentTheme.name);
-
-const ThemeComponent = defineAsyncComponent(currentTheme.component);
-
-const BaseLayout = defineAsyncComponent(() => import("./layout/base.vue"));
-const redirectParam = getParameter("redirectParam");
-const ThirdPartyLayout = markRaw(ThirdParty);
-const router = useRouter();
-const loading = ref(false);
+const BaseLayout = defineAsyncComponent({
+  loader: () => import("./layout/base.vue"),
+  suspensible: false,
+  delay: 0,
+});
 const loginType = ref(1);
-const ruleFormRef = ref();
 const { initStorage } = useLayout();
 initStorage();
 
@@ -70,7 +52,8 @@ const languageConfigs = getAllLanguageConfigs();
 
 // 获取当前语言的配置
 const currentLanguageConfig = computed(() => {
-  const currentLocale = typeof locale.value === "string" ? locale.value : locale.value.value;
+  const currentLocale =
+    typeof locale.value === "string" ? locale.value : locale.value.value;
   return getLanguageConfig(currentLocale);
 });
 
@@ -83,6 +66,17 @@ const isZhCnLocale = computed(() => {
 const isDarkTheme = computed(
   () => overallStyle.value === "dark" || dataTheme.value,
 );
+
+interface LoginDefaultSetting {
+  OpenVerifyCode: boolean;
+  OpenVcode: boolean;
+  CheckTotpOpen: boolean;
+  OpenThirdPartyLogin: boolean;
+  OpenTenantLogin: boolean;
+  OpenBaseLogin: boolean;
+  SystemName: string;
+  [key: string]: boolean | string;
+}
 
 const themeModeText = computed(() => ({
   light: isZhCnLocale.value ? "浅色" : "Light",
@@ -98,11 +92,13 @@ const setLoginThemeMode = (mode: "light" | "dark") => {
   dataThemeChange(mode);
 };
 
-const defaultSetting = reactive({
+const defaultSetting = reactive<LoginDefaultSetting>({
   OpenVerifyCode: false,
   OpenVcode: false,
   CheckTotpOpen: false,
   OpenThirdPartyLogin: false,
+  OpenTenantLogin: false,
+  OpenBaseLogin: false,
   SystemName: "",
 });
 const ssoSetting = reactive({
@@ -124,22 +120,22 @@ const loadDefaultSetting = async () => {
       }
       if (element.sysSettingGroup == "default") {
         if (element.sysSettingName === "SystemName") {
-          defaultSetting.systemName = element.sysSettingValue;
-          setConfig("Title", defaultSetting.systemName);
+          defaultSetting.SystemName = element.sysSettingValue;
+          setConfig("Title", defaultSetting.SystemName);
           return;
         }
         if (element.sysSettingName === "CheckCodeOpen") {
-          defaultSetting.openVerifyCode = element.sysSettingValue === "true";
+          defaultSetting.OpenVerifyCode = element.sysSettingValue === "true";
           return;
         }
 
         if (element.sysSettingName === "CheckTotpCodeOpen") {
-          defaultSetting.checkTotpOpen = element.sysSettingValue === "true";
+          defaultSetting.CheckTotpOpen = element.sysSettingValue === "true";
           return;
         }
 
         if (element.sysSettingName === "SlidingBlockOpen") {
-          defaultSetting.openVcode = element.sysSettingValue === "true";
+          defaultSetting.OpenVcode = element.sysSettingValue === "true";
           return;
         }
         if (element.sysSettingName === "OpenThirdPartyLogin") {
@@ -155,12 +151,13 @@ const loadDefaultSetting = async () => {
       }
     });
 
-    if (defaultSetting.openVerifyCode) {
+    if (defaultSetting.OpenVerifyCode) {
       await getVerifyCode();
     }
   } catch (error) {
-    // 接口异常时静默处理，保证登录页面正常显示
-    console.warn("获取默认配置失败:", error);
+    if (import.meta.env.DEV) {
+      console.warn("[login] 获取默认配置失败:", error);
+    }
   }
 };
 
@@ -168,14 +165,24 @@ const registerConfigToDefault = () => {
   defaultSetting.OpenTenantLogin = getConfig().OpenTenantLogin;
   defaultSetting.OpenBaseLogin = getConfig().OpenBaseLogin;
 };
-onBeforeMount(async () => {
-  registerConfigToDefault();
-  await loadDefaultSetting();
-  if (defaultSetting.OpenBaseLogin) {
-    loginType.value = 1;
-  } else if (defaultSetting.OpenTenantLogin) {
-    loginType.value = 2;
-  }
+
+const syncLoginType = () => {
+  loginType.value = getSwitchLoginType();
+};
+
+registerConfigToDefault();
+syncLoginType();
+
+onMounted(() => {
+  const scheduleLoad =
+    typeof window !== "undefined" && "requestAnimationFrame" in window
+      ? window.requestAnimationFrame.bind(window)
+      : (callback: FrameRequestCallback) =>
+          window.setTimeout(() => callback(performance.now()), 16);
+
+  scheduleLoad(() => {
+    void loadDefaultSetting().then(syncLoginType);
+  });
 });
 
 const defaultVerifyCode = ref({
@@ -196,7 +203,7 @@ const openSwitchLoginType = computed(() => {
   return defaultSetting.OpenBaseLogin && defaultSetting.OpenTenantLogin;
 });
 
-const getSwitchLoginType = () => {
+function getSwitchLoginType() {
   if (defaultSetting.OpenBaseLogin) {
     return 1;
   }
@@ -205,7 +212,7 @@ const getSwitchLoginType = () => {
   }
   // 默认返回普通登录类型，确保登录框能正常显示
   return 1;
-};
+}
 
 // 判断当前环境
 const currentEnv = import.meta.env.MODE || "production";
@@ -230,97 +237,121 @@ const envBadgeClass = computed(() => {
   <component :is="ThemeComponent">
     <!-- 顶部工具栏 -->
     <template #toolbar>
-    <div class="modern-toolbar">
-      <div class="toolbar-content">
-        <!-- 环境标识 -->
-        <div v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
-          <IconifyIconOnline
-            :icon="isDevelopment ? 'ri:code-s-slash-line' : 'ri:test-tube-line'"
+      <div class="modern-toolbar">
+        <div class="toolbar-content">
+          <!-- 环境标识 -->
+          <div v-if="showEnvBadge" class="env-badge" :class="envBadgeClass">
+            <IconifyIconOnline
+              :icon="
+                isDevelopment ? 'ri:code-s-slash-line' : 'ri:test-tube-line'
+              "
+            />
+            <span>{{ envBadgeText }}</span>
+          </div>
+
+          <div class="toolbar-spacer" />
+
+          <!-- 主题切换器 -->
+          <ThemeSwitcher
+            v-if="enableThemeSwitcher"
+            style="margin-right: 15px"
           />
-          <span>{{ envBadgeText }}</span>
-        </div>
 
-        <div class="toolbar-spacer"></div>
-
-        <!-- 主题切换器 -->
-        <ThemeSwitcher v-if="enableThemeSwitcher" style="margin-right: 15px" />
-
-        <!-- 主题切换 -->
-        <div class="theme-switch-container">
-          <div class="theme-mode-toggle" role="group" aria-label="Theme mode">
-            <button
-              type="button"
-              class="theme-mode-button"
-              :class="{ active: !isDarkTheme }"
-              @click="setLoginThemeMode('light')"
-            >
-              <IconifyIconOnline icon="ri:sun-line" class="theme-mode-icon" />
-              <span>{{ themeModeText.light }}</span>
-            </button>
-            <button
-              type="button"
-              class="theme-mode-button"
-              :class="{ active: isDarkTheme }"
-              @click="setLoginThemeMode('dark')"
-            >
-              <IconifyIconOnline icon="ri:moon-clear-line" class="theme-mode-icon" />
-              <span>{{ themeModeText.dark }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 语言切换 -->
-        <el-dropdown
-          trigger="click"
-          popper-class="lang-dropdown-popper"
-        >
-          <div class="lang-trigger">
-            <div class="lang-icon-wrapper">
-              <IconifyIconOnline icon="ri:translate-2" class="lang-main-icon" />
-            </div>
-            <div class="lang-info">
-              <span class="lang-name">{{ currentLanguageConfig.nativeName }}</span>
-              <span class="lang-role">{{
-                locale === "zh-CN" ? "语言" : "Language"
-              }}</span>
-            </div>
-            <span class="dropdown-arrow-wrapper">
-              <IconifyIconOnline
-                icon="ri:arrow-down-s-line"
-                class="dropdown-arrow"
-              />
-            </span>
-          </div>
-          <template #dropdown>
-            <el-dropdown-menu class="lang-menu">
-              <div class="lang-header">
-                <IconifyIconOnline icon="ri:global-line" />
-                <span>选择语言</span>
-              </div>
-              <el-dropdown-item
-                v-for="langConfig in languageConfigs"
-                :key="langConfig.code"
-                :class="['lang-item', { active: (typeof locale === 'string' ? locale : locale.value) === langConfig.code }]"
-                @click="translation(langConfig.code)"
+          <!-- 主题切换 -->
+          <div class="theme-switch-container">
+            <div class="theme-mode-toggle" role="group" aria-label="Theme mode">
+              <button
+                type="button"
+                class="theme-mode-button"
+                :class="{ active: !isDarkTheme }"
+                @click="setLoginThemeMode('light')"
               >
-                <div class="lang-item-content">
-                  <span class="lang-flag">{{ langConfig.flag }}</span>
-                  <div class="lang-item-info">
-                    <span class="lang-item-name">{{ langConfig.nativeName }}</span>
-                    <span class="lang-item-desc">{{ langConfig.description }}</span>
-                  </div>
-                </div>
+                <IconifyIconOnline icon="ri:sun-line" class="theme-mode-icon" />
+                <span>{{ themeModeText.light }}</span>
+              </button>
+              <button
+                type="button"
+                class="theme-mode-button"
+                :class="{ active: isDarkTheme }"
+                @click="setLoginThemeMode('dark')"
+              >
                 <IconifyIconOnline
-                  v-show="(typeof locale === 'string' ? locale : locale.value) === langConfig.code"
-                  class="lang-check"
-                  icon="ep:check"
+                  icon="ri:moon-clear-line"
+                  class="theme-mode-icon"
                 />
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+                <span>{{ themeModeText.dark }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 语言切换 -->
+          <el-dropdown trigger="click" popper-class="lang-dropdown-popper">
+            <div class="lang-trigger">
+              <div class="lang-icon-wrapper">
+                <IconifyIconOnline
+                  icon="ri:translate-2"
+                  class="lang-main-icon"
+                />
+              </div>
+              <div class="lang-info">
+                <span class="lang-name">{{
+                  currentLanguageConfig.nativeName
+                }}</span>
+                <span class="lang-role">{{
+                  locale === "zh-CN" ? "语言" : "Language"
+                }}</span>
+              </div>
+              <span class="dropdown-arrow-wrapper">
+                <IconifyIconOnline
+                  icon="ri:arrow-down-s-line"
+                  class="dropdown-arrow"
+                />
+              </span>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu class="lang-menu">
+                <div class="lang-header">
+                  <IconifyIconOnline icon="ri:global-line" />
+                  <span>选择语言</span>
+                </div>
+                <el-dropdown-item
+                  v-for="langConfig in languageConfigs"
+                  :key="langConfig.code"
+                  :class="[
+                    'lang-item',
+                    {
+                      active:
+                        (typeof locale === 'string' ? locale : locale.value) ===
+                        langConfig.code,
+                    },
+                  ]"
+                  @click="translation(langConfig.code)"
+                >
+                  <div class="lang-item-content">
+                    <span class="lang-flag">{{ langConfig.flag }}</span>
+                    <div class="lang-item-info">
+                      <span class="lang-item-name">{{
+                        langConfig.nativeName
+                      }}</span>
+                      <span class="lang-item-desc">{{
+                        langConfig.description
+                      }}</span>
+                    </div>
+                  </div>
+                  <IconifyIconOnline
+                    v-show="
+                      (typeof locale === 'string' ? locale : locale.value) ===
+                      langConfig.code
+                    "
+                    class="lang-check"
+                    icon="ep:check"
+                  />
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </div>
-    </div>
     </template>
 
     <!-- 表单内容 -->
@@ -336,40 +367,40 @@ const envBadgeClass = computed(() => {
 
       <!-- 登录类型选择 -->
       <div v-if="openSwitchLoginType" class="login-type-selector">
-              <div class="selector-title">选择登录方式</div>
-              <div class="selector-options">
-                <div
-                  v-if="defaultSetting.OpenBaseLogin"
-                  class="option-card"
-                  :class="{ active: loginType == 1 }"
-                  @click="handleChangeLoginType(1)"
-                >
-                  <div class="option-icon-wrapper">
-                    <el-icon class="option-icon">
-                      <component :is="useRenderIcon('ep:user')" />
-                    </el-icon>
-                  </div>
-                  <div class="option-content">
-                    <div class="option-title">普通登录</div>
-                    <div class="option-desc">账号/手机号登录</div>
-                  </div>
-                </div>
+        <div class="selector-title">选择登录方式</div>
+        <div class="selector-options">
+          <div
+            v-if="defaultSetting.OpenBaseLogin"
+            class="option-card"
+            :class="{ active: loginType == 1 }"
+            @click="handleChangeLoginType(1)"
+          >
+            <div class="option-icon-wrapper">
+              <el-icon class="option-icon">
+                <component :is="useRenderIcon('ep:user')" />
+              </el-icon>
+            </div>
+            <div class="option-content">
+              <div class="option-title">普通登录</div>
+              <div class="option-desc">账号/手机号登录</div>
+            </div>
+          </div>
 
-                <div
-                  v-if="defaultSetting.OpenTenantLogin"
-                  class="option-card"
-                  :class="{ active: loginType == 2 }"
-                  @click="handleChangeLoginType(2)"
-                >
-                  <div class="option-icon-wrapper">
-                    <el-icon class="option-icon">
-                      <component :is="useRenderIcon('ep:office-building')" />
-                    </el-icon>
-                  </div>
-                  <div class="option-content">
-                    <div class="option-title">租户登录</div>
-                    <div class="option-desc">租户账号/手机号登录</div>
-                  </div>
+          <div
+            v-if="defaultSetting.OpenTenantLogin"
+            class="option-card"
+            :class="{ active: loginType == 2 }"
+            @click="handleChangeLoginType(2)"
+          >
+            <div class="option-icon-wrapper">
+              <el-icon class="option-icon">
+                <component :is="useRenderIcon('ep:office-building')" />
+              </el-icon>
+            </div>
+            <div class="option-content">
+              <div class="option-title">租户登录</div>
+              <div class="option-desc">租户账号/手机号登录</div>
+            </div>
           </div>
         </div>
       </div>

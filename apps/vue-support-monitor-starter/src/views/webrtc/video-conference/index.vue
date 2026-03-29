@@ -71,7 +71,7 @@
             <div class="participant-info">
               <span class="participant-name">{{ participant.username }}</span>
               <div class="participant-status">
-                <el-icon v-if="!participant.audioEnabled" class="muted-icon"><MicrophoneFilled /></el-icon>
+                <el-icon v-if="!participant.audioEnabled" class="muted-icon"><MuteNotification /></el-icon>
                 <el-icon v-if="!participant.videoEnabled" class="video-off-icon"><VideoCameraFilled /></el-icon>
               </div>
             </div>
@@ -125,7 +125,7 @@
             circle
             @click="toggleAudio"
           >
-            <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+            <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
           </el-button>
           
           <el-button
@@ -318,7 +318,7 @@
           <template #default="{ row }">
             <div class="participant-status-list">
               <el-tag v-if="row.isPresenting" type="success" size="small">演示中</el-tag>
-              <el-icon v-if="!row.audioEnabled" class="status-icon muted"><MicrophoneFilled /></el-icon>
+              <el-icon v-if="!row.audioEnabled" class="status-icon muted"><MuteNotification /></el-icon>
               <el-icon v-if="!row.videoEnabled" class="status-icon video-off"><VideoCameraFilled /></el-icon>
             </div>
           </template>
@@ -402,7 +402,7 @@ import {
   VideoCamera,
   VideoCameraFilled,
   Microphone,
-  MicrophoneFilled,
+  MuteNotification,
   PhoneFilled,
   Monitor,
   Setting,

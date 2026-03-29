@@ -48,6 +48,7 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@repo/components": "workspace:^",
+    "@repo/components/ScFlourishEmbed": "workspace:^",
     "@techui/scifi": "catalog:",
     "@techui/colors": "catalog:",
     "@techui/lessmixins": "catalog:",

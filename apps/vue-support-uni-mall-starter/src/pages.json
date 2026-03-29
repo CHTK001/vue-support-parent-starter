@@ -1,0 +1,50 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "移动商城",
+        "navigationBarBackgroundColor": "#f5efe6",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/category/index",
+      "style": {
+        "navigationBarTitleText": "分类浏览",
+        "navigationBarBackgroundColor": "#f5efe6",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/cart/index",
+      "style": {
+        "navigationBarTitleText": "购物袋",
+        "navigationBarBackgroundColor": "#f5efe6",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的空间",
+        "navigationBarBackgroundColor": "#f5efe6",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/product/detail",
+      "style": {
+        "navigationBarTitleText": "商品详情",
+        "navigationBarBackgroundColor": "#f5efe6",
+        "navigationBarTextStyle": "black"
+      }
+    }
+  ],
+  "globalStyle": {
+    "backgroundColor": "#f5efe6",
+    "navigationBarBackgroundColor": "#f5efe6",
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "default"
+  }
+}

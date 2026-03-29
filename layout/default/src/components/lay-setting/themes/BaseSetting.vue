@@ -3,9 +3,11 @@ import { getConfig } from "@repo/config";
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { aesEncrypt, aesDecrypt } from "@repo/utils";
 import {
+  type ComponentPublicInstance,
   computed,
   nextTick,
   onBeforeMount,
+  onMounted,
   onUnmounted,
   reactive,
   ref,
@@ -24,7 +26,7 @@ import { http, message, type ReturnResult } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
-import { getThemeComponents } from "../components";
+import { getThemeComponents, type ComponentMap } from "../components";
 
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 import DayIcon from "@repo/assets/svg/day.svg?component";
@@ -69,6 +71,72 @@ const {
 const themeSectionComponents = computed(() =>
   getThemeComponents(themeStore.currentTheme),
 );
+
+type SettingSectionKey =
+  | "theme"
+  | "layout"
+  | "tabs"
+  | "toolbar"
+  | "display"
+  | "menu"
+  | "message"
+  | "ai"
+  | "advanced";
+
+const settingSectionLabels: Record<SettingSectionKey, string> = {
+  theme: "主题",
+  layout: "布局",
+  tabs: "标签",
+  toolbar: "工具栏",
+  display: "显示",
+  menu: "菜单",
+  message: "消息",
+  ai: "AI",
+  advanced: "高级",
+};
+
+const themeDisplayLabels: Record<string, string> = {
+  default: "默认主题",
+  "8bit": "8Bit 像素",
+  "future-tech": "未来科技",
+  halloween: "万圣节",
+  christmas: "圣诞节",
+  "spring-festival": "春节",
+};
+
+const layoutDisplayLabels: Record<string, string> = {
+  vertical: "纵向导航",
+  horizontal: "顶部导航",
+  mix: "混合布局",
+  hover: "悬浮导航",
+  mobile: "移动布局",
+  double: "双栏导航",
+  drawer: "抽屉导航",
+};
+
+const themeSummaries: Record<string, string> = {
+  default: "更轻的控制台层次，突出信息密度、可读性与操作效率。",
+  "8bit": "像素街机质感，强调硬边框、网格感和复古交互反馈。",
+  "future-tech": "霓虹控制台风格，弱化厚重玻璃感，保留冷色科幻氛围。",
+  halloween: "南瓜橙与幽灵紫的夜色控制面板，强化节庆戏剧感。",
+  christmas: "松绿、金色与礼物红组合的冬季礼宾台风格。",
+  "spring-festival": "中国红与鎏金灯影的节庆控制面板，强调仪式感。",
+};
+
+const activeSection = ref<SettingSectionKey>("theme");
+const mountedSections = reactive<Record<SettingSectionKey, boolean>>({
+  theme: true,
+  layout: true,
+  tabs: false,
+  toolbar: false,
+  display: false,
+  menu: false,
+  message: false,
+  ai: false,
+  advanced: false,
+});
+const sectionElements = new Map<SettingSectionKey, HTMLElement>();
+const deferredSectionHandles = new Set<number>();
 
 // 预览数据
 
@@ -198,7 +266,8 @@ const settings = reactive({
   doubleNavExpandMode: $storage.configure.doubleNavExpandMode ?? "auto",
   doubleNavAutoExpandAll: $storage.configure.doubleNavAutoExpandAll ?? true,
   // 抽屉导航设置相关
-  drawerHamburgerPosition: $storage.configure.drawerHamburgerPosition ?? "top-left",
+  drawerHamburgerPosition:
+    $storage.configure.drawerHamburgerPosition ?? "top-left",
   // 顶部工具栏（Header）
   showSearch:
     $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
@@ -234,7 +303,8 @@ const settings = reactive({
   // 模式字段：webllm / chrome / vendor，旧数据迁移在下方处理
   aiChatMode: (() => {
     const saved = $storage.configure?.aiChatMode;
-    if (saved === "webllm" || saved === "chrome" || saved === "vendor") return saved;
+    if (saved === "webllm" || saved === "chrome" || saved === "vendor")
+      return saved;
     // 旧数据迁移：根据 aiChatVendor 推断
     const v = $storage.configure?.aiChatVendor ?? "chrome";
     if (v === "hf") return "webllm";
@@ -371,9 +441,10 @@ function decryptSensitive(val: string): string {
 function storageConfigureChange<T>(key: string, val: T): void {
   const storageConfigure = $storage.configure || {};
   // 敏感字段写入前加密
-  const storeVal = SENSITIVE_KEYS.includes(key) && typeof val === "string"
-    ? encryptSensitive(val) as unknown as T
-    : val;
+  const storeVal =
+    SENSITIVE_KEYS.includes(key) && typeof val === "string"
+      ? (encryptSensitive(val) as unknown as T)
+      : val;
   storageConfigure[key] = storeVal;
   $storage.configure = storageConfigure;
 
@@ -724,7 +795,10 @@ watch($storage, ({ layout }) => {
       break;
     case "drawer":
       toggleClass(true, "is-select", unref(drawerRef));
-      debounce(setFalse([verticalRef, horizontalRef, mixRef, hoverRef, doubleRef]), 50);
+      debounce(
+        setFalse([verticalRef, horizontalRef, mixRef, hoverRef, doubleRef]),
+        50,
+      );
       break;
   }
 });
@@ -867,9 +941,15 @@ function doubleNavAutoExpandAllChange() {
 }
 
 function drawerHamburgerPositionChange() {
-  storageConfigureChange("drawerHamburgerPosition", settings.drawerHamburgerPosition);
+  storageConfigureChange(
+    "drawerHamburgerPosition",
+    settings.drawerHamburgerPosition,
+  );
   // 实时通知抽屉导航组件更新汉堡按钮位置
-  emitter.emit("drawerHamburgerPositionChange", settings.drawerHamburgerPosition);
+  emitter.emit(
+    "drawerHamburgerPositionChange",
+    settings.drawerHamburgerPosition,
+  );
 }
 
 /**
@@ -1430,10 +1510,328 @@ const syncFromCloud = async () => {
   }
 };
 
+const overallStyleLabel = computed(() => {
+  if (isNonDefaultTheme.value) {
+    return "主题接管";
+  }
+  if (overallStyle.value === "system") {
+    return "跟随系统";
+  }
+  return dataTheme.value ? "暗色模式" : "浅色模式";
+});
+
+const overviewChips = computed(() => [
+  {
+    label: "当前皮肤",
+    value:
+      themeDisplayLabels[themeStore.currentTheme] ?? themeStore.currentTheme,
+  },
+  {
+    label: "布局模式",
+    value:
+      layoutDisplayLabels[layoutTheme.value.layout] ?? layoutTheme.value.layout,
+  },
+  {
+    label: "视觉策略",
+    value: overallStyleLabel.value,
+  },
+  {
+    label: "标签风格",
+    value: settings.tabsVal ? "已隐藏" : markValue.value,
+  },
+]);
+
+const activeThemeSummary = computed(() => {
+  return (
+    themeSummaries[themeStore.currentTheme] ??
+    "统一控制台配置与主题视觉，兼顾效率、清晰度与实时反馈。"
+  );
+});
+
+const resolveSectionProps = (props: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(props).map(([key, value]) => [key, unref(value)]),
+  );
+
+const settingSectionProps = computed<
+  Record<SettingSectionKey, Record<string, unknown>>
+>(() => ({
+  theme: {
+    settings,
+    isDark: isDark.value,
+    dataTheme: dataTheme.value,
+    overallStyle: overallStyle.value,
+    layoutTheme: unref(layoutTheme),
+    themeColors: unref(themeColors),
+    isNonDefaultTheme: isNonDefaultTheme.value,
+    themeOptions: themeOptions.value,
+    themeAnimationModeOptions: themeAnimationModeOptions.value,
+    showThemeColors: showThemeColors.value,
+    getThemeColorStyle: getThemeColorStyle.value,
+    handleOverallStyleChange,
+    handleSetLayoutThemeColor,
+    themeAnimationModeChange,
+    themeAnimationDirectionChange,
+  },
+  layout: {
+    settings,
+    layoutTheme: unref(layoutTheme),
+    device: unref(device),
+    verticalRef,
+    horizontalRef,
+    mixRef,
+    hoverRef,
+    mobileRef,
+    doubleRef,
+    drawerRef,
+    setLayoutModel,
+    stretchTypeOptions: stretchTypeOptions.value,
+    stretchTypeChange,
+    setStretch,
+    adjustValue,
+    handleKeydown,
+    handleInput,
+    doubleNavExpandModeChange,
+    doubleNavAutoExpandAllChange,
+    drawerHamburgerPositionChange,
+  },
+  tabs: {
+    settings,
+    isNonDefaultTheme: isNonDefaultTheme.value,
+    markValue: markValue.value,
+    markOptions: markOptions.value,
+    onChange,
+    tagsChange,
+    multiTagsCacheChange,
+  },
+  toolbar: {
+    settings,
+    showSearchChange,
+    showFullscreenChange,
+    showHeaderClockChange,
+    headerClockSecondEnabledChange,
+    headerClockSecondTimezoneChange,
+  },
+  display: {
+    settings,
+    logoVal: logoVal.value,
+    cardBodyVal: cardBodyVal.value,
+    cardColorMode: cardColorMode.value,
+    cardColorOptions: cardColorOptions.value,
+    logoChange,
+    cardBodyChange,
+    onCardColorModeChange,
+    greyChange,
+    weekChange,
+    invertChange,
+    monochromeChange,
+    showBreadcrumbChange,
+    breadcrumbModeChange,
+    showTagIconChange,
+    hideFooterChange,
+    keepAliveChange,
+    tagsChange,
+    multiTagsCacheChange,
+  },
+  menu: {
+    settings,
+    transitionTypeOptions: transitionTypeOptions.value,
+    menuAnimationChange,
+    transitionTypeChange,
+    showNewMenuChange,
+    newMenuTextChange,
+    newMenuTimeLimitChange,
+    newMenuAnimationChange,
+  },
+  message: {
+    settings,
+    isDevelopment,
+    isTest,
+    showMessageChange,
+    messageDropdownPositionChange,
+    sendDevDefaultMessage,
+  },
+  ai: {
+    settings,
+    showAiChat: getConfig().ShowAiChat !== false,
+    aiChatEnabledChange,
+    aiChatApiKeyChange,
+    aiChatApiUrlChange,
+    aiChatModeChange,
+    aiChatVendorChange,
+    aiChatModelChange,
+    aiChatSkinChange,
+  },
+  advanced: {
+    settings,
+    isDevelopment,
+    isTest,
+    showCloudSync: showCloudSync.value,
+    cloudSyncUrl: cloudSyncUrl.value,
+    syncLoading: syncLoading.value,
+    minSessionTimeoutMinutes: MIN_SESSION_TIMEOUT_MINUTES,
+    maxSessionTimeoutMinutes: MAX_SESSION_TIMEOUT_MINUTES,
+    keepAliveChange,
+    stretchSwitchChange,
+    debugModeChange,
+    autoLogoutChange,
+    sessionTimeoutMinutesChange,
+    screenReaderModeChange,
+    highContrastModeChange,
+    uiScaleChange,
+    devLiteToolsChange,
+    devRulerChange,
+    devGridChange,
+    devHoverInspectorChange,
+    voiceReadEnabledChange,
+    devHeatmapChange,
+    syncToCloud,
+    syncFromCloud,
+    clearLocalCache,
+    exportConfig,
+    importConfig,
+    resetConfig,
+  },
+}));
+
+const settingSections = computed<
+  Array<{
+    key: SettingSectionKey;
+    label: string;
+    component: keyof ComponentMap;
+    props: Record<string, unknown>;
+  }>
+>(() => [
+  {
+    key: "theme",
+    label: settingSectionLabels.theme,
+    component: "SettingTheme",
+    props: resolveSectionProps(settingSectionProps.value.theme),
+  },
+  {
+    key: "layout",
+    label: settingSectionLabels.layout,
+    component: "SettingLayout",
+    props: resolveSectionProps(settingSectionProps.value.layout),
+  },
+  {
+    key: "tabs",
+    label: settingSectionLabels.tabs,
+    component: "SettingTabs",
+    props: resolveSectionProps(settingSectionProps.value.tabs),
+  },
+  {
+    key: "toolbar",
+    label: settingSectionLabels.toolbar,
+    component: "SettingToolbar",
+    props: resolveSectionProps(settingSectionProps.value.toolbar),
+  },
+  {
+    key: "display",
+    label: settingSectionLabels.display,
+    component: "SettingDisplay",
+    props: resolveSectionProps(settingSectionProps.value.display),
+  },
+  {
+    key: "menu",
+    label: settingSectionLabels.menu,
+    component: "SettingMenu",
+    props: resolveSectionProps(settingSectionProps.value.menu),
+  },
+  {
+    key: "message",
+    label: settingSectionLabels.message,
+    component: "SettingMessage",
+    props: resolveSectionProps(settingSectionProps.value.message),
+  },
+  {
+    key: "ai",
+    label: settingSectionLabels.ai,
+    component: "SettingAiChat",
+    props: resolveSectionProps(settingSectionProps.value.ai),
+  },
+  {
+    key: "advanced",
+    label: settingSectionLabels.advanced,
+    component: "SettingAdvanced",
+    props: resolveSectionProps(settingSectionProps.value.advanced),
+  },
+]);
+
+const progressiveSectionKeys = settingSections.value
+  .map(({ key }) => key)
+  .filter((key) => !mountedSections[key]);
+
+const setSectionRef = (
+  key: SettingSectionKey,
+  element: Element | ComponentPublicInstance | null,
+) => {
+  if (element instanceof HTMLElement) {
+    sectionElements.set(key, element);
+    return;
+  }
+  sectionElements.delete(key);
+};
+
+const scheduleDeferredSectionMount = () => {
+  const pendingKeys = progressiveSectionKeys.filter(
+    (key) => !mountedSections[key],
+  );
+  if (!pendingKeys.length) {
+    return;
+  }
+
+  const queueNext = () => {
+    const nextKey = pendingKeys.shift();
+    if (!nextKey) {
+      return;
+    }
+
+    const reveal = () => {
+      mountedSections[nextKey] = true;
+      deferredSectionHandles.delete(handle);
+      queueNext();
+    };
+
+    let handle = 0;
+    if (typeof window.requestIdleCallback === "function") {
+      handle = window.requestIdleCallback(reveal, { timeout: 220 });
+    } else {
+      handle = window.setTimeout(reveal, 60);
+    }
+    deferredSectionHandles.add(handle);
+  };
+
+  queueNext();
+};
+
+const scrollToSection = (key: SettingSectionKey) => {
+  activeSection.value = key;
+  nextTick(() => {
+    sectionElements.get(key)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+      inline: "nearest",
+    });
+  });
+};
+
+onMounted(() => {
+  scheduleDeferredSectionMount();
+});
+
 onUnmounted(() => {
   removeMatchMedia();
   // 移除事件监听器
   emitter.off("settingPanelClosed");
+  deferredSectionHandles.forEach((handle) => {
+    if (typeof window.cancelIdleCallback === "function") {
+      window.cancelIdleCallback(handle);
+      return;
+    }
+    window.clearTimeout(handle);
+  });
+  deferredSectionHandles.clear();
 });
 </script>
 
@@ -1441,173 +1839,86 @@ onUnmounted(() => {
   <div>
     <LayPanel>
       <template #default>
-        <div class="lay-setting modern-setting-container">
-          <!-- 主题设置（风格/主题色/动画/皮肤/加载动画） -->
-          <component
-            :is="themeSectionComponents.SettingTheme"
-            :settings="settings"
-            :is-dark="isDark"
-            :data-theme="dataTheme"
-            :overall-style="overallStyle"
-            :layout-theme="layoutTheme"
-            :theme-colors="themeColors"
-            :is-non-default-theme="isNonDefaultTheme"
-            :theme-options="themeOptions"
-            :theme-animation-mode-options="themeAnimationModeOptions"
-            :show-theme-colors="showThemeColors"
-            :get-theme-color-style="getThemeColorStyle"
-            :handle-overall-style-change="handleOverallStyleChange"
-            :handle-set-layout-theme-color="handleSetLayoutThemeColor"
-            :theme-animation-mode-change="themeAnimationModeChange"
-            :theme-animation-direction-change="themeAnimationDirectionChange"
-          />
+        <div
+          class="lay-setting modern-setting-container"
+          :data-setting-skin="themeStore.currentTheme"
+        >
+          <section class="setting-shell-hero">
+            <div class="setting-shell-hero__content">
+              <span class="setting-shell-hero__eyebrow"
+                >Workspace Control Center</span
+              >
+              <div class="setting-shell-hero__headline">
+                <div>
+                  <h2 class="setting-shell-hero__title">系统设置</h2>
+                  <p class="setting-shell-hero__description">
+                    {{ activeThemeSummary }}
+                  </p>
+                </div>
+                <div class="setting-shell-hero__status">
+                  <span class="setting-shell-hero__status-label">当前主题</span>
+                  <strong class="setting-shell-hero__status-value">
+                    {{
+                      themeDisplayLabels[themeStore.currentTheme] ??
+                      themeStore.currentTheme
+                    }}
+                  </strong>
+                </div>
+              </div>
+              <div class="setting-shell-hero__chips">
+                <div
+                  v-for="item in overviewChips"
+                  :key="item.label"
+                  class="setting-shell-chip"
+                >
+                  <span class="setting-shell-chip__label">{{
+                    item.label
+                  }}</span>
+                  <strong class="setting-shell-chip__value">{{
+                    item.value
+                  }}</strong>
+                </div>
+              </div>
+            </div>
 
-          <!-- 布局模式设置区域 -->
-          <component
-            :is="themeSectionComponents.SettingLayout"
-            :settings="settings"
-            :layout-theme="layoutTheme"
-            :device="device"
-            :vertical-ref="verticalRef"
-            :horizontal-ref="horizontalRef"
-            :mix-ref="mixRef"
-            :hover-ref="hoverRef"
-            :mobile-ref="mobileRef"
-            :double-ref="doubleRef"
-            :drawer-ref="drawerRef"
-            :set-layout-model="setLayoutModel"
-            :stretch-type-options="stretchTypeOptions"
-            :stretch-type-change="stretchTypeChange"
-            :set-stretch="setStretch"
-            :adjust-value="adjustValue"
-            :handle-keydown="handleKeydown"
-            :handle-input="handleInput"
-            :double-nav-expand-mode-change="doubleNavExpandModeChange"
-            :double-nav-auto-expand-all-change="doubleNavAutoExpandAllChange"
-            :drawer-hamburger-position-change="drawerHamburgerPositionChange"
-          />
+            <div class="setting-shell-nav">
+              <button
+                v-for="section in settingSections"
+                :key="section.key"
+                type="button"
+                class="setting-shell-nav__item"
+                :class="{ 'is-active': activeSection === section.key }"
+                @click="scrollToSection(section.key)"
+              >
+                {{ section.label }}
+              </button>
+            </div>
+          </section>
 
-          <!-- 标签页样式设置区域 - 非默认主题下隐藏（节日主题优先级大于页签风格） -->
-          <component
-            :is="themeSectionComponents.SettingTabs"
-            :settings="settings"
-            :is-non-default-theme="isNonDefaultTheme"
-            :mark-value="markValue"
-            :mark-options="markOptions"
-            :on-change="onChange"
-            :tags-change="tagsChange"
-            :multi-tags-cache-change="multiTagsCacheChange"
-          />
-
-          <!-- 顶部工具栏配置区域 -->
-          <component
-            :is="themeSectionComponents.SettingToolbar"
-            :settings="settings"
-            :show-search-change="showSearchChange"
-            :show-fullscreen-change="showFullscreenChange"
-            :show-header-clock-change="showHeaderClockChange"
-            :header-clock-second-enabled-change="headerClockSecondEnabledChange"
-            :header-clock-second-timezone-change="headerClockSecondTimezoneChange"
-          />
-
-          <!-- 界面显示设置区域 -->
-          <component
-            :is="themeSectionComponents.SettingDisplay"
-            :settings="settings"
-            :logo-val="logoVal"
-            :card-body-val="cardBodyVal"
-            :card-color-mode="cardColorMode"
-            :card-color-options="cardColorOptions"
-            :logo-change="logoChange"
-            :card-body-change="cardBodyChange"
-            :on-card-color-mode-change="onCardColorModeChange"
-            :grey-change="greyChange"
-            :week-change="weekChange"
-            :invert-change="invertChange"
-            :monochrome-change="monochromeChange"
-            :show-breadcrumb-change="showBreadcrumbChange"
-            :breadcrumb-mode-change="breadcrumbModeChange"
-            :show-tag-icon-change="showTagIconChange"
-            :hide-footer-change="hideFooterChange"
-            :keep-alive-change="keepAliveChange"
-            :tags-change="tagsChange"
-            :multi-tags-cache-change="multiTagsCacheChange"
-          />
-
-          <!-- 菜单设置区域 -->
-          <component
-            :is="themeSectionComponents.SettingMenu"
-            :settings="settings"
-            :transition-type-options="transitionTypeOptions"
-            :menu-animation-change="menuAnimationChange"
-            :transition-type-change="transitionTypeChange"
-            :show-new-menu-change="showNewMenuChange"
-            :new-menu-text-change="newMenuTextChange"
-            :new-menu-time-limit-change="newMenuTimeLimitChange"
-            :new-menu-animation-change="newMenuAnimationChange"
-          />
-
-          <!-- 消息配置区域 -->
-          <component
-            :is="themeSectionComponents.SettingMessage"
-            :settings="settings"
-            :is-development="isDevelopment"
-            :is-test="isTest"
-            :show-message-change="showMessageChange"
-            :message-dropdown-position-change="messageDropdownPositionChange"
-            :send-dev-default-message="sendDevDefaultMessage"
-          />
-
-          <!-- AI 设置区域 -->
-          <component
-            :is="themeSectionComponents.SettingAiChat"
-            :settings="settings"
-            :show-ai-chat="getConfig().ShowAiChat !== false"
-            :ai-chat-enabled-change="aiChatEnabledChange"
-            :ai-chat-api-key-change="aiChatApiKeyChange"
-            :ai-chat-api-url-change="aiChatApiUrlChange"
-            :ai-chat-mode-change="aiChatModeChange"
-            :ai-chat-vendor-change="aiChatVendorChange"
-            :ai-chat-model-change="aiChatModelChange"
-            :ai-chat-skin-change="aiChatSkinChange"
-          />
-
-          <!-- 高级设置区域 -->
-          <component
-            :is="themeSectionComponents.SettingAdvanced"
-            :settings="settings"
-            :is-development="isDevelopment"
-            :is-test="isTest"
-            :show-cloud-sync="showCloudSync"
-            :cloud-sync-url="cloudSyncUrl"
-            :sync-loading="syncLoading"
-            :min-session-timeout-minutes="MIN_SESSION_TIMEOUT_MINUTES"
-            :max-session-timeout-minutes="MAX_SESSION_TIMEOUT_MINUTES"
-            :keep-alive-change="keepAliveChange"
-            :stretch-switch-change="stretchSwitchChange"
-            :debug-mode-change="debugModeChange"
-            :auto-logout-change="autoLogoutChange"
-            :session-timeout-minutes-change="sessionTimeoutMinutesChange"
-            :screen-reader-mode-change="screenReaderModeChange"
-            :high-contrast-mode-change="highContrastModeChange"
-            :ui-scale-change="uiScaleChange"
-            :dev-lite-tools-change="devLiteToolsChange"
-            :dev-ruler-change="devRulerChange"
-            :dev-grid-change="devGridChange"
-            :dev-hover-inspector-change="devHoverInspectorChange"
-            :voice-read-enabled-change="voiceReadEnabledChange"
-            :dev-heatmap-change="devHeatmapChange"
-            :sync-to-cloud="syncToCloud"
-            :sync-from-cloud="syncFromCloud"
-            :clear-local-cache="clearLocalCache"
-            :export-config="exportConfig"
-            :import-config="importConfig"
-            :reset-config="resetConfig"
-          />
+          <div class="setting-shell-stage">
+            <section
+              v-for="section in settingSections"
+              :key="section.key"
+              :ref="(element) => setSectionRef(section.key, element)"
+              class="setting-shell-stage__item"
+              :data-setting-key="section.key"
+            >
+              <component
+                :is="themeSectionComponents[section.component]"
+                v-if="mountedSections[section.key]"
+                v-bind="section.props"
+              />
+              <div v-else class="setting-shell-skeleton" aria-hidden="true">
+                <div class="setting-shell-skeleton__line is-wide" />
+                <div class="setting-shell-skeleton__line" />
+                <div class="setting-shell-skeleton__line is-short" />
+              </div>
+            </section>
+          </div>
         </div>
       </template>
       <template #footer>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
           <el-button plain @click="clearLocalCache">
             <IconifyIconOnline icon="ri:delete-bin-line" />
             清空缓存

@@ -1,9 +1,11 @@
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { routerArrays } from "../types";
 import { useGlobal } from "@pureadmin/utils";
 import { useMultiTagsStore } from "@repo/core";
 import type { LayoutType, StorageLayout } from "../types/theme";
+
+let isStorageInitialized = false;
 
 export const validLayouts: LayoutType[] = [
   "vertical",
@@ -24,11 +26,10 @@ export const isValidLayout = (
 
 export function useLayout() {
   const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
-  let _isInitialed = false;
 
   const initStorage = () => {
-    if (_isInitialed) return;
-    _isInitialed = true;
+    if (isStorageInitialized) return;
+    isStorageInitialized = true;
     /** 路由 */
     if (
       useMultiTagsStore().multiTagsCache &&
@@ -74,7 +75,9 @@ export function useLayout() {
   const layout = computed<LayoutType>(() => {
     const fallbackLayout: LayoutType = "vertical";
 
-    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as string | undefined;
+    const rawLayout = ($storage?.layout?.layout || $config?.Layout) as
+      | string
+      | undefined;
     if (isValidLayout(rawLayout)) {
       return rawLayout;
     }

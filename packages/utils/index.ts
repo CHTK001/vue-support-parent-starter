@@ -31,6 +31,7 @@ export * from "./src/print";
 export * from "./src/menuUtils";
 export * from "./src/file";
 export * from "./src/url";
+export * from "./src/redirect-param";
 export * from "./src/net";
 export * from "./src/zipdownload";
 export * from "./src/globalPolyfills";

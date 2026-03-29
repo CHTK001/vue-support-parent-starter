@@ -267,7 +267,7 @@ import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { ElNotification } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
-import { containerApi, type SystemSoftImage } from "@/api/docker";
+import { imageApi, type SystemSoftImage } from "@/api/docker";
 import { useDockerOperationStore } from "@/stores/dockerOperation";
 
 /**
@@ -481,9 +481,9 @@ const submit = async () => {
 
     installProgress.value = 50;
 
-    const res = await containerApi.createContainer({
+    const res = await imageApi.startImageAsContainer({
       imageId: props.image.systemSoftImageId!,
-      ...config,
+      config,
     });
 
     if (res.code === "00000") {

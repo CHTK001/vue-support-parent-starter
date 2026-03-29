@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { aesEncrypt } from "../src/crypto/index";
 
 let mockConfig: Record<string, any> = {
   Request: {
@@ -126,5 +127,14 @@ describe("codec runtime contract", () => {
         },
       } as any),
     ).toBe(decodedResponse);
+  });
+
+  it("falls back to AES decrypt when wasm uu3 returns the original cipher text", async () => {
+    const { uu3 } = await import("../src/crypto/codec");
+    const plainText =
+      "{accessToken:test-token,refreshToken:,expires:0,isRemembered:true}";
+    const encrypted = aesEncrypt(plainText, "1234567890Oil#@1");
+
+    await expect(uu3(encrypted)).resolves.toBe(plainText);
   });
 });
