@@ -1,11 +1,20 @@
 import Cookies from "js-cookie";
 import { afterEach, describe, expect, it } from "vitest";
-import { TokenKey, normalizeTokenExpires, setToken as setGlobalToken } from "../../../config/src/token/index";
+import { encryptStorageKey } from "@repo/codec-wasm";
+import { getConfig } from "../../../config/src/config";
+import {
+  TokenKey,
+  getToken as getGlobalToken,
+  normalizeTokenExpires,
+  setToken as setGlobalToken,
+  userKey,
+} from "../../../config/src/token/index";
 import { buildStoredUserResult } from "../utils/auth-payload";
 
 describe("token expiry normalization", () => {
   afterEach(() => {
     Cookies.remove(TokenKey);
+    localStorage.clear();
   });
 
   it("keeps missing expires as session token instead of expiring immediately", () => {
@@ -36,6 +45,27 @@ describe("token expiry normalization", () => {
     expect(normalizeTokenExpires("2026-03-28T00:00:00Z")).toBe(
       Date.parse("2026-03-28T00:00:00Z"),
     );
+  });
+
+  it("falls back to stored user info when cookie token misses the access token", () => {
+    const config = getConfig();
+    const storageKey = encryptStorageKey(userKey, config.SystemCode);
+
+    Cookies.set(TokenKey, JSON.stringify({ expires: 0 }));
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        accessToken: "storage-access-token",
+        refreshToken: "storage-refresh-token",
+        expires: 0,
+      }),
+    );
+
+    expect(getGlobalToken()).toMatchObject({
+      accessToken: "storage-access-token",
+      refreshToken: "storage-refresh-token",
+      expires: 0,
+    });
   });
 });
 

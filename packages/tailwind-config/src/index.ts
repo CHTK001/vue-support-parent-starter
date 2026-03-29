@@ -20,9 +20,41 @@ const resolveWorkspaceRoot = () => {
   const currentDir = process.cwd();
   const candidates = [currentDir, path.resolve(currentDir, "../..")];
   return (
-    candidates.find((dir) => fs.existsSync(path.join(dir, "pnpm-workspace.yaml"))) ??
-    currentDir
+    candidates.find((dir) =>
+      fs.existsSync(path.join(dir, "pnpm-workspace.yaml")),
+    ) ?? currentDir
   );
+};
+
+const ignoredTailwindDirNames = new Set([
+  "coverage",
+  "dist",
+  "node_modules",
+  "tmp",
+  "tmp-shots",
+]);
+
+const isScannableDir = (dir: string) => {
+  try {
+    const stat = fs.lstatSync(dir);
+    return stat.isDirectory() && !stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+};
+
+const shouldIncludeTailwindPackage = (dir: string) => {
+  const name = path.basename(dir);
+  if (name.startsWith(".") || name.startsWith(".ignored_")) {
+    return false;
+  }
+  if (ignoredTailwindDirNames.has(name)) {
+    return false;
+  }
+  if (!isScannableDir(dir)) {
+    return false;
+  }
+  return fs.existsSync(path.join(dir, "src"));
 };
 
 const collectFallbackPackages = (workspaceRoot: string) => {
@@ -41,12 +73,18 @@ const collectFallbackPackages = (workspaceRoot: string) => {
       }
 
       const dir = path.join(groupDir, entry.name);
-      dirs.add(dir);
+      if (shouldIncludeTailwindPackage(dir)) {
+        dirs.add(dir);
+      }
 
       if (group === "packages") {
         fs.readdirSync(dir, { withFileTypes: true }).forEach((nestedEntry) => {
-          if (nestedEntry.isDirectory()) {
-            dirs.add(path.join(dir, nestedEntry.name));
+          const nestedDir = path.join(dir, nestedEntry.name);
+          if (
+            nestedEntry.isDirectory() &&
+            shouldIncludeTailwindPackage(nestedDir)
+          ) {
+            dirs.add(nestedDir);
           }
         });
       }
@@ -62,9 +100,11 @@ const tailwindPackages: string[] = [];
 try {
   const { packages } = getPackagesSync(workspaceRoot);
   packages.forEach((pkg) => {
-    tailwindPackages.push(pkg.dir);
+    if (shouldIncludeTailwindPackage(pkg.dir)) {
+      tailwindPackages.push(pkg.dir);
+    }
   });
-} catch (error) {
+} catch {
   collectFallbackPackages(workspaceRoot).forEach((dir) => {
     tailwindPackages.push(dir);
   });

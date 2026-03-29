@@ -48,6 +48,8 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
     process.env.NODE_ENV === "production" ||
     lifecycle === "build" ||
     lifecycle === "report";
+  const enableCodeInspector =
+    !isBuild && process.env.VITE_ENABLE_CODE_INSPECTOR === "true";
   const mockIncludes = (
     Array.isArray(mockPath) ? mockPath : mockPath ? [mockPath] : []
   ).filter((item) =>
@@ -112,12 +114,12 @@ export function getPluginsList(options: PluginsOptions): PluginOption[] {
      * Windows 默认组合键 Alt + Shift
      * 更多用法看 https://inspector.fe-dev.cn/guide/start.html
      */
-    isBuild
-      ? null
-      : codeInspectorPlugin({
+    enableCodeInspector
+      ? codeInspectorPlugin({
           bundler: "vite",
           hideConsole: true,
-        }),
+        })
+      : null,
     viteBuildInfo(),
     /**
      * 开发环境下移除非必要的vue-router动态路由警告No match found for location with path

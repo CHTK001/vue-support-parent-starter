@@ -79,7 +79,19 @@ const resolveEnableFakeServer = (mode: string) => {
   );
 };
 
-const createBuilder = (enableFakeServer: boolean) => {
+const resolveProxyTarget = (
+  env: Record<string, string>,
+  key: string,
+  fallback: string,
+) => {
+  const value = (process.env[key] || env[key] || "").trim();
+  return value || fallback;
+};
+
+const createBuilder = (
+  enableFakeServer: boolean,
+  env: Record<string, string>,
+) => {
   const builder = createViteConfig(import.meta.url, pkg)
     .alias("@layout/default", resolve(root, "layout/default/src"))
     .alias("@pages/common", resolve(root, "pages/common"))
@@ -94,6 +106,19 @@ const createBuilder = (enableFakeServer: boolean) => {
     .plugins(bundleElementPlusIconsRuntime());
 
   if (!enableFakeServer) {
+    const monitorApiTarget = resolveProxyTarget(
+      env,
+      "VITE_MONITOR_API_TARGET",
+      "http://127.0.0.1:19170",
+    );
+    const monitorSocketTarget = resolveProxyTarget(
+      env,
+      "VITE_MONITOR_SOCKET_TARGET",
+      "http://127.0.0.1:29181",
+    );
+
+    builder.proxy("/monitor/api", monitorApiTarget);
+    builder.proxy("/socket.io", monitorSocketTarget);
     builder.proxy("/api", "http://127.0.0.1:8080");
   }
 
@@ -105,7 +130,11 @@ const createBuilder = (enableFakeServer: boolean) => {
 };
 
 export default (env: ConfigEnv): UserConfigExport => {
-  const config = createBuilder(resolveEnableFakeServer(env.mode)).build()(env);
+  const runtimeEnv = loadEnv(env.mode, __dirname, "");
+  const config = createBuilder(
+    resolveEnableFakeServer(env.mode),
+    runtimeEnv,
+  ).build()(env);
   config.build = {
     ...(config.build ?? {}),
     rollupOptions: {

@@ -96,7 +96,7 @@
             circle
             @click="toggleAudio"
           >
-            <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+            <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
           </el-button>
           
           <el-button
@@ -439,7 +439,7 @@ import {
   VideoPlay,
   Close,
   Microphone,
-  MicrophoneFilled,
+  MuteNotification,
   Setting,
   Share,
   Crop,

@@ -67,11 +67,11 @@
 
       <!-- 日志内容 -->
       <div ref="logsContentRef" class="logs-content">
-        <div v-if="loading && !logs" class="logs-loading">
+        <div v-if="loading && !displayLogs" class="logs-loading">
           <ScSkeleton :rows="10" animated />
         </div>
-        <div v-else-if="logs" class="logs-wrapper">
-          <pre class="logs-text">{{ logs }}</pre>
+        <div v-else-if="displayLogs" class="logs-wrapper">
+          <pre class="logs-text">{{ displayLogs }}</pre>
         </div>
         <div v-else class="logs-empty">
           <IconifyIconOnline icon="ri:file-text-line" class="empty-icon" />
@@ -145,7 +145,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const loading = ref(false);
-const logs = ref("");
+const rawLogs = ref("");
 const logLines = ref(200);
 const logLevel = ref("");
 const autoRefresh = ref(false);
@@ -167,6 +167,19 @@ const dialogVisible = computed({
   set: (value) => emit("update:visible", value),
 });
 
+const displayLogs = computed(() => {
+  const source = rawLogs.value || "";
+  const level = logLevel.value.trim().toLowerCase();
+  if (!source || !level) {
+    return source;
+  }
+
+  return source
+    .split("\n")
+    .filter((line) => line.toLowerCase().includes(level))
+    .join("\n");
+});
+
 // 监听对话框状态
 watch(dialogVisible, (visible) => {
   if (visible && props.containerData) {
@@ -185,6 +198,10 @@ watch(
     }
   },
 );
+
+watch(displayLogs, () => {
+  updateLogStats();
+});
 
 // 工具函数
 const getStatusType = (status?: string) => {
@@ -221,7 +238,7 @@ const loadLogs = async () => {
       logLines.value,
     );
     if (response.code === "00000") {
-      logs.value = response.data || "";
+      rawLogs.value = response.data || "";
       updateLogStats();
       lastUpdateTime.value = new Date().toLocaleTimeString();
 
@@ -240,14 +257,14 @@ const loadLogs = async () => {
 
 // 更新日志统计
 const updateLogStats = () => {
-  if (!logs.value) {
+  if (!displayLogs.value) {
     logStats.totalLines = 0;
     logStats.errorCount = 0;
     logStats.warnCount = 0;
     return;
   }
 
-  const lines = logs.value.split("\n");
+  const lines = displayLogs.value.split("\n");
   logStats.totalLines = lines.length;
 
   // 统计错误和警告数量
@@ -303,7 +320,7 @@ const scrollToBottom = () => {
 
 // 清空显示
 const clearLogs = () => {
-  logs.value = "";
+  rawLogs.value = "";
   logStats.totalLines = 0;
   logStats.errorCount = 0;
   logStats.warnCount = 0;
@@ -311,7 +328,7 @@ const clearLogs = () => {
 
 // 下载日志
 const downloadLogs = () => {
-  if (!logs.value) {
+  if (!displayLogs.value) {
     message("暂无日志可下载", { type: "warning" });
     return;
   }
@@ -321,7 +338,9 @@ const downloadLogs = () => {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `container-logs-${containerName}-${timestamp}.txt`;
 
-  const blob = new Blob([logs.value], { type: "text/plain;charset=utf-8" });
+  const blob = new Blob([displayLogs.value], {
+    type: "text/plain;charset=utf-8",
+  });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -336,7 +355,7 @@ const downloadLogs = () => {
 
 // 新窗口打开
 const openInNewWindow = () => {
-  if (!logs.value) {
+  if (!displayLogs.value) {
     message("暂无日志内容", { type: "warning" });
     return;
   }
@@ -399,7 +418,7 @@ const openInNewWindow = () => {
           <p>容器ID: ${props.containerData?.systemSoftContainerId || "Unknown"}</p>
           <p>生成时间: ${new Date().toLocaleString()}</p>
         </div>
-        <div class="logs">${logs.value}</div>
+        <div class="logs">${displayLogs.value}</div>
       </body>
       </html>
     `);

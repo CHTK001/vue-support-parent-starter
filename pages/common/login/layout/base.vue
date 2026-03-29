@@ -1,19 +1,34 @@
-<script setup>
+<script setup lang="ts">
 import { useDataThemeChange } from "@layout/default/hooks/useDataThemeChange";
 import { useLayout } from "@layout/default/hooks/useLayout";
 import { useNav } from "@layout/default/hooks/useNav";
-import { useTranslationLang } from "@layout/default/hooks/useTranslationLang";
-import {  useRenderIcon  } from "@repo/components/ReIcon";
-import TypeIt from "@repo/components/ReTypeit";
-import ScCode from "@repo/components/ScCode/index.vue";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config/src/config";
 import { $t, transformI18n } from "@repo/config/src/i18n";
-import { fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
+import {
+  fetchVerifyCode,
+  getTopMenu,
+  initRouter,
+  useUserStoreHook,
+} from "@repo/core";
 
-import { getParameter, message, uu3 } from "@repo/utils";
-import $ from "jquery";
+import {
+  getParameter,
+  message,
+  parseRedirectParamPayload,
+  uu3,
+} from "@repo/utils";
 import { Md5 } from "ts-md5";
-import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  markRaw,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import ThirdParty from "../components/thirdParty.vue";
@@ -21,12 +36,19 @@ import Motion from "../utils/motion";
 import { loginRules } from "../utils/rule";
 import { avatar } from "../utils/static";
 
-import { gsap } from "gsap";
-import Vcode from "vue3-puzzle-vcode";
-
 defineOptions({
   name: "Login",
 });
+
+const TypeItAsync = defineAsyncComponent(
+  () => import("@repo/components/ReTypeit"),
+);
+const ScCodeAsync = defineAsyncComponent(
+  () => import("@repo/components/ScCode"),
+);
+const VcodeAsync = defineAsyncComponent(() =>
+  import("vue3-puzzle-vcode").then((module) => module.default ?? module),
+);
 
 const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
@@ -37,10 +59,9 @@ const { initStorage } = useLayout();
 initStorage();
 
 const { t } = useI18n();
-const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
+const { overallStyle, dataThemeChange } = useDataThemeChange();
 dataThemeChange(overallStyle.value);
-const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
-const { locale, translationCh, translationEn } = useTranslationLang();
+const { title } = useNav();
 
 const props = defineProps({
   defaultSetting: {
@@ -56,7 +77,10 @@ const props = defineProps({
   },
 });
 const isShowThirdPartyValue = computed(() => {
-  return Object.keys(props.ssoSetting).some((item) => props.ssoSetting[item]) && props.defaultSetting.OpenThirdPartyLogin;
+  return (
+    Object.keys(props.ssoSetting).some((item) => props.ssoSetting[item]) &&
+    props.defaultSetting.OpenThirdPartyLogin
+  );
 });
 
 const defaultVerifyCode = ref({
@@ -78,6 +102,7 @@ const ruleForm = reactive({
 
 const openVcode = ref(false);
 const openToptcode = ref(false);
+const enableTitleTyping = ref(false);
 
 const scCodeRef = ref();
 const currentFormEl = ref({});
@@ -85,6 +110,29 @@ const resolveFormInstance = (formEl) => formEl?.value ?? formEl;
 const handleLoginClick = () => onLogin(ruleFormRef.value);
 const handleLoginCodeClick = () => onLoginCode(ruleFormRef.value);
 const handleLoginToptCodeClick = () => onLoginToptCode(ruleFormRef.value);
+const markRedirectDebug = (stage: string, extra: Record<string, any> = {}) => {
+  try {
+    sessionStorage.setItem(
+      "__monitor_redirect_debug__",
+      JSON.stringify({
+        stage,
+        extra,
+        time: Date.now(),
+      }),
+    );
+  } catch {}
+};
+const resolvePostLoginPath = () => {
+  const configuredRedirect = String(
+    getConfig().PostLoginRedirect || getConfig().LoginSuccessRedirect || "",
+  ).trim();
+
+  if (configuredRedirect) {
+    return configuredRedirect;
+  }
+
+  return getTopMenu(true)?.path || "/home";
+};
 /** 使用验证码 */
 const onLoginCode = async (formEl) => {
   const resolvedFormEl = resolveFormInstance(formEl);
@@ -104,9 +152,20 @@ const onLoginToptCode = async (formEl) => {
   });
 };
 
+let gsapLoader: Promise<typeof import("gsap")> | null = null;
+
+const loadGsap = async () => {
+  gsapLoader ??= import("gsap");
+  return gsapLoader;
+};
+
 const handleTimeline = async () => {
-  const feTurbulence = document.querySelector("feTurbulence");
-  const image = document.getElementsByClassName("filter-bolin");
+  const feTurbulence = document.querySelector<SVGElement>("feTurbulence");
+  if (!feTurbulence) {
+    return;
+  }
+
+  const { gsap } = await loadGsap();
   const timeline = gsap.timeline({
     paused: true,
     onUpdate: () => {
@@ -124,10 +183,6 @@ const handleTimeline = async () => {
     freq: 0.00001,
     duration: 0.1,
   });
-  if (image.complete) {
-    timeline.play();
-    return;
-  }
   timeline.play();
 };
 
@@ -145,7 +200,7 @@ const handleTotpComplete = () => {
 const vcodeToptClose = () => {
   openToptcode.value = false;
   currentFormEl.value = null;
-  scCodeRef.value.clear();
+  scCodeRef.value?.clear?.();
 };
 const onLogin = async (formEl) => {
   const resolvedFormEl = resolveFormInstance(formEl);
@@ -156,7 +211,10 @@ const onLogin = async (formEl) => {
 
   // 验证码检查
   if (props.defaultSetting.OpenVerifyCode) {
-    if (defaultVerifyCode.value.verifyCodeKey?.toLowerCase() != ruleForm.verifyCode?.toLowerCase()) {
+    if (
+      defaultVerifyCode.value.verifyCodeKey?.toLowerCase() !=
+      ruleForm.verifyCode?.toLowerCase()
+    ) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
       getVerifyCode();
       return;
@@ -188,7 +246,7 @@ const onLogin = async (formEl) => {
           // 登录成功，获取后端路由
           return initRouter()
             .then(() => {
-              router.push(getTopMenu(true).path).then(() => {
+              router.push(resolvePostLoginPath()).then(() => {
                 message(t("login.pureLoginSuccess"), { type: "success" });
               });
             })
@@ -200,8 +258,12 @@ const onLogin = async (formEl) => {
         })
         .catch((error) => {
           // 登录失败
-          console.error("登录失败:", error);
-          message(error.message || "登录失败，请检查用户名和密码", { type: "error" });
+          if (import.meta.env.DEV) {
+            console.error("登录失败:", error);
+          }
+          message(error.message || "登录失败，请检查用户名和密码", {
+            type: "error",
+          });
 
           // 刷新验证码
           if (props.defaultSetting.OpenVerifyCode) {
@@ -297,34 +359,72 @@ function onFail() {
 }
 
 onMounted(() => {
-  $(document).ready(function () {
-    handleTimeline();
-  });
   window.document.addEventListener("keypress", onkeypress);
+  const enableTyping = () => {
+    enableTitleTyping.value = true;
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(enableTyping, { timeout: 1200 });
+  } else {
+    window.setTimeout(enableTyping, 300);
+  }
+
   if (redirectParam) {
-    const info = uu3(redirectParam);
-    if (info) {
+    markRedirectDebug("redirect-param-found", {
+      length: redirectParam.length,
+    });
+    void (async () => {
+      const decryptedInfo = await uu3(redirectParam);
+      markRedirectDebug("redirect-param-decrypted", {
+        changed: decryptedInfo !== redirectParam,
+        length: String(decryptedInfo || "").length,
+      });
+      const info = parseRedirectParamPayload(decryptedInfo);
+      markRedirectDebug("redirect-param-parsed", {
+        parsed: Boolean(info),
+        hasAccessToken: Boolean(info?.accessToken),
+      });
+
+      if (!info) {
+        loading.value = false;
+        vcodeRef.value?.reset();
+        return;
+      }
+
       useUserStoreHook()
         .load(info)
         .then((res) => {
+          markRedirectDebug("redirect-load-success", {
+            hasAccessToken: Boolean(res?.accessToken),
+          });
           // 获取后端路由
           return initRouter()
             .then(() => {
-              const url = getTopMenu(true).path;
+              markRedirectDebug("redirect-router-success");
+              const url = resolvePostLoginPath();
               router.push(url, { query: {} }).then(() => {
                 message(t("login.pureLoginSuccess"), { type: "success" });
               });
             })
             .catch((error) => {
+              markRedirectDebug("redirect-router-failed", {
+                message: error?.message || "",
+              });
               useUserStoreHook().logOut();
             });
+        })
+        .catch((error) => {
+          markRedirectDebug("redirect-load-failed", {
+            message: error?.message || "",
+          });
         })
         .finally(() => {
           loading.value = false;
           vcodeRef.value?.reset();
         });
-      return;
-    }
+    })();
+    return;
   }
 });
 
@@ -337,23 +437,74 @@ onBeforeUnmount(() => {
   <div>
     <svg style="display: none">
       <defs>
-        <filter id="noise" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
-          <feTurbulence type="turbulence" baseFrequency="0 0.4" numOctaves="2" seed="2" stitchTiles="stitch" x="0%" y="0%" width="100%" height="100%" result="turbulence" />
-          <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="30" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
+        <filter
+          id="noise"
+          color-interpolation-filters="linearRGB"
+          filterUnits="objectBoundingBox"
+          primitiveUnits="userSpaceOnUse"
+        >
+          <feTurbulence
+            type="turbulence"
+            baseFrequency="0 0.4"
+            numOctaves="2"
+            seed="2"
+            stitchTiles="stitch"
+            x="0%"
+            y="0%"
+            width="100%"
+            height="100%"
+            result="turbulence"
+          />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="turbulence"
+            scale="30"
+            xChannelSelector="R"
+            yChannelSelector="B"
+            x="0%"
+            y="0%"
+            width="100%"
+            height="100%"
+            result="displacementMap"
+          />
         </filter>
       </defs>
     </svg>
     <!-- 滑动验证码对话框 -->
-    <sc-dialog v-model="openVcode" width="480px" draggable title="滑动验证" @close="vcodeClose" class="modern-dialog vcode-dialog" append-to-body>
+    <sc-dialog
+      v-model="openVcode"
+      width="480px"
+      draggable
+      title="滑动验证"
+      class="modern-dialog vcode-dialog"
+      append-to-body
+      @close="vcodeClose"
+    >
       <div v-if="props.defaultSetting.OpenVcode" class="vcode-container">
         <Motion :delay="150">
           <div class="vcode-wrapper">
             <!-- 验证说明 -->
             <div class="verification-notice">
               <div class="notice-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 12L11 14L15 10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
               </div>
               <div class="notice-content">
@@ -366,10 +517,32 @@ onBeforeUnmount(() => {
             <div class="vcode-component-wrapper">
               <div class="vcode-header">
                 <div class="vcode-title">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 2L2 7L12 12L22 7L12 2Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M2 17L12 22L22 17"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M2 12L12 17L22 12"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                   <span>拼图验证</span>
                 </div>
@@ -377,21 +550,56 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="vcode-puzzle-area">
-                <Vcode ref="vcodeRef" :show="props.defaultSetting.OpenVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
+                <VcodeAsync
+                  ref="vcodeRef"
+                  :show="props.defaultSetting.OpenVcode"
+                  type="inside"
+                  :puzzleScale="0.8"
+                  @fail="onFail"
+                  @success="onSuccess"
+                />
               </div>
 
               <!-- 操作提示 -->
               <div class="vcode-tips">
                 <div class="tip-item">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M7 10L12 15L17 10"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                   <span>拖动滑块到正确位置</span>
                 </div>
                 <div class="tip-item">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="3"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                   <span>仔细观察拼图缺口</span>
                 </div>
@@ -401,9 +609,25 @@ onBeforeUnmount(() => {
             <!-- 验证状态提示 -->
             <div class="verification-status">
               <div class="status-item">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M9 12L11 14L15 10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 <span>安全验证保护您的账户</span>
               </div>
@@ -414,39 +638,113 @@ onBeforeUnmount(() => {
     </sc-dialog>
 
     <!-- TOTP验证码对话框 -->
-    <sc-dialog v-model="openToptcode" width="480px" :close-on-click-modal="false" draggable title="动态验证码验证" @close="vcodeToptClose" class="modern-dialog totp-dialog" append-to-body>
+    <sc-dialog
+      v-model="openToptcode"
+      width="480px"
+      :close-on-click-modal="false"
+      draggable
+      title="动态验证码验证"
+      class="modern-dialog totp-dialog"
+      append-to-body
+      @close="vcodeToptClose"
+    >
       <div class="totp-container">
         <Motion :delay="150">
           <div class="totp-wrapper">
             <!-- 安全提示 -->
             <div class="security-notice">
               <div class="notice-icon">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M12 8V12"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M12 16H12.01"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
               </div>
               <p class="notice-text">为了您的账户安全，请输入动态验证码</p>
             </div>
 
             <!-- 验证码输入组件 -->
-            <ScCode ref="scCodeRef" :disabled="loading" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
+            <ScCodeAsync
+              ref="scCodeRef"
+              :disabled="loading"
+              @onComplete="handleTotpComplete"
+              @onChange="handleTotpChange"
+            />
 
             <!-- 帮助信息 -->
             <div class="help-info">
               <div class="help-item">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 2L2 7L12 12L22 7L12 2Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M2 17L12 22L22 17"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M2 12L12 17L22 12"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 <span>验证码每30秒更新一次</span>
               </div>
               <div class="help-item">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 12L11 14L15 10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 <span>支持粘贴验证码</span>
               </div>
@@ -461,25 +759,28 @@ onBeforeUnmount(() => {
         <div class="enhanced-header-section">
           <!-- 装饰性背景 -->
           <div class="header-background">
-            <div class="bg-decoration bg-decoration-1"></div>
-            <div class="bg-decoration bg-decoration-2"></div>
-            <div class="bg-decoration bg-decoration-3"></div>
+            <div class="bg-decoration bg-decoration-1" />
+            <div class="bg-decoration bg-decoration-2" />
+            <div class="bg-decoration bg-decoration-3" />
           </div>
 
           <!-- 头像容器 -->
           <Motion>
             <div class="enhanced-avatar-container">
-              <div class="avatar-glow-ring"></div>
-              <div class="avatar-outer-ring"></div>
+              <div class="avatar-glow-ring" />
+              <div class="avatar-outer-ring" />
               <div class="avatar-inner-wrapper">
-                <avatar class="enhanced-avatar filter-bolin" @mouseover="handleTimeline" />
-                <div class="avatar-status-indicator"></div>
+                <avatar
+                  class="enhanced-avatar filter-bolin"
+                  @mouseover="handleTimeline"
+                />
+                <div class="avatar-status-indicator" />
               </div>
               <div class="avatar-floating-particles">
-                <span class="particle particle-1"></span>
-                <span class="particle particle-2"></span>
-                <span class="particle particle-3"></span>
-                <span class="particle particle-4"></span>
+                <span class="particle particle-1" />
+                <span class="particle particle-2" />
+                <span class="particle particle-3" />
+                <span class="particle particle-4" />
               </div>
             </div>
           </Motion>
@@ -490,10 +791,14 @@ onBeforeUnmount(() => {
               <div class="title-wrapper">
                 <h2 class="enhanced-login-title">
                   <span class="title-gradient">
-                    <TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" />
+                    <TypeItAsync
+                      v-if="enableTitleTyping"
+                      :options="{ strings: [title], cursor: false, speed: 100 }"
+                    />
+                    <template v-else>{{ title }}</template>
                   </span>
                 </h2>
-                <div class="title-underline"></div>
+                <div class="title-underline" />
               </div>
               <p class="enhanced-login-subtitle">
                 <span class="subtitle-icon">✨</span>
@@ -509,13 +814,31 @@ onBeforeUnmount(() => {
 
         <!-- 表单区域 -->
         <div class="form-section">
-          <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large" class="modern-form">
+          <el-form
+            ref="ruleFormRef"
+            :model="ruleForm"
+            :rules="loginRules"
+            size="large"
+            class="modern-form"
+          >
             <!-- 租户编码字段（非必填） -->
-            <Motion :delay="150" v-if="defaultSetting.OpenTenantLogin && props.accountType == 2">
+            <Motion
+              v-if="defaultSetting.OpenTenantLogin && props.accountType == 2"
+              :delay="150"
+            >
               <div class="form-field-wrapper">
-                <label class="field-label">租户编码 <span class="optional-hint">(选填)</span></label>
+                <label class="field-label"
+                  >租户编码 <span class="optional-hint">(选填)</span></label
+                >
                 <el-form-item prop="tenantCode" class="modern-form-item">
-                  <el-input v-model="ruleForm.tenantCode" clearable :disabled="loading" :placeholder="t('login.pureTenantCode')" :prefix-icon="useRenderIcon('ri:building-fill')" class="modern-input" />
+                  <el-input
+                    v-model="ruleForm.tenantCode"
+                    clearable
+                    :disabled="loading"
+                    :placeholder="t('login.pureTenantCode')"
+                    :prefix-icon="useRenderIcon('ri:building-fill')"
+                    class="modern-input"
+                  />
                 </el-form-item>
               </div>
             </Motion>
@@ -535,7 +858,14 @@ onBeforeUnmount(() => {
                   prop="username"
                   class="modern-form-item"
                 >
-                  <el-input v-model="ruleForm.username" clearable :disabled="loading" :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon('ri:user-3-fill')" class="modern-input" />
+                  <el-input
+                    v-model="ruleForm.username"
+                    clearable
+                    :disabled="loading"
+                    :placeholder="t('login.pureUsername')"
+                    :prefix-icon="useRenderIcon('ri:user-3-fill')"
+                    class="modern-input"
+                  />
                 </el-form-item>
               </div>
             </Motion>
@@ -545,7 +875,15 @@ onBeforeUnmount(() => {
               <div class="form-field-wrapper">
                 <label class="field-label">密码</label>
                 <el-form-item prop="password" class="modern-form-item">
-                  <el-input v-model="ruleForm.password" clearable show-password :disabled="loading" :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
+                  <el-input
+                    v-model="ruleForm.password"
+                    clearable
+                    show-password
+                    :disabled="loading"
+                    :placeholder="t('login.purePassword')"
+                    :prefix-icon="useRenderIcon('ri:lock-fill')"
+                    class="modern-input"
+                  />
                 </el-form-item>
               </div>
             </Motion>
@@ -555,12 +893,33 @@ onBeforeUnmount(() => {
               <div class="form-field-wrapper">
                 <label class="field-label">验证码</label>
                 <div class="verify-code-wrapper">
-                  <el-form-item prop="verifyCode" class="modern-form-item verify-code-input">
-                    <el-input v-model="ruleForm.verifyCode" clearable :disabled="loading" :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon('ri:lock-fill')" class="modern-input" />
+                  <el-form-item
+                    prop="verifyCode"
+                    class="modern-form-item verify-code-input"
+                  >
+                    <el-input
+                      v-model="ruleForm.verifyCode"
+                      clearable
+                      :disabled="loading"
+                      :placeholder="t('login.verifyCode')"
+                      :prefix-icon="useRenderIcon('ri:lock-fill')"
+                      class="modern-input"
+                    />
                   </el-form-item>
-                  <div class="verify-code-image" :class="{ disabled: loading }" @click="!loading && getVerifyCode()">
-                    <el-image :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" class="code-image" />
-                    <div class="refresh-hint">{{ loading ? "登录中..." : "点击刷新" }}</div>
+                  <div
+                    class="verify-code-image"
+                    :class="{ disabled: loading }"
+                    @click="!loading && getVerifyCode()"
+                  >
+                    <el-image
+                      :src="defaultVerifyCode.verifyCodeBase64"
+                      fit="fill"
+                      :lazy="true"
+                      class="code-image"
+                    />
+                    <div class="refresh-hint">
+                      {{ loading ? "登录中..." : "点击刷新" }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -569,19 +928,47 @@ onBeforeUnmount(() => {
             <!-- 登录按钮 -->
             <Motion :delay="250">
               <div class="login-button-wrapper">
-                <el-button v-if="props.defaultSetting.OpenVerifyCode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginClick">
+                <el-button
+                  v-if="props.defaultSetting.OpenVerifyCode"
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="handleLoginClick"
+                >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>登录中...</span>
                 </el-button>
-                <el-button v-else-if="props.defaultSetting.OpenVcode" class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginCodeClick">
+                <el-button
+                  v-else-if="props.defaultSetting.OpenVcode"
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="handleLoginCodeClick"
+                >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>验证中...</span>
                 </el-button>
-                <el-button v-else-if="props.defaultSetting.CheckToptOpen" class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginToptCodeClick">
+                <el-button
+                  v-else-if="props.defaultSetting.CheckToptOpen"
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="handleLoginToptCodeClick"
+                >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>验证中...</span>
                 </el-button>
-                <el-button v-else class="modern-login-button" size="large" type="primary" :loading="loading" @click="handleLoginClick">
+                <el-button
+                  v-else
+                  class="modern-login-button"
+                  size="large"
+                  type="primary"
+                  :loading="loading"
+                  @click="handleLoginClick"
+                >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>登录中...</span>
                 </el-button>
@@ -596,7 +983,10 @@ onBeforeUnmount(() => {
             <div class="divider">
               <span class="divider-text">或</span>
             </div>
-            <ThirdPartyLayout :data="props.ssoSetting" class="third-party-component" />
+            <ThirdPartyLayout
+              :data="props.ssoSetting"
+              class="third-party-component"
+            />
           </div>
         </Motion>
       </div>
@@ -682,7 +1072,14 @@ onBeforeUnmount(() => {
         right: -15px;
         bottom: -15px;
         border-radius: 50%;
-        background: conic-gradient(from 0deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary), var(--el-color-primary-light-5), var(--el-color-primary));
+        background: conic-gradient(
+          from 0deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3),
+          var(--el-color-primary),
+          var(--el-color-primary-light-5),
+          var(--el-color-primary)
+        );
         opacity: 0.3;
         animation: rotate 8s linear infinite;
         z-index: 1;
@@ -730,7 +1127,12 @@ onBeforeUnmount(() => {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+            background: linear-gradient(
+              135deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.1) 50%,
+              transparent 100%
+            );
             border-radius: 50%;
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -856,7 +1258,12 @@ onBeforeUnmount(() => {
           position: relative;
 
           .title-gradient {
-            background: linear-gradient(135deg, var(--el-text-color-primary) 0%, var(--el-color-primary) 50%, var(--el-text-color-primary) 100%);
+            background: linear-gradient(
+              135deg,
+              var(--el-text-color-primary) 0%,
+              var(--el-color-primary) 50%,
+              var(--el-text-color-primary) 100%
+            );
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -872,7 +1279,12 @@ onBeforeUnmount(() => {
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+              background: linear-gradient(
+                135deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 100%
+              );
               background-clip: text;
               -webkit-background-clip: text;
               opacity: 0;
@@ -888,7 +1300,12 @@ onBeforeUnmount(() => {
         .title-underline {
           width: 40px; // 从60px减少到40px
           height: 3px; // 从4px减少到3px
-          background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), var(--el-color-primary));
+          background: linear-gradient(
+            90deg,
+            var(--el-color-primary),
+            var(--el-color-primary-light-3),
+            var(--el-color-primary)
+          );
           border-radius: 2px;
           margin: 0 auto;
           position: relative;
@@ -901,7 +1318,12 @@ onBeforeUnmount(() => {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.6),
+              transparent
+            );
             animation: shimmer 2s ease-in-out infinite;
           }
         }
@@ -938,7 +1360,11 @@ onBeforeUnmount(() => {
         align-items: center;
         justify-content: center;
         padding: 6px 16px; // 从8px 20px减少到6px 16px
-        background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-9),
+          var(--el-color-primary-light-8)
+        );
         border: 1px solid var(--el-color-primary-light-7);
         border-radius: 16px; // 从20px减少到16px
         box-shadow: var(--el-box-shadow-lighter);
@@ -953,7 +1379,12 @@ onBeforeUnmount(() => {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
           transition: left 0.6s ease;
         }
 
@@ -1154,7 +1585,11 @@ onBeforeUnmount(() => {
       font-size: 16px;
       font-weight: 600;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary),
+        var(--el-color-primary-light-3)
+      );
       border: none;
       box-shadow: var(--el-box-shadow-light);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1162,7 +1597,11 @@ onBeforeUnmount(() => {
       writing-mode: horizontal-tb;
 
       &:hover {
-        background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-dark-2),
+          var(--el-color-primary)
+        );
         box-shadow: var(--el-box-shadow);
         transform: translateY(-2px);
       }
@@ -1358,7 +1797,11 @@ onBeforeUnmount(() => {
           content: "";
           width: 20px;
           height: 20px;
-          background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-light-3));
+          background: linear-gradient(
+            135deg,
+            var(--el-color-success),
+            var(--el-color-success-light-3)
+          );
           border-radius: 50%;
           display: inline-block;
           position: relative;
@@ -1457,7 +1900,12 @@ onBeforeUnmount(() => {
         left: 0;
         right: 0;
         bottom: 0;
-        background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 50%, var(--el-color-success-light-9) 100%);
+        background: linear-gradient(
+          135deg,
+          var(--el-color-primary-light-9) 0%,
+          transparent 50%,
+          var(--el-color-success-light-9) 100%
+        );
         opacity: 0.3;
         z-index: 0;
       }
@@ -1479,7 +1927,12 @@ onBeforeUnmount(() => {
         animation: bounceIn 0.6s ease-out;
 
         &::before {
-          background: linear-gradient(135deg, var(--el-color-success-light-8) 0%, transparent 50%, var(--el-color-success-light-7) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-success-light-8) 0%,
+            transparent 50%,
+            var(--el-color-success-light-7) 100%
+          );
         }
 
         .vcode-header .vcode-title {
@@ -1504,7 +1957,12 @@ onBeforeUnmount(() => {
         animation: shake 0.5s ease-in-out;
 
         &::before {
-          background: linear-gradient(135deg, var(--el-color-error-light-8) 0%, transparent 50%, var(--el-color-error-light-7) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-error-light-8) 0%,
+            transparent 50%,
+            var(--el-color-error-light-7) 100%
+          );
         }
 
         .vcode-header .vcode-title {
@@ -1624,7 +2082,12 @@ onBeforeUnmount(() => {
 
           // 滑块轨道
           .vcode-slider-track {
-            background: linear-gradient(90deg, var(--el-fill-color-light) 0%, var(--el-fill-color-extra-light) 50%, var(--el-fill-color-light) 100%);
+            background: linear-gradient(
+              90deg,
+              var(--el-fill-color-light) 0%,
+              var(--el-fill-color-extra-light) 50%,
+              var(--el-fill-color-light) 100%
+            );
             border: 2px solid var(--el-border-color-lighter);
             border-radius: 24px;
             height: 48px;
@@ -1640,7 +2103,12 @@ onBeforeUnmount(() => {
               left: 0;
               right: 0;
               bottom: 0;
-              background: linear-gradient(90deg, transparent 0%, rgba(var(--el-color-primary-rgb), 0.1) 50%, transparent 100%);
+              background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(var(--el-color-primary-rgb), 0.1) 50%,
+                transparent 100%
+              );
               animation: shimmer 2s ease-in-out infinite;
             }
 
@@ -1662,7 +2130,11 @@ onBeforeUnmount(() => {
 
           // 滑块按钮
           .vcode-slider-btn {
-            background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+            background: linear-gradient(
+              135deg,
+              var(--el-color-primary) 0%,
+              var(--el-color-primary-light-3) 100%
+            );
             border: 3px solid var(--el-bg-color);
             border-radius: 50%;
             width: 44px;
@@ -1702,7 +2174,11 @@ onBeforeUnmount(() => {
             }
 
             &:hover {
-              background: linear-gradient(135deg, var(--el-color-primary-dark-2) 0%, var(--el-color-primary) 100%);
+              background: linear-gradient(
+                135deg,
+                var(--el-color-primary-dark-2) 0%,
+                var(--el-color-primary) 100%
+              );
               transform: scale(1.1);
               box-shadow:
                 0 6px 16px rgba(var(--el-color-primary-rgb), 0.4),
@@ -1718,12 +2194,20 @@ onBeforeUnmount(() => {
           // 成功状态
           &.vcode-success {
             .vcode-slider-track {
-              background: linear-gradient(90deg, var(--el-color-success-light-8) 0%, var(--el-color-success-light-9) 100%);
+              background: linear-gradient(
+                90deg,
+                var(--el-color-success-light-8) 0%,
+                var(--el-color-success-light-9) 100%
+              );
               border-color: var(--el-color-success-light-5);
             }
 
             .vcode-slider-btn {
-              background: linear-gradient(135deg, var(--el-color-success) 0%, var(--el-color-success-light-3) 100%);
+              background: linear-gradient(
+                135deg,
+                var(--el-color-success) 0%,
+                var(--el-color-success-light-3) 100%
+              );
 
               &::after {
                 background: var(--el-color-success);
@@ -1734,13 +2218,21 @@ onBeforeUnmount(() => {
           // 失败状态
           &.vcode-error {
             .vcode-slider-track {
-              background: linear-gradient(90deg, var(--el-color-error-light-8) 0%, var(--el-color-error-light-9) 100%);
+              background: linear-gradient(
+                90deg,
+                var(--el-color-error-light-8) 0%,
+                var(--el-color-error-light-9) 100%
+              );
               border-color: var(--el-color-error-light-5);
               animation: shake 0.5s ease-in-out;
             }
 
             .vcode-slider-btn {
-              background: linear-gradient(135deg, var(--el-color-error) 0%, var(--el-color-error-light-3) 100%);
+              background: linear-gradient(
+                135deg,
+                var(--el-color-error) 0%,
+                var(--el-color-error-light-3) 100%
+              );
 
               &::after {
                 background: var(--el-color-error);

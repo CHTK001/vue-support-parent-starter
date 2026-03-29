@@ -1,5 +1,5 @@
 <script setup>
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { emitter, useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
 import { subscribeClock } from "@repo/utils";
@@ -17,6 +17,10 @@ import {
   shallowRef,
   watch,
 } from "vue";
+
+let customLayoutLoader = null;
+const preloadCustomLayout = () =>
+  (customLayoutLoader ??= import("./layout/CustomLayout.vue"));
 
 const widgets = shallowRef();
 const userLayoutObject = useLayoutLayoutStore();
@@ -40,15 +44,21 @@ const handlePreviewError = (id) => {
   previewErrors[id] = true;
 };
 
-const CustomLayout = defineAsyncComponent(
-  () => import("./layout/CustomLayout.vue"),
-);
+const CustomLayout = defineAsyncComponent({
+  loader: preloadCustomLayout,
+  suspensible: false,
+  delay: 0,
+});
 const hasLayout = computed(
   () => !!(getConfig().RemoteLayout || getConfig().LocationLayout),
+);
+const hasConfiguredWidgets = computed(() =>
+  userLayoutObject.hasSettingCompent(),
 );
 const customizing = reactive({
   customizing: false,
 });
+const widgetsReady = ref(false);
 
 // 搜索和筛选
 const searchKeyword = ref("");
@@ -142,7 +152,9 @@ const FESTIVAL_THEME_META = {
   },
 };
 
-const festivalThemeMeta = computed(() => FESTIVAL_THEME_META[currentTheme.value] || null);
+const festivalThemeMeta = computed(
+  () => FESTIVAL_THEME_META[currentTheme.value] || null,
+);
 const handleThemeChange = (themeKey) => {
   currentTheme.value = themeKey || "default";
 };
@@ -192,6 +204,15 @@ const widgetStats = computed(() => {
   const available = userLayoutObject.myCompsList()?.length || 0;
   return { total, active, available };
 });
+
+const widgetMemoKey = computed(() =>
+  [
+    widgetsReady.value ? 1 : 0,
+    customizing.customizing ? 1 : 0,
+    hasLayout.value ? 1 : 0,
+    hasConfiguredWidgets.value ? 1 : 0,
+  ].join(":"),
+);
 
 // 部件分类
 const categories = computed(() => {
@@ -280,6 +301,28 @@ const handleUpdate = async () => {
   userLayoutObject.saveLayout();
 };
 
+const scheduleWidgetsMount = () => {
+  const warmup = () => {
+    void preloadCustomLayout().finally(() => {
+      widgetsReady.value = true;
+    });
+  };
+
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    window.requestIdleCallback(warmup, { timeout: 900 });
+    return;
+  }
+
+  if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(warmup, 80);
+    });
+    return;
+  }
+
+  setTimeout(warmup, 120);
+};
+
 onBeforeMount(async () => {
   useLayoutLayoutStore().load();
 });
@@ -289,6 +332,7 @@ onMounted(() => {
   stopClockSubscription = subscribeClock((now) => {
     currentTime.value = new Date(now);
   });
+  scheduleWidgetsMount();
   emitter.on("systemThemeChange", handleThemeChange);
 });
 
@@ -313,7 +357,7 @@ onUnmounted(() => {
         class="widgets-header"
         :class="{ 'header-compact': !showHeaderInfo }"
       >
-          <div class="header-left" v-if="showHeaderInfo">
+        <div v-if="showHeaderInfo" class="header-left">
           <div class="header-greeting">
             <div class="greeting-text">
               <span class="greeting-hello">{{ greeting }}，</span>
@@ -323,50 +367,53 @@ onUnmounted(() => {
             </div>
             <div class="greeting-subtitle">{{ $t("buttons.board") }}</div>
             <div v-if="festivalThemeMeta" class="festival-hero-note">
-              <span class="festival-hero-kicker">{{ festivalThemeMeta.badge }}</span>
-              <span class="festival-hero-copy">{{ festivalThemeMeta.description }}</span>
+              <span class="festival-hero-kicker">{{
+                festivalThemeMeta.badge
+              }}</span>
+              <span class="festival-hero-copy">{{
+                festivalThemeMeta.description
+              }}</span>
             </div>
           </div>
         </div>
-        <div class="header-left" v-else>
+        <div v-else class="header-left">
           <div class="header-title">{{ $t("buttons.board") }}</div>
         </div>
-        <div class="header-center" v-if="showHeaderInfo">
+        <div v-if="showHeaderInfo" class="header-center">
           <div class="header-time">
             <div class="time-display">{{ formattedTime }}</div>
             <div class="date-display">{{ formattedDate }}</div>
           </div>
         </div>
         <div class="header-right">
-          <div
-            class="header-stats"
-            v-if="showHeaderInfo && hasLayout"
-          >
+          <div v-if="showHeaderInfo && hasLayout" class="header-stats">
             <div class="stat-item">
               <span class="stat-value">{{ widgetStats.active }}</span>
               <span class="stat-label">已添加</span>
             </div>
-            <div class="stat-divider"></div>
+            <div class="stat-divider" />
             <div class="stat-item">
               <span class="stat-value">{{ widgetStats.available }}</span>
               <span class="stat-label">可用</span>
             </div>
           </div>
-          <div class="header-actions" v-if="hasLayout">
+          <div v-if="hasLayout" class="header-actions">
             <el-button
               v-if="customizing.customizing"
               type="primary"
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-              >{{ $t("buttons.finish") }}</el-button>
+              >{{ $t("buttons.finish") }}</el-button
+            >
             <el-button
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-              >{{ $t("buttons.custom") }}</el-button>
+              >{{ $t("buttons.custom") }}</el-button
+            >
           </div>
         </div>
       </div>
@@ -387,7 +434,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 部件内容区域 -->
-      <div ref="widgets" class="widgets">
+      <div ref="widgets" v-memo="[widgetMemoKey]" class="widgets">
         <div class="widgets-wrapper">
           <div v-if="!hasLayout" class="empty-state">
             <div class="empty-icon">
@@ -399,10 +446,7 @@ onUnmounted(() => {
             <div class="empty-desc">{{ $t("message.noPlugin") }}</div>
           </div>
           <div v-else class="h-full">
-            <div
-              v-if="!userLayoutObject.hasSettingCompent()"
-              class="empty-state"
-            >
+            <div v-if="!hasConfiguredWidgets" class="empty-state">
               <div class="empty-icon">
                 <el-icon :size="64">
                   <component :is="useRenderIcon('ri:apps-2-add-line')" />
@@ -413,8 +457,8 @@ onUnmounted(() => {
               <el-button
                 type="primary"
                 round
-                @click="handeCustom"
                 class="empty-action"
+                @click="handeCustom"
               >
                 <el-icon class="mr-1">
                   <component :is="useRenderIcon('ep:plus')" />
@@ -422,17 +466,28 @@ onUnmounted(() => {
                 添加部件
               </el-button>
             </div>
-            <CustomLayout
-              v-else
-              v-model="customizing.customizing"
-            ></CustomLayout>
+            <div
+              v-else-if="!widgetsReady"
+              class="empty-state dashboard-loading"
+            >
+              <div class="empty-icon loading-icon">
+                <el-icon :size="40" class="is-loading">
+                  <component :is="useRenderIcon('ri:loader-4-line')" />
+                </el-icon>
+              </div>
+              <div class="empty-title">正在准备仪表板</div>
+              <div class="empty-desc">
+                首屏内容会在空闲帧完成挂载，先保证页面立即可操作
+              </div>
+            </div>
+            <CustomLayout v-else v-model="customizing.customizing" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- 优化后的部件选择侧边栏 -->
-      <div v-if="customizing.customizing" class="widgets-aside">
+    <div v-if="customizing.customizing" class="widgets-aside">
       <div class="aside-header">
         <div class="aside-title">
           <el-icon :size="20">
@@ -515,7 +570,8 @@ onUnmounted(() => {
       <div class="aside-footer">
         <div class="footer-settings">
           <el-checkbox v-model="showHeaderInfo" size="small"
-            >显示头部信息</el-checkbox>
+            >显示头部信息</el-checkbox
+          >
         </div>
         <el-button size="small" @click="backDefault()">
           <el-icon class="mr-1"
@@ -539,16 +595,24 @@ onUnmounted(() => {
 
 .widgets-home {
   --home-font-family:
-    "Fira Sans",
-    "Segoe UI",
-    "PingFang SC",
-    "Microsoft YaHei",
-    sans-serif;
-  --home-page-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
-  --home-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
+    "Fira Sans", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --home-page-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0)
+  );
+  --home-panel-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(255, 255, 255, 0.9)
+  );
   --home-panel-border: rgba(148, 163, 184, 0.12);
   --home-panel-shadow: 0 22px 40px -34px rgba(15, 23, 42, 0.2);
-  --home-panel-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 40%);
+  --home-panel-overlay: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22),
+    transparent 40%
+  );
   --home-panel-radius: 24px;
   --home-header-radius: 22px;
   --home-section-bg: transparent;
@@ -567,7 +631,11 @@ onUnmounted(() => {
   --home-time-shadow: none;
   --home-heading-shadow: none;
   --home-empty-title-shadow: none;
-  --home-empty-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.86));
+  --home-empty-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(255, 255, 255, 0.86)
+  );
   --home-empty-border: rgba(var(--el-color-primary-rgb), 0.16);
   --home-empty-shadow: 0 22px 44px -36px rgba(15, 23, 42, 0.2);
   --home-empty-icon-bg: linear-gradient(
@@ -582,11 +650,20 @@ onUnmounted(() => {
   --home-button-shadow: 0 12px 24px -20px rgba(var(--el-color-primary-rgb), 0.3);
   --home-festival-note-bg: rgba(var(--el-color-primary-rgb), 0.08);
   --home-festival-note-border: rgba(var(--el-color-primary-rgb), 0.14);
-  --home-festival-note-shadow: 0 16px 28px -24px rgba(var(--el-color-primary-rgb), 0.18);
-  --home-festival-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88));
+  --home-festival-note-shadow: 0 16px 28px -24px
+    rgba(var(--el-color-primary-rgb), 0.18);
+  --home-festival-card-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(255, 255, 255, 0.88)
+  );
   --home-festival-card-border: rgba(148, 163, 184, 0.14);
   --home-festival-card-shadow: 0 18px 34px -28px rgba(15, 23, 42, 0.16);
-  --home-festival-card-overlay: linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 55%);
+  --home-festival-card-overlay: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.24),
+    transparent 55%
+  );
   --home-festival-icon-bg: rgba(var(--el-color-primary-rgb), 0.12);
   --home-festival-icon-color: var(--el-color-primary);
   --home-festival-label: rgba(var(--el-color-primary-rgb), 0.7);
@@ -688,11 +765,7 @@ onUnmounted(() => {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
     text-shadow: var(--home-time-shadow);
-    font-family:
-      "Fira Code",
-      "Consolas",
-      "SFMono-Regular",
-      monospace;
+    font-family: "Fira Code", "Consolas", "SFMono-Regular", monospace;
   }
 
   .date-display {
@@ -934,10 +1007,7 @@ html[data-skin="8bit"],
 html.theme-8bit {
   .widgets-home {
     --home-font-family:
-      "Fusion Pixel Zh_hans",
-      "Courier New",
-      "Microsoft YaHei",
-      monospace;
+      "Fusion Pixel Zh_hans", "Courier New", "Microsoft YaHei", monospace;
     --home-page-bg:
       repeating-linear-gradient(
         90deg,
@@ -997,11 +1067,23 @@ html.theme-future-tech {
     --home-page-bg:
       radial-gradient(circle at top, rgba(0, 255, 255, 0.12), transparent 30%),
       linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-    --home-panel-bg: linear-gradient(180deg, rgba(7, 18, 42, 0.86), rgba(5, 12, 30, 0.78));
+    --home-panel-bg: linear-gradient(
+      180deg,
+      rgba(7, 18, 42, 0.86),
+      rgba(5, 12, 30, 0.78)
+    );
     --home-panel-border: rgba(0, 255, 255, 0.22);
     --home-panel-shadow: 0 28px 52px -36px rgba(0, 255, 255, 0.22);
-    --home-panel-overlay: linear-gradient(135deg, rgba(97, 250, 255, 0.18), transparent 45%);
-    --home-section-bg: linear-gradient(180deg, rgba(7, 18, 42, 0.22), rgba(5, 12, 30, 0.12));
+    --home-panel-overlay: linear-gradient(
+      135deg,
+      rgba(97, 250, 255, 0.18),
+      transparent 45%
+    );
+    --home-section-bg: linear-gradient(
+      180deg,
+      rgba(7, 18, 42, 0.22),
+      rgba(5, 12, 30, 0.12)
+    );
     --home-section-border: rgba(0, 255, 255, 0.08);
     --home-section-shadow: inset 0 0 0 1px rgba(0, 255, 255, 0.04);
     --home-section-radius: 28px;
@@ -1016,7 +1098,11 @@ html.theme-future-tech {
     --home-time-shadow: 0 0 16px rgba(0, 255, 255, 0.35);
     --home-heading-shadow: 0 0 12px rgba(0, 255, 255, 0.14);
     --home-empty-title-shadow: 0 0 12px rgba(0, 255, 255, 0.16);
-    --home-empty-bg: linear-gradient(180deg, rgba(8, 23, 54, 0.88), rgba(3, 11, 26, 0.78));
+    --home-empty-bg: linear-gradient(
+      180deg,
+      rgba(8, 23, 54, 0.88),
+      rgba(3, 11, 26, 0.78)
+    );
     --home-empty-border: rgba(0, 255, 255, 0.2);
     --home-empty-shadow: 0 30px 48px -34px rgba(0, 255, 255, 0.24);
     --home-empty-icon-bg: radial-gradient(
@@ -1037,11 +1123,23 @@ html.theme-halloween {
     --home-page-bg:
       radial-gradient(circle at top, rgba(255, 117, 24, 0.12), transparent 28%),
       linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-    --home-panel-bg: linear-gradient(180deg, rgba(43, 10, 63, 0.88), rgba(23, 4, 35, 0.8));
+    --home-panel-bg: linear-gradient(
+      180deg,
+      rgba(43, 10, 63, 0.88),
+      rgba(23, 4, 35, 0.8)
+    );
     --home-panel-border: rgba(255, 117, 24, 0.22);
     --home-panel-shadow: 0 26px 48px -34px rgba(255, 117, 24, 0.22);
-    --home-panel-overlay: linear-gradient(135deg, rgba(255, 145, 77, 0.18), transparent 45%);
-    --home-section-bg: linear-gradient(180deg, rgba(43, 10, 63, 0.18), rgba(23, 4, 35, 0.12));
+    --home-panel-overlay: linear-gradient(
+      135deg,
+      rgba(255, 145, 77, 0.18),
+      transparent 45%
+    );
+    --home-section-bg: linear-gradient(
+      180deg,
+      rgba(43, 10, 63, 0.18),
+      rgba(23, 4, 35, 0.12)
+    );
     --home-section-border: rgba(255, 117, 24, 0.08);
     --home-section-shadow: inset 0 0 0 1px rgba(255, 117, 24, 0.04);
     --home-section-radius: 28px;
@@ -1056,7 +1154,11 @@ html.theme-halloween {
     --home-time-shadow: 0 0 14px rgba(255, 117, 24, 0.26);
     --home-heading-shadow: 0 0 10px rgba(255, 117, 24, 0.1);
     --home-empty-title-shadow: 0 0 10px rgba(255, 117, 24, 0.12);
-    --home-empty-bg: linear-gradient(180deg, rgba(52, 11, 76, 0.9), rgba(23, 4, 35, 0.8));
+    --home-empty-bg: linear-gradient(
+      180deg,
+      rgba(52, 11, 76, 0.9),
+      rgba(23, 4, 35, 0.8)
+    );
     --home-empty-border: rgba(255, 117, 24, 0.24);
     --home-empty-shadow: 0 28px 46px -34px rgba(255, 117, 24, 0.24);
     --home-empty-icon-bg: radial-gradient(
@@ -1071,10 +1173,18 @@ html.theme-halloween {
     --home-festival-note-bg: rgba(255, 176, 92, 0.12);
     --home-festival-note-border: rgba(255, 176, 92, 0.18);
     --home-festival-note-shadow: 0 18px 32px -24px rgba(255, 117, 24, 0.24);
-    --home-festival-card-bg: linear-gradient(180deg, rgba(54, 11, 79, 0.92), rgba(23, 4, 35, 0.86));
+    --home-festival-card-bg: linear-gradient(
+      180deg,
+      rgba(54, 11, 79, 0.92),
+      rgba(23, 4, 35, 0.86)
+    );
     --home-festival-card-border: rgba(255, 176, 92, 0.18);
     --home-festival-card-shadow: 0 22px 36px -26px rgba(255, 117, 24, 0.22);
-    --home-festival-card-overlay: linear-gradient(135deg, rgba(255, 176, 92, 0.16), transparent 52%);
+    --home-festival-card-overlay: linear-gradient(
+      135deg,
+      rgba(255, 176, 92, 0.16),
+      transparent 52%
+    );
     --home-festival-icon-bg: rgba(255, 176, 92, 0.14);
     --home-festival-icon-color: #ffb05c;
     --home-festival-label: rgba(255, 212, 171, 0.7);
@@ -1085,13 +1195,29 @@ html[data-skin="christmas"],
 html.theme-christmas {
   .widgets-home {
     --home-page-bg:
-      radial-gradient(circle at top, rgba(255, 225, 138, 0.12), transparent 28%),
+      radial-gradient(
+        circle at top,
+        rgba(255, 225, 138, 0.12),
+        transparent 28%
+      ),
       linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-    --home-panel-bg: linear-gradient(180deg, rgba(17, 70, 28, 0.9), rgba(12, 42, 20, 0.82));
+    --home-panel-bg: linear-gradient(
+      180deg,
+      rgba(17, 70, 28, 0.9),
+      rgba(12, 42, 20, 0.82)
+    );
     --home-panel-border: rgba(255, 225, 138, 0.22);
     --home-panel-shadow: 0 26px 46px -34px rgba(17, 70, 28, 0.28);
-    --home-panel-overlay: linear-gradient(135deg, rgba(255, 225, 138, 0.16), transparent 44%);
-    --home-section-bg: linear-gradient(180deg, rgba(17, 70, 28, 0.18), rgba(12, 42, 20, 0.12));
+    --home-panel-overlay: linear-gradient(
+      135deg,
+      rgba(255, 225, 138, 0.16),
+      transparent 44%
+    );
+    --home-section-bg: linear-gradient(
+      180deg,
+      rgba(17, 70, 28, 0.18),
+      rgba(12, 42, 20, 0.12)
+    );
     --home-section-border: rgba(255, 225, 138, 0.08);
     --home-section-shadow: inset 0 0 0 1px rgba(255, 225, 138, 0.04);
     --home-section-radius: 28px;
@@ -1106,7 +1232,11 @@ html.theme-christmas {
     --home-time-shadow: 0 0 12px rgba(255, 225, 138, 0.18);
     --home-heading-shadow: 0 0 10px rgba(255, 225, 138, 0.08);
     --home-empty-title-shadow: 0 0 10px rgba(255, 225, 138, 0.1);
-    --home-empty-bg: linear-gradient(180deg, rgba(14, 54, 25, 0.92), rgba(120, 18, 44, 0.66));
+    --home-empty-bg: linear-gradient(
+      180deg,
+      rgba(14, 54, 25, 0.92),
+      rgba(120, 18, 44, 0.66)
+    );
     --home-empty-border: rgba(255, 225, 138, 0.24);
     --home-empty-shadow: 0 28px 46px -34px rgba(17, 70, 28, 0.3);
     --home-empty-icon-bg: radial-gradient(
@@ -1121,10 +1251,18 @@ html.theme-christmas {
     --home-festival-note-bg: rgba(255, 225, 138, 0.12);
     --home-festival-note-border: rgba(255, 225, 138, 0.16);
     --home-festival-note-shadow: 0 18px 30px -24px rgba(17, 70, 28, 0.22);
-    --home-festival-card-bg: linear-gradient(180deg, rgba(18, 63, 27, 0.92), rgba(120, 18, 44, 0.72));
+    --home-festival-card-bg: linear-gradient(
+      180deg,
+      rgba(18, 63, 27, 0.92),
+      rgba(120, 18, 44, 0.72)
+    );
     --home-festival-card-border: rgba(255, 225, 138, 0.18);
     --home-festival-card-shadow: 0 22px 36px -26px rgba(17, 70, 28, 0.26);
-    --home-festival-card-overlay: linear-gradient(135deg, rgba(255, 225, 138, 0.16), transparent 52%);
+    --home-festival-card-overlay: linear-gradient(
+      135deg,
+      rgba(255, 225, 138, 0.16),
+      transparent 52%
+    );
     --home-festival-icon-bg: rgba(255, 225, 138, 0.14);
     --home-festival-icon-color: #ffe18a;
     --home-festival-label: rgba(243, 237, 214, 0.74);
@@ -1135,13 +1273,29 @@ html[data-skin="spring-festival"],
 html.theme-spring-festival {
   .widgets-home {
     --home-page-bg:
-      radial-gradient(circle at top, rgba(245, 213, 122, 0.14), transparent 28%),
+      radial-gradient(
+        circle at top,
+        rgba(245, 213, 122, 0.14),
+        transparent 28%
+      ),
       linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-    --home-panel-bg: linear-gradient(180deg, rgba(111, 4, 20, 0.92), rgba(78, 2, 14, 0.82));
+    --home-panel-bg: linear-gradient(
+      180deg,
+      rgba(111, 4, 20, 0.92),
+      rgba(78, 2, 14, 0.82)
+    );
     --home-panel-border: rgba(245, 213, 122, 0.22);
     --home-panel-shadow: 0 26px 48px -34px rgba(111, 4, 20, 0.32);
-    --home-panel-overlay: linear-gradient(135deg, rgba(245, 213, 122, 0.16), transparent 44%);
-    --home-section-bg: linear-gradient(180deg, rgba(111, 4, 20, 0.18), rgba(78, 2, 14, 0.12));
+    --home-panel-overlay: linear-gradient(
+      135deg,
+      rgba(245, 213, 122, 0.16),
+      transparent 44%
+    );
+    --home-section-bg: linear-gradient(
+      180deg,
+      rgba(111, 4, 20, 0.18),
+      rgba(78, 2, 14, 0.12)
+    );
     --home-section-border: rgba(245, 213, 122, 0.08);
     --home-section-shadow: inset 0 0 0 1px rgba(245, 213, 122, 0.04);
     --home-section-radius: 28px;
@@ -1156,7 +1310,11 @@ html.theme-spring-festival {
     --home-time-shadow: 0 0 14px rgba(245, 213, 122, 0.16);
     --home-heading-shadow: 0 0 10px rgba(245, 213, 122, 0.08);
     --home-empty-title-shadow: 0 0 10px rgba(245, 213, 122, 0.1);
-    --home-empty-bg: linear-gradient(180deg, rgba(103, 2, 19, 0.94), rgba(63, 1, 12, 0.82));
+    --home-empty-bg: linear-gradient(
+      180deg,
+      rgba(103, 2, 19, 0.94),
+      rgba(63, 1, 12, 0.82)
+    );
     --home-empty-border: rgba(245, 213, 122, 0.24);
     --home-empty-shadow: 0 28px 48px -34px rgba(111, 4, 20, 0.34);
     --home-empty-icon-bg: radial-gradient(
@@ -1171,10 +1329,18 @@ html.theme-spring-festival {
     --home-festival-note-bg: rgba(245, 213, 122, 0.12);
     --home-festival-note-border: rgba(245, 213, 122, 0.18);
     --home-festival-note-shadow: 0 18px 30px -24px rgba(111, 4, 20, 0.26);
-    --home-festival-card-bg: linear-gradient(180deg, rgba(105, 4, 19, 0.94), rgba(63, 1, 12, 0.86));
+    --home-festival-card-bg: linear-gradient(
+      180deg,
+      rgba(105, 4, 19, 0.94),
+      rgba(63, 1, 12, 0.86)
+    );
     --home-festival-card-border: rgba(245, 213, 122, 0.18);
     --home-festival-card-shadow: 0 22px 38px -26px rgba(111, 4, 20, 0.3);
-    --home-festival-card-overlay: linear-gradient(135deg, rgba(245, 213, 122, 0.16), transparent 52%);
+    --home-festival-card-overlay: linear-gradient(
+      135deg,
+      rgba(245, 213, 122, 0.16),
+      transparent 52%
+    );
     --home-festival-icon-bg: rgba(245, 213, 122, 0.16);
     --home-festival-icon-color: #f8e3a4;
     --home-festival-label: rgba(255, 235, 185, 0.74);
@@ -1423,6 +1589,15 @@ html.dark .widgets-aside {
   margin-bottom: 6px;
 }
 
+.dashboard-loading {
+  gap: 14px;
+  text-align: center;
+
+  .loading-icon {
+    color: var(--el-color-primary);
+  }
+}
+
 .widget-card-meta {
   :deep(.el-tag) {
     border-radius: 4px;
@@ -1547,12 +1722,24 @@ html.dark .widgets-aside {
 .dark {
   .widgets-home {
     --home-page-bg:
-      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.12), transparent 28%),
+      radial-gradient(
+        circle at top left,
+        rgba(var(--el-color-primary-rgb), 0.12),
+        transparent 28%
+      ),
       linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0));
-    --home-panel-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(15, 23, 42, 0.84));
+    --home-panel-bg: linear-gradient(
+      180deg,
+      rgba(17, 24, 39, 0.9),
+      rgba(15, 23, 42, 0.84)
+    );
     --home-panel-border: rgba(148, 163, 184, 0.16);
     --home-panel-shadow: 0 26px 46px -34px rgba(2, 6, 23, 0.52);
-    --home-section-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.14), rgba(15, 23, 42, 0.08));
+    --home-section-bg: linear-gradient(
+      180deg,
+      rgba(17, 24, 39, 0.14),
+      rgba(15, 23, 42, 0.08)
+    );
     --home-section-border: rgba(148, 163, 184, 0.08);
     --home-section-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.04);
     --home-section-radius: 28px;
@@ -1563,7 +1750,11 @@ html.dark .widgets-aside {
     --home-title-color: #f8fafc;
     --home-subtitle-color: rgba(203, 213, 225, 0.72);
     --home-time-color: #f8fafc;
-    --home-empty-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.88), rgba(15, 23, 42, 0.78));
+    --home-empty-bg: linear-gradient(
+      180deg,
+      rgba(17, 24, 39, 0.88),
+      rgba(15, 23, 42, 0.78)
+    );
     --home-empty-border: rgba(var(--el-color-primary-rgb), 0.18);
     --home-empty-shadow: 0 28px 44px -34px rgba(2, 6, 23, 0.54);
     --home-empty-icon-bg: linear-gradient(

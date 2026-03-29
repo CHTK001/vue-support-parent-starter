@@ -25,12 +25,24 @@ const sectionClass = computed(() => props.section.toLowerCase());
 
 <style scoped lang="scss">
 .theme-setting-shell {
-  --theme-shell-accent: var(--el-color-primary);
-  --theme-shell-text: var(--el-text-color-primary);
-  --theme-shell-muted: var(--el-text-color-secondary);
-  --theme-shell-line: rgba(var(--el-color-primary-rgb), 0.18);
-  --theme-shell-surface: rgba(var(--el-color-primary-rgb), 0.08);
-  --theme-shell-card: rgba(255, 255, 255, 0.72);
+  --theme-shell-accent: var(
+    --setting-shell-nav-active-text,
+    var(--el-color-primary)
+  );
+  --theme-shell-text: var(--setting-shell-ink, var(--el-text-color-primary));
+  --theme-shell-muted: var(
+    --setting-shell-muted,
+    var(--el-text-color-secondary)
+  );
+  --theme-shell-line: var(
+    --setting-shell-card-border,
+    rgba(var(--el-color-primary-rgb), 0.18)
+  );
+  --theme-shell-surface: var(
+    --setting-shell-nav-active-bg,
+    rgba(var(--el-color-primary-rgb), 0.08)
+  );
+  --theme-shell-card: var(--setting-shell-card-bg, rgba(255, 255, 255, 0.72));
   --theme-shell-shadow: rgba(15, 23, 42, 0.12);
   display: block;
 
@@ -44,7 +56,11 @@ const sectionClass = computed(() => props.section.toLowerCase());
   }
 
   :deep(.setting-section:hover) {
-    border-color: color-mix(in srgb, var(--theme-shell-accent) 70%, white) !important;
+    border-color: color-mix(
+      in srgb,
+      var(--theme-shell-accent) 70%,
+      white
+    ) !important;
   }
 
   :deep(.section-title),
@@ -96,7 +112,11 @@ const sectionClass = computed(() => props.section.toLowerCase());
   --theme-shell-muted: rgba(255, 236, 191, 0.82);
   --theme-shell-line: rgba(255, 215, 0, 0.26);
   --theme-shell-surface: rgba(200, 16, 46, 0.28);
-  --theme-shell-card: linear-gradient(145deg, rgba(107, 0, 0, 0.82), rgba(72, 0, 0, 0.74));
+  --theme-shell-card: linear-gradient(
+    145deg,
+    rgba(107, 0, 0, 0.82),
+    rgba(72, 0, 0, 0.74)
+  );
   --theme-shell-shadow: rgba(107, 0, 0, 0.42);
 }
 
@@ -106,7 +126,11 @@ const sectionClass = computed(() => props.section.toLowerCase());
   --theme-shell-muted: rgba(255, 214, 176, 0.82);
   --theme-shell-line: rgba(255, 117, 24, 0.28);
   --theme-shell-surface: rgba(44, 0, 62, 0.36);
-  --theme-shell-card: linear-gradient(145deg, rgba(36, 14, 58, 0.88), rgba(20, 6, 34, 0.8));
+  --theme-shell-card: linear-gradient(
+    145deg,
+    rgba(36, 14, 58, 0.88),
+    rgba(20, 6, 34, 0.8)
+  );
   --theme-shell-shadow: rgba(20, 6, 34, 0.56);
 }
 
@@ -116,7 +140,11 @@ const sectionClass = computed(() => props.section.toLowerCase());
   --theme-shell-muted: rgba(232, 247, 227, 0.84);
   --theme-shell-line: rgba(255, 225, 138, 0.24);
   --theme-shell-surface: rgba(17, 70, 28, 0.34);
-  --theme-shell-card: linear-gradient(145deg, rgba(17, 70, 28, 0.86), rgba(121, 18, 44, 0.74));
+  --theme-shell-card: linear-gradient(
+    145deg,
+    rgba(17, 70, 28, 0.86),
+    rgba(121, 18, 44, 0.74)
+  );
   --theme-shell-shadow: rgba(17, 70, 28, 0.44);
 }
 
@@ -126,7 +154,11 @@ const sectionClass = computed(() => props.section.toLowerCase());
   --theme-shell-muted: rgba(147, 244, 255, 0.76);
   --theme-shell-line: rgba(0, 255, 255, 0.24);
   --theme-shell-surface: rgba(0, 255, 255, 0.12);
-  --theme-shell-card: radial-gradient(circle at top, rgba(0, 255, 255, 0.12), rgba(5, 10, 31, 0.9));
+  --theme-shell-card: radial-gradient(
+    circle at top,
+    rgba(0, 255, 255, 0.12),
+    rgba(5, 10, 31, 0.9)
+  );
   --theme-shell-shadow: rgba(0, 255, 255, 0.18);
 }
 </style>

@@ -1,0 +1,26 @@
+:root,
+page {
+  --uni-shell-bg: #f5efe6;
+  --uni-surface: rgba(255, 255, 255, 0.82);
+  --uni-surface-strong: #fffaf4;
+  --uni-primary: #c96c2d;
+  --uni-accent: #166b5a;
+  --uni-text-strong: #201913;
+  --uni-text-primary: #40362e;
+  --uni-text-muted: #76685b;
+  --uni-border-color: rgba(64, 54, 46, 0.08);
+  --uni-shadow-soft: 0 18rpx 48rpx rgba(50, 39, 27, 0.12);
+}
+
+page {
+  background: var(--uni-shell-bg);
+  color: var(--uni-text-primary);
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+view,
+text,
+button {
+  box-sizing: border-box;
+}
