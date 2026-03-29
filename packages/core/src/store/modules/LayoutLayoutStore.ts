@@ -8,7 +8,6 @@ import { fetchMineSfc as fetchMineSfcByCategory } from "../../api/common/sfc";
 import { localStorageProxy, toObject } from "@repo/utils";
 import { defineStore } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
-import * as _ from "lodash-es";
 import { createLazySfcComponent } from "../utils/lazySfc";
 
 // 404 组件的异步加载
@@ -262,9 +261,7 @@ export const useLayoutLayoutStore = defineStore({
     normalizeLayoutState() {
       const columnCount = Number(this.gridMeta?.columnCount || 24);
       const validIds = new Set(
-        (this.allComps || [])
-          .map((item) => item?.sysSfcId)
-          .filter(Boolean),
+        (this.allComps || []).map((item) => item?.sysSfcId).filter(Boolean),
       );
       const nextLayout = [];
       const layoutIds = new Set<string>();
@@ -273,89 +270,88 @@ export const useLayoutLayoutStore = defineStore({
         return Number.isFinite(num) ? Math.round(num) : fallback;
       };
 
-      (Array.isArray(this.layout) ? this.layout : []).forEach((rawItem, index) => {
-        const id = rawItem?.id || rawItem?.i;
-        if (!id || layoutIds.has(id)) {
-          return;
-        }
-        if (validIds.size > 0 && !validIds.has(id)) {
-          return;
-        }
+      (Array.isArray(this.layout) ? this.layout : []).forEach(
+        (rawItem, index) => {
+          const id = rawItem?.id || rawItem?.i;
+          if (!id || layoutIds.has(id)) {
+            return;
+          }
+          if (validIds.size > 0 && !validIds.has(id)) {
+            return;
+          }
 
-        const w = Math.max(
-          1,
-          Math.min(columnCount, normalizeNumber(rawItem?.w, 1)),
-        );
-        const h = Math.max(1, normalizeNumber(rawItem?.h, 1));
-        const minW = Math.max(
-          1,
-          Math.min(columnCount, normalizeNumber(rawItem?.minW, 1)),
-        );
-        const minH = Math.max(1, normalizeNumber(rawItem?.minH, 1));
-        const maxW = Math.max(
-          minW,
-          Math.min(
-            columnCount,
-            normalizeNumber(rawItem?.maxW, columnCount),
-          ),
-        );
-        const maxHRaw = rawItem?.maxH;
-        const maxH =
-          maxHRaw === undefined || maxHRaw === null
-            ? undefined
-            : Math.max(minH, normalizeNumber(maxHRaw, minH));
-        const x = Math.max(
-          0,
-          Math.min(
-            Math.max(0, columnCount - w),
-            normalizeNumber(rawItem?.x, 0),
-          ),
-        );
-        const y = Math.max(0, normalizeNumber(rawItem?.y, index));
-        const compMeta = this.modulesWithProps[id];
+          const w = Math.max(
+            1,
+            Math.min(columnCount, normalizeNumber(rawItem?.w, 1)),
+          );
+          const h = Math.max(1, normalizeNumber(rawItem?.h, 1));
+          const minW = Math.max(
+            1,
+            Math.min(columnCount, normalizeNumber(rawItem?.minW, 1)),
+          );
+          const minH = Math.max(1, normalizeNumber(rawItem?.minH, 1));
+          const maxW = Math.max(
+            minW,
+            Math.min(columnCount, normalizeNumber(rawItem?.maxW, columnCount)),
+          );
+          const maxHRaw = rawItem?.maxH;
+          const maxH =
+            maxHRaw === undefined || maxHRaw === null
+              ? undefined
+              : Math.max(minH, normalizeNumber(maxHRaw, minH));
+          const x = Math.max(
+            0,
+            Math.min(
+              Math.max(0, columnCount - w),
+              normalizeNumber(rawItem?.x, 0),
+            ),
+          );
+          const y = Math.max(0, normalizeNumber(rawItem?.y, index));
+          const compMeta = this.modulesWithProps[id];
 
-        nextLayout.push({
-          ...rawItem,
-          id,
-          i: id,
-          x,
-          y,
-          w,
-          h,
-          minW,
-          minH,
-          maxW,
-          maxH,
-          static: !!rawItem?.static,
-          type: rawItem?.type ?? compMeta?.sysSfcType,
-        });
-        layoutIds.add(id);
-      });
+          nextLayout.push({
+            ...rawItem,
+            id,
+            i: id,
+            x,
+            y,
+            w,
+            h,
+            minW,
+            minH,
+            maxW,
+            maxH,
+            static: !!rawItem?.static,
+            type: rawItem?.type ?? compMeta?.sysSfcType,
+          });
+          layoutIds.add(id);
+        },
+      );
 
       const nextComponent = [];
       const componentIds = new Set<string>();
       const layoutMap = new Map(nextLayout.map((item) => [item.id, item]));
 
-      (Array.isArray(this.component) ? this.component : []).forEach((rawItem) => {
-        const id =
-          typeof rawItem === "string"
-            ? rawItem
-            : rawItem?.id || rawItem?.i;
-        if (!id || componentIds.has(id) || !layoutIds.has(id)) {
-          return;
-        }
-        const layoutItem = layoutMap.get(id);
-        nextComponent.push({
-          ...(typeof rawItem === "object" ? rawItem : {}),
-          id,
-          x: layoutItem?.x,
-          y: layoutItem?.y,
-          w: layoutItem?.w,
-          h: layoutItem?.h,
-          type: layoutItem?.type,
-        });
-        componentIds.add(id);
-      });
+      (Array.isArray(this.component) ? this.component : []).forEach(
+        (rawItem) => {
+          const id =
+            typeof rawItem === "string" ? rawItem : rawItem?.id || rawItem?.i;
+          if (!id || componentIds.has(id) || !layoutIds.has(id)) {
+            return;
+          }
+          const layoutItem = layoutMap.get(id);
+          nextComponent.push({
+            ...(typeof rawItem === "object" ? rawItem : {}),
+            id,
+            x: layoutItem?.x,
+            y: layoutItem?.y,
+            w: layoutItem?.w,
+            h: layoutItem?.h,
+            type: layoutItem?.type,
+          });
+          componentIds.add(id);
+        },
+      );
 
       nextLayout.forEach((layoutItem) => {
         if (componentIds.has(layoutItem.id)) {
@@ -375,30 +371,39 @@ export const useLayoutLayoutStore = defineStore({
       this.layout = nextLayout;
       this.component = nextComponent;
     },
+    getComponentIdSet() {
+      const componentIds = new Set<string>();
+      const appendComponentId = (item) => {
+        const id = typeof item === "string" ? item : item?.id || item?.i;
+        if (id) {
+          componentIds.add(id);
+        }
+      };
+
+      (Array.isArray(this.component) ? this.component : []).forEach((item) => {
+        if (Array.isArray(item)) {
+          item.forEach(appendComponentId);
+          return;
+        }
+        appendComponentId(item);
+      });
+
+      return componentIds;
+    },
     /**
      * 获取所有可用组件列表
      * @returns 组件列表数组
      */
     allCompsList() {
-      const allCompsList = this.allComps.map((item) => ({
-          key: item.sysSfcId,
-          title: item.sysSfcChineseName,
-          icon: item.sysSfcIcon,
-          type: item.sysSfcType,
-          description: item.sysSfcDesc,
-        }));
-      if (Array.isArray(this.component)) {
-        for (let comp of allCompsList) {
-          const _item = this.component.find((item) => {
-            return item?.id === comp.key;
-          });
-          if (_item) {
-            comp.disabled = true;
-          }
-        }
-      }
-      // await this.loadGridStack();
-      return allCompsList;
+      const componentIds = this.getComponentIdSet();
+      return this.allComps.map((item) => ({
+        key: item.sysSfcId,
+        title: item.sysSfcChineseName,
+        icon: item.sysSfcIcon,
+        type: item.sysSfcType,
+        description: item.sysSfcDesc,
+        disabled: componentIds.has(item.sysSfcId),
+      }));
     },
 
     async pushComp(item) {
@@ -527,31 +532,10 @@ export const useLayoutLayoutStore = defineStore({
       return this.myCompsList().length > 0;
     },
     myCompsList() {
-      return this.allCompsList().filter((item) => {
-        const comp = Array.isArray(this.component) ? this.component : [];
-        return (
-          !item.disabled &&
-          comp.filter((i) => i.id === item.key).length === 0
-        );
-      });
+      return this.allCompsList().filter((item) => !item.disabled);
     },
     hasSettingCompent() {
-      if (
-        !Array.isArray(this.nowCompsList()) ||
-        this.nowCompsList().length == 0
-      ) {
-        return false;
-      }
-
-      const _component = [];
-      this.nowCompsList()?.forEach((item) => {
-        if (_.isArray(item)) {
-          _component.push(...item);
-          return;
-        }
-        _component.push(item);
-      });
-      return _component.length > 0;
+      return this.getComponentIdSet().size > 0;
     },
     hasNowCompsList() {
       return this.nowCompsList().length > 0;
@@ -720,7 +704,11 @@ export const useLayoutLayoutStore = defineStore({
 
       // component 可能是字符串（JSON）或数组，独立解析
       if (typeof data?.component === "string") {
-        try { this.component = JSON.parse(data.component || "[]"); } catch { this.component = []; }
+        try {
+          this.component = JSON.parse(data.component || "[]");
+        } catch {
+          this.component = [];
+        }
       } else {
         this.component = Array.isArray(data?.component) ? data.component : [];
       }

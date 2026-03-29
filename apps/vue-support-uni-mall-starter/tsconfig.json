@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "jsx": "preserve",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@layout/uni": ["../../layout/uni/src/index.ts"],
+      "@layout/uni/*": ["../../layout/uni/src/*"]
+    },
+    "types": ["vite/client", "@dcloudio/types"]
+  },
+  "include": ["env.d.ts", "src/**/*.ts", "src/**/*.vue", "vite.config.ts"]
+}

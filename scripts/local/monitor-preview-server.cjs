@@ -7,9 +7,9 @@ const distDir = path.resolve(
   "../../apps/vue-support-monitor-starter/dist",
 );
 const port = Number(process.env.MONITOR_PREVIEW_PORT || 18081);
-const apiOrigin = process.env.MONITOR_PREVIEW_API || "http://127.0.0.1:19170";
+const apiOrigin = process.env.MONITOR_PREVIEW_API || "http://172.16.0.40:19170";
 const socketOrigin =
-  process.env.MONITOR_PREVIEW_SOCKET || "http://127.0.0.1:29181";
+  process.env.MONITOR_PREVIEW_SOCKET || "http://172.16.0.40:29181";
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -54,6 +54,9 @@ async function proxy(req, res, targetBase) {
   const upstream = await fetch(targetUrl, init);
   const responseHeaders = {};
   upstream.headers.forEach((value, key) => {
+    if (["content-encoding", "content-length"].includes(key.toLowerCase())) {
+      return;
+    }
     responseHeaders[key] = value;
   });
   res.writeHead(upstream.status, responseHeaders);

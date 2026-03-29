@@ -3,6 +3,7 @@ import type { OptionsType } from "./type";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { isNumber, isFunction, useResizeObserver } from "@pureadmin/utils";
 import { type PropType, h, ref, toRef, watch, nextTick, defineComponent, getCurrentInstance, computed } from "vue";
+import { normalizeSegmentedOptions } from "./normalize";
 
 const props = {
   options: {
@@ -43,6 +44,9 @@ export default defineComponent({
   setup(props, { emit }) {
     const width = ref(0);
     const translateX = ref(0);
+    const resolvedOptions = computed<OptionsType[]>(() =>
+      normalizeSegmentedOptions(props.options)
+    );
     const isDark = computed(() => {
       if (typeof document === "undefined") return false;
       return document.documentElement.classList.contains("dark");
@@ -117,7 +121,9 @@ export default defineComponent({
         if (isNumber(value)) {
           return;
         }
-        const targetIndex = props.options.findIndex(option => option.value === value);
+        const targetIndex = resolvedOptions.value.findIndex(
+          option => option.value === value
+        );
         if (targetIndex !== -1 && targetIndex !== curIndex.value) {
           curIndex.value = targetIndex;
         }
@@ -130,7 +136,7 @@ export default defineComponent({
     });
 
     const rendLabel = () => {
-      return props.options.map((option, index) => {
+      return resolvedOptions.value.map((option, index) => {
         return (
           <label
             ref={`labelRef${index}`}

@@ -38,6 +38,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@repo/codec-wasm": "workspace:*",
     "@pureadmin/utils": "catalog:",
     "element-plus": "catalog:",
     "js-cookie": "catalog:",

@@ -236,6 +236,13 @@ vi.mock("@repo/components/ReSegmented", () => ({
   },
 }));
 
+vi.mock("@repo/components/ReSegmented/index", () => ({
+  default: {
+    name: "ReSegmented",
+    render: () => null,
+  },
+}));
+
 // Mock IndexedDB
 const indexedDBMock = {
   open: vi.fn(),

@@ -487,10 +487,23 @@ const parsePortMappings = (ports?: string) => {
   try {
     const mappings = JSON.parse(ports);
     return Array.isArray(mappings)
-      ? mappings.map((p) => `${p.hostPort}:${p.containerPort}`)
+      ? Array.from(
+          new Set(
+            mappings
+              .map((p) => `${p.hostPort}:${p.containerPort}`)
+              .filter(Boolean),
+          ),
+        )
       : [];
   } catch {
-    return ports.split(",").filter(Boolean);
+    return Array.from(
+      new Set(
+        ports
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ),
+    );
   }
 };
 

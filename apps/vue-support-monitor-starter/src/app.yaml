@@ -9,6 +9,8 @@ Title: 运维管理
 # SystemCode: monitor
 # 远程API地址（后端接口基础路径，默认: 空）
 BaseUrl: /monitor/api
+# 登录成功后的默认页面
+PostLoginRedirect: /docker/containers
 # 默认全局 Socket 开关（默认: true）
 # SocketOpen: true
 # 是否在应用启动阶段自动连接默认全局 Socket（默认: true）

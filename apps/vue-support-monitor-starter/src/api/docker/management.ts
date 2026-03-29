@@ -1,4 +1,14 @@
 import { http, type ReturnResult } from "@repo/utils";
+import {
+  normalizeContainer,
+  normalizeImageContainerStartConfig,
+  normalizeImageStatusValue,
+} from "./normalizers";
+
+export {
+  normalizeContainer,
+  normalizeImageContainerStartConfig,
+} from "./normalizers";
 
 // ========= 数据类型定义 =========
 
@@ -81,6 +91,7 @@ export interface SystemSoftContainer {
   systemSoftContainerId?: number;
   systemSoftId?: number;
   systemServerId?: number;
+  systemSoftContainerServerName?: string;
   systemSoftImageId?: number;
   systemSoftContainerDockerId?: string;
   systemSoftContainerName?: string;
@@ -268,68 +279,6 @@ const normalizeImage = (image: SystemSoftImage) => ({
     (image as any)?.status ?? image?.systemSoftImageStatus,
   ),
 });
-
-const normalizeImageStatusValue = (status?: string) => {
-  if (!status) {
-    return status;
-  }
-
-  return status.trim().replace(/-/g, "_").toUpperCase();
-};
-
-const normalizeContainerStatusValue = (status?: string) => {
-  if (!status) {
-    return status;
-  }
-
-  const normalized = status.trim().replace(/-/g, "_").toLowerCase();
-
-  if (normalized === "exited") {
-    return "stopped";
-  }
-
-  if (
-    [
-      "create_failed",
-      "start_failed",
-      "restart_failed",
-      "stop_failed",
-      "delete_failed",
-      "dead",
-    ].includes(normalized)
-  ) {
-    return "error";
-  }
-
-  return normalized;
-};
-
-const normalizeContainer = (container: SystemSoftContainer) => {
-  const primaryId =
-    (container as any)?.systemSoftContainerId ?? (container as any)?.containerId;
-  const normalizedStatus = normalizeContainerStatusValue(
-    (container as any)?.status ?? container?.systemSoftContainerStatus,
-  );
-
-  return {
-    ...container,
-    id: (container as any)?.id ?? primaryId,
-    containerId:
-      (container as any)?.containerId ??
-      (primaryId !== undefined && primaryId !== null ? String(primaryId) : ""),
-    name:
-      (container as any)?.name ?? container?.systemSoftContainerName,
-    image:
-      (container as any)?.image ?? container?.systemSoftContainerImage,
-    imageTag:
-      (container as any)?.imageTag ?? container?.systemSoftContainerImageTag,
-    serverId: (container as any)?.serverId ?? container?.systemServerId,
-    dockerId:
-      (container as any)?.dockerId ?? container?.systemSoftContainerDockerId,
-    systemSoftContainerStatus: normalizedStatus,
-    status: normalizedStatus,
-  };
-};
 
 const normalizePageRequestParams = (
   params: Record<string, any> = {},
@@ -726,7 +675,7 @@ export function startImageAsContainer(payload: {
   return http.request<ReturnResult<boolean>>(
     "post",
     `/api/monitor/system-soft-image/${imageId}/start`,
-    { data: config },
+    { data: normalizeImageContainerStartConfig(config || {}) },
   );
 }
 

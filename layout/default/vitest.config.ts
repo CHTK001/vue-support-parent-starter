@@ -1,9 +1,10 @@
 import { defineConfig } from "vitest/config";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vue from "@vitejs/plugin-vue";
 
 const workspaceRoot = fileURLToPath(new URL("../../", import.meta.url));
+const currentDir = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [vue()],
@@ -73,6 +74,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./vitest.setup.ts"],
+    setupFiles: [resolve(currentDir, "vitest.setup.ts")],
   },
 });

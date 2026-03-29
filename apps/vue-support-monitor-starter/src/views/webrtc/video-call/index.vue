@@ -53,7 +53,7 @@
               circle
               @click="toggleAudio"
             >
-              <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+              <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
             </el-button>
           </div>
         </div>
@@ -68,7 +68,7 @@
             circle
             @click="toggleAudio"
           >
-            <el-icon><Microphone v-if="audioEnabled" /><MicrophoneFilled v-else /></el-icon>
+            <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
           </el-button>
           
           <el-button
@@ -286,7 +286,7 @@ import {
   VideoCamera,
   VideoCameraFilled,
   Microphone,
-  MicrophoneFilled,
+  MuteNotification,
   PhoneFilled,
   Phone,
   Monitor,

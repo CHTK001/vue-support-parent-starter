@@ -28,7 +28,6 @@ import {
   computed,
   defineComponent,
   h,
-  markRaw,
   nextTick,
   onBeforeMount,
   onMounted,
@@ -50,21 +49,11 @@ import {
   stopSession,
 } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
-import LaySetting from "./components/lay-setting/index.vue";
-import LayAiChat from "./components/lay-ai-chat/index.vue";
 import LayContent from "./components/lay-content/index.vue";
-import NavDoubleLayout from "./components/lay-sidebar/NavDouble.vue";
-import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
-import NavHoverLayout from "./components/lay-sidebar/NavHover.vue";
-import NavDrawerLayout from "./components/lay-sidebar/NavDrawer.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
-import FpsMonitor from "./components/lay-performance/FpsMonitor.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
-import LiteInspector from "./components/lay-dev-tools/LiteInspector.vue";
-import HeatmapOverlay from "./components/lay-dev-tools/HeatmapOverlay.vue";
-import FestivalLayer from "./components/lay-festival/index.vue";
 
 // 导入设计 token（全局 CSS 变量 --dt-xxxx，必须在 script 中引入才能全局生效）
 import "./styles/design-tokens.scss";
@@ -75,7 +64,7 @@ import "./components/lay-sidebar/styles/hover-navigation-themes.scss";
 import "./styles/mobile.scss";
 // 字体加密样式统一从 assets/layout/default 注入，这里不再单独引入
 
-window.onload = () => {
+const scheduleFingerprintCollection = () => {
   registerRequestIdleCallback(() => {
     createFingerprint((finger) => {
       localStorageProxy().setItem("visitId", finger);
@@ -83,20 +72,55 @@ window.onload = () => {
   });
 };
 
+if (document.readyState === "complete") {
+  scheduleFingerprintCollection();
+} else {
+  window.addEventListener("load", scheduleFingerprintCollection, {
+    once: true,
+  });
+}
+
 // 使用带 loading/error 状态的异步组件加载器
 const CardNavigation = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue"),
 );
-const NavVertical = markRaw(NavVerticalLayout);
-const NavHorizontal = markRaw(NavHorizontalLayout);
-const NavHover = markRaw(NavHoverLayout);
-const NavDrawer = markRaw(NavDrawerLayout);
-const NavDouble = markRaw(NavDoubleLayout);
+const NavVertical = NavVerticalLayout;
+const NavHorizontal = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavHorizontal.vue"),
+);
+const NavHover = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavHover.vue"),
+);
+const NavDrawer = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavDrawer.vue"),
+);
+const NavDouble = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavDouble.vue"),
+);
+const LaySetting = createLayoutAsyncComponent(
+  () => import("./components/lay-setting/index.vue"),
+);
+const LayAiChat = createLayoutAsyncComponent(
+  () => import("./components/lay-ai-chat/index.vue"),
+);
+const FpsMonitor = createLayoutAsyncComponent(
+  () => import("./components/lay-performance/FpsMonitor.vue"),
+);
+const LiteInspector = createLayoutAsyncComponent(
+  () => import("./components/lay-dev-tools/LiteInspector.vue"),
+);
+const HeatmapOverlay = createLayoutAsyncComponent(
+  () => import("./components/lay-dev-tools/HeatmapOverlay.vue"),
+);
+const FestivalLayer = createLayoutAsyncComponent(
+  () => import("./components/lay-festival/index.vue"),
+);
 
 const { t } = useI18n();
 const appWrapperRef = ref<HTMLElement>();
 const watermarkContainerRef = ref<HTMLElement>();
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
+const deferredOverlayReady = ref(false);
 // ===== Composables =====
 // 加载页逻辑
 const { isConfigLoaded, isFirstLoad, loadConfig } = useLoadingPage();
@@ -141,13 +165,22 @@ const aiChatHeaders = computed(() => {
 });
 
 // 向子组件注入 AI 配置（HeatmapOverlay 等通过 inject 获取）
-provide("heatmapAiConfig", computed(() => ({
-  mode: $storage?.configure?.aiChatMode,
-  vendor: $storage?.configure?.aiChatVendor,
-  apiKey: aesDecrypt($storage?.configure?.aiChatApiKey ?? "", getConfig().StorageKey),
-  apiUrl: aesDecrypt($storage?.configure?.aiChatApiUrl ?? "", getConfig().StorageKey),
-  model: $storage?.configure?.aiChatModel,
-})));
+provide(
+  "heatmapAiConfig",
+  computed(() => ({
+    mode: $storage?.configure?.aiChatMode,
+    vendor: $storage?.configure?.aiChatVendor,
+    apiKey: aesDecrypt(
+      $storage?.configure?.aiChatApiKey ?? "",
+      getConfig().StorageKey,
+    ),
+    apiUrl: aesDecrypt(
+      $storage?.configure?.aiChatApiUrl ?? "",
+      getConfig().StorageKey,
+    ),
+    model: $storage?.configure?.aiChatModel,
+  })),
+);
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();
@@ -333,6 +366,26 @@ const handleVisibilityChange = () => {
   }
 };
 
+const scheduleDeferredOverlayMount = () => {
+  const mountDeferredOverlays = () => {
+    deferredOverlayReady.value = true;
+  };
+
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    window.requestIdleCallback(mountDeferredOverlays, { timeout: 1200 });
+    return;
+  }
+
+  if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(mountDeferredOverlays, 160);
+    });
+    return;
+  }
+
+  setTimeout(mountDeferredOverlays, 200);
+};
+
 onMounted(async () => {
   // 初始化移动端
   initMobile();
@@ -342,6 +395,7 @@ onMounted(async () => {
 
   // 监听页面可见性变化
   document.addEventListener("visibilitychange", handleVisibilityChange);
+  scheduleDeferredOverlayMount();
 
   // 页面加载完成后检查配置并应用
   nextTick(() => {
@@ -440,17 +494,13 @@ const LayHeader = defineComponent({
           !pureSetting.hiddenSideBar && layout.value === "horizontal"
             ? h(NavHorizontal)
             : null,
-          h(markRaw(LayTag)),
+          h(LayTag),
         ],
       },
     );
   },
 });
 </script>
-
-<style lang="scss" scoped>
-@use "./styles/layout.scss" as *;
-</style>
 
 <template>
   <ThemeSkinProvider>
@@ -464,7 +514,7 @@ const LayHeader = defineComponent({
     <!-- 页面内容 -->
     <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
       <!-- 防删除水印容器 -->
-      <div ref="watermarkContainerRef" class="watermark-container"></div>
+      <div ref="watermarkContainerRef" class="watermark-container" />
       <!-- 双栏导航模式：特殊布局 -->
       <template v-if="layout === 'double'">
         <div
@@ -524,7 +574,9 @@ const LayHeader = defineComponent({
         <NavHover v-if="!pureSetting.hiddenSideBar && layout === 'hover'" />
         <NavDrawer v-if="!pureSetting.hiddenSideBar && layout === 'drawer'" />
         <!-- 卡片导航模式 -->
-        <CardNavigation v-if="!pureSetting.hiddenSideBar && layout === 'card'" />
+        <CardNavigation
+          v-if="!pureSetting.hiddenSideBar && layout === 'card'"
+        />
         <div
           :class="[
             'main-container',
@@ -558,10 +610,11 @@ const LayHeader = defineComponent({
       </template>
 
       <!-- 系统设置 -->
-      <LaySetting v-if="pureSetting.ShowBarSetting" />
+      <LaySetting v-if="deferredOverlayReady && pureSetting.ShowBarSetting" />
 
       <!-- AI 助手 -->
       <LayAiChat
+        v-if="deferredOverlayReady && aiChatVisible"
         :visible="aiChatVisible"
         :theme="aiChatTheme"
         :position="aiChatPosition"
@@ -576,15 +629,25 @@ const LayHeader = defineComponent({
       />
 
       <!-- 全局性能监控面板 -->
-      <FpsMonitor :visible="fpsMonitorEnabled" />
+      <FpsMonitor
+        v-if="deferredOverlayReady && fpsMonitorEnabled"
+        :visible="fpsMonitorEnabled"
+      />
 
       <!-- DevTools 轻量调试工具（仅开发环境生效，由配置控制） -->
-      <LiteInspector />
+      <LiteInspector v-if="deferredOverlayReady" />
       <!-- 热点工具热力图覆盖层（仅开发/测试环境生效，由配置控制） -->
-      <HeatmapOverlay />
+      <HeatmapOverlay v-if="deferredOverlayReady" />
     </div>
 
     <!-- 节日特效层（根据主题动态渲染） -->
-    <FestivalLayer :theme="$storage?.configure?.systemTheme || 'default'" />
+    <FestivalLayer
+      v-if="deferredOverlayReady"
+      :theme="$storage?.configure?.systemTheme || 'default'"
+    />
   </ThemeSkinProvider>
 </template>
+
+<style lang="scss" scoped>
+@use "./styles/layout.scss" as *;
+</style>

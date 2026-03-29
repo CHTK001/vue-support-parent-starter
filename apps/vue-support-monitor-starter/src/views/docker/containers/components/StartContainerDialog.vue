@@ -333,14 +333,7 @@ const handleSubmit = async () => {
       config: params,
     });
     if (response.code === "00000") {
-      // 开始监听启动进度
-      if (response.data?.operationId) {
-        // ProgressMonitor会自动监听并显示进度
-        // 等待一小段时间让Socket事件传播
-        setTimeout(() => emit("success"), 1000);
-      }
-
-      message("容器启动任务已创建，请查看进度", { type: "success" });
+      message("容器已创建并启动", { type: "success" });
       emit("success");
       handleClose();
     } else {

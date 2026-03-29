@@ -230,7 +230,7 @@ import { ref, computed, watch } from "vue";
 import { message } from "@repo/utils";
 import { ElNotification } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
-import { containerApi, type SystemSoftImage } from "@/api/docker";
+import { imageApi, type SystemSoftImage } from "@/api/docker";
 
 interface Props {
   visible: boolean;
@@ -358,51 +358,21 @@ async function submit() {
 
     installing.value = true;
 
-    // 构建端口映射
-    const portBindings: Record<string, Array<{ HostPort: string }>> = {};
-    form.value.portMappings.forEach((port) => {
-      if (port.containerPort && port.hostPort) {
-        const key = `${port.containerPort}/${port.protocol}`;
-        portBindings[key] = [{ HostPort: port.hostPort }];
-      }
+    const result = await imageApi.startImageAsContainer({
+      imageId: props.image.systemSoftImageId!,
+      config: {
+        containerName: form.value.containerName,
+        hostname: form.value.hostname || form.value.containerName,
+        restartPolicy: form.value.restartPolicy,
+        networkMode: form.value.networkMode,
+        command: form.value.command,
+        workDir: form.value.workDir,
+        autoStart: form.value.autoStart,
+        portMappings: form.value.portMappings,
+        envVars: form.value.envVars,
+        volumeMounts: form.value.volumeMounts,
+      },
     });
-
-    // 构建环境变量
-    const env: string[] = [];
-    form.value.envVars.forEach((envVar) => {
-      if (envVar.name && envVar.value) {
-        env.push(`${envVar.name}=${envVar.value}`);
-      }
-    });
-
-    // 构建数据卷
-    const binds: string[] = [];
-    form.value.volumeMounts.forEach((volume) => {
-      if (volume.hostPath && volume.containerPath) {
-        const bind = volume.readOnly
-          ? `${volume.hostPath}:${volume.containerPath}:ro`
-          : `${volume.hostPath}:${volume.containerPath}`;
-        binds.push(bind);
-      }
-    });
-
-    const payload = {
-      systemSoftImageId: props.image.systemSoftImageId,
-      systemSoftImageServerId: props.image.systemSoftImageServerId,
-      systemSoftContainerName: form.value.containerName,
-      systemSoftContainerHostname:
-        form.value.hostname || form.value.containerName,
-      systemSoftContainerPortBindings: JSON.stringify(portBindings),
-      systemSoftContainerEnv: JSON.stringify(env),
-      systemSoftContainerBinds: JSON.stringify(binds),
-      systemSoftContainerRestartPolicy: form.value.restartPolicy,
-      systemSoftContainerNetworkMode: form.value.networkMode,
-      systemSoftContainerCommand: form.value.command,
-      systemSoftContainerWorkDir: form.value.workDir,
-      systemSoftContainerAutoStart: form.value.autoStart,
-    };
-
-    const result = await containerApi.createContainer(payload as any);
 
     if (result.code === "00000") {
       ElNotification.success({

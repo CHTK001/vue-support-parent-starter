@@ -369,13 +369,25 @@ export const uu1 = (response: PureHttpResponse) => {
  * 如果启用 WASM 但执行错误，将抛出错误
  */
 export const uu3Wrapper = async (value: string) => {
+  const fallbackDecrypt = () => {
+    try {
+      return crypto.default.AES.decrypt(value, DEFAULT_AES_KEY) || value;
+    } catch {
+      return value;
+    }
+  };
+
   try {
-    return uu3Unified(value);
+    const result = uu3Unified(value);
+    if (typeof result === "string" && result && result !== value) {
+      return result;
+    }
+    return fallbackDecrypt();
   } catch (error) {
     if (!isWasmNotReadyError(error)) {
-      console.warn("[codec] uu3 failed, fallback to original value:", error);
+      console.warn("[codec] uu3 failed, fallback to AES decrypt:", error);
     }
-    return value;
+    return fallbackDecrypt();
   }
 };
 
