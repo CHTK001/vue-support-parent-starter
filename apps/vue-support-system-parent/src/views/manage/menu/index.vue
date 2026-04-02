@@ -596,7 +596,9 @@ const onDelete = async (row) => {
 const dialogOpen = async (item, mode) => {
   visible.save = true;
   await nextTick();
-  saveDialog.value.setTableData(tableData.value).setData(item).open(mode);
+  saveDialog.value?.setTableData(tableData.value);
+  saveDialog.value?.setData(item);
+  saveDialog.value?.open(mode);
 };
 
 /**
@@ -662,12 +664,11 @@ const getMenuTypeTag = (type) => {
     padding: 16px;
     background: var(--el-fill-color-lighter);
     border-radius: 12px;
-    transition: all 0.3s ease;
+      transition: box-shadow 0.2s ease;
 
-    &:hover {
-      box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
-      transform: translateY(-2px);
-    }
+      &:hover {
+        box-shadow: 0 6px 14px rgb(15 23 42 / 6%);
+      }
 
     .stat-icon {
       display: flex;
@@ -720,16 +721,17 @@ const getMenuTypeTag = (type) => {
   background-color: var(--el-bg-color);
 
   .menu-wrapper {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
     border-radius: var(--el-border-radius-base);
-    box-shadow: var(--el-box-shadow-light);
+    box-shadow: none;
 
-    // 添加卡片悬浮效果
-    transition: all 0.3s ease;
-
-    &:hover {
-      box-shadow: var(--el-box-shadow);
+    :deep(.sc-container) {
+      height: 100%;
+      min-height: 0;
     }
   }
 
@@ -759,16 +761,15 @@ const getMenuTypeTag = (type) => {
       gap: 8px;
       align-items: center;
 
-      .el-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
+        .el-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: box-shadow 0.2s ease;
 
-        &:hover {
-          box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
-          transform: translateY(-2px);
-        }
+          &:hover {
+            box-shadow: 0 4px 10px rgb(15 23 42 / 8%);
+          }
 
         .iconify {
           font-size: 16px;
@@ -778,19 +779,34 @@ const getMenuTypeTag = (type) => {
   }
 
   .menu-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
     padding: 0;
     background-color: var(--el-bg-color-page);
 
     .menu-table-container {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
       height: 100%;
+      min-height: 0;
       overflow: hidden;
       background-color: var(--el-bg-color);
       // 添加圆角和阴影
       border-radius: var(--el-border-radius-base);
-      box-shadow: var(--el-box-shadow-lighter);
+      box-shadow: none;
     }
 
     .menu-table {
+      flex: 1;
+      min-height: 0;
+
+      :deep(.el-table) {
+        height: 100%;
+      }
+
       :deep(.el-table__header) {
         background-color: var(--el-bg-color);
 
@@ -804,11 +820,10 @@ const getMenuTypeTag = (type) => {
 
       :deep(.el-table__row) {
         cursor: pointer;
-        transition: all 0.3s;
+        transition: background-color 0.2s ease;
 
         &:hover {
           background-color: var(--el-fill-color-light);
-          transform: translateY(-1px);
         }
 
         // 添加斑马纹效果
@@ -840,11 +855,10 @@ const getMenuTypeTag = (type) => {
         // 添加图标背景
         background-color: var(--el-color-primary-light-9);
         border-radius: 6px;
-        transition: all 0.3s;
+        transition: background-color 0.2s ease;
 
         &:hover {
           background-color: var(--el-color-primary-light-8);
-          transform: scale(1.1);
         }
       }
 
@@ -918,15 +932,14 @@ const getMenuTypeTag = (type) => {
       align-items: center;
       justify-content: center;
 
-      .el-button {
-        // 改进操作按钮样式
-        border-radius: 6px;
-        transition: all 0.3s;
+        .el-button {
+          // 改进操作按钮样式
+          border-radius: 6px;
+          transition: opacity 0.2s ease;
 
-        &:hover {
-          opacity: 0.9;
-          transform: translateY(-2px);
-        }
+          &:hover {
+            opacity: 0.9;
+          }
 
         .iconify {
           font-size: 18px;
@@ -946,9 +959,9 @@ const getMenuTypeTag = (type) => {
     }
   }
 
-  .menu-container {
-    .menu-wrapper {
-      box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
+.menu-container {
+  .menu-wrapper {
+      box-shadow: none;
     }
 
     .menu-header {
@@ -961,7 +974,7 @@ const getMenuTypeTag = (type) => {
     }
 
     .menu-table-container {
-      box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
+      box-shadow: none;
     }
 
     .menu-table {

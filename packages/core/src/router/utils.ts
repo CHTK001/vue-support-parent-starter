@@ -40,6 +40,10 @@ const ROUTE_COMPONENT_ALIASES: Record<string, string> = {
   "/manage/log/login/index": "/manage/log/user/index",
   "@repo/pages/setting/index.vue": "/manage/setting/index",
 };
+const ROUTE_ICON_ALIASES: Record<string, string> = {
+  "ep:login": "ri:shield-user-line",
+  "ep:login-filled": "ri:user-settings-line",
+};
 const EXTRA_DYNAMIC_ROUTES: RouteRecordRaw[] = [
   {
     path: "/manage/user",
@@ -138,6 +142,37 @@ function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: st
   }
 
   return MissingRouteView;
+}
+
+function normalizeRouteIcon(route: RouteRecordRaw) {
+  if (!route) {
+    return;
+  }
+
+  if (!route.meta) {
+    //@ts-ignore
+    route.meta = {};
+  }
+
+  const candidateIcon = String(
+    route.meta.icon ||
+      (route as any).icon ||
+      (route as any).sysMenuIcon ||
+      "",
+  ).trim();
+  if (!candidateIcon) {
+    return;
+  }
+
+  const normalizedIcon = ROUTE_ICON_ALIASES[candidateIcon] || candidateIcon;
+  route.meta.icon = normalizedIcon;
+
+  if ((route as any).icon) {
+    (route as any).icon = normalizedIcon;
+  }
+  if ((route as any).sysMenuIcon) {
+    (route as any).sysMenuIcon = normalizedIcon;
+  }
 }
 
 function handRank(routeInfo: any) {
@@ -501,6 +536,7 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       //@ts-ignore
       v.meta = {};
     }
+    normalizeRouteIcon(v);
     // 将backstage属性加入meta，标识此路由为后端返回路由
     v.meta.backstage = true;
     // 父级的redirect属性取值：如果子级存在且父级的redirect属性不存在，默认取第一个子级的path；如果子级存在且父级的redirect属性存在，取存在的redirect属性，会覆盖默认值

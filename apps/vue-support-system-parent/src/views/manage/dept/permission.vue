@@ -1,83 +1,137 @@
-﻿<script setup>
+<script setup lang="ts">
 import { fetchUpdateDept } from "@/api/manage/dept";
+import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
+import type { FormRules } from "element-plus";
 import { reactive, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { PermissionList } from "./hook";
+
+type DeptPermissionForm = {
+  sysDeptId?: string | number;
+  sysDeptName?: string;
+  sysDeptDataPermission: number | null;
+  sysDeptDataPermissionDeptId?: string;
+  sysDeptDataPermissionDeptIds: Array<string | number>;
+  [key: string]: unknown;
+};
+
 const { t } = useI18n();
+
 const env = reactive({
   visible: false,
+  loading: false,
   title: "权限",
+  deptList: [] as any[],
   defaultProps: {
     value: "sysDeptId",
     label: "sysDeptName",
     children: "children",
     emitPath: false,
     multiple: true,
-    checkStrictly: true,
+    checkStrictly: true
   },
   form: {
     sysDeptDataPermission: null,
-  },
+    sysDeptDataPermissionDeptId: "",
+    sysDeptDataPermissionDeptIds: []
+  } as DeptPermissionForm
 });
 
-let rules = {};
-const handleOpen = async (row) => {
-  env.visible = true;
-  env.form = row;
-  env.form.sysDeptDataPermissionDeptIds = env.form.sysDeptDataPermissionDeptId
-    ?.split(",")
-    ?.map((it) => ~~it);
-  rules = {
-    sysDeptDataPermission: [
-      {
-        required: true,
-        message: "请选择数据权限",
-        trigger: "change",
-      },
-    ],
+const rules = reactive<FormRules<DeptPermissionForm>>({
+  sysDeptDataPermission: [
+    {
+      required: true,
+      message: "请选择数据权限",
+      trigger: "change"
+    }
+  ]
+});
+
+const transformI18nValue = (value: string) => transformI18n(value);
+
+const resetForm = () => {
+  env.form = {
+    sysDeptDataPermission: null,
+    sysDeptDataPermissionDeptId: "",
+    sysDeptDataPermissionDeptIds: []
   };
 };
 
-watch(env.form.sysDeptDataPermission, (_val) => {
-  if (_val === 5) {
-    rules["sysDeptDataPermissionDeptIds"] = [
-      {
-        required: true,
-        message: "请选择数据权限",
-        trigger: "change",
-      },
-    ];
-    return;
+const normalizeDeptIds = (value?: string) => {
+  if (!value) return [];
+
+  return value
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => {
+      const numericValue = Number(item);
+      return Number.isNaN(numericValue) ? item : numericValue;
+    });
+};
+
+watch(
+  () => env.form.sysDeptDataPermission,
+  value => {
+    if (value === 5) {
+      rules.sysDeptDataPermissionDeptIds = [
+        {
+          required: true,
+          message: "请选择数据权限部门",
+          trigger: "change"
+        }
+      ];
+      return;
+    }
+
+    delete rules.sysDeptDataPermissionDeptIds;
+    env.form.sysDeptDataPermissionDeptIds = [];
+    env.form.sysDeptDataPermissionDeptId = "";
   }
-  delete rules["sysDeptDataPermissionDeptIds"];
-});
+);
+
+const handleOpen = async (row: Record<string, unknown>) => {
+  env.visible = true;
+  env.loading = false;
+  env.form = {
+    ...row,
+    sysDeptDataPermission: (row.sysDeptDataPermission as number | null) ?? null,
+    sysDeptDataPermissionDeptId: (row.sysDeptDataPermissionDeptId as string) || "",
+    sysDeptDataPermissionDeptIds: normalizeDeptIds(row.sysDeptDataPermissionDeptId as string | undefined)
+  };
+};
+
 const handleClose = () => {
   env.visible = false;
   env.loading = false;
+  resetForm();
 };
 
 const handleUpdate = async () => {
   env.loading = true;
   env.form.sysDeptDataPermissionDeptId =
-    env.form.sysDeptDataPermissionDeptIds?.join(",");
-  fetchUpdateDept(env.form)
-    .then((res) => {
-      message(t("message.updateSuccess"), { type: "success" });
-      handleClose();
-    })
-    .finally(() => {
-      env.loading = false;
-    });
+    env.form.sysDeptDataPermission === 5
+      ? env.form.sysDeptDataPermissionDeptIds.join(",")
+      : "";
+
+  try {
+    await fetchUpdateDept(env.form);
+    message(t("message.updateSuccess"), { type: "success" });
+    handleClose();
+  } finally {
+    env.loading = false;
+  }
 };
-const setDeptList = (data) => {
-  env.deptList = data;
+
+const setDeptList = (data: any[]) => {
+  env.deptList = Array.isArray(data) ? data : [];
 };
 
 defineExpose({
   setDeptList,
   handleOpen,
-  handleClose,
+  handleClose
 });
 </script>
 
@@ -100,7 +154,7 @@ defineExpose({
       </template>
       <ScForm :model="env.form" :rules="rules">
         <ScFormItem label="机构名称" prop="sysDeptName">
-          <el-text> {{ env.form.sysDeptName }}</el-text>
+          <el-text>{{ env.form.sysDeptName || "-" }}</el-text>
         </ScFormItem>
         <ScFormItem label="数据权限" prop="sysDeptDataPermission">
           <ScSelect
@@ -119,7 +173,7 @@ defineExpose({
         <ScFormItem
           v-if="env.form.sysDeptDataPermission === 5"
           label="选择部门"
-          prop="sysDeptDataPermissionDeptId"
+          prop="sysDeptDataPermissionDeptIds"
         >
           <ScCascader
             v-model="env.form.sysDeptDataPermissionDeptIds"
@@ -128,7 +182,7 @@ defineExpose({
             :props="env.defaultProps"
             clearable
             filterable
-            placeholder="请选择上级菜单"
+            placeholder="请选择数据权限部门"
           >
             <template #default="{ node, data }">
               <div>
@@ -136,7 +190,7 @@ defineExpose({
                   {{ transformI18nValue(data.sysDeptI18n) }}
                 </span>
                 <span v-else>{{ data.sysDeptName }}</span>
-                <span v-if="!node.isLeaf">({{ data.children.length }})</span>
+                <span v-if="!node.isLeaf">({{ data.children?.length || 0 }})</span>
               </div>
             </template>
           </ScCascader>

@@ -1,339 +1,625 @@
 <script setup lang="ts">
-import { UniBottomNav, UniPageShell, UniSection } from "@layout/uni";
-import MallProductCard from "@/components/MallProductCard.vue";
-import { createMallBottomNav } from "@/config/navigation";
-import {
-  addCartItem,
-  getCartCount,
-  getFeaturedProducts,
-  mallCategories,
-  mallProducts
-} from "@/data/catalog";
+import { onLoad, onPullDownRefresh, onShow } from "@dcloudio/uni-app";
 import { computed, ref } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { addToCart, getCart } from "@/api/cart";
+import { getCategoryList } from "@/api/category";
+import { IS_MOCK } from "@/api/mock";
+import { getFeaturedProducts, getProductPage } from "@/api/product";
+import MallProductCard from "@/components/MallProductCard.vue";
+import { useCartAnimation } from "@/composables/useCartAnimation";
+import { getCategoryPagePath } from "@/config/category";
+import { createMallBottomNav } from "@/config/navigation";
+import type { MallCategory, MallProduct } from "@/data/catalog";
+import { toMallCategoryList } from "@/transform/category";
+import { toMallProductList } from "@/transform/product";
+import { ensureSuccess } from "@/utils/api";
+import { safeRelaunch } from "@/utils/navigation";
+import { formatPrice } from "@/utils/price";
+import { UniBottomNav, UniEmptyState, UniLoading, UniSection } from "@layout/uni";
 
+const loading = ref(true);
+const errorText = ref("");
 const cartCount = ref(0);
-const featuredProducts = getFeaturedProducts();
-const latestProducts = mallProducts.slice(0, 4);
+const categories = ref<MallCategory[]>([]);
+const featuredProducts = ref<MallProduct[]>([]);
+const latestProducts = ref<MallProduct[]>([]);
+const activeAddId = ref("");
 
 const bottomNavItems = computed(() => createMallBottomNav(cartCount.value));
+const headlineProduct = computed(() => featuredProducts.value[0] ?? latestProducts.value[0] ?? null);
+const totalStock = computed(() => featuredProducts.value.reduce((sum, item) => sum + item.stock, 0));
+const { flyVisible, flyStyle, pulseKey, animate } = useCartAnimation("[data-nav-key='cart'] .uni-nav__pill");
 
-const syncCartCount = () => {
-  cartCount.value = getCartCount();
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "加载失败，请稍后重试";
+
+const syncCartCount = async () => {
+  try {
+    const summary = ensureSuccess(await getCart(), "获取购物车失败");
+    cartCount.value = summary.totalCount;
+  } catch {
+    cartCount.value = 0;
+  }
 };
 
-const openProduct = (productId: string) => {
-  uni.navigateTo({
-    url: `/pages/product/detail?id=${productId}`
-  });
+const loadHome = async (showLoading = true) => {
+  if (showLoading) {
+    loading.value = true;
+  }
+  errorText.value = "";
+  try {
+    const [categoryResponse, featuredResponse, latestResponse] = await Promise.all([
+      getCategoryList(),
+      getFeaturedProducts(),
+      getProductPage({ page: 1, pageSize: 4 }),
+      syncCartCount(),
+    ]);
+    categories.value = toMallCategoryList(ensureSuccess(categoryResponse, "获取分类失败"));
+    featuredProducts.value = toMallProductList(
+      ensureSuccess(featuredResponse, "获取精选商品失败"),
+    );
+    latestProducts.value = toMallProductList(
+      ensureSuccess(latestResponse, "获取最新商品失败").list,
+    );
+  } catch (error) {
+    errorText.value = getErrorMessage(error);
+    uni.showToast({ title: "首页加载失败", icon: "none" });
+  } finally {
+    loading.value = false;
+    uni.stopPullDownRefresh();
+  }
 };
 
-const openCategory = (categoryId: string) => {
-  uni.reLaunch({
-    url: `/pages/category/index?categoryId=${categoryId}`
-  });
+const openProduct = (id: string) => uni.navigateTo({ url: `/pages/product/detail?id=${id}` });
+const openCategory = (id: string) => safeRelaunch(getCategoryPagePath(id));
+const goCategory = () => uni.reLaunch({ url: "/pages/category/index" });
+const goCart = () => uni.reLaunch({ url: "/pages/cart/index" });
+
+const handleAddToCart = async (id: string, event?: any) => {
+  if (activeAddId.value) {
+    return;
+  }
+  activeAddId.value = id;
+  try {
+    ensureSuccess(await addToCart(id, 1), "加入购物车失败");
+    await syncCartCount();
+    void animate(event);
+    uni.showToast({ title: "已加入购物车", icon: "success" });
+  } catch (error) {
+    uni.showToast({ title: getErrorMessage(error), icon: "none" });
+  } finally {
+    activeAddId.value = "";
+  }
 };
 
-const addToCart = (productId: string) => {
-  addCartItem(productId, 1);
-  syncCartCount();
-  uni.showToast({
-    title: "已加入购物袋",
-    icon: "success"
-  });
-};
+onLoad(() => {
+  void loadHome();
+});
 
-const goCategory = () => {
-  uni.reLaunch({ url: "/pages/category/index" });
-};
+onShow(() => {
+  void syncCartCount();
+});
 
-syncCartCount();
-onShow(syncCartCount);
+onPullDownRefresh(() => {
+  void loadHome(false);
+});
 </script>
 
 <template>
-  <UniPageShell :with-bottom-inset="true">
-    <template #hero>
-      <view class="home-hero glass-panel">
-        <view class="home-hero__eyebrow">
-          <text>UNI MALL FRAME</text>
+  <view class="uni-page-shell has-bottom-inset">
+    <view class="uni-page-shell__content">
+      <view class="home-hero">
+        <view class="home-hero__mesh home-hero__mesh--warm" />
+        <view class="home-hero__mesh home-hero__mesh--cool" />
+        <view class="home-hero__top">
+          <view class="home-hero__badge">
+            <text>{{ IS_MOCK ? "Mock Mode" : "Live Mode" }}</text>
+          </view>
+          <view class="home-hero__badge home-hero__badge--ghost">
+            <text>{{ cartCount }} 件待处理</text>
+          </view>
         </view>
-        <view class="home-hero__main">
-          <text class="home-hero__title">为移动端准备的一套轻量商城底板</text>
-          <text class="home-hero__subtitle">
-            这里先完成商品列表、分类浏览、详情页和购物袋，用来验证 layout/uni 的页面骨架与交互节奏。
+
+        <view class="home-hero__body">
+          <text class="home-hero__eyebrow">MOBILE BOUTIQUE</text>
+          <text class="home-hero__title">把移动商城做成一间有节奏感的选品店</text>
+          <text class="home-hero__sub">
+            统一数据流、统一组件气质，首页、分类、详情和购物车都直接走 API/mock，
+            你现在看到的是一套可直接用于联调和回归测试的 H5 演示面板。
           </text>
         </view>
+
+        <view v-if="headlineProduct" class="home-hero__feature">
+          <view class="home-hero__feature-copy">
+            <text class="home-hero__feature-label">本周焦点</text>
+            <text class="home-hero__feature-title">{{ headlineProduct.title }}</text>
+            <text class="home-hero__feature-sub">{{ headlineProduct.subtitle }}</text>
+          </view>
+          <view class="home-hero__feature-price">
+            <text class="home-hero__feature-value">{{ formatPrice(headlineProduct.price) }}</text>
+            <text class="home-hero__feature-market">{{ formatPrice(headlineProduct.marketPrice) }}</text>
+          </view>
+        </view>
+
         <view class="home-hero__actions">
-          <view class="home-hero__primary primary-button" @tap="goCategory">
-            <text>立即浏览</text>
+          <view class="home-hero__cta primary-button" @tap="goCategory">
+            <text>进入选品区</text>
           </view>
-          <view class="home-hero__secondary secondary-button">
-            <text>{{ cartCount }} 件待结算</text>
+          <view class="home-hero__cta home-hero__cta--ghost" @tap="goCart">
+            <text>查看购物车</text>
           </view>
         </view>
       </view>
-    </template>
 
-    <view class="home-metrics">
-      <view class="home-metrics__item glass-panel">
-        <text class="home-metrics__value">24H</text>
-        <text class="home-metrics__label">发货准备</text>
-      </view>
-      <view class="home-metrics__item glass-panel">
-        <text class="home-metrics__value">7</text>
-        <text class="home-metrics__label">天无忧退换</text>
-      </view>
-      <view class="home-metrics__item glass-panel">
-        <text class="home-metrics__value">99%</text>
-        <text class="home-metrics__label">页面可复用</text>
-      </view>
-    </view>
-
-    <UniSection
-      title="人气分类"
-      subtitle="先用几组轻量分类验证移动端信息密度和跳转链路。"
-      action-text="查看全部"
-      @action="goCategory"
-    />
-
-    <scroll-view class="home-categories" scroll-x="true" show-scrollbar="false">
-      <view class="home-categories__track">
-        <view
-          v-for="category in mallCategories"
-          :key="category.id"
-          class="home-categories__card glass-panel"
-          @tap="openCategory(category.id)"
-        >
-          <text class="home-categories__name">{{ category.label }}</text>
-          <text class="home-categories__desc">{{ category.description }}</text>
-          <text class="home-categories__link">进入分类</text>
+      <view class="home-insight">
+        <view class="home-insight__item glass-panel">
+          <text class="home-insight__value">{{ categories.length }}</text>
+          <text class="home-insight__label">主题分区</text>
+        </view>
+        <view class="home-insight__item glass-panel">
+          <text class="home-insight__value">{{ featuredProducts.length }}</text>
+          <text class="home-insight__label">精选单品</text>
+        </view>
+        <view class="home-insight__item glass-panel">
+          <text class="home-insight__value">{{ totalStock }}</text>
+          <text class="home-insight__label">可售库存</text>
         </view>
       </view>
-    </scroll-view>
 
-    <UniSection
-      title="精选商品"
-      subtitle="突出展示 4 个产品卡片，验证首页首屏信息的表达方式。"
-    />
+      <view v-if="loading" class="home-state">
+        <UniLoading text="正在整理首页陈列..." />
+      </view>
 
-    <view class="home-product-grid">
-      <MallProductCard
-        v-for="product in featuredProducts"
-        :key="product.id"
-        :product="product"
-        @select="openProduct"
-        @add="addToCart"
-      />
-    </view>
-
-    <UniSection
-      title="最新上架"
-      subtitle="用另一组商品列表测试卡片复用和列表滚动体验。"
-    />
-
-    <view class="home-latest-list">
-      <view
-        v-for="product in latestProducts"
-        :key="product.id"
-        class="home-latest-list__item glass-panel"
-        @tap="openProduct(product.id)"
-      >
-        <view
-          class="home-latest-list__cover"
-          :style="`background: linear-gradient(135deg, ${product.palette[0]}, ${product.palette[1]});`"
+      <view v-else-if="errorText && !featuredProducts.length" class="home-state">
+        <UniEmptyState
+          title="首页暂时没有加载出来"
+          :description="errorText"
+          action-text="重新加载"
+          @action="loadHome"
         />
-        <view class="home-latest-list__content">
-          <text class="home-latest-list__title">{{ product.title }}</text>
-          <text class="home-latest-list__subtitle">{{ product.subtitle }}</text>
+      </view>
+
+      <template v-else>
+        <UniSection title="场景分类" subtitle="按使用情境浏览，而不是按冷冰冰的 SKU 列表" />
+        <view class="home-cats">
+          <view class="home-cats__track">
+            <view
+              v-for="cat in categories"
+              :key="cat.id"
+              class="home-cats__item glass-panel"
+              :style="`--cat-accent:${cat.accent}`"
+              @tap="openCategory(cat.id)"
+            >
+              <view class="home-cats__icon">
+                <view class="home-cats__dot" />
+              </view>
+              <text class="home-cats__name">{{ cat.label }}</text>
+              <text class="home-cats__desc">{{ cat.description }}</text>
+              <text class="home-cats__action">进入专区</text>
+            </view>
+          </view>
         </view>
-        <view class="home-latest-list__cta" @tap.stop="addToCart(product.id)">
-          <text>加入</text>
+
+        <UniSection title="主推好物" subtitle="适合直接拿来做首页转化卡位" />
+        <view class="home-grid">
+          <MallProductCard
+            v-for="product in featuredProducts"
+            :key="product.id"
+            :product="product"
+            @select="openProduct"
+            @add="handleAddToCart"
+          />
         </view>
+
+        <UniSection title="最近上新" subtitle="同一套 mock 数据也会驱动详情页和购物车" />
+        <view class="home-list">
+          <view
+            v-for="product in latestProducts"
+            :key="product.id"
+            class="home-list__row glass-panel"
+            @tap="openProduct(product.id)"
+          >
+            <view
+              class="home-list__thumb"
+              :style="`background:linear-gradient(135deg,${product.palette[0]},${product.palette[1]})`"
+            >
+              <text class="home-list__thumb-tag">{{ product.tags[0] ?? "新品" }}</text>
+            </view>
+            <view class="home-list__body">
+              <text class="home-list__title">{{ product.title }}</text>
+              <text class="home-list__sub">{{ product.subtitle }}</text>
+              <view class="home-list__meta">
+                <text class="home-list__price">{{ formatPrice(product.price) }}</text>
+                <text class="home-list__market">{{ formatPrice(product.marketPrice) }}</text>
+              </view>
+            </view>
+            <view
+              class="home-list__add primary-button"
+              :class="{ 'is-loading': activeAddId === product.id }"
+              @tap.stop="handleAddToCart(product.id, $event)"
+            >
+              <text>{{ activeAddId === product.id ? "..." : "加入" }}</text>
+            </view>
+          </view>
+        </view>
+      </template>
+
+      <view v-if="flyVisible" class="cart-fly-ball" :style="flyStyle">
+        <text>+1</text>
       </view>
     </view>
 
-    <template #footer>
-      <UniBottomNav :items="bottomNavItems" current-key="home" />
-    </template>
-  </UniPageShell>
+    <UniBottomNav :items="bottomNavItems" :pulse-key="pulseKey" current-key="home" />
+  </view>
 </template>
 
 <style scoped lang="scss">
 .home-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 34rpx;
+  border-radius: 44rpx;
+  background:
+    linear-gradient(145deg, rgba(30, 18, 12, 0.96), rgba(76, 40, 18, 0.92)),
+    linear-gradient(160deg, #352114, #70411f);
+  box-shadow: 0 24rpx 80rpx rgba(54, 31, 14, 0.26);
+}
+
+.home-hero__mesh {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12rpx);
+  pointer-events: none;
+}
+
+.home-hero__mesh--warm {
+  top: -80rpx;
+  right: -36rpx;
+  width: 320rpx;
+  height: 320rpx;
+  background: radial-gradient(circle, rgba(255, 177, 97, 0.45), transparent 72%);
+}
+
+.home-hero__mesh--cool {
+  bottom: -100rpx;
+  left: -60rpx;
+  width: 360rpx;
+  height: 360rpx;
+  background: radial-gradient(circle, rgba(75, 155, 133, 0.38), transparent 74%);
+}
+
+.home-hero__top,
+.home-hero__body,
+.home-hero__feature,
+.home-hero__actions {
+  position: relative;
+  z-index: 1;
+}
+
+.home-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.home-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 10rpx 18rpx;
+  border-radius: var(--uni-radius-full);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
+  font-size: 22rpx;
+  color: rgba(255, 247, 240, 0.9);
+  letter-spacing: 1.5rpx;
+}
+
+.home-hero__badge--ghost {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.home-hero__body {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
-  padding: 28rpx;
-  border-radius: 36rpx;
-  background:
-    radial-gradient(circle at top right, rgba(201, 108, 45, 0.24), transparent 32%),
-    linear-gradient(145deg, rgba(255, 252, 248, 0.94), rgba(255, 245, 232, 0.92));
+  gap: 16rpx;
+  margin-top: 36rpx;
 }
 
 .home-hero__eyebrow {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 10rpx 16rpx;
-  border-radius: 999rpx;
-  background: rgba(22, 107, 90, 0.1);
-  color: var(--uni-accent);
   font-size: 20rpx;
-  letter-spacing: 2rpx;
-}
-
-.home-hero__main {
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
+  letter-spacing: 5rpx;
+  color: rgba(255, 237, 220, 0.62);
 }
 
 .home-hero__title {
-  font-size: 46rpx;
-  font-weight: 700;
-  line-height: 1.18;
-  color: var(--uni-text-strong);
+  font-size: 52rpx;
+  line-height: 1.14;
+  font-weight: 800;
+  color: #fffaf4;
 }
 
-.home-hero__subtitle {
+.home-hero__sub {
   font-size: 25rpx;
   line-height: 1.8;
-  color: var(--uni-text-muted);
+  color: rgba(255, 244, 235, 0.72);
+}
+
+.home-hero__feature {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 30rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.home-hero__feature-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.home-hero__feature-label {
+  font-size: 20rpx;
+  color: rgba(255, 238, 223, 0.7);
+}
+
+.home-hero__feature-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #fffaf4;
+}
+
+.home-hero__feature-sub {
+  font-size: 22rpx;
+  color: rgba(255, 242, 231, 0.68);
+}
+
+.home-hero__feature-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6rpx;
+}
+
+.home-hero__feature-value {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: #ffd9ab;
+}
+
+.home-hero__feature-market {
+  font-size: 20rpx;
+  color: rgba(255, 240, 225, 0.45);
+  text-decoration: line-through;
 }
 
 .home-hero__actions {
   display: flex;
-  gap: 14rpx;
+  gap: 16rpx;
+  margin-top: 28rpx;
 }
 
-.home-hero__primary,
-.home-hero__secondary {
-  min-height: 72rpx;
-  padding: 0 24rpx;
+.home-hero__cta {
+  height: 82rpx;
+  padding: 0 34rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
+  font-size: 27rpx;
+  font-weight: 700;
 }
 
-.home-metrics {
+.home-hero__cta--ghost {
+  color: #fff7ef;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--uni-radius-full);
+}
+
+.home-insight {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
 }
 
-.home-metrics__item {
+.home-insight__item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8rpx;
-  padding: 20rpx;
-  border-radius: 24rpx;
+  padding: 24rpx 18rpx;
+  border-radius: 30rpx;
 }
 
-.home-metrics__value {
-  font-size: 34rpx;
-  font-weight: 700;
+.home-insight__value {
+  font-size: 36rpx;
+  font-weight: 800;
   color: var(--uni-text-strong);
 }
 
-.home-metrics__label {
+.home-insight__label {
   font-size: 22rpx;
   color: var(--uni-text-muted);
 }
 
-.home-categories {
-  width: 100%;
+.home-state {
+  padding-top: 32rpx;
+}
+
+.home-cats {
+  overflow-x: auto;
   white-space: nowrap;
 }
 
-.home-categories__track {
+.home-cats__track {
   display: inline-flex;
   gap: 16rpx;
-  padding-right: 20rpx;
+  padding-bottom: 6rpx;
 }
 
-.home-categories__card {
-  width: 300rpx;
-  min-height: 180rpx;
-  padding: 22rpx;
-  border-radius: 28rpx;
+.home-cats__item {
+  width: 284rpx;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 14rpx;
+  padding: 24rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.55);
 }
 
-.home-categories__name {
+.home-cats__icon {
+  width: 58rpx;
+  height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.home-cats__dot {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: var(--cat-accent, var(--uni-primary));
+}
+
+.home-cats__name {
   font-size: 30rpx;
   font-weight: 700;
   color: var(--uni-text-strong);
 }
 
-.home-categories__desc {
-  font-size: 23rpx;
-  line-height: 1.7;
-  color: var(--uni-text-muted);
-}
-
-.home-categories__link {
-  margin-top: auto;
+.home-cats__desc {
+  min-height: 74rpx;
   font-size: 22rpx;
-  color: var(--uni-primary);
+  line-height: 1.6;
+  color: var(--uni-text-secondary);
+  white-space: normal;
 }
 
-.home-product-grid {
+.home-cats__action {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--cat-accent, var(--uni-primary));
+}
+
+.home-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
 }
 
-.home-latest-list {
+.home-list {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
 }
 
-.home-latest-list__item {
-  display: grid;
-  grid-template-columns: 120rpx 1fr auto;
-  gap: 16rpx;
+.home-list__row {
+  display: flex;
   align-items: center;
-  padding: 18rpx;
+  gap: 18rpx;
+  padding: 16rpx;
+  border-radius: 30rpx;
+}
+
+.home-list__thumb {
+  width: 118rpx;
+  height: 118rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 12rpx;
   border-radius: 26rpx;
 }
 
-.home-latest-list__cover {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 24rpx;
+.home-list__thumb-tag {
+  padding: 6rpx 12rpx;
+  border-radius: var(--uni-radius-full);
+  background: rgba(255, 255, 255, 0.22);
+  color: #fffaf4;
+  font-size: 18rpx;
 }
 
-.home-latest-list__content {
+.home-list__body {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 6rpx;
 }
 
-.home-latest-list__title {
+.home-list__title {
   font-size: 28rpx;
   font-weight: 700;
   color: var(--uni-text-strong);
 }
 
-.home-latest-list__subtitle {
+.home-list__sub {
   font-size: 22rpx;
   color: var(--uni-text-muted);
 }
 
-.home-latest-list__cta {
-  min-width: 92rpx;
-  height: 60rpx;
-  padding: 0 18rpx;
-  display: inline-flex;
+.home-list__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin-top: 6rpx;
+}
+
+.home-list__price {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--uni-primary);
+}
+
+.home-list__market {
+  font-size: 20rpx;
+  color: var(--uni-text-placeholder);
+  text-decoration: line-through;
+}
+
+.home-list__add {
+  width: 96rpx;
+  height: 66rpx;
+  flex-shrink: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999rpx;
-  background: rgba(201, 108, 45, 0.12);
-  color: var(--uni-primary);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.home-list__add.is-loading {
+  opacity: 0.72;
+}
+
+.cart-fly-ball {
+  position: fixed;
+  z-index: 90;
+  width: 54rpx;
+  height: 54rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--uni-primary), var(--uni-highlight));
+  color: #fff;
   font-size: 22rpx;
+  font-weight: 800;
+  box-shadow: 0 12rpx 28rpx rgba(201, 108, 45, 0.28);
+  pointer-events: none;
+  transition:
+    left 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    top 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 620ms ease;
 }
 </style>

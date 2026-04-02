@@ -22,7 +22,6 @@ import {
   onMounted,
   reactive,
   shallowRef,
-  computed,
 } from "vue";
 // 导入获取权限标签的钩子函数
 import { getPermissionLabel } from "./hook";
@@ -87,6 +86,10 @@ const form = reactive({
   sysDeptName: null,
 });
 
+const formatTimeAgo = (value) => {
+  return value ? getTimeAgo(value) : "-";
+};
+
 /**
  * 加载部门列表数据
  * 该函数会触发API请求获取部门列表，并更新表格数据
@@ -142,7 +145,7 @@ const handleDelete = async (row) => {
  */
 const handleOpenPermission = async (row) => {
   // 设置权限对话框的部门列表数据
-  permissionDialogRef.value.setDeptList(tableData);
+  permissionDialogRef.value.setDeptList(tableData.value);
   // 打开权限对话框
   permissionDialogRef.value.handleOpen(row);
 };
@@ -190,6 +193,10 @@ const handleOpenDetail = async (row, column, event) => {
  * @param {Object} row - 当前要更新的部门数据行
  */
 const handleUpdate = async (row) => {
+  if (!row?.sysDeptId) {
+    return;
+  }
+
   try {
     // 发起更新部门信息的API请求
     await fetchUpdateDept(row);
@@ -394,14 +401,14 @@ onMounted(async () => {
               <!-- 表格列，显示部门创建时间 -->
               <ScTableColumn label="创建时间" prop="createTime" width="180">
                 <template #default="{ row }">
-                  <div class="time-cell">
-                    <span class="time-ago">{{
-                      getTimeAgo(row.createTime)
-                    }}</span>
-                    <span class="time-exact">{{ row.createTime }}</span>
-                  </div>
-                </template>
-              </ScTableColumn>
+                    <div class="time-cell">
+                      <span class="time-ago">{{
+                        formatTimeAgo(row.createTime)
+                      }}</span>
+                      <span class="time-exact">{{ row.createTime || "-" }}</span>
+                    </div>
+                  </template>
+                </ScTableColumn>
               <!-- 表格列，显示部门备注 -->
               <ScTableColumn
                 label="备注"

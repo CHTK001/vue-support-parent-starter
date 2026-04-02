@@ -216,15 +216,18 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, reactive } from "vue";
 import type { FormInstance } from "element-plus";
-import type { ScFilterBarProps, FilterField, FilterValue, FilterOption, QuickFilter } from "./types";
+import type { ScFilterBarProps, FilterField, FilterValue, FilterOption, QuickFilter, LegacyFilterField } from "./types";
 
 defineOptions({
   name: "ScFilterBar"
 });
 
 const props = withDefaults(defineProps<ScFilterBarProps>(), {
+  fields: () => [],
+  options: () => [],
   layout: "inline",
   visibleCount: 3,
+  showNumber: undefined,
   showExpand: true,
   expandText: "更多筛选",
   collapseText: "收起",
@@ -246,6 +249,7 @@ const props = withDefaults(defineProps<ScFilterBarProps>(), {
   disabled: false,
   loading: false,
   defaultExpanded: false,
+  quickFilters: () => [],
   showQuickFilters: true,
   iconOnly: false
 });
@@ -266,7 +270,45 @@ const isExpanded = ref(props.defaultExpanded);
 const fieldOptions = ref<Record<string, FilterOption[]>>({});
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+const normalizeLegacyField = (field: LegacyFilterField): FilterField | null => {
+  const prop = String(field.value || "");
+  if (!prop) return null;
+
+  const legacyType = field.type || "text";
+  const normalizedType = legacyType === "text" ? "input" : legacyType;
+  const legacyOptions = Array.isArray(field.options) ? field.options : Array.isArray(field.extend?.data) ? field.extend.data : [];
+
+  return {
+    prop,
+    label: field.label || prop,
+    type: normalizedType as FilterField["type"],
+    placeholder: field.placeholder,
+    width: field.width,
+    defaultValue: field.defaultValue,
+    disabled: field.disabled,
+    clearable: field.clearable,
+    multiple: field.multiple ?? field.extend?.multiple,
+    order: field.order,
+    props: field.props,
+    options: legacyOptions
+  };
+};
+
 // ==================== 计算属性 ====================
+
+const normalizedVisibleCount = computed(() => {
+  return props.visibleCount ?? props.showNumber ?? 3;
+});
+
+const normalizedFields = computed<FilterField[]>(() => {
+  if (props.fields.length > 0) {
+    return props.fields;
+  }
+
+  return props.options
+    .map(normalizeLegacyField)
+    .filter((field): field is FilterField => !!field);
+});
 
 /**
  * 筛选栏样式类
@@ -294,7 +336,7 @@ const fieldsClass = computed(() => {
  * 排序后的字段
  */
 const sortedFields = computed(() => {
-  return [...props.fields].sort((a, b) => (a.order || 0) - (b.order || 0));
+  return [...normalizedFields.value].sort((a, b) => (a.order || 0) - (b.order || 0));
 });
 
 /**
@@ -308,7 +350,7 @@ const visibleFields = computed(() => {
     return [...always, ...others];
   }
 
-  const remaining = props.visibleCount - always.length;
+  const remaining = normalizedVisibleCount.value - always.length;
   return [...always, ...others.slice(0, Math.max(0, remaining))];
 });
 
@@ -318,7 +360,7 @@ const visibleFields = computed(() => {
 const collapsedFields = computed(() => {
   const always = sortedFields.value.filter(f => f.alwaysShow);
   const others = sortedFields.value.filter(f => !f.alwaysShow);
-  const remaining = props.visibleCount - always.length;
+  const remaining = normalizedVisibleCount.value - always.length;
   return others.slice(Math.max(0, remaining));
 });
 
@@ -335,7 +377,7 @@ const hasActiveFilters = computed(() => {
 const activeTags = computed(() => {
   const tags: { prop: string; label: string; displayValue: string; value: unknown }[] = [];
 
-  props.fields.forEach(field => {
+  normalizedFields.value.forEach(field => {
     const value = formModel[field.prop];
     if (value !== undefined && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0)) {
       let displayValue = String(value);
@@ -451,7 +493,7 @@ function handleLinkage(field: FilterField, value: unknown): void {
   if (!field.linkage) return;
 
   field.linkage.forEach(link => {
-    const targetField = props.fields.find(f => f.prop === link.target);
+    const targetField = normalizedFields.value.find(f => f.prop === link.target);
     if (!targetField) return;
 
     const shouldTrigger = link.condition ? link.condition(value) : true;
@@ -482,7 +524,7 @@ function handleSearch(): void {
  */
 function handleReset(): void {
   // 重置表单值
-  props.fields.forEach(field => {
+  normalizedFields.value.forEach(field => {
     formModel[field.prop] = field.defaultValue ?? undefined;
   });
 
@@ -520,7 +562,9 @@ function handleQuickFilter(filter: QuickFilter): void {
  * 加载字段选项
  */
 async function loadFieldOptions(): Promise<void> {
-  const promises = props.fields
+  fieldOptions.value = {};
+
+  const promises = normalizedFields.value
     .filter(field => field.fetchOptions)
     .map(async field => {
       try {
@@ -538,7 +582,11 @@ async function loadFieldOptions(): Promise<void> {
  * 初始化表单值
  */
 function initFormModel(): void {
-  props.fields.forEach(field => {
+  Object.keys(formModel).forEach(key => {
+    delete formModel[key];
+  });
+
+  normalizedFields.value.forEach(field => {
     if (props.modelValue && props.modelValue[field.prop] !== undefined) {
       formModel[field.prop] = props.modelValue[field.prop];
     } else if (field.defaultValue !== undefined) {
@@ -583,6 +631,15 @@ onMounted(() => {
   initFormModel();
   loadFieldOptions();
 });
+
+const fieldsVersion = computed(() => JSON.stringify(normalizedFields.value));
+watch(
+  fieldsVersion,
+  () => {
+    initFormModel();
+    loadFieldOptions();
+  }
+);
 
 // 监听 modelValue 变化 - 使用版本号避免深度监听
 const modelValueVersion = computed(() => JSON.stringify(props.modelValue));

@@ -1,5 +1,6 @@
 import { createFingerprint } from "@repo/core";
 import { localStorageProxy } from "../storage";
+import { storageLocal } from "@pureadmin/utils";
 
 /** 访问指纹存储 Key */
 const VISIT_ID_KEY = "visitId";
@@ -9,14 +10,34 @@ let fingerprintInitStarted = false;
 
 /**
  * 获取或创建访问指纹
- * 优先使用浏览器指纹插件生成的指纹，不再使用随机数
+ * 指纹必须以明文存储和读取，不能经过加密，否则签名计算会用密文导致后端验签失败
+ * 兼容两种存储方式：加密key（systemvisitId）和原始key（visitId）
  */
 export const getOrCreateFingerprint = (): string => {
-  const rawFingerprint = localStorageProxy().getItem<unknown>(VISIT_ID_KEY);
-  const normalized = !rawFingerprint ? "" : String(rawFingerprint).trim();
+  // 优先从加密proxy读取（key会被转为systemvisitId）
+  let rawFingerprint = localStorageProxy().getItem<unknown>(VISIT_ID_KEY);
 
-  // 如果存储里不是 string（例如被写成 number），这里统一规范化并回写，避免 header 变成数字
+  // 如果加密proxy读不到，尝试直接读原始key（FingerprintJS直接写入的）
+  if (!rawFingerprint) {
+    try {
+      const raw = storageLocal().getItem(VISIT_ID_KEY);
+      if (raw) {
+        // 可能是JSON字符串，尝试解析
+        try {
+          rawFingerprint = JSON.parse(raw as string);
+        } catch {
+          rawFingerprint = raw;
+        }
+      }
+    } catch {
+      rawFingerprint = null;
+    }
+  }
+
+  const normalized = !rawFingerprint ? "" : String(rawFingerprint).trim().replace(/^"|"$/g, "");
+
   if (normalized) {
+    // 写入加密proxy，确保下次能从加密key读到
     localStorageProxy().setItem(VISIT_ID_KEY, normalized);
     return normalized;
   }
@@ -30,7 +51,6 @@ export const getOrCreateFingerprint = (): string => {
       }
     }).catch((e: unknown) => {
       if (process.env.NODE_ENV === "development") {
-        // 指纹初始化失败仅在开发环境输出日志，避免干扰线上
         console.error("[HTTP][Fingerprint] 指纹插件初始化失败:", e);
       }
     });

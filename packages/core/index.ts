@@ -40,6 +40,7 @@ export * from "./src/utils/propTypes";
 export * from "./src/config/socket";
 export * from "./src/directives";
 export * from "./src/app-bootstrap";
+export * from "./src/runtime/frontend-system";
 
 export type * from "./src/utils/propTypes";
 export type * from "./src/types";

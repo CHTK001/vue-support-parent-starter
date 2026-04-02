@@ -390,14 +390,17 @@ const contentRef = ref();
 }
 
 .role-wrapper {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   border-radius: var(--el-border-radius-base);
-  box-shadow: var(--el-box-shadow-light);
-  transition: all 0.3s ease;
+  box-shadow: none;
 
-  &:hover {
-    box-shadow: var(--el-box-shadow);
+  :deep(.sc-container) {
+    height: 100%;
+    min-height: 0;
   }
 }
 
@@ -519,6 +522,10 @@ const contentRef = ref();
 
 // 主体区域
 .role-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   padding: 16px !important;
   background-color: var(--el-bg-color-page);
 }
@@ -526,15 +533,24 @@ const contentRef = ref();
 // 表格容器
 .table-wrapper {
   display: flex;
+  flex: 1;
   height: 100%;
+  min-height: 0;
   padding: 0 4px;
 
   > div {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     overflow: hidden;
     background-color: var(--el-bg-color);
     border-radius: var(--el-border-radius-base);
-    box-shadow: var(--el-box-shadow-lighter);
+    box-shadow: none;
   }
+}
+
+:deep(.table-wrapper .el-table) {
+  height: 100%;
 }
 
 // 角色信息单元格
@@ -649,7 +665,7 @@ const contentRef = ref();
 // 暗色主题适配
 :root[data-theme="dark"] {
   .role-wrapper {
-    box-shadow: 0 2px 12px rgb(0 0 0 / 20%);
+    box-shadow: none;
   }
 
   .role-stats {
@@ -671,7 +687,7 @@ const contentRef = ref();
 
   .table-wrapper {
     > div {
-      box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
+      box-shadow: none;
     }
   }
 

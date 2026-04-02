@@ -18,7 +18,6 @@ import {
   parseRedirectParamPayload,
   uu3,
 } from "@repo/utils";
-import { Md5 } from "ts-md5";
 import {
   computed,
   defineAsyncComponent,
@@ -31,6 +30,7 @@ import {
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { Md5 } from "ts-md5";
 import ThirdParty from "../components/thirdParty.vue";
 import Motion from "../utils/motion";
 import { loginRules } from "../utils/rule";
@@ -110,6 +110,17 @@ const resolveFormInstance = (formEl) => formEl?.value ?? formEl;
 const handleLoginClick = () => onLogin(ruleFormRef.value);
 const handleLoginCodeClick = () => onLoginCode(ruleFormRef.value);
 const handleLoginToptCodeClick = () => onLoginToptCode(ruleFormRef.value);
+const MD5_HEX_PATTERN = /^[a-f0-9]{32}$/i;
+const encodeLoginPassword = (password: string) => {
+  const normalizedPassword = String(password || "").trim();
+  if (!normalizedPassword) {
+    return normalizedPassword;
+  }
+  if (MD5_HEX_PATTERN.test(normalizedPassword)) {
+    return normalizedPassword.toLowerCase();
+  }
+  return String(Md5.hashStr(normalizedPassword));
+};
 const markRedirectDebug = (stage: string, extra: Record<string, any> = {}) => {
   try {
     sessionStorage.setItem(
@@ -235,7 +246,7 @@ const onLogin = async (formEl) => {
       useUserStoreHook()
         .loginByUsername({
           username: ruleForm.username,
-          password: Md5.hashStr(ruleForm.password || ""),
+          password: encodeLoginPassword(ruleForm.password),
           verifyCodeKey: ruleForm.verifyCode,
           verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
           loginType: "WEB",
@@ -833,7 +844,6 @@ onBeforeUnmount(() => {
                 <el-form-item prop="tenantCode" class="modern-form-item">
                   <el-input
                     v-model="ruleForm.tenantCode"
-                    clearable
                     :disabled="loading"
                     :placeholder="t('login.pureTenantCode')"
                     :prefix-icon="useRenderIcon('ri:building-fill')"
@@ -860,7 +870,6 @@ onBeforeUnmount(() => {
                 >
                   <el-input
                     v-model="ruleForm.username"
-                    clearable
                     :disabled="loading"
                     :placeholder="t('login.pureUsername')"
                     :prefix-icon="useRenderIcon('ri:user-3-fill')"
@@ -877,7 +886,6 @@ onBeforeUnmount(() => {
                 <el-form-item prop="password" class="modern-form-item">
                   <el-input
                     v-model="ruleForm.password"
-                    clearable
                     show-password
                     :disabled="loading"
                     :placeholder="t('login.purePassword')"
@@ -899,7 +907,6 @@ onBeforeUnmount(() => {
                   >
                     <el-input
                       v-model="ruleForm.verifyCode"
-                      clearable
                       :disabled="loading"
                       :placeholder="t('login.verifyCode')"
                       :prefix-icon="useRenderIcon('ri:lock-fill')"
@@ -933,7 +940,7 @@ onBeforeUnmount(() => {
                   class="modern-login-button"
                   size="large"
                   type="primary"
-                  :loading="loading"
+                  :disabled="loading"
                   @click="handleLoginClick"
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
@@ -944,7 +951,7 @@ onBeforeUnmount(() => {
                   class="modern-login-button"
                   size="large"
                   type="primary"
-                  :loading="loading"
+                  :disabled="loading"
                   @click="handleLoginCodeClick"
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
@@ -955,7 +962,7 @@ onBeforeUnmount(() => {
                   class="modern-login-button"
                   size="large"
                   type="primary"
-                  :loading="loading"
+                  :disabled="loading"
                   @click="handleLoginToptCodeClick"
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
@@ -966,7 +973,7 @@ onBeforeUnmount(() => {
                   class="modern-login-button"
                   size="large"
                   type="primary"
-                  :loading="loading"
+                  :disabled="loading"
                   @click="handleLoginClick"
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
@@ -1456,20 +1463,27 @@ onBeforeUnmount(() => {
         .modern-input {
           :deep(.el-input__wrapper) {
             background: var(--el-fill-color-extra-light);
-            border: 2px solid var(--el-border-color-lighter);
+            border: 1px solid transparent;
             border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: none;
+            min-height: 48px;
+            box-sizing: border-box;
+            transition:
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
+            box-shadow: inset 0 0 0 1px var(--el-border-color-lighter);
 
             &:hover {
-              border-color: var(--el-color-primary-light-7);
-              background: var(--el-fill-color-light);
+              background: var(--el-fill-color-extra-light);
+              box-shadow: inset 0 0 0 1px var(--el-color-primary-light-7);
             }
 
             &.is-focus {
-              border-color: var(--el-color-primary);
+              border-color: transparent;
               background: var(--el-bg-color-overlay);
-              box-shadow: 0 0 0 4px var(--el-color-primary-light-8);
+              box-shadow:
+                inset 0 0 0 1px var(--el-color-primary),
+                0 0 0 3px rgba(var(--el-color-primary-rgb), 0.14);
             }
           }
 
@@ -1592,7 +1606,10 @@ onBeforeUnmount(() => {
       );
       border: none;
       box-shadow: var(--el-box-shadow-light);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition:
+        background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.2s ease;
       text-align: center;
       writing-mode: horizontal-tb;
 
@@ -1603,19 +1620,18 @@ onBeforeUnmount(() => {
           var(--el-color-primary)
         );
         box-shadow: var(--el-box-shadow);
-        transform: translateY(-2px);
       }
 
-      &:active {
-        transform: translateY(0);
-      }
-
-      &.is-loading {
+      &:disabled,
+      &.is-disabled {
         background: var(--el-color-primary-light-5);
         cursor: not-allowed;
+        box-shadow: var(--el-box-shadow-light);
+        opacity: 0.92;
 
         &:hover {
-          transform: none;
+          background: var(--el-color-primary-light-5);
+          box-shadow: var(--el-box-shadow-light);
         }
       }
 

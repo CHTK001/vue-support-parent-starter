@@ -1,4 +1,5 @@
 import { reactive, toRaw, type App } from "vue";
+import { applyFrontendSystemConfigOverrides } from "../frontend-system";
 import { globalSetting } from "../setting";
 import type { PlatformConfigs } from "../types/config";
 import yaml from "js-yaml";
@@ -36,6 +37,7 @@ Object.values(extConfig).forEach((value: any) => {
   setConfig(data);
 });
 const initialConfig = cloneConfig(config);
+applyFrontendSystemConfigOverrides(setConfig, initialConfig);
 
 /** 版本升级 */
 const upgrade = (version: string) => {

@@ -12,9 +12,25 @@ export interface ThemeConfig {
   LoginTheme: string;
   /** 是否启用节日主题 */
   EnableFestivalTheme: boolean;
+  /** 已关闭的主题 key */
+  DisabledThemes: string[];
 }
 
 const STORAGE_KEY = "login-theme-config";
+
+const normalizeThemeKeys = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((item) => String(item || "").trim())
+        .filter(Boolean),
+    ),
+  );
+};
 
 function getDefaultConfig(): ThemeConfig {
   const cfg = getConfig() || {};
@@ -29,6 +45,7 @@ function getDefaultConfig(): ThemeConfig {
   return {
     LoginTheme: loginTheme,
     EnableFestivalTheme: enableFestival,
+    DisabledThemes: [],
   };
 }
 
@@ -48,6 +65,7 @@ export function getThemeConfig(): ThemeConfig {
           parsed.EnableFestivalTheme !== undefined
             ? parsed.EnableFestivalTheme
             : defaults.EnableFestivalTheme,
+        DisabledThemes: normalizeThemeKeys(parsed.DisabledThemes),
       };
     }
   } catch (error) {
@@ -66,7 +84,13 @@ export function getThemeConfig(): ThemeConfig {
 export function saveThemeConfig(config: Partial<ThemeConfig>): void {
   try {
     const currentConfig = getThemeConfig();
-    const newConfig = { ...currentConfig, ...config };
+    const newConfig = {
+      ...currentConfig,
+      ...config,
+      DisabledThemes: normalizeThemeKeys(
+        config.DisabledThemes ?? currentConfig.DisabledThemes,
+      ),
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
     console.debug("[ThemeConfig] Theme config saved:", newConfig);
   } catch (error) {
@@ -116,4 +140,18 @@ export function setEnableFestivalTheme(enable: boolean): void {
  */
 export function getEnableFestivalTheme(): boolean {
   return getThemeConfig().EnableFestivalTheme;
+}
+
+/**
+ * 获取已关闭的登录主题
+ */
+export function getDisabledLoginThemes(): string[] {
+  return getThemeConfig().DisabledThemes;
+}
+
+/**
+ * 判断登录主题是否启用
+ */
+export function isLoginThemeEnabled(themeKey: string): boolean {
+  return !getDisabledLoginThemes().includes(String(themeKey || "").trim());
 }

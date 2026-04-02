@@ -23,6 +23,9 @@ test-*
 .vscode/*
 !.vscode/extensions.json
 .idea
+.kiro
+.kiro/*
+.vscode
 .DS_Store
 *.suo
 *.ntvs*

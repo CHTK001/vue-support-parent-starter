@@ -316,7 +316,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import {

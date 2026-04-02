@@ -14,6 +14,7 @@ export * from "./src/setting";
 export * from "./src/token";
 export * from "./src/auth";
 export * from "./src/responsive";
+export * from "./src/frontend-system";
 export * from "./src/utils";
 export { transformI18n as t } from "./src/i18n";
 export type * from "./src/i18n/type";

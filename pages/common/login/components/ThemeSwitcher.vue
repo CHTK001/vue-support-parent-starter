@@ -89,6 +89,7 @@
 import { computed, ref, onMounted, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import {
+  getDisabledLoginThemes,
   getLoginTheme,
   setLoginTheme,
   setEnableFestivalTheme,
@@ -109,7 +110,7 @@ const { t } = useI18n();
 /**
  * 常规主题列表
  */
-const regularThemes = computed(() => [
+const regularThemeCatalog = computed(() => [
   {
     key: "modern",
     name: t("theme.themes.modern.name"),
@@ -139,7 +140,17 @@ const regularThemes = computed(() => [
 /**
  * 节日主题列表
  */
-const festivalThemes = computed(() => []);
+const festivalThemeCatalog = computed(() => []);
+
+const disabledThemeSet = computed(() => new Set(getDisabledLoginThemes()));
+
+const regularThemes = computed(() =>
+  regularThemeCatalog.value.filter((theme) => !disabledThemeSet.value.has(theme.key)),
+);
+
+const festivalThemes = computed(() =>
+  festivalThemeCatalog.value.filter((theme) => !disabledThemeSet.value.has(theme.key)),
+);
 
 /**
  * 所有主题列表
@@ -303,7 +314,7 @@ onUnmounted(() => {
       0 8px 20px rgba(0, 0, 0, 0.08),
       0 0 0 1px rgba(0, 0, 0, 0.03);
     overflow: hidden;
-    min-width: 320px;
+    min-width: 344px;
     backdrop-filter: blur(20px);
   }
 }
@@ -334,7 +345,7 @@ onUnmounted(() => {
    * 主题分组样式
    */
   .theme-group {
-    padding: 8px 10px;
+    padding: 10px 12px 12px;
 
     &:not(:last-child) {
       border-bottom: 1px solid var(--el-border-color-lighter);
@@ -344,7 +355,7 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 16px 8px;
+      padding: 12px 16px 10px;
       font-size: 12px;
       font-weight: 600;
       color: var(--el-text-color-secondary);
@@ -355,7 +366,7 @@ onUnmounted(() => {
     .theme-items {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 8px;
     }
   }
 
@@ -366,8 +377,9 @@ onUnmounted(() => {
     display: flex !important;
     align-items: center;
     gap: 12px;
-    padding: 16px !important;
+    padding: 18px 16px !important;
     margin: 0 !important;
+    border: 1px solid transparent;
     border-radius: 12px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -388,7 +400,7 @@ onUnmounted(() => {
 
     &:hover {
       background: var(--el-fill-color-light);
-      transform: translateX(4px);
+      transform: translateX(2px);
 
       &::before {
         opacity: 1;
@@ -434,7 +446,7 @@ onUnmounted(() => {
     .item-content {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
       flex: 1;
     }
 

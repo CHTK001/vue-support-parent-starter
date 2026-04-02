@@ -263,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 import { ref, reactive } from "vue";
 import { fetchUpdateUser, fetchSaveUser, fetchUploadAvatar } from "@repo/core";

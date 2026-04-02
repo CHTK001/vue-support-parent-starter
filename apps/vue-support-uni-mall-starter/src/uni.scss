@@ -2,28 +2,8 @@
 
 page {
   background:
-    radial-gradient(circle at top right, rgba(201, 108, 45, 0.12), transparent 24%),
-    radial-gradient(circle at top left, rgba(22, 107, 90, 0.08), transparent 30%),
-    #f5efe6;
-}
-
-.glass-panel {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1rpx solid rgba(64, 54, 46, 0.08);
-  box-shadow: 0 18rpx 48rpx rgba(50, 39, 27, 0.12);
-  backdrop-filter: blur(18rpx);
-}
-
-.primary-button {
-  border: none;
-  border-radius: 999rpx;
-  background: linear-gradient(135deg, #c96c2d, #d79057);
-  color: #fff9f3;
-}
-
-.secondary-button {
-  border: 1rpx solid rgba(64, 54, 46, 0.12);
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.78);
-  color: #201913;
+    radial-gradient(circle at 76% 10%, rgba(201, 108, 45, 0.16), transparent 26%),
+    radial-gradient(circle at 14% 84%, rgba(22, 107, 90, 0.11), transparent 30%),
+    radial-gradient(circle at 48% 48%, rgba(255, 255, 255, 0.16), transparent 38%),
+    var(--uni-shell-bg);
 }

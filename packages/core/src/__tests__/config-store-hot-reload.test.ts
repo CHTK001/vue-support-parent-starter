@@ -4,8 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const localStorageState = new Map<string, any>();
 const setWatermark = vi.fn();
 const clearWatermark = vi.fn();
+const crashDebugger = vi.fn();
 const loopDebugger = vi.fn();
 const redirectDebugger = vi.fn();
+const stopCrashDebugger = vi.fn();
 const stopLoopDebugger = vi.fn();
 const stopRedirectDebugger = vi.fn();
 const socketService = {
@@ -34,6 +36,10 @@ vi.mock("@pureadmin/utils", () => ({
   }),
 }));
 
+vi.mock("@layout/default", () => ({
+  initFontEncryption: vi.fn(),
+}));
+
 vi.mock("@repo/utils", () => ({
   localStorageProxy: () => ({
     getItem: (key: string) => localStorageState.get(key) ?? null,
@@ -44,18 +50,47 @@ vi.mock("@repo/utils", () => ({
       localStorageState.delete(key);
     },
   }),
+  crashDebugger,
   loopDebugger,
   redirectDebugger,
+  stopCrashDebugger,
   stopLoopDebugger,
   stopRedirectDebugger,
 }));
 
 vi.mock("@repo/config", () => ({
   CONFIG_VERSION_CHANGE_EVENT: "repo-config-version-change",
+  buildFrontendSystemConfigOverrides: vi.fn((config: Record<string, any>) => config),
   getConfig: (key?: string) => (key ? runtimeConfig[key] : runtimeConfig),
+  getFrontendSystemConfig: vi.fn(() => ({
+    themeSkinEnabled: true,
+    themeManagementEnabled: true,
+    loginThemeSwitcherEnabled: true,
+    debugProtectionEnabled: true,
+    crashPageOpen: false,
+    loopDebuggerOpen: false,
+    debugOverlayOpen: true,
+    debugBypassEnabled: true,
+    debugBypassParamName: "sk",
+    debugBypassSecret: "",
+    storageEncode: true,
+    fontEncryptionEnabled: false,
+    fontEncryptionApplyGlobal: false,
+    fontEncryptionDisableCopy: false,
+    fontEncryptionOcrNoise: false,
+    fontEncryptionOcrNoiseLevel: "low",
+  })),
   getInitialConfig: (key?: string) => (key ? initialConfig[key] : initialConfig),
+  isDevEnvironment: vi.fn(() => false),
+  isDebugBypassActive: vi.fn(() => false),
   putConfig: (key: string, value: any) => {
     runtimeConfig[key] = value;
+  },
+  setConfig: (payload: Record<string, any>) => {
+    runtimeConfig = {
+      ...runtimeConfig,
+      ...payload,
+    };
   },
 }));
 
@@ -82,8 +117,10 @@ describe("config store hot reload", () => {
     localStorageState.clear();
     setWatermark.mockReset();
     clearWatermark.mockReset();
+    crashDebugger.mockReset();
     loopDebugger.mockReset();
     redirectDebugger.mockReset();
+    stopCrashDebugger.mockReset();
     stopLoopDebugger.mockReset();
     stopRedirectDebugger.mockReset();
     socketService.connect.mockReset();

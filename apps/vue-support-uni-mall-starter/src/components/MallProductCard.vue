@@ -1,58 +1,51 @@
 <script setup lang="ts">
-import type { MallProduct } from "@/data/catalog";
-import { formatPrice } from "@/data/catalog";
 import { computed } from "vue";
+import type { MallProduct } from "@/data/catalog";
+import { formatPrice } from "@/utils/price";
 
-const props = defineProps<{
-  product: MallProduct;
-}>();
-
+const props = defineProps<{ product: MallProduct }>();
 const emit = defineEmits<{
-  select: [productId: string];
-  add: [productId: string];
+  select: [id: string];
+  add: [id: string, event?: any];
 }>();
 
 const coverStyle = computed(
-  () =>
-    `background: linear-gradient(135deg, ${props.product.palette[0]}, ${props.product.palette[1]});`
+  () => `background:linear-gradient(150deg,${props.product.palette[0]},${props.product.palette[1]})`,
 );
-
-const selectProduct = () => emit("select", props.product.id);
-const addProduct = () => emit("add", props.product.id);
+const savings = computed(() => Math.max(0, props.product.marketPrice - props.product.price));
 </script>
 
 <template>
-  <view class="mall-product-card glass-panel" @tap="selectProduct">
-    <view class="mall-product-card__cover" :style="coverStyle">
-      <text class="mall-product-card__cover-label">
-        {{ product.tags[0] || "推荐" }}
-      </text>
-      <text class="mall-product-card__cover-title">{{ product.title }}</text>
-      <text class="mall-product-card__cover-subtitle">{{ product.subtitle }}</text>
+  <view class="product-card glass-panel" @tap="emit('select', product.id)">
+    <view class="product-card__cover" :style="coverStyle">
+      <view class="product-card__header">
+        <text class="product-card__tag">{{ product.tags[0] ?? "推荐" }}</text>
+        <text v-if="product.featured" class="product-card__tag product-card__tag--hot">精选</text>
+      </view>
+      <view class="product-card__cover-copy">
+        <text class="product-card__title">{{ product.title }}</text>
+        <text class="product-card__subtitle">{{ product.subtitle }}</text>
+      </view>
     </view>
-    <view class="mall-product-card__body">
-      <view class="mall-product-card__meta">
-        <text class="mall-product-card__title">{{ product.title }}</text>
-        <text class="mall-product-card__subtitle">{{ product.subtitle }}</text>
-      </view>
-      <view class="mall-product-card__tags">
-        <text v-for="tag in product.tags" :key="tag" class="mall-product-card__tag">
-          {{ tag }}
-        </text>
-      </view>
-      <view class="mall-product-card__footer">
-        <view class="mall-product-card__price-group">
-          <text class="mall-product-card__price">{{ formatPrice(product.price) }}</text>
-          <text class="mall-product-card__market">
-            {{ formatPrice(product.marketPrice) }}
+
+    <view class="product-card__body">
+      <view class="product-card__meta">
+        <text class="product-card__desc">{{ product.description }}</text>
+        <view class="product-card__pills">
+          <text v-for="tag in product.tags.slice(0, 2)" :key="tag" class="product-card__pill">
+            {{ tag }}
           </text>
         </view>
-        <view
-          class="mall-product-card__action"
-          hover-class="is-hovered"
-          @tap.stop="addProduct"
-        >
-          <text>加入</text>
+      </view>
+
+      <view class="product-card__footer">
+        <view class="product-card__price-group">
+          <text class="product-card__price">{{ formatPrice(product.price) }}</text>
+          <text class="product-card__market">{{ formatPrice(product.marketPrice) }}</text>
+          <text class="product-card__save">省 {{ formatPrice(savings) }}</text>
+        </view>
+        <view class="product-card__cta primary-button" @tap.stop="emit('add', product.id, $event)">
+          <text>加购</text>
         </view>
       </view>
     </view>
@@ -60,114 +53,146 @@ const addProduct = () => emit("add", props.product.id);
 </template>
 
 <style scoped lang="scss">
-.mall-product-card {
+.product-card {
   overflow: hidden;
-  border-radius: 28rpx;
-}
-
-.mall-product-card__cover {
-  min-height: 220rpx;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  border-radius: 34rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.65);
+}
+
+.product-card__cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 248rpx;
+  padding: 20rpx;
+  position: relative;
+}
+
+.product-card__cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.24));
+}
+
+.product-card__header,
+.product-card__cover-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.product-card__header {
+  display: flex;
   gap: 8rpx;
-  padding: 24rpx;
+  flex-wrap: wrap;
+}
+
+.product-card__tag {
+  padding: 6rpx 14rpx;
+  border-radius: var(--uni-radius-full);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 250, 244, 0.92);
+  font-size: 19rpx;
+}
+
+.product-card__tag--hot {
+  background: rgba(42, 148, 120, 0.32);
+}
+
+.product-card__cover-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.product-card__title {
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 1.2;
   color: #fffaf4;
 }
 
-.mall-product-card__cover-label {
-  align-self: flex-start;
-  padding: 8rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.16);
-  font-size: 20rpx;
-}
-
-.mall-product-card__cover-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  line-height: 1.15;
-}
-
-.mall-product-card__cover-subtitle {
+.product-card__subtitle {
   font-size: 22rpx;
-  opacity: 0.9;
+  line-height: 1.6;
+  color: rgba(255, 244, 234, 0.84);
 }
 
-.mall-product-card__body {
+.product-card__body {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 18rpx;
-  padding: 22rpx;
+  padding: 20rpx;
 }
 
-.mall-product-card__meta {
+.product-card__meta {
   display: flex;
   flex-direction: column;
+  gap: 12rpx;
+}
+
+.product-card__desc {
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: var(--uni-text-secondary);
+}
+
+.product-card__pills {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8rpx;
 }
 
-.mall-product-card__title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: var(--uni-text-strong);
-}
-
-.mall-product-card__subtitle {
-  font-size: 23rpx;
-  color: var(--uni-text-muted);
-  line-height: 1.5;
-}
-
-.mall-product-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
-}
-
-.mall-product-card__tag {
-  padding: 8rpx 12rpx;
-  border-radius: 999rpx;
-  background: rgba(22, 107, 90, 0.08);
+.product-card__pill {
+  padding: 6rpx 12rpx;
+  border-radius: var(--uni-radius-full);
+  background: rgba(22, 107, 90, 0.1);
   color: var(--uni-accent);
-  font-size: 20rpx;
+  font-size: 19rpx;
 }
 
-.mall-product-card__footer {
+.product-card__footer {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 12rpx;
+  margin-top: auto;
 }
 
-.mall-product-card__price-group {
+.product-card__price-group {
   display: flex;
-  align-items: baseline;
-  gap: 10rpx;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
-.mall-product-card__price {
+.product-card__price {
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--uni-primary);
 }
 
-.mall-product-card__market {
-  font-size: 22rpx;
-  color: #9f9387;
+.product-card__market {
+  font-size: 19rpx;
+  color: var(--uni-text-placeholder);
   text-decoration: line-through;
 }
 
-.mall-product-card__action {
-  min-width: 96rpx;
-  height: 64rpx;
-  padding: 0 20rpx;
-  border-radius: 999rpx;
+.product-card__save {
+  font-size: 19rpx;
+  color: var(--uni-accent);
+}
+
+.product-card__cta {
+  height: 62rpx;
+  padding: 0 22rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--uni-primary);
-  color: #fffaf4;
-  font-size: 22rpx;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 </style>

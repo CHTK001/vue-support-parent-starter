@@ -212,32 +212,32 @@ export default defineComponent({
               @scroll="handleScroll"
               @node-click="onClick"
             >
-              <template #default="{ data }">
+              <template #default="scope">
                 <span class="custom-tree-node">
                   <span class="label">
                     <ScTag class="label" size="small">{{
-                      data.sysDictId
+                      scope?.data?.sysDictId
                     }}</ScTag>
-                    {{ data.sysDictName }}
+                    {{ scope?.data?.sysDictName }}
                   </span>
-                  <span class="code">{{ data?.sysDictCode }}</span>
-                  <span v-if="data?.sysDictId" class="do">
+                  <span class="code">{{ scope?.data?.sysDictCode }}</span>
+                  <span v-if="scope?.data?.sysDictId" class="do">
                     <el-button-group>
                       <ScButton 
                         :icon="icon.EditPen"
                         size="small"
-                        @click.stop="dialogOpen(data, 'edit')"
+                        @click.stop="dialogOpen(scope.data, 'edit')"
                       />
                       <ScPopconfirm 
                         :title="$t('message.confimDelete')"
-                        @confirm="onDelete(row, $index)"
+                        @confirm="onDelete(scope.data)"
                       >
                         <template #reference>
                           <ScButton 
-                            v-if="data?.sysDictInSystem == 1"
+                            v-if="scope?.data?.sysDictInSystem == 1"
                             :icon="icon.Delete"
                             size="small"
-                            @click.stop="onDelete(data)"
+                            @click.stop="onDelete(scope.data)"
                           />
                         </template>
                       </ScPopconfirm>
@@ -256,7 +256,7 @@ export default defineComponent({
             class="full-width"
             @click="dialogOpen({}, 'save')"
           >
-            {{ useI18n("buttons.addDict") }}
+            新增字典
           </ScButton>
         </el-footer>
       </el-container>

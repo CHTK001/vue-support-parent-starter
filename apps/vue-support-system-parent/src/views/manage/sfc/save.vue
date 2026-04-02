@@ -1,5 +1,6 @@
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon";
+import { IconSelect } from "@repo/components/IconSelect";
 import { fetchListDictItem } from "@repo/core";
 import { fetchSaveSfc, fetchUpdateSfc } from "@repo/core";
 import { defineAsyncComponent } from "vue";
@@ -9,6 +10,7 @@ import { clearObject } from "@repo/config";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 const ScCodeEditor = defineAsyncComponent(() => import("@repo/components/ScCodeEditor"));
+const ScFormTable = defineAsyncComponent(() => import("@repo/components/ScFormTable/index.vue"));
 import CodeLayout from "./code.vue";
 export default {
   components: { IconSelect, ScCodeEditor, CodeLayout, ScFormTable },

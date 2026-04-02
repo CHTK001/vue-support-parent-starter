@@ -250,17 +250,26 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
 import { onMounted, reactive, ref, shallowRef } from "vue";
 import { getTimeAgo, message } from "@repo/utils";
 import Search from "@iconify-icons/ep/search";
 import Location from "@iconify-icons/ep/location";
+import {
+  fetchOnlineUsers,
+  fetchOnlineCount,
+  fetchKickUser,
+  fetchKickUsers,
+  type OnlineUser,
+} from "@/api/manage/online";
 
 const SearchIcon = useRenderIcon(Search);
 const LocationIcon = useRenderIcon(Location);
 
 // 搜索表单
 const searchForm = reactive({
+  username: "",
+  ip: "",
 });
 
 // 状态
@@ -387,6 +396,7 @@ const getOsIcon = (os: string) => {
  * 获取登录方式标签类型
  */
 const getLoginTypeTag = (
+  type: string,
 ): "primary" | "success" | "warning" | "info" | "danger" => {
   const normalized = (type || "").toLowerCase();
   const types: Record<

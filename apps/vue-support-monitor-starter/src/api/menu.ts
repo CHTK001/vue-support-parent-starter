@@ -15,7 +15,9 @@ export const fetchDeleteMenu = (id) => {
 
 /** 保存角色配置 */
 export const fetchSaveMenu = (setting) => {
-  return http.request<boolean>("post", "/v2/menu/save", { data: setting });
+  return http.request<ReturnResult<Menu>>("post", "/v2/menu/save", {
+    data: setting,
+  });
 };
 
 /** 更新角色配置 */
@@ -23,7 +25,9 @@ export const fetchUpdateMenu = (setting) => {
   if (!setting.sysMenuId) {
     return;
   }
-  return http.request<Menu>("put", "/v2/menu/update", { data: setting });
+  return http.request<ReturnResult<boolean>>("put", "/v2/menu/update", {
+    data: setting,
+  });
 };
 
 /** 获取角色配置 */

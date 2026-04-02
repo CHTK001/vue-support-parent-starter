@@ -88,7 +88,12 @@ const showLinkOptions = [
   { label: "隐藏", tip: "不会在菜单中显示", value: false },
 ];
 
-const props = {
+const cascaderProps = {
+  value: "sysMenuId",
+  label: "sysMenuTitle",
+  children: "children",
+  emitPath: false,
+  checkStrictly: true,
 };
 
 // Computed rules
@@ -199,6 +204,14 @@ const reset = () => {
   form.value = {};
 };
 
+const cloneMenuData = (data: any) => {
+  if (!data) return {};
+  if (typeof structuredClone === "function") {
+    return structuredClone(data);
+  }
+  return JSON.parse(JSON.stringify(data));
+};
+
 const close = async () => {
   visible.value = false;
   loading.value = false;
@@ -217,14 +230,16 @@ const clickNode = ($event: MouseEvent) => {
 };
 
 const setTableData = (data: any[]) => {
-  Object.assign(tableData.value, data || []);
+  tableData.value = cloneMenuData(data || []);
+  return api;
 };
 
 const setData = (data: any) => {
-  form.value = data;
+  form.value = cloneMenuData(data);
   dynamicTags.value = !form.value.sysMenuRole
     ? []
     : form.value.sysMenuRole?.split(",");
+  return api;
 };
 
 const open = async (modeValue = "save") => {
@@ -236,6 +251,7 @@ const open = async (modeValue = "save") => {
   } else if (!form.value.sysMenuSort) {
     form.value.sysMenuSort = 0;
   }
+  return api;
 };
 
 const transformI18nValue = (value: string) => {
@@ -258,7 +274,7 @@ const submit = () => {
         }
 
         if (res.code == "00000") {
-          emit("success", mode.value, form.value);
+          emit("success", mode.value, res.data || form.value);
           visible.value = false;
         } else {
           message(res.msg, { type: "error" });
@@ -274,9 +290,15 @@ onMounted(() => {
   initialRole();
 });
 
+const api = {
+  setTableData,
+  setData,
+  open,
+  close,
+};
+
 // Expose methods to parent
-defineExpose({
-});
+defineExpose(api);
 </script>
 <template>
   <div>
@@ -313,7 +335,7 @@ defineExpose({
                 v-model="form.sysMenuPid"
                 class="w-full"
                 :options="tableData"
-                :props="props"
+                :props="cascaderProps"
                 clearable
                 filterable
                 placeholder="请选择上级菜单"
@@ -421,7 +443,7 @@ defineExpose({
           <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <ScFormItem label="右侧图标">
               <ScInput
-                v-model="form.sysMenuRedirect"
+                v-model="form.sysMenuExtraIcon"
                 clearable
                 placeholder="菜单名称右侧的额外图标"
                 :maxlength="200"

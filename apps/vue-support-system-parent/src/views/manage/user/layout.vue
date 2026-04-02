@@ -229,7 +229,7 @@ export default defineComponent({
       });
     },
     async onSearch(params) {
-      debounce(this.onQuery(params), 1000, true);
+      debounce(() => this.onQuery(params), 1000, true)();
     },
     tValue(v) {
       return this.t(v);
@@ -511,7 +511,7 @@ export default defineComponent({
                 type="primary"
                 :icon="Edit"
                 @click="dialogOpen({}, 'save')"
-                >{{ $t("buttons.add") }}</ScButton>
+                >新增用户</ScButton>
 
               <!-- 批量操作下拉菜单 -->
               <ScDropdown trigger="click" :disabled="!hasSelected">
@@ -810,9 +810,9 @@ export default defineComponent({
                   <template #default="{ row }">
                     <div class="time-cell">
                       <span class="time-ago">{{
-                        getTimeAgo(row.createTime)
+                        row.createTime ? getTimeAgo(row.createTime) : "-"
                       }}</span>
-                      <span class="time-detail">{{ row.createTime }}</span>
+                      <span class="time-detail">{{ row.createTime || "-" }}</span>
                     </div>
                   </template>
                 </ScTableColumn>
@@ -980,15 +980,13 @@ export default defineComponent({
   background-color: var(--el-bg-color);
 
   > .main {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
     border-radius: var(--el-border-radius-base);
-    box-shadow: var(--el-box-shadow-light);
-    transition: all 0.3s ease;
-
-    &:hover {
-      box-shadow: var(--el-box-shadow);
-    }
+    box-shadow: none;
   }
 }
 
@@ -1016,16 +1014,28 @@ export default defineComponent({
 }
 
 :deep(.el-main) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   padding: 16px;
   background-color: var(--el-bg-color-page);
 }
 
 // 表格容器样式
 :deep(.h-full) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   background-color: var(--el-bg-color);
   border-radius: var(--el-border-radius-base);
-  box-shadow: var(--el-box-shadow-lighter);
+  box-shadow: none;
+}
+
+:deep(.h-full .el-table) {
+  height: 100%;
 }
 
 // 表格美化

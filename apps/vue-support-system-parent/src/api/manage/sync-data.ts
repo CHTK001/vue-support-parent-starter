@@ -1,26 +1,32 @@
 import { http, type ReturnResult } from "@repo/utils";
 
 export type MonitorSyncTask = {
-  monitorSyncTaskId?: number;
-  taskName?: string;
-  taskStatus?: string;
-  taskType?: string;
-  taskCron?: string;
-  taskClass?: string;
-  taskParams?: string;
-  taskRemark?: string;
+  syncTaskId?: number;
+  syncTaskName?: string;
+  syncTaskDesc?: string;
+  syncTaskStatus?: string;
+  syncTaskBatchSize?: number;
+  syncTaskRetryCount?: number;
+  syncTaskRetryInterval?: number;
+  syncTaskSyncInterval?: number;
+  syncTaskCron?: string;
+  syncTaskAckEnabled?: number;
+  syncTaskTransactionEnabled?: number;
   createTime?: string;
   updateTime?: string;
 };
 
 export type MonitorSyncTaskLog = {
-  monitorSyncTaskLogId?: number;
-  monitorSyncTaskId?: number;
-  taskName?: string;
-  taskStatus?: string;
-  taskMessage?: string;
-  taskStartTime?: string;
-  taskEndTime?: string;
+  syncLogId?: number;
+  syncTaskId?: number;
+  syncLogStatus?: string;
+  syncLogTriggerType?: string;
+  syncLogReadCount?: number;
+  syncLogWriteCount?: number;
+  syncLogSuccessCount?: number;
+  syncLogCost?: number;
+  syncLogStartTime?: string;
+  syncLogMessage?: string;
   createTime?: string;
 };
 
@@ -41,9 +47,7 @@ export const fetchCreateSyncTask = (data: MonitorSyncTask) => {
   return http.request<ReturnResult<MonitorSyncTask>>(
     "post",
     "/v2/sync/task/save",
-    {
-      data,
-    },
+    { data },
   );
 };
 
@@ -53,36 +57,36 @@ export const fetchUpdateSyncTask = (data: MonitorSyncTask) => {
   });
 };
 
-export const fetchDeleteSyncTask = (monitorSyncTaskId: number) => {
+export const fetchDeleteSyncTask = (syncTaskId: number) => {
   return http.request<ReturnResult<boolean>>("delete", "/v2/sync/task/delete", {
-    params: { monitorSyncTaskId },
+    params: { syncTaskId },
   });
 };
 
-export const fetchStartSyncTask = (monitorSyncTaskId: number) => {
+export const fetchStartSyncTask = (syncTaskId: number) => {
   return http.request<ReturnResult<boolean>>("post", "/v2/sync/task/start", {
-    params: { monitorSyncTaskId },
+    params: { syncTaskId },
   });
 };
 
-export const fetchStopSyncTask = (monitorSyncTaskId: number) => {
+export const fetchStopSyncTask = (syncTaskId: number) => {
   return http.request<ReturnResult<boolean>>("post", "/v2/sync/task/stop", {
-    params: { monitorSyncTaskId },
+    params: { syncTaskId },
   });
 };
 
-export const fetchExecuteSyncTask = (monitorSyncTaskId: number) => {
+export const fetchExecuteSyncTask = (syncTaskId: number) => {
   return http.request<ReturnResult<boolean>>("post", "/v2/sync/task/execute", {
-    params: { monitorSyncTaskId },
+    params: { syncTaskId },
   });
 };
 
-export const fetchSyncTaskLogs = (params: {
-  monitorSyncTaskId: number;
-  page?: number;
-  size?: number;
-}) => {
+export const fetchSyncTaskLogs = (
+  syncTaskId: number,
+  page = 1,
+  size = 10,
+) => {
   return http.request<ReturnResult<any>>("get", "/v2/sync/task/logs", {
-    params,
+    params: { syncTaskId, page, size },
   });
 };
