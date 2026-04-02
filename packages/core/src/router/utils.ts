@@ -38,6 +38,7 @@ const DEFAULT_MENU_ICON = "ri:menu-line";
 const ROUTE_COMPONENT_ALIASES: Record<string, string> = {
   "/manage/login/index": "/manage/user/index",
   "/manage/log/login/index": "/manage/log/user/index",
+  "@repo/pages/setting/index.vue": "/manage/setting/index",
 };
 const EXTRA_DYNAMIC_ROUTES: RouteRecordRaw[] = [
   {
@@ -79,6 +80,28 @@ function normalizeAsyncRoutePayload(result: any) {
     return result.data;
   }
   return [];
+}
+
+function hasRoutePath(
+  routeList: Array<RouteRecordRaw> = [],
+  targetPath?: string,
+): boolean {
+  if (!targetPath) {
+    return false;
+  }
+
+  return routeList.some((route) => {
+    if (!route) {
+      return false;
+    }
+    if (route.path === targetPath) {
+      return true;
+    }
+    if (Array.isArray(route.children) && route.children.length > 0) {
+      return hasRoutePath(route.children, targetPath);
+    }
+    return false;
+  });
 }
 
 function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: string[]) {
@@ -344,16 +367,24 @@ export function clearRouter() {
 }
 
 /** 初始化路由（`new Promise` 写法防止在异步请求中造成无限循环）*/
-function initRouter() {
+function initRouter(targetPath?: string) {
   if (getConfig()?.CachingAsyncRoutes) {
     // 开启动态路由缓存本地localStorage
     const asyncRouteList = localStorageProxy().getItem(CACHE_ROUTER_KEY) as any;
-    if (asyncRouteList && asyncRouteList?.length > 0) {
+    const shouldReuseCache =
+      asyncRouteList &&
+      asyncRouteList?.length > 0 &&
+      (!targetPath || hasRoutePath(asyncRouteList, targetPath));
+
+    if (shouldReuseCache) {
       return new Promise((resolve) => {
         handleAsyncRoutes(asyncRouteList);
         resolve(router);
       });
     } else {
+      if (asyncRouteList?.length > 0) {
+        localStorageProxy().removeItem(CACHE_ROUTER_KEY);
+      }
       return new Promise((resolve, reject) => {
         getAsyncRoutes()
           .then((res) => {

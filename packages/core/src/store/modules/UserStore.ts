@@ -131,6 +131,7 @@ export const useUserStore = defineStore({
               reject(null);
               return;
             }
+            localStorageProxy().removeItem("async-routes");
             setToken(data, {
               isRemembered: data?.isRemembered || true,
               expires: data?.expires || -1,
