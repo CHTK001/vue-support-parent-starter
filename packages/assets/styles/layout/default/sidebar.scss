@@ -1590,11 +1590,6 @@ body[layout="hover"] {
     transition: all var(--pure-transition-duration);
   }
 
-  .main-container {
-    margin-left: var(--hover-sidebar-width, #{$sideBarWidth});
-    transition: margin-left var(--pure-transition-duration);
-  }
-
   /* 子菜单弹出层样式 */
   .sub-menu-popup {
     z-index: 100 !important;

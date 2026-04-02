@@ -105,7 +105,7 @@ class PureHttp {
       PureHttp.wasmReadyPromise = initializeWasmModule()
         .then((result) => {
           if (!result || !isWasmLoaded()) {
-            throw new Error("WASM 模块初始化失败");
+            logger.warn("[HTTP] WASM 模块初始化失败，已降级到 JS 实现");
           }
         })
         .finally(() => {
@@ -146,7 +146,11 @@ class PureHttp {
     config.headers["x-timestamp"] = timestamp.toString();
     config.headers["x-nonce"] = nonce;
     // 按约定直接使用 getOrCreateFingerprint 获取（避免从 headers 读回导致 number 等脏值透传）
-    const fingerprint = getOrCreateFingerprint();
+    let fingerprint = getOrCreateFingerprint();
+    // fingerprint 为空时（FingerprintJS 尚未初始化完成），生成临时随机指纹确保签名头完整
+    if (!fingerprint) {
+      fingerprint = generateNonce();
+    }
     // 确保指纹头一定存在，否则后端 hasSignHeaders 会直接判定不完整并跳过/拒绝
     config.headers["x-req-fingerprint"] = fingerprint;
     const sign = generateSign(config, timestamp, nonce, fingerprint);
@@ -197,10 +201,16 @@ class PureHttp {
         if (!config.headers) {
           config.headers = {};
         }
+        const isWhiteListRequest = WHITE_LIST.some((url) =>
+          config.url?.endsWith(url),
+        );
         // 修复：确保headers存在再访问其属性
         const an =
           config.headers["x-remote-animation"] || config.headers["loading"];
-        config.headers["x-req-fingerprint"] = getOrCreateFingerprint();
+        if (!isWhiteListRequest) {
+          config.headers["x-req-fingerprint"] =
+            getOrCreateFingerprint() || generateNonce();
+        }
 
         // 检查是否配置了apiVersion，如果配置了则在URL中添加version参数（必须在生成签名之前）
         const apiVersion = getConfig().apiVersion;
@@ -237,9 +247,13 @@ class PureHttp {
           return config;
         }
         // 白名单接口直接放行
-        if (WHITE_LIST.some((url) => config.url?.endsWith(url))) {
-          // 在所有处理完成后，最后统一生成 sign
-          await PureHttp.ensureXSign(config);
+        if (isWhiteListRequest) {
+          // 登录、登出、刷新令牌等白名单接口不追加前端签名头，
+          // 避免被后端防重放链路误判，同时保留基础版本参数与默认头。
+          delete config.headers["x-req-fingerprint"];
+          delete config.headers["x-timestamp"];
+          delete config.headers["x-nonce"];
+          delete config.headers["x-sign"];
           return config;
         }
         // 需要 token 验证的接口

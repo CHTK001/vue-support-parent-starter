@@ -43,5 +43,10 @@ export const defaultConfig: AxiosRequestConfig = {
   },
 };
 
-/** 请求白名单（不需要 token） */
-export const WHITE_LIST = ["/refresh-token", "/login", "/logout"];
+/** 请求白名单（不需要 token，也不追加前端签名头） */
+export const WHITE_LIST = [
+  "/refresh-token",
+  "/login",
+  "/logout",
+  "/v2/setting/default",
+];

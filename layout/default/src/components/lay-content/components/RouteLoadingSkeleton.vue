@@ -97,30 +97,32 @@ const containerStyle = computed(() => ({
 
     <!-- 加载提示 -->
     <div class="loading-indicator">
-      <ScIcon class="loading-icon">
-        <svg viewBox="0 0 24 24" class="spin-icon">
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            stroke-width="2"
-            fill="none"
-            stroke-dasharray="31.4"
-            stroke-linecap="round"
-          >
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from="0 12 12"
-              to="360 12 12"
-              dur="1s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </svg>
-      </ScIcon>
-      <span class="loading-text">{{ loadingText }}</span>
+      <div class="loading-indicator__pill">
+        <ScIcon class="loading-icon">
+          <svg viewBox="0 0 24 24" class="spin-icon">
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-dasharray="31.4"
+              stroke-linecap="round"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 12 12"
+                to="360 12 12"
+                dur="1s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </svg>
+        </ScIcon>
+        <span class="loading-text">{{ loadingText }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -195,16 +197,23 @@ const containerStyle = computed(() => ({
 
 .loading-indicator {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: var(--el-bg-color);
-  border-radius: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+
+  .loading-indicator__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--el-bg-color);
+    border-radius: 20px;
+    box-shadow: none;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
 
   .loading-icon {
     font-size: 18px;
@@ -225,7 +234,10 @@ const containerStyle = computed(() => ({
 // 深色模式适配
 .dark {
   .loading-indicator {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    .loading-indicator__pill {
+      box-shadow: none;
+      border-color: rgba(148, 163, 184, 0.18);
+    }
   }
 }
 </style>

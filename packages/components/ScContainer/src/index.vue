@@ -225,6 +225,9 @@ defineExpose({ toggleAsideCollapse, toggleRightCollapse, asideCollapsed, rightCo
 
 <style lang="scss" scoped>
 .sc-container {
+  height: 100%;
+  min-height: 0;
+
   &--border { border: 1px solid var(--el-border-color-lighter); }
   &--shadow { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); }
   &--rounded { border-radius: 8px; overflow: hidden; }
@@ -235,7 +238,7 @@ defineExpose({ toggleAsideCollapse, toggleRightCollapse, asideCollapsed, rightCo
     background: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-lighter);
   }
-  &__body { display: flex; flex: 1; overflow: hidden; position: relative; }
+  &__body { display: flex; flex: 1; overflow: hidden; position: relative; min-height: 0; }
   &__aside {
     background: var(--el-bg-color);
     border-right: 1px solid var(--el-border-color-lighter);
@@ -246,7 +249,15 @@ defineExpose({ toggleAsideCollapse, toggleRightCollapse, asideCollapsed, rightCo
     border-left: 1px solid var(--el-border-color-lighter);
     overflow: auto; transition: width 0.3s ease; flex-shrink: 0;
   }
-  &__main { flex: 1; overflow: auto; background: var(--el-bg-color-page); min-width: 0; }
+  &__main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow: auto;
+    background: var(--el-bg-color-page);
+    min-width: 0;
+    min-height: 0;
+  }
   &__footer {
     display: flex; align-items: center; padding: 0 16px;
     background: var(--el-bg-color);

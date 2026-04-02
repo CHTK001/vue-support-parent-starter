@@ -208,13 +208,42 @@ export interface FilterOption {
 export type FilterValue = Record<string, unknown>;
 
 /**
+ * 兼容旧版筛选字段配置
+ */
+export interface LegacyFilterField {
+  label: string;
+  value: string;
+  type?: string;
+  placeholder?: string;
+  width?: string | number;
+  defaultValue?: unknown;
+  disabled?: boolean;
+  clearable?: boolean;
+  multiple?: boolean;
+  order?: number;
+  props?: Record<string, unknown>;
+  options?: FilterOption[];
+  extend?: {
+    data?: FilterOption[];
+    multiple?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+/**
  * ScFilterBar 组件属性
  */
 export interface ScFilterBarProps {
   /**
    * 筛选字段配置
    */
-  fields: FilterField[];
+  fields?: FilterField[];
+
+  /**
+   * 兼容旧版 options 配置
+   */
+  options?: LegacyFilterField[];
 
   /**
    * 筛选值（v-model）
@@ -232,6 +261,11 @@ export interface ScFilterBarProps {
    * @default 3
    */
   visibleCount?: number;
+
+  /**
+   * 兼容旧版显示字段数量
+   */
+  showNumber?: number;
 
   /**
    * 是否显示展开/收起按钮

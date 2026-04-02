@@ -1,15 +1,23 @@
 ﻿<script setup lang="ts">
-import { computed, defineComponent, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import {
+  FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
+  canManageFrontendSystemConfig,
+  getFrontendSystemConfig,
+  getInitialConfig,
+  isThemeManagementVisible,
+} from "@repo/config";
 // 将同步组件改为异步组件
 const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
+const FrontendLayout = defineAsyncComponent(() => import("./layout/frontend.vue"));
 
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { localStorageProxy, message, ScLoading } from "@repo/utils";
 
 import { useI18n } from "vue-i18n";
-import { emitter } from "@repo/core";
+import { emitter, useUserStoreHook } from "@repo/core";
 import { useGlobal } from "@pureadmin/utils";
 import { fetchListForGroup, type SysSettingGroup } from "./api/group";
 const localStorageProxyObject = localStorageProxy();
@@ -35,6 +43,8 @@ const config = reactive({
   tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
   saveItemStatus: false,
 });
+const userStore = useUserStoreHook();
+const frontendSystemState = ref(getFrontendSystemConfig(getInitialConfig()));
 
 const saveItemRef = ref();
 const data = reactive([]);
@@ -42,6 +52,7 @@ const layout = reactive({
   sms: defineAsyncComponent(() => import("./layout/sms.vue")),
   email: defineAsyncComponent(() => import("./layout/email.vue")),
   group: GroupManagement,
+  frontend: FrontendLayout,
   theme: defineAsyncComponent(() => import("./layout/theme.vue")),
   history: defineAsyncComponent(() => import("./history/index.vue")),
 });
@@ -55,7 +66,7 @@ const drawerVisible = reactive({
 const defaultProductsConfig = [
   {
     group: "default",
-    description: t("product.default"),
+    description: "系统基础运行配置",
     name: "基础设置",
     isSetup: true,
     type: 5,
@@ -69,6 +80,15 @@ const defaultProductsConfig = [
     isSetup: true,
     type: 6,
     icon: "ri:palette-line",
+    hide: false,
+  },
+  {
+    group: "frontend",
+    description: "前端静态系统配置、调试防护、字体加密与主题开关",
+    name: "前端静态配置",
+    isSetup: true,
+    type: 8,
+    icon: "ri:shield-keyhole-line",
     hide: false,
   },
   {
@@ -94,8 +114,30 @@ const defaultProductsConfig = [
 // 从接口获取的配置项
 const productsConfig = reactive([]);
 
+const refreshFrontendSystemState = () => {
+  frontendSystemState.value = getFrontendSystemConfig(getInitialConfig());
+};
+
+const canManageFrontend = computed(() =>
+  canManageFrontendSystemConfig(userStore.roles),
+);
+
 const products = computed(() => {
-  return productsConfig.filter((it) => !it.hide);
+  return productsConfig.filter((it) => {
+    if (it.hide) {
+      return false;
+    }
+
+    if (it.group === "theme") {
+      return isThemeManagementVisible(frontendSystemState.value);
+    }
+
+    if (it.group === "frontend") {
+      return canManageFrontend.value;
+    }
+
+    return true;
+  });
 });
 const saveLayoutRef = ref();
 
@@ -266,6 +308,10 @@ const close = (group) => {
     loadProductsConfig();
   }
 
+  if (group === "frontend" || group === "theme") {
+    refreshFrontendSystemState();
+  }
+
   console.log("关闭设置面板:", group);
 };
 
@@ -361,6 +407,7 @@ const loadProductsConfig = async () => {
 // 组件挂载时加载配置
 onMounted(() => {
   isComponentMounted.value = true;
+  refreshFrontendSystemState();
   loadProductsConfig();
 
   // 添加一个微任务确保组件引用已建立
@@ -374,10 +421,18 @@ onMounted(() => {
   emitter.on("hideHeaderChange", (hideHeader: boolean) => {
     headerVisible.value = !hideHeader;
   });
+  window.addEventListener(
+    FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
+    refreshFrontendSystemState as EventListener,
+  );
 });
 
 onUnmounted(() => {
   emitter.off("hideHeaderChange");
+  window.removeEventListener(
+    FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
+    refreshFrontendSystemState as EventListener,
+  );
 });
 </script>
 <template>

@@ -47,9 +47,15 @@ export const useAppStore = defineStore({
   },
   actions: {
     TOGGLE_SIDEBAR(opened?: boolean, resize?: string) {
-      const layout = localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}layout`,
-      );
+      const storageKey = `${responsiveStorageNameSpace()}layout`;
+      const currentLayout =
+        localStorageProxy().getItem<StorageConfigs>(storageKey) ?? {};
+      const layout = {
+        ...currentLayout,
+        layout: currentLayout.layout ?? this.layout ?? getConfig().Layout,
+        sidebarStatus:
+          currentLayout.sidebarStatus ?? this.sidebar.opened ?? getConfig().SidebarStatus,
+      };
       if (opened && resize) {
         this.sidebar.withoutAnimation = true;
         this.sidebar.opened = true;
@@ -64,10 +70,7 @@ export const useAppStore = defineStore({
         this.sidebar.isClickCollapse = !this.sidebar.opened;
         layout.sidebarStatus = this.sidebar.opened;
       }
-      localStorageProxy().setItem(
-        `${responsiveStorageNameSpace()}layout`,
-        layout,
-      );
+      localStorageProxy().setItem(storageKey, layout);
     },
     async toggleSideBar(opened?: boolean, resize?: string) {
       await this.TOGGLE_SIDEBAR(opened, resize);
