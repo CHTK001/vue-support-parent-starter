@@ -37,7 +37,7 @@
             @change="handleThemeChange"
           >
             <ScOption
-              v-for="theme in allThemes"
+              v-for="theme in selectableThemes"
               :key="theme.key"
               :label="theme.name"
               :value="theme.key"
@@ -87,7 +87,10 @@
           v-for="theme in regularThemes"
           :key="theme.key"
           class="theme-card"
-          :class="{ active: themeConfig.LoginTheme === theme.key }"
+          :class="{
+            active: themeConfig.LoginTheme === theme.key && !isThemeDisabled(theme.key),
+            disabled: isThemeDisabled(theme.key),
+          }"
           @click="selectTheme(theme.key)"
         >
           <div class="theme-preview">
@@ -103,7 +106,21 @@
             <div class="theme-name">{{ theme.name }}</div>
             <div class="theme-desc">{{ theme.description }}</div>
           </div>
-          <div v-if="themeConfig.LoginTheme === theme.key" class="theme-badge">
+          <div class="theme-actions">
+            <ScTag
+              :type="isThemeDisabled(theme.key) ? 'danger' : 'success'"
+              size="small"
+            >
+              {{ isThemeDisabled(theme.key) ? "已关闭" : "已启用" }}
+            </ScTag>
+            <ScButton text size="small" @click.stop="toggleThemeDisabled(theme.key)">
+              {{ isThemeDisabled(theme.key) ? "启用" : "关闭" }}
+            </ScButton>
+          </div>
+          <div
+            v-if="themeConfig.LoginTheme === theme.key && !isThemeDisabled(theme.key)"
+            class="theme-badge"
+          >
             <ScTag type="success" size="small">当前使用</ScTag>
           </div>
         </div>
@@ -111,7 +128,7 @@
     </ScCard>
 
     <!-- 节日主题预览 -->
-    <ScCard shadow="never">
+    <ScCard v-if="festivalThemes.length > 0" shadow="never">
       <template #header>
         <div class="card-header">
           <IconifyIconOnline icon="ri:gift-line" />
@@ -133,8 +150,8 @@
           :key="theme.key"
           class="theme-card"
           :class="{
-            active: themeConfig.LoginTheme === theme.key,
-            disabled: !themeConfig.EnableFestivalTheme,
+            active: themeConfig.LoginTheme === theme.key && !isThemeDisabled(theme.key),
+            disabled: !themeConfig.EnableFestivalTheme || isThemeDisabled(theme.key),
           }"
           @click="selectTheme(theme.key)"
         >
@@ -151,7 +168,21 @@
             <div class="theme-name">{{ theme.name }}</div>
             <div class="theme-desc">{{ theme.description }}</div>
           </div>
-          <div v-if="themeConfig.LoginTheme === theme.key" class="theme-badge">
+          <div class="theme-actions">
+            <ScTag
+              :type="isThemeDisabled(theme.key) ? 'danger' : 'success'"
+              size="small"
+            >
+              {{ isThemeDisabled(theme.key) ? "已关闭" : "已启用" }}
+            </ScTag>
+            <ScButton text size="small" @click.stop="toggleThemeDisabled(theme.key)">
+              {{ isThemeDisabled(theme.key) ? "启用" : "关闭" }}
+            </ScButton>
+          </div>
+          <div
+            v-if="themeConfig.LoginTheme === theme.key && !isThemeDisabled(theme.key)"
+            class="theme-badge"
+          >
             <ScTag type="success" size="small">当前使用</ScTag>
           </div>
         </div>
@@ -173,14 +204,18 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from "vue";
+import ScAlert from "@repo/components/ScAlert";
+import { computed, onMounted, reactive, ref } from "vue";
 import { message } from "@repo/utils";
 import {
+  getDisabledLoginThemes,
   getThemeConfig,
   saveThemeConfig,
-  resetThemeConfig,
 } from "@pages/common/login/utils/themeConfig";
-import type { ThemeConfig } from "@pages/common/login/utils/themeConfig";
+import {
+  festivalThemes as registeredFestivalThemes,
+  loginThemes as registeredLoginThemes,
+} from "@pages/common/login/themes/index";
 
 /**
  * @author CH
@@ -191,73 +226,27 @@ defineOptions({
   name: "ThemeManagement",
 });
 
-// 常规主题列表
 const regularThemes = [
-  {
-    key: "modern",
-    name: "现代简约",
-    description: "简洁大方，适合大多数场景",
+  ...registeredLoginThemes.map((theme) => ({
+    key: theme.key,
+    name: theme.name,
+    description: theme.description,
     isFestival: false,
-  },
-  {
-    key: "tech",
-    name: "科技未来",
-    description: "科技感十足，动态粒子效果",
-    isFestival: false,
-  },
-  {
-    key: "business",
-    name: "商务专业",
-    description: "商务风格，专业稳重",
-    isFestival: false,
-  },
+  })),
   {
     key: "random",
     name: "随机主题",
-    description: "每次登录随机选择主题",
+    description: "每次登录随机选择一个当前仍可用的主题",
     isFestival: false,
   },
 ];
 
-// 节日主题列表
-const festivalThemes = [
-  {
-    key: "new-year",
-    name: "元旦主题",
-    description: "新年新气象，烟花纸屑",
-    isFestival: true,
-  },
-  {
-    key: "spring-festival",
-    name: "春节主题",
-    description: "喜庆祥和，红灯笼烟花",
-    isFestival: true,
-  },
-  {
-    key: "valentines-day",
-    name: "情人节主题",
-    description: "浪漫甜蜜，爱心玫瑰",
-    isFestival: true,
-  },
-  {
-    key: "mid-autumn",
-    name: "中秋主题",
-    description: "月圆人团圆，星空月亮",
-    isFestival: true,
-  },
-  {
-    key: "national-day",
-    name: "国庆主题",
-    description: "祝福祖国，红旗飘扬",
-    isFestival: true,
-  },
-  {
-    key: "christmas",
-    name: "圣诞主题",
-    description: "温馨浪漫，圣诞树雪花",
-    isFestival: true,
-  },
-];
+const festivalThemes = registeredFestivalThemes.map((theme) => ({
+  key: theme.key,
+  name: theme.name,
+  description: theme.description,
+  isFestival: true,
+}));
 
 // 所有主题
 const allThemes = [...regularThemes, ...festivalThemes];
@@ -266,15 +255,24 @@ const allThemes = [...regularThemes, ...festivalThemes];
 const themeConfig = reactive({
   LoginTheme: "modern",
   EnableFestivalTheme: true,
+  DisabledThemes: [] as string[],
 });
 
 // 原始配置（用于重置）
 const originalConfig = reactive({
   LoginTheme: "modern",
   EnableFestivalTheme: true,
+  DisabledThemes: [] as string[],
 });
 
 const saving = ref(false);
+const disabledThemeSet = computed(() => new Set(themeConfig.DisabledThemes));
+const selectableThemes = computed(() =>
+  allThemes.filter((theme) => !disabledThemeSet.value.has(theme.key)),
+);
+const concreteThemeKeys = new Set(
+  [...registeredLoginThemes, ...registeredFestivalThemes].map((theme) => theme.key),
+);
 
 // 获取主题图标
 const getThemeIcon = (themeKey: string) => {
@@ -299,8 +297,53 @@ const getCurrentThemeDescription = () => {
   return theme ? theme.description : "";
 };
 
+const isThemeDisabled = (themeKey: string) =>
+  disabledThemeSet.value.has(themeKey);
+
+const getEnabledThemeCount = () =>
+  allThemes.filter(
+    (theme) => concreteThemeKeys.has(theme.key) && !isThemeDisabled(theme.key),
+  ).length;
+
+const ensureValidSelectedTheme = () => {
+  const currentThemeExists = allThemes.some(
+    (theme) => theme.key === themeConfig.LoginTheme,
+  );
+  if (currentThemeExists && !isThemeDisabled(themeConfig.LoginTheme)) {
+    return;
+  }
+
+  const fallbackTheme = selectableThemes.value[0] || regularThemes[0];
+  if (fallbackTheme) {
+    themeConfig.LoginTheme = fallbackTheme.key;
+  }
+};
+
+const toggleThemeDisabled = (themeKey: string) => {
+  const nextDisabled = new Set(themeConfig.DisabledThemes);
+
+  if (nextDisabled.has(themeKey)) {
+    nextDisabled.delete(themeKey);
+    themeConfig.DisabledThemes = Array.from(nextDisabled);
+    return;
+  }
+
+  if (concreteThemeKeys.has(themeKey) && getEnabledThemeCount() <= 1) {
+    message("至少保留一个可用主题", { type: "warning" });
+    return;
+  }
+
+  nextDisabled.add(themeKey);
+  themeConfig.DisabledThemes = Array.from(nextDisabled);
+  ensureValidSelectedTheme();
+};
+
 // 选择主题
 const selectTheme = (themeKey: string) => {
+  if (isThemeDisabled(themeKey)) {
+    message("该主题已关闭，请先启用后再选择", { type: "warning" });
+    return;
+  }
   const theme = allThemes.find((t) => t.key === themeKey);
   if (theme && theme.isFestival && !themeConfig.EnableFestivalTheme) {
     message("请先启用节日主题功能", { type: "warning" });
@@ -311,6 +354,12 @@ const selectTheme = (themeKey: string) => {
 
 // 主题切换
 const handleThemeChange = (value: string) => {
+  if (isThemeDisabled(value)) {
+    message("该主题已关闭，请先启用后再选择", { type: "warning" });
+    themeConfig.LoginTheme = originalConfig.LoginTheme;
+    ensureValidSelectedTheme();
+    return;
+  }
   const theme = allThemes.find((t) => t.key === value);
   if (theme && theme.isFestival && !themeConfig.EnableFestivalTheme) {
     message("请先启用节日主题功能", { type: "warning" });
@@ -338,8 +387,11 @@ const loadConfig = () => {
   const stored = getThemeConfig();
   themeConfig.LoginTheme = stored.LoginTheme;
   themeConfig.EnableFestivalTheme = stored.EnableFestivalTheme;
-  originalConfig.LoginTheme = stored.LoginTheme;
-  originalConfig.EnableFestivalTheme = stored.EnableFestivalTheme;
+  themeConfig.DisabledThemes = getDisabledLoginThemes();
+  ensureValidSelectedTheme();
+  originalConfig.LoginTheme = themeConfig.LoginTheme;
+  originalConfig.EnableFestivalTheme = themeConfig.EnableFestivalTheme;
+  originalConfig.DisabledThemes = [...themeConfig.DisabledThemes];
   console.debug("[ThemeManagement] Config loaded:", stored);
 };
 
@@ -351,11 +403,13 @@ const handleSave = () => {
     saveThemeConfig({
       LoginTheme: themeConfig.LoginTheme,
       EnableFestivalTheme: themeConfig.EnableFestivalTheme,
+      DisabledThemes: themeConfig.DisabledThemes,
     });
 
     // 更新原始配置
     originalConfig.LoginTheme = themeConfig.LoginTheme;
     originalConfig.EnableFestivalTheme = themeConfig.EnableFestivalTheme;
+    originalConfig.DisabledThemes = [...themeConfig.DisabledThemes];
 
     message("保存成功", { type: "success" });
   } catch (error) {
@@ -370,6 +424,8 @@ const handleSave = () => {
 const handleReset = () => {
   themeConfig.LoginTheme = originalConfig.LoginTheme;
   themeConfig.EnableFestivalTheme = originalConfig.EnableFestivalTheme;
+  themeConfig.DisabledThemes = [...originalConfig.DisabledThemes];
+  ensureValidSelectedTheme();
   message("已重置为保存的配置", { type: "info" });
 };
 
@@ -468,10 +524,13 @@ onMounted(() => {
     color: #409eff;
   }
 
-  // 商务专业预览
-  .preview-business {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    color: white;
+  // 像素风预览
+  .preview-pixel {
+    background:
+      repeating-linear-gradient(90deg, rgba(17, 17, 17, 0.08) 0 2px, transparent 2px 14px),
+      repeating-linear-gradient(180deg, rgba(17, 17, 17, 0.08) 0 2px, transparent 2px 14px),
+      linear-gradient(135deg, #f8f8f8 0%, #d8ffd8 100%);
+    color: #111;
   }
 
   // 随机主题预览
@@ -547,6 +606,14 @@ onMounted(() => {
     color: var(--el-text-color-secondary);
     line-height: 1.5;
   }
+}
+
+.theme-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
 }
 
 .theme-badge {

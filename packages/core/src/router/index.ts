@@ -408,7 +408,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
         usePermissionStoreHook().wholeMenus.length === 0 &&
         to.path !== "/login"
       ) {
-        initRouter()
+        initRouter(to.path)
           .then((router: Router) => {
             if (!useMultiTagsStoreHook().getMultiTagsCache) {
               const { path } = to;
@@ -441,8 +441,14 @@ router.beforeEach((to: ToRouteType, _from, next) => {
                 }
               }
             }
-            // 确保动态路由完全加入路由列表并且不影响静态路由（注意：动态路由刷新时router.beforeEach可能会触发两次，第一次触发动态路由还未完全添加，第二次动态路由才完全添加到路由列表，如果需要在router.beforeEach做一些判断可以在to.name存在的条件下去判断，这样就只会触发一次）
-            if (isAllEmpty(to.name)) router.push(to.fullPath);
+            // 刷新或地址栏直达时，必须等待动态路由挂载完成后再继续导航，
+            // 否则会先命中 pathMatch 导致页面直接跳转到 404。
+            next({
+              path: to.path,
+              query: to.query,
+              hash: to.hash,
+              replace: true,
+            });
           })
           .catch((error) => {
             if (error.status === 403) {
@@ -450,7 +456,9 @@ router.beforeEach((to: ToRouteType, _from, next) => {
               next({ path: "/login" });
               return;
             }
+            next({ path: "/error/404", replace: true });
           });
+        return;
       }
       toCorrectRoute();
     }

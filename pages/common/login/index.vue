@@ -3,6 +3,12 @@ import { useDataThemeChange } from "@layout/default/hooks/useDataThemeChange";
 import { useLayout } from "@layout/default/hooks/useLayout";
 import { useTranslationLang } from "@layout/default/hooks/useTranslationLang";
 import { fetchDefaultSetting } from "@pages/setting";
+import {
+  FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
+  getFrontendSystemConfig,
+  getInitialConfig,
+  isLoginThemeSwitcherVisible,
+} from "@repo/config";
 import { getConfig, setConfig } from "@repo/config/src/config";
 import {
   getAllLanguageConfigs,
@@ -10,10 +16,17 @@ import {
 } from "@repo/config/src/i18n";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchVerifyCode } from "@repo/core";
-import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
 import { useI18n } from "vue-i18n";
 import ThemeSwitcher from "./components/ThemeSwitcher.vue";
-import { getLoginTheme as getLoginThemeComponent } from "./themes";
+import { getLoginTheme as getLoginThemeComponent } from "./themes/index";
 import { getThemeConfig } from "./utils/themeConfig";
 
 defineOptions({
@@ -23,9 +36,17 @@ defineOptions({
 const storedConfig = getThemeConfig();
 const themeConfig = storedConfig.LoginTheme;
 const enableFestival = storedConfig.EnableFestivalTheme;
-const enableThemeSwitcher = getConfig("EnableLoginThemeSwitcher") !== false;
+const disabledThemes = storedConfig.DisabledThemes;
+const frontendSystemState = ref(getFrontendSystemConfig(getInitialConfig()));
+const enableThemeSwitcher = computed(() =>
+  isLoginThemeSwitcherVisible(frontendSystemState.value),
+);
 
-const currentTheme = getLoginThemeComponent(themeConfig, enableFestival);
+const currentTheme = getLoginThemeComponent(
+  themeConfig,
+  enableFestival,
+  disabledThemes,
+);
 
 const ThemeComponent = defineAsyncComponent({
   loader: currentTheme.component,
@@ -174,6 +195,14 @@ registerConfigToDefault();
 syncLoginType();
 
 onMounted(() => {
+  refreshFrontendSystemState();
+  if (typeof window !== "undefined") {
+    window.addEventListener(
+      FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
+      refreshFrontendSystemState as EventListener,
+    );
+  }
+
   const scheduleLoad =
     typeof window !== "undefined" && "requestAnimationFrame" in window
       ? window.requestAnimationFrame.bind(window)
@@ -230,6 +259,21 @@ const envBadgeText = computed(() => {
 
 const envBadgeClass = computed(() => {
   return isDevelopment ? "env-dev" : "env-test";
+});
+
+const refreshFrontendSystemState = () => {
+  frontendSystemState.value = getFrontendSystemConfig(getInitialConfig());
+};
+
+onBeforeUnmount(() => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.removeEventListener(
+    FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
+    refreshFrontendSystemState as EventListener,
+  );
 });
 </script>
 

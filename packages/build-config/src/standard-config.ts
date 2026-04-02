@@ -28,6 +28,8 @@ import {
   createAggressiveTerserOptions,
   createFilteredLogger,
   createVendorManualChunks,
+  type ManualChunkGroup,
+  type ManualChunkMatcher,
   resolvePackageImport,
   type WarningFilter,
 } from "./helpers";
@@ -39,6 +41,20 @@ export interface StandardProxyConfig {
   timeout?: number;
   proxyTimeout?: number;
   [key: string]: any;
+}
+
+interface EnvProxyRule {
+  path: string;
+  envKey: string;
+  fallback: string;
+  changeOrigin: boolean;
+  extraOptions?: Omit<StandardProxyConfig, "target" | "changeOrigin">;
+}
+
+interface ConditionalMockRule {
+  envKey: string;
+  expectedValue: string;
+  mockPath: string[];
 }
 
 export interface StandardViteConfigOptions {
@@ -68,6 +84,10 @@ export interface StandardViteConfigOptions {
   target?: string;
   /** chunk 大小警告限制，默认 4000 */
   chunkSizeWarningLimit?: number;
+  /** 从环境变量解析的代理规则 */
+  envProxyRules?: EnvProxyRule[];
+  /** 满足环境变量条件时启用 mock */
+  conditionalMockRules?: ConditionalMockRule[];
   /** 自定义 CSS 预处理器配置 */
   cssPreprocessorOptions?: {
     scss?: any;
@@ -85,6 +105,8 @@ export interface StandardViteConfigOptions {
   customTerserOptions?: any;
   /** 自定义 rollup 配置 */
   customRollupOptions?: any;
+  /** 自定义 manual chunk 分组 */
+  manualChunkGroups?: ManualChunkGroup[];
   /** remove-console 白名单 */
   removeConsoleExternal?: string[];
   /** 是否启用 remove-console 插件，默认 true */
@@ -113,6 +135,10 @@ function mergeRollupOptions(baseOptions: any, overrideOptions: any = {}) {
   };
 }
 
+function resolveRelativePath(metaUrl: string, relativePath: string): string {
+  return fileURLToPath(new URL(relativePath, metaUrl));
+}
+
 /**
  * 创建标准 Vite 配置
  * @param metaUrl import.meta.url
@@ -128,6 +154,8 @@ export function createStandardViteConfig(
   return ({ mode }: ConfigEnv): UserConfigExport => {
     const appRoot = resolve(dirname(fileURLToPath(metaUrl)), ".");
     const env = loadEnv(mode, appRoot);
+    const resolveEnvValue = (key: string, fallback = "") =>
+      process.env[key] || env[key] || fallback;
 
     console.log("当前启动模式:", mode);
     console.log("应用根目录:", appRoot);
@@ -164,6 +192,22 @@ export function createStandardViteConfig(
       ...options.customDefine,
     };
 
+    const resolvedProxy = { ...(options.proxy || {}) };
+    (options.envProxyRules || []).forEach((rule) => {
+      resolvedProxy[rule.path] = {
+        target: resolveEnvValue(rule.envKey, rule.fallback),
+        changeOrigin: rule.changeOrigin,
+        ...(rule.extraOptions || {}),
+      };
+    });
+
+    const effectiveMockPath = [...(options.mockPath || [])];
+    (options.conditionalMockRules || []).forEach((rule) => {
+      if (resolveEnvValue(rule.envKey) === rule.expectedValue) {
+        effectiveMockPath.push(...rule.mockPath);
+      }
+    });
+
     const plugins = [
       ...getPluginsList({
         VITE_CDN,
@@ -173,7 +217,9 @@ export function createStandardViteConfig(
           pathResolve("../locales/**", metaUrl),
           pathResolve("@repo/config/locales/**", metaUrl),
         ],
-        mockPath: options.mockPath,
+        mockPath: effectiveMockPath.length
+          ? [...new Set(effectiveMockPath)]
+          : undefined,
         removeConsoleExternal: options.removeConsoleExternal,
         enableRemoveConsolePlugin: options.enableRemoveConsolePlugin,
       }),
@@ -187,6 +233,10 @@ export function createStandardViteConfig(
     };
     const resolvedPort = options.port || VITE_PORT || 8848;
 
+    const manualChunks = options.customRollupOptions?.output?.manualChunks
+      ? options.customRollupOptions.output.manualChunks
+      : createVendorManualChunks(options.manualChunkGroups || []);
+
     const rollupOptions = mergeRollupOptions(
       {
         input: {
@@ -196,7 +246,7 @@ export function createStandardViteConfig(
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
           assetFileNames: "static/[ext]/[name]-[hash].[ext]",
-          manualChunks: createVendorManualChunks(),
+          manualChunks,
         },
       },
       options.customRollupOptions,
@@ -217,7 +267,7 @@ export function createStandardViteConfig(
       server: {
         port: resolvedPort,
         host: options.host || "0.0.0.0",
-        proxy: options.proxy || {},
+        proxy: Object.keys(resolvedProxy).length ? resolvedProxy : {},
         fs: {
           allow: [
             root,
@@ -309,6 +359,29 @@ export function createViteConfig(metaUrl: string, pkg: any) {
     },
 
     /**
+     * 从环境变量读取代理目标
+     */
+    proxyFromEnv(
+      path: string,
+      envKey: string,
+      fallback: string,
+      changeOrigin = true,
+      extraOptions: Omit<StandardProxyConfig, "target" | "changeOrigin"> = {},
+    ) {
+      options.envProxyRules = [
+        ...(options.envProxyRules || []),
+        {
+          path,
+          envKey,
+          fallback,
+          changeOrigin,
+          extraOptions,
+        },
+      ];
+      return builder;
+    },
+
+    /**
      * 批量添加代理配置
      */
     proxies(proxies: Record<string, StandardProxyConfig>) {
@@ -337,6 +410,25 @@ export function createViteConfig(metaUrl: string, pkg: any) {
      */
     mock(mockPath: string[] = ["mock"]) {
       options.mockPath = mockPath;
+      return builder;
+    },
+
+    /**
+     * 当环境变量满足条件时启用 mock
+     */
+    mockWhenEnv(
+      envKey: string,
+      mockPath: string[] = ["mock"],
+      expectedValue = "true",
+    ) {
+      options.conditionalMockRules = [
+        ...(options.conditionalMockRules || []),
+        {
+          envKey,
+          expectedValue,
+          mockPath,
+        },
+      ];
       return builder;
     },
 
@@ -400,6 +492,17 @@ export function createViteConfig(metaUrl: string, pkg: any) {
     },
 
     /**
+     * 基于当前 vite.config.ts 位置解析 server.fs.allow
+     */
+    fsAllowRelative(...relativePaths: string[]) {
+      return builder.fsAllow(
+        ...relativePaths.map((relativePath) =>
+          resolveRelativePath(metaUrl, relativePath),
+        ),
+      );
+    },
+
+    /**
      * 设置 warmup client files
      */
     warmup(...clientFiles: string[]) {
@@ -418,11 +521,29 @@ export function createViteConfig(metaUrl: string, pkg: any) {
     },
 
     /**
+     * 基于当前 vite.config.ts 位置解析 remove-console 白名单路径
+     */
+    removeConsoleRelative(...relativePaths: string[]) {
+      return builder.removeConsoleExternal(
+        ...relativePaths.map((relativePath) =>
+          resolveRelativePath(metaUrl, relativePath),
+        ),
+      );
+    },
+
+    /**
      * 启用或关闭 remove-console 插件
      */
     removeConsole(enabled = true) {
       options.enableRemoveConsolePlugin = enabled;
       return builder;
+    },
+
+    /**
+     * 语义化别名：保留 console
+     */
+    keepConsole() {
+      return builder.removeConsole(false);
     },
 
     /**
@@ -438,6 +559,14 @@ export function createViteConfig(metaUrl: string, pkg: any) {
      */
     target(target: string) {
       options.target = target;
+      return builder;
+    },
+
+    /**
+     * 设置 chunkSizeWarningLimit
+     */
+    chunkSizeWarningLimit(limit: number) {
+      options.chunkSizeWarningLimit = limit;
       return builder;
     },
 
@@ -466,6 +595,15 @@ export function createViteConfig(metaUrl: string, pkg: any) {
         options.customLogger,
       );
       return builder;
+    },
+
+    /**
+     * 仅当日志同时包含所有片段时才过滤
+     */
+    filterWarningIncludes(...parts: string[]) {
+      return builder.filterWarnings((message: string) =>
+        parts.every((part) => message.includes(part)),
+      );
     },
 
     /**
@@ -542,6 +680,17 @@ export function createViteConfig(metaUrl: string, pkg: any) {
           manualChunks,
         },
       });
+    },
+
+    /**
+     * 通过匹配规则声明一个 chunk 分组
+     */
+    manualChunkGroup(name: string, ...matchers: ManualChunkMatcher[]) {
+      options.manualChunkGroups = [
+        ...(options.manualChunkGroups || []),
+        { name, matchers },
+      ];
+      return builder;
     },
 
     /**
