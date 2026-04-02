@@ -72,7 +72,7 @@ const hideTabs = computed(() => {
 });
 
 const contentMargin = computed(() => {
-  return $storage?.configure.contentMargin || 16;
+  return $storage?.configure.contentMargin || 0;
 });
 
 const layoutRadius = computed(() => {
@@ -353,20 +353,28 @@ onBeforeUnmount(() => {
                   :title="t('buttons.pureBackTop')"
                   :target="backtopTargetSelector"
                 />
-                <ScCard
-                  class="layout sidebar-custom thin-scroller card-height"
+                <component
+                  :is="cardBody ? ScCard : 'div'"
+                  class="layout sidebar-custom thin-scroller card-height content-shell"
                   :class="{
                     'no-card-mode': !cardBody,
+                    'content-shell--carded': cardBody,
                     'content-shell--home': route.path === '/home',
                   }"
-                  :shadow="cardBody ? 'always' : 'never'"
-                  :body-style="{
-                    padding: '0',
-                    height: '100%',
-                    width: '100%',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                  }"
+                  v-bind="
+                    cardBody
+                      ? {
+                          shadow: 'never',
+                          bodyStyle: {
+                            padding: '0',
+                            height: '100%',
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                          },
+                        }
+                      : {}
+                  "
                   :style="{
                     height: '100%',
                     width: '100%',
@@ -396,7 +404,7 @@ onBeforeUnmount(() => {
                       />
                     </div>
                   </ScScrollbar>
-                </ScCard>
+                </component>
               </div>
               <div
                 v-else
@@ -406,20 +414,28 @@ onBeforeUnmount(() => {
                   margin: '0 auto',
                 }"
               >
-                <ScCard
-                  class="h-full layout sidebar-custom sssss"
+                <component
+                  :is="cardBody ? ScCard : 'div'"
+                  class="h-full layout sidebar-custom sssss content-shell"
                   :class="{
                     'no-card-mode': !cardBody,
+                    'content-shell--carded': cardBody,
                     'content-shell--home': route.path === '/home',
                   }"
-                  :shadow="cardBody ? 'always' : 'never'"
-                  :body-style="{
-                    padding: '0',
-                    height: '100%',
-                    width: '100%',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                  }"
+                  v-bind="
+                    cardBody
+                      ? {
+                          shadow: 'never',
+                          bodyStyle: {
+                            padding: '0',
+                            height: '100%',
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                          },
+                        }
+                      : {}
+                  "
                   :style="{
                     height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                     width: '100%',
@@ -450,7 +466,7 @@ onBeforeUnmount(() => {
                       />
                     </div>
                   </ScScrollbar>
-                </ScCard>
+                </component>
               </div>
             </template>
           </LayFrame>
@@ -476,14 +492,21 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   max-width: 100%; /* 限制最大宽度 */
-  min-width: 1200px; /* 防止内容区域过窄 */
+  min-width: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 }
-.el-card:hover {
+
+.sidebar-custom:hover {
   transform: none !important;
+  box-shadow: var(--dt-shadow-sm) !important;
+}
+
+:deep(.main-content .el-card:hover) {
+  transform: none !important;
+  box-shadow: var(--dt-shadow-sm) !important;
 }
 .card-height {
   height: 100%;
@@ -491,22 +514,13 @@ onBeforeUnmount(() => {
 .sidebar-custom {
   width: 100% !important; /* 强制宽度为 100% */
   max-width: 100% !important; /* 限制最大宽度 */
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-card-border-color);
-  border-radius: var(--el-card-border-radius);
-  color: var(--el-text-color-primary);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: inherit;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: none;
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
-
-  .dark & {
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.15),
-      0 2px 8px rgba(0, 0, 0, 0.1);
-  }
 
   // el-card 的 body 不产生滚动条，由内部内容处理
   :deep(.el-card__body) {
@@ -555,6 +569,31 @@ onBeforeUnmount(() => {
 
   :deep(.el-card__body) {
     background: transparent !important;
+  }
+}
+
+.content-shell {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+
+  :deep(.el-card__body) {
+    background: transparent;
+  }
+}
+
+.content-shell--carded {
+  border: 1px solid rgba(148, 163, 184, 0.1) !important;
+  background: rgba(255, 255, 255, 0.42) !important;
+  box-shadow: none !important;
+
+  :deep(.el-card__body) {
+    background: transparent;
+  }
+
+  html.dark & {
+    border-color: rgba(148, 163, 184, 0.12) !important;
+    background: rgba(15, 23, 42, 0.28) !important;
   }
 }
 
@@ -734,9 +773,14 @@ onBeforeUnmount(() => {
   justify-content: center;
   height: calc(100vh - 120px);
   padding: 20px;
-  background: var(--el-bg-color);
+  background: rgba(255, 255, 255, 0.4);
   border-radius: var(--layoutRadius, 10px);
   margin: var(--contentMargin, 16px);
+  box-shadow: none;
+
+  html.dark & {
+    background: rgba(15, 23, 42, 0.28);
+  }
 }
 
 /* 路由切换loading骨架屏容器 */
@@ -745,22 +789,19 @@ onBeforeUnmount(() => {
   height: calc(100vh - 86px - var(--contentMargin, 16px) * 2);
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
+  background: rgba(255, 255, 255, 0.4);
   border-radius: var(--layoutRadius, 10px);
   margin: var(--contentMargin, 16px);
-  border: 1px solid var(--el-card-border-color);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 2px 8px rgba(0, 0, 0, 0.02);
-
-  .dark & {
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.15),
-      0 2px 8px rgba(0, 0, 0, 0.1);
-  }
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow: none;
 
   :deep(.el-skeleton) {
     padding: 20px;
+  }
+
+  html.dark & {
+    background: rgba(15, 23, 42, 0.28);
+    border-color: rgba(148, 163, 184, 0.12);
   }
 }
 

@@ -2,8 +2,7 @@ import { fetchSetting } from "@pages/setting";
 import { useWatermark } from "@pureadmin/utils";
 import {
   localStorageProxy,
-  loopDebugger,
-  redirectDebugger,
+  stopCrashDebugger,
   stopLoopDebugger,
   stopRedirectDebugger,
 } from "@repo/utils";
@@ -18,11 +17,14 @@ import {
 import { useUserStoreHook } from "../../store/modules/UserStore";
 import {
   CONFIG_VERSION_CHANGE_EVENT,
+  buildFrontendSystemConfigOverrides,
   getConfig,
+  getFrontendSystemConfig,
   getInitialConfig,
   putConfig,
 } from "@repo/config";
 import { useSettingStore } from "./SettingStore";
+import { syncFrontendSystemRuntime } from "../../runtime/frontend-system";
 
 const { setWatermark, clear } = useWatermark();
 const DEFAULT_SYSTEM_SETTING = {
@@ -156,6 +158,7 @@ export const useConfigStore = defineStore({
       return this.systemSetting["config:CodecRequestOpen"] == "true";
     },
     async close() {
+      stopCrashDebugger();
       stopLoopDebugger();
       stopRedirectDebugger();
       clear();
@@ -339,17 +342,21 @@ export const useConfigStore = defineStore({
           );
         }
       });
+      const frontendSystemConfig = getFrontendSystemConfig(getInitialConfig());
+      const frontendOverrides = buildFrontendSystemConfigOverrides(
+        frontendSystemConfig,
+      );
+
+      Object.entries(frontendOverrides).forEach(([key, value]) => {
+        putConfig(key, value);
+        this.systemSetting[`${CONFIG_GROUP_PREFIX}${key}`] =
+          typeof value === "string" ? value : String(value);
+      });
+
       this.version = this.systemSetting["config:Version"] || "1";
       localStorageProxy().setItem(this.storageVersionKey, this.version);
-      stopLoopDebugger();
-      stopRedirectDebugger();
       clear();
-      if (this.systemSetting["config:LoopDebuggerOpen"] == "true") {
-        loopDebugger();
-      }
-      if (this.systemSetting["config:CrashPageOpen"] == "true") {
-        redirectDebugger();
-      }
+      await syncFrontendSystemRuntime(getInitialConfig());
       useSettingStore().setSetting(
         "Title",
         this.systemSetting["config:SystemName"] || getInitialConfig("Title"),

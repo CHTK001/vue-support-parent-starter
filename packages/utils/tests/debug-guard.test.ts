@@ -29,8 +29,10 @@ vi.mock("devtools-detector", () => ({
 
 import {
   __resetDebugRuntimeForTests,
+  crashDebugger,
   loopDebugger,
   redirectDebugger,
+  stopCrashDebugger,
   stopLoopDebugger,
   stopRedirectDebugger,
 } from "../src/debug";
@@ -79,5 +81,24 @@ describe("debug guard runtime", () => {
     expect(detectorMock.stop).toHaveBeenCalledTimes(1);
     expect(document.getElementById("repo-debug-guard-overlay")).toBeNull();
     expect(document.documentElement.dataset.debugGuardActive).toBeUndefined();
+  });
+
+  it("shows and clears the crash page through crashDebugger lifecycle", () => {
+    crashDebugger();
+    crashDebugger();
+
+    expect(detectorMock.addListener).toHaveBeenCalledTimes(1);
+    expect(detectorMock.launch).toHaveBeenCalledTimes(1);
+
+    detectorMock.detectorState.listener?.(true);
+    expect(document.getElementById("repo-debug-crash-layer")).not.toBeNull();
+    expect(document.documentElement.dataset.debugCrashActive).toBe("true");
+
+    stopCrashDebugger();
+
+    expect(detectorMock.removeListener).toHaveBeenCalledTimes(1);
+    expect(detectorMock.stop).toHaveBeenCalledTimes(1);
+    expect(document.getElementById("repo-debug-crash-layer")).toBeNull();
+    expect(document.documentElement.dataset.debugCrashActive).toBeUndefined();
   });
 });

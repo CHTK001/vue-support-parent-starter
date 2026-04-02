@@ -176,12 +176,16 @@ export const clearLogHistory = (): void => {
 };
 
 const DEBUG_GUARD_OVERLAY_ID = "repo-debug-guard-overlay";
+const DEBUG_CRASH_LAYER_ID = "repo-debug-crash-layer";
 const DEBUG_GUARD_DATASET_KEY = "debugGuardActive";
+const DEBUG_CRASH_DATASET_KEY = "debugCrashActive";
 const DEFAULT_LOOP_DEBUGGER_INTERVAL = 1200;
 
 let loopDebuggerTimer: ReturnType<typeof setInterval> | null = null;
 let redirectDebuggerCleanup: (() => void) | null = null;
+let crashDebuggerCleanup: (() => void) | null = null;
 let devtoolsListener: ((isOpen: boolean) => void) | null = null;
+let crashDevtoolsListener: ((isOpen: boolean) => void) | null = null;
 
 const emitDebugGuardEvent = (isOpen: boolean) => {
   if (typeof window === "undefined" || typeof CustomEvent === "undefined") {
@@ -197,6 +201,9 @@ const emitDebugGuardEvent = (isOpen: boolean) => {
 
 const getDebugGuardOverlay = () =>
   document.getElementById(DEBUG_GUARD_OVERLAY_ID) as HTMLDivElement | null;
+
+const getDebugCrashLayer = () =>
+  document.getElementById(DEBUG_CRASH_LAYER_ID) as HTMLDivElement | null;
 
 const ensureDebugGuardOverlay = () => {
   if (typeof document === "undefined") {
@@ -234,6 +241,45 @@ const ensureDebugGuardOverlay = () => {
   return overlay;
 };
 
+const ensureDebugCrashLayer = () => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const current = getDebugCrashLayer();
+  if (current) {
+    return current;
+  }
+
+  const layer = document.createElement("div");
+  layer.id = DEBUG_CRASH_LAYER_ID;
+  layer.setAttribute("role", "alert");
+  layer.setAttribute("aria-live", "assertive");
+  layer.style.cssText = [
+    "position:fixed",
+    "inset:0",
+    "z-index:2147483647",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    "padding:28px",
+    "background:linear-gradient(180deg,#020617,#0f172a)",
+    "color:#f8fafc",
+    "text-align:left",
+  ].join(";");
+  layer.innerHTML =
+    '<div style="width:min(520px,100%);padding:32px;border-radius:28px;border:1px solid rgba(248,113,113,0.22);background:linear-gradient(180deg,rgba(15,23,42,0.98),rgba(30,41,59,0.95));box-shadow:0 40px 80px rgba(2,6,23,0.45);">' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+    '<span style="display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:999px;background:rgba(248,113,113,0.14);color:#f87171;font-size:22px;font-weight:700;">!</span>' +
+    '<div style="font-size:22px;font-weight:700;letter-spacing:0.01em;">调试保护已触发</div>' +
+    "</div>" +
+    '<div style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.84);">系统检测到开发者工具已开启。当前策略已切换为崩溃页模式，请关闭开发者工具后刷新页面继续访问。</div>' +
+    '<div style="margin-top:18px;font-size:12px;line-height:1.7;color:rgba(148,163,184,0.88);">如果这是受控调试场景，请使用配置允许的地址栏绕过参数。</div>' +
+    "</div>";
+  document.body?.appendChild(layer);
+  return layer;
+};
+
 const setDebugGuardState = (isOpen: boolean) => {
   if (typeof document === "undefined") {
     return;
@@ -246,6 +292,23 @@ const setDebugGuardState = (isOpen: boolean) => {
     console.warn("[debug-guard] 检测到开发者工具已开启，已限制页面交互。");
   } else {
     getDebugGuardOverlay()?.remove();
+  }
+
+  emitDebugGuardEvent(isOpen);
+};
+
+const setDebugCrashState = (isOpen: boolean) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.documentElement.dataset[DEBUG_CRASH_DATASET_KEY] = String(isOpen);
+
+  if (isOpen) {
+    ensureDebugCrashLayer();
+    console.warn("[debug-guard] 检测到开发者工具已开启，已切换到崩溃页模式。");
+  } else {
+    getDebugCrashLayer()?.remove();
   }
 
   emitDebugGuardEvent(isOpen);
@@ -291,6 +354,11 @@ export const stopRedirectDebugger = (): void => {
   redirectDebuggerCleanup = null;
 };
 
+export const stopCrashDebugger = (): void => {
+  crashDebuggerCleanup?.();
+  crashDebuggerCleanup = null;
+};
+
 export const redirectDebugger = (): (() => void) => {
   if (redirectDebuggerCleanup || typeof window === "undefined") {
     return stopRedirectDebugger;
@@ -326,7 +394,43 @@ export const redirectDebugger = (): (() => void) => {
   return stopRedirectDebugger;
 };
 
+export const crashDebugger = (): (() => void) => {
+  if (crashDebuggerCleanup || typeof window === "undefined") {
+    return stopCrashDebugger;
+  }
+
+  const keydownHandler = (event: KeyboardEvent) => {
+    if (!isBlockedDebugShortcut(event)) {
+      return;
+    }
+    event.preventDefault();
+  };
+
+  crashDevtoolsListener = (isOpen: boolean) => {
+    setDebugCrashState(isOpen);
+  };
+
+  addListener(crashDevtoolsListener);
+  launch();
+  document.addEventListener("keydown", keydownHandler, true);
+
+  crashDebuggerCleanup = () => {
+    if (crashDevtoolsListener) {
+      removeListener(crashDevtoolsListener);
+      crashDevtoolsListener = null;
+    }
+    document.removeEventListener("keydown", keydownHandler, true);
+    setDebugCrashState(false);
+    delete document.documentElement.dataset[DEBUG_CRASH_DATASET_KEY];
+    stop();
+    crashDebuggerCleanup = null;
+  };
+
+  return stopCrashDebugger;
+};
+
 export const __resetDebugRuntimeForTests = (): void => {
+  stopCrashDebugger();
   stopLoopDebugger();
   stopRedirectDebugger();
 };

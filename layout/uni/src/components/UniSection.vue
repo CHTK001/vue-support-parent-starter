@@ -13,7 +13,10 @@ const emit = defineEmits<{
 <template>
   <view class="uni-section">
     <view class="uni-section__main">
-      <text class="uni-section__title">{{ title }}</text>
+      <view class="uni-section__title-row">
+        <view class="uni-section__mark" />
+        <text class="uni-section__title">{{ title }}</text>
+      </view>
       <text v-if="subtitle" class="uni-section__subtitle">{{ subtitle }}</text>
     </view>
     <view
@@ -41,9 +44,22 @@ const emit = defineEmits<{
   gap: 6rpx;
 }
 
+.uni-section__title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.uni-section__mark {
+  width: 12rpx;
+  height: 28rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, var(--uni-primary), var(--uni-accent));
+}
+
 .uni-section__title {
   font-size: 34rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--uni-text-strong);
 }
 
@@ -53,12 +69,13 @@ const emit = defineEmits<{
 }
 
 .uni-section__action {
-  padding: 10rpx 18rpx;
+  padding: 12rpx 20rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.74);
   border: 1rpx solid var(--uni-border-color);
   color: var(--uni-primary);
   font-size: 24rpx;
+  font-weight: 700;
   transition: transform 160ms ease;
 
   &.is-hovered {

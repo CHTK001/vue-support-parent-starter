@@ -111,6 +111,8 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     "@repo/pages": commonPagesRoot,
     "@repo/pages/": `${commonPagesRoot}/`,
     "@repo/utils": resolve(root, "packages/utils"),
+    "@repo/utils/sfc": resolve(root, "packages/utils/sfc.ts"),
+    "@repo/utils/http": resolve(root, "packages/utils/src/http"),
     "@repo/codec-wasm": codecWasmEntry,
     "@repo/codec-wasm/": `${resolve(codecWasmRoot, "src")}/`,
     // 不为 @repo/components 设置基础别名，交给 workspace 包导出解析，

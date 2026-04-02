@@ -31,6 +31,23 @@ function bootDebugLog(message: string, detail?: unknown): void {
     return;
   }
 
+  try {
+    const payload = {
+      message,
+      detail,
+      time: Date.now(),
+    };
+    const target = window as typeof window & {
+      __APP_BOOT_TRACE__?: Array<typeof payload>;
+      __APP_BOOT_LAST__?: typeof payload;
+    };
+    target.__APP_BOOT_TRACE__ = target.__APP_BOOT_TRACE__ || [];
+    target.__APP_BOOT_TRACE__.push(payload);
+    target.__APP_BOOT_LAST__ = payload;
+  } catch {
+    // ignore debug trace persistence failures
+  }
+
   if (detail === undefined) {
     console.info(`[AppBootstrap] ${message}`);
     return;
@@ -397,7 +414,7 @@ export async function createStandardApp(
           bootDebugLog("createStandardApp:wasm-imported");
           const result = await initializeWasmModule();
           if (!result) {
-            throw new Error("WASM 模块初始化失败");
+            console.warn("[SystemBootstrap] WASM 模块初始化失败，已降级到 JS 实现");
           }
         })
     : null;
@@ -406,7 +423,14 @@ export async function createStandardApp(
   const { createApp } = await import("vue");
   // @ts-ignore - app-root 无类型声明
   const AppRoot = (await import("@repo/app-root")).default;
-  const { getPlatformConfig, injectResponsiveStorage, useI18n } = await import("@repo/config");
+  const {
+    getInitialConfig,
+    getPlatformConfig,
+    getFrontendSystemConfig,
+    isThemeSkinFeatureVisible,
+    injectResponsiveStorage,
+    useI18n,
+  } = await import("@repo/config");
   const [{ router }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] = await Promise.all([
     import("./router"),
     import("./store"),
@@ -414,6 +438,10 @@ export async function createStandardApp(
     import("./directives/ripple"),
     import("@repo/plugins"),
   ]);
+  const {
+    getFrontendFontEncryptionOptions,
+    syncFrontendSystemRuntime,
+  } = await import("./runtime/frontend-system");
   const { MotionPlugin } = await import("@vueuse/motion");
   const Table = (await import("@pureadmin/table")).default;
   const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
@@ -461,7 +489,11 @@ export async function createStandardApp(
 
   // 4. 获取平台配置
   const config = await getPlatformConfig(app);
+  const initialConfig = getInitialConfig();
+  const frontendSystemConfig = getFrontendSystemConfig(initialConfig);
   bootDebugLog("createStandardApp:config-ready");
+  await syncFrontendSystemRuntime(initialConfig);
+  bootDebugLog("createStandardApp:frontend-system-runtime-ready");
 
   // 4.1 初始化加载动画样式
   try {
@@ -513,32 +545,35 @@ export async function createStandardApp(
   // 5.2 字体加密指令
   if (enableFontEncryption !== false) {
     const { vFontEncryption } = await import("@layout/default");
-    if (typeof enableFontEncryption === "object") {
-      const globalFeCfg = enableFontEncryption;
-      const objDir = vFontEncryption as import("vue").ObjectDirective;
-      const wrappedDirective: Directive = {
-        mounted(el, binding: DirectiveBinding) {
-          const merged = binding.value == null
-            ? globalFeCfg
-            : typeof binding.value === "boolean"
-              ? { ...globalFeCfg, enabled: binding.value }
-              : { ...globalFeCfg, ...binding.value };
-          objDir.mounted?.(el, { ...binding, value: merged }, null as any, null as any);
-        },
-        updated(el, binding: DirectiveBinding) {
-          const merged = binding.value == null
-            ? globalFeCfg
-            : typeof binding.value === "boolean"
-              ? { ...globalFeCfg, enabled: binding.value }
-              : { ...globalFeCfg, ...binding.value };
-          objDir.updated?.(el, { ...binding, value: merged }, null as any, null as any);
-        },
-        unmounted: objDir.unmounted,
-      };
-      bootstrap.registerDirective("font-encryption", wrappedDirective);
-    } else {
-      bootstrap.registerDirective("font-encryption", vFontEncryption);
-    }
+    const objDir = vFontEncryption as import("vue").ObjectDirective;
+    const wrappedDirective: Directive = {
+      mounted(el, binding: DirectiveBinding) {
+        const globalFeCfg = {
+          ...getFrontendFontEncryptionOptions(initialConfig),
+          ...(typeof enableFontEncryption === "object" ? enableFontEncryption : {}),
+        };
+        const merged = binding.value == null
+          ? globalFeCfg
+          : typeof binding.value === "boolean"
+            ? { ...globalFeCfg, enabled: binding.value }
+            : { ...globalFeCfg, ...binding.value };
+        objDir.mounted?.(el, { ...binding, value: merged }, null as any, null as any);
+      },
+      updated(el, binding: DirectiveBinding) {
+        const globalFeCfg = {
+          ...getFrontendFontEncryptionOptions(initialConfig),
+          ...(typeof enableFontEncryption === "object" ? enableFontEncryption : {}),
+        };
+        const merged = binding.value == null
+          ? globalFeCfg
+          : typeof binding.value === "boolean"
+            ? { ...globalFeCfg, enabled: binding.value }
+            : { ...globalFeCfg, ...binding.value };
+        objDir.updated?.(el, { ...binding, value: merged }, null as any, null as any);
+      },
+      unmounted: objDir.unmounted,
+    };
+    bootstrap.registerDirective("font-encryption", wrappedDirective);
   }
   bootDebugLog("createStandardApp:font-directive-ready");
 
@@ -646,6 +681,10 @@ export async function createStandardApp(
     bootstrap.use(async () => {
       try {
         bootDebugLog("createStandardApp:theme:start");
+        if (!isThemeSkinFeatureVisible(frontendSystemConfig)) {
+          bootDebugLog("createStandardApp:theme:skipped");
+          return;
+        }
         const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components/hooks");
         await autoRegisterThemePlugins(app);
         await initThemeSystem();

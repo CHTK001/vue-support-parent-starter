@@ -50,6 +50,12 @@ import {
 } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LayContent from "./components/lay-content/index.vue";
+import CardNavigation from "./components/lay-sidebar/components/CardNavigation.vue";
+import NavDouble from "./components/lay-sidebar/NavDouble.vue";
+import NavDrawer from "./components/lay-sidebar/NavDrawer.vue";
+import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
+import NavHover from "./components/lay-sidebar/NavHover.vue";
+import LaySetting from "./components/lay-setting/index.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
@@ -81,25 +87,7 @@ if (document.readyState === "complete") {
 }
 
 // 使用带 loading/error 状态的异步组件加载器
-const CardNavigation = createLayoutAsyncComponent(
-  () => import("./components/lay-sidebar/components/CardNavigation.vue"),
-);
 const NavVertical = NavVerticalLayout;
-const NavHorizontal = createLayoutAsyncComponent(
-  () => import("./components/lay-sidebar/NavHorizontal.vue"),
-);
-const NavHover = createLayoutAsyncComponent(
-  () => import("./components/lay-sidebar/NavHover.vue"),
-);
-const NavDrawer = createLayoutAsyncComponent(
-  () => import("./components/lay-sidebar/NavDrawer.vue"),
-);
-const NavDouble = createLayoutAsyncComponent(
-  () => import("./components/lay-sidebar/NavDouble.vue"),
-);
-const LaySetting = createLayoutAsyncComponent(
-  () => import("./components/lay-setting/index.vue"),
-);
 const LayAiChat = createLayoutAsyncComponent(
   () => import("./components/lay-ai-chat/index.vue"),
 );

@@ -933,20 +933,39 @@ const deferTag = useDefer(tagsViews?.length);
 
   &:hover {
     background: rgba(255, 255, 255, 0.7);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
     z-index: 1;
   }
 
   &.is-active {
-    background: rgba(var(--el-color-primary-rgb), 0.15);
-    border-color: var(--el-color-primary);
-    color: var(--el-color-primary);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.16) 0%,
+      rgba(var(--el-color-primary-rgb), 0.08) 100%
+    );
+    border-color: rgba(var(--el-color-primary-rgb), 0.42);
+    color: color-mix(in srgb, var(--el-color-primary) 78%, #0f172a 22%);
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+    box-shadow:
+      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08),
+      0 4px 10px rgba(var(--el-color-primary-rgb), 0.12);
+    z-index: 2;
 
-    .tag-icon {
-      color: var(--el-color-primary);
+    .tag-icon,
+    .tag-title {
+      color: inherit;
+    }
+
+    &:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.18) 0%,
+        rgba(var(--el-color-primary-rgb), 0.1) 100%
+      );
+      transform: none;
+      box-shadow:
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1),
+        0 4px 10px rgba(var(--el-color-primary-rgb), 0.14);
     }
   }
 
@@ -1101,10 +1120,21 @@ html.dark {
     }
 
     &.is-active {
-      background: rgba(var(--el-color-primary-rgb), 0.3);
-      border-color: var(--el-color-primary);
-      color: var(--el-color-primary);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.28) 0%,
+        rgba(var(--el-color-primary-rgb), 0.16) 100%
+      );
+      border-color: rgba(var(--el-color-primary-rgb), 0.52);
+      color: color-mix(in srgb, var(--el-color-primary-light-3) 70%, #ffffff 30%);
+      box-shadow:
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.14),
+        0 4px 12px rgba(0, 0, 0, 0.22);
+
+      .tag-icon,
+      .tag-title {
+        color: inherit;
+      }
     }
   }
 

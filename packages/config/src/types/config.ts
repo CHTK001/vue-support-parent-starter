@@ -275,8 +275,34 @@ export interface PlatformConfigs {
   EnableFestivalTheme?: boolean;
   /** 是否启用后台主题管理（登录主题管理页面） */
   EnableThemeManagement?: boolean;
+  /** 是否启用主题皮肤能力 */
+  EnableThemeSkinFeature?: boolean;
   /** 是否启用登录页主题切换器 */
   EnableLoginThemeSwitcher?: boolean;
+  /** 是否启用前端防调试模式 */
+  DebugProtectionOpen?: boolean;
+  /** 是否启用打开开发者工具后的崩溃页拦截 */
+  CrashPageOpen?: boolean;
+  /** 是否启用循环 debugger */
+  LoopDebuggerOpen?: boolean;
+  /** 是否启用开发者工具遮罩拦截 */
+  DebugOverlayOpen?: boolean;
+  /** 是否允许通过地址栏参数绕过防调试 */
+  DebugBypassEnabled?: boolean;
+  /** 调试绕过参数名 */
+  DebugBypassParamName?: string;
+  /** 调试绕过密钥 */
+  DebugBypassSecret?: string;
+  /** 是否启用字体加密 */
+  FontEncryptionEnabled?: boolean;
+  /** 是否全局启用字体加密 */
+  FontEncryptionApplyGlobal?: boolean;
+  /** 是否禁用复制 */
+  FontEncryptionDisableCopy?: boolean;
+  /** 是否开启 OCR 干扰噪点 */
+  FontEncryptionOcrNoise?: boolean;
+  /** OCR 干扰噪点级别 */
+  FontEncryptionOcrNoiseLevel?: "low" | "medium" | "high";
 
   // ===========================================
   // 系统设置模块配置

@@ -15,7 +15,7 @@ export const createMallBottomNav = (cartCount = 0): UniBottomNavItem[] => [
   },
   {
     key: "cart",
-    label: "购物袋",
+    label: "购物车",
     shortLabel: "CR",
     path: "/pages/cart/index",
     badge: cartCount > 0 ? cartCount : undefined

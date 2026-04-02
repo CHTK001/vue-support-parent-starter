@@ -5,6 +5,7 @@ import { getConfig } from "../config";
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
 const TOKEN_EXPIRES_SECOND_THRESHOLD = 1_000_000_000_000;
+const COOKIE_SAFE_SIZE = 3800;
 
 /**
  * 通过`multiple-tabs`是否在`cookie`中，判断用户是否已经登录系统，
@@ -44,6 +45,17 @@ function parseTokenPayload(raw?: string | null) {
   }
 }
 
+function parseTokenPayloadCandidates(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const parsed = parseTokenPayload(value);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
 function hasAccessToken(token: any) {
   return typeof token?.accessToken === "string" && token.accessToken.trim() !== "";
 }
@@ -75,7 +87,7 @@ function readTokenFromUserStorage() {
             config.StorageEncode,
           );
 
-    const parsedValue = parseTokenPayload(decodedValue || rawValue);
+    const parsedValue = parseTokenPayloadCandidates(decodedValue, rawValue);
     if (!hasAccessToken(parsedValue)) {
       return null;
     }
@@ -131,11 +143,16 @@ export function setToken(data: any, userSetting: any = {}) {
   const expires = normalizeTokenExpires(data?.expires);
   const cookieString = JSON.stringify({ accessToken, expires, refreshToken });
 
-  expires > 0
-    ? Cookies.set(TokenKey, cookieString, {
-        expires: (expires - Date.now()) / 86400000,
-      })
-    : Cookies.set(TokenKey, cookieString);
+  // accessToken 过长时浏览器会直接丢弃 cookie，导致登录态判断失败。
+  if (cookieString.length <= COOKIE_SAFE_SIZE) {
+    expires > 0
+      ? Cookies.set(TokenKey, cookieString, {
+          expires: (expires - Date.now()) / 86400000,
+        })
+      : Cookies.set(TokenKey, cookieString);
+  } else {
+    Cookies.remove(TokenKey);
+  }
 
   Cookies.set(
     multipleTabsKey,

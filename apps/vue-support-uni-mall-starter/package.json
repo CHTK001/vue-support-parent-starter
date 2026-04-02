@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "uni -p h5",
     "dev:h5": "uni -p h5",
+    "dev:mock": "uni -p h5 --mode mock",
     "build": "uni build -p h5",
     "build:h5": "uni build -p h5",
+    "build:mock": "uni build -p h5 --mode mock",
     "typecheck": "vue-tsc --noEmit",
     "preinstall": "npx only-allow pnpm"
   },

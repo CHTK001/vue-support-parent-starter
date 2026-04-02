@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import Segmented, {
   type OptionsType,
@@ -17,6 +18,13 @@ const props = defineProps<{
   tagsChange: () => void;
   multiTagsCacheChange: () => void;
 }>();
+
+const currentMarkIndex = computed(() => {
+  const currentIndex = props.markOptions.findIndex(
+    item => item.value === props.markValue,
+  );
+  return currentIndex >= 0 ? currentIndex : 0;
+});
 </script>
 
 <template>
@@ -30,19 +38,7 @@ const props = defineProps<{
       <Segmented
         resize
         class="select-none modern-segmented"
-        :modelValue="
-          markValue === 'smart'
-            ? 0
-            : markValue === 'card'
-              ? 1
-              : markValue === 'chrome'
-                ? 2
-                : markValue === 'modern'
-                  ? 3
-                  : markValue === 'glass'
-                    ? 4
-                    : 0
-        "
+        :modelValue="currentMarkIndex"
         :options="markOptions"
         @change="onChange"
       />
