@@ -16,14 +16,11 @@ withDefaults(
 </script>
 
 <template>
-  <view
-    class="uni-card"
-    :class="[
-      `padding-${padding}`,
-      `radius-${radius}`,
-      { 'has-shadow': shadow, 'is-glass': glass },
-    ]"
-  >
+  <view class="uni-card" :class="[
+    `padding-${padding}`,
+    `radius-${radius}`,
+    { 'has-shadow': shadow, 'is-glass': glass },
+  ]">
     <slot />
   </view>
 </template>
@@ -42,14 +39,36 @@ withDefaults(
     box-shadow: var(--uni-shadow-soft);
   }
 
-  &.padding-none { padding: 0; }
-  &.padding-sm { padding: 16rpx; }
-  &.padding-md { padding: 28rpx; }
-  &.padding-lg { padding: 40rpx; }
+  &.padding-none {
+    padding: 0;
+  }
 
-  &.radius-sm { border-radius: 12rpx; }
-  &.radius-md { border-radius: 20rpx; }
-  &.radius-lg { border-radius: 28rpx; }
-  &.radius-xl { border-radius: 40rpx; }
+  &.padding-sm {
+    padding: 16rpx;
+  }
+
+  &.padding-md {
+    padding: 28rpx;
+  }
+
+  &.padding-lg {
+    padding: 40rpx;
+  }
+
+  &.radius-sm {
+    border-radius: 12rpx;
+  }
+
+  &.radius-md {
+    border-radius: 20rpx;
+  }
+
+  &.radius-lg {
+    border-radius: 28rpx;
+  }
+
+  &.radius-xl {
+    border-radius: 40rpx;
+  }
 }
 </style>

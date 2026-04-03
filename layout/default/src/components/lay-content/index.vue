@@ -344,7 +344,7 @@ onBeforeUnmount(() => {
                   'max-width': getMainWidth,
                   margin: '0 auto',
                   height: `calc(100vh - ${headerHeight}px - ${hideFooter ? 0 : 30}px)`,
-                  padding: `${contentMargin}px`,
+                  padding: `calc(${contentMargin}px )`,
                   boxSizing: 'border-box',
                 }"
               >
@@ -537,6 +537,7 @@ onBeforeUnmount(() => {
   // 内部内容滚动
   :deep(.main-content) {
     min-height: 100%;
+    max-height: 100% !important;
     width: 100%;
     max-width: 100%; /* 限制内容最大宽度 */
     box-sizing: border-box;
@@ -822,6 +823,36 @@ onBeforeUnmount(() => {
     width: 100% !important;
     max-width: 100% !important; /* 限制视图最大宽度 */
     box-sizing: border-box;
+  }
+}
+
+.sidebar-custom:hover,
+:deep(.main-content .el-card:hover) {
+  box-shadow: none !important;
+}
+
+.content-shell {
+  box-shadow: none !important;
+  background: transparent !important;
+
+  :deep(.el-card),
+  :deep(.el-card__body) {
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+}
+
+.content-shell--carded {
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  background: rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+html.dark {
+  .content-shell--carded {
+    border-color: rgba(71, 85, 105, 0.42) !important;
+    background: rgba(15, 23, 42, 0.2) !important;
   }
 }
 </style>

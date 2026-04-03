@@ -1,6 +1,7 @@
 <script setup>
 import { IconifyIconOnline as IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed, onMounted, ref, watch } from "vue";
+import { ElPagination } from "element-plus";
 import { getLogger } from "@repo/utils";
 import { config } from "../column";
 import columnSetting from "../plugins/columnSetting.vue"; // 更新为新路径
@@ -327,17 +328,17 @@ onMounted(() => {
 <template>
   <div class="pagination-container" :class="[`theme--${props.theme}`]">
     <!-- 标准分页 -->
-    <ScPagination
+    <ElPagination
       v-if="!props.hidePagination && props.paginationType === 'default'"
-      v-model:currentPage="currentPageValue"
+      v-model:current-page="currentPageValue"
       background
-      :small="false"
+      :size="'default'"
       :layout="props.layout"
       :total="props.total"
       :page-size="pageSizeValue"
       :page-sizes="props.pageSizes"
       @current-change="handleCurrentChange"
-      @update:page-size="handleSizeChange"
+      @size-change="handleSizeChange"
     />
 
     <!-- 操作按钮 -->
@@ -351,12 +352,11 @@ onMounted(() => {
       <!-- 列设置按钮 - 在列表布局和卡片布局下隐藏 -->
       <template v-if="!!showColumnSettings">
         <ScPopover v-model:visible="columnSettingVisible" placement="bottom" :width="500" trigger="click" popper-class="column-settings-popover">
-          <template #reference>
+        <template #reference>
             <ScButton circle size="default">
               <IconifyIconOnline icon="ep:list" />
             </ScButton>
           </template>
-          33
           <div class="column-setting-container">
             <component
               :is="columnSetting"

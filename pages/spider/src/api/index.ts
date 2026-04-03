@@ -316,15 +316,60 @@ export const COLUMN_TYPE_OPTIONS = [
 ];
 
 export const SPIDER_NODE_CATEGORIES = [
-  { type: "URL_SOURCE", label: "URL源", color: "#1d9a6c", catalogKey: "urlSource" },
-  { type: "DOWNLOADER", label: "下载器", color: "#1764d5", catalogKey: "downloader" },
-  { type: "PROCESSOR", label: "处理器", color: "#c7650e", catalogKey: "processor" },
-  { type: "MIDDLEWARE", label: "中间件", color: "#8e44ad", catalogKey: "middleware" },
-  { type: "DATA_FILTER", label: "数据过滤器", color: "#0089b3", catalogKey: "dataFilter" },
-  { type: "PIPELINE", label: "数据输出", color: "#d63d73", catalogKey: "pipeline" },
-  { type: "SCHEDULER", label: "调度器", color: "#576574", catalogKey: "scheduler" },
-  { type: "SITE_CONFIG", label: "站点配置", color: "#8d5d35", catalogKey: "siteConfig" },
-  { type: "PROXY_POOL", label: "代理池", color: "#0b8a7b", catalogKey: "proxyPool" },
+  {
+    type: "URL_SOURCE",
+    label: "URL源",
+    color: "#1d9a6c",
+    catalogKey: "urlSource",
+  },
+  {
+    type: "DOWNLOADER",
+    label: "下载器",
+    color: "#1764d5",
+    catalogKey: "downloader",
+  },
+  {
+    type: "PROCESSOR",
+    label: "处理器",
+    color: "#c7650e",
+    catalogKey: "processor",
+  },
+  {
+    type: "MIDDLEWARE",
+    label: "中间件",
+    color: "#8e44ad",
+    catalogKey: "middleware",
+  },
+  {
+    type: "DATA_FILTER",
+    label: "数据过滤器",
+    color: "#0089b3",
+    catalogKey: "dataFilter",
+  },
+  {
+    type: "PIPELINE",
+    label: "数据输出",
+    color: "#d63d73",
+    catalogKey: "pipeline",
+  },
+  {
+    type: "SCHEDULER",
+    label: "调度器",
+    color: "#576574",
+    catalogKey: "scheduler",
+  },
+  {
+    type: "SITE_CONFIG",
+    label: "站点配置",
+    color: "#8d5d35",
+    catalogKey: "siteConfig",
+  },
+  {
+    type: "PROXY_POOL",
+    label: "代理池",
+    color: "#0b8a7b",
+    catalogKey: "proxyPool",
+  },
   { type: "UA_POOL", label: "UA池", color: "#5d3fd3", catalogKey: "uaPool" },
 ] as const;
 

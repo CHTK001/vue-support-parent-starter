@@ -7,7 +7,6 @@ import {
   computed,
   nextTick,
   onBeforeMount,
-  onMounted,
   onUnmounted,
   reactive,
   ref,
@@ -83,6 +82,25 @@ type SettingSectionKey =
   | "ai"
   | "advanced";
 
+type SectionSortMode = "default" | "name";
+
+const DEFAULT_SECTION_ORDER: SettingSectionKey[] = [
+  "theme",
+  "layout",
+  "tabs",
+  "toolbar",
+  "display",
+  "menu",
+  "message",
+  "ai",
+  "advanced",
+];
+
+const translateOr = (key: string, fallback: string) => {
+  const result = t(key);
+  return !result || result === key ? fallback : result;
+};
+
 const settingSectionLabels: Record<SettingSectionKey, string> = {
   theme: "主题",
   layout: "布局",
@@ -124,19 +142,9 @@ const themeSummaries: Record<string, string> = {
 };
 
 const activeSection = ref<SettingSectionKey>("theme");
-const mountedSections = reactive<Record<SettingSectionKey, boolean>>({
-  theme: true,
-  layout: true,
-  tabs: false,
-  toolbar: false,
-  display: false,
-  menu: false,
-  message: false,
-  ai: false,
-  advanced: false,
-});
+const sectionSearch = ref("");
+const sectionSortMode = ref<SectionSortMode>("default");
 const sectionElements = new Map<SettingSectionKey, HTMLElement>();
-const deferredSectionHandles = new Set<number>();
 
 // 预览数据
 
@@ -182,6 +190,14 @@ if (!layoutTheme.value.theme) {
 
 /** 默认灵动模式 */
 const markValue = ref($storage.configure?.showModel ?? "chrome");
+
+watch(
+  () => $storage.configure?.showModel,
+  (value) => {
+    markValue.value = value ?? "chrome";
+  },
+  { immediate: true },
+);
 
 const logoVal = ref($storage.configure?.showLogo ?? true);
 const cardBodyVal = ref($storage.configure?.cardBody ?? true);
@@ -577,6 +593,10 @@ function onChange({ option }: { option: OptionsType }) {
   storageConfigureChange("showModel", value);
   emitter.emit("tagViewsShowModel", value);
 }
+
+emitter.on("tagViewsShowModel", (value: string) => {
+  markValue.value = value ?? "chrome";
+});
 
 /** 侧边栏Logo */
 function logoChange(val?: boolean) {
@@ -1522,31 +1542,84 @@ const overallStyleLabel = computed(() => {
 
 const overviewChips = computed(() => [
   {
-    label: "当前皮肤",
+    label: translateOr("panel.currentThemeSkin", "当前皮肤"),
     value:
       themeDisplayLabels[themeStore.currentTheme] ?? themeStore.currentTheme,
   },
   {
-    label: "布局模式",
+    label: translateOr("panel.currentLayoutMode", "布局模式"),
     value:
       layoutDisplayLabels[layoutTheme.value.layout] ?? layoutTheme.value.layout,
   },
   {
-    label: "视觉策略",
+    label: translateOr("panel.currentVisualMode", "视觉策略"),
     value: overallStyleLabel.value,
   },
   {
-    label: "标签风格",
-    value: settings.tabsVal ? "已隐藏" : markValue.value,
+    label: translateOr("panel.currentTagMode", "标签风格"),
+    value: settings.tabsVal
+      ? translateOr("panel.tagsHidden", "已隐藏")
+      : markValue.value,
   },
 ]);
 
 const activeThemeSummary = computed(() => {
   return (
     themeSummaries[themeStore.currentTheme] ??
-    "统一控制台配置与主题视觉，兼顾效率、清晰度与实时反馈。"
+    translateOr(
+      "panel.settingHeroFallback",
+      "统一控制台配置与主题视觉，兼顾效率、清晰度与实时反馈。",
+    )
   );
 });
+
+const sectionSearchPlaceholder = computed(() =>
+  translateOr("panel.settingSearchPlaceholder", "搜索分区、标题、描述"),
+);
+
+const sectionSortOptions = computed<
+  Array<{ label: string; value: SectionSortMode }>
+>(() => [
+  {
+    label: translateOr("panel.settingSortDefault", "默认顺序"),
+    value: "default",
+  },
+  {
+    label: translateOr("panel.settingSortByName", "按名称"),
+    value: "name",
+  },
+]);
+
+const extractSearchText = (value: unknown, bucket = new Set<string>()) => {
+  if (value === null || value === undefined) {
+    return bucket;
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    const text = String(value).trim();
+    if (text) {
+      bucket.add(text);
+    }
+    return bucket;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => extractSearchText(item, bucket));
+    return bucket;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value as Record<string, unknown>).forEach((item) =>
+      extractSearchText(item, bucket),
+    );
+  }
+
+  return bucket;
+};
 
 const resolveSectionProps = (props: Record<string, unknown>) =>
   Object.fromEntries(
@@ -1694,73 +1767,116 @@ const settingSectionProps = computed<
   },
 }));
 
-const settingSections = computed<
+const allSettingSections = computed<
   Array<{
     key: SettingSectionKey;
     label: string;
     component: keyof ComponentMap;
     props: Record<string, unknown>;
+    sortWeight: number;
+    searchText: string;
   }>
->(() => [
-  {
-    key: "theme",
-    label: settingSectionLabels.theme,
-    component: "SettingTheme",
-    props: resolveSectionProps(settingSectionProps.value.theme),
-  },
-  {
-    key: "layout",
-    label: settingSectionLabels.layout,
-    component: "SettingLayout",
-    props: resolveSectionProps(settingSectionProps.value.layout),
-  },
-  {
-    key: "tabs",
-    label: settingSectionLabels.tabs,
-    component: "SettingTabs",
-    props: resolveSectionProps(settingSectionProps.value.tabs),
-  },
-  {
-    key: "toolbar",
-    label: settingSectionLabels.toolbar,
-    component: "SettingToolbar",
-    props: resolveSectionProps(settingSectionProps.value.toolbar),
-  },
-  {
-    key: "display",
-    label: settingSectionLabels.display,
-    component: "SettingDisplay",
-    props: resolveSectionProps(settingSectionProps.value.display),
-  },
-  {
-    key: "menu",
-    label: settingSectionLabels.menu,
-    component: "SettingMenu",
-    props: resolveSectionProps(settingSectionProps.value.menu),
-  },
-  {
-    key: "message",
-    label: settingSectionLabels.message,
-    component: "SettingMessage",
-    props: resolveSectionProps(settingSectionProps.value.message),
-  },
-  {
-    key: "ai",
-    label: settingSectionLabels.ai,
-    component: "SettingAiChat",
-    props: resolveSectionProps(settingSectionProps.value.ai),
-  },
-  {
-    key: "advanced",
-    label: settingSectionLabels.advanced,
-    component: "SettingAdvanced",
-    props: resolveSectionProps(settingSectionProps.value.advanced),
-  },
-]);
+>(() =>
+  [
+    {
+      key: "theme",
+      label: settingSectionLabels.theme,
+      component: "SettingTheme",
+      props: resolveSectionProps(settingSectionProps.value.theme),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("theme"),
+      searchText: "",
+    },
+    {
+      key: "layout",
+      label: settingSectionLabels.layout,
+      component: "SettingLayout",
+      props: resolveSectionProps(settingSectionProps.value.layout),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("layout"),
+      searchText: "",
+    },
+    {
+      key: "tabs",
+      label: settingSectionLabels.tabs,
+      component: "SettingTabs",
+      props: resolveSectionProps(settingSectionProps.value.tabs),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("tabs"),
+      searchText: "",
+    },
+    {
+      key: "toolbar",
+      label: settingSectionLabels.toolbar,
+      component: "SettingToolbar",
+      props: resolveSectionProps(settingSectionProps.value.toolbar),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("toolbar"),
+      searchText: "",
+    },
+    {
+      key: "display",
+      label: settingSectionLabels.display,
+      component: "SettingDisplay",
+      props: resolveSectionProps(settingSectionProps.value.display),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("display"),
+      searchText: "",
+    },
+    {
+      key: "menu",
+      label: settingSectionLabels.menu,
+      component: "SettingMenu",
+      props: resolveSectionProps(settingSectionProps.value.menu),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("menu"),
+      searchText: "",
+    },
+    {
+      key: "message",
+      label: settingSectionLabels.message,
+      component: "SettingMessage",
+      props: resolveSectionProps(settingSectionProps.value.message),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("message"),
+      searchText: "",
+    },
+    {
+      key: "ai",
+      label: settingSectionLabels.ai,
+      component: "SettingAiChat",
+      props: resolveSectionProps(settingSectionProps.value.ai),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("ai"),
+      searchText: "",
+    },
+    {
+      key: "advanced",
+      label: settingSectionLabels.advanced,
+      component: "SettingAdvanced",
+      props: resolveSectionProps(settingSectionProps.value.advanced),
+      sortWeight: DEFAULT_SECTION_ORDER.indexOf("advanced"),
+      searchText: "",
+    },
+  ].map((section) => ({
+    ...section,
+    searchText: [section.label, ...extractSearchText(section.props)]
+      .join(" ")
+      .toLowerCase(),
+  })),
+);
 
-const progressiveSectionKeys = settingSections.value
-  .map(({ key }) => key)
-  .filter((key) => !mountedSections[key]);
+const displayedSettingSections = computed(() => {
+  const keyword = sectionSearch.value.trim().toLowerCase();
+
+  const filtered = keyword
+    ? allSettingSections.value.filter((section) =>
+        section.searchText.includes(keyword),
+      )
+    : allSettingSections.value;
+
+  if (sectionSortMode.value === "name") {
+    return [...filtered].sort((left, right) =>
+      left.label.localeCompare(right.label, "zh-CN"),
+    );
+  }
+
+  return [...filtered].sort(
+    (left, right) => left.sortWeight - right.sortWeight,
+  );
+});
 
 const setSectionRef = (
   key: SettingSectionKey,
@@ -1771,38 +1887,6 @@ const setSectionRef = (
     return;
   }
   sectionElements.delete(key);
-};
-
-const scheduleDeferredSectionMount = () => {
-  const pendingKeys = progressiveSectionKeys.filter(
-    (key) => !mountedSections[key],
-  );
-  if (!pendingKeys.length) {
-    return;
-  }
-
-  const queueNext = () => {
-    const nextKey = pendingKeys.shift();
-    if (!nextKey) {
-      return;
-    }
-
-    const reveal = () => {
-      mountedSections[nextKey] = true;
-      deferredSectionHandles.delete(handle);
-      queueNext();
-    };
-
-    let handle = 0;
-    if (typeof window.requestIdleCallback === "function") {
-      handle = window.requestIdleCallback(reveal, { timeout: 220 });
-    } else {
-      handle = window.setTimeout(reveal, 60);
-    }
-    deferredSectionHandles.add(handle);
-  };
-
-  queueNext();
 };
 
 const scrollToSection = (key: SettingSectionKey) => {
@@ -1816,22 +1900,20 @@ const scrollToSection = (key: SettingSectionKey) => {
   });
 };
 
-onMounted(() => {
-  scheduleDeferredSectionMount();
+watch(displayedSettingSections, (sections) => {
+  if (!sections.length) {
+    return;
+  }
+
+  if (!sections.some((section) => section.key === activeSection.value)) {
+    activeSection.value = sections[0].key;
+  }
 });
 
 onUnmounted(() => {
   removeMatchMedia();
   // 移除事件监听器
   emitter.off("settingPanelClosed");
-  deferredSectionHandles.forEach((handle) => {
-    if (typeof window.cancelIdleCallback === "function") {
-      window.cancelIdleCallback(handle);
-      return;
-    }
-    window.clearTimeout(handle);
-  });
-  deferredSectionHandles.clear();
 });
 </script>
 
@@ -1845,18 +1927,25 @@ onUnmounted(() => {
         >
           <section class="setting-shell-hero">
             <div class="setting-shell-hero__content">
-              <span class="setting-shell-hero__eyebrow"
-                >Workspace Control Center</span
-              >
+              <span class="setting-shell-hero__eyebrow">{{
+                translateOr(
+                  "panel.settingHeroEyebrow",
+                  "Workspace Control Center",
+                )
+              }}</span>
               <div class="setting-shell-hero__headline">
                 <div>
-                  <h2 class="setting-shell-hero__title">系统设置</h2>
+                  <h2 class="setting-shell-hero__title">
+                    {{ translateOr("panel.settingHeroTitle", "系统设置") }}
+                  </h2>
                   <p class="setting-shell-hero__description">
                     {{ activeThemeSummary }}
                   </p>
                 </div>
                 <div class="setting-shell-hero__status">
-                  <span class="setting-shell-hero__status-label">当前主题</span>
+                  <span class="setting-shell-hero__status-label">
+                    {{ translateOr("panel.currentThemeLabel", "当前主题") }}
+                  </span>
                   <strong class="setting-shell-hero__status-value">
                     {{
                       themeDisplayLabels[themeStore.currentTheme] ??
@@ -1881,9 +1970,35 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <div class="setting-shell-tools">
+              <div class="setting-shell-tools__filters">
+                <ScInput
+                  v-model="sectionSearch"
+                  :placeholder="sectionSearchPlaceholder"
+                  clearable
+                  class="setting-shell-tools__search"
+                >
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:search-line" />
+                  </template>
+                </ScInput>
+                <ScSelect
+                  v-model="sectionSortMode"
+                  class="setting-shell-tools__sort"
+                >
+                  <ScOption
+                    v-for="option in sectionSortOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  />
+                </ScSelect>
+              </div>
+            </div>
+
             <div class="setting-shell-nav">
               <button
-                v-for="section in settingSections"
+                v-for="section in displayedSettingSections"
                 :key="section.key"
                 type="button"
                 class="setting-shell-nav__item"
@@ -1896,8 +2011,28 @@ onUnmounted(() => {
           </section>
 
           <div class="setting-shell-stage">
+            <div
+              v-if="!displayedSettingSections.length"
+              class="setting-shell-empty"
+            >
+              <IconifyIconOnline icon="ri:search-eye-line" />
+              <strong>{{
+                translateOr(
+                  "panel.settingSearchEmptyTitle",
+                  "没有匹配的设置分区",
+                )
+              }}</strong>
+              <p>
+                {{
+                  translateOr(
+                    "panel.settingSearchEmptyDesc",
+                    "请调整关键词，关键词会同时匹配分区标题、控件标签和描述。",
+                  )
+                }}
+              </p>
+            </div>
             <section
-              v-for="section in settingSections"
+              v-for="section in displayedSettingSections"
               :key="section.key"
               :ref="(element) => setSectionRef(section.key, element)"
               class="setting-shell-stage__item"
@@ -1905,14 +2040,8 @@ onUnmounted(() => {
             >
               <component
                 :is="themeSectionComponents[section.component]"
-                v-if="mountedSections[section.key]"
                 v-bind="section.props"
               />
-              <div v-else class="setting-shell-skeleton" aria-hidden="true">
-                <div class="setting-shell-skeleton__line is-wide" />
-                <div class="setting-shell-skeleton__line" />
-                <div class="setting-shell-skeleton__line is-short" />
-              </div>
             </section>
           </div>
         </div>

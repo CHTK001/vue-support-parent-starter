@@ -1,9 +1,0 @@
-@use "@layout/uni/styles/theme.scss";
-
-page {
-  background:
-    radial-gradient(circle at 76% 10%, rgba(201, 108, 45, 0.16), transparent 26%),
-    radial-gradient(circle at 14% 84%, rgba(22, 107, 90, 0.11), transparent 30%),
-    radial-gradient(circle at 48% 48%, rgba(255, 255, 255, 0.16), transparent 38%),
-    var(--uni-shell-bg);
-}

@@ -43,10 +43,25 @@ export const fetchPageDict = (params) => {
   });
 };
 /** 获取字典*/
-export const fetchListDict = (params) => {
-  return http.request<ReturnResult<Dict[]>>("get", "/v2/dict/list", {
+export const fetchListDict = async (params) => {
+  const res = await http.request<ReturnResult<any>>("get", "/v2/dict/page", {
     params,
   });
+  const payload = res?.data;
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.rows)
+        ? payload.rows
+        : Array.isArray(payload?.records)
+          ? payload.records
+          : [];
+
+  return {
+    ...res,
+    data: rows,
+  };
 };
 
 /** 删除字典项配置 */

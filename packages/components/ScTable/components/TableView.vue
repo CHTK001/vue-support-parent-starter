@@ -520,9 +520,8 @@ defineExpose({
 <style lang="scss" scoped>
 .table-container {
   width: 100%;
+  height: 100%;
   max-width: 100%; /* 限制容器最大宽度 */
-  background-color: var(--stitch-lay-bg-panel);
-  transition: var(--stitch-lay-transition);
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
   overflow-x: auto; /* 允许横向滚动 */
 
@@ -598,17 +597,6 @@ defineExpose({
     display: none; /* Chrome, Safari, Opera */
   }
 }
-
-.modern-table {
-  width: 100%;
-  background-color: transparent;
-
-  /* 移除 Element Plus 表格默认边框 */
-  :deep(.el-table__inner-wrapper::before) {
-    display: none;
-  }
-}
-
 .drag-handle {
   cursor: grab;
   color: var(--stitch-lay-text-secondary);

@@ -26,27 +26,32 @@ const keep = computed(() => {
 // 避免重新渲染 LayFrame
 const normalComp = computed(() => !keep.value && props.currComp);
 
-watch(multiTagsStore.multiTags, (tags: any) => {
-  if (!Array.isArray(tags) || !keep.value) {
-    return;
-  }
-  const iframeTags = tags.filter((i) => i.meta?.frameSrc);
-  // tags必须是小于MAP，才是做了关闭动作，因为MAP插入的顺序在tags变化后发生
-  if (iframeTags.length < MAP.size) {
-    for (const i of MAP.keys()) {
-      if (!tags.some((s) => s.path === i)) {
-        delMap(i);
-        compList.value = getMap();
+watch(
+  () => multiTagsStore.multiTags,
+  (tags: any) => {
+    if (!Array.isArray(tags) || !keep.value) {
+      return;
+    }
+    const iframeTags = tags.filter((i) => i.meta?.frameSrc);
+    // tags必须是小于MAP，才是做了关闭动作，因为MAP插入的顺序在tags变化后发生
+    if (iframeTags.length < MAP.size) {
+      for (const i of MAP.keys()) {
+        if (!tags.some((s) => s.path === i)) {
+          delMap(i);
+          compList.value = getMap();
+        }
       }
     }
-  }
-});
+  },
+);
 
 watch(
   () => props.currRoute.fullPath,
   (path) => {
     const multiTags = multiTagsStore.multiTags as RouteRecordRaw[];
-    const iframeTags = multiTags?.filter((i) => i.meta?.frameSrc);
+    const iframeTags = Array.isArray(multiTags)
+      ? multiTags.filter((i) => i.meta?.frameSrc)
+      : [];
     if (keep.value) {
       if (iframeTags.length !== MAP.size) {
         const sameKey = [...MAP.keys()].find((i) => path === i);
