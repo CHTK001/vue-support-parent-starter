@@ -920,6 +920,70 @@
   }
 }
 
+.setting-shell-tools {
+  margin-top: 18px;
+}
+
+.setting-shell-tools__filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 12px;
+  align-items: center;
+}
+
+.setting-shell-tools__search,
+.setting-shell-tools__sort {
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper) {
+    min-height: 44px;
+    border-radius: 14px;
+    box-shadow:
+      inset 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1),
+      0 10px 24px -24px rgba(15, 23, 42, 0.42);
+    background: rgba(255, 255, 255, 0.82);
+  }
+}
+
+.setting-shell-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 44px 24px;
+  border: 1px dashed rgba(var(--el-color-primary-rgb), 0.22);
+  border-radius: 22px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(var(--el-color-primary-rgb), 0.06) 100%
+  );
+  text-align: center;
+  color: var(--el-text-color-secondary);
+
+  strong {
+    color: var(--el-text-color-primary);
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0;
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  :deep(svg) {
+    font-size: 28px;
+    color: var(--el-color-primary);
+  }
+}
+
+@media (max-width: 768px) {
+  .setting-shell-tools__filters {
+    grid-template-columns: 1fr;
+  }
+}
+
 // 输入项样式
 .input-item {
   display: flex;

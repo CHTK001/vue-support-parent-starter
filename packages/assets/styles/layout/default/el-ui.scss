@@ -143,11 +143,6 @@ translate-x-50\% {
 }
 //--el-bg-color
 .main-content {
-  --layout-panel-bg: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.985),
-    rgba(248, 250, 252, 0.96)
-  );
   --layout-panel-border: rgba(148, 163, 184, 0.14);
   --layout-panel-shadow: 0 26px 48px -38px rgba(15, 23, 42, 0.28);
   --layout-panel-glow: radial-gradient(
@@ -157,9 +152,9 @@ translate-x-50\% {
   );
   width: 100% !important; /* 强制宽度为 100% */
   max-width: 100% !important; /* 限制最大宽度 */
-  background: var(--layout-panel-bg);
+  background: var(--el-bg-color-page);
+  padding: 8px;
   border: 1px solid var(--layout-panel-border);
-  border-radius: 24px;
   color: var(--el-text-color-primary);
   overflow: hidden;
   margin-top: 0px;
@@ -446,9 +441,7 @@ html.theme-spring-festival {
 .card-item {
   min-height: 180px;
 }
-.app-container {
-  padding: 15px;
-}
+
 .background-color {
   background-color: var(--el-bg-color);
 }
@@ -472,10 +465,6 @@ section.panel-padding > aside {
 }
 /*****************************************/
 
-.main,
-.el-container {
-  height: 100%;
-}
 .el-header {
   min-height: var(--navbar-height, 56px);
   background: rgba(255, 255, 255, 0.82);
@@ -503,8 +492,11 @@ section.panel-padding > aside {
   flex-basis: 100%;
   height: 100%;
 }
+.nopadding {
+  padding: 0 !important;
+}
 .el-main.nopadding {
-  padding: 0;
+  padding: 0 !important;
   background: var(--el-bg-color-overlay);
   height: 100%;
 }

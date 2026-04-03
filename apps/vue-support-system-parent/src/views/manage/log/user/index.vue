@@ -29,6 +29,10 @@ import { useI18n } from "vue-i18n";
 const DetailLayout = defineAsyncComponent(() => import("./detail.vue"));
 // 获取国际化实例
 const { t } = useI18n();
+const i18nLabel = (key, fallback) => {
+  const translated = transformI18n(key);
+  return translated && translated !== key ? translated : fallback;
+};
 // 定义详情页组件的引用
 const detailRef = ref(null);
 // 定义搜索表单的数据对象
@@ -72,13 +76,21 @@ const visible = reactive({
  * @returns {string} - 转换后的标签
  */
 const transform = (value) => {
-  value = String(value || "").toUpperCase();
-  const _value = moduleOptions.filter((item) => {
-    if (item.value === value) {
-      return item.label;
-    }
-  });
-  return _value.length > 0 ? _value[0].label : transformI18n("module.other");
+  const normalizedValue = String(value || "").toUpperCase();
+  const item = moduleOptions.find((option) => option.value === normalizedValue);
+  return item?.label || i18nLabel("module.other", "其他");
+};
+
+const resolveLoginTypeLabel = (value) => {
+  const normalizedValue = String(value || "").toUpperCase();
+  const labels = {
+    WEB: i18nLabel("WEB", "网页"),
+    APP: i18nLabel("APP", "应用"),
+    H5: i18nLabel("H5", "H5"),
+    WAP: i18nLabel("WAP", "WAP"),
+    PC: i18nLabel("PC", "电脑端"),
+  };
+  return labels[normalizedValue] || normalizedValue || "-";
 };
 
 // 定义加载状态的对象
@@ -138,8 +150,9 @@ const openDetail = async (row) => {
 const contentRef = ref();
 // 定义模块选项列表
 const moduleOptions = reactive([
-  { label: transformI18n("module.login"), value: "LOGIN" },
-  { label: transformI18n("module.logout"), value: "LOGOUT" },
+  { label: i18nLabel("module.login", "登录"), value: "LOGIN" },
+  { label: i18nLabel("module.loginFail", "登录失败"), value: "LOGIN_FAIL" },
+  { label: i18nLabel("module.logout", "退出登录"), value: "LOGOUT" },
 ]);
 
 // 统计数据
@@ -280,8 +293,8 @@ const onDataLoaded = (data, total) => {
               <ScDatePicker
                 v-model="sysLogTime"
                 type="datetimerange"
-                :start-placeholder="transformI18n('module.startDate')"
-                :end-placeholder="transformI18n('module.endDate')"
+                :start-placeholder="i18nLabel('module.startDate', '开始时间')"
+                :end-placeholder="i18nLabel('module.endDate', '结束时间')"
                 format="YYYY-MM-DD HH:mm:ss"
                 date-format="YYYY-MM-DD ddd"
                 time-format="A hh:mm:ss"
@@ -381,7 +394,7 @@ const onDataLoaded = (data, total) => {
               </ScTableColumn>
               <!-- 地址列 -->
               <ScTableColumn
-                label="地址"
+                label="请求地址"
                 prop="sysLogUrl"
                 align="center"
                 show-overflow-tooltip
@@ -402,7 +415,7 @@ const onDataLoaded = (data, total) => {
                 width="140px"
               >
                 <template #default="{ row }">
-                  {{ transformI18n(row.sysLogLoginType) }}
+                  {{ resolveLoginTypeLabel(row.sysLogLoginType) }}
                 </template>
               </ScTableColumn>
               <!-- userAgent 列 -->
@@ -587,12 +600,7 @@ const onDataLoaded = (data, total) => {
   }
 }
 
-// 主容器样式
-.log-main {
-  height: 100%;
-  background-color: var(--el-bg-color);
-  animation: log-fade-in 0.5s ease-out;
-}
+
 
 .log-container {
   display: flex;
@@ -600,7 +608,8 @@ const onDataLoaded = (data, total) => {
   height: 100%;
   overflow: hidden;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgb(0 0 0 / 5%);
+  border: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 4%);
 }
 
 // 头部样式
@@ -707,14 +716,18 @@ const onDataLoaded = (data, total) => {
 
 // 主内容区域样式
 .log-main-content {
-  height: calc(100% - 160px);
   padding: 0 !important;
-  overflow: hidden;
+  display: flex;
+  flex: 1;
+  min-height: 0;
 }
 
 .log-table {
   width: 100%; // 确保表格宽度为100%
   height: 100%;
+  display: flex;
+  flex: 1;
+  min-height: 0;
 
   :deep(.el-table) {
     width: 100%; // 确保表格宽度为100%
@@ -775,12 +788,17 @@ const onDataLoaded = (data, total) => {
 // 添加以下样式以防止内容溢出
 .log-content {
   display: flex;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
 }
 
 .log-table-container-full {
+  display: flex;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
@@ -788,6 +806,8 @@ const onDataLoaded = (data, total) => {
 }
 
 .log-table-container-narrow {
+  display: flex;
+  min-height: 0;
   width: 60vw;
   height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
@@ -796,7 +816,6 @@ const onDataLoaded = (data, total) => {
 
 // 确保主容器不出现滚动条
 .log-main {
-  height: 100%;
   overflow-x: hidden; // 隐藏横向滚动条
   background-color: var(--el-bg-color);
   animation: log-fade-in 0.5s ease-out;

@@ -22,6 +22,10 @@ export { useUniTheme } from "./hooks/useUniTheme";
 export { useUniRequest, uniRequest } from "./hooks/useUniRequest";
 
 // Types
-export type { UniBottomNavItem, UniThemeMode, UniRequestOptions } from "./types";
+export type {
+  UniBottomNavItem,
+  UniThemeMode,
+  UniRequestOptions,
+} from "./types";
 
 export default UniPageShell;

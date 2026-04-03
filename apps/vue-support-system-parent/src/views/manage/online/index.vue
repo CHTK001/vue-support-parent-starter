@@ -556,7 +556,6 @@ onMounted(() => {
     .table-container {
       height: 100%;
       overflow: hidden;
-      background-color: var(--el-bg-color);
       border-radius: var(--el-border-radius-base);
       box-shadow: var(--el-box-shadow-lighter);
     }

@@ -71,7 +71,11 @@
               :content="isExpanded ? '折叠全部' : '展开全部'"
               placement="top"
             >
-              <ScButton @click="toggleExpandAll">
+              <ScButton
+                :title="isExpanded ? '折叠全部菜单' : '展开全部菜单'"
+                :aria-label="isExpanded ? '折叠全部菜单' : '展开全部菜单'"
+                @click="toggleExpandAll"
+              >
                 <IconifyIconOnline
                   :icon="
                     isExpanded
@@ -86,6 +90,8 @@
               <ScButton
                 type="primary"
                 :loading="loading.query"
+                title="刷新菜单"
+                aria-label="刷新菜单"
                 @click="onSearch"
               >
                 <IconifyIconOnline icon="ri:refresh-line" />
@@ -99,6 +105,8 @@
             >
               <ScButton
                 type="success"
+                title="新增菜单"
+                aria-label="新增菜单"
                 @click="dialogOpen({ sysMenuType: 0 }, 'save')"
               >
                 <IconifyIconOnline icon="ri:add-line" />
@@ -108,7 +116,7 @@
         </ScHeader>
 
         <!-- 表格主体 -->
-        <ScMain class="menu-main">
+        <ScMain class="menu-main page-table-fill">
           <div class="menu-table-container">
             <!-- 加载骨架屏 -->
             <ScSkeleton v-if="loading.query" animated :rows="6" />
@@ -118,9 +126,10 @@
               v-else
               ref="menuTableRef"
               :data="filteredTableData"
+              class="menu-table table-fill"
               row-key="sysMenuId"
               border
-              class="modern-table menu-table"
+              layout="table"
               :default-expand-all="isExpanded"
               @row-click="getOpenDetail"
             >
@@ -265,6 +274,8 @@
                       <ScButton
                         type="primary"
                         link
+                        title="编辑菜单"
+                        aria-label="编辑菜单"
                         @click.stop="dialogOpen(row, 'edit')"
                       >
                         <IconifyIconOnline icon="mdi:pencil" />
@@ -276,6 +287,8 @@
                       <ScButton
                         type="success"
                         link
+                        title="添加子菜单"
+                        aria-label="添加子菜单"
                         @click.stop="
                           dialogOpen(
                             { sysMenuPid: row.sysMenuId, sysMenuType: 0 },
@@ -296,7 +309,13 @@
                     >
                       <template #reference>
                         <ScTooltip content="删除菜单" placement="top">
-                          <ScButton type="danger" link @click.stop>
+                          <ScButton
+                            type="danger"
+                            link
+                            title="删除菜单"
+                            aria-label="删除菜单"
+                            @click.stop
+                          >
                             <IconifyIconOnline icon="mdi:delete" />
                           </ScButton>
                         </ScTooltip>
@@ -717,8 +736,6 @@ const getMenuTypeTag = (type) => {
 }
 
 .menu-container {
-  height: 100%;
-  background-color: var(--el-bg-color);
 
   .menu-wrapper {
     display: flex;
@@ -730,9 +747,18 @@ const getMenuTypeTag = (type) => {
     box-shadow: none;
 
     :deep(.sc-container) {
-      height: 100%;
-      min-height: 0;
+      display: flex;
+      flex: 1;
+      flex-direction: column;
     }
+  }
+
+  .page-table-fill {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
   }
 
   .menu-header {
@@ -802,6 +828,13 @@ const getMenuTypeTag = (type) => {
     .menu-table {
       flex: 1;
       min-height: 0;
+
+      :deep(.sc-table-container),
+      :deep(.sc-table-wrapper),
+      :deep(.sc-table-content-wrapper) {
+        flex: 1;
+        min-height: 0;
+      }
 
       :deep(.el-table) {
         height: 100%;
@@ -998,6 +1031,31 @@ const getMenuTypeTag = (type) => {
         background-color: rgb(64 158 255 / 10%);
       }
     }
+  }
+}
+
+.menu-wrapper,
+.menu-main,
+.menu-table-container {
+  box-shadow: none !important;
+}
+
+.menu-stats {
+  box-shadow: none !important;
+
+  .stat-item {
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: none !important;
+  }
+}
+
+.menu-type-tag {
+  box-shadow: none !important;
+}
+
+html.dark {
+  .menu-stats .stat-item {
+    border-color: rgba(71, 85, 105, 0.55);
   }
 }
 </style>

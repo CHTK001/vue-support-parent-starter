@@ -27,15 +27,65 @@ export const config: Config = {
   }
 };
 
-export const parseData = res => {
+const resolvePagePayload = payload => {
+  if (!payload) {
+    return { rows: [], total: 0 };
+  }
+
+  const candidates = [payload, payload.data].filter(Boolean);
+
+  for (const item of candidates) {
+    if (Array.isArray(item)) {
+      return {
+        rows: item,
+        total: payload?.total ?? item.length,
+      };
+    }
+
+    if (Array.isArray(item?.data)) {
+      return {
+        rows: item.data,
+        total: item.total ?? payload?.total ?? item.data.length,
+      };
+    }
+
+    if (Array.isArray(item?.rows)) {
+      return {
+        rows: item.rows,
+        total: item.total ?? payload?.total ?? item.rows.length,
+      };
+    }
+
+    if (Array.isArray(item?.records)) {
+      return {
+        rows: item.records,
+        total: item.total ?? item.recordsTotal ?? payload?.total ?? item.records.length,
+      };
+    }
+  }
+
   return {
-    //分析无分页的数据字段结构
-    data: res.data?.data || res.data?.rows || res.data?.records,
-    rows: res.data?.data || res.data?.rows || res.data?.records, //分析行数据字段结构
-    total: res.data?.total ?? res?.data?.recordsTotal ?? 0, //分析总数字段结构
-    summary: res.summary, //分析合计行字段结构
-    msg: res.msg || res.message, //分析描述字段结构
-    code: res.code //分析状态字段结构
+    rows: [],
+    total: payload?.total ?? payload?.recordsTotal ?? 0,
+  };
+};
+
+export const parseData = res => {
+  const payload = res?.data;
+  const { rows, total } = resolvePagePayload(payload);
+  const normalizedCode =
+    res?.success !== false && (res?.code === 200 || res?.code == null)
+      ? config.successCode
+      : res?.code;
+
+  return {
+    // 分析无分页/分页数据字段结构，统一只兼容一层容器
+    data: rows,
+    rows,
+    total,
+    summary: res?.summary ?? payload?.summary,
+    msg: res?.msg || res?.message,
+    code: normalizedCode,
   };
 };
 

@@ -6,7 +6,7 @@
         v-model:currentPage="currentPage"
         background
         :size="size"
-        :layout="paginationLayout"
+        :layout="resolvedLayout"
         :total="total"
         :page-size="scPageSize"
         :page-sizes="pageSizes"
@@ -29,6 +29,7 @@ defineOptions({
 });
 
 const props = defineProps({
+  currentPage: { type: Number, default: 1 },
   pageSize: { type: Number, default: config.pageSize },
   pageSizes: { type: Array, default: () => config.pageSizes },
   hidePagination: { type: Boolean, default: false },
@@ -36,19 +37,45 @@ const props = defineProps({
   total: { type: Number, default: 0 },
   hideDo: { type: Boolean, default: false },
   hideRefresh: { type: Boolean, default: false },
+  layout: { type: String, default: "" },
   paginationLayout: { type: String, default: config.paginationLayout },
 });
 
-const emit = defineEmits(["dataChange"]);
+const emit = defineEmits([
+  "dataChange",
+  "update:currentPage",
+  "current-change",
+  "currentChange",
+  "update:pageSize",
+  "size-change",
+]);
 const scPageSize = ref(props.pageSize);
-const currentPage = ref(1);
-const page = ref(1);
+const currentPage = ref(props.currentPage || 1);
+const page = ref(props.currentPage || 1);
+const resolvedLayout = ref(props.layout || props.paginationLayout);
+
+watch(
+  () => props.currentPage,
+  (value) => {
+    currentPage.value = value || 1;
+    page.value = value || 1;
+  },
+  { immediate: true },
+);
 
 watch(
   () => props.pageSize,
   (value) => {
     scPageSize.value = value;
   },
+);
+
+watch(
+  () => props.layout,
+  (value) => {
+    resolvedLayout.value = value || props.paginationLayout;
+  },
+  { immediate: true },
 );
 
 function getData() {
@@ -62,6 +89,9 @@ function refresh() {
 function paginationChange(nextPage) {
   page.value = nextPage;
   currentPage.value = nextPage;
+  emit("update:currentPage", nextPage);
+  emit("current-change", nextPage);
+  emit("currentChange", nextPage);
   getData();
 }
 
@@ -69,6 +99,9 @@ function pageSizeChange(nextSize) {
   scPageSize.value = nextSize;
   page.value = 1;
   currentPage.value = 1;
+  emit("update:pageSize", nextSize);
+  emit("size-change", nextSize);
+  emit("update:currentPage", 1);
   getData();
 }
 </script>

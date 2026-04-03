@@ -161,7 +161,7 @@ catalog:
   archiver: ^7.0.1
   assert: ^2.1.0
   autoprefixer: ^10.4.21
-  axios: ^1.7.2
+  axios: 1.13.6
   marked: ^16.3.0
   axios-mock-adapter: ^2.1.0
   ayin-color: 1.0.9
@@ -344,7 +344,7 @@ catalog:
   puppeteer: ^13.7.0
   qrcode: ^1.5.4
   qrcode.vue: ^3.6.0
-  qs: ^6.14.0
+  qs: 6.14.0
   radix-vue: ^1.9.9
   reactive-resize: ^1.0.1
   reactivesearch-vue: ^2.0.0-beta.1
@@ -361,7 +361,7 @@ catalog:
   sockjs-client: ^1.6.1
   webstomp-client: ^1.2.6
   nacos: ^2.6.0
-  socket.io-client: ^4.7.5
+  socket.io-client: 4.7.5
   sortable.js: ^0.3.0
   sortablejs: ^1.15.3
   sql-formatter: ^15.7.0
@@ -472,5 +472,5 @@ catalog:
   "rete-render-utils": ^2.0.3
   "rete-connection-reroute-plugin": ^2.0.2
   # Three.js - 3D Graphics Library
-  three: ^0.169.0
+  three: 0.169.0
   "@types/three": ^0.169.0

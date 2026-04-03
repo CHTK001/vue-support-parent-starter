@@ -3,10 +3,7 @@ import pkg from "./package.json";
 
 export default createViteConfig(import.meta.url, pkg)
   .fsAllowRelative("../../")
-  .filterWarningIncludes(
-    "protobufjs/dist/minimal/protobuf.js",
-    "Use of eval",
-  )
+  .filterWarningIncludes("protobufjs/dist/minimal/protobuf.js", "Use of eval")
   .keepConsole()
   .removeConsoleRelative("../../packages/utils/src/http/index.ts")
   .aggressiveTerser()
@@ -27,10 +24,6 @@ export default createViteConfig(import.meta.url, pkg)
     "VITE_TENANT_API_PROXY_TARGET",
     "http://172.16.0.40:18171",
   )
-  .proxyFromEnv(
-    "/oauth",
-    "VITE_OAUTH_PROXY_TARGET",
-    "http://172.16.0.40:19180",
-  )
+  .proxyFromEnv("/oauth", "VITE_OAUTH_PROXY_TARGET", "http://172.16.0.40:19180")
   .mockWhenEnv("VITE_ENABLE_FAKE_SERVER", ["mock"])
   .build();

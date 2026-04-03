@@ -318,6 +318,79 @@ defineExpose({
   justify-content: flex-end;
 }
 
+.role-tabs {
+  :deep(.el-tabs__nav-wrap::after) {
+    display: none;
+  }
+
+  :deep(.el-tabs__item) {
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: var(--el-text-color-regular);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  :deep(.el-tabs__item.is-active) {
+    color: var(--el-color-primary);
+    background: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  :deep(.el-tabs__active-bar) {
+    display: none;
+  }
+
+  :deep(.el-segmented) {
+    width: 100%;
+    max-width: 360px;
+  }
+}
+
+.tab-content {
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.96) 0%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
+}
+
+.role-tree {
+  padding: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 14px;
+  background: var(--el-bg-color);
+
+  :deep(.el-tree-v2__node) {
+    min-height: 34px;
+    border-radius: 8px;
+  }
+
+  :deep(.el-tree-v2__node:hover) {
+    background: rgba(var(--el-color-primary-rgb), 0.06);
+  }
+}
+
+html.dark {
+  .tab-content {
+    border-color: rgba(71, 85, 105, 0.55);
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.72) 0%,
+      rgba(15, 23, 42, 0.56) 100%
+    );
+  }
+
+  .role-tree {
+    border-color: rgba(71, 85, 105, 0.55);
+    background: rgba(15, 23, 42, 0.5);
+  }
+}
+
 // 暗色主题适配
 :root[data-theme="dark"] {
   .role-dialog {

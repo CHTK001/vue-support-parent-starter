@@ -510,12 +510,19 @@ export default defineComponent({
               <ScButton
                 type="primary"
                 :icon="Edit"
+                title="新增用户"
+                aria-label="新增用户"
                 @click="dialogOpen({}, 'save')"
                 >新增用户</ScButton>
 
               <!-- 批量操作下拉菜单 -->
               <ScDropdown trigger="click" :disabled="!hasSelected">
-                <ScButton :disabled="!hasSelected" :loading="batchLoading">
+                <ScButton
+                  :disabled="!hasSelected"
+                  :loading="batchLoading"
+                  title="批量操作"
+                  aria-label="批量操作"
+                >
                   <IconifyIconOnline
                     icon="ri:checkbox-multiple-line"
                     class="mr-1"
@@ -553,7 +560,7 @@ export default defineComponent({
 
               <!-- 导入导出下拉菜单 -->
               <ScDropdown trigger="click">
-                <ScButton>
+                <ScButton title="导入导出" aria-label="导入导出">
                   <IconifyIconOnline icon="ep:download" class="mr-1" />导入导出
                 </ScButton>
                 <template #dropdown>
@@ -589,7 +596,7 @@ export default defineComponent({
             </div>
           </div>
         </ScHeader>
-        <ScMain class="nopadding">
+        <ScMain class="nopadding page-table-fill">
           <div ref="contentRef" class="h-full flex">
             <div
               :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
@@ -600,6 +607,7 @@ export default defineComponent({
                 :url="fetchPageUserValue"
                 :params="form"
                 height="auto"
+                class="table-fill"
                 @data-loaded="onDataLoaded"
                 @selection-change="handleSelectionChange"
               >
@@ -753,6 +761,7 @@ export default defineComponent({
                       "
                       :active-value="1"
                       :inactive-value="0"
+                      :title="row.sysUserStatus == 1 ? '禁用用户' : '启用用户'"
                       @change="fetchUpdateUserValue(row)"
                     />
                     <ScTag
@@ -829,6 +838,8 @@ export default defineComponent({
                         v-roles="['ADMIN', 'SUPER_ADMIN']"
                         class="btn-text"
                         :icon="EditPen"
+                        title="编辑用户"
+                        aria-label="编辑用户"
                         @click="dialogOpen(row, 'edit')"
                       />
                     </ScTooltip>
@@ -843,6 +854,8 @@ export default defineComponent({
                             v-roles="['ADMIN', 'SUPER_ADMIN']"
                             class="btn-text"
                             type="warning"
+                            title="重置用户密码"
+                            aria-label="重置用户密码"
                           >
                             <IconifyIconOnline icon="ri:lock-password-line" />
                           </ScButton>
@@ -862,6 +875,8 @@ export default defineComponent({
                             class="btn-text"
                             type="danger"
                             :icon="Delete"
+                            title="删除用户"
+                            aria-label="删除用户"
                           />
                         </template>
                       </ScPopconfirm>
@@ -1022,6 +1037,14 @@ export default defineComponent({
   background-color: var(--el-bg-color-page);
 }
 
+.page-table-fill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
 // 表格容器样式
 :deep(.h-full) {
   display: flex;
@@ -1036,6 +1059,13 @@ export default defineComponent({
 
 :deep(.h-full .el-table) {
   height: 100%;
+}
+
+:deep(.table-fill .sc-table-container),
+:deep(.table-fill .sc-table-wrapper),
+:deep(.table-fill .sc-table-content-wrapper) {
+  flex: 1;
+  min-height: 0;
 }
 
 // 表格美化

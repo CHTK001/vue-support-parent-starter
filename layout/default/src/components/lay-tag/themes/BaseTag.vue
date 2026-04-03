@@ -1158,4 +1158,36 @@ html.dark {
     }
   }
 }
+
+.glass-item.is-active {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--el-color-primary) 20%, #ffffff 80%) 0%,
+    color-mix(in srgb, var(--el-color-primary) 10%, #ffffff 90%) 100%
+  ) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 46%,
+    #ffffff 54%
+  ) !important;
+  color: color-mix(in srgb, var(--el-color-primary) 82%, #0f172a 18%) !important;
+
+  .tag-icon,
+  .tag-title,
+  .tag-title span {
+    color: inherit !important;
+  }
+}
+
+html.dark {
+  .glass-item.is-active {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.32) 0%,
+      rgba(var(--el-color-primary-rgb), 0.18) 100%
+    ) !important;
+    border-color: rgba(var(--el-color-primary-rgb), 0.58) !important;
+    color: #f8fbff !important;
+  }
+}
 </style>

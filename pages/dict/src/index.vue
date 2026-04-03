@@ -109,6 +109,8 @@ const dialogClose = () => {
               <ScButton 
                 v-auth="'dict:list'"
                 size="small"
+                title="刷新字典项"
+                aria-label="刷新字典项"
                 @click="onSearch({})"
               >
                 <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
@@ -118,6 +120,8 @@ const dialogClose = () => {
                 v-auth="'dict:add'"
                 type="primary"
                 size="small"
+                title="新增字典项"
+                aria-label="新增字典项"
                 @click="dialogOpen({}, 'save')"
               >
                 <IconifyIconOnline icon="ri:add-line" class="mr-1" />
@@ -235,12 +239,16 @@ const dialogClose = () => {
                     v-auth="'dict:setting'"
                     class="btn-text"
                     :icon="useRenderIcon('ep:setting')"
+                    title="配置字典项"
+                    aria-label="配置字典项"
                     @click="handleSetting(row)"
                   ></ScButton>
                   <ScButton 
                     v-auth="'dict:edit'"
                     class="btn-text"
                     :icon="useRenderIcon(EditPen)"
+                    title="编辑字典项"
+                    aria-label="编辑字典项"
                     @click="dialogOpen(row, 'edit')"
                   ></ScButton>
                   <ScPopconfirm 
@@ -254,6 +262,8 @@ const dialogClose = () => {
                         type="danger"
                         class="btn-text"
                         :icon="useRenderIcon(Delete)"
+                        title="删除字典项"
+                        aria-label="删除字典项"
                       ></ScButton>
                     </template>
                   </ScPopconfirm>

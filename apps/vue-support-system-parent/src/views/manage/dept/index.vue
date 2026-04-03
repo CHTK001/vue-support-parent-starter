@@ -527,12 +527,6 @@ onMounted(async () => {
   }
 }
 
-.dept-page {
-  height: 100%;
-  padding: 8px;
-  background-color: var(--el-bg-color-page);
-}
-
 .dept-wrapper {
   display: flex;
   flex-direction: column;

@@ -37,6 +37,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { useRoute } from "vue-router";
 import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -124,6 +125,7 @@ setDebugConsoleRef(debugConsoleRef);
 const pureSetting = useSettingStoreHook();
 const appStore = useAppStoreHook();
 const userStore = useUserStoreHook();
+const route = useRoute();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 性能监控开关（从主题 Store 统一读取）
@@ -142,6 +144,12 @@ const aiChatVisible = computed(() => {
   }
   return getConfig().ShowAiChat !== false;
 });
+const isSystemSettingRoute = computed(() =>
+  String(route.path || "").startsWith("/manage/setting"),
+);
+const resolvedAiChatVisible = computed(
+  () => aiChatVisible.value && !isSystemSettingRoute.value,
+);
 const aiChatPosition = computed(
   () => $storage?.configure?.aiChatPosition || "bottom-right",
 );
@@ -602,8 +610,8 @@ const LayHeader = defineComponent({
 
       <!-- AI 助手 -->
       <LayAiChat
-        v-if="deferredOverlayReady && aiChatVisible"
-        :visible="aiChatVisible"
+        v-if="deferredOverlayReady && resolvedAiChatVisible"
+        :visible="resolvedAiChatVisible"
         :theme="aiChatTheme"
         :position="aiChatPosition"
         :headers="aiChatHeaders"

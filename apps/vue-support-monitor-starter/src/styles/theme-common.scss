@@ -28,7 +28,6 @@
 
 // ========== 表格样式 ==========
 .table-container {
-  background: var(--el-bg-color-overlay);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -121,10 +120,6 @@ html.dark {
     &:hover {
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
-  }
-
-  .table-container {
-    background: var(--el-bg-color-overlay);
   }
 
   .code-block {

@@ -6,7 +6,6 @@ import { nextTick, reactive, ref } from "vue";
 // Define mocks that need to be accessed inside vi.mock
 const {
   mockStorage,
-  mockUseGlobal,
   mockUseNav,
   mockUseDark,
   mockUseDataThemeChange,
@@ -199,7 +198,7 @@ Object.defineProperty(window, "matchMedia", {
 // Mock pureadmin utils
 vi.mock("@pureadmin/utils", () => {
   return {
-    debounce: (fn: Function) => fn,
+    debounce: (fn: (...args: any[]) => any) => fn,
     isNumber: (val: any) => typeof val === "number",
     useDark: mockUseDark,
     useGlobal: () => ({
@@ -349,6 +348,22 @@ const stubs = {
   LayPanel: { template: "<div><slot /></div>" },
   IconifyIconOnline: { template: "<i></i>" },
   Segmented: { template: "<div></div>" },
+  ScInput: {
+    props: ["modelValue", "placeholder"],
+    emits: ["update:modelValue"],
+    template:
+      '<input class="sc-input" :placeholder="placeholder" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+  },
+  ScSelect: {
+    props: ["modelValue"],
+    emits: ["update:modelValue"],
+    template:
+      '<select class="sc-select" :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
+  },
+  ScOption: {
+    props: ["label", "value"],
+    template: '<option :value="value">{{ label }}</option>',
+  },
   ScSwitch: { template: '<div class="sc-switch"></div>' },
   ScRibbon: { template: "<div></div>" },
   LayThemeSwitcher: { template: "<div></div>" },
@@ -455,5 +470,27 @@ describe("BaseSetting.vue", () => {
     // Verify initialization logic ran (mock calls would be better here)
     // For now we check if logic doesn't crash
     expect(wrapper.exists()).toBe(true);
+  });
+
+  it("filters sections by keyword", async () => {
+    wrapper = mount(BaseSetting, mountOptions);
+
+    const searchInput = wrapper.find(".sc-input");
+    await searchInput.setValue("高级");
+    await nextTick();
+
+    const navItems = wrapper.findAll(".setting-shell-nav__item");
+    expect(navItems.length).toBe(1);
+    expect(navItems[0].text()).toContain("高级");
+  });
+
+  it("shows empty state when keyword has no matches", async () => {
+    wrapper = mount(BaseSetting, mountOptions);
+
+    const searchInput = wrapper.find(".sc-input");
+    await searchInput.setValue("不存在的关键词");
+    await nextTick();
+
+    expect(wrapper.find(".setting-shell-empty").exists()).toBe(true);
   });
 });

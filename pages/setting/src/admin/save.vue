@@ -1,9 +1,14 @@
 ﻿<script setup>
-import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  defineExpose,
+  reactive,
+  ref,
+} from "vue";
 import { fetchUpdateSetting, fetchSaveSetting } from "../api";
-import { t as $t } from "@repo/config";
 import { message } from "@repo/utils";
-import { ScDialog } from "@repo/components/ScDialog"
+import { ScDialog } from "@repo/components/ScDialog";
 const ConfigValueInput = defineAsyncComponent(
   () => import("./ConfigValueInput.vue"),
 );
@@ -40,10 +45,14 @@ const config = reactive({
     sysSettingValue: null,
     sysSettingValueType: null,
   },
-  title: $t("title.setting"),
+  title: "配置项管理",
 });
 
-const emit = defineEmits(["close"]);
+const dialogTitle = computed(() =>
+  config.mode === "add" ? "新增配置项" : "编辑配置项",
+);
+
+const emit = defineEmits(["close", "success"]);
 const itemSaveRef = ref();
 
 /**
@@ -180,8 +189,9 @@ const handleClose = () => {
 const handleUpdate = async () => {
   fetchUpdateSetting(config.data).then((res) => {
     if (res.code == "00000") {
-      message($t("message.updateSuccess"), { type: "success" });
+      message("更新成功", { type: "success" });
       config.visible = false;
+      emit("success");
     }
   });
 };
@@ -195,8 +205,9 @@ const handleSave = async () => {
     if (valid) {
       fetchSaveSetting(config.data).then((res) => {
         if (res.code == "00000") {
-          message($t("message.updateSuccess"), { type: "success" });
+          message("保存成功", { type: "success" });
           config.visible = false;
+          emit("success");
         }
       });
     }
@@ -219,7 +230,7 @@ const handle = () => {
  * @param {Object} data - 表单数据
  */
 const setData = async (data) => {
-  config.data = data;
+  config.data = JSON.parse(JSON.stringify(data || {}));
 };
 
 /**
@@ -267,7 +278,7 @@ defineExpose({
   <div>
     <ScDialog
       v-model="config.visible"
-      :title="config.title"
+      :title="dialogTitle || config.title"
       draggable
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -378,8 +389,8 @@ defineExpose({
       >
         <!-- 类型选择步骤 -->
         <div
-          class="type-selection-container"
           v-if="!config.data.sysSettingValueType"
+          class="type-selection-container"
         >
           <h3 class="type-selection-title">请选择配置类型</h3>
           <div class="type-cards">

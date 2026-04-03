@@ -179,27 +179,33 @@ const contentRef = ref();
                 type="primary"
                 :icon="useRenderIcon('ri:search-line')"
                 :loading="loading.query"
+                title="搜索角色"
+                aria-label="搜索角色"
                 @click="onSearch"
               />
               <ScButton
                 :icon="useRenderIcon('ep:refresh')"
+                title="重置角色筛选"
+                aria-label="重置角色筛选"
                 @click="resetForm(formRef)"
               />
               <ScButton
                 :icon="useRenderIcon('ep:plus')"
+                title="新增角色"
+                aria-label="新增角色"
                 @click="dialogOpen({}, 'save')"
               />
             </div>
           </div>
         </ScHeader>
-        <ScMain class="role-main">
+        <ScMain class="role-main nopadding page-table-fill">
           <div ref="contentRef" class="table-wrapper">
             <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
               <ScTable
                 ref="table"
                 :url="fetchPageRole"
                 height="auto"
-                class="modern-table"
+                class="modern-table table-fill"
                 @data-loaded="onDataLoaded"
               >
                 <ScTableColumn type="index" label="序号" width="120px">
@@ -292,6 +298,7 @@ const contentRef = ref();
                       class="h-fit"
                       :active-value="1"
                       :inactive-value="0"
+                      :title="row.sysRoleStatus === 1 ? '禁用角色' : '启用角色'"
                       @change="fetchUpdateRole(row)"
                     />
                   </template>
@@ -308,6 +315,8 @@ const contentRef = ref();
                         class="btn-text"
                         type="primary"
                         link
+                        title="编辑角色"
+                        aria-label="编辑角色"
                         @click="dialogOpen(row, 'edit')"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
@@ -318,6 +327,8 @@ const contentRef = ref();
                         class="btn-text"
                         type="success"
                         link
+                        title="配置角色权限"
+                        aria-label="配置角色权限"
                         @click="handleOpenRole(row)"
                       >
                         <IconifyIconOnline icon="ri:settings-3-line" />
@@ -333,7 +344,13 @@ const contentRef = ref();
                           content="删除"
                           placement="top"
                         >
-                          <ScButton class="btn-text" type="danger" link>
+                          <ScButton
+                            class="btn-text"
+                            type="danger"
+                            link
+                            title="删除角色"
+                            aria-label="删除角色"
+                          >
                             <IconifyIconOnline icon="ri:delete-bin-line" />
                           </ScButton>
                         </ScTooltip>
@@ -384,10 +401,6 @@ const contentRef = ref();
   }
 }
 
-.role-container {
-  height: 100%;
-  background-color: var(--el-bg-color);
-}
 
 .role-wrapper {
   display: flex;
@@ -399,9 +412,18 @@ const contentRef = ref();
   box-shadow: none;
 
   :deep(.sc-container) {
-    height: 100%;
-    min-height: 0;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
   }
+}
+
+.page-table-fill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
 // 统计面板样式
@@ -526,7 +548,7 @@ const contentRef = ref();
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding: 16px !important;
+  padding: 16px 0 !important;
   background-color: var(--el-bg-color-page);
 }
 
@@ -551,6 +573,13 @@ const contentRef = ref();
 
 :deep(.table-wrapper .el-table) {
   height: 100%;
+}
+
+:deep(.table-fill .sc-table-container),
+:deep(.table-fill .sc-table-wrapper),
+:deep(.table-fill .sc-table-content-wrapper) {
+  flex: 1;
+  min-height: 0;
 }
 
 // 角色信息单元格
