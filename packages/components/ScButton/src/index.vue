@@ -1,6 +1,7 @@
   <template>
   <component
     :is="actualComponent"
+    v-bind="$attrs"
     :size="size"
     :type="type"
     :theme="type"

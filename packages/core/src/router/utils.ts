@@ -38,7 +38,9 @@ const DEFAULT_MENU_ICON = "ri:menu-line";
 const ROUTE_COMPONENT_ALIASES: Record<string, string> = {
   "/manage/login/index": "/manage/user/index",
   "/manage/log/login/index": "/manage/log/user/index",
-  "@repo/pages/setting/index.vue": "/manage/setting/index",
+  "@repo/pages/setting/index.vue": "/src/views/manage/setting/index.vue",
+  "@pages/common/setting/index.vue": "/src/views/manage/setting/index.vue",
+  "@pages/setting/index.vue": "/src/views/manage/setting/index.vue",
 };
 const ROUTE_ICON_ALIASES: Record<string, string> = {
   "ep:login": "ri:shield-user-line",
@@ -319,11 +321,14 @@ function getDynamicRouteContainer() {
 /** 处理动态路由（后端返回的路由） */
 function handleAsyncRoutes(routeList) {
   const dynamicRouteContainer = getDynamicRouteContainer();
-  const wholeMenuRoutes = Array.isArray(routeList) ? cloneDeep(routeList) : [];
+  const normalizedRouteList = Array.isArray(routeList)
+    ? addAsyncRoutes(cloneDeep(routeList)) || []
+    : [];
+  const wholeMenuRoutes = cloneDeep(normalizedRouteList);
   if (!routeList || routeList.length === 0) {
     usePermissionStoreHook().handleWholeMenus(routeList || []);
   } else {
-    formatFlatteningRoutes(addAsyncRoutes(routeList)).map(
+    formatFlatteningRoutes(normalizedRouteList).map(
       (v: RouteRecordRaw) => {
         if (!v.meta) {
           //@ts-ignore

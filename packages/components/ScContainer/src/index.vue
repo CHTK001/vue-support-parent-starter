@@ -225,7 +225,8 @@ defineExpose({ toggleAsideCollapse, toggleRightCollapse, asideCollapsed, rightCo
 
 <style lang="scss" scoped>
 .sc-container {
-  height: 100%;
+  max-height: 100%;
+  height: auto;
   min-height: 0;
 
   &--border { border: 1px solid var(--el-border-color-lighter); }
@@ -254,8 +255,8 @@ defineExpose({ toggleAsideCollapse, toggleRightCollapse, asideCollapsed, rightCo
     flex: 1;
     flex-direction: column;
     overflow: auto;
-    background: var(--el-bg-color-page);
     min-width: 0;
+    padding: 0 !important;
     min-height: 0;
   }
   &__footer {

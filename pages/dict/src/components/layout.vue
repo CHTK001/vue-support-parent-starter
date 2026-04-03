@@ -47,13 +47,21 @@ export default defineComponent({
         pageSize: 10,
       },
       tableData: [],
+      selectedDictId: null,
       total: 0,
       firstLoad: false,
     };
   },
-  watch: {
-    dicFilterText(val) {
-      this.$refs.treeRef.filter(val);
+  computed: {
+    filteredDicts() {
+      const keyword = String(this.dicFilterText || "").trim().toLowerCase();
+      if (!keyword) {
+        return this.tableData;
+      }
+      return this.tableData.filter((item) => {
+        const targetText = `${item?.sysDictName || ""}${item?.sysDictCode || ""}`.toLowerCase();
+        return targetText.includes(keyword);
+      });
     },
   },
   mounted() {
@@ -83,19 +91,9 @@ export default defineComponent({
       this.onSearch();
     },
     async onClick(node) {
-      this.params.sysDictId = node?.sysDictId;
-      this.nodeClick(this.params);
-    },
-    async loadNode(node, resolve) {
-      // 如果是第一次加载，node.level === 0
-      // 如果是滚动加载，node.level > 0
-      if (node.level === 0) {
-        // 加载第一级数据
-        await this.onSearch();
-        node.level = 1;
-        resolve(this.tableData);
-        return false;
-      }
+      this.selectedDictId = node?.sysDictId ?? null;
+      this.params.sysDictId = node?.sysDictId ?? null;
+      this.nodeClick(node);
     },
     async handleScroll(event) {
       const target = event.target;
@@ -112,14 +110,24 @@ export default defineComponent({
     async onSearchItem(params) {
       return fetchPageDict(params)
         .then((res) => {
-          const { data, code } = res;
-          data?.data.forEach((element) => {
+          const { data } = res;
+          const rows = Array.isArray(data?.data) ? data.data : [];
+          rows.forEach((element) => {
             element.level = this.params.page;
             element.sysDictPid = 0;
           });
-          this.tableData = data?.data;
+          this.tableData =
+            this.params?.page === 1
+              ? rows
+              : [...this.tableData, ...rows.filter((item) => !this.tableData.some((it) => it.sysDictId === item.sysDictId))];
           if (this.params?.page == 1) {
-            this.total = data.total;
+            this.total = data?.total ?? rows.length;
+          }
+          const nextSelected =
+            this.tableData.find((item) => item.sysDictId === this.selectedDictId) ||
+            this.tableData[0];
+          if (nextSelected) {
+            this.onClick(nextSelected);
           }
           this.firstLoad = true;
           return;
@@ -137,8 +145,15 @@ export default defineComponent({
     async onDelete(row) {
       try {
         const { code } = await fetchDeleteDict(row.sysDictId);
+        if (code !== "00000") {
+          return;
+        }
+        if (this.selectedDictId === row.sysDictId) {
+          this.selectedDictId = null;
+          this.params.sysDictId = null;
+        }
         this.onSearch();
-        message(this.t("message.deleteSuccess"), { type: "success" });
+        message(this.useI18n("message.deleteSuccess"), { type: "success" });
         return;
       } catch (error) {}
     },
@@ -149,13 +164,6 @@ export default defineComponent({
         this.onSearch();
       });
     },
-    filterNode(value, data) {
-      if (!value) {
-        return true;
-      }
-      var targetText = data.sysDictName + data.sysDictCode;
-      return targetText.indexOf(value) !== -1;
-    },
     async dialogOpen(item, mode = "save" | "edit") {
       this.saveDialogParams.mode = mode;
       this.visible.save = true;
@@ -165,13 +173,6 @@ export default defineComponent({
           .setTableData(this.tableData)
           .open(mode);
       });
-    },
-    async getOpenDetail(row, column, event) {
-      if (row.children && column?.label != "操作") {
-        if (event.currentTarget.querySelector(".el-table__expand-icon")) {
-          event.currentTarget.querySelector(".el-table__expand-icon").click();
-        }
-      }
     },
   },
 });
@@ -197,55 +198,52 @@ export default defineComponent({
         <el-main class="nopadding">
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
-            <ScTree 
+            <div
               v-else
-              ref="treeRef"
-              :load="loadNode"
-              :filter-node-method="filterNode"
-              :data="tableData"
-              :highlight-current="true"
-              :props="{
-                label: 'sysDictName',
-                id: 'sysDictId',
-                pid: 'sysDictPid',
-              }"
-              @scroll="handleScroll"
-              @node-click="onClick"
+              class="dict-list thin-scroller"
+              @scroll.passive="handleScroll"
             >
-              <template #default="scope">
-                <span class="custom-tree-node">
-                  <span class="label">
-                    <ScTag class="label" size="small">{{
-                      scope?.data?.sysDictId
-                    }}</ScTag>
-                    {{ scope?.data?.sysDictName }}
-                  </span>
-                  <span class="code">{{ scope?.data?.sysDictCode }}</span>
-                  <span v-if="scope?.data?.sysDictId" class="do">
-                    <el-button-group>
-                      <ScButton 
-                        :icon="icon.EditPen"
+              <button
+                v-for="item in filteredDicts"
+                :key="item.sysDictId"
+                type="button"
+                class="dict-list-item"
+                :class="{ active: selectedDictId === item.sysDictId }"
+                @click="onClick(item)"
+              >
+                <div class="dict-list-main">
+                  <div class="dict-list-title">
+                    <ScTag size="small">{{ item.sysDictId }}</ScTag>
+                    <span>{{ item.sysDictName }}</span>
+                  </div>
+                  <div class="dict-list-code">{{ item.sysDictCode }}</div>
+                </div>
+                <div class="dict-list-actions">
+                  <ScButton
+                    :icon="icon.EditPen"
+                    size="small"
+                    title="编辑字典分类"
+                    aria-label="编辑字典分类"
+                    @click.stop="dialogOpen(item, 'edit')"
+                  />
+                  <ScPopconfirm
+                    v-if="item.sysDictInSystem != 1"
+                    :title="$t('message.confimDelete')"
+                    @confirm="onDelete(item)"
+                  >
+                    <template #reference>
+                      <ScButton
+                        :icon="icon.Delete"
                         size="small"
-                        @click.stop="dialogOpen(scope.data, 'edit')"
+                        title="删除字典分类"
+                        aria-label="删除字典分类"
                       />
-                      <ScPopconfirm 
-                        :title="$t('message.confimDelete')"
-                        @confirm="onDelete(scope.data)"
-                      >
-                        <template #reference>
-                          <ScButton 
-                            v-if="scope?.data?.sysDictInSystem == 1"
-                            :icon="icon.Delete"
-                            size="small"
-                            @click.stop="onDelete(scope.data)"
-                          />
-                        </template>
-                      </ScPopconfirm>
-                    </el-button-group>
-                  </span>
-                </span>
-              </template>
-            </ScTree>
+                    </template>
+                  </ScPopconfirm>
+                </div>
+              </button>
+              <ScEmpty v-if="!filteredDicts.length" description="暂无字典分类" />
+            </div>
           </div>
         </el-main>
         <el-footer class="footer-height">
@@ -309,147 +307,87 @@ export default defineComponent({
   }
 }
 
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 12px;
-  }
-}
-
-.menu:deep(.el-tree-node__label) {
+.dict-list {
   display: flex;
-  flex: 1;
+  flex-direction: column;
+  gap: 10px;
   height: 100%;
-}
-
-// 树形组件美化
-:deep(.el-tree) {
-  background: transparent;
   padding: 12px;
-
-  .el-tree-node {
-    margin-bottom: 4px;
-
-    &:focus > .el-tree-node__content {
-      background: var(--el-color-primary-light-9);
-    }
-  }
-
-  .el-tree-node__content {
-    height: 44px;
-    border-radius: 10px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 0 12px;
-
-    &:hover {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-9) 0%,
-        var(--el-fill-color-light) 100%
-      );
-      transform: translateX(4px);
-    }
-  }
-
-  .el-tree-node.is-current > .el-tree-node__content {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-8) 0%,
-      var(--el-color-primary-light-9) 100%
-    );
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
-
-    .label {
-      color: var(--el-color-primary);
-      font-weight: 600;
-    }
-  }
+  overflow-y: auto;
 }
 
-.custom-tree-node {
+.dict-list-item {
   display: flex;
-  flex: 1;
   align-items: center;
   justify-content: space-between;
-  font-size: 14px;
-  padding-right: 12px;
-  height: 100%;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  transition: all 0.2s ease;
 
-  .label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-    transition: all 0.3s ease;
+  &:hover {
+    border-color: rgba(var(--el-color-primary-rgb), 0.28);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+  }
 
-    .el-tag {
-      border-radius: 6px;
-      font-size: 11px;
-      padding: 2px 8px;
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-8) 0%,
-        var(--el-color-primary-light-9) 100%
-      );
-      color: var(--el-color-primary);
-      border: none;
-      font-weight: 600;
-    }
+  &.active {
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-bg-color) 100%
+    );
+    border-color: rgba(var(--el-color-primary-rgb), 0.36);
+    box-shadow: 0 10px 22px rgba(var(--el-color-primary-rgb), 0.12);
   }
 }
 
-.custom-tree-node .code {
+.dict-list-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dict-list-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+
+  span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.dict-list-code {
+  overflow: hidden;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
-  background: var(--el-fill-color-light);
-  padding: 2px 8px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.custom-tree-node .do {
-  display: none;
-
-  :deep(.el-button-group) {
-    .el-button {
-      border-radius: 8px;
-      transition: all 0.3s ease;
-
-      &:first-child {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-      }
-
-      &:last-child {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-
-      &:hover {
-        transform: scale(1.05);
-      }
-    }
-  }
+.dict-list-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.custom-tree-node:hover .code {
-  display: none;
-}
-
-.custom-tree-node:hover .do {
-  display: inline-flex;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.dict-list-item:hover .dict-list-actions,
+.dict-list-item.active .dict-list-actions {
+  opacity: 1;
 }
 
 // 骨架屏美化

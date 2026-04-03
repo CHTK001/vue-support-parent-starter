@@ -430,8 +430,6 @@ const moduleOptions = reactive([
 // 主内容区域样式
 .log-main-content {
   padding: 0 !important;
-  height: calc(100% - 160px);
-  overflow: hidden;
 }
 
 .log-table {
@@ -516,7 +514,6 @@ const moduleOptions = reactive([
 
 // 确保主容器不出现滚动条
 .log-main {
-  height: 100%;
   background-color: var(--app-bg-primary);
   animation: log-fade-in 0.5s ease-out;
   overflow-x: hidden; // 隐藏横向滚动条

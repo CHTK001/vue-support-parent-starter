@@ -1,5 +1,15 @@
-﻿<script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+<script setup lang="ts">
+import {
+  type Component,
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import {
   FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
   canManageFrontendSystemConfig,
@@ -7,303 +17,274 @@ import {
   getInitialConfig,
   isThemeManagementVisible,
 } from "@repo/config";
-// 将同步组件改为异步组件
-const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
+import { useRenderIcon } from "@repo/components/ReIcon";
+import ScRibbon from "@repo/components/ScRibbon/index.vue";
+import { localStorageProxy, message } from "@repo/utils";
+import { useUserStoreHook } from "@repo/core";
+import { fetchListForGroup, type SysSettingGroup } from "./api/group";
+import SaveLayoutRaw from "./layout/base.vue";
+
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 const GroupManagement = defineAsyncComponent(() => import("./group/index.vue"));
-const FrontendLayout = defineAsyncComponent(() => import("./layout/frontend.vue"));
+const FrontendLayout = defineAsyncComponent(
+  () => import("./layout/frontend.vue"),
+);
+const ThemeLayout = defineAsyncComponent(() => import("./layout/theme.vue"));
+const HistoryLayout = defineAsyncComponent(() => import("./history/index.vue"));
+const SmsLayout = defineAsyncComponent(() => import("./layout/sms.vue"));
+const EmailLayout = defineAsyncComponent(() => import("./layout/email.vue"));
 
-import {  useRenderIcon  } from "@repo/components/ReIcon";
-import { localStorageProxy, message, ScLoading } from "@repo/utils";
+type SettingCardSource = "fixed" | "remote";
 
-import { useI18n } from "vue-i18n";
-import { emitter, useUserStoreHook } from "@repo/core";
-import { useGlobal } from "@pureadmin/utils";
-import { fetchListForGroup, type SysSettingGroup } from "./api/group";
+interface SettingCard {
+  group: string;
+  name: string;
+  description: string;
+  icon: string;
+  sourceType: SettingCardSource;
+  groupTag: string;
+  sortWeight: number;
+  searchText: string;
+}
+
+const drawerComponentMap: Record<string, Component> = {
+  email: EmailLayout,
+  frontend: FrontendLayout,
+  group: GroupManagement,
+  history: HistoryLayout,
+  sms: SmsLayout,
+  theme: ThemeLayout,
+};
+
 const localStorageProxyObject = localStorageProxy();
 const SETTING_TAB_VALUE = "setting-tab-value";
+const FIXED_GROUP_ORDER = [
+  "default",
+  "frontend",
+  "theme",
+  "history",
+  "group",
+] as const;
+const FIXED_GROUP_SET = new Set<string>(FIXED_GROUP_ORDER);
 
-const { t } = useI18n();
-//@ts-ignore
-const { $storage } = useGlobal<GlobalPropertiesApi>();
-
-// 顶部显示/隐藏状态（从全局配置获取）
-const headerVisible = ref(!($storage.configure?.hideHeader ?? false));
-
-// 监听全局配置变化
-watch(
-  () => $storage.configure?.hideHeader,
-  (newVal) => {
-    headerVisible.value = !newVal;
-  },
-  { immediate: false }
-);
-
-const config = reactive({
-  tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
-  saveItemStatus: false,
-});
-const userStore = useUserStoreHook();
-const frontendSystemState = ref(getFrontendSystemConfig(getInitialConfig()));
-
-const saveItemRef = ref();
-const data = reactive([]);
-const layout = reactive({
-  sms: defineAsyncComponent(() => import("./layout/sms.vue")),
-  email: defineAsyncComponent(() => import("./layout/email.vue")),
-  group: GroupManagement,
-  frontend: FrontendLayout,
-  theme: defineAsyncComponent(() => import("./layout/theme.vue")),
-  history: defineAsyncComponent(() => import("./history/index.vue")),
-});
-
-// 抽屉显示状态控制
-const drawerVisible = reactive({
-  group: false,
-  history: false,
-});
-// 默认配置项（作为后备）——高频功能优先展示
-const defaultProductsConfig = [
+const FIXED_CARD_META: Array<Omit<SettingCard, "searchText">> = [
   {
     group: "default",
-    description: "系统基础运行配置",
     name: "基础设置",
-    isSetup: true,
-    type: 5,
+    description: "系统基础运行配置与常规参数入口。",
     icon: "ri:airplay-fill",
-    hide: false,
-  },
-  {
-    group: "theme",
-    description: "管理登录页面主题",
-    name: "主题管理",
-    isSetup: true,
-    type: 6,
-    icon: "ri:palette-line",
-    hide: false,
+    sourceType: "fixed",
+    groupTag: "固定组",
+    sortWeight: 10,
   },
   {
     group: "frontend",
-    description: "前端静态系统配置、调试防护、字体加密与主题开关",
     name: "前端静态配置",
-    isSetup: true,
-    type: 8,
+    description: "前端静态系统配置、调试防护、字体加密与主题开关。",
     icon: "ri:shield-keyhole-line",
-    hide: false,
+    sourceType: "fixed",
+    groupTag: "固定组",
+    sortWeight: 20,
+  },
+  {
+    group: "theme",
+    name: "主题管理",
+    description: "管理登录页面主题与主题能力展示入口。",
+    icon: "ri:palette-line",
+    sourceType: "fixed",
+    groupTag: "固定组",
+    sortWeight: 30,
   },
   {
     group: "history",
-    description: "配置变更历史记录、导入导出、回滚",
     name: "历史记录",
-    isSetup: true,
-    type: 7,
+    description: "查看配置变更历史、导入导出和回滚操作。",
     icon: "ri:history-line",
-    hide: false,
+    sourceType: "fixed",
+    groupTag: "固定组",
+    sortWeight: 40,
   },
   {
     group: "group",
-    description: "管理系统配置分组",
     name: "系统组设置",
-    isSetup: true,
-    type: 4,
+    description: "维护远程配置组、排序和启用状态。",
     icon: "mdi:tune-variant",
-    hide: false,
+    sourceType: "fixed",
+    groupTag: "固定组",
+    sortWeight: 50,
   },
 ];
 
-// 从接口获取的配置项
-const productsConfig = reactive([]);
+const buildSearchText = (value: string[]) => value.join(" ").toLowerCase();
 
-const refreshFrontendSystemState = () => {
-  frontendSystemState.value = getFrontendSystemConfig(getInitialConfig());
-};
+const createFixedCard = (
+  card: Omit<SettingCard, "searchText">,
+): SettingCard => ({
+  ...card,
+  searchText: buildSearchText([
+    card.group,
+    card.name,
+    card.description,
+    card.groupTag,
+  ]),
+});
+
+const userStore = useUserStoreHook();
+const config = reactive({
+  saveItemStatus: false,
+  tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
+});
+const currentItem = ref<SettingCard | null>(null);
+const frontendSystemState = ref(getFrontendSystemConfig(getInitialConfig()));
+const loadingState = reactive({
+  isLoading: true,
+});
+const drawerVisible = reactive<Record<string, boolean>>({});
+const remoteGroups = ref<SysSettingGroup[]>([]);
+const saveItemRef = ref();
+const openingGroup = ref<string | null>(null);
 
 const canManageFrontend = computed(() =>
   canManageFrontendSystemConfig(userStore.roles),
 );
 
-const products = computed(() => {
-  return productsConfig.filter((it) => {
-    if (it.hide) {
-      return false;
-    }
-
-    if (it.group === "theme") {
+const fixedProducts = computed<SettingCard[]>(() =>
+  FIXED_CARD_META.map(createFixedCard).filter((card) => {
+    if (card.group === "theme") {
       return isThemeManagementVisible(frontendSystemState.value);
     }
 
-    if (it.group === "frontend") {
+    if (card.group === "frontend") {
       return canManageFrontend.value;
     }
 
     return true;
-  });
-});
-const saveLayoutRef = ref();
+  }),
+);
 
-// 添加一个状态来跟踪组件是否已挂载
-const isComponentMounted = ref(false);
-// 添加组件加载状态
-const componentLoadStatus = reactive({
-  saveLayout: false,
-  retryCount: 0,
-  maxRetries: 3
-});
+const remoteProducts = computed<SettingCard[]>(() =>
+  remoteGroups.value
+    .filter(
+      (group) =>
+        Boolean(group.sysSettingGroupEnable) &&
+        !FIXED_GROUP_SET.has(group.sysSettingGroupCode || ""),
+    )
+    .sort((prev, next) => {
+      const prevSort = prev.sysSettingGroupSort ?? Number.MAX_SAFE_INTEGER;
+      const nextSort = next.sysSettingGroupSort ?? Number.MAX_SAFE_INTEGER;
 
-// 添加加载状态
-const loadingState = reactive({
-  isLoading: true,
-  loadingInstance: null
-});
+      if (prevSort !== nextSort) {
+        return prevSort - nextSort;
+      }
 
-// 防抖控制
-const debounceState = reactive({
-  timeoutId: null,
-  lastClickTime: 0
-});
+      return String(prev.sysSettingGroupName || "").localeCompare(
+        String(next.sysSettingGroupName || ""),
+        "zh-CN",
+      );
+    })
+    .map((group, index) => {
+      const name =
+        group.sysSettingGroupName || group.sysSettingGroupCode || "未命名分组";
+      const description =
+        group.sysSettingGroupRemark || `远程配置组 ${name} 的动态参数入口。`;
 
-const currentItem = ref();
+      return {
+        group: group.sysSettingGroupCode || `remote-${index}`,
+        name,
+        description,
+        icon: group.sysSettingGroupIcon || "ri:settings-line",
+        sourceType: "remote",
+        groupTag: "远程组",
+        sortWeight: 1000 + index,
+        searchText: buildSearchText([
+          group.sysSettingGroupCode || "",
+          name,
+          description,
+          "远程组",
+        ]),
+      };
+    }),
+);
 
-// 监听saveLayoutRef的变化
-watch(saveLayoutRef, (newVal) => {
-  if (newVal) {
-    componentLoadStatus.saveLayout = true;
+const products = computed(() => [
+  ...fixedProducts.value,
+  ...remoteProducts.value,
+]);
+
+const currentDrawerComponent = computed(() => {
+  if (!currentItem.value) {
+    return null;
   }
+
+  return drawerComponentMap[currentItem.value.group] || SaveLayoutRaw;
 });
 
-// 等待组件加载的函数
-const waitForComponentLoad = async (timeout = 1000) => {
-  const startTime = Date.now();
-  while (!saveLayoutRef.value && (Date.now() - startTime) < timeout) {
-    await new Promise(resolve => setTimeout(resolve, 50));
-  }
-  return !!saveLayoutRef.value;
+const refreshFrontendSystemState = () => {
+  frontendSystemState.value = getFrontendSystemConfig(getInitialConfig());
 };
 
-
-
-// 防抖函数
-const debounceClick = (func, delay = 300) => {
-  return function (...args) {
-    const now = Date.now();
-    // 如果距离上次点击时间小于防抖延迟时间，则取消执行
-    if (now - debounceState.lastClickTime < delay) {
-      console.log('点击过于频繁，已阻止');
-      return;
-    }
-
-    debounceState.lastClickTime = now;
-
-    if (debounceState.timeoutId) {
-      clearTimeout(debounceState.timeoutId);
-    }
-
-    debounceState.timeoutId = setTimeout(() => {
-      func.apply(this, args);
-    }, delay);
-  };
-};
-
-const onRowClick = async (it) => {
-  // 防抖检查
-  const now = Date.now();
-  if (now - debounceState.lastClickTime < 300) {
-    console.log('点击过于频繁，已阻止');
+const syncActiveCard = () => {
+  if (!products.value.length) {
+    config.tabValue = "";
+    currentItem.value = null;
     return;
   }
-  debounceState.lastClickTime = now;
 
+  const selected =
+    products.value.find((item) => item.group === config.tabValue) ||
+    products.value[0];
+
+  config.tabValue = selected.group;
+  currentItem.value = selected;
+  localStorageProxyObject.setItem(SETTING_TAB_VALUE, selected.group);
+};
+
+const loadProductsConfig = async () => {
   try {
-    // 确保组件已挂载
-    if (!isComponentMounted.value) {
-      console.warn('组件尚未挂载完成，稍后重试');
-      // 等待一小段时间后重试
-      setTimeout(() => {
-        onRowClick(it);
-      }, 100);
-      return;
-    }
-
-    await nextTick();
-    const _tabValue = config.tabValue;
-    localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
-    const item = products.value.filter((item) => item.group === _tabValue)[0];
-
-    // 数据验证：确保item存在且有必要的属性
-    if (!item) {
-      console.error('未找到对应的配置项:', _tabValue);
-      message('配置项不存在，请刷新页面重试', { type: "error" });
-      return;
-    }
-
-    if (!item.group) {
-      console.error('配置项缺少group属性:', item);
-      message('配置项数据异常，请联系管理员', { type: "error" });
-      return;
-    }
-
-    currentItem.value = item;
-
-    // 如果是配置组管理，直接显示对话框
-    if (item.group === "group") {
-      drawerVisible[item.group] = true;
-    } else if (layout[item.group]) {
-      // 如果有自定义布局组件，显示抽屉
-      drawerVisible[item.group] = true;
-    } else {
-      // 否则使用默认的设置布局
-      try {
-        // 确保SaveLayoutRaw组件已经加载
-        if (!saveLayoutRef.value) {
-          console.warn('SaveLayoutRaw组件未加载，等待组件加载...');
-
-          // 等待组件加载完成，最多等待1秒
-          const isLoaded = await waitForComponentLoad(1000);
-
-          // 如果仍然没有加载成功，尝试重试机制
-          if (!isLoaded && componentLoadStatus.retryCount < componentLoadStatus.maxRetries) {
-            componentLoadStatus.retryCount++;
-            console.warn(`组件加载失败，第${componentLoadStatus.retryCount}次重试`);
-            await new Promise(resolve => setTimeout(resolve, 200 * componentLoadStatus.retryCount));
-            return await onRowClick(it); // 递归调用重试
-          }
-
-          if (!saveLayoutRef.value) {
-            message('组件加载超时，请刷新页面重试', { type: "error" });
-            componentLoadStatus.retryCount = 0; // 重置重试计数
-            return;
-          }
-        }
-
-        // 重置重试计数
-        componentLoadStatus.retryCount = 0;
-
-        // 验证item数据完整性
-        if (!item.name) {
-          console.warn('配置项缺少name属性，使用group作为默认名称:', item);
-          item.name = item.group;
-        }
-
-        await saveLayoutRef.value.setData(item);
-        await saveLayoutRef.value.open();
-      } catch (error) {
-        console.error('打开设置布局失败:', error);
-        message('打开设置页面失败，请重试', { type: "error" });
-        componentLoadStatus.retryCount = 0; // 重置重试计数
-      }
-    }
+    loadingState.isLoading = true;
+    const { data } = await fetchListForGroup({});
+    remoteGroups.value = Array.isArray(data) ? data : [];
+  } catch (error) {
+    remoteGroups.value = [];
+    console.error("加载配置组失败:", error);
+    message("加载配置组失败，已仅展示固定组", { type: "warning" });
   } finally {
+    loadingState.isLoading = false;
+    syncActiveCard();
   }
 };
 
-// 关闭设置面板
-const close = (group) => {
-  // 关闭对应的布局组件
-  if (drawerVisible[group] !== undefined) {
-    drawerVisible[group] = false;
+const openCard = async (card: SettingCard) => {
+  if (openingGroup.value === card.group) {
+    return;
   }
 
-  // 如果是配置组管理，刷新配置数据
+  openingGroup.value = card.group;
+  Object.keys(drawerVisible).forEach((key) => {
+    drawerVisible[key] = false;
+  });
+  config.tabValue = card.group;
+  currentItem.value = card;
+  localStorageProxyObject.setItem(SETTING_TAB_VALUE, card.group);
+
+  try {
+    await nextTick();
+    drawerVisible[card.group] = true;
+  } catch (error) {
+    console.error("打开设置项失败:", error);
+    message("打开设置项失败，请重试", { type: "error" });
+  } finally {
+    openingGroup.value = null;
+  }
+};
+
+const close = (group?: string) => {
+  if (!group) {
+    return;
+  }
+
+  drawerVisible[group] = false;
+
   if (group === "group") {
     loadProductsConfig();
   }
@@ -312,16 +293,18 @@ const close = (group) => {
     refreshFrontendSystemState();
   }
 
-  console.log("关闭设置面板:", group);
+  currentItem.value =
+    products.value.find((item) => item.group === config.tabValue) || null;
 };
 
-// 打开配置组管理
-const openGroupManagement = () => {
-  const groupItem = productsConfig.find((item) => item.group === "group");
-  if (groupItem) {
-    currentItem.value = groupItem;
-    drawerVisible.group = true;
+const openGroupManagement = async () => {
+  const groupCard = fixedProducts.value.find((item) => item.group === "group");
+
+  if (!groupCard) {
+    return;
   }
+
+  await openCard(groupCard);
 };
 
 const handleOpenItemDialog = async () => {
@@ -334,93 +317,11 @@ const handleCloseItemDialog = async () => {
   config.saveItemStatus = false;
 };
 
-// 判断当前是否为默认页面
-const isDefaultView = () => {
-  return config.tabValue === "default";
-};
+watch(products, syncActiveCard, { deep: true });
 
-// 获取当前选中的设置项
-const getCurrentSetting = () => {
-  return products.value.find((item) => item.group === config.tabValue);
-};
-
-/**
- * 从接口获取配置组数据
- * @author CH
- * @date 2024-01-15
- * @version 1.0.0
- */
-const loadProductsConfig = async () => {
-  try {
-    loadingState.loadingInstance = true;
-
-    const { data } = await fetchListForGroup({});
-    if (data && data.length > 0) {
-      // 将接口返回的配置组数据转换为产品配置格式
-      const apiGroups = data
-        .filter((group: SysSettingGroup) => group.sysSettingGroupEnable)
-        .map((group: SysSettingGroup) => ({
-          group: group.sysSettingGroupCode,
-          name: group.sysSettingGroupName,
-          description: group.sysSettingGroupRemark || `设置${group.sysSettingGroupName}`,
-          isSetup: true,
-          type: 4,
-          icon: group.sysSettingGroupIcon || "ri:settings-line",
-          hide: !group.sysSettingGroupEnable,
-        }));
-
-      // 确保 default 和 group 配置始终存在，将其作为固定值与远程配置合并
-      const defaultItem = defaultProductsConfig.find((item) => item.group === "default");
-      const groupItem = defaultProductsConfig.find((item) => item.group === "group");
-      const otherDefaults = defaultProductsConfig.filter((item) => item.group !== "default" && item.group !== "group");
-
-      // 过滤掉远程配置中的 default 和 group 项（如果存在）
-      const filteredApiGroups = apiGroups.filter((item) => item.group !== "default" && item.group !== "group");
-
-      // 合并配置：default（基础配置）第一位 + 其他默认配置（主题、历史等）+ group（系统组设置）最后 + 远程配置
-      const mergedConfig = [];
-      if (defaultItem) {
-        mergedConfig.push(defaultItem);
-      }
-      mergedConfig.push(...otherDefaults);
-      if (groupItem) {
-        mergedConfig.push(groupItem);
-      }
-      mergedConfig.push(...filteredApiGroups);
-      productsConfig.splice(0, productsConfig.length, ...mergedConfig);
-    } else {
-      // 接口失败时使用默认配置
-      productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);
-      console.warn("获取配置组失败，使用默认配置");
-    }
-  } catch (error) {
-    // 接口异常时使用默认配置
-    productsConfig.splice(0, productsConfig.length, ...defaultProductsConfig);
-    console.error("加载配置组失败:", error);
-    message("加载配置组失败，使用默认配置", { type: "warning" });
-  } finally {
-    // 隐藏加载提示
-    loadingState.loadingInstance = false;
-  }
-};
-
-// 组件挂载时加载配置
 onMounted(() => {
-  isComponentMounted.value = true;
   refreshFrontendSystemState();
   loadProductsConfig();
-
-  // 添加一个微任务确保组件引用已建立
-  nextTick(() => {
-    setTimeout(() => {
-      componentLoadStatus.saveLayout = !!saveLayoutRef.value;
-    }, 100);
-  });
-
-  // 监听顶部显示/隐藏事件
-  emitter.on("hideHeaderChange", (hideHeader: boolean) => {
-    headerVisible.value = !hideHeader;
-  });
   window.addEventListener(
     FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
     refreshFrontendSystemState as EventListener,
@@ -428,100 +329,355 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  emitter.off("hideHeaderChange");
   window.removeEventListener(
     FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
     refreshFrontendSystemState as EventListener,
   );
 });
 </script>
+
 <template>
-  <div class="app-container modern-setting-container system-container modern-bg">
+  <ScContainer class="setting-page system-container modern-bg">
+    <ScButton
+      :icon="useRenderIcon('ri:settings-4-line')"
+      class="floating-settings-btn"
+      type="primary"
+      circle
+      @click="handleOpenItemDialog"
+    />
+    <ScButton
+      :icon="useRenderIcon('ri:group-line')"
+      class="floating-group-btn"
+      type="success"
+      circle
+      @click="openGroupManagement"
+    />
 
-    <ScButton :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle
-      @click="handleOpenItemDialog" />
-    <ScButton :icon="useRenderIcon('ri:group-line')" class="floating-group-btn" type="success" circle
-      @click="openGroupManagement" />
-
-    <!-- 页面标题 -->
-    <transition name="header-slide">
-      <div class="setting-header" v-show="headerVisible">
-        <h1 class="setting-title">系统设置</h1>
-        <p class="setting-subtitle">管理和配置系统各项功能</p>
-      </div>
-    </transition>
-
-    <!-- 卡片网格布局 -->
-    <div class="setting-cards-container">
-      <el-skeleton :loading="loadingState.loadingInstance" class="setting-skeleton" :rows="6" animated>
+    <div class="setting-sections">
+      <el-skeleton
+        :loading="loadingState.isLoading"
+        class="setting-skeleton"
+        :rows="8"
+        animated
+      >
         <template #default>
+          <div v-if="products.length" class="setting-cards-grid">
+            <ScCard
+              v-for="item in products"
+              :key="item.group"
+              shadow="never"
+              class="setting-card"
+              :class="{
+                'setting-card-active': config.tabValue === item.group,
+              }"
+              @click="openCard(item)"
+            >
+              <div class="setting-card-shell">
+                <ScRibbon
+                  :text="item.sourceType === 'fixed' ? '本地' : '远程'"
+                  variant="corner"
+                  position="rt"
+                  size="sm"
+                  :color="
+                    item.sourceType === 'fixed' ? '#3b82f6' : '#10b981'
+                  "
+                />
+                <div class="setting-card-main">
+                  <div class="setting-card-icon">
+                    <ScIcon>
+                      <component :is="useRenderIcon(item.icon)" />
+                    </ScIcon>
+                  </div>
 
-          <div class="setting-cards-grid">
+                  <div class="setting-card-content">
+                    <h3 class="setting-card-title">{{ item.name }}</h3>
+                    <p class="setting-card-description">
+                      {{ item.description }}
+                    </p>
+                  </div>
+                </div>
 
-            <div v-for="item in products" :key="item.group" class="setting-card"
-              :class="{ 'setting-card-active': config.tabValue === item.group }" @click="
-                config.tabValue = item.group;
-              onRowClick(item.group);
-              ">
-              <div class="setting-card-icon">
-                <ScIcon>
-                  <component :is="useRenderIcon(item.icon)" />
-                </ScIcon>
+                <div
+                  v-if="config.tabValue === item.group"
+                  class="setting-card-indicator"
+                />
               </div>
-              <div class="setting-card-content">
-                <h3 class="setting-card-title">{{ item.name }}</h3>
-                <p class="setting-card-description">{{ item.description || "设置" + item.name }}</p>
-              </div>
-              <div class="setting-card-indicator" v-if="config.tabValue === item.group"></div>
-            </div>
+            </ScCard>
           </div>
+
+          <ScCard v-else shadow="never" class="setting-empty-card">
+            <ScEmpty description="当前没有可用的配置项" />
+          </ScCard>
         </template>
       </el-skeleton>
-
     </div>
 
-    <!-- 设置内容区域 -->
-    <div class="setting-content-container" v-if="currentItem">
-      <SaveLayoutRaw ref="saveLayoutRef" @close="close(currentItem.group)" class="w-full" />
-      <template v-if="currentItem.group === 'group'">
-        <!-- 配置组管理使用抽屉显示 -->
-        <sc-drawer v-model="drawerVisible.group" size="60%" :title="currentItem.name" destroy-on-close
-          @close="close(currentItem.group)" :z-index="2000" :append-to-body="true" class="setting-drawer">
-          <GroupManagement :data="currentItem" />
-        </sc-drawer>
-      </template>
-      <template v-else>
-        <sc-drawer v-model="drawerVisible[currentItem.group]" size="50%" :title="currentItem.name" :z-index="2000"
-          :append-to-body="true" :destroy-on-close="true" class="setting-drawer">
-          <component :is="layout[currentItem.group]" :data="currentItem" />
-        </sc-drawer>
-      </template>
-    </div>
+    <sc-drawer
+      v-if="currentItem && currentDrawerComponent"
+      :key="currentItem.group"
+      v-model="drawerVisible[currentItem.group]"
+      size="60%"
+      :title="currentItem.name"
+      :z-index="2000"
+      :append-to-body="true"
+      :destroy-on-close="true"
+      class="setting-drawer"
+      @close="close(currentItem.group)"
+    >
+      <component
+        :is="currentDrawerComponent"
+        :data="currentItem"
+        @close="close(currentItem.group)"
+      />
+    </sc-drawer>
 
     <SaveItem ref="saveItemRef" @close="handleCloseItemDialog" />
-  </div>
+  </ScContainer>
 </template>
 
 <style lang="scss" scoped>
-.modern-setting-container {
-  background-color: var(--el-bg-color);
-  border-radius: 16px;
-  box-shadow:
-    0 15px 40px rgba(0, 0, 0, 0.15),
-    0 8px 20px rgba(0, 0, 0, 0.1),
-    0 4px 10px rgba(0, 0, 0, 0.05),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+.setting-page {
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  height: 100%;
-  padding: 30px 0;
-  display: flex;
-  flex-direction: column;
+  min-height: 100%;
+  background: var(--el-bg-color);
+}
+
+.setting-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: none;
+  pointer-events: none;
+}
+
+.setting-sections {
+  position: relative;
+  z-index: 1;
+}
+
+.setting-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(286px, 1fr));
   gap: 20px;
 }
 
-// 添加drawer样式，确保初始渲染时不可见
+.setting-card {
+  position: relative;
+  height: 100%;
+  overflow: visible;
+  cursor: pointer;
+  isolation: isolate;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  transition:
+    transform 0.2s ease;
+}
+
+.setting-card::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: -12px;
+  z-index: 0;
+  height: 26px;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgb(15 23 42 / 24%) 0%,
+    rgb(59 130 246 / 12%) 42%,
+    rgb(15 23 42 / 0%) 78%
+  );
+  border-radius: 999px;
+  filter: blur(18px);
+  opacity: 0.62;
+  transform: translateY(9px) scale(0.9);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.setting-card:hover {
+  transform: translateY(-4px);
+}
+
+.setting-card:hover::after {
+  opacity: 0.8;
+  filter: blur(20px);
+  transform: translateY(11px) scale(0.95);
+}
+
+.setting-card:hover .setting-card-icon {
+  transform: rotate(10deg) scale(1.08);
+  box-shadow:
+    0 14px 28px rgb(59 130 246 / 28%),
+    0 6px 14px rgb(15 23 42 / 12%),
+    inset 0 1px 0 rgb(255 255 255 / 40%);
+}
+
+.setting-card-active {
+  transform: translateY(-2px);
+}
+
+.setting-card-active::after {
+  opacity: 0.84;
+  filter: blur(20px);
+  transform: translateY(10px) scale(0.94);
+}
+
+.setting-card-active:hover {
+  transform: translateY(-4px);
+}
+
+.setting-card :deep(.sc-card-default__body) {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  padding: 0;
+}
+
+.setting-card-shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  min-height: 154px;
+  padding: 28px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fff 0%, #fcfeff 18%, #f6faff 100%);
+  border: 1px solid #d7e3f3;
+  border-radius: 24px;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 92%) inset,
+    0 12px 18px -14px rgb(15 23 42 / 22%),
+    0 20px 30px -20px rgb(15 23 42 / 16%),
+    0 30px 38px -26px rgb(59 130 246 / 24%);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.setting-card-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 82%) 0%,
+    rgb(255 255 255 / 48%) 24%,
+    rgb(255 255 255 / 0%) 54%
+  );
+}
+
+.setting-card-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.setting-card-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-right: 0;
+  font-size: 26px;
+  color: #fff;
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  border-radius: 14px;
+  box-shadow:
+    0 10px 20px rgb(59 130 246 / 24%),
+    0 4px 10px rgb(15 23 42 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 32%);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.setting-card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.setting-card-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #0f172a;
+  transition: color 0.2s ease;
+}
+
+.setting-card-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #64748b;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.setting-card-active .setting-card-title {
+  color: #2563eb;
+}
+
+.setting-card-active .setting-card-description {
+  color: #475569;
+}
+
+.setting-card:hover .setting-card-shell {
+  border-color: #aac4e4;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 96%) inset,
+    0 14px 20px -14px rgb(15 23 42 / 24%),
+    0 24px 34px -20px rgb(15 23 42 / 20%),
+    0 34px 42px -24px rgb(59 130 246 / 26%);
+}
+
+.setting-card-active .setting-card-shell {
+  border-color: #60a5fa;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 98%) inset,
+    0 16px 22px -14px rgb(15 23 42 / 26%),
+    0 26px 36px -20px rgb(15 23 42 / 22%),
+    0 36px 44px -22px rgb(59 130 246 / 32%);
+}
+
+.setting-card-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  border-radius: 0 0 24px 24px;
+}
+
+.setting-empty-card {
+  border: 1px dashed #bfdbfe;
+  border-radius: 24px;
+}
+
+.setting-empty-card :deep(.sc-card-default__body) {
+  padding: 24px;
+}
+
 .setting-drawer {
   visibility: hidden;
 
@@ -530,509 +686,158 @@ onUnmounted(() => {
   }
 }
 
-.floating-settings-btn {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  z-index: 1000;
-  width: 38px !important;
-  height: 38px !important;
-  border-radius: 50%;
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.25),
-    0 5px 15px rgba(0, 0, 0, 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.15),
-    0 1px 0 rgba(255, 255, 255, 0.3) inset;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-
-  &:hover {
-    box-shadow:
-      0 12px 30px rgba(0, 0, 0, 0.3),
-      0 8px 20px rgba(0, 0, 0, 0.25),
-      0 4px 12px rgba(0, 0, 0, 0.2),
-      0 1px 0 rgba(255, 255, 255, 0.4) inset;
-    transform: translateY(-3px) scale(1.05);
-  }
-}
-
+.floating-settings-btn,
 .floating-group-btn {
   position: fixed;
   bottom: 30px;
-  right: 90px;
   z-index: 1000;
-  width: 38px !important;
-  height: 38px !important;
+  width: 42px !important;
+  height: 42px !important;
   border-radius: 50%;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 5px 15px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.3) inset;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 14px 32px rgb(15 23 42 / 22%),
+    inset 0 1px 0 rgb(255 255 255 / 32%);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+}
 
-  &:hover {
+.floating-settings-btn:hover,
+.floating-group-btn:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 18px 36px rgb(15 23 42 / 28%),
+    inset 0 1px 0 rgb(255 255 255 / 38%);
+}
+
+.floating-settings-btn {
+  right: 30px;
+}
+
+.floating-group-btn {
+  right: 86px;
+}
+
+:root[data-theme="dark"] {
+
+  .setting-page::before {
+    background: none;
+  }
+
+  .setting-card {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .setting-card::after {
+    background: radial-gradient(
+      ellipse at center,
+      rgb(2 6 23 / 62%) 0%,
+      rgb(30 64 175 / 20%) 46%,
+      rgb(2 6 23 / 0%) 78%
+    );
+    opacity: 0.78;
+  }
+
+  .setting-card-shell {
+    background: linear-gradient(180deg, rgb(15 23 42 / 98%) 0%, rgb(17 24 39 / 100%) 100%);
+    border-color: rgb(100 116 139 / 42%);
     box-shadow:
-      0 12px 30px rgba(0, 0, 0, 0.3),
-      0 8px 20px rgba(0, 0, 0, 0.25),
-      0 4px 12px rgba(0, 0, 0, 0.2),
-      0 1px 0 rgba(255, 255, 255, 0.4) inset;
-    transform: translateY(-3px) scale(1.05);
+      0 1px 0 rgb(255 255 255 / 8%) inset,
+      0 12px 18px -12px rgb(2 6 23 / 46%),
+      0 22px 30px -18px rgb(2 6 23 / 36%),
+      0 28px 36px -24px rgb(30 64 175 / 26%);
+  }
+
+  .setting-card-shell::before {
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 10%) 0%,
+      rgb(255 255 255 / 4%) 24%,
+      rgb(255 255 255 / 0%) 56%
+    );
+  }
+
+  .setting-card-icon {
+    background: rgb(15 23 42 / 72%);
+    color: rgb(191 219 254 / 96%);
+  }
+
+  .setting-card-title {
+    color: rgb(241 245 249 / 96%);
+  }
+
+  .setting-card-description {
+    color: rgb(148 163 184 / 88%);
+  }
+
+  .setting-card-active {
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  .setting-card-active .setting-card-title {
+    color: rgb(191 219 254 / 98%);
+  }
+
+  .setting-card-active .setting-card-description {
+    color: rgb(203 213 225 / 88%);
+  }
+
+  .setting-card:hover .setting-card-shell {
+    border-color: rgb(148 163 184 / 48%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 10%) inset,
+      0 14px 20px -12px rgb(2 6 23 / 48%),
+      0 24px 34px -18px rgb(2 6 23 / 40%),
+      0 32px 40px -24px rgb(30 64 175 / 28%);
+  }
+
+  .setting-card-active .setting-card-shell {
+    border-color: rgb(96 165 250 / 48%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 12%) inset,
+      0 16px 22px -12px rgb(2 6 23 / 52%),
+      0 26px 36px -18px rgb(2 6 23 / 44%),
+      0 34px 42px -24px rgb(30 64 175 / 30%);
   }
 }
 
-.setting-tabs-container {
-  padding: 0 20px;
-}
-
-.setting-header {
-  padding: 0 30px;
-  margin-bottom: 10px;
-  position: relative;
-  z-index: 1;
-}
-
-.setting-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  margin: 0 0 8px;
-  animation: fadeInUp 0.5s ease-out;
-}
-
-.setting-subtitle {
-  font-size: 16px;
-  color: var(--el-text-color-secondary);
-  margin: 0;
-  animation: fadeInUp 0.5s ease-out;
-  animation-delay: 0.1s;
-}
-
-.setting-cards-container {
-  padding: 0 30px;
-  height: 100%;
-  position: relative;
-  z-index: 5;
-}
-
-.setting-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.setting-content-container {
-  margin-top: 20px;
-  padding: 0 30px 30px;
-  animation: fadeIn 0.5s ease-out;
-  position: relative;
-}
-
-.setting-card {
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 16px;
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.1),
-    0 6px 16px rgba(0, 0, 0, 0.08),
-    0 3px 8px rgba(0, 0, 0, 0.05),
-    0 1px 0 rgba(255, 255, 255, 0.7) inset;
-  padding: 28px;
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border: 1px solid var(--el-border-color-lighter);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-start;
-  height: 100%;
-  min-height: 150px;
-  backdrop-filter: blur(5px);
-  z-index: 1;
-}
-
-.setting-card:hover {
-  transform: translateY(-15px) scale(1.02);
-  box-shadow:
-    0 25px 50px rgba(0, 0, 0, 0.2),
-    0 15px 30px rgba(0, 0, 0, 0.15),
-    0 8px 20px rgba(0, 0, 0, 0.12),
-    0 3px 10px rgba(0, 0, 0, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.85) inset;
-}
-
-.setting-card-active {
-  border-color: var(--el-color-primary);
-  box-shadow:
-    0 25px 50px rgba(var(--el-color-primary-rgb), 0.25),
-    0 15px 30px rgba(var(--el-color-primary-rgb), 0.2),
-    0 8px 20px rgba(var(--el-color-primary-rgb), 0.15),
-    0 3px 10px rgba(var(--el-color-primary-rgb), 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.95) inset;
-  background: linear-gradient(135deg, var(--app-primary-lighter) 0%, var(--app-primary-lightest) 100%);
-  transform: translateY(-10px) scale(1.01);
-  z-index: 10;
-}
-
-.setting-card-indicator {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, var(--app-primary) 0%, var(--app-primary-light-3) 100%);
-  border-radius: 0 0 16px 16px;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.setting-card-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  font-size: 26px;
-  color: var(--el-color-white);
-  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-  border-radius: 14px;
-  margin-right: 20px;
-  transition: all 0.4s ease;
-  box-shadow:
-    0 10px 20px var(--app-primary-shadow),
-    0 6px 12px rgba(0, 0, 0, 0.15),
-    0 3px 6px rgba(0, 0, 0, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.4) inset;
-  flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-}
-
-.setting-card-icon::after {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, var(--app-white-transparent) 0%, var(--app-transparent) 70%);
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.setting-card:hover .setting-card-icon {
-  transform: rotate(15deg) scale(1.12);
-  box-shadow:
-    0 15px 30px rgba(var(--el-color-primary-rgb), 0.3),
-    0 10px 20px rgba(var(--el-color-primary-rgb), 0.25),
-    0 5px 12px rgba(var(--el-color-primary-rgb), 0.2),
-    0 2px 6px rgba(var(--el-color-primary-rgb), 0.15),
-    0 1px 0 rgba(255, 255, 255, 0.5) inset;
-}
-
-.setting-card:hover .setting-card-icon::after {
-  opacity: 1;
-}
-
-.setting-card-content {
-  flex: 1;
-}
-
-.setting-card-title {
-  margin: 0 0 10px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  transition: color 0.3s ease;
-  letter-spacing: 0.3px;
-}
-
-.setting-card-description {
-  margin: 0;
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: color 0.3s ease;
-  line-height: 1.6;
-  white-space: normal;
-  word-break: break-word;
-  word-wrap: break-word;
-  width: 100%;
-}
-
-.setting-card-active .setting-card-title {
-  color: var(--el-color-primary);
-}
-
-.setting-card-active .setting-card-description {
-  color: var(--app-text-regular);
-}
-
-.setting-card-content {
-  flex: 1;
-}
-
-.setting-detail-container {
-  background-color: var(--el-bg-color-overlay);
-  border-radius: 12px;
-  box-shadow:
-    0 8px 24px var(--app-shadow-sm),
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.05),
-    0 1px 0 rgba(255, 255, 255, 0.7) inset;
-  padding: 30px;
-  margin-top: 20px;
-  animation: fadeIn 0.5s ease-out;
-  border: 1px solid var(--el-border-color-lighter);
-  height: calc(100% - 40px);
-  overflow-y: auto;
-}
-
-.modern-tabs {
-  padding: 0 16px;
-
-  :deep(.el-tabs__header) {
-    margin-bottom: 25px;
-    border-bottom: none;
-    padding: 0 15px;
-    position: relative;
-
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 15px;
-      right: 15px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent 0%, var(--app-border-light) 15%, var(--app-border-light) 85%, transparent 100%);
-    }
-  }
-
-  :deep(.el-tabs__nav) {
-    border: none !important;
-  }
-
-  :deep(.el-tabs__item) {
-    height: 60px;
-    line-height: 60px;
-    transition: all 0.3s ease;
-    border-bottom: 3px solid transparent;
-    font-size: 15px;
-
-    &.is-active {
-      color: var(--app-primary);
-      border-bottom: 3px solid var(--app-primary);
-      font-weight: 600;
-      transform: translateY(-2px);
-    }
-
-    &:hover:not(.is-active) {
-      color: var(--app-primary-light-3);
-      border-bottom: 3px solid var(--app-primary-light-7);
-    }
-  }
-
-  :deep(.el-tabs__content) {
-    height: calc(100% - 85px);
-    overflow: auto;
-    padding: 10px 15px;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--app-border-lighter);
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
+@media (max-width: 960px) {
+  .setting-cards-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-.custom-tabs-label {
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-
-  .tab-icon {
-    margin-right: 10px;
-    font-size: 20px;
-    transition: all 0.3s ease;
+@media (max-width: 640px) {
+  .setting-card-shell {
+    min-height: 148px;
+    padding: 16px;
   }
 
-  .tab-text {
-    font-size: 15px;
-    transition: all 0.3s ease;
-  }
-}
-
-/* 顶部显示/隐藏动画 */
-.header-slide-enter-active,
-.header-slide-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-}
-
-.header-slide-enter-from,
-.header-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-20px);
-  max-height: 0;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.header-slide-enter-to,
-.header-slide-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 200px;
-}
-
-/* 动画效果 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  .setting-card-main {
+    gap: 14px;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+  .setting-card-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
   }
 
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.4);
+  .setting-card-title {
+    font-size: 17px;
   }
 
-  70% {
-    box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
+  .floating-settings-btn {
+    right: 18px;
+    bottom: 18px;
   }
 
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
-  }
-}
-
-:deep(.el-form-item) {
-  animation: fadeInUp 0.4s ease-out forwards;
-  animation-delay: calc(var(--el-transition-duration) * 0.1 * var(--index, 0));
-}
-
-/* 卡片样式优化 */
-.list-card-item {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  cursor: pointer;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 5px 15px var(--app-shadow-sm);
-  background-color: var(--app-bg-primary);
-  border: 1px solid var(--app-border-lighter);
-
-  &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 10px 25px var(--app-shadow);
-    border-color: var(--app-primary-light-7);
-  }
-
-  &_detail {
-    flex: 1;
-    min-height: 160px;
-    padding: 30px;
-    transition: background-color 0.3s ease;
-
-    &--logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 60px;
-      height: 60px;
-      font-size: 28px;
-      color: var(--el-color-white);
-      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-      border-radius: 15px;
-      transition: all 0.3s ease;
-      box-shadow: 0 5px 15px var(--app-primary-shadow);
-
-      &:hover {
-        transform: rotate(15deg) scale(1.1);
-      }
-
-      &__disabled {
-        color: var(--app-text-disabled);
-        background: var(--app-fill-light);
-        box-shadow: none;
-      }
-    }
-
-    &--operation {
-      display: flex;
-      height: 100%;
-      align-items: center;
-
-      &--tag {
-        border: 0;
-        transition: all 0.3s ease;
-        padding: 6px 12px;
-        border-radius: 20px;
-
-        &:hover {
-          transform: scale(1.05);
-        }
-      }
-    }
-
-    &--name {
-      margin: 24px 0 12px;
-      font-size: 18px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      color: var(--el-text-color-primary);
-    }
-
-    &--desc {
-      display: -webkit-box;
-      height: 44px;
-      margin-bottom: 24px;
-      overflow: hidden;
-      font-size: 14px;
-      line-height: 22px;
-      text-overflow: ellipsis;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      color: var(--el-text-color-secondary);
-      transition: all 0.3s ease;
-    }
-  }
-
-  &__disabled {
-
-    .list-card-item_detail--name,
-    .list-card-item_detail--desc {
-      color: var(--el-text-color-disabled);
-    }
-
-    .list-card-item_detail--operation--tag {
-      color: var(--app-text-disabled);
-      background-color: var(--app-fill-lighter);
-    }
+  .floating-group-btn {
+    right: 72px;
+    bottom: 18px;
   }
 }
 </style>
