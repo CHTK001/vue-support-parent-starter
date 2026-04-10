@@ -1,9 +1,8 @@
 ﻿<script setup lang="ts">
 import { getConfig } from "@repo/config";
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
-import { aesEncrypt, aesDecrypt } from "@repo/utils";
+import { aesDecrypt, aesEncrypt } from "@repo/utils";
 import {
-  type ComponentPublicInstance,
   computed,
   nextTick,
   onBeforeMount,
@@ -12,16 +11,19 @@ import {
   ref,
   unref,
   watch,
+  type ComponentPublicInstance,
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useNav } from "../../../hooks/useNav";
 import LayPanel from "../../lay-panel/index.vue";
 
 import { debounce, isNumber, storageLocal, useGlobal } from "@pureadmin/utils";
-import Segmented, {
-  type OptionsType,
-} from "@repo/components/ReSegmented/index";
-import { http, message, type ReturnResult } from "@repo/utils";
+import { type OptionsType } from "@repo/components/ReSegmented/index";
+import {
+  getStoredLoaderStyle,
+  setStoredLoaderStyle,
+} from "@repo/components/ScRouteLoading/loader-manager";
+import { formatSize, http, message, type ReturnResult } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
@@ -29,14 +31,7 @@ import { getThemeComponents, type ComponentMap } from "../components";
 
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
 import DayIcon from "@repo/assets/svg/day.svg?component";
-import DoubleIcon from "@repo/assets/svg/double.svg?component";
-import DrawerIcon from "@repo/assets/svg/drawer.svg?component";
-import HorizontalIcon from "@repo/assets/svg/horizontal.svg?component";
-import HoverIcon from "@repo/assets/svg/hover.svg?component";
-import MixIcon from "@repo/assets/svg/mix.svg?component";
-import MobileIcon from "@repo/assets/svg/mobile.svg?component";
 import SystemIcon from "@repo/assets/svg/system.svg?component";
-import VerticalIcon from "@repo/assets/svg/vertical.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();
@@ -145,6 +140,7 @@ const activeSection = ref<SettingSectionKey>("theme");
 const sectionSearch = ref("");
 const sectionSortMode = ref<SectionSortMode>("default");
 const sectionElements = new Map<SettingSectionKey, HTMLElement>();
+const cacheSizeLabel = ref("0 字节");
 
 // 预览数据
 
@@ -265,6 +261,7 @@ const settings = reactive({
   // 面包屑导航
   showBreadcrumb: $storage.configure.showBreadcrumb ?? true,
   breadcrumbIconOnly: $storage.configure.breadcrumbIconOnly ?? false,
+  breadcrumbAnimation: $storage.configure.breadcrumbAnimation ?? false,
   // 标签页图标
   showTagIcon: $storage.configure.showTagIcon ?? true,
   // 菜单设置相关
@@ -288,6 +285,7 @@ const settings = reactive({
   showSearch:
     $storage.configure?.showSearch ?? getConfig().ShowBarSearch ?? true,
   showFullscreen: $storage.configure?.showFullscreen ?? true,
+  showTaskCenter: $storage.configure?.showTaskCenter ?? true,
   showHeaderClock:
     $storage.configure?.showHeaderClock ??
     getConfig().PageBehavior?.showHeaderClock ??
@@ -367,7 +365,7 @@ const settings = reactive({
     getConfig().PageBehavior?.devHoverInspector ??
     false,
   // 加载动画样式
-  loaderStyle: localStorage.getItem("sys-loader-style") || "default",
+  loaderStyle: getStoredLoaderStyle("none"),
   // 语音朗读（无障碍）
   voiceReadEnabled: $storage.configure?.voiceReadEnabled ?? false,
   // 热点工具（热力图）
@@ -454,6 +452,24 @@ function decryptSensitive(val: string): string {
   return aesDecrypt(val, getConfig().StorageKey);
 }
 
+function refreshCacheSize() {
+  if (typeof window === "undefined") {
+    cacheSizeLabel.value = "0 字节";
+    return;
+  }
+
+  let totalBytes = 0;
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const key = window.localStorage.key(i);
+    if (!key) {
+      continue;
+    }
+    const value = window.localStorage.getItem(key) ?? "";
+    totalBytes += new Blob([key, value]).size;
+  }
+  cacheSizeLabel.value = formatSize(totalBytes);
+}
+
 function storageConfigureChange<T>(key: string, val: T): void {
   const storageConfigure = $storage.configure || {};
   // 敏感字段写入前加密
@@ -467,6 +483,7 @@ function storageConfigureChange<T>(key: string, val: T): void {
   // 同步写入本地存储，保证刷新后 useThemeAnimation 等能读取到最新配置
   try {
     storageLocal().setItem("responsive-configure", storageConfigure);
+    refreshCacheSize();
   } catch (error) {
     // 本地存储异常时不影响正常功能
     console.warn("[BaseSetting] 写入本地配置失败:", error);
@@ -861,6 +878,11 @@ const initializeTheme = () => {
 };
 
 onBeforeMount(() => {
+  refreshCacheSize();
+  if (getStoredLoaderStyle("none") !== "none") {
+    setStoredLoaderStyle("none");
+    settings.loaderStyle = "none";
+  }
   /* 初始化系统配置 */
   nextTick(() => {
     watchSystemThemeChange();
@@ -931,6 +953,11 @@ function breadcrumbModeChange() {
     "breadcrumbModeChange",
     settings.breadcrumbIconOnly ? "icon" : "icon-text",
   );
+}
+
+function breadcrumbAnimationChange() {
+  storageConfigureChange("breadcrumbAnimation", settings.breadcrumbAnimation);
+  emitter.emit("breadcrumbAnimationChange", settings.breadcrumbAnimation);
 }
 
 /**
@@ -1074,6 +1101,15 @@ function showFullscreenChange(value: boolean) {
   settings.showFullscreen = value;
   storageConfigureChange("showFullscreen", value);
   emitter.emit("showFullscreenChange", value);
+}
+
+/**
+ * 顶部任务中心开关变更
+ */
+function showTaskCenterChange(value: boolean) {
+  settings.showTaskCenter = value;
+  storageConfigureChange("showTaskCenter", value);
+  emitter.emit("showTaskCenterChange", value);
 }
 
 /**
@@ -1390,6 +1426,7 @@ function themeAnimationDirectionChange(value: string) {
 function clearLocalCache() {
   try {
     storageLocal().clear();
+    refreshCacheSize();
     message.success("缓存已清空，即将刷新页面");
     setTimeout(() => location.reload(), 800);
   } catch (e) {
@@ -1430,6 +1467,7 @@ function importConfig() {
         Object.assign(current, imported);
         $storage.configure = current;
         storageLocal().setItem("responsive-configure", current);
+        refreshCacheSize();
         message.success("配置已导入，即将刷新页面");
         setTimeout(() => location.reload(), 800);
       } catch {
@@ -1446,6 +1484,7 @@ function resetConfig() {
   try {
     $storage.configure = {};
     storageLocal().removeItem("responsive-configure");
+    refreshCacheSize();
     message.success("配置已重置，即将刷新页面");
     setTimeout(() => location.reload(), 800);
   } catch (e) {
@@ -1542,20 +1581,24 @@ const overallStyleLabel = computed(() => {
 
 const overviewChips = computed(() => [
   {
+    sectionKey: "theme" as SettingSectionKey,
     label: translateOr("panel.currentThemeSkin", "当前皮肤"),
     value:
       themeDisplayLabels[themeStore.currentTheme] ?? themeStore.currentTheme,
   },
   {
+    sectionKey: "layout" as SettingSectionKey,
     label: translateOr("panel.currentLayoutMode", "布局模式"),
     value:
       layoutDisplayLabels[layoutTheme.value.layout] ?? layoutTheme.value.layout,
   },
   {
+    sectionKey: "display" as SettingSectionKey,
     label: translateOr("panel.currentVisualMode", "视觉策略"),
     value: overallStyleLabel.value,
   },
   {
+    sectionKey: "tabs" as SettingSectionKey,
     label: translateOr("panel.currentTagMode", "标签风格"),
     value: settings.tabsVal
       ? translateOr("panel.tagsHidden", "已隐藏")
@@ -1681,6 +1724,7 @@ const settingSectionProps = computed<
     settings,
     showSearchChange,
     showFullscreenChange,
+    showTaskCenterChange,
     showHeaderClockChange,
     headerClockSecondEnabledChange,
     headerClockSecondTimezoneChange,
@@ -1700,6 +1744,7 @@ const settingSectionProps = computed<
     monochromeChange,
     showBreadcrumbChange,
     breadcrumbModeChange,
+    breadcrumbAnimationChange,
     showTagIconChange,
     hideFooterChange,
     keepAliveChange,
@@ -1776,86 +1821,94 @@ const allSettingSections = computed<
     sortWeight: number;
     searchText: string;
   }>
->(() =>
-  [
-    {
-      key: "theme",
-      label: settingSectionLabels.theme,
-      component: "SettingTheme",
-      props: resolveSectionProps(settingSectionProps.value.theme),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("theme"),
-      searchText: "",
-    },
-    {
-      key: "layout",
-      label: settingSectionLabels.layout,
-      component: "SettingLayout",
-      props: resolveSectionProps(settingSectionProps.value.layout),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("layout"),
-      searchText: "",
-    },
-    {
-      key: "tabs",
-      label: settingSectionLabels.tabs,
-      component: "SettingTabs",
-      props: resolveSectionProps(settingSectionProps.value.tabs),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("tabs"),
-      searchText: "",
-    },
-    {
-      key: "toolbar",
-      label: settingSectionLabels.toolbar,
-      component: "SettingToolbar",
-      props: resolveSectionProps(settingSectionProps.value.toolbar),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("toolbar"),
-      searchText: "",
-    },
-    {
-      key: "display",
-      label: settingSectionLabels.display,
-      component: "SettingDisplay",
-      props: resolveSectionProps(settingSectionProps.value.display),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("display"),
-      searchText: "",
-    },
-    {
-      key: "menu",
-      label: settingSectionLabels.menu,
-      component: "SettingMenu",
-      props: resolveSectionProps(settingSectionProps.value.menu),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("menu"),
-      searchText: "",
-    },
-    {
-      key: "message",
-      label: settingSectionLabels.message,
-      component: "SettingMessage",
-      props: resolveSectionProps(settingSectionProps.value.message),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("message"),
-      searchText: "",
-    },
-    {
-      key: "ai",
-      label: settingSectionLabels.ai,
-      component: "SettingAiChat",
-      props: resolveSectionProps(settingSectionProps.value.ai),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("ai"),
-      searchText: "",
-    },
-    {
-      key: "advanced",
-      label: settingSectionLabels.advanced,
-      component: "SettingAdvanced",
-      props: resolveSectionProps(settingSectionProps.value.advanced),
-      sortWeight: DEFAULT_SECTION_ORDER.indexOf("advanced"),
-      searchText: "",
-    },
-  ].map((section) => ({
-    ...section,
-    searchText: [section.label, ...extractSearchText(section.props)]
-      .join(" ")
-      .toLowerCase(),
-  })),
+>(
+  () =>
+    [
+      {
+        key: "theme",
+        label: settingSectionLabels.theme,
+        component: "SettingTheme",
+        props: resolveSectionProps(settingSectionProps.value.theme),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("theme"),
+        searchText: "",
+      },
+      {
+        key: "layout",
+        label: settingSectionLabels.layout,
+        component: "SettingLayout",
+        props: resolveSectionProps(settingSectionProps.value.layout),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("layout"),
+        searchText: "",
+      },
+      {
+        key: "tabs",
+        label: settingSectionLabels.tabs,
+        component: "SettingTabs",
+        props: resolveSectionProps(settingSectionProps.value.tabs),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("tabs"),
+        searchText: "",
+      },
+      {
+        key: "toolbar",
+        label: settingSectionLabels.toolbar,
+        component: "SettingToolbar",
+        props: resolveSectionProps(settingSectionProps.value.toolbar),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("toolbar"),
+        searchText: "",
+      },
+      {
+        key: "display",
+        label: settingSectionLabels.display,
+        component: "SettingDisplay",
+        props: resolveSectionProps(settingSectionProps.value.display),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("display"),
+        searchText: "",
+      },
+      {
+        key: "menu",
+        label: settingSectionLabels.menu,
+        component: "SettingMenu",
+        props: resolveSectionProps(settingSectionProps.value.menu),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("menu"),
+        searchText: "",
+      },
+      {
+        key: "message",
+        label: settingSectionLabels.message,
+        component: "SettingMessage",
+        props: resolveSectionProps(settingSectionProps.value.message),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("message"),
+        searchText: "",
+      },
+      {
+        key: "ai",
+        label: settingSectionLabels.ai,
+        component: "SettingAiChat",
+        props: resolveSectionProps(settingSectionProps.value.ai),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("ai"),
+        searchText: "",
+      },
+      {
+        key: "advanced",
+        label: settingSectionLabels.advanced,
+        component: "SettingAdvanced",
+        props: resolveSectionProps(settingSectionProps.value.advanced),
+        sortWeight: DEFAULT_SECTION_ORDER.indexOf("advanced"),
+        searchText: "",
+      },
+    ].map((section) => ({
+      ...section,
+      searchText: [section.label, ...extractSearchText(section.props)]
+        .join(" ")
+        .toLowerCase(),
+    })) as Array<{
+      key: SettingSectionKey;
+      label: string;
+      component: keyof ComponentMap;
+      props: Record<string, unknown>;
+      sortWeight: number;
+      searchText: string;
+    }>,
 );
 
 const displayedSettingSections = computed(() => {
@@ -1955,10 +2008,12 @@ onUnmounted(() => {
                 </div>
               </div>
               <div class="setting-shell-hero__chips">
-                <div
+                <button
                   v-for="item in overviewChips"
                   :key="item.label"
+                  type="button"
                   class="setting-shell-chip"
+                  @click="scrollToSection(item.sectionKey)"
                 >
                   <span class="setting-shell-chip__label">{{
                     item.label
@@ -1966,7 +2021,7 @@ onUnmounted(() => {
                   <strong class="setting-shell-chip__value">{{
                     item.value
                   }}</strong>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -2050,7 +2105,7 @@ onUnmounted(() => {
         <div style="display: flex; gap: 8px; flex-wrap: wrap">
           <el-button plain @click="clearLocalCache">
             <IconifyIconOnline icon="ri:delete-bin-line" />
-            清空缓存
+            清空缓存 · {{ cacheSizeLabel }}
           </el-button>
           <el-button plain @click="importConfig">
             <IconifyIconOnline icon="ri:upload-2-line" />

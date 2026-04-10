@@ -2,15 +2,31 @@
   <div class="system-container menu-container">
     <!-- 保存对话框组件 -->
     <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
+      v-model:visible="saveDialogParams.visible"
       :mode="saveDialogParams.mode"
+      :table-data="tableData"
+      :menu-data="saveDialogParams.data"
+      :current-engine="menuEngine"
       @success="onSuccess"
-      @close="dialogClose"
     />
 
     <div class="menu-wrapper">
       <ScContainer>
+        <div v-if="showMiniProgramMenu" class="menu-engine-tabs">
+          <el-tabs v-model="menuEngineTab" stretch>
+            <el-tab-pane label="PC 菜单" name="0" />
+            <el-tab-pane label="小程序菜单" name="1" />
+          </el-tabs>
+        </div>
+        <div class="menu-source-note">
+          <IconifyIconOnline icon="ri:information-line" />
+          <span>{{ currentSourceHint }}</span>
+        </div>
+        <MiniProgramMenuPanel
+          v-if="isMiniProgramEngine"
+          :active="isMiniProgramEngine"
+        />
+        <template v-else>
         <!-- 统计面板 -->
         <div class="menu-stats">
           <div class="stat-item">
@@ -130,7 +146,7 @@
               row-key="sysMenuId"
               border
               layout="table"
-              :default-expand-all="isExpanded"
+              :expand-row-keys="expandedRowKeys"
               @row-click="getOpenDetail"
             >
               <!-- 菜单名称列 -->
@@ -308,17 +324,14 @@
                       @confirm="onDelete(row)"
                     >
                       <template #reference>
-                        <ScTooltip content="删除菜单" placement="top">
-                          <ScButton
-                            type="danger"
-                            link
-                            title="删除菜单"
-                            aria-label="删除菜单"
-                            @click.stop
-                          >
-                            <IconifyIconOnline icon="mdi:delete" />
-                          </ScButton>
-                        </ScTooltip>
+                        <ScButton
+                          type="danger"
+                          link
+                          title="删除菜单"
+                          aria-label="删除菜单"
+                        >
+                          <IconifyIconOnline icon="mdi:delete" />
+                        </ScButton>
                       </template>
                     </ScPopconfirm>
                   </div>
@@ -327,6 +340,7 @@
             </ScTable>
           </div>
         </ScMain>
+        </template>
       </ScContainer>
     </div>
   </div>
@@ -334,15 +348,13 @@
 
 <script setup lang="ts">
 // 引入 Vue 相关的 API
-import { nextTick, reactive, ref, computed, defineAsyncComponent } from "vue";
-
-// 异步加载保存对话框组件（对话框类组件适合异步加载）
-const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
+import { reactive, ref, computed, nextTick, watch } from "vue";
+import SaveDialog from "./save.vue";
+import MiniProgramMenuPanel from "./mini-program-panel.vue";
 
 // 引入菜单相关的 API
 import { fetchDeleteMenu, fetchListMenu } from "@/api/manage/menu";
-// 引入防抖工具函数
-import { debounce } from "@pureadmin/utils";
+import { clearRouter } from "@repo/core";
 // 引入渲染图标的钩子函数
 // 引入配置和国际化相关的工具函数
 import { getConfig, transformI18n } from "@repo/config";
@@ -351,14 +363,64 @@ import { message } from "@repo/utils";
 // 引入国际化 API
 import { useI18n } from "vue-i18n";
 
+const MENU_ENGINE_STORAGE_KEY = "system.manage.menu.engine";
+const MENU_CACHE_STORAGE_PREFIX = "system.manage.menu.cache.";
+
+const readCachedEngine = () => {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+  return window.localStorage.getItem(MENU_ENGINE_STORAGE_KEY) === "1" ? 1 : 0;
+};
+
+const persistMenuEngine = (engine: number) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(MENU_ENGINE_STORAGE_KEY, String(engine));
+};
+
+const getMenuCacheStorageKey = (engine: number) =>
+  `${MENU_CACHE_STORAGE_PREFIX}${engine}`;
+
+const readCachedMenus = (engine: number) => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(getMenuCacheStorageKey(engine));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const persistMenus = (engine: number, data: any[]) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.setItem(
+    getMenuCacheStorageKey(engine),
+    JSON.stringify(data || []),
+  );
+};
+
+const clearCachedMenus = (engine: number) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.removeItem(getMenuCacheStorageKey(engine));
+};
+
 // 获取国际化实例
 const { t } = useI18n();
 // 定义表单数据
-const form = reactive({});
-
-// 定义对话框可见状态
-const visible = reactive({
-  save: false,
+const form = reactive({
+  sysMenuEngine: 0,
 });
 
 // 定义加载状态
@@ -368,6 +430,22 @@ const loading = reactive({
 
 // 搜索关键词
 const searchKeyword = ref("");
+const menuEngine = ref(readCachedEngine());
+const menuEngineTab = computed({
+  get: () => String(menuEngine.value),
+  set: (value: string) => {
+    menuEngine.value = Number(value || 0);
+  },
+});
+const showMiniProgramMenu = computed(() => !!getConfig().OpenMiniProgramMenu);
+const isMiniProgramEngine = computed(
+  () => showMiniProgramMenu.value && Number(menuEngine.value || 0) === 1,
+);
+const currentSourceHint = computed(() =>
+  Number(menuEngine.value || 0) === 0
+    ? "当前管理页读取 /v2/menu/list；左侧运行时导航读取 /v2/user/menu。保存或删除后会自动刷新导航缓存。"
+    : "当前为小程序菜单卡片配置，读取 /v2/mini-menu/list，使用独立表 sys_mini_menu，并缓存当前页数据。",
+);
 
 // 是否展开全部
 const isExpanded = ref(false);
@@ -375,13 +453,75 @@ const isExpanded = ref(false);
 // 表格引用
 const menuTableRef = ref();
 
+const collectExpandedRowKeys = (items: any[] = [], keys: number[] = []) => {
+  items.forEach((item) => {
+    if (item?.children?.length) {
+      keys.push(item.sysMenuId);
+      collectExpandedRowKeys(item.children, keys);
+    }
+  });
+  return keys;
+};
+
+const expandedRowKeys = computed(() => {
+  if (searchKeyword.value) {
+    return collectExpandedRowKeys(filteredTableData.value, []);
+  }
+  return isExpanded.value ? collectExpandedRowKeys(tableData.value, []) : [];
+});
+
+const syncedExpandedKeys = ref<number[]>([]);
+
+const buildRowMap = (items: any[] = [], map = new Map<number, any>()) => {
+  items.forEach((item) => {
+    if (!item) {
+      return;
+    }
+    map.set(Number(item.sysMenuId), item);
+    if (item.children?.length) {
+      buildRowMap(item.children, map);
+    }
+  });
+  return map;
+};
+
+const syncExpandedRows = async () => {
+  await nextTick();
+  const table = menuTableRef.value;
+  if (!table?.toggleRowExpansion) {
+    return;
+  }
+
+  const rowMap = buildRowMap(filteredTableData.value);
+  const nextKeys = [
+    ...new Set(expandedRowKeys.value.map((key) => Number(key))),
+  ];
+  const previousKeys = syncedExpandedKeys.value;
+
+  previousKeys
+    .filter((key) => !nextKeys.includes(key))
+    .forEach((key) => {
+      const row = rowMap.get(key);
+      if (row) {
+        table.toggleRowExpansion(row, false);
+      }
+    });
+
+  nextKeys.forEach((key) => {
+    const row = rowMap.get(key);
+    if (row) {
+      table.toggleRowExpansion(row, true);
+    }
+  });
+
+  syncedExpandedKeys.value = nextKeys;
+};
+
 /**
  * 切换展开/折叠全部
  */
 const toggleExpandAll = () => {
   isExpanded.value = !isExpanded.value;
-  // 刷新表格以应用新的展开状态
-  onSearch();
 };
 
 /**
@@ -485,46 +625,94 @@ const calcStats = (data: any[]) => {
   stats.links = links;
   stats.buttons = buttons;
 };
-// 定义表单引用
-const formRef = ref();
-// 定义表格引用
-const table = ref(null);
-// 定义保存对话框引用
-const saveDialog = ref(null);
-
-/**
- * 重置表单并重新搜索
- * @param {Object} formRef - 表单引用
- */
-const resetForm = async (formRef) => {
-  formRef.resetFields();
-  onSearch();
-};
 
 // 定义表格数据
 const tableData = ref([]);
+const menuCache = new Map<number, any[]>();
 
-/**
- * 递归修改表格数据中的项
- * @param {Array} data - 表格数据
- * @param {Object} form - 要修改的表单数据
- * @returns {boolean} - 是否修改成功
- */
-const doChange = async (data, form) => {
-  if (!data) {
+const cloneMenuTree = (data: any[] = []) => JSON.parse(JSON.stringify(data));
+
+const normalizeMenuTreeOrder = (items: any[] = []) => {
+  return [...items]
+    .map((item) => ({
+      ...item,
+      children: Array.isArray(item?.children)
+        ? normalizeMenuTreeOrder(item.children)
+        : [],
+    }))
+    .sort((left, right) => {
+      const sortDiff =
+        Number(left?.sysMenuSort ?? 0) - Number(right?.sysMenuSort ?? 0);
+      if (sortDiff !== 0) {
+        return sortDiff;
+      }
+
+      const idDiff =
+        Number(left?.sysMenuId ?? 0) - Number(right?.sysMenuId ?? 0);
+      if (idDiff !== 0) {
+        return idDiff;
+      }
+
+      return 0;
+    });
+};
+
+const applyMenuTableData = (data: any[] = []) => {
+  tableData.value = normalizeMenuTreeOrder(cloneMenuTree(data));
+  calcStats(tableData.value);
+};
+
+const syncRuntimeMenus = async () => {
+  if (typeof window === "undefined") {
     return;
   }
-  const item = data.filter((item) => item.sysMenuId === form.sysMenuId);
-  if (null != item && item.length > 0) {
-    Object.assign(item[0], form);
-    return true;
+
+  window.localStorage.removeItem("async-routes");
+
+  if (Number(menuEngine.value || 0) !== 0) {
+    return;
   }
-  for (var i = 0; i < data.length; i++) {
-    if (doChange(data[i]?.children, form)) {
-      break;
+
+  try {
+    await clearRouter();
+  } catch {
+    message("菜单缓存刷新失败，请手动刷新页面确认最新导航", {
+      type: "warning",
+    });
+  }
+};
+
+const loadMenus = async (options: { force?: boolean } = {}) => {
+  const currentEngine = Number(menuEngine.value || 0);
+  if (!options.force && menuCache.has(currentEngine)) {
+    applyMenuTableData(menuCache.get(currentEngine) || []);
+    return;
+  }
+  if (!options.force) {
+    const cachedMenus = readCachedMenus(currentEngine);
+    if (cachedMenus) {
+      menuCache.set(currentEngine, cloneMenuTree(cachedMenus));
+      applyMenuTableData(cachedMenus);
+      return;
     }
   }
-  return true;
+
+  loading.query = true;
+  try {
+    const res = await fetchListMenu({
+      ...form,
+      sysMenuEngine: currentEngine,
+    });
+    const nextData = Array.isArray(res?.data) ? res.data : [];
+    menuCache.set(currentEngine, cloneMenuTree(nextData));
+    persistMenus(currentEngine, nextData);
+    applyMenuTableData(nextData);
+  } catch {
+    applyMenuTableData([]);
+    message("加载菜单列表失败", { type: "error" });
+  } finally {
+    loading.query = false;
+  }
 };
 
 /**
@@ -532,48 +720,17 @@ const doChange = async (data, form) => {
  * @param {string} mode - 操作模式，'edit' 或 'save'
  * @param {Object} form - 表单数据
  */
-const onSuccess = async (mode, form) => {
-  if (mode == "edit") {
-    const item = tableData.value.filter(
-      (item) => item.sysMenuId === form.sysMenuId,
-    );
-    if (null != item && item.length > 0) {
-      Object.assign(item[0], form);
-      return;
-    }
-    for (var i = 0; i < tableData.value.length; i++) {
-      if (doChange(tableData[i]?.children, form)) {
-        break;
-      }
-    }
-    return;
-  }
-  onSearch();
+const onSuccess = async () => {
+  menuCache.delete(Number(menuEngine.value || 0));
+  clearCachedMenus(Number(menuEngine.value || 0));
+  await loadMenus({ force: true });
+  await syncRuntimeMenus();
 };
 
 /**
- * 搜索菜单数据，使用防抖处理
+ * 刷新菜单数据
  */
-const onSearch = debounce(
-  async () => {
-    loading.query = true;
-    fetchListMenu(form)
-      .then((res) => {
-        const { data, code } = res;
-        tableData.value = data;
-        calcStats(data);
-        return;
-      })
-      .finally(() => {
-        loading.query = false;
-      });
-  },
-  1000,
-  true,
-);
-
-// 页面加载时执行搜索
-onSearch();
+const onSearch = async () => loadMenus({ force: true });
 
 /**
  * 处理表格行点击事件，展开子项
@@ -583,15 +740,24 @@ onSearch();
  */
 const getOpenDetail = async (row, column, event) => {
   if (row.children && column?.label != "操作") {
-    if (event.currentTarget.querySelector(".el-table__expand-icon")) {
-      event.currentTarget.querySelector(".el-table__expand-icon").click();
+    const expandIcon = event.currentTarget.querySelector(
+      ".el-table__expand-icon",
+    );
+    if (expandIcon) {
+      expandIcon.click();
     }
   }
 };
 
 // 定义保存对话框的参数
-const saveDialogParams = reactive({
+const saveDialogParams = reactive<{
+  visible: boolean;
+  mode: "save" | "edit" | "show";
+  data: Record<string, any>;
+}>({
+  visible: false,
   mode: "save",
+  data: {},
 });
 
 /**
@@ -600,11 +766,16 @@ const saveDialogParams = reactive({
  */
 const onDelete = async (row) => {
   try {
-    const { code } = await fetchDeleteMenu(row.sysMenuId);
-    onSearch();
+    await fetchDeleteMenu(row.sysMenuId);
+    menuCache.delete(Number(menuEngine.value || 0));
+    clearCachedMenus(Number(menuEngine.value || 0));
+    await loadMenus({ force: true });
+    await syncRuntimeMenus();
     message(t("message.deleteSuccess"), { type: "success" });
     return;
-  } catch (error) {}
+  } catch {
+    message("删除菜单失败", { type: "error" });
+  }
 };
 
 /**
@@ -612,20 +783,56 @@ const onDelete = async (row) => {
  * @param {Object} item - 要编辑或保存的数据
  * @param {string} mode - 操作模式，'edit' 或 'save'
  */
-const dialogOpen = async (item, mode) => {
-  visible.save = true;
-  await nextTick();
-  saveDialog.value?.setTableData(tableData.value);
-  saveDialog.value?.setData(item);
-  saveDialog.value?.open(mode);
+const dialogOpen = async (
+  item: Record<string, any> | null,
+  mode: "save" | "edit" | "show",
+) => {
+  saveDialogParams.mode = mode;
+  saveDialogParams.data = item
+    ? { sysMenuEngine: menuEngine.value, ...item }
+    : { sysMenuEngine: menuEngine.value };
+  saveDialogParams.visible = true;
 };
 
-/**
- * 关闭保存对话框
- */
-const dialogClose = async () => {
-  visible.save = false;
-};
+watch(
+  menuEngine,
+  (value) => {
+    const nextEngine = showMiniProgramMenu.value ? value : 0;
+    if (nextEngine !== value) {
+      menuEngine.value = nextEngine;
+      return;
+    }
+    persistMenuEngine(nextEngine);
+    form.sysMenuEngine = nextEngine;
+    searchKeyword.value = "";
+    syncedExpandedKeys.value = [];
+    if (nextEngine === 0) {
+      void loadMenus();
+      return;
+    }
+    loading.query = false;
+    applyMenuTableData([]);
+  },
+  { immediate: true },
+);
+
+watch(
+  showMiniProgramMenu,
+  (enabled) => {
+    if (!enabled && menuEngine.value !== 0) {
+      menuEngine.value = 0;
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  [expandedRowKeys, filteredTableData],
+  () => {
+    void syncExpandedRows();
+  },
+  { flush: "post" },
+);
 
 /**
  * 获取菜单类型标签配置
@@ -683,11 +890,11 @@ const getMenuTypeTag = (type) => {
     padding: 16px;
     background: var(--el-fill-color-lighter);
     border-radius: 12px;
-      transition: box-shadow 0.2s ease;
+    transition: box-shadow 0.2s ease;
 
-      &:hover {
-        box-shadow: 0 6px 14px rgb(15 23 42 / 6%);
-      }
+    &:hover {
+      box-shadow: 0 6px 14px rgb(15 23 42 / 6%);
+    }
 
     .stat-icon {
       display: flex;
@@ -735,8 +942,41 @@ const getMenuTypeTag = (type) => {
   }
 }
 
-.menu-container {
+.menu-source-note {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 20px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 
+  .iconify {
+    color: var(--el-color-primary);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+}
+
+.menu-engine-tabs {
+  padding: 16px 20px 0;
+
+  :deep(.el-tabs__header) {
+    margin-bottom: 12px;
+  }
+
+  :deep(.el-tabs__nav-wrap) {
+    padding: 4px;
+    background: var(--el-fill-color-light);
+    border-radius: 14px;
+  }
+
+  :deep(.el-tabs__item) {
+    height: 42px;
+    font-weight: 600;
+  }
+}
+
+.menu-container {
   .menu-wrapper {
     display: flex;
     flex-direction: column;
@@ -787,15 +1027,15 @@ const getMenuTypeTag = (type) => {
       gap: 8px;
       align-items: center;
 
-        .el-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: box-shadow 0.2s ease;
+      .el-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: box-shadow 0.2s ease;
 
-          &:hover {
-            box-shadow: 0 4px 10px rgb(15 23 42 / 8%);
-          }
+        &:hover {
+          box-shadow: 0 4px 10px rgb(15 23 42 / 8%);
+        }
 
         .iconify {
           font-size: 16px;
@@ -965,14 +1205,14 @@ const getMenuTypeTag = (type) => {
       align-items: center;
       justify-content: center;
 
-        .el-button {
-          // 改进操作按钮样式
-          border-radius: 6px;
-          transition: opacity 0.2s ease;
+      .el-button {
+        // 改进操作按钮样式
+        border-radius: 6px;
+        transition: opacity 0.2s ease;
 
-          &:hover {
-            opacity: 0.9;
-          }
+        &:hover {
+          opacity: 0.9;
+        }
 
         .iconify {
           font-size: 18px;
@@ -992,8 +1232,8 @@ const getMenuTypeTag = (type) => {
     }
   }
 
-.menu-container {
-  .menu-wrapper {
+  .menu-container {
+    .menu-wrapper {
       box-shadow: none;
     }
 
