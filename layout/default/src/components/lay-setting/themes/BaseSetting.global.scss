@@ -1520,10 +1520,10 @@ html.dark .lay-setting {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-bottom: 14px;
-    padding: 18px;
-    border-radius: 28px;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 22px;
     background: var(--setting-shell-hero-bg);
     border: 1px solid var(--setting-shell-hero-border);
     box-shadow: var(--setting-shell-shadow);
@@ -1552,17 +1552,17 @@ html.dark .lay-setting {
     z-index: 1;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
 
   .setting-shell-hero__eyebrow {
     display: inline-flex;
     width: fit-content;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-radius: 999px;
     background: rgba(var(--el-color-primary-rgb), 0.08);
     color: var(--setting-shell-nav-active-text);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -1572,30 +1572,30 @@ html.dark .lay-setting {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 10px;
   }
 
   .setting-shell-hero__title {
     margin: 0;
     font-family: var(--setting-shell-heading-font);
-    font-size: 28px;
+    font-size: 20px;
     font-weight: 700;
     line-height: 1.08;
     color: var(--setting-shell-ink);
   }
 
   .setting-shell-hero__description {
-    margin: 8px 0 0;
+    margin: 4px 0 0;
     max-width: 360px;
     color: var(--setting-shell-muted);
-    line-height: 1.6;
-    font-size: 13px;
+    line-height: 1.45;
+    font-size: 12px;
   }
 
   .setting-shell-hero__status {
     min-width: 108px;
-    padding: 12px 14px;
-    border-radius: 18px;
+    padding: 8px 10px;
+    border-radius: 14px;
     background: var(--setting-shell-chip-bg);
     border: 1px solid var(--setting-shell-chip-border);
     text-align: right;
@@ -1605,8 +1605,8 @@ html.dark .lay-setting {
   .setting-shell-hero__status-label,
   .setting-shell-chip__label {
     display: block;
-    margin-bottom: 4px;
-    font-size: 11px;
+    margin-bottom: 2px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--setting-shell-muted);
   }
@@ -1615,7 +1615,7 @@ html.dark .lay-setting {
   .setting-shell-chip__value {
     display: block;
     color: var(--setting-shell-ink);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     line-height: 1.2;
   }
@@ -1625,15 +1625,32 @@ html.dark .lay-setting {
     z-index: 1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
 
   .setting-shell-chip {
-    padding: 12px 14px;
-    border-radius: 18px;
+    display: block;
+    padding: 8px 10px;
+    border-radius: 14px;
     background: var(--setting-shell-chip-bg);
     border: 1px solid var(--setting-shell-chip-border);
     box-shadow: 0 16px 28px -26px rgba(15, 23, 42, 0.24);
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    appearance: none;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+
+    &:hover {
+      border-color: rgba(var(--el-color-primary-rgb), 0.24);
+      box-shadow:
+        0 18px 28px -24px rgba(15, 23, 42, 0.24),
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08);
+      transform: translateY(-1px);
+    }
   }
 
   .setting-shell-nav {
@@ -1688,9 +1705,6 @@ html.dark .lay-setting {
   .setting-shell-stage__item {
     scroll-margin-top: 18px;
     position: relative;
-    content-visibility: auto;
-    contain: layout style paint;
-    contain-intrinsic-size: 560px;
 
     & + .setting-shell-stage__item::before {
       content: "";
@@ -1753,27 +1767,11 @@ html.dark .lay-setting {
   }
 
   .setting-shell-skeleton {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 18px;
-    border-radius: 24px;
-    border: 1px solid var(--setting-shell-card-border);
-    background: var(--setting-shell-card-bg);
-    box-shadow: var(--setting-shell-shadow);
+    display: none !important;
   }
 
   .setting-shell-skeleton__line {
-    height: 14px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      rgba(var(--el-color-primary-rgb), 0.06) 0%,
-      rgba(var(--el-color-primary-rgb), 0.14) 50%,
-      rgba(var(--el-color-primary-rgb), 0.06) 100%
-    );
-    background-size: 200% 100%;
-    animation: settingShellShimmer 1.2s linear infinite;
+    display: none !important;
 
     &.is-wide {
       width: 62%;
@@ -1782,16 +1780,6 @@ html.dark .lay-setting {
     &.is-short {
       width: 38%;
     }
-  }
-}
-
-@keyframes settingShellShimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
   }
 }
 
