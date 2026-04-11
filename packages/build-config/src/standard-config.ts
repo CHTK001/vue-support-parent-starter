@@ -80,6 +80,8 @@ export interface StandardViteConfigOptions {
   preserveSymlinks?: boolean;
   /** 是否启用 sourcemap，默认 false */
   sourcemap?: boolean;
+  /** 是否启用轻量构建（默认读取 VITE_LIGHT_BUILD 或 true） */
+  lightBuild?: boolean;
   /** 构建目标，默认 "es2020" */
   target?: string;
   /** chunk 大小警告限制，默认 4000 */
@@ -160,8 +162,15 @@ export function createStandardViteConfig(
     console.log("当前启动模式:", mode);
     console.log("应用根目录:", appRoot);
 
-    const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
-      wrapperEnv(env);
+    const {
+      VITE_CDN,
+      VITE_PORT,
+      VITE_COMPRESSION,
+      VITE_PUBLIC_PATH,
+      VITE_LIGHT_BUILD,
+    } = wrapperEnv(env);
+    const lightBuild = options.lightBuild ?? VITE_LIGHT_BUILD !== false;
+    const effectiveCompression = lightBuild ? "none" : VITE_COMPRESSION;
 
     const alias = {
       ...createAlias(metaUrl),
@@ -211,7 +220,7 @@ export function createStandardViteConfig(
     const plugins = [
       ...getPluginsList({
         VITE_CDN,
-        VITE_COMPRESSION,
+        VITE_COMPRESSION: effectiveCompression,
         enableTopLevelAwait: options.enableTopLevelAwait,
         i18nPaths: [
           pathResolve("../locales/**", metaUrl),
@@ -296,8 +305,10 @@ export function createStandardViteConfig(
         exclude: optimizeDepsExclude,
       },
       build: {
-        target: options.target || "es2020",
+        target: options.target || (lightBuild ? "es2022" : "es2020"),
+        minify: "esbuild",
         sourcemap: options.sourcemap || false,
+        reportCompressedSize: !lightBuild,
         chunkSizeWarningLimit: options.chunkSizeWarningLimit || 4000,
         terserOptions,
         rollupOptions,
@@ -551,6 +562,17 @@ export function createViteConfig(metaUrl: string, pkg: any) {
      */
     sourcemap(enabled = true) {
       options.sourcemap = enabled;
+      return builder;
+    },
+
+    /**
+     * 设置轻量构建
+     * - true: 使用 esbuild 压缩，关闭额外产物压缩插件，降低内存占用
+     * - false: 使用应用原有的完整构建策略
+     * 两种模式产物都可直接部署，差异主要在构建耗时、内存和是否额外生成 gzip/brotli 文件
+     */
+    lightBuild(enabled = true) {
+      options.lightBuild = enabled;
       return builder;
     },
 
