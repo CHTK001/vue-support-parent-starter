@@ -147,7 +147,7 @@ import { ScProgress } from "@repo/components/ScProgress";
 // 定义类型
 export interface OperationProgress {
   id: string;
-  type: "pull_image" | "start_container" | "install_software" | "sync_software";
+  type: "pull_image" | "start_container" | "image_operation";
   title: string;
   status: "pending" | "running" | "success" | "error";
   progress: number;
@@ -379,7 +379,7 @@ function setupSocketListeners() {
     const operationId = `docker_${data.operation}_${data.imageName}`;
     const operation: OperationProgress = {
       id: operationId,
-      type: data.operation === "PULL" ? "pull_image" : "install_software",
+      type: data.operation === "PULL" ? "pull_image" : "image_operation",
       title: `${data.operation === "PULL" ? "拉取" : "操作"}镜像: ${data.imageName}`,
       status: "running",
       progress: 0,
@@ -420,7 +420,7 @@ function setupSocketListeners() {
 
     const operation: OperationProgress = {
       id: operationId,
-      type: data.operation === "PULL" ? "pull_image" : "install_software",
+      type: data.operation === "PULL" ? "pull_image" : "image_operation",
       title: `${data.operation === "PULL" ? "拉取" : "操作"}镜像: ${data.imageName}`,
       status: "running",
       progress: progress || existing?.progress || 0,
@@ -453,23 +453,6 @@ function setupSocketListeners() {
         progressState.activeOperations.delete(operationId);
       }, 5000);
     }
-  });
-
-  // 监听软件同步进度事件
-  globalSocket.on(MonitorTopics.SOFTWARE.SYNC_PROGRESS, (data: any) => {
-    const operationId = data.operationId || `sync_${data.serverId}`;
-    const existing = progressState.activeOperations.get(operationId);
-
-    const operation: OperationProgress = {
-      id: operationId,
-      type: "sync_software",
-      title: `同步镜像: ${data.serverName || "服务器-" + data.serverId}`,
-      status: "running",
-      progress: data.progress || 0,
-      message: data.message || "同步中...",
-      startTime: existing?.startTime || new Date(),
-    };
-    progressState.activeOperations.set(operationId, operation);
   });
 
   // 监听Docker操作错误事件
@@ -534,7 +517,6 @@ function cleanupSocketListeners() {
   globalSocket.off(MonitorTopics.DOCKER.PROGRESS);
   globalSocket.off(MonitorTopics.DOCKER.COMPLETE);
   globalSocket.off(MonitorTopics.DOCKER.ERROR);
-  globalSocket.off(MonitorTopics.SOFTWARE.SYNC_PROGRESS);
 }
 
 // 生命周期

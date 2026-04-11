@@ -6,10 +6,13 @@
 import { onBeforeUnmount } from "vue";
 import { emitter } from "@repo/core";
 
+type MittEventName = Parameters<typeof emitter.on>[0];
+
 /**
  * 布局事件类型定义
  */
 export type LayoutEventType =
+  | MittEventName
   | "breadcrumbChange"
   | "keepAliveChange"
   | "menuTransitionChange"
@@ -36,21 +39,21 @@ export type LayoutEventType =
  * });
  * ```
  */
-export function useLayoutEvent<T = any>(
+export function useLayoutEvent(
   eventName: LayoutEventType | string,
-  handler: (value: T) => void,
+  handler: (value: any) => void,
 ) {
   // 注册事件
-  emitter.on(eventName, handler);
+  (emitter as any).on(eventName, handler);
 
   // 组件卸载时自动注销
   onBeforeUnmount(() => {
-    emitter.off(eventName, handler);
+    (emitter as any).off(eventName, handler);
   });
 
   // 返回手动注销方法（可选）
   return () => {
-    emitter.off(eventName, handler);
+    (emitter as any).off(eventName, handler);
   };
 }
 
@@ -67,18 +70,18 @@ export function useLayoutEvent<T = any>(
  * ]);
  * ```
  */
-export function useLayoutEvents<T = any>(
+export function useLayoutEvents(
   events: Array<{
     name: LayoutEventType | string;
-    handler: (value: T) => void;
+    handler: (value: any) => void;
   }>,
 ) {
   const unsubscribeFns: Array<() => void> = [];
 
   // 注册所有事件
   events.forEach(({ name, handler }) => {
-    emitter.on(name, handler);
-    unsubscribeFns.push(() => emitter.off(name, handler));
+    (emitter as any).on(name, handler);
+    unsubscribeFns.push(() => (emitter as any).off(name, handler));
   });
 
   // 组件卸载时自动注销所有事件
@@ -103,9 +106,9 @@ export function useLayoutEvents<T = any>(
  * emitLayoutEvent('breadcrumbChange', true);
  * ```
  */
-export function emitLayoutEvent<T = any>(
+export function emitLayoutEvent(
   eventName: LayoutEventType | string,
-  value: T,
+  value: any,
 ) {
-  emitter.emit(eventName, value);
+  (emitter as any).emit(eventName, value);
 }

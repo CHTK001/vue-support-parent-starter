@@ -48,12 +48,26 @@ export interface StorageConfigs {
   cardColorMode?: string;
   /** 是否显示新菜单标识 */
   showNewMenu?: boolean;
+  /** 顶部 logo 尺寸 */
+  logoSize?: number;
+  /** 顶部 logo 动画 */
+  logoAnimation?: string;
   /** 新菜单文本 */
   newMenuText?: string;
   /** 新菜单高亮时长（单位：小时） */
   newMenuTimeLimit?: number;
   /** 新菜单动画类型 */
   newMenuAnimation?: string;
+  /** 新菜单徽标类型 */
+  newMenuBadgeType?:
+    | "default"
+    | "primary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "custom";
+  /** 新菜单徽标颜色 */
+  newMenuBadgeColor?: string;
   /** 双栏导航展开模式 */
   doubleNavExpandMode?: string;
   /** 双栏导航是否默认展开全部 */
@@ -62,6 +76,8 @@ export interface StorageConfigs {
   enableFestivalTheme?: boolean;
   /** 是否显示头部消息中心按钮 */
   showMessage?: boolean;
+  /** 是否显示顶部任务中心按钮 */
+  showTaskCenter?: boolean;
   /** 顶部是否显示时间 */
   showHeaderClock?: boolean;
   /** 顶部是否显示第二个时间 */

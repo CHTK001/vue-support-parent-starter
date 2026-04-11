@@ -99,6 +99,8 @@ export interface StorageConfig {
   menuTransition?: boolean;
   /** 菜单动画（历史字段，兼容旧存储键） */
   MenuAnimation?: boolean;
+  /** 导航初始化加载动画 */
+  menuLoaderEnabled?: boolean;
   /** 强制启用新菜单（历史字段，兼容旧存储键） */
   ForceNewMenu?: boolean;
   /** 菜单过渡动画类型 */
@@ -143,6 +145,8 @@ export interface StorageConfig {
   showSearch?: boolean;
   /** 是否显示顶部全屏按钮 */
   showFullscreen?: boolean;
+  /** 是否显示顶部任务中心按钮 */
+  showTaskCenter?: boolean;
   /** 是否显示顶部时间 */
   showHeaderClock?: boolean;
   /** 是否显示顶部第二个时间 */
@@ -233,7 +237,11 @@ export interface StorageConfig {
   voiceReadEnabled?: boolean;
   /** 开发模式下 AI 设置展示控制 */
   /** drawer 布局汉堡按钮位置 */
-  drawerHamburgerPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  drawerHamburgerPosition?:
+    | "top-left"
+    | "top-right"
+    | "bottom-left"
+    | "bottom-right";
 }
 
 /** 全局 storage 结构 */

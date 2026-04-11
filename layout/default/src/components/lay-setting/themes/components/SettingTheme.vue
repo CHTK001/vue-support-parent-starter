@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { getConfig } from "@repo/config";
 import { useI18n } from "vue-i18n";
 import Segmented, {
   type OptionsType,
@@ -7,7 +6,6 @@ import Segmented, {
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { ScTooltip } from "@repo/components/ScTooltip";
 import LayThemeSwitcher from "../../../lay-theme-switcher/index.vue";
-import LoaderStyleSetting from "../LoaderStyleSetting.vue";
 
 const { t } = useI18n();
 
@@ -158,12 +156,6 @@ const props = withDefaults(defineProps<{
       <LayThemeSwitcher />
     </div>
   </div>
-
-  <!-- 加载动画样式设置区域 -->
-  <LoaderStyleSetting
-    v-if="getConfig().ShowLoadingPageStyleSwitcher"
-    v-model="settings.loaderStyle"
-  />
 </template>
 
 <style scoped lang="scss">

@@ -4,8 +4,25 @@ import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
 import { deepCopy, localStorageProxy, paginate, getLogger } from "@repo/utils";
 
 const logger = getLogger("[ScTable]");
-import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
-import { columnSettingGet, columnSettingReset, columnSettingSave, config, parseData } from "./column";
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onDeactivated,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  shallowRef,
+  watch,
+} from "vue";
+import {
+  columnSettingGet,
+  columnSettingReset,
+  columnSettingSave,
+  config,
+  parseData,
+} from "./column";
 import { useKeyboard } from "./composables/useKeyboard";
 import { useTableCache } from "./composables/useTableCache";
 import { useTableSelection } from "./composables/useTableSelection";
@@ -42,7 +59,7 @@ const props = defineProps({
     type: Object,
     default: () => {
       return;
-    }
+    },
   },
   /**是否开启缓存 */
   cacheable: { type: Boolean, default: false },
@@ -65,7 +82,7 @@ const props = defineProps({
   columns: { type: Array, default: () => [] },
   dataLoaded: { type: Function, default: () => {} },
   afterLoadedData: { type: Function, default: () => {} },
-  sorted: { type: Function, default: data => data },
+  sorted: { type: Function, default: (data) => data },
   columnInTemplate: { type: Boolean, default: true },
   remoteSort: { type: Boolean, default: false },
   remoteFilter: { type: Boolean, default: false },
@@ -224,11 +241,11 @@ const props = defineProps({
   /**
    * 导出类型：excel/csv/json
    */
-  exportTypes: { type: Array, default: () => ['excel', 'csv', 'json'] },
+  exportTypes: { type: Array, default: () => ["excel", "csv", "json"] },
   /**
    * 导出文件名
    */
-  exportFilename: { type: String, default: 'table-data' },
+  exportFilename: { type: String, default: "table-data" },
   /**
    * 是否启用打印功能
    */
@@ -236,7 +253,7 @@ const props = defineProps({
   /**
    * 打印标题
    */
-  printTitle: { type: String, default: '表格数据' },
+  printTitle: { type: String, default: "表格数据" },
   /**
    * 是否启用行展开功能
    */
@@ -264,7 +281,7 @@ const props = defineProps({
   /**
    * 编辑模式：cell(单元格)/row(行)
    */
-  editMode: { type: String, default: 'cell' },
+  editMode: { type: String, default: "cell" },
   /**
    * 可编辑的列（空为全部）
    */
@@ -300,7 +317,7 @@ const props = defineProps({
   /**
    * 需要合并的列
    */
-  rowMergeColumns: { type: Array, default: () => [] }
+  rowMergeColumns: { type: Array, default: () => [] },
 });
 
 // 定义组件事件
@@ -311,7 +328,9 @@ const emit = defineEmits([
   "finish",
   "update:cardLayout",
   "rowClick",
+  "row-click",
   "colClick",
+  "col-click",
   "drag-sort-change", // 拖拽排序变化
   "drag-sort-save", // 拖拽排序保存
   "drag-sort-success", // 拖拽排序保存成功
@@ -367,7 +386,7 @@ const {
   hasSelection,
 } = useTableSelection({
   tableRef: scTable,
-  rowKey: props.rowKey || 'id',
+  rowKey: props.rowKey || "id",
   crossPageSelection: true,
 });
 
@@ -388,20 +407,26 @@ const {
 // 分页模式计算属性（paginationMode 优先级高于单独的 boolean props）
 const actualPaginationMode = computed(() => {
   // 如果明确设置了 paginationMode，优先使用
-  if (props.paginationMode && props.paginationMode !== 'server') {
+  if (props.paginationMode && props.paginationMode !== "server") {
     return props.paginationMode;
   }
   // 向后兼容：检查旧的 boolean props
-  if (props.localPagination) return 'local';
-  return props.paginationMode || 'server';
+  if (props.localPagination) return "local";
+  return props.paginationMode || "server";
 });
 
 // 是否使用本地分页模式
-const useLocalPagination = computed(() => actualPaginationMode.value === 'local');
+const useLocalPagination = computed(
+  () => actualPaginationMode.value === "local",
+);
 // 是否使用服务器分页模式
-const useServerPagination = computed(() => actualPaginationMode.value === 'server');
+const useServerPagination = computed(
+  () => actualPaginationMode.value === "server",
+);
 // 是否启用预取缓存（仅 server 模式下生效）
-const usePrefetch = computed(() => useServerPagination.value && props.prefetchEnabled);
+const usePrefetch = computed(
+  () => useServerPagination.value && props.prefetchEnabled,
+);
 
 // 使用本地分页/静态数据模式 composable
 const {
@@ -463,7 +488,7 @@ const {
 } = useTableEdit({
   enabled: props.editable,
   mode: props.editMode,
-  rowKey: props.rowKey || 'id',
+  rowKey: props.rowKey || "id",
   editableColumns: props.editableColumns,
 });
 
@@ -518,8 +543,9 @@ const rowSize = ref(props.rowSize); // 卡片布局行数
 const colSize = ref(props.colSize); // 卡片布局列数
 
 // 计算渲染 key（替代 toggleIndex += 1 的强制刷新方式）
-const tableRenderKey = computed(() => 
-  `${renderVersion.value}-${configState.border}-${configState.stripe}-${configState.size}`
+const tableRenderKey = computed(
+  () =>
+    `${renderVersion.value}-${configState.border}-${configState.stripe}-${configState.size}`,
 );
 
 // 触发重新渲染的方法
@@ -530,17 +556,18 @@ const triggerRerender = () => {
 // 确保配置对象是响应式的
 const configState = reactive({
   size: props.size,
-  border: typeof props.border === "string" ? props.border === "true" : !!props.border,
-  stripe: typeof props.stripe === "string" ? props.stripe === "true" : !!props.stripe,
+  border:
+    typeof props.border === "string" ? props.border === "true" : !!props.border,
+  stripe:
+    typeof props.stripe === "string" ? props.stripe === "true" : !!props.stripe,
   countDownable: props.countDownable,
   draggable: props.draggable,
   crossHighlight: props.crossHighlight,
   cacheEnabled: false,
   cachePageCount: 3,
   // 新增：页码缓存开关
-  pageMemoryEnabled: false
+  pageMemoryEnabled: false,
 });
-
 
 const customCountDownTime = ref(10);
 const timer = ref(null);
@@ -550,7 +577,7 @@ const countDown = computed(() => {
   const seconds = customCountDownTime.value % 60;
   return {
     minutes: minutes,
-    seconds: seconds
+    seconds: seconds,
   };
 });
 
@@ -583,21 +610,32 @@ const computedHeight = computed(() => {
   if (props.height === "auto") {
     return "auto";
   }
-  
+
   // 未设置时返回 undefined 让表格自适应内容
   if (!props.height) {
     return undefined;
   }
-  
+
   // 如果是数字，添加 px 单位
   if (typeof props.height === "number") {
     return `${props.height}px`;
   }
-  
+
   // 直接返回字符串值
   return props.height;
 });
 
+const hasExplicitHeight = computed(() => {
+  return computedHeight.value !== "auto" && computedHeight.value !== undefined;
+});
+
+const tableContentStyle = computed(() => {
+  if (!hasExplicitHeight.value) {
+    return {};
+  }
+
+  return {};
+});
 
 // 从localStorage加载配置
 const loadConfigFromStorage = () => {
@@ -606,14 +644,35 @@ const loadConfigFromStorage = () => {
     if (savedConfig) {
       if (savedConfig.table) {
         // 加载表格配置
-        configState.border = savedConfig.table.border !== undefined ? savedConfig.table.border : configState.border;
-        configState.stripe = savedConfig.table.stripe !== undefined ? savedConfig.table.stripe : configState.stripe;
+        configState.border =
+          savedConfig.table.border !== undefined
+            ? savedConfig.table.border
+            : configState.border;
+        configState.stripe =
+          savedConfig.table.stripe !== undefined
+            ? savedConfig.table.stripe
+            : configState.stripe;
         configState.size = savedConfig.table.size || configState.size;
-        configState.draggable = savedConfig.table.draggable !== undefined ? savedConfig.table.draggable : configState.draggable;
-        configState.crossHighlight = savedConfig.table.crossHighlight !== undefined ? savedConfig.table.crossHighlight : configState.crossHighlight;
-        configState.cacheEnabled = savedConfig.table.cacheEnabled !== undefined ? savedConfig.table.cacheEnabled : configState.cacheEnabled;
-        configState.pageMemoryEnabled = savedConfig.table.pageMemoryEnabled !== undefined ? savedConfig.table.pageMemoryEnabled : configState.pageMemoryEnabled;
-        configState.cachePageCount = savedConfig.table.cachePageCount !== undefined ? savedConfig.table.cachePageCount : configState.cachePageCount;
+        configState.draggable =
+          savedConfig.table.draggable !== undefined
+            ? savedConfig.table.draggable
+            : configState.draggable;
+        configState.crossHighlight =
+          savedConfig.table.crossHighlight !== undefined
+            ? savedConfig.table.crossHighlight
+            : configState.crossHighlight;
+        configState.cacheEnabled =
+          savedConfig.table.cacheEnabled !== undefined
+            ? savedConfig.table.cacheEnabled
+            : configState.cacheEnabled;
+        configState.pageMemoryEnabled =
+          savedConfig.table.pageMemoryEnabled !== undefined
+            ? savedConfig.table.pageMemoryEnabled
+            : configState.pageMemoryEnabled;
+        configState.cachePageCount =
+          savedConfig.table.cachePageCount !== undefined
+            ? savedConfig.table.cachePageCount
+            : configState.cachePageCount;
       }
     }
   } catch (error) {
@@ -670,42 +729,44 @@ const savePageMemory = () => {
 // 监听属性变化
 watch(
   () => props.size,
-  newVal => {
+  (newVal) => {
     configState.size = newVal;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
   () => props.border,
-  newVal => {
-    configState.border = typeof newVal === "string" ? newVal === "true" : !!newVal;
+  (newVal) => {
+    configState.border =
+      typeof newVal === "string" ? newVal === "true" : !!newVal;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
   () => props.stripe,
-  newVal => {
-    configState.stripe = typeof newVal === "string" ? newVal === "true" : !!newVal;
+  (newVal) => {
+    configState.stripe =
+      typeof newVal === "string" ? newVal === "true" : !!newVal;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
   () => props.draggable,
-  newVal => {
+  (newVal) => {
     configState.draggable = !!newVal;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
   () => props.height,
-  newVal => {
+  (newVal) => {
     tableHeight.value = newVal;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 配置状态变化时自动触发重新渲染（通过 tableRenderKey 计算属性实现）
@@ -726,7 +787,7 @@ const closeTimer = () => {
   timer.value && clearInterval(timer.value);
 };
 
-const icon = iconName => {
+const icon = (iconName) => {
   return useRenderIcon(iconName);
 };
 
@@ -734,10 +795,14 @@ const icon = iconName => {
 const getCustomColumn = async () => {
   const column = await columnSettingGet(props.tableName, props.columns);
   // 处理默认排序属性
-  userColumn.value = column.map(col => {
+  userColumn.value = column.map((col) => {
     // 如果列没有明确设置 sortable，则使用 defaultSortable 的值
     if (col.sortable === undefined && props.defaultSortable !== false) {
-      return { ...col, sortable: props.defaultSortable === true ? "custom" : props.defaultSortable };
+      return {
+        ...col,
+        sortable:
+          props.defaultSortable === true ? "custom" : props.defaultSortable,
+      };
     }
     return col;
   });
@@ -746,13 +811,18 @@ const getCustomColumn = async () => {
 /**
  * 获取静态数据
  */
-const getStatisticData = async isLoading => {
+const getStatisticData = async (isLoading) => {
   loading.value = isLoading;
   const newTableData = props.data.data || props.data;
   total.value = props.data.total || newTableData.length;
   const page = currentPage.value;
   const pageSize = scPageSize.value;
-  const { data, total: totalCount } = paginate(newTableData, pageSize, page, props.filter);
+  const { data, total: totalCount } = paginate(
+    newTableData,
+    pageSize,
+    page,
+    props.filter,
+  );
   loading.value = false;
   tableData.value = handleSorted(data);
   total.value = totalCount;
@@ -774,7 +844,7 @@ const getPageSize = () => {
 /**
  * 获取远程数据
  */
-const getRemoteData = async isLoading => {
+const getRemoteData = async (isLoading) => {
   // 如果启用缓存且命中缓存,直接返回缓存数据
   if (configState.cacheEnabled && hasCache(currentPage.value)) {
     tableData.value = getCache(currentPage.value);
@@ -786,9 +856,11 @@ const getRemoteData = async isLoading => {
   loading.value = isLoading;
   var reqData = {
     [config.request.page]: currentPage.value,
-    [config.request.pageSize]: configState.cacheEnabled ? getPageSize() * 3 : getPageSize(),
+    [config.request.pageSize]: configState.cacheEnabled
+      ? getPageSize() * 3
+      : getPageSize(),
     [config.request.prop]: prop.value,
-    [config.request.order]: order.value
+    [config.request.order]: order.value,
   };
 
   // 如果开启了过滤参数携带,将过滤参数添加到请求中
@@ -840,7 +912,7 @@ const getRemoteData = async isLoading => {
   loaded();
 };
 
-const rebuildCache = async response => {
+const rebuildCache = async (response) => {
   let newData = [];
   if (props.hidePagination) {
     newData = handleSorted(response.data || []);
@@ -876,7 +948,7 @@ const rebuildCache = async response => {
 /**
  * 重排数据
  */
-const handleSorted = data => {
+const handleSorted = (data) => {
   if (props.sorted) {
     return props.sorted(data);
   }
@@ -884,7 +956,7 @@ const handleSorted = data => {
 };
 
 // 获取数据
-const getData = async isLoading => {
+const getData = async (isLoading) => {
   // 判断是否静态数据
   if (props.data) {
     getStatisticData(isLoading);
@@ -896,7 +968,7 @@ const getData = async isLoading => {
 const loaded = () => {
   // 记录数据量用于性能监控
   recordDataSize(tableData.value.length);
-  
+
   emit("loaded");
   emit("data-loaded", tableData.value, total.value);
   props.dataLoaded(tableData.value, total.value);
@@ -909,7 +981,7 @@ const paginationChange = () => {
 };
 
 // 条数变化
-const pageSizeChange = size => {
+const pageSizeChange = (size) => {
   scPageSize.value = size;
   getData(true);
 };
@@ -931,7 +1003,12 @@ const loadMore = () => {
 // 设置滚动监听
 const setupScrollObserver = () => {
   // 仅针对card和list布局，table布局使用el-table-infinite-scroll
-  if (props.paginationType !== "scroll" || !props.autoLoad || props.layout === "table") return;
+  if (
+    props.paginationType !== "scroll" ||
+    !props.autoLoad ||
+    props.layout === "table"
+  )
+    return;
 
   // 清除之前的监听器
   removeScrollObserver();
@@ -942,15 +1019,19 @@ const setupScrollObserver = () => {
     if (!target) return;
 
     observerRef.value = new IntersectionObserver(
-      entries => {
+      (entries) => {
         const entry = entries[0];
-        if (entry.isIntersecting && !isLoading.value && tableData.value.length < total.value) {
+        if (
+          entry.isIntersecting &&
+          !isLoading.value &&
+          tableData.value.length < total.value
+        ) {
           loadMore();
         }
       },
       {
-        rootMargin: `0px 0px ${props.loadDistance}px 0px`
-      }
+        rootMargin: `0px 0px ${props.loadDistance}px 0px`,
+      },
     );
 
     observerRef.value.observe(target);
@@ -1013,13 +1094,13 @@ const reload = (params, page = 1) => {
 };
 
 // 自定义变化事件
-const columnSettingChangeHandler = column => {
+const columnSettingChangeHandler = (column) => {
   userColumn.value = column;
   triggerRerender();
 };
 
 // 自定义列保存
-const columnSettingSaveHandler = async column => {
+const columnSettingSaveHandler = async (column) => {
   columnSettingRef.value.isSave = true;
   try {
     await columnSettingSave(props.tableName, column);
@@ -1037,7 +1118,9 @@ const columnSettingBackHandler = async () => {
   try {
     const column = await columnSettingReset(props.tableName, props.columns);
     userColumn.value = column;
-    columnSettingRef.value.usercolumn = JSON.parse(JSON.stringify(userColumn.value || []));
+    columnSettingRef.value.usercolumn = JSON.parse(
+      JSON.stringify(userColumn.value || []),
+    );
   } catch (error) {
     message("重置失败", { type: "error" });
     columnSettingRef.value.isSave = false;
@@ -1046,7 +1129,7 @@ const columnSettingBackHandler = async () => {
 };
 
 // 排序事件
-const sortChange = obj => {
+const sortChange = (obj) => {
   if (!props.remoteSort) {
     return false;
   }
@@ -1067,9 +1150,9 @@ const filterHandler = (value, row, column) => {
 };
 
 // 过滤事件
-const filterChange = filters => {
+const filterChange = (filters) => {
   // 存储过滤参数
-  Object.keys(filters).forEach(key => {
+  Object.keys(filters).forEach((key) => {
     if (filters[key] && filters[key].length > 0) {
       filterParams.value[key] = filters[key].join(",");
     } else {
@@ -1084,7 +1167,7 @@ const filterChange = filters => {
 };
 
 // 远程合计行处理
-const remoteSummaryMethod = param => {
+const remoteSummaryMethod = (param) => {
   const { columns } = param;
   const sums = [];
   columns.forEach((column, index) => {
@@ -1107,20 +1190,20 @@ const configSizeChange = () => {
 };
 
 // 插入行 unshiftRow
-const unshiftRow = row => {
+const unshiftRow = (row) => {
   tableData.value.unshift(row);
 };
 
 // 插入行 pushRow
-const pushRow = row => {
+const pushRow = (row) => {
   tableData.value.push(row);
 };
 
 // 根据key覆盖数据
 const updateKey = (row, rowKey = props.rowKey) => {
   tableData.value
-    .filter(item => item[rowKey] === row[rowKey])
-    .forEach(item => {
+    .filter((item) => item[rowKey] === row[rowKey])
+    .forEach((item) => {
       Object.assign(item, row);
     });
 };
@@ -1131,13 +1214,13 @@ const updateIndex = (row, index) => {
 };
 
 // 根据index删除
-const removeIndex = index => {
+const removeIndex = (index) => {
   tableData.value.splice(index, 1);
 };
 
 // 根据index批量删除
 const removeIndexes = (indexes = []) => {
-  indexes.forEach(index => {
+  indexes.forEach((index) => {
     tableData.value.splice(index, 1);
   });
 };
@@ -1145,17 +1228,17 @@ const removeIndexes = (indexes = []) => {
 // 根据key删除
 const removeKey = (key, rowKey = props.rowKey) => {
   tableData.value.splice(
-    tableData.value.findIndex(item => item[rowKey] === key),
-    1
+    tableData.value.findIndex((item) => item[rowKey] === key),
+    1,
   );
 };
 
 // 根据keys批量删除
 const removeKeys = (keys = [], rowKey = props.rowKey) => {
-  keys.forEach(key => {
+  keys.forEach((key) => {
     tableData.value.splice(
-      tableData.value.findIndex(item => item[rowKey] === key),
-      1
+      tableData.value.findIndex((item) => item[rowKey] === key),
+      1,
     );
   });
 };
@@ -1177,7 +1260,7 @@ const toggleRowExpansion = (row, expanded) => {
   scTable.value.toggleRowExpansion(row, expanded);
 };
 
-const setCurrentRow = row => {
+const setCurrentRow = (row) => {
   scTable.value.setCurrentRow(row);
 };
 
@@ -1185,7 +1268,7 @@ const clearSort = () => {
   scTable.value.clearSort();
 };
 
-const clearFilter = columnKey => {
+const clearFilter = (columnKey) => {
   scTable.value.clearFilter(columnKey);
 };
 
@@ -1204,7 +1287,7 @@ const sort = (prop, order) => {
  * @param {number} sortInfo.newIndex - 新索引
  * @param {Array} sortInfo.newOrder - 新排序数组
  */
-const onDragSortChange = sortInfo => {
+const onDragSortChange = (sortInfo) => {
   dragChangeCount.value++;
   dragSortPending.value = true;
 
@@ -1226,7 +1309,7 @@ const saveDragSort = async () => {
   // 构建排序数据
   const sortData = tableData.value.map((item, index) => ({
     [props.dragRowKey]: item[props.dragRowKey],
-    sort: index + 1
+    sort: index + 1,
   }));
 
   emit("drag-sort-save", sortData);
@@ -1259,31 +1342,31 @@ const cancelDragSort = () => {
  */
 const saveEditChanges = async () => {
   if (!editPending.value) return;
-  
+
   editSaveLoading.value = true;
-  
+
   try {
     // 获取所有编辑状态
     const editStates = saveAllEdits();
-    
+
     // 构建更改数据
-    const changes = editStates.map(state => ({
+    const changes = editStates.map((state) => ({
       rowKey: state.rowKey,
       columnKey: state.columnKey,
       originalValue: state.originalValue,
       newValue: state.currentValue,
     }));
-    
+
     // 触发保存事件，由父组件处理实际保存逻辑
     emit("edit-save", changes);
-    
+
     editPending.value = false;
     editChangeCount.value = 0;
   } catch (error) {
     if (error instanceof Error) {
-      logger.error('保存编辑失败', error);
+      logger.error("保存编辑失败", error);
     } else {
-      logger.error('保存编辑失败: {}', error);
+      logger.error("保存编辑失败: {}", error);
     }
   } finally {
     editSaveLoading.value = false;
@@ -1303,7 +1386,7 @@ const cancelEditChanges = () => {
 };
 
 // 选择变化处理（使用 composable）
-const selectionChange = values => {
+const selectionChange = (values) => {
   setPageSelection(currentPage.value, values);
 };
 
@@ -1318,7 +1401,7 @@ const resetSelectedValue = () => {
   nextTick(async () => {
     const selectedValues = getPageSelection(currentPage.value);
     if (selectedValues && selectedValues.length > 0) {
-      selectedValues.forEach(it => {
+      selectedValues.forEach((it) => {
         scTable.value?.toggleRowSelection(it, true);
       });
     }
@@ -1351,7 +1434,7 @@ if (props.keyboardEnabled) {
     onEscape: () => {
       // 取消选择
       scTable.value?.clearSelection();
-    }
+    },
   });
 }
 
@@ -1362,42 +1445,41 @@ watch(
   () => {
     tableParams.value = props.params;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听ScFilterBar筛选条件变化 - 使用版本号避免深度监听
-const filterConditionsVersion = computed(() => JSON.stringify(props.filterConditions));
-watch(
-  filterConditionsVersion,
-  () => {
-    const newValue = props.filterConditions;
-    if (newValue && Object.keys(newValue).length > 0) {
-      // 合并筛选条件到请求参数
-      Object.assign(tableParams.value, newValue);
-      // 重置到第一页并刷新
-      currentPage.value = 1;
-      clearNamespaceCache();
-      getData(true);
-    }
-  }
+const filterConditionsVersion = computed(() =>
+  JSON.stringify(props.filterConditions),
 );
+watch(filterConditionsVersion, () => {
+  const newValue = props.filterConditions;
+  if (newValue && Object.keys(newValue).length > 0) {
+    // 合并筛选条件到请求参数
+    Object.assign(tableParams.value, newValue);
+    // 重置到第一页并刷新
+    currentPage.value = 1;
+    clearNamespaceCache();
+    getData(true);
+  }
+});
 
 // 监听是否开启定时刷新
 watch(
   () => configState.countDownable,
-  newValue => {
+  (newValue) => {
     closeTimer();
     if (newValue) {
       openTimer();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听data变化 - 使用引用和长度作为触发条件，避免深度监听
 const dataVersion = computed(() => {
   const d = props.data;
-  if (!d) return 'null';
+  if (!d) return "null";
   const arr = d.data || d;
   return `${Array.isArray(arr) ? arr.length : 0}-${d.total || 0}`;
 });
@@ -1409,7 +1491,7 @@ watch(
     }
     getStatisticData(false);
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听url变化
@@ -1418,7 +1500,7 @@ watch(
   () => {
     tableParams.value = props.params;
     refresh();
-  }
+  },
 );
 
 // 监听columns变化
@@ -1426,13 +1508,13 @@ watch(
   () => props.columns,
   () => {
     userColumn.value = props.columns;
-  }
+  },
 );
 
 // 监听分页类型变化
 watch(
   () => props.paginationType,
-  newValue => {
+  (newValue) => {
     if (newValue === "scroll" && props.autoLoad) {
       nextTick(() => {
         setupScrollObserver();
@@ -1440,7 +1522,7 @@ watch(
     } else {
       removeScrollObserver();
     }
-  }
+  },
 );
 
 // 表格无限滚动处理函数
@@ -1464,7 +1546,15 @@ onMounted(() => {
   if (props.layout == "card") {
     scPageSize.value = props.colSize * props.rowSize;
   }
-  scPageSizes.value = [scPageSize.value, scPageSize.value * 2, scPageSize.value * 3, scPageSize.value * 4, scPageSize.value * 5, scPageSize.value * 6, scPageSize.value * 7];
+  scPageSizes.value = [
+    scPageSize.value,
+    scPageSize.value * 2,
+    scPageSize.value * 3,
+    scPageSize.value * 4,
+    scPageSize.value * 5,
+    scPageSize.value * 6,
+    scPageSize.value * 7,
+  ];
   customCountDownTime.value = props.countDownTime;
 
   // 从localStorage加载配置
@@ -1485,7 +1575,7 @@ onMounted(() => {
   }
   getData(true);
 
-// 如果是滚动分页并且需要自动加载，设置滚动监听
+  // 如果是滚动分页并且需要自动加载，设置滚动监听
   if (props.paginationType === "scroll" && props.autoLoad) {
     setupScrollObserver();
   }
@@ -1515,7 +1605,6 @@ onMounted(() => {
       };
     });
   }
-
 });
 
 onUnmounted(() => {
@@ -1560,7 +1649,7 @@ const openColumnSetting = () => {
   // Pagination组件自行处理,此处无需操作
 };
 
-const onColumnSave = async data => {
+const onColumnSave = async (data) => {
   await columnSettingSave(props.tableName, data);
   customColumnShow.value = false;
   getData();
@@ -1581,11 +1670,12 @@ const onRowClick = (row, index, event) => {
 
 // 列点击事件处理
 const onColClick = (column, event) => {
+  emit("col-click", column, event);
   emit("colClick", column, event);
 };
 
 // 当前页变更处理
-const onCurrentChange = val => {
+const onCurrentChange = (val) => {
   currentPage.value = val;
   // 保存页码记忆
   savePageMemory();
@@ -1593,7 +1683,7 @@ const onCurrentChange = val => {
 };
 
 // 每页条数变更处理
-const onSizeChange = val => {
+const onSizeChange = (val) => {
   scPageSize.value = val;
   currentPage.value = 1;
   clearNamespaceCache();
@@ -1609,7 +1699,7 @@ const onLoadMore = () => {
 };
 
 // 执行汇总方法
-const doSummary = param => {
+const doSummary = (param) => {
   if (props.summaryMethod) {
     return props.summaryMethod(param);
   }
@@ -1619,17 +1709,20 @@ const doSummary = param => {
 // 使用父组件传入的属性访问
 watch(
   () => props.layout,
-  newVal => {
+  (newVal) => {
     // 修改布局时重新布局
     nextTick(() => {
       if (scTable.value && typeof scTable.value.doLayout === "function") {
         scTable.value.doLayout();
-      } else if (scTable.value && typeof scTable.value.rerenderTable === "function") {
+      } else if (
+        scTable.value &&
+        typeof scTable.value.rerenderTable === "function"
+      ) {
         scTable.value.rerenderTable();
       }
     });
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听行列数变化
@@ -1653,11 +1746,11 @@ watch(
       });
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 保存配置方法
-const saveConfig = config => {
+const saveConfig = (config) => {
   if (config.type === "table") {
     // 更新表格配置
     configState.border = config.config.border;
@@ -1708,7 +1801,7 @@ const saveConfig = config => {
       const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
       localStorageProxy().setItem(storageKey.value, {
         ...currentConfig,
-        table: config.config
+        table: config.config,
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -1731,10 +1824,11 @@ const saveConfig = config => {
 
       // 保存列设置
       try {
-        const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
+        const currentConfig =
+          localStorageProxy().getItem(storageKey.value) || {};
         localStorageProxy().setItem(storageKey.value, {
           ...currentConfig,
-          column: config.config
+          column: config.config,
         });
 
         // 更新到columnSetting组件
@@ -1777,64 +1871,64 @@ const getTableConfig = () => {
 // 列宽自适应功能
 const autoFitColumnWidth = (columnProp) => {
   if (!scTable.value) return;
-  
+
   nextTick(() => {
     const table = scTable.value.$el;
     if (!table) return;
-    
+
     // 查找列
-    const columns = table.querySelectorAll('.el-table__header-wrapper th');
-    const cells = table.querySelectorAll('.el-table__body-wrapper td');
-    
+    const columns = table.querySelectorAll(".el-table__header-wrapper th");
+    const cells = table.querySelectorAll(".el-table__body-wrapper td");
+
     // 计算每列的最大宽度
     const columnWidths = new Map();
-    
-    cells.forEach(cell => {
+
+    cells.forEach((cell) => {
       const prop = cell.dataset.columnProp || cell.className;
       const width = cell.scrollWidth + 20; // 加上内边距
-      
+
       if (!columnWidths.has(prop) || columnWidths.get(prop) < width) {
         columnWidths.set(prop, width);
       }
     });
-    
+
     // 应用宽度
     if (columnProp) {
       // 单列自适应
-      const column = userColumn.value.find(col => col.prop === columnProp);
+      const column = userColumn.value.find((col) => col.prop === columnProp);
       if (column && columnWidths.has(columnProp)) {
         column.width = columnWidths.get(columnProp);
       }
     } else {
       // 所有列自适应
-      userColumn.value.forEach(column => {
+      userColumn.value.forEach((column) => {
         if (columnWidths.has(column.prop)) {
           column.width = columnWidths.get(column.prop);
         }
       });
     }
-    
+
     // 保存列宽到localStorage
     try {
       const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
       const columnWidthConfig = {};
-      userColumn.value.forEach(col => {
+      userColumn.value.forEach((col) => {
         if (col.width) {
           columnWidthConfig[col.prop] = col.width;
         }
       });
       localStorageProxy().setItem(storageKey.value, {
         ...currentConfig,
-        columnWidths: columnWidthConfig
+        columnWidths: columnWidthConfig,
       });
     } catch (error) {
       if (error instanceof Error) {
-        logger.error('保存列宽失败', error);
+        logger.error("保存列宽失败", error);
       } else {
-        logger.error('保存列宽失败: {}', error);
+        logger.error("保存列宽失败: {}", error);
       }
     }
-    
+
     // 重新渲染
     triggerRerender();
   });
@@ -1842,10 +1936,10 @@ const autoFitColumnWidth = (columnProp) => {
 
 // 重置列宽
 const resetColumnWidth = () => {
-  userColumn.value.forEach(col => {
+  userColumn.value.forEach((col) => {
     delete col.width;
   });
-  
+
   // 清除localStorage中的列宽
   try {
     const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
@@ -1853,17 +1947,17 @@ const resetColumnWidth = () => {
     localStorageProxy().setItem(storageKey.value, currentConfig);
   } catch (error) {
     if (error instanceof Error) {
-      logger.error('重置列宽失败', error);
+      logger.error("重置列宽失败", error);
     } else {
-      logger.error('重置列宽失败: {}', error);
+      logger.error("重置列宽失败: {}", error);
     }
   }
-  
+
   triggerRerender();
 };
 
 // 处理列表视图中加载页面的事件
-const onLoadPage = page => {
+const onLoadPage = (page) => {
   currentPage.value = 1;
   clearNamespaceCache();
   getData(true);
@@ -1882,7 +1976,7 @@ const onPrevPage = () => {
 };
 
 // 处理列表视图中更新当前页事件
-const onUpdateCurrentPage = page => {
+const onUpdateCurrentPage = (page) => {
   currentPage.value = page;
 };
 
@@ -1895,7 +1989,7 @@ const componentMap = {
   canvas: CanvasTableView,
   waterfall: WaterfallView,
   timeline: TimelineView,
-  gallery: GalleryView
+  gallery: GalleryView,
 };
 
 // 暴露方法给父组件
@@ -1990,7 +2084,10 @@ defineExpose({
   <div ref="scTableMain" class="sc-table-container">
     <div class="sc-table-wrapper">
       <!-- 拖拽排序操作栏 - 显示在表头上方 -->
-      <div v-if="configState.draggable && dragSortPending" class="sc-table-drag-actions">
+      <div
+        v-if="configState.draggable && dragSortPending"
+        class="sc-table-drag-actions"
+      >
         <div class="drag-action-info">
           <IconifyIconOnline icon="ep:sort" />
           <span>已拖拽 {{ dragChangeCount }} 次，排序已变更</span>
@@ -2000,7 +2097,12 @@ defineExpose({
             <IconifyIconOnline icon="ep:refresh-left" />
             取消
           </ScButton>
-          <ScButton type="primary" size="small" :loading="dragSortLoading" @click="saveDragSort">
+          <ScButton
+            type="primary"
+            size="small"
+            :loading="dragSortLoading"
+            @click="saveDragSort"
+          >
             <IconifyIconOnline icon="ep:check" />
             保存排序
           </ScButton>
@@ -2018,7 +2120,12 @@ defineExpose({
             <IconifyIconOnline icon="ep:refresh-left" />
             取消
           </ScButton>
-          <ScButton type="primary" size="small" :loading="editSaveLoading" @click="saveEditChanges">
+          <ScButton
+            type="primary"
+            size="small"
+            :loading="editSaveLoading"
+            @click="saveEditChanges"
+          >
             <IconifyIconOnline icon="ep:check" />
             保存编辑
           </ScButton>
@@ -2026,10 +2133,18 @@ defineExpose({
       </div>
 
       <!-- 大数据量提示 - 建议切换虚拟滚动 -->
-      <div v-if="showLargeDataTip && layout === 'table'" class="sc-table-large-data-tip">
+      <div
+        v-if="showLargeDataTip && layout === 'table'"
+        class="sc-table-large-data-tip"
+      >
         <div class="tip-content">
           <IconifyIconOnline icon="ep:warning-filled" />
-          <span>检测到大数据量 ({{ performanceMetrics.rowCount }} 行)，建议切换到虚拟滚动模式以获得更好的性能</span>
+          <span
+            >检测到大数据量 ({{
+              performanceMetrics.rowCount
+            }}
+            行)，建议切换到虚拟滚动模式以获得更好的性能</span
+          >
         </div>
         <ScButton size="small" text @click="dismissLargeDataTip">
           <IconifyIconOnline icon="ep:close" />
@@ -2037,12 +2152,16 @@ defineExpose({
       </div>
 
       <!-- 表格内容区域 -->
-      <div class="sc-table-auto-height" ref="scTableContentWrapper">
+      <div
+        ref="scTableContentWrapper"
+        class="sc-table-auto-height"
+        :style="tableContentStyle"
+      >
         <component
           :is="componentMap[layout]"
           ref="scTable"
           :key="tableRenderKey"
-          v-loading="loading"
+          v-loading="layout === 'table' ? false : loading"
           :center="center"
           v-bind="$attrs"
           :table-data="tableData"
@@ -2060,11 +2179,11 @@ defineExpose({
           :toggle-index="renderVersion"
           :empty-text="emptyText"
           :col-size="colSize"
-    :row-size="rowSize"
-    :layout="layout === 'card' ? cardLayout : undefined"
-    :theme="theme || cardTheme"
-    :loading="loading"
-    :total="total"
+          :row-size="rowSize"
+          :layout="layout === 'card' ? cardLayout : undefined"
+          :theme="theme || cardTheme"
+          :loading="loading"
+          :total="total"
           :current-page="currentPage"
           :page-size="scPageSize"
           :gap="waterfallGap"
@@ -2098,7 +2217,10 @@ defineExpose({
       </div>
 
       <!-- 分页区域 - 瀑布流布局使用滚动分页，不显示分页按钮 -->
-      <div v-if="!hidePagination && layout !== 'waterfall'" class="sc-table-pagination-wrapper">
+      <div
+        v-if="!hidePagination && layout !== 'waterfall'"
+        class="sc-table-pagination-wrapper"
+      >
         <Pagination
           v-model:current-page="currentPage"
           v-model:page-size="scPageSize"
@@ -2153,8 +2275,7 @@ defineExpose({
     flex: 1;
     min-height: 0; /* 关键属性：允许flex子项收缩 */
     min-width: 0; /* 关键属性：允许flex子项在横向收缩 */
-    overflow-x: auto; /* 允许横向滚动 */
-    overflow-y: hidden; /* 防止纵向溢出 */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     max-width: 100%; /* 限制最大宽度 */
@@ -2176,10 +2297,12 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: linear-gradient(135deg, 
-    var(--el-color-warning-light-9) 0%, 
+  background: linear-gradient(
+    135deg,
+    var(--el-color-warning-light-9) 0%,
     var(--el-color-warning-light-8) 50%,
-    var(--el-color-warning-light-9) 100%);
+    var(--el-color-warning-light-9) 100%
+  );
   border-radius: 12px;
   margin-bottom: 16px;
   border: 2px solid var(--el-color-warning-light-5);
@@ -2187,15 +2310,20 @@ defineExpose({
   animation: slideDown 0.3s ease-out;
   position: relative;
   overflow: hidden;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
     animation: shimmer 2s infinite;
   }
 
@@ -2208,12 +2336,12 @@ defineExpose({
     font-weight: 600;
     position: relative;
     z-index: 1;
-    
+
     svg {
       font-size: 20px;
       animation: pulse 2s ease-in-out infinite;
     }
-    
+
     span {
       text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
     }
@@ -2224,18 +2352,18 @@ defineExpose({
     gap: 10px;
     position: relative;
     z-index: 1;
-    
+
     .el-button {
       font-weight: 500;
       border-radius: 8px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      
+
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
-      
+
       &:active {
         transform: translateY(0);
       }
@@ -2264,7 +2392,8 @@ defineExpose({
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -2278,10 +2407,12 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: linear-gradient(135deg, 
-    var(--el-color-primary-light-9) 0%, 
+  background: linear-gradient(
+    135deg,
+    var(--el-color-primary-light-9) 0%,
     var(--el-color-primary-light-8) 50%,
-    var(--el-color-primary-light-9) 100%);
+    var(--el-color-primary-light-9) 100%
+  );
   border-radius: 12px;
   margin-bottom: 16px;
   border: 2px solid var(--el-color-primary-light-5);
@@ -2289,15 +2420,20 @@ defineExpose({
   animation: slideDown 0.3s ease-out;
   position: relative;
   overflow: hidden;
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
     animation: shimmer 2s infinite;
   }
 
@@ -2310,12 +2446,12 @@ defineExpose({
     font-weight: 600;
     position: relative;
     z-index: 1;
-    
+
     svg {
       font-size: 20px;
       animation: pulse 2s ease-in-out infinite;
     }
-    
+
     span {
       text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
     }
@@ -2326,18 +2462,18 @@ defineExpose({
     gap: 10px;
     position: relative;
     z-index: 1;
-    
+
     .el-button {
       font-weight: 500;
       border-radius: 8px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      
+
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
-      
+
       &:active {
         transform: translateY(0);
       }
@@ -2351,30 +2487,32 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, 
-    var(--el-color-warning-light-9) 0%, 
-    var(--el-color-warning-light-8) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--el-color-warning-light-9) 0%,
+    var(--el-color-warning-light-8) 100%
+  );
   border-radius: 8px;
   margin-bottom: 12px;
   border: 1px solid var(--el-color-warning-light-5);
   animation: slideDown 0.3s ease-out;
-  
+
   .tip-content {
     display: flex;
     align-items: center;
     gap: 10px;
     color: var(--el-color-warning-dark-2);
     font-size: 13px;
-    
+
     svg {
       font-size: 18px;
       color: var(--el-color-warning);
     }
   }
-  
+
   .el-button {
     color: var(--el-color-warning-dark-2);
-    
+
     &:hover {
       color: var(--el-color-warning);
     }
@@ -2390,7 +2528,7 @@ defineExpose({
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   background: var(--app-bg-overlay);
   transition: box-shadow 0.3s ease;
-  
+
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   }
@@ -2398,11 +2536,15 @@ defineExpose({
 
 /* 确保表格内容区域不会被分页挤压 */
 :deep(.el-table__body-wrapper) {
-  overflow-x: auto !important;
+  overflow-x: hidden !important;
   overflow-y: auto !important;
-  height: auto !important;
-  flex: 1;
+  min-width: 0;
+  flex: 1 1 auto;
   max-width: 100%; /* 限制最大宽度 */
+}
+
+:deep(.el-table__body-wrapper .el-scrollbar__wrap) {
+  overflow-x: hidden !important;
 }
 
 :deep(.el-table) {
@@ -2411,7 +2553,7 @@ defineExpose({
   max-width: 100% !important; /* 限制表格最大宽度 */
   display: flex;
   flex-direction: column;
-  table-layout: auto; /* 允许表格根据内容自适应 */
+  min-width: 0;
 }
 
 :deep(.el-table__inner-wrapper) {
@@ -2420,6 +2562,7 @@ defineExpose({
   max-width: 100% !important; /* 限制内部容器最大宽度 */
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 :deep(.el-table__header-wrapper) {

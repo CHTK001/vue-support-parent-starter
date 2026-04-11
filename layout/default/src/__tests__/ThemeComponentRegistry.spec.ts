@@ -17,9 +17,9 @@ describe("theme component registry", () => {
     ]);
   });
 
-  it("keeps pixel-ui mappings in the shared useThemeComponent chain", () => {
-    expect(getThemeComponentName("8bit", "ElButton")).toBe("PxButton");
-    expect(getThemeComponentName("8bit", "ElCard")).toBe("PxCard");
+  it("keeps 8bit mapped to the native component chain", () => {
+    expect(getThemeComponentName("8bit", "ElButton")).toBe("ElButton");
+    expect(getThemeComponentName("8bit", "ElCard")).toBe("ElCard");
     expect(getThemeLocalComponentConfig("8bit", "ElButton")).toBeNull();
     expect(getThemeLocalComponentConfig("8bit", "ElCard")).toBeNull();
   });

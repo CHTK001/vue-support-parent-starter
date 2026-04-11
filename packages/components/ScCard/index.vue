@@ -20,7 +20,16 @@ import TechLayout from "./layouts/Tech.vue";
 import { getThemeConfig, type IotCardTheme } from "./themes";
 import { useThemeComponent } from "../hooks/useThemeComponent";
 
-type LayoutType = "default" | "media" | "header-content" | "panel-3d" | "compact" | "stats" | "stats-simple" | "tech" | "custom";
+type LayoutType =
+  | "default"
+  | "media"
+  | "header-content"
+  | "panel-3d"
+  | "compact"
+  | "stats"
+  | "stats-simple"
+  | "tech"
+  | "custom";
 
 export default defineComponent({
   name: "ScCard",
@@ -39,7 +48,18 @@ export default defineComponent({
     layout: {
       type: String as PropType<LayoutType>,
       default: "default",
-      validator: (val: string) => ["default", "media", "header-content", "panel-3d", "compact", "stats", "stats-simple", "tech", "custom"].includes(val),
+      validator: (val: string) =>
+        [
+          "default",
+          "media",
+          "header-content",
+          "panel-3d",
+          "compact",
+          "stats",
+          "stats-simple",
+          "tech",
+          "custom",
+        ].includes(val),
     },
     renderAs: {
       type: String as PropType<"el-card" | "div">,
@@ -67,7 +87,8 @@ export default defineComponent({
     borderPosition: {
       type: String,
       default: "top",
-      validator: (val: string) => ["top", "right", "bottom", "left", "none"].includes(val),
+      validator: (val: string) =>
+        ["top", "right", "bottom", "left", "none"].includes(val),
     },
     mediaPosition: {
       type: String,
@@ -103,7 +124,21 @@ export default defineComponent({
       default: "",
     },
     theme: {
-      type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "blue" | "green" | "purple" | "orange" | "cyan" | "red" | "custom">,
+      type: String as PropType<
+        | "default"
+        | "primary"
+        | "success"
+        | "warning"
+        | "danger"
+        | "info"
+        | "blue"
+        | "green"
+        | "purple"
+        | "orange"
+        | "cyan"
+        | "red"
+        | "custom"
+      >,
       default: "default",
     },
     iotTheme: {
@@ -182,9 +217,15 @@ export default defineComponent({
       return undefined;
     });
 
-    const computedIcon = computed(() => iotThemeConfig.value?.icon ?? props.icon);
-    const computedTitle = computed(() => iotThemeConfig.value?.title ?? props.title);
-    const computedLayout = computed(() => iotThemeConfig.value?.layout ?? props.layout);
+    const computedIcon = computed(
+      () => iotThemeConfig.value?.icon ?? props.icon,
+    );
+    const computedTitle = computed(
+      () => iotThemeConfig.value?.title ?? props.title,
+    );
+    const computedLayout = computed(
+      () => iotThemeConfig.value?.layout ?? props.layout,
+    );
 
     const renderComponent = computed(() => {
       if (props.renderAs === "el-card") {

@@ -264,16 +264,7 @@ export const useThemeStore = defineStore("theme", () => {
     htmlEl.setAttribute("data-skin", normalizedThemeKey);
 
     if (normalizedThemeKey === "default") {
-      // 切回默认主题时，仅清理历史遗留的旧样式 id，当前样式交给共享引用计数管理
       htmlEl.removeAttribute("data-skin");
-
-      const pixelThemeLinks = ["pixel-theme-style", "theme-8bit-style"];
-      pixelThemeLinks.forEach((linkId) => {
-        const linkEl = document.getElementById(linkId);
-        if (linkEl) {
-          linkEl.remove();
-        }
-      });
       htmlEl.setAttribute("data-skin", normalizedThemeKey);
     }
 
@@ -283,7 +274,7 @@ export const useThemeStore = defineStore("theme", () => {
     // 加载主题样式表
     loadThemeStylesheet(normalizedThemeKey);
 
-    // 加载主题字体 CSS（仅 8bit 主题需要）
+    // 8bit 主题字体已由全局 SCSS 托管，这里保留统一调用入口
     loadThemeFont(normalizedThemeKey);
 
     // 发送主题变更事件
@@ -404,7 +395,7 @@ export const useThemeStore = defineStore("theme", () => {
     updateThemeClass(currentTheme.value);
     loadThemeStylesheet(currentTheme.value);
 
-    // 初始化时加载当前主题的字体 CSS
+    // 初始化时保持统一主题字体调用入口
     loadThemeFont(currentTheme.value);
   }
 

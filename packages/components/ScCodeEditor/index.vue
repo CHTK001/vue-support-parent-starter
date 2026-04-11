@@ -15,6 +15,12 @@ import "codemirror/addon/selection/active-line";
 import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/show-hint";
 import "codemirror/addon/hint/sql-hint";
+import "codemirror/mode/javascript/javascript";
+import "codemirror/mode/properties/properties";
+import "codemirror/mode/shell/shell";
+import "codemirror/mode/sql/sql";
+import "codemirror/mode/xml/xml";
+import "codemirror/mode/yaml/yaml";
 
 export default {
   name: "ScCodeEditor",
@@ -63,7 +69,7 @@ export default {
         autoMatchParens: true,
         styleActiveLine: true,
         lineNumbers: true,
-        lineWrapping: false,
+        lineWrapping: true,
         tabSize: 4,
         indentUnit: 4,
         indentWithTabs: true,

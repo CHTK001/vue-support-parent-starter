@@ -8,9 +8,14 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Delete, Check } from "@element-plus/icons-vue";
-import { useMessageStore, useUserStoreHook } from "@repo/core";
+import {
+  deleteHistoryMessage,
+  fetchHistoryMessages,
+  type MessageHistoryItem,
+  useMessageStore,
+  useUserStoreHook,
+} from "@repo/core";
 import { getLogger } from "@repo/utils";
-import { fetchHistoryMessages, type MessageHistoryItem } from "@repo/core/src/api/message";
 
 const logger = getLogger("[消息中心]");
 
@@ -111,11 +116,17 @@ const loadHistoryMessages = async () => {
   historyLoading.value = true;
   try {
     const response = await fetchHistoryMessages(1, 50);
-    if (response?.data) {
-      historyMessages.value = response.data;
-    }
+    const pageData = response?.data as
+      | { records?: MessageHistoryItem[]; data?: MessageHistoryItem[] }
+      | undefined;
+    historyMessages.value = Array.isArray(pageData?.records)
+      ? pageData.records
+      : Array.isArray(pageData?.data)
+        ? pageData.data
+        : [];
   } catch (error) {
     logger.error("获取历史消息失败", error as Error);
+    historyMessages.value = [];
   } finally {
     historyLoading.value = false;
   }
@@ -156,7 +167,7 @@ const markAllAsRead = async () => {
 const deleteMessage = async (message: DisplayMessageItem) => {
   try {
     if (message.isHistory) {
-      // TODO: 调用删除历史消息API
+      await deleteHistoryMessage(message.originalId);
       historyMessages.value = historyMessages.value.filter(
         (m) => m.sysMessageHistoryId !== message.originalId
       );

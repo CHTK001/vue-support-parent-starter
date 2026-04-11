@@ -55,6 +55,14 @@ const dialogTitle = computed(() =>
 const emit = defineEmits(["close", "success"]);
 const itemSaveRef = ref();
 
+const validateForm = async () => {
+  try {
+    return Boolean(await itemSaveRef.value?.validate?.());
+  } catch (error) {
+    return false;
+  }
+};
+
 /**
  * 获取类型对应的图标名称
  * @param {string} type - 配置类型
@@ -187,31 +195,30 @@ const handleClose = () => {
  * 更新配置
  */
 const handleUpdate = async () => {
-  fetchUpdateSetting(config.data).then((res) => {
-    if (res.code == "00000") {
-      message("更新成功", { type: "success" });
-      config.visible = false;
-      emit("success");
-    }
-  });
+  const valid = await validateForm();
+  if (!valid) return;
+
+  const res = await fetchUpdateSetting(config.data);
+  if (res.code == "00000") {
+    message("更新成功", { type: "success" });
+    config.visible = false;
+    emit("success");
+  }
 };
 
 /**
  * 保存配置
  */
 const handleSave = async () => {
-  // 表单验证
-  itemSaveRef.value.validate(async (valid) => {
-    if (valid) {
-      fetchSaveSetting(config.data).then((res) => {
-        if (res.code == "00000") {
-          message("保存成功", { type: "success" });
-          config.visible = false;
-          emit("success");
-        }
-      });
-    }
-  });
+  const valid = await validateForm();
+  if (!valid) return;
+
+  const res = await fetchSaveSetting(config.data);
+  if (res.code == "00000") {
+    message("保存成功", { type: "success" });
+    config.visible = false;
+    emit("success");
+  }
 };
 
 /**
@@ -279,10 +286,12 @@ defineExpose({
     <ScDialog
       v-model="config.visible"
       :title="dialogTitle || config.title"
+      width="820px"
       draggable
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       :destroy-on-close="true"
+      class="setting-save-dialog"
       @close="handleClose"
     >
       <ScForm
@@ -291,91 +300,118 @@ defineExpose({
         :rules="config.rules"
         :model="config.data"
         class="w-full modern-form"
-        label-width="120px"
+        label-position="top"
       >
-        <ScFormItem label="数据分组" prop="sysSettingGroup">
-          <ScInput
-            v-model="config.data.sysSettingGroup"
-            placeholder="请输入配置所属分组"
+        <div class="modern-form-grid">
+          <ScFormItem
+            label="数据分组"
+            prop="sysSettingGroup"
+            class="modern-form-item"
           >
-            <template #prefix>
-              <IconifyIconOnline icon="ep:folder" />
-            </template>
-          </ScInput>
-          <div class="form-tip">配置项所属的功能分组，用于组织和管理配置</div>
-        </ScFormItem>
-
-        <ScFormItem label="名称" prop="sysSettingName">
-          <ScInput
-            v-model="config.data.sysSettingName"
-            placeholder="请输入配置名称"
-          >
-            <template #prefix>
-              <IconifyIconOnline icon="ep:edit" />
-            </template>
-          </ScInput>
-          <div class="form-tip">配置项的唯一标识名称，建议使用英文</div>
-        </ScFormItem>
-
-        <ScFormItem label="数据类型" prop="sysSettingValueType">
-          <ScSelect
-            v-model="config.data.sysSettingValueType"
-            placeholder="请选择"
-          >
-            <ScOption
-              v-for="item in config.valueType"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+            <ScInput
+              v-model="config.data.sysSettingGroup"
+              placeholder="请输入配置所属分组"
             >
-              <div class="type-option">
-                <IconifyIconOnline
-                  :icon="getTypeIconName(item.value)"
-                  class="type-icon"
-                />
-                <span>{{ item.label }}</span>
-              </div>
-            </ScOption>
-          </ScSelect>
-          <div class="form-tip">
-            选择配置项的数据类型，不同类型有不同的编辑方式
-          </div>
-        </ScFormItem>
+              <template #prefix>
+                <IconifyIconOnline icon="ep:folder" />
+              </template>
+            </ScInput>
+            <div class="form-tip">配置项所属的功能分组，用于组织和管理配置</div>
+          </ScFormItem>
 
-        <ScFormItem label="配置值" prop="sysSettingValue">
-          <!-- 根据类型显示不同的输入组件 -->
-          <config-value-input
-            v-model="config.data.sysSettingValue"
-            :type="config.data.sysSettingValueType"
-            :placeholder="getValuePlaceholder()"
-          />
-          <div class="form-tip">{{ getValueDescription() }}</div>
-        </ScFormItem>
-
-        <ScFormItem label="描述" prop="sysSettingRemark">
-          <ScInput
-            v-model="config.data.sysSettingRemark"
-            placeholder="请输入描述"
-            type="textarea"
-            :rows="3"
-          />
-          <div class="form-tip">
-            配置项的详细描述，帮助其他用户理解该配置的用途
-          </div>
-        </ScFormItem>
-
-        <ScFormItem label="数据优先级" prop="sysSettingSort">
-          <ScInput
-            v-model="config.data.sysSettingSort"
-            placeholder="请输入数据优先级"
-            type="number"
+          <ScFormItem
+            label="名称"
+            prop="sysSettingName"
+            class="modern-form-item"
           >
-            <template #prefix>
-              <IconifyIconOnline icon="ep:sort" />
-            </template>
-          </ScInput>
-          <div class="form-tip">数字越小优先级越高，影响配置项的显示顺序</div>
-        </ScFormItem>
+            <ScInput
+              v-model="config.data.sysSettingName"
+              placeholder="请输入配置名称"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ep:edit" />
+              </template>
+            </ScInput>
+            <div class="form-tip">配置项的唯一标识名称，建议使用英文</div>
+          </ScFormItem>
+
+          <ScFormItem
+            label="数据类型"
+            prop="sysSettingValueType"
+            class="modern-form-item"
+          >
+            <ScSelect
+              v-model="config.data.sysSettingValueType"
+              placeholder="请选择"
+            >
+              <ScOption
+                v-for="item in config.valueType"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >
+                <div class="type-option">
+                  <IconifyIconOnline
+                    :icon="getTypeIconName(item.value)"
+                    class="type-icon"
+                  />
+                  <span>{{ item.label }}</span>
+                </div>
+              </ScOption>
+            </ScSelect>
+            <div class="form-tip">
+              选择配置项的数据类型，不同类型有不同的编辑方式
+            </div>
+          </ScFormItem>
+
+          <ScFormItem
+            label="数据优先级"
+            prop="sysSettingSort"
+            class="modern-form-item"
+          >
+            <ScInput
+              v-model="config.data.sysSettingSort"
+              placeholder="请输入数据优先级"
+              type="number"
+            >
+              <template #prefix>
+                <IconifyIconOnline icon="ep:sort" />
+              </template>
+            </ScInput>
+            <div class="form-tip">数字越小优先级越高，影响配置项的显示顺序</div>
+          </ScFormItem>
+
+          <ScFormItem
+            label="配置值"
+            prop="sysSettingValue"
+            class="modern-form-item modern-form-item--wide"
+          >
+            <div class="value-editor-shell">
+              <config-value-input
+                v-model="config.data.sysSettingValue"
+                :type="config.data.sysSettingValueType"
+                :placeholder="getValuePlaceholder()"
+              />
+            </div>
+            <div class="form-tip">{{ getValueDescription() }}</div>
+          </ScFormItem>
+
+          <ScFormItem
+            label="描述"
+            prop="sysSettingRemark"
+            class="modern-form-item modern-form-item--wide"
+          >
+            <ScInput
+              v-model="config.data.sysSettingRemark"
+              placeholder="请输入描述"
+              type="textarea"
+              :rows="3"
+            />
+            <div class="form-tip">
+              配置项的详细描述，帮助其他用户理解该配置的用途
+            </div>
+          </ScFormItem>
+        </div>
       </ScForm>
 
       <!-- 新增表单 - 先选择类型 -->
@@ -385,7 +421,7 @@ defineExpose({
         :rules="config.rules"
         :model="config.data"
         class="w-full modern-form"
-        label-width="120px"
+        label-position="top"
       >
         <!-- 类型选择步骤 -->
         <div
@@ -393,6 +429,9 @@ defineExpose({
           class="type-selection-container"
         >
           <h3 class="type-selection-title">请选择配置类型</h3>
+          <p class="type-selection-subtitle">
+            先确定值类型，再填写分组、名称和配置值，新增表单会保持统一对齐。
+          </p>
           <div class="type-cards">
             <div
               v-for="item in config.valueType"
@@ -426,64 +465,91 @@ defineExpose({
             </ScButton>
           </div>
 
-          <ScFormItem label="数据分组" prop="sysSettingGroup">
-            <ScInput
-              v-model="config.data.sysSettingGroup"
-              placeholder="请输入配置所属分组"
+          <div class="modern-form-grid">
+            <ScFormItem
+              label="数据分组"
+              prop="sysSettingGroup"
+              class="modern-form-item"
             >
-              <template #prefix>
-                <IconifyIconOnline icon="ep:folder" />
-              </template>
-            </ScInput>
-            <div class="form-tip">配置项所属的功能分组，用于组织和管理配置</div>
-          </ScFormItem>
+              <ScInput
+                v-model="config.data.sysSettingGroup"
+                placeholder="请输入配置所属分组"
+              >
+                <template #prefix>
+                  <IconifyIconOnline icon="ep:folder" />
+                </template>
+              </ScInput>
+              <div class="form-tip">
+                配置项所属的功能分组，用于组织和管理配置
+              </div>
+            </ScFormItem>
 
-          <ScFormItem label="名称" prop="sysSettingName">
-            <ScInput
-              v-model="config.data.sysSettingName"
-              placeholder="请输入配置名称"
+            <ScFormItem
+              label="名称"
+              prop="sysSettingName"
+              class="modern-form-item"
             >
-              <template #prefix>
-                <IconifyIconOnline icon="ep:edit" />
-              </template>
-            </ScInput>
-            <div class="form-tip">配置项的唯一标识名称，建议使用英文</div>
-          </ScFormItem>
+              <ScInput
+                v-model="config.data.sysSettingName"
+                placeholder="请输入配置名称"
+              >
+                <template #prefix>
+                  <IconifyIconOnline icon="ep:edit" />
+                </template>
+              </ScInput>
+              <div class="form-tip">配置项的唯一标识名称，建议使用英文</div>
+            </ScFormItem>
 
-          <ScFormItem label="配置值" prop="sysSettingValue">
-            <!-- 根据类型显示不同的输入组件 -->
-            <config-value-input
-              v-model="config.data.sysSettingValue"
-              :type="config.data.sysSettingValueType"
-              :placeholder="getValuePlaceholder()"
-            />
-            <div class="form-tip">{{ getValueDescription() }}</div>
-          </ScFormItem>
-
-          <ScFormItem label="描述" prop="sysSettingRemark">
-            <ScInput
-              v-model="config.data.sysSettingRemark"
-              placeholder="请输入描述"
-              type="textarea"
-              :rows="3"
-            />
-            <div class="form-tip">
-              配置项的详细描述，帮助其他用户理解该配置的用途
-            </div>
-          </ScFormItem>
-
-          <ScFormItem label="数据优先级" prop="sysSettingSort">
-            <ScInput
-              v-model="config.data.sysSettingSort"
-              placeholder="请输入数据优先级"
-              type="number"
+            <ScFormItem
+              label="配置值"
+              prop="sysSettingValue"
+              class="modern-form-item modern-form-item--wide"
             >
-              <template #prefix>
-                <IconifyIconOnline icon="ep:sort" />
-              </template>
-            </ScInput>
-            <div class="form-tip">数字越小优先级越高，影响配置项的显示顺序</div>
-          </ScFormItem>
+              <div class="value-editor-shell">
+                <config-value-input
+                  v-model="config.data.sysSettingValue"
+                  :type="config.data.sysSettingValueType"
+                  :placeholder="getValuePlaceholder()"
+                />
+              </div>
+              <div class="form-tip">{{ getValueDescription() }}</div>
+            </ScFormItem>
+
+            <ScFormItem
+              label="描述"
+              prop="sysSettingRemark"
+              class="modern-form-item modern-form-item--wide"
+            >
+              <ScInput
+                v-model="config.data.sysSettingRemark"
+                placeholder="请输入描述"
+                type="textarea"
+                :rows="3"
+              />
+              <div class="form-tip">
+                配置项的详细描述，帮助其他用户理解该配置的用途
+              </div>
+            </ScFormItem>
+
+            <ScFormItem
+              label="数据优先级"
+              prop="sysSettingSort"
+              class="modern-form-item"
+            >
+              <ScInput
+                v-model="config.data.sysSettingSort"
+                placeholder="请输入数据优先级"
+                type="number"
+              >
+                <template #prefix>
+                  <IconifyIconOnline icon="ep:sort" />
+                </template>
+              </ScInput>
+              <div class="form-tip">
+                数字越小优先级越高，影响配置项的显示顺序
+              </div>
+            </ScFormItem>
+          </div>
         </template>
       </ScForm>
 
@@ -516,79 +582,158 @@ defineExpose({
 </template>
 
 <style lang="scss" scoped>
+.setting-save-dialog {
+  :deep(.el-dialog) {
+    width: min(820px, calc(100vw - 24px)) !important;
+    max-height: min(820px, calc(100vh - 32px));
+    margin: 16px auto !important;
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 16px 18px 16px;
+    overflow-y: auto;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 0 18px 16px;
+  }
+}
+
 .modern-form {
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn 0.24s ease-out;
 
   :deep(.el-form-item) {
-    margin-bottom: 25px;
-    transition: all 0.3s;
-    animation: slideIn 0.4s ease-out both;
+    margin-bottom: 0;
+  }
 
-    &:nth-child(1) {
-      animation-delay: 0.1s;
-    }
-    &:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-    &:nth-child(3) {
-      animation-delay: 0.3s;
-    }
-    &:nth-child(4) {
-      animation-delay: 0.4s;
-    }
-    &:nth-child(5) {
-      animation-delay: 0.5s;
-    }
-    &:nth-child(6) {
-      animation-delay: 0.6s;
-    }
+  :deep(.el-form-item__label) {
+    padding: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #334155;
+  }
 
-    &:hover {
-      transform: translateY(-2px);
-    }
+  :deep(.el-form-item__content) {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0 !important;
+  }
+
+  :deep(.el-input),
+  :deep(.el-select),
+  :deep(.el-input-number),
+  :deep(.sc-config-value-input) {
+    width: 100%;
   }
 
   :deep(.el-input__wrapper),
-  :deep(.el-select__wrapper) {
-    box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
+  :deep(.el-select__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(203, 213, 225, 0.92) inset;
     transition: all 0.3s ease;
-
-    &:hover,
-    &:focus {
-      box-shadow: 0 0 0 1px var(--el-color-primary-light-3) inset;
-    }
   }
+
+  :deep(.el-input__wrapper:hover),
+  :deep(.el-select__wrapper:hover),
+  :deep(.el-textarea__inner:hover) {
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.96) inset;
+  }
+
+  :deep(.el-input__wrapper.is-focus),
+  :deep(.el-select__wrapper.is-focused),
+  :deep(.el-textarea__inner:focus) {
+    box-shadow:
+      0 0 0 1px rgba(37, 99, 235, 0.92) inset,
+      0 0 0 3px rgba(191, 219, 254, 0.28);
+  }
+
+  :deep(.el-textarea__inner) {
+    min-height: 110px;
+    padding: 12px 14px;
+  }
+}
+
+.modern-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 18px;
+  align-items: start;
+}
+
+.modern-form-item {
+  min-width: 0;
+}
+
+.modern-form-item--wide {
+  grid-column: 1 / -1;
 }
 
 .form-tip {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 5px;
-  padding-left: 5px;
-  border-left: 2px solid var(--el-color-primary-light-5);
+  line-height: 1.6;
+  color: #64748b;
+  margin-top: 8px;
+}
+
+.value-editor-shell {
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.7);
+  padding: 8px 10px;
+}
+
+.value-editor-shell :deep(.el-input__wrapper),
+.value-editor-shell :deep(.el-select__wrapper),
+.value-editor-shell :deep(.el-textarea__inner) {
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(203, 213, 225, 0.9) inset;
+}
+
+.value-editor-shell :deep(.el-input__wrapper.is-focus),
+.value-editor-shell :deep(.el-select__wrapper.is-focused),
+.value-editor-shell :deep(.el-textarea__inner:focus) {
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.94) inset,
+    0 0 0 2px rgba(191, 219, 254, 0.24);
 }
 
 .type-selection-container {
-  text-align: center;
+  text-align: left;
   animation: fadeIn 0.5s ease-out;
 }
 
 .type-selection-title {
-  font-size: 18px;
-  color: var(--el-text-color-primary);
-  margin-bottom: 20px;
-  font-weight: 500;
+  font-size: 20px;
+  color: #0f172a;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.type-selection-subtitle {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #64748b;
 }
 
 .type-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .type-card {
-  padding: 20px 15px;
+  padding: 16px 14px;
   border-radius: 12px;
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-lighter);
@@ -644,17 +789,23 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px dashed var(--el-border-color);
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(219, 234, 254, 0.92);
+  background: linear-gradient(
+    135deg,
+    rgba(239, 246, 255, 0.82) 0%,
+    rgba(248, 250, 252, 0.96) 100%
+  );
 
   .selected-type {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--el-color-primary);
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d4ed8;
 
     :deep(svg) {
       font-size: 20px;
@@ -676,11 +827,15 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
 
   .el-button {
     display: flex;
     align-items: center;
     gap: 5px;
+    min-width: 108px;
+    justify-content: center;
   }
 }
 
@@ -704,6 +859,29 @@ defineExpose({
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .setting-save-dialog {
+    :deep(.el-dialog__body) {
+      padding: 18px 16px 14px;
+    }
+
+    :deep(.el-dialog__footer) {
+      padding: 0 16px 16px;
+    }
+  }
+
+  .modern-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .form-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 }
 </style>

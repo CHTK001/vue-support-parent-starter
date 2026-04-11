@@ -32,8 +32,8 @@
 <script setup lang="ts">
 /**
  * ScTabs 标签页组件
- * 封装 Element Plus Tabs 与 PixelUI PxTabs
- * 在 data-skin 为 8bit 时自动切换为像素风标签页
+ * 封装 Element Plus Tabs
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

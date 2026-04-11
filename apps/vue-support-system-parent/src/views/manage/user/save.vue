@@ -7,7 +7,7 @@
       :close-on-press-escape="false"
       :destroy-on-close="true"
       draggable
-      width="1320px"
+      width="1200px"
       class="user-dialog"
       @close="close"
     >
@@ -167,6 +167,7 @@
                           class="field-highlight"
                         >
                           <ScSelect
+                            :key="`dept-${selectRenderSeed}-${form.sysDeptId ?? 'empty'}-${deptOptions.length}`"
                             v-model="form.sysDeptId"
                             class="outlined-control"
                             placeholder="请选择部门"
@@ -189,6 +190,7 @@
                           class="field-highlight"
                         >
                           <ScSelect
+                            :key="`role-${selectRenderSeed}-${form.roleIds.join('-')}-${roleOptions.length}`"
                             v-model="form.roleIds"
                             class="outlined-control"
                             placeholder="请选择角色"
@@ -524,7 +526,7 @@
 <script setup lang="ts">
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
-import { computed, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import {
   fetchPageUserLog,
   fetchUpdateUser,
@@ -593,6 +595,7 @@ const mode = ref("save");
 const activeEditorTab = ref("account");
 const roleOptions = ref<any[]>([]);
 const deptOptions = ref<SelectOption[]>([]);
+const selectRenderSeed = ref(0);
 const syncingSexFromCard = ref(false);
 const sexSource = ref<"default" | "card" | "manual">("default");
 const loginLogState = reactive<{
@@ -950,8 +953,16 @@ const resolveDeptName = (data: any) => {
     data?.sysDeptName ??
     data?.deptName ??
     data?.departmentName ??
+    data?.sysUserDeptName ??
     data?.sysDept?.sysDeptName ??
+    data?.sysDept?.deptName ??
+    data?.sysDept?.name ??
     data?.department?.sysDeptName ??
+    data?.department?.deptName ??
+    data?.department?.name ??
+    data?.dept?.sysDeptName ??
+    data?.dept?.deptName ??
+    data?.dept?.name ??
     ""
   );
 };
@@ -959,10 +970,18 @@ const resolveDeptName = (data: any) => {
 const resolveDeptId = (data: any) => {
   return normalizeOptionalNumericValue(
     data?.sysDeptId ??
+      data?.sysUserDeptId ??
       data?.departmentId ??
       data?.deptId ??
       data?.sysDept?.sysDeptId ??
+      data?.sysDept?.deptId ??
+      data?.sysDept?.id ??
       data?.department?.sysDeptId ??
+      data?.department?.deptId ??
+      data?.department?.id ??
+      data?.dept?.sysDeptId ??
+      data?.dept?.deptId ??
+      data?.dept?.id ??
       null,
   );
 };
@@ -990,19 +1009,62 @@ const ensureCurrentDeptOption = (
   ];
 };
 
-const syncDeptNameFromOptions = (
+const getMatchedDeptOption = (
+  deptId: number | string | null | undefined,
+  deptName = "",
+) => {
+  if (deptId !== null && deptId !== undefined && deptId !== "") {
+    const matchedById = deptOptions.value.find(
+      (item) => String(item.value) === String(deptId),
+    );
+    if (matchedById) {
+      return matchedById;
+    }
+  }
+
+  if (!deptName) {
+    return null;
+  }
+
+  return (
+    deptOptions.value.find((item) => item.plainLabel === deptName) || null
+  );
+};
+
+const syncDeptSelection = (
   deptId: number | string | null | undefined,
   fallbackName = "",
 ) => {
   if (deptId === null || deptId === undefined || deptId === "") {
+    form.value.sysDeptId = null;
     form.value.sysDeptName = "";
     return;
   }
 
-  const matched = deptOptions.value.find(
-    (item) => String(item.value) === String(deptId),
-  );
-  form.value.sysDeptName = matched?.plainLabel || fallbackName || "";
+  const matched = getMatchedDeptOption(deptId, fallbackName);
+  if (matched) {
+    form.value.sysDeptId = normalizeOptionalNumericValue(matched.value);
+    form.value.sysDeptName = matched.plainLabel || matched.label || "";
+    return;
+  }
+
+  if (fallbackName) {
+    ensureCurrentDeptOption(deptId, fallbackName);
+    form.value.sysDeptId = normalizeOptionalNumericValue(deptId);
+    form.value.sysDeptName = fallbackName;
+  }
+};
+
+const syncDeptNameFromOptions = (
+  deptId: number | string | null | undefined,
+  fallbackName = "",
+) => {
+  syncDeptSelection(deptId, fallbackName);
+};
+
+const refreshSelects = async () => {
+  await nextTick();
+  selectRenderSeed.value += 1;
 };
 
 const loadRoleOptions = async () => {
@@ -1079,9 +1141,7 @@ const loadDeptOptions = async () => {
       Array.isArray(records) ? records : [],
     );
     if (form.value.sysDeptId === null && form.value.sysDeptName) {
-      const matched = deptOptions.value.find(
-        (item) => item.plainLabel === form.value.sysDeptName,
-      );
+      const matched = getMatchedDeptOption(null, form.value.sysDeptName);
       if (matched) {
         form.value.sysDeptId = normalizeOptionalNumericValue(matched.value);
       }
@@ -1090,6 +1150,8 @@ const loadDeptOptions = async () => {
     syncDeptNameFromOptions(form.value.sysDeptId, form.value.sysDeptName);
   } catch (error) {
     deptOptions.value = [];
+  } finally {
+    void refreshSelects();
   }
 };
 
@@ -1107,7 +1169,7 @@ const close = async () => {
   loginLogState.rows = [];
 };
 
-const setData = (data: any) => {
+const setData = async (data: any) => {
   const cloned = {
     ...createDefaultForm(),
     ...JSON.parse(JSON.stringify(data || {})),
@@ -1122,9 +1184,7 @@ const setData = (data: any) => {
     data?.userRoles?.map((item: any) => item.sysRoleId) || data?.roleIds || [],
   );
   if (cloned.sysDeptId === null && cloned.sysDeptName) {
-    const matched = deptOptions.value.find(
-      (item) => item.plainLabel === cloned.sysDeptName,
-    );
+    const matched = getMatchedDeptOption(null, cloned.sysDeptName);
     if (matched) {
       cloned.sysDeptId = normalizeOptionalNumericValue(matched.value);
     }
@@ -1132,6 +1192,7 @@ const setData = (data: any) => {
   form.value = cloned;
   ensureCurrentDeptOption(cloned.sysDeptId, cloned.sysDeptName);
   syncDeptNameFromOptions(cloned.sysDeptId, cloned.sysDeptName);
+  await refreshSelects();
   activeEditorTab.value = "account";
   sexSource.value = "default";
   identityInsight.value = parseIdentityCard(cloned.sysUserCard);
@@ -1189,6 +1250,7 @@ const open = async (modeValue = "save") => {
   visible.value = true;
   mode.value = modeValue;
   await Promise.all([loadRoleOptions(), loadDeptOptions()]);
+  await refreshSelects();
 
   if (mode.value === "edit") {
     form.value.sysUserPassword = null;
@@ -1295,6 +1357,14 @@ watch(
 );
 
 watch(
+  () =>
+    deptOptions.value.map((item) => `${item.value}:${item.plainLabel || item.label}`).join("|"),
+  () => {
+    syncDeptSelection(form.value.sysDeptId, form.value.sysDeptName);
+  },
+);
+
+watch(
   activeEditorTab,
   (tab) => {
     if (tab === "loginLog") {
@@ -1350,8 +1420,8 @@ watch(
 
 .editor-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.85fr);
-  gap: 20px;
+  grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+  gap: 24px;
   align-items: stretch;
 }
 
@@ -1368,7 +1438,7 @@ watch(
 
 .content-stack {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -1801,14 +1871,26 @@ watch(
 }
 
 .outlined-control {
+  display: block;
+
   :deep(.el-select__wrapper) {
-    border-color: rgba(59, 130, 246, 0.32);
-    background: linear-gradient(180deg, #fff, #f8fbff);
-    box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.12);
+    min-height: 42px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgba(59, 130, 246, 0.42);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), #f6faff),
+      #fff;
+    box-shadow:
+      inset 0 0 0 1px rgba(59, 130, 246, 0.08),
+      0 12px 24px -22px rgba(59, 130, 246, 0.55);
   }
 
   :deep(.el-select__wrapper:hover) {
-    border-color: rgba(59, 130, 246, 0.58);
+    border-color: rgba(59, 130, 246, 0.72);
+    box-shadow:
+      inset 0 0 0 1px rgba(59, 130, 246, 0.12),
+      0 14px 28px -22px rgba(59, 130, 246, 0.6);
   }
 }
 
@@ -1825,7 +1907,7 @@ watch(
 
 @media (width <= 1360px) {
   .editor-layout {
-    grid-template-columns: minmax(260px, 0.88fr) minmax(0, 1.12fr);
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
   }
 }
 

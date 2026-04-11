@@ -40,8 +40,8 @@
 <script setup lang="ts">
 /**
  * ScPopover 弹出框组件
- * 封装 Element Plus Popover 与 PixelUI PxPopover
- * 在 data-skin 为 8bit 时自动切换为像素风弹出框
+ * 封装 Element Plus Popover
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import type { PropType } from "vue";
 import { ElPopover } from "element-plus";

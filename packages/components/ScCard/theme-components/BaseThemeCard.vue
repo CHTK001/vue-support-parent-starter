@@ -29,15 +29,9 @@ import StatsLayout from "../layouts/Stats.vue";
 import StatsSimpleLayout from "../layouts/StatsSimple.vue";
 import TechLayout from "../layouts/Tech.vue";
 import { useCardProps } from "../composables/useCardProps";
-import { scCardProps } from "../cardProps";
+import type { ScCardProps } from "../composables/useCardProps";
 
-const props = defineProps({
-  ...scCardProps,
-  themeKey: {
-    type: String,
-    required: true,
-  },
-});
+const props = defineProps<ScCardProps & { themeKey: string }>();
 
 const emit = defineEmits<{
   (e: "click", event: MouseEvent): void;

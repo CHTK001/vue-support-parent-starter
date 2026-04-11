@@ -139,14 +139,14 @@ export function useDataThemeChange() {
     // 如果非 isClick，保留之前的 themeColor
     const storageThemeColor = $storage.layout.themeColor;
 
-    const nextLayout: LayoutConfig = {
-      layout: layout.value as LayoutConfig["layout"],
+    const nextLayout: StorageLayout = {
+      layout: layout.value as StorageLayout["layout"],
       theme,
       darkMode: dataTheme.value,
       sidebarStatus: $storage.layout?.sidebarStatus,
       epThemeColor: $storage.layout?.epThemeColor,
       themeColor: isClick ? theme : storageThemeColor,
-      overallStyle: overallStyle.value as LayoutConfig["overallStyle"],
+      overallStyle: overallStyle.value as StorageLayout["overallStyle"],
     };
 
     const currentLayout = $storage.layout as StorageLayout | undefined;

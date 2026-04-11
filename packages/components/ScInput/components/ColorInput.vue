@@ -13,6 +13,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import ScColorPicker from "../../ScColorPicker/index";
 
 interface Props {
   /**

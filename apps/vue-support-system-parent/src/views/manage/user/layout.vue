@@ -18,6 +18,7 @@ import {
   fetchResetPassword,
   fetchBatchDeleteUsers,
   fetchBatchUpdateUserStatus,
+  useUserStoreHook,
 } from "@repo/core";
 import { getTimeAgo, message } from "@repo/utils";
 import Search from "@iconify-icons/ep/search";
@@ -25,22 +26,23 @@ import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
-import { debounce, randomColor } from "@pureadmin/utils";
+import { fetchListDept } from "@/api/manage/dept";
+import { randomColor } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
 
-
-const ScIp = defineAsyncComponent(
-  () => import("@repo/components/ScIp"),
-);
-const ScFilterBar = defineAsyncComponent(
-  () => import("@repo/components/ScFilterBar"),
+const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp"));
+const ScFilter = defineAsyncComponent(
+  () => import("@repo/components/ScFilter"),
 );
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
+const SystemStatsCards = defineAsyncComponent(
+  () => import("../components/SystemStatsCards.vue"),
+);
 export default defineComponent({
-  components: { SaveDialog, ScFilterBar, ScIp },
+  components: { SaveDialog, ScFilter, ScIp, SystemStatsCards },
   props: {
     sysDeptId: {
       type: String,
@@ -103,6 +105,8 @@ export default defineComponent({
       selectedUsers: [],
       // 批量操作加载状态
       batchLoading: false,
+      deptNameMap: {},
+      userStore: null,
       filterOptions: [
         {
           label: "账号名称",
@@ -151,6 +155,24 @@ export default defineComponent({
     };
   },
   computed: {
+    normalizedCurrentRoles() {
+      return (this.userStore?.roles || []).map((role) =>
+        String(role || "").toUpperCase(),
+      );
+    },
+    hasRoleWriteAccess() {
+      return (this.userStore?.roleInfos || []).some(
+        (item) => item?.writeable || item?.executable,
+      );
+    },
+    canManageUserAction() {
+      return (
+        this.userStore?.username === "sa" ||
+        this.normalizedCurrentRoles.includes("SUPER_ADMIN") ||
+        this.normalizedCurrentRoles.includes("ADMIN") ||
+        this.hasRoleWriteAccess
+      );
+    },
     // 是否有选中用户
     hasSelected() {
       return this.selectedUsers.length > 0;
@@ -159,22 +181,64 @@ export default defineComponent({
     selectedCount() {
       return this.selectedUsers.length;
     },
+    statsCards() {
+      return [
+        {
+          key: "total",
+          label: "全部用户",
+          value: this.stats.total,
+          icon: "ri:team-line",
+          theme: "primary",
+          active:
+            this.form.sysUserStatus === null ||
+            this.form.sysUserStatus === undefined ||
+            this.form.sysUserStatus === "",
+        },
+        {
+          key: "active",
+          label: "已启用",
+          value: this.stats.active,
+          icon: "ri:user-follow-line",
+          theme: "success",
+          active: this.form.sysUserStatus === 1,
+        },
+        {
+          key: "disabled",
+          label: "已禁用",
+          value: this.stats.disabled,
+          icon: "ri:user-unfollow-line",
+          theme: "warning",
+          active: this.form.sysUserStatus === 0,
+        },
+        {
+          key: "todayNew",
+          label: "今日新增",
+          value: this.stats.todayNew,
+          icon: "ri:user-add-line",
+          theme: "info",
+          clickable: false,
+        },
+      ];
+    },
   },
   created() {
     const { t } = useI18n();
     const route = useRoute();
+    this.form = this.createFilterForm();
     const _data = route.query.data;
     if (_data) {
       try {
-        Object.assign(this.form, JSON.parse(Base64.decode(_data)));
+        this.form = this.createFilterForm(JSON.parse(Base64.decode(_data)));
       } catch (error) {}
     }
     this.t = t;
+    this.userStore = useUserStoreHook();
     this.Delete = useRenderIcon(markRaw(Delete));
     this.EditPen = useRenderIcon(markRaw(EditPen));
     this.Refresh = useRenderIcon(markRaw(Refresh));
     this.Search = useRenderIcon(markRaw(Search));
     this.Edit = useRenderIcon(markRaw(Edit));
+    this.loadDeptNameMap();
   },
   methods: {
     getTimeAgo,
@@ -213,23 +277,72 @@ export default defineComponent({
     async fetchPageUserValue(params) {
       return fetchPageUser(params);
     },
+    createFilterForm(overrides = {}) {
+      return {
+        sysUserUsername: "",
+        sysUserNickname: "",
+        sysUserPhone: "",
+        sysUserSex: null,
+        sysUserStatus: null,
+        ...(this.sysDeptId ? { sysDeptId: this.sysDeptId } : {}),
+        ...(overrides || {}),
+      };
+    },
+    buildTableParams(params = {}) {
+      return {
+        ...(params?.sysUserUsername?.trim()
+          ? { username: params.sysUserUsername.trim() }
+          : {}),
+        ...(params?.sysUserNickname?.trim()
+          ? { nickname: params.sysUserNickname.trim() }
+          : {}),
+        ...(params?.sysUserPhone?.trim()
+          ? { phone: params.sysUserPhone.trim() }
+          : {}),
+        ...(params?.sysUserSex !== "" &&
+        params?.sysUserSex !== null &&
+        params?.sysUserSex !== undefined
+          ? { sex: params.sysUserSex }
+          : {}),
+        ...(params?.sysUserStatus !== "" &&
+        params?.sysUserStatus !== null &&
+        params?.sysUserStatus !== undefined
+          ? { status: params.sysUserStatus }
+          : {}),
+        ...(params?.sysDeptId ? { sysDeptId: params.sysDeptId } : {}),
+      };
+    },
     async fetchUpdateUserValue(row) {
       return fetchUpdateUser(row);
     },
-    async resetForm() {
-      this.form.username = null;
-      this.$nextTick(() => {
-        this.$refs.table.reload(this.form);
-      });
+    handleFilterModelChange(nextValue) {
+      this.form = this.createFilterForm(nextValue);
     },
-    onQuery(params) {
-      this.$nextTick(() => {
-        Object.assign(params, this.form);
-        this.$refs.table.reload(params);
-      });
+    async resetForm(params = {}) {
+      this.form = this.createFilterForm(params);
+      await this.$nextTick();
+      this.$refs.table.reload(this.buildTableParams(this.form));
     },
-    async onSearch(params) {
-      debounce(() => this.onQuery(params), 1000, true)();
+    async onSearch(params = this.form) {
+      this.form = this.createFilterForm(params);
+      await this.$nextTick();
+      this.$refs.table.reload(this.buildTableParams(this.form));
+    },
+    async handleStatsSelect(item) {
+      if (!item?.key) {
+        return;
+      }
+      if (item.key === "total") {
+        await this.onSearch({ ...this.form, sysUserStatus: null });
+        return;
+      }
+      if (item.key === "active") {
+        await this.onSearch({ ...this.form, sysUserStatus: 1 });
+        return;
+      }
+      if (item.key === "disabled") {
+        await this.onSearch({ ...this.form, sysUserStatus: 0 });
+      }
     },
     tValue(v) {
       return this.t(v);
@@ -244,15 +357,61 @@ export default defineComponent({
           this.$nextTick(() => {
             this.$refs.table.reload();
           });
-          message(this.tValue("message.deleteSuccess"), { type: "success" });
+          message("用户删除成功", { type: "success" });
           return;
         }
       } catch (error) {}
     },
     async dialogOpen(item, mode) {
       this.visible.save = true;
-      this.$nextTick(() => {
-        this.$refs.saveDialog.setData(item).open(mode);
+      const normalizedDeptId =
+        item?.sysDeptId ??
+        item?.sysDept?.sysDeptId ??
+        item?.sysDept?.id ??
+        item?.department?.sysDeptId ??
+        item?.department?.id ??
+        item?.dept?.sysDeptId ??
+        item?.dept?.deptId ??
+        item?.dept?.id ??
+        item?.deptId ??
+        item?.departmentId ??
+        null;
+      const normalizedDeptName =
+        item?.sysDeptName ??
+        item?.deptName ??
+        item?.departmentName ??
+        item?.sysDept?.sysDeptName ??
+        item?.sysDept?.deptName ??
+        item?.sysDept?.name ??
+        item?.department?.sysDeptName ??
+        item?.department?.deptName ??
+        item?.department?.name ??
+        item?.dept?.sysDeptName ??
+        item?.dept?.deptName ??
+        item?.dept?.name ??
+        "";
+      const dialogData =
+        mode === "save"
+          ? {
+              sysDeptId:
+                normalizedDeptId ??
+                this.form?.sysDeptId ??
+                this.sysDeptId ??
+                null,
+              sysDeptName: normalizedDeptName,
+              ...item,
+            }
+          : {
+              ...item,
+              sysDeptId: normalizedDeptId,
+              sysDeptName: normalizedDeptName,
+            };
+      this.$nextTick(async () => {
+        if (!this.$refs.saveDialog) {
+          return;
+        }
+        await this.$refs.saveDialog.open(mode);
+        this.$refs.saveDialog.setData(dialogData);
       });
     },
     async dialogClose() {
@@ -331,6 +490,94 @@ export default defineComponent({
       const today = new Date().toISOString().split("T")[0];
       this.stats.todayNew =
         data?.filter((item) => item.createTime?.startsWith(today))?.length || 0;
+    },
+    isSyntheticLastLoginState(row) {
+      return (
+        !row?.sysUserLastLoginTime &&
+        !row?.updateTime &&
+        Boolean(row?.sysUserLastIp || row?.sysUserLastAddress) &&
+        row?.sysUserLastIp === row?.sysUserRegisterIp &&
+        row?.sysUserLastAddress === row?.sysUserRegisterAddress
+      );
+    },
+    resolveLastLoginTime(row) {
+      if (this.isSyntheticLastLoginState(row)) {
+        return "";
+      }
+      return (
+        row?.sysUserLastLoginTime ||
+        ((row?.sysUserLastIp || row?.sysUserLastAddress) && row?.updateTime) ||
+        ""
+      );
+    },
+    resolveHasLoginActivity(row) {
+      return Boolean(this.resolveLastLoginTime(row));
+    },
+    resolveLastLoginIp(row) {
+      return this.resolveHasLoginActivity(row) ? row?.sysUserLastIp || "" : "";
+    },
+    resolveLastLoginAddress(row) {
+      return this.resolveHasLoginActivity(row)
+        ? row?.sysUserLastAddress || ""
+        : "";
+    },
+    resolvePrimaryRole(row) {
+      return row?.userRoles?.[0]?.sysRoleName || "-";
+    },
+    flattenDeptNodes(nodes = []) {
+      return nodes.flatMap((item) => [
+        item,
+        ...(Array.isArray(item?.children)
+          ? this.flattenDeptNodes(item.children)
+          : []),
+      ]);
+    },
+    async loadDeptNameMap() {
+      try {
+        const { data } = await fetchListDept({});
+        const records = Array.isArray(data) ? data : [];
+        this.deptNameMap = this.flattenDeptNodes(records).reduce((acc, item) => {
+          if (item?.sysDeptId !== null && item?.sysDeptId !== undefined) {
+            acc[String(item.sysDeptId)] = item?.sysDeptName || "";
+          }
+          return acc;
+        }, {});
+      } catch (error) {
+        this.deptNameMap = {};
+      }
+    },
+    resolveDeptName(row) {
+      const deptId =
+        row?.sysDeptId ??
+        row?.sysDept?.sysDeptId ??
+        row?.department?.sysDeptId ??
+        row?.department?.id ??
+        row?.dept?.sysDeptId ??
+        row?.dept?.deptId ??
+        row?.deptId ??
+        row?.departmentId ??
+        null;
+      if (deptId !== null && deptId !== undefined && deptId !== "") {
+        const matchedDeptName = this.deptNameMap[String(deptId)];
+        if (matchedDeptName) {
+          return matchedDeptName;
+        }
+      }
+      return (
+        row?.sysDeptName ??
+        row?.deptName ??
+        row?.departmentName ??
+        row?.sysDept?.sysDeptName ??
+        row?.sysDept?.deptName ??
+        row?.sysDept?.name ??
+        row?.department?.sysDeptName ??
+        row?.department?.deptName ??
+        row?.department?.name ??
+        row?.dept?.sysDeptName ??
+        row?.dept?.deptName ??
+        row?.dept?.name ??
+        "-"
+      );
     },
     // 表格选择变化
     handleSelectionChange(selection) {
@@ -450,7 +697,6 @@ export default defineComponent({
 <template>
   <div class="system-container main background-color">
     <SaveDialog
-      v-if="visible.save"
       ref="saveDialog"
       :mode="saveDialogParams.mode"
       @success="onSearch"
@@ -458,155 +704,146 @@ export default defineComponent({
     />
     <div class="main">
       <ScContainer>
-        <!-- 统计面板 -->
-        <div v-if="showQuery" class="user-stats">
-          <div class="stat-item">
-            <div class="stat-icon total">
-              <IconifyIconOnline icon="ri:team-line" :size="32" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.total }}</span>
-              <span class="stat-label">全部用户</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon active">
-              <IconifyIconOnline icon="ri:user-follow-line" :size="32" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.active }}</span>
-              <span class="stat-label">已启用</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon disabled">
-              <IconifyIconOnline icon="ri:user-unfollow-line" :size="32" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.disabled }}</span>
-              <span class="stat-label">已禁用</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon new">
-              <IconifyIconOnline icon="ri:user-add-line" :size="32" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.todayNew }}</span>
-              <span class="stat-label">今日新增</span>
-            </div>
-          </div>
+        <div v-if="showQuery" class="stats-section">
+          <SystemStatsCards :items="statsCards" @select="handleStatsSelect" />
         </div>
 
-        <ScHeader v-if="showQuery">
-          <div class="flex items-center justify-between">
-            <ScFilterBar
-              :options="filterOptions"
-              :show-number="showNumber"
-              class="flex-1"
-              @search="onSearch"
-            />
-            <div v-if="showTool" class="flex items-center gap-2 ml-4">
+        <div v-if="showQuery">
+          <ScFilter
+            :model-value="form"
+            :fields="filterOptions"
+            :show-default-actions="false"
+            class="user-filter-bar"
+            @update:model-value="handleFilterModelChange"
+            @search="onSearch"
+            @reset="resetForm"
+          >
+            <template #actions="{ search, reset }">
               <ScButton
                 type="primary"
-                :icon="Edit"
-                title="新增用户"
-                aria-label="新增用户"
-                @click="dialogOpen({}, 'save')"
-                >新增用户</ScButton>
-
-              <!-- 批量操作下拉菜单 -->
-              <ScDropdown trigger="click" :disabled="!hasSelected">
+                :icon="Search"
+                title="查询用户"
+                aria-label="查询用户"
+                @click="search"
+              >
+                查询
+              </ScButton>
+              <ScButton
+                :icon="Refresh"
+                title="重置筛选"
+                aria-label="重置筛选"
+                @click="reset"
+              >
+                重置
+              </ScButton>
+              <div v-if="showTool" class="user-toolbar__actions">
                 <ScButton
-                  :disabled="!hasSelected"
-                  :loading="batchLoading"
-                  title="批量操作"
-                  aria-label="批量操作"
+                  type="primary"
+                  :icon="Edit"
+                  title="新增用户"
+                  aria-label="新增用户"
+                  @click="dialogOpen({}, 'save')"
                 >
-                  <IconifyIconOnline
-                    icon="ri:checkbox-multiple-line"
-                    class="mr-1"
-                  />
-                  批量操作
-                  <ScBadge
-                    v-if="hasSelected"
-                    :value="selectedCount"
-                    class="ml-1"
-                  />
+                  新增用户
                 </ScButton>
-                <template #dropdown>
-                  <ScDropdownMenu>
-                    <ScDropdownItem @click="handleBatchStatus(1)">
-                      <IconifyIconOnline
-                        icon="ri:check-line"
-                        class="mr-1 text-green-500"
-                      />批量启用
-                    </ScDropdownItem>
-                    <ScDropdownItem @click="handleBatchStatus(0)">
-                      <IconifyIconOnline
-                        icon="ri:close-line"
-                        class="mr-1 text-orange-500"
-                      />批量禁用
-                    </ScDropdownItem>
-                    <ScDropdownItem divided @click="handleBatchDelete">
-                      <IconifyIconOnline
-                        icon="ri:delete-bin-line"
-                        class="mr-1 text-red-500"
-                      />批量删除
-                    </ScDropdownItem>
-                  </ScDropdownMenu>
-                </template>
-              </ScDropdown>
 
-              <!-- 导入导出下拉菜单 -->
-              <ScDropdown trigger="click">
-                <ScButton title="导入导出" aria-label="导入导出">
-                  <IconifyIconOnline icon="ep:download" class="mr-1" />导入导出
-                </ScButton>
-                <template #dropdown>
-                  <ScDropdownMenu>
-                    <ScDropdownItem @click="handleExportUsers">
-                      <IconifyIconOnline
-                        icon="ep:download"
-                        class="mr-1"
-                      />导出用户
-                    </ScDropdownItem>
-                    <ScDropdownItem @click="handleDownloadTemplate">
-                      <IconifyIconOnline
-                        icon="ep:document"
-                        class="mr-1"
-                      />下载模板
-                    </ScDropdownItem>
-                    <ScDropdownItem @click="triggerImport">
-                      <IconifyIconOnline
-                        icon="ep:upload"
-                        class="mr-1"
-                      />导入用户
-                    </ScDropdownItem>
-                  </ScDropdownMenu>
-                </template>
-              </ScDropdown>
-              <input
-                ref="importInput"
-                type="file"
-                accept=".csv"
-                style="display: none"
-                @change="handleImportUsers"
-              />
-            </div>
-          </div>
-        </ScHeader>
+                <ScDropdown trigger="click" :disabled="!hasSelected">
+                  <ScButton
+                    :disabled="!hasSelected"
+                    :loading="batchLoading"
+                    title="批量操作"
+                    aria-label="批量操作"
+                  >
+                    <IconifyIconOnline
+                      icon="ri:checkbox-multiple-line"
+                      class="mr-1"
+                    />
+                    批量操作
+                    <ScBadge
+                      v-if="hasSelected"
+                      :value="selectedCount"
+                      class="ml-1"
+                    />
+                  </ScButton>
+                  <template #dropdown>
+                    <ScDropdownMenu>
+                      <ScDropdownItem @click="handleBatchStatus(1)">
+                        <IconifyIconOnline
+                          icon="ri:check-line"
+                          class="mr-1 text-green-500"
+                        />批量启用
+                      </ScDropdownItem>
+                      <ScDropdownItem @click="handleBatchStatus(0)">
+                        <IconifyIconOnline
+                          icon="ri:close-line"
+                          class="mr-1 text-orange-500"
+                        />批量禁用
+                      </ScDropdownItem>
+                      <ScDropdownItem divided @click="handleBatchDelete">
+                        <IconifyIconOnline
+                          icon="ri:delete-bin-line"
+                          class="mr-1 text-red-500"
+                        />批量删除
+                      </ScDropdownItem>
+                    </ScDropdownMenu>
+                  </template>
+                </ScDropdown>
+
+                <ScDropdown trigger="click">
+                  <ScButton title="导入导出" aria-label="导入导出">
+                    <IconifyIconOnline
+                      icon="ep:download"
+                      class="mr-1"
+                    />导入导出
+                  </ScButton>
+                  <template #dropdown>
+                    <ScDropdownMenu>
+                      <ScDropdownItem @click="handleExportUsers">
+                        <IconifyIconOnline
+                          icon="ep:download"
+                          class="mr-1"
+                        />导出用户
+                      </ScDropdownItem>
+                      <ScDropdownItem @click="handleDownloadTemplate">
+                        <IconifyIconOnline
+                          icon="ep:document"
+                          class="mr-1"
+                        />下载模板
+                      </ScDropdownItem>
+                      <ScDropdownItem @click="triggerImport">
+                        <IconifyIconOnline
+                          icon="ep:upload"
+                          class="mr-1"
+                        />导入用户
+                      </ScDropdownItem>
+                    </ScDropdownMenu>
+                  </template>
+                </ScDropdown>
+                <input
+                  ref="importInput"
+                  type="file"
+                  accept=".csv"
+                  style="display: none"
+                  @change="handleImportUsers"
+                />
+              </div>
+            </template>
+          </ScFilter>
+        </div>
         <ScMain class="nopadding page-table-fill">
-          <div ref="contentRef" class="h-full flex">
+          <div ref="contentRef" class="user-table-shell">
             <div
-              :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
-              style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
+              :class="
+                visible.role
+                  ? 'user-table-shell__stage is-narrow'
+                  : 'user-table-shell__stage'
+              "
             >
               <ScTable
                 ref="table"
                 :url="fetchPageUserValue"
-                :params="form"
-                height="auto"
+                :params="buildTableParams(form)"
+                height="500px"
                 class="table-fill"
                 @data-loaded="onDataLoaded"
                 @selection-change="handleSelectionChange"
@@ -650,7 +887,8 @@ export default defineComponent({
                             type="warning"
                             size="small"
                             class="ml-1"
-                            >系统</ScTag>
+                            >系统</ScTag
+                          >
                         </div>
                         <div class="user-id">ID: {{ row.sysUserId }}</div>
                       </div>
@@ -681,7 +919,7 @@ export default defineComponent({
                           class="contact-icon"
                         />
                         <span class="contact-label">邮箱</span>
-                        <span class="contact-value">{{
+                        <span class="contact-value truncate">{{
                           row.sysUserEmail || "-"
                         }}</span>
                       </div>
@@ -694,6 +932,19 @@ export default defineComponent({
                         <span class="contact-value">{{
                           row.sysUserPhone || "-"
                         }}</span>
+                      </div>
+                      <div class="contact-item">
+                        <IconifyIconOnline
+                          icon="ri:team-line"
+                          class="contact-icon"
+                        />
+                        <span class="contact-label">部门</span>
+                        <span class="contact-value">
+                          <ScTag v-if="resolveDeptName(row) !== '-'">
+                            {{ resolveDeptName(row) }}
+                          </ScTag>
+                          <span v-else class="no-data">-</span></span
+                        >
                       </div>
                     </div>
                   </template>
@@ -716,21 +967,23 @@ export default defineComponent({
                   label="最后登录地址"
                   prop="sysUserLastIp"
                   align="left"
-                  min-width="140px"
+                  min-width="200px"
                 >
                   <template #default="{ row }">
                     <ScIp
-                      :key="row.sysUserLastIp"
-                      :ip="row.sysUserLastIp"
-                      :physical-address="row.sysUserLastAddress"
+                      v-if="resolveHasLoginActivity(row)"
+                      :key="resolveLastLoginIp(row)"
+                      :ip="resolveLastLoginIp(row)"
+                      :physical-address="resolveLastLoginAddress(row)"
                     />
+                    <span v-else class="no-data">-</span>
                   </template>
                 </ScTableColumn>
                 <ScTableColumn
                   label="注册地址"
                   prop="sysUserRegisterIp"
                   align="left"
-                  min-width="140px"
+                  min-width="200px"
                 >
                   <template #default="{ row }">
                     <ScIp
@@ -741,21 +994,12 @@ export default defineComponent({
                   </template>
                 </ScTableColumn>
 
-                <ScTableColumn label="角色" align="center">
-                  <template #default="{ row }">
-                    <ScTag v-if="row.userRoles.length > 0">
-                      {{ row.userRoles[0].sysRoleName }}
-                    </ScTag>
-                    <span v-else>-</span>
-                  </template>
-                </ScTableColumn>
                 <ScTableColumn label="状态" align="center">
                   <template #default="{ row }">
                     <ScSwitch
                       v-if="mode != 'view'"
                       v-model="row.sysUserStatus"
                       style="
-
                         --el-switch-on-color: #13ce66;
                         --el-switch-off-color: #ff4949;
                       "
@@ -781,7 +1025,7 @@ export default defineComponent({
                 >
                   <template #default="{ row }">
                     <div
-                      v-if="row.sysUserLastLoginTime"
+                      v-if="resolveHasLoginActivity(row)"
                       class="login-time-cell"
                     >
                       <div class="time-ago">
@@ -789,14 +1033,14 @@ export default defineComponent({
                           icon="ri:time-line"
                           class="time-icon"
                         />
-                        <span>{{ getTimeAgo(row.sysUserLastLoginTime) }}</span>
+                        <span>{{ getTimeAgo(resolveLastLoginTime(row)) }}</span>
                       </div>
                       <span class="time-detail">{{
-                        row.sysUserLastLoginTime
+                        resolveLastLoginTime(row)
                       }}</span>
                       <div
                         class="days-away"
-                        :class="getDaysAwayClass(row.sysUserLastLoginTime)"
+                        :class="getDaysAwayClass(resolveLastLoginTime(row))"
                       >
                         <IconifyIconOnline
                           icon="ri:calendar-line"
@@ -804,7 +1048,8 @@ export default defineComponent({
                         />
                         <span
                           >已离开
-                          {{ getDaysAway(row.sysUserLastLoginTime) }} 天</span>
+                          {{ getDaysAway(resolveLastLoginTime(row)) }} 天</span
+                        >
                       </div>
                     </div>
                     <ScTag v-else type="info" size="small">从未登录</ScTag>
@@ -821,7 +1066,9 @@ export default defineComponent({
                       <span class="time-ago">{{
                         row.createTime ? getTimeAgo(row.createTime) : "-"
                       }}</span>
-                      <span class="time-detail">{{ row.createTime || "-" }}</span>
+                      <span class="time-detail">{{
+                        row.createTime || "-"
+                      }}</span>
                     </div>
                   </template>
                 </ScTableColumn>
@@ -829,58 +1076,69 @@ export default defineComponent({
                   v-if="showTool"
                   label="操作"
                   fixed="right"
-                  min-width="180px"
+                  width="196"
+                  header-align="center"
+                  align="center"
                 >
                   <template #default="{ row }">
-                    <ScTooltip content="编辑" placement="top">
-                      <ScButton
-                        v-auth="'sys:user:update'"
-                        v-roles="['ADMIN', 'SUPER_ADMIN']"
-                        class="btn-text"
-                        :icon="EditPen"
-                        title="编辑用户"
-                        aria-label="编辑用户"
-                        @click="dialogOpen(row, 'edit')"
-                      />
-                    </ScTooltip>
-                    <ScTooltip content="重置密码" placement="top">
+                    <div class="user-action-group">
+                      <ScTooltip
+                        v-if="canManageUserAction"
+                        content="编辑"
+                        placement="top"
+                      >
+                        <span class="user-action-trigger">
+                          <ScButton
+                            class="btn-text"
+                            :icon="EditPen"
+                            title="编辑用户"
+                            aria-label="编辑用户"
+                            @click="dialogOpen(row, 'edit')"
+                          />
+                        </span>
+                      </ScTooltip>
                       <ScPopconfirm
+                        v-if="canManageUserAction"
                         title="确定要重置此用户的密码吗？"
                         @confirm="handleResetPassword(row)"
                       >
                         <template #reference>
-                          <ScButton
-                            v-auth="'sys:user:reset'"
-                            v-roles="['ADMIN', 'SUPER_ADMIN']"
-                            class="btn-text"
-                            type="warning"
-                            title="重置用户密码"
-                            aria-label="重置用户密码"
-                          >
-                            <IconifyIconOnline icon="ri:lock-password-line" />
-                          </ScButton>
+                          <ScTooltip content="重置密码" placement="top">
+                            <span class="user-action-trigger">
+                              <ScButton
+                                class="btn-text"
+                                type="warning"
+                                title="重置用户密码"
+                                aria-label="重置用户密码"
+                              >
+                                <IconifyIconOnline
+                                  icon="ri:lock-password-line"
+                                />
+                              </ScButton>
+                            </span>
+                          </ScTooltip>
                         </template>
                       </ScPopconfirm>
-                    </ScTooltip>
-                    <ScTooltip content="删除" placement="top">
                       <ScPopconfirm
-                        :title="$t('message.confimDelete')"
+                        v-if="canManageUserAction && !row.sysUserInSystem"
+                        title="确认删除该用户？删除后该账号将不再出现在正常列表中。"
                         @confirm="onDelete(row)"
                       >
                         <template #reference>
-                          <ScButton
-                            v-if="!row.sysUserInSystem"
-                            v-auth="'sys:user:delete'"
-                            v-roles="['ADMIN', 'SUPER_ADMIN']"
-                            class="btn-text"
-                            type="danger"
-                            :icon="Delete"
-                            title="删除用户"
-                            aria-label="删除用户"
-                          />
+                          <ScTooltip content="删除" placement="top">
+                            <span class="user-action-trigger">
+                              <ScButton
+                                class="btn-text"
+                                type="danger"
+                                :icon="Delete"
+                                title="删除用户"
+                                aria-label="删除用户"
+                              />
+                            </span>
+                          </ScTooltip>
                         </template>
                       </ScPopconfirm>
-                    </ScTooltip>
+                    </div>
                   </template>
                 </ScTableColumn>
               </ScTable>
@@ -1015,6 +1273,18 @@ export default defineComponent({
   }
 }
 
+.user-filter-bar {
+  width: 100%;
+}
+
+.user-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 :deep(.el-header) {
   --el-header-height: unset;
 
@@ -1045,19 +1315,37 @@ export default defineComponent({
   height: 100%;
 }
 
-// 表格容器样式
-:deep(.h-full) {
+.stats-section {
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.user-table-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.user-table-shell__stage {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  width: 100%;
   background-color: var(--el-bg-color);
   border-radius: var(--el-border-radius-base);
   box-shadow: none;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-:deep(.h-full .el-table) {
+.user-table-shell__stage.is-narrow {
+  width: 60vw;
+}
+
+:deep(.user-table-shell__stage .el-table) {
   height: 100%;
 }
 
@@ -1066,6 +1354,17 @@ export default defineComponent({
 :deep(.table-fill .sc-table-content-wrapper) {
   flex: 1;
   min-height: 0;
+}
+
+:deep(.table-fill .sc-table-pagination) {
+  border-top: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+}
+
+:deep(.table-fill .el-table-fixed-column--right .cell) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 // 表格美化
@@ -1079,11 +1378,10 @@ export default defineComponent({
   }
 
   .el-table__row {
-    transition: all 0.3s;
+    transition: background-color 0.2s ease;
 
     &:hover {
       background-color: var(--el-fill-color-light) !important;
-      transform: translateY(-1px);
     }
 
     &:nth-child(even) {
@@ -1098,7 +1396,6 @@ export default defineComponent({
 
   &:hover {
     box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
-    transform: translateY(-2px);
   }
 }
 
@@ -1291,11 +1588,27 @@ export default defineComponent({
 }
 
 // 操作按钮美化
+.user-action-group {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-action-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn-text {
-  transition: all 0.3s;
+  min-width: 34px;
+  height: 34px;
+  transition: background-color 0.2s ease;
 
   &:hover {
-    transform: scale(1.1);
+    background: rgba(var(--el-color-primary-rgb), 0.08);
   }
 }
 
@@ -1330,7 +1643,7 @@ export default defineComponent({
     );
   }
 
-  :deep(.h-full) {
+  :deep(.user-table-shell__stage) {
     box-shadow: 0 2px 12px rgb(0 0 0 / 15%);
   }
 
@@ -1355,5 +1668,12 @@ export default defineComponent({
   .bg-blue-type {
     box-shadow: 0 2px 8px rgb(58 142 230 / 40%);
   }
-} // 用户统计面板样式
+}
+
+@media (width <= 1280px) {
+  .user-toolbar__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
 </style>

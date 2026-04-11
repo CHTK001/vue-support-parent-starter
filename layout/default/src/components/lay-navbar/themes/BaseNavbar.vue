@@ -17,6 +17,9 @@ const { layout, device, pureApp, toggleSideBar } = useNav();
 
 const { $storage } = useGlobal<any>();
 const showBreadcrumb = ref($storage?.configure?.showBreadcrumb ?? true);
+const breadcrumbAnimationEnabled = ref(
+  $storage?.configure?.breadcrumbAnimation ?? false,
+);
 
 // drawer 布局下汉堡按钮菜单显示状态
 const drawerMenuVisible = ref(false);
@@ -31,6 +34,10 @@ emitter.on("breadcrumbChange", (value: boolean) => {
   showBreadcrumb.value = value;
 });
 
+emitter.on("breadcrumbAnimationChange", (value: boolean) => {
+  breadcrumbAnimationEnabled.value = value;
+});
+
 // 监听菜单关闭事件（点击外部关闭后同步状态）
 emitter.on("drawerMenuClosed", () => {
   drawerMenuVisible.value = false;
@@ -38,6 +45,7 @@ emitter.on("drawerMenuClosed", () => {
 
 onBeforeUnmount(() => {
   emitter.off("breadcrumbChange");
+  emitter.off("breadcrumbAnimationChange");
   emitter.off("drawerMenuClosed");
 });
 </script>
@@ -74,7 +82,7 @@ onBeforeUnmount(() => {
       :show-icon="true"
       separator="arrow"
       :max-items="5"
-      :enable-animation="true"
+      :enable-animation="breadcrumbAnimationEnabled"
       :show-tooltip="true"
     />
 

@@ -1,4 +1,5 @@
 <script setup>
+import "../modules/theme.scss";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore, useUserStoreHook } from "@repo/core";

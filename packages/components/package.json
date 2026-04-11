@@ -62,7 +62,6 @@
     "lodash-es": "catalog:",
     "monaco-editor": "catalog:",
     "pinyin-pro": "catalog:",
-    "pixel-ui": "npm:@mmt817/pixel-ui@^1.6.0",
     "sortablejs": "catalog:",
     "three": "catalog:",
     "typeit": "catalog:",

@@ -1,15 +1,29 @@
 <template>
   <div
+    ref="tableContainerRef"
     class="table-container"
-    :class="[`theme--${theme}`, { 'cross-highlight-enabled': config.crossHighlight && config.border, 'is-draggable': draggable }]"
-    :style="crossHighlightCssVars"
+    :class="[
+      `theme--${theme}`,
+      {
+        'cross-highlight-enabled': config.crossHighlight && config.border,
+        'is-draggable': draggable,
+        'has-horizontal-overflow': hasHorizontalOverflow,
+      },
+    ]"
+    :style="tableContainerStyle"
     @contextmenu.prevent="handleTableContextMenu"
   >
-    <VueDragScroll v-if="dragScrollEnabled" class="drag-scroll-wrapper" :drag-direction="'horizontal'" :drag-disabled="false">
+    <VueDragScroll
+      v-if="dragScrollEnabled"
+      class="drag-scroll-wrapper"
+      :drag-direction="'horizontal'"
+      :drag-disabled="false"
+    >
       <component
         :is="currentTableComponent"
         ref="scTable"
         v-bind="$attrs"
+        v-loading="loading"
         :data="tableData"
         :row-key="rowKey"
         :border="config.border"
@@ -18,7 +32,6 @@
         :height="config.height"
         :row-class-name="getRowClassName"
         :cell-class-name="getCellClassName"
-        v-loading="loading"
         style="width: 100%; max-width: 100%"
         @row-click="onRowClick"
         @cell-click="onCellClick"
@@ -28,7 +41,13 @@
         @expand-change="onExpandChange"
       >
         <!-- 拖拽手柄列 -->
-        <ScTableColumn v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
+        <ScTableColumn
+          v-if="draggable"
+          :width="dragHandleWidth"
+          label=""
+          fixed="left"
+          class-name="drag-handle-column"
+        >
           <template #default>
             <div class="drag-handle">
               <IconifyIconOnline icon="ep:rank" />
@@ -37,15 +56,15 @@
         </ScTableColumn>
         <template v-for="(col, index) in userColumn" :key="col.prop || index">
           <ScTableColumn v-if="!col.hide" v-bind="col" :column-key="col.prop">
-            <template #default="scope" v-if="col.slot">
-              <slot :name="col.slot" v-bind="scope"></slot>
+            <template v-if="col.slot" #default="scope">
+              <slot :name="col.slot" v-bind="scope" />
             </template>
-            <template #header="scope" v-if="col.headerSlot">
-              <slot :name="col.headerSlot" v-bind="scope"></slot>
+            <template v-if="col.headerSlot" #header="scope">
+              <slot :name="col.headerSlot" v-bind="scope" />
             </template>
           </ScTableColumn>
         </template>
-        <slot></slot>
+        <slot />
       </component>
     </VueDragScroll>
     <component
@@ -53,6 +72,7 @@
       v-else
       ref="scTable"
       v-bind="$attrs"
+      v-loading="loading"
       :data="tableData"
       :row-key="rowKey"
       :border="config.border"
@@ -61,7 +81,6 @@
       :height="config.height"
       :row-class-name="getRowClassName"
       :cell-class-name="getCellClassName"
-      v-loading="loading"
       style="width: 100%; max-width: 100%"
       @row-click="onRowClick"
       @cell-click="onCellClick"
@@ -71,7 +90,13 @@
       @expand-change="onExpandChange"
     >
       <!-- 拖拽手柄列 -->
-      <ScTableColumn v-if="draggable" :width="dragHandleWidth" label="" fixed="left" class-name="drag-handle-column">
+      <ScTableColumn
+        v-if="draggable"
+        :width="dragHandleWidth"
+        label=""
+        fixed="left"
+        class-name="drag-handle-column"
+      >
         <template #default>
           <div class="drag-handle">
             <IconifyIconOnline icon="ep:rank" />
@@ -80,23 +105,38 @@
       </ScTableColumn>
       <template v-for="(col, index) in userColumn" :key="col.prop || index">
         <ScTableColumn v-if="!col.hide" v-bind="col" :column-key="col.prop">
-          <template #default="scope" v-if="col.slot">
-            <slot :name="col.slot" v-bind="scope"></slot>
+          <template v-if="col.slot" #default="scope">
+            <slot :name="col.slot" v-bind="scope" />
           </template>
-          <template #header="scope" v-if="col.headerSlot">
-            <slot :name="col.headerSlot" v-bind="scope"></slot>
+          <template v-if="col.headerSlot" #header="scope">
+            <slot :name="col.headerSlot" v-bind="scope" />
           </template>
         </ScTableColumn>
       </template>
-      <slot></slot>
+      <slot />
     </component>
     <!-- 右键菜单组件 -->
-    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
+    <ContextMenu
+      ref="contextMenuRef"
+      :menu-items="menuItems"
+      :row-data="currentRowData"
+      :class-name="config.contextmenuClass"
+      @menu-action="handleMenuAction"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, watch, nextTick, onMounted, onBeforeUnmount, computed, defineComponent, h } from "vue";
+import {
+  ref,
+  watch,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  computed,
+  defineComponent,
+  h,
+} from "vue";
 import { ElTable, ElTableColumn } from "element-plus";
 import Sortable from "sortablejs";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
@@ -114,7 +154,7 @@ const VueDragScroll = defineComponent({
   name: "VueDragScroll",
   props: {
     dragDirection: { type: String, default: "horizontal" },
-    dragDisabled: { type: Boolean, default: false }
+    dragDisabled: { type: Boolean, default: false },
   },
   setup(props, { slots }) {
     const containerRef = ref(null);
@@ -122,13 +162,24 @@ const VueDragScroll = defineComponent({
     let startX = 0;
     let startScrollLeft = 0;
 
-    const handleMouseDown = e => {
+    const handleMouseDown = (e) => {
       if (props.dragDisabled || e.button !== 0) return;
       const target = e.target;
-      if (target.closest("button, a, input, select, textarea, .el-checkbox, .el-radio")) return;
+      if (
+        target.closest(
+          "button, a, input, select, textarea, .el-checkbox, .el-radio",
+        )
+      )
+        return;
 
-      const scrollContainer = containerRef.value?.querySelector(".el-table__body-wrapper");
-      if (!scrollContainer || scrollContainer.scrollWidth <= scrollContainer.clientWidth) return;
+      const scrollContainer = containerRef.value?.querySelector(
+        ".el-table__body-wrapper",
+      );
+      if (
+        !scrollContainer ||
+        scrollContainer.scrollWidth <= scrollContainer.clientWidth
+      )
+        return;
 
       isDragging = true;
       startX = e.pageX;
@@ -139,9 +190,11 @@ const VueDragScroll = defineComponent({
       e.preventDefault();
     };
 
-    const handleMouseMove = e => {
+    const handleMouseMove = (e) => {
       if (!isDragging) return;
-      const scrollContainer = containerRef.value?.querySelector(".el-table__body-wrapper");
+      const scrollContainer = containerRef.value?.querySelector(
+        ".el-table__body-wrapper",
+      );
       if (!scrollContainer) return;
 
       const deltaX = e.pageX - startX;
@@ -178,11 +231,11 @@ const VueDragScroll = defineComponent({
         {
           ref: containerRef,
           class: "vue-drag-scroll-wrapper",
-          style: { cursor: props.dragDisabled ? "default" : "grab" }
+          style: { cursor: props.dragDisabled ? "default" : "grab" },
         },
-        slots.default?.()
+        slots.default?.(),
       );
-  }
+  },
 });
 
 const props = defineProps({
@@ -196,14 +249,44 @@ const props = defineProps({
   dragRowKey: { type: String, default: "id" },
   dragHandleWidth: { type: Number, default: 50 },
   contextmenu: { type: Function, default: null },
-  dragScrollEnabled: { type: Boolean, default: false }
+  dragScrollEnabled: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["row-click", "selection-change", "sort-change", "header-dragend", "expand-change", "drag-sort-change"]);
+const emit = defineEmits([
+  "row-click",
+  "selection-change",
+  "sort-change",
+  "header-dragend",
+  "expand-change",
+  "drag-sort-change",
+]);
 
 const scTable = ref(null);
+const tableContainerRef = ref(null);
 const sortableInstance = ref(null);
 const isDragging = ref(false);
+const hasHorizontalOverflow = ref(false);
+const tableHeaderOffset = ref(0);
+let overflowResizeObserver = null;
+let overflowSyncFrame = 0;
+let hiddenInteractiveObserver = null;
+let hiddenInteractiveSyncFrame = 0;
+
+const HIDDEN_INTERACTIVE_ATTR = "data-sc-hidden-interactive";
+const HIDDEN_INTERACTIVE_ORIGINAL_TABINDEX_ATTR =
+  "data-sc-hidden-interactive-original-tabindex";
+const HIDDEN_INTERACTIVE_ORIGINAL_ARIA_HIDDEN_ATTR =
+  "data-sc-hidden-interactive-original-aria-hidden";
+const HIDDEN_INTERACTIVE_SELECTOR = [
+  "button",
+  "a[href]",
+  "input",
+  "select",
+  "textarea",
+  "[role='button']",
+  "[role='link']",
+  "[tabindex]",
+].join(", ");
 
 // 使用主题组件系统
 const { currentComponent } = useThemeComponent("ElTable");
@@ -222,15 +305,15 @@ const crossHighlight = useTableCrossHighlight({
   highlightColor: "var(--stitch-lay-bg-hover)",
   intersectionColor: "var(--stitch-lay-primary-alpha)",
   borderColor: "var(--stitch-lay-primary)",
-  showBorder: true
+  showBorder: true,
 });
 
 // 监听crossHighlight启用状态
 watch(
   () => props.config.crossHighlight && props.config.border,
-  enabled => {
+  (enabled) => {
     crossHighlight.toggleEnabled(enabled);
-  }
+  },
 );
 
 // 获取十字高亮的CSS变量
@@ -240,6 +323,11 @@ const crossHighlightCssVars = computed(() => {
   }
   return crossHighlight.cssVars.value;
 });
+
+const tableContainerStyle = computed(() => ({
+  ...crossHighlightCssVars.value,
+  "--sc-table-header-offset": `${tableHeaderOffset.value}px`,
+}));
 
 const onRowClick = (row, column, event) => {
   emit("row-click", row, column, event);
@@ -287,7 +375,7 @@ const onCellClick = (row, column, cell, event) => {
   }
 
   // 获取行索引
-  const rowIndex = props.tableData.findIndex(item => {
+  const rowIndex = props.tableData.findIndex((item) => {
     if (props.rowKey) {
       return item[props.rowKey] === row[props.rowKey];
     }
@@ -299,7 +387,9 @@ const onCellClick = (row, column, cell, event) => {
   // 获取列索引（优先通过 userColumn 查找，这样索引不包含拖拽列）
   let colIndex = -1;
   if (column.property) {
-    const userColIndex = props.userColumn.findIndex(col => col.prop === column.property);
+    const userColIndex = props.userColumn.findIndex(
+      (col) => col.prop === column.property,
+    );
     if (userColIndex !== -1) {
       colIndex = userColIndex; // 不包含拖拽列，与 getCellClassName 中的逻辑一致
     }
@@ -309,10 +399,14 @@ const onCellClick = (row, column, cell, event) => {
   if (colIndex === -1) {
     const tableEl = scTable.value?.$el;
     if (tableEl) {
-      const headerCells = tableEl.querySelectorAll(".el-table__header-wrapper thead th");
+      const headerCells = tableEl.querySelectorAll(
+        ".el-table__header-wrapper thead th",
+      );
       for (let i = 0; i < headerCells.length; i++) {
         const cellEl = headerCells[i];
-        const columnKey = cellEl.getAttribute("column-key") || cellEl.getAttribute("data-column-key");
+        const columnKey =
+          cellEl.getAttribute("column-key") ||
+          cellEl.getAttribute("data-column-key");
         if (columnKey === column.property || columnKey === column.columnKey) {
           // 如果有拖拽列，需要减去拖拽列的索引（通常是0）
           colIndex = props.draggable ? Math.max(0, i - 1) : i;
@@ -327,11 +421,11 @@ const onCellClick = (row, column, cell, event) => {
   }
 };
 
-const onSelectionChange = selection => {
+const onSelectionChange = (selection) => {
   emit("selection-change", selection);
 };
 
-const onSortChange = data => {
+const onSortChange = (data) => {
   emit("sort-change", data);
 };
 
@@ -366,10 +460,15 @@ const initDragSort = () => {
       onStart: () => {
         isDragging.value = true;
       },
-      onEnd: evt => {
+      onEnd: (evt) => {
         isDragging.value = false;
         const { oldIndex, newIndex } = evt;
-        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+        if (
+          oldIndex === undefined ||
+          newIndex === undefined ||
+          oldIndex === newIndex
+        )
+          return;
 
         // 创建新数组以避免直接修改原数组
         const newOrder = [...props.tableData];
@@ -381,9 +480,9 @@ const initDragSort = () => {
           oldIndex,
           newIndex,
           newOrder,
-          movedItem
+          movedItem,
         });
-      }
+      },
     });
   });
 };
@@ -399,7 +498,7 @@ const destroyDragSort = () => {
 // 监听 draggable 变化
 watch(
   () => props.draggable,
-  newVal => {
+  (newVal) => {
     if (newVal) {
       // 当启用拖拽时，先强制表格重新布局，确保拖拽列渲染完成
       if (scTable.value?.doLayout) {
@@ -412,7 +511,7 @@ watch(
       destroyDragSort();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听表格数据变化，重新初始化拖拽排序（因为 DOM 可能被重新渲染）
@@ -425,18 +524,240 @@ watch(
         initDragSort();
       });
     }
+    nextTick(() => {
+      syncHorizontalOverflow();
+      syncHiddenInteractiveElements();
+    });
   },
-  { deep: false }
+  { deep: false },
+);
+
+const getBodyWrapper = () => {
+  return scTable.value?.$el?.querySelector(".el-table__body-wrapper");
+};
+
+const getBodyScrollContainer = () => {
+  const bodyWrapper = getBodyWrapper();
+  return bodyWrapper?.querySelector(".el-scrollbar__wrap") || bodyWrapper;
+};
+
+const getBodyTable = () => {
+  return (
+    getBodyScrollContainer()?.querySelector("table") ||
+    getBodyWrapper()?.querySelector("table")
+  );
+};
+
+const restoreHiddenInteractiveState = (element) => {
+  const originalTabIndex = element.getAttribute(
+    HIDDEN_INTERACTIVE_ORIGINAL_TABINDEX_ATTR,
+  );
+  const originalAriaHidden = element.getAttribute(
+    HIDDEN_INTERACTIVE_ORIGINAL_ARIA_HIDDEN_ATTR,
+  );
+
+  if (originalTabIndex === null) {
+    element.removeAttribute("tabindex");
+  } else {
+    element.setAttribute("tabindex", originalTabIndex);
+  }
+
+  if (originalAriaHidden === null) {
+    element.removeAttribute("aria-hidden");
+  } else {
+    element.setAttribute("aria-hidden", originalAriaHidden);
+  }
+
+  element.removeAttribute(HIDDEN_INTERACTIVE_ATTR);
+  element.removeAttribute(HIDDEN_INTERACTIVE_ORIGINAL_TABINDEX_ATTR);
+  element.removeAttribute(HIDDEN_INTERACTIVE_ORIGINAL_ARIA_HIDDEN_ATTR);
+};
+
+const syncHiddenInteractiveElements = () => {
+  if (hiddenInteractiveSyncFrame) {
+    cancelAnimationFrame(hiddenInteractiveSyncFrame);
+  }
+
+  hiddenInteractiveSyncFrame = requestAnimationFrame(() => {
+    const tableEl = scTable.value?.$el;
+    if (!tableEl) {
+      return;
+    }
+
+    tableEl.querySelectorAll(HIDDEN_INTERACTIVE_SELECTOR).forEach((element) => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      const isHidden =
+        style.visibility === "hidden" ||
+        style.display === "none" ||
+        rect.width === 0 ||
+        rect.height === 0 ||
+        !!element.closest(".hidden-columns");
+
+      if (isHidden) {
+        if (!element.hasAttribute(HIDDEN_INTERACTIVE_ATTR)) {
+          const currentTabIndex = element.getAttribute("tabindex");
+          const currentAriaHidden = element.getAttribute("aria-hidden");
+          if (currentTabIndex !== null) {
+            element.setAttribute(
+              HIDDEN_INTERACTIVE_ORIGINAL_TABINDEX_ATTR,
+              currentTabIndex,
+            );
+          }
+          if (currentAriaHidden !== null) {
+            element.setAttribute(
+              HIDDEN_INTERACTIVE_ORIGINAL_ARIA_HIDDEN_ATTR,
+              currentAriaHidden,
+            );
+          }
+        }
+
+        element.setAttribute(HIDDEN_INTERACTIVE_ATTR, "true");
+        element.setAttribute("tabindex", "-1");
+        element.setAttribute("aria-hidden", "true");
+        return;
+      }
+
+      if (element.hasAttribute(HIDDEN_INTERACTIVE_ATTR)) {
+        restoreHiddenInteractiveState(element);
+      }
+    });
+  });
+};
+
+const syncHorizontalOverflow = () => {
+  if (overflowSyncFrame) {
+    cancelAnimationFrame(overflowSyncFrame);
+  }
+
+  overflowSyncFrame = requestAnimationFrame(() => {
+    const scrollContainer = getBodyScrollContainer();
+    if (!scrollContainer) {
+      hasHorizontalOverflow.value = false;
+      return;
+    }
+
+    const bodyTable = getBodyTable();
+    const verticalScrollbarWidth = Math.max(
+      scrollContainer.offsetWidth - scrollContainer.clientWidth,
+      0,
+    );
+    const contentWidth = bodyTable?.scrollWidth || scrollContainer.scrollWidth;
+    const visibleWidth = scrollContainer.clientWidth + verticalScrollbarWidth;
+
+    hasHorizontalOverflow.value = contentWidth - visibleWidth > 1;
+  });
+};
+
+const syncTableHeaderOffset = () => {
+  requestAnimationFrame(() => {
+    const tableEl = scTable.value?.$el;
+    if (!tableEl) {
+      tableHeaderOffset.value = 0;
+      return;
+    }
+
+    const headerWrapper = tableEl.querySelector(".el-table__header-wrapper");
+    tableHeaderOffset.value = headerWrapper?.offsetHeight || 0;
+  });
+};
+
+const destroyOverflowObserver = () => {
+  if (overflowResizeObserver) {
+    overflowResizeObserver.disconnect();
+    overflowResizeObserver = null;
+  }
+};
+
+const destroyHiddenInteractiveObserver = () => {
+  if (hiddenInteractiveObserver) {
+    hiddenInteractiveObserver.disconnect();
+    hiddenInteractiveObserver = null;
+  }
+  if (hiddenInteractiveSyncFrame) {
+    cancelAnimationFrame(hiddenInteractiveSyncFrame);
+    hiddenInteractiveSyncFrame = 0;
+  }
+};
+
+const initOverflowObserver = () => {
+  destroyOverflowObserver();
+  syncHorizontalOverflow();
+
+  if (typeof ResizeObserver === "undefined") {
+    return;
+  }
+
+  const scrollContainer = getBodyScrollContainer();
+  if (!scrollContainer) {
+    return;
+  }
+
+  overflowResizeObserver = new ResizeObserver(() => {
+    syncHorizontalOverflow();
+  });
+  overflowResizeObserver.observe(scrollContainer);
+
+  const bodyTable = getBodyTable();
+  if (bodyTable) {
+    overflowResizeObserver.observe(bodyTable);
+  }
+
+  if (tableContainerRef.value) {
+    overflowResizeObserver.observe(tableContainerRef.value);
+  }
+};
+
+const initHiddenInteractiveObserver = () => {
+  destroyHiddenInteractiveObserver();
+  syncHiddenInteractiveElements();
+
+  if (typeof MutationObserver === "undefined") {
+    return;
+  }
+
+  const tableEl = scTable.value?.$el;
+  if (!tableEl) {
+    return;
+  }
+
+  hiddenInteractiveObserver = new MutationObserver(() => {
+    syncHiddenInteractiveElements();
+  });
+
+  hiddenInteractiveObserver.observe(tableEl, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["style", "class", "aria-hidden", "tabindex"],
+  });
+};
+
+watch(
+  () => [props.userColumn?.length, props.loading],
+  () => {
+    nextTick(() => {
+      syncTableHeaderOffset();
+      initOverflowObserver();
+      initHiddenInteractiveObserver();
+    });
+  },
+  { immediate: true },
 );
 
 onMounted(() => {
   if (props.draggable) {
     initDragSort();
   }
+  nextTick(() => {
+    syncTableHeaderOffset();
+    initOverflowObserver();
+    initHiddenInteractiveObserver();
+  });
 });
 
 // 处理表格右键菜单
-const handleTableContextMenu = event => {
+const handleTableContextMenu = (event) => {
   if (!props.contextmenu || !scTable.value) return;
 
   const tableEl = scTable.value.$el;
@@ -477,28 +798,35 @@ const handleTableContextMenu = event => {
 };
 
 // 处理菜单动作
-const handleMenuAction = action => {
+const handleMenuAction = (action) => {
   // 如果需要，可以在这里处理菜单动作
   logger.info("菜单动作: {}", action);
 };
 
 onBeforeUnmount(() => {
   destroyDragSort();
+  destroyOverflowObserver();
+  destroyHiddenInteractiveObserver();
+  if (overflowSyncFrame) {
+    cancelAnimationFrame(overflowSyncFrame);
+  }
 });
 
 // Expose el-table methods
 const clearSelection = () => scTable.value?.clearSelection();
-const toggleRowSelection = (row, selected) => scTable.value?.toggleRowSelection(row, selected);
+const toggleRowSelection = (row, selected) =>
+  scTable.value?.toggleRowSelection(row, selected);
 const toggleAllSelection = () => scTable.value?.toggleAllSelection();
-const toggleRowExpansion = (row, expanded) => scTable.value?.toggleRowExpansion(row, expanded);
-const setCurrentRow = row => scTable.value?.setCurrentRow(row);
+const toggleRowExpansion = (row, expanded) =>
+  scTable.value?.toggleRowExpansion(row, expanded);
+const setCurrentRow = (row) => scTable.value?.setCurrentRow(row);
 const clearSort = () => scTable.value?.clearSort();
-const clearFilter = columnKeys => scTable.value?.clearFilter(columnKeys);
+const clearFilter = (columnKeys) => scTable.value?.clearFilter(columnKeys);
 const doLayout = () => scTable.value?.doLayout();
 const sort = (prop, order) => scTable.value?.sort(prop, order);
-const scrollTo = options => scTable.value?.scrollTo(options);
-const setScrollTop = top => scTable.value?.setScrollTop(top);
-const setScrollLeft = left => scTable.value?.setScrollLeft(left);
+const scrollTo = (options) => scTable.value?.scrollTo(options);
+const setScrollTop = (top) => scTable.value?.setScrollTop(top);
+const setScrollLeft = (left) => scTable.value?.setScrollLeft(left);
 
 defineExpose({
   scTable,
@@ -513,21 +841,31 @@ defineExpose({
   sort,
   scrollTo,
   setScrollTop,
-  setScrollLeft
+  setScrollLeft,
 });
 </script>
 
 <style lang="scss" scoped>
 .table-container {
+  position: relative;
+  --sc-table-header-offset: 0px;
   width: 100%;
   height: 100%;
   max-width: 100%; /* 限制容器最大宽度 */
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
-  overflow-x: auto; /* 允许横向滚动 */
+  min-width: 0;
+  overflow: hidden;
 
   :deep(.el-table) {
     width: 100% !important;
     max-width: 100% !important; /* 限制表格最大宽度 */
+    min-width: 0;
+  }
+
+  :deep(.el-table .el-loading-mask) {
+    top: var(--sc-table-header-offset);
+    height: calc(100% - var(--sc-table-header-offset));
+    border-top: 1px solid var(--el-border-color-lighter);
   }
 
   // 主题变体混合宏
@@ -585,6 +923,23 @@ defineExpose({
   &.theme--info {
     @include theme-variant("info");
   }
+}
+
+.table-container :deep(.el-table__body-wrapper) {
+  overflow-x: hidden !important;
+}
+
+.table-container :deep(.el-table__body-wrapper .el-scrollbar__wrap) {
+  overflow-x: hidden !important;
+}
+
+.table-container :deep([data-sc-hidden-interactive="true"]) {
+  pointer-events: none !important;
+}
+
+.table-container.has-horizontal-overflow
+  :deep(.el-table__body-wrapper .el-scrollbar__wrap) {
+  overflow-x: auto !important;
 }
 
 .scroll-wrapper {
@@ -653,7 +1008,10 @@ defineExpose({
   /* 行高亮 */
   :deep(.el-table__body-wrapper) {
     .cross-highlight-row {
-      background: var(--cross-highlight-color, var(--stitch-lay-bg-hover)) !important;
+      background: var(
+        --cross-highlight-color,
+        var(--stitch-lay-bg-hover)
+      ) !important;
       position: relative;
     }
 
@@ -679,12 +1037,18 @@ defineExpose({
 
     /* 行内单元格 */
     .cross-highlight-row-cell {
-      background: var(--cross-highlight-color, var(--stitch-lay-bg-hover)) !important;
+      background: var(
+        --cross-highlight-color,
+        var(--stitch-lay-bg-hover)
+      ) !important;
     }
 
     /* 列高亮单元格 */
     .cross-highlight-col-cell {
-      background: var(--cross-highlight-color, var(--stitch-lay-bg-hover)) !important;
+      background: var(
+        --cross-highlight-color,
+        var(--stitch-lay-bg-hover)
+      ) !important;
       position: relative;
     }
 
@@ -710,8 +1074,12 @@ defineExpose({
 
     /* 交叉点 */
     .cross-highlight-intersection {
-      background: var(--cross-intersection-color, var(--stitch-lay-primary-alpha)) !important;
-      box-shadow: inset 0 0 0 var(--cross-border-width, 3px) var(--cross-border-color, var(--stitch-lay-primary));
+      background: var(
+        --cross-intersection-color,
+        var(--stitch-lay-primary-alpha)
+      ) !important;
+      box-shadow: inset 0 0 0 var(--cross-border-width, 3px)
+        var(--cross-border-color, var(--stitch-lay-primary));
       position: relative;
       z-index: 3;
     }
@@ -727,22 +1095,35 @@ defineExpose({
   :deep(.el-table__fixed),
   :deep(.el-table__fixed-right) {
     .cross-highlight-row {
-      background: var(--cross-highlight-color, var(--stitch-lay-bg-hover)) !important;
+      background: var(
+        --cross-highlight-color,
+        var(--stitch-lay-bg-hover)
+      ) !important;
       position: relative;
     }
 
     .cross-highlight-row-cell {
-      background: var(--cross-highlight-color, var(--stitch-lay-bg-hover)) !important;
+      background: var(
+        --cross-highlight-color,
+        var(--stitch-lay-bg-hover)
+      ) !important;
     }
 
     .cross-highlight-col-cell {
-      background: var(--cross-highlight-color, var(--stitch-lay-bg-hover)) !important;
+      background: var(
+        --cross-highlight-color,
+        var(--stitch-lay-bg-hover)
+      ) !important;
       position: relative;
     }
 
     .cross-highlight-intersection {
-      background: var(--cross-intersection-color, var(--stitch-lay-primary-alpha)) !important;
-      box-shadow: inset 0 0 0 var(--cross-border-width, 3px) var(--cross-border-color, var(--stitch-lay-primary));
+      background: var(
+        --cross-intersection-color,
+        var(--stitch-lay-primary-alpha)
+      ) !important;
+      box-shadow: inset 0 0 0 var(--cross-border-width, 3px)
+        var(--cross-border-color, var(--stitch-lay-primary));
       position: relative;
       z-index: 3;
     }

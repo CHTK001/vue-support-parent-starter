@@ -39,6 +39,33 @@ const DEFAULT_SYSTEM_SETTING = {
 };
 const CONFIG_GROUP_PREFIX = "config:";
 
+const normalizeSettingPayload = async (data: any) => {
+  if (data instanceof Blob) {
+    try {
+      const text = await data.text();
+      const parsed = text ? JSON.parse(text) : [];
+      return parsed?.data?.data ?? parsed?.data ?? parsed ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  }
+
+  if (
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    Object.keys(data).length === 0
+  ) {
+    return [];
+  }
+
+  return Array.isArray(data) ? data : [];
+};
+
 type ConfigVersionChangeEventDetail = {
   version?: string;
 };
@@ -174,7 +201,6 @@ export const useConfigStore = defineStore({
         return;
       }
       this.version = version;
-      console.log("版本升级: " + version);
       setTimeout(() => {
         this.reset();
         localStorageProxy().setItem(this.storageVersionKey, this.version);
@@ -225,6 +251,7 @@ export const useConfigStore = defineStore({
               const response = await fetchSetting(this.settingGroup);
               const data = response?.data; // 提取data字段
               if (!data) {
+                await this.doRegister([]);
                 this.isLoaded = true;
                 this.isLoading = false;
                 resolve(null);
@@ -233,27 +260,8 @@ export const useConfigStore = defineStore({
               localStorageProxy().setItem(this.storageKey, data);
               await this.doRegister(data);
               this.isLoaded = true;
-            } catch (error) {
-              // 兼容接口异常返回 Blob/text/plain 的情况，避免控制台只看到 Blob 对象
-              const err: any = error as any;
-              const blobLike = err instanceof Blob ? err : err?.response?.data;
-              if (blobLike instanceof Blob) {
-                blobLike
-                  .text()
-                  .then((text: string) => {
-                    console.warn(
-                      "Failed to fetch remote settings (blob):",
-                      text || "[empty]",
-                    );
-                  })
-                  .catch(() => {
-                    console.warn(
-                      "Failed to fetch remote settings (empty blob).",
-                    );
-                  });
-              } else {
-                console.warn("Failed to fetch remote settings:", error);
-              }
+            } catch {
+              await this.doRegister([]);
               // 标记已尝试加载，避免后续反复进入远程加载逻辑
               this.isLoaded = true;
             } finally {
@@ -269,42 +277,14 @@ export const useConfigStore = defineStore({
           this.isLoading = false;
           resolve(null);
         });
-      } catch (error) {
-        console.error("Failed to load config:", error);
+      } catch {
         this.isLoading = false;
-        throw error;
+        await this.doRegister([]);
+        this.isLoaded = true;
       }
     },
     async doRegister(data) {
-      if (data instanceof Blob) {
-        try {
-          const text = await data.text();
-          const parsed = text ? JSON.parse(text) : [];
-          data = parsed?.data?.data ?? parsed?.data ?? parsed;
-        } catch (error) {
-          console.warn("ConfigStore.doRegister: failed to parse blob data", error);
-          return;
-        }
-      }
-
-      if (data?.data && Array.isArray(data.data)) {
-        data = data.data;
-      }
-
-      if (
-        data &&
-        typeof data === "object" &&
-        !Array.isArray(data) &&
-        Object.keys(data).length === 0
-      ) {
-        return;
-      }
-
-      // 确保data是数组格式
-      if (data && !Array.isArray(data)) {
-        console.error("ConfigStore.doRegister: data is not an array", data);
-        return;
-      }
+      data = await normalizeSettingPayload(data);
 
       const loadedNames = new Set<string>();
       data?.forEach((element) => {
@@ -334,12 +314,6 @@ export const useConfigStore = defineStore({
           this.systemSetting[key] = element.sysSettingVersion;
         } else {
           this.systemSetting[key] = element.sysSettingValue;
-        }
-        // 添加日志便于调试，特别是主题相关配置
-        if (element.sysSettingGroup === "theme") {
-          console.debug(
-            `[ConfigStore] Theme setting loaded: ${element.sysSettingName} = ${element.sysSettingValue}`,
-          );
         }
       });
       const frontendSystemConfig = getFrontendSystemConfig(getInitialConfig());

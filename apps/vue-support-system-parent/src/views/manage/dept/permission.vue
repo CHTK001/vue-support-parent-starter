@@ -6,6 +6,7 @@ import type { FormRules } from "element-plus";
 import { reactive, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { PermissionList } from "./hook";
+import { ScCascader } from "@repo/components/ScCascader";
 
 type DeptPermissionForm = {
   sysDeptId?: string | number;

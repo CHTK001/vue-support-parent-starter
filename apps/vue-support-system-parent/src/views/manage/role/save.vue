@@ -15,6 +15,10 @@ export default defineComponent({
         sysRoleSort: 0,
         sysRoleStatus: 1,
         sysRoleRemark: "",
+        sysRoleReadable: 0x0000_0001,
+        sysRoleWriteable: 0x0000_0010,
+        sysRoleExecutable: 0x0000_0100,
+        sysRoleBoardCard: 1,
       },
       visible: false,
       rules: {
@@ -39,7 +43,18 @@ export default defineComponent({
       });
     },
     setData(data) {
-      this.form = data;
+      this.form = {
+        sysRoleName: "",
+        sysRoleCode: "",
+        sysRoleSort: 0,
+        sysRoleStatus: 1,
+        sysRoleRemark: "",
+        sysRoleReadable: 0x0000_0001,
+        sysRoleWriteable: 0x0000_0010,
+        sysRoleExecutable: 0x0000_0100,
+        sysRoleBoardCard: 1,
+        ...data,
+      };
       return this;
     },
     async open(mode = "save") {
@@ -48,30 +63,42 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
       if (mode == "save") {
         this.form.sysRoleSort = 0;
-        this.form.sysRoleReableable = 0x0000_0001;
+        this.form.sysRoleStatus = 1;
+        this.form.sysRoleReadable = 0x0000_0001;
         this.form.sysRoleWriteable = 0x0000_0010;
         this.form.sysRoleExecutable = 0x0000_0100;
+        this.form.sysRoleBoardCard = 1;
       }
     },
-    submit() {
-      this.$refs.dialogForm.validate(async (valid) => {
-        if (valid) {
-          this.loading = true;
-          var res: any = {};
-          if (this.mode === "save") {
-            res = await fetchSaveRole(this.form);
-          } else if (this.mode === "edit") {
-            res = await fetchUpdateRole(this.form);
-          }
-          if (res.code == "00000") {
-            this.$emit("success");
-            this.visible = false;
-          } else {
-            message(res.msg, { type: "error" });
-          }
+    async submit() {
+      let valid = false;
+      try {
+        valid = await this.$refs.dialogForm?.validate();
+      } catch (error) {
+        valid = false;
+      }
+
+      if (!valid) {
+        return;
+      }
+
+      this.loading = true;
+      try {
+        let res: any = {};
+        if (this.mode === "save") {
+          res = await fetchSaveRole(this.form);
+        } else if (this.mode === "edit") {
+          res = await fetchUpdateRole(this.form);
         }
+        if (res.code == "00000") {
+          this.$emit("success");
+          this.visible = false;
+        } else {
+          message(res.msg, { type: "error" });
+        }
+      } finally {
         this.loading = false;
-      });
+      }
     },
   },
 });

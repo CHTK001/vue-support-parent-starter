@@ -1,12 +1,8 @@
 ﻿<script>
-import EyeClose from "@iconify-icons/ri/eye-close-line";
-import {  useRenderIcon  } from "@repo/components/ReIcon";
 import scStatusIndicator from "@repo/components/ScMini/scStatusIndicator.vue";
 import { defineComponent } from "vue";
-import VueJsonPretty from "vue-json-pretty";
-import "vue-json-pretty/lib/styles.css";
 export default defineComponent({
-  components: { scStatusIndicator, VueJsonPretty },
+  components: { scStatusIndicator },
   props: {
     moduleOptions: {
       type: Array,
@@ -15,18 +11,14 @@ export default defineComponent({
   },
   data() {
     return {
-      icon: { EyeClose: null },
       visible: false,
       row: {},
-      clickEye: false,
+      activeNames: ["2"],
     };
-  },
-  mounted() {
-    this.icon.EyeClose = useRenderIcon(EyeClose);
   },
   methods: {
     setData(row) {
-      Object.assign(this.row, row);
+      this.row = { ...(row || {}) };
       return this;
     },
     open(node) {
@@ -44,6 +36,20 @@ export default defineComponent({
         return value;
       }
     },
+    formatJsonText(value) {
+      if (value === null || value === undefined || value === "") {
+        return "";
+      }
+      const jsonValue = this.toJsonObject(value);
+      if (typeof jsonValue === "string") {
+        return jsonValue;
+      }
+      try {
+        return JSON.stringify(jsonValue, null, 2);
+      } catch (error) {
+        return String(value);
+      }
+    },
     transform(value) {
       value = String(value || "").toUpperCase();
       const _value = this.moduleOptions.filter((item) => {
@@ -51,7 +57,7 @@ export default defineComponent({
           return item.label;
         }
       });
-      return _value || _value.length > 0 ? _value?.[0]?.label : transformI18n("module.other");
+      return _value && _value.length > 0 ? _value?.[0]?.label : "其他";
     },
   },
 });
@@ -70,9 +76,6 @@ export default defineComponent({
           </el-descriptions-item>
           <el-descriptions-item label="客户端地址">
             <span>{{ row.sysLogIp }}</span>
-            <ScIcon v-if="!clickEye && !row.sysLogAddress" class="cursor-pointer" style="z-index: 999999">
-              <component :is="EyeClose" />
-            </ScIcon>
           </el-descriptions-item>
           <el-descriptions-item v-if="row.sysLogAddress" label="客户端地址位置">
             <ScTag>{{ row.sysLogAddress }}</ScTag>
@@ -105,7 +108,7 @@ export default defineComponent({
               :closable="false"
               class="comment"
             /> -->
-            <VueJsonPretty :data="toJsonObject(row.sysLogParam)" />
+            <pre class="json-pretty">{{ formatJsonText(row.sysLogParam) }}</pre>
           </el-collapse-item>
           <!-- <el-collapse-item
             v-if="logWatch && logWatch != 'undefined'"
@@ -119,3 +122,17 @@ export default defineComponent({
     </sc-drawer>
   </div>
 </template>
+<style scoped>
+.json-pretty {
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  background: var(--el-fill-color-lighter, #f8fafc);
+  border-radius: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>

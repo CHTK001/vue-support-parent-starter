@@ -38,6 +38,7 @@
   // --el-border-color: #E4E4E7 !important; // DCDFE6
   // 按钮粗度
   --el-font-weight-primary: 400 !important;
+  --el-dialog-margin-top: 2vh;
 
   // 边框、按钮圆角...
   --el-border-radius-base: calc(var(--custom-radius) / 2 + 2px) !important;
@@ -53,6 +54,11 @@
 ::before,
 ::after {
   border-color: inherit;
+}
+.no-value{
+  color: rgba(156, 163, 175, var(--tw-text-opacity, 1)) !important;
+  font-size: 0.75rem;
+  line-height: 1rem;
 }
 .font-bold {
   font-weight: bold;
@@ -152,7 +158,7 @@ translate-x-50\% {
   );
   width: 100% !important; /* 强制宽度为 100% */
   max-width: 100% !important; /* 限制最大宽度 */
-  background: var(--el-bg-color-page);
+  background: var(--el-bg-color);
   padding: 8px;
   border: 1px solid var(--layout-panel-border);
   color: var(--el-text-color-primary);
@@ -166,6 +172,7 @@ translate-x-50\% {
   position: relative;
   min-height: 0;
   isolation: isolate;
+  flex: 1;
   box-shadow: var(--layout-panel-shadow);
   box-sizing: border-box; /* 确保宽度计算包含边框和内边距 */
 
@@ -835,6 +842,44 @@ section.panel-padding > aside {
 // 去除 el-dropdown 鼠标放上去出现的边框
 .el-tooltip__trigger:focus-visible {
   outline: unset;
+}
+
+.el-table {
+  --sc-table-fixed-bg: var(--el-bg-color);
+  --sc-table-fixed-header-bg: var(--el-fill-color-light);
+
+  th.el-table-fixed-column--left,
+  th.el-table-fixed-column--right {
+    background: var(--sc-table-fixed-header-bg) !important;
+  }
+
+  td.el-table-fixed-column--left,
+  td.el-table-fixed-column--right,
+  .el-table__fixed-right-patch {
+    background: var(--sc-table-fixed-bg) !important;
+    background-clip: padding-box;
+  }
+
+  .el-table__body tr:nth-child(even) > td.el-table-fixed-column--left,
+  .el-table__body tr:nth-child(even) > td.el-table-fixed-column--right {
+    background: var(--el-fill-color-lighter) !important;
+  }
+
+  .el-table__body tr:hover > td.el-table-fixed-column--left,
+  .el-table__body tr:hover > td.el-table-fixed-column--right {
+    background: var(--el-fill-color-light) !important;
+  }
+
+  td.el-table-fixed-column--left::before,
+  td.el-table-fixed-column--right::before,
+  th.el-table-fixed-column--left::before,
+  th.el-table-fixed-column--right::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.02);
+  }
 }
 
 // ipad 表单右侧按钮优化

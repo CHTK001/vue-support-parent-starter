@@ -6,6 +6,8 @@
  * @since 2024-12-25
  */
 
+import { sm2 } from "sm-crypto";
+
 /**
  * Socket消息数据结构
  * 后端发送的数据格式
@@ -16,6 +18,134 @@ export interface SocketMessageWrapper {
   timestamp: string;
   uuid?: string;
   dataId?: string | number;
+  requestId?: string | number;
+}
+
+type SocketComparableField = "dataId" | "requestId";
+
+const SOCKET_ENCRYPTED_PREFIX = "02";
+const SOCKET_STATUS_SEGMENT_LENGTH = 3;
+const SOCKET_SUFFIX_LENGTH = 4;
+
+function tryParseJson(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+const SOCKET_FIELD_ALIASES: Record<SocketComparableField, string[]> = {
+  dataId: ["dataId", "dataID", "data_id"],
+  requestId: ["requestId", "requestID", "request_id", "reqId"],
+};
+
+function readSocketComparableValue(
+  source: unknown,
+  field: SocketComparableField,
+): string | number | undefined {
+  if (!isRecord(source)) {
+    return undefined;
+  }
+
+  for (const key of SOCKET_FIELD_ALIASES[field]) {
+    const directValue = source[key];
+    if (typeof directValue === "string" || typeof directValue === "number") {
+      return directValue;
+    }
+  }
+
+  const nestedData = source.data;
+  if (isRecord(nestedData)) {
+    for (const key of SOCKET_FIELD_ALIASES[field]) {
+      const nestedValue = nestedData[key];
+      if (typeof nestedValue === "string" || typeof nestedValue === "number") {
+        return nestedValue;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function enrichParsedSocketPayload(
+  payload: unknown,
+  wrapper: SocketMessageWrapper,
+): unknown {
+  if (!isRecord(payload)) {
+    return payload;
+  }
+
+  const nextPayload = { ...payload };
+  const dataId =
+    readSocketComparableValue(nextPayload, "dataId") ?? wrapper.dataId;
+  const requestId =
+    readSocketComparableValue(nextPayload, "requestId") ?? wrapper.requestId;
+
+  if (dataId !== undefined && nextPayload.dataId === undefined) {
+    nextPayload.dataId = dataId;
+  }
+  if (requestId !== undefined && nextPayload.requestId === undefined) {
+    nextPayload.requestId = requestId;
+  }
+  if (wrapper.uuid !== undefined && nextPayload.uuid === undefined) {
+    nextPayload.uuid = wrapper.uuid;
+  }
+  if (wrapper.timestamp !== undefined && nextPayload.timestamp === undefined) {
+    nextPayload.timestamp = wrapper.timestamp;
+  }
+
+  return nextPayload;
+}
+
+function decodeEncryptedSocketMessage(wrapper: SocketMessageWrapper): unknown {
+  if (typeof wrapper.data !== "string") {
+    return wrapper;
+  }
+
+  const payload = wrapper.data;
+  if (!payload.startsWith(SOCKET_ENCRYPTED_PREFIX)) {
+    return tryParseJson(payload);
+  }
+
+  const keyLength = Number.parseInt(String(wrapper.timestamp || ""), 10);
+  const minPayloadLength =
+    SOCKET_ENCRYPTED_PREFIX.length +
+    keyLength +
+    SOCKET_STATUS_SEGMENT_LENGTH +
+    SOCKET_SUFFIX_LENGTH;
+  if (
+    !Number.isFinite(keyLength) ||
+    keyLength <= 0 ||
+    payload.length < minPayloadLength
+  ) {
+    return wrapper;
+  }
+
+  const transportKey = payload.substring(
+    SOCKET_ENCRYPTED_PREFIX.length,
+    SOCKET_ENCRYPTED_PREFIX.length + keyLength,
+  );
+  const encryptedSegment = payload.substring(
+    SOCKET_ENCRYPTED_PREFIX.length + keyLength + SOCKET_STATUS_SEGMENT_LENGTH,
+    payload.length - SOCKET_SUFFIX_LENGTH,
+  );
+  const cipherText =
+    encryptedSegment.length > 2
+      ? encryptedSegment.substring(2)
+      : encryptedSegment;
+
+  try {
+    const plainText = sm2.doDecrypt(cipherText, transportKey, 0);
+    return tryParseJson(plainText);
+  } catch (error) {
+    console.warn("[SocketUtils] 解密 Socket 消息失败:", error);
+    return wrapper;
+  }
 }
 
 const SOCKET_WILDCARD_HOSTS = new Set(["0.0.0.0", "::", "[::]"]);
@@ -48,9 +178,7 @@ export function normalizeSocketUrl(
     typeof window !== "undefined" ? window.location.origin : undefined;
 
   try {
-    const url = baseOrigin
-      ? new URL(urlText, baseOrigin)
-      : new URL(urlText);
+    const url = baseOrigin ? new URL(urlText, baseOrigin) : new URL(urlText);
     if (!SOCKET_WILDCARD_HOSTS.has(url.hostname)) {
       return url.toString();
     }
@@ -91,27 +219,34 @@ export function parseSocketMessage(rawData: unknown): unknown {
     }
 
     // 如果是字符串，先解析为对象
-    const wrapper: SocketMessageWrapper =
+    const wrapper: SocketMessageWrapper | string =
       typeof rawData === "string"
-        ? JSON.parse(rawData)
+        ? (() => {
+            try {
+              return JSON.parse(rawData) as SocketMessageWrapper;
+            } catch {
+              return rawData;
+            }
+          })()
         : (rawData as SocketMessageWrapper);
+
+    if (typeof wrapper === "string") {
+      return wrapper;
+    }
 
     // 检查是否为新格式（包含 encrypted 字段）
     if (wrapper && typeof wrapper.encrypted === "boolean") {
       if (wrapper.encrypted) {
-        // 加密数据，暂时返回原始数据（需要解密逻辑）
-        console.warn("[SocketUtils] 收到加密数据，暂不支持前端解密");
-        return wrapper;
+        return enrichParsedSocketPayload(
+          decodeEncryptedSocketMessage(wrapper),
+          wrapper,
+        );
       } else {
         // 非加密数据，解析 data 字段
         if (typeof wrapper.data === "string") {
-          try {
-            return JSON.parse(wrapper.data);
-          } catch {
-            return wrapper.data;
-          }
+          return enrichParsedSocketPayload(tryParseJson(wrapper.data), wrapper);
         }
-        return wrapper.data;
+        return enrichParsedSocketPayload(wrapper.data, wrapper);
       }
     }
 
@@ -121,6 +256,39 @@ export function parseSocketMessage(rawData: unknown): unknown {
     console.error("[SocketUtils] 解析Socket消息失败:", error);
     return rawData;
   }
+}
+
+export function matchesSocketListenOptions(
+  parsedData: unknown,
+  options?: {
+    dataId?: string | number;
+    requestId?: string | number;
+  },
+  rawData?: unknown,
+): boolean {
+  if (!options) {
+    return true;
+  }
+
+  if (options.dataId !== undefined) {
+    const dataId =
+      readSocketComparableValue(parsedData, "dataId") ??
+      readSocketComparableValue(rawData, "dataId");
+    if (String(dataId) !== String(options.dataId)) {
+      return false;
+    }
+  }
+
+  if (options.requestId !== undefined) {
+    const requestId =
+      readSocketComparableValue(parsedData, "requestId") ??
+      readSocketComparableValue(rawData, "requestId");
+    if (String(requestId) !== String(options.requestId)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**

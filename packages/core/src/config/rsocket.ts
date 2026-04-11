@@ -11,13 +11,13 @@ import { getToken } from "../utils/auth";
 import { inject, provide, ref, type InjectionKey } from "vue";
 import {
   createSocketTemplateKey,
-  type ProtocolType,
   type SocketTemplateListenOptions,
   type SocketTemplate,
   type WsMessage,
   SocketTemplateKey,
 } from "./socketTemplate";
 import { parseSocketMessage } from "./socket";
+import { matchesSocketListenOptions, toWebSocketUrl } from "./socketUtils";
 
 /**
  * RSocket 连接配置
@@ -48,11 +48,6 @@ export interface RSocketConfig {
    */
   metadataMimeType?: string;
 }
-
-/**
- * RSocket 事件监听器Map
- */
-const eventListeners = new Map<string, Set<(data: unknown) => void>>();
 
 /**
  * RSocket 服务接口
@@ -179,11 +174,8 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
 
     // 包装回调以支持 dataId 过滤
     const wrappedCallback = (data: unknown) => {
-      if (options?.dataId !== undefined) {
-        const messageDataId = (data as Record<string, unknown>)?.dataId;
-        if (String(messageDataId) !== String(options.dataId)) {
-          return;
-        }
+      if (!matchesSocketListenOptions(data, options)) {
+        return;
       }
       callback(data);
     };
@@ -225,7 +217,11 @@ export function createRSocketService(config: RSocketConfig): RSocketService {
 
   const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
 
-  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+  const subscribe = (
+    module: string,
+    event: string,
+    handler: (msg: WsMessage) => void,
+  ): (() => void) => {
     const key = `${module}_${event}`;
     if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
     subscribeHandlers.get(key)!.add(handler);

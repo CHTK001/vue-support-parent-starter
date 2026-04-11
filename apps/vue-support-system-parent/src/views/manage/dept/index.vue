@@ -5,8 +5,6 @@ import {
   fetchListDept,
   fetchUpdateDept,
 } from "@/api/manage/dept";
-// 导入防抖工具函数
-import { debounce } from "@pureadmin/utils";
 // 导入时间处理工具函数
 import { getTimeAgo } from "@repo/utils";
 // 导入渲染图标的钩子函数
@@ -18,13 +16,18 @@ import { router } from "@repo/core";
 import { Base64 } from "js-base64";
 // 导入Vue的响应式和生命周期相关API
 import {
+  computed,
   defineAsyncComponent,
   onMounted,
   reactive,
+  ref,
   shallowRef,
+  toRaw,
 } from "vue";
+import { message } from "@repo/utils";
 // 导入获取权限标签的钩子函数
 import { getPermissionLabel } from "./hook";
+import SystemStatsCards from "../components/SystemStatsCards.vue";
 
 // 异步加载保存部门信息的对话框组件
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
@@ -42,9 +45,9 @@ const env = reactive({
 // 统计数据
 const stats = reactive({
   total: 0,
-  topLevel: 0,
-  subLevel: 0,
   enabled: 0,
+  disabled: 0,
+  members: 0,
 });
 
 /**
@@ -52,27 +55,27 @@ const stats = reactive({
  */
 const calcStats = (data) => {
   let total = 0;
-  let topLevel = 0;
-  let subLevel = 0;
   let enabled = 0;
+  let disabled = 0;
+  let members = 0;
 
-  const countDepts = (items, isTop = true) => {
+  const countDepts = (items) => {
     items.forEach((item) => {
       total++;
-      if (isTop) topLevel++;
-      else subLevel++;
       if (item.sysDeptStatus === 0) enabled++;
+      else disabled++;
+      members += Number(item.memberCount || 0);
       if (item.children?.length) {
-        countDepts(item.children, false);
+        countDepts(item.children);
       }
     });
   };
 
   countDepts(data);
   stats.total = total;
-  stats.topLevel = topLevel;
-  stats.subLevel = subLevel;
   stats.enabled = enabled;
+  stats.disabled = disabled;
+  stats.members = members;
 };
 
 // 浅引用，用于存储表格数据
@@ -81,13 +84,34 @@ const tableData = shallowRef([]);
 const permissionDialogRef = shallowRef(null);
 // 浅引用，用于存储保存对话框的引用
 const saveDialogRef = shallowRef(null);
+const deptNameInputRef = ref(null);
 // 响应式对象，用于存储搜索表单的数据
 const form = reactive({
   sysDeptName: null,
+  sysDeptStatus: null,
 });
 
 const formatTimeAgo = (value) => {
   return value ? getTimeAgo(value) : "-";
+};
+
+const syncDeptKeyword = (value) => {
+  form.sysDeptName = value?.trim?.() || "";
+  return form.sysDeptName;
+};
+
+const syncDeptKeywordFromInput = () => {
+  const inputElement = deptNameInputRef.value?.$el?.querySelector?.("input");
+  return inputElement
+    ? syncDeptKeyword(inputElement.value)
+    : syncDeptKeyword(form.sysDeptName);
+};
+
+const cloneDialogPayload = (value) => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  return JSON.parse(JSON.stringify(toRaw(value)));
 };
 
 /**
@@ -106,11 +130,64 @@ const loadData = async () => {
     calcStats(res.data);
   } catch (error) {
     // 处理请求错误
-    console.error("获取部门列表数据失败:", error);
+    message("获取部门列表数据失败", { type: "error" });
   } finally {
     // 无论请求成功还是失败，都将加载状态设置为false
     env.loading = false;
   }
+};
+
+const handleSearch = async () => {
+  syncDeptKeywordFromInput();
+  loadData();
+};
+
+const statsCards = computed(() => [
+  {
+    key: "total",
+    label: "全部部门",
+    value: stats.total,
+    icon: "ri:building-line",
+    theme: "primary",
+    active: form.sysDeptStatus === null || form.sysDeptStatus === undefined,
+  },
+  {
+    key: "enabled",
+    label: "已启用",
+    value: stats.enabled,
+    icon: "ri:checkbox-circle-line",
+    theme: "success",
+    active: form.sysDeptStatus === 0,
+  },
+  {
+    key: "disabled",
+    label: "已禁用",
+    value: stats.disabled,
+    icon: "ri:close-circle-line",
+    theme: "warning",
+    active: form.sysDeptStatus === 1,
+  },
+  {
+    key: "members",
+    label: "部门人数",
+    value: stats.members,
+    icon: "ri:team-line",
+    theme: "info",
+    clickable: false,
+  },
+]);
+
+const handleStatsSelect = async (item) => {
+  if (!item?.key) {
+    return;
+  }
+  form.sysDeptStatus = null;
+  if (item.key === "enabled") {
+    form.sysDeptStatus = 0;
+  } else if (item.key === "disabled") {
+    form.sysDeptStatus = 1;
+  }
+  await loadData();
 };
 
 /**
@@ -119,8 +196,29 @@ const loadData = async () => {
  * @param {string} mode - 编辑模式，如 'save' 或 'edit'
  */
 const handleEdit = async (row, mode) => {
-  // 调用保存对话框的方法设置数据、表格数据并打开对话框
-  saveDialogRef.value.setData(row).setTableData(tableData.value).open(mode);
+  const dialog = saveDialogRef.value;
+  if (!dialog) {
+    return;
+  }
+
+  dialog.setTableData(cloneDialogPayload(tableData.value));
+  dialog.setData(cloneDialogPayload(row));
+  dialog.open(mode);
+};
+
+const handleCreate = async () => {
+  handleEdit({}, "save");
+};
+
+const handleCreateChild = (row) => {
+  handleEdit(
+    {
+      sysDeptPid: row?.sysDeptId ?? "",
+      parentDeptId: row?.sysDeptId ?? "",
+      parentDeptName: row?.sysDeptName ?? "",
+    },
+    "save",
+  );
 };
 
 /**
@@ -135,7 +233,7 @@ const handleDelete = async (row) => {
     loadData();
   } catch (error) {
     // 处理删除请求错误
-    console.error("删除部门数据失败:", error);
+    message("删除部门数据失败", { type: "error" });
   }
 };
 
@@ -157,7 +255,7 @@ const handleOpenPermission = async (row) => {
 const handleSearchUser = async (row) => {
   // 跳转到用户页面，并将部门ID进行Base64编码后作为查询参数传递
   router.push({
-    name: "user",
+    path: "/manage/user",
     query: {
       data: Base64.encode(
         JSON.stringify({
@@ -204,7 +302,7 @@ const handleUpdate = async (row) => {
     loadData();
   } catch (error) {
     // 处理更新请求错误
-    console.error("更新部门数据失败:", error);
+    message("更新部门数据失败", { type: "error" });
   }
 };
 
@@ -222,44 +320,8 @@ onMounted(async () => {
     <ScSkeleton :loading="env.loading" animated>
       <template #default>
         <div class="dept-wrapper">
-          <!-- 统计面板 -->
-          <div class="dept-stats">
-            <div class="stat-item">
-              <div class="stat-icon total">
-                <IconifyIconOnline icon="ri:building-line" :size="28" />
-              </div>
-              <div class="stat-info">
-                <span class="stat-value">{{ stats.total }}</span>
-                <span class="stat-label">全部部门</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon top">
-                <IconifyIconOnline icon="ri:building-2-line" :size="28" />
-              </div>
-              <div class="stat-info">
-                <span class="stat-value">{{ stats.topLevel }}</span>
-                <span class="stat-label">一级部门</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon sub">
-                <IconifyIconOnline icon="ri:building-4-line" :size="28" />
-              </div>
-              <div class="stat-info">
-                <span class="stat-value">{{ stats.subLevel }}</span>
-                <span class="stat-label">子部门</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon enabled">
-                <IconifyIconOnline icon="ri:checkbox-circle-line" :size="28" />
-              </div>
-              <div class="stat-info">
-                <span class="stat-value">{{ stats.enabled }}</span>
-                <span class="stat-label">已启用</span>
-              </div>
-            </div>
+          <div class="stats-section">
+            <SystemStatsCards :items="statsCards" @select="handleStatsSelect" />
           </div>
           <!-- 页面头部 -->
           <ScHeader class="toolbar-section dept-header">
@@ -271,10 +333,13 @@ onMounted(async () => {
               >
                 <ScFormItem label="机构名称">
                   <ScInput
+                    ref="deptNameInputRef"
                     v-model="form.sysDeptName"
                     placeholder="机构名称"
                     clearable
                     class="!w-[180px]"
+                    @input="syncDeptKeyword"
+                    @change="syncDeptKeyword"
                   />
                 </ScFormItem>
               </ScForm>
@@ -284,17 +349,23 @@ onMounted(async () => {
                 <!-- 搜索按钮，点击后调用加载数据函数，并进行防抖处理 -->
                 <ScButton
                   type="primary"
+                  title="搜索机构"
+                  aria-label="搜索机构"
                   :icon="useRenderIcon('ri:search-line')"
-                  @click="debounce(loadData, 1000, true)"
+                  @click="handleSearch"
                 />
                 <ScButton
+                  title="刷新机构列表"
+                  aria-label="刷新机构列表"
                   :icon="useRenderIcon('ep:refresh')"
                   @click="loadData"
                 />
                 <!-- 新增部门按钮，点击后打开保存对话框 -->
                 <ScButton
+                  title="新增机构"
+                  aria-label="新增机构"
                   :icon="useRenderIcon('ep:plus')"
-                  @click="handleEdit({}, 'save')"
+                  @click="handleCreate"
                 />
               </div>
             </div>
@@ -343,7 +414,8 @@ onMounted(async () => {
                           type="info"
                           effect="light"
                           class="ml-2"
-                          >排序: {{ row.sysDeptSort }}</ScTag>
+                          >排序: {{ row.sysDeptSort }}</ScTag
+                        >
                       </div>
                       <div class="dept-code">{{ row.sysDeptCode }}</div>
                     </div>
@@ -377,6 +449,32 @@ onMounted(async () => {
                 min-width="120"
                 show-overflow-tooltip
               />
+              <ScTableColumn
+                label="部门人数"
+                prop="memberCount"
+                width="110"
+                align="center"
+              >
+                <template #default="{ row }">
+                  <ScTag type="primary" effect="light">
+                    {{ row.memberCount ?? 0 }}
+                  </ScTag>
+                </template>
+              </ScTableColumn>
+              <ScTableColumn
+                label="负责人"
+                prop="principalUserNames"
+                min-width="180"
+                show-overflow-tooltip
+              >
+                <template #default="{ row }">
+                  <span>{{
+                    row.principalUserNames?.length
+                      ? row.principalUserNames.join("、")
+                      : row.sysDeptPrincipal || "-"
+                  }}</span>
+                </template>
+              </ScTableColumn>
               <!-- 表格列，显示部门状态 -->
               <ScTableColumn
                 label="状态"
@@ -390,7 +488,6 @@ onMounted(async () => {
                     :active-value="0"
                     :inactive-value="1"
                     style="
-
                       --el-switch-on-color: #13ce66;
                       --el-switch-off-color: #ff4949;
                     "
@@ -401,14 +498,14 @@ onMounted(async () => {
               <!-- 表格列，显示部门创建时间 -->
               <ScTableColumn label="创建时间" prop="createTime" width="180">
                 <template #default="{ row }">
-                    <div class="time-cell">
-                      <span class="time-ago">{{
-                        formatTimeAgo(row.createTime)
-                      }}</span>
-                      <span class="time-exact">{{ row.createTime || "-" }}</span>
-                    </div>
-                  </template>
-                </ScTableColumn>
+                  <div class="time-cell">
+                    <span class="time-ago">{{
+                      formatTimeAgo(row.createTime)
+                    }}</span>
+                    <span class="time-exact">{{ row.createTime || "-" }}</span>
+                  </div>
+                </template>
+              </ScTableColumn>
               <!-- 表格列，显示部门备注 -->
               <ScTableColumn
                 label="备注"
@@ -435,6 +532,8 @@ onMounted(async () => {
                       <ScButton
                         type="primary"
                         link
+                        title="编辑部门"
+                        aria-label="编辑部门"
                         @click.stop="handleEdit(row, 'edit')"
                       >
                         <IconifyIconOnline icon="ri:edit-line" />
@@ -445,9 +544,9 @@ onMounted(async () => {
                       <ScButton
                         type="success"
                         link
-                        @click.stop="
-                          handleEdit({ sysDeptPid: row.sysDeptId }, 'save')
-                        "
+                        title="新增子部门"
+                        aria-label="新增子部门"
+                        @click.stop="handleCreateChild(row)"
                       >
                         <IconifyIconOnline icon="ri:add-line" />
                       </ScButton>
@@ -457,6 +556,8 @@ onMounted(async () => {
                       <ScButton
                         type="warning"
                         link
+                        title="查看部门用户"
+                        aria-label="查看部门用户"
                         @click.stop="handleSearchUser(row)"
                       >
                         <IconifyIconOnline icon="ri:user-line" />
@@ -467,6 +568,8 @@ onMounted(async () => {
                       <ScButton
                         type="info"
                         link
+                        title="设置数据权限"
+                        aria-label="设置数据权限"
                         @click.stop="handleOpenPermission(row)"
                       >
                         <IconifyIconOnline icon="ri:shield-user-line" />
@@ -478,11 +581,14 @@ onMounted(async () => {
                       @confirm="handleDelete(row)"
                     >
                       <template #reference>
-                        <ScTooltip content="删除" placement="top">
-                          <ScButton type="danger" link @click.stop>
-                            <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </ScButton>
-                        </ScTooltip>
+                        <ScButton
+                          type="danger"
+                          link
+                          title="删除"
+                          aria-label="删除"
+                        >
+                          <IconifyIconOnline icon="ri:delete-bin-line" />
+                        </ScButton>
                       </template>
                     </ScPopconfirm>
                   </div>
@@ -540,6 +646,12 @@ onMounted(async () => {
   &:hover {
     box-shadow: var(--el-box-shadow);
   }
+}
+
+.stats-section {
+  padding: 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 // 统计面板

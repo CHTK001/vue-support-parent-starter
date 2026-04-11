@@ -93,6 +93,12 @@ export interface PlatformConfigs {
   RemoteMenu?: boolean;
   /** 是否在远程菜单基础上合并本地菜单（仅当RemoteMenu为true时生效） */
   MergeLocalMenu?: boolean;
+  /** 是否开启小程序菜单管理 */
+  OpenMiniProgramMenu?: boolean;
+  /** 本地模块路由路径，支持字符串、字符串数组和逗号分隔字符串 */
+  LocalRouteModulePaths?: string | string[];
+  /** 是否开启本地模块路由自动发现 */
+  EnableLocalModuleDiscovery?: boolean;
   /** 是否自动远程布局 */
   RemoteLayout?: boolean;
   /** 是否开启布局远程保存 */

@@ -359,7 +359,7 @@ import { clearRouter } from "@repo/core";
 // 引入配置和国际化相关的工具函数
 import { getConfig, transformI18n } from "@repo/config";
 // 引入消息提示工具函数
-import { message } from "@repo/utils";
+import { localStorageProxy, message } from "@repo/utils";
 // 引入国际化 API
 import { useI18n } from "vue-i18n";
 
@@ -667,7 +667,11 @@ const syncRuntimeMenus = async () => {
     return;
   }
 
+  localStorageProxy().removeItem("async-routes");
   window.localStorage.removeItem("async-routes");
+  window.localStorage.removeItem("systemasync-routes");
+  clearCachedMenus(0);
+  menuCache.delete(0);
 
   if (Number(menuEngine.value || 0) !== 0) {
     return;

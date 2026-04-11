@@ -2,16 +2,28 @@
   <!-- 路由加载时保持 HTML loader 可见，不额外渲染 -->
   <!-- 开发环境切换器 -->
   <div v-if="isDev && showDevSwitcher" class="dev-loader-switch">
-    <div class="trigger" title="加载动画预览" @click="showPanel = !showPanel">⚙️</div>
+    <div class="trigger" title="加载动画预览" @click="showPanel = !showPanel">
+      ⚙️
+    </div>
     <div v-if="showPanel" class="panel">
       <div class="panel-header">
         <span class="panel-title">加载动画预览</span>
         <span class="panel-desc">选择加载动画样式</span>
       </div>
       <div class="panel-body">
-        <div v-for="style in loaderStyles" :key="style.key" class="style-option" :class="{ active: currentStyle === style.key }" @click="changeStyle(style.key)">
+        <div
+          v-for="style in loaderStyles"
+          :key="style.key"
+          class="style-option"
+          :class="{ active: currentStyle === style.key }"
+          @click="changeStyle(style.key)"
+        >
           <div class="preview-mini">
-            <div class="loader-preview-inner" :style="getPreviewScaleStyle(style.previewScale)" v-html="renderLoaderPreviewMarkup(style.key)" />
+            <div
+              class="loader-preview-inner"
+              :style="getPreviewScaleStyle(style.previewScale)"
+              v-html="renderLoaderPreviewMarkup(style.key)"
+            />
           </div>
           <div class="style-copy">
             <span class="style-name">{{ style.name }}</span>
@@ -32,20 +44,30 @@
  */
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { getLoaderStyleEntries, LOADER_APP_CONTAINER_ID, LOADER_APP_STYLE_ID, LOADER_APP_STYLE_TEXT, LOADER_PREVIEW_STYLE_TEXT, renderLoaderMarkup, renderLoaderPreviewMarkup } from "./loader-manager";
+import {
+  getLoaderStyleEntries,
+  getStoredLoaderStyle,
+  LOADER_APP_CONTAINER_ID,
+  LOADER_APP_STYLE_ID,
+  LOADER_APP_STYLE_TEXT,
+  LOADER_PREVIEW_STYLE_TEXT,
+  renderLoaderMarkup,
+  renderLoaderPreviewMarkup,
+  setStoredLoaderStyle,
+} from "./loader-manager";
 
 interface Props {
   showDevSwitcher?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showDevSwitcher: true
+  showDevSwitcher: true,
 });
 
 const isDev = import.meta.env.DEV;
 const router = useRouter();
 const showPanel = ref(false);
-const currentStyle = ref(localStorage.getItem("sys-loader-style") || "default");
+const currentStyle = ref(getStoredLoaderStyle("none"));
 const loaderStyles = getLoaderStyleEntries();
 
 let previewStyleTag: HTMLStyleElement | null = null;
@@ -78,7 +100,9 @@ const ensureHTMLLoader = () => {
 
   ensureStyleTag(LOADER_APP_STYLE_ID, LOADER_APP_STYLE_TEXT);
 
-  let loaderEl = document.getElementById(LOADER_APP_CONTAINER_ID) as HTMLDivElement | null;
+  let loaderEl = document.getElementById(
+    LOADER_APP_CONTAINER_ID,
+  ) as HTMLDivElement | null;
 
   if (!loaderEl) {
     loaderEl = document.createElement("div");
@@ -92,12 +116,12 @@ const ensureHTMLLoader = () => {
 };
 
 const getPreviewScaleStyle = (scale = 1) => ({
-  "--loader-preview-scale": String(scale)
+  "--loader-preview-scale": String(scale),
 });
 
 const changeStyle = (key: string) => {
   currentStyle.value = key;
-  localStorage.setItem("sys-loader-style", key);
+  setStoredLoaderStyle(key);
 
   const loaderEl = document.getElementById(LOADER_APP_CONTAINER_ID);
   if (loaderEl) {
@@ -112,6 +136,9 @@ const changeStyle = (key: string) => {
 
 // 路由守卫：显示/隐藏 HTML loader
 const showHTMLLoader = () => {
+  if (currentStyle.value === "none") {
+    return;
+  }
   const loaderEl = ensureHTMLLoader();
   if (loaderEl) {
     loaderEl.style.display = "flex";
@@ -126,10 +153,15 @@ const hideHTMLLoader = () => {
 };
 
 onMounted(async () => {
-  previewStyleTag = ensureStyleTag("route-loader-preview-style", LOADER_PREVIEW_STYLE_TEXT);
+  previewStyleTag = ensureStyleTag(
+    "route-loader-preview-style",
+    LOADER_PREVIEW_STYLE_TEXT,
+  );
 
   // 初始加载时显示 loader
-  showHTMLLoader();
+  if (currentStyle.value !== "none") {
+    showHTMLLoader();
+  }
 
   try {
     await router.isReady();
@@ -162,7 +194,7 @@ onUnmounted(() => {
 
 defineExpose({
   show: showHTMLLoader,
-  hide: hideHTMLLoader
+  hide: hideHTMLLoader,
 });
 </script>
 
@@ -208,7 +240,9 @@ defineExpose({
   width: 320px;
   max-width: 90vw;
   border-radius: 18px;
-  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), transparent), rgba(15, 23, 42, 0.95);
+  background:
+    radial-gradient(circle at top left, rgba(148, 163, 184, 0.18), transparent),
+    rgba(15, 23, 42, 0.95);
   box-shadow:
     0 20px 50px rgba(15, 23, 42, 0.9),
     0 0 0 1px rgba(148, 163, 184, 0.7);

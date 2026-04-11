@@ -354,6 +354,9 @@ export const uu1 = (response: PureHttpResponse) => {
   try {
     return uu1Unified(normalizeResponse(response));
   } catch (error) {
+    if (!encrypted && (!isWasmEnabled() || isWasmNotReadyError(error))) {
+      return response;
+    }
     if (!encrypted && !isWasmNotReadyError(error)) {
       console.warn("[codec] uu1 failed, fallback to original response:", error);
       return response;

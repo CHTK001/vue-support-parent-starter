@@ -14,22 +14,27 @@ import { localStorageProxy } from "@repo/utils";
 import { usePermissionStoreHook } from "./PermissionStore";
 import type { StorageConfigs } from "@repo/config";
 import { defaultRouterArrays } from "@repo/config";
+
+const buildDefaultMultiTags = () => [
+  ...defaultRouterArrays,
+  ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag),
+];
+
+const resolveCachedMultiTags = () => {
+  const storage = localStorageProxy();
+  const configure = storage.getItem<StorageConfigs>(
+    `${responsiveStorageNameSpace()}configure`,
+  );
+  const cached = configure?.multiTagsCache
+    ? storage.getItem(`${responsiveStorageNameSpace()}tags`)
+    : null;
+  return Array.isArray(cached) ? cached : buildDefaultMultiTags();
+};
 export const useMultiTagsStore = defineStore({
   id: "pure-multiTags",
   state: () => ({
     // 存储标签页信息（路由信息）
-    multiTags: localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`,
-    )?.multiTagsCache
-      ? localStorageProxy().getItem<StorageConfigs>(
-          `${responsiveStorageNameSpace()}tags`,
-        )
-      : [
-          ...defaultRouterArrays,
-          ...usePermissionStoreHook().flatteningRoutes.filter(
-            (v) => v?.meta?.fixedTag,
-          ),
-        ],
+    multiTags: resolveCachedMultiTags(),
     multiTagsCache: localStorageProxy().getItem<StorageConfigs>(
       `${responsiveStorageNameSpace()}configure`,
     )?.multiTagsCache,
@@ -63,6 +68,9 @@ export const useMultiTagsStore = defineStore({
       value?: T | multiType,
       position?: positionType,
     ): T {
+      if (!Array.isArray(this.multiTags)) {
+        this.multiTags = buildDefaultMultiTags();
+      }
       switch (mode) {
         case "equal":
           this.multiTags = value;
@@ -131,7 +139,10 @@ export const useMultiTagsStore = defineStore({
             if (index === -1) return;
             this.multiTags.splice(index, 1);
           } else {
-            this.multiTags.splice(position?.startIndex, position?.length);
+            this.multiTags.splice(
+              position?.startIndex ?? 0,
+              position?.length ?? position?.deleteCount,
+            );
           }
           this.tagsCache(this.multiTags);
           return this.multiTags;

@@ -61,7 +61,7 @@ export interface DropdownOption {
   description?: string;
   value: string | number;
   icon?: string;
-  image: ImageOption;
+  image?: ImageOption;
   preview?: string;
 }
 

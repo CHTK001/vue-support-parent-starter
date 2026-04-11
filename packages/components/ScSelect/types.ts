@@ -144,7 +144,16 @@ export interface TreeProps {
 /**
  * 布局类型
  */
-export type LayoutType = "card" | "select" | "pill" | "dropdown" | "filter" | "table" | "tree";
+export type LayoutType =
+  | "card"
+  | "select"
+  | "pill"
+  | "dropdown"
+  | "list"
+  | "filter"
+  | "table"
+  | "tree"
+  | "position";
 
 /**
  * 输出格式类型
@@ -212,6 +221,16 @@ export interface ScSelectProps {
   dropdownTitle?: string;
   /** 下拉占位符 */
   dropdownPlaceholder?: string;
+  /** 列表布局高度 */
+  listHeight?: string;
+  /** 列表布局搜索占位符 */
+  listPlaceholder?: string;
+  /** 列表布局空提示 */
+  listEmptyText?: string;
+  /** 列表布局是否显示搜索 */
+  listShowSearch?: boolean;
+  /** 列表布局是否显示批量操作 */
+  listShowBatchActions?: boolean;
   /** 标签宽度 */
   labelWidth?: number;
   /** 输出格式 */

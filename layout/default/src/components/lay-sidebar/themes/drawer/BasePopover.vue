@@ -118,12 +118,15 @@ function getGridColumns() {
 }
 
 // ===== 路由激活 =====
-const defaultActive = computed(() => route.path);
+const defaultActive = computed(
+  () => (route.meta?.activePath as string) || route.path,
+);
 
 function isMenuActive(menu: MenuItem): boolean {
-  if (menu.path === route.path) return true;
+  if (menu.path === defaultActive.value) return true;
   return menu.children?.some((c: MenuItem) =>
-    c.path === route.path || c.children?.some((g: MenuItem) => g.path === route.path)
+    c.path === defaultActive.value ||
+    c.children?.some((g: MenuItem) => g.path === defaultActive.value)
   ) ?? false;
 }
 
@@ -205,7 +208,11 @@ function handleOutsideClick(e: MouseEvent) {
 // ===== 路由监听 =====
 watch(
   () => route.path,
-  (p) => { if (!p.includes("/redirect")) menuSelect(p); },
+  (p) => {
+    if (!p.includes("/redirect")) {
+      menuSelect(defaultActive.value);
+    }
+  },
   { immediate: true }
 );
 

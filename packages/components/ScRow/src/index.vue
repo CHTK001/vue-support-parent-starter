@@ -9,8 +9,8 @@
 <script setup lang="ts">
 /**
  * ScRow 行布局组件
- * 封装 Element Plus Row 与 PixelUI PxRow
- * 在 data-skin 为 8bit 时自动切换为像素风行布局
+ * 封装 Element Plus Row
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

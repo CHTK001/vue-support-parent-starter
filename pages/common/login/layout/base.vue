@@ -269,9 +269,6 @@ const onLogin = async (formEl) => {
         })
         .catch((error) => {
           // 登录失败
-          if (import.meta.env.DEV) {
-            console.error("登录失败:", error);
-          }
           message(error.message || "登录失败，请检查用户名和密码", {
             type: "error",
           });
@@ -958,7 +955,7 @@ onBeforeUnmount(() => {
                   <span v-else>验证中...</span>
                 </el-button>
                 <el-button
-                  v-else-if="props.defaultSetting.CheckToptOpen"
+                  v-else-if="props.defaultSetting.CheckTotpOpen"
                   class="modern-login-button"
                   size="large"
                   type="primary"

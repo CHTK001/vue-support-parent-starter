@@ -41,6 +41,7 @@
     "mitt": "catalog:",
     "pinia": "catalog:",
     "screenfull": "catalog:",
+    "sm-crypto": "catalog:",
     "socket.io-client": "catalog:",
     "unplugin-vue-components": "catalog:",
     "vue": "catalog:",

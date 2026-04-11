@@ -17,7 +17,7 @@ export default createViteConfig(import.meta.url, pkg)
   .proxyFromEnv(
     "/system/api",
     "VITE_SYSTEM_API_PROXY_TARGET",
-    "http://172.16.0.40:18170",
+    "http://127.0.0.1:18170",
   )
   .proxyFromEnv(
     "/tenant/api",

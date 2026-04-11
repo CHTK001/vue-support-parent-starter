@@ -1,91 +1,83 @@
 <script setup lang="ts">
+import { computed, nextTick, ref, toRaw, watch } from "vue";
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
-
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
-import ReCol from "@repo/components/ReCol";
-import Segmented from "@repo/components/ReSegmented";
+import { ScCascader } from "@repo/components/ScCascader";
+import { IconSelect } from "@repo/components/IconSelect";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
 
-const QuestionFilled = defineComponent({
-  render() {
-    return h("i", { class: "ep:question-filled" });
-  },
-});
+type MenuForm = Record<string, any>;
 
-// Emits
+const props = withDefaults(
+  defineProps<{
+    visible?: boolean;
+    mode?: "save" | "edit" | "show";
+    tableData?: any[];
+    menuData?: any;
+    currentEngine?: number;
+  }>(),
+  {
+    visible: false,
+    mode: "save",
+    tableData: () => [],
+    menuData: () => ({}),
+    currentEngine: 0,
+  },
+);
+
 const emit = defineEmits<{
   (e: "success", mode: string, form: any): void;
+  (e: "update:visible", value: boolean): void;
 }>();
 
-// Refs
 const dialogFormRef = ref();
-
-// Reactive state
-const dynamicTags = ref<string[]>([]);
-const form = ref<any>({});
-const visible = ref(false);
 const loading = ref(false);
-const title = ref("");
-const mode = ref("save");
 const roleOptions = ref<any[]>([]);
-const tableData = ref<any[]>([]);
-const inputValue = ref("");
-const inputVisible = ref(false);
+const dynamicTags = ref<string[]>([]);
 
-// Static options
-const showParentOptions = [
-  { label: "显示", tip: "会显示父级菜单", value: true },
-  { label: "隐藏", tip: "不会显示父级菜单", value: false },
-];
+const dialogVisible = computed({
+  get: () => !!props.visible,
+  set: (value) => emit("update:visible", value),
+});
 
-const hiddenTagOptions = [
-  {
-    label: "允许",
-    tip: "当前菜单名称或自定义信息允许添加到标签页",
-    value: false,
-  },
-  {
-    label: "禁止",
-    tip: "当前菜单名称或自定义信息禁止添加到标签页",
-    value: true,
-  },
-];
+const createDefaultForm = (): MenuForm => ({
+  sysMenuId: undefined,
+  sysMenuPid: undefined,
+  sysMenuType: 0,
+  sysMenuTitle: "",
+  sysMenuI18n: "",
+  sysMenuName: "",
+  sysMenuPath: "",
+  sysMenuComponent: "",
+  sysMenuPerm: "",
+  sysMenuSort: 1,
+  sysMenuRedirect: "",
+  sysMenuIcon: "",
+  sysMenuExtraIcon: "",
+  sysMenuEnterTransition: "",
+  sysMenuLeaveTransition: "",
+  sysMenuActivePath: "",
+  sysMenuFrameSrc: "",
+  sysMenuFrameLoading: 0,
+  sysMenuShowParent: 1,
+  sysMenuHome: 0,
+  sysMenuKeepAlive: 0,
+  sysMenuHiddenTag: 0,
+  sysMenuFixedTag: 0,
+  sysMenuHidden: 0,
+  sysMenuRole: "",
+  sysMenuEngine: Number(props.currentEngine ?? 0),
+});
+
+const form = ref<MenuForm>(createDefaultForm());
 
 const menuTypeOptions = [
   { label: "菜单", value: 0 },
   { label: "iframe", value: 1 },
   { label: "外链", value: 2 },
   { label: "按钮", value: 3 },
-];
-
-const keepAliveOptions = [
-  {
-    label: "缓存",
-    tip: "会保存该页面的整体状态，刷新后会清空状态",
-    value: true,
-  },
-  { label: "不缓存", tip: "不会保存该页面的整体状态", value: false },
-];
-
-const fixedTagOptions = [
-  { label: "固定", tip: "当前菜单名称固定显示在标签页且不可关闭", value: true },
-  {
-    label: "不固定",
-    tip: "当前菜单名称不固定显示在标签页且可关闭",
-    value: false,
-  },
-];
-
-const frameLoadingOptions = [
-  { label: "开启", tip: "有首次加载动画", value: true },
-  { label: "关闭", tip: "无首次加载动画", value: false },
-];
-
-const showLinkOptions = [
-  { label: "显示", tip: "会在菜单中显示", value: true },
-  { label: "隐藏", tip: "不会在菜单中显示", value: false },
 ];
 
 const cascaderProps = {
@@ -96,539 +88,783 @@ const cascaderProps = {
   checkStrictly: true,
 };
 
-// Computed rules
+const dialogMode = computed(() => props.mode || "save");
+const isButtonType = computed(() => Number(form.value.sysMenuType) === 3);
+const isIframeType = computed(() => Number(form.value.sysMenuType) === 1);
+const isExternalType = computed(() => Number(form.value.sysMenuType) === 2);
+const isRouteType = computed(() => Number(form.value.sysMenuType) === 0);
+const showRouteFields = computed(() => !isButtonType.value);
+const showComponentField = computed(() => isRouteType.value);
+const showFrameSourceField = computed(
+  () => isIframeType.value || isExternalType.value,
+);
+const dialogTitle = computed(() =>
+  dialogMode.value === "save" ? "新增菜单" : "编辑菜单",
+);
+const frameSourceLabel = computed(() =>
+  isIframeType.value ? "iframe 地址" : "外链地址",
+);
+
 const rules = computed(() => {
-  if (form.value.sysMenuType == 0) {
-    return {
-      sysMenuTitle: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuTitle"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuName: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuName"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuPath: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuPath"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuComponent: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuComponent"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuPerm: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuPerm"),
-          trigger: "blur",
-        },
-      ],
-    };
-  }
-  if (form.value.sysMenuType == 1 || form.value.sysMenuType == 2) {
-    return {
-      sysMenuTitle: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuTitle"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuName: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuName"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuPath: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuPath"),
-          trigger: "blur",
-        },
-      ],
-      sysMenuPerm: [
-        {
-          required: true,
-          message: transformI18n("rules.sysMenuPerm"),
-          trigger: "blur",
-        },
-      ],
-    };
-  }
-  return {
+  const nextRules: Record<string, any[]> = {
     sysMenuTitle: [
-      {
-        required: true,
-        message: transformI18n("rules.sysMenuTitle"),
-        trigger: "blur",
-      },
-    ],
-    sysMenuPerm: [
-      {
-        required: true,
-        message: transformI18n("rules.sysMenuPerm"),
-        trigger: "blur",
-      },
+      { required: true, message: "请输入菜单名称", trigger: "blur" },
     ],
   };
+
+  if (showRouteFields.value) {
+    nextRules.sysMenuName = [
+      { required: true, message: "请输入路由名称", trigger: "blur" },
+    ];
+    nextRules.sysMenuPath = [
+      { required: true, message: "请输入路由路径", trigger: "blur" },
+    ];
+  }
+
+  if (showComponentField.value) {
+    nextRules.sysMenuComponent = [
+      { required: true, message: "请输入组件路径", trigger: "blur" },
+    ];
+  }
+
+  if (showFrameSourceField.value) {
+    nextRules.sysMenuFrameSrc = [
+      {
+        required: true,
+        message: `请输入${frameSourceLabel.value}`,
+        trigger: "blur",
+      },
+    ];
+  }
+
+  if (isButtonType.value) {
+    nextRules.sysMenuPerm = [
+      { required: true, message: "请输入权限标识", trigger: "blur" },
+    ];
+  }
+
+  return nextRules;
 });
 
-// Methods
-const initialRole = async () => {
-  roleOptions.value.push({
-    sysRoleId: 1,
-    sysRoleCode: "SUPER_ADMIN",
-    sysRoleName: "超级管理员",
-  });
-  fetchListRole({}).then((res) => {
-    roleOptions.value.push(...res.data);
-  });
-};
-
-const reset = () => {
-  dynamicTags.value.length = 0;
-  form.value = {};
-};
+const normalizeFlag = (value: unknown, defaultValue = 0) =>
+  value === true || value === 1 || value === "1"
+    ? 1
+    : value === false || value === 0 || value === "0"
+      ? 0
+      : defaultValue;
 
 const cloneMenuData = (data: any) => {
-  if (!data) return {};
+  if (data == null) {
+    return {};
+  }
+
+  const source = typeof data === "object" && data !== null ? toRaw(data) : data;
+
   if (typeof structuredClone === "function") {
-    return structuredClone(data);
-  }
-  return JSON.parse(JSON.stringify(data));
-};
-
-const close = async () => {
-  visible.value = false;
-  loading.value = false;
-  tableData.value = [];
-  nextTick(() => {
-    dialogFormRef.value?.resetFields();
-  });
-  reset();
-};
-
-const clickNode = ($event: MouseEvent) => {
-  const target = $event.target as HTMLElement;
-  target.parentElement?.parentElement?.firstElementChild?.dispatchEvent(
-    new Event("click"),
-  );
-};
-
-const setTableData = (data: any[]) => {
-  tableData.value = cloneMenuData(data || []);
-  return api;
-};
-
-const setData = (data: any) => {
-  form.value = cloneMenuData(data);
-  dynamicTags.value = !form.value.sysMenuRole
-    ? []
-    : form.value.sysMenuRole?.split(",");
-  return api;
-};
-
-const open = async (modeValue = "save") => {
-  visible.value = true;
-  mode.value = modeValue;
-  title.value = modeValue == "save" ? "新增" : "编辑";
-  if (modeValue == "save") {
-    form.value.sysMenuSort = 1;
-  } else if (!form.value.sysMenuSort) {
-    form.value.sysMenuSort = 0;
-  }
-  return api;
-};
-
-const transformI18nValue = (value: string) => {
-  return transformI18n(value);
-};
-
-const submit = () => {
-  dialogFormRef.value.validate(async (valid: boolean) => {
-    if (valid) {
-      loading.value = true;
-      if (dynamicTags.value) {
-        form.value.sysMenuRole = dynamicTags.value.join(",");
-      }
-      try {
-        let res: any = {};
-        if (mode.value === "save") {
-          res = await fetchSaveMenu(form.value);
-        } else if (mode.value === "edit") {
-          res = await fetchUpdateMenu(form.value);
-        }
-
-        if (res.code == "00000") {
-          emit("success", mode.value, res.data || form.value);
-          visible.value = false;
-        } else {
-          message(res.msg, { type: "error" });
-        }
-      } catch (error) {}
+    try {
+      return structuredClone(source);
+    } catch {
+      // 运行时透传的 reactive/proxy 数据可能无法直接 structuredClone，退回到 JSON 克隆。
     }
-    loading.value = false;
+  }
+
+  return JSON.parse(JSON.stringify(source));
+};
+
+const sanitizeMenuForm = (source: any) => {
+  const nextForm = {
+    ...createDefaultForm(),
+    ...cloneMenuData(source || {}),
+  };
+
+  nextForm.sysMenuType = Number(nextForm.sysMenuType ?? 0);
+  nextForm.sysMenuEngine = Number(
+    nextForm.sysMenuEngine ?? props.currentEngine ?? 0,
+  );
+  const nextIsButtonType = nextForm.sysMenuType === 3;
+  const nextIsIframeType = nextForm.sysMenuType === 1;
+  const nextIsExternalType = nextForm.sysMenuType === 2;
+  const nextIsRouteType = nextForm.sysMenuType === 0;
+  const nextShowRouteFields = !nextIsButtonType;
+  const nextShowComponentField = nextIsRouteType;
+  const nextShowFrameSourceField = nextIsIframeType || nextIsExternalType;
+  nextForm.sysMenuPid = nextForm.sysMenuPid
+    ? Number(nextForm.sysMenuPid)
+    : undefined;
+  nextForm.sysMenuSort = Number(nextForm.sysMenuSort ?? 1) || 1;
+  nextForm.sysMenuFrameLoading = normalizeFlag(nextForm.sysMenuFrameLoading);
+  nextForm.sysMenuShowParent = normalizeFlag(nextForm.sysMenuShowParent, 1);
+  nextForm.sysMenuHome = normalizeFlag(nextForm.sysMenuHome);
+  nextForm.sysMenuKeepAlive = normalizeFlag(nextForm.sysMenuKeepAlive);
+  nextForm.sysMenuHiddenTag = normalizeFlag(nextForm.sysMenuHiddenTag);
+  nextForm.sysMenuFixedTag = normalizeFlag(nextForm.sysMenuFixedTag);
+  nextForm.sysMenuHidden = normalizeFlag(nextForm.sysMenuHidden);
+
+  if (!nextShowRouteFields) {
+    nextForm.sysMenuName = "";
+    nextForm.sysMenuPath = "";
+    nextForm.sysMenuRedirect = "";
+    nextForm.sysMenuActivePath = "";
+  }
+
+  if (!nextShowComponentField) {
+    nextForm.sysMenuComponent = "";
+    nextForm.sysMenuHome = 0;
+    nextForm.sysMenuKeepAlive = 0;
+  }
+
+  if (!nextShowFrameSourceField) {
+    nextForm.sysMenuFrameSrc = "";
+  }
+
+  if (!nextIsIframeType) {
+    nextForm.sysMenuFrameLoading = 0;
+  }
+
+  return nextForm;
+};
+
+const removeCurrentNode = (items: any[], currentId?: number) =>
+  (items || []).reduce((list, item) => {
+    if (!item || item.sysMenuId === currentId) {
+      return list;
+    }
+    list.push({
+      ...item,
+      children: removeCurrentNode(item.children || [], currentId),
+    });
+    return list;
+  }, [] as any[]);
+
+const menuTreeOptions = computed(() =>
+  removeCurrentNode(props.tableData || [], form.value.sysMenuId),
+);
+const parentCascaderKey = computed(
+  () =>
+    `${dialogMode.value}-${form.value.sysMenuId ?? "new"}-${form.value.sysMenuPid ?? "root"}-${menuTreeOptions.value.length}`,
+);
+
+const transformI18nValue = (value: string) => transformI18n(value);
+
+const loadRoles = async () => {
+  try {
+    const res = await fetchListRole({});
+    const merged = [
+      { sysRoleId: 1, sysRoleCode: "SUPER_ADMIN", sysRoleName: "超级管理员" },
+      ...(Array.isArray(res?.data) ? res.data : []),
+    ];
+    const roleMap = new Map();
+    merged.forEach((item) => {
+      if (item?.sysRoleCode && !roleMap.has(item.sysRoleCode)) {
+        roleMap.set(item.sysRoleCode, item);
+      }
+    });
+    roleOptions.value = Array.from(roleMap.values());
+  } catch {
+    message.error("加载角色列表失败");
+  }
+};
+
+const syncDialogState = async () => {
+  const nextForm = sanitizeMenuForm(props.menuData || {});
+  form.value = {
+    ...nextForm,
+    sysMenuPid: nextForm.sysMenuPid || undefined,
+  };
+  dynamicTags.value = form.value.sysMenuRole
+    ? String(form.value.sysMenuRole)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  await nextTick();
+  dialogFormRef.value?.clearValidate?.();
+};
+
+const resetDialogState = () => {
+  loading.value = false;
+  dynamicTags.value = [];
+  form.value = createDefaultForm();
+  nextTick(() => {
+    dialogFormRef.value?.clearValidate?.();
   });
 };
 
-// Lifecycle
-onMounted(() => {
-  initialRole();
-});
-
-const api = {
-  setTableData,
-  setData,
-  open,
-  close,
+const close = () => {
+  dialogVisible.value = false;
 };
 
-// Expose methods to parent
-defineExpose(api);
+const submit = async () => {
+  const validate = dialogFormRef.value?.validate;
+  const valid = validate
+    ? await validate()
+        .then(() => true)
+        .catch(() => false)
+    : false;
+  if (!valid) {
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const payload = sanitizeMenuForm({
+      ...form.value,
+      sysMenuPid: form.value.sysMenuPid ? Number(form.value.sysMenuPid) : 0,
+      sysMenuRole: dynamicTags.value.join(","),
+    });
+    const request =
+      dialogMode.value === "edit" ? fetchUpdateMenu : fetchSaveMenu;
+    const res = await request(payload);
+    if (res?.code === "00000") {
+      const nextMenu =
+        res?.data && typeof res.data === "object"
+          ? { ...payload, ...res.data }
+          : payload;
+      message.success(dialogMode.value === "edit" ? "保存成功" : "新增成功");
+      emit("success", dialogMode.value, nextMenu);
+      close();
+      return;
+    }
+    message.error(res?.msg || "保存失败");
+  } catch {
+    message.error("保存失败");
+  } finally {
+    loading.value = false;
+  }
+};
+
+watch(
+  () => form.value.sysMenuType,
+  (nextType, prevType) => {
+    if (prevType === undefined || nextType === prevType) {
+      return;
+    }
+    form.value = sanitizeMenuForm(form.value);
+  },
+);
+
+watch(
+  () => props.visible,
+  async (visible) => {
+    if (visible) {
+      await syncDialogState();
+      return;
+    }
+    resetDialogState();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => [props.menuData, props.tableData, props.mode, props.currentEngine],
+  async () => {
+    if (props.visible) {
+      await syncDialogState();
+    }
+  },
+  { deep: true },
+);
+
+loadRoles();
 </script>
+
 <template>
-  <div>
+  <div class="menu-dialog-shell">
     <sc-dialog
-      v-model="visible"
+      v-model="dialogVisible"
       top="10px"
+      width="960px"
+      append-to-body
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       draggable
-      :title="title"
-      @close="close"
+      :title="dialogTitle"
+      class="menu-save-dialog"
     >
-      <ScForm
-        ref="dialogFormRef"
-        :model="form"
-        :rules="rules"
-        :disabled="mode == 'show'"
-        label-width="100px"
-        class="modern-form"
-      >
-        <ScRow :gutter="30">
-          <re-col>
-            <ScFormItem label="菜单类型">
-              <el-segmented
-                v-model="form.sysMenuType"
-                :options="menuTypeOptions"
-              />
-            </ScFormItem>
-          </re-col>
+      <div class="menu-form-scroll">
+        <ScForm
+          ref="dialogFormRef"
+          :model="form"
+          :rules="rules"
+          :disabled="dialogMode === 'show'"
+          label-position="top"
+          class="menu-form"
+        >
+          <div class="form-section">
+            <div class="section-title">基础信息</div>
+            <ScRow :gutter="18">
+              <ScCol :span="12">
+                <ScFormItem label="菜单类型">
+                  <el-segmented
+                    v-model="form.sysMenuType"
+                    :options="menuTypeOptions"
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="12">
+                <ScFormItem label="上级菜单">
+                  <ScCascader
+                    :key="parentCascaderKey"
+                    v-model="form.sysMenuPid"
+                    :options="menuTreeOptions"
+                    :props="cascaderProps"
+                    class="w-full"
+                    clearable
+                    filterable
+                    placeholder="根菜单可留空"
+                  >
+                    <template #default="{ node, data }">
+                      <div class="menu-parent-option">
+                        <span>{{
+                          transformI18nValue(
+                            data.sysMenuI18n || data.sysMenuTitle,
+                          )
+                        }}</span>
+                        <span v-if="!node.isLeaf" class="menu-parent-count">
+                          ({{ data.children?.length || 0 }})
+                        </span>
+                      </div>
+                    </template>
+                  </ScCascader>
+                </ScFormItem>
+              </ScCol>
 
-          <re-col>
-            <ScFormItem label="上级菜单">
-              <ScCascader
-                v-model="form.sysMenuPid"
-                class="w-full"
-                :options="tableData"
-                :props="cascaderProps"
-                clearable
-                filterable
-                placeholder="请选择上级菜单"
-              >
-                <template #default="{ node, data }">
-                  <div @click="clickNode">
-                    <span v-if="data.sysMenuI18n">
-                      {{ transformI18nValue(data.sysMenuI18n) }}
-                    </span>
-                    <span v-else>{{ data.sysMenuTitle }}</span>
-                    <span v-if="!node.isLeaf"
-                      >({{ data.children.length }})</span>
-                  </div>
-                </template>
-              </ScCascader>
-            </ScFormItem>
-          </re-col>
+              <ScCol :span="12">
+                <ScFormItem label="菜单名称" prop="sysMenuTitle">
+                  <ScInput
+                    v-model="form.sysMenuTitle"
+                    clearable
+                    placeholder="请输入菜单名称"
+                    :maxlength="40"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="菜单名称 i18n">
+                  <ScInput
+                    v-model="form.sysMenuI18n"
+                    clearable
+                    placeholder="请输入菜单名称 i18n"
+                    :maxlength="60"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
 
-          <re-col :value="12" :xs="24" :sm="24">
-            <ScFormItem label="菜单名称" prop="sysMenuTitle">
-              <ScInput
-                v-model="form.sysMenuTitle"
-                clearable
-                placeholder="请输入菜单名称"
-                :maxlength="40"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
-          <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="菜单名称i18n" prop="sysMenuI18n">
-              <ScInput
-                v-model="form.sysMenuI18n"
-                clearable
-                placeholder="请输入菜单名称i18n"
-                :maxlength="50"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
-          <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="路由名称" prop="sysMenuName">
-              <ScInput
-                v-model="form.sysMenuName"
-                clearable
-                placeholder="请输入路由名称"
-                :maxlength="40"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="路由名称" prop="sysMenuName">
+                  <ScInput
+                    v-model="form.sysMenuName"
+                    clearable
+                    placeholder="请输入路由名称"
+                    :maxlength="40"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="路由路径" prop="sysMenuPath">
+                  <ScInput
+                    v-model="form.sysMenuPath"
+                    clearable
+                    placeholder="请输入路由路径"
+                    :maxlength="200"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
 
-          <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="路由路径" prop="sysMenuPath">
-              <ScInput
-                v-model="form.sysMenuPath"
-                clearable
-                placeholder="请输入路由路径"
-                :maxlength="200"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
-          <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="组件路径" prop="sysMenuComponent">
-              <ScInput
-                v-model="form.sysMenuComponent"
-                clearable
-                placeholder="请输入组件路径"
-                :maxlength="200"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
+              <ScCol v-if="showComponentField" :span="12">
+                <ScFormItem label="组件路径" prop="sysMenuComponent">
+                  <ScInput
+                    v-model="form.sysMenuComponent"
+                    clearable
+                    placeholder="请输入组件路径"
+                    :maxlength="200"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="showFrameSourceField" :span="12">
+                <ScFormItem :label="frameSourceLabel" prop="sysMenuFrameSrc">
+                  <ScInput
+                    v-model="form.sysMenuFrameSrc"
+                    clearable
+                    :placeholder="`请输入${frameSourceLabel}`"
+                    :maxlength="240"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
 
-          <re-col :value="12" :xs="24" :sm="24">
-            <ScFormItem label="菜单排序">
-              <ScInputNumber
-                v-model="form.sysMenuSort"
-                class="!w-full"
-                :min="1"
-                :max="9999"
-                controls-position="right"
-              />
-            </ScFormItem>
-          </re-col>
-          <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="路由重定向">
-              <ScInput
-                v-model="form.sysMenuRedirect"
-                clearable
-                placeholder="请输入默认跳转地址"
-                :maxlength="200"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
+              <ScCol :span="12">
+                <ScFormItem label="权限标识" prop="sysMenuPerm">
+                  <ScInput
+                    v-model="form.sysMenuPerm"
+                    clearable
+                    placeholder="按钮必填，菜单可选"
+                    :maxlength="240"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol :span="12">
+                <ScFormItem label="菜单排序">
+                  <ScInputNumber
+                    v-model="form.sysMenuSort"
+                    class="w-full"
+                    :min="1"
+                    :max="9999"
+                    controls-position="right"
+                  />
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
+          </div>
 
-          <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="菜单图标">
-              <IconSelect v-model="form.sysMenuIcon" class="w-full" />
-            </ScFormItem>
-          </re-col>
+          <div class="form-section">
+            <div class="section-title">展示与路由</div>
+            <ScRow :gutter="18">
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="菜单图标">
+                  <IconSelect v-model="form.sysMenuIcon" class="w-full" />
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="右侧图标">
+                  <ScInput
+                    v-model="form.sysMenuExtraIcon"
+                    clearable
+                    placeholder="菜单名称右侧的额外图标"
+                    :maxlength="120"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
 
-          <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="右侧图标">
-              <ScInput
-                v-model="form.sysMenuExtraIcon"
-                clearable
-                placeholder="菜单名称右侧的额外图标"
-                :maxlength="200"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
+              <ScCol v-if="showComponentField" :span="12">
+                <ScFormItem label="路由重定向">
+                  <ScInput
+                    v-model="form.sysMenuRedirect"
+                    clearable
+                    placeholder="请输入默认跳转地址"
+                    :maxlength="200"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="showComponentField" :span="12">
+                <ScFormItem label="菜单激活路径">
+                  <ScInput
+                    v-model="form.sysMenuActivePath"
+                    clearable
+                    placeholder="请输入需要高亮的菜单路径"
+                    :maxlength="200"
+                    show-word-limit
+                  />
+                </ScFormItem>
+              </ScCol>
 
-          <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="进场动画">
-              <ReAnimateSelector
-                v-model="form.sysMenuEnterTransition"
-                placeholder="请选择页面进场加载动画"
-              />
-            </ScFormItem>
-          </re-col>
-          <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="离场动画">
-              <ReAnimateSelector
-                v-model="form.sysMenuLeaveTransition"
-                placeholder="请选择页面离场加载动画"
-              />
-            </ScFormItem>
-          </re-col>
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="进场动画">
+                  <ReAnimateSelector
+                    v-model="form.sysMenuEnterTransition"
+                    placeholder="请选择页面进场动画"
+                  />
+                </ScFormItem>
+              </ScCol>
+              <ScCol v-if="showRouteFields" :span="12">
+                <ScFormItem label="离场动画">
+                  <ReAnimateSelector
+                    v-model="form.sysMenuLeaveTransition"
+                    placeholder="请选择页面离场动画"
+                  />
+                </ScFormItem>
+              </ScCol>
 
-          <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="菜单激活">
-              <ScInput
-                v-model="form.sysMenuActivePath"
-                clearable
-                placeholder="请输入需要激活的菜单"
-                :maxlength="200"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
-          <re-col v-if="form.sysMenuType === 3" :value="12" :xs="24" :sm="24">
-            <!-- 按钮级别权限设置 -->
-            <ScFormItem label="权限标识" prop="sysMenuPerm">
-              <ScInput
-                v-model="form.sysMenuPerm"
-                clearable
-                placeholder="请输入权限标识"
-                :maxlength="240"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
+              <ScCol :span="24">
+                <ScFormItem label="所属角色">
+                  <ScSelect
+                    v-model="dynamicTags"
+                    multiple
+                    clearable
+                    collapse-tags
+                    collapse-tags-tooltip
+                    placeholder="不选择则对具备菜单权限的角色统一可见"
+                  >
+                    <ScOption
+                      v-for="item in roleOptions"
+                      :key="item.sysRoleCode"
+                      :value="item.sysRoleCode"
+                      :label="item.sysRoleName"
+                    />
+                  </ScSelect>
+                </ScFormItem>
+              </ScCol>
+            </ScRow>
+          </div>
 
-          <re-col v-show="form.sysMenuType === 1" :value="12" :xs="24" :sm="24">
-            <!-- iframe -->
-            <ScFormItem label="链接地址">
-              <ScInput
-                v-model="form.sysMenuFrameSrc"
-                clearable
-                placeholder="请输入 iframe 链接地址"
-                :maxlength="240"
-                show-word-limit
-              />
-            </ScFormItem>
-          </re-col>
-
-          <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="菜单">
-              <Segmented
-                :modelValue="form.sysMenuHidden ? 1 : 0"
-                :options="showLinkOptions"
-                @change="
-                  ({ option: { value } }) => {
-                    form.sysMenuHidden = value ? 0 : 1;
-                  }
-                "
-              />
-            </ScFormItem>
-          </re-col>
-
-          <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="父级菜单">
-              <Segmented
-                :modelValue="form.sysMenuShowParent ? 0 : 1"
-                :options="showParentOptions"
-                @change="
-                  ({ option: { value } }) => {
-                    form.sysMenuShowParent = value ? 1 : 0;
-                  }
-                "
-              />
-            </ScFormItem>
-          </re-col>
-
-          <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="缓存页面">
-              <Segmented
-                :modelValue="form.sysMenuKeepAlive ? 0 : 1"
-                :options="keepAliveOptions"
-                @change="
-                  ({ option: { value } }) => {
-                    form.sysMenuKeepAlive = value ? 1 : 0;
-                  }
-                "
-              />
-            </ScFormItem>
-          </re-col>
-
-          <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="标签页">
-              <Segmented
-                :modelValue="form.sysMenuHiddenTag ? 1 : 0"
-                :options="hiddenTagOptions"
-                @change="
-                  ({ option: { value } }) => {
-                    form.sysMenuHiddenTag = value ? 1 : 0;
-                  }
-                "
-              />
-            </ScFormItem>
-          </re-col>
-
-          <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
-            <ScFormItem label="固定标签页">
-              <Segmented
-                :modelValue="form.sysMenuFixedTag ? 0 : 1"
-                :options="fixedTagOptions"
-                @change="
-                  ({ option: { value } }) => {
-                    form.sysMenuFixedTag = value ? 1 : 0;
-                  }
-                "
-              />
-            </ScFormItem>
-          </re-col>
-
-          <re-col :value="12" :xs="24" :sm="24">
-            <ScFormItem>
-              <template #label>
-                <span>所属角色</span>
-                <ScTooltip
-                  content="当选择角色后, 该菜单只针对当前角色可见"
-                  placement="top"
-                >
-                  <ScIcon style="margin-left: 4px; cursor: help"
-                    ><QuestionFilled
-                  /></ScIcon>
-                </ScTooltip>
-              </template>
-              <ScSelect v-model="dynamicTags" multiple>
-                <ScOption
-                  v-for="item in roleOptions"
-                  :key="item.sysRoleId"
-                  :value="item.sysRoleCode"
-                  :label="item.sysRoleName"
+          <div class="form-section">
+            <div class="section-title">显示策略</div>
+            <div class="flag-grid">
+              <div v-if="showRouteFields" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">菜单显示</div>
+                  <div class="flag-desc">控制左侧导航中是否显示当前菜单</div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuHidden"
+                  :active-value="0"
+                  :inactive-value="1"
+                  inline-prompt
+                  active-text="显示"
+                  inactive-text="隐藏"
                 />
-              </ScSelect>
-            </ScFormItem>
-          </re-col>
-        </ScRow>
-      </ScForm>
+              </div>
+
+              <div v-if="showRouteFields" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">显示父级菜单</div>
+                  <div class="flag-desc">详情页激活时是否同时展示父级菜单</div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuShowParent"
+                  :active-value="1"
+                  :inactive-value="0"
+                  inline-prompt
+                  active-text="显示"
+                  inactive-text="隐藏"
+                />
+              </div>
+
+              <div v-if="showRouteFields" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">标签页可见</div>
+                  <div class="flag-desc">控制当前菜单是否显示在标签页中</div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuHiddenTag"
+                  :active-value="0"
+                  :inactive-value="1"
+                  inline-prompt
+                  active-text="显示"
+                  inactive-text="隐藏"
+                />
+              </div>
+
+              <div v-if="showRouteFields" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">固定标签页</div>
+                  <div class="flag-desc">固定后标签页不可直接关闭</div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuFixedTag"
+                  :active-value="1"
+                  :inactive-value="0"
+                  inline-prompt
+                  active-text="固定"
+                  inactive-text="普通"
+                />
+              </div>
+
+              <div v-if="showComponentField" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">页面缓存</div>
+                  <div class="flag-desc">开启后会缓存当前页面状态</div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuKeepAlive"
+                  :active-value="1"
+                  :inactive-value="0"
+                  inline-prompt
+                  active-text="缓存"
+                  inactive-text="不缓存"
+                />
+              </div>
+
+              <div v-if="showComponentField" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">设为首页</div>
+                  <div class="flag-desc">仅路由菜单可设置为首页入口</div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuHome"
+                  :active-value="1"
+                  :inactive-value="0"
+                  inline-prompt
+                  active-text="是"
+                  inactive-text="否"
+                />
+              </div>
+
+              <div v-if="isIframeType" class="flag-card">
+                <div class="flag-copy">
+                  <div class="flag-label">iframe 加载动画</div>
+                  <div class="flag-desc">
+                    控制 iframe 页面首次进入时是否显示加载态
+                  </div>
+                </div>
+                <ScSwitch
+                  v-model="form.sysMenuFrameLoading"
+                  :active-value="1"
+                  :inactive-value="0"
+                  inline-prompt
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
+              </div>
+            </div>
+          </div>
+        </ScForm>
+      </div>
 
       <template #footer>
-        <ScButton @click="visible = false">取 消</ScButton>
-        <ScButton
-          v-if="mode != 'show'"
-          type="primary"
-          :loading="loading"
-          @click="submit()"
-          >保 存</ScButton>
+        <div class="dialog-footer">
+          <ScButton @click="close">取消</ScButton>
+          <ScButton
+            v-if="dialogMode !== 'show'"
+            type="primary"
+            :loading="loading"
+            @click="submit"
+          >
+            保存
+          </ScButton>
+        </div>
       </template>
     </sc-dialog>
   </div>
 </template>
+
 <style lang="scss">
-.el-cascader-panel .el-radio {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
+:global(.menu-save-dialog) {
+  display: flex !important;
+  flex-direction: column;
+  max-height: calc(100vh - 24px) !important;
+  margin: 0 auto !important;
+}
+
+:global(.menu-save-dialog .el-dialog__body) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto !important;
+}
+
+:global(.menu-save-dialog .el-dialog__footer) {
+  flex-shrink: 0;
+}
+
+.menu-dialog-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.hero-desc {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.menu-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.menu-form-scroll {
+  max-height: calc(100vh - 320px);
+  padding-right: 4px;
+  overflow: auto;
+}
+
+.form-section {
+  padding: 18px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+}
+
+.section-title {
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.menu-parent-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
-  height: 100%;
 }
 
-.el-cascader-panel .el-radio__input {
-  visibility: hidden;
+.menu-parent-count {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 
-.el-cascader-panel .el-cascader-node__postfix {
-  top: 10px;
+.flag-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.flag-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 78px;
+  padding: 14px 16px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+}
+
+.flag-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flag-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.flag-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .flag-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

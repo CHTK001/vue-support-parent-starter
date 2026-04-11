@@ -29,7 +29,7 @@ interface Props {
   /**
    * 绑定值
    */
-  modelValue?: number;
+  modelValue?: number | string;
   /**
    * 布局模式
    * - default: 默认数字输入框
@@ -94,14 +94,29 @@ const props = withDefaults(defineProps<Props>(), {
   controlsPosition: "",
   placeholder: "",
   disabled: false,
-  size: "default"
+  size: "default",
 });
 
 const emit = defineEmits(["update:modelValue", "change", "focus", "blur"]);
 
 const currentValue = computed({
-  get: () => props.modelValue,
-  set: val => emit("update:modelValue", val)
+  get: () => {
+    if (props.modelValue === "" || props.modelValue == null) {
+      return undefined;
+    }
+
+    if (typeof props.modelValue === "string") {
+      const parsedValue = Number(props.modelValue);
+      return Number.isFinite(parsedValue) ? parsedValue : undefined;
+    }
+
+    return props.modelValue;
+  },
+  set: (val) =>
+    emit(
+      "update:modelValue",
+      typeof props.modelValue === "string" ? String(val ?? "") : val,
+    ),
 });
 
 /**
@@ -129,103 +144,98 @@ const handleBlur = (event: FocusEvent) => {
 <style lang="scss" scoped>
 .sc-number-input {
   width: 100%;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  // 现代化的数字输入框样式
   :deep(.el-input-number) {
+    --sc-number-height: var(--el-component-size, 32px);
     width: 100%;
+    min-height: var(--sc-number-height);
+    border-radius: 12px;
+    background: transparent;
+    --el-input-number-controls-height: 16px;
 
     .el-input__wrapper {
-      border-radius: 8px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: var(--el-box-shadow-lighter);
+      min-height: var(--sc-number-height);
+      padding-inline: 12px 44px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--el-fill-color-light) 74%, white);
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-border-color) 72%, transparent),
+        0 10px 20px rgba(15, 23, 42, 0.04);
+      transition:
+        box-shadow 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
 
       &:hover {
-        box-shadow: var(--el-box-shadow-light);
-        transform: translateY(-1px);
+        box-shadow:
+          inset 0 0 0 1px
+            color-mix(in srgb, var(--el-color-primary) 24%, transparent),
+          0 14px 24px rgba(15, 23, 42, 0.08);
       }
 
       &.is-focus {
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-        transform: translateY(-2px);
+        background: color-mix(in srgb, var(--el-color-primary) 6%, white);
+        box-shadow:
+          inset 0 0 0 1px
+            color-mix(in srgb, var(--el-color-primary) 42%, transparent),
+          0 16px 30px rgba(var(--el-color-primary-rgb), 0.14);
       }
     }
 
-    // 控制按钮美化
     .el-input-number__decrease,
     .el-input-number__increase {
-      border-radius: 6px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      background: var(--el-fill-color-lighter);
+      width: 18px;
+      height: 18px;
+      border: none;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--el-fill-color-light) 82%, white);
+      color: var(--el-text-color-secondary);
+      transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 
       &:hover {
-        background: var(--el-color-primary);
-        color: var(--el-text-color-primary);
-        transform: scale(1.1);
-        box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.3);
-      }
-
-      &:active {
-        transform: scale(0.95);
+        background: color-mix(in srgb, var(--el-color-primary) 14%, white);
+        color: var(--el-color-primary);
+        box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.12);
       }
     }
 
-    // 右侧控制按钮样式
     &.is-controls-right {
       .el-input-number__decrease,
       .el-input-number__increase {
-        border-radius: 4px;
-        margin: 1px;
+        right: 8px;
+        left: auto;
+      }
 
-        &:hover {
-          transform: scale(1.05);
-        }
+      .el-input-number__decrease {
+        bottom: 8px;
+      }
+
+      .el-input-number__increase {
+        top: 8px;
       }
     }
-  }
 
-  // 悬停效果
-  &:hover {
-    transform: translateY(-1px);
-  }
-
-  // 聚焦状态
-  &:focus-within {
-    transform: translateY(-2px);
-  }
-
-  // 禁用状态
-  &.is-disabled {
-    opacity: 0.6;
-    transform: none !important;
-
-    :deep(.el-input-number) {
-      .el-input__wrapper {
-        box-shadow: none !important;
-        transform: none !important;
-      }
-
+    &:not(.is-controls-right) {
       .el-input-number__decrease,
       .el-input-number__increase {
-        transform: none !important;
-        box-shadow: none !important;
+        top: 50%;
+        transform: translateY(-50%);
       }
-    }
-  }
 
-  // 响应式设计
-  @media (max-width: 768px) {
-    &:hover,
-    &:focus-within {
-      transform: none;
-    }
+      .el-input-number__decrease {
+        left: 10px;
+      }
 
-    :deep(.el-input-number) {
+      .el-input-number__increase {
+        right: 10px;
+      }
+
       .el-input__wrapper {
-        &:hover,
-        &.is-focus {
-          transform: none;
-        }
+        padding-inline: 38px;
       }
     }
   }

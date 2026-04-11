@@ -71,11 +71,31 @@ export const useUserStore = defineStore({
       localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
       "",
     loginType: null,
+    managedDeptIds:
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.managedDeptIds ??
+      [],
+    roleInfos:
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.roleInfos ?? [],
     // 页面级别权限
     roles: normalizeRoles(
       localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
     ),
     perms: localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [],
+    agreementVersion:
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.agreementVersion ??
+      "",
+    agreementUpdatedAt:
+      localStorageProxy().getItem<FlatUserResult>(userKey)
+        ?.agreementUpdatedAt ?? "",
+    agreementAcceptedVersion:
+      localStorageProxy().getItem<FlatUserResult>(userKey)
+        ?.agreementAcceptedVersion ?? "",
+    agreementAcceptedAt:
+      localStorageProxy().getItem<FlatUserResult>(userKey)
+        ?.agreementAcceptedAt ?? "",
+    agreementNeedConfirm:
+      localStorageProxy().getItem<FlatUserResult>(userKey)
+        ?.agreementNeedConfirm ?? false,
     // 是否勾选了登录页的免登录
     isRemembered: false,
     // 登录页的免登录存储几天，默认7天
@@ -102,6 +122,12 @@ export const useUserStore = defineStore({
     SET_NICKNAME(nickname: string) {
       this.nickname = nickname;
     },
+    SET_MANAGED_DEPT_IDS(managedDeptIds: Array<string | number> = []) {
+      this.managedDeptIds = managedDeptIds;
+    },
+    SET_ROLE_INFOS(roleInfos = []) {
+      this.roleInfos = roleInfos;
+    },
     /** 存储角色 */
     SET_ROLES(roles: Array<string>) {
       this.roles = normalizeRoles(roles);
@@ -110,6 +136,19 @@ export const useUserStore = defineStore({
     SET_PERMS(perms: Array<string>) {
       this.perms = perms;
       setUserPerm(perms);
+    },
+    SET_AGREEMENT_STATUS(payload: {
+      agreementVersion?: string;
+      agreementUpdatedAt?: string;
+      agreementAcceptedVersion?: string;
+      agreementAcceptedAt?: string;
+      agreementNeedConfirm?: boolean;
+    }) {
+      this.agreementVersion = payload.agreementVersion ?? "";
+      this.agreementUpdatedAt = payload.agreementUpdatedAt ?? "";
+      this.agreementAcceptedVersion = payload.agreementAcceptedVersion ?? "";
+      this.agreementAcceptedAt = payload.agreementAcceptedAt ?? "";
+      this.agreementNeedConfirm = payload.agreementNeedConfirm ?? false;
     },
     /** 存储是否勾选了登录页的免登录 */
     SET_ISREMEMBERED(bool: boolean) {
@@ -158,6 +197,8 @@ export const useUserStore = defineStore({
     /** 前端登出（不调用接口） */
     logOut() {
       this.username = "";
+      this.managedDeptIds = [];
+      this.roleInfos = [];
       this.roles = [];
       removeToken();
       useConfigStore()?.clear();

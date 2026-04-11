@@ -1,6 +1,7 @@
 buttons:
   AccountManagement: Account Management
   accountSetting: Account
+  helpFeedback: Help & Feedback
   back: Back
   base: Basic information
   bindSuccess: Binding successful
@@ -35,11 +36,13 @@ buttons:
   pushSettings: Notification settings
   security: Security
   securityLog: Security log
+  support: Support
   thirdparty: Third party management
   totp: Two-factor authentication
   update: Update
   updateAvatar: Update avatar
   updateInfo: Update information
+  userAgreement: User Agreement
 
 field:
   address: Place
@@ -126,6 +129,7 @@ message:
   bindEmail: Email already bound
   bindPhone: Phone already bound
   confimDelete: Confirm delete?
+  deleteSuccess: Deleted successfully
   newPassword: Password must be at least 8 characters and include letters, numbers and symbols
   noPlugin: No parts
   tips:
@@ -174,6 +178,8 @@ panel:
   pureTagsStyleChromeTip: Classic and elegant
   pureTagsStyleModern: Modern
   pureTagsStyleModernTip: Gradient, shadow, modern visual experience
+  pureTagsStyleOutline: Outline
+  pureTagsStyleOutlineTip: Outlined tabs for a cleaner business look
   pureTagsStyleSmart: Smart
   pureTagsStyleSmartTip: Fun and lively
   pureThemeColor: Theme Color

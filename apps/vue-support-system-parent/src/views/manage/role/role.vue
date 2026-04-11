@@ -18,7 +18,7 @@
         </div>
       </template>
       <ScTabs v-model="env.tab" class="role-tabs">
-        <ScTabPane name="role" :label="$t('buttons.role-perm')">
+        <ScTabPane name="role" :label="translateOr('buttons.role-perm', '菜单权限')">
           <div class="tab-content">
             <ScSkeleton :loading="loading.menu" animated>
               <template #default>
@@ -41,11 +41,11 @@
             </ScSkeleton>
           </div>
         </ScTabPane>
-        <ScTabPane name="boardCard" :label="$t('buttons.board-card')">
+        <ScTabPane name="boardCard" :label="translateOr('buttons.board-card', '看板类型')">
           <div class="tab-content">
             <ScForm class="modern-form">
               <ScFormItem
-                :label="$t('message.board-card-type')"
+                :label="translateOr('message.board-card-type', '看板类型')"
                 prop="sysRoleBoardCard"
               >
                 <ScSelect v-model="env.data.sysRoleBoardCard">
@@ -60,11 +60,11 @@
             </ScForm>
           </div>
         </ScTabPane>
-        <ScTabPane name="permission" :label="$t('buttons.permission')">
+        <ScTabPane name="permission" :label="translateOr('buttons.permission', '数据权限')">
           <div class="tab-content">
-            <ScForm label-width="120px" class="modern-form">
+            <ScForm label-width="120px" class="modern-form permission-grid">
               <ScFormItem
-                :label="$t('message.readable')"
+                :label="translateOr('message.readable', '可读')"
                 prop="sysRoleReadable"
               >
                 <el-segmented
@@ -73,7 +73,7 @@
                 />
               </ScFormItem>
               <ScFormItem
-                :label="$t('message.writeable')"
+                :label="translateOr('message.writeable', '可写')"
                 prop="sysRoleWriteable"
               >
                 <el-segmented
@@ -82,7 +82,7 @@
                 />
               </ScFormItem>
               <ScFormItem
-                :label="$t('message.executable')"
+                :label="translateOr('message.executable', '可执行')"
                 prop="sysRoleExecutable"
               >
                 <el-segmented
@@ -122,6 +122,10 @@ import { useI18n } from "vue-i18n";
 import { BoardCardList } from "./hook";
 import { useRenderIcon } from "@repo/components/ReIcon";
 const { t } = useI18n();
+const translateOr = (key, fallback) => {
+  const translated = t(key);
+  return !translated || translated === key ? fallback : translated;
+};
 
 const env = reactive({
   visible: false,
@@ -204,7 +208,6 @@ const handleUpdateRole = async () => {
 };
 const handleSave = async () => {
   let checkedNodes = treeRef.value.getCheckedNodes();
-  console.log(checkedNodes);
   const { data, code } = await fetchUpdateRoleMenu({
     roleId: curRow.value.sysRoleId,
     menuId: checkedNodes.map((item) => item.sysMenuId),
@@ -306,6 +309,16 @@ defineExpose({
   min-height: 300px;
 }
 
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.permission-grid :deep(.el-form-item:last-child) {
+  grid-column: 1 / -1;
+}
+
 .role-tree {
   :deep(.el-tree-v2__node) {
     padding: 4px 0;
@@ -344,7 +357,7 @@ defineExpose({
 
   :deep(.el-segmented) {
     width: 100%;
-    max-width: 360px;
+    max-width: none;
   }
 }
 
@@ -388,6 +401,16 @@ html.dark {
   .role-tree {
     border-color: rgba(71, 85, 105, 0.55);
     background: rgba(15, 23, 42, 0.5);
+  }
+}
+
+@media (width <= 768px) {
+  .permission-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-grid :deep(.el-form-item:last-child) {
+    grid-column: auto;
   }
 }
 

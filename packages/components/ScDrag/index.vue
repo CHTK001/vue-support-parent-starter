@@ -384,7 +384,7 @@ export default defineComponent({
   border-radius: var(--layoutRadius, 12px);
 }
 .el-drag-tech-dialog {
-  --el-dialog-margin-top: 15vh;
+  --el-dialog-margin-top: 2vh;
   --el-dialog-bg-color: var(--el-bg-color);
   --el-dialog-box-shadow: var(--el-box-shadow);
   --el-dialog-title-font-size: var(--el-font-size-large);
@@ -401,7 +401,7 @@ export default defineComponent({
   width: 100%;
 }
 .el-drag-dialog {
-  --el-dialog-margin-top: 15vh;
+  --el-dialog-margin-top: 2vh;
   --el-dialog-bg-color: var(--el-bg-color);
   --el-dialog-box-shadow: var(--el-box-shadow);
   --el-dialog-title-font-size: var(--el-font-size-large);

@@ -1,13 +1,13 @@
 <template>
   <component
     :is="currentComponent || ElTag"
-    :type="type"
-    :theme="type"
+    :type="normalizedType"
+    :theme="normalizedType"
     :closable="closable"
     :disable-transitions="disableTransitions"
     :hit="hit"
     :color="color"
-    :size="size"
+    :size="normalizedSize"
     :effect="effect"
     :round="round"
     @close="handleClose"
@@ -22,8 +22,8 @@
 <script setup lang="ts">
 /**
  * ScTag 标签组件
- * 封装 Element Plus Tag 与 PixelUI PxTag
- * 在 data-skin 为 8bit 时自动切换为像素风标签
+ * 封装 Element Plus Tag
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";
@@ -32,7 +32,9 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 
 const props = defineProps({
   type: {
-    type: String as PropType<"" | "success" | "info" | "warning" | "danger">,
+    type: String as PropType<
+      "" | "primary" | "success" | "info" | "warning" | "danger"
+    >,
     default: ""
   },
   closable: {
@@ -68,6 +70,8 @@ const props = defineProps({
 const emit = defineEmits(["close", "click"]);
 
 const { currentComponent } = useThemeComponent("ElTag");
+const normalizedType = computed(() => props.type || undefined);
+const normalizedSize = computed(() => props.size || undefined);
 
 const handleClose = (event: MouseEvent) => {
   emit("close", event);

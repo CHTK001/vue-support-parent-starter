@@ -94,6 +94,10 @@ const props = defineProps({
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
+        height: 24px;
+        border-radius: 0 999px 999px 0;
+        background-color: var(--el-color-primary);
+        opacity: 1;
       }
     }
   }
@@ -160,6 +164,7 @@ const props = defineProps({
       // 默认（亮色）：使用主题色文字
       color: var(--el-color-primary) !important;
       font-weight: 600;
+      position: relative;
 
       .el-icon,
       svg,
@@ -167,6 +172,19 @@ const props = defineProps({
       div,
       .el-sub-menu__icon-arrow {
         color: var(--el-color-primary) !important;
+      }
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 24px;
+        border-radius: 0 999px 999px 0;
+        background-color: var(--el-color-primary);
+        opacity: 1;
       }
 
       // 暗色模式适配

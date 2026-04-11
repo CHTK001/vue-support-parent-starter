@@ -1,122 +1,159 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { defineAsyncComponent, reactive, ref } from "vue";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScDivider from "@repo/components/ScDivider/index";
 import {
   fetchDeleteDictItem,
   fetchPageDictItem,
   fetchUpdateDictItem,
 } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
-import { useI18n } from "vue-i18n";
 import DictLayout from "./components/layout.vue";
+
 const SettingDialog = defineAsyncComponent(
-  () => import("./components/itemProperty.vue")
+  () => import("./components/ItemProperty.vue"),
 );
 const SaveDialog = defineAsyncComponent(
-  () => import("./components/saveItem.vue")
+  () => import("./components/SaveItem.vue"),
 );
-const saveDialog = ref(null);
+
 const tableRef = ref(null);
 const settingDialogRef = ref(null);
+
 const params = reactive({
-  sysDictId: null,
+  sysDictId: null as number | null,
 });
 
-const { t } = useI18n();
-const onClick = (data) => {
-  params.sysDictId = data.sysDictId;
-  onSearch(params);
-};
+const itemDialog = reactive({
+  visible: false,
+  mode: "save" as "save" | "edit",
+  data: {} as Record<string, any>,
+});
 
-const onSearch = (query) => {
-  const newParams = {};
-  Object.assign(newParams, params);
-  Object.assign(newParams, query);
-  tableRef.value?.reload(newParams);
-};
-
-const doUpdate = async (row) => {
-  fetchUpdateDictItem(row);
-};
-
-const onDelete = async (row) => {
-  await fetchDeleteDictItem(row.sysDictItemId).then((res) => {
-    if (res.code == "00000") {
-      tableRef.value.reload(params);
-      message(t("message.deleteSuccess"), { type: "success" });
-      return;
-    }
+const reloadTable = (query: Record<string, any> = {}) => {
+  if (!params.sysDictId) {
+    return;
+  }
+  tableRef.value?.reload({
+    ...params,
+    ...query,
   });
 };
 
-const visible = reactive({
-  save: false,
-});
-const saveDialogParams = reactive({
-  mode: "save",
-});
-
-const handleSetting = async (item) => {
-  settingDialogRef.value.handleOpen(item, "edit");
+const onClick = (data?: Record<string, any>) => {
+  params.sysDictId = data?.sysDictId ?? null;
+  reloadTable();
 };
-const dialogOpen = async (item, mode) => {
-  visible.save = true;
-  item.sysDictId = params.sysDictId;
-  await nextTick();
-  saveDialog.value.setData(item).open(mode);
+
+const doUpdate = async (row: Record<string, any>) => {
+  try {
+    const res = await fetchUpdateDictItem(row);
+    if (
+      !(res && typeof res === "object" && "code" in res && res.code === "00000")
+    ) {
+      message.error(
+        res && typeof res === "object" && "msg" in res
+          ? (res.msg as string) || "状态更新失败"
+          : "状态更新失败",
+      );
+      reloadTable();
+    }
+  } catch {
+    message.error("状态更新失败");
+    reloadTable();
+  }
+};
+
+const onDelete = async (row: Record<string, any>) => {
+  try {
+    const res = await fetchDeleteDictItem(row.sysDictItemId);
+    if (res?.code === "00000") {
+      reloadTable();
+      message.success("删除成功");
+      return;
+    }
+    message.error(res?.msg || "删除失败");
+  } catch {
+    message.error("删除失败");
+  }
+};
+
+const handleSetting = (item: Record<string, any>) => {
+  settingDialogRef.value?.handleOpen(item, "edit");
+};
+
+const dialogOpen = (item: Record<string, any> = {}, mode: "save" | "edit") => {
+  if (!params.sysDictId) {
+    message.warning("请先选择字典分类");
+    return;
+  }
+  itemDialog.mode = mode;
+  itemDialog.data = {
+    ...item,
+    sysDictId: item?.sysDictId ?? params.sysDictId,
+  };
+  itemDialog.visible = true;
 };
 
 const dialogClose = () => {
-  visible.save = false;
+  itemDialog.visible = false;
+  itemDialog.mode = "save";
+  itemDialog.data = {};
+};
+
+const handleItemDialogSuccess = () => {
+  dialogClose();
+  reloadTable();
+};
+
+const handlePropertySuccess = () => {
+  reloadTable();
 };
 </script>
+
 <template>
   <div class="dict-page system-container modern-bg">
     <SaveDialog
-      ref="saveDialog"
-      :mode="saveDialogParams.mode"
-      @success="onSearch"
-      @close="dialogClose"
+      v-model:visible="itemDialog.visible"
+      :mode="itemDialog.mode"
+      :item-data="itemDialog.data"
+      :sys-dict-id="params.sysDictId"
+      @success="handleItemDialogSuccess"
     />
-    <SettingDialog
-      ref="settingDialogRef"
-      :mode="saveDialogParams.mode"
-      @success="onSearch"
-      @close="dialogClose"
-    />
+    <SettingDialog ref="settingDialogRef" @success="handlePropertySuccess" />
     <el-container class="dict-container">
       <el-aside width="320px" class="dict-aside">
         <div class="aside-header">
           <div class="aside-title">
-            <ScIcon class="aside-icon"
-              ><component :is="useRenderIcon('ri:book-2-line')"
-            /></ScIcon>
+            <ScIcon class="aside-icon">
+              <component :is="useRenderIcon('ri:book-2-line')" />
+            </ScIcon>
             <span>字典分类</span>
           </div>
         </div>
-        <DictLayout :nodeClick="onClick" />
+        <div class="aside-body">
+          <DictLayout :nodeClick="onClick" />
+        </div>
       </el-aside>
       <el-main class="dict-main">
         <el-container>
-          <el-header class="dict-header" v-if="params.sysDictId">
-            <div class="toolbar-left">
-              <!-- 过滤条件区域 -->
-            </div>
+          <el-header v-if="params.sysDictId" class="dict-header">
+            <div class="toolbar-left" />
             <div class="toolbar-right">
-              <ScButton 
+              <ScButton
                 v-auth="'dict:list'"
                 size="small"
                 title="刷新字典项"
                 aria-label="刷新字典项"
-                @click="onSearch({})"
+                @click="reloadTable"
               >
                 <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
                 刷新
               </ScButton>
-              <ScButton 
+              <ScButton
                 v-auth="'dict:add'"
                 type="primary"
                 size="small"
@@ -138,14 +175,14 @@ const dialogClose = () => {
               :params="params"
               :row-key="'sysDictItemId'"
             >
-              <ScTableColumn 
+              <ScTableColumn
                 label="序号"
                 type="index"
                 align="center"
                 fixed
                 width="60px"
               />
-              <ScTableColumn 
+              <ScTableColumn
                 prop="sysDictItemName"
                 label="字典项名称"
                 align="center"
@@ -154,7 +191,7 @@ const dialogClose = () => {
               >
                 <template #default="{ row }">
                   <div class="flex flex-1 justify-between">
-                    <ScTag 
+                    <ScTag
                       class="flex-col"
                       :type="row.sysDictItemType"
                       effect="dark"
@@ -171,7 +208,7 @@ const dialogClose = () => {
                       "
                     >
                       <span>{{ row.sysDictItemCode }}</span>
-                      <ScDivider 
+                      <ScDivider
                         v-if="row.sysDictItemIcon"
                         direction="vertical"
                       />
@@ -182,13 +219,13 @@ const dialogClose = () => {
                   </div>
                 </template>
               </ScTableColumn>
-              <ScTableColumn 
+              <ScTableColumn
                 prop="sysDictItemI18n"
                 label="字典项i18n"
                 align="center"
               >
                 <template #default="{ row }">
-                  <ScTag 
+                  <ScTag
                     v-if="row.sysDictItemI18n"
                     :type="row.sysDictItemType"
                     effect="dark"
@@ -200,7 +237,7 @@ const dialogClose = () => {
                   <span v-else class="null-value">NULL</span>
                 </template>
               </ScTableColumn>
-              <ScTableColumn 
+              <ScTableColumn
                 prop="sysDictItemStatus"
                 label="状态"
                 align="center"
@@ -215,56 +252,56 @@ const dialogClose = () => {
                   />
                 </template>
               </ScTableColumn>
-              <ScTableColumn 
+              <ScTableColumn
                 prop="sysDictItemSort"
                 label="排序"
                 align="center"
                 width="60px"
               />
-              <ScTableColumn 
+              <ScTableColumn
                 prop="sysDictItemRemark"
                 label="字典项备注"
                 align="center"
               >
                 <template #default="{ row }">
-                  <span v-if="row.sysDictItemRemark">{{
-                    row.sysDictItemRemark
-                  }}</span>
+                  <span v-if="row.sysDictItemRemark">
+                    {{ row.sysDictItemRemark }}
+                  </span>
                   <span v-else class="null-value">NULL</span>
                 </template>
               </ScTableColumn>
               <ScTableColumn label="操作" fixed="right" align="center">
                 <template #default="{ row }">
-                  <ScButton 
+                  <ScButton
                     v-auth="'dict:setting'"
                     class="btn-text"
                     :icon="useRenderIcon('ep:setting')"
                     title="配置字典项"
                     aria-label="配置字典项"
                     @click="handleSetting(row)"
-                  ></ScButton>
-                  <ScButton 
+                  />
+                  <ScButton
                     v-auth="'dict:edit'"
                     class="btn-text"
                     :icon="useRenderIcon(EditPen)"
                     title="编辑字典项"
                     aria-label="编辑字典项"
                     @click="dialogOpen(row, 'edit')"
-                  ></ScButton>
-                  <ScPopconfirm 
-                    v-if="row.sysSettingInSystem != 1"
+                  />
+                  <ScPopconfirm
+                    v-if="row.sysDictItemInSystem != 1"
                     :title="$t('message.confimDelete')"
                     @confirm="onDelete(row)"
                   >
                     <template #reference>
-                      <ScButton 
+                      <ScButton
                         v-auth="'dict:delete'"
                         type="danger"
                         class="btn-text"
                         :icon="useRenderIcon(Delete)"
                         title="删除字典项"
                         aria-label="删除字典项"
-                      ></ScButton>
+                      />
                     </template>
                   </ScPopconfirm>
                 </template>
@@ -293,7 +330,9 @@ const dialogClose = () => {
 
 .dict-container {
   height: 100%;
+  min-height: 0;
   background-color: transparent;
+  overflow: hidden;
 }
 
 .dict-aside {
@@ -305,6 +344,8 @@ const dialogClose = () => {
   border-right: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   transition: all 0.3s ease;
   position: relative;
 
@@ -326,6 +367,12 @@ const dialogClose = () => {
   &:hover {
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.06);
   }
+}
+
+.aside-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .aside-header {
@@ -459,7 +506,6 @@ const dialogClose = () => {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* 空值样式 */
 .null-value {
   color: var(--el-text-color-placeholder);
   font-size: 12px;

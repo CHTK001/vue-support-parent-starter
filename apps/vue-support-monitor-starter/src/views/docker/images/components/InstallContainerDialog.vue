@@ -1,7 +1,7 @@
 ﻿<template>
   <sc-dialog
     v-model="visibleProxy"
-    title="安装容器"
+    title="创建容器"
     width="720px"
     :show-close="true"
     @close="handleClose"

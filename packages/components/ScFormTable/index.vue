@@ -3,12 +3,29 @@
     <ScTable ref="table" :data="data" border stripe :height="height" :default-sort="defaultSort" @sort-change="handleSortChange">
       <ScTableColumn type="index" width="50" fixed="left">
         <template #header>
-          <ScButton v-if="!hideAdd" type="primary" :icon="useRenderIcon('ep:plus')" size="small" circle @click="rowAdd" />
+          <ScButton
+            v-if="!hideAdd"
+            type="primary"
+            :icon="useRenderIcon('ep:plus')"
+            size="small"
+            circle
+            native-type="button"
+            @click.stop="rowAdd"
+          />
         </template>
         <template #default="scope">
           <div :class="['sc-form-table-handle', { 'sc-form-table-handle-delete': !hideDelete }]">
             <span>{{ scope.$index + 1 }}</span>
-            <ScButton v-if="!hideDelete" type="danger" :icon="useRenderIcon('ep:delete')" size="small" plain circle @click="rowDel(scope.row, scope.$index)" />
+            <ScButton
+              v-if="!hideDelete"
+              type="danger"
+              :icon="useRenderIcon('ep:delete')"
+              size="small"
+              plain
+              circle
+              native-type="button"
+              @click.stop="rowDel(scope.row, scope.$index)"
+            />
           </div>
         </template>
       </ScTableColumn>
@@ -21,7 +38,19 @@
       </ScTableColumn>
       <slot />
       <template #empty>
-        {{ placeholder }}
+        <div class="sc-form-table-empty">
+          <span>{{ placeholder }}</span>
+          <ScButton
+            v-if="!hideAdd"
+            type="primary"
+            size="small"
+            plain
+            native-type="button"
+            @click.stop="rowAdd"
+          >
+            新增一行
+          </ScButton>
+        </div>
       </template>
     </ScTable>
   </div>
@@ -132,6 +161,13 @@ export default {
 <style scoped>
 .sc-form-table {
   width: 100%;
+}
+.sc-form-table .sc-form-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
 }
 .sc-form-table .sc-form-table-handle {
   text-align: center;

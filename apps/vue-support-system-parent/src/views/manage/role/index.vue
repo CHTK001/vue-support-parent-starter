@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
 
-import { defineAsyncComponent, nextTick, reactive, ref, computed } from "vue";
+import { computed, nextTick, reactive, ref } from "vue";
 
 import {
   fetchDeleteRole,
@@ -12,6 +12,10 @@ import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { BoardCardList } from "./hook";
+import SaveDialog from "./save.vue";
+import RoleDialog from "./role.vue";
+import SystemStatsCards from "../components/SystemStatsCards.vue";
+import type { SystemStatsCardItem } from "../components/SystemStatsCards.vue";
 
 // 统计数据
 const stats = reactive({
@@ -29,13 +33,17 @@ const onDataLoaded = (data: any[], total: number) => {
   stats.enabled = data?.filter((item) => item.sysRoleStatus === 1)?.length || 0;
 };
 
-const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
-const RoleDialog = defineAsyncComponent(() => import("./role.vue"));
 const { t } = useI18n();
-const roleDialogRef = ref();
+const i18nLabel = (key: string, fallback: string) => {
+  const translated = t(key);
+  return !translated || translated === key ? fallback : translated;
+};
+const roleDialogRef = ref<any>(null);
 const form = reactive({
   sysRoleName: "",
-  SysRoleCode: "",
+  sysRoleCode: "",
+  sysRoleStatus: null,
+  sysRoleInSystem: null,
 });
 
 const visible = reactive({
@@ -47,19 +55,18 @@ const loading = reactive({
   query: false,
   menu: false,
 });
-const formRef = ref();
-const table = ref(null);
-const saveDialog = ref(null);
+const formRef = ref<any>(null);
+const table = ref<any>(null);
+const saveDialog = ref<any>(null);
 const resetForm = async (formRef) => {
-  formRef.resetFields();
+  formRef?.resetFields?.();
+  form.sysRoleStatus = null;
+  form.sysRoleInSystem = null;
   onSearch();
 };
-const onSearch = debounce(
-  async () => {
-    table.value.reload(form);
-  },
-  1000,
-);
+const onSearch = debounce(async () => {
+  table.value.reload(form);
+}, 1000);
 
 const saveDialogParams = reactive({
   mode: "save",
@@ -77,9 +84,17 @@ const onDelete = async (row, index) => {
 };
 
 const dialogOpen = async (item, mode) => {
-  visible.save = true;
+  saveDialogParams.mode = mode;
   await nextTick();
-  saveDialog.value.setData(item).open(mode);
+  if (!saveDialog.value) {
+    await nextTick();
+  }
+  if (!saveDialog.value) {
+    message("角色弹窗加载失败，请刷新后重试", { type: "error" });
+    return;
+  }
+  saveDialog.value.setData({ ...item });
+  saveDialog.value.open(mode);
 };
 
 const dialogClose = async () => {
@@ -87,11 +102,65 @@ const dialogClose = async () => {
 };
 
 const handleOpenRole = async (row) => {
-  roleDialogRef.value.handleOpen(row);
+  roleDialogRef.value?.handleOpen?.(row);
 };
 
 const getBoardCardLabel = (value) => {
   return BoardCardList.filter((item) => item.value == value)?.[0]?.label;
+};
+
+const statsCards = computed<SystemStatsCardItem[]>(() => [
+  {
+    key: "total",
+    label: i18nLabel("system.role.total", "全部角色"),
+    value: stats.total,
+    icon: "ri:shield-user-line",
+    theme: "primary",
+    active: form.sysRoleStatus === null && form.sysRoleInSystem === null,
+  },
+  {
+    key: "system",
+    label: i18nLabel("system.role.system", "系统角色"),
+    value: stats.system,
+    icon: "ri:shield-keyhole-line",
+    theme: "warning",
+    active: form.sysRoleInSystem === 1,
+  },
+  {
+    key: "custom",
+    label: i18nLabel("system.role.custom", "自定义角色"),
+    value: stats.custom,
+    icon: "ri:shield-star-line",
+    theme: "info",
+    active: form.sysRoleInSystem === 0,
+  },
+  {
+    key: "enabled",
+    label: i18nLabel("system.role.enabled", "已启用"),
+    value: stats.enabled,
+    icon: "ri:shield-check-line",
+    theme: "success",
+    active: form.sysRoleStatus === 1,
+  },
+]);
+
+const handleStatsSelect = (item) => {
+  if (!item?.key) {
+    return;
+  }
+
+  form.sysRoleStatus = null;
+  form.sysRoleInSystem = null;
+
+  if (item.key === "system") {
+    form.sysRoleInSystem = 1;
+  } else if (item.key === "custom") {
+    form.sysRoleInSystem = 0;
+  } else if (item.key === "enabled") {
+    form.sysRoleStatus = 1;
+  }
+
+  onSearch();
 };
 
 const contentRef = ref();
@@ -108,44 +177,8 @@ const contentRef = ref();
     <RoleDialog ref="roleDialogRef" />
     <div class="role-wrapper">
       <ScContainer>
-        <!-- 统计面板 -->
-        <div class="role-stats">
-          <div class="stat-item">
-            <div class="stat-icon total">
-              <IconifyIconOnline icon="ri:shield-user-line" :size="28" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.total }}</span>
-              <span class="stat-label">全部角色</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon system">
-              <IconifyIconOnline icon="ri:shield-keyhole-line" :size="28" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.system }}</span>
-              <span class="stat-label">系统角色</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon custom">
-              <IconifyIconOnline icon="ri:shield-star-line" :size="28" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.custom }}</span>
-              <span class="stat-label">自定义角色</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon enabled">
-              <IconifyIconOnline icon="ri:shield-check-line" :size="28" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.enabled }}</span>
-              <span class="stat-label">已启用</span>
-            </div>
-          </div>
+        <div class="stats-section">
+          <SystemStatsCards :items="statsCards" @select="handleStatsSelect" />
         </div>
         <ScHeader class="toolbar-section role-header">
           <div class="toolbar-left left-panel">
@@ -155,18 +188,28 @@ const contentRef = ref();
               :model="form"
               class="modern-form search-form bg-bg_color pl-6 pt-[10px] overflow-auto"
             >
-              <ScFormItem label="角色名称" prop="sysRoleName">
+              <ScFormItem
+                :label="i18nLabel('system.role.name', '角色名称')"
+                prop="sysRoleName"
+              >
                 <ScInput
                   v-model="form.sysRoleName"
-                  placeholder="请输入角色名称"
+                  :placeholder="
+                    i18nLabel('system.role.namePlaceholder', '请输入角色名称')
+                  "
                   clearable
                   class="!w-[180px]"
                 />
               </ScFormItem>
-              <ScFormItem label="角色编码" prop="SysRoleCode">
+              <ScFormItem
+                :label="i18nLabel('system.role.code', '角色编码')"
+                prop="sysRoleCode"
+              >
                 <ScInput
-                  v-model="form.SysRoleCode"
-                  placeholder="请输入角色编码"
+                  v-model="form.sysRoleCode"
+                  :placeholder="
+                    i18nLabel('system.role.codePlaceholder', '请输入角色编码')
+                  "
                   clearable
                   class="!w-[180px]"
                 />
@@ -204,7 +247,7 @@ const contentRef = ref();
               <ScTable
                 ref="table"
                 :url="fetchPageRole"
-                height="auto"
+                height="100%"
                 class="modern-table table-fill"
                 @data-loaded="onDataLoaded"
               >
@@ -243,7 +286,8 @@ const contentRef = ref();
                             type="warning"
                             size="small"
                             class="ml-1"
-                            >系统</ScTag>
+                            >系统</ScTag
+                          >
                         </div>
                         <div class="role-code">{{ row.sysRoleCode }}</div>
                       </div>
@@ -335,25 +379,20 @@ const contentRef = ref();
                       </ScButton>
                     </ScTooltip>
                     <ScPopconfirm
+                      v-if="!row.sysRoleInSystem"
                       :title="$t('message.confimDelete')"
                       @confirm="onDelete(row, $index)"
                     >
                       <template #reference>
-                        <ScTooltip
-                          v-if="!row.sysRoleInSystem"
-                          content="删除"
-                          placement="top"
+                        <ScButton
+                          class="btn-text"
+                          type="danger"
+                          link
+                          title="删除角色"
+                          aria-label="删除角色"
                         >
-                          <ScButton
-                            class="btn-text"
-                            type="danger"
-                            link
-                            title="删除角色"
-                            aria-label="删除角色"
-                          >
-                            <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </ScButton>
-                        </ScTooltip>
+                          <IconifyIconOnline icon="ri:delete-bin-line" />
+                        </ScButton>
                       </template>
                     </ScPopconfirm>
                   </template>
@@ -401,7 +440,6 @@ const contentRef = ref();
   }
 }
 
-
 .role-wrapper {
   display: flex;
   flex-direction: column;
@@ -418,6 +456,12 @@ const contentRef = ref();
   }
 }
 
+.stats-section {
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
 .page-table-fill {
   display: flex;
   flex: 1;
@@ -431,7 +475,7 @@ const contentRef = ref();
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-lighter);
 
@@ -439,7 +483,8 @@ const contentRef = ref();
     display: flex;
     gap: 14px;
     align-items: center;
-    padding: 14px 18px;
+    min-height: 74px;
+    padding: 12px 16px;
     background: var(--el-fill-color-lighter);
     border-radius: 10px;
     transition: all 0.3s ease;
@@ -503,7 +548,7 @@ const contentRef = ref();
   align-items: center;
   justify-content: space-between;
   height: auto !important;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background-color: var(--el-bg-color);
   background-image: linear-gradient(
     135deg,
@@ -548,8 +593,7 @@ const contentRef = ref();
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding: 16px 0 !important;
-  background-color: var(--el-bg-color-page);
+  padding: 10px 0 !important;
 }
 
 // 表格容器
@@ -558,7 +602,7 @@ const contentRef = ref();
   flex: 1;
   height: 100%;
   min-height: 0;
-  padding: 0 4px;
+  padding: 0 2px 2px;
 
   > div {
     display: flex;
@@ -642,11 +686,10 @@ const contentRef = ref();
   }
 
   .el-table__row {
-    transition: all 0.3s;
+    transition: background-color 0.2s ease;
 
     &:hover {
       background-color: var(--el-fill-color-light) !important;
-      transform: translateY(-1px);
     }
 
     &:nth-child(even) {
@@ -684,10 +727,11 @@ const contentRef = ref();
 // 操作按钮美化
 .btn-text {
   font-size: 16px;
-  transition: all 0.3s;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
 
   &:hover {
-    transform: scale(1.15);
+    background: rgba(var(--el-color-primary-rgb), 0.08);
   }
 }
 

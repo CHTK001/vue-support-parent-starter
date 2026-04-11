@@ -87,6 +87,7 @@ export interface LayoutEmitterEvents {
   // 面包屑相关
   breadcrumbChange: boolean;
   breadcrumbModeChange: "icon" | "icon-text";
+  breadcrumbAnimationChange: boolean;
 
   // 主题相关
   systemThemeChange: string;

@@ -3,12 +3,15 @@
  * 单一数据源：首屏 loader、系统设置预览、开发切换器都读取 /loader-config.js 注入的 HTML/CSS 定义。
  */
 
+import { getConfig } from "@repo/config";
+
 export interface LoaderStyleDefinition extends LoaderRuntimeStyleDefinition {}
 
 export const LOADER_APP_CONTAINER_ID = "app-loader";
 export const LOADER_APP_STYLE_ID = "app-loader-style";
 export const LOADER_SHELL_CLASS = "sys-loader-shell";
 export const LOADER_PREVIEW_SHELL_CLASS = "sys-loader-shell--preview";
+export const GLOBAL_LOADER_STORAGE_KEY = "sys-loader-style";
 
 const DEFAULT_LOADER_BASE_STYLE_TEXT = `
 html,
@@ -22,9 +25,6 @@ body {
 
 #app {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   height: 100%;
   background: #ffffff;
@@ -113,9 +113,24 @@ const DEFAULT_LOADER_STYLE: LoaderStyleDefinition = {
 `.trim(),
 };
 
+const NONE_LOADER_STYLE: LoaderStyleDefinition = {
+  key: "none",
+  name: "无动画",
+  description: "不显示加载动效，仅保留最轻的首屏占位",
+  previewScale: 1,
+  html: '<div class="sys-loader-none" aria-hidden="true"></div>',
+  css: `
+.sys-loader-none {
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+`.trim(),
+};
+
 const DEFAULT_LOADER_CONFIG: LoaderRuntimeConfig = {
   baseStyleText: DEFAULT_LOADER_BASE_STYLE_TEXT,
-  definitions: [DEFAULT_LOADER_STYLE],
+  definitions: [NONE_LOADER_STYLE, DEFAULT_LOADER_STYLE],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -124,6 +139,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function normalizeString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
+}
+
+function getWindowLoaderAppCode(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return normalizeString(
+    window.__SYS_APP_CODE__ ||
+      document.querySelector('meta[name="sys-app-code"]')?.getAttribute("content") ||
+      document.documentElement?.getAttribute("data-system-code"),
+  ).trim();
+}
+
+export function getLoaderAppCode(): string {
+  return normalizeString(getConfig()?.SystemCode || getWindowLoaderAppCode()).trim();
+}
+
+export function getLoaderStorageKey(appCode = getLoaderAppCode()): string {
+  return appCode ? `${GLOBAL_LOADER_STORAGE_KEY}:${appCode}` : GLOBAL_LOADER_STORAGE_KEY;
+}
+
+export function getStoredLoaderStyle(
+  fallback = "none",
+  appCode = getLoaderAppCode(),
+): string {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  return localStorage.getItem(getLoaderStorageKey(appCode)) || fallback;
+}
+
+export function setStoredLoaderStyle(
+  value: string,
+  appCode = getLoaderAppCode(),
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(getLoaderStorageKey(appCode), value);
 }
 
 function normalizeNumber(value: unknown): number | undefined {
@@ -239,6 +296,7 @@ export const LOADER_APP_STYLE_TEXT = [
 export function getLoaderStyle(key?: string): LoaderStyleDefinition {
   return (
     LOADER_STYLES[key ?? ""] ||
+    LOADER_STYLES.none ||
     LOADER_STYLES.default ||
     LOADER_DEFINITIONS[0] ||
     DEFAULT_LOADER_STYLE

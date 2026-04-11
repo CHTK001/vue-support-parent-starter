@@ -1,27 +1,30 @@
 ﻿<script setup lang="ts">
 import { ScAvatar } from "@repo/components/ScAvatar";
+import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 
 import { getMine, useUserStore } from "@repo/core";
-import { ReText } from "@repo/components/ReText";
 import { deviceDetection, useGlobal } from "@pureadmin/utils";
-import { onBeforeMount, ref } from "vue";
+import { computed, onBeforeMount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
+
 import AccountManagement from "./components/AccountManagement.vue";
 import Profile from "./components/Profile.vue";
 import ThirdParty from "./components/thirdParty.vue";
 import SecurityLog from "./components/SecurityLog.vue";
 import Password from "./components/password.vue";
-import { getConfig } from "@repo/config";
+import Totp from "./components/Totp.vue";
+import UserAgreement from "./components/UserAgreement.vue";
+import HelpFeedback from "./components/HelpFeedback.vue";
+
 import leftLine from "@iconify-icons/ri/arrow-left-s-line";
 import UnLock from "@iconify-icons/ri/lock-unlock-line";
 import Lock from "@iconify-icons/ri/lock-2-fill";
 import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
-import Totp from "./components/Totp.vue";
 
 defineOptions({
   name: "AccountSettings",
@@ -29,13 +32,16 @@ defineOptions({
 
 const { t } = useI18n();
 const router = useRouter();
-const isOpen = ref(!deviceDetection());
+const route = useRoute();
+const isMobile = deviceDetection();
+const isOpen = ref(!isMobile);
 const { $storage } = useGlobal<GlobalPropertiesApi>();
+
 onBeforeMount(() => {
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
 });
 
-const userInfo: any = ref({
+const userInfo = ref<Record<string, any>>({
   sysUserId: 0,
   sysUserUsername: "",
   sysUserNickname: "",
@@ -62,344 +68,222 @@ const groups: Group[] = [
   {
     name: t("buttons.base") || "基本信息",
     panel: [
-      {
-        key: "profile",
-        label: t("buttons.profile") || "个人信息",
-        icon: ProfileIcon,
-        component: Profile,
-      },
-      {
-        key: "AccountManagement",
-        label: t("buttons.AccountManagement") || "账号管理",
-        icon: AccountManagementIcon,
-        component: AccountManagement,
-      },
-      {
-        key: "bind",
-        label: t("buttons.thirdparty") || "三方管理",
-        icon: UnLock,
-        component: ThirdParty,
-      },
-      // {
-      //   key: "pushSettings",
-      //   label: t("buttons.pushSettings") || "通知设置",
-      //   icon: Bell,
-      //   component: PushSettings
-      // }
+      { key: "profile", label: t("buttons.profile") || "个人信息", icon: ProfileIcon, component: Profile },
+      { key: "AccountManagement", label: t("buttons.AccountManagement") || "账号管理", icon: AccountManagementIcon, component: AccountManagement },
+      { key: "bind", label: t("buttons.thirdparty") || "三方管理", icon: UnLock, component: ThirdParty },
     ],
   },
   {
     name: t("buttons.dataManage") || "数据管理",
     panel: [
-      {
-        key: "securityLog",
-        label: t("buttons.securityLog") || "安全日志",
-        icon: SecurityLogIcon,
-        component: SecurityLog,
-      },
+      { key: "securityLog", label: t("buttons.securityLog") || "安全日志", icon: SecurityLogIcon, component: SecurityLog },
     ],
   },
   {
     name: t("buttons.security") || "安全管理",
     panel: [
-      {
-        key: "password",
-        label: t("buttons.password") || "密码管理",
-        icon: Lock,
-        component: Password,
-      },
+      { key: "password", label: t("buttons.password") || "密码管理", icon: Lock, component: Password },
+      { key: "totp", label: t("buttons.totp") || "双因素认证", icon: Lock, component: Totp },
+    ],
+  },
+  {
+    name: t("buttons.support") || "服务支持",
+    panel: [
+      { key: "agreement", label: t("buttons.userAgreement") || "用户协议", icon: UnLock, component: UserAgreement },
+      { key: "helpFeedback", label: t("buttons.helpFeedback") || "帮助与反馈", icon: SecurityLogIcon, component: HelpFeedback },
     ],
   },
 ];
 
-groups[2].panel.push({
-  key: "totp",
-  label: t("buttons.totp") || "双因素认证",
-  icon: Lock,
-  component: Totp,
-});
 const witchPane = ref("profile");
+const paneKeys = computed(() =>
+  groups.flatMap((group) => group.panel.map((item) => item.key)),
+);
+
+const syncPaneFromRoute = () => {
+  const pane = typeof route.query.pane === "string" ? route.query.pane : "";
+  witchPane.value = paneKeys.value.includes(pane) ? pane : "profile";
+};
+
+const switchPane = (key: string) => {
+  witchPane.value = key;
+  router.replace({
+    name: "AccountSettings",
+    query: {
+      ...route.query,
+      pane: key,
+    },
+  });
+  if (isMobile) {
+    isOpen.value = false;
+  }
+};
 
 getMine().then((res) => {
   userInfo.value = res.data;
-  useUserStore().upgrade(userInfo.value);
+  useUserStore().upgrade(userInfo.value as any);
 });
+
 const onUpdated = (data) => {
   userInfo.value = data;
-  useUserStore().upgrade(userInfo.value);
+  useUserStore().upgrade(userInfo.value as any);
 };
 
 const findComponent = () => {
   return groups
-    .find((item) => item.panel.some((i) => i.key === witchPane.value))
-    ?.panel.find((item) => item.key === witchPane.value)?.component;
+    .find((g) => g.panel.some((i) => i.key === witchPane.value))
+    ?.panel.find((i) => i.key === witchPane.value)?.component;
 };
+
+watch(
+  () => route.query.pane,
+  () => syncPaneFromRoute(),
+  { immediate: true },
+);
 </script>
 
 <template>
   <div class="account-page">
-    <ScContainer class="account-container">
-      <!-- 侧边导航 -->
-      <ScAside
-        v-if="isOpen"
-        class="account-sidebar"
-        :width="deviceDetection() ? '200px' : '280px'"
-      >
-        <!-- 返回按钮 -->
+    <div class="account-layout">
+      <!-- 左侧边栏 -->
+      <aside class="sidebar" v-if="isOpen" :width="isMobile ? '240px' : '260px'">
         <div class="sidebar-header">
           <button class="back-btn" @click="router.go(-1)">
-            <IconifyIconOffline :icon="leftLine" class="back-icon" />
+            <IconifyIconOffline :icon="leftLine" />
             <span>{{ $t("buttons.back") }}</span>
           </button>
         </div>
 
-        <!-- 用户信息卡片 -->
         <div class="user-card">
-          <div class="user-avatar-wrapper">
-            <ScAvatar :size="64" :src="userInfo?.avatar" class="user-avatar" />
-            <span class="online-badge"></span>
+          <div class="avatar-wrap">
+            <ScAvatar :size="60" :src="userInfo.avatar" />
+            <span class="online-dot"></span>
           </div>
-          <div class="user-details">
-            <h3 class="user-nickname fe-sensitive">{{ userInfo?.sysUserNickname }}</h3>
-            <p class="user-username fe-sensitive">@{{ userInfo?.sysUserUsername }}</p>
+          <div class="info">
+            <h3 class="nickname">{{ userInfo.sysUserNickname }}</h3>
+            <p class="username">@{{ userInfo.sysUserUsername }}</p>
           </div>
         </div>
 
-        <!-- 导航菜单 -->
-        <nav class="nav-menu">
+        <nav class="nav">
           <div v-for="group in groups" :key="group.name" class="nav-group">
             <h4 class="group-title">{{ group.name }}</h4>
-            <ul class="group-items">
+            <ul>
               <li
                 v-for="item in group.panel"
                 :key="item.key"
-                :class="['nav-item', { active: witchPane === item.key }]"
-                @click="
-                  () => {
-                    witchPane = item.key;
-                    if (deviceDetection()) {
-                      isOpen = !isOpen;
-                    }
-                  }
-                "
+                :class="{ active: witchPane === item.key }"
+                @click="switchPane(item.key)"
               >
-                <div class="item-icon">
-                  <IconifyIconOffline :icon="item.icon" />
-                </div>
-                <span class="item-label">{{ item.label }}</span>
-                <IconifyIconOnline
-                  v-if="witchPane === item.key"
-                  icon="ri:arrow-right-s-line"
-                  class="item-arrow"
-                />
+                <IconifyIconOffline :icon="item.icon" class="nav-icon" />
+                <span class="nav-text">{{ item.label }}</span>
+                <IconifyIconOnline icon="ri:arrow-right-s-line" class="arrow" />
               </li>
             </ul>
           </div>
         </nav>
-      </ScAside>
+      </aside>
 
-      <!-- 主内容区 -->
-      <ScMain class="account-main">
+      <!-- 右侧主内容 -->
+      <main class="main">
         <LaySidebarTopCollapse
-          v-if="deviceDetection()"
-          class="mobile-toggle"
+          v-if="isMobile"
+          class="mobile-bar"
           :is-active="isOpen"
-          @toggleClick="isOpen = !isOpen"
+          @toggle-click="isOpen = !isOpen"
         />
-        <div class="main-content">
+        <div class="content-box">
           <component
             :is="findComponent()"
             :userInfo="userInfo"
-            class="content-component"
             @updated:user="onUpdated"
           />
         </div>
-      </ScMain>
-    </ScContainer>
+      </main>
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .account-page {
+  width: 100%;
   height: 100vh;
-  width: 100vw;
-  background: linear-gradient(
-    135deg,
-    var(--el-bg-color-page) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
-  position: relative;
+  background: var(--el-bg-color-page);
   overflow: hidden;
-
-  // 背景装饰
-  &::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 60%;
-    height: 120%;
-    background: radial-gradient(
-      circle,
-      rgba(var(--el-color-primary-rgb), 0.03) 0%,
-      transparent 70%
-    );
-    pointer-events: none;
-  }
 }
 
-.account-container {
+.account-layout {
+  display: flex;
+  width: 100%;
   height: 100%;
-  position: relative;
-  z-index: 1;
 }
 
-// 侧边栏样式
-.account-sidebar {
+/* 左侧边栏 */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  height: 100%;
   background: var(--el-bg-color);
   border-right: 1px solid var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 16px;
 }
 
 .back-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 18px;
-  border: none;
-  border-radius: 14px;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-light) 0%,
-    var(--el-fill-color-lighter) 100%
-  );
-  color: var(--el-text-color-regular);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
-  border: 1px solid transparent;
-
-  &:hover {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-color-primary-light-8) 100%
-    );
-    color: var(--el-color-primary);
-    border-color: var(--el-color-primary-light-5);
-    transform: translateX(-4px);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
-
-    .back-icon {
-      transform: translateX(-4px);
-    }
-  }
-
-  .back-icon {
-    font-size: 18px;
-    transition: transform 0.3s ease;
-  }
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--el-fill-color-light);
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
 }
 
-// 用户卡片样式
 .user-card {
-  padding: 32px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 24px 16px;
   text-align: center;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  background: linear-gradient(
-    180deg,
-    var(--el-color-primary-light-9) 0%,
-    transparent 100%
-  );
+}
+
+.avatar-wrap {
   position: relative;
-
-  // 装饰元素
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    height: 2px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      var(--el-color-primary-light-5),
-      transparent
-    );
-  }
+  display: inline-block;
+  margin-bottom: 12px;
 }
 
-.user-avatar-wrapper {
-  position: relative;
-  margin-bottom: 16px;
-
-  .user-avatar {
-    border: 4px solid var(--el-bg-color);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: scale(1.05);
-      box-shadow: 0 12px 32px rgba(var(--el-color-primary-rgb), 0.2);
-    }
-  }
-
-  .online-badge {
-    position: absolute;
-    bottom: 6px;
-    right: 6px;
-    width: 16px;
-    height: 16px;
-    background: #22c55e;
-    border: 3px solid var(--el-bg-color);
-    border-radius: 50%;
-    box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
-    animation: onlinePulse 2s ease-in-out infinite;
-  }
-
-  @keyframes onlinePulse {
-    0%,
-    100% {
-      box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
-    }
-    50% {
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
-    }
-  }
+.online-dot {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 14px;
+  height: 14px;
+  background: #22c55e;
+  border-radius: 50%;
+  border: 2px solid #fff;
 }
 
-.user-details {
-  .user-nickname {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin: 0 0 4px 0;
-  }
-
-  .user-username {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin: 0;
-  }
+.nickname {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px;
 }
 
-// 导航菜单样式
-.nav-menu {
+.username {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+}
+
+/* 导航 */
+.nav {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
@@ -407,219 +291,84 @@ const findComponent = () => {
 
 .nav-group {
   margin-bottom: 20px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 }
 
 .group-title {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   padding: 8px 12px;
   margin: 0;
 }
 
-.group-items {
+.nav li {
   list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  margin: 6px 0;
-  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: var(--el-text-color-regular);
-  position: relative;
-  overflow: hidden;
-
-  // 左侧装饰条
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 0;
-    background: linear-gradient(
-      180deg,
-      var(--el-color-primary),
-      var(--el-color-primary-light-3)
-    );
-    border-radius: 0 3px 3px 0;
-    transition: height 0.3s ease;
-  }
-
-  &:hover {
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-light) 0%,
-      var(--el-fill-color-lighter) 100%
-    );
-    color: var(--el-text-color-primary);
-    transform: translateX(4px);
-
-    &::before {
-      height: 60%;
-    }
-
-    .item-icon {
-      transform: scale(1.1) rotate(5deg);
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-9),
-        var(--el-color-primary-light-8)
-      );
-    }
-  }
-
-  &.active {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      var(--el-color-primary-light-3) 100%
-    );
-    color: #fff;
-    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.35);
-    transform: translateX(6px);
-
-    &::before {
-      height: 80%;
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    .item-icon {
-      background: rgba(255, 255, 255, 0.25);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .item-arrow {
-      opacity: 1;
-    }
-  }
-
-  .item-icon {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: var(--el-fill-color-light);
-    font-size: 18px;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-  }
-
-  .item-label {
-    flex: 1;
-    font-size: 14px;
-    font-weight: 500;
-  }
-
-  .item-arrow {
-    font-size: 18px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
+  font-size: 14px;
 }
 
-// 主内容区样式
-.account-main {
-  background: var(--el-bg-color-page);
-  padding: 0;
+.nav li.active {
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+.nav-icon {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+}
+
+.arrow {
+  margin-left: auto;
+  opacity: 0;
+}
+
+.nav li.active .arrow {
+  opacity: 1;
+}
+
+/* 右侧内容 */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   overflow: hidden;
 }
 
-.mobile-toggle {
+.mobile-bar {
   padding: 12px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.main-content {
-  height: 100%;
-  padding: 40px 60px;
+.content-box {
+  flex: 1;
+  padding: 32px;
   overflow-y: auto;
   background: var(--el-bg-color);
-  border-radius: 24px 0 0 0;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.04);
+}
 
-  @media (max-width: 768px) {
+/* 移动端 */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 999;
+    height: 100%;
+  }
+  .content-box {
     padding: 20px;
-    border-radius: 0;
-  }
-}
-
-.content-component {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  height: 100%;
-
-  // 移除内容组件的卡片样式，让子组件自己控制
-  :deep(h3) {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 2px solid var(--el-border-color-lighter);
-    position: relative;
-
-    &::after {
-      content: "";
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 60px;
-      height: 2px;
-      background: var(--el-color-primary);
-    }
-  }
-
-  :deep(.el-form) {
-    .el-form-item {
-      margin-bottom: 24px;
-    }
-
-    .el-form-item__label {
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-    }
-  }
-}
-
-// 深色模式适配
-html.dark {
-  .account-sidebar {
-    background: var(--el-bg-color-overlay);
-  }
-
-  .user-card {
-    background: linear-gradient(
-      180deg,
-      rgba(var(--el-color-primary-rgb), 0.1) 0%,
-      transparent 100%
-    );
-  }
-
-  .user-avatar-wrapper .user-avatar {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  }
-
-  .nav-item.active {
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
   }
 }
 </style>

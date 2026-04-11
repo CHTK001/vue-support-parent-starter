@@ -25,8 +25,8 @@
 <script setup lang="ts">
 /**
  * ScCheckbox 复选框组件
- * 封装 Element Plus Checkbox 与 PixelUI PxCheckbox
- * 在 data-skin 为 8bit 时自动切换为像素风复选框
+ * 封装 Element Plus Checkbox
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

@@ -22,7 +22,7 @@
 <script setup lang="ts">
 /**
  * ScCheckboxGroup 复选框组组件
- * 封装 Element Plus CheckboxGroup 与 PixelUI PxCheckboxGroup
+ * 封装 Element Plus CheckboxGroup
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

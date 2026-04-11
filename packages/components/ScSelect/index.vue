@@ -98,8 +98,78 @@
       />
     </div>
 
+    <!-- 列表选择器布局 -->
+    <div v-else-if="layout === 'list'" class="sc-select__list">
+      <div v-if="listShowSearch" class="sc-select__list-search">
+        <ScInput
+          v-model="listSearchQuery"
+          size="small"
+          clearable
+          :placeholder="listPlaceholder"
+        >
+          <template #prefix>
+            <IconRenderer icon="ri:search-line" />
+          </template>
+        </ScInput>
+      </div>
+
+      <div class="sc-select__list-body thin-scroller overflow-y-auto ss" :style="listBodyStyle">
+        <template v-if="filteredListOptions.length">
+          <template v-if="displayMode === 'large'">
+            <LargeOptionDisplay
+              v-for="item in filteredListOptions"
+              :key="item.value"
+              :option="item"
+              :is-selected="isSelected(item.value)"
+              :is-item-disabled="isItemDisabled(item.value)"
+              @select="handleSelect"
+            >
+              <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
+                <slot
+                  name="content"
+                  :option="option"
+                  :item="selectValue"
+                  :selectedValues="modelValue"
+                  :isSelected="slotIsSelected"
+                />
+              </template>
+            </LargeOptionDisplay>
+          </template>
+          <template v-else>
+            <NormalOptionDisplay
+              v-for="item in filteredListOptions"
+              :key="item.value"
+              :option="item"
+              :is-selected="isSelected(item.value)"
+              :is-item-disabled="isItemDisabled(item.value)"
+              @select="handleSelect"
+            >
+              <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
+                <slot
+                  name="content"
+                  :option="option"
+                  :item="selectValue"
+                  :selectedValues="modelValue"
+                  :isSelected="slotIsSelected"
+                />
+              </template>
+            </NormalOptionDisplay>
+          </template>
+        </template>
+        <div v-else class="sc-select__empty sc-select__empty--list">
+          {{ listEmptyText }}
+        </div>
+      </div>
+
+      <div v-if="multiple && listShowBatchActions" class="panel-actions">
+        <ScButton size="small" text @click="selectAll">全选</ScButton>
+        <ScButton size="small" text @click="invertSelection">反选</ScButton>
+        <ScButton size="small" text @click="clearSelection">清空</ScButton>
+      </div>
+    </div>
+
     <!-- 位置选择器布局 -->
-    <PositionLayout v-else-if="layout === 'position'" v-model="selectValue" :disabled="disabled" :mode="mode" @change="handleChange" />
+    <PositionLayout v-else-if="layout === 'position'" v-model="positionValue" :disabled="disabled" :mode="mode" @change="handleChange" />
 
     <!-- 下拉选择器布局 -->
     <DropdownLayout
@@ -149,7 +219,7 @@
     <!-- 表格选择器布局 -->
     <ScSelectTable
       v-else-if="layout === 'table'"
-      v-model="selectValue"
+      v-model="tableSelectValue"
       :options="selectListOptions"
       :url="url"
       :url-params="urlParams"
@@ -171,7 +241,7 @@
     <!-- 树形选择器布局 -->
     <ScSelectTreeLayout
       v-else-if="layout === 'tree'"
-      v-model="selectValue"
+      v-model="treeSelectValue"
       :options="selectListOptions"
       :multiple="multiple"
       :props="treeProps"
@@ -206,12 +276,17 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch, type PropType } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
+import { ScButton } from "../ScButton";
+import { ScInput } from "../ScInput";
 import PillLayout from "./components/PillLayout.vue";
+import LargeOptionDisplay from "./display/LargeOptionDisplay.vue";
+import NormalOptionDisplay from "./display/NormalOptionDisplay.vue";
 // Position layout component
+import IconRenderer from "./components/IconRenderer.vue";
 import PositionLayout from "./components/PositionLayout.vue";
 import ScSelectTable from "./components/ScSelectTableLayout.vue";
 import ScSelectTreeLayout from "./components/ScSelectTreeLayout.vue";
@@ -234,16 +309,21 @@ export interface FilterFieldType {
   type: string;
 }
 
+type SelectValue = string | number | Array<string | number>;
+type SelectOptionRecord = Record<string, any>;
+type SelectRequest = (params: Record<string, any>) => Promise<any>;
+type TreeSelectValue = string | number | Array<string | number>;
+
 const props = defineProps({
   // v-model绑定值
   modelValue: {
-    type: [String, Number, Array],
+    type: [String, Number, Array] as PropType<SelectValue>,
     default: ""
   },
   // 数据源URL函数
   url: {
-    type: Function,
-    default: () => {}
+    type: Function as PropType<SelectRequest | undefined>,
+    default: undefined
   },
   urlParams: {
     type: Object,
@@ -251,12 +331,12 @@ const props = defineProps({
   },
   // 选项数组
   options: {
-    type: Array as () => DropdownOption[] & CardOption[],
+    type: Array as PropType<SelectOptionRecord[]>,
     required: false,
     default: () => []
   },
   props: {
-    type: Object,
+    type: Object as PropType<SelectProps>,
     default: () => {
       return {
         label: "label",
@@ -289,7 +369,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "dropdown", "filter", "table", "tree", "position"].includes(value);
+      return ["card", "select", "pill", "dropdown", "list", "filter", "table", "tree", "position"].includes(value);
     }
   },
   // 位置选择器模式：9=3x3九格，4=2x2四角（仅 layout="position" 时生效）
@@ -353,8 +433,8 @@ const props = defineProps({
     default: true
   },
   tableKeywords: {
-    type: Object,
-    default: { label: "label", value: "value" } as const
+    type: Object as PropType<Record<string, string>>,
+    default: () => ({ label: "label", value: "value" })
   },
   // 下拉选择器图标
   dropdownIcon: {
@@ -416,6 +496,26 @@ const props = defineProps({
       return ["normal", "large"].includes(value);
     }
   },
+  listHeight: {
+    type: String,
+    default: "320px"
+  },
+  listPlaceholder: {
+    type: String,
+    default: "搜索选项"
+  },
+  listEmptyText: {
+    type: String,
+    default: "暂无可选项"
+  },
+  listShowSearch: {
+    type: Boolean,
+    default: true
+  },
+  listShowBatchActions: {
+    type: Boolean,
+    default: false
+  },
   // 过滤器模式标签宽度
   labelWidth: {
     type: String,
@@ -428,11 +528,11 @@ const props = defineProps({
     validator: (value: string) => ["default", "array", "sql", "lucene"].includes(value)
   },
   filterFileldType: {
-    type: Array,
+    type: Array as PropType<FilterFieldType[]>,
     default: () => [] as FilterFieldType[]
   },
   tableColumns: {
-    type: Array as () => TableColumn[],
+    type: Array as PropType<TableColumn[]>,
     default: () => [] as TableColumn[]
   },
   tablePageSize: {
@@ -446,7 +546,7 @@ const props = defineProps({
   // 树形布局相关props
   // 树节点配置
   treeProps: {
-    type: Object,
+    type: Object as PropType<Record<string, any>>,
     default: () => ({
       children: "children",
       label: "label",
@@ -509,18 +609,46 @@ const emit = defineEmits(["update:modelValue", "change", "success", "failure", "
 
 const isRemoteData = ref(props.isRemote);
 // 原生select绑定值
-const selectValue = ref(props.modelValue);
-const selectOptions = ref(props.options);
+const selectValue = ref<SelectValue>(props.modelValue as SelectValue);
+const selectOptions = ref<SelectOptionRecord[]>(props.options as SelectOptionRecord[]);
 const selectListOptions = computed(() => {
-  return selectOptions.value.map(item => {
+  return selectOptions.value.map((item) => {
     return {
       ...item,
       label: item[props.props.label],
       value: item[props.props.prop],
-      icon: item[props.props.icon]
+      icon: item[props.props.icon],
+      describe: item.describe,
+      description: item.description,
+      name: item.name
     };
   });
 });
+const listSearchQuery = ref("");
+const filteredListOptions = computed(() => {
+  const keyword = listSearchQuery.value.trim().toLowerCase();
+  if (!keyword) {
+    return selectListOptions.value;
+  }
+  return selectListOptions.value.filter(item => {
+    const fields = [
+      item.label,
+      item.describe,
+      item.description,
+      item.name,
+      item.value
+    ];
+    return fields.some(field =>
+      String(field ?? "")
+        .toLowerCase()
+        .includes(keyword)
+    );
+  });
+});
+const listBodyStyle = computed(() => ({
+  maxHeight: props.listHeight,
+  minHeight: props.listHeight
+}));
 // 计算flex样式
 const flexStyles = computed(() => {
   return {
@@ -532,7 +660,7 @@ const flexStyles = computed(() => {
 watch(
   () => props.modelValue,
   newValue => {
-    selectValue.value = newValue;
+    selectValue.value = newValue as SelectValue;
   }
 );
 
@@ -540,11 +668,19 @@ watch(
 watch(
   () => props.options,
   newVal => {
-    selectOptions.value = newVal;
+    selectOptions.value = newVal as SelectOptionRecord[];
+  }
+);
+watch(
+  () => props.layout,
+  layout => {
+    if (layout !== "list") {
+      listSearchQuery.value = "";
+    }
   }
 );
 const fetchOptions = async () => {
-  if (typeof props.url === "function") {
+    if (typeof props.url === "function") {
     props.url(props.urlParams).then(res => {
       try {
         if (!res?.data) {
@@ -857,6 +993,32 @@ const handleSelect = (value: string | number) => {
     emit("change", value);
   }
 };
+
+const positionValue = computed({
+  get: () =>
+    String(
+      Array.isArray(selectValue.value)
+        ? selectValue.value[0] ?? ""
+        : selectValue.value ?? "",
+    ),
+  set: (value: string) => {
+    selectValue.value = value;
+  }
+});
+
+const tableSelectValue = computed<SelectValue>({
+  get: () => selectValue.value,
+  set: (value) => {
+    selectValue.value = value;
+  }
+});
+
+const treeSelectValue = computed<TreeSelectValue>({
+  get: () => selectValue.value as TreeSelectValue,
+  set: (value) => {
+    selectValue.value = value as SelectValue;
+  }
+});
 </script>
 
 <style lang="scss" scoped>
@@ -926,6 +1088,37 @@ const handleSelect = (value: string | number) => {
     width: 100%;
     gap: 10px !important;
     justify-content: flex-start;
+  }
+
+  .sc-select__list {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sc-select__list-search {
+    width: 100%;
+  }
+
+  .sc-select__list-body {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 18px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .sc-select__empty--list {
+    padding: 32px 16px;
+    border-radius: 14px;
+    background: rgba(248, 250, 252, 0.9);
   }
 
   /* 响应式布局 */

@@ -93,7 +93,7 @@
               <!-- 自定义选项：模型名 + 价格，tooltip 显示上下文和描述 -->
               <template #content="{ option }">
                 <ScTooltip
-                  :content="`上下文：${formatContext(option.contextLength)} token｜${option.description}`"
+                  :content="`上下文：${formatContext(asVendorModel(option).contextLength)} token｜${asVendorModel(option).description}`"
                   placement="left"
                   effect="light"
                   :z-index="41000"
@@ -101,7 +101,7 @@
                   <div class="vendor-model-option">
                     <span class="vendor-model-name">{{ option.label }}</span>
                     <span class="vendor-model-price">
-                      输入 {{ formatPrice(option.inputPrice) }} · 输出 {{ formatPrice(option.outputPrice) }}
+                      输入 {{ formatPrice(asVendorModel(option).inputPrice) }} · 输出 {{ formatPrice(asVendorModel(option).outputPrice) }}
                     </span>
                   </div>
                 </ScTooltip>
@@ -204,6 +204,9 @@ interface VendorModelOption {
   description: string;
   image: { width: string; height: string };
 }
+
+const asVendorModel = (option: unknown): VendorModelOption =>
+  option as VendorModelOption;
 
 const AI_IMG = { width: "24px", height: "24px" } as const;
 

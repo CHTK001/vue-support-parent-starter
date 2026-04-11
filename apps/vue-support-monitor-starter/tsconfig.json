@@ -27,6 +27,8 @@
       "@build/*": ["build/*"],
       "@pages/common": ["../../pages/common"],
       "@pages/common/*": ["../../pages/common/*"],
+      "@pages/soft": ["../../pages/soft/src/index.ts"],
+      "@pages/soft/*": ["../../pages/soft/src/*"],
       "@pages/proxy": ["../../pages/proxy/src/index.ts"],
       "@pages/proxy/*": ["../../pages/proxy/src/*"]
     },
@@ -51,7 +53,6 @@
     "src/views/monitor/gen/layout/webrtc/stream copy.vue1",
     "../../packages/pages/tools/time.vue",
     "src/router/modules/tools.ts1",
-    "src/router/modules/soft.ts1",
     "src/router/modules/protect-redrect.ts1",
     "src/router/modules/montor.ts1",
     "src/router/modules/infrastructure.ts1"

@@ -4,8 +4,6 @@
  */
 
 import type { App } from "vue";
-import { storageLocal } from "@pureadmin/utils";
-import { PIXEL_UI_PLUGIN } from "./pixelUiShared";
 
 export interface ThemeComponentMap {
   [componentName: string]: string;
@@ -92,22 +90,6 @@ const DEFAULT_COMPONENT_MAP: ThemeComponentMap = {
   ElOption: "ElOption",
 };
 
-const PIXEL_COMPONENT_MAP: ThemeComponentMap = {
-  ...DEFAULT_COMPONENT_MAP,
-  ElButton: "PxButton",
-  ElInput: "PxInput",
-  ElTag: "PxTag",
-  ElBadge: "PxBadge",
-  ElAlert: "PxAlert",
-  ElProgress: "PxProgress",
-  ElText: "PxText",
-  ElImage: "PxImage",
-  ElIcon: "PxIcon",
-  ElTooltip: "PxTooltip",
-  ElPopconfirm: "PxPopconfirm",
-  ElCard: "PxCard",
-};
-
 const createLocalComponents = (
   buttonLoader: () => Promise<any>,
   cardLoader: () => Promise<any>,
@@ -161,14 +143,11 @@ export const THEME_CONFIGS: Record<SupportedThemeKey, ThemeConfig> = {
   "8bit": {
     name: "8bit",
     displayName: "8bit 像素风格",
-    packageName: "pixel-ui",
-    cssPath: "dist/index.css",
+    packageName: "element-plus",
     enabled: true,
-    autoInstallPlugin: true,
-    pluginPackageName: "pixel-ui",
     group: "beta",
-    description: "像素风格，复古游戏风",
-    componentMap: PIXEL_COMPONENT_MAP,
+    description: "纯 SCSS 驱动的像素风格主题",
+    componentMap: DEFAULT_COMPONENT_MAP,
     localComponents: LOCAL_THEME_COMPONENTS["8bit"],
   },
   "future-tech": createElementPlusThemeConfig(
@@ -259,181 +238,10 @@ export function hasTheme(skinValue: string): boolean {
   return skinValue in THEME_CONFIGS && THEME_CONFIGS[skinValue as SupportedThemeKey].enabled !== false;
 }
 
-const THEME_PLUGINS: Record<string, any> = {
-  "pixel-ui": PIXEL_UI_PLUGIN,
-};
-
-const REGISTERED_THEME_PLUGINS_BY_APP = new WeakMap<App, Set<string>>();
-const REGISTERING_PROMISES_BY_APP = new WeakMap<App, Map<string, Promise<void>>>();
-
-let themePluginApp: App | null = null;
-let ensuringPromise: Promise<void> | null = null;
-
-function getCurrentThemeName(): SupportedThemeKey {
-  if (typeof document !== "undefined") {
-    const skin = document.documentElement.dataset.skin as SupportedThemeKey | undefined;
-    if (skin && THEME_CONFIGS[skin]?.enabled !== false) {
-      return skin;
-    }
-  }
-
-  try {
-    const configure = storageLocal().getItem<any>("responsive-configure") || {};
-    let theme = configure.systemTheme as string | undefined;
-    if (theme) {
-      if (theme === "pixel-art" || theme === "8-bit") {
-        theme = "8bit";
-      }
-      if (THEME_CONFIGS[theme as SupportedThemeKey]?.enabled !== false) {
-        return theme as SupportedThemeKey;
-      }
-    }
-  } catch {
-    // ignore storage read errors and fall back to default
-  }
-
-  return "default";
-}
-
-async function registerThemePluginForSkin(app: App, skinValue: string): Promise<void> {
-  const theme = THEME_CONFIGS[skinValue as SupportedThemeKey];
-
-  if (!theme) {
-    // eslint-disable-next-line no-console
-    console.warn(`[ThemePlugin] 当前主题 ${skinValue} 未在配置中找到`);
-    return;
-  }
-
-  if (theme.enabled === false || theme.autoInstallPlugin !== true) {
-    return;
-  }
-
-  const packageName = theme.pluginPackageName || theme.packageName;
-  if (!packageName) {
-    return;
-  }
-
-  let registeredPlugins = REGISTERED_THEME_PLUGINS_BY_APP.get(app);
-  if (!registeredPlugins) {
-    registeredPlugins = new Set<string>();
-    REGISTERED_THEME_PLUGINS_BY_APP.set(app, registeredPlugins);
-  }
-
-  if (registeredPlugins.has(packageName)) {
-    return;
-  }
-
-  let registeringPromises = REGISTERING_PROMISES_BY_APP.get(app);
-  if (!registeringPromises) {
-    registeringPromises = new Map<string, Promise<void>>();
-    REGISTERING_PROMISES_BY_APP.set(app, registeringPromises);
-  }
-
-  const existingPromise = registeringPromises.get(packageName);
-  if (existingPromise) {
-    await existingPromise;
-    if (registeredPlugins.has(packageName)) {
-      return;
-    }
-  }
-
-  const registerPromise = (async () => {
-    try {
-      const plugin = THEME_PLUGINS[packageName];
-      if (!plugin) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[ThemePlugin] 主题 ${theme.name} 的插件包 ${packageName} 未在 THEME_PLUGINS 中注册`,
-        );
-        theme.enabled = false;
-        return;
-      }
-
-      const context = (app as any)._context;
-      const plugins = context?.plugins;
-
-      let alreadyRegisteredInApp = false;
-      if (Array.isArray(plugins) && plugins.length > 0) {
-        const pluginInstall = typeof plugin === "function" ? plugin : plugin.install;
-
-        alreadyRegisteredInApp = plugins.some((registeredPlugin: any) => {
-          if (registeredPlugin === plugin) {
-            return true;
-          }
-
-          const registeredInstall = typeof registeredPlugin === "function"
-            ? registeredPlugin
-            : registeredPlugin?.install;
-
-          if (pluginInstall && registeredInstall && pluginInstall === registeredInstall) {
-            return true;
-          }
-
-          const pluginName = pluginInstall?.name || plugin.name;
-          const registeredName = registeredInstall?.name || registeredPlugin?.name;
-          if (pluginName && registeredName && pluginName === registeredName && pluginName !== "") {
-            return true;
-          }
-
-          return false;
-        });
-      }
-
-      if (alreadyRegisteredInApp) {
-        registeredPlugins.add(packageName);
-        return;
-      }
-
-      registeredPlugins.add(packageName);
-      app.use(plugin);
-      // eslint-disable-next-line no-console
-      console.log(`[ThemePlugin] 已注册主题 ${theme.name} 的插件 ${packageName}`);
-    } catch (error) {
-      const registeredPlugins = REGISTERED_THEME_PLUGINS_BY_APP.get(app);
-      if (registeredPlugins) {
-        registeredPlugins.delete(packageName);
-      }
-
-      // eslint-disable-next-line no-console
-      console.warn(`[ThemePlugin] 主题 ${theme.name} 插件加载失败，已禁用该主题:`, error);
-      theme.enabled = false;
-      throw error;
-    } finally {
-      const registeringPromises = REGISTERING_PROMISES_BY_APP.get(app);
-      if (registeringPromises) {
-        registeringPromises.delete(packageName);
-      }
-    }
-  })();
-
-  registeringPromises.set(packageName, registerPromise);
-  await registerPromise;
-}
-
-export async function autoRegisterThemePlugins(app: App): Promise<void> {
-  themePluginApp = app;
-  const currentThemeName = getCurrentThemeName();
-  await registerThemePluginForSkin(app, currentThemeName);
+export async function autoRegisterThemePlugins(_app: App): Promise<void> {
+  return;
 }
 
 export async function ensureThemePluginForCurrentSkin(): Promise<void> {
-  if (!themePluginApp) {
-    return;
-  }
-
-  if (ensuringPromise) {
-    await ensuringPromise;
-    return;
-  }
-
-  ensuringPromise = (async () => {
-    try {
-      const currentThemeName = getCurrentThemeName();
-      await registerThemePluginForSkin(themePluginApp!, currentThemeName);
-    } finally {
-      ensuringPromise = null;
-    }
-  })();
-
-  await ensuringPromise;
+  return;
 }

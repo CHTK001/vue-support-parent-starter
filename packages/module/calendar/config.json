@@ -1,9 +1,0 @@
-{
-  "sysSfcId": "calendar",
-  "title": "日历",
-  "description": "简单日历查看",
-  "icon": "ri:calendar-line",
-  "width": 2,
-  "height": 2,
-  "type": 1
-}

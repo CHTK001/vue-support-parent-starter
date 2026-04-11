@@ -3,6 +3,7 @@ import { isNumber, useGlobal } from "@pureadmin/utils";
 import { usePermissionStoreHook } from "@repo/core";
 import {
   computed,
+  type CSSProperties,
   nextTick,
   onMounted,
   onBeforeUnmount,
@@ -155,6 +156,36 @@ const getMainWidth = computed(() => {
       : "100%";
 });
 
+const fixedHeaderContentStyle = computed<CSSProperties>(() => ({
+  maxWidth: getMainWidth.value,
+  margin: "0 auto",
+  height: `calc(100vh - ${headerHeight.value}px - ${hideFooter.value ? 0 : 30}px)`,
+  padding: `${contentMargin.value}px`,
+  boxSizing: "border-box" as const,
+}));
+
+const sharedShellStyle = computed<CSSProperties>(() => ({
+  height: "100%",
+  width: "100%",
+  maxWidth: "100%",
+  borderRadius: `${layoutRadius.value}px`,
+  boxSizing: "border-box" as const,
+}));
+
+const unfixedContainerStyle = computed<CSSProperties>(() => ({
+  maxWidth: getMainWidth.value,
+  margin: "0 auto",
+}));
+
+const unfixedShellStyle = computed<CSSProperties>(() => ({
+  height: `calc(100% - ${contentMargin.value * 2}px)`,
+  width: "100%",
+  maxWidth: "100%",
+  borderRadius: `${layoutRadius.value}px`,
+  margin: `${contentMargin.value}px`,
+  boxSizing: "border-box" as const,
+}));
+
 // 判断是否为移动导航模式
 const isMobileLayout = computed(() => layoutMode.value === "mobile");
 
@@ -197,6 +228,7 @@ onMounted(() => {
 const route = useRoute();
 
 // 路由切换loading状态
+const enableInlineRouteLoading = ref(false);
 const routeLoading = ref(false);
 const suspenseLoading = ref(false); // Suspense 加载状态
 const MIN_LOADING_TIME = 300; // 最小显示时间(ms)，避免闪烁
@@ -204,10 +236,18 @@ let loadingTimer: ReturnType<typeof setTimeout> | null = null;
 let suspenseTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 组合加载状态：路由切换或 Suspense 加载中
-const isLoading = computed(() => routeLoading.value || suspenseLoading.value);
+const isLoading = computed(
+  () =>
+    enableInlineRouteLoading.value &&
+    (routeLoading.value || suspenseLoading.value),
+);
 
 // Suspense 事件处理
 const onSuspensePending = () => {
+  if (!enableInlineRouteLoading.value) {
+    suspenseLoading.value = false;
+    return;
+  }
   // 延迟显示 loading，避免快速加载时闪烁
   if (suspenseTimer) {
     clearTimeout(suspenseTimer);
@@ -222,6 +262,10 @@ const onSuspenseResolve = () => {
     clearTimeout(suspenseTimer);
     suspenseTimer = null;
   }
+  if (!enableInlineRouteLoading.value) {
+    suspenseLoading.value = false;
+    return;
+  }
   // 确保最小显示时间
   setTimeout(() => {
     suspenseLoading.value = false;
@@ -229,18 +273,29 @@ const onSuspenseResolve = () => {
 };
 
 const onSuspenseFallback = () => {
+  if (!enableInlineRouteLoading.value) {
+    suspenseLoading.value = false;
+    return;
+  }
   suspenseLoading.value = true;
 };
 
 // 捕获异步组件加载错误
 const loadError = ref<Error | null>(null);
 const captureLoadError = (err: unknown, info?: string) => {
+  //@ts-ignore
+  if(err?.code == "00000") {
+    //接口错误
+    //@ts-ignore
+    loadError.value = null;
+    return false;
+  }
   const normalizedError =
     err instanceof Error
       ? err
       : new Error(typeof err === "string" ? err : "未知页面渲染错误");
 
-  loadError.value = normalizedError;
+  // loadError.value = normalizedError;
   suspenseLoading.value = false;
 
   if (typeof window !== "undefined") {
@@ -265,6 +320,10 @@ onErrorCaptured((err, _instance, info) => {
 watch(
   () => route.path,
   (newPath, oldPath) => {
+    if (!enableInlineRouteLoading.value) {
+      routeLoading.value = false;
+      return;
+    }
     if (newPath !== oldPath && oldPath !== undefined) {
       // 重置错误状态
       loadError.value = null;
@@ -302,17 +361,17 @@ onBeforeUnmount(() => {
     :class="[fixedHeader ? 'app-main' : 'app-main-nofixed-header']"
     :style="getSectionStyle"
   >
-    <!-- 加载状态骨架屏：去掉过渡动画，避免路由切换时整块内容产生动画 -->
-    <RouteLoadingSkeleton
-      v-if="isLoading"
-      :rows="6"
-      :show-header="true"
-      loading-text="页面加载中..."
-      :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
-    />
+    <div v-if="isLoading" class="route-loading-overlay">
+      <RouteLoadingSkeleton
+        :rows="6"
+        :show-header="true"
+        loading-text="页面加载中..."
+        :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
+      />
+    </div>
 
     <!-- 错误状态 -->
-    <div v-if="loadError && !isLoading" class="route-error-container">
+    <div v-if="loadError" class="route-error-container">
       <ScResult icon="error" title="加载失败" :sub-title="loadError.message">
         <template #extra>
           <ScButton
@@ -328,7 +387,7 @@ onBeforeUnmount(() => {
       </ScResult>
     </div>
 
-    <router-view v-show="!isLoading && !loadError">
+    <router-view v-show="!loadError">
       <template #default="{ Component, route }">
         <Suspense
           @pending="onSuspensePending"
@@ -336,17 +395,11 @@ onBeforeUnmount(() => {
           @fallback="onSuspenseFallback"
         >
           <LayFrame :currComp="Component" :currRoute="route">
-            <template #default="{ Comp, fullPath, frameInfo }">
+            <template #default="{ Comp, frameInfo }">
               <div
                 v-if="fixedHeader"
                 class="content-area"
-                :style="{
-                  'max-width': getMainWidth,
-                  margin: '0 auto',
-                  height: `calc(100vh - ${headerHeight}px - ${hideFooter ? 0 : 30}px)`,
-                  padding: `calc(${contentMargin}px )`,
-                  boxSizing: 'border-box',
-                }"
+                :style="fixedHeaderContentStyle"
               >
                 <ScBacktop
                   v-if="cardBody && backtopReady"
@@ -375,24 +428,10 @@ onBeforeUnmount(() => {
                         }
                       : {}
                   "
-                  :style="{
-                    height: '100%',
-                    width: '100%',
-                    maxWidth: '100%',
-                    'border-radius': layoutRadius + 'px  !important',
-                    boxSizing: 'border-box',
-                  }"
+                  :style="sharedShellStyle"
                 >
-                  <ScScrollbar class="card-scrollbar">
-                    <div
-                      style="
-                        min-height: 100%;
-                        width: 100%;
-                        max-width: 100%;
-                        display: flex;
-                        box-sizing: border-box;
-                      "
-                    >
+                  <ScScrollbar class="content-scrollbar">
+                    <div class="content-shell__inner">
                       <ContentRenderer
                         :comp="Comp"
                         :route="route"
@@ -406,14 +445,7 @@ onBeforeUnmount(() => {
                   </ScScrollbar>
                 </component>
               </div>
-              <div
-                v-else
-                class="grow bg-layout"
-                :style="{
-                  maxWidth: getMainWidth,
-                  margin: '0 auto',
-                }"
-              >
+              <div v-else class="grow bg-layout" :style="unfixedContainerStyle">
                 <component
                   :is="cardBody ? ScCard : 'div'"
                   class="h-full layout sidebar-custom sssss content-shell"
@@ -436,24 +468,11 @@ onBeforeUnmount(() => {
                         }
                       : {}
                   "
-                  :style="{
-                    height: 'calc(100% - ' + contentMargin * 2 + 'px)',
-                    width: '100%',
-                    maxWidth: '100%',
-                    'border-radius': layoutRadius + 'px  !important',
-                    margin: contentMargin + 'px',
-                    boxSizing: 'border-box',
-                  }"
+                  :style="unfixedShellStyle"
                 >
                   <ScScrollbar class="card-scrollbar">
                     <div
-                      style="
-                        padding: 20px;
-                        min-height: 100%;
-                        width: 100%;
-                        max-width: 100%;
-                        box-sizing: border-box;
-                      "
+                      class="content-shell__inner content-shell__inner--padded"
                     >
                       <ContentRenderer
                         :comp="Comp"
@@ -471,12 +490,7 @@ onBeforeUnmount(() => {
             </template>
           </LayFrame>
           <template #fallback>
-            <RouteLoadingSkeleton
-              :rows="6"
-              :show-header="true"
-              loading-text="组件加载中..."
-              :min-height="fixedHeader ? 'calc(100vh - 120px)' : '400px'"
-            />
+            <div class="route-suspense-fallback" />
           </template>
         </Suspense>
       </template>
@@ -488,6 +502,29 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
+.app-main,
+.app-main-nofixed-header {
+  position: relative;
+}
+
+.route-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: auto;
+
+  :deep(.route-loading-skeleton) {
+    width: 100%;
+    height: 100%;
+    min-height: 100% !important;
+  }
+}
+
+.route-suspense-fallback {
+  display: none;
+}
+
 .content-area {
   height: 100%;
   width: 100%;
@@ -536,11 +573,14 @@ onBeforeUnmount(() => {
 
   // 内部内容滚动
   :deep(.main-content) {
-    min-height: 100%;
-    max-height: 100% !important;
+    min-height: 0;
+    height: 100% !important;
+    display: flex;
+    flex: 1 1 auto;
     width: 100%;
     max-width: 100%; /* 限制内容最大宽度 */
     box-sizing: border-box;
+    overflow: hidden;
   }
 
   // 滚动条容器宽度限制
@@ -563,29 +603,14 @@ onBeforeUnmount(() => {
   }
 }
 
-.content-shell--home {
-  background: transparent !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-
-  :deep(.el-card__body) {
-    background: transparent !important;
-  }
-}
 
 .content-shell {
   border: 0 !important;
   box-shadow: none !important;
-  background: transparent !important;
-
-  :deep(.el-card__body) {
-    background: transparent;
-  }
 }
 
 .content-shell--carded {
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
-  background: rgba(255, 255, 255, 0.42) !important;
   box-shadow: none !important;
 
   :deep(.el-card__body) {
@@ -599,17 +624,37 @@ onBeforeUnmount(() => {
 }
 
 .content-scrollbar {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
   background: var(--el-bg-color);
 
   // 确保 scrollbar 的视图区域也是满高度，否则内部元素 height: 100% 会失效
   :deep(.el-scrollbar__wrap) {
     height: 100%;
+    min-height: 0;
   }
   :deep(.el-scrollbar__view) {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    min-height: 100%;
+    display: block;
   }
+}
+
+.content-shell__inner {
+  min-height: 0;
+  height: inherit;
+  min-width: 0;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.content-shell__inner--padded {
+  padding: 20px;
 }
 
 /* 非卡片内容模式：去除边框和背景 */
@@ -626,13 +671,14 @@ onBeforeUnmount(() => {
 
   /* 禁止内部内容产生滚动条，统一由外层 el-scrollbar 处理 */
   :deep(.main-content) {
-    overflow: visible !important;
-    min-height: 100% !important;
-    flex: 1;
+    overflow: hidden !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    flex: 1 1 auto;
   }
 
   :deep(.thin-scroller) {
-    overflow: visible !important;
+    overflow: auto !important;
   }
 }
 
@@ -666,11 +712,15 @@ onBeforeUnmount(() => {
 }
 
 .main-content {
-  min-height: 100%;
-  height: auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
   position: relative;
   z-index: 0;
   background: transparent;
+  overflow: hidden;
 }
 
 :deep(.el-card__body) {
@@ -811,15 +861,20 @@ onBeforeUnmount(() => {
   width: 100% !important;
   max-width: 100% !important; /* 限制滚动条容器最大宽度 */
   box-sizing: border-box;
+  min-height: 0;
 
   :deep(.el-scrollbar__wrap) {
+    height: 100%;
+    min-height: 0;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
   }
 
   :deep(.el-scrollbar__view) {
-    height: 100%;
+    height: auto;
+    min-height: 100%;
+    display: block;
     width: 100% !important;
     max-width: 100% !important; /* 限制视图最大宽度 */
     box-sizing: border-box;
@@ -831,27 +886,14 @@ onBeforeUnmount(() => {
   box-shadow: none !important;
 }
 
-.content-shell {
-  box-shadow: none !important;
-  background: transparent !important;
-
-  :deep(.el-card),
-  :deep(.el-card__body) {
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-}
-
 .content-shell--carded {
   border: 1px solid rgba(226, 232, 240, 0.85) !important;
-  background: rgba(255, 255, 255, 0.28) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
 html.dark {
   .content-shell--carded {
-    border-color: rgba(71, 85, 105, 0.42) !important;
     background: rgba(15, 23, 42, 0.2) !important;
   }
 }

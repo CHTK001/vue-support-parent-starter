@@ -2,6 +2,7 @@ import {
   type RouterHistory,
   type RouteRecordRaw,
   type RouteComponent,
+  RouterView,
   createWebHistory,
   createWebHashHistory,
 } from "vue-router";
@@ -25,8 +26,8 @@ import { defaultRouterArrays } from "@repo/config";
 import { type MenuType } from "../types";
 import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
-const IFrame = () => import("@repo/common-pages/layout/frame.vue");
 const Layout = () => import("@layout/default");
+const IFrame = () => import("@repo/common-pages/layout/frame.vue");
 const MissingRouteView = () => import("@repo/common-pages/error/404.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 //@ts-ignore
@@ -35,6 +36,7 @@ import { getAsyncRoutes } from "../api/routes";
 const CACHE_ROUTER_KEY = "async-routes";
 // 默认图标（Iconify 名称）
 const DEFAULT_MENU_ICON = "ri:menu-line";
+const ROOT_LAYOUT_ROUTE_NAME = "RootLayout";
 const ROUTE_COMPONENT_ALIASES: Record<string, string> = {
   "/manage/login/index": "/manage/user/index",
   "/manage/log/login/index": "/manage/log/user/index",
@@ -111,7 +113,13 @@ function hasRoutePath(
 }
 
 function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: string[]) {
-  if (route.meta?.frameSrc) {
+  if (!route.meta) {
+    //@ts-ignore
+    route.meta = {};
+  }
+
+  if (Number((route as any)?.sysMenuType) === 1 && route.meta?.frameSrc) {
+    route.meta.routeComponentMissing = false;
     return IFrame;
   }
 
@@ -136,13 +144,16 @@ function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: st
     .find(Boolean);
 
   if (matchedKey) {
+    route.meta.routeComponentMissing = false;
     return modulesRoutes[matchedKey];
   }
 
   if (route?.children && route.children.length) {
-    return Layout;
+    route.meta.routeComponentMissing = false;
+    return RouterView;
   }
 
+  route.meta.routeComponentMissing = true;
   return MissingRouteView;
 }
 
@@ -178,7 +189,11 @@ function normalizeRouteIcon(route: RouteRecordRaw) {
 }
 
 function handRank(routeInfo: any) {
-  const { name, path, parentId, meta } = routeInfo;
+  const { name, path, parentId, meta, sysMenuSort } = routeInfo;
+  const hasMenuSort = Number.isFinite(Number(sysMenuSort));
+  if (meta?.backstage || hasMenuSort) {
+    return false;
+  }
   return isAllEmpty(parentId)
     ? isAllEmpty(meta?.rank) ||
       (meta?.rank === 0 && name !== "Home" && path !== "/")
@@ -195,29 +210,80 @@ function ascending(arr: any[]) {
     }
     // 当rank不存在时，根据顺序自动创建，首页路由永远在第一位
     if (handRank(v)) v.meta.rank = index + 2;
+    if (Array.isArray(v.children) && v.children.length > 0) {
+      ascending(v.children);
+    }
   });
-  return arr.sort(
-    (a: { meta: { rank: number } }, b: { meta: { rank: number } }) => {
-      return a?.meta.rank - b?.meta.rank;
-    },
-  );
+  return arr.sort((a: any, b: any) => {
+    const rankDiff = Number(a?.meta?.rank ?? 0) - Number(b?.meta?.rank ?? 0);
+    if (rankDiff !== 0) {
+      return rankDiff;
+    }
+
+    const sortA = Number((a as any)?.sysMenuSort);
+    const sortB = Number((b as any)?.sysMenuSort);
+    if (Number.isFinite(sortA) && Number.isFinite(sortB) && sortA !== sortB) {
+      return sortA - sortB;
+    }
+
+    const idA = Number((a as any)?.sysMenuId);
+    const idB = Number((b as any)?.sysMenuId);
+    if (Number.isFinite(idA) && Number.isFinite(idB) && idA !== idB) {
+      return idA - idB;
+    }
+
+    return 0;
+  });
 }
 
-/** 过滤meta中showLink为false的菜单，并为缺省图标的菜单设置默认图标 */
-function filterTree(data: RouteComponent[]) {
-  const newTree = cloneDeep(data).filter(
-    (v: any) => v.meta?.showLink !== false,
-  );
-  newTree.forEach((v: any) => {
-    v.meta = v.meta || {};
-    if (!v.meta.icon) {
-      v.meta.icon = DEFAULT_MENU_ICON;
+/**
+ * 过滤菜单树。
+ * - 普通 showLink=false 壳节点：直接提升 children
+ * - 后端返回的分组目录（backstage + children）：保留层级，避免一级导航错乱
+ */
+function filterTree(data: RouteComponent[] = []) {
+  return cloneDeep(data).flatMap((item: any) => {
+    if (!item) {
+      return [];
     }
-    if (v.children) {
-      v.children = filterTree(v.children);
+
+    const nextItem = {
+      ...item,
+      meta: item.meta || {},
+    };
+    const filteredChildren = Array.isArray(nextItem.children)
+      ? filterTree(nextItem.children)
+      : [];
+
+    if (filteredChildren.length > 0) {
+      nextItem.children = filteredChildren;
+    } else {
+      delete nextItem.children;
     }
+
+    const shouldKeepBackstageGroup =
+      nextItem.meta?.showLink === false &&
+      nextItem.meta?.backstage &&
+      filteredChildren.length > 0;
+
+    if (shouldKeepBackstageGroup) {
+      nextItem.meta = {
+        ...nextItem.meta,
+        showLink: true,
+        alwaysShow: true,
+      };
+    }
+
+    if (nextItem.meta?.showLink === false && !shouldKeepBackstageGroup) {
+      return filteredChildren;
+    }
+
+    if (!nextItem.meta.icon) {
+      nextItem.meta.icon = DEFAULT_MENU_ICON;
+    }
+
+    return [nextItem];
   });
-  return newTree;
 }
 
 /** 过滤children长度为0的的目录，当目录下没有菜单时，会过滤此目录，目录没有赋予roles权限，当目录下只要有一个菜单有显示权限，那么此目录就会显示 */
@@ -307,65 +373,118 @@ function addPathMatch() {
   }
 }
 
-function getDynamicRouteContainer() {
-  const rootRoute = router.options.routes.find(
-    route => route.path === "/" && Array.isArray(route.children),
+function getRootLayoutRoute(): RouteRecordRaw | undefined {
+  return router.options.routes.find((route) => route.path === "/") as
+    | RouteRecordRaw
+    | undefined;
+}
+
+function resolveDynamicRootRedirect(routes: RouteRecordRaw[] = []): string {
+  return (
+    formatFlatteningRoutes(routes)
+      .filter((route) => !isDynamicContainerRoute(route))
+      .find(
+        (route) =>
+          !!route?.path &&
+          route.path !== "/" &&
+          route.meta?.routeComponentMissing !== true &&
+          !String(route.path).startsWith("/error"),
+      )?.path || ""
   );
-  if (rootRoute) {
-    rootRoute.children = rootRoute.children || [];
-    return rootRoute.children;
+}
+
+function ensureRootLayoutRoute(defaultRedirect = ""): RouteRecordRaw {
+  let rootRoute = getRootLayoutRoute();
+
+  if (!rootRoute) {
+    rootRoute = {
+      path: "/",
+      name: ROOT_LAYOUT_ROUTE_NAME,
+      component: Layout,
+      redirect: defaultRedirect || undefined,
+      meta: {
+        title: "RootLayout",
+        showLink: false,
+        hiddenTag: true,
+        rank: 0,
+      },
+      children: [],
+    } as RouteRecordRaw;
+    (router.options.routes as RouteRecordRaw[]).unshift(rootRoute);
+    if (!router.hasRoute(ROOT_LAYOUT_ROUTE_NAME)) {
+      router.addRoute(rootRoute);
+    }
   }
-  return router.options.routes;
+
+  rootRoute.children = (rootRoute.children || []) as RouteRecordRaw[];
+  if (!rootRoute.redirect && defaultRedirect) {
+    rootRoute.redirect = defaultRedirect;
+  }
+
+  return rootRoute;
+}
+
+function getDynamicRouteContainer(defaultRedirect = ""): RouteRecordRaw[] {
+  const rootRoute = ensureRootLayoutRoute(defaultRedirect);
+  return rootRoute.children as RouteRecordRaw[];
+}
+
+function addDynamicRoute(
+  dynamicRouteContainer: RouteRecordRaw[],
+  route: RouteRecordRaw,
+): void {
+  if (!route.meta) {
+    //@ts-ignore
+    route.meta = {};
+  }
+
+  if (hasRegisteredRoutePath(route.path)) {
+    return;
+  }
+
+  dynamicRouteContainer.push(route);
+  ascending(dynamicRouteContainer);
+
+  const rootRouteName = String(
+    ensureRootLayoutRoute().name || ROOT_LAYOUT_ROUTE_NAME,
+  );
+  if (!route?.name || !router.hasRoute(route.name)) {
+    router.addRoute(rootRouteName, route);
+  }
+}
+
+function isDynamicContainerRoute(route?: RouteRecordRaw): boolean {
+  return !!route?.children?.length && route.component === RouterView;
+}
+
+function hasRegisteredRoutePath(targetPath?: string): boolean {
+  if (!targetPath) {
+    return false;
+  }
+  return router.getRoutes().some((route) => route.path === targetPath);
 }
 
 /** 处理动态路由（后端返回的路由） */
 function handleAsyncRoutes(routeList) {
-  const dynamicRouteContainer = getDynamicRouteContainer();
   const normalizedRouteList = Array.isArray(routeList)
     ? addAsyncRoutes(cloneDeep(routeList)) || []
     : [];
+  const dynamicRouteContainer = getDynamicRouteContainer(
+    resolveDynamicRootRedirect(normalizedRouteList),
+  );
   const wholeMenuRoutes = cloneDeep(normalizedRouteList);
   if (!routeList || routeList.length === 0) {
     usePermissionStoreHook().handleWholeMenus(routeList || []);
   } else {
-    formatFlatteningRoutes(normalizedRouteList).map(
-      (v: RouteRecordRaw) => {
-        if (!v.meta) {
-          //@ts-ignore
-          v.meta = {};
-        }
-        // 防止重复添加路由
-        if (
-          dynamicRouteContainer.findIndex((value) => value.path === v.path) !==
-          -1
-        ) {
-          return;
-        } else {
-          dynamicRouteContainer.push(v);
-          ascending(dynamicRouteContainer);
-          if (!v?.name || !router.hasRoute(v.name)) {
-            router.addRoute(v);
-          }
-          const flattenRouters: any = router.getRoutes().find((n) => n.path === "/");
-          if (flattenRouters) {
-            router.addRoute(flattenRouters);
-          }
-        }
-      },
-    );
+    formatFlatteningRoutes(normalizedRouteList)
+      .filter((route: RouteRecordRaw) => !isDynamicContainerRoute(route))
+      .forEach((route: RouteRecordRaw) => {
+        addDynamicRoute(dynamicRouteContainer, route);
+      });
     formatFlatteningRoutes(
       addAsyncRoutes(cloneDeep(EXTRA_DYNAMIC_ROUTES)) || [],
     ).forEach((route: RouteRecordRaw) => {
-      if (
-        dynamicRouteContainer.findIndex(value => value.path === route.path) !== -1
-      ) {
-        return;
-      }
-      dynamicRouteContainer.push(route);
-      ascending(dynamicRouteContainer);
-      if (!route?.name || !router.hasRoute(route.name)) {
-        router.addRoute(route);
-      }
+      addDynamicRoute(dynamicRouteContainer, route);
     });
     usePermissionStoreHook().handleWholeMenus(wholeMenuRoutes);
   }
@@ -409,35 +528,18 @@ export function clearRouter() {
 /** 初始化路由（`new Promise` 写法防止在异步请求中造成无限循环）*/
 function initRouter(targetPath?: string) {
   if (getConfig()?.CachingAsyncRoutes) {
-    // 开启动态路由缓存本地localStorage
-    const asyncRouteList = localStorageProxy().getItem(CACHE_ROUTER_KEY) as any;
-    const shouldReuseCache =
-      asyncRouteList &&
-      asyncRouteList?.length > 0 &&
-      (!targetPath || hasRoutePath(asyncRouteList, targetPath));
-
-    if (shouldReuseCache) {
-      return new Promise((resolve) => {
-        handleAsyncRoutes(asyncRouteList);
-        resolve(router);
-      });
-    } else {
-      if (asyncRouteList?.length > 0) {
-        localStorageProxy().removeItem(CACHE_ROUTER_KEY);
-      }
-      return new Promise((resolve, reject) => {
-        getAsyncRoutes()
-          .then((res) => {
-            const data = normalizeAsyncRoutePayload(res);
-            handleAsyncRoutes(cloneDeep(data));
-            localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
-            resolve(router);
-          })
-          .catch((err) => {
-            reject(err);
-          });
-      });
-    }
+    return new Promise((resolve, reject) => {
+      getAsyncRoutes()
+        .then((res) => {
+          const data = normalizeAsyncRoutePayload(res);
+          handleAsyncRoutes(cloneDeep(data));
+          localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
+          resolve(router);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
   } else {
     return new Promise((resolve, reject) => {
       getAsyncRoutes()
@@ -498,7 +600,11 @@ function formatTwoStageRoutes(routesList: RouteRecordRaw[]) {
 }
 
 /** 处理缓存路由（添加、删除、刷新） */
-function handleAliveRoute({ name }: ToRouteType, mode?: string) {
+function handleAliveRoute(
+  routeLike: Pick<ToRouteType, "name"> | { name?: ToRouteType["name"] },
+  mode?: string,
+) {
+  const name = routeLike?.name;
   switch (mode) {
     case "add":
       usePermissionStoreHook().cacheOperate({
@@ -625,25 +731,59 @@ function hasAuth(value: string | Array<string>): boolean {
 }
 
 function handleTopMenu(route) {
-  if (route?.children && route.children.length > 1) {
+  const visibleChildren = (route?.children || []).filter(
+    (child) =>
+      child &&
+      child.meta?.showLink !== false &&
+      !child.meta?.routeComponentMissing &&
+      child.path !== "/login" &&
+      !String(child.path || "").startsWith("/error"),
+  );
+
+  if (visibleChildren.length > 0) {
     if (route.redirect) {
-      return route.children.filter((cur) => cur.path === route.redirect)[0];
-    } else {
-      return route.children[0];
+      const redirectChild = visibleChildren.find(
+        (child) => child.path === route.redirect,
+      );
+      if (redirectChild) {
+        return redirectChild;
+      }
     }
-  } else {
-    return route;
+
+    return visibleChildren[0];
   }
+
+  return route;
+}
+
+function isNavigableMenu(route?: MenuType): boolean {
+  if (!route) {
+    return false;
+  }
+
+  if (route.meta?.showLink === false || route.meta?.routeComponentMissing) {
+    return false;
+  }
+
+  if (!route.path || route.path === "/login") {
+    return false;
+  }
+
+  return !String(route.path).startsWith("/error");
 }
 
 function findFirstAvailableMenu(routes: MenuType[] = []): MenuType | undefined {
   const routeGroups = [
     routes.filter(
-      route => route?.meta?.backstage && route?.meta?.showLink !== false,
+      route =>
+        route?.meta?.backstage &&
+        route?.meta?.showLink !== false &&
+        !route?.meta?.routeComponentMissing,
     ),
     routes.filter(
       route =>
         route?.meta?.showLink !== false &&
+        !route?.meta?.routeComponentMissing &&
         route?.path !== "/login" &&
         !String(route?.path || "").startsWith("/error"),
     ),
@@ -655,7 +795,10 @@ function findFirstAvailableMenu(routes: MenuType[] = []): MenuType | undefined {
       if (!route) {
         continue;
       }
-      return handleTopMenu(route);
+      const resolvedRoute = handleTopMenu(route);
+      if (isNavigableMenu(resolvedRoute)) {
+        return resolvedRoute;
+      }
     }
   }
   return undefined;

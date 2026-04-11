@@ -23,7 +23,7 @@ export const fetchUpdateRoleMenu = (setting) => {
 
 /** 删除系统配置 */
 export const fetchDeleteRole = (id) => {
-  const params = { sysRoleId: id };
+  const params = { roleId: id };
   return http.request<ReturnResult<boolean>>("delete", "/v2/role/delete", {
     params,
   });

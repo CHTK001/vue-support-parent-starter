@@ -46,14 +46,14 @@ export { NProgress, Cookies, CryptoJS, date };
 
 export function loadSfcModule(...args: any[]) {
   return defineAsyncComponent(async () => {
-    const { loadSfcModule: innerLoadSfcModule } = await import("./sfc");
-    return innerLoadSfcModule(...args);
+    const { loadSfcModule: innerLoadSfcModule } = await import("./src/sfc");
+    return (innerLoadSfcModule as (...params: any[]) => any)(...args);
   });
 }
 
 export function loadRemoteModule(...args: any[]) {
   return defineAsyncComponent(async () => {
-    const { loadRemoteModule: innerLoadRemoteModule } = await import("./sfc");
-    return innerLoadRemoteModule(...args);
+    const { loadRemoteModule: innerLoadRemoteModule } = await import("./src/sfc");
+    return (innerLoadRemoteModule as (...params: any[]) => any)(...args);
   });
 }

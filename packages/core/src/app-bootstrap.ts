@@ -7,8 +7,56 @@
 import type { App, Directive, DirectiveBinding } from "vue";
 import type { Router } from "vue-router";
 import type { SocketServiceConfig } from "./config/socketService";
+import { getLoaderStorageKey } from "@repo/components/ScRouteLoading/loader-manager";
 
 let coreStylesPromise: Promise<void> | null = null;
+let consoleWarnFilterInstalled = false;
+
+function getCurrentHashPath(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return window.location.hash.replace(/^#/, "").split("?")[0];
+}
+
+function shouldIgnoreMissingRouteWarning(message: string): boolean {
+  const missingRouteMatch = message.match(
+    /\[Vue Router warn\]: No match found for location with path "([^"]+)"/,
+  );
+  if (!missingRouteMatch) {
+    return false;
+  }
+
+  const missingPath = missingRouteMatch[1];
+  if (missingPath === "/home" || missingPath === "/") {
+    return true;
+  }
+
+  const currentHashPath = getCurrentHashPath();
+  return (
+    !!currentHashPath &&
+    missingPath === currentHashPath &&
+    missingPath.startsWith("/manage/")
+  );
+}
+
+function installConsoleWarnFilter(): void {
+  if (consoleWarnFilterInstalled || typeof window === "undefined") {
+    return;
+  }
+
+  const rawConsoleWarn = console.warn.bind(console);
+  console.warn = (...args: unknown[]) => {
+    if (
+      typeof args[0] === "string" &&
+      shouldIgnoreMissingRouteWarning(args[0])
+    ) {
+      return;
+    }
+    rawConsoleWarn(...args);
+  };
+  consoleWarnFilterInstalled = true;
+}
 
 function isBootDebugEnabled(): boolean {
   if (typeof window === "undefined") {
@@ -213,7 +261,8 @@ export class AppBootstrap {
     const promise = (async () => {
       try {
         bootDebugLog("registerEncryptedFonts:start");
-        const { registerEncryptedFonts } = await import("@repo/font-encryption");
+        const { registerEncryptedFonts } =
+          await import("@repo/font-encryption");
         await registerEncryptedFonts();
         bootDebugLog("registerEncryptedFonts:done");
       } catch (error) {
@@ -230,7 +279,10 @@ export class AppBootstrap {
     bootDebugLog("registerRouter:wait", router.currentRoute.value.fullPath);
     this.initPromises.push(
       router.isReady().then(() => {
-        bootDebugLog("registerRouter:ready", router.currentRoute.value.fullPath);
+        bootDebugLog(
+          "registerRouter:ready",
+          router.currentRoute.value.fullPath,
+        );
       }),
     );
     return this;
@@ -248,7 +300,8 @@ export class AppBootstrap {
     if (!plugins) return this;
     const promise = (async () => {
       try {
-        const pluginList = typeof plugins === "function" ? await plugins() : plugins;
+        const pluginList =
+          typeof plugins === "function" ? await plugins() : plugins;
         bootDebugLog("registerPlugins:start", pluginList?.length || 0);
         for (const plugin of pluginList) {
           if (plugin) this.app.use(plugin);
@@ -297,9 +350,15 @@ export class AppBootstrap {
     return this;
   }
 
-  getApp(): App { return this.app; }
-  getRouter(): Router | undefined { return this.router; }
-  getConfig(): any { return this.config; }
+  getApp(): App {
+    return this.app;
+  }
+  getRouter(): Router | undefined {
+    return this.router;
+  }
+  getConfig(): any {
+    return this.config;
+  }
 
   private hideInitialLoader(): void {
     if (typeof window === "undefined") return;
@@ -308,8 +367,8 @@ export class AppBootstrap {
       try {
         window.hideAppLoader?.();
         const appLoader = document.getElementById("app-loader");
-        if (appLoader) {
-          appLoader.style.display = "none";
+        if (appLoader?.parentNode) {
+          appLoader.parentNode.removeChild(appLoader);
         }
       } catch (error) {
         console.warn("[AppBootstrap] 隐藏首屏加载动画失败:", error);
@@ -331,7 +390,7 @@ export class AppBootstrap {
       bootDebugLog("mount:initPromises-resolved", selector);
       this.app.mount(selector);
       this.hideInitialLoader();
-      console.log("[AppBootstrap] 应用启动成功");
+      bootDebugLog("mount:success", selector);
     } catch (error) {
       console.error("[AppBootstrap] 应用启动失败:", error);
       this.app.mount(selector);
@@ -365,7 +424,8 @@ export async function quickBootstrap(
 ): Promise<void> {
   const bootstrap = createAppBootstrap(app);
   if (options.directives) bootstrap.registerDirectives(options.directives);
-  if (options.components) bootstrap.registerGlobalComponents(options.components);
+  if (options.components)
+    bootstrap.registerGlobalComponents(options.components);
   if (options.setupStore) bootstrap.registerStore(options.setupStore);
   if (options.router) bootstrap.registerRouter(options.router);
   if (options.plugins) bootstrap.registerPlugins(options.plugins);
@@ -409,14 +469,15 @@ export async function createStandardApp(
 
   // 1. 尽早启动 WASM 初始化，并在 mount 前确保完成
   const wasmInitPromise = resolveWasmEnabled(enableWasm)
-    ? import("@repo/codec-wasm")
-        .then(async ({ initializeWasmModule }) => {
-          bootDebugLog("createStandardApp:wasm-imported");
-          const result = await initializeWasmModule();
-          if (!result) {
-            console.warn("[SystemBootstrap] WASM 模块初始化失败，已降级到 JS 实现");
-          }
-        })
+    ? import("@repo/codec-wasm").then(async ({ initializeWasmModule }) => {
+        bootDebugLog("createStandardApp:wasm-imported");
+        const result = await initializeWasmModule();
+        if (!result) {
+          console.warn(
+            "[SystemBootstrap] WASM 模块初始化失败，已降级到 JS 实现",
+          );
+        }
+      })
     : null;
 
   // 2. 导入必要依赖
@@ -431,27 +492,43 @@ export async function createStandardApp(
     injectResponsiveStorage,
     useI18n,
   } = await import("@repo/config");
-  const [{ router }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] = await Promise.all([
-    import("./router"),
-    import("./store"),
-    import("./directives/menu"),
-    import("./directives/ripple"),
-    import("@repo/plugins"),
-  ]);
-  const {
-    getFrontendFontEncryptionOptions,
-    syncFrontendSystemRuntime,
-  } = await import("./runtime/frontend-system");
-  const { MotionPlugin } = await import("@vueuse/motion");
+  const [{ router }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] =
+    await Promise.all([
+      import("./router"),
+      import("./store"),
+      import("./directives/menu"),
+      import("./directives/ripple"),
+      import("@repo/plugins"),
+    ]);
+  const { getFrontendFontEncryptionOptions, syncFrontendSystemRuntime } =
+    await import("./runtime/frontend-system");
+  let motionEnabled = enableMotion;
+  let MotionPlugin: any = null;
+  if (motionEnabled) {
+    try {
+      ({ MotionPlugin } = await import("@vueuse/motion"));
+    } catch (error) {
+      motionEnabled = false;
+      console.warn(
+        "[AppBootstrap] MotionPlugin 加载失败，已跳过动画插件注册:",
+        error,
+      );
+    }
+  }
   const Table = (await import("@pureadmin/table")).default;
-  const { FontIcon, IconifyIconOffline, IconifyIconOnline } = await import("@repo/components/ReIcon");
+  const { FontIcon, IconifyIconOffline, IconifyIconOnline } =
+    await import("@repo/components/ReIcon");
   const { Auth } = await import("@repo/components/ReAuth");
   const ScTable = (await import("@repo/components/ScTable/index.vue")).default;
   const { ScTableColumn } = await import("@repo/components/ScTableColumn");
+  const { ScAvatar } = await import("@repo/components/ScAvatar");
+  const { ScBadge } = await import("@repo/components/ScBadge");
   const { ScButton } = await import("@repo/components/ScButton");
   const { ScBacktop } = await import("@repo/components/ScBacktop");
   const { ScCard } = await import("@repo/components/ScCard");
-  const { ScCheckbox, ScCheckboxGroup } = await import("@repo/components/ScCheckbox");
+  const { ScTimeText } = await import("@repo/components/ScTimeText");
+  const { ScCheckbox, ScCheckboxGroup } =
+    await import("@repo/components/ScCheckbox");
   const { ScCol } = await import("@repo/components/ScCol");
   const { ScContainer } = await import("@repo/components/ScContainer");
   const { ScDatePicker } = await import("@repo/components/ScDatePicker");
@@ -461,9 +538,9 @@ export async function createStandardApp(
   const { ScEmpty } = await import("@repo/components/ScEmpty");
   const { ScForm } = await import("@repo/components/ScForm");
   const { ScFormItem } = await import("@repo/components/ScFormItem");
-  const { ScHeader } = await import("@repo/components/ScHeader/index.ts");
+  const { ScHeader } = await import("@repo/components/ScHeader");
   const { ScIcon } = await import("@repo/components/ScIcon");
-  const { ScImage } = await import("@repo/components/ScImage/index.ts");
+  const { ScImage } = await import("@repo/components/ScImage");
   const { ScInput } = await import("@repo/components/ScInput");
   const { ScInputNumber } = await import("@repo/components/ScInputNumber");
   const { ScMain } = await import("@repo/components/ScMain");
@@ -476,7 +553,9 @@ export async function createStandardApp(
   const { ScRow } = await import("@repo/components/ScRow");
   const { ScScrollbar } = await import("@repo/components/ScScrollbar");
   const { ScSelect } = await import("@repo/components/ScSelect");
-  const ScSwitch = (await import("@repo/components/ScSwitch/index.vue")).default;
+  const ScSwitch = (await import("@repo/components/ScSwitch/index.vue"))
+    .default;
+  const { ScTabs, ScTabPane } = await import("@repo/components/ScTabs");
   const { ScTag } = await import("@repo/components/ScTag");
   const { ScText } = await import("@repo/components/ScText");
   const { ScDrawer } = await import("@repo/components/ScDrawer");
@@ -498,13 +577,25 @@ export async function createStandardApp(
   // 4.1 初始化加载动画样式
   try {
     const loaderStyleFromConfig = config?.LoadingPageStyle;
-    if (loaderStyleFromConfig && !localStorage.getItem("sys-loader-style")) {
+    const loaderStorageKey = getLoaderStorageKey(
+      String(config?.SystemCode || "").trim(),
+    );
+    if (loaderStyleFromConfig && !localStorage.getItem(loaderStorageKey)) {
       const mapping: Record<string, string> = {
-        spinner: "simple", clock: "default", pixel: "dinoGame",
-        cube: "blocks", dots: "default", pulse: "pulse",
-        minimal: "simple", space: "rings", servererror: "book",
+        spinner: "simple",
+        clock: "default",
+        pixel: "dinoGame",
+        cube: "blocks",
+        dots: "default",
+        pulse: "pulse",
+        minimal: "none",
+        space: "rings",
+        servererror: "book",
       };
-      localStorage.setItem("sys-loader-style", mapping[String(loaderStyleFromConfig)] || "default");
+      localStorage.setItem(
+        loaderStorageKey,
+        mapping[String(loaderStyleFromConfig)] || "none",
+      );
     }
   } catch (error) {
     console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
@@ -550,26 +641,42 @@ export async function createStandardApp(
       mounted(el, binding: DirectiveBinding) {
         const globalFeCfg = {
           ...getFrontendFontEncryptionOptions(initialConfig),
-          ...(typeof enableFontEncryption === "object" ? enableFontEncryption : {}),
+          ...(typeof enableFontEncryption === "object"
+            ? enableFontEncryption
+            : {}),
         };
-        const merged = binding.value == null
-          ? globalFeCfg
-          : typeof binding.value === "boolean"
-            ? { ...globalFeCfg, enabled: binding.value }
-            : { ...globalFeCfg, ...binding.value };
-        objDir.mounted?.(el, { ...binding, value: merged }, null as any, null as any);
+        const merged =
+          binding.value == null
+            ? globalFeCfg
+            : typeof binding.value === "boolean"
+              ? { ...globalFeCfg, enabled: binding.value }
+              : { ...globalFeCfg, ...binding.value };
+        objDir.mounted?.(
+          el,
+          { ...binding, value: merged },
+          null as any,
+          null as any,
+        );
       },
       updated(el, binding: DirectiveBinding) {
         const globalFeCfg = {
           ...getFrontendFontEncryptionOptions(initialConfig),
-          ...(typeof enableFontEncryption === "object" ? enableFontEncryption : {}),
+          ...(typeof enableFontEncryption === "object"
+            ? enableFontEncryption
+            : {}),
         };
-        const merged = binding.value == null
-          ? globalFeCfg
-          : typeof binding.value === "boolean"
-            ? { ...globalFeCfg, enabled: binding.value }
-            : { ...globalFeCfg, ...binding.value };
-        objDir.updated?.(el, { ...binding, value: merged }, null as any, null as any);
+        const merged =
+          binding.value == null
+            ? globalFeCfg
+            : typeof binding.value === "boolean"
+              ? { ...globalFeCfg, enabled: binding.value }
+              : { ...globalFeCfg, ...binding.value };
+        objDir.updated?.(
+          el,
+          { ...binding, value: merged },
+          null as any,
+          null as any,
+        );
       },
       unmounted: objDir.unmounted,
     };
@@ -583,8 +690,11 @@ export async function createStandardApp(
     .registerComponent("IconifyIconOnline", IconifyIconOnline)
     .registerComponent("FontIcon", FontIcon)
     .registerComponent("Auth", Auth)
+    .registerComponent("ScTimeText", ScTimeText)
     .registerComponent("ScTable", ScTable)
     .registerComponent("ScTableColumn", ScTableColumn)
+    .registerComponent("ScAvatar", ScAvatar)
+    .registerComponent("ScBadge", ScBadge)
     .registerComponent("ScBacktop", ScBacktop)
     .registerComponent("ScButton", ScButton)
     .registerComponent("ScCard", ScCard)
@@ -615,6 +725,8 @@ export async function createStandardApp(
     .registerComponent("ScRow", ScRow)
     .registerComponent("ScScrollbar", ScScrollbar)
     .registerComponent("ScSwitch", ScSwitch)
+    .registerComponent("ScTabs", ScTabs)
+    .registerComponent("ScTabPane", ScTabPane)
     .registerComponent("ScTag", ScTag)
     .registerComponent("ScDrawer", ScDrawer)
     .registerComponent("ScDialog", ScDialog)
@@ -629,24 +741,32 @@ export async function createStandardApp(
   // 5.4 注册第三方插件
   if (enableTippy) {
     const VueTippy = (await import("vue-tippy")).default;
-    bootstrap.use(() => { void app.use(VueTippy); });
+    bootstrap.use(() => {
+      void app.use(VueTippy);
+    });
   }
   if (enableElementPlusX) {
     try {
       const ElementPlusX = (await import("vue-element-plus-x")).default;
-      bootstrap.use(() => { void app.use(ElementPlusX); });
+      bootstrap.use(() => {
+        void app.use(ElementPlusX);
+      });
     } catch (error) {
-      console.warn("[createStandardApp] ElementPlusX 加载失败，跳过注册:", error);
+      console.warn(
+        "[createStandardApp] ElementPlusX 加载失败，跳过注册:",
+        error,
+      );
     }
   }
 
   // 5.5 注册核心功能
   const activeRouter = customRouter ?? router;
   const corePlugins: any[] = [];
-  if (enableMotion) corePlugins.push(MotionPlugin);
+  if (motionEnabled && MotionPlugin) corePlugins.push(MotionPlugin);
   if (enableI18n) corePlugins.push(useI18n);
   corePlugins.push(useElementPlus);
   if (enableTable) corePlugins.push(Table);
+  installConsoleWarnFilter();
 
   bootstrap
     .registerStore(setupStore)
@@ -661,7 +781,8 @@ export async function createStandardApp(
     bootstrap.use(async () => {
       try {
         bootDebugLog("createStandardApp:socket-service:start");
-        const { initGlobalSocketService } = await import("./config/socketService");
+        const { initGlobalSocketService } =
+          await import("./config/socketService");
         initGlobalSocketService(socket);
         bootDebugLog("createStandardApp:socket-service:done");
       } catch (error) {
@@ -685,7 +806,8 @@ export async function createStandardApp(
           bootDebugLog("createStandardApp:theme:skipped");
           return;
         }
-        const { autoRegisterThemePlugins, initThemeSystem } = await import("@repo/components/hooks");
+        const { autoRegisterThemePlugins, initThemeSystem } =
+          await import("@repo/components/hooks");
         await autoRegisterThemePlugins(app);
         await initThemeSystem();
         bootDebugLog("createStandardApp:theme:done");
@@ -699,11 +821,22 @@ export async function createStandardApp(
   (app.config.globalProperties as any).__proxyIdCheat__ = 0;
   app.config.warnHandler = (msg, _instance, trace) => {
     if (typeof msg === "string") {
-      if (msg.includes("__proxyIdCheat__") && msg.includes("was accessed during render but is not defined on instance")) return;
-      if (msg.includes('Slot "default" invoked outside of the render function')) return;
-      if (msg.includes("Runtime directive used on component with non-element root node")) return;
-      if (msg.includes('[Vue Router warn]: No match found for location with path "/home"')) return;
-      if (msg.includes('[Vue Router warn]: No match found for location with path "/"')) return;
+      if (
+        msg.includes("__proxyIdCheat__") &&
+        msg.includes(
+          "was accessed during render but is not defined on instance",
+        )
+      )
+        return;
+      if (msg.includes('Slot "default" invoked outside of the render function'))
+        return;
+      if (
+        msg.includes(
+          "Runtime directive used on component with non-element root node",
+        )
+      )
+        return;
+      if (shouldIgnoreMissingRouteWarning(msg)) return;
     }
     console.warn(msg, trace);
   };
@@ -711,7 +844,9 @@ export async function createStandardApp(
   // 5.10 自定义初始化
   if (setup) {
     bootDebugLog("createStandardApp:custom-setup:start");
-    await bootstrap.useAsync(async (app) => { await setup(app, config); });
+    await bootstrap.useAsync(async (app) => {
+      await setup(app, config);
+    });
     bootDebugLog("createStandardApp:custom-setup:done");
   }
 

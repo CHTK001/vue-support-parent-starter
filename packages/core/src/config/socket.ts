@@ -4,11 +4,15 @@
  */
 
 import { getToken } from "../utils/auth";
-import { message, uu4 } from "@repo/utils";
+import { message } from "@repo/utils";
 import { io } from "socket.io-client";
 import { inject, provide, ref, type InjectionKey } from "vue";
 import { getGlobalSocketService } from "./socketService";
-import { normalizeSocketUrls } from "./socketUtils";
+import {
+  matchesSocketListenOptions,
+  normalizeSocketUrls,
+  parseSocketMessage,
+} from "./socketUtils";
 import { SystemTopics } from "./socketTopics";
 
 // 从 socketUtils 重新导出 parseSocketMessage 以保持兼容性
@@ -24,6 +28,11 @@ export interface SocketListenOptions {
    * 支持字符串或数字类型
    */
   dataId?: string | number;
+  /**
+   * 请求ID过滤
+   * 如果指定，只接收 requestId 匹配的消息
+   */
+  requestId?: string | number;
 }
 
 /**
@@ -33,7 +42,7 @@ export interface SocketListenOptions {
  * @since 2024-12-19
  */
 export interface GlobalSocketService {
-  socket: any;
+  socket: unknown;
   isConnected: boolean;
   connect: () => void;
   disconnect: () => void;
@@ -45,11 +54,11 @@ export interface GlobalSocketService {
    */
   on: (
     event: string,
-    callback: Function,
+    callback: (data: unknown) => void,
     options?: SocketListenOptions,
   ) => void;
   off: (event: string) => void;
-  emit: (event: string, data?: any) => void;
+  emit: (event: string, data?: unknown) => void;
   close: () => void;
 }
 
@@ -70,7 +79,7 @@ const socketKeyMap = new Map<string, InjectionKey<GlobalSocketService>>();
 export function createGlobalSocketService(
   urls: string[],
   context = "/socket.io",
-  query = {},
+  query: Record<string, unknown> = {},
   options = {
     transports: ["websocket"],
     autoConnect: true,
@@ -79,7 +88,7 @@ export function createGlobalSocketService(
     reconnectionDelay: 1000,
   },
 ): GlobalSocketService {
-  let socketInstance: any = null;
+  let socketInstance: ReturnType<typeof socket> | null = null;
   const isConnected = ref(false);
 
   /**
@@ -126,7 +135,7 @@ export function createGlobalSocketService(
    */
   const on = (
     event: string,
-    callback: Function,
+    callback: (data: unknown) => void,
     options?: SocketListenOptions,
   ) => {
     if (!socketInstance) {
@@ -134,17 +143,12 @@ export function createGlobalSocketService(
     }
 
     if (socketInstance) {
-      socketInstance.on(event, (rawData: any) => {
+      socketInstance.on(event, (rawData: unknown) => {
         // 解析新格式的消息数据
         const parsedData = parseSocketMessage(rawData);
 
-        // 如果指定了 dataId，进行过滤
-        if (options?.dataId !== undefined) {
-          const messageDataId = parsedData?.dataId;
-          // 支持字符串和数字比较
-          if (String(messageDataId) !== String(options.dataId)) {
-            return; // 不匹配则跳过
-          }
+        if (!matchesSocketListenOptions(parsedData, options, rawData)) {
+          return;
         }
 
         callback(parsedData);
@@ -164,7 +168,7 @@ export function createGlobalSocketService(
   /**
    * 发送事件
    */
-  const emit = (event: string, data?: any) => {
+  const emit = (event: string, data?: unknown) => {
     if (!socketInstance) {
       connect();
     }
@@ -207,8 +211,8 @@ export function createGlobalSocketService(
 export function provideGlobalSocket(
   urls: string[],
   context?: string,
-  query?: any,
-  options?: any,
+  query?: Record<string, unknown>,
+  options?: Parameters<typeof createGlobalSocketService>[3],
 ) {
   const socketService = createGlobalSocketService(
     urls,
@@ -274,8 +278,8 @@ export function provideSocket(
   keyName: string,
   urls: string[],
   context?: string,
-  query?: any,
-  options?: any,
+  query?: Record<string, unknown>,
+  options?: Parameters<typeof createGlobalSocketService>[3],
 ): GlobalSocketService {
   const socketKey = createSocketKey(keyName);
   const socketService = createGlobalSocketService(
@@ -311,9 +315,9 @@ export function useSocket(keyName?: string): GlobalSocketService | null {
 }
 
 export const socket = (
-  urls,
+  urls: string[],
   context = "/socket.io",
-  query: {},
+  query: Record<string, unknown> = {},
   options = {
     transports: ["websocket"],
     autoConnect: true, // 是否自动连接
@@ -322,7 +326,29 @@ export const socket = (
     reconnectionDelay: 1000, // 重新连接延迟时间（毫秒）
   },
 ) => {
-  const newOptions = {
+  const resolveSocketPayload = (data: unknown) => {
+    if (!data) {
+      return {};
+    }
+    if (typeof data === "string") {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return { message: data };
+      }
+    }
+    return data;
+  };
+
+  const newOptions: {
+    query: Record<string, unknown> | null;
+    path: string;
+    transports?: string[];
+    autoConnect?: boolean;
+    reconnection?: boolean;
+    reconnectionAttempts?: number;
+    reconnectionDelay?: number;
+  } = {
     query: null,
     path: context,
   };
@@ -335,44 +361,23 @@ export const socket = (
   const url = normalizedUrls[~~random];
   const session = io(url, newOptions);
   const socketWrapper = {
-    on: function (event, callback) {
-      session.on(event, async (row) => {
+    on(event: string, callback: (data: unknown) => void) {
+      session.on(event, (row: unknown) => {
         if (!row) {
           return;
         }
         try {
-          if (typeof row === "string") {
-            try {
-              row = JSON.parse(row);
-            } catch (error) {
-              callback(row);
-              return;
-            }
-          }
-          const data = await uu4(row);
-          if (typeof data === "object") {
-            callback(data);
-            return;
-          }
-          const line = data?.data || "";
-          if (
-            (line.startsWith("{") || line.startsWith("[")) &&
-            (line.endsWith("]") || line.endsWith("}"))
-          ) {
-            callback(JSON.parse(line));
-            return;
-          }
-          callback(line);
-        } catch (e) {}
+          callback(parseSocketMessage(row));
+        } catch {}
       });
     },
-    off: function (event) {
+    off(event: string) {
       session?.off(event);
     },
-    close: function () {
+    close() {
       session?.close();
     },
-    emit: function (event, data) {
+    emit(event: string, data?: unknown) {
       session?.emit(event, data);
     },
   };
@@ -412,30 +417,28 @@ export const socket = (
   // 使用统一主题命名规范: system:user:online
   socketWrapper.on(SystemTopics.USER.ONLINE, (data) => {
     // 浏览器支持且用户没有禁止浏览器通知的情况下执行
+    const data1 = resolveSocketPayload(data);
     if (window.Notification && Notification.permission !== "denied") {
-      const data1 = JSON.parse(data?.data);
       Notification.requestPermission(function () {
         new Notification("上线通知", {
           body: data1?.message,
         });
       });
     } else {
-      const data1 = JSON.parse(data);
       message(data1?.message, { type: "success" });
     }
   });
   // 使用统一主题命名规范: system:user:offline
   socketWrapper.on(SystemTopics.USER.OFFLINE, (data) => {
     // 浏览器支持且用户没有禁止浏览器通知的情况下执行
+    const data1 = resolveSocketPayload(data);
     if (window.Notification && Notification.permission !== "denied") {
-      const data1 = JSON.parse(data?.data);
       Notification.requestPermission(function () {
         new Notification("下线通知", {
           body: data1?.message,
         });
       });
     } else {
-      const data1 = JSON.parse(data);
       message(data1?.message, { type: "success" });
     }
   });

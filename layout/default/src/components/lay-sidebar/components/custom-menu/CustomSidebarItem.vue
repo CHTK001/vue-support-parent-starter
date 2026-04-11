@@ -3,6 +3,10 @@
  * 自定义横向导航菜单项
  * 使用 CustomMenuItem 和 CustomSubMenu 替代 el-menu-item 和 el-sub-menu
  */
+defineOptions({
+  name: "CustomSidebarItem",
+});
+
 import { computed, toRaw, inject, isRef, type Ref, type Component, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useRenderIcon } from "@repo/components/ReIcon";
@@ -63,14 +67,18 @@ const _injectedSidebarItem = inject<Component | Ref<Component>>("themeSidebarIte
 const ThemeSidebarItem = computed(() =>
   isRef(_injectedSidebarItem) ? _injectedSidebarItem.value : _injectedSidebarItem
 );
+const FallbackSidebarItem = CustomMenuItem as unknown as Component;
 
 // 解析路径
 function resolvePath(routePath: string) {
   const httpReg = /^http(s?):\/\//;
+  if (routePath?.startsWith("/")) {
+    return routePath;
+  }
   if (httpReg.test(routePath) || httpReg.test(props.basePath || "")) {
     return routePath || props.basePath || "";
   }
-  return configResolvePath(props.basePath || "", routePath);
+  return configResolvePath(routePath, props.basePath || "");
 }
 
 // 判断是否只有一个子菜单
@@ -194,7 +202,7 @@ const menuPath = computed(() => {
     <template v-for="child in item.children" :key="child.path">
       <component
         v-if="child.meta?.showLink !== false"
-        :is="ThemeSidebarItem || CustomSidebarItem"
+        :is="ThemeSidebarItem || FallbackSidebarItem"
         :item="child"
         :base-path="resolvePath(child.path)"
         :is-nest="true"

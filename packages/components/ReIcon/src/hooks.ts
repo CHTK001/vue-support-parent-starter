@@ -1,6 +1,11 @@
 import type { iconType } from "./types";
-import { h, defineComponent, type Component } from "vue";
-import { IconifyIconOnline, IconifyIconOffline, FontIcon, PixelIcon } from "../index";
+import { h, defineComponent, markRaw, type Component } from "vue";
+import {
+  IconifyIconOnline,
+  IconifyIconOffline,
+  FontIcon,
+  PixelIcon,
+} from "../index";
 
 /**
  * 支持 `iconfont`、自定义 `svg` 以及 `iconify` 中所有的图标
@@ -10,6 +15,8 @@ import { IconifyIconOnline, IconifyIconOffline, FontIcon, PixelIcon } from "../i
  * @returns Component
  */
 export function useRenderIcon(icon: any, attrs?: iconType): Component {
+  const wrapComponent = (name: string, render: () => ReturnType<typeof h>) =>
+    markRaw(defineComponent({ name, render }));
   // iconfont
   const ifReg = /^IF-/;
   // HTTP远程图标
@@ -19,74 +26,65 @@ export function useRenderIcon(icon: any, attrs?: iconType): Component {
   // typeof icon === "function" 属于SVG
   if (pixelIconReg.test(icon)) {
     // pixel-icon 图标
-    return defineComponent({
-      name: "PixelIcon",
-      render() {
-        return h(PixelIcon, {
-          icon: icon,
-          ...attrs
-        });
-      }
-    });
+    return wrapComponent("PixelIcon", () =>
+      h(PixelIcon, {
+        icon: icon,
+        ...attrs,
+      }),
+    );
   } else if (ifReg.test(icon)) {
     // iconfont
     const name = icon.split(ifReg)[1];
-    const iconName = name.slice(0, name.indexOf(" ") == -1 ? name.length : name.indexOf(" "));
+    const iconName = name.slice(
+      0,
+      name.indexOf(" ") == -1 ? name.length : name.indexOf(" "),
+    );
     const iconType = name.slice(name.indexOf(" ") + 1, name.length);
-    return defineComponent({
-      name: "FontIcon",
-      render() {
-        return h(FontIcon, {
-          icon: iconName,
-          iconType,
-          ...attrs
-        });
-      }
-    });
+    return wrapComponent("FontIcon", () =>
+      h(FontIcon, {
+        icon: iconName,
+        iconType,
+        ...attrs,
+      }),
+    );
   } else if (httpReg.test(icon)) {
     // HTTP远程图标
-    return defineComponent({
-      name: "HttpIcon",
-      render() {
-        return h("img", {
-          src: icon,
-          alt: "icon",
-          style: {
-            width: "1em",
-            height: "1em",
-            display: "inline-block",
-            verticalAlign: "middle",
-            objectFit: "contain",
-            ...attrs?.style
-          },
-          ...attrs
-        });
-      }
-    });
+    return wrapComponent("HttpIcon", () =>
+      h("img", {
+        src: icon,
+        alt: "icon",
+        style: {
+          width: "1em",
+          height: "1em",
+          display: "inline-block",
+          verticalAlign: "middle",
+          objectFit: "contain",
+          ...attrs?.style,
+        },
+        ...attrs,
+      }),
+    );
   } else if (typeof icon === "function" || typeof icon?.render === "function") {
     // svg
-    return attrs ? h(icon, { ...attrs }) : icon;
+    return attrs
+      ? wrapComponent("SvgIcon", () => h(icon, { ...attrs }))
+      : markRaw(icon);
   } else if (typeof icon === "object") {
-    return defineComponent({
-      name: "OfflineIcon",
-      render() {
-        return h(IconifyIconOffline, {
-          icon: icon,
-          ...attrs
-        });
-      }
-    });
+    return wrapComponent("OfflineIcon", () =>
+      h(IconifyIconOffline, {
+        icon: icon,
+        ...attrs,
+      }),
+    );
   } else {
     // 通过是否存在 : 符号来判断是在线还是本地图标，存在即是在线图标，反之
-    return defineComponent({
-      name: "Icon",
-      render() {
-        const IconifyIcon = icon && icon.includes(":") ? IconifyIconOnline : IconifyIconOffline;
-        return h(IconifyIcon, {
-          icon: icon,
-          ...attrs
-        });
-      }
+    return wrapComponent("Icon", () => {
+      const IconifyIcon =
+        icon && icon.includes(":") ? IconifyIconOnline : IconifyIconOffline;
+      return h(IconifyIcon, {
+        icon: icon,
+        ...attrs,
+      });
     });
   }
 }

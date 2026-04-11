@@ -8,6 +8,7 @@ import {
   onMounted,
   onBeforeUnmount,
   nextTick,
+  watch,
   useSlots,
 } from "vue";
 import { useDataThemeChange } from "../../hooks/useDataThemeChange";
@@ -135,6 +136,21 @@ onMounted(() => {
   });
 });
 
+watch(show, (value) => {
+  if (!value) {
+    return;
+  }
+  nextTick(() => {
+    if (scrollbarRef.value && scrollTop.value > 0) {
+      try {
+        scrollbarRef.value.setScrollTop(scrollTop.value);
+      } catch {
+        // 忽略滚动恢复异常，避免影响主流程
+      }
+    }
+  });
+});
+
 onBeforeUnmount(() => {
   // 只解绑当前实例的监听，避免 HMR/重挂载时误删其它实例监听
   emitter.off("openPanel", handleOpenPanel);
@@ -143,7 +159,7 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div :class="{ show }">
+    <div v-if="show" class="show">
       <div class="right-panel-background" />
       <div ref="target" class="right-panel bg-bg_color stitch-glass-panel">
         <div class="project-configuration">

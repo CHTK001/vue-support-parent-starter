@@ -32,7 +32,11 @@ export default {
     menus: Array,
     position: Object,
     data: Object,
-    node: Object
+    node: Object,
+    theme: {
+      type: String,
+      default: "light"
+    }
   },
   methods: {
     showMenu(item) {

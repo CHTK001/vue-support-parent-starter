@@ -7,6 +7,7 @@ packages:
   - apps/vue-support-monitor-starter
   - apps/vue-support-swagger-starter
   - apps/vue-support-sync-starter
+  - apps/vue-support-soft-test-starter
   - apps/vue-support-system-parent
   - scripts/*
   - packages/*

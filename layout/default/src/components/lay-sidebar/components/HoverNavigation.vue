@@ -424,16 +424,20 @@ function hideSubMenu() {
 }
 
 // 判断菜单是否激活
+const currentMenuPath = computed(
+  () => (route.meta?.activePath as string) || route.path,
+);
+
 function isMenuActive(menu: MenuItem): boolean {
-  if (menu.path === route.path) return true;
+  if (menu.path === currentMenuPath.value) return true;
 
   // 检查子菜单是否有激活的
   if (menu.children) {
     return menu.children.some((child: MenuItem) => {
-      if (child.path === route.path) return true;
+      if (child.path === currentMenuPath.value) return true;
       if (child.children) {
         return child.children.some(
-          (grandChild: MenuItem) => grandChild.path === route.path,
+          (grandChild: MenuItem) => grandChild.path === currentMenuPath.value,
         );
       }
       return false;
@@ -444,7 +448,7 @@ function isMenuActive(menu: MenuItem): boolean {
 }
 
 // 默认激活菜单
-const defaultActive = computed(() => route.path);
+const defaultActive = computed(() => currentMenuPath.value);
 
 // 收藏功能
 async function loadFavorites() {
@@ -611,7 +615,7 @@ watch(
   () => route.path,
   (newPath) => {
     if (newPath.includes("/redirect")) return;
-    menuSelect(newPath);
+    menuSelect(currentMenuPath.value);
   },
   { immediate: true },
 );

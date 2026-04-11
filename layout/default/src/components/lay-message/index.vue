@@ -15,12 +15,19 @@ import { ScTabs } from "@repo/components/ScTabs";
  * @version 1.0.0
  * @since 2024-12-04
  */
-import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
-import { useConfigStore, router, emitter } from "@repo/core";
+import {
+  useConfigStore,
+  useUserStoreHook,
+  getMessageTopicWithUser,
+  router,
+  emitter,
+} from "@repo/core";
 import MessageIcon from "@iconify-icons/ri/message-3-line";
 import { getConfig } from "@repo/config";
 import { useGlobal } from "@pureadmin/utils";
+import { message } from "@repo/utils";
 import {
   fetchUnreadMessages,
   fetchMarkAsRead,
@@ -38,6 +45,8 @@ const { t } = useI18n();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 // 提取 store 引用到顶层，避免在生命周期中重复调用
 const configStore = useConfigStore();
+const userStore = useUserStoreHook();
+const socketTopics = ref<string[]>([]);
 
 // 消息功能开�?- 从配置中读取
 const messageEnabled = ref(
@@ -99,6 +108,10 @@ const unreadCount = computed(
   () => messages.value.filter((m) => !m.read).length,
 );
 
+const notifyActionError = (content: string) => {
+  message(content, { type: "error" });
+};
+
 /**
  * 将后端消息转换为前端格式
  */
@@ -128,13 +141,9 @@ const fetchMessages = async () => {
   loading.value = true;
   try {
     const response = await fetchUnreadMessages();
-    if (response.success && response.data) {
-      messages.value = response.data.map(transformMessage);
-    } else {
-      messages.value = [];
-    }
-  } catch (error) {
-    console.error("获取消息列表失败:", error);
+    const records = Array.isArray(response?.data) ? response.data : [];
+    messages.value = records.map(transformMessage);
+  } catch {
     messages.value = [];
   } finally {
     loading.value = false;
@@ -170,15 +179,19 @@ const handleSocketMessage = (data: any) => {
 
   if (data) {
     const newMessage: MessageItem = {
-      id: data.messageId || data.id || Date.now(),
-      title: data.title || "新消息",
-      content: data.content || data.message,
+      id: data.messageId || data.sysMessageId || data.id || Date.now(),
+      title: data.title || data.sysMessageTitle || "新消息",
+      content: data.content || data.sysMessageContent || data.message,
       avatar: data.avatar,
-      time: data.sendTime || data.time || new Date().toLocaleString(),
+      time:
+        data.sendTime ||
+        data.sysMessageSendTime ||
+        data.time ||
+        new Date().toLocaleString(),
       read: false,
-      type: data.type || "system",
-      level: data.level || "normal",
-      url: data.url,
+      type: data.type || data.sysMessageType || "system",
+      level: data.level || data.sysMessageLevel || "normal",
+      url: data.url || data.sysMessageUrl,
     };
     // 避免重复添加
     const exists = messages.value.some((m) => m.id === newMessage.id);
@@ -216,15 +229,15 @@ const markAsRead = async (message: MessageItem) => {
   }
   try {
     const response = await fetchMarkAsRead(message.id);
-    if (response.success) {
+    if (response?.code === "00000" || response?.data === true) {
       // 标记已读后从列表移除（后端已转入历史记录�?
       const index = messages.value.findIndex((m) => m.id === message.id);
       if (index > -1) {
         messages.value.splice(index, 1);
       }
     }
-  } catch (error) {
-    console.error("标记已读失败:", error);
+  } catch {
+    notifyActionError("标记已读失败");
   }
 };
 
@@ -239,12 +252,12 @@ const markAllAsRead = async () => {
   }
   try {
     const response = await fetchMarkAllAsRead();
-    if (response.success) {
+    if (response?.code === "00000" || response?.data === true) {
       // 清空未读列表（后端已全部转入历史记录�?
       messages.value = [];
     }
-  } catch (error) {
-    console.error("全部标记已读失败:", error);
+  } catch {
+    notifyActionError("全部标记已读失败");
   }
 };
 
@@ -260,20 +273,30 @@ const clearAll = async () => {
 const drawerVisible = ref(false);
 const activeTab = ref("all");
 const dropdownRef = ref();
+let openDrawerTimer: ReturnType<typeof setTimeout> | undefined;
 
 /**
  * 打开消息中心 Drawer
  */
 const openMessageCenter = () => {
-  // 先关闭下拉菜�?
+  if (openDrawerTimer) {
+    clearTimeout(openDrawerTimer);
+  }
   dropdownRef.value?.handleClose();
-  drawerVisible.value = true;
+  nextTick(() => {
+    openDrawerTimer = setTimeout(() => {
+      drawerVisible.value = true;
+    }, 80);
+  });
 };
 
 /**
  * 关闭消息中心 Drawer
  */
 const closeMessageCenter = () => {
+  if (openDrawerTimer) {
+    clearTimeout(openDrawerTimer);
+  }
   drawerVisible.value = false;
 };
 
@@ -301,14 +324,14 @@ const deleteMessage = async (msg: MessageItem) => {
   }
   try {
     const response = await fetchDeleteMessage(msg.id);
-    if (response.success) {
+    if (response?.code === "00000" || response?.data === true) {
       const index = messages.value.findIndex((m) => m.id === msg.id);
       if (index > -1) {
         messages.value.splice(index, 1);
       }
     }
-  } catch (error) {
-    console.error("删除消息失败:", error);
+  } catch {
+    notifyActionError("删除消息失败");
   }
 };
 
@@ -342,6 +365,29 @@ const handleDevMessagePush = (payload?: any) => {
   handleSocketMessage(data);
 };
 
+const bindSocketTopics = () => {
+  const socket = configStore.getSocket();
+  if (!socket) {
+    socketTopics.value = [];
+    return;
+  }
+
+  const topics = new Set<string>(["system:message:notification"]);
+  const currentUserId = Number(userStore.sysUserId || 0);
+
+  if (currentUserId > 0) {
+    topics.add(getMessageTopicWithUser(currentUserId));
+  }
+  topics.add(getMessageTopicWithUser(0));
+  topics.add("service:message:push");
+  topics.add("system:message:push");
+
+  socketTopics.value = Array.from(topics);
+  socketTopics.value.forEach((topic) => {
+    socket.on(topic, handleSocketMessage);
+  });
+};
+
 onMounted(() => {
   // 获取消息列表
   fetchMessages();
@@ -352,27 +398,22 @@ onMounted(() => {
     "messageDropdownPositionChange",
     messageDropdownPositionChangeHandler,
   );
+  emitter.on("messageCenterOpen", openMessageCenter);
 
   // 开发模式下的本地默认消息推送
   emitter.on("devMessagePush", handleDevMessagePush);
 
   // 监听Socket消息推�?
-  const socket = configStore.getSocket();
-  if (socket) {
-    // 使用统一的主题命名规�?
-    socket.on("service:message:push", handleSocketMessage);
-    socket.on("system:message:push", handleSocketMessage);
-    socket.on("system:message:notification", handleSocketMessage);
-  }
+  bindSocketTopics();
 });
 
 // 组件卸载时清�?
 onUnmounted(() => {
   const socket = configStore.getSocket();
   if (socket) {
-    socket.off("service:message:push");
-    socket.off("system:message:push");
-    socket.off("system:message:notification");
+    socketTopics.value.forEach((topic) => {
+      socket.off(topic);
+    });
   }
   // 清理事件监听
   emitter.off("showMessageChange", showMessageChangeHandler);
@@ -380,7 +421,11 @@ onUnmounted(() => {
     "messageDropdownPositionChange",
     messageDropdownPositionChangeHandler,
   );
+  emitter.off("messageCenterOpen", openMessageCenter);
   emitter.off("devMessagePush", handleDevMessagePush);
+  if (openDrawerTimer) {
+    clearTimeout(openDrawerTimer);
+  }
 });
 </script>
 
@@ -460,8 +505,7 @@ onUnmounted(() => {
           <div class="panel-footer">
             <ScButton link @click="clearAll">清空消息</ScButton>
             <ScButton link type="primary" @click="openMessageCenter"
-              >查看全部</ScButton>
-            >
+              >查看全部</ScButton
             >
           </div>
         </div>
@@ -584,6 +628,11 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .message-trigger {
+  --lay-message-trigger-bg: rgba(255, 255, 255, 0.42);
+  --lay-message-trigger-border: rgba(148, 163, 184, 0.16);
+  --lay-message-trigger-hover-bg: rgba(var(--el-color-primary-rgb), 0.12);
+  --lay-message-trigger-hover-shadow: 0 4px 12px
+    rgba(var(--el-color-primary-rgb), 0.15);
   width: 40px;
   height: 40px;
   border-radius: 12px;
@@ -595,6 +644,9 @@ onUnmounted(() => {
   color: var(--el-text-color-regular);
   position: relative;
   overflow: hidden;
+  background: var(--lay-message-trigger-bg);
+  border: 1px solid var(--lay-message-trigger-border);
+  backdrop-filter: blur(14px);
 
   /* 玻璃拟态光泽 */
   &::before {
@@ -607,10 +659,10 @@ onUnmounted(() => {
   }
 
   &:hover {
-    background: var(--el-fill-color);
+    background: var(--lay-message-trigger-hover-bg);
     color: var(--el-color-primary);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+    box-shadow: var(--lay-message-trigger-hover-shadow);
 
     &::before {
       opacity: 1;
@@ -622,6 +674,13 @@ onUnmounted(() => {
     /* 移除 !important 以允许 hover 颜色生效 */
     background: transparent;
   }
+}
+
+html.dark .message-trigger {
+  --lay-message-trigger-bg: rgba(15, 23, 42, 0.68);
+  --lay-message-trigger-border: rgba(148, 163, 184, 0.18);
+  --lay-message-trigger-hover-bg: rgba(var(--el-color-primary-rgb), 0.18);
+  --lay-message-trigger-hover-shadow: 0 12px 26px rgba(2, 8, 23, 0.32);
 }
 </style>
 
@@ -645,6 +704,18 @@ onUnmounted(() => {
   // 去除箭头
   .el-popper__arrow {
     display: none;
+  }
+
+  .message-panel {
+    color: var(--stitch-lay-text-main, var(--el-text-color-primary));
+  }
+
+  .sc-button.is-link {
+    color: var(--el-text-color-regular);
+  }
+
+  .sc-button.is-link:hover {
+    color: var(--el-color-primary);
   }
 }
 
@@ -854,13 +925,102 @@ onUnmounted(() => {
 
 // 深色模式适配
 html.dark {
-  .message-panel {
-    // Variables handled by stitch-layout-tokens usually
-    // But explicit overrides if needed
+  .message-dropdown-popper .el-dropdown-menu {
+    background: rgba(15, 23, 42, 0.92) !important;
+    border-color: rgba(148, 163, 184, 0.18) !important;
+    box-shadow:
+      0 24px 48px rgba(2, 8, 23, 0.42),
+      0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .panel-header,
+  .panel-footer {
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(148, 163, 184, 0.14);
+  }
+
+  .panel-header .header-title {
+    color: #f8fafc;
+  }
+
+  .message-dropdown-popper .sc-button.is-link {
+    color: #cbd5e1;
+  }
+
+  .message-dropdown-popper .sc-button.is-link:hover {
+    color: #f8fafc;
+  }
+
+  .message-item {
+    background: rgba(30, 41, 59, 0.62);
+    border-color: rgba(148, 163, 184, 0.12);
+
+    &:hover {
+      background: rgba(51, 65, 85, 0.78);
+      border-color: rgba(148, 163, 184, 0.2);
+      box-shadow: 0 12px 24px rgba(2, 8, 23, 0.24);
+    }
+  }
+
+  .message-item .item-title,
+  .message-center-drawer .drawer-title,
+  .message-center-drawer .msg-title {
+    color: #f8fafc;
+  }
+
+  .message-item .item-desc,
+  .message-item .item-time,
+  .message-center-drawer .msg-content,
+  .message-center-drawer .msg-time {
+    color: #94a3b8;
   }
 
   .message-item.unread {
-    background: rgba(var(--el-color-primary-rgb), 0.15);
+    background: rgba(var(--el-color-primary-rgb), 0.18);
+    border-color: rgba(var(--el-color-primary-rgb), 0.24);
+  }
+
+  .message-center-drawer {
+    .el-drawer {
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(2, 8, 23, 0.98));
+      color: #f8fafc;
+    }
+
+    .el-drawer__header,
+    .message-tabs,
+    .drawer-actions {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: rgba(148, 163, 184, 0.14);
+    }
+
+    .drawer-message-item {
+      background: rgba(30, 41, 59, 0.74);
+      border-color: rgba(148, 163, 184, 0.14);
+      box-shadow: 0 14px 28px rgba(2, 8, 23, 0.2);
+    }
+
+    .drawer-message-item:hover {
+      border-color: rgba(var(--el-color-primary-rgb), 0.34);
+      box-shadow:
+        0 18px 34px rgba(2, 8, 23, 0.24),
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.12);
+    }
+
+    .drawer-message-item.unread {
+      background: rgba(var(--el-color-primary-rgb), 0.16);
+    }
+
+    .drawer-message-item .msg-time {
+      background: rgba(51, 65, 85, 0.9);
+      color: #cbd5e1;
+    }
+
+    .drawer-message-item .msg-actions .el-button {
+      border-color: rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.84);
+      color: #e2e8f0;
+    }
   }
 }
 

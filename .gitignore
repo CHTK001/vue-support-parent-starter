@@ -6,7 +6,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+**/**/docs/**
+**/**/docs
+**/**/.vscode/**
+**/**/.vscode
+apps/vue-support-soft-test-starter
 node_modules
 dist
 dist-ssr

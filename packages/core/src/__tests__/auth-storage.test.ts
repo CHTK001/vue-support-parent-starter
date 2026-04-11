@@ -85,6 +85,9 @@ describe("stored user payload", () => {
           tenantId: "",
           roles: ["SUPER_ADMIN"],
           perms: [],
+          agreementVersion: "2026.04",
+          agreementAcceptedVersion: "2026.03",
+          agreementNeedConfirm: true,
         },
       },
       {
@@ -99,6 +102,8 @@ describe("stored user payload", () => {
     expect(result.userInfo?.sysUserUsername).toBe("sa");
     expect(result.sysUserUsername).toBe("sa");
     expect(result.roles).toEqual(["SUPER_ADMIN"]);
+    expect(result.agreementVersion).toBe("2026.04");
+    expect(result.agreementNeedConfirm).toBe(true);
   });
 
   it("falls back to previous cached user info when response omits profile fields", () => {

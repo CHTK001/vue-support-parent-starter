@@ -1,4 +1,5 @@
 <script setup>
+import "../modules/theme.scss";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
 import { emitter, useLayoutLayoutStore, useUserStoreHook } from "@repo/core";
@@ -526,7 +527,7 @@ onUnmounted(() => {
       </div>
 
       <!-- 部件列表 -->
-      <div class="aside-list">
+      <div class="aside-list thin-scroller">
         <div v-if="filteredWidgetList.length === 0" class="list-empty">
           <el-icon :size="40" color="var(--el-text-color-placeholder)">
             <component :is="useRenderIcon('ri:inbox-line')" />
@@ -960,7 +961,6 @@ onUnmounted(() => {
   min-height: clamp(280px, 40vh, 360px);
   width: 100%;
   text-align: center;
-  max-width: min(720px, 100%);
   margin: 0 auto;
   padding: 44px 40px;
   border-radius: var(--home-panel-radius);

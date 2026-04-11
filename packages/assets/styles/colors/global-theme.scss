@@ -96,6 +96,9 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* ===== 滚动条样式 ===== */
+.el-card__body > div,
+.server-basic-panel__content-scroll,
+.menu-form-scroll,
 .thin-scroller,
 .custom-scrollbar,
 .el-dialog__body {

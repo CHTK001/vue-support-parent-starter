@@ -11,7 +11,7 @@ const routes = [
     path: "/jvm",
     name: "JvmMonitor",
     component: async () => {
-      const JvmInfoIndex = await import("@pages/jvm");
+      const JvmInfoIndex = await import("../jvm/JvmInfoIndex.vue");
       return JvmInfoIndex;
     },
     meta: {

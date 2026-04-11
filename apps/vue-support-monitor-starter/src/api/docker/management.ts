@@ -12,7 +12,7 @@ export {
 
 // ========= 数据类型定义 =========
 
-// 软件仓库管理（对齐后端字段命名）
+// Docker 仓库（暂沿用后端字段命名）
 export interface SystemSoftRegistry {
   systemSoftRegistryId?: number;
   systemSoftRegistryName?: string;
@@ -43,28 +43,7 @@ export interface SystemSoftRegistry {
   updateTime?: string;
 }
 
-// 软件实体(SystemSoft)
-export interface SystemSoft {
-  systemSoftId?: number;
-  systemSoftName?: string;
-  systemSoftCode?: string;
-  systemSoftCategory?: string;
-  systemSoftIcon?: string;
-  systemSoftTags?: string;
-  systemSoftDesc?: string;
-  systemSoftRegistryId?: number;
-  systemSoftDockerImage?: string;
-  systemSoftDefaultInstallMethod?: string;
-  systemSoftDefaultInstallParams?: string;
-  systemSoftStatus?: number;
-  systemSoftIsOfficial?: number;
-  versionCount?: number;
-  containerCount?: number;
-  createTime?: string;
-  updateTime?: string;
-}
-
-// 软件镜像(SystemSoftImage)（对齐后端字段命名）
+// Docker 镜像（暂沿用后端字段命名）
 export interface SystemSoftImage {
   systemSoftImageId?: number;
   systemSoftId?: number;
@@ -86,7 +65,7 @@ export interface SystemSoftImage {
   updateTime?: string;
 }
 
-// 软件容器(SystemSoftContainer)（对齐后端字段命名）
+// Docker 容器（暂沿用后端字段命名）
 export interface SystemSoftContainer {
   systemSoftContainerId?: number;
   systemSoftId?: number;
@@ -188,9 +167,6 @@ export interface PageParams<T = any> {
 }
 
 const SUCCESS_CODE = "00000";
-
-const isSuccessCode = (code: unknown) =>
-  code === SUCCESS_CODE || code === 0 || code === "0";
 
 const withMessage = <T>(result: ReturnResult<T>) => ({
   ...result,
@@ -320,69 +296,6 @@ const normalizePageRequestParams = (
   return requestParams;
 };
 
-const normalizeRecordStatus = (status: unknown) => {
-  if (typeof status === "string" && status.trim()) {
-    return status;
-  }
-
-  const numeric = Number(status);
-  if (Number.isNaN(numeric)) {
-    return status;
-  }
-
-  if (numeric > 0) {
-    return "SUCCESS";
-  }
-
-  if (numeric === 0) {
-    return "INSTALLING";
-  }
-
-  return "FAILED";
-};
-
-const normalizeRecord = (record: SystemSoftRecord) => ({
-  ...record,
-  recordId:
-    (record as any)?.recordId ??
-    ((record as any)?.systemSoftRecordId !== undefined &&
-    (record as any)?.systemSoftRecordId !== null
-      ? String((record as any).systemSoftRecordId)
-      : undefined),
-  serverId: (record as any)?.serverId ?? record?.systemServerId,
-  installMethod:
-    (record as any)?.installMethod ?? record?.systemSoftRecordMethod,
-  installParams:
-    (record as any)?.installParams ?? record?.systemSoftRecordParams,
-  startTime:
-    (record as any)?.startTime ?? record?.systemSoftRecordStartTime,
-  endTime: (record as any)?.endTime ?? record?.systemSoftRecordEndTime,
-  duration:
-    (record as any)?.duration ?? record?.systemSoftRecordDuration,
-  errorMessage:
-    (record as any)?.errorMessage ?? record?.systemSoftRecordErrorMessage,
-  result: (record as any)?.result ?? record?.systemSoftRecordResult,
-  status: normalizeRecordStatus(
-    (record as any)?.status ?? record?.systemSoftRecordStatus,
-  ),
-});
-
-const DEFAULT_WEB_SOCKET_TOPICS = {
-  containerStatus: "monitor:docker:container_status",
-  containerLogs: "monitor:docker:container_log",
-  containerStatistics: "monitor:docker:container_statistics",
-  containerEvents: "monitor:docker:container_events",
-} as const;
-
-const createSuccessResult = <T>(data: T, msg = "") =>
-  ({
-    code: SUCCESS_CODE,
-    data,
-    msg,
-    message: msg,
-    success: true,
-  }) as ReturnResult<T>;
-
 const extractImageTag = (fullImageName?: string) => {
   if (!fullImageName) {
     return undefined;
@@ -397,16 +310,9 @@ const extractImageTag = (fullImageName?: string) => {
   return fullImageName.slice(lastColonIndex + 1);
 };
 
-// ========= 1. 软件仓库管理API =========
+// ========= 1. Docker 仓库管理 API =========
 
-// 分页查询仓库列表（路径已对齐后端）
-export function pageRegistry(params: PageParams<SystemSoftRegistry>) {
-  return http.request<
-    ReturnResult<{ records: SystemSoftRegistry[]; total: number }>
-  >("get", "v1/system/soft/registry/page", { params });
-}
-
-// 获取所有仓库列表（不分页）——后端为 GET /v1/system/soft/registry
+// docker 页面当前只保留仓库下拉，不再承载旧 soft 仓库管理能力。
 export function getAllRegistries() {
   return http.request<ReturnResult<SystemSoftRegistry[]>>(
     "get",
@@ -414,208 +320,30 @@ export function getAllRegistries() {
   ).then((result) => mapArrayResult(result, normalizeRegistry));
 }
 
-// 根据ID获取仓库详情
-export function getRegistryById(id: number) {
-  return http.request<ReturnResult<SystemSoftRegistry>>(
-    "get",
-    `v1/system/soft/registry/${id}`,
-  ).then((result) => mapEntityResult(result, normalizeRegistry));
-}
-
-// 创建软件仓库（后端返回实体）
-export function createRegistry(
-  data: Omit<
-    SystemSoftRegistry,
-    "createTime" | "updateTime" | "systemSoftRegistryId"
-  >,
-) {
-  return http.request<ReturnResult<SystemSoftRegistry>>(
-    "post",
-    "v1/system/soft/registry",
-    { data },
-  ).then((result) => mapEntityResult(result, normalizeRegistry));
-}
-
-// 更新软件仓库（后端返回实体）
-export function updateRegistry(id: number, data: Partial<SystemSoftRegistry>) {
-  return http.request<ReturnResult<SystemSoftRegistry>>(
-    "put",
-    `v1/system/soft/registry/${id}`,
-    { data },
-  ).then((result) => mapEntityResult(result, normalizeRegistry));
-}
-
-// 删除软件仓库
-export function deleteRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    `v1/system/soft/registry/${id}`,
-  );
-}
-
-// 批量删除仓库（后端接收原始数组）
-export function batchDeleteRegistries(ids: number[]) {
-  return http.request<ReturnResult<boolean>>(
-    "delete",
-    "v1/system/soft/registry/batch",
-    { data: ids },
-  );
-}
-
-// 测试仓库连接（后端为 POST /{id}/test）
-export function testRegistryConnection(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/system/soft/registry/${id}/test`,
-  );
-}
-
-// 同步单个仓库
-export function syncRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/system/soft/registry/${id}/sync`,
-  );
-}
-
-// 激活仓库
-export function activateRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/system/soft/registry/${id}/activate`,
-  );
-}
-
-// 取消激活仓库
-export function deactivateRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/system/soft/registry/${id}/deactivate`,
-  );
-}
-
-// 获取激活的仓库列表
-export function getActiveRegistries() {
-  return http.request<ReturnResult<SystemSoftRegistry[]>>(
-    "get",
-    "v1/system/soft/registry/active",
-  );
-}
-
-// ========= 2. 软件管理API =========
-
-// 分页查询软件列表（已存在 v1 兼容控制器）
-export function getSoftPageList(params: PageParams<SystemSoft>) {
-  return http.request<ReturnResult<{ records: SystemSoft[]; total: number }>>(
-    "get",
-    "v1/system/soft/page",
-    { params },
-  );
-}
-
-// 其余软件 API 维持不变（待核对后端对应控制器）
-export function getSoftById(id: number) {
-  return http.request<ReturnResult<SystemSoft>>("get", `v1/system/soft/${id}`);
-}
-export function createSoft(
-  data: Omit<SystemSoft, "systemSoftId" | "createTime" | "updateTime">,
-) {
-  return http.request<ReturnResult<boolean>>("post", "v1/system/soft", {
-    data,
-  });
-}
-export function updateSoft(id: number, data: Partial<SystemSoft>) {
-  return http.request<ReturnResult<boolean>>("put", `v1/system/soft/${id}`, {
-    data,
-  });
-}
-export function deleteSoft(id: number) {
-  return http.request<ReturnResult<boolean>>("delete", `v1/system/soft/${id}`);
-}
-export function syncSoftware(registryId?: number) {
-  return http.request<ReturnResult<{ operationId: string }>>(
-    "post",
-    "v1/system/soft/sync",
-    { data: { registryId } },
-  );
-}
-export type InstallPort = {
-  host: string;
-  container: string;
-  protocol?: string;
-};
-export type InstallEnv = { key: string; value: string };
-export type InstallVolume = { host: string; container: string; ro?: boolean };
-
-export function installSoftware(data: {
-  softId: number;
-  serverIds: number[];
-  imageTag?: string;
-  command?: string;
-  ports?: InstallPort[];
-  env?: InstallEnv[];
-  volumes?: InstallVolume[];
-  networkMode?: string;
-  restartPolicy?: string;
-  memoryLimit?: number;
-  cpuLimit?: number;
-  workingDir?: string;
-  user?: string;
-  autoStart?: boolean;
-  autoRemove?: boolean;
-  privileged?: boolean;
-  healthcheck?: string;
-  maxRetries?: number;
-}) {
-  return http.request<ReturnResult<{ operationId: string }>>(
-    "post",
-    "v1/system/soft/install",
-    { data },
-  );
-}
-export function getSoftwareStats() {
-  return http.request<
-    ReturnResult<{
-      totalSoftware: number;
-      enabledSoftware: number;
-      disabledSoftware: number;
-      officialSoftware: number;
-      categoryCounts: Record<string, number>;
-    }>
-  >("get", "v1/system/soft/stats");
-}
-
-// ========= 3. 软件镜像管理API（路径对齐后端 /api/monitor/system-soft-image） =========
+// ========= 2. Docker 镜像管理 API =========
 
 export function getImagePageList(params: PageParams<SystemSoftImage>) {
   return http.request<
     ReturnResult<{ records: SystemSoftImage[]; total: number }>
-  >("get", "/api/monitor/system-soft-image/page", {
+  >("get", "/api/monitor/docker/images/page", {
     params: normalizePageRequestParams(params, "imageName"),
   })
     .then((result) => mapPageResult(result, normalizeImage));
 }
 
-// 使用统一 list 接口按条件查询（serverId/softId）
+// 使用统一 list 接口按条件查询
 export function getImagesByServerId(serverId: number) {
   return http.request<ReturnResult<SystemSoftImage[]>>(
     "get",
-    "/api/monitor/system-soft-image/list",
+    "/api/monitor/docker/images/list",
     { params: { serverId } },
-  ).then((result) => mapArrayResult(result, normalizeImage));
-}
-export function getImagesBySoftId(softId: number) {
-  return http.request<ReturnResult<SystemSoftImage[]>>(
-    "get",
-    "/api/monitor/system-soft-image/list",
-    { params: { softId } },
   ).then((result) => mapArrayResult(result, normalizeImage));
 }
 
 export function getImageById(id: number) {
   return http.request<ReturnResult<SystemSoftImage>>(
     "get",
-    `/api/monitor/system-soft-image/${id}`,
+    `/api/monitor/docker/images/${id}`,
   ).then((result) => mapEntityResult(result, normalizeImage));
 }
 
@@ -650,7 +378,7 @@ export function pullImage(data: {
   };
   return http.request<ReturnResult<SystemSoftImage>>(
     "post",
-    "/api/monitor/system-soft-image/pull",
+    "/api/monitor/docker/images/pull",
     {
       params: { softId: softId ?? 0, serverId, imageTag: resolvedImageTag },
       data: requestData,
@@ -661,7 +389,7 @@ export function pullImage(data: {
 export function deleteImage(id: number, force?: boolean) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `/api/monitor/system-soft-image/${id}/image`,
+    `/api/monitor/docker/images/${id}/image`,
     { params: { force } },
   );
 }
@@ -674,17 +402,8 @@ export function startImageAsContainer(payload: {
   const { imageId, config } = payload;
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/system-soft-image/${imageId}/start`,
+    `/api/monitor/docker/images/${imageId}/start`,
     { data: normalizeImageContainerStartConfig(config || {}) },
-  );
-}
-
-// 同步镜像状态（后端暂未提供，保留占位或改为 list 触发刷新）
-export function syncImageStatus(serverId?: number) {
-  return http.request<ReturnResult<number>>(
-    "get",
-    "/api/monitor/system-soft-image/page",
-    { params: { serverId } },
   );
 }
 
@@ -692,7 +411,7 @@ export function syncImageStatus(serverId?: number) {
 export function exportImage(data: { imageId: number; serverId: number }) {
   return http.request<ReturnResult<{ operationId: string; filePath: string }>>(
     "post",
-    "/api/monitor/system-soft-image/export",
+    "/api/monitor/docker/images/export",
     { data },
   );
 }
@@ -701,7 +420,7 @@ export function exportImage(data: { imageId: number; serverId: number }) {
 export function importImage(formData: FormData) {
   return http.request<ReturnResult<{ operationId: string }>>(
     "post",
-    "/api/monitor/system-soft-image/import",
+    "/api/monitor/docker/images/import",
     {
       data: formData,
       headers: { "Content-Type": "multipart/form-data" },
@@ -713,34 +432,27 @@ export function importImage(formData: FormData) {
 export function syncImages(data: { serverIds: number[] }) {
   return http.request<ReturnResult<{ operationId: string; syncCount: number }>>(
     "post",
-    "/api/monitor/system-soft-image/sync",
+    "/api/monitor/docker/images/sync",
     { data },
   );
 }
 
-// ========= 4. 软件容器管理API（路径对齐后端 /api/monitor/system-soft-container） =========
+// ========= 3. Docker 容器管理 API =========
 
 export function getContainerPageList(params: PageParams<SystemSoftContainer>) {
   return http.request<
     ReturnResult<{ records: SystemSoftContainer[]; total: number }>
-  >("get", "/api/monitor/system-soft-container/page", {
+  >("get", "/api/monitor/docker/containers/page", {
     params: normalizePageRequestParams(params, "containerName"),
   })
     .then((result) => mapPageResult(result, normalizeContainer));
 }
 
 // 统一使用 list 接口按条件查询
-export function getContainersBySoftId(softId: number) {
-  return http.request<ReturnResult<SystemSoftContainer[]>>(
-    "get",
-    "/api/monitor/system-soft-container/list",
-    { params: { softId } },
-  ).then((result) => mapArrayResult(result, normalizeContainer));
-}
 export function getContainersByServerId(serverId: number) {
   return http.request<ReturnResult<SystemSoftContainer[]>>(
     "get",
-    "/api/monitor/system-soft-container/list",
+    "/api/monitor/docker/containers/list",
     { params: { serverId } },
   ).then((result) => mapArrayResult(result, normalizeContainer));
 }
@@ -748,7 +460,7 @@ export function getContainersByServerId(serverId: number) {
 export function getContainerById(id: number) {
   return http.request<ReturnResult<SystemSoftContainer>>(
     "get",
-    `/api/monitor/system-soft-container/${id}`,
+    `/api/monitor/docker/containers/${id}`,
   ).then((result) => mapEntityResult(result, normalizeContainer));
 }
 
@@ -756,7 +468,7 @@ export function getContainerById(id: number) {
 export function createContainer(data: SystemSoftContainer) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    "/api/monitor/system-soft-container",
+    "/api/monitor/docker/containers",
     { data },
   );
 }
@@ -764,26 +476,26 @@ export function createContainer(data: SystemSoftContainer) {
 export function startContainer(id: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/system-soft-container/${id}/start`,
+    `/api/monitor/docker/containers/${id}/start`,
   );
 }
 export function stopContainer(id: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/system-soft-container/${id}/stop`,
+    `/api/monitor/docker/containers/${id}/stop`,
   );
 }
 export function restartContainer(id: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/system-soft-container/${id}/restart`,
+    `/api/monitor/docker/containers/${id}/restart`,
   );
 }
 
 export function deleteContainer(id: number, force?: boolean) {
   return http.request<ReturnResult<boolean>>(
     "delete",
-    `/api/monitor/system-soft-container/${id}/container`,
+    `/api/monitor/docker/containers/${id}/container`,
     { params: { force } },
   );
 }
@@ -791,7 +503,7 @@ export function deleteContainer(id: number, force?: boolean) {
 export function updateContainer(data: SystemSoftContainer) {
   return http.request<ReturnResult<boolean>>(
     "put",
-    "/api/monitor/system-soft-container",
+    "/api/monitor/docker/containers",
     { data },
   );
 }
@@ -799,7 +511,7 @@ export function updateContainer(data: SystemSoftContainer) {
 export function getContainerLogs(id: number, lines?: number) {
   return http.request<ReturnResult<string>>(
     "get",
-    `/api/monitor/system-soft-container/${id}/logs`,
+    `/api/monitor/docker/containers/${id}/logs`,
     { params: { lines } },
   );
 }
@@ -808,7 +520,7 @@ export function getContainerLogs(id: number, lines?: number) {
 export function startContainerLog(id: number, lines?: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/system-soft-container/${id}/logs/start`,
+    `/api/monitor/docker/containers/${id}/logs/start`,
     { params: { lines } },
   );
 }
@@ -817,7 +529,7 @@ export function startContainerLog(id: number, lines?: number) {
 export function stopContainerLog(id: number) {
   return http.request<ReturnResult<boolean>>(
     "post",
-    `/api/monitor/system-soft-container/${id}/logs/stop`,
+    `/api/monitor/docker/containers/${id}/logs/stop`,
   );
 }
 
@@ -825,7 +537,7 @@ export function stopContainerLog(id: number) {
 export function execContainerCommand(id: number, command: string) {
   return http.request<ReturnResult<string>>(
     "post",
-    `/api/monitor/system-soft-container/${id}/exec`,
+    `/api/monitor/docker/containers/${id}/exec`,
     { params: { command } },
   );
 }
@@ -834,13 +546,13 @@ export function execContainerCommand(id: number, command: string) {
 export function batchOperateContainers(data: any) {
   return http.request<
     ReturnResult<{ total: number; success: number; failed: number }>
-  >("post", "/api/monitor/system-soft-container/batch", { data });
+  >("post", "/api/monitor/docker/containers/batch", { data });
 }
 
 export function getContainerStats(id: number) {
   return http.request<ReturnResult<ContainerStats>>(
     "get",
-    `/api/monitor/system-soft-container/${id}/stats`,
+    `/api/monitor/docker/containers/${id}/stats`,
   );
 }
 
@@ -853,14 +565,14 @@ export function getContainerOverviewStats() {
       stopped: number;
       error: number;
     }>
-  >("get", "/api/monitor/system-soft-container/overview-stats");
+  >("get", "/api/monitor/docker/containers/overview-stats");
 }
 
 // 获取容器状态统计（兼容旧用法）
 export function getContainerStatusStats() {
   return http.request<ReturnResult<ContainerStatusStatistics>>(
     "get",
-    "/api/monitor/system-soft-container/overview-stats",
+    "/api/monitor/docker/containers/overview-stats",
   );
 }
 
@@ -868,7 +580,7 @@ export function getContainerStatusStats() {
 export function syncContainerStatus(serverId?: number) {
   return http.request<ReturnResult<number>>(
     "get",
-    "/api/monitor/system-soft-container/sync",
+    "/api/monitor/docker/containers/sync",
     { params: { serverId } },
   );
 }
@@ -897,173 +609,16 @@ export function getServerList() {
     .then((result) => mapArrayResult(result, normalizeServer));
 }
 
-export function getWebSocketTopics() {
-  return http.request<
-    ReturnResult<{
-      containerStatus: string;
-      containerLogs: string;
-      containerStatistics: string;
-      containerEvents: string;
-    }>
-  >("get", "v1/system/soft/websocket/topics")
-    .then((result) => {
-      if (isSuccessCode(result?.code) && result?.data) {
-        return withMessage({
-          ...result,
-          data: {
-            ...DEFAULT_WEB_SOCKET_TOPICS,
-            ...result.data,
-          },
-        } as ReturnResult<typeof DEFAULT_WEB_SOCKET_TOPICS>);
-      }
-
-      return createSuccessResult(DEFAULT_WEB_SOCKET_TOPICS);
-    })
-    .catch(() => createSuccessResult(DEFAULT_WEB_SOCKET_TOPICS));
-}
-
 // ========= API对象导出 =========
 
-// 获取默认仓库
-export function getDefaultRegistry(serverId?: number) {
-  return http.request<ReturnResult<SystemSoftRegistry>>(
-    "get",
-    "v1/system/soft/registry/default",
-    { params: { serverId } },
-  ).then((result) => mapEntityResult(result, normalizeRegistry));
-}
-
-// 设置默认仓库
-export function setDefaultRegistry(id: number) {
-  return http.request<ReturnResult<boolean>>(
-    "post",
-    `v1/system/soft/registry/${id}/default`,
-  );
-}
-
-// 获取启用的仓库列表
-export function getEnabledRegistries() {
-  return http.request<ReturnResult<SystemSoftRegistry[]>>(
-    "get",
-    "v1/system/soft/registry/enabled",
-  ).then((result) => mapArrayResult(result, normalizeRegistry));
-}
-
-// 根据类型获取仓库列表
-export function getRegistriesByType(type: string) {
-  return http.request<ReturnResult<SystemSoftRegistry[]>>(
-    "get",
-    `v1/system/soft/registry/type/${type}`,
-  ).then((result) => mapArrayResult(result, normalizeRegistry));
-}
-
-// 批量更新仓库状态
-export function batchUpdateRegistryStatus(ids: number[], status: number) {
-  return http.request<ReturnResult<boolean>>(
-    "put",
-    "v1/system/soft/registry/batch/status",
-    { params: { ids, status } },
-  );
-}
-
 export const registryApi = {
-  pageRegistry,
   getAllRegistries,
   getRegistryList: getAllRegistries,
-  getRegistryById,
-  createRegistry,
-  updateRegistry,
-  deleteRegistry,
-  batchDeleteRegistries,
-  testRegistryConnection,
-  syncRegistry,
-  activateRegistry,
-  deactivateRegistry,
-  getActiveRegistries,
-  getDefaultRegistry,
-  setDefaultRegistry,
-  getEnabledRegistries,
-  getRegistriesByType,
-  batchUpdateRegistryStatus,
-};
-
-// ========= 2.1 在线搜索（检索激活的仓库，后端SPI实现） =========
-export function searchOnlineSoftware(params: {
-  keyword: string;
-  page?: number;
-  size?: number;
-}) {
-  const kw = (params?.keyword || "").trim();
-  if (!kw) {
-    // 前端直接返回空结果，避免不必要的网络请求
-    return Promise.resolve({
-      code: "00000",
-      data: { records: [], total: 0 },
-      msg: "",
-    } as unknown as ReturnResult<{ records: SystemSoft[]; total: number }>);
-  }
-  return http
-    .request<
-      ReturnResult<{ records: SystemSoft[]; total: number }>
-    >("get", "v1/system/soft/online/search", { params: { ...params, keyword: kw } })
-    .catch(
-      () =>
-        ({
-          code: "00000",
-          data: { records: [], total: 0 },
-          msg: "",
-        }) as unknown as ReturnResult<{ records: SystemSoft[]; total: number }>,
-    );
-}
-
-// 将在线检索结果导入到软件库（异步保存，接口占位）
-export function importOnlineSoftware(data: {
-  items: Array<Partial<SystemSoft> & { systemSoftDockerImage?: string }>;
-}) {
-  return http.request<ReturnResult<{ queued: number }>>(
-    "post",
-    "v1/system/soft/online/import",
-    { data: data.items },
-  );
-}
-
-export const softwareApi = {
-  getSoftPageList,
-  getSoftById,
-  createSoft,
-  updateSoft,
-  deleteSoft,
-  syncSoftware,
-  installSoftware,
-  getSoftwareStats,
-  searchOnlineSoftware,
-  importOnlineSoftware,
-  getSoftwareVersions: async (softId: number) => {
-    const result = await getImagesBySoftId(softId);
-    if (!isSuccessCode(result?.code)) {
-      return result as ReturnResult<any[]>;
-    }
-
-    return createSuccessResult(
-      (result.data || []).map((item) => ({
-        imageId: item.systemSoftImageId,
-        tag: item.systemSoftImageTag || "latest",
-        size: item.systemSoftImageSize,
-        created: item.systemSoftImageCreated,
-        architecture: item.systemSoftImageArchitecture,
-        fullImageName: item.systemSoftImageFullName,
-      })),
-    );
-  },
-  syncSoftwareFromRegistry: (params?: { registryIds?: number[] }) =>
-    syncSoftware(params?.registryIds?.[0]),
-  syncImages,
 };
 
 export const imageApi = {
   getImagePageList,
   getImagesByServerId,
-  getImagesBySoftId,
   getImageById,
   pullImage,
   deleteImage,
@@ -1075,7 +630,6 @@ export const imageApi = {
 
 export const containerApi = {
   getContainerPageList,
-  getContainersBySoftId,
   getContainersByServerId,
   getContainerById,
   createContainer,
@@ -1095,48 +649,8 @@ export const containerApi = {
   batchOperateContainers,
 };
 
-// ========= 7. 软件操作记录 =========
-export interface SystemSoftRecord {
-  systemSoftRecordId: number;
-  systemSoftId?: number;
-  systemServerId?: number;
-  systemSoftRecordOperationType?: string;
-  systemSoftRecordMethod?: string;
-  systemSoftRecordMessage?: string;
-  systemSoftRecordParams?: string;
-  systemSoftRecordTime?: string;
-  systemSoftRecordStatus?: number;
-  systemSoftRecordUser?: string;
-  systemSoftRecordContainerId?: string;
-  systemSoftRecordStartTime?: string;
-  systemSoftRecordEndTime?: string;
-  systemSoftRecordDuration?: number;
-  systemSoftRecordErrorMessage?: string;
-  systemSoftRecordResult?: string;
-}
-
-export function getSoftRecordPage(params: {
-  current?: number;
-  size?: number;
-  softId?: number;
-  serverId?: number;
-  operationType?: string;
-  operationStatus?: number;
-  operationUser?: string;
-}) {
-  return http.request<
-    ReturnResult<{ records: SystemSoftRecord[]; total: number }>
-  >("get", "/api/system/soft/record/page", { params })
-    .then((result) => mapPageResult(result, normalizeRecord));
-}
-
-export const softRecordApi = {
-  getSoftRecordPage,
-};
-
 export const dockerManagementApi = {
   registry: registryApi,
-  software: softwareApi,
   image: imageApi,
   container: containerApi,
   getServerList,

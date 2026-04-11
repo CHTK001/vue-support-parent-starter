@@ -1,5 +1,5 @@
 <script setup>
-import { useRenderIcon, IconifyIconOnline } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 // 引入 ReIcon 组件的钩子函数，用于渲染图标
 // 引入 Vue 的响应式和生命周期相关函数
@@ -9,41 +9,95 @@ import {
   nextTick,
   reactive,
   ref,
-  watch,
 } from "vue";
 // 引入获取用户日志分页数据的 API 函数
-import { fetchPageUserLog } from "@repo/core";
+import {
+  fetchCleanupUserLog,
+  fetchPageUserLog,
+  useUserStoreHook,
+} from "@repo/core";
 // 引入国际化转换函数
 import { transformI18n } from "@repo/config";
-// 引入计算时间差的工具函数
-import { getTimeAgo } from "@repo/utils";
+import { message } from "@repo/utils";
 // 引入ScIp组件
 import { ScIp } from "@repo/components/ScIp";
-// 引入刷新图标
-import Refresh from "@iconify-icons/line-md/backup-restore";
 // 引入防抖函数
 import { debounce } from "@pureadmin/utils";
-// 引入 Vue i18n 的 useI18n 函数，用于国际化
-import { useI18n } from "vue-i18n";
 // 将 Detail 组件标记为原始组件，避免响应式处理
-const DetailLayout = defineAsyncComponent(() => import("./detail.vue"));
-// 获取国际化实例
-const { t } = useI18n();
+import DetailLayout from "./detail.vue";
+import SystemStatsCards from "../../components/SystemStatsCards.vue";
+const ScFilter = defineAsyncComponent(
+  () => import("@repo/components/ScFilter"),
+);
+const userStore = useUserStoreHook();
 const i18nLabel = (key, fallback) => {
   const translated = transformI18n(key);
   return translated && translated !== key ? translated : fallback;
 };
+
+const normalizedCurrentRoles = computed(() =>
+  (userStore.roles || []).map((role) => String(role || "").toUpperCase()),
+);
+
+const hasCurrentRole = (roleCode) => {
+  return normalizedCurrentRoles.value.includes(
+    String(roleCode || "").toUpperCase(),
+  );
+};
+
+const isSuperAdminView = computed(() => {
+  return hasCurrentRole("SUPER_ADMIN") || userStore.username === "sa";
+});
+
+const isAdminView = computed(() => {
+  return isSuperAdminView.value || hasCurrentRole("ADMIN");
+});
+
+const isDeptLeaderView = computed(() => {
+  return !isAdminView.value && hasCurrentRole("DEPT_LEADER");
+});
+
+const resolveRoleCodes = (row) => {
+  return String(row?.sysLogRoleCodes || "")
+    .split(",")
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+};
+
+const resolveRoleRibbons = (row) => {
+  const roleCodes = resolveRoleCodes(row);
+  const items = [];
+
+  if (row?.sysLogUsername === "sa" || roleCodes.includes("SUPER_ADMIN")) {
+    items.push({ text: "SA", color: "#ef4444" });
+  }
+  if (roleCodes.includes("ADMIN")) {
+    items.push({ text: "管理员", color: "#2563eb" });
+  }
+  if (roleCodes.includes("DEPT_LEADER")) {
+    items.push({ text: "部门负责人", color: "#0f766e" });
+  }
+  if (roleCodes.includes("OPS")) {
+    items.push({ text: "运维", color: "#7c3aed" });
+  }
+  if (roleCodes.includes("GUEST")) {
+    items.push({ text: "游客", color: "#6b7280" });
+  }
+
+  return items;
+};
 // 定义详情页组件的引用
 const detailRef = ref(null);
-// 定义搜索表单的数据对象
-const form = reactive({
-  sysLogUsername: "", // 账号名称
-  sysLogFrom: "", // 模块名称
-  sysLogStatus: null, // 日志状态
-  sysLogIp: null, // 请求 IP
-  startDate: null, // 开始时间
-  endDate: null, // 结束时间
+const createFilterForm = () => ({
+  sysLogUsername: "",
+  sysLogFrom: "",
+  sysLogStatus: "",
+  sysLogIp: "",
+  sysLogTime: [],
 });
+
+// 定义搜索表单的数据对象
+const form = reactive(createFilterForm());
 
 // 计算图标样式类
 const iconClass = computed(() => {
@@ -93,48 +147,149 @@ const resolveLoginTypeLabel = (value) => {
   return labels[normalizedValue] || normalizedValue || "-";
 };
 
+const filterFields = [
+  {
+    prop: "sysLogUsername",
+    label: "账号名称",
+    type: "input",
+    placeholder: "输入账号名称",
+    width: 220,
+  },
+  {
+    prop: "sysLogFrom",
+    label: "日志模块",
+    type: "select",
+    placeholder: "全部模块",
+    width: 220,
+    options: [
+      { label: i18nLabel("module.login", "登录"), value: "LOGIN" },
+      { label: i18nLabel("module.loginFail", "登录失败"), value: "LOGIN_FAIL" },
+      { label: i18nLabel("module.logout", "退出登录"), value: "LOGOUT" },
+    ],
+  },
+  {
+    prop: "sysLogStatus",
+    label: "状态",
+    type: "select",
+    placeholder: "全部状态",
+    width: 220,
+    options: [
+      { value: 1, label: "成功" },
+      { value: 0, label: "失败" },
+    ],
+  },
+  {
+    prop: "sysLogIp",
+    label: "IP 地址",
+    type: "input",
+    placeholder: "输入 IP 地址",
+    width: 220,
+  },
+  {
+    prop: "sysLogTime",
+    label: "时间范围",
+    type: "datetimerange",
+    width: 340,
+    startPlaceholder: i18nLabel("module.startDate", "开始时间"),
+    endPlaceholder: i18nLabel("module.endDate", "结束时间"),
+    props: {
+      format: "YYYY-MM-DD HH:mm:ss",
+      dateFormat: "YYYY-MM-DD ddd",
+      timeFormat: "A hh:mm:ss",
+    },
+  },
+];
+
 // 定义加载状态的对象
 const loading = reactive({
   query: false, // 查询加载状态
   menu: false, // 菜单加载状态
+  cleanup: false,
 });
-
-// 定义日期选择器绑定的时间范围
-const sysLogTime = ref([]);
-// 监听日期选择器的时间范围变化，更新表单中的开始和结束时间
-watch(
-  sysLogTime,
-  (newValue) => {
-    form.startDate = newValue?.[0];
-    form.endDate = newValue?.[1];
-  },
-  { deep: true, immediate: true },
-);
-
-// 定义表单的引用
-const formRef = ref();
 // 定义表格的引用
 const table = ref(null);
 
+const buildLogQueryPayload = (payload = form) => {
+  const nextValue = {
+    ...createFilterForm(),
+    ...(payload || {}),
+  };
+  const timeRange = Array.isArray(nextValue.sysLogTime)
+    ? nextValue.sysLogTime
+    : [];
+
+  return {
+    nextValue,
+    params: {
+      ...(nextValue.sysLogUsername?.trim()
+        ? { sysLogUsername: nextValue.sysLogUsername.trim() }
+        : {}),
+      ...(nextValue.sysLogFrom ? { sysLogFrom: nextValue.sysLogFrom } : {}),
+      ...(nextValue.sysLogStatus !== "" &&
+      nextValue.sysLogStatus !== null &&
+      nextValue.sysLogStatus !== undefined
+        ? { sysLogStatus: nextValue.sysLogStatus }
+        : {}),
+      ...(nextValue.sysLogIp?.trim()
+        ? { sysLogIp: nextValue.sysLogIp.trim() }
+        : {}),
+      ...(timeRange[0] ? { startDate: timeRange[0] } : {}),
+      ...(timeRange[1] ? { endDate: timeRange[1] } : {}),
+    },
+  };
+};
+
+const syncFilterForm = (nextValue = {}) => {
+  Object.assign(form, createFilterForm(), nextValue || {});
+};
+
 /**
  * 重置表单并重新搜索
- * @param {Object} formRef - 表单引用
  */
-const resetForm = async (formRef) => {
-  formRef.resetFields();
-  onSearch();
+const resetForm = async () => {
+  syncFilterForm();
+  onSearch(form);
 };
 
 /**
  * 搜索用户日志，使用防抖处理
  */
 const onSearch = debounce(
-  async () => {
-    table.value.reload(form);
+  async (payload = form) => {
+    const { nextValue, params } = buildLogQueryPayload(payload);
+    syncFilterForm(nextValue);
+    loading.query = true;
+    table.value?.reload(params);
   },
-  1000,
+  180,
   true,
 );
+
+const canCleanupLogs = computed(() => {
+  return isAdminView.value && Array.isArray(form.sysLogTime) && form.sysLogTime.some(Boolean);
+});
+
+const handleCleanupLogs = async () => {
+  if (!canCleanupLogs.value) {
+    message("请先选择需要清理的时间范围", { type: "warning" });
+    return;
+  }
+  const { params } = buildLogQueryPayload(form);
+  loading.cleanup = true;
+  try {
+    const res = await fetchCleanupUserLog(params);
+    if (res?.code === "00000") {
+      message(`已清理 ${res.data || 0} 条登录日志`, { type: "success" });
+      onSearch(form);
+      return;
+    }
+    message(res?.msg || "清理失败", { type: "error" });
+  } catch (error) {
+    message("清理失败", { type: "error" });
+  } finally {
+    loading.cleanup = false;
+  }
+};
 
 /**
  * 打开详情页
@@ -165,12 +320,102 @@ const stats = reactive({
 
 // 数据加载完成回调
 const onDataLoaded = (data, total) => {
+  loading.query = false;
   stats.total = total || 0;
   stats.success = data?.filter((item) => item.sysLogStatus === 1)?.length || 0;
   stats.failed = data?.filter((item) => item.sysLogStatus === 0)?.length || 0;
   const today = new Date().toISOString().split("T")[0];
   stats.todayCount =
     data?.filter((item) => item.createTime?.startsWith(today))?.length || 0;
+};
+
+const formatDateTime = (date) => {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
+
+const statsCards = computed(() => [
+  {
+    key: "total",
+    label: "全部日志",
+    value: stats.total,
+    icon: "ri:file-list-3-line",
+    theme: "primary",
+    active:
+      (form.sysLogStatus === "" ||
+        form.sysLogStatus === null ||
+        form.sysLogStatus === undefined) &&
+      !form.sysLogFrom &&
+      (!Array.isArray(form.sysLogTime) || form.sysLogTime.length === 0),
+  },
+  {
+    key: "success",
+    label: "登录成功",
+    value: stats.success,
+    icon: "ri:checkbox-circle-line",
+    theme: "success",
+    active: form.sysLogStatus === 1,
+  },
+  {
+    key: "failed",
+    label: "登录失败",
+    value: stats.failed,
+    icon: "ri:close-circle-line",
+    theme: "danger",
+    active: form.sysLogStatus === 0 || form.sysLogFrom === "LOGIN_FAIL",
+  },
+  {
+    key: "today",
+    label: "今日登录",
+    value: stats.todayCount,
+    icon: "ri:calendar-check-line",
+    theme: "info",
+    active: Array.isArray(form.sysLogTime) && form.sysLogTime.length === 2,
+  },
+]);
+
+const handleStatsSelect = (item) => {
+  if (!item?.key) {
+    return;
+  }
+
+  if (item.key === "total") {
+    resetForm();
+    return;
+  }
+
+  if (item.key === "success") {
+    onSearch({
+      ...form,
+      sysLogFrom: "",
+      sysLogStatus: 1,
+      sysLogTime: [],
+    });
+    return;
+  }
+
+  if (item.key === "failed") {
+    onSearch({
+      ...form,
+      sysLogFrom: "LOGIN_FAIL",
+      sysLogStatus: 0,
+      sysLogTime: [],
+    });
+    return;
+  }
+
+  if (item.key === "today") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    onSearch({
+      ...form,
+      sysLogFrom: "",
+      sysLogStatus: "",
+      sysLogTime: [formatDateTime(start), formatDateTime(end)],
+    });
+  }
 };
 </script>
 
@@ -183,153 +428,53 @@ const onDataLoaded = (data, total) => {
       :moduleOptions="moduleOptions"
     />
     <ScContainer class="log-container">
-      <!-- 统计面板 -->
-      <div class="log-stats">
-        <div class="stat-item">
-          <div class="stat-icon total">
-            <IconifyIconOnline icon="ri:file-list-3-line" :size="28" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.total }}</span>
-            <span class="stat-label">全部日志</span>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon success">
-            <IconifyIconOnline icon="ri:checkbox-circle-line" :size="28" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.success }}</span>
-            <span class="stat-label">登录成功</span>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon failed">
-            <IconifyIconOnline icon="ri:close-circle-line" :size="28" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.failed }}</span>
-            <span class="stat-label">登录失败</span>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon today">
-            <IconifyIconOnline icon="ri:calendar-check-line" :size="28" />
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.todayCount }}</span>
-            <span class="stat-label">今日登录</span>
-          </div>
-        </div>
+      <div class="stats-section">
+        <SystemStatsCards :items="statsCards" @select="handleStatsSelect" />
       </div>
       <!-- 头部搜索区域 -->
       <ScHeader class="toolbar-section log-header">
-        <div class="toolbar-left log-left-panel">
-          <!-- 搜索表单 -->
-          <ScForm
-            ref="formRef"
-            label-width="40px"
-            :inline="true"
-            :model="form"
-            class="modern-form log-search-form"
-          >
-            <!-- 账号输入框 -->
-            <ScFormItem
-              label="账号"
-              prop="sysLogUsername"
-              class="log-form-item"
+        <ScFilter
+          class="log-filter"
+          :model-value="form"
+          :fields="filterFields"
+          :loading="loading.query"
+          @update:model-value="syncFilterForm"
+          @search="onSearch"
+          @reset="resetForm"
+        >
+          <template #actions>
+            <ScButton
+              type="primary"
+              class="log-filter__action"
+              :loading="loading.query"
+              @click="onSearch(form)"
             >
-              <ScInput
-                v-model="form.sysLogUsername"
-                placeholder="请输入账号名称"
-                clearable
-                class="log-input"
-              />
-            </ScFormItem>
-            <!-- 模块选择框 -->
-            <ScFormItem label="模块" prop="sysLogFrom" class="log-form-item">
-              <ScSelect
-                v-model="form.sysLogFrom"
-                placeholder="请选择模块"
-                clearable
-                class="log-select"
-              >
-                <ScOption
-                  v-for="item in moduleOptions"
-                  :key="item.value"
-                  :value="item.value"
-                  :label="item.label"
-                >
-                  {{ item.label }}
-                </ScOption>
-              </ScSelect>
-            </ScFormItem>
-            <!-- 状态选择框 -->
-            <ScFormItem
-              label="状态"
-              prop="sysLogStatus"
-              class="log-form-item"
+              查询
+            </ScButton>
+            <ScButton class="log-filter__action" @click="resetForm">
+              重置
+            </ScButton>
+            <ScPopconfirm
+              v-if="isAdminView"
+              title="将按当前筛选条件清理日志，至少需要选择时间范围。确认继续？"
+              @confirm="handleCleanupLogs"
             >
-              <ScSelect
-                v-model="form.sysLogStatus"
-                class="log-select"
-                clearable
-              >
-                <ScOption :value="1" label="成功">成功</ScOption>
-                <ScOption :value="0" label="失败">失败</ScOption>
-              </ScSelect>
-            </ScFormItem>
-            <!-- IP 输入框 -->
-            <ScFormItem label=" IP" prop="sysLogIp" class="log-form-item">
-              <ScInput
-                v-model="form.sysLogIp"
-                placeholder="请输入IP"
-                clearable
-                class="log-input"
-              />
-            </ScFormItem>
-            <!-- 日期时间范围选择器 -->
-            <ScFormItem label="时间" prop="sysLogTime" class="log-form-item">
-              <ScDatePicker
-                v-model="sysLogTime"
-                type="datetimerange"
-                :start-placeholder="i18nLabel('module.startDate', '开始时间')"
-                :end-placeholder="i18nLabel('module.endDate', '结束时间')"
-                format="YYYY-MM-DD HH:mm:ss"
-                date-format="YYYY-MM-DD ddd"
-                time-format="A hh:mm:ss"
-                class="log-date-picker"
-              />
-            </ScFormItem>
-          </ScForm>
-        </div>
-        <div class="toolbar-right log-right-panel">
-          <div class="log-right-panel-search">
-            <div class="log-flex-1">
-              <div>
-                <div class="log-button-group">
-                  <div class="log-flex-1" />
-                  <div class="log-button-container">
-                    <!-- 搜索按钮 -->
-                    <ScButton
-                      type="primary"
-                      :icon="useRenderIcon('ri:search-line')"
-                      :loading="loading.query"
-                      class="log-button log-search-button"
-                      @click="onSearch"
-                    />
-                    <!-- 重置按钮 -->
-                    <ScButton
-                      :icon="useRenderIcon(Refresh)"
-                      class="log-button log-reset-button"
-                      @click="resetForm(formRef)"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              <template #reference>
+                <span>
+                  <ScButton
+                    class="log-filter__action"
+                    type="danger"
+                    plain
+                    :loading="loading.cleanup"
+                    :disabled="!canCleanupLogs"
+                  >
+                    按时间清理
+                  </ScButton>
+                </span>
+              </template>
+            </ScPopconfirm>
+          </template>
+        </ScFilter>
       </ScHeader>
       <!-- 主体表格区域 -->
       <ScMain class="log-main-content">
@@ -347,17 +492,75 @@ const onDataLoaded = (data, total) => {
               :url="fetchPageUserLog"
               :rowClick="openDetail"
               class="modern-table log-table"
-              height="auto"
+              height="100%"
               @data-loaded="onDataLoaded"
             >
+              <ScTableColumn
+                type="index"
+                label="序号"
+                width="78"
+                align="center"
+              />
               <!-- 表格列保持不变 -->
               <ScTableColumn
                 label="账号名称"
                 prop="sysLogUsername"
+                align="left"
+                min-width="220px"
+              >
+                <template #default="{ row }">
+                  <div class="log-account-cell">
+                    <div class="log-account-item">
+                      <IconifyIconOnline
+                        icon="ri:user-line"
+                        class="log-account-icon"
+                      />
+                      <span class="log-account-label">账号</span>
+                      <span class="log-account-value">{{
+                        row.sysLogUsername || "-"
+                      }}</span>
+                    </div>
+                    <div class="log-account-item">
+                      <IconifyIconOnline
+                        icon="ri:building-line"
+                        class="log-account-icon"
+                      />
+                      <span class="log-account-label">部门</span>
+                      <span
+                        class="log-account-value"
+                        :class="{ 'no-value': !row.sysDeptName }"
+                      >
+                        {{ row.sysDeptName || "未标记部门" }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="isAdminView && resolveRoleRibbons(row).length"
+                      class="log-role-ribbons"
+                    >
+                      <ScTag
+                        v-for="item in resolveRoleRibbons(row)"
+                        :key="`${row.sysLogId}-${item.text}`"
+                        :color="item.color"
+                        size="small"
+                      >
+                        {{ item.text }}
+                      </ScTag>
+                    </div>
+                  </div>
+                </template>
+              </ScTableColumn>
+              <ScTableColumn
+                v-if="isDeptLeaderView"
+                label="部门"
+                prop="sysDeptName"
                 align="center"
                 show-overflow-tooltip
-                min-width="120px"
-              />
+                min-width="140px"
+              >
+                <template #default="{ row }">
+                  {{ row.sysDeptName || "-" }}
+                </template>
+              </ScTableColumn>
               <ScTableColumn
                 label="模块"
                 prop="sysLogFrom"
@@ -365,9 +568,9 @@ const onDataLoaded = (data, total) => {
                 show-overflow-tooltip
               >
                 <template #default="{ row }">
-                  <span class="log-module-text">{{
+                  <ScTag class="log-module-text">{{
                     transform(row.sysLogFrom)
-                  }}</span>
+                  }}</ScTag>
                 </template>
               </ScTableColumn>
               <!-- 请求 IP 列，使用ScIp组件显示 -->
@@ -415,7 +618,9 @@ const onDataLoaded = (data, total) => {
                 width="140px"
               >
                 <template #default="{ row }">
-                  {{ resolveLoginTypeLabel(row.sysLogLoginType) }}
+                  <ScTag>
+                    {{ resolveLoginTypeLabel(row.sysLogLoginType) }}</ScTag
+                  >
                 </template>
               </ScTableColumn>
               <!-- userAgent 列 -->
@@ -435,11 +640,7 @@ const onDataLoaded = (data, total) => {
                 min-width="120px"
               >
                 <template #default="{ row }">
-                  <div>
-                    <span>{{ getTimeAgo(row.createTime) }}</span>
-                    <br />
-                    <span class="text-gray-400">{{ row.createTime }}</span>
-                  </div>
+                  <ScTimeText v-model="row.createTime" />
                 </template>
               </ScTableColumn>
               <!-- 状态列，根据状态显示不同标签 -->
@@ -452,22 +653,27 @@ const onDataLoaded = (data, total) => {
               >
                 <template #default="{ row }">
                   <ScTag v-if="row.sysLogStatus === 1" type="success"
-                    >成功</ScTag>
+                    >成功</ScTag
+                  >
                   <ScTag v-else-if="row.sysLogStatus === 0" type="danger"
-                    >失败</ScTag>
+                    >失败</ScTag
+                  >
                 </template>
               </ScTableColumn>
               <!-- 耗时列，根据耗时显示不同标签 -->
               <ScTableColumn label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
                   <ScTag v-if="row.sysLogCost <= 1000" type="success"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag>
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
+                  >
                   <ScTag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag>
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
+                  >
                   <ScTag v-else type="danger"
-                    >{{ row.sysLogCost || 0 }} ms</ScTag>
+                    >{{ row.sysLogCost || 0 }} ms</ScTag
+                  >
                 </template>
               </ScTableColumn>
             </ScTable>
@@ -479,6 +685,27 @@ const onDataLoaded = (data, total) => {
 </template>
 
 <style scoped lang="scss">
+.system-container.log-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.system-container.log-main :deep(.sc-container) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.stats-section {
+  padding: 16px 20px;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
 @keyframes log-fade-in {
   from {
     opacity: 0;
@@ -501,6 +728,50 @@ const onDataLoaded = (data, total) => {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.log-role-ribbons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.log-role-ribbons :deep(.sc-ribbon-badge) {
+  flex-shrink: 0;
+}
+
+.log-account-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.log-account-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.log-account-icon {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+.log-account-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+
+.log-account-value {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // 响应式适配
@@ -551,7 +822,6 @@ const onDataLoaded = (data, total) => {
 
     &:hover {
       box-shadow: 0 6px 20px rgb(0 0 0 / 8%);
-      transform: translateY(-2px);
     }
 
     .stat-icon {
@@ -600,12 +870,12 @@ const onDataLoaded = (data, total) => {
   }
 }
 
-
-
 .log-container {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid var(--el-border-color-lighter);
@@ -615,103 +885,18 @@ const onDataLoaded = (data, total) => {
 // 头部样式
 .log-header {
   height: auto !important;
-  max-height: 160px;
-  padding: 16px;
+  padding: 12px 16px;
   background-color: var(--el-bg-color);
   border-bottom: 1px solid rgb(0 0 0 / 5%);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 3%);
-  transition: all 0.3s ease;
+  box-shadow: 0 10px 24px -24px rgb(15 23 42 / 22%);
 }
 
-.log-left-panel {
+.log-filter {
   width: 100%;
 }
 
-.log-search-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  width: 100%;
-  padding: 16px;
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
-  animation: log-scale-in 0.4s ease-out;
-}
-
-.log-form-item {
-  margin-bottom: 12px !important;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-}
-
-.log-input,
-.log-select,
-.log-date-picker {
-  width: 180px !important;
-  transition: all 0.3s ease;
-
-  &:focus,
-  &:hover {
-    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
-  }
-}
-
-.log-right-panel {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 10px;
-}
-
-.log-right-panel-search {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.log-flex-1 {
-  flex: 1;
-}
-
-.log-button-group {
-  display: flex;
-  flex-flow: row wrap;
-}
-
-.log-button-container {
-  display: flex;
-  flex: 1;
-  flex-direction: row;
-  justify-content: center;
-}
-
-.log-button {
-  margin: 0 5px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  &:hover {
-    box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
-    transform: translateY(-2px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-.log-search-button {
-  background-color: var(--el-color-primary);
-
-  &:hover {
-    background-color: var(--el-color-primary-light-3);
-  }
-}
-
-.log-reset-button {
-  &:hover {
-    background-color: rgba(var(--el-color-primary-rgb), 0.1);
-  }
+.log-filter__action {
+  min-width: 100px;
 }
 
 // 主内容区域样式
@@ -720,6 +905,7 @@ const onDataLoaded = (data, total) => {
   display: flex;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .log-table {
@@ -731,6 +917,7 @@ const onDataLoaded = (data, total) => {
 
   :deep(.el-table) {
     width: 100%; // 确保表格宽度为100%
+    height: 100%;
     overflow: hidden;
     table-layout: fixed; // 使用固定表格布局
     border-radius: 8px;
@@ -741,32 +928,29 @@ const onDataLoaded = (data, total) => {
       transition: background-color 0.3s ease;
     }
 
-    tr {
-      transition: all 0.3s ease;
-
-      &:hover {
-        background-color: rgba(var(--el-color-primary-rgb), 0.05) !important;
-      }
+    tr:hover {
+      background-color: rgba(var(--el-color-primary-rgb), 0.05) !important;
     }
 
     td {
       padding: 12px 0;
       word-break: break-word; // 允许单词内换行
-      transition: all 0.3s ease;
     }
   }
 
-  :deep(.el-table__row) {
-    animation: log-fade-in 0.3s ease-out forwards;
-    animation-delay: calc(
-      var(--el-transition-duration) * 0.05 * var(--row-index, 0)
-    );
+  :deep(.sc-table-container),
+  :deep(.sc-table-wrapper),
+  :deep(.sc-table-content-wrapper),
+  :deep(.el-table__inner-wrapper),
+  :deep(.el-table__body-wrapper) {
+    height: 100%;
+    min-height: 0;
   }
 }
 
 .log-module-text {
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease;
 
   &:hover {
     color: var(--el-color-primary);
@@ -774,11 +958,9 @@ const onDataLoaded = (data, total) => {
 }
 
 :deep(.el-tag) {
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 :deep(.el-dropdown-menu__item i) {
@@ -792,7 +974,7 @@ const onDataLoaded = (data, total) => {
   min-height: 0;
   width: 100%;
   height: 100%;
-  overflow-x: hidden; // 隐藏横向滚动条
+  overflow: hidden;
 }
 
 .log-table-container-full {
@@ -801,16 +983,17 @@ const onDataLoaded = (data, total) => {
   min-height: 0;
   width: 100%;
   height: 100%;
-  overflow-x: hidden; // 隐藏横向滚动条
+  overflow: hidden;
   transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .log-table-container-narrow {
   display: flex;
+  flex: 1;
   min-height: 0;
   width: 60vw;
   height: 100%;
-  overflow-x: hidden; // 隐藏横向滚动条
+  overflow: hidden;
   transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -818,7 +1001,6 @@ const onDataLoaded = (data, total) => {
 .log-main {
   overflow-x: hidden; // 隐藏横向滚动条
   background-color: var(--el-bg-color);
-  animation: log-fade-in 0.5s ease-out;
 }
 
 // 暗色主题适配
@@ -834,9 +1016,5 @@ const onDataLoaded = (data, total) => {
   .log-header {
     background-color: var(--el-bg-color-overlay);
   }
-
-  .log-search-form {
-    background-color: var(--el-bg-color-overlay);
-  }
-} // 动画定义
+}
 </style>

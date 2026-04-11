@@ -4,10 +4,19 @@ import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@repo/utils";
 import { transformI18n } from "@repo/config";
 import { useI18n } from "vue-i18n";
+import {
+  defineAsyncComponent,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+  toRaw,
+  watch,
+} from "vue";
 
 // Props
 const props = defineProps<{
-  nodeClick?: (params: any) => void;
+  nodeClick?: (params: { sysDeptId: number | null }) => void;
 }>();
 
 // 异步加载对话框
@@ -15,28 +24,55 @@ const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 
 const { t } = useI18n();
 
+type DeptTreeNode = {
+  sysDeptId?: number | null;
+  sysDeptPid?: number | null;
+  sysDeptName?: string;
+  sysDeptCode?: string;
+  sysDeptIcon?: string;
+  children?: DeptTreeNode[];
+  [key: string]: any;
+};
+
+type SaveDialogExpose = {
+  setData: (item: Record<string, any>) => SaveDialogExpose;
+  setTableData: (rows: DeptTreeNode[]) => SaveDialogExpose;
+  open: (mode?: "save" | "edit") => void;
+};
+
 // Refs
-const treeRef = ref();
-const saveDialogRef = ref();
+const treeRef = ref<{ filter: (keyword: string) => void } | null>(null);
+const saveDialogRef = ref<SaveDialogExpose | null>(null);
 
 // 状态
 const dicFilterText = ref("");
-const tableData = ref<any[]>([]);
+const tableData = ref<DeptTreeNode[]>([]);
 
 const visible = reactive({
+  save: false,
 });
 
 const loading = reactive({
+  query: false,
 });
 
-const saveDialogParams = reactive({
+const saveDialogParams = reactive<{
+  mode: "save" | "edit";
+}>({
+  mode: "save",
 });
 
-const params = reactive({
+const params = reactive<{
+  sysDeptId: number | null;
+}>({
+  sysDeptId: null,
 });
 
 // 统计数据
 const stats = reactive({
+  total: 0,
+  topLevel: 0,
+  subLevel: 0,
 });
 
 // 监听搜索关键字
@@ -50,10 +86,10 @@ const useI18nText = (key: string) => {
 };
 
 // 更新树节点数据
-const doChange = (data: any[], form: any): boolean => {
+const doChange = (data: DeptTreeNode[], form: DeptTreeNode): boolean => {
   if (!data) return false;
 
-  const item = data.find((item) => item.sysMenuId === form.sysMenuId);
+  const item = data.find((item) => item.sysDeptId === form.sysDeptId);
   if (item) {
     Object.assign(item, form);
     return true;
@@ -68,10 +104,11 @@ const doChange = (data: any[], form: any): boolean => {
 };
 
 // 保存成功回调
-const onSuccess = (mode: string, form: any) => {
+const onSuccess = (...args: any[]) => {
+  const [mode, form] = args as ["save" | "edit", DeptTreeNode];
   if (mode === "edit") {
     const item = tableData.value.find(
-      (item) => item.sysMenuId === form.sysMenuId,
+      (item) => item.sysDeptId === form.sysDeptId,
     );
     if (item) {
       Object.assign(item, form);
@@ -88,18 +125,18 @@ const onSuccess = (mode: string, form: any) => {
 };
 
 // 节点点击
-const onClick = (node: any) => {
+const onClick = (node: DeptTreeNode) => {
   params.sysDeptId = node?.sysDeptId;
-  props.nodeClick?.(params);
+  props.nodeClick?.({ sysDeptId: params.sysDeptId });
 };
 
 // 计算部门统计
-const calcStats = (data: any[]) => {
+const calcStats = (data: DeptTreeNode[]) => {
   let total = 0;
   let topLevel = 0;
   let subLevel = 0;
 
-  const countDepts = (items: any[], isTop = true) => {
+  const countDepts = (items: DeptTreeNode[], isTop = true) => {
     items.forEach((item) => {
       if (item.sysDeptId) {
         total++;
@@ -142,13 +179,13 @@ const onSearch = async () => {
 };
 
 // 删除部门
-const onDelete = async (row: any) => {
+const onDelete = async (row: DeptTreeNode) => {
   try {
     await fetchDeleteDept(row.sysDeptId);
     onSearch();
     message(t("message.deleteSuccess"), { type: "success" });
   } catch (error) {
-    console.error("删除失败", error);
+    message(t("message.deleteFailed"), { type: "error" });
   }
 };
 
@@ -161,18 +198,45 @@ const dialogClose = async () => {
 };
 
 // 树节点过滤
-const filterNode = (value: string, data: any) => {
+const filterNode = (value: string, data: DeptTreeNode) => {
   if (!value) return true;
   const targetText = (data.sysDeptName || "") + (data.sysDeptCode || "");
   return targetText.indexOf(value) !== -1;
 };
 
+const cloneDialogPayload = <T>(value: T): T => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  return JSON.parse(JSON.stringify(toRaw(value))) as T;
+};
+
 // 打开对话框
-const dialogOpen = async (item: any, mode: "save" | "edit" = "save") => {
+const dialogOpen = async (
+  item: Record<string, any>,
+  mode: "save" | "edit" = "save",
+) => {
   saveDialogParams.mode = mode;
   visible.save = true;
   await nextTick();
-  saveDialogRef.value?.setData(item)?.setTableData(tableData.value)?.open(mode);
+  const dialog = saveDialogRef.value;
+  if (!dialog) {
+    return;
+  }
+  dialog.setTableData(cloneDialogPayload(tableData.value));
+  dialog.setData(cloneDialogPayload(item));
+  dialog.open(mode);
+};
+
+const handleCreateChild = (data: Record<string, any>) => {
+  dialogOpen(
+    {
+      sysDeptPid: data?.sysDeptId ?? "",
+      parentDeptId: data?.sysDeptId ?? "",
+      parentDeptName: data?.sysDeptName ?? "",
+    },
+    "save",
+  );
 };
 
 // 初始化
@@ -181,8 +245,7 @@ onMounted(() => {
 });
 
 // 暴露给父组件
-defineExpose({
-});
+defineExpose({});
 </script>
 <template>
   <div class="dept-container">
@@ -283,10 +346,21 @@ defineExpose({
                       <span
                         v-if="data?.sysDeptCode && data.sysDeptCode !== 'ALL'"
                         class="node-code"
-                        >{{ data.sysDeptCode }}</span>
+                        >{{ data.sysDeptCode }}</span
+                      >
                     </div>
                   </div>
                   <div v-if="data?.sysDeptId" class="node-actions">
+                    <ScTooltip content="新增子部门" placement="top">
+                      <ScButton
+                        type="success"
+                        link
+                        size="small"
+                        @click.stop="handleCreateChild(data)"
+                      >
+                        <IconifyIconOnline icon="ri:add-line" />
+                      </ScButton>
+                    </ScTooltip>
                     <ScTooltip content="编辑" placement="top">
                       <ScButton
                         type="primary"
@@ -302,16 +376,9 @@ defineExpose({
                       @confirm="onDelete(data)"
                     >
                       <template #reference>
-                        <ScTooltip content="删除" placement="top">
-                          <ScButton
-                            type="danger"
-                            link
-                            size="small"
-                            @click.stop
-                          >
-                            <IconifyIconOnline icon="ri:delete-bin-line" />
-                          </ScButton>
-                        </ScTooltip>
+                        <ScButton type="danger" link size="small">
+                          <IconifyIconOnline icon="ri:delete-bin-line" />
+                        </ScButton>
                       </template>
                     </ScPopconfirm>
                   </div>

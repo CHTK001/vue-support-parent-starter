@@ -93,12 +93,19 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["row-click", "load-more"]);
+type TimelineColumn = {
+  prop: string;
+  label: string;
+  hide?: boolean;
+};
 
 /**
  * 可见列
  */
-const visibleColumns = computed(() => {
-  return props.userColumn.filter((col: any) => !col.hide && col.prop !== props.timestampField);
+const visibleColumns = computed<TimelineColumn[]>(() => {
+  return (props.userColumn as TimelineColumn[]).filter(
+    (col) => !col.hide && col.prop !== props.timestampField
+  );
 });
 
 /**

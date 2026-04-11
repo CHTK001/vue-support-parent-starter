@@ -193,7 +193,7 @@
                 @click="openInstallContainer(image)"
               >
                 <IconifyIconOnline icon="ri:play-circle-line" />
-                安装
+                创建容器
               </button>
               <button class="card-action-btn" @click="handleExportImage(image)">
                 <IconifyIconOnline icon="ri:download-2-line" />
@@ -280,7 +280,7 @@
                 @click="openInstallContainer(item)"
               >
                 <IconifyIconOnline icon="ri:play-circle-line" />
-                安装
+                创建容器
               </button>
               <button class="card-action-btn" @click="handleExportImage(item)">
                 <IconifyIconOnline icon="ri:download-2-line" />
@@ -376,7 +376,7 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <div class="table-actions">
-              <el-tooltip content="安装容器" placement="top">
+              <el-tooltip content="创建容器" placement="top">
                 <button
                   class="table-action-btn primary"
                   @click="openInstallContainer(row)"
@@ -409,7 +409,7 @@
     <!-- 拉取镜像对话框 -->
     <PullImageDialog v-model:visible="pullVisible" @success="handleRefresh" />
 
-    <!-- 安装容器对话框 -->
+    <!-- 创建容器对话框 -->
     <InstallContainerDialog
       v-model:visible="installContainerVisible"
       :image="currentImage"
@@ -493,7 +493,6 @@ const imageTableRef = ref();
 // Socket事件名称 - 使用 MonitorTopics 常量
 const socketEventNames = [
   MonitorTopics.DOCKER.IMAGE_PULL_PROGRESS,
-  MonitorTopics.SOFTWARE.SYNC_PROGRESS,
   MonitorTopics.DOCKER.IMAGE_EXPORT_PROGRESS,
   MonitorTopics.DOCKER.IMAGE_IMPORT_PROGRESS,
 ];
@@ -647,7 +646,7 @@ function handleViewChange(value: string) {
   handleGroupChange();
 }
 
-// 打开安装容器对话框
+// 打开创建容器对话框
 function openInstallContainer(image: SystemSoftImage) {
   currentImage.value = image;
   installContainerVisible.value = true;
@@ -742,7 +741,7 @@ async function handleDeleteImage(image: SystemSoftImage) {
   }
 }
 
-// 安装容器成功
+// 创建容器成功
 function handleInstallSuccess() {
   ElNotification.success({
     title: "容器创建成功",

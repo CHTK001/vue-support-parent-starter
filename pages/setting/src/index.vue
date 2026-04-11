@@ -246,7 +246,6 @@ const loadProductsConfig = async () => {
     remoteGroups.value = Array.isArray(data) ? data : [];
   } catch (error) {
     remoteGroups.value = [];
-    console.error("加载配置组失败:", error);
     message("加载配置组失败，已仅展示固定组", { type: "warning" });
   } finally {
     loadingState.isLoading = false;
@@ -271,7 +270,6 @@ const openCard = async (card: SettingCard) => {
     await nextTick();
     drawerVisible[card.group] = true;
   } catch (error) {
-    console.error("打开设置项失败:", error);
     message("打开设置项失败，请重试", { type: "error" });
   } finally {
     openingGroup.value = null;
@@ -378,9 +376,7 @@ onUnmounted(() => {
                   variant="corner"
                   position="rt"
                   size="sm"
-                  :color="
-                    item.sourceType === 'fixed' ? '#3b82f6' : '#10b981'
-                  "
+                  :color="item.sourceType === 'fixed' ? '#3b82f6' : '#10b981'"
                 />
                 <div class="setting-card-main">
                   <div class="setting-card-icon">
@@ -453,14 +449,22 @@ onUnmounted(() => {
 .setting-sections {
   position: relative;
   z-index: 1;
+  overflow: visible;
+}
+
+.setting-skeleton {
+  display: block;
+  overflow: visible;
 }
 
 .setting-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(286px, 1fr));
   gap: 20px;
+  padding-top: 6px;
 }
 
+// ===== 仅修改卡片相关样式，增强立体感和层次感 =====
 .setting-card {
   position: relative;
   height: 100%;
@@ -471,10 +475,10 @@ onUnmounted(() => {
   border: 0 !important;
   border-radius: 0;
   box-shadow: none !important;
-  transition:
-    transform 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
+// 卡片底部投影增强（更自然的立体阴影）
 .setting-card::after {
   content: "";
   position: absolute;
@@ -482,17 +486,17 @@ onUnmounted(() => {
   right: 20px;
   bottom: -12px;
   z-index: 0;
-  height: 26px;
+  height: 30px;
   pointer-events: none;
   background: radial-gradient(
     ellipse at center,
-    rgb(15 23 42 / 24%) 0%,
-    rgb(59 130 246 / 12%) 42%,
-    rgb(15 23 42 / 0%) 78%
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(59, 130, 246, 0.1) 42%,
+    rgba(15, 23, 42, 0) 78%
   );
   border-radius: 999px;
-  filter: blur(18px);
-  opacity: 0.62;
+  filter: blur(20px);
+  opacity: 0.7;
   transform: translateY(9px) scale(0.9);
   transition:
     opacity 0.2s ease,
@@ -505,17 +509,18 @@ onUnmounted(() => {
 }
 
 .setting-card:hover::after {
-  opacity: 0.8;
-  filter: blur(20px);
+  opacity: 0.9;
+  filter: blur(22px);
   transform: translateY(11px) scale(0.95);
 }
 
 .setting-card:hover .setting-card-icon {
   transform: rotate(10deg) scale(1.08);
+  // 增强图标阴影，提升立体效果
   box-shadow:
-    0 14px 28px rgb(59 130 246 / 28%),
-    0 6px 14px rgb(15 23 42 / 12%),
-    inset 0 1px 0 rgb(255 255 255 / 40%);
+    0 16px 30px rgba(59, 130, 246, 0.35),
+    0 8px 16px rgba(15, 23, 42, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .setting-card-active {
@@ -523,8 +528,8 @@ onUnmounted(() => {
 }
 
 .setting-card-active::after {
-  opacity: 0.84;
-  filter: blur(20px);
+  opacity: 0.9;
+  filter: blur(22px);
   transform: translateY(10px) scale(0.94);
 }
 
@@ -539,6 +544,7 @@ onUnmounted(() => {
   padding: 0;
 }
 
+// 卡片容器样式增强（更细腻的渐变和阴影）
 .setting-card-shell {
   position: relative;
   z-index: 1;
@@ -549,20 +555,28 @@ onUnmounted(() => {
   min-height: 154px;
   padding: 28px;
   overflow: hidden;
-  background: linear-gradient(180deg, #fff 0%, #fcfeff 18%, #f6faff 100%);
-  border: 1px solid #d7e3f3;
+  // 更细腻的渐变背景，增强立体感知
+  background: 
+    linear-gradient(180deg, 
+      #ffffff 0%, 
+      #fcfeff 20%, 
+      #f9fbff 60%, 
+      #f6faff 100%);
+  // 多层边框和阴影，模拟真实卡片质感
+  border: 1px solid #e0e7ff;
   border-radius: 24px;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 92%) inset,
-    0 12px 18px -14px rgb(15 23 42 / 22%),
-    0 20px 30px -20px rgb(15 23 42 / 16%),
-    0 30px 38px -26px rgb(59 130 246 / 24%);
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 4px 8px rgba(15, 23, 42, 0.05),
+    0 12px 20px rgba(15, 23, 42, 0.08),
+    0 20px 30px rgba(59, 130, 246, 0.06);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     background 0.2s ease;
 }
 
+// 卡片顶部高光，增强立体效果
 .setting-card-shell::before {
   content: "";
   position: absolute;
@@ -570,9 +584,9 @@ onUnmounted(() => {
   pointer-events: none;
   background: linear-gradient(
     180deg,
-    rgb(255 255 255 / 82%) 0%,
-    rgb(255 255 255 / 48%) 24%,
-    rgb(255 255 255 / 0%) 54%
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.6) 24%,
+    rgba(255, 255, 255, 0) 54%
   );
 }
 
@@ -584,6 +598,7 @@ onUnmounted(() => {
   align-items: flex-start;
 }
 
+// 图标样式增强（更圆润的边角，更丰富的渐变）
 .setting-card-icon {
   display: flex;
   flex-shrink: 0;
@@ -594,15 +609,24 @@ onUnmounted(() => {
   margin-right: 0;
   font-size: 26px;
   color: #fff;
-  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-  border-radius: 14px;
+  // 更丰富的渐变背景
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+  // 更圆润的边角
+  border-radius: 16px;
+  // 多层阴影增强立体感
   box-shadow:
-    0 10px 20px rgb(59 130 246 / 24%),
-    0 4px 10px rgb(15 23 42 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 32%);
+    0 12px 24px rgba(59, 130, 246, 0.3),
+    0 6px 12px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
+  // 增加内发光效果
+  box-shadow:
+    0 10px 20px rgba(59, 130, 246, 0.24),
+    0 4px 10px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 0 12px rgba(59, 130, 246, 0.15);
 }
 
 .setting-card-content {
@@ -613,6 +637,7 @@ onUnmounted(() => {
   min-width: 0;
 }
 
+// 保持原有排版 - 字体大小、行高不变
 .setting-card-title {
   margin: 0 0 10px;
   font-size: 18px;
@@ -641,32 +666,42 @@ onUnmounted(() => {
   color: #475569;
 }
 
+// 悬浮时卡片边框和阴影增强
 .setting-card:hover .setting-card-shell {
-  border-color: #aac4e4;
+  border-color: #c7d2fe;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 96%) inset,
-    0 14px 20px -14px rgb(15 23 42 / 24%),
-    0 24px 34px -20px rgb(15 23 42 / 20%),
-    0 34px 42px -24px rgb(59 130 246 / 26%);
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 6px 12px rgba(15, 23, 42, 0.08),
+    0 14px 24px rgba(15, 23, 42, 0.12),
+    0 34px 42px rgba(59, 130, 246, 0.1);
 }
 
+// 激活状态卡片增强
 .setting-card-active .setting-card-shell {
-  border-color: #60a5fa;
+  border-color: #93c5fd;
   box-shadow:
-    0 1px 0 rgb(255 255 255 / 98%) inset,
-    0 16px 22px -14px rgb(15 23 42 / 26%),
-    0 26px 36px -20px rgb(15 23 42 / 22%),
-    0 36px 44px -22px rgb(59 130 246 / 32%);
+    0 1px 0 rgba(255, 255, 255, 0.98) inset,
+    0 8px 16px rgba(15, 23, 42, 0.1),
+    0 20px 30px rgba(15, 23, 42, 0.12),
+    0 36px 44px rgba(59, 130, 246, 0.15),
+    // 外发光效果增强激活状态
+    0 0 15px rgba(96, 165, 250, 0.2);
+  outline: 1px solid rgba(147, 197, 253, 0.5);
+  outline-offset: -1px;
 }
 
+// 指示器样式增强
 .setting-card-indicator {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   height: 4px;
-  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  // 渐变指示器增强视觉效果
+  background: linear-gradient(90deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
   border-radius: 0 0 24px 24px;
+  // 指示器阴影增强
+  box-shadow: 0 -2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .setting-empty-card {
@@ -719,7 +754,6 @@ onUnmounted(() => {
 }
 
 :root[data-theme="dark"] {
-
   .setting-page::before {
     background: none;
   }
@@ -733,43 +767,52 @@ onUnmounted(() => {
   .setting-card::after {
     background: radial-gradient(
       ellipse at center,
-      rgb(2 6 23 / 62%) 0%,
-      rgb(30 64 175 / 20%) 46%,
-      rgb(2 6 23 / 0%) 78%
+      rgba(30, 64, 175, 0.4) 0%,
+      rgba(30, 64, 175, 0.25) 46%,
+      rgba(2, 6, 23, 0) 78%
     );
-    opacity: 0.78;
+    opacity: 0.85;
   }
 
   .setting-card-shell {
-    background: linear-gradient(180deg, rgb(15 23 42 / 98%) 0%, rgb(17 24 39 / 100%) 100%);
-    border-color: rgb(100 116 139 / 42%);
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.98) 0%,
+      rgba(17, 24, 39, 1) 100%
+    );
+    border-color: rgba(100, 116, 139, 0.5);
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 8%) inset,
-      0 12px 18px -12px rgb(2 6 23 / 46%),
-      0 22px 30px -18px rgb(2 6 23 / 36%),
-      0 28px 36px -24px rgb(30 64 175 / 26%);
+      0 1px 0 rgba(255, 255, 255, 0.1) inset,
+      0 4px 8px rgba(2, 6, 23, 0.2),
+      0 12px 20px rgba(2, 6, 23, 0.15),
+      0 20px 30px rgba(30, 64, 175, 0.1);
   }
 
   .setting-card-shell::before {
     background: linear-gradient(
       180deg,
-      rgb(255 255 255 / 10%) 0%,
-      rgb(255 255 255 / 4%) 24%,
-      rgb(255 255 255 / 0%) 56%
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.08) 24%,
+      rgba(255, 255, 255, 0) 56%
     );
   }
 
   .setting-card-icon {
-    background: rgb(15 23 42 / 72%);
-    color: rgb(191 219 254 / 96%);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
+    color: rgba(255, 255, 255, 0.96);
+    box-shadow:
+      0 10px 20px rgba(30, 64, 175, 0.3),
+      0 4px 10px rgba(2, 6, 23, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 0 12px rgba(59, 130, 246, 0.2);
   }
 
   .setting-card-title {
-    color: rgb(241 245 249 / 96%);
+    color: rgba(241, 245, 249, 0.96);
   }
 
   .setting-card-description {
-    color: rgb(148 163 184 / 88%);
+    color: rgba(148, 163, 184, 0.88);
   }
 
   .setting-card-active {
@@ -778,29 +821,35 @@ onUnmounted(() => {
   }
 
   .setting-card-active .setting-card-title {
-    color: rgb(191 219 254 / 98%);
+    color: rgba(191, 219, 254, 0.98);
   }
 
   .setting-card-active .setting-card-description {
-    color: rgb(203 213 225 / 88%);
+    color: rgba(203, 213, 225, 0.88);
   }
 
   .setting-card:hover .setting-card-shell {
-    border-color: rgb(148 163 184 / 48%);
+    border-color: rgba(148, 163, 184, 0.6);
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 10%) inset,
-      0 14px 20px -12px rgb(2 6 23 / 48%),
-      0 24px 34px -18px rgb(2 6 23 / 40%),
-      0 32px 40px -24px rgb(30 64 175 / 28%);
+      0 1px 0 rgba(255, 255, 255, 0.12) inset,
+      0 6px 12px rgba(2, 6, 23, 0.25),
+      0 14px 24px rgba(2, 6, 23, 0.2),
+      0 32px 40px rgba(30, 64, 175, 0.15);
   }
 
   .setting-card-active .setting-card-shell {
-    border-color: rgb(96 165 250 / 48%);
+    border-color: rgba(96, 165, 250, 0.6);
     box-shadow:
-      0 1px 0 rgb(255 255 255 / 12%) inset,
-      0 16px 22px -12px rgb(2 6 23 / 52%),
-      0 26px 36px -18px rgb(2 6 23 / 44%),
-      0 34px 42px -24px rgb(30 64 175 / 30%);
+      0 1px 0 rgba(255, 255, 255, 0.15) inset,
+      0 8px 16px rgba(2, 6, 23, 0.3),
+      0 20px 30px rgba(2, 6, 23, 0.25),
+      0 34px 42px rgba(30, 64, 175, 0.2),
+      0 0 15px rgba(96, 165, 250, 0.3);
+  }
+  
+  .setting-card-indicator {
+    background: linear-gradient(90deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
+    box-shadow: 0 -2px 8px rgba(59, 130, 246, 0.3);
   }
 }
 

@@ -124,10 +124,11 @@ type TableColumnConfig = {
   width?: number | string;
   minWidth?: number | string;
 };
+type TableSelectValue = string | number | Array<string | number>;
 
 const props = withDefaults(
   defineProps<{
-    modelValue?: unknown;
+    modelValue?: TableSelectValue;
     data?: TableRow[];
     options?: TableRow[];
     url?: ((params: Record<string, any>) => Promise<any>) | null;

@@ -14,10 +14,14 @@ export interface MenuMeta {
   i18nKey?: string;
   /** 菜单图标 */
   icon?: string;
+  /** 在线图标 */
+  iconOnline?: string;
   /** 额外图标 */
   extraIcon?: string | { svg?: boolean; name: string };
   /** 是否显示在菜单中 */
   showLink?: boolean;
+  /** 是否隐藏 */
+  hidden?: boolean;
   /** 是否显示父级 */
   showParent?: boolean;
   /** 菜单排序 */
@@ -53,11 +57,23 @@ export interface MenuMeta {
   /** 新菜单创建时间（ISO 字符串，用于 ReMenuNewBadge） */
   createTime?: string;
   /** 新菜单标识类型（primary/success/warning/danger） */
-  badgeType?: string;
+  badgeType?:
+    | "default"
+    | "primary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "custom";
   /** 新菜单标识自定义文本 */
   badgeText?: string;
   /** 是否永久显示新菜单标识 */
   permanentNew?: boolean;
+  /** remaining 模式 */
+  remainingSelf?: boolean;
+  /** remaining 路由 */
+  remaining?: boolean;
+  /** 路由组件缺失 */
+  routeComponentMissing?: boolean;
 }
 
 /**
@@ -76,6 +92,12 @@ export interface MenuItem {
   children?: MenuItem[];
   /** 组件路径 */
   component?: RouteRecordRaw["component"];
+  /** 命名视图组件 */
+  components?: Record<string, RouteRecordRaw["component"]>;
+  /** 层级 */
+  level?: number;
+  /** 是否有子菜单 */
+  hasSubMenu?: boolean;
 }
 
 /**

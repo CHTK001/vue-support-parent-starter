@@ -23,8 +23,8 @@
 <script setup lang="ts">
 /**
  * ScColorPicker 颜色选择器组件
- * 封装 Element Plus ColorPicker 与 PixelUI PxColorPicker
- * 在 data-skin 为 8bit 时自动切换为像素风颜色选择器
+ * 封装 Element Plus ColorPicker
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

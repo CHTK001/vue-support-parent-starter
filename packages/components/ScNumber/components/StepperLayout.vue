@@ -1,14 +1,25 @@
 <template>
-  <div class="sc-number-stepper" :class="[`sc-number-stepper--${size}`, { 'sc-number-stepper--disabled': disabled }]">
+  <div
+    class="sc-number-stepper"
+    :class="[
+      `sc-number-stepper--${size}`,
+      { 'sc-number-stepper--disabled': disabled },
+    ]"
+  >
     <!-- 减少按钮 -->
-    <button class="sc-number-stepper__btn sc-number-stepper__btn--decrease" :class="{ 'is-disabled': isMinDisabled }" :disabled="disabled || isMinDisabled" @click="decrease">
+    <button
+      class="sc-number-stepper__btn sc-number-stepper__btn--decrease"
+      :class="{ 'is-disabled': isMinDisabled }"
+      :disabled="disabled || isMinDisabled"
+      @click="decrease"
+    >
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
         <path d="M19 13H5v-2h14v2z" />
       </svg>
     </button>
 
     <!-- 数值显示 -->
-    <div class="sc-number-stepper__value" v-if="showValue">
+    <div v-if="showValue" class="sc-number-stepper__value">
       <input
         v-if="!readonly"
         type="text"
@@ -26,7 +37,12 @@
     </div>
 
     <!-- 增加按钮 -->
-    <button class="sc-number-stepper__btn sc-number-stepper__btn--increase" :class="{ 'is-disabled': isMaxDisabled }" :disabled="disabled || isMaxDisabled" @click="increase">
+    <button
+      class="sc-number-stepper__btn sc-number-stepper__btn--increase"
+      :class="{ 'is-disabled': isMaxDisabled }"
+      :disabled="disabled || isMaxDisabled"
+      @click="increase"
+    >
       <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
       </svg>
@@ -100,7 +116,7 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: "",
   readonly: false,
   showValue: true,
-  valueFormat: undefined
+  valueFormat: undefined,
 });
 
 const emit = defineEmits(["update:modelValue", "change", "focus", "blur"]);
@@ -190,7 +206,7 @@ const handleBlur = (event: FocusEvent) => {
 // 监听外部值变化
 defineExpose({
   increase,
-  decrease
+  decrease,
 });
 </script>
 
@@ -198,16 +214,23 @@ defineExpose({
 .sc-number-stepper {
   display: inline-flex;
   align-items: center;
+  width: 100%;
   gap: 4px;
-  background: var(--el-fill-color-light);
-  border-radius: 12px;
-  padding: 4px;
+  min-height: 32px;
+  background: color-mix(in srgb, var(--el-fill-color-light) 80%, white);
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  padding: 2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 10px 24px rgba(15, 23, 42, 0.05);
 
   &:hover:not(.sc-number-stepper--disabled) {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
+    box-shadow:
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--el-color-primary) 16%, transparent),
+      0 14px 28px rgba(15, 23, 42, 0.08);
   }
 
   // 按钮样式
@@ -215,8 +238,8 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 26px;
+    height: 26px;
     border: none;
     border-radius: 10px;
     background: var(--el-bg-color);
@@ -253,20 +276,23 @@ defineExpose({
 
   // 数值显示区域
   &__value {
-    min-width: 60px;
+    flex: 1;
+    min-width: 0;
+    min-height: 28px;
     text-align: center;
   }
 
   &__input {
     width: 100%;
+    min-height: 28px;
     border: none;
     background: transparent;
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     outline: none;
-    padding: 4px 8px;
+    padding: 2px 8px;
     border-radius: 8px;
     transition: all 0.3s ease;
 
@@ -286,7 +312,7 @@ defineExpose({
   }
 
   &__text {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     padding: 4px 8px;
@@ -296,42 +322,44 @@ defineExpose({
   &--large {
     padding: 6px;
     border-radius: 14px;
+    min-height: 46px;
 
     .sc-number-stepper__btn {
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       border-radius: 12px;
-      font-size: 20px;
+      font-size: 18px;
     }
 
     .sc-number-stepper__value {
-      min-width: 80px;
+      min-width: 0;
     }
 
     .sc-number-stepper__input,
     .sc-number-stepper__text {
-      font-size: 20px;
+      font-size: 16px;
     }
   }
 
   &--small {
     padding: 3px;
     border-radius: 10px;
+    min-height: 34px;
 
     .sc-number-stepper__btn {
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       border-radius: 8px;
       font-size: 14px;
     }
 
     .sc-number-stepper__value {
-      min-width: 48px;
+      min-width: 0;
     }
 
     .sc-number-stepper__input,
     .sc-number-stepper__text {
-      font-size: 14px;
+      font-size: 13px;
     }
   }
 

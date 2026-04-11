@@ -20,6 +20,8 @@ declare global {
     extraIcon?: string | FunctionalComponent | IconifyIcon;
     /** 是否在菜单中显示（默认`true`）`可选` */
     showLink?: boolean;
+    /** 是否隐藏节点（仅供菜单树计算使用） */
+    hidden?: boolean;
     /** 是否显示父级菜单 `可选` */
     showParent?: boolean;
     /** 页面级别权限设置 `可选` */
@@ -53,6 +55,20 @@ declare global {
     hiddenTag?: boolean;
     /** 当前菜单名称是否固定显示在标签页且不可关闭（默认`false`） */
     fixedTag?: boolean;
+    /** 在线图标地址/别名 */
+    iconOnline?: string | FunctionalComponent | IconifyIcon;
+    /** 新菜单标记类型 */
+    badgeType?:
+      | "default"
+      | "primary"
+      | "success"
+      | "warning"
+      | "danger"
+      | "custom";
+    /** 新菜单标记文案 */
+    badgeText?: string;
+    /** 路由组件是否缺失 */
+    routeComponentMissing?: boolean;
     /** 动态路由可打开的最大数量 `可选` */
     dynamicLevel?: number;
     /** 将某个菜单激活
@@ -64,6 +80,8 @@ declare global {
     rank?: number;
     /** 永久显示新标签 */
     permanentNew?: boolean;
+    /** 远程菜单模式下仍需保留的静态路由 */
+    alwaysIncludeStatic?: boolean;
     /** 创建时间 */
     createTime?: string;
   }
@@ -112,6 +130,8 @@ export interface RouteConfigsTable {
     remainingSelf?: boolean;
     /** 永久显示新标签 */
     permanentNew?: boolean;
+    /** 远程菜单模式下仍需保留的静态路由 */
+    alwaysIncludeStatic?: boolean;
     /** 创建时间 */
     createTime?: string;
   };

@@ -2,9 +2,14 @@ import { http, type ReturnResult } from "@repo/utils";
 
 export type Dept = {
   sysDeptId: number;
+  sysDeptCode?: string;
   sysDeptName: string;
   sysDeptPid: number;
   sysDeptTreeId: string;
+  sysDeptPrincipal?: string;
+  memberCount?: number;
+  principalUserIds?: Array<number | string>;
+  principalUserNames?: string[];
 };
 
 /**

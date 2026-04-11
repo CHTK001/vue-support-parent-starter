@@ -1,12 +1,9 @@
 <script>
-import { useRenderIcon } from "@repo/components/ReIcon";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { defineComponent } from "vue";
-import EyeClose from "@iconify-icons/ri/eye-close-line";
-import VueJsonPretty from "vue-json-pretty";
-import "vue-json-pretty/lib/styles.css";
 import { getTimeAgo } from "@repo/utils";
 export default defineComponent({
-  components: { VueJsonPretty, IconifyIconOnline },
+  components: { IconifyIconOnline },
   props: {
     moduleOptions: {
       type: Array,
@@ -15,18 +12,13 @@ export default defineComponent({
   },
   data() {
     return {
-      icon: { EyeClose: null },
       visible: false,
       row: {},
-      clickEye: false,
     };
-  },
-  mounted() {
-    this.icon.EyeClose = useRenderIcon(EyeClose);
   },
   methods: {
     setData(row) {
-      Object.assign(this.row, row);
+      this.row = { ...(row || {}) };
       return this;
     },
     open(node) {
@@ -44,6 +36,20 @@ export default defineComponent({
         return value;
       }
     },
+    formatJsonText(value) {
+      if (value === null || value === undefined || value === "") {
+        return "";
+      }
+      const jsonValue = this.toJsonObject(value);
+      if (typeof jsonValue === "string") {
+        return jsonValue;
+      }
+      try {
+        return JSON.stringify(jsonValue, null, 2);
+      } catch (error) {
+        return String(value);
+      }
+    },
     transform(value) {
       value = String(value || "").toUpperCase();
       const _value = this.moduleOptions.filter((item) => {
@@ -51,9 +57,27 @@ export default defineComponent({
           return item.label;
         }
       });
-      return _value || _value.length > 0
-        ? _value?.[0]?.label
-        : transformI18n("module.other");
+      return _value && _value.length > 0 ? _value?.[0]?.label : "其他";
+    },
+    resolveLoginTypeLabel(value) {
+      const normalizedValue = String(value || "").toUpperCase();
+      const labels = {
+        WEB: "网页",
+        APP: "应用",
+        H5: "H5",
+        WAP: "WAP",
+        PC: "电脑端",
+      };
+      return labels[normalizedValue] || normalizedValue || "-";
+    },
+    resolveRoleNames(value) {
+      if (!value) {
+        return [];
+      }
+      return String(value)
+        .split("、")
+        .map((item) => item.trim())
+        .filter(Boolean);
     },
     getTimeAgo,
   },
@@ -110,8 +134,35 @@ export default defineComponent({
                 <span class="info-value">{{ row.sysLogUsername }}</span>
               </div>
               <div class="info-item">
-                <span class="info-label">登录方式</span>
+                <span class="info-label">日志类型</span>
                 <span class="info-value">{{ transform(row.sysLogFrom) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">登录方式</span>
+                <span class="info-value">{{
+                  resolveLoginTypeLabel(row.sysLogLoginType)
+                }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">账号角色</span>
+                <span class="info-value">
+                  <template v-if="resolveRoleNames(row.sysLogRoleNames).length">
+                    <ScTag
+                      v-for="role in resolveRoleNames(row.sysLogRoleNames)"
+                      :key="`${row.sysLogId}-${role}`"
+                      type="primary"
+                      size="small"
+                      class="mr-2 mb-1"
+                    >
+                      {{ role }}
+                    </ScTag>
+                  </template>
+                  <span v-else>-</span>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">部门名称</span>
+                <span class="info-value">{{ row.sysDeptName || "-" }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">登录时间</span>
@@ -151,15 +202,18 @@ export default defineComponent({
                 <span class="info-label">客户端IP</span>
                 <span class="info-value">{{ row.sysLogIp }}</span>
               </div>
-              <div v-if="row.sysLogAddress" class="info-item">
+              <div class="info-item">
                 <span class="info-label">地理位置</span>
                 <span class="info-value">
-                  <ScTag type="info">{{ row.sysLogAddress }}</ScTag>
+                  <ScTag v-if="row.sysLogAddress" type="info">{{
+                    row.sysLogAddress
+                  }}</ScTag>
+                  <span v-else>-</span>
                 </span>
               </div>
-              <div v-if="row.sysLogIsp" class="info-item">
+              <div class="info-item">
                 <span class="info-label">运营商</span>
-                <span class="info-value">{{ row.sysLogIsp }}</span>
+                <span class="info-value">{{ row.sysLogIsp || "-" }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">请求地址</span>
@@ -199,7 +253,7 @@ export default defineComponent({
           </div>
           <div class="card-body">
             <div class="json-wrapper">
-              <VueJsonPretty :data="toJsonObject(row.sysLogParam)" />
+              <pre class="json-pretty">{{ formatJsonText(row.sysLogParam) }}</pre>
             </div>
           </div>
         </div>
@@ -355,12 +409,20 @@ export default defineComponent({
 }
 
 .json-wrapper {
-  :deep(.vjs-tree) {
-    padding: 16px;
-    font-size: 13px;
-    background: var(--el-fill-color-lighter);
-    border-radius: 8px;
-  }
+  padding: 16px;
+  background: var(--el-fill-color-lighter);
+  border-radius: 8px;
+}
+
+.json-pretty {
+  margin: 0;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--el-text-color-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 // 暗色主题适配

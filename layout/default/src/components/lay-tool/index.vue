@@ -438,12 +438,45 @@ const { CurrentComponent, currentTheme } = useThemeComponent(
 html.dark {
   .lang-dropdown-popper .el-dropdown-menu,
   .user-dropdown-popper .el-dropdown-menu {
-    background: var(--el-bg-color-overlay);
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+    background:
+      linear-gradient(
+        180deg,
+        rgba(15, 23, 42, 0.98),
+        rgba(2, 8, 23, 0.98)
+      );
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow:
+      0 24px 52px rgba(2, 8, 23, 0.44),
+      0 0 0 1px rgba(255, 255, 255, 0.03);
   }
 
   .lang-menu .lang-header {
-    background: var(--el-fill-color-dark);
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom-color: rgba(148, 163, 184, 0.14);
+    color: #e2e8f0;
+  }
+
+  .lang-menu .lang-item {
+    background: rgba(15, 23, 42, 0.52);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+  }
+
+  .lang-menu .lang-item:hover {
+    background: rgba(30, 41, 59, 0.86);
+    border-color: rgba(var(--el-color-primary-rgb), 0.24);
+  }
+
+  .lang-menu .lang-item.active {
+    background: rgba(var(--el-color-primary-rgb), 0.16);
+    border-color: rgba(var(--el-color-primary-rgb), 0.28);
+  }
+
+  .lang-menu .lang-name {
+    color: #f8fafc;
+  }
+
+  .lang-menu .lang-desc {
+    color: #94a3b8;
   }
 
   .user-menu {
@@ -453,9 +486,51 @@ html.dark {
         var(--el-color-primary-dark-2),
         var(--el-color-primary)
       );
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     }
+
+    .menu-body {
+      background:
+        linear-gradient(
+          180deg,
+          rgba(15, 23, 42, 0.68),
+          rgba(2, 8, 23, 0.78)
+        );
+    }
+
+    .menu-item {
+      background: rgba(15, 23, 42, 0.46);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+
+      &:hover {
+        background: rgba(30, 41, 59, 0.88);
+        border-color: rgba(var(--el-color-primary-rgb), 0.22);
+      }
+    }
+
+    .item-title,
+    .header-name {
+      color: #f8fafc;
+    }
+
+    .item-desc,
+    .header-status {
+      color: #94a3b8;
+    }
+
     .menu-footer {
-      background: var(--el-fill-color-dark);
+      background: rgba(15, 23, 42, 0.92);
+      border-top-color: rgba(148, 163, 184, 0.14);
+    }
+
+    .logout-item {
+      background: rgba(15, 23, 42, 0.54);
+      border: 1px solid rgba(248, 113, 113, 0.12);
+      color: #cbd5e1;
+
+      .logout-icon {
+        color: inherit;
+      }
     }
   }
 }
@@ -1549,6 +1624,84 @@ html.theme-8bit {
           color: $pixel-black !important;
         }
       }
+    }
+  }
+}
+
+html.dark {
+  .lang-dropdown-popper .el-dropdown-menu,
+  .user-dropdown-popper .el-dropdown-menu {
+    background: rgba(15, 23, 42, 0.92) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    box-shadow:
+      0 24px 48px rgba(2, 8, 23, 0.42),
+      0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .lang-menu .lang-header {
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.96) 0%,
+      rgba(30, 41, 59, 0.96) 100%
+    );
+    border-bottom-color: rgba(148, 163, 184, 0.14);
+    color: #dbe4f0;
+  }
+
+  .lang-menu .lang-item {
+    color: #dbe4f0;
+
+    &:hover {
+      background: rgba(51, 65, 85, 0.72);
+    }
+
+    .lang-name {
+      color: #f8fafc;
+    }
+
+    .lang-desc {
+      color: #94a3b8;
+    }
+  }
+
+  .user-menu .menu-header {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.86) 0%,
+      rgba(30, 41, 59, 0.96) 100%
+    );
+  }
+
+  .user-menu .menu-body,
+  .user-menu .menu-footer {
+    background: rgba(15, 23, 42, 0.94);
+  }
+
+  .user-menu .menu-item {
+    background: rgba(30, 41, 59, 0.62);
+    color: #dbe4f0;
+
+    &:hover {
+      background: rgba(51, 65, 85, 0.84);
+    }
+
+    .item-title {
+      color: #f8fafc;
+    }
+
+    .item-desc,
+    .item-arrow {
+      color: #94a3b8;
+    }
+  }
+
+  .user-menu .logout-item {
+    background: rgba(30, 41, 59, 0.8);
+    color: #f8fafc;
+    border-color: rgba(148, 163, 184, 0.16);
+
+    .logout-icon {
+      color: #f87171;
     }
   }
 }

@@ -3,10 +3,10 @@
     class="sc-switch-modern"
     :class="[`sc-switch-modern--${size}`, { 'is-checked': isChecked }, { 'is-disabled': disabled }, { 'is-loading': loading }]"
     :style="{
-      '--active-color': activeColor || '#10b981',
-      '--active-color-light': activeColor ? `color-mix(in srgb, ${activeColor} 85%, white 15%)` : '#34d399',
-      '--inactive-color': inactiveColor || '#e2e8f0',
-      '--inactive-color-light': inactiveColor ? `color-mix(in srgb, ${inactiveColor} 95%, white 5%)` : '#f1f5f9'
+      '--active-color': activeColor || 'var(--el-color-primary)',
+      '--active-color-light': activeColor ? `color-mix(in srgb, ${activeColor} 85%, white 15%)` : 'color-mix(in srgb, var(--el-color-primary) 82%, white 18%)',
+      '--inactive-color': inactiveColor || 'var(--el-fill-color-light)',
+      '--inactive-color-light': inactiveColor ? `color-mix(in srgb, ${inactiveColor} 92%, white 8%)` : 'var(--el-fill-color-lighter)'
     }"
     @click="toggleSwitch"
   >
@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { Loading } from "@element-plus/icons-vue";
 
 const props = defineProps({
   modelValue: {
@@ -97,13 +98,6 @@ const isChecked = computed(() => props.modelValue === props.activeValue);
 // 计算当前显示的图标
 const currentIcon = computed(() => (isChecked.value ? props.activeIcon : props.inactiveIcon));
 
-// 计算滑块位置样式
-const thumbStyle = computed(() => {
-  return {
-    transform: isChecked.value ? "translateX(calc(100% - 4px))" : "translateX(4px)"
-  };
-});
-
 // 切换开关状态
 const toggleSwitch = () => {
   if (props.disabled || props.loading) return;
@@ -118,8 +112,11 @@ const toggleSwitch = () => {
 .sc-switch-modern {
   --active-color: #10b981;
   --active-color-light: #34d399;
-  --inactive-color: #e2e8f0;
-  --inactive-color-light: #f1f5f9;
+  --inactive-color: var(--el-fill-color-light);
+  --inactive-color-light: var(--el-fill-color-lighter);
+  --switch-thumb-bg: linear-gradient(135deg, #ffffff, #f8fafc);
+  --switch-thumb-border: rgba(148, 163, 184, 0.2);
+  --switch-label-inactive: var(--el-text-color-secondary);
 
   display: inline-flex;
   align-items: center;
@@ -260,13 +257,13 @@ const toggleSwitch = () => {
   top: 1px;
   left: 1px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  background: var(--switch-thumb-bg);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.15),
     0 1px 2px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  border: 1px solid var(--el-border-color);
+  border: 1px solid var(--switch-thumb-border);
   z-index: 2;
 }
 
@@ -312,7 +309,7 @@ const toggleSwitch = () => {
   opacity: 0.6;
 
   &--inactive {
-    color: #64748b;
+    color: var(--switch-label-inactive);
   }
 
   &--active {
@@ -390,36 +387,34 @@ const toggleSwitch = () => {
 // 禁用状态
 .sc-switch-modern.is-disabled {
   .sc-switch-modern__track-bg {
-    background: #e2e8f0;
+    background: var(--inactive-color);
 
     &::before {
-      background: #e2e8f0;
+      background: var(--inactive-color);
     }
   }
 
   .sc-switch-modern__button {
-    background: #f1f5f9;
+    background: var(--switch-thumb-bg);
   }
 }
 
-// 深色模式支持
-@media (prefers-color-scheme: dark) {
-  .sc-switch-modern {
-    .sc-switch-modern__track-bg {
-      background: linear-gradient(145deg, #374151, #4b5563);
+html.dark .sc-switch-modern {
+  --inactive-color: rgba(51, 65, 85, 0.88);
+  --inactive-color-light: rgba(71, 85, 105, 0.92);
+  --switch-thumb-bg: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  --switch-thumb-border: rgba(148, 163, 184, 0.3);
+  --switch-label-inactive: #94a3b8;
 
-      &::before {
-        background: linear-gradient(145deg, #f9fafb, #e5e7eb);
-      }
-    }
+  .sc-switch-modern__track {
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow:
+      inset 0 1px 2px rgba(2, 8, 23, 0.4),
+      0 10px 24px rgba(2, 8, 23, 0.18);
+  }
 
-    &.is-checked .sc-switch-modern__track-bg {
-      background: linear-gradient(145deg, #059669, #047857);
-    }
-
-    .sc-switch-modern__label--inactive {
-      color: #9ca3af;
-    }
+  &.is-checked .sc-switch-modern__button {
+    background: linear-gradient(135deg, #ffffff, #e2e8f0);
   }
 }
 
