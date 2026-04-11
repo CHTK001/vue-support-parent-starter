@@ -141,7 +141,9 @@ const activeBgColor = computed(() => {
 /**
  * 非激活时的背景色
  */
-const inactiveBgColor = computed(() => "#ffffff");
+const inactiveBgColor = computed(() =>
+  "linear-gradient(135deg, var(--el-bg-color) 0%, var(--el-fill-color-light) 100%)"
+);
 
 /**
  * 将十六进制颜色转换为rgba
@@ -359,6 +361,34 @@ const handleSwitchChange = (val: boolean) => {
     .el-switch__core {
       border-radius: 20px;
     }
+  }
+}
+
+:global(html.dark) {
+  .sc-switch-compact {
+    background: rgba(15, 23, 42, 0.84);
+    border-color: rgba(148, 163, 184, 0.14);
+    box-shadow: 0 16px 28px rgba(2, 8, 23, 0.18);
+  }
+
+  .sc-switch-compact:hover {
+    border-color: rgba(var(--el-color-primary-rgb), 0.28);
+    box-shadow:
+      0 18px 32px rgba(2, 8, 23, 0.22),
+      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08);
+  }
+
+  .sc-switch-compact .sc-switch-compact__icon-wrapper {
+    background: rgba(30, 41, 59, 0.92);
+    color: var(--active-color);
+  }
+
+  .sc-switch-compact.is-checked {
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.22) 0%,
+      rgba(15, 23, 42, 0.92) 100%
+    );
   }
 }
 

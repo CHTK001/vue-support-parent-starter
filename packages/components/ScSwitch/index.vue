@@ -108,7 +108,7 @@
     <!-- 8 方位矩形点选布局 -->
     <Rect8Layout
       v-else-if="layout === 'rect-8'"
-      v-model="currentValue"
+      v-model="rect8Value"
       :disabled="disabled"
       :loading="loading"
       :size="size"
@@ -147,13 +147,16 @@
  * @since 2.1.0 新增 compact-card 紧凑卡片布局
  */
 import { computed } from "vue";
+import type { PropType } from "vue";
 import { ElSwitch } from "element-plus";
 import CardLayout from "./components/CardLayout.vue";
 import SliderLayout from "./components/SliderLayout.vue";
 import ModernLayout from "./components/ModernLayout.vue";
 import VisualCardLayout from "./components/VisualCardLayout.vue";
 import CompactCardLayout from "./components/CompactCardLayout.vue";
-import Rect8Layout from "./components/Rect8Layout.vue";
+import Rect8Layout, {
+  type Rect8Option,
+} from "./components/Rect8Layout.vue";
 import { getThemeConfig, type IotSwitchTheme } from "./themes";
 import { useThemeComponent } from "../hooks/useThemeComponent";
 
@@ -209,7 +212,7 @@ const props = defineProps({
    * 尺寸
    */
   size: {
-    type: String,
+    type: String as PropType<"large" | "default" | "small">,
     default: "default",
     validator: (val: string) => ["large", "default", "small"].includes(val)
   },
@@ -331,7 +334,7 @@ const props = defineProps({
    * 8 方位选项（rect-8 布局）
    */
   rect8Options: {
-    type: Array as () => Array<{ value: string; label: string; position: string; disabled?: boolean }>,
+    type: Array as PropType<Rect8Option[]>,
     default: undefined
   }
 });
@@ -345,6 +348,15 @@ const { currentComponent: currentSwitchComponent } = useThemeComponent("ElSwitch
 const currentValue = computed({
   get() {
     return props.modelValue;
+  },
+  set(val) {
+    emit("update:modelValue", val);
+  }
+});
+
+const rect8Value = computed<string>({
+  get() {
+    return String(props.modelValue ?? "");
   },
   set(val) {
     emit("update:modelValue", val);

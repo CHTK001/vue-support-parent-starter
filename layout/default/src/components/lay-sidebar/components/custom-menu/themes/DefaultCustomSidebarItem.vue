@@ -68,10 +68,13 @@ onMounted(() => {
 // 解析路径
 function resolvePath(routePath: string) {
   const httpReg = /^http(s?):\/\//;
+  if (routePath?.startsWith("/")) {
+    return routePath;
+  }
   if (httpReg.test(routePath) || httpReg.test(props.basePath || "")) {
     return routePath || props.basePath || "";
   }
-  return configResolvePath(props.basePath || "", routePath);
+  return configResolvePath(routePath, props.basePath || "");
 }
 
 // 判断是否只有一个子菜单

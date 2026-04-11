@@ -21,7 +21,7 @@ interface Props {
   /**
    * 绑定值
    */
-  modelValue?: boolean;
+  modelValue?: boolean | string | number;
   /**
    * 禁用状态
    */
@@ -80,12 +80,6 @@ const emit = defineEmits(["update:modelValue", "change", "focus", "blur"]);
 // 获取真假值的显示文本
 const trueText = computed(() => props.trueLabel || t("buttons.open"));
 const falseText = computed(() => props.falseLabel || t("buttons.close"));
-
-// 选项列表
-const options = computed(() => [
-  { label: trueText.value, value: true },
-  { label: falseText.value, value: false }
-]);
 
 const currentValue = computed({
   get: () => {

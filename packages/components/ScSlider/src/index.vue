@@ -39,7 +39,7 @@ import type { PropType } from "vue";
 import { ElSlider } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 
-type SliderValue = number | [number, number];
+type SliderValue = number | number[];
 
 const props = defineProps({
   /**
@@ -109,7 +109,7 @@ const props = defineProps({
    * 格式化 tooltip 文本
    */
   formatTooltip: {
-    type: Function as PropType<(value: number) => string>,
+    type: Function as PropType<(value: number) => string | number>,
     default: undefined
   },
   /**
@@ -137,7 +137,9 @@ const props = defineProps({
    * 自定义标记
    */
   marks: {
-    type: Object as PropType<Record<number, string>>,
+    type: Object as PropType<
+      Record<number, string | { style: object; label: string }>
+    >,
     default: undefined
   }
 });
@@ -163,7 +165,7 @@ const currentValue = computed<SliderValue>({
  * 使用主题组件系统 V2.0
  * 自动根据 data-skin 加载对应主题的 Slider 组件
  * - data-skin="default" → ElSlider (Element Plus)
- * - data-skin="8bit" → PxSlider (PixelUI)
+ * - data-skin="8bit" → 使用 8bit 主题样式
  * - data-skin="material" → MdSlider (Material Design)
  * - data-skin="fluent" → FlSlider (Fluent Design)
  *

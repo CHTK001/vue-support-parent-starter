@@ -18,8 +18,8 @@
 <script setup lang="ts">
 /**
  * ScSteps 步骤条组件
- * 封装 Element Plus Steps 与 PixelUI PxSteps
- * 在 data-skin 为 8bit 时自动切换为像素风步骤条
+ * 封装 Element Plus Steps
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

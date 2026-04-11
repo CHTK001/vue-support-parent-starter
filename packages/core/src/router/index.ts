@@ -36,10 +36,16 @@ import {
   initRouter,
   isOneOfArray,
 } from "./utils";
-import { shouldLoadLocalBusinessRoutes } from "./route-mode";
+import {
+  isAlwaysAvailableStaticRoute,
+  resolveLocalRouteModulePaths,
+  shouldEnableLocalModuleDiscovery,
+  shouldLoadLocalBusinessRoutes,
+} from "./route-mode";
 
 /** 默认菜单图标 */
 const DEFAULT_MENU_ICON = "ri:menu-line";
+const ROOT_LAYOUT_ROUTE_NAME = "RootLayout";
 
 /** 路由白名单 */
 const whiteList = ["/login"];
@@ -66,7 +72,17 @@ const appendRouteRecord = (
   });
 
   if (duplicatedIndex !== -1) {
-    container[duplicatedIndex] = route;
+    const current = container[duplicatedIndex];
+    const mergedChildren = [...(current.children || [])];
+    (route.children || []).forEach((child) => {
+      appendRouteRecord(mergedChildren, child);
+    });
+    const mergedRoute = {
+      ...current,
+      ...route,
+      children: mergedChildren,
+    } as RouteRecordRaw;
+    container[duplicatedIndex] = mergedRoute;
     return;
   }
 
@@ -120,10 +136,88 @@ const coreNormalRouteModules: Record<string, any> = import.meta.glob(
   { eager: true },
 );
 // @ts-ignore
+const moduleRouteModules: Record<string, () => Promise<any>> = import.meta.glob(
+  [
+    "../../../../pages/**/src/router.ts",
+    "../../../../pages/**/src/router/index.ts",
+    "../../../../pages/**/router/**/*.ts",
+  ],
+);
+// @ts-ignore
+const moduleStaticRouteModules: Record<string, any> = import.meta.glob(
+  [
+    "../../../../pages/**/src/router.ts",
+    "../../../../pages/**/src/router/index.ts",
+    "../../../../pages/**/router/**/*.ts",
+  ],
+  { eager: true },
+);
+// @ts-ignore
 const appNormalRouteModules: Record<string, any> = import.meta.glob(
   ["@/router/modules/**/*.ts", "!@/router/modules/**/remaining*.ts"],
   { eager: true },
 );
+
+const normalizeModuleRouteKey = (value: string): string =>
+  value
+    .replace(/\\/g, "/")
+    .replace(/^(\.\.\/)+/, "")
+    .replace(/^\/+/, "")
+    .replace(/^\.\//, "");
+
+const normalizeModuleSelector = (value: string): string =>
+  value
+    .replace(/\\/g, "/")
+    .replace(/^(\.\.\/)+/, "")
+    .replace(/^\/+/, "")
+    .replace(/^\.\//, "")
+    .replace(/^src\//, "")
+    .replace(/\/+$/, "");
+
+const matchModuleRouteSelector = (
+  candidate: string,
+  selector: string,
+): boolean => {
+  const normalizedCandidate = normalizeModuleRouteKey(candidate);
+  const normalizedSelector = normalizeModuleSelector(selector);
+  if (!normalizedSelector) {
+    return false;
+  }
+  if (normalizedCandidate === normalizedSelector) {
+    return true;
+  }
+  if (normalizedCandidate.endsWith(`/${normalizedSelector}`)) {
+    return true;
+  }
+  if (normalizedCandidate.includes(`/${normalizedSelector}/`)) {
+    return true;
+  }
+  if (!normalizedSelector.endsWith(".ts")) {
+    return normalizedCandidate.startsWith(`${normalizedSelector}/`);
+  }
+  return false;
+};
+
+const resolveModuleRouteRegistry = async (): Promise<Record<string, any>> => {
+  const config = getConfig();
+  const selectors = resolveLocalRouteModulePaths(config);
+  const discoveryEnabled = shouldEnableLocalModuleDiscovery(config);
+  const selectedEntries = Object.entries(moduleRouteModules)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .filter(
+      ([key]) =>
+        discoveryEnabled ||
+        selectors.some((selector) => matchModuleRouteSelector(key, selector)),
+    );
+
+  const selectedModules = await Promise.all(
+    selectedEntries.map(async ([key, loadModule]) => {
+      return [key, await loadModule()] as const;
+    }),
+  );
+
+  return Object.fromEntries(selectedModules);
+};
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
  * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
@@ -256,14 +350,55 @@ const _createCoreNormalRouter = () => {
   appendNormalRoutes(coreNormalRouteModules);
 };
 
+const _createModuleRouter = async () => {
+  appendNormalRoutes(await resolveModuleRouteRegistry());
+};
+
 const _createAppNormalRouter = () => {
   appendNormalRoutes(appNormalRouteModules);
+};
+
+const _createAlwaysAvailableAppRouter = () => {
+  const essentialModules = Object.fromEntries(
+    Object.entries(appNormalRouteModules).filter(([, module]) =>
+      resolveModuleRoutes(module).some((route) => isAlwaysAvailableStaticRoute(route)),
+    ),
+  );
+  appendNormalRoutes(essentialModules);
+};
+
+const _createAlwaysAvailableModuleRouter = () => {
+  const essentialModules = Object.fromEntries(
+    Object.entries(moduleStaticRouteModules).filter(([, module]) =>
+      resolveModuleRoutes(module).some((route) => isAlwaysAvailableStaticRoute(route)),
+    ),
+  );
+  appendNormalRoutes(essentialModules);
+};
+
+const ensureRootLayoutRoute = (): void => {
+  if (routes.some((route) => route?.path === "/")) {
+    return;
+  }
+
+  routes.unshift({
+    path: "/",
+    name: ROOT_LAYOUT_ROUTE_NAME,
+    component: () => import("@layout/default"),
+    meta: {
+      title: "RootLayout",
+      showLink: false,
+      hiddenTag: true,
+      rank: 0,
+    },
+    children: [],
+  } as RouteRecordRaw);
 };
 
 /**
  * 根据配置初始化路由模式
  */
-const initRouterMode = (): void => {
+const initRouterMode = async (): Promise<void> => {
   const config = getConfig();
   const routerModule = config.RouterModule;
   const loadLocalBusinessRoutes = shouldLoadLocalBusinessRoutes(config);
@@ -271,6 +406,8 @@ const initRouterMode = (): void => {
   if (config.AutoRouter || routerModule === "AUTO") {
     if (loadLocalBusinessRoutes) {
       _createAutoRouter();
+      await _createModuleRouter();
+      _createAppNormalRouter();
     }
   } else if (routerModule === "MIX") {
     if (loadLocalBusinessRoutes) {
@@ -278,17 +415,25 @@ const initRouterMode = (): void => {
     }
     _createCoreNormalRouter();
     if (loadLocalBusinessRoutes) {
+      await _createModuleRouter();
       _createAppNormalRouter();
     }
   } else {
     _createCoreNormalRouter();
     if (loadLocalBusinessRoutes) {
+      await _createModuleRouter();
       _createAppNormalRouter();
     }
   }
+
+  if (!loadLocalBusinessRoutes) {
+    _createAlwaysAvailableAppRouter();
+    _createAlwaysAvailableModuleRouter();
+  }
 };
 
-initRouterMode();
+await initRouterMode();
+ensureRootLayoutRoute();
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
 export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
@@ -348,6 +493,65 @@ export function resetRouter() {
   usePermissionStoreHook().clearAllCachePage();
 }
 
+const resolveConfiguredPostLoginPath = (): string => {
+  return String(
+    getConfig().PostLoginRedirect || getConfig().LoginSuccessRedirect || "",
+  ).trim();
+};
+
+const isNavigableTargetPath = (path?: string): boolean => {
+  if (!path || path === "/" || whiteList.includes(path)) {
+    return false;
+  }
+
+  if (path.startsWith("/error")) {
+    return false;
+  }
+
+  const matchedRoute = router.getRoutes().find((route) => route.path === path);
+  if (!matchedRoute) {
+    return false;
+  }
+
+  return !matchedRoute.meta?.routeComponentMissing;
+};
+
+const isMeaningfulHistoryPath = (path?: string): boolean => {
+  return isNavigableTargetPath(path);
+};
+
+const resolveAuthenticatedTargetPath = (
+  fromFullPath?: string,
+): string | null => {
+  if (isMeaningfulHistoryPath(fromFullPath)) {
+    return fromFullPath;
+  }
+
+  const topMenuPath = getTopMenu()?.path;
+  if (topMenuPath && topMenuPath !== "/") {
+    return topMenuPath;
+  }
+
+  const configuredPath = resolveConfiguredPostLoginPath();
+  if (configuredPath && configuredPath !== "/") {
+    return configuredPath;
+  }
+
+  const rootChildren =
+    router.options.routes.find(
+      (route) => route.path === "/" && Array.isArray(route.children),
+    )?.children || [];
+  const firstAvailableChild = rootChildren.find(
+    (route) =>
+      route?.path &&
+      route.path !== "/" &&
+      !whiteList.includes(route.path) &&
+      !String(route.path).startsWith("/error"),
+  )?.path;
+
+  return firstAvailableChild || null;
+};
+
 router.beforeEach((to: ToRouteType, _from, next) => {
   if (to.meta?.keepAlive) {
     handleAliveRoute(to, "add");
@@ -372,6 +576,9 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     });
   }
   if (!getConfig().OpenAuth) {
+    if (!usePermissionStoreHook().menusReady) {
+      usePermissionStoreHook().handleWholeMenus([]);
+    }
     next();
     return;
   }
@@ -380,14 +587,22 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   const userRoles = userInfo?.userInfo?.roles || (userInfo as any)?.roles || [];
   /** 如果已经登录并存在登录信息后不能跳转到路由白名单，而是继续保持在当前页面 */
   function toCorrectRoute() {
-    whiteList.includes(to.fullPath) ? next(_from.fullPath) : next();
+    if (!whiteList.includes(to.path) && to.path !== "/") {
+      next();
+      return;
+    }
+
+    const targetPath = resolveAuthenticatedTargetPath(_from?.fullPath);
+    if (!targetPath || targetPath === to.fullPath) {
+      next();
+      return;
+    }
+
+    next({ path: targetPath, replace: true });
   }
   if (Cookies.get(multipleTabsKey) && userInfo) {
     // 无权限跳转403页面
-    if (
-      to.meta?.roles &&
-      !isOneOfArray(to.meta?.roles, userRoles)
-    ) {
+    if (to.meta?.roles && !isOneOfArray(to.meta?.roles, userRoles)) {
       next({ path: "/error/403" });
     }
     // 开启隐藏首页后在浏览器地址栏手动输入首页welcome路由则跳转到404页面
@@ -404,22 +619,21 @@ router.beforeEach((to: ToRouteType, _from, next) => {
       }
     } else {
       // 刷新
-      if (
-        usePermissionStoreHook().wholeMenus.length === 0 &&
-        to.path !== "/login"
-      ) {
+      if (!usePermissionStoreHook().menusReady) {
         initRouter(to.path)
           .then((router: Router) => {
+            const shouldRedirectToAuthorizedTarget =
+              to.path === "/" || whiteList.includes(to.path);
+
             if (!useMultiTagsStoreHook().getMultiTagsCache) {
               const { path } = to;
-              const routeSearchSpace =
-                router.options.routes.find(
-                  route => route.path === "/" && Array.isArray(route.children),
-                )?.children || router.options.routes;
-              const route = findRouteByPath(
-                path,
-                routeSearchSpace,
-              );
+              const routeSearchSpace = [
+                ...(router.options.routes.find(
+                  (route) =>
+                    route.path === "/" && Array.isArray(route.children),
+                )?.children || router.options.routes),
+              ];
+              const route = findRouteByPath(path, routeSearchSpace);
               getTopMenu(true);
               // query、params模式路由传参数的标签页不在此处处理
               if (route && route.meta?.title) {
@@ -439,6 +653,15 @@ router.beforeEach((to: ToRouteType, _from, next) => {
                     meta,
                   });
                 }
+              }
+            }
+            if (shouldRedirectToAuthorizedTarget) {
+              const targetPath = resolveAuthenticatedTargetPath(
+                _from?.fullPath,
+              );
+              if (targetPath && targetPath !== to.fullPath) {
+                next({ path: targetPath, replace: true });
+                return;
               }
             }
             // 刷新或地址栏直达时，必须等待动态路由挂载完成后再继续导航，

@@ -7,7 +7,7 @@ import { useRoute, useRouter } from "vue-router";
 import type { MenuItem } from "../../../types/menu";
 import LayTool from "../../lay-tool/index.vue";
 import LayBreadcrumb from "../../breadcrumb/index.vue";
-const { $storage, $config } = useGlobal();
+const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
 
 // Props
 interface Props {

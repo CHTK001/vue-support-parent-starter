@@ -179,8 +179,6 @@ Object.assign(userInfos, {
 <style scoped lang="scss">
 .profile-pane {
   width: 100%;
-  max-width: 900px;
-  min-width: 180px;
   display: flex;
   flex-direction: column;
   gap: 20px;

@@ -6,92 +6,103 @@
  * @version 1.0.0
  * @since 2024-12-04
  */
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStoreHook } from '@/store/modules/user'
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { useUserStoreHook } from "@repo/core";
+import { message } from "@repo/utils";
 
 interface MenuItem {
-  icon: string
-  label: string
-  command: string
-  divided?: boolean
-  danger?: boolean
+  icon: string;
+  label: string;
+  command: string;
+  divided?: boolean;
+  danger?: boolean;
 }
 
 interface AvatarDropdownProps {
-  username?: string
-  avatar?: string
-  email?: string
-  role?: string
-  menuItems?: MenuItem[]
+  username?: string;
+  avatar?: string;
+  email?: string;
+  role?: string;
+  menuItems?: MenuItem[];
 }
 
 const props = withDefaults(defineProps<AvatarDropdownProps>(), {
-  username: '用户',
-  avatar: '',
-  email: '',
-  role: '',
+  username: "用户",
+  avatar: "",
+  email: "",
+  role: "",
   menuItems: () => [
-    { icon: 'ri:user-line', label: '个人中心', command: 'profile' },
-    { icon: 'ri:settings-3-line', label: '账号设置', command: 'settings' },
-    { icon: 'ri:lock-password-line', label: '修改密码', command: 'password', divided: true },
-    { icon: 'ri:logout-box-line', label: '退出登录', command: 'logout', danger: true }
-  ]
-})
+    { icon: "ri:user-line", label: "个人中心", command: "profile" },
+    { icon: "ri:settings-3-line", label: "账号设置", command: "settings" },
+    {
+      icon: "ri:lock-password-line",
+      label: "修改密码",
+      command: "password",
+      divided: true,
+    },
+    {
+      icon: "ri:logout-box-line",
+      label: "退出登录",
+      command: "logout",
+      danger: true,
+    },
+  ],
+});
 
 const emit = defineEmits<{
-  command: [command: string]
-}>()
+  command: [command: string];
+}>();
 
-const router = useRouter()
-const userStore = useUserStoreHook()
+const router = useRouter();
+const userStore = useUserStoreHook();
 
 // 获取用户信息
 const currentUser = computed(() => ({
-  username: props.username || userStore.username || '用户',
-  avatar: props.avatar || userStore.avatar || '',
-  email: props.email || userStore.email || '',
-  role: props.role || userStore.roles?.[0] || ''
-}))
+  username: props.username || userStore.username || "用户",
+  avatar: props.avatar || userStore.avatar || "",
+  email: props.email || "",
+  role: props.role || userStore.roles?.[0] || "",
+}));
 
 // 处理菜单命令
 const handleCommand = (command: string) => {
-  emit('command', command)
-  
+  emit("command", command);
+
   // 默认行为
   switch (command) {
-    case 'profile':
-      router.push('/user/profile')
-      break
-    case 'settings':
-      router.push('/user/settings')
-      break
-    case 'password':
-      router.push('/user/password')
-      break
-    case 'logout':
-      handleLogout()
-      break
+    case "profile":
+      router.push("/user/profile");
+      break;
+    case "settings":
+      router.push("/user/settings");
+      break;
+    case "password":
+      router.push("/user/password");
+      break;
+    case "logout":
+      handleLogout();
+      break;
   }
-}
+};
 
 // 退出登录
 const handleLogout = async () => {
   try {
-    await userStore.logOut()
-    router.push('/login')
-  } catch (error) {
-    console.error('退出登录失败:', error)
+    await userStore.logOut();
+    router.push("/login");
+  } catch {
+    message("退出登录失败", { type: "error" });
   }
-}
+};
 
 // 角色标签颜色
 const roleColor = computed(() => {
-  const role = currentUser.value.role.toLowerCase()
-  if (role.includes('admin')) return 'danger'
-  if (role.includes('manager')) return 'warning'
-  return 'primary'
-})
+  const role = currentUser.value.role.toLowerCase();
+  if (role.includes("admin")) return "danger";
+  if (role.includes("manager")) return "warning";
+  return "primary";
+});
 </script>
 
 <template>
@@ -112,18 +123,17 @@ const roleColor = computed(() => {
         </template>
       </ScAvatar>
       <span class="avatar-trigger__name">{{ currentUser.username }}</span>
-      <IconifyIconOnline icon="ri:arrow-down-s-line" class="avatar-trigger__arrow" />
+      <IconifyIconOnline
+        icon="ri:arrow-down-s-line"
+        class="avatar-trigger__arrow"
+      />
     </div>
 
     <template #dropdown>
       <div class="avatar-dropdown">
         <!-- 用户信息卡片 -->
         <div class="avatar-dropdown__header">
-          <ScAvatar
-            :size="56"
-            :src="currentUser.avatar"
-            class="header-avatar"
-          >
+          <ScAvatar :size="56" :src="currentUser.avatar" class="header-avatar">
             <template v-if="!currentUser.avatar">
               <IconifyIconOnline icon="ri:user-3-fill" />
             </template>
@@ -187,7 +197,7 @@ const roleColor = computed(() => {
 
   /* 玻璃拟态光泽 */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
@@ -267,7 +277,8 @@ const roleColor = computed(() => {
       rgba(var(--el-color-primary-rgb), 0.05) 0%,
       rgba(var(--el-color-primary-rgb), 0.02) 100%
     );
-    border-bottom: 1px solid var(--stitch-lay-border, var(--el-border-color-lighter));
+    border-bottom: 1px solid
+      var(--stitch-lay-border, var(--el-border-color-lighter));
 
     .header-avatar {
       flex-shrink: 0;

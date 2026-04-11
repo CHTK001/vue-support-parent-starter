@@ -70,6 +70,8 @@ const {
   onMouseleave,
   transformI18n,
   onContentFullScreen,
+  normalizeRoutePath,
+  resolveTagPath,
 } = useTags();
 
 const tabDom = ref();
@@ -85,6 +87,8 @@ const CONTEXT_MENU_EDGE_PADDING = 8;
 const contextMenuStyle = computed(
   () => getContextMenuStyle.value as Record<string, string>,
 );
+const currentTagPath = computed(() => resolveTagPath(route));
+const currentDirectPath = computed(() => normalizeRoutePath(route.path));
 
 // 标签页是否显示图标
 const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
@@ -105,16 +109,25 @@ const fixedTags = [
 
 const dynamicTagView = async () => {
   await nextTick();
+  const activePath = currentTagPath.value;
+  const shouldMatchRouteState = activePath === currentDirectPath.value;
   let index = multiTags.value.findIndex((item) => {
-    if (!isAllEmpty(route.query) && Object.keys(route.query).length > 0) {
-      return isEqual(route.query, item.query) && route.path === item.path;
+    if (
+      shouldMatchRouteState &&
+      !isAllEmpty(route.query) &&
+      Object.keys(route.query).length > 0
+    ) {
+      return isEqual(route.query, item.query) && resolveTagPath(item) === activePath;
     } else if (
+      shouldMatchRouteState &&
       !isAllEmpty(route.params) &&
       Object.keys(route.params).length > 0
     ) {
-      return isEqual(route.params, item.params) && route.path === item.path;
+      return (
+        isEqual(route.params, item.params) && resolveTagPath(item) === activePath
+      );
     } else {
-      return route.path === item.path;
+      return resolveTagPath(item) === activePath;
     }
   });
 
@@ -193,20 +206,22 @@ const handleWheel = (event: WheelEvent): void => {
 // 取消平滑滚动动画，使用即时滚动
 
 function dynamicRouteTag(value: string): void {
+  const normalizedValue = normalizeRoutePath(value);
   const hasValue = multiTags.value.some((item) => {
-    return item.path === value;
+    return resolveTagPath(item) === normalizedValue;
   });
 
   function concatPath(arr: object[], value: string) {
     if (!hasValue) {
       arr.forEach((arrItem: any) => {
-        if (arrItem.path === value) {
+        if (resolveTagPath(arrItem) === value) {
+          const shouldCarryState = value === currentDirectPath.value;
           multiTagsStore.handleTags("push", {
             path: value,
             meta: arrItem.meta,
             name: arrItem.name,
-            query: route.query,
-            params: route.params,
+            query: shouldCarryState ? route.query : undefined,
+            params: shouldCarryState ? route.params : undefined,
           });
           nextTick(() => {
             dynamicTagView();
@@ -219,7 +234,7 @@ function dynamicRouteTag(value: string): void {
       });
     }
   }
-  concatPath(router.options.routes as any, value);
+  concatPath(router.options.routes as any, normalizedValue);
 }
 
 function onFresh(tag?: any) {
@@ -281,7 +296,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
     spliceRoute(valueIndex, 1);
   }
   const newRoute = multiTagsStore.handleTags("slice");
-  if (current === route.path) {
+  if (current === currentTagPath.value) {
     if (tag === "left") return;
     if (newRoute[0]?.query) {
       router.push({ name: newRoute[0].name, query: newRoute[0].query });
@@ -292,7 +307,11 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
     }
   } else {
     if (!multiTags.value.length) return;
-    if (multiTags.value.some((item) => item.path === route.path)) return;
+    if (
+      multiTags.value.some((item) => resolveTagPath(item) === currentTagPath.value)
+    ) {
+      return;
+    }
     if (newRoute[0]?.query) {
       router.push({ name: newRoute[0].name, query: newRoute[0].query });
     } else if (newRoute[0]?.params) {
@@ -321,7 +340,7 @@ function onClickDrop(key, item, selectRoute?: RouteConfigs) {
       params: selectRoute?.params,
     };
   } else {
-    selectTagRoute = { path: route.path, meta: route.meta };
+    selectTagRoute = { path: currentTagPath.value, meta: route.meta };
   }
 
   switch (key) {
@@ -407,7 +426,9 @@ function showMenuModel(
   const routeLength = multiTags.value.length;
   let currentIndex = -1;
   if (isAllEmpty(query)) {
-    currentIndex = allRoute.findIndex((v) => v.path === currentPath);
+    currentIndex = allRoute.findIndex(
+      (v) => resolveTagPath(v) === normalizeRoutePath(currentPath),
+    );
   } else {
     currentIndex = allRoute.findIndex((v) => isEqual(v.query, query));
   }
@@ -450,7 +471,7 @@ function showMenuModel(
       tagsViews[2].disabled = true;
     }
     fixedTagDisabled();
-  } else if (currentIndex === 0 || currentPath === `/redirect${topPath}`) {
+  } else if (currentIndex === 0 || normalizeRoutePath(currentPath) === topPath) {
     disabledMenus(true);
   } else {
     disabledMenus(false, allRoute[currentIndex - 1]?.meta?.fixedTag);
@@ -460,16 +481,17 @@ function showMenuModel(
 
 function openMenu(tag, e) {
   closeMenu();
+  const activePath = currentTagPath.value;
   if (tag.path === topPath || tag?.meta?.fixedTag) {
     showMenus(false);
     tagsViews[0].show = true;
-  } else if (route.path !== tag.path && route.name !== tag.name) {
+  } else if (activePath !== tag.path && route.name !== tag.name) {
     tagsViews[0].show = false;
     showMenuModel(tag.path, tag.query);
-  } else if (multiTags.value.length === 2 && route.path !== tag.path) {
+  } else if (multiTags.value.length === 2 && activePath !== tag.path) {
     showMenus(true);
     tagsViews[4].show = false;
-  } else if (route.path === tag.path) {
+  } else if (activePath === tag.path) {
     showMenuModel(tag.path, tag.query, true);
   }
 
@@ -531,14 +553,15 @@ watch(route, () => {
   if (route.path.startsWith("/redirect")) return;
 
   activeIndex.value = -1;
-  dynamicRouteTag(route.path);
+  dynamicRouteTag(currentTagPath.value);
   dynamicTagView();
 });
 
 onMounted(() => {
   if (!instance) return;
 
-  showMenuModel(route.fullPath);
+  dynamicRouteTag(currentTagPath.value);
+  showMenuModel(currentTagPath.value, route.query);
   emitter.off("tagViewsChange");
   emitter.off("tagViewsShowModel");
   emitter.off("changLayoutRoute");
@@ -563,7 +586,10 @@ onMounted(() => {
   window.addEventListener("resize", handleViewportContextChange);
   window.addEventListener("scroll", handleViewportContextChange, true);
   useResizeObserver(scrollbarDom, dynamicTagView);
-  delay().then(() => dynamicTagView());
+  delay().then(() => {
+    dynamicRouteTag(currentTagPath.value);
+    dynamicTagView();
+  });
 });
 
 onBeforeUnmount(() => {
@@ -608,13 +634,15 @@ const deferTag = useDefer(tagsViews?.length);
             linkIsActive(item),
             showModel === 'chrome' && 'chrome-item',
             showModel === 'card' && 'card-item',
+            showModel === 'modern' && 'modern-item',
             showModel === 'smart' && 'smart-item',
             showModel === 'glass' && 'glass-item',
+            showModel === 'outline' && 'outline-item',
             isFixedTag(item) && 'fixed-tag',
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
           @mouseenter.prevent="onMouseenter(index)"
-          @mouseleave.prevent="onMouseleave(index)"
+          @mouseleave.prevent="onMouseleave()"
           @click="tagOnClick(item)"
         >
           <template v-if="showModel !== 'chrome'">
@@ -703,7 +731,7 @@ const deferTag = useDefer(tagsViews?.length);
               :divided="item.divided"
               :disabled="item.disabled"
             >
-              <IconifyIconOnline :icon="item.icon" />
+              <IconifyIconOnline :icon="item.icon as any" />
               {{ transformI18n(item.text) }}
             </ScDropdownItem>
           </span>
@@ -775,37 +803,53 @@ const deferTag = useDefer(tagsViews?.length);
 
 // Chrome 风格标签页样式
 .chrome-tab {
+  --tag-chrome-bg: #e6ebf3;
+  --tag-chrome-hover-bg: #eef2f7;
+  --tag-chrome-text: #0f172a;
+  --tag-chrome-active-bg: var(--el-color-primary);
+  --tag-chrome-active-text: #fff;
   position: relative;
   display: inline-flex;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
   justify-content: center;
-  padding: 6px 24px;
+  min-height: 38px;
+  padding: 8px 16px 7px;
   white-space: nowrap;
   cursor: pointer;
+  isolation: isolate;
+  overflow: visible;
 
   .tag-title {
     padding: 0;
-    color: var(--el-text-color-primary);
+    color: var(--el-text-color-secondary);
+    transition: color 0.18s ease;
   }
 
   .chrome-tab-divider {
     position: absolute;
-    right: 7px;
+    right: -4px;
     width: 1px;
-    height: 14px;
-    background-color: var(--el-border-color-lighter);
+    height: 16px;
+    background-color: rgba(148, 163, 184, 0.4);
+    transition: opacity 0.18s ease;
   }
 
   &:hover {
     z-index: 10;
+
     .chrome-tab-divider {
       opacity: 0;
     }
 
-    // 悬停时背景色
     .chrome-tab__bg {
-      color: var(--el-fill-color-hover);
+      color: var(--tag-chrome-hover-bg);
+    }
+
+    .tag-title,
+    .tag-icon,
+    .chrome-close-btn {
+      color: var(--tag-chrome-text);
     }
   }
 
@@ -816,24 +860,29 @@ const deferTag = useDefer(tagsViews?.length);
     z-index: -10;
     width: 100%;
     height: 100%;
-    color: transparent;
+    color: var(--tag-chrome-bg);
     pointer-events: none;
-    transition: color 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+    transition:
+      color 0.2s ease,
+      filter 0.2s ease;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75));
   }
 
   .chrome-close-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    color: var(--el-text-color-primary);
+    width: 18px;
+    height: 18px;
+    color: #64748b;
     border-radius: 50%;
-    transition: all 0.2s;
+    transition:
+      color 0.16s ease,
+      background-color 0.16s ease;
 
     &:hover {
-      color: #fff;
-      background-color: var(--el-color-danger);
+      color: var(--tag-chrome-text);
+      background-color: rgba(148, 163, 184, 0.18);
     }
   }
 
@@ -855,37 +904,50 @@ const deferTag = useDefer(tagsViews?.length);
   z-index: 10;
 
   .tag-title {
-    color: #fff !important;
+    color: var(--tag-chrome-active-text) !important;
+    font-weight: 600;
   }
 
-  // 修复选中状态下图标颜色为白色
   .tag-icon,
   .chrome-close-btn {
-    color: #fff !important;
+    color: var(--tag-chrome-active-text) !important;
+
     :deep(svg) {
-      fill: #fff !important;
-      color: #fff !important;
+      fill: currentColor !important;
+      color: currentColor !important;
     }
   }
 
   .chrome-close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.18);
+    color: var(--tag-chrome-active-text) !important;
   }
 
   .chrome-tab__bg {
-    color: var(--el-color-primary) !important;
-    filter: drop-shadow(0 0 8px rgba(var(--el-color-primary-rgb), 0.3));
+    color: var(--tag-chrome-active-bg) !important;
+    filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.12));
+  }
+
+  .chrome-tab-divider {
+    opacity: 0;
   }
 }
 
 .scroll-item.is-active:hover .chrome-tab {
   .chrome-tab__bg {
-    color: var(--el-color-primary) !important;
+    color: var(--tag-chrome-active-bg) !important;
   }
   .tag-title {
-    color: #fff !important;
+    color: var(--tag-chrome-active-text) !important;
   }
+}
+
+html.dark .chrome-tab {
+  --tag-chrome-bg: rgba(51, 65, 85, 0.78);
+  --tag-chrome-hover-bg: rgba(71, 85, 105, 0.88);
+  --tag-chrome-text: #e2e8f0;
+  --tag-chrome-active-bg: var(--el-color-primary);
+  --tag-chrome-active-text: #f8fafc;
 }
 
 // 滚动按钮基础样式
@@ -932,23 +994,28 @@ const deferTag = useDefer(tagsViews?.length);
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.14) 0%,
+      rgba(255, 255, 255, 0.82) 100%
+    );
+    border-color: rgba(var(--el-color-primary-rgb), 0.24);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
     z-index: 1;
   }
 
   &.is-active {
     background: linear-gradient(
       135deg,
-      rgba(var(--el-color-primary-rgb), 0.16) 0%,
-      rgba(var(--el-color-primary-rgb), 0.08) 100%
+      rgba(var(--el-color-primary-rgb), 0.9) 0%,
+      rgba(var(--el-color-primary-rgb), 0.72) 100%
     );
-    border-color: rgba(var(--el-color-primary-rgb), 0.42);
-    color: color-mix(in srgb, var(--el-color-primary) 78%, #0f172a 22%);
+    border-color: rgba(var(--el-color-primary-rgb), 0.92);
+    color: #fff;
     font-weight: 600;
     box-shadow:
-      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.08),
-      0 4px 10px rgba(var(--el-color-primary-rgb), 0.12);
+      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.18),
+      0 10px 22px rgba(var(--el-color-primary-rgb), 0.28);
     z-index: 2;
 
     .tag-icon,
@@ -959,13 +1026,13 @@ const deferTag = useDefer(tagsViews?.length);
     &:hover {
       background: linear-gradient(
         135deg,
-        rgba(var(--el-color-primary-rgb), 0.18) 0%,
-        rgba(var(--el-color-primary-rgb), 0.1) 100%
+        rgba(var(--el-color-primary-rgb), 0.96) 0%,
+        rgba(var(--el-color-primary-rgb), 0.8) 100%
       );
       transform: none;
       box-shadow:
-        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1),
-        0 4px 10px rgba(var(--el-color-primary-rgb), 0.14);
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.22),
+        0 12px 24px rgba(var(--el-color-primary-rgb), 0.32);
     }
   }
 
@@ -1108,6 +1175,123 @@ const deferTag = useDefer(tagsViews?.length);
   }
 }
 
+// Modern 风格
+.modern-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  line-height: 34px;
+  padding: 0 14px;
+  margin-right: 8px;
+  border-radius: 14px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.28s ease;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.92));
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  box-shadow:
+    0 10px 20px -18px rgba(15, 23, 42, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+
+  .tag-icon {
+    margin-right: 4px;
+    vertical-align: -2px;
+  }
+
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: rgba(var(--el-color-primary-rgb), 0.38);
+    box-shadow:
+      0 14px 28px -20px rgba(var(--el-color-primary-rgb), 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    transform: translateY(-1px);
+  }
+
+  &.is-active {
+    color: #fff;
+    font-weight: 600;
+    border-color: rgba(var(--el-color-primary-rgb), 0.88);
+    background:
+      linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.92) 0%,
+        rgba(var(--el-color-primary-rgb), 0.72) 100%
+      );
+    box-shadow:
+      0 18px 32px -22px rgba(var(--el-color-primary-rgb), 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  .el-icon-close {
+    margin-left: 8px;
+    padding: 2px;
+    border-radius: 999px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(15, 23, 42, 0.16);
+      color: #fff;
+    }
+  }
+}
+
+// Outline 风格
+.outline-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  line-height: 34px;
+  padding: 0 14px;
+  margin-right: 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.24s ease;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.36);
+
+  .tag-icon {
+    margin-right: 4px;
+    vertical-align: -2px;
+  }
+
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: rgba(var(--el-color-primary-rgb), 0.48);
+    background: rgba(var(--el-color-primary-rgb), 0.08);
+  }
+
+  &.is-active {
+    color: var(--el-color-primary);
+    font-weight: 600;
+    border-color: rgba(var(--el-color-primary-rgb), 0.5);
+    background: rgba(var(--el-color-primary-rgb), 0.12);
+    box-shadow:
+      0 10px 22px -20px rgba(var(--el-color-primary-rgb), 0.5),
+      inset 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.12);
+  }
+
+  .el-icon-close {
+    margin-left: 8px;
+    padding: 2px;
+    border-radius: 999px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--el-color-danger);
+      color: #fff;
+    }
+  }
+}
+
 // 暗黑模式适配
 html.dark {
   .glass-item {
@@ -1150,11 +1334,57 @@ html.dark {
   }
 
   .card-item,
-  .smart-item {
+  .smart-item,
+  .outline-item {
     &.is-active {
       background-color: rgba(var(--el-color-primary-rgb), 0.15);
       color: var(--el-color-primary);
       border-color: var(--el-border-color-darker);
+    }
+  }
+
+  .modern-item {
+    color: #e2e8f0;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(30, 41, 59, 0.9),
+        rgba(15, 23, 42, 0.88)
+      );
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow:
+      0 16px 28px -22px rgba(2, 8, 23, 0.44),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+    &:hover {
+      color: #fff;
+      border-color: rgba(var(--el-color-primary-rgb), 0.42);
+      box-shadow:
+        0 18px 30px -20px rgba(var(--el-color-primary-rgb), 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    &.is-active {
+      color: #f8fafc;
+      border-color: rgba(var(--el-color-primary-rgb), 0.82);
+      background:
+        linear-gradient(
+          135deg,
+          rgba(var(--el-color-primary-rgb), 0.88) 0%,
+          rgba(var(--el-color-primary-rgb), 0.66) 100%
+        );
+    }
+  }
+
+  .outline-item {
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.42);
+    border-color: rgba(148, 163, 184, 0.24);
+
+    &:hover {
+      color: #f8fafc;
+      border-color: rgba(var(--el-color-primary-rgb), 0.4);
+      background: rgba(var(--el-color-primary-rgb), 0.14);
     }
   }
 }
@@ -1162,15 +1392,11 @@ html.dark {
 .glass-item.is-active {
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--el-color-primary) 20%, #ffffff 80%) 0%,
-    color-mix(in srgb, var(--el-color-primary) 10%, #ffffff 90%) 100%
+    color-mix(in srgb, var(--el-color-primary) 92%, #ffffff 8%) 0%,
+    color-mix(in srgb, var(--el-color-primary) 78%, #0f172a 22%) 100%
   ) !important;
-  border-color: color-mix(
-    in srgb,
-    var(--el-color-primary) 46%,
-    #ffffff 54%
-  ) !important;
-  color: color-mix(in srgb, var(--el-color-primary) 82%, #0f172a 18%) !important;
+  border-color: color-mix(in srgb, var(--el-color-primary) 90%, #ffffff 10%) !important;
+  color: #fff !important;
 
   .tag-icon,
   .tag-title,
@@ -1183,11 +1409,21 @@ html.dark {
   .glass-item.is-active {
     background: linear-gradient(
       135deg,
-      rgba(var(--el-color-primary-rgb), 0.32) 0%,
-      rgba(var(--el-color-primary-rgb), 0.18) 100%
+      rgba(var(--el-color-primary-rgb), 0.88) 0%,
+      rgba(var(--el-color-primary-rgb), 0.72) 100%
     ) !important;
-    border-color: rgba(var(--el-color-primary-rgb), 0.58) !important;
+    border-color: rgba(var(--el-color-primary-rgb), 0.9) !important;
     color: #f8fbff !important;
+  }
+}
+
+.scroll-item.chrome-item {
+  margin-right: 6px;
+  z-index: 1;
+
+  &:hover,
+  &.is-active {
+    z-index: 3;
   }
 }
 </style>

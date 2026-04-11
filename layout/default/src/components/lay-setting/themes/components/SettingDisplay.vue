@@ -45,6 +45,7 @@ const props = defineProps<{
   monochromeChange: (value: boolean) => void;
   showBreadcrumbChange: () => void;
   breadcrumbModeChange: () => void;
+  breadcrumbAnimationChange: () => void;
   showTagIconChange: () => void;
   hideFooterChange: () => void;
   keepAliveChange: () => void;
@@ -193,6 +194,19 @@ const props = defineProps<{
             ribbon-text="简洁"
             ribbon-color="var(--el-color-primary)"
             @change="breadcrumbModeChange"
+          />
+          <ScSwitch
+            v-if="settings.showBreadcrumb"
+            v-model="settings.breadcrumbAnimation"
+            layout="visual-card"
+            size="small"
+            label="面包屑动画"
+            description="默认关闭，按需启用切换动效"
+            active-icon="ri:magic-line"
+            inactive-icon="ri:skip-right-line"
+            ribbon-text="动效"
+            ribbon-color="var(--el-color-info)"
+            @change="breadcrumbAnimationChange"
           />
         </div>
       </div>

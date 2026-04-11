@@ -12,6 +12,8 @@ export type ScCardLayoutType =
   | "tech"
   | "custom";
 
+const stringOrNumberType: PropType<string | number> = [String, Number];
+
 export const scCardProps = {
   layout: {
     type: String as PropType<ScCardLayoutType>,
@@ -62,11 +64,11 @@ export const scCardProps = {
     validator: (val: string) => ["left", "right", "top"].includes(val),
   },
   mediaWidth: {
-    type: [String, Number],
+    type: stringOrNumberType,
     default: "120px",
   },
   mediaHeight: {
-    type: [String, Number],
+    type: stringOrNumberType,
     default: "120px",
   },
   mediaBgColor: {
@@ -74,7 +76,7 @@ export const scCardProps = {
     default: "",
   },
   headerHeight: {
-    type: [String, Number],
+    type: stringOrNumberType,
     default: "120px",
   },
   headerBgColor: {
@@ -148,7 +150,7 @@ export const scCardProps = {
     default: "",
   },
   value: {
-    type: [String, Number],
+    type: stringOrNumberType,
     default: 0,
   },
   label: {
@@ -171,6 +173,6 @@ export const scCardProps = {
     type: Object,
     default: null,
   },
-} as const;
+};
 
 export type ScCardProps = ExtractPropTypes<typeof scCardProps>;

@@ -392,7 +392,6 @@ const loadConfig = () => {
   originalConfig.LoginTheme = themeConfig.LoginTheme;
   originalConfig.EnableFestivalTheme = themeConfig.EnableFestivalTheme;
   originalConfig.DisabledThemes = [...themeConfig.DisabledThemes];
-  console.debug("[ThemeManagement] Config loaded:", stored);
 };
 
 // 保存配置
@@ -414,7 +413,6 @@ const handleSave = () => {
     message("保存成功", { type: "success" });
   } catch (error) {
     message("保存失败", { type: "error" });
-    console.error("[ThemeManagement] Save failed:", error);
   } finally {
     saving.value = false;
   }

@@ -4,19 +4,12 @@
  * 支持多主题扩展，新增主题只需修改 themeConfig.ts
  */
 
-import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, getCurrentInstance, type Component, type Ref } from "vue";
-import { getThemeConfig, getThemeComponentName, getThemeLocalComponentConfig, THEME_CONFIGS, ensureThemePluginForCurrentSkin } from "./themeConfig";
+import { computed, watch, onBeforeUnmount, onMounted, shallowRef, ref, type Component, type Ref } from "vue";
+import { getThemeConfig, getThemeComponentName, getThemeLocalComponentConfig, THEME_CONFIGS } from "./themeConfig";
 import * as ElementPlusModule from "element-plus";
 import { storageLocal } from "@pureadmin/utils";
 import { getLogger } from "@repo/utils";
 import { emitter } from "@repo/core";
-import {
-  PIXEL_UI_MODULE_NAMESPACE,
-  getPixelUiComponent,
-  preloadPixelUiResources,
-  retainPixelUiThemeCss,
-  releasePixelUiThemeCss,
-} from "./pixelUiShared";
 
 /**
  * Element Plus 组件映射表
@@ -42,42 +35,21 @@ const logger = {
  * @param themeName 主题名称
  */
 export async function preloadTheme(themeName: string): Promise<void> {
-  // 如果已经预加载过，直接返回
   if (themePreloadStatus.get(themeName)) {
     return;
   }
 
   const config = getThemeConfig(themeName);
   if (!config) {
-    logger.warn(`[useThemeComponent] 主题 ${themeName} 不存在`);
-    return;
-  }
-
-  // Element Plus 系主题不需要额外预加载（已经静态导入）
-  if (themeName === "default" || config.packageName === "element-plus") {
-    themePreloadStatus.set(themeName, true);
     return;
   }
 
   try {
-    logger.info(`[useThemeComponent] 开始预加载主题: ${themeName}`);
-
-    // 像素主题已改为静态依赖，这里只触达资源，避免继续走运行时动态导入
-    if (config.packageName === "pixel-ui") {
-      preloadPixelUiResources();
-    } else {
-      console.warn(`[useThemeComponent] 预加载暂未适配主题包: ${config.packageName}`);
-    }
-
-    // 预加载主题 CSS：只提前拉取资源，不常驻样式，避免切回默认主题后像素字体残留
     if (config.cssPath) {
       await loadThemeCss(themeName);
-      // 预加载完成后立刻释放引用，只保留浏览器缓存
       removeThemeCss(themeName);
     }
-
     themePreloadStatus.set(themeName, true);
-    logger.info(`[useThemeComponent] 主题 ${themeName} 预加载完成`);
   } catch (error) {
     logger.error(`[useThemeComponent] 预加载主题 ${themeName} 失败:`, error);
   }
@@ -105,23 +77,11 @@ export async function preloadAllThemes(): Promise<void> {
 export async function switchTheme(themeName: string): Promise<void> {
   const config = getThemeConfig(themeName);
   if (!config) {
-    logger.warn(`[useThemeComponent] 主题 ${themeName} 不存在`);
     return;
   }
 
-  // 先预加载主题资源
   await preloadTheme(themeName);
-
-  // 加载完成后再切换 data-skin
   document.documentElement.setAttribute("data-skin", themeName);
-
-  try {
-    // 确保当前主题对应的插件已注册（例如 PixelUI）
-    await ensureThemePluginForCurrentSkin();
-  } catch (error) {
-    logger.warn(`[useThemeComponent] 切换主题 ${themeName} 时注册主题插件失败:`, error);
-  }
-
   logger.info(`[useThemeComponent] 主题已切换到: ${themeName}`);
 }
 
@@ -179,11 +139,6 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
     return;
   }
 
-  if (config.packageName === "pixel-ui" && config.cssPath === "dist/index.css") {
-    retainPixelUiThemeCss();
-    return;
-  }
-
   // 检查是否已存在相同的样式链接
   const linkId = `theme-${themeName}-style`;
   const existingLink = document.getElementById(linkId) as HTMLLinkElement;
@@ -201,7 +156,6 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
 
   try {
     if (!themeCssUrls.has(themeName)) {
-      console.warn(`[useThemeComponent] 无法静态解析 ${themeName} 主题 CSS，尝试直接使用路径`);
       themeCssUrls.set(themeName, `/${config.packageName}/${config.cssPath}`);
     }
 
@@ -224,12 +178,6 @@ const loadThemeCss = async (themeName: string): Promise<void> => {
  * @param themeName 主题名称
  */
 const removeThemeCss = (themeName: string): void => {
-  const config = getThemeConfig(themeName);
-  if (config?.packageName === "pixel-ui" && config.cssPath === "dist/index.css") {
-    releasePixelUiThemeCss();
-    return;
-  }
-
   const refCount = themeCssRefCounts.get(themeName) || 0;
   const newRefCount = refCount - 1;
 
@@ -289,153 +237,29 @@ const resolveLocalThemeComponent = async (themeName: string, elementComponentNam
  * 动态加载主题组件
  * @param themeName 主题名称
  * @param themeComponentName 主题组件名称
- * @param instance 可选的组件实例（用于从全局注册表中查找组件）
  * @returns 组件或 null
  */
-const loadThemeComponent = async (themeName: string, themeComponentName: string, instance?: any): Promise<Component | null> => {
+const loadThemeComponent = async (
+  themeName: string,
+  themeComponentName: string,
+): Promise<Component | null> => {
   const config = getThemeConfig(themeName);
-
   if (!config) {
     return null;
   }
 
-  // 检查缓存
   const cache = getThemeCache(themeName);
   if (cache.has(themeComponentName)) {
     return cache.get(themeComponentName)!;
   }
 
   try {
-    // default 主题：从静态导入的 Element Plus 中获取组件
-    if (themeName === "default") {
-      const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
-
-      if (component) {
-        cache.set(themeComponentName, component);
-        return component;
-      }
-
-      logger.warn(`[useThemeComponent] 在 element-plus 中找不到组件 ${themeComponentName}`);
+    if (config.packageName !== "element-plus") {
       return null;
     }
 
-    // 如果主题组件名称本身就是 Element Plus 组件名（如 ElDrawer），直接返回 Element Plus 组件
-    // 避免在主题包中查找不存在的组件
-    if (themeComponentName.startsWith("El") && ELEMENT_PLUS_COMPONENTS[themeComponentName]) {
-      const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
-      cache.set(themeComponentName, component);
-      return component;
-    }
-
-    // Element Plus 系主题：直接复用原生组件
-    if (config.packageName === "element-plus") {
-      const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
-      if (component) {
-        cache.set(themeComponentName, component);
-        return component;
-      }
-
-      logger.warn(`[useThemeComponent] 在 element-plus 中找不到组件 ${themeComponentName}`);
-      return null;
-    }
-
-    // 其他主题：按包名做静态映射，避免运行时再拼接导入路径
-    let component: Component | null = null;
-    if (config.packageName === "pixel-ui") {
-      component = getPixelUiComponent(themeComponentName);
-    } else {
-      logger.warn(`[useThemeComponent] 动态导入暂未适配主题包: ${config.packageName}`);
-      return null;
-    }
-
-    // 尝试从模块的所有导出中查找组件（包括命名导出和 default 导出）
-    if (!component && config.packageName === "pixel-ui") {
-      const moduleKeys = Object.keys(PIXEL_UI_MODULE_NAMESPACE);
-      const matchingKey = moduleKeys.find(key => key === themeComponentName || key.toLowerCase() === themeComponentName.toLowerCase());
-      if (matchingKey) {
-        component = getPixelUiComponent(matchingKey);
-        logger.debug(`[useThemeComponent] 从模块导出中找到组件 ${themeComponentName} (导出名: ${matchingKey})`);
-      }
-    }
-
+    const component = ELEMENT_PLUS_COMPONENTS[themeComponentName];
     if (!component) {
-      // 如果组件是通过插件全局注册的，尝试从全局组件注册表中查找
-      // PixelUI 组件通过插件注册后，会以 kebab-case 格式注册（如 px-button）
-      if (config.packageName === "pixel-ui" && /^Px[A-Z]/.test(themeComponentName)) {
-        try {
-          // 转换为 kebab-case 格式（Vue 3 全局注册的组件名通常是 kebab-case）
-          const withoutPrefix = themeComponentName.replace(/^Px/, "");
-          const kebabName = `px-${withoutPrefix
-            .replace(/([A-Z])/g, "-$1")
-            .replace(/^-/, "")
-            .toLowerCase()}`;
-
-          // 尝试从当前组件实例的应用上下文中查找全局注册的组件
-          // 优先使用传入的实例，如果没有则尝试获取当前实例
-          const currentInstance = instance || getCurrentInstance();
-          if (currentInstance) {
-            const appContext = currentInstance.appContext;
-
-            // 尝试多种可能的组件名格式
-            // 1. kebab-case: px-dialog, px-text
-            // 2. PascalCase: PxDialog, PxText
-            // 3. 原始名称: themeComponentName
-            // 4. 首字母大写的 kebab-case: Px-dialog, Px-text (某些插件可能使用)
-            const possibleNames = [
-              kebabName, // px-dialog
-              themeComponentName, // PxDialog
-              `Px${withoutPrefix}`, // PxDialog (重复，但保留以兼容)
-              kebabName.charAt(0).toUpperCase() + kebabName.slice(1) // Px-dialog
-            ];
-
-            // 去重
-            const uniqueNames = [...new Set(possibleNames)];
-
-            for (const name of uniqueNames) {
-              const globalComponent = appContext.components[name];
-              if (globalComponent) {
-                cache.set(themeComponentName, globalComponent as Component);
-                return globalComponent as Component;
-              }
-            }
-
-            // 调试信息：列出所有全局注册的组件
-            const registeredComponents = Object.keys(appContext.components);
-            const pixelUiComponents = registeredComponents.filter(name => name.toLowerCase().startsWith("px") || name.startsWith("Px") || name.toLowerCase().includes("pixel"));
-
-            if (pixelUiComponents.length > 0) {
-              logger.debug(`[useThemeComponent] 已全局注册的 PixelUI 相关组件:`, pixelUiComponents);
-              logger.debug(`[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`, uniqueNames);
-              logger.warn(`[useThemeComponent] 未找到组件 ${themeComponentName}，已注册的 PixelUI 组件:`, pixelUiComponents);
-            } else {
-              logger.warn(`[useThemeComponent] 未找到全局注册的 PixelUI 组件，可能插件尚未加载完成`);
-              logger.debug(`[useThemeComponent] 尝试查找组件 ${themeComponentName}，已尝试的名称:`, uniqueNames);
-              logger.debug(`[useThemeComponent] 所有已注册的组件（前30个）:`, registeredComponents.slice(0, 30));
-              logger.debug(`[useThemeComponent] 组件总数: ${registeredComponents.length}`);
-            }
-          } else {
-            logger.warn(`[useThemeComponent] 无法获取组件实例，无法检测全局注册的组件`);
-          }
-        } catch (error) {
-          // 全局组件查找失败，继续后续回退逻辑
-          logger.debug(`[useThemeComponent] 全局组件查找失败:`, error);
-        }
-      }
-
-      // 优先尝试回退到 Element Plus 原生组件，避免功能缺失
-      // 约定：PixelUI 组件名 PxXxx 与 Element Plus 组件名 ElXxx 一一对应
-      const fallbackElementName = themeComponentName.replace(/^Px/, "El");
-      const fallbackComponent = ELEMENT_PLUS_COMPONENTS[fallbackElementName];
-
-      if (fallbackComponent) {
-        logger.warn(`[useThemeComponent] 在 ${config.packageName} 中找不到组件 ${themeComponentName}，回退为 Element Plus 组件 ${fallbackElementName}`);
-        cache.set(themeComponentName, fallbackComponent);
-        return fallbackComponent;
-      }
-
-      // 如果找不到组件且无法回退到 Element Plus，返回 null
-      // 组件应该处理 null 情况，回退到 Element Plus 组件
-      logger.warn(`[useThemeComponent] 在 ${config.packageName} 中找不到组件 ${themeComponentName}，且无法回退到 Element Plus 组件`);
       return null;
     }
 
@@ -632,11 +456,6 @@ export function useCurrentThemeSkin(): Ref<string> {
  */
 export function useThemeComponent(elementComponentName: string) {
   /**
-   * 保存组件实例（在 setup 阶段获取，用于后续从全局注册表中查找组件）
-   */
-  const instance = getCurrentInstance();
-
-  /**
    * 使用全局共享的 currentSkin ref
    */
   const currentSkin = useCurrentThemeSkin();
@@ -679,21 +498,12 @@ export function useThemeComponent(elementComponentName: string) {
   /**
    * 当前实际使用的组件（始终有值）
    * - default 主题：同步返回 Element Plus 组件
-   * - 8bit 主题特殊处理：ElTable 和 ElTableColumn 始终使用 Element Plus 组件
-   * - 其他主题：异步加载后返回对应的主题组件，如果加载失败则返回 kebab-case 字符串让 Vue 自动解析
+   * - 其他主题：异步加载后返回对应的主题组件
    */
   const currentComponent = computed(() => {
     const skin = currentSkin.value;
     const componentName = themeComponentName.value;
     const localComponentConfig = getThemeLocalComponentConfig(skin, elementComponentName);
-
-    // 8bit 主题特殊处理：ElTable、ElTableColumn 和 ElDrawer 始终使用 Element Plus 组件
-    if (skin === "8bit" && (elementComponentName === "ElTable" || elementComponentName === "ElTableColumn" || elementComponentName === "ElDrawer")) {
-      const component = ELEMENT_PLUS_COMPONENTS[elementComponentName];
-      if (component) {
-        return component;
-      }
-    }
 
     if (localComponentConfig) {
       return themeComponent.value;
@@ -750,7 +560,7 @@ export function useThemeComponent(elementComponentName: string) {
         return;
       }
 
-      const component = await loadThemeComponent(skin, componentName, instance);
+      const component = await loadThemeComponent(skin, componentName);
       themeComponent.value = component;
     } catch (error) {
       logger.error(`[useThemeComponent] 加载组件失败:`, error);
@@ -778,12 +588,6 @@ export function useThemeComponent(elementComponentName: string) {
           if (activeThemeCssSkin !== newSkin) {
             await loadThemeCss(newSkin);
             activeThemeCssSkin = newSkin;
-          }
-          // 确保主题插件已注册（例如切换到 8bit 主题时需要注册 PixelUI 插件）
-          try {
-            await ensureThemePluginForCurrentSkin();
-          } catch (error) {
-            logger.warn(`[useThemeComponent] 确保主题插件注册失败:`, error);
           }
           await loadComponent();
         }

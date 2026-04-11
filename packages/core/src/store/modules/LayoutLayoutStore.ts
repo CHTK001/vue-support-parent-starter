@@ -25,9 +25,9 @@ export const useLayoutLayoutStore = defineStore({
      * - margin: 单元格间距（像素）
      */
     gridMeta: {
-      columnCount: 24,
-      cellHeight: 60,
-      margin: 8,
+      columnCount: 36,
+      cellHeight: 48,
+      margin: 6,
     },
     /**布局存储key */
     storageKey: "user-layout-setting",
@@ -408,14 +408,25 @@ export const useLayoutLayoutStore = defineStore({
 
     async pushComp(item) {
       const { columnCount } = this.gridMeta || { columnCount: 12 };
+      const baseColumns = 12;
+      const scaleWidth = (value, fallback) => {
+        const width = Number(value ?? fallback);
+        if (!Number.isFinite(width) || width <= 0) {
+          return fallback;
+        }
+        return Math.max(
+          2,
+          Math.min(columnCount, Math.round(width * (columnCount / baseColumns))),
+        );
+      };
       this.layout.push({
         x: item.x || 0,
         y: item.y || 0,
-        w: item.w || 1,
+        w: scaleWidth(item.w, 6),
         h: item.h || 1,
-        minW: item.minW || 1,
+        minW: scaleWidth(item.minW, 4),
         minH: item.minH || 1,
-        maxW: item.maxW || columnCount,
+        maxW: item.maxW ? scaleWidth(item.maxW, columnCount) : columnCount,
         maxH: item.maxH || undefined,
         i: item.key,
         id: item.key,
@@ -571,7 +582,7 @@ export const useLayoutLayoutStore = defineStore({
       const _localMapping = {};
       Object.entries(
         //@ts-ignore
-        import.meta.glob(["../../../../module/**/*.vue"], {
+        import.meta.glob(["../../../../../pages/common/home/modules/**/*.vue"], {
           eager: true,
         }),
       ).map(([key, value]: any) => {
@@ -579,7 +590,7 @@ export const useLayoutLayoutStore = defineStore({
       });
       Object.entries(
         //@ts-ignore
-        import.meta.glob(["../../../../module/**/*.json"], {
+        import.meta.glob(["../../../../../pages/common/home/modules/**/*.json"], {
           eager: true,
           query: "raw",
         }),
@@ -594,7 +605,7 @@ export const useLayoutLayoutStore = defineStore({
 
         // Auto-generate ID from directory name if missing
         if (!setting.sysSfcId) {
-          const match = key.match(/module\/(.*?)\/config\.json/);
+          const match = key.match(/modules\/(.*?)\/config\.json/);
           if (match && match[1]) {
             setting.sysSfcId = match[1];
           }

@@ -1,0 +1,18 @@
+{
+  "name": "@repo/components/ScFlourishEmbed",
+  "version": "1.0.0",
+  "description": "Flourish 数据可视化嵌入组件，支持 Public Embed 和 Live API 两种模式",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "dependencies": {
+    "vue": "catalog:"
+  },
+  "license": "ISC"
+}

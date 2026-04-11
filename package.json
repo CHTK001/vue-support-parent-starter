@@ -59,7 +59,6 @@
     "@repo/components": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/core": "workspace:^",
-    "@repo/module": "workspace:^",
     "@repo/node": "workspace:^",
     "@repo/plugins": "workspace:^",
     "@repo/tailwind-config": "workspace:^",

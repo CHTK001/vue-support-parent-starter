@@ -1,253 +1,304 @@
-﻿<script>
-import { defineComponent } from "vue";
-
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from "vue";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import Refresh from "@iconify-icons/line-md/backup-restore";
 import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
-import SaveDialog from "./save.vue";
-
-import {  useRenderIcon as useRenderIconMethod  } from "@repo/components/ReIcon";
-import { transformI18n as useI18nMethod } from "@repo/config/src/i18n";
+import SaveDialog from "./SaveDict.vue";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchDeleteDict, fetchPageDict } from "@repo/core";
 import { message } from "@repo/utils";
 
-export default defineComponent({
-  name: "DeptLayout",
-  components: { SaveDialog },
-  props: {
-    nodeClick: {
-      type: Function,
-      default: () => {},
-    },
-  },
-  data() {
-    return {
-      icon: {
-        Delete: Delete,
-        EditPen: EditPen,
-        Refresh: Refresh,
-        Plus: Plus,
-        Minus: Minus,
-      },
-      dicFilterText: "",
-      visible: {
-        save: false,
-      },
-      loading: {
-        query: false,
-      },
-      saveDialogParams: {
-        mode: "save",
-      },
-      params: {
-        sysDictId: null,
-        page: 1,
-        pageSize: 10,
-      },
-      tableData: [],
-      selectedDictId: null,
-      total: 0,
-      firstLoad: false,
-    };
-  },
-  computed: {
-    filteredDicts() {
-      const keyword = String(this.dicFilterText || "").trim().toLowerCase();
-      if (!keyword) {
-        return this.tableData;
-      }
-      return this.tableData.filter((item) => {
-        const targetText = `${item?.sysDictName || ""}${item?.sysDictCode || ""}`.toLowerCase();
-        return targetText.includes(keyword);
-      });
-    },
-  },
-  mounted() {
-    this.icon.Delete = this.useRenderIcon(Delete);
-    this.icon.EditPen = this.useRenderIcon(EditPen);
-    this.icon.Plus = this.useRenderIcon(Plus);
-    this.icon.Minus = this.useRenderIcon(Minus);
-    this.onSearch();
-  },
-  methods: {
-    useRenderIcon(v) {
-      return useRenderIconMethod(v);
-    },
-    useI18n(v) {
-      return useI18nMethod(v);
-    },
-    async onSuccess(mode, form) {
-      if (mode == "edit") {
-        const item = this.tableData.filter(
-          (item) => item.sysDictId === form.sysDictId
-        );
-        if (null != item && item.length > 0) {
-          Object.assign(item[0], form);
-          return;
-        }
-      }
-      this.onSearch();
-    },
-    async onClick(node) {
-      this.selectedDictId = node?.sysDictId ?? null;
-      this.params.sysDictId = node?.sysDictId ?? null;
-      this.nodeClick(node);
-    },
-    async handleScroll(event) {
-      const target = event.target;
-      // 检查是否滚动到底部
-      if (target.scrollHeight - target.scrollTop <= target.clientHeight) {
-        // 当前页数加一
-        this.params.page += 1;
-        // 如果当前页数小于总页数，继续加载数据
-        if (this.params.page * this.params.pageSize < this.total) {
-          this.onSearchItem(this.params);
-        }
-      }
-    },
-    async onSearchItem(params) {
-      return fetchPageDict(params)
-        .then((res) => {
-          const { data } = res;
-          const rows = Array.isArray(data?.data) ? data.data : [];
-          rows.forEach((element) => {
-            element.level = this.params.page;
-            element.sysDictPid = 0;
-          });
-          this.tableData =
-            this.params?.page === 1
-              ? rows
-              : [...this.tableData, ...rows.filter((item) => !this.tableData.some((it) => it.sysDictId === item.sysDictId))];
-          if (this.params?.page == 1) {
-            this.total = data?.total ?? rows.length;
-          }
-          const nextSelected =
-            this.tableData.find((item) => item.sysDictId === this.selectedDictId) ||
-            this.tableData[0];
-          if (nextSelected) {
-            this.onClick(nextSelected);
-          }
-          this.firstLoad = true;
-          return;
-        })
-        .catch((error) => {
-          message(this.useI18n("message.queryFailed"), { type: "error" });
-        });
-    },
-    async onSearch() {
-      this.loading.query = true;
-      this.onSearchItem(this.params).finally(() => {
-        this.loading.query = false;
-      });
-    },
-    async onDelete(row) {
-      try {
-        const { code } = await fetchDeleteDict(row.sysDictId);
-        if (code !== "00000") {
-          return;
-        }
-        if (this.selectedDictId === row.sysDictId) {
-          this.selectedDictId = null;
-          this.params.sysDictId = null;
-        }
-        this.onSearch();
-        message(this.useI18n("message.deleteSuccess"), { type: "success" });
-        return;
-      } catch (error) {}
-    },
-    async dialogClose() {
-      this.saveDialogParams.mode = "save";
-      this.visible.save = false;
-      this.$nextTick(() => {
-        this.onSearch();
-      });
-    },
-    async dialogOpen(item, mode = "save" | "edit") {
-      this.saveDialogParams.mode = mode;
-      this.visible.save = true;
-      this.$nextTick(() => {
-        this.$refs.saveDialog
-          .setData(item)
-          .setTableData(this.tableData)
-          .open(mode);
-      });
-    },
+type DictRecord = Record<string, any>;
+
+const props = defineProps({
+  nodeClick: {
+    type: Function,
+    default: () => {},
   },
 });
+
+const icon = {
+  Delete: useRenderIcon(Delete),
+  EditPen: useRenderIcon(EditPen),
+  Plus: useRenderIcon(Plus),
+  Minus: useRenderIcon(Minus),
+};
+
+const dicFilterText = ref("");
+const tableData = ref<DictRecord[]>([]);
+const selectedDictId = ref<number | null>(null);
+const total = ref(0);
+const pendingSelection = ref<DictRecord | null>(null);
+
+const visible = reactive({
+  save: false,
+});
+
+const loading = reactive({
+  query: false,
+  more: false,
+});
+
+const saveDialogParams = reactive({
+  mode: "save" as "save" | "edit",
+  data: {} as DictRecord,
+});
+
+const params = reactive({
+  page: 1,
+  pageSize: 20,
+});
+
+const filteredDicts = computed(() => {
+  const keyword = String(dicFilterText.value || "")
+    .trim()
+    .toLowerCase();
+  if (!keyword) {
+    return tableData.value;
+  }
+  return tableData.value.filter((item) => {
+    const targetText =
+      `${item?.sysDictName || ""}${item?.sysDictCode || ""}`.toLowerCase();
+    return targetText.includes(keyword);
+  });
+});
+
+const normalizeRows = (response: any) => {
+  const payload = response?.data;
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+  if (Array.isArray(payload?.records)) {
+    return payload.records;
+  }
+  if (Array.isArray(payload?.rows)) {
+    return payload.rows;
+  }
+  if (Array.isArray(payload?.list)) {
+    return payload.list;
+  }
+  return [];
+};
+
+const resolveTotal = (response: any, rows: DictRecord[]) =>
+  Number(
+    response?.data?.total ??
+      response?.data?.recordsTotal ??
+      response?.data?.count ??
+      rows.length,
+  );
+
+const matchesPendingTarget = (row: DictRecord, target?: DictRecord | null) => {
+  if (!target) {
+    return false;
+  }
+  if (target.sysDictId && row.sysDictId === target.sysDictId) {
+    return true;
+  }
+  return (
+    !!target.sysDictCode &&
+    row.sysDictCode === target.sysDictCode &&
+    row.sysDictName === target.sysDictName
+  );
+};
+
+const onClick = async (node?: DictRecord | null) => {
+  if (!node?.sysDictId) {
+    return;
+  }
+  selectedDictId.value = node.sysDictId;
+  await Promise.resolve(props.nodeClick(node));
+};
+
+const applySelection = async () => {
+  const nextSelected =
+    tableData.value.find((item) =>
+      matchesPendingTarget(item, pendingSelection.value),
+    ) ||
+    tableData.value.find((item) => item.sysDictId === selectedDictId.value) ||
+    tableData.value[0];
+
+  pendingSelection.value = null;
+  if (!nextSelected) {
+    selectedDictId.value = null;
+    return;
+  }
+  if (nextSelected.sysDictId !== selectedDictId.value) {
+    await onClick(nextSelected);
+  }
+};
+
+const onSearch = async (reset = true, target?: DictRecord | null) => {
+  if (loading.query || loading.more) {
+    return;
+  }
+  if (reset) {
+    params.page = 1;
+  }
+  if (target) {
+    pendingSelection.value = target;
+  }
+
+  loading.query = reset;
+  loading.more = !reset;
+  try {
+    const response = await fetchPageDict({
+      page: params.page,
+      pageSize: params.pageSize,
+    });
+    const rows = normalizeRows(response).map((row: DictRecord) => ({
+      ...row,
+      sysDictPid: Number(row?.sysDictPid ?? 0) || 0,
+    }));
+    tableData.value = reset
+      ? rows
+      : [
+          ...tableData.value,
+          ...rows.filter(
+            (row) =>
+              !tableData.value.some((item) => item.sysDictId === row.sysDictId),
+          ),
+        ];
+    total.value = resolveTotal(response, rows);
+    await applySelection();
+  } catch {
+    if (reset) {
+      tableData.value = [];
+      total.value = 0;
+      selectedDictId.value = null;
+    }
+    message.error("加载字典分类失败");
+  } finally {
+    loading.query = false;
+    loading.more = false;
+  }
+};
+
+const handleScroll = async (event: Event) => {
+  const target = event.target as HTMLElement;
+  if (!target || loading.query || loading.more) {
+    return;
+  }
+  const reachedBottom =
+    target.scrollHeight - target.scrollTop - target.clientHeight <= 12;
+  if (!reachedBottom || tableData.value.length >= total.value) {
+    return;
+  }
+  params.page += 1;
+  await onSearch(false);
+};
+
+const onDelete = async (row: DictRecord) => {
+  try {
+    const res = await fetchDeleteDict(row.sysDictId);
+    if (res?.code !== "00000") {
+      message.error(res?.msg || "删除失败");
+      return;
+    }
+    if (selectedDictId.value === row.sysDictId) {
+      selectedDictId.value = null;
+    }
+    message.success("删除成功");
+    await onSearch(true);
+  } catch {
+    message.error("删除失败");
+  }
+};
+
+const dialogClose = () => {
+  visible.save = false;
+  saveDialogParams.mode = "save";
+  saveDialogParams.data = {};
+};
+
+const dialogOpen = (item: DictRecord = {}, mode: "save" | "edit" = "save") => {
+  saveDialogParams.mode = mode;
+  saveDialogParams.data = { ...item };
+  visible.save = true;
+};
+
+const onSuccess = async (_mode: "save" | "edit", form: DictRecord) => {
+  dialogClose();
+  await onSearch(true, form);
+};
+
+onMounted(() => {
+  onSearch(true);
+});
 </script>
+
 <template>
-  <div class="h-full system-container modern-bg">
+  <div class="dict-layout-shell h-full">
     <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
+      v-model:visible="visible.save"
       :mode="saveDialogParams.mode"
+      :dict-data="saveDialogParams.data"
       @success="onSuccess"
-      @close="dialogClose"
     />
     <div class="main h-full">
       <el-container>
         <el-header class="header-height">
-          <ScInput 
+          <ScInput
             v-model="dicFilterText"
-            :placeholder="useI18n('input.keywordSearch')"
+            placeholder="搜索字典分类"
             clearable
           />
         </el-header>
-        <el-main class="nopadding">
-          <div class="h-full">
-            <el-skeleton v-if="loading.query" animated :count="6" />
-            <div
-              v-else
-              class="dict-list thin-scroller"
-              @scroll.passive="handleScroll"
+        <el-main class="dict-main-panel">
+          <el-skeleton v-if="loading.query" animated :count="6" />
+          <div
+            v-else
+            class="dict-list thin-scroller"
+            @scroll.passive="handleScroll"
+          >
+            <button
+              v-for="item in filteredDicts"
+              :key="item.sysDictId"
+              type="button"
+              class="dict-list-item"
+              :class="{ active: selectedDictId === item.sysDictId }"
+              @click="onClick(item)"
             >
-              <button
-                v-for="item in filteredDicts"
-                :key="item.sysDictId"
-                type="button"
-                class="dict-list-item"
-                :class="{ active: selectedDictId === item.sysDictId }"
-                @click="onClick(item)"
-              >
-                <div class="dict-list-main">
-                  <div class="dict-list-title">
-                    <ScTag size="small">{{ item.sysDictId }}</ScTag>
-                    <span>{{ item.sysDictName }}</span>
-                  </div>
-                  <div class="dict-list-code">{{ item.sysDictCode }}</div>
+              <div class="dict-list-main">
+                <div class="dict-list-title">
+                  <ScTag size="small">{{ item.sysDictId }}</ScTag>
+                  <span>{{ item.sysDictName }}</span>
                 </div>
-                <div class="dict-list-actions">
-                  <ScButton
-                    :icon="icon.EditPen"
-                    size="small"
-                    title="编辑字典分类"
-                    aria-label="编辑字典分类"
-                    @click.stop="dialogOpen(item, 'edit')"
-                  />
-                  <ScPopconfirm
-                    v-if="item.sysDictInSystem != 1"
-                    :title="$t('message.confimDelete')"
-                    @confirm="onDelete(item)"
-                  >
-                    <template #reference>
-                      <ScButton
-                        :icon="icon.Delete"
-                        size="small"
-                        title="删除字典分类"
-                        aria-label="删除字典分类"
-                      />
-                    </template>
-                  </ScPopconfirm>
-                </div>
-              </button>
-              <ScEmpty v-if="!filteredDicts.length" description="暂无字典分类" />
-            </div>
+                <div class="dict-list-code">{{ item.sysDictCode }}</div>
+              </div>
+              <div class="dict-list-actions">
+                <ScButton
+                  :icon="icon.EditPen"
+                  size="small"
+                  title="编辑字典分类"
+                  aria-label="编辑字典分类"
+                  @click.stop="dialogOpen(item, 'edit')"
+                />
+                <ScPopconfirm
+                  v-if="item.sysDictInSystem != 1"
+                  :title="$t('message.confimDelete')"
+                  @confirm="onDelete(item)"
+                >
+                  <template #reference>
+                    <ScButton
+                      :icon="icon.Delete"
+                      size="small"
+                      title="删除字典分类"
+                      aria-label="删除字典分类"
+                    />
+                  </template>
+                </ScPopconfirm>
+              </div>
+            </button>
+            <ScEmpty v-if="!filteredDicts.length" description="暂无字典分类" />
           </div>
         </el-main>
         <el-footer class="footer-height">
-          <ScButton 
+          <ScButton
             type="primary"
             size="small"
             icon="el-icon-plus"
@@ -267,11 +318,40 @@ export default defineComponent({
   margin: 0;
 }
 
+.dict-layout-shell,
+.main,
+:deep(.el-container.is-vertical) {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:deep(.el-container.is-vertical) {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+:deep(.el-main) {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dict-main-panel {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .header-height {
   height: auto;
   padding: 16px 20px;
   background: var(--el-bg-color-overlay);
   border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  z-index: 2;
 
   :deep(.el-input__wrapper) {
     border-radius: 10px;
@@ -292,6 +372,8 @@ export default defineComponent({
   padding: 16px 20px;
   background: var(--el-bg-color-overlay);
   border-top: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  z-index: 2;
 }
 
 .full-width {
@@ -309,11 +391,14 @@ export default defineComponent({
 
 .dict-list {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 10px;
-  height: 100%;
+  min-height: 0;
+  height: auto;
   padding: 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dict-list-item {
@@ -390,7 +475,6 @@ export default defineComponent({
   opacity: 1;
 }
 
-// 骨架屏美化
 :deep(.el-skeleton) {
   padding: 16px;
 

@@ -28,7 +28,7 @@ export interface LayoutEmitterEvents {
   /** 布局路由变更 */
   changLayoutRoute: string;
   /** 打开设置面板 */
-  openPanel: void;
+  openPanel: undefined;
   /** Logo 显示变更 */
   logoChange: boolean;
   /** 页脚显示变更 */
@@ -41,6 +41,8 @@ export interface LayoutEmitterEvents {
   breadcrumbChange: boolean;
   /** 面包屑模式变更 */
   breadcrumbModeChange: "icon" | "icon-text";
+  /** 面包屑动画开关 */
+  breadcrumbAnimationChange: boolean;
 
   // ===== 功能开关 =====
   /** 组件缓存变更 */
@@ -54,13 +56,27 @@ export interface LayoutEmitterEvents {
   /** 离开确认变更 */
   confirmOnLeaveChange: boolean;
   /** 消息弹窗配置变更 */
-  messagePopupConfigChange: void;
+  messagePopupConfigChange: undefined;
+  /** 打开消息中心抽屉 */
+  messageCenterOpen: undefined;
   /** 强制启用新菜单变更 */
   forceNewMenuChange: boolean;
+  /** 顶部任务中心按钮显示变更 */
+  showTaskCenterChange: boolean;
+  /** 任务中心新增或更新任务 */
+  taskCenterPush: unknown;
+  /** 任务中心追加消息 */
+  taskCenterMessage: unknown;
+  /** 打开任务中心 */
+  taskCenterOpen: undefined;
+  /** 关闭任务中心 */
+  taskCenterClose: undefined;
+  /** 删除任务中心任务 */
+  taskCenterRemove: string;
 
   // ===== 设置面板 =====
   /** 设置面板关闭 */
-  settingPanelClosed: void;
+  settingPanelClosed: undefined;
 }
 
 /**

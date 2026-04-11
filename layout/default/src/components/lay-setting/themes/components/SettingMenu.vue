@@ -7,6 +7,7 @@ import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScInput from "@repo/components/ScInput/index";
 import ScInputNumber from "@repo/components/ScInputNumber/index";
 import NewMenuAnimationSelector from "../../components/base/NewMenuAnimationSelector.vue";
+import LoaderStyleSetting from "../LoaderStyleSetting.vue";
 
 const { t } = useI18n();
 
@@ -16,6 +17,8 @@ const props = defineProps<{
   settings: Record<string, any>;
   transitionTypeOptions: Array<OptionsType>;
   menuAnimationChange: (value: boolean) => void;
+  menuLoaderEnabledChange: (value: boolean) => void;
+  loaderStyleChange: (value: string) => void;
   transitionTypeChange: (val: { option: OptionsType }) => void;
   showNewMenuChange: () => void;
   newMenuTextChange: () => void;
@@ -57,6 +60,31 @@ const props = defineProps<{
             :modelValue="settings.transitionType"
             :options="transitionTypeOptions"
             @change="transitionTypeChange"
+          />
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h4 class="group-title">
+          <IconifyIconOnline icon="ri:loader-4-line" class="group-icon" />
+          导航初始化加载
+        </h4>
+        <ScSwitch
+          :model-value="settings.menuLoaderEnabled"
+          layout="visual-card"
+          size="small"
+          label="开启导航初始化加载动画"
+          description="控制首屏和导航初始化时是否显示加载动效，默认关闭"
+          active-icon="ri:flashlight-line"
+          inactive-icon="ri:eye-off-line"
+          ribbon-color="var(--el-color-primary)"
+          @update:model-value="menuLoaderEnabledChange"
+          @change="menuLoaderEnabledChange"
+        />
+        <div v-if="settings.menuLoaderEnabled" class="mt-3 px-1">
+          <LoaderStyleSetting
+            :model-value="settings.loaderStyle"
+            @update:model-value="loaderStyleChange"
           />
         </div>
       </div>

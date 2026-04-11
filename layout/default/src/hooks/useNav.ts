@@ -27,9 +27,6 @@ import { useI18n } from "vue-i18n";
 import type { LayoutType } from "../types/theme";
 import { isValidLayout } from "./useLayout";
 
-const errorInfo =
-  "The current routing configuration is incorrect, please check the configuration";
-
 export function useNav() {
   const pureApp = useAppStoreHook();
   // 提取 store 引用到顶层，避免在 computed 中重复调用
@@ -163,9 +160,19 @@ export function useNav() {
   function resolvePath(
     route: { path?: string; children?: Array<{ path?: string }> } | null,
   ) {
-    if (!route.children) return console.error(errorInfo);
+    if (!route) {
+      return "";
+    }
+
+    if (!Array.isArray(route.children) || route.children.length === 0) {
+      return route.path || "";
+    }
+
     const httpReg = /^http(s?):\/\//;
     const routeChildPath = route.children[0]?.path;
+    if (!routeChildPath) {
+      return route.path || "";
+    }
     if (httpReg.test(routeChildPath)) {
       return route.path + "/" + routeChildPath;
     } else {

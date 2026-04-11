@@ -47,9 +47,9 @@
 import { computed } from "vue";
 import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 
-type Rect8Position = "top-left" | "top-center" | "top-right" | "left-center" | "right-center" | "bottom-left" | "bottom-center" | "bottom-right";
+export type Rect8Position = "top-left" | "top-center" | "top-right" | "left-center" | "right-center" | "bottom-left" | "bottom-center" | "bottom-right";
 
-interface Rect8Option {
+export interface Rect8Option {
   /** 选项值 */
   value: string;
   /** 展示文案（tooltip/aria） */

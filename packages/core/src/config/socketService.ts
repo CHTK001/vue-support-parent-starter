@@ -11,14 +11,14 @@
 
 import type { App } from "vue";
 import { inject, provide } from "vue";
-import type { SocketTemplate } from "./socketTemplate";
+import type { ProtocolType, SocketTemplate } from "./socketTemplate";
 import { SocketTemplateKey, createSocketTemplateKey } from "./socketTemplate";
 
 // 导入各协议实现
-import { createSocketIOService, type SocketIOConfig } from "./socket.io";
-import { createRSocketService, type RSocketConfig } from "./rsocket";
-import { createWebSocketService, type WebSocketConfig } from "./websocket";
-import { createSseService, type SseConfig } from "./sse";
+import { createSocketIOService } from "./socket.io";
+import { createRSocketService } from "./rsocket";
+import { createWebSocketService } from "./websocket";
+import { createSseService } from "./sse";
 
 // 重新导出各协议的类型和工厂函数
 export { createSocketIOService, type SocketIOConfig } from "./socket.io";
@@ -34,7 +34,7 @@ export {
 /**
  * 协议类型
  */
-export type ProtocolType = "socketio" | "rsocket" | "websocket" | "sse";
+export type { ProtocolType } from "./socketTemplate";
 
 /**
  * Socket 服务统一配置
@@ -44,6 +44,8 @@ export interface SocketServiceConfig {
   protocol?: ProtocolType;
   /** 服务器地址列表，不传则从全局配置获取 */
   urls?: string[];
+  /** Socket.IO/WebSocket 传输策略 */
+  transports?: Array<"polling" | "websocket">;
   /** 上下文路径（Socket.IO/WebSocket 专用） */
   context?: string;
   /** WebSocket/SSE 路径 */
@@ -95,7 +97,9 @@ const getWindowGlobalSocketService = (): SocketTemplate | null => {
     return null;
   }
 
-  return (window.__GLOBAL_SOCKET_SERVICE__ as SocketTemplate | undefined) ?? null;
+  return (
+    (window.__GLOBAL_SOCKET_SERVICE__ as SocketTemplate | undefined) ?? null
+  );
 };
 
 const syncWindowGlobalSocketService = (
@@ -158,6 +162,7 @@ export function createSocketService(
     case "socketio":
       return createSocketIOService({
         urls: config.urls,
+        transports: config.transports,
         context: config.context,
         query: config.query,
         autoConnect: config.autoConnect,

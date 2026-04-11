@@ -108,7 +108,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(["update:modelValue", "change", "focus", "blur"]);
 
-// 使用 PixelUI 条件导入
+// 使用主题组件条件导入
 const { currentComponent } = useThemeComponent("ElInputNumber");
 
 // 当前实际渲染的组件

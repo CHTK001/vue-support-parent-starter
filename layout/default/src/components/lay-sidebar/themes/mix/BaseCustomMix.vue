@@ -301,7 +301,7 @@ watch(visibleCount, () => {
   <div
     ref="headerRef"
     v-if="device !== 'mobile'"
-    v-loading="usePermissionStoreHook().wholeMenus.length === 0"
+    v-loading="!usePermissionStoreHook().menusReady"
     :class="['horizontal-header', 'horizontal-custom-menu', themeClass]"
   >
     <!-- 菜单区域：使用自定义菜单组件 -->

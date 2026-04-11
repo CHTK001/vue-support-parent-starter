@@ -8,7 +8,8 @@
  */
 
 import type { InjectionKey, Ref } from "vue";
-import type { ProtocolType } from "./socketService";
+
+export type ProtocolType = "socketio" | "rsocket" | "websocket" | "sse";
 
 /**
  * subscribe 消息结构（module + event 分发模式）
@@ -30,6 +31,11 @@ export interface SocketTemplateListenOptions {
    * 如果指定，只接收 dataId 匹配的消息
    */
   dataId?: string | number;
+  /**
+   * 请求ID过滤
+   * 如果指定，只接收 requestId 匹配的消息
+   */
+  requestId?: string | number;
 }
 
 /**
@@ -41,6 +47,7 @@ export interface SocketMessage {
   timestamp: string;
   uuid?: string;
   dataId?: string | number;
+  requestId?: string | number;
   [key: string]: unknown;
 }
 
@@ -121,7 +128,11 @@ export interface SocketTemplate {
    * @param handler 消息处理函数
    * @returns unsubscribe 函数
    */
-  subscribe(module: string, event: string, handler: (msg: WsMessage) => void): () => void;
+  subscribe(
+    module: string,
+    event: string,
+    handler: (msg: WsMessage) => void,
+  ): () => void;
 }
 
 /**

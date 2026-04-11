@@ -276,7 +276,7 @@ watch(visibleCount, () => {
 <template>
   <div
     ref="headerRef"
-    v-loading="usePermissionStoreHook().wholeMenus.length === 0"
+    v-loading="!usePermissionStoreHook().menusReady"
     :class="['horizontal-header', 'horizontal-custom-menu', themeClass]"
   >
     <!-- Logo 区域 -->

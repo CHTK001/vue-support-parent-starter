@@ -81,7 +81,7 @@ const deferDropdown = useDefer(4);
 <template>
   <div
     v-if="device !== 'mobile'"
-    v-loading="permissionStore.wholeMenus.length === 0"
+    v-loading="!permissionStore.menusReady"
     :class="['horizontal-header', themeClass]"
   >
     <ScMenu

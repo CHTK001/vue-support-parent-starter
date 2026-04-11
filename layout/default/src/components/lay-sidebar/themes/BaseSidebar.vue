@@ -74,7 +74,7 @@ const menuData = computed(() => {
 const loading = computed(() =>
   pureApp?.layout === "mix"
     ? false
-    : menuData.value.length === 0
+    : !permissionStore.menusReady
       ? true
       : false,
 );
@@ -82,6 +82,22 @@ const loading = computed(() =>
 const defaultActive = computed(() =>
   !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
 );
+
+const defaultOpeneds = computed(() => {
+  const activePath = String(defaultActive.value || "");
+  if (!activePath) {
+    return [];
+  }
+  return getParentPaths(activePath, permissionStore.wholeMenus);
+});
+
+const menuStateKey = computed(() => {
+  return [
+    String(defaultActive.value || ""),
+    defaultOpeneds.value.join("|"),
+    menuData.value.length,
+  ].join("::");
+});
 
 function getSubMenuData() {
   const path = defaultActive.value;
@@ -98,11 +114,13 @@ function getSubMenuData() {
 }
 
 watch(
-  () => route.path,
+  () => defaultActive.value,
   (newPath) => {
-    if (newPath.includes("/redirect")) return;
+    if (String(route.path || "").includes("/redirect")) return;
     getSubMenuData();
-    menuSelect(newPath);
+    if (newPath) {
+      menuSelect(String(newPath));
+    }
   },
   {
     immediate: true,
@@ -150,6 +168,7 @@ onBeforeUnmount(() => {
       :class="[device === 'mobile' ? 'mobile' : 'pc']"
     >
       <ScMenu
+        :key="menuStateKey"
         router
         mode="vertical"
         popper-class="pure-scrollbar"
@@ -158,6 +177,7 @@ onBeforeUnmount(() => {
         :collapse-transition="false"
         :popper-effect="tooltipEffect"
         :default-active="defaultActive"
+        :default-openeds="defaultOpeneds"
       >
         <span
           v-for="(routes, index) in menuData"

@@ -217,6 +217,7 @@
 import { ref, computed, watch, onMounted, reactive } from "vue";
 import type { FormInstance } from "element-plus";
 import type { ScFilterBarProps, FilterField, FilterValue, FilterOption, QuickFilter, LegacyFilterField } from "./types";
+import { ScCascader } from "@repo/components/ScCascader";
 
 defineOptions({
   name: "ScFilterBar"

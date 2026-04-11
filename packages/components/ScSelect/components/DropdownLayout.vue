@@ -9,7 +9,7 @@
       :show-arrow="false"
       :offset="8"
       :teleported="true"
-      :z-index="zIndex"
+      :z-index="resolvedZIndex"
       :popper-options="popoverOptions"
     >
       <template #reference>
@@ -111,6 +111,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useZIndex } from "element-plus";
 import { ScButton } from "../../ScButton";
 import { ScInput } from "../../ScInput";
 import { ScPopover } from "../../ScPopover";
@@ -125,7 +126,7 @@ export interface DropdownOption {
   description?: string;
   value: string | number;
   icon?: string;
-  image: ImageOption;
+  image?: ImageOption;
   preview?: string;
 }
 
@@ -207,7 +208,7 @@ const props = defineProps({
   },
   zIndex: {
     type: Number,
-    default: 2000
+    default: undefined
   },
   // 是否显示搜索栏
   showSearchBar: {
@@ -226,6 +227,8 @@ const emit = defineEmits(["select", "selectAll", "invertSelection", "clearSelect
 const isOpen = ref(false);
 const dropdownRef = ref<HTMLElement>();
 const searchQuery = ref("");
+const { nextZIndex } = useZIndex();
+const fallbackZIndex = nextZIndex();
 
 // 检测是否有预览选项
 const hasPreviewOptions = computed(() => {
@@ -293,6 +296,8 @@ const popoverClass = computed(() => {
   }
   return classes.join(" ");
 });
+
+const resolvedZIndex = computed(() => props.zIndex ?? fallbackZIndex);
 
 // 计算当前选择的数据
 const currentSelectedData = computed(() => {
@@ -384,7 +389,7 @@ const handleClearSelection = () => {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 10px 16px;
+  padding: 1px 16px;
   background: var(--el-bg-color);
   border: 2px solid var(--el-border-color-lighter);
   border-radius: 12px;

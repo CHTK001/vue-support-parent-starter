@@ -68,11 +68,8 @@ export function getThemeConfig(): ThemeConfig {
         DisabledThemes: normalizeThemeKeys(parsed.DisabledThemes),
       };
     }
-  } catch (error) {
-    console.warn(
-      "[ThemeConfig] Failed to parse theme config from storage:",
-      error,
-    );
+  } catch {
+    // 本地缓存异常时回退默认配置
   }
   return getDefaultConfig();
 }
@@ -92,9 +89,8 @@ export function saveThemeConfig(config: Partial<ThemeConfig>): void {
       ),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
-    console.debug("[ThemeConfig] Theme config saved:", newConfig);
-  } catch (error) {
-    console.error("[ThemeConfig] Failed to save theme config:", error);
+  } catch {
+    // 忽略存储异常，避免干扰登录流程
   }
 }
 
@@ -104,9 +100,8 @@ export function saveThemeConfig(config: Partial<ThemeConfig>): void {
 export function resetThemeConfig(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    console.debug("[ThemeConfig] Theme config reset to default");
-  } catch (error) {
-    console.error("[ThemeConfig] Failed to reset theme config:", error);
+  } catch {
+    // 忽略存储异常，避免干扰登录流程
   }
 }
 

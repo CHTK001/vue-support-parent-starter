@@ -28,8 +28,8 @@
 <script setup lang="ts">
 /**
  * ScForm 表单容器组件
- * 封装 Element Plus Form 与 PixelUI PxForm
- * 在 data-skin 为 8bit 时自动切换为像素风表单
+ * 封装 Element Plus Form
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed, ref } from "vue";
 import type { PropType } from "vue";

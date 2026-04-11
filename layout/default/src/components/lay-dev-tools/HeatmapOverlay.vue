@@ -197,7 +197,7 @@ function resolveElement(x: number, y: number): { label: string; tag: string; el:
     interactive.getAttribute("aria-label") ||
     (interactive.textContent?.trim().slice(0, 40)) ||
     interactive.getAttribute("title") ||
-    `${tag}.${[...interactive.classList].slice(0, 2).join(".")}`;
+    `${tag}.${Array.from(interactive.classList).slice(0, 2).join(".")}`;
 
   return { label: label || tag, tag, el: interactive };
 }

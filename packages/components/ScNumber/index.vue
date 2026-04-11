@@ -3,7 +3,7 @@
     <!-- 滑块布局 -->
     <SliderLayout
       v-if="layout === 'slider'"
-      v-model="currentValue"
+      v-model="sliderValue"
       :min="min"
       :max="max"
       :step="step"
@@ -24,7 +24,7 @@
     <!-- 评分布局 -->
     <RateLayout
       v-else-if="layout === 'rate'"
-      v-model="currentValue"
+      v-model="singleValue"
       :max="rateMax"
       :disabled="disabled"
       :allow-half="allowHalf"
@@ -49,7 +49,7 @@
     <!-- 步进器布局 -->
     <StepperLayout
       v-else-if="layout === 'stepper'"
-      v-model="currentValue"
+      v-model="singleValue"
       :min="min"
       :max="max"
       :step="step"
@@ -69,7 +69,7 @@
     <!-- 进度条布局 -->
     <ProgressLayout
       v-else-if="layout === 'progress'"
-      v-model="currentValue"
+      v-model="singleValue"
       :min="min"
       :max="max"
       :step="step"
@@ -88,7 +88,7 @@
     <!-- 圆形布局 -->
     <CircleLayout
       v-else-if="layout === 'circle'"
-      v-model="currentValue"
+      v-model="singleValue"
       :min="min"
       :max="max"
       :step="step"
@@ -104,7 +104,7 @@
     <!-- 默认布局 (el-input-number) -->
     <DefaultLayout
       v-else
-      v-model="currentValue"
+      v-model="singleValue"
       :min="min"
       :max="max"
       :step="step"
@@ -458,6 +458,27 @@ const currentValue = computed({
   },
   set(val) {
     emit("update:modelValue", val);
+  }
+});
+
+const singleValue = computed<number>({
+  get() {
+    if (Array.isArray(currentValue.value)) {
+      return Number(currentValue.value[0] ?? 0);
+    }
+    return Number(currentValue.value ?? 0);
+  },
+  set(val) {
+    currentValue.value = val;
+  }
+});
+
+const sliderValue = computed<number | number[]>({
+  get() {
+    return currentValue.value;
+  },
+  set(val) {
+    currentValue.value = val;
   }
 });
 

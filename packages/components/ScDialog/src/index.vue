@@ -397,7 +397,7 @@ const { isDragging, isResizing, initInteract, destroyInteract, updatePosition } 
 const iconComponentName = computed(() => (props.icon ? IconifyIconOnline : ""));
 const actualMinimizeIcon = computed(() => (props.icon ? props.icon : props.minimizeIcon));
 
-// 使用 PixelUI 条件导入
+// 使用主题组件条件导入
 const { currentComponent } = useThemeComponent("ElDialog");
 
 // 当前实际渲染的组件（仅用于 element 模式）

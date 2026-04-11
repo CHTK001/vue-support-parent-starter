@@ -8,6 +8,13 @@ export const fetchPageUserLog = (params) => {
   });
 };
 
+/** 按条件清理登录日志 */
+export const fetchCleanupUserLog = (params) => {
+  return http.request<ReturnResult<number>>("delete", "/v2/user/log/cleanup", {
+    params,
+  });
+};
+
 /** 获取系统日志列表 */
 export const fetchPageLog = (params) => {
   return http.request<ReturnResult<UserLog[]>>("get", "/v2/log/page", {

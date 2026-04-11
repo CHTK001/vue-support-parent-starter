@@ -44,6 +44,21 @@ export function useTags() {
     return multiTagsStore.multiTags || [];
   });
 
+  const normalizeRoutePath = (path?: string) => {
+    if (!path) {
+      return "";
+    }
+    return path.startsWith("/redirect") ? path.replace("/redirect", "") : path;
+  };
+
+  const resolveTagPath = (target?: { path?: string; meta?: any }) => {
+    const activePath = target?.meta?.activePath;
+    if (typeof activePath === "string" && activePath) {
+      return normalizeRoutePath(activePath);
+    }
+    return normalizeRoutePath(target?.path);
+  };
+
   const Close = "ep:close";
 
   const tagsViews = reactive<Array<tagsViewsType>>([
@@ -99,10 +114,12 @@ export function useTags() {
   ]);
 
   function conditionHandle(item, previous, next) {
-    // 处理刷新时的 redirect 路径，避免闪烁
-    const currentPath = route.path.startsWith("/redirect")
-      ? route.path.replace("/redirect", "")
-      : route.path;
+    const currentPath = resolveTagPath(route);
+    const directPath = normalizeRoutePath(route.path);
+
+    if (currentPath !== directPath) {
+      return currentPath === resolveTagPath(item) ? previous : next;
+    }
 
     if (isBoolean(route?.meta?.showLink) && route?.meta?.showLink === false) {
       if (Object.keys(route.query).length > 0) {
@@ -111,7 +128,7 @@ export function useTags() {
         return isEqual(route.params, item.params) ? previous : next;
       }
     } else {
-      return currentPath === item.path ? previous : next;
+      return currentPath === resolveTagPath(item) ? previous : next;
     }
   }
 
@@ -218,5 +235,7 @@ export function useTags() {
     onMouseleave,
     transformI18n,
     onContentFullScreen,
+    normalizeRoutePath,
+    resolveTagPath,
   };
 }

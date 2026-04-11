@@ -9,7 +9,16 @@
 
 import { ref } from "vue";
 import { getToken } from "../utils/auth";
-import { parseSocketMessage, toWebSocketUrl } from "./socketUtils";
+import {
+  matchesSocketListenOptions,
+  parseSocketMessage,
+  toWebSocketUrl,
+} from "./socketUtils";
+import type {
+  SocketTemplate,
+  SocketTemplateListenOptions,
+  WsMessage,
+} from "./socketTemplate";
 
 /**
  * WebSocket 配置
@@ -204,11 +213,8 @@ export function createWebSocketService(
     options?: SocketTemplateListenOptions,
   ) => {
     const wrappedCallback = (data: unknown) => {
-      if (options?.dataId !== undefined) {
-        const messageDataId = (data as Record<string, unknown>)?.dataId;
-        if (String(messageDataId) !== String(options.dataId)) {
-          return;
-        }
+      if (!matchesSocketListenOptions(data, options)) {
+        return;
       }
       callback(data);
     };
@@ -245,7 +251,11 @@ export function createWebSocketService(
   // subscribe 内部 handler 注册表（key: "MODULE_EVENT"）
   const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
 
-  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+  const subscribe = (
+    module: string,
+    event: string,
+    handler: (msg: WsMessage) => void,
+  ): (() => void) => {
     const key = `${module}_${event}`;
     if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
     subscribeHandlers.get(key)!.add(handler);
@@ -255,18 +265,30 @@ export function createWebSocketService(
   // 监听底层 message 事件，按 module+event 分发
   on("message", (raw: unknown) => {
     try {
-      const msg = (typeof raw === "string" ? JSON.parse(raw) : raw) as WsMessage;
+      const msg = (
+        typeof raw === "string" ? JSON.parse(raw) : raw
+      ) as WsMessage;
       if (!msg?.module || !msg?.event) return;
       const key = `${msg.module}_${msg.event}`;
-      subscribeHandlers.get(key)?.forEach(h => { try { h(msg); } catch {} });
+      subscribeHandlers.get(key)?.forEach((h) => {
+        try {
+          h(msg);
+        } catch {}
+      });
     } catch {}
   });
 
   return {
     protocol: "websocket",
-    get socket() { return wsInstance; },
-    get isConnected() { return isConnected.value; },
-    get connected() { return isConnected; },
+    get socket() {
+      return wsInstance;
+    },
+    get isConnected() {
+      return isConnected.value;
+    },
+    get connected() {
+      return isConnected;
+    },
     connect,
     disconnect,
     on,

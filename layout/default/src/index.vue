@@ -4,6 +4,7 @@ import "animate.css";
 import "@repo/components/ReIcon/offlineIcon";
 import {
   emitter,
+  getMine,
   initRouter,
   useAppStoreHook,
   useSettingStoreHook,
@@ -17,6 +18,7 @@ import { useResponsiveLayout } from "./hooks/useResponsiveLayout";
 import { useWatermarkSetup } from "./hooks/useWatermarkSetup";
 import { useDebugMode } from "./hooks/useDebugMode";
 import { setType } from "./types";
+import type { ThemeKey } from "./types/theme";
 import ScBacktop from "@repo/components/ScBacktop";
 import { ScDebugConsole } from "@repo/components/ScDebugConsole";
 import ScScrollbar from "@repo/components/ScScrollbar";
@@ -37,7 +39,7 @@ import {
   ref,
   watch,
 } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -61,6 +63,7 @@ import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
+import { provideTaskCenter } from "./components/lay-task-center/provider";
 
 // 导入设计 token（全局 CSS 变量 --dt-xxxx，必须在 script 中引入才能全局生效）
 import "./styles/design-tokens.scss";
@@ -110,6 +113,7 @@ const appWrapperRef = ref<HTMLElement>();
 const watermarkContainerRef = ref<HTMLElement>();
 const debugConsoleRef = ref<InstanceType<typeof ScDebugConsole> | null>(null);
 const deferredOverlayReady = ref(false);
+const layoutMounted = ref(false);
 // ===== Composables =====
 // 加载页逻辑
 const { isConfigLoaded, isFirstLoad, loadConfig } = useLoadingPage();
@@ -126,6 +130,7 @@ const pureSetting = useSettingStoreHook();
 const appStore = useAppStoreHook();
 const userStore = useUserStoreHook();
 const route = useRoute();
+const router = useRouter();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 // 性能监控开关（从主题 Store 统一读取）
@@ -144,11 +149,11 @@ const aiChatVisible = computed(() => {
   }
   return getConfig().ShowAiChat !== false;
 });
-const isSystemSettingRoute = computed(() =>
-  String(route.path || "").startsWith("/manage/setting"),
+const isManageRoute = computed(() =>
+  String(route.path || "").startsWith("/manage/"),
 );
 const resolvedAiChatVisible = computed(
-  () => aiChatVisible.value && !isSystemSettingRoute.value,
+  () => aiChatVisible.value && !isManageRoute.value,
 );
 const aiChatPosition = computed(
   () => $storage?.configure?.aiChatPosition || "bottom-right",
@@ -159,6 +164,80 @@ const aiChatHeaders = computed(() => {
   const apiKey = aesDecrypt(raw, getConfig().StorageKey);
   return { Authorization: `Bearer ${apiKey}` };
 });
+
+const showAgreementBanner = computed(() => {
+  const agreementVersion = String(userStore.agreementVersion || "").trim();
+  if (!layoutMounted.value || !userStore.agreementNeedConfirm || !agreementVersion) {
+    return false;
+  }
+  return !(
+    route.name === "AccountSettings" &&
+    String(route.query.pane || "") === "agreement"
+  );
+});
+
+const openAgreementPane = () => {
+  router.push({
+    name: "AccountSettings",
+    query: {
+      pane: "agreement",
+    },
+  });
+};
+
+const syncAgreementStatusFromBackend = async () => {
+  if (!userStore.sysUserId) {
+    return;
+  }
+
+  try {
+    const response = await getMine();
+    const payload = (response?.data as Record<string, any>) || {};
+    const userInfo = payload.userInfo || payload;
+    userStore.SET_AGREEMENT_STATUS({
+      agreementVersion: userInfo?.agreementVersion,
+      agreementUpdatedAt: userInfo?.agreementUpdatedAt,
+      agreementAcceptedVersion: userInfo?.agreementAcceptedVersion,
+      agreementAcceptedAt: userInfo?.agreementAcceptedAt,
+      agreementNeedConfirm: userInfo?.agreementNeedConfirm,
+    });
+  } catch {
+    // 忽略协议状态同步失败，保留本地登录缓存兜底
+  }
+};
+
+const notifyAgreementUpdate = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (!layoutMounted.value) {
+    return;
+  }
+
+  const agreementVersion = String(userStore.agreementVersion || "").trim();
+  const sysUserId = String(userStore.sysUserId || "").trim();
+  if (!userStore.agreementNeedConfirm || !agreementVersion || !sysUserId) {
+    return;
+  }
+
+  if (
+    route.name === "AccountSettings" &&
+    String(route.query.pane || "") === "agreement"
+  ) {
+    return;
+  }
+
+  const noticeKey = `sc:agreement-notice:${sysUserId}:${agreementVersion}`;
+  if (window.sessionStorage.getItem(noticeKey) === "1") {
+    return;
+  }
+
+  window.sessionStorage.setItem(noticeKey, "1");
+  message(`用户协议已更新至 ${agreementVersion}，请在个人信息中查看并确认。`, {
+    type: "warning",
+    duration: 4500,
+  });
+};
 
 // 向子组件注入 AI 配置（HeatmapOverlay 等通过 inject 获取）
 provide(
@@ -177,6 +256,7 @@ provide(
     model: $storage?.configure?.aiChatModel,
   })),
 );
+provideTaskCenter();
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();
@@ -331,6 +411,22 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () =>
+    [
+      userStore.sysUserId,
+      userStore.agreementVersion,
+      userStore.agreementNeedConfirm,
+      layoutMounted.value,
+      route.name,
+      route.query.pane,
+    ] as const,
+  () => {
+    notifyAgreementUpdate();
+  },
+  { immediate: true },
+);
+
 // 监听 sidebar 状态变化，同步到 body 上（用于 drawer 等组件的定位）
 watch(
   () => set.sidebar.opened,
@@ -366,15 +462,24 @@ const scheduleDeferredOverlayMount = () => {
   const mountDeferredOverlays = () => {
     deferredOverlayReady.value = true;
   };
+  const browserWindow =
+    typeof globalThis === "object"
+      ? (globalThis as Window & typeof globalThis)
+      : null;
+  const requestAnimationFrameFn =
+    browserWindow?.requestAnimationFrame?.bind(browserWindow);
 
-  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-    window.requestIdleCallback(mountDeferredOverlays, { timeout: 1200 });
+  if (
+    browserWindow &&
+    typeof browserWindow.requestIdleCallback === "function"
+  ) {
+    browserWindow.requestIdleCallback(mountDeferredOverlays, { timeout: 1200 });
     return;
   }
 
-  if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
-    window.requestAnimationFrame(() => {
-      window.setTimeout(mountDeferredOverlays, 160);
+  if (typeof requestAnimationFrameFn === "function") {
+    requestAnimationFrameFn(() => {
+      browserWindow?.setTimeout?.(mountDeferredOverlays, 160);
     });
     return;
   }
@@ -383,6 +488,9 @@ const scheduleDeferredOverlayMount = () => {
 };
 
 onMounted(async () => {
+  layoutMounted.value = true;
+  void syncAgreementStatusFromBackend();
+  notifyAgreementUpdate();
   // 初始化移动端
   initMobile();
 
@@ -407,6 +515,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  layoutMounted.value = false;
   document.removeEventListener("visibilitychange", handleVisibilityChange);
   emitter.off("aiChatThemeChange", handleAiChatThemeChange);
   stopSession();
@@ -509,6 +618,15 @@ const LayHeader = defineComponent({
 
     <!-- 页面内容 -->
     <div v-else ref="appWrapperRef" :class="['app-wrapper', set.classes]">
+      <div v-if="showAgreementBanner" class="agreement-notice-banner">
+        <div class="agreement-notice-banner__title">用户协议待确认</div>
+        <div class="agreement-notice-banner__desc">
+          用户协议已更新至 {{ userStore.agreementVersion }}，请查看并确认后再继续使用。
+        </div>
+        <ScButton type="primary" size="small" @click="openAgreementPane">
+          查看协议
+        </ScButton>
+      </div>
       <!-- 防删除水印容器 -->
       <div ref="watermarkContainerRef" class="watermark-container" />
       <!-- 双栏导航模式：特殊布局 -->
@@ -646,4 +764,54 @@ const LayHeader = defineComponent({
 
 <style lang="scss" scoped>
 @use "./styles/layout.scss" as *;
+
+.agreement-notice-banner {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 3200;
+  width: min(360px, calc(100vw - 32px));
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
+    radial-gradient(circle at top right, rgba(var(--el-color-primary-rgb), 0.16), transparent 52%);
+  box-shadow:
+    0 20px 44px rgba(15, 23, 42, 0.14),
+    0 8px 18px rgba(var(--el-color-primary-rgb), 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.agreement-notice-banner__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+
+.agreement-notice-banner__desc {
+  margin: 8px 0 14px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--el-text-color-secondary);
+}
+
+:deep(html.dark) .agreement-notice-banner {
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.92)),
+    radial-gradient(circle at top right, rgba(var(--el-color-primary-rgb), 0.24), transparent 55%);
+  border-color: rgba(var(--el-color-primary-rgb), 0.3);
+  box-shadow:
+    0 24px 48px rgba(2, 8, 23, 0.4),
+    0 8px 20px rgba(var(--el-color-primary-rgb), 0.16);
+}
+
+@media (max-width: 768px) {
+  .agreement-notice-banner {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
 </style>

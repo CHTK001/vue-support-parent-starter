@@ -145,7 +145,6 @@ const handleDelete = async (row) => {
     message(res.msg || "删除失败", { type: "error" });
   } catch (error) {
     if (error !== "cancel") {
-      console.error("删除配置项失败:", error);
       message("删除失败", { type: "error" });
     }
   }
@@ -356,9 +355,9 @@ defineExpose({
 .setting-admin-shell {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   height: 100%;
-  padding: 20px;
+  padding: 16px;
   background:
     radial-gradient(
       circle at top left,
@@ -376,7 +375,7 @@ defineExpose({
 .setting-admin-toolbar,
 .setting-admin-table {
   border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  border-radius: 24px;
+  border-radius: 18px;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.96) 0%,
@@ -391,31 +390,32 @@ defineExpose({
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  padding: 20px 22px;
+  gap: 14px;
+  padding: 12px 14px;
 }
 
 .setting-admin-hero__eyebrow {
   display: inline-flex;
-  margin-bottom: 8px;
-  font-size: 12px;
+  margin-bottom: 4px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--el-color-primary) 74%, #46546b 26%);
 }
 
 .setting-admin-hero__title {
-  margin: 0 0 8px;
-  font-size: 28px;
-  line-height: 1.15;
+  margin: 0 0 4px;
+  font-size: 19px;
+  line-height: 1.2;
   color: var(--el-text-color-primary);
 }
 
 .setting-admin-hero__desc {
   margin: 0;
+  font-size: 13px;
   color: var(--el-text-color-secondary);
-  line-height: 1.7;
+  line-height: 1.55;
 }
 
 .setting-admin-hero__actions,
@@ -431,7 +431,7 @@ defineExpose({
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 14px 16px;
 }
 
 .toolbar-grid {
@@ -442,7 +442,7 @@ defineExpose({
 }
 
 .setting-admin-table {
-  padding: 18px;
+  padding: 14px;
   overflow: hidden;
 
   :deep(.sc-table-wrapper) {

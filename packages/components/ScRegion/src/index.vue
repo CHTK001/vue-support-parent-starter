@@ -53,6 +53,7 @@ import { IconifyIconOnline } from "@repo/components/IconifyIconOnline";
 import type { RegionData, RegionProps, RegionEmits } from "./types";
 import { regionData as defaultRegionData } from "./data";
 import { getRegionDataBySource, getRegionDataBySourceSync } from "./dataSource";
+import { ScCascader } from "@repo/components/ScCascader";
 
 const props = withDefaults(defineProps<RegionProps>(), {
   modelValue: () => [],

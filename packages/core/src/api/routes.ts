@@ -1,6 +1,8 @@
 import { formatToken, getConfig, getToken } from "@repo/config";
-import { http, type ReturnResult } from "@repo/utils";
+import { http, localStorageProxy, type ReturnResult } from "@repo/utils";
 import { resolveRouteSourceMode } from "../router/route-mode";
+
+const CACHE_ROUTER_KEY = "async-routes";
 
 type Result = {
   success: boolean;
@@ -23,6 +25,10 @@ const extractRouteArray = (payload: any): any[] => {
   return [];
 };
 
+const getCachedAsyncRoutes = (): any[] => {
+  return extractRouteArray(localStorageProxy().getItem(CACHE_ROUTER_KEY) as any);
+};
+
 /**
  * 获取异步路由
  * 支持三种模式：
@@ -33,6 +39,7 @@ const extractRouteArray = (payload: any): any[] => {
 export const getAsyncRoutes = async () => {
   const config = getConfig();
   const routeSourceMode = resolveRouteSourceMode(config);
+  const cachedRoutes = getCachedAsyncRoutes();
 
   // 模式1: 不使用远程菜单，返回空（由路由系统自动加载本地路由）
   if (routeSourceMode === "local-only") {
@@ -84,12 +91,28 @@ export const getAsyncRoutes = async () => {
 
     const normalizedRemoteRoutes = extractRouteArray(remoteResult.data);
 
+    if (!normalizedRemoteRoutes.length && cachedRoutes.length) {
+      return {
+        ...remoteResult,
+        data: cachedRoutes,
+        success: true,
+      } as any;
+    }
+
     return {
       ...remoteResult,
       data: normalizedRemoteRoutes,
       success: true
     } as any;
   } catch (error) {
+    if (cachedRoutes.length) {
+      return {
+        data: cachedRoutes,
+        success: true,
+        msg: "远程菜单加载失败，已回退缓存菜单",
+      } as any;
+    }
+
     console.error("[路由加载] 远程菜单加载失败:", error);
 
     // 如果启用了混合模式，保留已静态装配的本地路由

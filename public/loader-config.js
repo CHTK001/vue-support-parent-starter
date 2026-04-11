@@ -14,6 +14,14 @@
       "html.dark #app-loader{background:radial-gradient(circle at top,rgba(64,110,235,.14),transparent 44%),#111827}",
     definitions: [
       {
+        key: "none",
+        name: "无动画",
+        description: "不显示加载动效",
+        previewScale: 1,
+        html: '<div class="sys-loader-none" aria-hidden="true"></div>',
+        css: ".sys-loader-none{width:1px;height:1px;opacity:0}",
+      },
+      {
         key: "default",
         name: "三个圆点",
         description: "经典的三点跳动，适合通用加载页",

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import BaseThemeCard from "./BaseThemeCard.vue";
-import { scCardProps } from "../cardProps";
+import type { ScCardProps } from "../composables/useCardProps";
 
-defineProps(scCardProps);
+defineProps<ScCardProps>();
 defineEmits<{
   (e: "click", event: MouseEvent): void;
 }>();

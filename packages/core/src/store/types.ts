@@ -8,6 +8,8 @@ export type cacheType = {
 export type positionType = {
   startIndex?: number;
   length?: number;
+  deleteCount?: number;
+  path?: string;
 };
 
 export type appType = {
@@ -44,8 +46,21 @@ export type userType = {
   username?: string;
   loginType?: string;
   nickname?: string;
+  managedDeptIds?: Array<string | number>;
+  roleInfos?: Array<{
+    roleCode: string;
+    roleName?: string;
+    readable?: boolean;
+    writeable?: boolean;
+    executable?: boolean;
+  }>;
   roles?: Array<string>;
   perms?: Array<string>;
+  agreementVersion?: string;
+  agreementUpdatedAt?: string;
+  agreementAcceptedVersion?: string;
+  agreementAcceptedAt?: string;
+  agreementNeedConfirm?: boolean;
   isRemembered?: boolean;
   loginDay?: number;
 };

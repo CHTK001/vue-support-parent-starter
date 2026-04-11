@@ -1,6 +1,15 @@
 <template>
-  <div class="sc-text-input-wrapper" :class="[skinClass, { 'is-invalid': !validationResult.valid, 'is-loading': loading }]">
-    <div class="sc-text-input-container" :class="[skinClass, { 'is-disabled': disabled }]">
+  <div
+    class="sc-text-input-wrapper"
+    :class="[
+      skinClass,
+      { 'is-invalid': !validationResult.valid, 'is-loading': loading },
+    ]"
+  >
+    <div
+      class="sc-text-input-container"
+      :class="[skinClass, { 'is-disabled': disabled }]"
+    >
       <component
         :is="ElInput"
         :key="currentSkin"
@@ -19,19 +28,37 @@
         @blur="handleBlur"
         @clear="handleClear"
       >
-        <template #prefix v-if="showPrefix && (prefixIcon || actualPrefixIcon)">
-          <IconifyIconOnline :icon="prefixIcon || actualPrefixIcon" class="sc-text-input__prefix-icon" />
+        <template v-if="showPrefix && (prefixIcon || actualPrefixIcon)" #prefix>
+          <IconifyIconOnline
+            :icon="prefixIcon || actualPrefixIcon"
+            class="sc-text-input__prefix-icon"
+          />
         </template>
-        <template #suffix v-if="maxlength && !showWordLimit && hasValue && !disabled">
-          <span class="sc-text-input__word-count">{{ currentLength }}/{{ maxlength }}</span>
-        </template>
-        <template #suffix v-if="loading">
-          <IconifyIconOnline icon="ep:loading" class="is-loading" />
+        <template
+          v-if="
+            (maxlength && !showWordLimit && hasValue && !disabled) || loading
+          "
+          #suffix
+        >
+          <span
+            v-if="maxlength && !showWordLimit && hasValue && !disabled"
+            class="sc-text-input__word-count"
+          >
+            {{ currentLength }}/{{ maxlength }}
+          </span>
+          <IconifyIconOnline
+            v-if="loading"
+            icon="ep:loading"
+            class="is-loading"
+          />
         </template>
       </component>
     </div>
 
-    <div v-if="!validationResult.valid && showValidationMsg" class="sc-text-input__error">
+    <div
+      v-if="!validationResult.valid && showValidationMsg"
+      class="sc-text-input__error"
+    >
       {{ validationResult.message }}
     </div>
   </div>
@@ -133,10 +160,17 @@ const props = withDefaults(defineProps<Props>(), {
   showValidationMsg: true,
   options: () => [],
   fetchMethod: undefined,
-  loading: false
+  loading: false,
 });
 
-const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "change",
+  "input",
+  "focus",
+  "blur",
+  "clear",
+]);
 
 // 使用主题系统仅获取当前皮肤信息，输入组件始终使用 Element Plus 的 ElInput
 const { currentSkin } = useThemeComponent("ElInput");
@@ -163,7 +197,11 @@ const actualPrefixIcon = computed(() => {
 });
 
 const hasValue = computed(() => {
-  return innerValue.value !== "" && innerValue.value !== undefined && innerValue.value !== null;
+  return (
+    innerValue.value !== "" &&
+    innerValue.value !== undefined &&
+    innerValue.value !== null
+  );
 });
 
 const currentLength = computed(() => {
@@ -177,12 +215,15 @@ const currentLength = computed(() => {
 
 // 获取选项值的文本
 const getOptionLabel = (value: string | number) => {
-  const option = props.options.find(opt => opt.value === value);
+  const option = props.options.find((opt) => opt.value === value);
   return option ? option.label : value;
 };
 
 // 数据校验结果
-const validationResult = ref<{ valid: boolean; message: string }>({ valid: true, message: "" });
+const validationResult = ref<{ valid: boolean; message: string }>({
+  valid: true,
+  message: "",
+});
 
 // 是否正在加载
 const loading = computed(() => props.loading || localLoading.value);
@@ -190,15 +231,15 @@ const loading = computed(() => props.loading || localLoading.value);
 // 监听模型值变化
 watch(
   () => props.modelValue,
-  newVal => {
+  (newVal) => {
     innerValue.value = newVal;
     validateValue();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听值变化
-watch(innerValue, newVal => {
+watch(innerValue, (newVal) => {
   if (!props.disabled) {
     emit("update:modelValue", newVal);
     validateValue();
@@ -208,7 +249,7 @@ watch(innerValue, newVal => {
 // 监听禁用状态变化
 watch(
   () => props.disabled,
-  newVal => {
+  (newVal) => {
     if (newVal && validationResult.value.valid === false) {
       // 如果禁用状态，则不显示错误
       validationResult.value = { valid: true, message: "" };
@@ -216,7 +257,7 @@ watch(
       // 恢复启用状态时，重新校验
       validateValue();
     }
-  }
+  },
 );
 
 // 监听选项变化 - 使用版本号避免深度监听
@@ -225,7 +266,9 @@ watch(optionsVersion, () => {
   const newOptions = props.options;
   // 如果当前值不在新选项中，可以在这里处理
   if (Array.isArray(newOptions) && newOptions.length > 0 && innerValue.value) {
-    const found = newOptions.some(option => option.value === innerValue.value);
+    const found = newOptions.some(
+      (option) => option.value === innerValue.value,
+    );
     if (!found) {
       // 可以选择重置值或选择第一个选项
       // innerValue.value = newOptions[0].value;
@@ -269,7 +312,12 @@ const fetchData = async () => {
 onMounted(() => {
   innerValue.value = props.modelValue;
 
-  if ((props.modelValue === undefined || props.modelValue === "" || props.modelValue === null) && props.fetchMethod) {
+  if (
+    (props.modelValue === undefined ||
+      props.modelValue === "" ||
+      props.modelValue === null) &&
+    props.fetchMethod
+  ) {
     // 如果没有初始值但有获取数据的方法，则加载数据
     fetchData();
   }
@@ -331,7 +379,7 @@ function validateValue() {
 defineExpose({
   focus: () => inputRef.value?.focus(),
   blur: () => inputRef.value?.blur(),
-  fetchData
+  fetchData,
 });
 </script>
 
@@ -352,7 +400,12 @@ defineExpose({
 
   &.is-loading {
     :deep(.el-input__wrapper) {
-      background: linear-gradient(90deg, var(--el-fill-color-light) 25%, var(--el-fill-color) 50%, var(--el-fill-color-light) 75%);
+      background: linear-gradient(
+        90deg,
+        var(--el-fill-color-light) 25%,
+        var(--el-fill-color) 50%,
+        var(--el-fill-color-light) 75%
+      );
       background-size: 200% 100%;
       animation: loading-shimmer 1.5s infinite;
     }
@@ -366,18 +419,35 @@ defineExpose({
 
   // 默认主题下的现代化输入框样式
   :deep(.el-input__wrapper) {
-    border-radius: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    min-height: 44px;
+    padding-inline: 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--el-fill-color-light) 74%, white);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease;
+    box-shadow:
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--el-border-color) 72%, transparent),
+      0 10px 20px rgba(15, 23, 42, 0.04);
 
     &:hover {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-color-primary) 24%, transparent),
+        0 14px 24px rgba(15, 23, 42, 0.08);
       transform: translateY(-1px);
     }
 
     &.is-focus {
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-      transform: translateY(-2px);
+      background: color-mix(in srgb, var(--el-color-primary) 6%, white);
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-color-primary) 42%, transparent),
+        0 16px 30px rgba(var(--el-color-primary-rgb), 0.14);
+      transform: translateY(-1px);
     }
   }
 

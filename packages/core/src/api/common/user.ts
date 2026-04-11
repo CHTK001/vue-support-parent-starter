@@ -1,5 +1,13 @@
 import { http, type ReturnResult } from "@repo/utils";
 
+export type RoleInfoVO = {
+  roleCode: string;
+  roleName?: string;
+  readable?: boolean;
+  writeable?: boolean;
+  executable?: boolean;
+};
+
 export type UserInfoVO = {
   sysUserId: number | string;
   sysUserUsername: string;
@@ -8,9 +16,17 @@ export type UserInfoVO = {
   sysUserEmail: string;
   avatar: string;
   tenantId: string;
+  sysDeptId?: number | string;
+  managedDeptIds?: Array<number | string>;
   sysUserAvatar?: string;
+  roleInfos?: RoleInfoVO[];
   roles: string[];
   perms: string[];
+  agreementVersion?: string;
+  agreementUpdatedAt?: string;
+  agreementAcceptedVersion?: string;
+  agreementAcceptedAt?: string;
+  agreementNeedConfirm?: boolean;
 };
 
 export interface SysBase {
@@ -32,13 +48,21 @@ export type UserLog = {
   sysLogParam: string;
   sysLogFrom: string;
   sysLogStatus: string;
+  sysLogLoginType?: string;
+  sysLogFingerprint?: string;
+  sysLogUa?: string;
+  sysLogCost?: number;
+  sysDeptId?: number | string;
+  sysDeptName?: string;
+  sysLogRoleCodes?: string;
+  sysLogRoleNames?: string;
 } & SysBase;
 export type FlatUserResult = {
   accessToken: string;
   /** 用于调用刷新`accessToken`的接口时所需的`token` */
   refreshToken: string;
   /** `accessToken`的过期时间（格式'xxxx/xx/xx xx:xx:xx'） */
-  expires: Number;
+  expires: number;
 } & UserInfoVO;
 
 export type UserResult = {
@@ -47,7 +71,7 @@ export type UserResult = {
   /** 用于调用刷新`accessToken`的接口时所需的`token` */
   refreshToken: string;
   /** `accessToken`的过期时间（格式'xxxx/xx/xx xx:xx:xx'） */
-  expires: Number;
+  expires: number;
   /** 是否记住密码 */
   isRemembered: boolean;
 };
@@ -57,7 +81,7 @@ export type RefreshTokenResult = {} & UserResult;
 /** 删除系统配置 */
 export const fetchDeleteUser = (id) => {
   const params = { sysUserId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/user/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/user/delete", {
     params,
   });
 };
@@ -88,7 +112,7 @@ export const fetchSaveUserPreference = (preference: string) => {
 
 /** 保存用户配置 */
 export const fetchSaveUser = (setting) => {
-  return http.request<Boolean>("post", "/v2/user/save", { data: setting });
+  return http.request<boolean>("post", "/v2/user/save", { data: setting });
 };
 
 /** 更新用户配置 */
@@ -115,13 +139,13 @@ export const fetchPageUser = (params) => {
 };
 /** 三方解除绑定 */
 export const fetchThirdUnbind = (data?: object) => {
-  return http.request<ReturnResult<String>>("post", "/v2/user/third/unbind", {
+  return http.request<ReturnResult<string>>("post", "/v2/user/third/unbind", {
     data,
   });
 };
 /** 三方绑定情况 */
 export const fetchThirdBindInfo = (data?: object) => {
-  return http.request<ReturnResult<String>>(
+  return http.request<ReturnResult<string>>(
     "post",
     "/v2/user/third/bind/info",
     {
@@ -131,7 +155,7 @@ export const fetchThirdBindInfo = (data?: object) => {
 };
 /** 三方绑定码 */
 export const fetchThirdBindCode = (data?: object) => {
-  return http.request<ReturnResult<String>>(
+  return http.request<ReturnResult<string>>(
     "post",
     "/v2/user/third/bind/code",
     {
@@ -141,7 +165,7 @@ export const fetchThirdBindCode = (data?: object) => {
 };
 /** 三方登录码 */
 export const fetchThirdLoginCode = (data?: object) => {
-  return http.request<ReturnResult<String>>(
+  return http.request<ReturnResult<string>>(
     "post",
     "/v2/user/third/login/code",
     {

@@ -28,10 +28,10 @@
 - 支持批量启动/停止该服务器上的所有容器
 - 折叠式展开，节省空间
 
-#### 按软件分组
-- 将容器按软件/镜像分组展示
-- 显示每个软件的运行/停止容器数量
-- 便于管理同一软件的多个实例
+#### 按镜像分组
+- 将容器按镜像分组展示
+- 显示每个镜像组的运行/停止容器数量
+- 便于管理同一镜像的多个实例
 
 ### 3. 容器详情对话框 (ContainerDetailDialog.vue)
 
@@ -102,7 +102,7 @@
 
 #### 批量操作容器
 ```typescript
-POST /api/monitor/system-soft-container/batch
+POST /api/monitor/docker/containers/batch
 
 Request:
 {
@@ -120,19 +120,19 @@ Response:
 
 ### 已有接口
 
-- `GET /api/monitor/system-soft-container/page` - 分页查询容器
-- `GET /api/monitor/system-soft-container/list` - 条件查询容器
-- `GET /api/monitor/system-soft-container/{id}` - 获取容器详情
-- `POST /api/monitor/system-soft-container/{id}/start` - 启动容器
-- `POST /api/monitor/system-soft-container/{id}/stop` - 停止容器
-- `POST /api/monitor/system-soft-container/{id}/restart` - 重启容器
-- `DELETE /api/monitor/system-soft-container/{id}/container` - 删除容器
-- `GET /api/monitor/system-soft-container/{id}/logs` - 获取容器日志
-- `POST /api/monitor/system-soft-container/{id}/logs/start` - 启动日志推送
-- `POST /api/monitor/system-soft-container/{id}/logs/stop` - 停止日志推送
-- `POST /api/monitor/system-soft-container/{id}/exec` - 执行命令
-- `GET /api/monitor/system-soft-container/{id}/stats` - 获取统计信息
-- `GET /api/monitor/system-soft-container/sync` - 同步容器状态
+- `GET /api/monitor/docker/containers/page` - 分页查询容器
+- `GET /api/monitor/docker/containers/list` - 条件查询容器
+- `GET /api/monitor/docker/containers/{id}` - 获取容器详情
+- `POST /api/monitor/docker/containers/{id}/start` - 启动容器
+- `POST /api/monitor/docker/containers/{id}/stop` - 停止容器
+- `POST /api/monitor/docker/containers/{id}/restart` - 重启容器
+- `DELETE /api/monitor/docker/containers/{id}/container` - 删除容器
+- `GET /api/monitor/docker/containers/{id}/logs` - 获取容器日志
+- `POST /api/monitor/docker/containers/{id}/logs/start` - 启动日志推送
+- `POST /api/monitor/docker/containers/{id}/logs/stop` - 停止日志推送
+- `POST /api/monitor/docker/containers/{id}/exec` - 执行命令
+- `GET /api/monitor/docker/containers/{id}/stats` - 获取统计信息
+- `GET /api/monitor/docker/containers/sync` - 同步容器状态
 
 ## 使用方式
 

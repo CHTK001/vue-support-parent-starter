@@ -31,7 +31,11 @@
         </template>
         <template #suffix>
           <slot name="suffix" />
-          <ScTooltip v-if="tip && tipPosition === 'right'" :content="tip" placement="top">
+          <ScTooltip
+            v-if="tip && tipPosition === 'right'"
+            :content="tip"
+            placement="top"
+          >
             <IconifyIconOnline
               icon="ri:question-line"
               class="sc-password-input__tip-icon"
@@ -46,16 +50,26 @@
         </template>
       </ElInput>
     </div>
-    <div v-if="tip && tipPosition === 'bottom'" class="sc-password-input__tip-bottom">
+    <div
+      v-if="tip && tipPosition === 'bottom'"
+      class="sc-password-input__tip-bottom"
+    >
       {{ tip }}
     </div>
-    <div v-if="passwdStrong !== 'none' && showStrengthMeter && currentValue" class="sc-password-strength">
+    <div
+      v-if="passwdStrong !== 'none' && showStrengthMeter && currentValue"
+      class="sc-password-strength"
+    >
       <div class="sc-password-strength__label">
         密码强度:
         <span>{{ strengthText }}</span>
       </div>
       <div class="sc-password-strength__meter">
-        <div class="sc-password-strength__meter-bar" :style="{ width: `${strength * 25}%` }" :class="`sc-password-strength__meter-bar--${strengthLevel}`" />
+        <div
+          class="sc-password-strength__meter-bar"
+          :style="{ width: `${strength * 25}%` }"
+          :class="`sc-password-strength__meter-bar--${strengthLevel}`"
+        />
       </div>
       <div v-if="showStrengthTips" class="sc-password-strength__tips">
         <p>强密码应包含：</p>
@@ -166,22 +180,34 @@ const props = withDefaults(defineProps<Props>(), {
   minLength: 8,
   tip: "",
   tipPosition: "right",
-  passwdStrong: "passwd-strong"
+  passwdStrong: "passwd-strong",
 });
 
-const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "strength-change"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "change",
+  "input",
+  "focus",
+  "blur",
+  "clear",
+  "strength-change",
+]);
 
 const currentValue = computed({
   get: () => props.modelValue,
-  set: val => emit("update:modelValue", val)
+  set: (val) => emit("update:modelValue", val),
 });
 
 // 密码强度计算
 const hasLowerCase = computed(() => /[a-z]/.test(props.modelValue || ""));
 const hasUpperCase = computed(() => /[A-Z]/.test(props.modelValue || ""));
 const hasNumber = computed(() => /[0-9]/.test(props.modelValue || ""));
-const hasSpecialChar = computed(() => /[^A-Za-z0-9]/.test(props.modelValue || ""));
-const hasMinLength = computed(() => (props.modelValue || "").length >= props.minLength);
+const hasSpecialChar = computed(() =>
+  /[^A-Za-z0-9]/.test(props.modelValue || ""),
+);
+const hasMinLength = computed(
+  () => (props.modelValue || "").length >= props.minLength,
+);
 
 // 计算总体强度 (0-4)
 const strength = computed(() => {
@@ -247,7 +273,7 @@ const handleUpdate = (value: string) => {
       value,
       strength: strength.value,
       strengthLevel: strengthLevel.value,
-      valid: strength.value >= 2 // 中等及以上强度认为有效
+      valid: strength.value >= 2, // 中等及以上强度认为有效
     });
   }
 };
@@ -317,18 +343,35 @@ const handleClear = () => {
 
   // 现代化的密码输入框样式
   :deep(.el-input__wrapper) {
-    border-radius: 8px;
-    box-shadow: var(--el-box-shadow-lighter);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+    padding-inline: 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--el-fill-color-light) 74%, white);
+    box-shadow:
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--el-border-color) 72%, transparent),
+      0 10px 20px rgba(15, 23, 42, 0.04);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease;
 
     &:hover {
-      box-shadow: var(--el-box-shadow-light);
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-color-primary) 24%, transparent),
+        0 14px 24px rgba(15, 23, 42, 0.08);
       transform: translateY(-1px);
     }
 
     &.is-focus {
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-      transform: translateY(-2px);
+      background: color-mix(in srgb, var(--el-color-primary) 6%, white);
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-color-primary) 42%, transparent),
+        0 16px 30px rgba(var(--el-color-primary-rgb), 0.14);
+      transform: translateY(-1px);
     }
   }
 
@@ -377,7 +420,11 @@ const handleClear = () => {
     color: var(--el-text-color-secondary);
     animation: fadeInUp 0.3s ease-out;
     padding: 8px 12px;
-    background: linear-gradient(135deg, var(--el-fill-color-extra-light), var(--el-fill-color-light));
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-extra-light),
+      var(--el-fill-color-light)
+    );
     border-radius: 6px;
     border-left: 3px solid var(--el-color-primary);
   }
@@ -387,7 +434,11 @@ const handleClear = () => {
   margin-top: 12px;
   font-size: 12px;
   padding: 12px;
-  background: linear-gradient(135deg, var(--el-fill-color-extra-light), var(--el-fill-color-light));
+  background: linear-gradient(
+    135deg,
+    var(--el-fill-color-extra-light),
+    var(--el-fill-color-light)
+  );
   border-radius: 8px;
   border: 1px solid var(--el-border-color-lighter);
   animation: fadeInUp 0.3s ease-out;
@@ -433,7 +484,12 @@ const handleClear = () => {
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
       animation: shimmer 2s ease-in-out infinite;
     }
 
@@ -501,7 +557,11 @@ const handleClear = () => {
         &.is-valid {
           color: var(--el-color-success);
           font-weight: 500;
-          background: linear-gradient(135deg, var(--el-color-success-light-9), var(--el-color-success-light-8));
+          background: linear-gradient(
+            135deg,
+            var(--el-color-success-light-9),
+            var(--el-color-success-light-8)
+          );
           border: 1px solid var(--el-color-success-light-7);
           transform: scale(1.02);
 

@@ -13,7 +13,16 @@ import {
   EventStreamContentType,
 } from "@microsoft/fetch-event-source";
 import { getToken } from "../utils/auth";
-import { parseSocketMessage, buildAuthUrl } from "./socketUtils";
+import {
+  buildAuthUrl,
+  matchesSocketListenOptions,
+  parseSocketMessage,
+} from "./socketUtils";
+import type {
+  SocketTemplate,
+  SocketTemplateListenOptions,
+  WsMessage,
+} from "./socketTemplate";
 
 /**
  * SSE 配置接口
@@ -84,7 +93,7 @@ export const SseServiceKey: InjectionKey<SseService> = Symbol("SseService");
 export function createSseService(config: SseConfig): SseService {
   let abortController: AbortController | null = null;
   const isConnected = ref(false);
-  const listeners = new Map<string, Set<Function>>();
+  const listeners = new Map<string, Set<(data: unknown) => void>>();
   let reconnectAttempts = 0;
   const maxReconnectAttempts = config.reconnectionAttempts ?? 5;
 
@@ -210,7 +219,7 @@ export function createSseService(config: SseConfig): SseService {
   /**
    * 触发监听器
    */
-  const triggerListeners = (event: string, data: any) => {
+  const triggerListeners = (event: string, data: unknown) => {
     const eventListeners = listeners.get(event);
     if (eventListeners) {
       eventListeners.forEach((callback) => {
@@ -241,11 +250,9 @@ export function createSseService(config: SseConfig): SseService {
     }
 
     // 添加回调（带 dataId 过滤）
-    const wrappedCallback = (data: any) => {
-      if (options?.dataId !== undefined) {
-        if (String(data?.dataId) !== String(options.dataId)) {
-          return;
-        }
+    const wrappedCallback = (data: unknown) => {
+      if (!matchesSocketListenOptions(data, options)) {
+        return;
       }
       callback(data);
     };
@@ -286,7 +293,11 @@ export function createSseService(config: SseConfig): SseService {
 
   const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
 
-  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+  const subscribe = (
+    module: string,
+    event: string,
+    handler: (msg: WsMessage) => void,
+  ): (() => void) => {
     const key = `${module}_${event}`;
     if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
     subscribeHandlers.get(key)!.add(handler);

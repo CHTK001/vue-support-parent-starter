@@ -93,11 +93,6 @@ export const MonitorTopics = {
     CONNECTION_TEST: "monitor:server:connection_test",
     HEALTH: "monitor:server:health",
   },
-  // 软件相关
-  SOFTWARE: {
-    INSTALL_PROGRESS: "monitor:software:install_progress",
-    SYNC_PROGRESS: "monitor:software:sync_progress",
-  },
   // 操作进度
   OPERATION: {
     PROGRESS: "monitor:operation:progress",
@@ -121,6 +116,28 @@ export const MonitorTopics = {
     METRICS: "monitor:spider:metrics",
     DATA: "monitor:spider:data",
     ERROR: "monitor:spider:error",
+  },
+} as const;
+
+export const SoftTopics = {
+  MODULE: "SOFT",
+  EVENTS: {
+    INSTALL_PROGRESS: "INSTALL_PROGRESS",
+    INSTALL_LOG: "INSTALL_LOG",
+    OPERATION_UPDATE: "OPERATION_UPDATE",
+    RUNTIME_LOG: "RUNTIME_LOG",
+  },
+} as const;
+
+export const ServerTopics = {
+  MODULE: "SERVER",
+  EVENTS: {
+    METRICS: "SERVER_METRICS",
+    FILE_LOG: "FILE_LOG",
+    SERVICE: "SERVER_SERVICE",
+    AI_TASK: "SERVER_AI_TASK",
+    ALERT: "SERVER_ALERT",
+    PROCESS: "SERVER_PROCESS",
   },
 } as const;
 
@@ -222,6 +239,8 @@ export const SocketTopics = {
   system: SystemTopics,
   service: ServiceTopics,
   monitor: MonitorTopics,
+  soft: SoftTopics,
+  server: ServerTopics,
   remote: RemoteTopics,
   video: VideoTopics,
 } as const;

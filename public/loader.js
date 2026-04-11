@@ -8,6 +8,7 @@
   var LOADER_STYLE_ID = "app-loader-style";
   var LOADER_CONTAINER_ID = "app-loader";
   var LOADER_SHELL_CLASS = "sys-loader-shell";
+  var GLOBAL_LOADER_STORAGE_KEY = "sys-loader-style";
   var LOADER_SHELL_STYLE_TEXT =
     ".sys-loader-shell{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%}";
 
@@ -15,11 +16,19 @@
     return {
       baseStyleText:
         "html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}" +
-        "#app{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#fff}" +
+        "#app{position:relative;width:100%;height:100%;background:#fff}" +
         "html.dark #app{background:#1a1a1a}" +
         "#app-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:32px;background:radial-gradient(circle at top,rgba(64,110,235,.08),transparent 44%),#fff;z-index:9999}" +
         "html.dark #app-loader{background:radial-gradient(circle at top,rgba(64,110,235,.14),transparent 44%),#111827}",
       definitions: [
+        {
+          key: "none",
+          name: "无动画",
+          description: "不显示加载动效",
+          previewScale: 1,
+          html: '<div class="sys-loader-none" aria-hidden="true"></div>',
+          css: ".sys-loader-none{width:1px;height:1px;opacity:0}",
+        },
         {
           key: "default",
           name: "三个圆点",
@@ -44,6 +53,37 @@
     return createFallbackConfig();
   }
 
+  function normalizeString(value) {
+    return typeof value === "string" ? value.trim() : "";
+  }
+
+  function resolveLoaderAppCode() {
+    var windowAppCode = normalizeString(window.__SYS_APP_CODE__);
+    if (windowAppCode) {
+      return windowAppCode;
+    }
+
+    var metaAppCode = normalizeString(
+      document
+        .querySelector('meta[name="sys-app-code"]')
+        ?.getAttribute("content"),
+    );
+    if (metaAppCode) {
+      return metaAppCode;
+    }
+
+    return normalizeString(
+      document.documentElement?.getAttribute("data-system-code"),
+    );
+  }
+
+  function resolveLoaderStorageKey() {
+    var appCode = resolveLoaderAppCode();
+    return appCode
+      ? GLOBAL_LOADER_STORAGE_KEY + ":" + appCode
+      : GLOBAL_LOADER_STORAGE_KEY;
+  }
+
   function createLoaderMap(definitions) {
     return definitions.reduce(function (map, definition) {
       if (definition && definition.key) {
@@ -58,7 +98,7 @@
       '<div class="' +
       LOADER_SHELL_CLASS +
       '" data-loader-key="' +
-      String(loader.key || "default") +
+      String(loader.key || "none") +
       '">' +
       String(loader.html || "") +
       "</div>"
@@ -135,7 +175,7 @@
     });
   }
 
-  var loaderType = localStorage.getItem("sys-loader-style") || "default";
+  var loaderType = localStorage.getItem(resolveLoaderStorageKey()) || "none";
   var config = resolveConfig();
   var definitions = Array.isArray(config.definitions) ? config.definitions : [];
   var fallbackConfig = createFallbackConfig();
@@ -143,21 +183,25 @@
   var loaderMap = createLoaderMap(definitions);
   var loader =
     loaderMap[loaderType] ||
+    loaderMap.none ||
     loaderMap.default ||
     definitions[0] ||
     fallbackLoader;
+  var shouldMountLoader = loader && loader.key !== "none";
 
   ensureStyleElement(
     String(config.baseStyleText || fallbackConfig.baseStyleText) +
       LOADER_SHELL_STYLE_TEXT +
-      String(loader.css || fallbackLoader.css),
+      String(shouldMountLoader ? loader.css : ""),
   );
-  ensureLoaderElement(createLoaderMarkup(loader));
+  if (shouldMountLoader) {
+    ensureLoaderElement(createLoaderMarkup(loader));
+  }
 
   window.hideAppLoader = function () {
     var appLoader = document.getElementById(LOADER_CONTAINER_ID);
-    if (appLoader) {
-      appLoader.style.display = "none";
+    if (appLoader && appLoader.parentNode) {
+      appLoader.parentNode.removeChild(appLoader);
     }
   };
 

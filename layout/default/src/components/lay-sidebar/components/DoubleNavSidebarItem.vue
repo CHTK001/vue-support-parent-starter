@@ -141,10 +141,13 @@ function hasOneShowingChild(children: MenuType[] = [], parent: MenuType) {
 
 function resolvePath(routePath: string) {
   const httpReg = /^http(s?):\/\//;
+  if (routePath?.startsWith("/")) {
+    return routePath;
+  }
   if (httpReg.test(routePath) || httpReg.test(props.basePath)) {
     return routePath || props.basePath;
   } else {
-    return configResolvePath(props.basePath, routePath);
+    return configResolvePath(routePath, props.basePath);
   }
 }
 

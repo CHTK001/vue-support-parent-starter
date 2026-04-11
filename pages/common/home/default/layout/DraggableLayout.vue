@@ -14,7 +14,12 @@ const userLayoutObject = useLayoutLayoutStore();
  * - 列数越大：横向缩放更细
  * - cellHeight 越小：纵向缩放更细
  */
-const getGridMeta = () => userLayoutObject.getGridMeta?.() || { columnCount: 12, cellHeight: 90, margin: 12 };
+const getGridMeta = () =>
+  userLayoutObject.getGridMeta?.() || {
+    columnCount: 36,
+    cellHeight: 48,
+    margin: 6,
+  };
 
 const props = defineProps({
   modelValue: {

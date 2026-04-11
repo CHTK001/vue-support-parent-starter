@@ -40,8 +40,41 @@ export default defineComponent({
       loading: false,
       layoutLoading: false,
       groupList: [],
+      searchKeyword: "",
       select: {},
     };
+  },
+  computed: {
+    editableCount() {
+      return this.groupList.filter((item) => !this.isReadOnlySetting(item))
+        .length;
+    },
+    filteredGroupList() {
+      const keyword = this.normalizeSearchText(this.searchKeyword);
+      if (!keyword) {
+        return this.groupList;
+      }
+
+      return this.groupList.filter((item) =>
+        this.buildSearchText(item).includes(keyword),
+      );
+    },
+    hasSearchKeyword() {
+      return Boolean(this.normalizeSearchText(this.searchKeyword));
+    },
+    displayGroupList: {
+      get() {
+        return this.filteredGroupList;
+      },
+      set(value) {
+        if (!this.hasSearchKeyword) {
+          this.groupList = value;
+        }
+      },
+    },
+    isConfigGroup() {
+      return this.form.group === "config";
+    },
   },
   watch: {
     data: {
@@ -52,21 +85,13 @@ export default defineComponent({
       },
     },
   },
-  computed: {
-    editableCount() {
-      return this.groupList.filter((item) => !this.isReadOnlySetting(item))
-        .length;
-    },
-    isConfigGroup() {
-      return this.form.group === "config";
-    },
-  },
   methods: {
     resetState() {
       this.loading = false;
       this.layoutLoading = false;
       this.form = {};
       this.groupList = [];
+      this.searchKeyword = "";
     },
     filterGroupSettings(list = [], group = "") {
       return list.filter((item) => {
@@ -109,7 +134,6 @@ export default defineComponent({
           message("该分组暂无配置项", { type: "warning" });
         }
       } catch (error) {
-        console.error("获取配置失败:", error);
         message("获取配置失败，请检查网络连接", { type: "error" });
       } finally {
         this.layoutLoading = false;
@@ -145,9 +169,19 @@ export default defineComponent({
       }
 
       this.loading = true;
-      const res = await fetchUpdateBatchSetting(this.groupList);
+      const payload = this.groupList.map((item) => {
+        if (!this.isBooleanSetting(item)) {
+          return { ...item };
+        }
+
+        return {
+          ...item,
+          sysSettingValue: this.getBooleanValue(item),
+        };
+      });
+      const res = await fetchUpdateBatchSetting(payload);
       if (res.code == "00000") {
-        this.$emit("success", this.groupList);
+        this.$emit("success", payload);
         message(transformI18n("message.updateSuccess"), { type: "success" });
       } else {
         message(res.msg, { type: "error" });
@@ -158,6 +192,36 @@ export default defineComponent({
       for (let index = 0; index < this.groupList.length; index++) {
         this.groupList[index].sysSettingSort = index;
       }
+    },
+    normalizeSearchText(value) {
+      return String(value ?? "")
+        .trim()
+        .toLowerCase();
+    },
+    resolveCurrentValuePreview(item) {
+      if (item == null || item.sysSettingValue == null) {
+        return "";
+      }
+      if (typeof item.sysSettingValue === "string") {
+        return item.sysSettingValue;
+      }
+      try {
+        return JSON.stringify(item.sysSettingValue);
+      } catch (error) {
+        return String(item.sysSettingValue);
+      }
+    },
+    buildSearchText(item) {
+      return this.normalizeSearchText(
+        [
+          this.resolveItemTitle(item),
+          item?.sysSettingName,
+          item?.sysSettingRemark,
+          this.resolveCurrentValuePreview(item),
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
     },
     isBooleanSetting(item) {
       return item?.sysSettingValueType === BOOLEAN_TYPE;
@@ -192,6 +256,9 @@ export default defineComponent({
     resolveTypeLabel(item) {
       return item?.sysSettingValueType || "String";
     },
+    resolveButtonIcon(icon) {
+      return useRenderIcon(icon);
+    },
   },
 });
 </script>
@@ -200,11 +267,20 @@ export default defineComponent({
   <div class="remote-setting-root">
     <div class="remote-setting-shell">
       <section class="remote-setting-hero">
-        <div>
+        <div class="remote-setting-hero__main">
           <span class="remote-setting-hero__eyebrow">远程组配置抽屉</span>
-          <h2 class="remote-setting-hero__title">
-            {{ form.name || "远程配置" }}
-          </h2>
+          <div class="remote-setting-hero__heading">
+            <h2 class="remote-setting-hero__title">
+              {{ form.name || "远程配置" }}
+            </h2>
+            <div class="remote-setting-hero__chips">
+              <span class="hero-chip">总数 {{ groupList.length }}</span>
+              <span class="hero-chip">可编辑 {{ editableCount }}</span>
+              <span v-if="hasSearchKeyword" class="hero-chip hero-chip--accent">
+                命中 {{ filteredGroupList.length }}
+              </span>
+            </div>
+          </div>
           <p class="remote-setting-hero__desc">
             {{
               form.description ||
@@ -212,15 +288,19 @@ export default defineComponent({
             }}
           </p>
         </div>
-        <div class="remote-setting-hero__stats">
-          <div class="hero-stat">
-            <span class="hero-stat__label">配置项数量</span>
-            <strong class="hero-stat__value">{{ groupList.length }}</strong>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat__label">可编辑项</span>
-            <strong class="hero-stat__value">{{ editableCount }}</strong>
-          </div>
+        <div class="remote-setting-hero__search">
+          <ScInput
+            v-model="searchKeyword"
+            clearable
+            placeholder="按标题 / 配置键 / 说明 / 当前值过滤"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+          </ScInput>
+          <p class="remote-setting-hero__search-tip">
+            输入关键字后仅过滤当前抽屉显示，不改后端接口和保存内容。
+          </p>
         </div>
       </section>
 
@@ -240,17 +320,31 @@ export default defineComponent({
       </div>
 
       <template v-else>
+        <div v-if="filteredGroupList.length === 0" class="empty-container">
+          <ScEmpty description="没有匹配的配置项">
+            <ScButton type="primary" @click="searchKeyword = ''">
+              清空过滤
+            </ScButton>
+          </ScEmpty>
+        </div>
+
         <draggable
-          v-model="groupList"
+          v-else
+          v-model="displayGroupList"
           item-key="sysSettingId"
           handle=".drag-indicator"
           class="setting-item-list"
+          :class="{ 'is-filtered': hasSearchKeyword }"
+          :disabled="hasSearchKeyword"
           @end="handleChange"
         >
           <template #item="{ element }">
             <div
               class="setting-item-card"
-              :class="{ 'is-readonly': isReadOnlySetting(element) }"
+              :class="{
+                'is-readonly': isReadOnlySetting(element),
+                'setting-item-card--boolean': isBooleanSetting(element),
+              }"
             >
               <div class="setting-item-card__accent" />
 
@@ -296,7 +390,7 @@ export default defineComponent({
                   v-if="isBooleanSetting(element)"
                   :model-value="getBooleanValue(element)"
                   layout="visual-card"
-                  wide
+                  class="setting-visual-switch"
                   :disabled="isReadOnlySetting(element)"
                   :label="resolveItemTitle(element)"
                   :description="resolveItemDescription(element)"
@@ -401,7 +495,7 @@ export default defineComponent({
             </p>
           </div>
           <ScButton
-            :icon="useRenderIcon('ri:save-2-fill')"
+            :icon="resolveButtonIcon('ri:save-2-fill')"
             type="primary"
             :loading="loading"
             @click="submit"
@@ -423,7 +517,7 @@ export default defineComponent({
 :deep(.el-drawer) {
   .el-drawer__header {
     margin: 0;
-    padding: 20px 24px;
+    padding: 14px 18px;
     border-bottom: 1px solid var(--el-border-color-lighter);
     background: linear-gradient(
       135deg,
@@ -451,46 +545,61 @@ export default defineComponent({
 .remote-setting-shell {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   height: 100%;
-  padding: 22px;
+  padding: 16px;
   overflow-y: auto;
 }
 
 .remote-setting-hero {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 18px;
-  padding: 20px 22px;
+  gap: 14px;
+  padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--el-border-color) 68%, transparent);
-  border-radius: 24px;
+  border-radius: 18px;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(248, 250, 252, 0.9) 56%,
-    rgba(var(--el-color-primary-rgb), 0.08) 100%
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(248, 250, 252, 0.94) 56%,
+    rgba(var(--el-color-primary-rgb), 0.06) 100%
   );
   box-shadow:
-    0 22px 42px -34px rgba(15, 23, 42, 0.34),
+    0 16px 32px -30px rgba(15, 23, 42, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+.remote-setting-hero__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remote-setting-hero__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .remote-setting-hero__eyebrow,
 .remote-setting-actions__eyebrow {
   display: inline-flex;
-  margin-bottom: 8px;
-  font-size: 12px;
+  margin-bottom: 0;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--el-color-primary) 74%, #46546b 26%);
 }
 
 .remote-setting-hero__title {
-  margin: 0 0 8px;
-  font-size: 28px;
-  line-height: 1.15;
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.2;
   color: var(--el-text-color-primary);
 }
 
@@ -499,40 +608,56 @@ export default defineComponent({
 .setting-item-card__desc,
 .setting-item-card__key {
   margin: 0;
-  line-height: 1.7;
+  line-height: 1.55;
   color: var(--el-text-color-secondary);
 }
 
-.remote-setting-hero__stats {
-  display: grid;
-  min-width: 200px;
-  gap: 12px;
+.remote-setting-hero__desc {
+  font-size: 13px;
 }
 
-.hero-stat {
-  padding: 14px 16px;
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.14);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 14px 26px -28px rgba(15, 23, 42, 0.4);
+.remote-setting-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.hero-stat__label {
-  display: block;
-  margin-bottom: 6px;
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid rgba(191, 219, 254, 0.92);
+  border-radius: 999px;
+  background: rgba(239, 246, 255, 0.9);
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  font-weight: 600;
+  color: #1d4ed8;
 }
 
-.hero-stat__value {
-  font-size: 20px;
-  color: var(--el-text-color-primary);
+.hero-chip--accent {
+  border-color: rgba(110, 231, 183, 0.9);
+  background: rgba(236, 253, 245, 0.95);
+  color: #047857;
+}
+
+.remote-setting-hero__search {
+  display: flex;
+  width: min(360px, 100%);
+  flex-direction: column;
+  gap: 6px;
+}
+
+.remote-setting-hero__search-tip {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--el-text-color-secondary);
 }
 
 .remote-setting-note {
-  padding: 12px 16px;
+  padding: 10px 12px;
   border: 1px solid rgba(var(--el-color-warning-rgb), 0.18);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(var(--el-color-warning-rgb), 0.08);
   color: var(--el-text-color-regular);
   font-size: 13px;
@@ -554,17 +679,22 @@ export default defineComponent({
 }
 
 .setting-item-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.setting-item-list.is-filtered {
+  align-items: start;
 }
 
 .setting-item-card {
   position: relative;
   overflow: hidden;
-  padding: 18px;
+  grid-column: 1 / -1;
+  padding: 16px;
   border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  border-radius: 22px;
+  border-radius: 20px;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.96) 0%,
@@ -573,6 +703,10 @@ export default defineComponent({
   box-shadow:
     0 20px 38px -34px rgba(15, 23, 42, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+.setting-item-card--boolean {
+  grid-column: auto;
 }
 
 .setting-item-card.is-readonly {
@@ -641,27 +775,47 @@ export default defineComponent({
 }
 
 .setting-item-card__desc {
-  margin-top: 12px;
+  margin-top: 10px;
   font-size: 13px;
 }
 
 .setting-item-card__editor {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .setting-field-panel {
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.84);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.setting-item-card__editor :deep(.el-input__wrapper),
+.setting-item-card__editor :deep(.el-select__wrapper),
+.setting-item-card__editor :deep(.el-textarea__inner) {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.92);
+  transition: box-shadow 0.2s ease;
+}
+
+.setting-item-card__editor :deep(.el-input__wrapper:hover),
+.setting-item-card__editor :deep(.el-select__wrapper:hover),
+.setting-item-card__editor :deep(.el-textarea__inner:hover) {
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.95);
+}
+
+.setting-item-card__editor :deep(.el-input__wrapper.is-focus),
+.setting-item-card__editor :deep(.el-select__wrapper.is-focused),
+.setting-item-card__editor :deep(.el-textarea__inner:focus) {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.94),
-    0 12px 24px -28px rgba(15, 23, 42, 0.32);
+    inset 0 0 0 1px rgba(59, 130, 246, 0.96),
+    0 0 0 3px rgba(191, 219, 254, 0.38);
 }
 
 .setting-item-card__footer {
-  margin-top: 16px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid
     color-mix(in srgb, var(--el-border-color) 78%, transparent);
 }
@@ -681,9 +835,9 @@ export default defineComponent({
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 18px 22px;
+  padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  border-radius: 22px;
+  border-radius: 18px;
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.96) 0%,
@@ -719,11 +873,20 @@ export default defineComponent({
     align-items: flex-start;
   }
 
-  .remote-setting-hero__stats,
+  .remote-setting-hero__heading,
+  .remote-setting-hero__search,
   .remote-setting-actions__summary {
     width: 100%;
     min-width: 0;
     max-width: none;
+  }
+
+  .setting-item-list {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-item-card--boolean {
+    grid-column: 1 / -1;
   }
 
   .setting-item-card__badges {

@@ -44,19 +44,19 @@ const props = withDefaults(defineProps<Props>(), {
 const config = getConfig();
 
 // 获取本地响应式存储（用于覆盖平台默认配置）
-const { $storage } = useGlobal();
+const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 /**
  * 计算实际使用的类型（从全局配置读取）
  */
-const actualType = computed(() => {
+const actualType = computed<Props["type"]>(() => {
   // 如果组件传入了 type，优先使用组件的 type
   if (props.type !== "primary") {
     return props.type;
   }
 
   // 否则从全局配置读取
-  const localType = $storage?.configure?.newMenuBadgeType as string | undefined;
+  const localType = $storage?.configure?.newMenuBadgeType as Props["type"];
   return localType || props.type;
 });
 

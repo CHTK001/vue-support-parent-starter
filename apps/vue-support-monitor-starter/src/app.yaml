@@ -73,6 +73,9 @@ ShowErrorPageStyleSwitcher: true
 # ===========================================
 # 是否自动远程菜单-从后端获取菜单（默认: false）
 # RemoteMenu: false
+# 本地模块路由路径，按 monorepo page 模块装配
+LocalRouteModulePaths:
+  - ../../pages/soft
 # 是否自动远程布局-从后端获取布局配置（默认: false）
 # RemoteLayout: false
 # 是否开启布局远程保存（默认: false）

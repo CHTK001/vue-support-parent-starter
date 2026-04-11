@@ -161,7 +161,7 @@
     &.chrome-item {
       padding-right: 0;
       padding-left: 0;
-      margin-right: -18px;
+      margin-right: 6px;
       box-shadow: none;
       background: transparent;
       border: none;
@@ -233,6 +233,38 @@
         }
       }
     }
+
+    // 描边模式 (Outline)
+    &.outline-item {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.38);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: none;
+      margin: 0 2px;
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.08);
+        border-color: rgba(var(--el-color-primary-rgb), 0.46);
+        transform: none;
+        box-shadow: none;
+      }
+
+      &.is-active {
+        background: rgba(var(--el-color-primary-rgb), 0.12);
+        color: var(--el-color-primary);
+        border-color: rgba(var(--el-color-primary-rgb), 0.5);
+        box-shadow: none;
+
+        .el-icon-close {
+          color: var(--el-color-primary);
+
+          &:hover {
+            color: #fff;
+            background: var(--el-color-primary);
+          }
+        }
+      }
+    }
     
     // 灵动模式 (Smart) - 默认样式
     &.smart-item {
@@ -255,30 +287,44 @@
 .chrome-tab {
   position: relative;
   display: inline-flex;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
   justify-content: center;
-  padding: 6px 24px;
+  min-height: 38px;
+  padding: 8px 16px 7px;
   white-space: nowrap;
   cursor: pointer;
+  overflow: visible;
 
   .tag-title {
     padding: 0;
-    color: var(--el-text-color-primary);
+    color: var(--el-text-color-secondary);
+    transition: color 0.18s ease;
   }
 
   .chrome-tab-divider {
     position: absolute;
-    right: 7px;
+    right: -4px;
     width: 1px;
-    height: 14px;
-    background-color: var(--el-border-color-lighter);
+    height: 16px;
+    background-color: rgba(148, 163, 184, 0.4);
+    transition: opacity 0.18s ease;
   }
 
   &:hover {
     z-index: 10;
     .chrome-tab-divider {
       opacity: 0;
+    }
+
+    .chrome-tab__bg {
+      color: #eef2f7;
+    }
+
+    .tag-title,
+    .tag-icon,
+    .chrome-close-btn {
+      color: #0f172a;
     }
   }
 
@@ -289,22 +335,23 @@
     z-index: -10;
     width: 100%;
     height: 100%;
-    color: transparent;
+    color: #e6ebf3;
     pointer-events: none;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75));
   }
 
   .chrome-close-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    color: var(--el-text-color-primary);
+    width: 18px;
+    height: 18px;
+    color: #64748b;
     border-radius: 50%;
 
     &:hover {
-      color: var(--el-text-color-primary);
-      background-color: var(--el-fill-color-dark);
+      color: #0f172a;
+      background-color: rgba(148, 163, 184, 0.18);
     }
   }
 
@@ -324,16 +371,30 @@
 .scroll-item.is-active .chrome-tab {
   .tag-title {
     color: #fff !important;
+    font-weight: 600;
   }
   
-  // 修复选中状态下图标颜色为白色
   .tag-icon,
   .chrome-close-btn {
     color: #fff !important;
     :deep(svg) {
-      fill: #fff !important;
-      color: #fff !important;
+      fill: currentColor !important;
+      color: currentColor !important;
     }
+  }
+
+  .chrome-close-btn:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .chrome-tab__bg {
+    color: var(--el-color-primary) !important;
+    filter: drop-shadow(0 10px 18px rgba(var(--el-color-primary-rgb), 0.24));
+  }
+
+  .chrome-tab-divider {
+    opacity: 0;
   }
 }
 

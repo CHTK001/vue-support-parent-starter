@@ -197,8 +197,18 @@ const debugProtectionMode = computed<DebugProtectionMode>({
   },
 });
 
-const handleSelectDebugMode = (mode: DebugProtectionMode) => {
-  debugProtectionMode.value = mode;
+const handleDebugModeToggle = (
+  mode: DebugProtectionMode,
+  enabled: boolean,
+) => {
+  if (enabled) {
+    debugProtectionMode.value = mode;
+    return;
+  }
+
+  if (debugProtectionMode.value === mode) {
+    debugProtectionMode.value = "none";
+  }
 };
 
 applyForm(form as FrontendSystemConfig);
@@ -369,7 +379,7 @@ const handleReset = async () => {
   <div class="frontend-setting-shell system-container modern-bg">
     <section class="frontend-hero">
       <div class="frontend-hero__main">
-        <span class="frontend-hero__eyebrow">固定组 / 前端静态配置</span>
+        <span class="frontend-hero__eyebrow">本地前端配置</span>
         <h2 class="frontend-hero__title">本地前端能力控制台</h2>
         <p class="frontend-hero__desc">
           这里的配置保存在浏览器本地，仅影响当前前端环境，不写入远程系统参数。用于快速控制主题皮肤、防调试、存储与字体保护等前端能力。
@@ -405,7 +415,7 @@ const handleReset = async () => {
       <template #header>
         <div class="section-heading">
           <div>
-            <div class="section-heading__eyebrow">二级标题 / 当前状态</div>
+            <div class="section-heading__eyebrow">当前状态</div>
             <div class="section-heading__title-row">
               <IconifyIconOnline icon="ri:pulse-line" />
               <span>当前生效状态总览</span>
@@ -443,7 +453,7 @@ const handleReset = async () => {
       <template #header>
         <div class="section-heading">
           <div>
-            <div class="section-heading__eyebrow">二级标题 / 主题能力</div>
+            <div class="section-heading__eyebrow">主题能力</div>
             <div class="section-heading__title-row">
               <IconifyIconOnline icon="ri:palette-line" />
               <span>主题皮肤与入口开关</span>
@@ -477,7 +487,7 @@ const handleReset = async () => {
       <template #header>
         <div class="section-heading">
           <div>
-            <div class="section-heading__eyebrow">二级标题 / 调试防护</div>
+            <div class="section-heading__eyebrow">调试防护</div>
             <div class="section-heading__title-row">
               <IconifyIconOnline icon="ri:shield-flash-line" />
               <span>防调试总开关与绕过策略</span>
@@ -504,41 +514,26 @@ const handleReset = async () => {
 
       <div class="subsection-panel">
         <div class="subsection-heading">
-          <span class="subsection-heading__title">三级标题 / 调试策略模式</span>
+          <span class="subsection-heading__title">调试策略模式</span>
           <p class="subsection-heading__desc">
             防调试策略按优先级只会启用一个：崩溃页模式 > 循环 debugger >
             弹出遮罩层。
           </p>
         </div>
 
-        <div class="mode-card-grid">
-          <ScCard
+        <div class="mode-switch-grid">
+          <ScSwitch
             v-for="item in debugModeCards"
             :key="item.mode"
-            class="mode-card"
-            :class="{ 'mode-card--active': debugProtectionMode === item.mode }"
-            shadow="never"
-          >
-            <div
-              class="mode-card__panel"
-              role="button"
-              tabindex="0"
-              @click="handleSelectDebugMode(item.mode)"
-              @keydown.enter.prevent="handleSelectDebugMode(item.mode)"
-              @keydown.space.prevent="handleSelectDebugMode(item.mode)"
-            >
-              <div class="mode-card__head">
-                <span class="mode-card__title">{{ item.title }}</span>
-                <ScTag
-                  :type="debugProtectionMode === item.mode ? 'warning' : 'info'"
-                  size="small"
-                >
-                  {{ debugProtectionMode === item.mode ? "当前策略" : "可选" }}
-                </ScTag>
-              </div>
-              <div class="mode-card__desc">{{ item.description }}</div>
-            </div>
-          </ScCard>
+            class="mode-switch"
+            :model-value="debugProtectionMode === item.mode"
+            layout="visual-card"
+            wide
+            :label="item.title"
+            :description="item.description"
+            :ribbon-text="debugProtectionMode === item.mode ? '当前策略' : ''"
+            @update:model-value="handleDebugModeToggle(item.mode, $event)"
+          />
         </div>
 
         <div class="section-note">
@@ -548,9 +543,7 @@ const handleReset = async () => {
 
       <div class="editor-panel">
         <div class="subsection-heading">
-          <span class="subsection-heading__title"
-            >三级标题 / 地址栏绕过参数</span
-          >
+          <span class="subsection-heading__title">地址栏绕过参数</span>
           <p class="subsection-heading__desc">
             保存后即可通过地址栏参数绕过前端防调试限制。
           </p>
@@ -595,7 +588,7 @@ const handleReset = async () => {
       <template #header>
         <div class="section-heading">
           <div>
-            <div class="section-heading__eyebrow">二级标题 / 数据保护</div>
+            <div class="section-heading__eyebrow">数据保护</div>
             <div class="section-heading__title-row">
               <IconifyIconOnline icon="ri:font-size-ai" />
               <span>存储与字体加密</span>
@@ -622,7 +615,7 @@ const handleReset = async () => {
 
       <div class="editor-panel">
         <div class="subsection-heading">
-          <span class="subsection-heading__title">三级标题 / OCR 干扰强度</span>
+          <span class="subsection-heading__title">OCR 干扰强度</span>
           <p class="subsection-heading__desc">
             仅在开启 OCR 干扰噪点后使用，建议默认保持低强度。
           </p>
@@ -651,7 +644,7 @@ const handleReset = async () => {
 
     <div class="action-bar">
       <div class="action-bar__summary">
-        <span class="action-bar__eyebrow">操作区</span>
+        <span class="action-bar__eyebrow">本地操作</span>
         <strong class="action-bar__title">读取、重置、保存完整闭环</strong>
         <p class="action-bar__desc">
           所有修改都先在本地表单回填，再通过保存统一写入浏览器本地配置并即时生效。
@@ -836,14 +829,14 @@ const handleReset = async () => {
 }
 
 .summary-card-grid,
-.mode-card-grid,
+.mode-switch-grid,
 .visual-switch-grid {
   display: grid;
   gap: 16px;
 }
 
 .summary-card-grid,
-.mode-card-grid {
+.mode-switch-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -951,80 +944,32 @@ const handleReset = async () => {
   font-size: 13px;
 }
 
-.mode-card {
-  min-height: 134px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  border-radius: 20px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.94) 0%,
-    rgba(248, 250, 252, 0.9) 100%
-  );
-  box-shadow:
-    0 16px 32px -28px rgba(15, 23, 42, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
-  transition:
-    transform 0.22s ease,
-    box-shadow 0.22s ease,
-    border-color 0.22s ease;
-
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow:
-      0 22px 38px -28px rgba(15, 23, 42, 0.42),
-      inset 0 1px 0 rgba(255, 255, 255, 0.94);
-  }
-
-  &--active {
-    border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    background:
-      linear-gradient(
-        135deg,
-        rgba(var(--el-color-primary-rgb), 0.1) 0%,
-        rgba(var(--el-color-primary-rgb), 0.03) 100%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(248, 250, 252, 0.92) 100%
-      );
-    box-shadow:
-      0 20px 36px -28px rgba(var(--el-color-primary-rgb), 0.35),
-      inset 0 0 0 1px rgba(var(--el-color-primary-rgb), 0.14);
-  }
+.mode-switch {
+  min-height: 132px;
 }
 
-.mode-card__panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 134px;
-  cursor: pointer;
-  outline: none;
-}
-
-.mode-card__panel:focus-visible {
-  border-radius: 16px;
-  box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.22);
-}
-
-.mode-card__head {
-  display: flex;
+:deep(.mode-switch .sc-switch-visual-card) {
+  min-height: 132px;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  justify-content: flex-start;
+  padding: 18px 16px;
 }
 
-.mode-card__title {
+:deep(.mode-switch .sc-switch-visual-card__content) {
+  width: 100%;
+}
+
+:deep(.mode-switch .sc-switch-visual-card__label) {
+  display: block;
+  margin-bottom: 8px;
   font-size: 15px;
   font-weight: 700;
-  color: var(--el-text-color-primary);
 }
 
-.mode-card__desc {
+:deep(.mode-switch .sc-switch-visual-card__desc) {
+  display: block;
   font-size: 13px;
   line-height: 1.7;
-  color: var(--el-text-color-secondary);
 }
 
 .editor-form {
@@ -1124,7 +1069,7 @@ const handleReset = async () => {
   }
 
   .summary-card-grid,
-  .mode-card-grid,
+  .mode-switch-grid,
   .visual-switch-grid {
     grid-template-columns: 1fr;
   }
