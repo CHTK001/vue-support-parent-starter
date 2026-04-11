@@ -136,15 +136,7 @@ const coreNormalRouteModules: Record<string, any> = import.meta.glob(
   { eager: true },
 );
 // @ts-ignore
-const moduleRouteModules: Record<string, () => Promise<any>> = import.meta.glob(
-  [
-    "../../../../pages/**/src/router.ts",
-    "../../../../pages/**/src/router/index.ts",
-    "../../../../pages/**/router/**/*.ts",
-  ],
-);
-// @ts-ignore
-const moduleStaticRouteModules: Record<string, any> = import.meta.glob(
+const moduleRouteModules: Record<string, any> = import.meta.glob(
   [
     "../../../../pages/**/src/router.ts",
     "../../../../pages/**/src/router/index.ts",
@@ -198,7 +190,7 @@ const matchModuleRouteSelector = (
   return false;
 };
 
-const resolveModuleRouteRegistry = async (): Promise<Record<string, any>> => {
+const resolveModuleRouteRegistry = (): Record<string, any> => {
   const config = getConfig();
   const selectors = resolveLocalRouteModulePaths(config);
   const discoveryEnabled = shouldEnableLocalModuleDiscovery(config);
@@ -210,13 +202,7 @@ const resolveModuleRouteRegistry = async (): Promise<Record<string, any>> => {
         selectors.some((selector) => matchModuleRouteSelector(key, selector)),
     );
 
-  const selectedModules = await Promise.all(
-    selectedEntries.map(async ([key, loadModule]) => {
-      return [key, await loadModule()] as const;
-    }),
-  );
-
-  return Object.fromEntries(selectedModules);
+  return Object.fromEntries(selectedEntries);
 };
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
@@ -350,8 +336,8 @@ const _createCoreNormalRouter = () => {
   appendNormalRoutes(coreNormalRouteModules);
 };
 
-const _createModuleRouter = async () => {
-  appendNormalRoutes(await resolveModuleRouteRegistry());
+const _createModuleRouter = () => {
+  appendNormalRoutes(resolveModuleRouteRegistry());
 };
 
 const _createAppNormalRouter = () => {
@@ -369,7 +355,7 @@ const _createAlwaysAvailableAppRouter = () => {
 
 const _createAlwaysAvailableModuleRouter = () => {
   const essentialModules = Object.fromEntries(
-    Object.entries(moduleStaticRouteModules).filter(([, module]) =>
+    Object.entries(moduleRouteModules).filter(([, module]) =>
       resolveModuleRoutes(module).some((route) => isAlwaysAvailableStaticRoute(route)),
     ),
   );
@@ -398,7 +384,7 @@ const ensureRootLayoutRoute = (): void => {
 /**
  * 根据配置初始化路由模式
  */
-const initRouterMode = async (): Promise<void> => {
+const initRouterMode = (): void => {
   const config = getConfig();
   const routerModule = config.RouterModule;
   const loadLocalBusinessRoutes = shouldLoadLocalBusinessRoutes(config);
@@ -406,7 +392,7 @@ const initRouterMode = async (): Promise<void> => {
   if (config.AutoRouter || routerModule === "AUTO") {
     if (loadLocalBusinessRoutes) {
       _createAutoRouter();
-      await _createModuleRouter();
+      _createModuleRouter();
       _createAppNormalRouter();
     }
   } else if (routerModule === "MIX") {
@@ -415,13 +401,13 @@ const initRouterMode = async (): Promise<void> => {
     }
     _createCoreNormalRouter();
     if (loadLocalBusinessRoutes) {
-      await _createModuleRouter();
+      _createModuleRouter();
       _createAppNormalRouter();
     }
   } else {
     _createCoreNormalRouter();
     if (loadLocalBusinessRoutes) {
-      await _createModuleRouter();
+      _createModuleRouter();
       _createAppNormalRouter();
     }
   }
@@ -432,7 +418,7 @@ const initRouterMode = async (): Promise<void> => {
   }
 };
 
-await initRouterMode();
+initRouterMode();
 ensureRootLayoutRoute();
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */

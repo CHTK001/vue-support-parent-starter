@@ -155,6 +155,7 @@ declare global {
     VITE_PUBLIC_PATH: string;
     VITE_ROUTER_HISTORY: string;
     VITE_CDN: boolean;
+    VITE_LIGHT_BUILD: boolean;
     VITE_HIDE_HOME: string;
     NODE_ENV: string;
     VITE_COMPRESSION: ViteCompression;

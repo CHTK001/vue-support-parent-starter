@@ -18,6 +18,7 @@ export * from "./src/api/common/user-log";
 export * from "./src/api/common/totp";
 export * from "./src/api/common/project";
 export * from "./src/api/common/common";
+export * from "./src/api/common/mini-menu";
 export * from "./src/api/message";
 
 import { useAppStoreHook } from "./src/store/modules/AppStore";

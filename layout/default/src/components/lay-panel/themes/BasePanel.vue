@@ -3,10 +3,8 @@ import { useI18n } from "vue-i18n";
 import { emitter } from "@repo/core";
 import { onClickOutside, useStorage } from "@vueuse/core";
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
-import { useDataThemeChange } from "../../../hooks/useDataThemeChange";
 import CloseIcon from "@iconify-icons/ep/close";
 import ScScrollbar from "@repo/components/ScScrollbar";
-import ScButton from "@repo/components/ScButton";
 
 const target = ref(null);
 
@@ -59,8 +57,6 @@ const iconClass = computed(() => {
 });
 
 const { t } = useI18n();
-const { onReset } = useDataThemeChange();
-
 onClickOutside(target, (event: any) => {
   if (!target.value) return;
   if (event.clientX > (target.value as any).offsetLeft) return;
@@ -107,22 +103,6 @@ onBeforeUnmount(() => {
         <ScScrollbar>
           <slot />
         </ScScrollbar>
-
-        <div class="panel-footer">
-          <ScButton
-            v-tippy="{
-              content: t('panel.pureClearCacheAndToLogin'),
-              placement: 'left-start',
-              zIndex: 41000,
-            }"
-            type="danger"
-            bg
-            class="ml-2"
-            @click="onReset"
-          >
-            {{ t("panel.pureClearCache") }}
-          </ScButton>
-        </div>
       </div>
     </div>
   </Teleport>
@@ -130,7 +110,7 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 :deep(.el-scrollbar) {
-  height: calc(100% - 110px);
+  height: calc(100% - 58px);
 }
 
 // 遮罩层 - 覆盖整个视口
@@ -178,12 +158,6 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-}
-
-.panel-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 20px 20px;
 }
 
 .bg-bg_color {
