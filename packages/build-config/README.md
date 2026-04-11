@@ -114,6 +114,21 @@ export default createViteConfig(import.meta.url, pkg)
 .target("esnext")
 ```
 
+#### .lightBuild(enabled?: boolean)
+
+设置是否启用轻量构建。
+
+```typescript
+.lightBuild(true)   // 默认，低内存构建
+.lightBuild(false)  // 完整构建
+```
+
+说明:
+
+- `true`: 使用 `esbuild` 压缩，并关闭额外的 `gzip/brotli` 产物压缩，显著降低构建内存占用，更适合本地开发机构建。
+- `false`: 保留完整构建策略，会继续按环境变量 `VITE_COMPRESSION` 生成额外压缩产物，更适合 CI 或发布机构建。
+- 两种模式输出的主产物都可以直接部署使用，区别主要在构建资源消耗，以及是否额外输出 `.gz` / `.br` 文件。
+
 #### .build()
 
 构建最终配置（必须调用）。

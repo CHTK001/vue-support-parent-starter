@@ -143,6 +143,7 @@ export const wrapperEnv = (envConf: any): ViteEnv => {
     VITE_PUBLIC_PATH: "",
     VITE_ROUTER_HISTORY: "",
     VITE_CDN: false,
+    VITE_LIGHT_BUILD: true,
     NODE_ENV: "",
     VITE_HIDE_HOME: "false",
     VITE_COMPRESSION: "none",

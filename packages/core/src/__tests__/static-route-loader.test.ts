@@ -9,9 +9,9 @@ describe("static route loader", () => {
       "utf-8",
     );
 
-    expect(source).toContain("const moduleStaticRouteModules");
+    expect(source).toContain("const moduleRouteModules");
     expect(source).toContain("const _createAlwaysAvailableModuleRouter = () => {");
-    expect(source).toContain("Object.entries(moduleStaticRouteModules).filter");
+    expect(source).toContain("Object.entries(moduleRouteModules).filter");
     expect(source).toContain("_createAlwaysAvailableModuleRouter();");
   });
 });

@@ -4,6 +4,7 @@ declare interface ViteEnv {
   VITE_PUBLIC_PATH: string;
   VITE_ROUTER_HISTORY: string;
   VITE_CDN: boolean;
+  VITE_LIGHT_BUILD: boolean;
   NODE_ENV: string;
   VITE_HIDE_HOME: string;
   VITE_COMPRESSION: ViteCompression;
