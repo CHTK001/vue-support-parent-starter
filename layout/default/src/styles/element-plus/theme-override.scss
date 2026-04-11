@@ -123,9 +123,14 @@ body {
         top: 10%;
         bottom: 10%;
         width: 3px;
-        background: var(--el-color-primary);
+        background: linear-gradient(
+          180deg,
+          var(--el-color-primary) 0%,
+          color-mix(in srgb, var(--el-color-primary) 72%, #ffffff 28%) 100%
+        );
         border-radius: 0 3px 3px 0;
-        display: none; // Disable default vertical bar, use glass highlight
+        display: block;
+        box-shadow: 0 0 10px rgba(var(--el-color-primary-rgb), 0.28);
       }
     }
   }

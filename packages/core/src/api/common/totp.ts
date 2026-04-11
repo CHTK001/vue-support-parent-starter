@@ -1,6 +1,4 @@
-import { http, type ReturnResult } from "@repo/utils";
-import { encodeSearchParams } from "@repo/utils";
-import { getConfig } from "@repo/config";
+import { encodeSearchParams, http, type ReturnResult } from "@repo/utils";
 /**
  * 绑定totp
  */
@@ -17,9 +15,27 @@ export const fetchUnbindTotp = () => {
  * 获取totp uri
  */
 export const fetchGetTotpUri = () => {
-  return http.request<ReturnResult<boolean>>(
+  return http.request<ReturnResult<string>>(
     "get",
     "/v2/user/totp/generateUri",
+    {},
+  );
+};
+
+/**
+ * 获取当前用户 OTP 状态
+ */
+export const fetchTotpStatus = () => {
+  return http.request<ReturnResult<boolean>>("get", "/v2/user/totp/status", {});
+};
+
+/**
+ * 校验 OTP 验证码
+ */
+export const fetchVerifyTotp = (params: { code: string; username: string }) => {
+  return http.request<ReturnResult<boolean>>(
+    "get",
+    `/v2/user/totp/verify?${encodeSearchParams(params)}`,
     {},
   );
 };

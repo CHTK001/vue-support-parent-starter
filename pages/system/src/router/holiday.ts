@@ -11,7 +11,7 @@ const routes = [
     path: "/holiday",
     name: "HolidayManagement",
     component: async () => {
-      const LayoutDefault = await import("@pages/holiday");
+      const LayoutDefault = await import("../holiday/HolidayIndex.vue");
       return LayoutDefault;
     },
     meta: {

@@ -389,6 +389,34 @@ defineExpose({
     }
   }
 
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--el-border-color) 78%, transparent);
+    background: color-mix(in srgb, var(--el-fill-color-blank) 96%, white);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      0 8px 18px rgba(15, 23, 42, 0.04);
+    transition:
+      border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+      background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :deep(.el-input__wrapper) {
+    //min-height: 30px;
+    padding-inline: 14px;
+  }
+
+  :deep(.el-input__inner) {
+    font-size: 13px;
+  }
+
+  :deep(.el-textarea__inner) {
+    min-height: 96px;
+    padding: 12px 14px;
+  }
+
   // 聚焦状态
   &:focus-within {
     :deep(.el-input__wrapper) {

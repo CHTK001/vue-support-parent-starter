@@ -152,7 +152,7 @@
         stripe
         :loading="loading"
         class="container-table"
-        table-name="soft-containers"
+        table-name="docker-containers"
         height="100%"
         @selection-change="handleSelectionChange"
       >

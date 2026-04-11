@@ -7,7 +7,10 @@
  */
 import { getTopMenu } from "@repo/core";
 import { emitter } from "@repo/core";
-import { responsiveStorageNameSpace } from "@repo/config";
+import {
+  type StorageConfigs,
+  responsiveStorageNameSpace,
+} from "@repo/config";
 import { localStorageProxy } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useNav } from "../../../hooks/useNav";

@@ -1,0 +1,60 @@
+{
+  "name": "@pages/server",
+  "version": "1.0.0",
+  "description": "基础服务器管理模块",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./router": {
+      "types": "./src/router.ts",
+      "development": "./src/router.ts",
+      "default": "./dist/router.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      },
+      "./router": {
+        "default": "./dist/router.mjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@layout/default": "workspace:^",
+    "@repo/components": "workspace:^",
+    "@repo/core": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "element-plus": "catalog:",
+    "ts-md5": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:^",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

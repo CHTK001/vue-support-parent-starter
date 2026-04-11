@@ -16,10 +16,12 @@ const deferLang = useDefer(languageConfigs.length);
 // 为运行时注入的 index 访问提供兜底，避免告警
 const index = 0;
 
+const currentLocaleCode = computed(() => String(locale.value || "zh-CN"));
+
 // 获取当前语言的配置
 const currentLanguageConfig = computed(() => {
   const currentLocale =
-    typeof locale.value === "string" ? locale.value : locale.value.value;
+    currentLocaleCode.value;
   return getLanguageConfig(currentLocale);
 });
 
@@ -44,7 +46,7 @@ const handleLanguageChange = (langCode: string) => {
           currentLanguageConfig.nativeName
         }}</ScText>
         <ScText class="user-role">{{
-          locale === "zh-CN" ? "语言" : "Language"
+          currentLocaleCode === "zh-CN" ? "语言" : "Language"
         }}</ScText>
       </div>
       <span class="dropdown-arrow-wrapper">
@@ -65,8 +67,7 @@ const handleLanguageChange = (langCode: string) => {
             'lang-item',
             {
               active:
-                (typeof locale === 'string' ? locale : locale.value) ===
-                langConfig.code,
+                currentLocaleCode === langConfig.code,
             },
           ]"
           @click="handleLanguageChange(langConfig.code)"
@@ -80,8 +81,7 @@ const handleLanguageChange = (langCode: string) => {
           </div>
           <IconifyIconOffline
             v-show="
-              (typeof locale === 'string' ? locale : locale.value) ===
-              langConfig.code
+              currentLocaleCode === langConfig.code
             "
             class="lang-check"
             :icon="Check"
@@ -95,6 +95,21 @@ const handleLanguageChange = (langCode: string) => {
 <style lang="scss" scoped>
 // 语言切换触发器
 .lang-style {
+  --lay-lang-trigger-bg: linear-gradient(
+    135deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-fill-color-light) 100%
+  );
+  --lay-lang-trigger-border: var(--el-border-color-lighter);
+  --lay-lang-trigger-hover-bg: linear-gradient(
+    135deg,
+    var(--el-fill-color-light) 0%,
+    var(--el-fill-color) 100%
+  );
+  --lay-lang-trigger-hover-border: rgba(var(--el-color-primary-rgb), 0.3);
+  --lay-lang-trigger-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -102,12 +117,8 @@ const handleLanguageChange = (langCode: string) => {
   padding: 4px 8px 4px 4px;
   border-radius: 16px;
   max-width: 92px;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-lighter) 0%,
-    var(--el-fill-color-light) 100%
-  );
-  border: 1px solid var(--el-border-color-lighter);
+  background: var(--lay-lang-trigger-bg);
+  border: 1px solid var(--lay-lang-trigger-border);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -130,15 +141,9 @@ const handleLanguageChange = (langCode: string) => {
   }
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-light) 0%,
-      var(--el-fill-color) 100%
-    );
-    border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.1),
-      0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    background: var(--lay-lang-trigger-hover-bg);
+    border-color: var(--lay-lang-trigger-hover-border);
+    box-shadow: var(--lay-lang-trigger-shadow);
     transform: translateY(-1px);
 
     &::before {
@@ -225,5 +230,23 @@ const handleLanguageChange = (langCode: string) => {
     color: var(--el-text-color-placeholder);
     transition: all 0.3s ease;
   }
+}
+
+html.dark .lang-style {
+  --lay-lang-trigger-bg: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.82) 0%,
+    rgba(30, 41, 59, 0.88) 100%
+  );
+  --lay-lang-trigger-border: rgba(148, 163, 184, 0.2);
+  --lay-lang-trigger-hover-bg: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.18) 0%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  --lay-lang-trigger-hover-border: rgba(var(--el-color-primary-rgb), 0.3);
+  --lay-lang-trigger-shadow:
+    0 12px 28px rgba(2, 8, 23, 0.35),
+    0 4px 12px rgba(var(--el-color-primary-rgb), 0.16);
 }
 </style>

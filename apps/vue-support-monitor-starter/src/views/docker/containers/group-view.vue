@@ -20,7 +20,7 @@
           @change="handleGroupModeChange"
         >
           <el-radio-button label="server">按服务器分组</el-radio-button>
-          <el-radio-button label="software">按软件分组</el-radio-button>
+          <el-radio-button label="software">按镜像分组</el-radio-button>
         </ScRadioGroup>
         <ScButton :loading="loading" @click="handleRefresh">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
@@ -135,7 +135,7 @@
         <ScEmpty v-if="serverGroups.length === 0" description="暂无容器数据" />
       </div>
 
-      <!-- 按软件分组 -->
+      <!-- 按镜像分组 -->
       <div v-else class="software-groups">
         <ScCollapse v-model="activeGroups" accordion>
           <ScCollapseItem
@@ -148,7 +148,7 @@
                 <div class="group-title">
                   <IconifyIconOnline icon="ri:apps-line" class="group-icon" />
                   <span class="group-name">{{
-                    group.softName || `软件 #${group.softId}`
+                    group.softName || `镜像组 #${group.softId}`
                   }}</span>
                   <ScTag size="small" class="group-count"
                     >{{ group.containers.length }} 个容器</ScTag
@@ -282,7 +282,7 @@ const serverGroups = computed<ServerGroup[]>(() => {
   return Array.from(groups.values());
 });
 
-// 按软件分组
+// 按镜像分组
 const softwareGroups = computed<SoftwareGroup[]>(() => {
   const groups = new Map<number, SoftwareGroup>();
 
@@ -291,7 +291,7 @@ const softwareGroups = computed<SoftwareGroup[]>(() => {
     if (!groups.has(softId)) {
       groups.set(softId, {
         softId,
-        softName: container.systemSoftContainerImage || `软件 #${softId}`,
+        softName: container.systemSoftContainerImage || `镜像组 #${softId}`,
         containers: [],
       });
     }

@@ -1,5 +1,5 @@
 import { $t } from "@repo/config";
-import { RouteConfigsTable } from "../../../types/router";
+import type { RouteConfigsTable } from "../../../types/router";
 
 const Layout = () => import("@layout/default");
 
@@ -45,7 +45,8 @@ export default [
   {
     path: "/message/center",
     name: "MessageCenter",
-    component: () => import("@repo/common-pages/page/message/MessageCenter.vue"),
+    component: () =>
+      import("@repo/common-pages/page/message/MessageCenter.vue"),
     meta: {
       title: "消息中心",
       showLink: false,
@@ -64,6 +65,10 @@ export default [
         path: "/redirect/:path(.*)",
         name: "Redirect",
         component: () => import("@repo/common-pages/layout/redirect.vue"),
+        meta: {
+          title: $t("status.pureLoad"),
+          showLink: false,
+        },
       },
     ],
   },

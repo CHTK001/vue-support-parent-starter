@@ -22,27 +22,29 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <ul
-    v-show="visible"
-    class="tag-contextmenu"
-    :style="style"
-    @mousedown.stop
-  >
-    <li
-      v-for="(item, key) in items.slice(0, 6)"
-      :key="key"
-      v-show="item.show"
-      :class="{
-        'is-disabled': item.disabled,
-        'is-divided': item.divided,
-        'is-danger': key === 1 || key === 5,
-      }"
-      @click="!item.disabled && emit('select', key, item)"
+  <Teleport to="body">
+    <ul
+      v-show="visible"
+      class="tag-contextmenu"
+      :style="style"
+      @mousedown.stop
     >
-      <IconifyIconOffline :icon="item.icon" />
-      {{ transformI18n(item.text) }}
-    </li>
-  </ul>
+      <li
+        v-for="(item, key) in items.slice(0, 6)"
+        :key="key"
+        v-show="item.show"
+        :class="{
+          'is-disabled': item.disabled,
+          'is-divided': item.divided,
+          'is-danger': key === 1 || key === 5,
+        }"
+        @click="!item.disabled && emit('select', key, item)"
+      >
+        <IconifyIconOffline :icon="item.icon" />
+        {{ transformI18n(item.text) }}
+      </li>
+    </ul>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>

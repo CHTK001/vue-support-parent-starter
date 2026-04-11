@@ -1,26 +1,15 @@
-import { createRouter, createWebHistory } from "vue-router";
+import type { RouteRecordRaw } from "vue-router";
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
-    path: "/",
-    name: "Home",
-    component: () => import("../views/Home.vue"),
-  },
-  {
-    path: "/airline",
-    name: "Airline",
-    component: () => import("../views/AirlineDemo.vue"),
-  },
-  {
-    path: "/techui",
-    name: "TechUI",
-    component: () => import("../views/TechUIPage.vue"),
+    path: "/example",
+    name: "ExampleIndex",
+    component: () => import("../index.vue"),
+    meta: {
+      title: "组件示例",
+      icon: "ri:apps-2-line",
+    },
   },
 ];
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes,
-});
-
-export default router;
+export default routes;

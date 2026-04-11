@@ -7,8 +7,8 @@
         :percentage="percentage"
         :stroke-width="strokeWidth"
         :text-inside="textInside"
-        :status="status"
-        :color="color"
+        :status="resolvedStatus"
+        :color="resolvedColor"
         :show-text="showPercentage"
         :format="formatPercentage"
       />
@@ -124,6 +124,17 @@ const percentage = computed(() => {
   const range = props.max - props.min;
   if (range === 0) return 0;
   return Math.round(((props.modelValue - props.min) / range) * 100);
+});
+
+const resolvedStatus = computed(() => props.status || undefined);
+const resolvedColor = computed(() => {
+  if (typeof props.color === "function") {
+    return props.color(percentage.value);
+  }
+  if (Array.isArray(props.color)) {
+    return props.color[0] || "";
+  }
+  return props.color || "";
 });
 
 // 显示值

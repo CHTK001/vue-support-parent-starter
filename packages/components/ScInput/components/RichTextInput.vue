@@ -67,7 +67,15 @@ interface Props {
   /**
    * 验证规则
    */
-  rules?: any[];
+  rules?: Array<{
+    required?: boolean;
+    type?: string;
+    message?: string;
+    validator?: (value: any) => boolean | { valid: boolean; message: string };
+    min?: number;
+    max?: number;
+    pattern?: RegExp;
+  }>;
   /**
    * 是否显示验证消息
    */
@@ -109,6 +117,27 @@ const currentValue = computed({
   get: () => props.modelValue,
   set: val => emit("update:modelValue", val)
 });
+
+const validateWithRules = (value: string | undefined) => {
+  if (!props.rules?.length) {
+    return null;
+  }
+
+  for (const rule of props.rules) {
+    const result = validate(value, rule);
+    if (!result.valid) {
+      return {
+        isValid: false,
+        message: result.message
+      };
+    }
+  }
+
+  return {
+    isValid: true,
+    message: ""
+  };
+};
 
 // 工具栏配置
 const toolbarConfig = computed(() => ({
@@ -159,9 +188,7 @@ const handleChange = (editor: IDomEditor) => {
   emit("change", html, editor);
 
   // 验证
-  if (props.rules && props.rules.length > 0) {
-    validationResult.value = validate(html, props.rules);
-  }
+  validationResult.value = validateWithRules(html);
 };
 
 /**
@@ -184,9 +211,7 @@ const handleBlur = (editor: IDomEditor) => {
 watch(
   () => props.modelValue,
   newVal => {
-    if (props.rules && props.rules.length > 0) {
-      validationResult.value = validate(newVal, props.rules);
-    }
+    validationResult.value = validateWithRules(newVal);
   },
   { immediate: true }
 );
@@ -195,8 +220,8 @@ watch(
  * 组件挂载时验证
  */
 onMounted(() => {
-  if (props.rules && props.rules.length > 0 && props.modelValue) {
-    validationResult.value = validate(props.modelValue, props.rules);
+  if (props.modelValue) {
+    validationResult.value = validateWithRules(props.modelValue);
   }
 });
 

@@ -240,6 +240,9 @@ export const isTimeExpired = (
 export const getTimeAgo = (date: Date | string): string => {
   const now = new Date();
   const targetDate = typeof date === "string" ? new Date(date) : date;
+  if(!targetDate) {
+    return '-';
+  }
   const diffMs = now.getTime() - targetDate.getTime();
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);

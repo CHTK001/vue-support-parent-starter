@@ -1,21 +1,29 @@
-﻿<script setup>
-import { defineExpose, defineAsyncComponent, reactive, shallowRef } from "vue";
+<script setup>
+import { defineAsyncComponent, reactive, shallowRef } from "vue";
 import { localStorageProxy, message } from "@repo/utils";
 import { fetchSaveOrUpdateDictItemProperty } from "@repo/core";
 import { useI18n } from "vue-i18n";
+
 const { t } = useI18n();
-const emit = defineEmits(["close", "open"]);
+const emit = defineEmits(["close", "open", "success"]);
+
 const ScInput = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScInput/index.vue"),
 );
 const ScFormTable = defineAsyncComponent(
-  () => import("@repo/components"),
+  () => import("@repo/components/ScFormTable/index.vue"),
 );
+
 const env = reactive({
   groupCache: "dict_item_propery_group_cache",
-  addTemplate: {},
+  addTemplate: {
+    sysDictItemPropertyGroup: "",
+    sysDictItemPropertyName: "",
+    sysDictItemPropertyValue: "",
+    sysDictItemPropertySelectedType: "String",
+  },
   loading: false,
-  _groupCacheList: new Set(),
+  _groupCacheList: [],
   selectedType: "",
   selectTypeList: [
     { value: "String", label: "字符串" },
@@ -27,57 +35,110 @@ const env = reactive({
     { value: "Mail", label: "邮件" },
     { value: "Password", label: "密码" },
   ],
+  visible: false,
+  mode: "edit",
+  title: "",
+  item: {},
 });
 
-const form = shallowRef({});
+const form = shallowRef({
+  sysDictItemId: null,
+  property: [],
+});
+
+const uniqueList = (values) => [...new Set((values || []).filter(Boolean))];
+
+const normalizePropertyRow = (row = {}) => {
+  const selectedType = row.sysDictItemPropertySelectedType || "String";
+  const rawValue = row.sysDictItemPropertyValue;
+  return {
+    ...row,
+    sysDictItemPropertySelectedType: selectedType,
+    sysDictItemPropertyValue:
+      selectedType === "Boolean"
+        ? String(rawValue) === "true"
+        : (rawValue ?? ""),
+  };
+};
+
 const registerCache = async () => {
-  if (form.value.property) {
-    form.value.property.forEach((element) => {
-      if (element.sysDictItemPropertyGroup) {
-        env._groupCacheList.push(element.sysDictItemPropertyGroup);
-      }
-    });
-    env._groupCacheList = [...new Set(env._groupCacheList)];
-    localStorageProxy().setItem(env.groupCache, env._groupCacheList);
+  if (!Array.isArray(form.value.property)) {
+    return;
   }
+  env._groupCacheList = uniqueList([
+    ...env._groupCacheList,
+    ...form.value.property.map((item) => item.sysDictItemPropertyGroup),
+  ]);
+  localStorageProxy().setItem(env.groupCache, env._groupCacheList);
+};
+
+const appendPropertyRow = () => {
+  const nextRow = normalizePropertyRow({ ...env.addTemplate });
+  form.value = {
+    ...form.value,
+    property: [...(form.value.property || []), nextRow],
+  };
 };
 
 const handleUpdate = async () => {
-  registerCache();
+  await registerCache();
   env.loading = true;
-  fetchSaveOrUpdateDictItemProperty({
-    sysDictItemId: form.value.sysDictItemId,
-    property: form.value.property,
-  })
-    .then((res) => {
-      message(t("message.updateSuccess", { type: "success" }));
-      emit("success", form.value);
-    })
-    .finally(() => {
-      env.loading = false;
+  try {
+    const property = Array.isArray(form.value.property)
+      ? form.value.property.map((item) => ({
+          ...item,
+          sysDictItemPropertyValue:
+            item.sysDictItemPropertySelectedType === "Boolean"
+              ? String(Boolean(item.sysDictItemPropertyValue))
+              : (item.sysDictItemPropertyValue ?? ""),
+        }))
+      : [];
+
+    const res = await fetchSaveOrUpdateDictItemProperty({
+      sysDictItemId: form.value.sysDictItemId,
+      property,
     });
+    if (res?.code === "00000") {
+      message.success(t("message.updateSuccess"));
+      emit("success", {
+        ...form.value,
+        property,
+      });
+      handleClose();
+      return;
+    }
+    message.error(res?.msg || t("message.updateFailed"));
+  } catch {
+    message.error(t("message.updateFailed"));
+  } finally {
+    env.loading = false;
+  }
 };
+
 const handleClose = async () => {
   env.visible = false;
   env.loading = false;
+  emit("close");
 };
+
 const handleOpen = async (item, mode) => {
   env.loading = false;
-  env._groupCacheList = localStorageProxy().getItem(env.groupCache) || [];
+  env._groupCacheList = uniqueList(
+    localStorageProxy().getItem(env.groupCache) || [],
+  );
   env.mode = mode;
   env.visible = true;
-  env.title = item.sysDictItemName + "配置设置";
+  env.title = `${item?.sysDictItemName || ""} 配置设置`;
   env.item = item;
-  form.value.sysDictItemId = item.sysDictItemId;
-  form.value.property = item.property?.map((it) => {
-    if (it.sysDictItemPropertySelectedType === "Boolean") {
-      it.sysDictItemPropertyValue =
-        it.sysDictItemPropertyValue === "true" ? true : false;
-    }
-    return it;
-  });
+  form.value = {
+    sysDictItemId: item?.sysDictItemId ?? null,
+    property: Array.isArray(item?.property)
+      ? item.property.map(normalizePropertyRow)
+      : [],
+  };
+  emit("open", item);
 };
-// 获取类型图标
+
 const getTypeIcon = (type) => {
   const iconMap = {
     String: "ri:text",
@@ -101,8 +162,8 @@ defineExpose({
 <template>
   <div class="dict-property-drawer">
     <sc-drawer
-      size="55%"
       v-model="env.visible"
+      size="55%"
       :title="env.title"
       class="property-drawer"
     >
@@ -122,9 +183,22 @@ defineExpose({
           <span>配置字典项的扩展属性，支持多种数据类型</span>
         </div>
 
+        <div class="content-actions">
+          <ScButton
+            type="primary"
+            size="small"
+            plain
+            native-type="button"
+            @click.stop="appendPropertyRow"
+          >
+            <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+            新增属性
+          </ScButton>
+        </div>
+
         <ScFormTable
           v-model="form.property"
-          :addTemplate="env.addTemplate"
+          :add-template="env.addTemplate"
           :height="form.property?.length > 0 ? 400 : 120"
           placeholder="暂无配置项，点击下方按钮添加"
           class="property-table"
@@ -138,10 +212,10 @@ defineExpose({
           >
             <template #default="{ row }">
               <ScSelect
+                v-model="row.sysDictItemPropertyGroup"
                 filterable
                 allow-create
                 clearable
-                v-model="row.sysDictItemPropertyGroup"
                 placeholder="选择或创建分组"
                 class="group-select"
               >
@@ -217,15 +291,16 @@ defineExpose({
 
       <template #footer>
         <div class="drawer-footer">
-          <ScButton @click="handleClose" size="large">
+          <ScButton size="large" native-type="button" @click.stop="handleClose">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             {{ t("buttons.close") }}
           </ScButton>
           <ScButton
             type="primary"
             :loading="env.loading"
-            @click="handleUpdate"
             size="large"
+            native-type="button"
+            @click.stop="handleUpdate"
           >
             <IconifyIconOnline icon="ri:save-line" class="mr-1" />
             {{ t("buttons.confirm") }}
@@ -299,6 +374,12 @@ defineExpose({
   font-size: 13px;
   color: var(--el-text-color-secondary);
   margin-bottom: 20px;
+}
+
+.content-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .property-table {

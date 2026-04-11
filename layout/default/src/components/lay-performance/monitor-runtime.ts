@@ -196,3 +196,5 @@ export const __resetPerformanceMonitorRuntimeForTests = () => {
   lastFrameTime = 0;
   lastMemorySyncTime = 0;
 };
+
+export type { MonitorSnapshot };

@@ -12,6 +12,7 @@ export const include = [
   "axios",
   "pinia",
   "@vue/shared",
+  "grid-layout-plus",
   // "vditor",
   // "typeit",
   // "swiper",

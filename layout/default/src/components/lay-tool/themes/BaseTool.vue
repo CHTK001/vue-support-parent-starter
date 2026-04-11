@@ -3,6 +3,7 @@ import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LaySearch from "../../lay-search/index.vue";
 import LayMessage from "../../lay-message/index.vue";
+import LayTaskCenter from "../../lay-task-center/index.vue";
 import LaySidebarFullScreen from "../../lay-sidebar/components/SidebarFullScreen.vue";
 import LangDropdown from "../dropdowns/LangDropdown.vue";
 import UserDropdown from "../dropdowns/UserDropdown.vue";
@@ -15,6 +16,10 @@ import { useDraggable } from "@vueuse/core";
 import HeaderClock from "../HeaderClock.vue";
 import { webLlmDownloadState } from "../../lay-ai-chat/services/webLlmDownloadState";
 import ToolItem from "../components/ToolItem.vue";
+import {
+  toggleTaskCenterPanel,
+  useTaskCenterState,
+} from "../../lay-task-center/service";
 
 // webLLM 进度浮层收缩状态
 const webllmCollapsed = ref(false);
@@ -81,14 +86,20 @@ const showSearchOverride = ref<boolean | null>(
   resolveBooleanOverride($storage?.configure?.showSearch),
 );
 const showFullscreen = ref($storage?.configure?.showFullscreen ?? true);
+const showTaskCenterOverride = ref<boolean | null>(
+  resolveBooleanOverride($storage?.configure?.showTaskCenter),
+);
 const showHeaderClockOverride = ref<boolean | null>(
   resolveBooleanOverride($storage?.configure?.showHeaderClock),
 );
+const { activeTaskCount } = useTaskCenterState();
 const showSearch = computed(
   () => showSearchOverride.value ?? getConfig().ShowBarSearch ?? true,
 );
+const showTaskCenter = computed(() => showTaskCenterOverride.value ?? true);
 const showHeaderClock = computed(
-  () => showHeaderClockOverride.value ?? pageBehavior.value.showHeaderClock ?? true,
+  () =>
+    showHeaderClockOverride.value ?? pageBehavior.value.showHeaderClock ?? true,
 );
 
 // 监听界面元素显示设置变化
@@ -98,18 +109,23 @@ const handleShowSearchChange = (val: boolean) => {
 const handleShowFullscreenChange = (val: boolean) => {
   showFullscreen.value = val;
 };
+const handleShowTaskCenterChange = (val: boolean) => {
+  showTaskCenterOverride.value = val;
+};
 const handleShowHeaderClockChange = (val: boolean) => {
   showHeaderClockOverride.value = val;
 };
 
 emitter.on("showSearchChange", handleShowSearchChange);
 emitter.on("showFullscreenChange", handleShowFullscreenChange);
+emitter.on("showTaskCenterChange", handleShowTaskCenterChange);
 emitter.on("showHeaderClockChange", handleShowHeaderClockChange);
 
 onBeforeUnmount(() => {
   emitter.off("systemThemeChange", handleThemeChange);
   emitter.off("showSearchChange", handleShowSearchChange);
   emitter.off("showFullscreenChange", handleShowFullscreenChange);
+  emitter.off("showTaskCenterChange", handleShowTaskCenterChange);
   emitter.off("showHeaderClockChange", handleShowHeaderClockChange);
 });
 </script>
@@ -127,11 +143,24 @@ onBeforeUnmount(() => {
     />
 
     <!-- 消息 -->
-    <LayMessage
-      v-menu="['MessageCenter']"
-      id="header-message"
-      class="tool-item"
-    />
+    <LayMessage id="header-message" class="tool-item" />
+
+    <ToolItem
+      v-if="showTaskCenter"
+      id="header-task-center"
+      title="任务中心"
+      @click="toggleTaskCenterPanel"
+    >
+      <span class="task-center-trigger">
+        <IconifyIconOnline
+          icon="mdi:lightning-bolt-outline"
+          class="task-center-trigger__icon"
+        />
+        <span v-if="activeTaskCount > 0" class="task-center-trigger__badge">
+          {{ activeTaskCount > 99 ? "99+" : activeTaskCount }}
+        </span>
+      </span>
+    </ToolItem>
 
     <!-- 语言切换 - 组件化 -->
     <LangDropdown v-if="getConfig().ShowLanguage" />
@@ -158,49 +187,106 @@ onBeforeUnmount(() => {
         :style="webllmStyle as any"
       >
         <!-- 标题栏：拖拽区域 + 点击收缩/展开 -->
-        <div ref="webllmHandle" class="webllm-float-header" @click="webllmCollapsed = !webllmCollapsed">
-          <IconifyIconOnline icon="ri:download-cloud-line" class="webllm-float-icon" />
-          <span class="webllm-float-title">AI 模型下载中</span>
-          <span class="webllm-float-progress-text">{{ webLlmDownloadState.progress }}%</span>
+        <div
+          ref="webllmHandle"
+          class="webllm-float-header"
+          @click="webllmCollapsed = !webllmCollapsed"
+        >
           <IconifyIconOnline
-            :icon="webllmCollapsed ? 'ri:arrow-down-s-line' : 'ri:arrow-up-s-line'"
+            icon="ri:download-cloud-line"
+            class="webllm-float-icon"
+          />
+          <span class="webllm-float-title">AI 模型下载中</span>
+          <span class="webllm-float-progress-text"
+            >{{ webLlmDownloadState.progress }}%</span
+          >
+          <IconifyIconOnline
+            :icon="
+              webllmCollapsed ? 'ri:arrow-down-s-line' : 'ri:arrow-up-s-line'
+            "
             class="webllm-float-toggle"
           />
         </div>
         <!-- 展开内容 -->
         <div v-show="!webllmCollapsed" class="webllm-float-body">
-          <div class="webllm-float-filename">{{ webLlmDownloadState.fileName || 'AI模型' }}</div>
+          <div class="webllm-float-filename">
+            {{ webLlmDownloadState.fileName || "AI模型" }}
+          </div>
           <div class="webllm-float-bar-wrap">
-            <div class="webllm-float-bar" :style="{ width: webLlmDownloadState.progress + '%' }" />
+            <div
+              class="webllm-float-bar"
+              :style="{ width: webLlmDownloadState.progress + '%' }"
+            />
           </div>
           <div class="webllm-float-meta">
             {{ webLlmDownloadState.text }}
-            <template v-if="webLlmDownloadState.speed"> · {{ webLlmDownloadState.speed }}</template>
+            <template v-if="webLlmDownloadState.speed">
+              · {{ webLlmDownloadState.speed }}</template
+            >
           </div>
         </div>
       </div>
     </Teleport>
 
     <!-- 系统设置 -->
-    <ToolItem
-      v-if="getConfig().ShowBarSetting"
-      @click="onPanel"
-    >
+    <ToolItem v-if="getConfig().ShowBarSetting" @click="onPanel">
       <span class="setting-content">
         <IconifyIconOffline :icon="Setting" class="setting-icon" />
-        <ScText v-if="isSpringFestival()" class="setting-symbol setting-symbol--festival" :theme-motion="settingTextMotion">🧧</ScText>
+        <ScText
+          v-if="isSpringFestival()"
+          class="setting-symbol setting-symbol--festival"
+          :theme-motion="settingTextMotion"
+          >🧧</ScText
+        >
         <ScText v-else-if="isMidAutumn()">🥮</ScText>
-        <ScText v-else-if="isHalloween()" class="setting-symbol setting-symbol--halloween" :theme-motion="settingTextMotion">🎃</ScText>
-        <ScText v-else-if="isChristmas()" class="setting-symbol setting-symbol--christmas" :theme-motion="settingTextMotion">🎄</ScText>
-        <ScText v-else-if="isFutureTech()" class="setting-symbol setting-symbol--future" :theme-motion="settingTextMotion">⚡</ScText>
+        <ScText
+          v-else-if="isHalloween()"
+          class="setting-symbol setting-symbol--halloween"
+          :theme-motion="settingTextMotion"
+          >🎃</ScText
+        >
+        <ScText
+          v-else-if="isChristmas()"
+          class="setting-symbol setting-symbol--christmas"
+          :theme-motion="settingTextMotion"
+          >🎄</ScText
+        >
+        <ScText
+          v-else-if="isFutureTech()"
+          class="setting-symbol setting-symbol--future"
+          :theme-motion="settingTextMotion"
+          >⚡</ScText
+        >
       </span>
     </ToolItem>
+
+    <LayTaskCenter />
   </div>
 </template>
 
 <style lang="scss" scoped>
 // 基础布局样式 - 所有主题共用
 .tool-bar {
+  --lay-tool-trigger-bg: rgba(255, 255, 255, 0.42);
+  --lay-tool-trigger-border: rgba(148, 163, 184, 0.16);
+  --lay-tool-trigger-color: var(--el-text-color-regular);
+  --lay-tool-trigger-hover-bg: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.12) 0%,
+    rgba(var(--el-color-primary-rgb), 0.06) 100%
+  );
+  --lay-tool-trigger-hover-border: rgba(var(--el-color-primary-rgb), 0.18);
+  --lay-tool-trigger-hover-shadow: 0 10px 24px
+    rgba(var(--el-color-primary-rgb), 0.14);
+  --lay-tool-clock-bg: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.12) 0%,
+    rgba(var(--el-color-primary-rgb), 0.04) 100%
+  );
+  --lay-tool-clock-border: rgba(var(--el-color-primary-rgb), 0.2);
+  --lay-tool-clock-shadow:
+    0 10px 24px rgba(var(--el-color-primary-rgb), 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -219,9 +305,9 @@ onBeforeUnmount(() => {
   height: 40px;
   border-radius: 14px;
   cursor: pointer;
-  color: var(--el-text-color-regular);
-  background: rgba(255, 255, 255, 0.42);
-  border: 1px solid transparent;
+  color: var(--lay-tool-trigger-color);
+  background: var(--lay-tool-trigger-bg);
+  border: 1px solid var(--lay-tool-trigger-border);
   transition: all 0.24s ease;
   font-size: 16px;
   z-index: 1;
@@ -246,15 +332,11 @@ onBeforeUnmount(() => {
   }
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      rgba(var(--el-color-primary-rgb), 0.12) 0%,
-      rgba(var(--el-color-primary-rgb), 0.06) 100%
-    );
-    border-color: rgba(var(--el-color-primary-rgb), 0.18);
+    background: var(--lay-tool-trigger-hover-bg);
+    border-color: var(--lay-tool-trigger-hover-border);
     color: var(--el-color-primary);
     transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(var(--el-color-primary-rgb), 0.14);
+    box-shadow: var(--lay-tool-trigger-hover-shadow);
 
     &::before {
       opacity: 1;
@@ -265,6 +347,34 @@ onBeforeUnmount(() => {
     transform: translateY(0);
     box-shadow: 0 2px 6px rgba(var(--el-color-primary-rgb), 0.1);
   }
+}
+
+.task-center-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-center-trigger__icon {
+  font-size: 18px;
+}
+
+.task-center-trigger__badge {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0f92ff, #38bdf8);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 8px 18px rgba(15, 146, 255, 0.26);
 }
 
 .setting-btn {
@@ -324,18 +434,34 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
   justify-content: flex-start;
   gap: 10px;
-  background: linear-gradient(
-    135deg,
-    rgba(var(--el-color-primary-rgb), 0.12) 0%,
-    rgba(var(--el-color-primary-rgb), 0.04) 100%
-  );
-  border: 1px solid rgba(var(--el-color-primary-rgb), 0.2);
-  box-shadow:
-    0 10px 24px rgba(var(--el-color-primary-rgb), 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  background: var(--lay-tool-clock-bg);
+  border: 1px solid var(--lay-tool-clock-border);
+  box-shadow: var(--lay-tool-clock-shadow);
   flex: 0 0 auto;
   white-space: nowrap;
   overflow: hidden;
+}
+
+html.dark .tool-bar {
+  --lay-tool-trigger-bg: rgba(15, 23, 42, 0.68);
+  --lay-tool-trigger-border: rgba(148, 163, 184, 0.18);
+  --lay-tool-trigger-color: #dbe4f0;
+  --lay-tool-trigger-hover-bg: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.22) 0%,
+    rgba(15, 23, 42, 0.88) 100%
+  );
+  --lay-tool-trigger-hover-border: rgba(var(--el-color-primary-rgb), 0.34);
+  --lay-tool-trigger-hover-shadow: 0 12px 26px rgba(2, 8, 23, 0.38);
+  --lay-tool-clock-bg: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.2) 0%,
+    rgba(15, 23, 42, 0.9) 100%
+  );
+  --lay-tool-clock-border: rgba(var(--el-color-primary-rgb), 0.3);
+  --lay-tool-clock-shadow:
+    0 18px 36px rgba(2, 8, 23, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .fu-setting {
@@ -413,7 +539,9 @@ onBeforeUnmount(() => {
     border-radius: 999px;
     border: 1px dashed rgba(255, 225, 138, 0.32);
     opacity: 0;
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease;
     pointer-events: none;
     transform: scale(0.85);
   }
@@ -530,11 +658,19 @@ onBeforeUnmount(() => {
   cursor: move;
   user-select: none;
   touch-action: none;
-  background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08), rgba(var(--el-color-primary-rgb), 0.04));
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.08),
+    rgba(var(--el-color-primary-rgb), 0.04)
+  );
   user-select: none;
 
   &:hover {
-    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.14), rgba(var(--el-color-primary-rgb), 0.08));
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.14),
+      rgba(var(--el-color-primary-rgb), 0.08)
+    );
   }
 }
 
@@ -593,7 +729,11 @@ onBeforeUnmount(() => {
 
 .webllm-float-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  background: linear-gradient(
+    90deg,
+    var(--el-color-primary),
+    var(--el-color-primary-light-3)
+  );
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -604,7 +744,12 @@ onBeforeUnmount(() => {
 }
 
 @keyframes webllm-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 </style>

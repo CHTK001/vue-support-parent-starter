@@ -2,7 +2,15 @@
   <div class="sc-number-circle" :class="{ 'sc-number-circle--disabled': disabled }">
     <!-- 圆形进度 -->
     <div class="sc-number-circle__wrapper" :style="{ width: `${size}px`, height: `${size}px` }">
-      <ScProgress type="circle" class="sc-number-circle__progress" :percentage="percentage" :width="size" :stroke-width="strokeWidth" :color="color" :show-text="false" />
+      <ElProgress
+        type="circle"
+        class="sc-number-circle__progress"
+        :percentage="percentage"
+        :width="size"
+        :stroke-width="strokeWidth"
+        :color="resolvedColor"
+        :show-text="false"
+      />
 
       <!-- 中心内容 -->
       <div class="sc-number-circle__content">
@@ -28,7 +36,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScProgress } from "../../ScProgress";
+import { ElProgress } from "element-plus";
 
 interface Props {
   /**
@@ -98,6 +106,16 @@ const percentage = computed(() => {
   const range = props.max - props.min;
   if (range === 0) return 0;
   return Math.round(((props.modelValue - props.min) / range) * 100);
+});
+
+const resolvedColor = computed(() => {
+  if (typeof props.color === "function") {
+    return props.color(percentage.value);
+  }
+  if (Array.isArray(props.color)) {
+    return props.color[0] || "";
+  }
+  return props.color || "";
 });
 
 // 显示值

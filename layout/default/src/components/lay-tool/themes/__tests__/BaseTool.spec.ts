@@ -65,6 +65,13 @@ vi.mock("../../lay-message/index.vue", () => ({
   },
 }));
 
+vi.mock("../../lay-task-center/index.vue", () => ({
+  default: {
+    name: "LayTaskCenter",
+    template: "<div class='lay-task-center-stub' />",
+  },
+}));
+
 vi.mock("../../lay-sidebar/components/SidebarFullScreen.vue", () => ({
   default: {
     name: "LaySidebarFullScreen",
@@ -130,7 +137,10 @@ describe("BaseTool runtime config", () => {
     putConfig("ShowBarSearch", getInitialConfig("ShowBarSearch"));
     putConfig("ShowLanguage", getInitialConfig("ShowLanguage"));
     putConfig("ShowBarSetting", getInitialConfig("ShowBarSetting"));
-    putConfig("PageBehavior", cloneConfigValue(getInitialConfig("PageBehavior")));
+    putConfig(
+      "PageBehavior",
+      cloneConfigValue(getInitialConfig("PageBehavior")),
+    );
   });
 
   it("reacts to ShowBarSearch updates when no local override is set", async () => {

@@ -13,21 +13,21 @@
               @keyup.enter="handleSearch"
             />
             <ScButton type="primary" @click="handleSearch">
-              <i class="ri-search-line"></i>
+              <i class="ri-search-line" />
               搜索
             </ScButton>
             <ScButton @click="handleRefresh">
-              <i class="ri-refresh-line"></i>
+              <i class="ri-refresh-line" />
               刷新
             </ScButton>
           </div>
           <div class="toolbar-right">
             <ScButton type="success" @click="handleExport">
-              <i class="ri-download-line"></i>
+              <i class="ri-download-line" />
               导出配置
             </ScButton>
             <ScButton type="warning" @click="handleImportDialog">
-              <i class="ri-upload-line"></i>
+              <i class="ri-upload-line" />
               导入配置
             </ScButton>
           </div>
@@ -44,6 +44,7 @@
           row-key="sysSettingHistoryId"
           stripe
           border
+          hide-pagination
         >
           <ScTableColumn
             prop="sysSettingHistoryId"
@@ -124,8 +125,8 @@
               <ScButton
                 size="small"
                 type="warning"
-                @click="handleRollbackSingle(row)"
                 :disabled="row.sysSettingOperation === 'ROLLBACK'"
+                @click="handleRollbackSingle(row)"
               >
                 回滚
               </ScButton>
@@ -199,8 +200,8 @@
         <ScButton @click="detailDialogVisible = false">关闭</ScButton>
         <ScButton
           type="warning"
-          @click="handleRollbackSingle(currentHistory)"
           :disabled="currentHistory?.sysSettingOperation === 'ROLLBACK'"
+          @click="handleRollbackSingle(currentHistory)"
         >
           回滚此变更
         </ScButton>
@@ -260,24 +261,47 @@
     </sc-dialog>
 
     <!-- 导入配置对话框 -->
-    <sc-dialog v-model="importDialogVisible" title="导入配置" width="600px">
-      <ScForm label-width="100px">
-        <ScFormItem label="配置数据">
+    <sc-dialog
+      v-model="importDialogVisible"
+      title="导入配置"
+      width="600px"
+      class="history-dialog"
+    >
+      <ScForm label-position="top" class="history-dialog-form">
+        <ScFormItem
+          label="配置数据"
+          class="history-dialog-form__item history-dialog-form__item--wide"
+        >
           <ScInput
             v-model="importJson"
             type="textarea"
-            :rows="12"
+            :rows="9"
             placeholder="请粘贴导出的 JSON 配置数据"
           />
         </ScFormItem>
-        <ScFormItem label="覆盖选项">
-          <ScSwitch
-            v-model="importOverwrite"
-            active-text="覆盖已存在配置"
-            inactive-text="跳过已存在配置"
-          />
+        <ScFormItem
+          label="覆盖选项"
+          class="history-dialog-form__item history-dialog-form__item--wide"
+        >
+          <div class="history-switch-field">
+            <div class="history-switch-field__copy">
+              <strong>{{
+                importOverwrite ? "覆盖已存在配置" : "跳过已存在配置"
+              }}</strong>
+              <span
+                >开启覆盖时，以导入内容替换现有配置；关闭时仅补充缺失项。</span
+              >
+            </div>
+            <ScSwitch
+              v-model="importOverwrite"
+              active-text="覆盖已存在配置"
+              inactive-text="跳过已存在配置"
+            />
+          </div>
         </ScFormItem>
-        <ScFormItem>
+        <ScFormItem
+          class="history-dialog-form__item history-dialog-form__item--wide"
+        >
           <ScUpload
             action=""
             :auto-upload="false"
@@ -286,7 +310,7 @@
             @change="handleFileChange"
           >
             <ScButton type="primary">
-              <i class="ri-file-upload-line"></i>
+              <i class="ri-file-upload-line" />
               从文件加载
             </ScButton>
           </ScUpload>
@@ -301,9 +325,17 @@
     </sc-dialog>
 
     <!-- 导出配置对话框 -->
-    <sc-dialog v-model="exportDialogVisible" title="导出配置" width="600px">
-      <ScForm label-width="100px">
-        <ScFormItem label="配置分组">
+    <sc-dialog
+      v-model="exportDialogVisible"
+      title="导出配置"
+      width="600px"
+      class="history-dialog"
+    >
+      <ScForm label-position="top" class="history-dialog-form">
+        <ScFormItem
+          label="配置分组"
+          class="history-dialog-form__item history-dialog-form__item--wide"
+        >
           <ScInput
             v-model="exportGroup"
             placeholder="留空导出全部配置，填写则只导出指定分组"
@@ -315,11 +347,11 @@
         <ScInput v-model="exportedJson" type="textarea" :rows="12" readonly />
         <div class="export-actions">
           <ScButton type="primary" @click="handleCopyExport">
-            <i class="ri-file-copy-line"></i>
+            <i class="ri-file-copy-line" />
             复制到剪贴板
           </ScButton>
           <ScButton type="success" @click="handleDownloadExport">
-            <i class="ri-download-line"></i>
+            <i class="ri-download-line" />
             下载 JSON 文件
           </ScButton>
         </div>
@@ -436,7 +468,6 @@ const loadHistoryList = async () => {
       ScMessage.error(response.msg || "加载历史记录失败");
     }
   } catch (error) {
-    console.error("加载历史记录失败:", error);
     ScMessage.error("加载历史记录失败");
   } finally {
     loading.value = false;
@@ -472,7 +503,6 @@ const handleViewBatch = async (batchNo: string) => {
       ScMessage.error(response.msg || "加载批次详情失败");
     }
   } catch (error) {
-    console.error("加载批次详情失败:", error);
     ScMessage.error("加载批次详情失败");
   }
 };
@@ -498,7 +528,6 @@ const handleRollbackSingle = async (row: SettingHistory | null) => {
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("回滚失败:", error);
       ScMessage.error("回滚失败");
     }
   }
@@ -523,7 +552,6 @@ const handleRollbackBatch = async () => {
     }
   } catch (error) {
     if (error !== "cancel") {
-      console.error("批次回滚失败:", error);
       ScMessage.error("批次回滚失败");
     }
   }
@@ -548,7 +576,6 @@ const handleExportConfirm = async () => {
       ScMessage.error(response.msg || "导出失败");
     }
   } catch (error) {
-    console.error("导出失败:", error);
     ScMessage.error("导出失败");
   } finally {
     exportLoading.value = false;
@@ -557,11 +584,41 @@ const handleExportConfirm = async () => {
 
 // 复制导出结果
 const handleCopyExport = async () => {
+  const fallbackCopy = (text: string) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "readonly");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied;
+  };
+
   try {
-    await navigator.clipboard.writeText(exportedJson.value);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(exportedJson.value);
+    } else if (!fallbackCopy(exportedJson.value)) {
+      throw new Error("copy_failed");
+    }
     ScMessage.success("已复制到剪贴板");
   } catch (error) {
-    ScMessage.error("复制失败，请手动选择复制");
+    if (fallbackCopy(exportedJson.value)) {
+      ScMessage.success("已复制到剪贴板");
+      return;
+    }
+    const deniedByBrowser =
+      error instanceof DOMException && error.name === "NotAllowedError";
+    ScMessage.error(
+      deniedByBrowser
+        ? "当前浏览器禁止写入剪贴板，请手动选择复制"
+        : "复制失败，请手动选择复制",
+    );
   }
 };
 
@@ -572,10 +629,13 @@ const handleDownloadExport = () => {
   const a = document.createElement("a");
   a.href = url;
   a.download = `settings_${exportGroup.value || "all"}_${new Date().toISOString().slice(0, 10)}.json`;
+  a.style.display = "none";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
   ScMessage.success("下载成功");
 };
 
@@ -624,7 +684,6 @@ const handleImport = async () => {
       ScMessage.error(response.msg || "导入失败");
     }
   } catch (error) {
-    console.error("导入失败:", error);
     ScMessage.error("导入失败");
   } finally {
     importLoading.value = false;
@@ -640,7 +699,6 @@ onMounted(() => {
 .setting-history-container {
   padding: 16px;
   min-height: 100%;
-  background-color: var(--el-bg-color-page);
 
   .toolbar-section {
     margin-bottom: 16px;
@@ -677,6 +735,41 @@ onMounted(() => {
   }
 
   .history-section {
+    :deep(.el-table__fixed),
+    :deep(.el-table__fixed-right),
+    :deep(.el-table__fixed-right-patch),
+    :deep(.el-table-fixed-column--right),
+    :deep(.el-table-fixed-column--left) {
+      background: #fff !important;
+    }
+
+    :deep(.el-table__fixed),
+    :deep(.el-table__fixed-right) {
+      box-shadow: -12px 0 24px -22px rgba(15, 23, 42, 0.28);
+    }
+
+    :deep(.el-table__fixed th.el-table__cell),
+    :deep(.el-table__fixed td.el-table__cell),
+    :deep(.el-table__fixed-right th.el-table__cell),
+    :deep(.el-table__fixed-right td.el-table__cell),
+    :deep(.el-table__header-wrapper .el-table-fixed-column--right),
+    :deep(.el-table__body-wrapper .el-table-fixed-column--right),
+    :deep(.el-table__header-wrapper .el-table-fixed-column--left),
+    :deep(.el-table__body-wrapper .el-table-fixed-column--left),
+    :deep(.el-table__cell.el-table-fixed-column--right),
+    :deep(.el-table__cell.el-table-fixed-column--left),
+    :deep(.el-table__fixed .el-table__header-wrapper),
+    :deep(.el-table__fixed .el-table__body-wrapper),
+    :deep(.el-table__fixed-right .el-table__header-wrapper),
+    :deep(.el-table__fixed-right .el-table__body-wrapper) {
+      background: #fff !important;
+    }
+
+    :deep(.el-table__fixed-right::before) {
+      width: 1px;
+      background: rgba(203, 213, 225, 0.95);
+    }
+
     .pagination-container {
       margin-top: 16px;
       display: flex;
@@ -720,6 +813,152 @@ onMounted(() => {
       display: flex;
       gap: 12px;
       justify-content: flex-end;
+    }
+  }
+
+  .history-dialog {
+    :deep(.el-dialog) {
+      width: min(600px, calc(100vw - 24px)) !important;
+      max-height: min(760px, calc(100vh - 32px));
+      margin: 16px auto !important;
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    :deep(.el-dialog__body) {
+      padding: 18px 20px 16px;
+      overflow-y: auto;
+    }
+
+    :deep(.el-dialog__footer) {
+      padding: 0 20px 18px;
+    }
+  }
+
+  .history-dialog-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+
+    :deep(.el-form-item) {
+      margin-bottom: 0;
+      min-width: 0;
+    }
+
+    :deep(.el-form-item__label) {
+      padding: 0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      line-height: 1.25;
+    }
+
+    :deep(.el-form-item__content) {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      align-items: stretch;
+      margin-left: 0 !important;
+    }
+
+    :deep(.el-input),
+    :deep(.el-textarea) {
+      width: 100%;
+    }
+
+    :deep(.el-input__wrapper),
+    :deep(.el-textarea__inner) {
+      border-radius: 14px;
+      background: linear-gradient(180deg, #fbfdff 0%, #f6faff 100%);
+      box-shadow: 0 0 0 1px rgba(191, 219, 254, 0.92) inset;
+      transition: all 0.3s ease;
+    }
+
+    :deep(.el-input__wrapper:hover),
+    :deep(.el-textarea__inner:hover) {
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.95) inset;
+    }
+
+    :deep(.el-input__wrapper.is-focus),
+    :deep(.el-textarea__inner:focus) {
+      box-shadow:
+        0 0 0 1px rgba(37, 99, 235, 0.92) inset,
+        0 0 0 4px rgba(191, 219, 254, 0.4);
+    }
+
+    :deep(.el-textarea__inner) {
+      min-height: 168px;
+      padding: 12px 14px;
+    }
+  }
+
+  .history-dialog-form__item--wide {
+    grid-column: 1 / -1;
+  }
+
+  .history-switch-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(191, 219, 254, 0.88);
+    background: linear-gradient(
+      180deg,
+      rgba(248, 250, 252, 0.92) 0%,
+      rgba(239, 246, 255, 0.86) 100%
+    );
+  }
+
+  .history-switch-field__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+
+    strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    span {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #64748b;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .setting-history-container {
+    .toolbar-section {
+      .toolbar-container {
+        .toolbar-left,
+        .toolbar-right {
+          width: 100%;
+          flex-wrap: wrap;
+        }
+
+        .toolbar-left {
+          .filter-input {
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    .history-dialog-form {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .history-switch-field {
+      flex-direction: column;
+      align-items: flex-start;
     }
   }
 }

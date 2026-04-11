@@ -235,7 +235,9 @@ function selectTag(key: number, item: any): void {
   closeMenu();
   if (!item?.show) return;
 
-  const currentPath = currentSelect.value?.path;
+  const currentPath = String(
+    (currentSelect.value as RouteConfigs | undefined)?.path || route.path,
+  );
   switch (key) {
     case 0:
       router.push(currentPath);
@@ -267,25 +269,36 @@ function selectTag(key: number, item: any): void {
 
 function closeOther(item: RouteConfigs): void {
   handleAliveRoute(item, "others");
-  multiTagsStore.handleTags("equal", "", {
-    path: item.path,
-    meta: item.meta,
-  });
+  const baseTags =
+    VITE_HIDE_HOME === "false" ? fixedTags : [toRaw(getTopMenu())].filter(Boolean);
+  const nextTags = [...baseTags, item].filter(
+    (tag, index, list) =>
+      !!tag?.path && list.findIndex((current) => current?.path === tag.path) === index,
+  );
+  multiTagsStore.handleTags("equal", nextTags as any);
 }
 
 function closeLeft(item: RouteConfigs): void {
   handleAliveRoute(item, "left");
-  multiTagsStore.handleTags("left", "", {
-    path: item.path,
-    meta: item.meta,
+  const index = multiTags.value.findIndex((tag) => tag.path === item.path);
+  if (index <= fixedTags.length) {
+    return;
+  }
+  multiTagsStore.handleTags("splice", "", {
+    startIndex: fixedTags.length,
+    length: index - fixedTags.length,
   });
 }
 
 function closeRight(item: RouteConfigs): void {
   handleAliveRoute(item, "right");
-  multiTagsStore.handleTags("right", "", {
-    path: item.path,
-    meta: item.meta,
+  const index = multiTags.value.findIndex((tag) => tag.path === item.path);
+  if (index < 0 || index >= multiTags.value.length - 1) {
+    return;
+  }
+  multiTagsStore.handleTags("splice", "", {
+    startIndex: index + 1,
+    length: multiTags.value.length - index - 1,
   });
 }
 
@@ -299,7 +312,7 @@ function closeAll(): void {
   multiTagsStore.handleTags("splice");
 }
 
-function handleCommand({ key, item }) {
+function handleCommand({ key, item }: { key: number; item: any }) {
   selectTag(key, item);
 }
 
@@ -415,7 +428,7 @@ const deferTag = useDefer(tagsViews?.length);
           ]"
           @contextmenu.prevent="openMenu(item, $event)"
           @mouseenter.prevent="onMouseenter(index)"
-          @mouseleave.prevent="onMouseleave(index)"
+          @mouseleave.prevent="onMouseleave()"
           @click="tagOnClick(item)"
         >
           <component

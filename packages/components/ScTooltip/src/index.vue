@@ -36,8 +36,8 @@
 <script setup lang="ts">
 /**
  * ScTooltip 文字提示组件
- * 封装 Element Plus Tooltip 与 PixelUI PxTooltip
- * 在 data-skin 为 8bit 时自动切换为像素风提示
+ * 封装 Element Plus Tooltip
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed, useAttrs } from "vue";
 import type { PropType } from "vue";
@@ -46,91 +46,93 @@ import { useThemeComponent } from "../../hooks/useThemeComponent";
 
 // 禁用属性自动继承，手动控制属性传递以避免 Element Plus Popup 组件的警告
 defineOptions({
-  inheritAttrs: false
+  inheritAttrs: false,
 });
 
 defineProps({
   content: {
     type: String,
-    default: ""
+    default: "",
   },
   placement: {
     type: String,
-    default: "bottom"
+    default: "bottom",
   },
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   offset: {
     type: Number,
-    default: 12
+    default: 8,
   },
   showArrow: {
     type: Boolean,
-    default: true
+    default: true,
   },
   popperOptions: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   showAfter: {
     type: Number,
-    default: 0
+    default: 0,
   },
   hideAfter: {
     type: Number,
-    default: 200
+    default: 200,
   },
   autoClose: {
     type: Number,
-    default: 0
+    default: 0,
   },
   popperClass: {
     type: String,
-    default: ""
+    default: "",
   },
   enterable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   teleported: {
     type: Boolean,
-    default: true
+    default: true,
   },
   trigger: {
-    type: [String, Array] as PropType<"hover" | "click" | "focus" | "contextmenu" | string[]>,
-    default: "hover"
+    type: [String, Array] as PropType<
+      "hover" | "click" | "focus" | "contextmenu" | string[]
+    >,
+    default: "hover",
   },
   virtualTriggering: {
     type: Boolean,
-    default: false
+    default: false,
   },
   virtualRef: {
     type: Object,
-    default: undefined
+    default: undefined,
   },
   triggerKeys: {
     type: Array as PropType<string[]>,
-    default: () => ["Enter", "Space"]
+    default: () => ["Enter", "Space"],
   },
   persistent: {
     type: Boolean,
-    default: false
+    default: false,
   },
   ariaLabel: {
     type: String,
-    default: ""
+    default: "",
   },
   effect: {
     type: String as PropType<"dark" | "light">,
-    default: "dark"
+    default: "dark",
   },
   /** tooltip 层级，默认不设置（由 ElTooltip 自动管理），在高层级容器内使用时需手动传入 */
   zIndex: {
     type: Number,
-    default: undefined
-  }
+    default: undefined,
+  },
 });
 
 const emit = defineEmits(["before-show", "before-hide", "show", "hide"]);

@@ -13,6 +13,7 @@ const props = defineProps<{
   settings: Record<string, any>;
   showSearchChange: (value: boolean) => void;
   showFullscreenChange: (value: boolean) => void;
+  showTaskCenterChange: (value: boolean) => void;
   showHeaderClockChange: (value: boolean) => void;
   headerClockSecondEnabledChange: (value: boolean) => void;
   headerClockSecondTimezoneChange: (value: string) => void;
@@ -21,6 +22,10 @@ const props = defineProps<{
 /** 时区选项（UTC-12 ~ UTC+12 整数时区） */
 interface HeaderClockTimezoneOption extends OptionsType {
   offset: string;
+  image?: {
+    width: string;
+    height: string;
+  };
 }
 
 const standardTimezones = [
@@ -28,13 +33,25 @@ const standardTimezones = [
   { value: "Pacific/Pago_Pago", region: "美属萨摩亚", offsetHour: -11 },
   { value: "Pacific/Honolulu", region: "美国夏威夷", offsetHour: -10 },
   { value: "America/Anchorage", region: "美国阿拉斯加", offsetHour: -9 },
-  { value: "America/Los_Angeles", region: "美国西部（洛杉矶）", offsetHour: -8 },
+  {
+    value: "America/Los_Angeles",
+    region: "美国西部（洛杉矶）",
+    offsetHour: -8,
+  },
   { value: "America/Denver", region: "美国山区时间（丹佛）", offsetHour: -7 },
-  { value: "America/Chicago", region: "美国中部时间（芝加哥）", offsetHour: -6 },
+  {
+    value: "America/Chicago",
+    region: "美国中部时间（芝加哥）",
+    offsetHour: -6,
+  },
   { value: "America/New_York", region: "美国东部时间（纽约）", offsetHour: -5 },
   { value: "America/Halifax", region: "加拿大大西洋时间", offsetHour: -4 },
   { value: "America/Sao_Paulo", region: "巴西/圣保罗", offsetHour: -3 },
-  { value: "America/Noronha", region: "巴西费尔南多-迪诺罗尼亚", offsetHour: -2 },
+  {
+    value: "America/Noronha",
+    region: "巴西费尔南多-迪诺罗尼亚",
+    offsetHour: -2,
+  },
   { value: "Atlantic/Azores", region: "葡萄牙亚速尔群岛", offsetHour: -1 },
   { value: "Europe/London", region: "英国/伦敦", offsetHour: 0 },
   { value: "Europe/Paris", region: "中欧时间（巴黎）", offsetHour: 1 },
@@ -72,30 +89,43 @@ const headerClockTimezoneOptions = computed<HeaderClockTimezoneOption[]>(() =>
       <div class="setting-item">
         <div class="switch-card-grid">
           <ScSwitch
-            v-model="settings.showSearch"
+            :model-value="settings.showSearch"
             layout="visual-card"
             label="显示搜索按钮"
             description="控制 lay-header 的搜索按钮是否显示"
             active-icon="ri:search-2-line"
             inactive-icon="ri:search-eye-line"
+            @update:model-value="showSearchChange"
             @change="showSearchChange"
           />
           <ScSwitch
-            v-model="settings.showFullscreen"
+            :model-value="settings.showFullscreen"
             layout="visual-card"
             label="显示全屏按钮"
             description="控制 lay-header 的全屏按钮是否显示"
             active-icon="ri:fullscreen-fill"
             inactive-icon="ri:fullscreen-exit-line"
+            @update:model-value="showFullscreenChange"
             @change="showFullscreenChange"
           />
           <ScSwitch
-            v-model="settings.showHeaderClock"
+            :model-value="settings.showHeaderClock"
             layout="visual-card"
             label="显示顶部时间"
             description="在顶部工具栏显示当前时间，适合全屏和大屏展示"
             active-icon="ep:clock"
+            @update:model-value="showHeaderClockChange"
             @change="showHeaderClockChange"
+          />
+          <ScSwitch
+            :model-value="settings.showTaskCenter"
+            layout="visual-card"
+            label="显示任务中心"
+            description="显示顶部任务按钮并启用统一任务进度浮层"
+            active-icon="mdi:lightning-bolt-outline"
+            inactive-icon="ri:eye-off-line"
+            @update:model-value="showTaskCenterChange"
+            @change="showTaskCenterChange"
           />
         </div>
       </div>
@@ -106,13 +136,16 @@ const headerClockTimezoneOptions = computed<HeaderClockTimezoneOption[]>(() =>
           <div class="header-clock-advanced-inner">
             <div class="header-clock-advanced-label">
               <span class="header-clock-advanced-title">第二时区</span>
-              <span class="header-clock-advanced-desc">可同时展示另一个时区的时间</span>
+              <span class="header-clock-advanced-desc"
+                >可同时展示另一个时区的时间</span
+              >
             </div>
             <div class="header-clock-advanced-control">
               <ScSwitch
-                v-model="settings.headerClockSecondEnabled"
+                :model-value="settings.headerClockSecondEnabled"
                 size="small"
                 label="开启"
+                @update:model-value="headerClockSecondEnabledChange"
                 @change="headerClockSecondEnabledChange"
               />
             </div>
@@ -120,12 +153,13 @@ const headerClockTimezoneOptions = computed<HeaderClockTimezoneOption[]>(() =>
           <template v-if="settings.headerClockSecondEnabled">
             <div class="header-clock-timezone-select-wrapper">
               <ScSelect
-                v-model="settings.headerClockSecondTimezone"
+                :model-value="settings.headerClockSecondTimezone"
                 layout="dropdown"
                 class="header-clock-timezone-select"
                 :options="headerClockTimezoneOptions"
                 placeholder="请选择第二时区"
                 size="small"
+                @update:model-value="headerClockSecondTimezoneChange"
                 @change="headerClockSecondTimezoneChange"
               />
             </div>

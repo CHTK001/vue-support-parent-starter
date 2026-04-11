@@ -31,13 +31,21 @@
 import { ref } from "vue";
 import BaseTableSelect from "./BaseTableSelect.vue";
 
+type TableColumnConfig = {
+  prop: string;
+  label?: string;
+  width?: number | string;
+  minWidth?: number | string;
+};
+type TableSelectValue = string | number | Array<string | number>;
+
 const props = withDefaults(
   defineProps<{
-    modelValue?: unknown;
+    modelValue?: TableSelectValue;
     data?: Record<string, any>[];
     url?: ((params: Record<string, any>) => Promise<any>) | null;
     keywords?: Record<string, string>;
-    columns?: Array<Record<string, any>>;
+    columns?: TableColumnConfig[];
     params?: Record<string, any>;
     tableWidth?: string;
     maxHeight?: number;

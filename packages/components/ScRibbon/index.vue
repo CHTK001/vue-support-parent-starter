@@ -50,15 +50,15 @@ const props = withDefaults(defineProps<Props>(), {
   icon: "",
   color: "#409eff",
   variant: "diagonal",
-  position: "lt",
+  position: "rt",
   size: "md",
-  width: "100%"
+  width: "100%",
 });
 
 const sizeMap = {
   sm: { pad: "4px 8px", font: "12px", gap: "4px" },
   md: { pad: "6px 12px", font: "13px", gap: "6px" },
-  lg: { pad: "8px 16px", font: "14px", gap: "8px" }
+  lg: { pad: "8px 16px", font: "14px", gap: "8px" },
 } as const;
 
 const variantPrefix = computed(() => `sc-ribbon-${props.variant}`);
@@ -67,7 +67,19 @@ const ribbonClass = computed(() => {
   const classes = [variantPrefix.value];
 
   // 添加位置类
-  if (["corner", "diagonal", "folded", "bookmark", "tag", "sash", "arrow", "pennant", "swoosh"].includes(props.variant)) {
+  if (
+    [
+      "corner",
+      "diagonal",
+      "folded",
+      "bookmark",
+      "tag",
+      "sash",
+      "arrow",
+      "pennant",
+      "swoosh",
+    ].includes(props.variant)
+  ) {
     classes.push(`pos-${props.position}`);
   }
 
@@ -82,10 +94,12 @@ const ribbonStyle = computed(() => {
     "--sc-ribbon-color": props.color,
     "--sc-ribbon-pad": sizeMap[props.size].pad,
     "--sc-ribbon-font": sizeMap[props.size].font,
-    "--sc-ribbon-gap": sizeMap[props.size].gap
+    "--sc-ribbon-gap": sizeMap[props.size].gap,
   };
 
-  if (["banner", "hanging", "wave", "trapezoid", "double"].includes(props.variant)) {
+  if (
+    ["banner", "hanging", "wave", "trapezoid", "double"].includes(props.variant)
+  ) {
     styles.width = props.width;
   }
 
@@ -133,7 +147,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   border-radius: 6px;
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.15),
@@ -190,7 +208,11 @@ const ribbonStyle = computed(() => {
   font-weight: 600;
   line-height: 1.2;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   white-space: nowrap;
@@ -237,7 +259,14 @@ const ribbonStyle = computed(() => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   z-index: 10;
-  clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+  clip-path: polygon(
+    8px 0%,
+    calc(100% - 8px) 0%,
+    100% 50%,
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0% 50%
+  );
 }
 
 .sc-ribbon-banner.size-sm {
@@ -261,7 +290,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 90%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 90%, black) 100%
+  );
   border-radius: 4px 0 0 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   line-height: 1;
@@ -345,14 +378,17 @@ const ribbonStyle = computed(() => {
 .sc-ribbon-folded.pos-lb .sc-ribbon-folded__content::before {
   left: 0;
   border-width: 6px 0 0 8px;
-  border-color: transparent transparent transparent color-mix(in srgb, var(--sc-ribbon-color) 60%, black);
+  border-color: transparent transparent transparent
+    color-mix(in srgb, var(--sc-ribbon-color) 60%, black);
 }
 
 .sc-ribbon-folded.pos-rt .sc-ribbon-folded__content::before,
 .sc-ribbon-folded.pos-rb .sc-ribbon-folded__content::before {
   right: 0;
   border-width: 6px 8px 0 0;
-  border-color: transparent color-mix(in srgb, var(--sc-ribbon-color) 60%, black) transparent transparent;
+  border-color: transparent
+    color-mix(in srgb, var(--sc-ribbon-color) 60%, black) transparent
+    transparent;
 }
 
 /* ===== 6. Bookmark Ribbon (书签) ===== */
@@ -381,11 +417,21 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(180deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   pointer-events: auto;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), 50% 100%, 0 calc(100% - 12px));
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - 12px),
+    50% 100%,
+    0 calc(100% - 12px)
+  );
 }
 
 /* ===== 7. Tag Ribbon (标签) ===== */
@@ -460,7 +506,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(180deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 90%, black) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 90%, black) 100%
+  );
   box-shadow:
     0 6px 16px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -513,7 +563,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%
+  );
   box-shadow:
     0 6px 20px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3),
@@ -550,7 +604,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(180deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -670,7 +728,13 @@ const ribbonStyle = computed(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   pointer-events: auto;
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  clip-path: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 50%,
+    calc(100% - 12px) 100%,
+    0 100%
+  );
 }
 
 .sc-ribbon-arrow.pos-rt .sc-ribbon-arrow__content {
@@ -693,7 +757,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 700;
   color: #fff;
-  background: radial-gradient(circle, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%);
+  background: radial-gradient(
+    circle,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%
+  );
   border-radius: 50%;
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.2),
@@ -733,10 +801,25 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
 }
 
 .sc-ribbon-star.size-sm {
@@ -769,7 +852,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
@@ -805,10 +892,29 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 700;
   color: #fff;
-  background: radial-gradient(circle, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%);
+  background: radial-gradient(
+    circle,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%
+  );
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  clip-path: polygon(50% 0%, 55% 30%, 85% 20%, 65% 45%, 90% 70%, 55% 60%, 60% 95%, 50% 65%, 40% 95%, 45% 60%, 10% 70%, 35% 45%, 15% 20%, 45% 30%);
+  clip-path: polygon(
+    50% 0%,
+    55% 30%,
+    85% 20%,
+    65% 45%,
+    90% 70%,
+    55% 60%,
+    60% 95%,
+    50% 65%,
+    40% 95%,
+    45% 60%,
+    10% 70%,
+    35% 45%,
+    15% 20%,
+    45% 30%
+  );
   animation: starburst-pulse 2s ease-in-out infinite;
 }
 
@@ -872,7 +978,14 @@ const ribbonStyle = computed(() => {
   background: var(--sc-ribbon-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+  clip-path: polygon(
+    8px 0%,
+    calc(100% - 8px) 0%,
+    100% 50%,
+    calc(100% - 8px) 100%,
+    8px 100%,
+    0% 50%
+  );
 }
 
 .sc-ribbon-double__content::after {
@@ -902,7 +1015,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(180deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   z-index: 10;
@@ -946,7 +1063,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(180deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 85%, black) 100%
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   pointer-events: auto;
@@ -979,7 +1100,11 @@ const ribbonStyle = computed(() => {
   font-size: var(--sc-ribbon-font);
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, var(--sc-ribbon-color) 0%, color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--sc-ribbon-color) 0%,
+    color-mix(in srgb, var(--sc-ribbon-color) 80%, black) 100%
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   pointer-events: auto;

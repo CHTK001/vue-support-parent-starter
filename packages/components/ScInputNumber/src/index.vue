@@ -27,8 +27,8 @@
 <script setup lang="ts">
 /**
  * ScInputNumber 计数器组件
- * 封装 Element Plus InputNumber 与 PixelUI PxInputNumber
- * 在 data-skin 为 8bit 时自动切换为像素风计数器
+ * 封装 Element Plus InputNumber
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import { computed } from "vue";
 import type { PropType } from "vue";

@@ -57,6 +57,12 @@ export const globalSetting: PlatformConfigs = {
   RemoteMenu: false,
   /** 是否在远程菜单基础上合并本地菜单（仅当RemoteMenu为true时生效，默认false） */
   MergeLocalMenu: false,
+  /** 是否开启小程序菜单管理 */
+  OpenMiniProgramMenu: false,
+  /** 本地模块路由路径 */
+  LocalRouteModulePaths: [],
+  /** 是否开启本地模块路由自动发现 */
+  EnableLocalModuleDiscovery: false,
   /** 是否开启远程布局 */
   RemoteLayout: false,
   /** 是否开启远程布局保存 */

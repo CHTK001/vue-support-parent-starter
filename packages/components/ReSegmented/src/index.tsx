@@ -37,7 +37,7 @@ const props = {
   }
 };
 
-export default defineComponent({
+const ReSegmentedComponent = defineComponent({
   name: "ReSegmented",
   props,
   emits: ["change", "update:modelValue"],
@@ -51,6 +51,14 @@ export default defineComponent({
       if (typeof document === "undefined") return false;
       return document.documentElement.classList.contains("dark");
     });
+    const hoverBackground = computed(() =>
+      isDark.value
+        ? "rgba(var(--el-color-primary-rgb), 0.22)"
+        : "rgba(var(--el-color-primary-rgb), 0.12)"
+    );
+    const activeTextColor = computed(() =>
+       "var(--el-color-white)"
+    );
     const initStatus = ref(false);
     const curMouseActive = ref(-1);
     const segmentedItembg = ref("");
@@ -72,7 +80,7 @@ export default defineComponent({
       if (option.disabled || curIndex.value === index) {
         segmentedItembg.value = "";
       } else {
-        segmentedItembg.value = isDark.value ? "#1f1f1f" : "rgba(0, 0, 0, 0.26)";
+        segmentedItembg.value = hoverBackground.value;
       }
     }
 
@@ -143,7 +151,16 @@ export default defineComponent({
             class={["pure-segmented-item", (props.disabled || option?.disabled) && "pure-segmented-item-disabled"]}
             style={{
               background: curMouseActive.value === index ? segmentedItembg.value : "",
-              color: props.disabled ? null : !option.disabled && (curIndex.value === index || curMouseActive.value === index) ? (isDark.value ? "rgba(255, 255, 255)" : "rgba(255,255,255,.88)") : ""
+              color:
+                props.disabled || option.disabled
+                  ? null
+                  : curIndex.value === index
+                    ? activeTextColor.value
+                    : curMouseActive.value === index
+                      ? (isDark.value
+                          ? "var(--el-color-white)"
+                          : "var(--el-text-color)")
+                      : ""
             }}
             onMouseenter={event => handleMouseenter({ option, index }, event)}
             onMouseleave={event => handleMouseleave({ option, index }, event)}
@@ -197,3 +214,5 @@ export default defineComponent({
     );
   }
 });
+
+export default ReSegmentedComponent;

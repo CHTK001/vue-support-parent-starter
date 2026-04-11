@@ -3,6 +3,13 @@
   --pure-control-padding-horizontal-sm: 8px;
   --pure-segmented-track-padding: 2px;
   --pure-segmented-line-width: 1px;
+  --pure-segmented-text-color: var(--el-text-color);
+  --pure-segmented-track-bg: rgba(15, 23, 42, 0.05);
+  --pure-segmented-selected-bg: var(--el-bg-color);
+  --pure-segmented-selected-shadow:
+    0 2px 8px -2px rgb(0 0 0 / 5%),
+    0 1px 4px -1px rgb(0 0 0 / 7%),
+    0 0 1px rgb(0 0 0 / 7%);
 
   --pure-segmented-border-radius-small: 4px;
   --pure-segmented-border-radius-base: 6px;
@@ -12,8 +19,8 @@
   display: inline-block;
   padding: var(--pure-segmented-track-padding);
   font-size: var(--el-font-size-base);
-  color: rgba(0, 0, 0, 0.65);
-  background-color: rgb(0 0 0 / 4%);
+  color: var(--pure-segmented-text-color);
+  background-color: var(--pure-segmented-track-bg);
   border-radius: var(--pure-segmented-border-radius-base);
 }
 
@@ -101,8 +108,13 @@
   transition: 0.1s;
 }
 
-html.dark .pure-segmented-group {
-  color: var(--el-text-color-primary);
+html.dark .pure-segmented {
+  --pure-segmented-text-color: #cbd5e1;
+  --pure-segmented-track-bg: rgba(15, 23, 42, 0.78);
+  --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.24);
+  --pure-segmented-selected-shadow:
+    0 14px 28px rgba(2, 8, 23, 0.24),
+    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.18);
 }
 .pure-segmented-group {
   position: relative;
@@ -120,17 +132,18 @@ html.dark .pure-segmented-group {
   display: none;
   width: 0;
   height: 100%;
+  
   padding: 4px 0;
-  background-color: var(--el-bg-color);
+  background-color: var(--pure-segmented-selected-bg);
   border-radius: 4px;
-  box-shadow:
-    0 2px 8px -2px rgb(0 0 0 / 5%),
-    0 1px 4px -1px rgb(0 0 0 / 7%),
-    0 0 1px rgb(0 0 0 / 7%);
+  box-shadow: var(--pure-segmented-selected-shadow);
   transition:
     transform 0.5s cubic-bezier(0.645, 0.045, 0.355, 1),
     width 0.5s cubic-bezier(0.645, 0.045, 0.355, 1);
   will-change: transform, width;
+}
+.pure-segmented-item-selected span {
+  color: #fff !important;
 }
 
 .pure-segmented-item > input {
@@ -155,6 +168,6 @@ html.dark .pure-segmented-group {
 }
 
 .pure-segmented-item-disabled {
-  color: rgba(0, 0, 0, 0.25);
+  color: var(--el-text-color-disabled);
   cursor: not-allowed;
 }

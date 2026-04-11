@@ -24,8 +24,8 @@
 <script setup lang="ts">
 /**
  * ScBadge 徽章组件
- * 封装 Element Plus Badge 与 PixelUI PxBadge
- * 在 data-skin 为 8bit 时自动切换为像素风徽章
+ * 封装 Element Plus Badge
+ * 支持根据 data-skin 切换主题化组件样式
  */
 import type { PropType } from "vue";
 import { ElBadge } from "element-plus";
@@ -61,7 +61,7 @@ const props = defineProps({
     default: ""
   },
   offset: {
-    type: Array as PropType<[number, number]>,
+    type: Array as unknown as PropType<[number, number]>,
     default: undefined
   }
 });

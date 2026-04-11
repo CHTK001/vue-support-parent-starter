@@ -1,5 +1,5 @@
 <template>
-  <!-- 像素主题下使用 PixelUI 选择器，其余情况回退 Element Plus 选择器 -->
+  <!-- 根据当前主题渲染选择器组件，回退到 Element Plus Select -->
   <component
     :is="currentComponent || ElSelect"
     v-model="currentValue"
@@ -80,8 +80,8 @@
 <script setup lang="ts">
 /**
  * ScSelect 选择器组件
- * 封装 Element Plus Select 与 PixelUI PxSelect
- * 在 data-skin 为 8bit 时自动切换为像素风选择器
+ * 封装 Element Plus Select
+ * 支持根据 data-skin 切换主题化组件样式
  *
  * 作者：[CH]
  * 创建时间：2026-02-26
@@ -184,7 +184,7 @@ const props = defineProps({
    */
   placeholder: {
     type: String,
-    default: "Select"
+    default: "请选择"
   },
   /**
    * 是否可搜索
@@ -397,14 +397,14 @@ const resolvedPopperClass = computed(() =>
 );
 
 /**
- * 使用 PixelUI 条件导入
- * 自动管理 CSS 加载/卸载，并提供 PxSelect 组件条件导入
+ * 使用主题组件条件导入
+ * 自动管理 CSS 加载/卸载，并按当前主题返回组件实现
  */
 const { currentComponent } = useThemeComponent("ElSelect");
 
 /**
  * 当前实际渲染的组件
- * 像素主题下使用 PxSelect，否则使用 ElSelect
+ * 主题组件不可用时回退到 ElSelect
  */
 
 /**

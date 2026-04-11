@@ -1,9 +1,0 @@
-{
-  "sysSfcId": "weather",
-  "title": "天气信息",
-  "description": "实时天气情况展示",
-  "icon": "meteocons:clear-day-fill",
-  "width": 2,
-  "height": 1,
-  "type": 1
-}

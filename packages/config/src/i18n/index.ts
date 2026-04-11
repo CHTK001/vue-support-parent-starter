@@ -37,6 +37,23 @@ function mergeObjects(obj1, obj2) {
 
 const logger = console;
 
+const isI18nDebugEnabled = (): boolean => {
+  //@ts-ignore
+  if (!import.meta.env?.DEV || typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return (
+      params.has("__i18nDebug") ||
+      window.localStorage?.getItem("sys-i18n-debug") === "true"
+    );
+  } catch {
+    return false;
+  }
+};
+
 const siphonI18n = (function () {
   /**
    * 加载国际化文件
@@ -53,8 +70,7 @@ const siphonI18n = (function () {
     try {
       const entries = Object.entries(globResult);
 
-      //@ts-ignore
-      if (import.meta.env?.DEV) {
+      if (isI18nDebugEnabled()) {
         logger.info(
           `[i18n] ${source} - 匹配到 ${entries.length} 个文件:`,
           entries.map(([key]) => key),
@@ -82,8 +98,7 @@ const siphonI18n = (function () {
                 return null;
               }
               const parsed = parser(content);
-              //@ts-ignore
-              if (import.meta.env?.DEV) {
+              if (isI18nDebugEnabled()) {
                 logger.info(
                   `[i18n] ${source} - 成功加载: ${key} -> ${langCode}`,
                 );
@@ -140,8 +155,7 @@ const siphonI18n = (function () {
   const finalCache = mergeObjects(packageCache, appCache);
 
   // 开发环境下输出调试信息
-  //@ts-ignore
-  if (import.meta.env?.DEV) {
+  if (isI18nDebugEnabled()) {
     const availableLangs = Object.keys(finalCache);
     if (availableLangs.length > 0) {
       logger.info(`[i18n] 已加载语言: ${availableLangs.join(", ")}`);
@@ -165,8 +179,7 @@ const siphonI18n = (function () {
 
   const getI18n = (prefix = "zh-CN") => {
     const result = finalCache[prefix];
-    //@ts-ignore
-    if (!result && import.meta.env?.DEV) {
+    if (!result && isI18nDebugEnabled()) {
       logger.warn(
         `[i18n] 未找到语言配置: ${prefix}，可用语言: ${Object.keys(
           finalCache,

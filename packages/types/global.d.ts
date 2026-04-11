@@ -106,6 +106,7 @@ declare global {
     oRequestAnimationFrame: (callback: FrameRequestCallback) => number;
     msRequestAnimationFrame: (callback: FrameRequestCallback) => number;
     hideAppLoader?: () => void;
+    __SYS_APP_CODE__?: string;
     __SYS_LOADER_CONFIG__?: LoaderRuntimeConfig;
     // 百度统计
     _hmt?: any[];

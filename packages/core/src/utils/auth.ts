@@ -1,8 +1,5 @@
 import { useUserStoreHook } from "../store/modules/UserStore";
-import type {
-  FlatUserResult,
-  UserResult,
-} from "../api/common/user";
+import type { UserResult } from "../api/common/user";
 import { localStorageProxy } from "@repo/utils";
 import { buildStoredUserResult, type StoredUserResult } from "./auth-payload";
 import {
@@ -62,8 +59,17 @@ export function setToken(
   userStore.SET_TENANT(storedUserInfo.tenantId || "");
   userStore.SET_USERNAME(storedUserInfo.sysUserUsername || "");
   userStore.SET_NICKNAME(storedUserInfo.sysUserNickname || "");
+  userStore.SET_MANAGED_DEPT_IDS(storedUserInfo.managedDeptIds || []);
+  userStore.SET_ROLE_INFOS(storedUserInfo.roleInfos || []);
   userStore.SET_ROLES(storedUserInfo.roles || []);
   userStore.SET_PERMS(storedUserInfo.perms || []);
+  userStore.SET_AGREEMENT_STATUS({
+    agreementVersion: storedUserInfo.agreementVersion,
+    agreementUpdatedAt: storedUserInfo.agreementUpdatedAt,
+    agreementAcceptedVersion: storedUserInfo.agreementAcceptedVersion,
+    agreementAcceptedAt: storedUserInfo.agreementAcceptedAt,
+    agreementNeedConfirm: storedUserInfo.agreementNeedConfirm,
+  });
   userStore.SET_ISREMEMBERED(setting.isRemembered);
 }
 

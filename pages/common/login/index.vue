@@ -175,10 +175,8 @@ const loadDefaultSetting = async () => {
     if (defaultSetting.OpenVerifyCode) {
       await getVerifyCode();
     }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn("[login] 获取默认配置失败:", error);
-    }
+  } catch {
+    // 配置加载失败时保留默认值，避免打断登录页展示
   }
 };
 

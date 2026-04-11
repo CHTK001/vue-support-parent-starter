@@ -2,7 +2,7 @@
  * 设置管理 Composable
  * @description 统一管理系统设置的状态和方法
  */
-import { reactive, ref, computed } from "vue";
+import { reactive } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter } from "@repo/core";
 import { getConfig } from "@repo/config";
@@ -67,6 +67,7 @@ export interface SettingsState {
   enableFestivalTheme: boolean;
   // 消息中心（Header）
   showMessage: boolean;
+  showTaskCenter: boolean;
   messageDropdownPosition:
     | "top-left"
     | "top-center"
@@ -157,6 +158,7 @@ export function useSettings() {
       true,
     showMessage:
       $storage.configure?.showMessage ?? getConfig().ShowBarMessage ?? true,
+    showTaskCenter: $storage.configure?.showTaskCenter ?? true,
     messageDropdownPosition:
       $storage.configure?.messageDropdownPosition ?? "bottom-right",
     messagePopupEnabled:
@@ -268,6 +270,12 @@ export function useSettings() {
     settings.hideHeader = value;
     saveToStorage("hideHeader", value);
     emitter.emit("hideHeaderChange", value);
+  }
+
+  function setShowTaskCenter(value: boolean): void {
+    settings.showTaskCenter = value;
+    saveToStorage("showTaskCenter", value);
+    emitter.emit("showTaskCenterChange", value);
   }
 
   function setShowLogo(value: boolean): void {
@@ -465,6 +473,7 @@ export function useSettings() {
     setHideTabs,
     setHideFooter,
     setHideHeader,
+    setShowTaskCenter,
     setShowLogo,
     setShowBreadcrumb,
     setBreadcrumbMode,

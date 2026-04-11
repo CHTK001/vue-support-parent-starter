@@ -9,7 +9,16 @@
 import { ref } from "vue";
 import { io, type Socket } from "socket.io-client";
 import { getToken } from "../utils/auth";
-import { normalizeSocketUrls, parseSocketMessage } from "./socketUtils";
+import {
+  matchesSocketListenOptions,
+  normalizeSocketUrls,
+  parseSocketMessage,
+} from "./socketUtils";
+import type {
+  SocketTemplate,
+  SocketTemplateListenOptions,
+  WsMessage,
+} from "./socketTemplate";
 
 /**
  * Socket.IO 配置
@@ -18,6 +27,7 @@ export interface SocketIOConfig {
   urls: string[];
   context?: string;
   query?: Record<string, string>;
+  transports?: Array<"polling" | "websocket">;
   autoConnect?: boolean;
   reconnection?: boolean;
   reconnectionAttempts?: number;
@@ -33,6 +43,10 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   const eventListeners = new Map<string, Set<(data: unknown) => void>>();
   const autoConnect = config.autoConnect ?? true;
   const normalizedUrls = normalizeSocketUrls(config.urls);
+  const transports =
+    config.transports && config.transports.length > 0
+      ? config.transports
+      : ["websocket"];
 
   const connect = () => {
     if (socketInstance?.connected) {
@@ -51,7 +65,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
 
     socketInstance = io(url, {
       path: config.context || "/socket.io",
-      transports: ["websocket"],
+      transports,
+      upgrade: transports.includes("polling"),
       autoConnect,
       reconnection: config.reconnection ?? true,
       reconnectionAttempts: config.reconnectionAttempts ?? 3,
@@ -79,10 +94,17 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     // message 事件分发（必须在 socketInstance 创建后注册）
     socketInstance.on("message", (raw: unknown) => {
       try {
-        const msg = (typeof raw === "string" ? JSON.parse(raw) : raw) as WsMessage;
+        const parsed = parseSocketMessage(raw);
+        const msg = (
+          typeof parsed === "string" ? JSON.parse(parsed) : parsed
+        ) as WsMessage;
         if (!msg?.module || !msg?.event) return;
         const key = `${msg.module}_${msg.event}`;
-        subscribeHandlers.get(key)?.forEach(h => { try { h(msg); } catch {} });
+        subscribeHandlers.get(key)?.forEach((h) => {
+          try {
+            h(msg);
+          } catch {}
+        });
       } catch {}
     });
 
@@ -112,11 +134,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
 
     const wrappedCallback = (rawData: unknown) => {
       const data = parseSocketMessage(rawData);
-      if (options?.dataId !== undefined) {
-        const messageDataId = (data as Record<string, unknown>)?.dataId;
-        if (String(messageDataId) !== String(options.dataId)) {
-          return;
-        }
+      if (!matchesSocketListenOptions(data, options, rawData)) {
+        return;
       }
       callback(data);
     };
@@ -156,7 +175,11 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
 
   const subscribeHandlers = new Map<string, Set<(msg: WsMessage) => void>>();
 
-  const subscribe = (module: string, event: string, handler: (msg: WsMessage) => void): () => void => {
+  const subscribe = (
+    module: string,
+    event: string,
+    handler: (msg: WsMessage) => void,
+  ): (() => void) => {
     const key = `${module}_${event}`;
     if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
     subscribeHandlers.get(key)!.add(handler);
@@ -165,9 +188,15 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
 
   return {
     protocol: "socketio",
-    get socket() { return socketInstance; },
-    get isConnected() { return isConnected.value; },
-    get connected() { return isConnected; },
+    get socket() {
+      return socketInstance;
+    },
+    get isConnected() {
+      return isConnected.value;
+    },
+    get connected() {
+      return isConnected;
+    },
     connect,
     disconnect,
     on,

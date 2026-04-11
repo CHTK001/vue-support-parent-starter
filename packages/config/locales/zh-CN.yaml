@@ -1,6 +1,7 @@
 buttons:
   AccountManagement: 账号管理
   accountSetting: 用户设置
+  helpFeedback: 帮助与反馈
   back: 返回
   base: 基本信息
   bindSuccess: 绑定成功
@@ -35,11 +36,13 @@ buttons:
   pushSettings: 通知设置
   security: 安全管理
   securityLog: 安全日志
+  support: 服务支持
   thirdparty: 三方管理
   totp: 双因素认证
   update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息
+  userAgreement: 用户协议
 
 field:
   address: 地点
@@ -140,6 +143,7 @@ message:
   bindEmail: 已绑定邮箱
   bindPhone: 已绑定手机
   confimDelete: 确认删除?
+  deleteSuccess: 删除成功
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   pleaseInput: 请输入
   updatePassword: 修改密码前请先确认当前密码，操作完成后请妥善保管新密码
@@ -190,6 +194,8 @@ panel:
   pureTagsStyleChromeTip: 谷歌风格，经典美观
   pureTagsStyleModern: 现代
   pureTagsStyleModernTip: 渐变背景、阴影效果，现代化视觉体验
+  pureTagsStyleOutline: 描边
+  pureTagsStyleOutlineTip: 描边标签，适合简洁商务风格
   pureTagsStyleSmart: 灵动
   pureTagsStyleSmartTip: 灵动标签，添趣生辉
   pureThemeColor: 主题色

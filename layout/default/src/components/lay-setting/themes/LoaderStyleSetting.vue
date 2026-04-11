@@ -3,8 +3,10 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { message } from "@repo/utils";
 import {
   getLoaderStyleEntries,
+  getStoredLoaderStyle,
   LOADER_PREVIEW_STYLE_TEXT,
   renderLoaderPreviewMarkup,
+  setStoredLoaderStyle,
 } from "@repo/components/ScRouteLoading/loader-manager";
 
 interface Props {
@@ -17,7 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const currentValue = ref<string>(
-  props.modelValue || localStorage.getItem("sys-loader-style") || "default",
+  props.modelValue || getStoredLoaderStyle("none"),
 );
 
 const loaderEntries = computed(() => getLoaderStyleEntries());
@@ -54,10 +56,10 @@ function handleCardClick(key: string): void {
 function setCurrentValue(value: string): void {
   currentValue.value = value;
   emit("update:modelValue", value);
-  localStorage.setItem("sys-loader-style", value);
+  setStoredLoaderStyle(value);
 
-  message.success({
-    message: "加载样式已更改，刷新页面后生效",
+  message("加载样式已更改，刷新页面后生效", {
+    type: "success",
     duration: 2000,
   });
 }

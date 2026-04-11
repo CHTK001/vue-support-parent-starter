@@ -9,15 +9,20 @@ import ScDropdownMenu from "@repo/components/ScDropdownMenu";
 import { ScText } from "@repo/components/ScText";
 
 const { t } = useTranslationLang();
-const { logout, username, userAvatar, avatarsStyle, clickClearRouter } =
-  useNav();
+const { logout, username, userAvatar, avatarsStyle } = useNav();
 
 /**
  * 跳转到账户设置页面
  */
-const gotoAccountSetting = () => {
-  router.push("/AccountSettings");
+const gotoAccountSetting = (pane = "profile") => {
+  router.push({
+    name: "AccountSettings",
+    query: {
+      pane,
+    },
+  });
 };
+
 </script>
 
 <template>
@@ -87,7 +92,7 @@ const gotoAccountSetting = () => {
           <ScDropdownItem
             v-menu="['AccountSettings']"
             class="menu-item"
-            @click="gotoAccountSetting"
+            @click="gotoAccountSetting('profile')"
           >
             <div class="item-icon account-icon">
               <IconifyIconOnline icon="ri:user-settings-line" />
@@ -104,15 +109,57 @@ const gotoAccountSetting = () => {
             />
           </ScDropdownItem>
 
-          <ScDropdownItem class="menu-item" @click="clickClearRouter">
+          <ScDropdownItem
+            v-menu="['AccountSettings']"
+            class="menu-item"
+            @click="gotoAccountSetting('password')"
+          >
             <div class="item-icon cache-icon">
-              <IconifyIconOnline icon="line-md:backup-restore" />
+              <IconifyIconOnline icon="ri:lock-password-line" />
+            </div>
+            <div class="item-content">
+              <ScText class="item-title">{{ t("buttons.password") }}</ScText>
+              <ScText class="item-desc">复用账户中心密码修改链路</ScText>
+            </div>
+            <IconifyIconOnline
+              icon="ri:arrow-right-s-line"
+              class="item-arrow"
+            />
+          </ScDropdownItem>
+
+          <ScDropdownItem
+            v-menu="['AccountSettings']"
+            class="menu-item"
+            @click="gotoAccountSetting('agreement')"
+          >
+            <div class="item-icon account-icon">
+              <IconifyIconOnline icon="ri:file-list-3-line" />
             </div>
             <div class="item-content">
               <ScText class="item-title">{{
-                t("buttons.pureClearRouter")
+                t("buttons.userAgreement")
               }}</ScText>
-              <ScText class="item-desc">清除本地缓存数据</ScText>
+              <ScText class="item-desc">查看当前账号的使用协议说明</ScText>
+            </div>
+            <IconifyIconOnline
+              icon="ri:arrow-right-s-line"
+              class="item-arrow"
+            />
+          </ScDropdownItem>
+
+          <ScDropdownItem
+            v-menu="['AccountSettings']"
+            class="menu-item"
+            @click="gotoAccountSetting('helpFeedback')"
+          >
+            <div class="item-icon cache-icon">
+              <IconifyIconOnline icon="ri:customer-service-2-line" />
+            </div>
+            <div class="item-content">
+              <ScText class="item-title">{{
+                t("buttons.helpFeedback")
+              }}</ScText>
+              <ScText class="item-desc">统一入口查看帮助、反馈与消息</ScText>
             </div>
             <IconifyIconOnline
               icon="ri:arrow-right-s-line"
@@ -140,6 +187,21 @@ const gotoAccountSetting = () => {
 // 用户下拉触发器
 .user-dropdown {
   margin-left: 0;
+  --lay-user-trigger-bg: linear-gradient(
+    135deg,
+    var(--el-fill-color-lighter) 0%,
+    var(--el-fill-color-light) 100%
+  );
+  --lay-user-trigger-border: var(--el-border-color-lighter);
+  --lay-user-trigger-hover-bg: linear-gradient(
+    135deg,
+    var(--el-fill-color-light) 0%,
+    var(--el-fill-color) 100%
+  );
+  --lay-user-trigger-hover-border: rgba(var(--el-color-primary-rgb), 0.3);
+  --lay-user-trigger-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
 }
 
 .user-trigger {
@@ -151,12 +213,8 @@ const gotoAccountSetting = () => {
   border-radius: 18px;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-lighter) 0%,
-    var(--el-fill-color-light) 100%
-  );
-  border: 1px solid var(--el-border-color-lighter);
+  background: var(--lay-user-trigger-bg);
+  border: 1px solid var(--lay-user-trigger-border);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -179,15 +237,9 @@ const gotoAccountSetting = () => {
   }
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-light) 0%,
-      var(--el-fill-color) 100%
-    );
-    border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.1),
-      0 2px 8px rgba(var(--el-color-primary-rgb), 0.1);
+    background: var(--lay-user-trigger-hover-bg);
+    border-color: var(--lay-user-trigger-hover-border);
+    box-shadow: var(--lay-user-trigger-shadow);
     transform: translateY(-1px);
 
     &::before {
@@ -211,6 +263,24 @@ const gotoAccountSetting = () => {
       }
     }
   }
+}
+
+html.dark .user-dropdown {
+  --lay-user-trigger-bg: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.82) 0%,
+    rgba(30, 41, 59, 0.88) 100%
+  );
+  --lay-user-trigger-border: rgba(148, 163, 184, 0.2);
+  --lay-user-trigger-hover-bg: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.18) 0%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
+  --lay-user-trigger-hover-border: rgba(var(--el-color-primary-rgb), 0.3);
+  --lay-user-trigger-shadow:
+    0 12px 28px rgba(2, 8, 23, 0.35),
+    0 4px 12px rgba(var(--el-color-primary-rgb), 0.16);
 }
 
 .avatar-container {

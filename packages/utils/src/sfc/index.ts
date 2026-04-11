@@ -188,7 +188,7 @@ const cacheLoadModule = {};
  * @param sysSfcId
  * @param sysSfc
  */
-const loadRemoteModule = (name, sysSfcId, sysSfc) => {
+export const loadRemoteModule = (name, sysSfcId, sysSfc) => {
   return defineAsyncComponent({
     loadingComponent: LoadingComponent,
     errorComponent: ErrorComponent,

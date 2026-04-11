@@ -7,7 +7,7 @@ import Search from "@iconify-icons/ri/search-eye-line";
 type ParameterCSSProperties = (item?: string) => CSSProperties | undefined;
 
 defineOptions({
-  name: "IconSelect"
+  name: "IconSelect",
 });
 
 const inputValue = defineModel({ type: String });
@@ -28,67 +28,75 @@ const filterValue = ref("");
 const tabsList = [
   {
     label: "饿了么",
-    name: "ep:"
+    name: "ep:",
   },
   {
     label: "像素",
-    name: "pixelarticons:"
+    name: "pixelarticons:",
   },
   {
     label: "Remix Icon",
-    name: "ri:"
+    name: "ri:",
   },
   {
     label: "Bootstrap Icons",
-    name: "bi:"
+    name: "bi:",
   },
   {
     label: "Font Awesome 5 Solid",
-    name: "fa-solid:"
+    name: "fa-solid:",
   },
   {
     label: "humbleicons",
-    name: "humbleicons:"
+    name: "humbleicons:",
   },
   {
     label: "meteocons",
-    name: "meteocons:"
+    name: "meteocons:",
   },
   {
     label: "devicon",
-    name: "devicon:"
+    name: "devicon:",
   },
   {
     label: "simple-icons",
-    name: "simple-icons:"
+    name: "simple-icons:",
   },
   {
     label: "mingcute",
-    name: "mingcute:"
-  }
+    name: "mingcute:",
+  },
 ];
 
 const pageList = computed(() => {
   const list1 = copyIconList[currentActiveType.value];
   if (list1) {
-    return list1.filter(i => i.includes(filterValue.value)).slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value);
+    return list1
+      .filter((i) => i.includes(filterValue.value))
+      .slice(
+        (currentPage.value - 1) * pageSize.value,
+        currentPage.value * pageSize.value,
+      );
   }
   return [];
 });
 
 const iconItemStyle = computed((): ParameterCSSProperties => {
-  return item => {
+  return (item) => {
     if (inputValue.value === currentActiveType.value + item) {
       return {
         borderColor: "var(--el-color-primary)",
-        color: "var(--el-color-primary)"
+        color: "var(--el-color-primary)",
       };
     }
   };
 });
 
 function setVal() {
-  currentActiveType.value = inputValue.value?.substring(0, inputValue.value.indexOf(":") + 1) as any;
+  currentActiveType.value = inputValue.value?.substring(
+    0,
+    inputValue.value.indexOf(":") + 1,
+  ) as any;
   icon.value = inputValue.value?.substring(inputValue.value.indexOf(":") + 1);
 }
 
@@ -98,7 +106,7 @@ function onBeforeEnter() {
   const list = copyIconList[currentActiveType.value];
   if (list) {
     // 寻找当前图标在第几页
-    const curIconIndex = list.findIndex(i => i === icon.value);
+    const curIconIndex = list.findIndex((i) => i === icon.value);
     currentPage.value = Math.ceil((curIconIndex + 1) / pageSize.value);
     return;
   }
@@ -135,47 +143,61 @@ watch(
     if (!list) {
       return;
     }
-    totalPage.value = list.filter(i => i.includes(filterValue.value)).length;
+    totalPage.value = list.filter((i) => i.includes(filterValue.value)).length;
   },
-  { immediate: true }
+  { immediate: true },
 );
 watch(
   () => inputValue.value,
-  val => val && setVal(),
-  { immediate: true }
+  (val) => val && setVal(),
+  { immediate: true },
 );
 watch(
   () => filterValue.value,
-  () => (currentPage.value = 1)
+  () => (currentPage.value = 1),
 );
 </script>
 
 <template>
   <div class="selector">
-    <ScInput v-model="inputValue" disabled>
+    <el-input v-model="inputValue" readonly placeholder="请选择图标">
       <template #append>
-        <ScPopover
+        <el-popover
           :width="350"
           trigger="click"
           popper-class="pure-popper"
           :popper-options="{
-            placement: 'auto'
+            placement: 'auto',
           }"
           @before-enter="onBeforeEnter"
           @after-leave="onAfterLeave"
         >
           <template #reference>
-            <div class="w-[40px] h-[32px] cursor-pointer flex justify-center items-center">
+            <button
+              type="button"
+              class="icon-trigger w-[40px] h-[32px] xx-w-h cursor-pointer flex justify-center items-center"
+              aria-label="选择图标"
+            >
               <IconifyIconOffline v-if="!icon" :icon="Search" />
               <IconifyIconOnline v-else :icon="inputValue" />
-            </div>
+            </button>
           </template>
 
-          <ScInput v-model="filterValue" class="px-2 pt-2" placeholder="搜索图标" clearable />
+          <el-input
+            v-model="filterValue"
+            class="px-2 pt-2"
+            placeholder="搜索图标"
+            clearable
+          />
 
-          <ScTabs v-model="currentActiveType" @tab-click="handleClick">
-            <ScTabPane v-for="(pane, index) in tabsList" :key="index" :label="pane.label" :name="pane.name">
-              <ScScrollbar height="220px">
+          <el-tabs v-model="currentActiveType" @tab-click="handleClick">
+            <el-tab-pane
+              v-for="(pane, index) in tabsList"
+              :key="index"
+              :label="pane.label"
+              :name="pane.name"
+            >
+              <el-scrollbar height="220px">
                 <ul class="flex flex-wrap px-2 ml-2">
                   <li
                     v-for="(item, key) in pageList"
@@ -185,16 +207,26 @@ watch(
                     :style="iconItemStyle(item)"
                     @click="onChangeIcon(item)"
                   >
-                    <IconifyIconOnline :icon="currentActiveType + item" width="20px" height="20px" />
+                    <IconifyIconOnline
+                      :icon="currentActiveType + item"
+                      width="20px"
+                      height="20px"
+                    />
                   </li>
                 </ul>
-                <ScEmpty v-show="pageList.length === 0" :description="`${filterValue} 图标不存在`" :image-size="60" />
-              </ScScrollbar>
-            </ScTabPane>
-          </ScTabs>
+                <ScEmpty
+                  v-show="pageList.length === 0"
+                  :description="`${filterValue} 图标不存在`"
+                  :image-size="60"
+                />
+              </el-scrollbar>
+            </el-tab-pane>
+          </el-tabs>
 
-          <div class="w-full h-9 flex items-center overflow-auto border-t border-[#e5e7eb]">
-            <ScPagination
+          <div
+            class="w-full h-9 flex items-center overflow-auto border-t border-[#e5e7eb]"
+          >
+            <el-pagination
               class="flex-auto ml-2"
               :total="totalPage"
               :current-page="currentPage"
@@ -205,15 +237,36 @@ watch(
               size="small"
               @current-change="onCurrentChange"
             />
-            <ScButton class="justify-end mr-2 ml-2" type="danger" size="small" text bg @click="onClear">清空</ScButton>
+            <el-button
+              class="justify-end mr-2 ml-2"
+              type="danger"
+              size="small"
+              text
+              bg
+              @click="onClear"
+              >清空</el-button
+            >
           </div>
-        </ScPopover>
+        </el-popover>
       </template>
-    </ScInput>
+    </el-input>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.xx-w-h {
+  width: 40px;
+  height: 32px;
+}
+
+.icon-trigger {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
 .icon-item {
   &:hover {
     color: var(--el-color-primary);

@@ -81,10 +81,12 @@ const routeMenuMap: Record<string, string> = {
   // 节假日管理路由
   holidayIndex: "/holiday/index",
   // 软件管理相关路由
-  softIndex: "/docker/soft",
-  softDetail: "/docker/soft",
-  softRecords: "/docker/records",
-  softContainers: "/docker/containers",
+  softIndex: "/soft/catalog",
+  softDetail: "/soft/detail",
+  softRecords: "/soft/records",
+  softTargets: "/soft/targets",
+  softRepositories: "/soft/repositories",
+  softInstallations: "/soft/installations",
   // 爬虫管理相关路由
   spiderManagement: "/spider",
   spiderList: "/spider",

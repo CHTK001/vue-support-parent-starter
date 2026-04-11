@@ -6,6 +6,7 @@ import {
   computed,
   nextTick,
   onBeforeMount,
+  onMounted,
   onUnmounted,
   reactive,
   ref,
@@ -140,7 +141,10 @@ const activeSection = ref<SettingSectionKey>("theme");
 const sectionSearch = ref("");
 const sectionSortMode = ref<SectionSortMode>("default");
 const sectionElements = new Map<SettingSectionKey, HTMLElement>();
+const settingStageRef = ref<HTMLElement | null>(null);
 const cacheSizeLabel = ref("0 字节");
+let sectionObserver: IntersectionObserver | null = null;
+let sectionScrollRoot: HTMLElement | null = null;
 
 // 预览数据
 
@@ -245,6 +249,7 @@ const settings = reactive({
   cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
   menuAnimation: $storage.configure.MenuAnimation ?? true,
+  menuLoaderEnabled: $storage.configure?.menuLoaderEnabled ?? false,
   forceNewMenu: $storage.configure.ForceNewMenu ?? false,
   showModel: $storage.configure.showModel,
   hideFooter: $storage.configure.hideFooter,
@@ -507,6 +512,31 @@ const layoutRadiusChange = (value: number): void => {
 const menuAnimationChange = (value: boolean): void => {
   storageConfigureChange("MenuAnimation", value);
   emitter.emit("menuAnimationChange", value);
+};
+
+const menuLoaderEnabledChange = (value: boolean): void => {
+  settings.menuLoaderEnabled = value;
+  storageConfigureChange("menuLoaderEnabled", value);
+  if (!value) {
+    setStoredLoaderStyle("none");
+    settings.loaderStyle = "none";
+    return;
+  }
+
+  const nextStyle =
+    settings.loaderStyle && settings.loaderStyle !== "none"
+      ? settings.loaderStyle
+      : "default";
+  settings.loaderStyle = nextStyle;
+  setStoredLoaderStyle(nextStyle);
+};
+
+const loaderStyleChange = (value: string): void => {
+  settings.loaderStyle = value;
+  if (!settings.menuLoaderEnabled) {
+    return;
+  }
+  setStoredLoaderStyle(value);
 };
 
 /** 切换动画类型 */
@@ -780,6 +810,11 @@ const markOptions = computed<Array<OptionsType>>(() => {
       value: "card",
     },
     {
+      label: t("panel.pureTagsStyleModern"),
+      tip: t("panel.pureTagsStyleModernTip"),
+      value: "modern",
+    },
+    {
       label: t("panel.pureTagsStyleChrome"),
       tip: t("panel.pureTagsStyleChromeTip"),
       value: "chrome",
@@ -788,6 +823,11 @@ const markOptions = computed<Array<OptionsType>>(() => {
       label: "玻璃",
       tip: "Glass Style",
       value: "glass",
+    },
+    {
+      label: t("panel.pureTagsStyleOutline"),
+      tip: t("panel.pureTagsStyleOutlineTip"),
+      value: "outline",
     },
   ];
 });
@@ -879,9 +919,13 @@ const initializeTheme = () => {
 
 onBeforeMount(() => {
   refreshCacheSize();
-  if (getStoredLoaderStyle("none") !== "none") {
+  if (!settings.menuLoaderEnabled && getStoredLoaderStyle("none") !== "none") {
     setStoredLoaderStyle("none");
     settings.loaderStyle = "none";
+  }
+  if (settings.menuLoaderEnabled && settings.loaderStyle === "none") {
+    settings.loaderStyle = "default";
+    setStoredLoaderStyle("default");
   }
   /* 初始化系统配置 */
   nextTick(() => {
@@ -1581,6 +1625,11 @@ const overallStyleLabel = computed(() => {
 
 const overviewChips = computed(() => [
   {
+    sectionKey: activeSection.value,
+    label: translateOr("panel.currentSettingLabel", "当前设置"),
+    value: settingSectionLabels[activeSection.value],
+  },
+  {
     sectionKey: "theme" as SettingSectionKey,
     label: translateOr("panel.currentThemeSkin", "当前皮肤"),
     value:
@@ -1615,6 +1664,117 @@ const activeThemeSummary = computed(() => {
     )
   );
 });
+
+const disconnectSectionObserver = () => {
+  sectionObserver?.disconnect();
+  sectionObserver = null;
+};
+
+const syncActiveSectionFromScroll = () => {
+  const root =
+    sectionScrollRoot ??
+    ((settingStageRef.value?.closest(".el-scrollbar__wrap") as HTMLElement | null) ??
+      null);
+  if (!root || !displayedSettingSections.value.length) {
+    return;
+  }
+
+  const probeLine =
+    root.getBoundingClientRect().top +
+    Math.min(160, Math.max(88, root.clientHeight * 0.22));
+
+  const nearestSection = displayedSettingSections.value.reduce<{
+    key: SettingSectionKey;
+    distance: number;
+  } | null>((result, section) => {
+    const element = sectionElements.get(section.key);
+    if (!element) {
+      return result;
+    }
+
+    const distance = Math.abs(element.getBoundingClientRect().top - probeLine);
+    if (!result || distance < result.distance) {
+      return {
+        key: section.key,
+        distance,
+      };
+    }
+
+    return result;
+  }, null);
+
+  if (nearestSection?.key) {
+    activeSection.value = nearestSection.key;
+  }
+};
+
+const bindSectionScrollListener = () => {
+  const nextRoot =
+    (settingStageRef.value?.closest(".el-scrollbar__wrap") as HTMLElement | null) ??
+    null;
+
+  if (sectionScrollRoot === nextRoot) {
+    syncActiveSectionFromScroll();
+    return;
+  }
+
+  sectionScrollRoot?.removeEventListener("scroll", syncActiveSectionFromScroll);
+  sectionScrollRoot = nextRoot;
+  sectionScrollRoot?.addEventListener("scroll", syncActiveSectionFromScroll, {
+    passive: true,
+  });
+  syncActiveSectionFromScroll();
+};
+
+const observeSections = () => {
+  nextTick(() => {
+    disconnectSectionObserver();
+    if (!sectionElements.size) {
+      return;
+    }
+
+    const root =
+      (settingStageRef.value?.closest(".el-scrollbar__wrap") as HTMLElement | null) ??
+      null;
+
+    sectionObserver = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+        if (!visibleEntries.length) {
+          return;
+        }
+
+        visibleEntries.sort((left, right) => {
+          if (Math.abs(right.intersectionRatio - left.intersectionRatio) > 0.01) {
+            return right.intersectionRatio - left.intersectionRatio;
+          }
+          return (
+            Math.abs(left.boundingClientRect.top) -
+            Math.abs(right.boundingClientRect.top)
+          );
+        });
+
+        const nextKey = visibleEntries[0]?.target.getAttribute(
+          "data-setting-key",
+        ) as SettingSectionKey | null;
+        if (nextKey) {
+          activeSection.value = nextKey;
+        }
+      },
+      {
+        root,
+        rootMargin: "-8% 0px -60% 0px",
+        threshold: [0.18, 0.35, 0.55, 0.72],
+      },
+    );
+
+    sectionElements.forEach((element) => {
+      sectionObserver?.observe(element);
+    });
+
+    bindSectionScrollListener();
+  });
+};
 
 const sectionSearchPlaceholder = computed(() =>
   translateOr("panel.settingSearchPlaceholder", "搜索分区、标题、描述"),
@@ -1755,6 +1915,8 @@ const settingSectionProps = computed<
     settings,
     transitionTypeOptions: transitionTypeOptions.value,
     menuAnimationChange,
+    menuLoaderEnabledChange,
+    loaderStyleChange,
     transitionTypeChange,
     showNewMenuChange,
     newMenuTextChange,
@@ -1937,6 +2099,10 @@ const setSectionRef = (
 ) => {
   if (element instanceof HTMLElement) {
     sectionElements.set(key, element);
+    nextTick(() => {
+      bindSectionScrollListener();
+      syncActiveSectionFromScroll();
+    });
     return;
   }
   sectionElements.delete(key);
@@ -1953,6 +2119,20 @@ const scrollToSection = (key: SettingSectionKey) => {
   });
 };
 
+const focusSection = async (key: SettingSectionKey) => {
+  const keyword = sectionSearch.value.trim().toLowerCase();
+  const targetSection = allSettingSections.value.find(
+    (section) => section.key === key,
+  );
+
+  if (keyword && targetSection && !targetSection.searchText.includes(keyword)) {
+    sectionSearch.value = "";
+    await nextTick();
+  }
+
+  scrollToSection(key);
+};
+
 watch(displayedSettingSections, (sections) => {
   if (!sections.length) {
     return;
@@ -1961,9 +2141,18 @@ watch(displayedSettingSections, (sections) => {
   if (!sections.some((section) => section.key === activeSection.value)) {
     activeSection.value = sections[0].key;
   }
+
+  observeSections();
+});
+
+onMounted(() => {
+  observeSections();
 });
 
 onUnmounted(() => {
+  disconnectSectionObserver();
+  sectionScrollRoot?.removeEventListener("scroll", syncActiveSectionFromScroll);
+  sectionScrollRoot = null;
   removeMatchMedia();
   // 移除事件监听器
   emitter.off("settingPanelClosed");
@@ -1995,7 +2184,11 @@ onUnmounted(() => {
                     {{ activeThemeSummary }}
                   </p>
                 </div>
-                <div class="setting-shell-hero__status">
+                <button
+                  type="button"
+                  class="setting-shell-hero__status"
+                  @click="focusSection('theme')"
+                >
                   <span class="setting-shell-hero__status-label">
                     {{ translateOr("panel.currentThemeLabel", "当前主题") }}
                   </span>
@@ -2005,7 +2198,7 @@ onUnmounted(() => {
                       themeStore.currentTheme
                     }}
                   </strong>
-                </div>
+                </button>
               </div>
               <div class="setting-shell-hero__chips">
                 <button
@@ -2013,7 +2206,7 @@ onUnmounted(() => {
                   :key="item.label"
                   type="button"
                   class="setting-shell-chip"
-                  @click="scrollToSection(item.sectionKey)"
+                  @click="focusSection(item.sectionKey)"
                 >
                   <span class="setting-shell-chip__label">{{
                     item.label
@@ -2065,7 +2258,7 @@ onUnmounted(() => {
             </div>
           </section>
 
-          <div class="setting-shell-stage">
+          <div ref="settingStageRef" class="setting-shell-stage">
             <div
               v-if="!displayedSettingSections.length"
               class="setting-shell-empty"

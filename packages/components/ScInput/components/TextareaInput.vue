@@ -2,6 +2,7 @@
   <ElInput
     v-model="currentValue"
     class="sc-textarea-input"
+    :class="{ 'is-disabled': disabled, autosize: !!autosize }"
     type="textarea"
     v-bind="$attrs"
     :placeholder="placeholder"
@@ -66,14 +67,20 @@ const props = withDefaults(defineProps<Props>(), {
   showWordLimit: false,
   rows: 2,
   autosize: false,
-  autofocus: false
+  autofocus: false,
 });
 
-const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "change",
+  "input",
+  "focus",
+  "blur",
+]);
 
 const currentValue = computed({
   get: () => props.modelValue,
-  set: val => emit("update:modelValue", val)
+  set: (val) => emit("update:modelValue", val),
 });
 
 /**
@@ -118,28 +125,35 @@ const handleBlur = (event: FocusEvent) => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   :deep(.el-textarea__inner) {
-    border: 2px solid var(--el-border-color-light);
+    min-height: 44px;
+    border: none;
     border-radius: 12px;
     padding: 12px 16px;
     font-size: 14px;
     line-height: 1.6;
     color: var(--el-text-color-primary);
-    background-color: var(--el-bg-color);
+    background: color-mix(in srgb, var(--el-fill-color-light) 74%, white);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     resize: vertical;
-    box-shadow: var(--el-box-shadow-lighter);
+    box-shadow:
+      inset 0 0 0 1px
+        color-mix(in srgb, var(--el-border-color) 72%, transparent),
+      0 10px 20px rgba(15, 23, 42, 0.04);
 
     &:hover {
-      border-color: var(--el-border-color);
-      box-shadow: var(--el-box-shadow-light);
+      box-shadow:
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-color-primary) 24%, transparent),
+        0 14px 24px rgba(15, 23, 42, 0.08);
       transform: translateY(-1px);
     }
 
     &:focus {
-      border-color: var(--el-color-primary);
+      background: color-mix(in srgb, var(--el-color-primary) 6%, white);
       box-shadow:
-        0 0 0 4px var(--el-color-primary-light-9),
-        0 4px 12px var(--el-color-primary-light-8);
+        inset 0 0 0 1px
+          color-mix(in srgb, var(--el-color-primary) 42%, transparent),
+        0 16px 30px rgba(var(--el-color-primary-rgb), 0.14);
       outline: none;
       transform: translateY(-1px);
     }
@@ -158,13 +172,12 @@ const handleBlur = (event: FocusEvent) => {
   &.is-disabled {
     :deep(.el-textarea__inner) {
       background-color: var(--el-fill-color-light);
-      border-color: var(--el-border-color-light);
       color: var(--el-text-color-disabled);
       cursor: not-allowed;
-      box-shadow: none;
+      box-shadow: inset 0 0 0 1px
+        color-mix(in srgb, var(--el-border-color) 56%, transparent);
 
       &:hover {
-        border-color: var(--el-border-color-light);
         box-shadow: none;
         transform: none;
       }

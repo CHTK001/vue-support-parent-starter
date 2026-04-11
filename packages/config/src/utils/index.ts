@@ -1,5 +1,3 @@
-// import path from "node:path";
-import path from "path-browserify";
 import { ref } from "vue";
 export enum DesType {
   phone,
@@ -7,7 +5,44 @@ export enum DesType {
   name,
 }
 export function resolvePath(relative: string, base: string) {
-  return path.posix.resolve(relative, base);
+  if (!relative && !base) {
+    return "/";
+  }
+
+  const normalizePosixPath = (value: string) => {
+    const source = `${value || ""}`.replace(/\\/g, "/");
+    const hasLeadingSlash = source.startsWith("/");
+    const segments = source.split("/");
+    const normalizedSegments: string[] = [];
+
+    for (const segment of segments) {
+      if (!segment || segment === ".") {
+        continue;
+      }
+      if (segment === "..") {
+        normalizedSegments.pop();
+        continue;
+      }
+      normalizedSegments.push(segment);
+    }
+
+    const normalizedPath = normalizedSegments.join("/");
+    if (!normalizedPath) {
+      return hasLeadingSlash ? "/" : "";
+    }
+    return `${hasLeadingSlash ? "/" : ""}${normalizedPath}`;
+  };
+
+  if (/^https?:\/\//i.test(relative) || /^https?:\/\//i.test(base)) {
+    return base || relative;
+  }
+
+  const joinedPath = [relative, base]
+    .filter((item) => item !== undefined && item !== null && `${item}` !== "")
+    .join("/");
+
+  const normalized = normalizePosixPath(joinedPath);
+  return normalized || "/";
 }
 
 /**

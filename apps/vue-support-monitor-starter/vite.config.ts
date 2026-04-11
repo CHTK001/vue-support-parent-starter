@@ -101,6 +101,7 @@ const createBuilder = (
     .alias("@pages/project", resolve(root, "pages/project/src"))
     .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
     .alias("@pages/setting", resolve(root, "pages/setting/src"))
+    .alias("@pages/soft", resolve(root, "pages/soft/src"))
     .alias("@pages/system", resolve(root, "pages/system/src"))
     .alias("@pages/video", resolve(root, "pages/video/src"))
     .plugins(bundleElementPlusIconsRuntime());

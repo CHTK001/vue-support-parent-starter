@@ -131,9 +131,9 @@ const resetAnimation = () => {
 };
 
 // 自动敲击循环
-let hitInterval: number;
-let particleInterval: number;
-let progressInterval: number;
+let hitInterval: ReturnType<typeof setInterval>;
+let particleInterval: ReturnType<typeof setInterval>;
+let progressInterval: ReturnType<typeof setInterval>;
 
 onMounted(() => {
   // 自动敲击循环（每1.2秒敲一次）

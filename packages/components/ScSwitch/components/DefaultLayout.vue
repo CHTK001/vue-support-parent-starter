@@ -95,7 +95,7 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "change"]);
 
-// 使用 PixelUI 条件导入
+// 使用主题组件条件导入
 const { currentComponent } = useThemeComponent("ElSwitch");
 
 // 当前实际渲染的组件

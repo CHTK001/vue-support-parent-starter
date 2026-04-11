@@ -34,6 +34,29 @@ export * from "./skin/themes/index";
 
 // Utils
 export { themeManager } from "./utils/theme-manager";
+export {
+  appendTaskCenterMessage,
+  clearTaskCenter,
+  clearTaskCenterHistory,
+  closeTaskCenterPanel,
+  configureTaskCenter,
+  dismissTaskCenterTask,
+  failTaskCenterTask,
+  finishTaskCenterTask,
+  openTaskCenterPanel,
+  removeTaskCenterTask,
+  selectTaskCenterTask,
+  toggleTaskCenterPanel,
+  updateTaskCenterTask,
+  upsertTaskCenterTask,
+  useTaskCenterState,
+} from "./components/lay-task-center/service";
+export {
+  provideTaskCenter,
+  taskCenterProvider,
+  TaskCenterProviderKey,
+  useTaskCenter,
+} from "./components/lay-task-center/provider";
 
 // Types
 export type {
@@ -46,6 +69,22 @@ export type {
   GlobalStorage,
 } from "./types/theme";
 export type { LayoutEmitterEvents } from "./types/events";
+export type {
+  TaskCenterProvider,
+  TaskCenterReference,
+  TaskCenterTaskHandle,
+} from "./components/lay-task-center/provider";
+export type {
+  TaskCenterMessage,
+  TaskCenterMessageInput,
+  TaskCenterMode,
+  TaskCenterPosition,
+  TaskCenterSource,
+  TaskCenterState,
+  TaskCenterStatus,
+  TaskCenterTask,
+  TaskCenterTaskInput,
+} from "./components/lay-task-center/types";
 
 // Components
 export { Account, LaySidebarTopCollapse };
