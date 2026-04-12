@@ -1,184 +1,347 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card">
-        <p>钱包订单</p>
-        <strong>{{ pagination.total }}</strong>
-        <span>充值、转账、提现三个钱包业务的统一订单视图。</span>
-      </article>
-      <article class="hero-card">
-        <p>处理中</p>
-        <strong>{{ processingCount }}</strong>
-        <span>待回调或第三方仍在处理中的钱包订单。</span>
-      </article>
-      <article class="hero-card">
-        <p>成功率</p>
-        <strong>{{ successRate }}%</strong>
-        <span>当前页钱包订单的成功处理比例。</span>
-      </article>
-    </div>
+  <section class="payment-page wallet-order-page">
+    <header class="payment-surface">
+      <div>
+        <h1 class="payment-surface__title">钱包订单台</h1>
+        <p class="payment-surface__desc">统一查看充值、转账、提现订单，并支持模拟回调和明细排查。</p>
+      </div>
+      <div class="payment-surface__actions">
+        <el-tooltip content="刷新">
+          <el-button circle :icon="RefreshRight" @click="reloadAll" />
+        </el-tooltip>
+        <el-tooltip content="充值订单">
+          <el-button circle :icon="WalletFilled" @click="openCreateDialog('RECHARGE')" />
+        </el-tooltip>
+        <el-tooltip content="转账订单">
+          <el-button circle :icon="Switch" @click="openCreateDialog('TRANSFER')" />
+        </el-tooltip>
+        <el-tooltip content="提现订单">
+          <el-button circle type="primary" :icon="CreditCard" @click="openCreateDialog('WITHDRAW')" />
+        </el-tooltip>
+      </div>
+    </header>
 
-    <el-card class="panel">
-      <template #header>
-        <div class="panel__header">
-          <div>
-            <p class="panel__eyebrow">Wallet Operations</p>
-            <h3>钱包订单台</h3>
-          </div>
-          <div class="header-actions">
-            <el-button @click="openCreateDialog('RECHARGE')">充值订单</el-button>
-            <el-button @click="openCreateDialog('TRANSFER')">转账订单</el-button>
-            <el-button type="primary" @click="openCreateDialog('WITHDRAW')">提现订单</el-button>
-          </div>
-        </div>
-      </template>
+    <section class="payment-stat-grid">
+      <article class="payment-stat">
+        <span class="payment-stat__label">钱包订单</span>
+        <strong class="payment-stat__value">{{ stats.total }}</strong>
+        <span class="payment-stat__hint">充值、转账、提现三个钱包业务的统一订单视图。</span>
+      </article>
+      <article class="payment-stat">
+        <span class="payment-stat__label">处理中</span>
+        <strong class="payment-stat__value">{{ stats.processing }}</strong>
+        <span class="payment-stat__hint">待回调或第三方仍在处理中的钱包订单。</span>
+      </article>
+      <article class="payment-stat">
+        <span class="payment-stat__label">成功率</span>
+        <strong class="payment-stat__value">{{ stats.successRate }}%</strong>
+        <span class="payment-stat__hint">基于当前查询结果估算的钱包订单成功处理比例。</span>
+      </article>
+    </section>
 
-      <el-form :inline="true" :model="searchForm" class="toolbar">
-        <el-form-item label="商户">
-          <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+    <section class="payment-toolbar">
+      <div class="payment-toolbar__row">
+        <div class="payment-toolbar__form">
+          <el-select v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
             <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="用户ID">
-          <el-input-number v-model="searchForm.userId" :min="1" :precision="0" />
-        </el-form-item>
-        <el-form-item label="业务类型">
-          <el-select v-model="searchForm.orderType" clearable placeholder="全部类型" style="width: 180px">
+          <el-input-number v-model="queryForm.userId" :min="1" :precision="0" placeholder="用户ID" />
+          <el-select v-model="queryForm.orderType" clearable placeholder="业务类型" style="width: 180px">
             <el-option v-for="(label, value) in WalletOrderTypeMap" :key="value" :label="label" :value="value" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+          <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
             <el-option v-for="(label, value) in WalletOrderStatusMap" :key="value" :label="label" :value="value" />
           </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </div>
+      </div>
+    </section>
 
-      <el-table :data="walletOrders" v-loading="loading" border class="table">
-        <el-table-column prop="orderNo" label="钱包订单号" min-width="200" />
-        <el-table-column label="业务类型" width="120">
+    <section class="payment-panel">
+      <div class="payment-panel__head">
+        <div>
+          <h2 class="payment-panel__title">钱包订单主表</h2>
+          <p class="payment-panel__desc">集中查看钱包订单号、类型、用户、回调地址、第三方单号和模拟动作。</p>
+        </div>
+      </div>
+
+      <ScTable
+        ref="tableRef"
+        table-name="payment-wallet-order-table"
+        row-key="id"
+        border
+        stripe
+        :search="false"
+        :hide-do="true"
+        :hide-refresh="true"
+        :hide-setting="true"
+        :params="queryForm"
+        :url="fetchWalletOrderTable"
+      >
+        <el-table-column label="钱包订单" min-width="220">
           <template #default="{ row }">
-            <el-tag>{{ WalletOrderTypeMap[row.orderType] || row.orderType }}</el-tag>
+            <div class="cell-main">
+              <strong>{{ row.orderNo }}</strong>
+              <span>{{ row.thirdPartyOrderNo || "未回填第三方单号" }}</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="merchantId" label="商户ID" width="110" />
-        <el-table-column prop="userId" label="用户ID" width="110" />
-        <el-table-column prop="relatedUserId" label="关联用户ID" width="120" />
-        <el-table-column label="金额" width="120">
+        <el-table-column label="业务类型 / 商户" min-width="180">
+          <template #default="{ row }">
+            <div class="cell-main">
+              <strong>{{ WalletOrderTypeMap[row.orderType] || row.orderType }}</strong>
+              <span>商户 #{{ row.merchantId }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="用户信息" min-width="180">
+          <template #default="{ row }">
+            <div class="cell-main">
+              <strong>{{ row.userId || row.relatedUserId || "-" }}</strong>
+              <span>
+                {{ row.orderType === "TRANSFER" ? `转入用户 ${row.relatedUserId || "-"}` : row.relatedUserId ? `关联用户 ${row.relatedUserId}` : "单用户钱包订单" }}
+              </span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="金额" width="140" align="center">
           <template #default="{ row }">
             <strong>{{ formatCurrency(row.amount) }}</strong>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="120">
+        <el-table-column label="状态" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)">{{ WalletOrderStatusMap[row.status] || row.status }}</el-tag>
+            <el-tag :type="statusTag(row.status)" effect="plain">{{ WalletOrderStatusMap[row.status] || row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="thirdPartyOrderNo" label="第三方单号" min-width="180" />
         <el-table-column prop="notifyUrl" label="回调地址" min-width="220" show-overflow-tooltip />
         <el-table-column prop="updateTime" label="更新时间" width="180" />
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
-            <el-button
-              v-if="row.status === 'PENDING' || row.status === 'PROCESSING'"
-              link
-              type="warning"
-              @click="handleSimulateNotify(row, 'PROCESSING')"
-            >
-              模拟处理中
-            </el-button>
-            <el-button v-if="row.status !== 'SUCCESS'" link type="success" @click="handleSimulateNotify(row, 'SUCCESS')">
-              模拟成功
-            </el-button>
-            <el-button v-if="row.status !== 'FAILED'" link type="danger" @click="handleSimulateNotify(row, 'FAILED')">
-              模拟失败
-            </el-button>
-            <el-button link type="primary" @click="showDetail(row)">详情</el-button>
+            <div class="wallet-order-actions">
+              <el-button
+                v-if="row.status === 'PENDING' || row.status === 'PROCESSING'"
+                link
+                type="warning"
+                @click="handleSimulateNotify(row, 'PROCESSING')"
+              >
+                模拟处理中
+              </el-button>
+              <el-button v-if="row.status !== 'SUCCESS'" link type="success" @click="handleSimulateNotify(row, 'SUCCESS')">
+                模拟成功
+              </el-button>
+              <el-button v-if="row.status !== 'FAILED'" link type="danger" @click="handleSimulateNotify(row, 'FAILED')">
+                模拟失败
+              </el-button>
+              <el-button link type="primary" @click="showDetail(row)">详情</el-button>
+            </div>
           </template>
         </el-table-column>
-      </el-table>
+      </ScTable>
+    </section>
 
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.size"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
-        @current-change="loadWalletOrders"
-        @size-change="handlePageSizeChange"
-      />
-    </el-card>
-
-    <el-dialog v-model="createDialogVisible" :title="dialogTitle" width="760px">
-      <el-form :model="createForm" label-width="110px">
-        <div class="form-grid">
-          <el-form-item label="商户" required>
-            <el-select v-model="createForm.merchantId" placeholder="请选择商户">
-              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item :label="numberFieldLabel">
-            <el-input v-model="createForm.orderNo" :placeholder="numberFieldPlaceholder" />
-          </el-form-item>
-          <el-form-item v-if="currentAction !== 'TRANSFER'" label="用户ID" required>
-            <el-input-number v-model="createForm.userId" :min="1" :precision="0" />
-          </el-form-item>
-          <el-form-item v-if="currentAction === 'TRANSFER'" label="转出用户" required>
-            <el-input-number v-model="createForm.fromUserId" :min="1" :precision="0" />
-          </el-form-item>
-          <el-form-item v-if="currentAction === 'TRANSFER'" label="转入用户" required>
-            <el-input-number v-model="createForm.toUserId" :min="1" :precision="0" />
-          </el-form-item>
-          <el-form-item label="金额" required>
-            <el-input-number v-model="createForm.amount" :min="0.01" :precision="2" :step="0.01" />
-          </el-form-item>
-          <el-form-item label="回调地址" class="span-2">
-            <el-input v-model="createForm.notifyUrl" placeholder="可选，默认使用后端自动生成的钱包回调地址" />
-          </el-form-item>
-          <template v-if="currentAction === 'WITHDRAW'">
-            <el-form-item label="开户名">
-              <el-input v-model="createForm.accountName" placeholder="请输入开户名" />
-            </el-form-item>
-            <el-form-item label="银行卡号">
-              <el-input v-model="createForm.bankAccount" placeholder="请输入银行卡号" />
-            </el-form-item>
-            <el-form-item label="开户行" class="span-2">
-              <el-input v-model="createForm.bankName" placeholder="请输入开户行" />
-            </el-form-item>
-          </template>
-          <el-form-item label="操作人">
-            <el-input v-model="createForm.operator" placeholder="例如：payment-console" />
-          </el-form-item>
-          <el-form-item label="备注" class="span-2">
-            <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="填写业务备注或联调说明" />
-          </el-form-item>
+    <el-dialog v-model="createDialogVisible" :title="dialogTitle" width="920px" destroy-on-close>
+      <div class="payment-dialog-shell">
+        <div class="payment-status-strip">
+          <div class="payment-status-card">
+            <span class="payment-status-card__label">业务类型</span>
+            <strong class="payment-status-card__value">{{ WalletOrderTypeMap[currentAction] }}</strong>
+            <span class="payment-status-card__hint">{{ currentActionHint }}</span>
+          </div>
+          <div class="payment-status-card">
+            <span class="payment-status-card__label">当前商户</span>
+            <strong class="payment-status-card__value">{{ currentCreateMerchantLabel }}</strong>
+            <span class="payment-status-card__hint">钱包订单创建后可在此页直接模拟回调。</span>
+          </div>
+          <div class="payment-status-card">
+            <span class="payment-status-card__label">订单金额</span>
+            <strong class="payment-status-card__value">{{ formatCurrency(createForm.amount) }}</strong>
+            <span class="payment-status-card__hint">支持业务侧自定义单号和订单级回调地址。</span>
+          </div>
         </div>
-      </el-form>
+
+        <section class="payment-section-card">
+          <div class="payment-section-card__title">
+            <div>
+              <h3>基础参数</h3>
+              <p>先确定商户、用户和金额，再补充单号、回调和银行信息。</p>
+            </div>
+          </div>
+          <el-form label-width="112px">
+            <div class="payment-form-grid">
+              <el-form-item label="商户" required>
+                <el-select v-model="createForm.merchantId" placeholder="请选择商户">
+                  <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+                </el-select>
+              </el-form-item>
+              <el-form-item :label="numberFieldLabel">
+                <el-input v-model="createForm.orderNo" :placeholder="numberFieldPlaceholder" />
+              </el-form-item>
+              <el-form-item v-if="currentAction !== 'TRANSFER'" label="用户ID" required>
+                <el-input-number v-model="createForm.userId" :min="1" :precision="0" />
+              </el-form-item>
+              <el-form-item v-if="currentAction === 'TRANSFER'" label="转出用户" required>
+                <el-input-number v-model="createForm.fromUserId" :min="1" :precision="0" />
+              </el-form-item>
+              <el-form-item v-if="currentAction === 'TRANSFER'" label="转入用户" required>
+                <el-input-number v-model="createForm.toUserId" :min="1" :precision="0" />
+              </el-form-item>
+              <el-form-item label="金额" required>
+                <el-input-number v-model="createForm.amount" :min="0.01" :precision="2" :step="0.01" />
+              </el-form-item>
+              <el-form-item label="回调地址" class="payment-form-span-2">
+                <el-input v-model="createForm.notifyUrl" placeholder="可选，默认使用后端自动生成的钱包回调地址" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+
+        <section v-if="currentAction === 'WITHDRAW'" class="payment-section-card">
+          <div class="payment-section-card__title">
+            <div>
+              <h3>提现账户信息</h3>
+              <p>提现订单需要补全开户名、银行卡号和开户行。</p>
+            </div>
+          </div>
+          <el-form label-width="112px">
+            <div class="payment-form-grid">
+              <el-form-item label="开户名">
+                <el-input v-model="createForm.accountName" placeholder="请输入开户名" />
+              </el-form-item>
+              <el-form-item label="银行卡号">
+                <el-input v-model="createForm.bankAccount" placeholder="请输入银行卡号" />
+              </el-form-item>
+              <el-form-item label="开户行" class="payment-form-span-2">
+                <el-input v-model="createForm.bankName" placeholder="请输入开户行" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+
+        <section class="payment-section-card">
+          <div class="payment-section-card__title">
+            <div>
+              <h3>操作信息</h3>
+              <p>保留业务备注和操作人，用于后续排查和审计。</p>
+            </div>
+          </div>
+          <el-form label-width="112px">
+            <div class="payment-form-grid">
+              <el-form-item label="操作人">
+                <el-input v-model="createForm.operator" placeholder="例如：payment-console" />
+              </el-form-item>
+              <el-form-item label="说明">
+                <div class="payment-soft-panel payment-subtle">钱包订单支持在本页模拟处理中、成功、失败回调，成功后会真实落余额变更。</div>
+              </el-form-item>
+              <el-form-item label="备注" class="payment-form-span-2">
+                <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="填写业务备注或联调说明" />
+              </el-form-item>
+            </div>
+          </el-form>
+        </section>
+      </div>
+
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitCreate">创建</el-button>
+        <div class="payment-dialog-footer">
+          <el-button @click="createDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitting" @click="submitCreate">创建</el-button>
+        </div>
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" size="560px" title="钱包订单详情">
-      <el-descriptions v-if="currentOrder" :column="1" border>
-        <el-descriptions-item label="钱包订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="业务类型">{{ WalletOrderTypeMap[currentOrder.orderType] || currentOrder.orderType }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ WalletOrderStatusMap[currentOrder.status] || currentOrder.status }}</el-descriptions-item>
-        <el-descriptions-item label="金额">{{ formatCurrency(currentOrder.amount) }}</el-descriptions-item>
-        <el-descriptions-item label="第三方单号">{{ currentOrder.thirdPartyOrderNo || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="回调地址">{{ currentOrder.notifyUrl || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="开户名">{{ currentOrder.accountName || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="银行卡号">{{ currentOrder.bankAccount || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="开户行">{{ currentOrder.bankName || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="请求快照">{{ currentOrder.requestPayload || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="响应快照">{{ currentOrder.responsePayload || "-" }}</el-descriptions-item>
-      </el-descriptions>
+    <el-drawer v-model="detailVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 钱包订单详情` : '钱包订单详情'">
+      <template v-if="currentOrder">
+        <div class="payment-dialog-shell">
+          <div class="payment-status-strip">
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">订单状态</span>
+              <strong class="payment-status-card__value">{{ WalletOrderStatusMap[currentOrder.status] || currentOrder.status }}</strong>
+              <span class="payment-status-card__hint">{{ currentOrder.thirdPartyOrderNo || "未回填第三方单号" }}</span>
+            </div>
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">业务类型</span>
+              <strong class="payment-status-card__value">{{ WalletOrderTypeMap[currentOrder.orderType] || currentOrder.orderType }}</strong>
+              <span class="payment-status-card__hint">金额 {{ formatCurrency(currentOrder.amount) }}</span>
+            </div>
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">用户信息</span>
+              <strong class="payment-status-card__value">{{ currentOrder.userId || currentOrder.relatedUserId || "-" }}</strong>
+              <span class="payment-status-card__hint">{{ currentOrder.notifyUrl || "未配置订单级回调地址" }}</span>
+            </div>
+          </div>
+
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>基础信息</h3>
+                <p>核对订单号、业务类型、银行账户和回调信息。</p>
+              </div>
+            </div>
+            <div class="payment-readonly-grid">
+              <div class="payment-readonly-item">
+                <span>钱包订单号</span>
+                <strong>{{ currentOrder.orderNo }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>第三方单号</span>
+                <strong>{{ currentOrder.thirdPartyOrderNo || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>商户ID</span>
+                <strong>{{ currentOrder.merchantId }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>用户ID</span>
+                <strong>{{ currentOrder.userId || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>关联用户ID</span>
+                <strong>{{ currentOrder.relatedUserId || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>回调地址</span>
+                <strong>{{ currentOrder.notifyUrl || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>开户名</span>
+                <strong>{{ currentOrder.accountName || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>银行卡号</span>
+                <strong>{{ currentOrder.bankAccount || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>开户行</span>
+                <strong>{{ currentOrder.bankName || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>备注</span>
+                <strong>{{ currentOrder.remark || "-" }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>请求与响应快照</h3>
+                <p>用于核对钱包订单入参与回调结果。</p>
+              </div>
+            </div>
+            <div class="payment-form-stack">
+              <div class="payment-soft-panel">
+                <strong>请求快照</strong>
+                <pre class="payment-code-preview">{{ currentOrder.requestPayload || "-" }}</pre>
+              </div>
+              <div class="payment-soft-panel">
+                <strong>响应快照</strong>
+                <pre class="payment-code-preview">{{ currentOrder.responsePayload || "-" }}</pre>
+              </div>
+            </div>
+          </section>
+        </div>
+      </template>
     </el-drawer>
   </section>
 </template>
@@ -186,6 +349,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { CreditCard, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";
 import {
   createWalletRechargeOrder,
   createWalletTransferOrder,
@@ -215,6 +379,7 @@ interface WalletCreateForm {
   remark: string;
 }
 
+const tableRef = ref();
 const loading = ref(false);
 const submitting = ref(false);
 const createDialogVisible = ref(false);
@@ -223,65 +388,87 @@ const currentAction = ref<WalletAction>("RECHARGE");
 const currentOrder = ref<WalletOrder | null>(null);
 
 const merchantOptions = ref<Merchant[]>([]);
-const walletOrders = ref<WalletOrder[]>([]);
 
-const pagination = reactive({
-  page: 1,
-  size: 10,
-  total: 0,
-});
-
-const searchForm = reactive({
+const queryForm = reactive({
   merchantId: undefined as number | undefined,
   userId: undefined as number | undefined,
   orderType: "",
   status: "",
 });
 
-const createForm = reactive<WalletCreateForm>(createDefaultCreateForm());
-
-const processingCount = computed(() => walletOrders.value.filter((item) => ["PENDING", "PROCESSING"].includes(item.status)).length);
-const successRate = computed(() => {
-  if (!walletOrders.value.length) {
-    return 0;
-  }
-  const successCount = walletOrders.value.filter((item) => item.status === "SUCCESS").length;
-  return Math.round((successCount / walletOrders.value.length) * 100);
+const stats = reactive({
+  total: 0,
+  processing: 0,
+  successRate: 0,
 });
 
+const createForm = reactive<WalletCreateForm>(createDefaultCreateForm());
+
 const dialogTitle = computed(() => `${WalletOrderTypeMap[currentAction.value]}钱包订单`);
-const numberFieldLabel = computed(() => {
+const currentActionHint = computed(() => {
   if (currentAction.value === "TRANSFER") {
-    return "转账单号";
+    return "需要同时填写转出用户和转入用户。";
   }
   if (currentAction.value === "WITHDRAW") {
-    return "提现单号";
+    return "提现订单需要补全银行卡和开户行信息。";
   }
+  return "充值成功后会直接增加钱包可用余额。";
+});
+const currentCreateMerchantLabel = computed(
+  () => merchantOptions.value.find((item) => item.id === createForm.merchantId)?.merchantName || "待选择",
+);
+const numberFieldLabel = computed(() => {
+  if (currentAction.value === "TRANSFER") return "转账单号";
+  if (currentAction.value === "WITHDRAW") return "提现单号";
   return "充值单号";
 });
 const numberFieldPlaceholder = computed(() => `可选，不填则后端自动生成${numberFieldLabel.value}`);
 
-async function loadMerchants() {
-  const res = await getMerchantList({ page: 1, size: 200 });
-  merchantOptions.value = res.data.records;
-}
-
-async function loadWalletOrders() {
+const fetchWalletOrderTable = async (params: Record<string, unknown>) => {
   loading.value = true;
   try {
     const res = await getWalletOrderList({
-      pageNum: pagination.page,
-      pageSize: pagination.size,
-      merchantId: searchForm.merchantId,
-      userId: searchForm.userId,
-      orderType: searchForm.orderType || undefined,
-      status: searchForm.status || undefined,
+      pageNum: params.page,
+      pageSize: params.pageSize,
+      merchantId: params.merchantId,
+      userId: params.userId,
+      orderType: params.orderType || undefined,
+      status: params.status || undefined,
     });
-    walletOrders.value = res.data.records;
-    pagination.total = res.data.total;
+    return res;
   } finally {
     loading.value = false;
   }
+};
+
+async function loadMerchants() {
+  const res = await getMerchantList({ page: 1, size: 200 });
+  merchantOptions.value = res.data.records || [];
+}
+
+async function loadStats() {
+  const res = await getWalletOrderList({ pageNum: 1, pageSize: 200 });
+  const records = res.data.records || [];
+  stats.total = res.data.total || 0;
+  stats.processing = records.filter((item) => ["PENDING", "PROCESSING"].includes(item.status)).length;
+  const successCount = records.filter((item) => item.status === "SUCCESS").length;
+  stats.successRate = records.length ? Math.round((successCount / records.length) * 100) : 0;
+}
+
+async function reloadAll() {
+  await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]);
+}
+
+function handleSearch() {
+  tableRef.value?.reload({ ...queryForm }, 1);
+}
+
+function handleReset() {
+  queryForm.merchantId = undefined;
+  queryForm.userId = undefined;
+  queryForm.orderType = "";
+  queryForm.status = "";
+  handleSearch();
 }
 
 function openCreateDialog(action: WalletAction) {
@@ -347,29 +534,10 @@ async function submitCreate() {
     }
     ElMessage.success(`${WalletOrderTypeMap[currentAction.value]}订单创建成功`);
     createDialogVisible.value = false;
-    await loadWalletOrders();
+    await reloadAll();
   } finally {
     submitting.value = false;
   }
-}
-
-async function handleSearch() {
-  pagination.page = 1;
-  await loadWalletOrders();
-}
-
-async function handleResetSearch() {
-  searchForm.merchantId = undefined;
-  searchForm.userId = undefined;
-  searchForm.orderType = "";
-  searchForm.status = "";
-  await handleSearch();
-}
-
-function handlePageSizeChange(size: number) {
-  pagination.size = size;
-  pagination.page = 1;
-  loadWalletOrders();
 }
 
 async function showDetail(order: WalletOrder) {
@@ -392,22 +560,16 @@ async function handleSimulateNotify(order: WalletOrder, status: "PROCESSING" | "
     reason: reason || undefined,
   });
   ElMessage.success(`钱包订单已模拟为${WalletOrderStatusMap[status] || status}`);
-  await loadWalletOrders();
+  await reloadAll();
   if (currentOrder.value?.orderNo === order.orderNo) {
     await showDetail(order);
   }
 }
 
 function statusTag(status: string) {
-  if (status === "SUCCESS") {
-    return "success";
-  }
-  if (status === "FAILED") {
-    return "danger";
-  }
-  if (status === "PROCESSING") {
-    return "warning";
-  }
+  if (status === "SUCCESS") return "success";
+  if (status === "FAILED") return "danger";
+  if (status === "PROCESSING") return "warning";
   return "info";
 }
 
@@ -433,129 +595,32 @@ function createDefaultCreateForm(): WalletCreateForm {
 }
 
 onMounted(async () => {
-  await Promise.all([loadMerchants(), loadWalletOrders()]);
+  await Promise.all([loadMerchants(), loadStats()]);
 });
 </script>
 
 <style scoped>
-.view {
+@import "./support/payment-page.css";
+
+.wallet-order-page {
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
+}
+
+.cell-main {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 6px;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+.cell-main span {
+  color: #667085;
+  line-height: 1.6;
 }
 
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
-}
-
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgba(255, 246, 234, 0.9) 0%, rgba(255, 255, 255, 0.88) 100%);
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
-.panel__header,
-.header-actions {
+.wallet-order-actions {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.panel__header {
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.panel__eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #bf8445;
-}
-
-.panel__header h3 {
-  margin: 0;
-  font-size: 24px;
-  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
-}
-
-.toolbar {
-  margin-bottom: 18px;
-}
-
-.table {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.pager {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 18px;
-}
-
-.span-2 {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 1100px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .panel__header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .header-actions {
-    flex-wrap: wrap;
-  }
-}
-
-@media (max-width: 720px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .span-2 {
-    grid-column: auto;
-  }
+  flex-wrap: wrap;
 }
 </style>

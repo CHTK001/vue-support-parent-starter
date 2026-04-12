@@ -2,10 +2,10 @@
   <div class="shell">
     <aside class="shell__aside">
       <div class="brand">
-        <p class="brand__eyebrow">Payment Control Deck</p>
+        <p class="brand__eyebrow">Payment Console</p>
         <h1 class="brand__title">支付运营台</h1>
         <p class="brand__desc">
-          统一管理商户、支付方式、订单状态机和交易流水。
+          统一管理商户、支付方式、订单、回调和交易流水。
         </p>
       </div>
 
@@ -26,29 +26,28 @@
           <el-icon><CreditCard /></el-icon>
           <span>交易流水</span>
         </el-menu-item>
+        <el-menu-item index="/global-config">
+          <el-icon><Setting /></el-icon>
+          <span>支付全局配置</span>
+        </el-menu-item>
+        <el-menu-item index="/order-config">
+          <el-icon><Tools /></el-icon>
+          <span>订单配置</span>
+        </el-menu-item>
       </el-menu>
 
       <div class="aside-card">
         <p class="aside-card__label">能力范围</p>
         <ul class="aside-card__list">
-          <li>微信支付 / 支付宝 / 综合支付 / 钱包</li>
-          <li>开通指引与配置掩码</li>
-          <li>订单状态机与退款流</li>
+          <li>微信支付 / 支付宝 / 易支付 / 钱包</li>
+          <li>商户能力、支付方式、订单与退款</li>
+          <li>支付全局配置与订单分表策略</li>
+          <li>回调诊断、异常重试与调度任务</li>
         </ul>
       </div>
     </aside>
 
     <div class="shell__main">
-      <header class="topbar">
-        <div>
-          <p class="topbar__eyebrow">Starter Console</p>
-          <h2 class="topbar__title">{{ pageTitle }}</h2>
-        </div>
-        <div class="topbar__meta">
-          <span>统一接口：`/api/merchant` / `/api/channel` / `/api/order` / `/api/transaction`</span>
-        </div>
-      </header>
-
       <main class="content">
         <router-view />
       </main>
@@ -59,24 +58,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { CreditCard, House, Shop, Tickets } from "@element-plus/icons-vue";
+import { CreditCard, House, Setting, Shop, Tickets, Tools } from "@element-plus/icons-vue";
 
 const route = useRoute();
 
 const activeMenu = computed(() => route.path);
-
-const pageTitle = computed(() => {
-  if (route.path.startsWith("/home")) {
-    return "业务统计";
-  }
-  if (route.path.startsWith("/orders")) {
-    return "订单状态与退款执行台";
-  }
-  if (route.path.startsWith("/transactions")) {
-    return "交易流水追踪台";
-  }
-  return "商户与支付方式配置台";
-});
 </script>
 
 <style scoped>
@@ -102,7 +88,6 @@ const pageTitle = computed(() => {
 }
 
 .brand__eyebrow,
-.topbar__eyebrow,
 .aside-card__label {
   margin: 0 0 8px;
   font-size: 12px;
@@ -112,7 +97,7 @@ const pageTitle = computed(() => {
 }
 
 .brand__title,
-.topbar__title {
+.brand__title {
   margin: 0;
   font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
   font-weight: 600;
@@ -170,31 +155,8 @@ const pageTitle = computed(() => {
   padding: 22px;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 26px 30px;
-  border-radius: 28px;
-  background: rgba(255, 249, 241, 0.86);
-  border: 1px solid rgba(90, 60, 34, 0.09);
-  box-shadow: 0 24px 80px rgba(56, 37, 22, 0.1);
-}
-
-.topbar__title {
-  font-size: 30px;
-  color: #241710;
-}
-
-.topbar__meta {
-  max-width: 520px;
-  align-self: flex-end;
-  color: #6e5843;
-  line-height: 1.7;
-}
-
 .content {
-  margin-top: 22px;
+  min-height: 100%;
 }
 
 @media (max-width: 1100px) {
@@ -205,10 +167,6 @@ const pageTitle = computed(() => {
   .shell__aside {
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .topbar {
-    flex-direction: column;
   }
 }
 
@@ -223,15 +181,6 @@ const pageTitle = computed(() => {
 
   .brand__title {
     font-size: 28px;
-  }
-
-  .topbar {
-    padding: 22px 18px;
-    border-radius: 22px;
-  }
-
-  .topbar__title {
-    font-size: 24px;
   }
 }
 </style>

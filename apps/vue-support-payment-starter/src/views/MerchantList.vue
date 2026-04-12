@@ -14,7 +14,7 @@
       <article class="hero-card">
         <p>已配置支付方式</p>
         <strong>{{ totalChannelCount }}</strong>
-        <span>商户下支持微信、支付宝、综合支付和钱包。</span>
+        <span>商户下支持微信、支付宝、易支持和钱包。</span>
       </article>
     </div>
 
@@ -61,7 +61,7 @@
           <template #default="{ row }">
             <div class="tag-row">
               <el-tag v-if="row.walletEnabled" effect="plain">钱包</el-tag>
-              <el-tag v-if="row.compositeEnabled" effect="plain" type="warning">综合支付</el-tag>
+              <el-tag v-if="row.compositeEnabled" effect="plain" type="warning">易支持</el-tag>
               <el-tag v-if="row.autoCloseEnabled" effect="plain" type="info">
                 自动关单 {{ row.autoCloseMinutes || 30 }} 分钟
               </el-tag>
@@ -132,7 +132,7 @@
           <el-form-item label="钱包能力">
             <el-switch v-model="merchantForm.walletEnabled" />
           </el-form-item>
-          <el-form-item label="综合支付">
+          <el-form-item label="易支持">
             <el-switch v-model="merchantForm.compositeEnabled" />
           </el-form-item>
           <el-form-item label="备注" class="span-2">
@@ -237,7 +237,7 @@
             <el-select v-model="channelForm.channelType" @change="handleChannelTypeChange">
               <el-option label="微信支付" value="WECHAT" />
               <el-option label="支付宝" value="ALIPAY" />
-              <el-option label="综合支付" value="COMPOSITE" />
+              <el-option label="易支持" value="COMPOSITE" />
               <el-option label="钱包" value="WALLET" />
             </el-select>
           </el-form-item>

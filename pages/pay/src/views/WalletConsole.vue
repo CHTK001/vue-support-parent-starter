@@ -1,130 +1,157 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card hero-card--accent">
-        <p>钱包测试控制台</p>
-        <strong>{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "¥0.00" }}</strong>
-        <span>当前查询账户的可用余额，适合做钱包支付、退款、转账、提现联调前检查。</span>
+  <section class="payment-page wallet-console-page">
+    <header class="payment-surface">
+      <div>
+        <h1 class="payment-surface__title">钱包账户台</h1>
+        <p class="payment-surface__desc">查询账户余额、执行测试充值，并追踪当前账户的钱包账变流水。</p>
+      </div>
+      <div class="payment-surface__actions">
+        <el-tooltip content="刷新">
+          <el-button circle :icon="RefreshRight" @click="loadAccountAndLogs" />
+        </el-tooltip>
+        <el-tooltip content="执行充值">
+          <el-button circle type="primary" :icon="WalletFilled" :loading="recharging" @click="handleRecharge" />
+        </el-tooltip>
+      </div>
+    </header>
+
+    <section class="payment-stat-grid">
+      <article class="payment-stat payment-stat--accent">
+        <span class="payment-stat__label">可用余额</span>
+        <strong class="payment-stat__value">{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "¥0.00" }}</strong>
+        <span class="payment-stat__hint">当前查询账户可立即用于钱包支付和转账的余额。</span>
       </article>
-      <article class="hero-card">
-        <p>冻结余额</p>
-        <strong>{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "¥0.00" }}</strong>
-        <span>若出现异常冻结，需先检查业务侧是否有额外控制逻辑。</span>
+      <article class="payment-stat">
+        <span class="payment-stat__label">冻结余额</span>
+        <strong class="payment-stat__value">{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "¥0.00" }}</strong>
+        <span class="payment-stat__hint">若出现异常冻结，需检查业务侧是否仍持有控制逻辑。</span>
       </article>
-      <article class="hero-card">
-        <p>账户流水</p>
-        <strong>{{ logPagination.total }}</strong>
-        <span>展示当前筛选条件下的钱包账变记录。</span>
+      <article class="payment-stat">
+        <span class="payment-stat__label">账户流水</span>
+        <strong class="payment-stat__value">{{ logPagination.total }}</strong>
+        <span class="payment-stat__hint">展示当前筛选条件下的钱包账变记录总数。</span>
       </article>
-    </div>
+    </section>
 
-    <div class="dashboard-grid">
-      <el-card class="panel" shadow="never">
-        <template #header>
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Wallet Account</p>
-              <h3>钱包账户与余额</h3>
-            </div>
-            <el-button text @click="loadAccountAndLogs">刷新</el-button>
-          </div>
-        </template>
-
-        <el-form :model="queryForm" label-width="96px" class="query-form">
-          <div class="form-grid">
-            <el-form-item label="商户" required>
-              <el-select v-model="queryForm.merchantId" placeholder="请选择商户">
-                <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="用户ID" required>
-              <el-input-number v-model="queryForm.userId" :min="1" :precision="0" />
-            </el-form-item>
-          </div>
-          <div class="query-actions">
-            <el-button type="primary" @click="loadAccountAndLogs">查询账户</el-button>
-            <el-button @click="resetQuery">重置</el-button>
-          </div>
-        </el-form>
-
-        <div class="account-panel">
-          <div class="account-metric">
-            <span>可用余额</span>
-            <strong>{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "未查询" }}</strong>
-          </div>
-          <div class="account-metric">
-            <span>冻结余额</span>
-            <strong>{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "未查询" }}</strong>
-          </div>
-          <div class="account-metric">
-            <span>账户状态</span>
-            <strong>{{ currentAccount ? (currentAccount.status === 1 ? "启用" : "禁用") : "未查询" }}</strong>
-          </div>
-        </div>
-
-        <el-divider />
-
-        <div class="panel__header panel__header--sub">
+    <section class="wallet-console-grid">
+      <section class="payment-panel">
+        <div class="payment-panel__head">
           <div>
-            <p class="panel__eyebrow">Quick Recharge</p>
-            <h4>直接充值</h4>
+            <h2 class="payment-panel__title">钱包账户与充值</h2>
+            <p class="payment-panel__desc">先锁定商户和用户，再查询账户余额并直接执行测试充值。</p>
           </div>
         </div>
 
-        <el-form :model="rechargeForm" label-width="96px">
-          <div class="form-grid">
-            <el-form-item label="充值单号">
-              <el-input v-model="rechargeForm.rechargeNo" placeholder="可选，不填则后端生成" />
-            </el-form-item>
-            <el-form-item label="充值金额" required>
-              <el-input-number v-model="rechargeForm.amount" :min="0.01" :precision="2" :step="0.01" />
-            </el-form-item>
-            <el-form-item label="操作人">
-              <el-input v-model="rechargeForm.operator" placeholder="例如：payment-console" />
-            </el-form-item>
-            <el-form-item label="备注">
-              <el-input v-model="rechargeForm.remark" placeholder="例如：钱包联调充值" />
-            </el-form-item>
-          </div>
-          <div class="query-actions">
-            <el-button type="primary" :loading="recharging" @click="handleRecharge">执行充值</el-button>
-          </div>
-        </el-form>
-      </el-card>
-
-      <el-card class="panel" shadow="never">
-        <template #header>
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Test Checklist</p>
-              <h3>钱包联调指引</h3>
+        <div class="wallet-console-stack">
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>账户查询</h3>
+                <p>钱包账户依赖商户和用户维度，支持从路由 query 自动回填。</p>
+              </div>
             </div>
-          </div>
-        </template>
+            <el-form label-width="96px">
+              <div class="payment-form-grid">
+                <el-form-item label="商户" required>
+                  <el-select v-model="queryForm.merchantId" placeholder="请选择商户">
+                    <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="用户ID" required>
+                  <el-input-number v-model="queryForm.userId" :min="1" :precision="0" />
+                </el-form-item>
+              </div>
+              <div class="payment-card-actions">
+                <el-button type="primary" @click="loadAccountAndLogs">查询账户</el-button>
+                <el-button @click="resetQuery">重置</el-button>
+              </div>
+            </el-form>
+          </section>
 
-        <div class="checklist">
-          <article class="checklist-card">
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>账户概览</h3>
+                <p>适合在钱包支付、退款、转账、提现联调前快速确认余额和状态。</p>
+              </div>
+            </div>
+            <div class="payment-readonly-grid">
+              <div class="payment-readonly-item">
+                <span>可用余额</span>
+                <strong>{{ currentAccount ? formatCurrency(currentAccount.availableBalance) : "未查询" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>冻结余额</span>
+                <strong>{{ currentAccount ? formatCurrency(currentAccount.frozenBalance) : "未查询" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>账户状态</span>
+                <strong>{{ currentAccount ? (currentAccount.status === 1 ? "启用" : "禁用") : "未查询" }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>直接充值</h3>
+                <p>给当前账户快速充入测试余额，便于后续在订单台验证钱包支付和退款。</p>
+              </div>
+            </div>
+            <el-form label-width="96px">
+              <div class="payment-form-grid">
+                <el-form-item label="充值单号">
+                  <el-input v-model="rechargeForm.rechargeNo" placeholder="可选，不填则后端生成" />
+                </el-form-item>
+                <el-form-item label="充值金额" required>
+                  <el-input-number v-model="rechargeForm.amount" :min="0.01" :precision="2" :step="0.01" />
+                </el-form-item>
+                <el-form-item label="操作人">
+                  <el-input v-model="rechargeForm.operator" placeholder="例如：payment-console" />
+                </el-form-item>
+                <el-form-item label="备注">
+                  <el-input v-model="rechargeForm.remark" placeholder="例如：钱包联调充值" />
+                </el-form-item>
+              </div>
+              <div class="payment-card-actions">
+                <el-button type="primary" :loading="recharging" @click="handleRecharge">执行充值</el-button>
+              </div>
+            </el-form>
+          </section>
+        </div>
+      </section>
+
+      <section class="payment-panel">
+        <div class="payment-panel__head">
+          <div>
+            <h2 class="payment-panel__title">钱包联调指引</h2>
+            <p class="payment-panel__desc">把商户、账户、订单和回调链路串起来，减少联调时来回找入口。</p>
+          </div>
+        </div>
+
+        <div class="wallet-checklist">
+          <article class="wallet-checklist__item">
             <span>1</span>
             <div>
               <strong>先在商户页启用钱包能力</strong>
               <p>商户必须激活，且至少有一个 `WALLET / BALANCE` 渠道处于启用状态。</p>
             </div>
           </article>
-          <article class="checklist-card">
+          <article class="wallet-checklist__item">
             <span>2</span>
             <div>
               <strong>在此页查询账户并充值</strong>
               <p>先给测试用户充入可用余额，再去订单页选择钱包渠道发起支付。</p>
             </div>
           </article>
-          <article class="checklist-card">
+          <article class="wallet-checklist__item">
             <span>3</span>
             <div>
               <strong>订单页做钱包支付与退款</strong>
               <p>支付成功后回到此页确认余额扣减，退款后确认余额回退。</p>
             </div>
           </article>
-          <article class="checklist-card">
+          <article class="wallet-checklist__item">
             <span>4</span>
             <div>
               <strong>钱包订单页测充值/转账/提现回调</strong>
@@ -132,39 +159,45 @@
             </div>
           </article>
         </div>
-      </el-card>
-    </div>
+      </section>
+    </section>
 
-    <el-card class="panel" shadow="never">
-      <template #header>
-        <div class="panel__header">
-          <div>
-            <p class="panel__eyebrow">Wallet Logs</p>
-            <h3>钱包账户流水</h3>
+    <section class="payment-panel">
+      <div class="payment-panel__head">
+        <div>
+          <h2 class="payment-panel__title">钱包账户流水</h2>
+          <p class="payment-panel__desc">展示当前商户和用户下的钱包账变方向、前后余额和业务单号。</p>
+        </div>
+      </div>
+
+      <section class="payment-toolbar payment-toolbar--flat">
+        <div class="payment-toolbar__row">
+          <div class="payment-toolbar__form">
+            <el-select v-model="logSearchForm.bizType" clearable placeholder="业务类型" style="width: 200px">
+              <el-option label="充值" value="RECHARGE" />
+              <el-option label="支付" value="PAY" />
+              <el-option label="退款" value="REFUND" />
+              <el-option label="转出" value="TRANSFER_OUT" />
+              <el-option label="转入" value="TRANSFER_IN" />
+              <el-option label="提现" value="WITHDRAW" />
+            </el-select>
+            <el-input v-model="logSearchForm.bizNo" clearable placeholder="业务单号" style="width: 220px" />
+            <el-button type="primary" @click="loadLogs">查询</el-button>
           </div>
         </div>
-      </template>
+      </section>
 
-      <el-form :inline="true" :model="logSearchForm" class="toolbar">
-        <el-form-item label="业务类型">
-          <el-select v-model="logSearchForm.bizType" clearable placeholder="全部类型" style="width: 200px">
-            <el-option label="充值" value="RECHARGE" />
-            <el-option label="支付" value="PAY" />
-            <el-option label="退款" value="REFUND" />
-            <el-option label="转出" value="TRANSFER_OUT" />
-            <el-option label="转入" value="TRANSFER_IN" />
-            <el-option label="提现" value="WITHDRAW" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="业务单号">
-          <el-input v-model="logSearchForm.bizNo" clearable placeholder="请输入业务单号" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadLogs">查询</el-button>
-        </el-form-item>
-      </el-form>
-
-      <el-table :data="walletLogs" v-loading="logLoading" border class="table">
+      <ScTable
+        table-name="payment-wallet-log-table"
+        row-key="id"
+        border
+        stripe
+        :search="false"
+        :hide-do="true"
+        :hide-refresh="true"
+        :hide-setting="true"
+        :data="{ records: walletLogs, total: logPagination.total, current: logPagination.page, size: logPagination.size }"
+      >
         <el-table-column prop="bizType" label="业务类型" width="140" />
         <el-table-column prop="bizNo" label="业务单号" min-width="180" />
         <el-table-column prop="changeType" label="方向" width="100" />
@@ -186,7 +219,7 @@
         <el-table-column prop="operator" label="操作人" width="140" />
         <el-table-column prop="remark" label="备注" min-width="220" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="时间" width="180" />
-      </el-table>
+      </ScTable>
 
       <el-pagination
         v-model:current-page="logPagination.page"
@@ -194,11 +227,11 @@
         :total="logPagination.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
+        class="payment-pagination"
         @current-change="loadLogs"
         @size-change="handleLogSizeChange"
       />
-    </el-card>
+    </section>
   </section>
 </template>
 
@@ -206,18 +239,13 @@
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { useRoute } from "vue-router";
-import {
-  getMerchantList,
-  getWalletAccount,
-  getWalletAccountLogs,
-  rechargeWalletAccount,
-} from "../api/payment";
+import { RefreshRight, WalletFilled } from "@element-plus/icons-vue";
+import { getMerchantList, getWalletAccount, getWalletAccountLogs, rechargeWalletAccount } from "../api/payment";
 import type { Merchant, WalletAccount, WalletAccountLog } from "../types/payment";
 
 const merchantOptions = ref<Merchant[]>([]);
 const currentAccount = ref<WalletAccount | null>(null);
 const walletLogs = ref<WalletAccountLog[]>([]);
-const logLoading = ref(false);
 const recharging = ref(false);
 const route = useRoute();
 
@@ -246,7 +274,7 @@ const logPagination = reactive({
 
 async function loadMerchants() {
   const res = await getMerchantList({ page: 1, size: 200 });
-  merchantOptions.value = res.data.records;
+  merchantOptions.value = res.data.records || [];
 }
 
 async function loadAccountAndLogs() {
@@ -261,6 +289,7 @@ async function loadAccountAndLogs() {
     });
     currentAccount.value = res.data;
   } catch (error) {
+    console.error(error);
     currentAccount.value = null;
     ElMessage.error("钱包账户不存在，请先充值或触发钱包业务");
   }
@@ -271,21 +300,16 @@ async function loadLogs() {
   if (!queryForm.merchantId || !queryForm.userId) {
     return;
   }
-  logLoading.value = true;
-  try {
-    const res = await getWalletAccountLogs({
-      pageNum: logPagination.page,
-      pageSize: logPagination.size,
-      merchantId: queryForm.merchantId,
-      userId: queryForm.userId,
-      bizType: logSearchForm.bizType || undefined,
-      bizNo: logSearchForm.bizNo || undefined,
-    });
-    walletLogs.value = res.data.records;
-    logPagination.total = res.data.total;
-  } finally {
-    logLoading.value = false;
-  }
+  const res = await getWalletAccountLogs({
+    pageNum: logPagination.page,
+    pageSize: logPagination.size,
+    merchantId: queryForm.merchantId,
+    userId: queryForm.userId,
+    bizType: logSearchForm.bizType || undefined,
+    bizNo: logSearchForm.bizNo || undefined,
+  });
+  walletLogs.value = res.data.records || [];
+  logPagination.total = res.data.total || 0;
 }
 
 async function handleRecharge() {
@@ -349,206 +373,88 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.view {
+@import "./support/payment-page.css";
+
+.wallet-console-page {
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
+}
+
+.payment-stat--accent {
+  background: linear-gradient(140deg, #2b1b10 0%, #63411f 58%, #a96a2e 100%);
+}
+
+.payment-stat--accent .payment-stat__label,
+.payment-stat--accent .payment-stat__value,
+.payment-stat--accent .payment-stat__hint {
+  color: #f8efe3;
+}
+
+.wallet-console-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr);
+}
+
+.wallet-console-stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 18px;
-}
-
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgb(54 37 23 / 8%);
-}
-
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgb(255 246 234 / 90%) 0%, rgb(255 255 255 / 88%) 100%);
-}
-
-.hero-card--accent {
-  background:
-    radial-gradient(circle at top right, rgb(189 139 67 / 28%), transparent 30%),
-    linear-gradient(140deg, #2b1b10 0%, #63411f 58%, #a96a2e 100%);
-  color: #f8efe3;
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card--accent p,
-.hero-card--accent span,
-.hero-card--accent strong {
-  color: #f8efe3;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
-.panel__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.panel__header--sub {
-  margin-bottom: 12px;
-}
-
-.panel__eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #bf8445;
-}
-
-.panel__header h3,
-.panel__header h4 {
-  margin: 0;
-  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
-}
-
-.panel__header h3 {
-  font-size: 24px;
-}
-
-.panel__header h4 {
-  font-size: 18px;
-}
-
-.query-form,
-.toolbar {
-  margin-bottom: 18px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 18px;
-}
-
-.query-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.account-panel {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.account-metric {
-  padding: 18px;
-  border-radius: 18px;
-  background: linear-gradient(145deg, rgb(255 253 249 / 96%) 0%, rgb(248 238 221 / 88%) 100%);
-  border: 1px solid rgb(125 84 45 / 10%);
-}
-
-.account-metric span,
-.account-metric strong {
-  display: block;
-}
-
-.account-metric span {
-  color: #8e6945;
-}
-
-.account-metric strong {
-  margin-top: 12px;
-  font-size: 24px;
-  color: #2b1b10;
-}
-
-.checklist {
+.wallet-checklist {
   display: grid;
   gap: 12px;
 }
 
-.checklist-card {
+.wallet-checklist__item {
   display: grid;
-  grid-template-columns: 44px 1fr;
   gap: 14px;
+  grid-template-columns: 44px minmax(0, 1fr);
   padding: 18px;
   border-radius: 18px;
-  background: linear-gradient(145deg, rgb(255 253 249 / 96%) 0%, rgb(246 236 220 / 86%) 100%);
-  border: 1px solid rgb(125 84 45 / 10%);
+  border: 1px solid rgba(205, 216, 222, 0.96);
+  background: linear-gradient(145deg, rgba(255, 253, 249, 0.96) 0%, rgba(246, 236, 220, 0.86) 100%);
 }
 
-.checklist-card span {
+.wallet-checklist__item span {
   width: 44px;
   height: 44px;
   border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgb(185 120 49 / 14%);
+  background: rgba(185, 120, 49, 0.14);
   color: #9d5f24;
   font-weight: 700;
 }
 
-.checklist-card strong,
-.checklist-card p {
+.wallet-checklist__item strong {
   display: block;
+  color: #101828;
 }
 
-.checklist-card p {
+.wallet-checklist__item p {
   margin: 8px 0 0;
-  line-height: 1.7;
   color: #705847;
+  line-height: 1.7;
 }
 
-.table {
-  border-radius: 18px;
-  overflow: hidden;
+.payment-toolbar--flat {
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
 }
 
-.pager {
-  margin-top: 20px;
+.payment-pagination {
   display: flex;
   justify-content: flex-end;
+  margin-top: 20px;
 }
 
-@media (max-width: 1100px) {
-  .hero-grid,
-  .dashboard-grid,
-  .account-panel {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .form-grid {
+@media (max-width: 1180px) {
+  .wallet-console-grid {
     grid-template-columns: 1fr;
   }
 }
