@@ -1,0 +1,8 @@
+{
+  "name": "@repo/components/ScOverlayPage",
+  "version": "1.0.0",
+  "description": "全屏覆盖页面组件，支持移动端式返回关闭",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "MIT"
+}

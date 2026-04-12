@@ -1,0 +1,8 @@
+{
+  "name": "@repo/components/ScVolumeControl",
+  "version": "1.0.0",
+  "description": "通用音量控制组件",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "MIT"
+}

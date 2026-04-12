@@ -32,6 +32,7 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "monaco-editor": "catalog:",
+    "sql-formatter": "catalog:",
     "unbuild": "catalog:",
     "vue": "catalog:"
   },

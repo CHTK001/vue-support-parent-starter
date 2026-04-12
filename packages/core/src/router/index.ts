@@ -147,11 +147,11 @@ const moduleRouteModules: Record<string, () => Promise<any>> = import.meta.glob(
     "../../../../pages/**/src/router.ts",
     "../../../../pages/**/src/router/index.ts",
     "../../../../pages/**/src/router/**/*.ts",
+    "../../../../pages/**/router/**/*.ts",
     "!../../../../pages/**/dist/**",
     "!../../../../pages/**/*.d.ts",
   ],
 );
-// @ts-ignore
 const appNormalRouteModules: Record<string, any> = import.meta.glob(
   ["@/router/modules/**/*.ts", "!@/router/modules/**/remaining*.ts"],
   { eager: true },

@@ -4,6 +4,7 @@
 @use "element-plus";
 @use "sidebar";
 @use "el-ui";
+@use "../../stitch-layout-tokens.scss";
 @use "../theme-skin/index" as themeSkin;
 // 导入颜色系统
 @use "../../colors/index" as colors;

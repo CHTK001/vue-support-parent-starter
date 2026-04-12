@@ -126,6 +126,9 @@ const createBuilder = (
       "http://127.0.0.1:29181",
     );
 
+    builder.proxy("/monitor/api/v1/music", "http://127.0.0.1:19091", true, {
+      rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
+    });
     builder.proxy("/monitor/api", monitorApiTarget);
     builder.proxy("/socket.io", monitorSocketTarget);
     builder.proxy("/api", "http://127.0.0.1:8080");

@@ -41,6 +41,19 @@ export default {
     const editor = ref(null);
     const editorHeight = ref(typeof props.height === "number" ? `${props.height}px` : props.height);
     let preventTriggerChangeEvent = false;
+    let resizeObserver = null;
+    let layoutRafId = 0;
+
+    const scheduleLayout = () => {
+      if (!editor.value) return;
+      if (layoutRafId) {
+        cancelAnimationFrame(layoutRafId);
+      }
+      layoutRafId = requestAnimationFrame(() => {
+        layoutRafId = 0;
+        editor.value?.layout();
+      });
+    };
 
     // 初始化编辑器
     const initMonaco = async () => {
@@ -51,7 +64,7 @@ export default {
         value: props.modelValue,
         language: props.language,
         theme: props.theme,
-        automaticLayout: true,
+        automaticLayout: false,
         scrollBeyondLastLine: false,
         minimap: { enabled: true },
         scrollbar: {
@@ -81,6 +94,14 @@ export default {
 
       // 通知编辑器已挂载
       emit("editor-mounted", editor.value);
+      scheduleLayout();
+
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(() => {
+          scheduleLayout();
+        });
+        resizeObserver.observe(editorContainer.value);
+      }
     };
 
     // 更新编辑器内容
@@ -88,6 +109,7 @@ export default {
       if (editor.value && value !== editor.value.getValue()) {
         preventTriggerChangeEvent = true;
         editor.value.setValue(value);
+        scheduleLayout();
       }
     };
 
@@ -125,9 +147,7 @@ export default {
       value => {
         editorHeight.value = typeof value === "number" ? `${value}px` : value;
         nextTick(() => {
-          if (editor.value) {
-            editor.value.layout();
-          }
+          scheduleLayout();
         });
       }
     );
@@ -141,6 +161,10 @@ export default {
 
     // 组件销毁前销毁编辑器
     onBeforeUnmount(() => {
+      if (layoutRafId) {
+        cancelAnimationFrame(layoutRafId);
+      }
+      resizeObserver?.disconnect?.();
       if (editor.value) {
         editor.value.dispose();
       }

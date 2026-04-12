@@ -1,105 +1,153 @@
 <template>
-  <aside v-loading="loading" class="detail-panel">
-    <section class="now-playing">
-      <div v-if="currentTrack" class="cover-frame">
-        <img :src="currentTrack.coverUrl" :alt="currentTrack.title" />
-      </div>
-      <div class="track-focus">
-        <p class="focus-kicker">Now Playing</p>
-        <h3>{{ currentTrack?.title || "等待播放" }}</h3>
-        <span>{{ currentTrack?.artist || "从左侧歌单或搜索结果开始" }}</span>
-      </div>
-      <div class="control-row">
-        <button class="control-btn" @click="emit('prev')">
-          <el-icon><Back /></el-icon>
-        </button>
-        <button class="control-btn major" @click="emit('toggle')">
-          <el-icon v-if="!isPlaying"><VideoPlay /></el-icon>
-          <el-icon v-else><VideoPause /></el-icon>
-        </button>
-        <button class="control-btn" @click="emit('next')">
-          <el-icon><Right /></el-icon>
-        </button>
-        <button
-          class="control-btn"
-          :class="{ marked: favoriteActive }"
-          :disabled="!currentTrack"
-          @click="emit('toggle-favorite')"
-        >
-          <el-icon><Star /></el-icon>
-        </button>
-      </div>
-    </section>
+  <section
+    v-loading="loading"
+    class="detail-panel"
+    :class="{ 'detail-panel--minimized': minimized }"
+  >
+    <template v-if="minimized">
+      <button
+        class="mini-track"
+        :aria-label="currentTrack ? `打开 ${currentTrack.title} 详情` : '暂无播放歌曲'"
+        @click="emit('open-detail')"
+      >
+        <img v-if="currentTrack" :src="currentTrack.coverUrl" :alt="currentTrack.title" />
+        <div v-else class="cover-placeholder">♪</div>
+        <div class="mini-track__copy">
+          <strong>{{ currentTrack?.title || "等待播放" }}</strong>
+          <span>{{ currentTrack?.artist || "选择一首歌开始播放" }}</span>
+        </div>
+      </button>
 
-    <section class="meter-card">
-      <div class="time-row">
-        <span>{{ formatClock(currentTime) }}</span>
-        <span>{{ formatClock(duration) }}</span>
+      <div class="mini-controls">
+        <button class="icon-btn" aria-label="上一首" @click="emit('prev')">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6v12" />
+            <path d="M18 6L9 12l9 6V6z" />
+          </svg>
+        </button>
+
+        <button class="icon-btn icon-btn--accent" aria-label="播放或暂停" @click="emit('toggle')">
+          <svg v-if="isPlaying" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 6h3v12H8z" />
+            <path d="M13 6h3v12h-3z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 6l10 6-10 6V6z" />
+          </svg>
+        </button>
+
+        <button class="icon-btn" aria-label="下一首" @click="emit('next')">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6v12" />
+            <path d="M6 6l9 6-9 6V6z" />
+          </svg>
+        </button>
       </div>
-      <el-slider
-        :model-value="sliderValue"
-        :max="Math.max(duration, 1)"
-        :show-tooltip="false"
-        @change="emit('seek', $event)"
+
+      <div class="mini-actions">
+        <button class="icon-btn" aria-label="展开播放器" @click="emit('toggle-minimize')">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 14V7h7" />
+            <path d="M17 10v7h-7" />
+            <path d="M14 7 6 15" />
+            <path d="m10 17 8-8" />
+          </svg>
+        </button>
+
+        <button class="icon-btn" aria-label="查看详情" @click="emit('open-detail')">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+        </button>
+      </div>
+    </template>
+
+    <template v-else>
+    <button
+      class="track-card"
+      :aria-label="currentTrack ? `打开 ${currentTrack.title} 详情` : '暂无播放歌曲'"
+      @click="emit('open-detail')"
+    >
+      <img v-if="currentTrack" :src="currentTrack.coverUrl" :alt="currentTrack.title" />
+      <div v-else class="cover-placeholder">♪</div>
+      <div class="track-copy">
+        <strong>{{ currentTrack?.title || "等待播放" }}</strong>
+        <span>{{ currentTrack?.artist || "从列表里点一首歌开始播放" }}</span>
+      </div>
+    </button>
+
+    <div class="player-center">
+      <MusicTransportControls
+        compact
+        :is-playing="isPlaying"
+        :loop-mode="loopMode"
+        show-lyrics-button
+        @prev="emit('prev')"
+        @toggle="emit('toggle')"
+        @next="emit('next')"
+        @toggle-loop="emit('toggle-loop')"
+        @open-lyrics="emit('open-lyrics')"
       />
-      <div class="time-row compact">
-        <span>音量</span>
-        <span>{{ volume }}%</span>
-      </div>
-      <el-slider
+
+      <MusicProgressBar
+        compact
+        :current-time="currentTime"
+        :duration="duration"
+        :slider-value="sliderValue"
+        @preview-seek="emit('preview-seek', $event)"
+        @seek="emit('seek', $event)"
+      />
+    </div>
+
+    <div class="player-side">
+      <button
+        class="icon-btn"
+        :class="{ active: favoriteActive }"
+        aria-label="收藏当前歌曲"
+        :disabled="!currentTrack"
+        @click="emit('toggle-favorite')"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 20.2l-1.15-1.05C5.2 14.08 2 11.15 2 7.55A4.55 4.55 0 0 1 6.55 3 5 5 0 0 1 12 6.1 5 5 0 0 1 17.45 3 4.55 4.55 0 0 1 22 7.55c0 3.6-3.2 6.53-8.85 11.6L12 20.2z"
+          />
+        </svg>
+      </button>
+
+      <button class="lyric-preview" type="button" @click="emit('open-lyrics')">
+        <p>歌词</p>
+        <strong>{{ lyricPreview }}</strong>
+      </button>
+
+      <button class="icon-btn" aria-label="最小化控制器" @click="emit('toggle-minimize')">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 12h12" />
+          <path d="M6 18h12" />
+        </svg>
+      </button>
+
+      <ScVolumeControl
+        compact
+        direct-show
         :model-value="volume"
-        :max="100"
-        :show-tooltip="false"
-        @input="emit('update-volume', $event)"
+        @update:model-value="emit('update-volume', $event)"
       />
-    </section>
-
-    <section class="lyric-card">
-      <div class="section-head">
-        <span>歌词</span>
-        <span class="section-meta">{{ parsedLyrics.length }} 行</span>
-      </div>
-      <div ref="lyricsBodyRef" class="lyrics-body">
-        <p
-          v-for="(line, index) in parsedLyrics"
-          :key="`${line.time}-${index}`"
-          :data-lyric-index="index"
-          :class="{ active: index === activeLyricIndex }"
-        >
-          {{ line.text }}
-        </p>
-        <p v-if="!parsedLyrics.length" class="lyric-empty">
-          当前歌曲没有歌词数据。
-        </p>
-      </div>
-    </section>
-
-    <section class="queue-card">
-      <div class="section-head">
-        <span>播放队列</span>
-        <span class="section-meta">{{ queue.length }} 首</span>
-      </div>
-      <div class="queue-list">
-        <button
-          v-for="item in queue"
-          :key="`${item.source}:${item.trackId}`"
-          class="queue-item"
-          :class="{ active: currentTrackKey === `${item.source}:${item.trackId}` }"
-          @click="emit('play-track', item, queue)"
-        >
-          <strong>{{ item.title }}</strong>
-          <span>{{ item.artist }}</span>
-        </button>
-        <p v-if="!queue.length" class="lyric-empty">播放队列会随歌单或搜索结果更新。</p>
-      </div>
-    </section>
-  </aside>
+    </div>
+    </template>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { Back, Right, Star, VideoPause, VideoPlay } from "@element-plus/icons-vue";
-import { nextTick, ref, watch } from "vue";
-import type { MusicTrackDetail, MusicTrackSummary } from "../types";
+import ScVolumeControl from "@repo/components/ScVolumeControl";
+import { computed } from "vue";
+import MusicProgressBar from "./MusicProgressBar.vue";
+import MusicTransportControls from "./MusicTransportControls.vue";
+import type {
+  MusicLoopMode,
+  MusicTrackDetail,
+  MusicTrackSummary,
+} from "../types";
 
 interface LyricLine {
   time: number;
@@ -119,193 +167,233 @@ const props = defineProps<{
   duration: number;
   sliderValue: number;
   volume: number;
+  loopMode: MusicLoopMode;
+  minimized?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "prev"): void;
   (e: "toggle"): void;
   (e: "next"): void;
+  (e: "toggle-loop"): void;
   (e: "toggle-favorite"): void;
+  (e: "preview-seek", value: number): void;
   (e: "seek", value: number): void;
   (e: "update-volume", value: number): void;
   (e: "play-track", track: MusicTrackSummary, queue: MusicTrackSummary[]): void;
+  (e: "open-detail"): void;
+  (e: "open-lyrics"): void;
+  (e: "toggle-minimize"): void;
 }>();
 
-const lyricsBodyRef = ref<HTMLDivElement>();
-
-watch(
-  () => props.activeLyricIndex,
-  async (index) => {
-    if (index < 0) return;
-    await nextTick();
-    const activeLine = lyricsBodyRef.value?.querySelector<HTMLElement>(
-      `[data-lyric-index="${index}"]`,
-    );
-    activeLine?.scrollIntoView({
-      block: "center",
-      behavior: props.isPlaying ? "smooth" : "auto",
-    });
-  },
-);
-
-function formatDuration(seconds: number) {
-  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const secs = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${mins}:${secs}`;
-}
-
-function formatClock(seconds: number) {
-  return formatDuration(Number.isFinite(seconds) ? seconds : 0);
-}
+const lyricPreview = computed(() => {
+  if (!props.parsedLyrics.length) return "打开歌词页查看完整歌词";
+  if (props.activeLyricIndex >= 0) {
+    return props.parsedLyrics[props.activeLyricIndex]?.text || "歌词加载中";
+  }
+  return props.parsedLyrics[0]?.text || "歌词加载中";
+});
 </script>
 
 <style scoped lang="scss">
 .detail-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.now-playing,
-.meter-card,
-.lyric-card,
-.queue-card {
-  border: 1px solid rgba(20, 32, 42, 0.12);
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--music-stroke);
   border-radius: 28px;
-  background: rgba(255, 252, 245, 0.88);
-  box-shadow: 0 18px 40px rgba(17, 25, 32, 0.08);
-  backdrop-filter: blur(16px);
+  background: rgba(62, 28, 26, 0.92);
+  box-shadow: var(--music-shadow);
+  padding: 12px 16px;
+  backdrop-filter: blur(18px);
 }
 
-.now-playing {
-  padding: 20px;
-  background: linear-gradient(180deg, rgba(16, 25, 31, 0.96), rgba(28, 47, 58, 0.94));
-  color: #f7efe0;
+.detail-panel--minimized {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  width: min(620px, calc(100vw - 40px));
+  margin-left: auto;
+  padding: 10px 12px;
 }
 
-.meter-card,
-.lyric-card,
-.queue-card {
-  padding: 18px;
-}
-
-.cover-frame {
+.track-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
   width: 100%;
-  max-width: 220px;
-  margin: 0 auto;
+  border: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--music-text);
+  cursor: pointer;
+  padding: 10px;
+  text-align: left;
 }
 
-.cover-frame img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 24px;
+.mini-track {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  padding: 8px;
+  text-align: left;
+}
+
+.mini-track img {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   object-fit: cover;
 }
 
-.focus-kicker {
-  margin: 0 0 8px;
+.mini-track__copy {
+  min-width: 0;
+}
+
+.mini-track__copy strong,
+.mini-track__copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-track__copy span {
+  margin-top: 4px;
+  color: var(--music-muted);
   font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  opacity: 0.72;
 }
 
-.track-focus {
-  margin-top: 18px;
-  text-align: center;
+.track-card img,
+.cover-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
 }
 
-.track-focus h3 {
-  margin: 0;
-  line-height: 1.05;
+.track-card img {
+  object-fit: cover;
 }
 
-.track-focus span,
-.section-meta,
-.time-row,
-.queue-item span,
-.lyric-empty {
-  color: #5f6a70;
+.cover-placeholder {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 24px;
 }
 
-.control-row {
-  display: flex;
-  justify-content: center;
+.track-copy strong,
+.track-copy span {
+  display: block;
+}
+
+.track-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-copy span {
+  margin-top: 4px;
+  color: var(--music-muted);
+  font-size: 12px;
+}
+
+.player-center {
+  display: grid;
   gap: 10px;
-  margin-top: 18px;
 }
 
-.control-btn,
-.queue-item {
+.player-side {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px auto;
+  gap: 10px 12px;
+  align-items: center;
+}
+
+.mini-controls,
+.mini-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
   border: 0;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.control-btn {
-  width: 46px;
-  height: 46px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.12);
-  color: #f7efe0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--music-text);
+  cursor: pointer;
 }
 
-.control-btn.major {
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, rgba(188, 127, 79, 0.92), rgba(222, 165, 103, 0.94));
-  color: #1b1714;
+.icon-btn--accent {
+  background: linear-gradient(135deg, var(--music-accent), var(--music-accent-2));
+  color: #4b2518;
 }
 
-.control-btn.marked {
-  background: rgba(188, 127, 79, 0.3);
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
 }
 
-.section-head,
-.time-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.icon-btn.active {
+  background: rgba(241, 187, 103, 0.18);
+  color: var(--music-accent);
 }
 
-.lyrics-body,
-.queue-list {
-  margin-top: 12px;
-  max-height: 280px;
-  overflow: auto;
-}
-
-.lyrics-body p,
-.lyric-empty {
-  margin: 0 0 10px;
-  line-height: 1.5;
-}
-
-.lyrics-body p.active {
-  color: #14202a;
-  font-weight: 700;
-}
-
-.queue-item {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 16px;
+.lyric-preview {
+  border: 0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  padding: 10px 14px;
   text-align: left;
-  background: rgba(255, 255, 255, 0.7);
 }
 
-.queue-item strong,
-.queue-item span {
+.lyric-preview p {
+  margin: 0;
+  color: var(--music-muted);
+  font-size: 12px;
+}
+
+.lyric-preview strong {
   display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.queue-item.active {
-  background: linear-gradient(135deg, rgba(188, 127, 79, 0.16), rgba(47, 93, 115, 0.15));
-  box-shadow: inset 0 0 0 1px rgba(47, 93, 115, 0.22);
+@media (max-width: 1120px) {
+  .detail-panel:not(.detail-panel--minimized) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .detail-panel--minimized {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .mini-controls,
+  .mini-actions {
+    justify-content: space-between;
+  }
 }
 </style>
