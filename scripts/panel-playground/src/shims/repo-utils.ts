@@ -25,18 +25,6 @@ const buildUrl = (url: string, params?: Record<string, unknown>) => {
   return target.toString();
 };
 
-export const withInstall = <T extends { name?: string }>(component: T) => {
-  const target = component as T & {
-    install?: (app: { component: (name: string, value: unknown) => void }) => void;
-  };
-  target.install = app => {
-    if (component.name) {
-      app.component(component.name, component);
-    }
-  };
-  return target;
-};
-
 export const http = {
   async request<T>(
     method: RequestMethod,
