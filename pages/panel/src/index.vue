@@ -107,6 +107,29 @@
         </ElContainer>
       </div>
     </section>
+
+    <teleport to="body">
+      <div
+        v-if="noteEditor.visible"
+        class="note-popover"
+        :style="{ left: `${noteEditor.x}px`, top: `${noteEditor.y}px` }"
+      >
+        <div class="note-popover__head">
+          <strong>编辑备注</strong>
+          <button type="button" @click="closeNoteEditor">×</button>
+        </div>
+        <ElInput
+          v-model="noteEditor.value"
+          :autosize="{ minRows: 3, maxRows: 6 }"
+          placeholder="输入备注内容"
+          type="textarea"
+        />
+        <div class="note-popover__actions">
+          <ElButton size="small" @click="closeNoteEditor">取消</ElButton>
+          <ElButton size="small" type="primary" @click="submitNoteEditor">保存</ElButton>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -115,6 +138,7 @@ import {
   ElAside,
   ElButton,
   ElContainer,
+  ElInput,
   ElInputNumber,
   ElMain,
   ElMessage,
@@ -139,12 +163,15 @@ import {
   explainJdbcStructure,
   fetchJdbcCapabilities,
   fetchJdbcConnectionMetadata,
+  fetchPanelSqlTemplate,
   fetchJdbcTableDocument,
   fetchJdbcTableStructure,
   generateJdbcSql,
   listJdbcCachedConnections,
   listJdbcCatalogTree,
+  listPanelRemarks,
   openJdbcConnection,
+  savePanelRemark,
   searchJdbcCatalogTree,
   type JdbcCatalogNode,
   type JdbcConnectionMetadata,
@@ -152,6 +179,7 @@ import {
   type JdbcTableStructure,
   type PanelCapabilitySummary,
   type PanelConnectionDescriptor,
+  type PanelRemarkView,
 } from "./api";
 import { decryptWorkspaceTicket, encryptWorkspaceTicket } from "./utils/workspaceTicket";
 
@@ -171,9 +199,16 @@ interface InspectorTableTab {
   viewMode: InspectorViewMode;
 }
 
-const FIELD_NOTE_STORAGE_KEY = "panel:field-notes:v1";
-const OBJECT_NOTE_STORAGE_KEY = "panel:object-notes:v1";
 const PANEL_CONFIG_STORAGE_KEY = "panel:workspace-config:v1";
+
+type NoteEditorState = {
+  node: JdbcCatalogNode | null;
+  targetType: "catalog" | "field" | "table";
+  value: string;
+  visible: boolean;
+  x: number;
+  y: number;
+};
 
 const jdbcForm = reactive<JdbcConnectionForm>({ ...DEFAULT_JDBC_CONNECTION });
 const viewMode = ref<ViewMode>("hub");
@@ -205,6 +240,14 @@ const detailRef = ref<{
   exportPdf: () => Promise<void>;
   exportWord: () => Promise<void>;
 } | null>(null);
+const noteEditor = reactive<NoteEditorState>({
+  node: null,
+  targetType: "table",
+  value: "",
+  visible: false,
+  x: 0,
+  y: 0,
+});
 
 const currentInspectorTab = computed(() =>
   inspectorTabs.value.find(tab => tab.tabId === activeInspectorTabId.value) || null,
@@ -352,14 +395,6 @@ const persistSources = () => {
   localStorage.setItem(PANEL_SOURCE_STORAGE_KEY, JSON.stringify(savedSources.value));
 };
 
-const persistFieldNotes = () => {
-  localStorage.setItem(FIELD_NOTE_STORAGE_KEY, JSON.stringify(fieldNotes.value));
-};
-
-const persistObjectNotes = () => {
-  localStorage.setItem(OBJECT_NOTE_STORAGE_KEY, JSON.stringify(objectNotes.value));
-};
-
 const persistConfig = () => {
   localStorage.setItem(
     PANEL_CONFIG_STORAGE_KEY,
@@ -379,24 +414,6 @@ const loadSources = () => {
       : [];
   } catch {
     savedSources.value = [];
-  }
-};
-
-const loadFieldNotes = () => {
-  try {
-    const raw = localStorage.getItem(FIELD_NOTE_STORAGE_KEY);
-    fieldNotes.value = raw ? JSON.parse(raw) : {};
-  } catch {
-    fieldNotes.value = {};
-  }
-};
-
-const loadObjectNotes = () => {
-  try {
-    const raw = localStorage.getItem(OBJECT_NOTE_STORAGE_KEY);
-    objectNotes.value = raw ? JSON.parse(raw) : {};
-  } catch {
-    objectNotes.value = {};
   }
 };
 
@@ -521,6 +538,49 @@ const loadWorkspaceMetadata = async () => {
   }
 };
 
+const applyPanelRemarks = (remarks: PanelRemarkView[]) => {
+  const nextFieldNotes: Record<string, string> = {};
+  const nextObjectNotes: Record<string, string> = {};
+
+  remarks.forEach(item => {
+    const nodeType = item.panelNodeType;
+    if (nodeType === "field") {
+      const key = [
+        item.panelConnectionId || "workspace",
+        item.panelCatalogName || "catalog",
+        item.panelTableName || "table",
+        item.panelColumnName || "column",
+      ].join("::");
+      nextFieldNotes[key] = item.panelRemarkContent || "";
+      return;
+    }
+
+    const key = [
+      item.panelConnectionId || "workspace",
+      nodeType || "table",
+      item.panelCatalogName || "catalog",
+      item.panelSchemaName || "schema",
+      item.panelTableName || item.panelCatalogName || "node",
+    ].join("::");
+    nextObjectNotes[key] = item.panelRemarkContent || "";
+  });
+
+  fieldNotes.value = nextFieldNotes;
+  objectNotes.value = nextObjectNotes;
+};
+
+const loadWorkspaceRemarks = async () => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  try {
+    const response = await listPanelRemarks(activeConnectionId.value);
+    applyPanelRemarks(response?.data || []);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "读取备注失败";
+  }
+};
+
 const bootstrapWorkspace = async (source: PanelSavedSource) => {
   workspaceSource.value = source;
   viewMode.value = "workspace";
@@ -537,6 +597,7 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
       loadCachedConnections(),
       loadWorkspaceCapabilities(),
       loadWorkspaceMetadata(),
+      loadWorkspaceRemarks(),
       handleLoadCatalog(),
     ]);
   } catch (error: any) {
@@ -799,82 +860,139 @@ const handleGenerateSql = async (prompt: string) => {
 };
 
 const handleFieldNote = (node: JdbcCatalogNode) => {
-  if (!node.columnName || !node.parentId) {
-    return;
-  }
-
-  const tableNode = explorerTree.value
-    .flatMap(catalog => catalog.children || [])
-    .find(table => table.nodeId === node.parentId);
-
-  if (!tableNode) {
-    return;
-  }
-
-  const key = buildFieldNoteKey(tableNode, node.columnName);
-  const current = fieldNotes.value[key] || node.attributes?.fieldNote || "";
-  const next = window.prompt("输入字段自定义备注", current);
-
-  if (next === null) {
-    return;
-  }
-
-  fieldNotes.value = {
-    ...fieldNotes.value,
-    [key]: next,
-  };
-  persistFieldNotes();
-
-  const cache = tableStructureCache.value[tableNode.nodeId];
-  if (!cache) {
-    return;
-  }
-
-  const nextStructure = {
-    ...cache,
-    columns: cache.columns.map(column =>
-      String(column.name) === node.columnName
-        ? { ...column, comment: next || column.comment }
-        : column,
-    ),
-  };
-
-  tableStructureCache.value = {
-    ...tableStructureCache.value,
-    [tableNode.nodeId]: nextStructure,
-  };
-
-  inspectorTabs.value = inspectorTabs.value.map(tab =>
-    tab.node.nodeId === tableNode.nodeId
-      ? { ...tab, ddlText: buildTableDdl(nextStructure), structure: nextStructure }
-      : tab,
+  const key = buildFieldNoteKey(
+    {
+      ...node,
+      tableName: node.tableName || node.nodeName,
+    } as JdbcCatalogNode,
+    node.columnName || node.nodeName,
   );
+  return fieldNotes.value[key] || node.attributes?.fieldNote || "";
 };
 
 const handleObjectNote = (node: JdbcCatalogNode) => {
   const key = buildObjectNoteKey(node);
-  const current = objectNotes.value[key] || node.description || "";
-  const label = node.nodeType === "catalog" ? "数据库" : "数据表";
-  const next = window.prompt(`输入${label}自定义备注`, current);
+  return objectNotes.value[key] || node.description || "";
+};
 
-  if (next === null) {
+const closeNoteEditor = () => {
+  noteEditor.visible = false;
+  noteEditor.node = null;
+  noteEditor.value = "";
+};
+
+const openNoteEditor = (
+  node: JdbcCatalogNode,
+  targetType: "catalog" | "field" | "table",
+  position: { x: number; y: number },
+) => {
+  noteEditor.node = node;
+  noteEditor.targetType = targetType;
+  noteEditor.value = targetType === "field" ? handleFieldNote(node) : handleObjectNote(node);
+  noteEditor.x = Math.max(16, Math.min(window.innerWidth - 320, position.x));
+  noteEditor.y = Math.max(16, Math.min(window.innerHeight - 220, position.y));
+  noteEditor.visible = true;
+};
+
+const submitNoteEditor = async () => {
+  if (!activeConnectionId.value || !noteEditor.node) {
     return;
   }
 
-  objectNotes.value = {
-    ...objectNotes.value,
-    [key]: next,
-  };
-  persistObjectNotes();
+  const panelNode = noteEditor.node;
+  const response = await savePanelRemark(activeConnectionId.value, {
+    panelNodeType: panelNode.nodeType,
+    panelCatalogName: panelNode.catalogName,
+    panelSchemaName: panelNode.schemaName,
+    panelTableName: panelNode.tableName || panelNode.nodeName,
+    panelColumnName: panelNode.columnName || null,
+    panelRemarkContent: noteEditor.value.trim(),
+  });
+
+  const remark = response?.data;
+  if (!remark) {
+    closeNoteEditor();
+    return;
+  }
+
+  if (panelNode.nodeType === "field" && panelNode.columnName) {
+    const parentTable = explorerTree.value
+      .flatMap(catalog => catalog.children || [])
+      .find(table => table.nodeId === panelNode.parentId);
+
+    if (parentTable) {
+      const noteKey = buildFieldNoteKey(parentTable, panelNode.columnName);
+      fieldNotes.value = {
+        ...fieldNotes.value,
+        [noteKey]: remark.panelRemarkContent || "",
+      };
+
+      const cache = tableStructureCache.value[parentTable.nodeId];
+      if (cache) {
+        const nextStructure = {
+          ...cache,
+          columns: cache.columns.map(column =>
+            String(column.name) === panelNode.columnName
+              ? { ...column, comment: remark.panelRemarkContent || column.comment }
+              : column,
+          ),
+        };
+        tableStructureCache.value = {
+          ...tableStructureCache.value,
+          [parentTable.nodeId]: nextStructure,
+        };
+        inspectorTabs.value = inspectorTabs.value.map(tab =>
+          tab.node.nodeId === parentTable.nodeId
+            ? { ...tab, ddlText: buildTableDdl(nextStructure), structure: nextStructure }
+            : tab,
+        );
+      }
+    }
+  } else {
+    const noteKey = buildObjectNoteKey(panelNode);
+    objectNotes.value = {
+      ...objectNotes.value,
+      [noteKey]: remark.panelRemarkContent || "",
+    };
+  }
+
+  closeNoteEditor();
+};
+
+const handleGlobalPointerDown = (event: MouseEvent) => {
+  const target = event.target as HTMLElement | null;
+  if (!noteEditor.visible) {
+    return;
+  }
+  if (target?.closest(".note-popover")) {
+    return;
+  }
+  closeNoteEditor();
+};
+
+const requestSqlTemplate = async (node: JdbcCatalogNode, panelActionType: string) => {
+  if (!activeConnectionId.value) {
+    return "";
+  }
+  const response = await fetchPanelSqlTemplate(activeConnectionId.value, {
+    panelCatalogName: node.catalogName,
+    panelSchemaName: node.schemaName,
+    panelTableName: node.tableName || node.nodeName,
+    panelActionType,
+    panelPreviewLimit: previewLimit.value,
+  });
+  return response?.data || "";
 };
 
 const handleContextAction = async ({
   action,
   node,
+  position,
   targetType,
 }: {
   action: string;
   node: JdbcCatalogNode | null;
+  position: { x: number; y: number };
   targetType: string;
 }) => {
   if (action === "refresh") {
@@ -893,12 +1011,12 @@ const handleContextAction = async ({
   }
 
   if (action === "edit-field-note" && node) {
-    handleFieldNote(node);
+    openNoteEditor(node, "field", position);
     return;
   }
 
   if (action === "edit-note" && node) {
-    handleObjectNote(node);
+    openNoteEditor(node, node.nodeType === "catalog" ? "catalog" : "table", position);
     return;
   }
 
@@ -961,25 +1079,37 @@ const handleContextAction = async ({
   }
 
   if (action === "sql-select") {
-    injectSql(`select * from ${fullTableName(node)} limit ${previewLimit.value};`);
+    injectSql(await requestSqlTemplate(node, "select"));
     activeInspectorTabId.value = "workspace";
     return;
   }
 
   if (action === "sql-count") {
-    injectSql(`select count(*) as total from ${fullTableName(node)};`);
+    injectSql(await requestSqlTemplate(node, "count"));
+    activeInspectorTabId.value = "workspace";
+    return;
+  }
+
+  if (action === "sql-clear") {
+    injectSql(await requestSqlTemplate(node, "clear"));
+    activeInspectorTabId.value = "workspace";
+    return;
+  }
+
+  if (action === "sql-backup") {
+    injectSql(await requestSqlTemplate(node, "backup"));
     activeInspectorTabId.value = "workspace";
     return;
   }
 
   if (action === "sql-truncate") {
-    injectSql(`truncate table ${fullTableName(node)};`);
+    injectSql(await requestSqlTemplate(node, "truncate"));
     activeInspectorTabId.value = "workspace";
     return;
   }
 
   if (action === "sql-drop") {
-    injectSql(`drop table ${fullTableName(node)};`);
+    injectSql(await requestSqlTemplate(node, "drop"));
     activeInspectorTabId.value = "workspace";
   }
 };
@@ -1035,8 +1165,6 @@ const startAsideResize = (event: MouseEvent) => {
 
 onMounted(async () => {
   loadSources();
-  loadFieldNotes();
-  loadObjectNotes();
   loadConfig();
   await loadCachedConnections();
   const ticket = new URL(window.location.href).searchParams.get("ticket");

@@ -87,6 +87,37 @@ export interface PanelAiSqlRequest {
   tableNames?: string[];
 }
 
+export interface PanelRemarkRequest {
+  panelConnectionId?: string;
+  panelNodeType: string;
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName?: string | null;
+  panelColumnName?: string | null;
+  panelRemarkContent: string;
+}
+
+export interface PanelRemarkView {
+  panelRemarkKey: string;
+  panelConnectionId: string;
+  panelNodeType: string;
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName?: string | null;
+  panelColumnName?: string | null;
+  panelRemarkContent: string;
+}
+
+export interface PanelSqlTemplateRequest {
+  panelConnectionId?: string;
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName?: string | null;
+  panelActionType: string;
+  panelPreviewLimit?: number;
+  panelBackupTableName?: string;
+}
+
 export const openJdbcConnection = (data: PanelConnectionDefinition) =>
   http.request<ReturnResult<PanelConnectionHandle>>(
     "post",
@@ -192,4 +223,30 @@ export const fetchJdbcConnectionMetadata = (connectionId: string) =>
   http.request<ReturnResult<JdbcConnectionMetadata>>(
     "get",
     `/v1/panel/jdbc/${connectionId}/metadata`,
+  );
+
+export const listPanelRemarks = (connectionId: string) =>
+  http.request<ReturnResult<PanelRemarkView[]>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/remark`,
+  );
+
+export const savePanelRemark = (
+  connectionId: string,
+  data: PanelRemarkRequest,
+) =>
+  http.request<ReturnResult<PanelRemarkView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/remark`,
+    { data },
+  );
+
+export const fetchPanelSqlTemplate = (
+  connectionId: string,
+  data: PanelSqlTemplateRequest,
+) =>
+  http.request<ReturnResult<string>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/sql/template`,
+    { data },
   );
