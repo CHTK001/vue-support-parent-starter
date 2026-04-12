@@ -208,13 +208,14 @@
         </header>
 
         <div class="sql-editor-wrap">
-          <ScCodeEditor
+          <MonacoEditor
             ref="sqlEditorRef"
             :height="'100%'"
             :model-value="sqlText"
-            :on-input="handleEditorInput"
             :options="editorOptions"
-            mode="sql"
+            language="sql"
+            theme="vs"
+            @editor-mounted="handleEditorMounted"
             @update:model-value="$emit('update:sqlText', $event)"
           />
         </div>
@@ -367,7 +368,7 @@ import {
   Tickets,
   VideoPlay,
 } from "@element-plus/icons-vue";
-import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
+import MonacoEditor from "@repo/components/MonacoEditor/index.vue";
 import {
   ElButton,
   ElDialog,
@@ -384,6 +385,7 @@ import {
   ElTag,
   ElTooltip,
 } from "element-plus";
+import * as monaco from "monaco-editor";
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import type {
   JdbcConnectionMetadata,
@@ -445,6 +447,8 @@ const aiPrompt = ref("");
 const bottomPanel = ref<"message" | "result">("result");
 const tableViewState = reactive<Record<string, InspectorViewMode>>({});
 const editSection = ref<EditSection>("columns");
+const editorInstance = ref<monaco.editor.IStandaloneCodeEditor | null>(null);
+let completionDisposable: monaco.IDisposable | null = null;
 
 const editSectionOptions = [
   { label: "字段", value: "columns" },
@@ -492,11 +496,16 @@ const editSectionLabel = computed(
 );
 
 const editorOptions = computed(() => ({
-  completeSingle: false,
-  tables: props.sqlSuggestions.reduce<Record<string, string[]>>((acc, item) => {
-    acc[item] = [];
-    return acc;
-  }, {}),
+  automaticLayout: true,
+  fontSize: 13,
+  lineNumbers: "on",
+  minimap: { enabled: false },
+  quickSuggestions: true,
+  roundedSelection: true,
+  scrollBeyondLastLine: false,
+  suggestOnTriggerCharacters: true,
+  tabSize: 2,
+  wordWrap: "on",
 }));
 
 watch(
@@ -526,18 +535,64 @@ const isPrimary = (columnName: string) =>
   (activeWorkbenchTab.value?.structure?.primaryKeys || []).includes(columnName);
 
 const getSelectedSql = () =>
-  String(sqlEditorRef.value?.coder?.getSelection?.() || "").trim();
+  String(
+    editorInstance.value
+      ?.getModel()
+      ?.getValueInRange(editorInstance.value.getSelection() || new monaco.Selection(1, 1, 1, 1)) || "",
+  ).trim();
 
 const handleExecuteSelection = () => {
   emit("execute-selected", getSelectedSql());
 };
 
-const handleEditorInput = () => {
-  const tables = props.sqlSuggestions.reduce<Record<string, string[]>>((acc, item) => {
-    acc[item] = [];
-    return acc;
-  }, {});
-  sqlEditorRef.value?.upgradeHits?.(tables);
+const handleEditorMounted = (editor: monaco.editor.IStandaloneCodeEditor) => {
+  editorInstance.value = editor;
+  completionDisposable?.dispose();
+  completionDisposable = monaco.languages.registerCompletionItemProvider("sql", {
+    provideCompletionItems(model, position) {
+      const word = model.getWordUntilPosition(position);
+      const range = {
+        startColumn: word.startColumn,
+        endColumn: word.endColumn,
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+      };
+      const keywords = [
+        "SELECT",
+        "FROM",
+        "WHERE",
+        "GROUP BY",
+        "ORDER BY",
+        "LIMIT",
+        "INSERT INTO",
+        "UPDATE",
+        "DELETE FROM",
+        "CREATE TABLE",
+        "ALTER TABLE",
+        "DROP TABLE",
+        "TRUNCATE TABLE",
+        "LEFT JOIN",
+        "RIGHT JOIN",
+        "INNER JOIN",
+      ];
+      const suggestions = [
+        ...keywords.map(label => ({
+          insertText: label,
+          kind: monaco.languages.CompletionItemKind.Keyword,
+          label,
+          range,
+        })),
+        ...props.sqlSuggestions.map(label => ({
+          insertText: label,
+          kind: monaco.languages.CompletionItemKind.Field,
+          label,
+          range,
+        })),
+      ];
+      return { suggestions };
+    },
+    triggerCharacters: [" ", ".", "_"],
+  });
 };
 
 const formatSql = (value: string) =>
@@ -550,7 +605,6 @@ const formatSql = (value: string) =>
 
 const handleFormatSql = () => {
   emit("update:sqlText", formatSql(props.sqlText));
-  nextTickRefresh();
 };
 
 const handleCopyCodeBlock = async () => {
@@ -586,12 +640,6 @@ const handleKeydown = (event: KeyboardEvent) => {
   emit("execute");
 };
 
-const nextTickRefresh = () => {
-  window.setTimeout(() => {
-    sqlEditorRef.value?.refresh?.();
-  }, 24);
-};
-
 const exportWord = async () => {
   const tab = activeWorkbenchTab.value;
   if (!tab?.structure) {
@@ -617,11 +665,11 @@ defineExpose({
 
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
-  nextTickRefresh();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
+  completionDisposable?.dispose();
 });
 </script>
 
@@ -710,17 +758,11 @@ onBeforeUnmount(() => {
   background: linear-gradient(180deg, rgba(234, 241, 247, 0.78), rgba(242, 246, 250, 0.92));
 }
 
-.sql-editor-wrap :deep(.sc-code-editor) {
+.sql-editor-wrap :deep(.monaco-editor-container) {
   height: 100%;
   border: 1px solid rgba(120, 136, 148, 0.18);
   border-radius: 14px;
   overflow: hidden;
-}
-
-.sql-editor-wrap :deep(.CodeMirror) {
-  height: 100%;
-  font-size: 13px;
-  background: #f8fbfe;
 }
 
 .sql-footer {
