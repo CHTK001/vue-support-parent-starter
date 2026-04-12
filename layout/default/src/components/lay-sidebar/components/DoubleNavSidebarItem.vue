@@ -133,7 +133,7 @@ function hasOneShowingChild(children: MenuType[] = [], parent: MenuType) {
   }
 
   if (showingChildren.length === 0) {
-    onlyOneChild.value = { ...parent, path: "", noShowingChildren: true };
+    onlyOneChild.value = { ...parent, noShowingChildren: true };
     return true;
   }
   return false;

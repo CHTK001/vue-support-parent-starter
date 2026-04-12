@@ -57,7 +57,9 @@ const ReSegmentedComponent = defineComponent({
         : "rgba(var(--el-color-primary-rgb), 0.12)"
     );
     const activeTextColor = computed(() =>
-       "var(--el-color-white)"
+      isDark.value
+        ? "var(--el-text-color-primary)"
+        : "var(--el-color-white)"
     );
     const initStatus = ref(false);
     const curMouseActive = ref(-1);
@@ -158,7 +160,7 @@ const ReSegmentedComponent = defineComponent({
                     ? activeTextColor.value
                     : curMouseActive.value === index
                       ? (isDark.value
-                          ? "var(--el-color-white)"
+                          ? "var(--el-text-color-primary)"
                           : "var(--el-text-color)")
                       : ""
             }}

@@ -127,6 +127,7 @@
                   :rows="10"
                   :ai-enabled="aiEnabled"
                   :provider-label="executionProvider"
+                  task-title="AI 服务配置模板"
                   :context="configTemplateAiContext"
                   :build-prompt="buildConfigTemplatePrompt"
                   placeholder="在这里维护服务模板配置，保存后可一键推送到服务器。"

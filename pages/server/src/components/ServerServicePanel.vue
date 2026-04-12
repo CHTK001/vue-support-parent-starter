@@ -5,7 +5,7 @@
         <h3>服务器服务</h3>
         <p>
           自动检测优先走 SPI(本机 / SSH / WinRM) 和系统能力；AI
-          只参与失败诊断与草稿生成。
+          作为全局能力参与失败诊断与草稿生成。
         </p>
         <small
           v-if="!aiEnabled && aiUnavailableReason"
@@ -483,9 +483,10 @@ const filteredServices = computed(() => {
 .server-service-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   height: 100%;
   min-height: 0;
+  padding: 2px 0;
 }
 
 .server-service-panel__hint {
@@ -508,7 +509,8 @@ const filteredServices = computed(() => {
 
 .server-service-panel__header {
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
+  padding: 2px 2px 0;
 }
 
 .server-service-panel__header h3 {
@@ -532,6 +534,10 @@ const filteredServices = computed(() => {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
 }
 
 .server-service-panel__filters {
@@ -546,15 +552,18 @@ const filteredServices = computed(() => {
   display: grid;
   gap: 12px;
   flex: 1;
+  min-height: 356px;
+  max-height: 404px;
   overflow: auto;
   padding-right: 4px;
+  padding-top: 2px;
 }
 
 .server-service-panel__item {
   display: grid;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 22px;
+  gap: 10px;
+  padding: 16px 16px 15px;
+  border-radius: 24px;
   background:
     radial-gradient(
       circle at top left,
@@ -563,6 +572,21 @@ const filteredServices = computed(() => {
     ),
     color-mix(in srgb, var(--el-bg-color-page) 84%, white);
   border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.server-service-panel__item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 26%,
+    var(--el-border-color)
+  );
 }
 
 .server-service-panel__item-top {

@@ -171,7 +171,7 @@ const onlyOneChild = computed<MenuType | null>(() => {
   }
 
   if (showingChildren.length === 0) {
-    return { ...props.item, path: "", noShowingChildren: true };
+    return { ...props.item, noShowingChildren: true };
   }
 
   return null;
