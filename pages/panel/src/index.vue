@@ -740,7 +740,7 @@ const ensureInspectorTab = async (
 
 const handleOpenTable = async (node: JdbcCatalogNode) => {
   activeNode.value = node;
-  injectSql(`select * from ${fullTableName(node)} limit ${previewLimit.value};`);
+  injectSql((await requestSqlTemplate(node, "select")) || `select * from ${fullTableName(node)} limit ${previewLimit.value};`);
   if (!tableStructureCache.value[node.nodeId]) {
     await fetchTableArtifacts(node);
   }
@@ -1059,7 +1059,7 @@ const handleContextAction = async ({
 
   if (action === "open-data") {
     await ensureInspectorTab(node, "table", "data", true);
-    injectSql(`select * from ${fullTableName(node)} limit ${previewLimit.value};`);
+    injectSql(await requestSqlTemplate(node, "select"));
     await handleExecuteSql();
     return;
   }
@@ -1166,6 +1166,7 @@ const startAsideResize = (event: MouseEvent) => {
 onMounted(async () => {
   loadSources();
   loadConfig();
+  document.addEventListener("mousedown", handleGlobalPointerDown);
   await loadCachedConnections();
   const ticket = new URL(window.location.href).searchParams.get("ticket");
   if (!ticket) {
@@ -1183,6 +1184,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   stopAsideResize();
+  document.removeEventListener("mousedown", handleGlobalPointerDown);
 });
 </script>
 
@@ -1275,6 +1277,44 @@ onBeforeUnmount(() => {
 }
 
 .panel-root :deep(.el-button) {
+  border-radius: 10px;
+}
+
+.note-popover {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  gap: 10px;
+  width: 300px;
+  padding: 10px;
+  border: 1px solid rgba(116, 133, 146, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.note-popover__head,
+.note-popover__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.note-popover__head strong {
+  color: #133042;
+  font-size: 13px;
+}
+
+.note-popover__head button {
+  border: 0;
+  background: transparent;
+  color: #60798a;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.note-popover :deep(.el-textarea__inner) {
   border-radius: 10px;
 }
 
