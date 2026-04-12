@@ -3,7 +3,7 @@
     <div class="ops-hero">
       <article class="ops-hero__intro">
         <p class="ops-kicker">Payment Home</p>
-        <h3 class="ops-title">支付中台总览先给出状态，再进入执行页</h3>
+        <h3 class="ops-title">业务统计先看关键数据，再进入执行页</h3>
         <p class="ops-copy">
           首页收拢商户、订单、流水和能力目录，避免一进系统就落到单一列表。
           这里优先回答三个问题：当前有没有可操作商户、订单状态是否健康、联调应该走钱包还是第三方 mock。

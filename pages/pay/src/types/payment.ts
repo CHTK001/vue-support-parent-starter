@@ -294,6 +294,23 @@ export interface PaymentOpsOverview {
   orderNumberStrategies: PaymentOrderNumberStrategy[];
 }
 
+export interface PaymentDashboardSummary {
+  startTime?: string;
+  endTime?: string;
+  merchantTotal: number;
+  activeMerchantCount: number;
+  configuredMerchantCount: number;
+  paymentOrderCount: number;
+  refundCount: number;
+  transactionCount: number;
+  callbackRequestCount: number;
+  successNotifyCount: number;
+  failedNotifyCount: number;
+  averageProcessDurationMs: number;
+  totalConsumeAmount: number;
+  totalRefundAmount: number;
+}
+
 export interface PaymentNotifyLog {
   id: number;
   notifyType: string;
@@ -526,6 +543,35 @@ export interface WechatPayScoreCancelForm {
 export interface PaymentSchedulerTaskUpdateForm {
   cronExpression?: string;
   enabled?: boolean;
+}
+
+export interface OrderPartitionConfig {
+  businessType: "ORDER" | "TRANSACTION";
+  sourceTable: string;
+  partitionPrefix: string;
+  partitionGranularity: "MONTH" | "DAY";
+  retentionDays: number;
+  createAheadDays: number;
+  migrateBeforeDays: number;
+  autoCreateEnabled: boolean;
+  autoMigrateEnabled: boolean;
+  keepSourceData: boolean;
+  createTaskKey?: string;
+  migrateTaskKey?: string;
+  lastPartitionTable?: string;
+  lastPartitionAt?: string;
+  lastMigrateAt?: string;
+  remark?: string;
+}
+
+export interface OrderPartitionPreview {
+  businessType: "ORDER" | "TRANSACTION";
+  sourceTable: string;
+  nextPartitionTable: string;
+  migrateTargetTable: string;
+  migrateBeforeTime?: string;
+  createTaskKey?: string;
+  migrateTaskKey?: string;
 }
 
 export const MerchantStatusMap: Record<number, string> = {

@@ -1,0 +1,41 @@
+{
+  "name": "@pages/panel",
+  "version": "1.0.0",
+  "description": "控制台面板模块 - 提供统一客户端面板壳与 JDBC 第一阶段页面入口",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "dependencies": {
+    "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "docx": "^9.6.1",
+    "element-plus": "catalog:",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "unbuild": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:^",
+    "typescript": "catalog:"
+  }
+}

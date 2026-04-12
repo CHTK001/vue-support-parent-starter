@@ -1,71 +1,70 @@
-// 音乐信息接口
-export interface MusicInfo {
-  musicId: string;
-  musicTitle: string;
-  musicArtist: string;
-  musicAlbum: string;
-  musicCover: string;
-  musicUrl: string;
-  musicLyrics?: string;
-  musicDuration: number;
-  musicType: string;
-  musicPlatform: string;
+export type MusicSection = "discover" | "search" | "favorites" | "history";
+export type MusicSearchTab = "tracks" | "playlists";
+
+export interface MusicNavItem {
+  code: MusicSection;
+  label: string;
+  hint: string;
 }
 
-// 歌单接口
-export interface MusicPlaylist {
-  musicId: string;
-  musicName: string;
-  musicCover: string;
-  musicDescription: string;
-  musicCount: number;
-  musicCreator: string;
-  createTime: string;
-}
-// 音乐信息接口
-export interface MusicInfo {
-  musicId: string;
-  musicTitle: string;
-  musicArtist: string;
-  musicAlbum: string;
-  musicCover: string;
-  musicUrl: string;
-  musicLyrics?: string;
-  musicDuration: number;
-  musicType: string;
-  musicPlatform: string;
-}
-
-// 歌单接口
-export interface Playlist {
-  musicId: string;
-  musicName: string;
-  musicCover: string;
-  musicDescription: string;
-  musicCount: number;
-  musicCreator: string;
-  createTime: string;
-}
-
-// 通用响应接口
-export interface MusicApiResponse<T> {
+export interface MusicSourceOption {
   code: string;
-  message: string;
-  data: T;
-  success: boolean;
+  name: string;
+  description: string;
+  enabled: boolean;
 }
 
-// 搜索参数接口
-export interface MusicSearchParams {
+export interface MusicTrackSummary {
+  trackId: string;
+  source: string;
+  title: string;
+  artist: string;
+  album: string;
+  coverUrl: string;
+  durationSeconds: number;
+}
+
+export interface MusicTrackDetail extends MusicTrackSummary {
+  streamUrl: string;
+  lyrics?: string;
+}
+
+export interface MusicPlaylistSummary {
+  playlistId: string;
+  source: string;
+  title: string;
+  description: string;
+  coverUrl: string;
+  author: string;
+  trackCount: number;
+  accentColor?: string;
+}
+
+export interface MusicPlaylistDetail extends MusicPlaylistSummary {
+  tracks: MusicTrackSummary[];
+}
+
+export interface MusicOverview {
+  sources: MusicSourceOption[];
+  defaultSource: string;
+  hotKeywords: string[];
+  featuredPlaylists: MusicPlaylistSummary[];
+}
+
+export interface MusicSearchResult {
+  source: string;
   keyword: string;
   page: number;
   pageSize: number;
-  type?: string;
-  platform?: string;
+  total: number;
+  tracks: MusicTrackSummary[];
 }
 
-// 搜索结果接口
-export interface MusicSearchResult {
-  data: MusicInfo[];
+export interface MusicPlaylistSearchResult {
+  source: string;
+  keyword: string;
+  page: number;
+  pageSize: number;
   total: number;
+  playlists: MusicPlaylistSummary[];
 }

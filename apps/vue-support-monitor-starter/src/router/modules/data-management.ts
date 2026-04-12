@@ -2,26 +2,15 @@ import { t as $t } from "@repo/config";
 
 export default [
   {
-    path: "/data-management",
-    name: "dataManagement",
+    path: "/sync-management",
+    name: "syncManagement",
     meta: {
-      icon: "ri:database-2-line",
-      title: "数据管理",
+      icon: "ri:arrow-left-right-line",
+      title: "同步管理",
       showLink: true,
       rank: 8,
     },
     children: [
-      {
-        path: "/data/management",
-        name: "dataManagementIndex",
-        component: () => import("@/views/data-management/index.vue"),
-        meta: {
-          icon: "ri:database-line",
-          title: "数据管理",
-          showLink: true,
-          showParent: true,
-        },
-      },
       {
         path: "/sync/management",
         name: "SyncManagement",

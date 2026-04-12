@@ -67,7 +67,7 @@ const activeMenu = computed(() => route.path);
 
 const pageTitle = computed(() => {
   if (route.path.startsWith("/home")) {
-    return "支付中台总览";
+    return "业务统计";
   }
   if (route.path.startsWith("/orders")) {
     return "订单状态与退款执行台";
