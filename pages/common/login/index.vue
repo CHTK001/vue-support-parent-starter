@@ -15,7 +15,7 @@ import {
   getLanguageConfig,
 } from "@repo/config/src/i18n";
 import { useRenderIcon } from "@repo/components/ReIcon";
-import { fetchVerifyCode } from "@repo/core";
+import { fetchVerifyCode, initRouter } from "@repo/core";
 import {
   computed,
   defineAsyncComponent,
@@ -25,6 +25,9 @@ import {
   ref,
 } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import { useUserStoreHook } from "@repo/core/src/store/modules/UserStore";
+import { Md5 } from "ts-md5";
 import ThemeSwitcher from "./components/ThemeSwitcher.vue";
 import { getLoginTheme as getLoginThemeComponent } from "./themes/index";
 import { getThemeConfig } from "./utils/themeConfig";
@@ -64,6 +67,8 @@ const { initStorage } = useLayout();
 initStorage();
 
 const { t } = useI18n();
+const router = useRouter();
+const userStore = useUserStoreHook();
 const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
 dataThemeChange(overallStyle.value);
 const { locale, translation } = useTranslationLang();
@@ -246,6 +251,54 @@ const currentEnv = import.meta.env.MODE || "production";
 const isDevelopment = currentEnv === "development" || import.meta.env.DEV;
 const isTest = currentEnv === "test";
 const showEnvBadge = computed(() => isDevelopment || isTest);
+const showStaticLoginEntry = computed(() => {
+  return (
+    (isDevelopment || isTest) &&
+    getConfig().OpenAuth !== false &&
+    getConfig().ShowStaticLoginEntry === true
+  );
+});
+const staticLoginDisplayName = computed(() => {
+  return (
+    getConfig().StaticLoginNickname ||
+    getConfig().StaticLoginUsername ||
+    "开发测试账号"
+  );
+});
+
+const LOGIN_PASSWORD_MD5_PATTERN = /^[a-f0-9]{32}$/i;
+const encodeStaticLoginPassword = (password: string) => {
+  const normalizedPassword = String(password || "").trim();
+  if (!normalizedPassword) {
+    return normalizedPassword;
+  }
+  if (LOGIN_PASSWORD_MD5_PATTERN.test(normalizedPassword)) {
+    return normalizedPassword.toLowerCase();
+  }
+  return String(Md5.hashStr(normalizedPassword));
+};
+
+const handleStaticLogin = async () => {
+  const targetPath = getConfig().StaticLoginPath || "/manage/menu";
+  const username = getConfig().StaticLoginUsername || "admin";
+  const password = getConfig().StaticLoginPassword || "123456";
+  const nickname = getConfig().StaticLoginNickname || username;
+  try {
+    await userStore.loginByUsername({
+      username,
+      password: encodeStaticLoginPassword(password),
+      loginType: "WEB",
+      accountType: null,
+    });
+    await initRouter(targetPath);
+    await router.push(targetPath);
+    userStore.SET_NICKNAME(nickname);
+  } catch (error) {
+    message(error?.message || "开发测试账号登录失败，请检查本地后端与账号配置", {
+      type: "error",
+    });
+  }
+};
 
 // 获取环境标识文本
 const envBadgeText = computed(() => {
@@ -406,6 +459,17 @@ onBeforeUnmount(() => {
         :ssoSetting="ssoSetting"
         class="login-form-component"
       />
+
+      <div v-if="showStaticLoginEntry" class="static-login-entry">
+        <div class="static-login-entry__header">
+          <span class="static-login-entry__title">开发态直达</span>
+          <span class="static-login-entry__tip">仅 development/test 可见</span>
+        </div>
+        <button class="static-login-entry__button" @click="handleStaticLogin">
+          <IconifyIconOnline icon="ri:flashlight-line" />
+          <span>使用 {{ staticLoginDisplayName }} 进入系统</span>
+        </button>
+      </div>
 
       <!-- 登录类型选择 -->
       <div v-if="openSwitchLoginType" class="login-type-selector">
@@ -1061,6 +1125,70 @@ onBeforeUnmount(() => {
           writing-mode: horizontal-tb;
         }
       }
+    }
+  }
+}
+
+.static-login-entry {
+  width: 100%;
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.16);
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.08) 0%,
+    var(--el-fill-color-extra-light) 100%
+  );
+  box-shadow: 0 12px 28px rgba(var(--el-color-primary-rgb), 0.08);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--el-text-color-primary);
+  }
+
+  &__tip {
+    font-size: 11px;
+    color: var(--el-text-color-secondary);
+  }
+
+  &__button {
+    width: 100%;
+    height: 42px;
+    border: 0;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(
+      135deg,
+      var(--el-color-primary) 0%,
+      var(--el-color-primary-light-3) 100%
+    );
+    box-shadow: 0 12px 24px rgba(var(--el-color-primary-rgb), 0.24);
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      filter 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      filter: saturate(1.05);
+      box-shadow: 0 16px 28px rgba(var(--el-color-primary-rgb), 0.28);
     }
   }
 }

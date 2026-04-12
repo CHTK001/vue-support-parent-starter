@@ -82,6 +82,12 @@ const appendRouteRecord = (
       ...route,
       children: mergedChildren,
     } as RouteRecordRaw;
+    if (
+      current.path === "/" &&
+      String(current.name || "") === ROOT_LAYOUT_ROUTE_NAME
+    ) {
+      mergedRoute.name = ROOT_LAYOUT_ROUTE_NAME;
+    }
     container[duplicatedIndex] = mergedRoute;
     return;
   }
@@ -136,13 +142,14 @@ const coreNormalRouteModules: Record<string, any> = import.meta.glob(
   { eager: true },
 );
 // @ts-ignore
-const moduleRouteModules: Record<string, any> = import.meta.glob(
+const moduleRouteModules: Record<string, () => Promise<any>> = import.meta.glob(
   [
     "../../../../pages/**/src/router.ts",
     "../../../../pages/**/src/router/index.ts",
-    "../../../../pages/**/router/**/*.ts",
+    "../../../../pages/**/src/router/**/*.ts",
+    "!../../../../pages/**/dist/**",
+    "!../../../../pages/**/*.d.ts",
   ],
-  { eager: true },
 );
 // @ts-ignore
 const appNormalRouteModules: Record<string, any> = import.meta.glob(
@@ -190,7 +197,7 @@ const matchModuleRouteSelector = (
   return false;
 };
 
-const resolveModuleRouteRegistry = (): Record<string, any> => {
+const resolveModuleRouteRegistry = (): Record<string, () => Promise<any>> => {
   const config = getConfig();
   const selectors = resolveLocalRouteModulePaths(config);
   const discoveryEnabled = shouldEnableLocalModuleDiscovery(config);
@@ -332,12 +339,26 @@ const appendNormalRoutes = (modules: Record<string, any>) => {
   });
 };
 
+const appendLazyNormalRoutes = async (
+  modules: Record<string, () => Promise<any>>,
+) => {
+  for (const loader of Object.values(modules)) {
+    const module = await loader();
+    resolveModuleRoutes(module).forEach((route) => {
+      appendRouteRecord(routes, route);
+      if (route.name) {
+        routerNameMapping.add(String(route.name).toLowerCase());
+      }
+    });
+  }
+};
+
 const _createCoreNormalRouter = () => {
   appendNormalRoutes(coreNormalRouteModules);
 };
 
-const _createModuleRouter = () => {
-  appendNormalRoutes(resolveModuleRouteRegistry());
+const _createModuleRouter = async () => {
+  await appendLazyNormalRoutes(resolveModuleRouteRegistry());
 };
 
 const _createAppNormalRouter = () => {
@@ -353,13 +374,33 @@ const _createAlwaysAvailableAppRouter = () => {
   appendNormalRoutes(essentialModules);
 };
 
-const _createAlwaysAvailableModuleRouter = () => {
-  const essentialModules = Object.fromEntries(
-    Object.entries(moduleRouteModules).filter(([, module]) =>
-      resolveModuleRoutes(module).some((route) => isAlwaysAvailableStaticRoute(route)),
-    ),
-  );
-  appendNormalRoutes(essentialModules);
+const _createAlwaysAvailableModuleRouter = async () => {
+  const config = getConfig();
+  const selectors = resolveLocalRouteModulePaths(config);
+  const discoveryEnabled = shouldEnableLocalModuleDiscovery(config);
+  const selectedEntries = Object.entries(moduleRouteModules)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .filter(
+      ([key]) =>
+        discoveryEnabled ||
+        selectors.some((selector) => matchModuleRouteSelector(key, selector)),
+    );
+
+  for (const [, loader] of selectedEntries) {
+    const module = await loader();
+    if (
+      resolveModuleRoutes(module).some((route) =>
+        isAlwaysAvailableStaticRoute(route),
+      )
+    ) {
+      resolveModuleRoutes(module).forEach((route) => {
+        appendRouteRecord(routes, route);
+        if (route.name) {
+          routerNameMapping.add(String(route.name).toLowerCase());
+        }
+      });
+    }
+  }
 };
 
 const ensureRootLayoutRoute = (): void => {
@@ -381,10 +422,47 @@ const ensureRootLayoutRoute = (): void => {
   } as RouteRecordRaw);
 };
 
+const replaceRouteArray = <T>(target: T[], source: T[]): void => {
+  target.splice(0, target.length, ...source);
+};
+
+const buildConstantRouteList = (): Array<RouteRecordRaw> =>
+  formatTwoStageRoutes(
+    formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))),
+  );
+
+const buildConstantMenuList = (): Array<RouteComponent> =>
+  ascending(routes.flat(Infinity)).concat(...remainingRouter);
+
+const buildRemainingPathList = (): string[] =>
+  remainingRouter
+    .map((route) => {
+      if (!route) {
+        return;
+      }
+      return route.path;
+    })
+    .filter(Boolean);
+
+/** 导出处理后的静态路由（会在 routerReady 中刷新） */
+export const constantRoutes: Array<RouteRecordRaw> = [];
+
+/** 用于渲染菜单，保持原始层级（会在 routerReady 中刷新） */
+export const constantMenus: Array<RouteComponent> = [];
+
+/** 不参与菜单的路由（会在 routerReady 中刷新） */
+export const remainingPaths: string[] = [];
+
+const refreshStaticRouteState = (): void => {
+  replaceRouteArray(constantRoutes, buildConstantRouteList());
+  replaceRouteArray(constantMenus, buildConstantMenuList());
+  replaceRouteArray(remainingPaths, buildRemainingPathList());
+};
+
 /**
  * 根据配置初始化路由模式
  */
-const initRouterMode = (): void => {
+const initRouterMode = async (): Promise<void> => {
   const config = getConfig();
   const routerModule = config.RouterModule;
   const loadLocalBusinessRoutes = shouldLoadLocalBusinessRoutes(config);
@@ -392,7 +470,7 @@ const initRouterMode = (): void => {
   if (config.AutoRouter || routerModule === "AUTO") {
     if (loadLocalBusinessRoutes) {
       _createAutoRouter();
-      _createModuleRouter();
+      await _createModuleRouter();
       _createAppNormalRouter();
     }
   } else if (routerModule === "MIX") {
@@ -401,45 +479,24 @@ const initRouterMode = (): void => {
     }
     _createCoreNormalRouter();
     if (loadLocalBusinessRoutes) {
-      _createModuleRouter();
+      await _createModuleRouter();
       _createAppNormalRouter();
     }
   } else {
     _createCoreNormalRouter();
     if (loadLocalBusinessRoutes) {
-      _createModuleRouter();
+      await _createModuleRouter();
       _createAppNormalRouter();
     }
   }
 
   if (!loadLocalBusinessRoutes) {
     _createAlwaysAvailableAppRouter();
-    _createAlwaysAvailableModuleRouter();
+    await _createAlwaysAvailableModuleRouter();
   }
 };
-
-initRouterMode();
 ensureRootLayoutRoute();
-
-/** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
-export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
-  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))),
-);
-
-/** 用于渲染菜单，保持原始层级 */
-export const constantMenus: Array<RouteComponent> = ascending(
-  routes.flat(Infinity),
-).concat(...remainingRouter);
-
-/** 不参与菜单的路由 */
-export const remainingPaths = remainingRouter
-  .map((route) => {
-    if (!route) {
-      return;
-    }
-    return route.path;
-  })
-  .filter(Boolean);
+refreshStaticRouteState();
 /** 创建路由实例 */
 export const router: Router = createRouter({
   //@ts-ignore
@@ -463,17 +520,51 @@ export const router: Router = createRouter({
   },
 });
 
+const hasRegisteredStaticRoute = (route: RouteRecordRaw): boolean => {
+  return router
+    .getRoutes()
+    .some(
+      (item) =>
+        (!!route.name && item.name === route.name) || item.path === route.path,
+    );
+};
+
+const refreshRouterStaticRoutes = (): void => {
+  const rootRoute = constantRoutes.find((route) => route.path === "/");
+  const rootChildren = Array.isArray(rootRoute?.children)
+    ? rootRoute.children
+    : [];
+
+  rootChildren.forEach((child) => {
+    if (!child || hasRegisteredStaticRoute(child)) {
+      return;
+    }
+    router.addRoute(ROOT_LAYOUT_ROUTE_NAME, child);
+  });
+
+  remainingRouter.forEach((route) => {
+    if (!route || hasRegisteredStaticRoute(route)) {
+      return;
+    }
+    router.addRoute(route);
+  });
+
+  router.options.routes = constantRoutes.concat(...remainingRouter);
+};
+
+export const routerReady: Promise<void> = initRouterMode().then(() => {
+  ensureRootLayoutRoute();
+  refreshStaticRouteState();
+  refreshRouterStaticRoutes();
+});
+
 /** 重置路由 */
 export function resetRouter() {
   router.getRoutes().forEach((route) => {
     const { name, meta } = route;
     if (name && router.hasRoute(name) && meta?.backstage) {
       router.removeRoute(name);
-      router.options.routes = formatTwoStageRoutes(
-        formatFlatteningRoutes(
-          buildHierarchyTree(ascending(routes.flat(Infinity))),
-        ),
-      );
+      router.options.routes = constantRoutes.concat(...remainingRouter);
     }
   });
   usePermissionStoreHook().clearAllCachePage();
@@ -536,6 +627,43 @@ const resolveAuthenticatedTargetPath = (
   )?.path;
 
   return firstAvailableChild || null;
+};
+
+const syncMultiTagsByRoute = (to: ToRouteType): void => {
+  if (!to?.path || to.path === "/" || to.path.startsWith("/redirect")) {
+    return;
+  }
+
+  const registeredRoute = router
+    .getRoutes()
+    .find((route) => route.path === to.path);
+  const routeSearchSpace = [
+    ...(router.options.routes.find(
+      (route) => route.path === "/" && Array.isArray(route.children),
+    )?.children || router.options.routes),
+  ];
+  const matchedRoute = findRouteByPath(to.path, routeSearchSpace);
+  const targetRoute =
+    registeredRoute ||
+    matchedRoute ||
+    (to.matched?.[to.matched.length - 1] as RouteRecordRaw);
+
+  if (!targetRoute?.meta?.title) {
+    return;
+  }
+
+  const targetMeta = {
+    ...targetRoute.meta,
+    ...(to.meta?.activePath ? { activePath: to.meta.activePath } : {}),
+  };
+
+  useMultiTagsStoreHook().handleTags("push", {
+    path: targetRoute.path || to.path,
+    name: targetRoute.name || to.name,
+    meta: targetMeta,
+    query: !isAllEmpty(to.query) ? to.query : undefined,
+    params: !isAllEmpty(to.params) ? to.params : undefined,
+  });
 };
 
 router.beforeEach((to: ToRouteType, _from, next) => {
@@ -685,7 +813,8 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   }
 });
 
-router.afterEach(() => {
+router.afterEach((to) => {
+  syncMultiTagsByRoute(to as ToRouteType);
   NProgress.done();
 });
 export default router;

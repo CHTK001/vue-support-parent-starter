@@ -2,7 +2,7 @@
   <el-dialog
     v-model="dialogVisible"
     destroy-on-close
-    width="1220px"
+    width="94vw"
     class="server-process-dialog"
     :title="host ? `${host.serverName} · 进程管理` : '进程管理'"
   >
@@ -161,45 +161,49 @@
                 "
               >
                 <el-button
+                  circle
                   plain
                   :disabled="!aiEnabled"
                   :loading="aiAnalyzing"
                   @click="emit('analyze-process', selectedProcess)"
                 >
                   <IconifyIconOnline icon="ri:ai-generate-2" />
-                  <span>AI 分析</span>
                 </el-button>
               </el-tooltip>
-              <el-button
-                type="warning"
-                plain
-                :loading="
-                  actionLoadingKey === `terminate:${selectedProcess.pid}`
-                "
-                @click="
-                  emit('terminate-process', {
-                    process: selectedProcess,
-                    force: false,
-                  })
-                "
-              >
-                <IconifyIconOnline icon="ri:stop-circle-line" />
-                <span>结束进程</span>
-              </el-button>
-              <el-button
-                type="danger"
-                plain
-                :loading="actionLoadingKey === `force:${selectedProcess.pid}`"
-                @click="
-                  emit('terminate-process', {
-                    process: selectedProcess,
-                    force: true,
-                  })
-                "
-              >
-                <IconifyIconOnline icon="ri:close-circle-line" />
-                <span>强制结束</span>
-              </el-button>
+              <el-tooltip content="结束进程">
+                <el-button
+                  circle
+                  type="warning"
+                  plain
+                  :loading="
+                    actionLoadingKey === `terminate:${selectedProcess.pid}`
+                  "
+                  @click="
+                    emit('terminate-process', {
+                      process: selectedProcess,
+                      force: false,
+                    })
+                  "
+                >
+                  <IconifyIconOnline icon="ri:stop-circle-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="强制结束">
+                <el-button
+                  circle
+                  type="danger"
+                  plain
+                  :loading="actionLoadingKey === `force:${selectedProcess.pid}`"
+                  @click="
+                    emit('terminate-process', {
+                      process: selectedProcess,
+                      force: true,
+                    })
+                  "
+                >
+                  <IconifyIconOnline icon="ri:close-circle-line" />
+                </el-button>
+              </el-tooltip>
               <el-tooltip content="弹框查看详情">
                 <el-button circle plain @click="openDetail(selectedProcess)">
                   <IconifyIconOnline icon="ri:article-line" />
@@ -619,6 +623,16 @@ watch(
 </script>
 
 <style scoped lang="scss">
+.server-process-dialog :deep(.el-dialog) {
+  max-width: 1460px;
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.server-process-dialog :deep(.el-dialog__body) {
+  padding-top: 8px;
+}
+
 .server-process-dialog__header,
 .server-process-dialog__summary,
 .server-process-dialog__toolbar,
@@ -645,6 +659,8 @@ watch(
 
 .server-process-dialog__header {
   gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .server-process-dialog__header h3 {
@@ -696,6 +712,11 @@ watch(
 .server-process-dialog__toolbar {
   gap: 14px;
   margin-bottom: 16px;
+  align-items: stretch;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .server-process-dialog__toolbar-actions {
@@ -710,18 +731,23 @@ watch(
 
 .server-process-dialog__stage {
   display: grid;
-  grid-template-columns: minmax(340px, 0.95fr) minmax(0, 1.2fr);
-  gap: 16px;
-  min-height: 560px;
+  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
+  gap: 18px;
+  min-height: 620px;
+  align-items: stretch;
 }
 
 .server-process-dialog__list,
 .server-process-dialog__detail {
   min-height: 0;
-  padding: 14px;
-  border-radius: 22px;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(248, 250, 252, 0.9);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 30%),
+    rgba(248, 250, 252, 0.94);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
 }
 
 .server-process-dialog__list {
@@ -729,6 +755,8 @@ watch(
   gap: 10px;
   align-content: start;
   overflow: auto;
+  max-height: 620px;
+  overflow-x: hidden;
 }
 
 .server-process-dialog__detail {
@@ -736,6 +764,8 @@ watch(
   gap: 14px;
   align-content: start;
   overflow: auto;
+  max-height: 620px;
+  overflow-x: hidden;
 }
 
 .server-process-dialog__item {
@@ -800,6 +830,14 @@ watch(
   line-height: 1.65;
 }
 
+.server-process-dialog__command {
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .server-process-dialog__metric-row {
   justify-content: space-between;
   gap: 8px;
@@ -823,6 +861,8 @@ watch(
 .server-process-dialog__detail-hero {
   gap: 14px;
   align-items: flex-start;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .server-process-dialog__detail-hero h4 {
@@ -834,6 +874,7 @@ watch(
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .server-process-dialog__stats {

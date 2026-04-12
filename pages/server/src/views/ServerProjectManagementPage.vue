@@ -24,7 +24,7 @@
         @click="focusSummary('all')"
         @keydown.enter.prevent="focusSummary('all')"
       >
-        <small>项目实例</small><strong>{{ cards.length }}</strong>
+        <small>项目实例</small><strong>{{ totalProjectCount }}</strong>
       </article>
       <article
         class="summary-card summary-card--action"
@@ -109,6 +109,141 @@
         </span>
       </div>
     </article>
+
+    <article class="manual-project-section">
+      <div class="panel-head manual-project-section__head">
+        <div>
+          <h3>手工项目主档</h3>
+          <p>
+            直接按服务器路径、日志路径和启停脚本维护项目，不再强依赖软件安装实例。
+          </p>
+        </div>
+        <div class="actions">
+          <span class="chip">项目主档 {{ manualProjectCards.length }}</span>
+          <el-tooltip content="新增项目主档">
+            <el-button circle plain type="primary" @click="openCreateProject">
+              <IconifyIconOnline icon="ri:add-line" />
+            </el-button>
+          </el-tooltip>
+        </div>
+      </div>
+
+      <div v-if="manualProjectCards.length" class="manual-project-grid">
+        <article
+          v-for="item in manualProjectCards"
+          :key="item.service.serverServiceId || item.service.serviceCode"
+          class="card manual-project-card"
+          :class="item.tone"
+          role="button"
+          tabindex="0"
+          @click="openProjectDetail(item.service)"
+          @keydown.enter.prevent="openProjectDetail(item.service)"
+        >
+          <header class="card-head">
+            <div>
+              <strong>{{ item.service.serviceName || "未命名项目" }}</strong>
+              <p>{{ item.typeLabel }} / {{ item.manageMode }}</p>
+            </div>
+            <span class="chip">{{ item.runtimeLabel }}</span>
+          </header>
+          <div class="chips">
+            <span class="chip">{{
+              item.service.installPath || "未配置项目目录"
+            }}</span>
+            <span class="chip">SPI {{ item.executionProviderLabel }}</span>
+            <span class="chip">日志 {{ item.logPathCount }} 条</span>
+          </div>
+          <p class="message">
+            {{
+              item.service.latestAiReason ||
+              item.service.lastOperationMessage ||
+              "支持脚本化启动、停止、重启、状态检查、AI 草稿和日志维护。"
+            }}
+          </p>
+          <div
+            v-if="
+              item.service.latestAiReason || item.service.latestAiSolution
+            "
+            class="ai-box"
+          >
+            <strong>AI 诊断</strong>
+            <p>{{ item.service.latestAiReason || "-" }}</p>
+            <small>{{ item.service.latestAiSolution || "-" }}</small>
+          </div>
+          <div class="actions">
+            <el-button
+              circle
+              plain
+              type="success"
+              :loading="
+                projectActionKey === `start:${item.service.serverServiceId}`
+              "
+              @click.stop="runProjectAction(item.service, 'start')"
+            >
+              <IconifyIconOnline icon="ri:play-circle-line" />
+            </el-button>
+            <el-button
+              circle
+              plain
+              type="warning"
+              :loading="
+                projectActionKey === `stop:${item.service.serverServiceId}`
+              "
+              @click.stop="runProjectAction(item.service, 'stop')"
+            >
+              <IconifyIconOnline icon="ri:stop-circle-line" />
+            </el-button>
+            <el-button
+              circle
+              plain
+              :loading="
+                projectActionKey === `restart:${item.service.serverServiceId}`
+              "
+              @click.stop="runProjectAction(item.service, 'restart')"
+            >
+              <IconifyIconOnline icon="ri:restart-line" />
+            </el-button>
+            <el-button
+              circle
+              plain
+              :loading="
+                projectActionKey === `status:${item.service.serverServiceId}`
+              "
+              @click.stop="runProjectAction(item.service, 'status')"
+            >
+              <IconifyIconOnline icon="ri:pulse-line" />
+            </el-button>
+            <el-button
+              circle
+              plain
+              @click.stop="openStandaloneScriptDialog(item.service)"
+            >
+              <IconifyIconOnline icon="ri:file-code-line" />
+            </el-button>
+            <el-button circle plain @click.stop="openProjectEditor(item.service)">
+              <IconifyIconOnline icon="ri:settings-4-line" />
+            </el-button>
+            <el-button circle plain @click.stop="openProjectDetail(item.service)">
+              <IconifyIconOnline icon="ri:article-line" />
+            </el-button>
+          </div>
+        </article>
+      </div>
+      <el-empty
+        v-else
+        description="当前没有手工项目主档，可以直接在这里创建"
+      />
+    </article>
+
+    <div class="panel-head project-installation-head">
+      <div>
+        <h3>安装项目实例</h3>
+        <p>保留 soft 安装实例的运行、配置快照、日志追尾和回滚能力。</p>
+      </div>
+      <div class="actions">
+        <span class="chip">安装实例 {{ filteredCards.length }}</span>
+      </div>
+    </div>
 
     <div v-loading="loading" class="grid">
       <article
@@ -208,6 +343,13 @@
             "
             ><IconifyIconOnline icon="ri:pulse-line"
           /></el-button>
+          <el-button
+            circle
+            plain
+            :disabled="!item.serverService?.serverServiceId"
+            @click.stop="openScriptDialog(item)"
+            ><IconifyIconOnline icon="ri:file-code-line"
+          /></el-button>
           <el-button circle plain @click.stop="openDetail(item)"
             ><IconifyIconOnline icon="ri:article-line"
           /></el-button>
@@ -298,6 +440,12 @@
               plain
               @click="loadDetail(selectedCard.installation.softInstallationId!)"
               >刷新</el-button
+            >
+            <el-button
+              plain
+              :disabled="!selectedCard.serverService?.serverServiceId"
+              @click="openScriptDialog(selectedCard)"
+              >脚本</el-button
             >
           </div>
         </div>
@@ -538,6 +686,35 @@
         </div>
       </template>
     </el-dialog>
+    <ServerProjectScriptDialog
+      v-model="scriptDialogVisible"
+      :service="scriptDialogService"
+      :saving="scriptDialogSaving"
+      :ai-enabled="capabilities?.aiEnabled"
+      :ai-unavailable-reason="capabilities?.aiUnavailableReason"
+      :execution-provider="scriptDialogExecutionProvider"
+      :host-context="scriptDialogHostContext"
+      @submit="saveProjectScripts"
+    />
+    <ServerServiceEditorDialog
+      v-model="projectEditorVisible"
+      :form="projectForm"
+      :saving="projectEditorSaving"
+      :generating="projectEditorGenerating"
+      :ai-enabled="capabilities?.aiEnabled"
+      :ai-unavailable-reason="capabilities?.aiUnavailableReason"
+      :execution-provider="projectExecutionProvider"
+      :service-type-options="serviceTypeOptions"
+      :template-options="serviceTemplateOptions"
+      @update:form="projectForm = $event"
+      @submit="submitProjectEditor"
+      @generate-ai-draft="generateProjectAiDraft"
+      @apply-template="applyProjectTemplate"
+    />
+    <ServerServiceDetailDialog
+      v-model="projectDetailVisible"
+      :service="selectedStandaloneService"
+    />
   </section>
 </template>
 
@@ -545,15 +722,30 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { taskCenterProvider } from "@layout/default";
 import { emitter } from "@repo/core";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScInput from "@repo/components/ScInput/index.vue";
+import ServerProjectScriptDialog from "../components/ServerProjectScriptDialog.vue";
+import ServerServiceDetailDialog from "../components/ServerServiceDetailDialog.vue";
+import ServerServiceEditorDialog from "../components/ServerServiceEditorDialog.vue";
+import { useServerAiTaskStream } from "../composables/useServerAiTaskStream";
 import {
+  createServerService,
+  generateServerServiceAiDraft,
   getServerCapabilities,
   getServerServiceByInstallation,
   getServerServiceOperationLogs,
+  getServerServiceStatus,
+  listServerServices,
   listServerSoftInstallations,
   listSoftBindingTargets,
+  restartServerService,
+  startServerService,
+  stopServerService,
+  updateServerService,
+  type ServerAiTaskPayload,
+  type ServerAiTaskTicket,
   type ServerCapabilityView,
   type ServerService,
   type ServerServiceOperationLog,
@@ -587,6 +779,7 @@ type AiDiagnosticChip = {
   value: string;
   tone: AiDiagnosticChipTone;
 };
+type ProjectServiceAction = "start" | "stop" | "restart" | "status";
 type Card = {
   installation: ServerSoftInstallation;
   detail: SoftInstallationDetail | null;
@@ -599,6 +792,32 @@ type Card = {
   executionProviderLabel: string;
   serviceManageMode: string;
 };
+type ManualProjectCard = {
+  service: ServerService;
+  typeLabel: string;
+  runtimeLabel: string;
+  tone: string;
+  issue: boolean;
+  executionProviderLabel: string;
+  manageMode: string;
+  logPathCount: number;
+};
+
+const serviceTypeOptions = [
+  { label: "Systemd 服务", value: "SYSTEMD_SERVICE" },
+  { label: "Windows 服务", value: "WINDOWS_SERVICE" },
+  { label: "Spring Boot", value: "SPRING_BOOT_APP" },
+  { label: "Nginx", value: "NGINX" },
+  { label: "Docker 容器", value: "DOCKER_CONTAINER" },
+];
+
+const serviceTemplateOptions = [
+  { key: "systemd", label: "Systemd" },
+  { key: "windows", label: "Windows 服务" },
+  { key: "springboot", label: "Spring Boot" },
+  { key: "nginx", label: "Nginx" },
+  { key: "docker", label: "Docker" },
+];
 
 const route = useRoute();
 const serverId = computed(() => {
@@ -612,12 +831,48 @@ const filter = ref<Filter>("all");
 const capabilities = ref<ServerCapabilityView | null>(null);
 const targets = ref<ServerSoftBindingTarget[]>([]);
 const installations = ref<ServerSoftInstallation[]>([]);
+const services = ref<ServerService[]>([]);
 const operationLogs = ref<SoftOperationLog[]>([]);
 const detailMap = ref<Record<number, SoftInstallationDetail>>({});
 const serviceMap = ref<Record<number, ServerService | null>>({});
 const serviceLogMap = ref<Record<number, ServerServiceOperationLog[]>>({});
 const detailVisible = ref(false);
+const scriptDialogVisible = ref(false);
+const scriptDialogSaving = ref(false);
+const scriptDialogService = ref<ServerService | null>(null);
+const scriptDialogExecutionProvider = ref("");
+const scriptDialogHostContext = ref<Record<string, unknown> | null>(null);
+const projectEditorVisible = ref(false);
+const projectEditorSaving = ref(false);
+const projectEditorGenerating = ref(false);
+const projectDetailVisible = ref(false);
+const projectActionKey = ref("");
+const selectedStandaloneService = ref<ServerService | null>(null);
 const selectedInstallationId = ref<number | null>(null);
+const projectForm = ref<ServerService>({
+  serverId: undefined,
+  serverName: "",
+  serviceName: "",
+  serviceType: "SPRING_BOOT_APP",
+  installPath: "",
+  runtimeStatus: "UNKNOWN",
+  enabled: true,
+  description: "",
+  configPathsJson: "",
+  logPathsJson: "",
+  configTemplate: "",
+  initScript: "",
+  installScript: "",
+  uninstallScript: "",
+  detectScript: "",
+  registerScript: "",
+  unregisterScript: "",
+  startScript: "",
+  stopScript: "",
+  restartScript: "",
+  statusScript: "",
+  metadataJson: "",
+});
 const metaPanelRef = ref<HTMLElement | null>(null);
 const progressPanelRef = ref<HTMLElement | null>(null);
 const logPanelRef = ref<HTMLElement | null>(null);
@@ -639,6 +894,7 @@ const {
   connect: connectRuntime,
   disconnect: disconnectRuntime,
 } = useSoftRuntimeLogStream();
+const aiTaskStream = useServerAiTaskStream();
 
 const aiText = computed(() =>
   capabilities.value?.aiEnabled
@@ -719,9 +975,29 @@ const aiDiagnosticChips = computed(() =>
 const operationLatest = computed(() => operationLatestRef.value);
 const operationStages = computed(() => operationStagesRef.value);
 const runtimeLogText = computed(() => runtimeLines.value.join("\n"));
-const latestOpTime = computed(() => operationLogs.value[0]?.startTime || "");
+const latestOpTime = computed(() => {
+  const timestamps = [
+    operationLogs.value[0]?.startTime,
+    ...services.value
+      .map((item) => item.lastOperationTime || item.createTime)
+      .filter(Boolean),
+  ]
+    .map((item) => Date.parse(String(item || "")))
+    .filter((item) => Number.isFinite(item))
+    .sort((left, right) => right - left);
+  return timestamps.length ? new Date(timestamps[0]).toLocaleString("zh-CN") : "";
+});
 const latestOperationCard = computed(() => {
-  const ranked = [...cards.value];
+  const ranked = [...cards.value, ...manualProjectCards.value.map((item) => ({
+    installation: {
+      installationName: item.service.serviceName,
+      installPath: item.service.installPath,
+      serviceName: item.service.serviceName,
+      lastOperationTime: item.service.lastOperationTime,
+      lastOperationMessage: item.service.lastOperationMessage,
+      runtimeStatus: item.service.runtimeStatus,
+    },
+  }))];
   ranked.sort((left, right) => {
     const leftTime = Date.parse(
       String(
@@ -775,6 +1051,124 @@ const manageModeLabel = (value?: unknown, detected?: unknown) => {
   }
   return detected ? "自动检测" : "手工维护";
 };
+
+const runtimeMeta = (value?: string | null, latestSuccess?: boolean | null) => {
+  const runtimeStatus = String(value || "UNKNOWN").toUpperCase();
+  const runtimeLabel =
+    runtimeStatus === "RUNNING"
+      ? "运行中"
+      : runtimeStatus === "STOPPED"
+        ? "已停止"
+        : ["FAILED", "ERROR"].includes(runtimeStatus)
+          ? "异常"
+          : runtimeStatus;
+  const issue =
+    ["FAILED", "ERROR", "STOPPED"].includes(runtimeStatus) ||
+    latestSuccess === false;
+  return {
+    runtimeStatus,
+    runtimeLabel,
+    issue,
+    tone:
+      runtimeLabel === "运行中"
+        ? "is-success"
+        : issue
+          ? "is-danger"
+          : "is-muted",
+  };
+};
+
+const parseJsonArray = (value?: string | null) => {
+  if (!value?.trim()) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.map((item) => String(item || "").trim()).filter(Boolean)
+      : [];
+  } catch {
+    return value
+      .split(/[\r\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+};
+
+const createEmptyProjectForm = (): ServerService => ({
+  serverId: serverId.value || undefined,
+  serverName: String(route.query.serverName || ""),
+  serviceName: "",
+  serviceType: "SPRING_BOOT_APP",
+  installPath: "/opt/app",
+  runtimeStatus: "UNKNOWN",
+  enabled: true,
+  description: "",
+  configPathsJson: "[]",
+  logPathsJson: "[]",
+  configTemplate: "",
+  initScript: "",
+  installScript: "",
+  uninstallScript: "",
+  detectScript: "",
+  registerScript: "",
+  unregisterScript: "",
+  startScript: "",
+  stopScript: "",
+  restartScript: "",
+  statusScript: "",
+  metadataJson: JSON.stringify(
+    {
+      manageMode: "PROJECT_MANUAL",
+      projectManaged: true,
+    },
+    null,
+    2,
+  ),
+});
+
+const patchProjectForm = (value?: ServerService | null) => {
+  projectForm.value = {
+    ...createEmptyProjectForm(),
+    ...(value || {}),
+  };
+};
+
+const buildScriptHostContext = (card?: Card | null) => ({
+  serverId: serverId.value,
+  serverName: route.query.serverName || card?.target?.targetName || "",
+  targetType: card?.detail?.target?.targetType || card?.target?.targetType || "",
+  osType: card?.detail?.target?.osType || card?.target?.osType || "",
+  architecture: card?.detail?.target?.architecture || card?.target?.architecture || "",
+  host: card?.detail?.target?.host || card?.target?.host || "",
+  port: card?.detail?.target?.port || card?.target?.port || "",
+  username: card?.detail?.target?.username || card?.target?.username || "",
+  baseDirectory:
+    card?.detail?.target?.baseDirectory || card?.target?.baseDirectory || "",
+});
+
+const currentTarget = computed(
+  () =>
+    targets.value.find((item) =>
+      visibleTargetIds.value.has(Number(item.softTargetId || 0)),
+    ) || null,
+);
+
+const buildStandaloneHostContext = (service?: ServerService | null) => ({
+  serverId: serverId.value,
+  serverName:
+    String(route.query.serverName || "") ||
+    currentTarget.value?.targetName ||
+    service?.serverName ||
+    "",
+  targetType: currentTarget.value?.targetType || "",
+  osType: currentTarget.value?.osType || "",
+  architecture: currentTarget.value?.architecture || "",
+  host: currentTarget.value?.host || service?.host || "",
+  port: currentTarget.value?.port || "",
+  username: currentTarget.value?.username || "",
+  baseDirectory: currentTarget.value?.baseDirectory || "",
+});
 const visibleTargetIds = computed(
   () =>
     new Set(
@@ -807,23 +1201,12 @@ const cards = computed<Card[]>(() =>
         detailMap.value[Number(installation.softInstallationId || 0)] || null;
       const serverService =
         serviceMap.value[Number(installation.softInstallationId || 0)] || null;
-      const runtimeStatus = String(
+      const meta = runtimeMeta(
         serverService?.runtimeStatus ||
           installation.runtimeStatus ||
-          installation.installStatus ||
-          "UNKNOWN",
-      ).toUpperCase();
-      const runtimeLabel =
-        runtimeStatus === "RUNNING"
-          ? "运行中"
-          : runtimeStatus === "STOPPED"
-            ? "已停止"
-            : ["FAILED", "ERROR"].includes(runtimeStatus)
-              ? "异常"
-              : runtimeStatus;
-      const issue =
-        ["FAILED", "ERROR", "STOPPED"].includes(runtimeStatus) ||
-        serverService?.latestOperationSuccess === false;
+          installation.installStatus,
+        serverService?.latestOperationSuccess,
+      );
       const packageCode = String(
         detail?.package?.packageCode || "",
       ).toLowerCase();
@@ -841,14 +1224,9 @@ const cards = computed<Card[]>(() =>
           : packageCode.includes("spring")
             ? "Spring Boot"
             : "资源分离 / 通用项目",
-        runtimeLabel,
-        tone:
-          runtimeLabel === "运行中"
-            ? "is-success"
-            : issue
-              ? "is-danger"
-              : "is-muted",
-        issue,
+        runtimeLabel: meta.runtimeLabel,
+        tone: meta.tone,
+        issue: meta.issue,
         executionProviderLabel: providerLabel(
           serviceMetadata.executionProvider ||
             serviceMetadata.spiChannel ||
@@ -861,6 +1239,76 @@ const cards = computed<Card[]>(() =>
       };
     }),
 );
+
+const manualProjectCards = computed<ManualProjectCard[]>(() =>
+  services.value
+    .filter(
+      (item) =>
+        !item.softInstallationId &&
+        (!serverId.value || Number(item.serverId || 0) === serverId.value),
+    )
+    .filter((item) => {
+      if (filter.value === "running" && item.runtimeStatus !== "RUNNING") {
+        return false;
+      }
+      if (
+        filter.value === "issue" &&
+        item.latestOperationSuccess !== false &&
+        !["ERROR", "FAILED", "STOPPED"].includes(
+          String(item.runtimeStatus || "").toUpperCase(),
+        )
+      ) {
+        return false;
+      }
+      if (
+        filter.value === "ai" &&
+        !(item.latestAiReason || item.latestAiSolution)
+      ) {
+        return false;
+      }
+      const text = keyword.value.trim().toLowerCase();
+      if (!text) {
+        return true;
+      }
+      return [
+        item.serviceName,
+        item.serviceType,
+        item.installPath,
+        item.description,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(text));
+    })
+    .map((service) => {
+      const metadata = parseMetadata(service.metadataJson);
+      const meta = runtimeMeta(service.runtimeStatus, service.latestOperationSuccess);
+      const serviceType = String(service.serviceType || "").toLowerCase();
+      return {
+        service,
+        typeLabel: serviceType.includes("nginx")
+          ? "Nginx / 静态页"
+          : serviceType.includes("spring")
+            ? "Spring Boot / 单体"
+            : serviceType.includes("docker")
+              ? "Docker / 容器"
+              : "手工项目 / 通用脚本",
+        runtimeLabel: meta.runtimeLabel,
+        tone: meta.tone,
+        issue: meta.issue,
+        executionProviderLabel: providerLabel(
+          metadata.executionProvider ||
+            metadata.spiChannel ||
+            currentTarget.value?.targetType,
+        ),
+        manageMode: manageModeLabel(
+          metadata.manageMode || "PROJECT_MANUAL",
+          metadata.detected,
+        ),
+        logPathCount: parseJsonArray(service.logPathsJson).length,
+      };
+    }),
+);
+
 const filteredCards = computed(() =>
   cards.value.filter((item) => {
     if (filter.value === "running" && item.runtimeLabel !== "运行中")
@@ -898,11 +1346,19 @@ const selectedServiceLogs = computed(() =>
     ? serviceLogMap.value[selectedInstallationId.value] || []
     : [],
 );
+const totalProjectCount = computed(
+  () => cards.value.length + manualProjectCards.value.length,
+);
 const runningCount = computed(
-  () => cards.value.filter((item) => item.runtimeLabel === "运行中").length,
+  () =>
+    cards.value.filter((item) => item.runtimeLabel === "运行中").length +
+    manualProjectCards.value.filter((item) => item.runtimeLabel === "运行中")
+      .length,
 );
 const issueCount = computed(
-  () => cards.value.filter((item) => item.issue).length,
+  () =>
+    cards.value.filter((item) => item.issue).length +
+    manualProjectCards.value.filter((item) => item.issue).length,
 );
 const scrollToElement = async (target?: HTMLElement | null) => {
   await nextTick();
@@ -967,6 +1423,172 @@ const focusSummary = async (target: "all" | "running" | "issue" | "latest") => {
 };
 const openAiSettings = () => {
   emitter.emit("openPanel");
+};
+
+const projectActionLabelMap: Record<ProjectServiceAction, string> = {
+  start: "启动项目",
+  stop: "停止项目",
+  restart: "重启项目",
+  status: "状态检查",
+};
+
+const installationActionLabelMap: Record<Action, string> = {
+  start: "启动安装项目",
+  stop: "停止安装项目",
+  restart: "重启安装项目",
+  status: "安装项目状态检查",
+};
+
+const findProjectServiceById = (serverServiceId?: number | null) =>
+  services.value.find(
+    (item) =>
+      Number(item.serverServiceId || 0) === Number(serverServiceId || 0),
+  ) ||
+  (Number(selectedStandaloneService.value?.serverServiceId || 0) ===
+  Number(serverServiceId || 0)
+    ? selectedStandaloneService.value
+    : null);
+
+const mergeProjectAiDraft = (draft?: Partial<ServerService> | null) => {
+  if (!draft) {
+    return;
+  }
+  const fields: Array<keyof ServerService> = [
+    "description",
+    "configPathsJson",
+    "logPathsJson",
+    "configTemplate",
+    "initScript",
+    "installScript",
+    "uninstallScript",
+    "detectScript",
+    "registerScript",
+    "unregisterScript",
+    "startScript",
+    "stopScript",
+    "restartScript",
+    "statusScript",
+  ];
+  const next = { ...projectForm.value };
+  fields.forEach((field) => {
+    const value = draft[field];
+    if (typeof value === "string" && value.trim()) {
+      next[field] = value;
+    }
+  });
+  if (typeof draft.latestAiProvider === "string" && draft.latestAiProvider) {
+    next.latestAiProvider = draft.latestAiProvider;
+  }
+  if (typeof draft.latestAiModel === "string" && draft.latestAiModel) {
+    next.latestAiModel = draft.latestAiModel;
+  }
+  if (typeof draft.latestAiSolution === "string" && draft.latestAiSolution) {
+    next.latestAiSolution = draft.latestAiSolution;
+  }
+  projectForm.value = next;
+};
+
+const resolveProjectAiTaskTitle = (payload: ServerAiTaskPayload) => {
+  const service = findProjectServiceById(payload.serverServiceId);
+  if (payload.taskType === "GENERATE_DRAFT") {
+    return `AI 项目草稿 · ${
+      service?.serviceName || payload.serverServiceId || "未命名项目"
+    }`;
+  }
+  if (payload.taskType === "DIAGNOSE_FAILURE") {
+    return `AI 项目诊断 · ${
+      service?.serviceName || payload.serverServiceId || "未命名项目"
+    }`;
+  }
+  return "AI 项目任务";
+};
+
+const syncProjectAiTaskCenter = (payload: ServerAiTaskPayload) => {
+  if (!payload.taskId) {
+    return;
+  }
+  const title = resolveProjectAiTaskTitle(payload);
+  const taskMessage =
+    payload.message ||
+    (payload.status === "COMPLETED"
+      ? "AI 项目任务已完成"
+      : payload.status === "FAILED"
+        ? "AI 项目任务失败"
+        : "AI 项目任务执行中");
+  if (payload.status === "COMPLETED") {
+    taskCenterProvider.finishTask(payload.taskId, {
+      title,
+      progress: 100,
+      message: taskMessage,
+    });
+    return;
+  }
+  if (payload.status === "FAILED") {
+    taskCenterProvider.failTask(payload.taskId, {
+      title,
+      progress: 100,
+      message: taskMessage,
+    });
+    return;
+  }
+  taskCenterProvider.updateTask(payload.taskId, {
+    title,
+    mode: "stream",
+    status: "running",
+    progress: 45,
+    message: taskMessage,
+  });
+};
+
+const applyProjectAiTaskPayload = async (payload?: ServerAiTaskPayload | null) => {
+  if (!payload?.taskId) {
+    return;
+  }
+  syncProjectAiTaskCenter(payload);
+  const isEditingCurrentProject =
+    Number(projectForm.value.serverServiceId || 0) ===
+    Number(payload.serverServiceId || 0);
+  if (payload.taskType === "GENERATE_DRAFT") {
+    if (payload.status === "RUNNING" && isEditingCurrentProject) {
+      projectEditorGenerating.value = true;
+      return;
+    }
+    if (payload.status === "COMPLETED") {
+      if (isEditingCurrentProject) {
+        mergeProjectAiDraft({
+          ...(payload.draft || {}),
+          latestAiProvider: payload.aiProvider,
+          latestAiModel: payload.aiModel,
+          latestAiSolution: payload.draft?.summary,
+        });
+        projectEditorGenerating.value = false;
+      }
+      ElMessage.success(
+        payload.message ||
+          `AI 项目草稿已生成${payload.aiProvider ? ` · ${payload.aiProvider}` : ""}`,
+      );
+      await loadPage();
+      return;
+    }
+    if (payload.status === "FAILED") {
+      if (isEditingCurrentProject) {
+        projectEditorGenerating.value = false;
+      }
+      ElMessage.error(payload.message || "AI 项目草稿生成失败");
+    }
+    return;
+  }
+  if (payload.taskType !== "DIAGNOSE_FAILURE") {
+    return;
+  }
+  if (payload.status === "COMPLETED") {
+    ElMessage.success(payload.message || "AI 项目诊断完成");
+    await loadPage();
+    return;
+  }
+  if (payload.status === "FAILED") {
+    ElMessage.error(payload.message || "AI 项目诊断失败");
+  }
 };
 
 const mergeLines = (current: string[], incoming: string[]) =>
@@ -1056,16 +1678,21 @@ const loadPage = async () => {
       targetResult,
       installationResult,
       operationResult,
+      serviceResult,
     ] = await Promise.all([
       getServerCapabilities().catch(() => null),
       listSoftBindingTargets().catch(() => null),
       listServerSoftInstallations().catch(() => null),
       listSoftOperationLogs().catch(() => null),
+      listServerServices(
+        serverId.value ? { serverId: serverId.value, enabled: undefined } : {},
+      ).catch(() => null),
     ]);
     capabilities.value = capabilityResult?.data || null;
     targets.value = targetResult?.data || [];
     installations.value = installationResult?.data || [];
     operationLogs.value = operationResult?.data || [];
+    services.value = serviceResult?.data || [];
     await Promise.all(
       installations.value
         .filter((item) =>
@@ -1089,8 +1716,343 @@ const openDetail = async (card: Card) => {
   }
   detailVisible.value = true;
 };
+
+const openCreateProject = () => {
+  patchProjectForm(createEmptyProjectForm());
+  projectEditorVisible.value = true;
+};
+
+const openProjectEditor = (service?: ServerService | null) => {
+  patchProjectForm(service || createEmptyProjectForm());
+  projectEditorVisible.value = true;
+};
+
+const openProjectDetail = (service?: ServerService | null) => {
+  selectedStandaloneService.value = service ? { ...service } : null;
+  projectDetailVisible.value = Boolean(service);
+};
+
+const openStandaloneScriptDialog = (service?: ServerService | null) => {
+  if (!service?.serverServiceId) {
+    ElMessage.warning("请先保存项目主档后再维护脚本");
+    return;
+  }
+  scriptDialogService.value = {
+    ...service,
+  };
+  scriptDialogExecutionProvider.value = providerLabel(
+    parseMetadata(service.metadataJson).executionProvider ||
+      parseMetadata(service.metadataJson).spiChannel ||
+      currentTarget.value?.targetType,
+  );
+  scriptDialogHostContext.value = buildStandaloneHostContext(service);
+  scriptDialogVisible.value = true;
+};
+
+const openScriptDialog = (card?: Card | null) => {
+  if (!card?.serverService?.serverServiceId) {
+    ElMessage.warning("当前项目还没有绑定可维护的服务主档");
+    return;
+  }
+  selectedInstallationId.value =
+    Number(card.installation.softInstallationId || 0) || selectedInstallationId.value;
+  scriptDialogService.value = {
+    ...card.serverService,
+  };
+  scriptDialogExecutionProvider.value = card.executionProviderLabel;
+  scriptDialogHostContext.value = buildScriptHostContext(card);
+  scriptDialogVisible.value = true;
+};
+const saveProjectScripts = async (service: ServerService) => {
+  if (!service.serverServiceId) {
+    ElMessage.warning("当前项目缺少可保存的服务主档");
+    return;
+  }
+  scriptDialogSaving.value = true;
+  const task = taskCenterProvider.addTask({
+    requestId: `project-script-save-${service.serverServiceId}-${Date.now()}`,
+    title: `保存项目脚本 · ${service.serviceName || service.serverServiceId}`,
+    mode: "progress",
+    status: "running",
+    progress: 35,
+    message: "正在保存项目脚本",
+  });
+  try {
+    const result = await updateServerService(service.serverServiceId, service);
+    scriptDialogService.value = result.data || service;
+    if (selectedInstallationId.value) {
+      serviceMap.value = {
+        ...serviceMap.value,
+        [selectedInstallationId.value]: result.data || service,
+      };
+    } else {
+      services.value = services.value.map((item) =>
+        item.serverServiceId === service.serverServiceId
+          ? { ...(result.data || service) }
+          : item,
+      );
+      selectedStandaloneService.value = result.data || service;
+    }
+    scriptDialogVisible.value = false;
+    task.success({
+      progress: 100,
+      message: "项目脚本已保存到服务主档",
+    });
+    ElMessage.success("项目脚本已保存到服务主档");
+    if (selectedInstallationId.value) {
+      await loadDetail(selectedInstallationId.value);
+    }
+  } catch (error) {
+    console.error(error);
+    task.error({
+      message: "项目脚本保存失败",
+    });
+    ElMessage.error("项目脚本保存失败");
+  } finally {
+    scriptDialogSaving.value = false;
+  }
+};
+
+const runProjectAction = async (
+  service: ServerService,
+  action: ProjectServiceAction,
+) => {
+  if (!service.serverServiceId) {
+    ElMessage.warning("项目主档尚未保存，无法执行操作");
+    return;
+  }
+  projectActionKey.value = `${action}:${service.serverServiceId}`;
+  const task = taskCenterProvider.addTask({
+    requestId: `project-action-${action}-${service.serverServiceId}-${Date.now()}`,
+    title: `${projectActionLabelMap[action]} · ${
+      service.serviceName || service.serverServiceId
+    }`,
+    mode: "stream",
+    status: "running",
+    progress: 25,
+    message: `正在执行${projectActionLabelMap[action]}`,
+  });
+  try {
+    const executor =
+      action === "start"
+        ? startServerService
+        : action === "stop"
+          ? stopServerService
+          : action === "restart"
+            ? restartServerService
+            : getServerServiceStatus;
+    const result = await executor(service.serverServiceId);
+    const payload = result.data || {};
+    const success = payload.success !== false;
+    if (payload.taskId) {
+      taskCenterProvider.addTask({
+        requestId: payload.taskId,
+        title: `AI 项目诊断 · ${service.serviceName || service.serverServiceId}`,
+        mode: "stream",
+        status:
+          String(payload.aiTaskStatus || "").toUpperCase() === "FAILED"
+            ? "error"
+            : String(payload.aiTaskStatus || "").toUpperCase() === "COMPLETED"
+              ? "success"
+              : "running",
+        progress:
+          String(payload.aiTaskStatus || "").toUpperCase() === "RUNNING"
+            ? 45
+            : 100,
+        message:
+          payload.aiReason || payload.aiSolution
+            ? payload.message || "AI 项目诊断结果已返回"
+            : "检测到项目异常，正在请求 AI 分析",
+      });
+    }
+    if (success) {
+      task.success({
+        progress: 100,
+        message: payload.message || "项目操作已提交",
+      });
+      ElMessage.success(payload.message || "项目操作已提交");
+    } else {
+      task.error({
+        progress: 100,
+        message: payload.message || "项目操作提交失败",
+      });
+      ElMessage.error(payload.message || "项目操作提交失败");
+    }
+    await loadPage();
+    selectedStandaloneService.value =
+      services.value.find(
+        (item) => item.serverServiceId === service.serverServiceId,
+      ) || service;
+  } catch (error) {
+    console.error(error);
+    task.error({
+      message: "项目操作提交失败",
+    });
+    ElMessage.error("项目操作提交失败");
+  } finally {
+    projectActionKey.value = "";
+  }
+};
+
+const applyProjectTemplate = (key: string) => {
+  const next = { ...projectForm.value };
+  const installPath = next.installPath?.trim() || "/opt/app";
+  const normalizedPath = installPath.replace(/[\\/]+$/, "");
+  const serviceName = next.serviceName?.trim() || "demo-project";
+  const logPath = `${normalizedPath}/logs/${serviceName}.log`;
+  switch (key) {
+    case "springboot":
+      Object.assign(next, {
+        serviceType: "SPRING_BOOT_APP",
+        logPathsJson: JSON.stringify([logPath], null, 2),
+        startScript:
+          next.startScript ||
+          `cd ${normalizedPath} && nohup java -jar ${serviceName}.jar >> ${logPath} 2>&1 &`,
+        stopScript: next.stopScript || `pkill -f '${serviceName}.jar'`,
+        statusScript: next.statusScript || `pgrep -af '${serviceName}.jar'`,
+      });
+      break;
+    case "nginx":
+      Object.assign(next, {
+        serviceType: "NGINX",
+        startScript: next.startScript || "nginx",
+        stopScript: next.stopScript || "nginx -s stop",
+        restartScript: next.restartScript || "nginx -s reload",
+        statusScript: next.statusScript || "pgrep -af nginx",
+      });
+      break;
+    case "docker":
+      Object.assign(next, {
+        serviceType: "DOCKER_CONTAINER",
+        startScript: next.startScript || `docker start ${serviceName}`,
+        stopScript: next.stopScript || `docker stop ${serviceName}`,
+        restartScript: next.restartScript || `docker restart ${serviceName}`,
+        statusScript:
+          next.statusScript ||
+          `docker inspect -f '{{.State.Status}}' ${serviceName}`,
+      });
+      break;
+    default:
+      Object.assign(next, {
+        serviceType: "SYSTEMD_SERVICE",
+        startScript:
+          next.startScript || `systemctl start ${serviceName}.service`,
+        stopScript: next.stopScript || `systemctl stop ${serviceName}.service`,
+        restartScript:
+          next.restartScript || `systemctl restart ${serviceName}.service`,
+        statusScript:
+          next.statusScript || `systemctl status ${serviceName}.service`,
+      });
+      break;
+  }
+  patchProjectForm(next);
+};
+
+const submitProjectEditor = async (draft?: ServerService) => {
+  const next = {
+    ...createEmptyProjectForm(),
+    ...projectForm.value,
+    ...(draft || {}),
+    serverId: serverId.value || projectForm.value.serverId,
+    serverName: String(route.query.serverName || projectForm.value.serverName || ""),
+  };
+  if (!next.serverId) {
+    ElMessage.warning("当前没有选中服务器，无法保存项目主档");
+    return;
+  }
+  if (!next.serviceName?.trim()) {
+    ElMessage.warning("项目名称不能为空");
+    return;
+  }
+  projectEditorSaving.value = true;
+  const task = taskCenterProvider.addTask({
+    requestId: `project-editor-${next.serverServiceId || "create"}-${Date.now()}`,
+    title: `${next.serverServiceId ? "更新项目主档" : "创建项目主档"} · ${next.serviceName}`,
+    mode: "progress",
+    status: "running",
+    progress: 30,
+    message: "正在保存项目主档",
+  });
+  try {
+    const result = next.serverServiceId
+      ? await updateServerService(next.serverServiceId, next)
+      : await createServerService(next);
+    projectForm.value = result.data || next;
+    projectEditorVisible.value = false;
+    task.success({
+      progress: 100,
+      message: next.serverServiceId ? "项目主档已更新" : "项目主档已创建",
+    });
+    ElMessage.success(next.serverServiceId ? "项目主档已更新" : "项目主档已创建");
+    await loadPage();
+  } catch (error) {
+    console.error(error);
+    task.error({
+      message: "项目主档保存失败",
+    });
+    ElMessage.error("项目主档保存失败");
+  } finally {
+    projectEditorSaving.value = false;
+  }
+};
+
+const generateProjectAiDraft = async (draft?: ServerService) => {
+  const next = { ...projectForm.value, ...(draft || {}) };
+  if (!next.serverServiceId) {
+    ElMessage.warning("请先保存项目主档，再调用 AI 生成脚本草稿");
+    return;
+  }
+  projectEditorGenerating.value = true;
+  const requestId = `project-ai-draft-${next.serverServiceId}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `AI 项目草稿 · ${next.serviceName || next.serverServiceId}`,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: "正在提交 AI 项目草稿任务",
+  });
+  try {
+    const result = await generateServerServiceAiDraft(next.serverServiceId);
+    const ticket = result.data as ServerAiTaskTicket | undefined;
+    if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
+      task.update({
+        requestId: ticket.taskId,
+        title: `AI 项目草稿 · ${next.serviceName || next.serverServiceId}`,
+      });
+    }
+    if (ticket?.taskId) {
+      task.progress(45, {
+        message: ticket.message || "AI 项目草稿任务已进入后台执行",
+      });
+    } else {
+      task.success({
+        progress: 100,
+        message: ticket?.message || "AI 草稿生成任务已提交",
+      });
+    }
+    ElMessage.success(ticket?.message || "AI 草稿生成任务已提交");
+  } catch (error) {
+    console.error(error);
+    task.error({
+      message: "AI 项目草稿生成失败",
+    });
+    ElMessage.error("AI 项目草稿生成失败");
+  } finally {
+    projectEditorGenerating.value = false;
+  }
+};
+
 const runAction = async (installationId: number, action: Action) => {
   actionKey.value = `${action}:${installationId}`;
+  const task = taskCenterProvider.addTask({
+    requestId: `installation-project-${action}-${installationId}-${Date.now()}`,
+    title: `${installationActionLabelMap[action]} · ${installationId}`,
+    mode: "progress",
+    status: "running",
+    progress: 25,
+    message: `正在执行${installationActionLabelMap[action]}`,
+  });
   try {
     const executor =
       action === "start"
@@ -1102,12 +2064,19 @@ const runAction = async (installationId: number, action: Action) => {
             : getSoftServiceStatus;
     const result = await executor(installationId);
     if (result.data?.operationId) connectOperation(result.data.operationId);
+    task.success({
+      progress: 100,
+      message: "已提交项目操作",
+    });
     ElMessage.success("已提交项目操作");
     await loadPage();
     if (selectedInstallationId.value === installationId)
       await loadDetail(installationId);
   } catch (error) {
     console.error(error);
+    task.error({
+      message: "项目操作提交失败",
+    });
     ElMessage.error("项目操作提交失败");
   } finally {
     actionKey.value = "";
@@ -1139,15 +2108,26 @@ watch(
   },
 );
 watch(
+  () => aiTaskStream.tasks.value,
+  (value) => {
+    Object.values(value || {}).forEach((item) => {
+      void applyProjectAiTaskPayload(item);
+    });
+  },
+  { deep: true },
+);
+watch(
   () => route.query.serverId,
   () => {
     void loadPage();
   },
 );
 onMounted(() => {
+  aiTaskStream.connect();
   void loadPage();
 });
 onUnmounted(() => {
+  aiTaskStream.disconnect();
   disconnectOperation();
   void stopWatch();
 });
@@ -1220,6 +2200,12 @@ onUnmounted(() => {
   gap: 10px;
   flex-wrap: wrap;
 }
+.manual-project-section,
+.project-installation-head {
+  border-radius: 24px;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  background: rgba(8, 24, 36, 0.72);
+}
 .chip {
   display: inline-flex;
   align-items: center;
@@ -1248,6 +2234,33 @@ onUnmounted(() => {
 }
 .toolbar :deep(.el-input) {
   max-width: 380px;
+}
+.manual-project-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+}
+.manual-project-section__head h3,
+.project-installation-head h3 {
+  margin: 0 0 6px;
+  color: #f8fafc;
+}
+.manual-project-section__head p,
+.project-installation-head p {
+  margin: 0;
+  color: rgba(191, 219, 254, 0.82);
+}
+.manual-project-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+.manual-project-card {
+  min-height: 220px;
+}
+.project-installation-head {
+  padding: 16px 20px;
+  margin-top: 2px;
 }
 .grid {
   display: grid;

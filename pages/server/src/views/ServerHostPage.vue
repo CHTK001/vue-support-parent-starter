@@ -586,7 +586,12 @@
       :history="selectedMetricHistory"
       :detail="selectedMetricDetail"
       :alert-settings="selectedHostAlertSettings"
+      :ai-enabled="aiEnabled"
+      :ai-analyzing-key="metricHistoryAiAnalyzingKey"
+      :ai-advice-map="metricHistoryAiMap"
+      :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
       @change-history-range="handleMetricHistoryRangeChange"
+      @analyze-history="analyzeMetricHistory"
     />
 
     <ServerMetricsTaskDialog
@@ -600,6 +605,13 @@
     <ServerAlertDetailDialog
       v-model="alertDetailVisible"
       :alert="selectedAlertDetail"
+      :history="selectedAlertHistory"
+      :ai-enabled="aiEnabled"
+      :ai-analyzing-key="alertHistoryAiAnalyzingKey"
+      :ai-advice-map="alertHistoryAiMap"
+      :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
+      @select-alert="selectedAlertDetail = $event"
+      @analyze-history="analyzeAlertHistory"
     />
 
     <ServerProcessDialog
@@ -1113,6 +1125,8 @@ import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
 import {
   analyzeServerHostProcess,
+  analyzeServerHostMetricHistory,
+  analyzeServerHostAlertHistory,
   aiFixStartServerService,
   analyzeServerHostStability,
   createServerService,
@@ -1126,6 +1140,7 @@ import {
   getServerCapabilities,
   getServerHostAlertSettings,
   getServerHostMetricsDetail,
+  getServerHostMetricsTaskSettings,
   getServerHostRemoteGateway,
   getServerHostMetrics,
   getServerHostMetricsHistory,
@@ -1158,6 +1173,7 @@ import {
   updateServerHost,
   updateServerHostEnabled,
   updateServerHostAlertSettings,
+  updateServerHostMetricsTaskSettings,
   updateServerHostRemoteGateway,
   updateServerMetricsTaskSettings,
   updateServerRemoteGatewaySettings,
@@ -1227,6 +1243,10 @@ import ServerHostSidebar from "../components/ServerHostSidebar.vue";
 import ServerMetricDetailDialog from "../components/ServerMetricDetailDialog.vue";
 import ServerMetricsTaskDialog from "../components/ServerMetricsTaskDialog.vue";
 import ServerProcessDialog from "../components/ServerProcessDialog.vue";
+import {
+  buildAlertHistoryAiFilterKey,
+  buildMetricHistoryAiFilterKey,
+} from "../utils/historyAi";
 import type {
   RemoteGatewayFormModel,
   SelectOption,
@@ -1378,9 +1398,12 @@ const handledAiTaskStateKeys = new Set<string>();
 const serverCapabilities = ref<ServerCapabilityView | null>(null);
 const alertEventMap = ref<Record<number, ServerAlertEvent>>({});
 const hostAiAnalysisMap = ref<Record<number, ServerAiTaskPayload>>({});
+const metricHistoryAiMap = ref<Record<string, ServerAiTaskPayload>>({});
+const alertHistoryAiMap = ref<Record<string, ServerAiTaskPayload>>({});
 const globalAlertSettings = ref<ServerAlertSettings | null>(null);
 const selectedHostAlertSettings = ref<ServerAlertSettings | null>(null);
 const selectedAlertDetail = ref<ServerAlertEvent | null>(null);
+const selectedAlertHistory = ref<ServerAlertEvent[]>([]);
 const hosts = ref<ServerHost[]>([]);
 const serverServices = ref<ServerService[]>([]);
 const serviceLogs = ref<ServerServiceOperationLog[]>([]);
@@ -1468,6 +1491,8 @@ const installForm = reactive<SoftInstallRequest>({
 });
 const metricDetailVisible = ref(false);
 const metricDetailKey = ref<MetricDetailKey | null>(null);
+const metricHistoryAiAnalyzingKey = ref("");
+const alertHistoryAiAnalyzingKey = ref("");
 const metricsTaskVisible = ref(false);
 const metricsTaskSaving = ref(false);
 const metricsTaskSettings = ref<ServerMetricsTaskSettings | null>(null);
@@ -1839,10 +1864,7 @@ const selectedHostServerServices = computed(() =>
   getHostServerServices(selectedHost.value),
 );
 const canOpenRemoteConsole = computed(() =>
-  Boolean(
-    selectedRemoteGateway.value?.enabled &&
-    selectedRemoteGateway.value?.launchUrl,
-  ),
+  Boolean(selectedRemoteGateway.value?.enabled),
 );
 const remoteConsoleLaunchUrl = computed(
   () => remoteConsoleConfig.value?.launchUrl || "",
@@ -3031,6 +3053,17 @@ const runServerServiceAction = async (
   }
   const actionKey = resolveServerServiceActionKey(service, action);
   serverServiceActionLoadingKey.value = actionKey;
+  const requestId = `server-service-${action}-${service.serverServiceId}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `${serverServiceActionLabelMap[action]} · ${
+      service.serviceName || service.serverServiceId
+    }`,
+    mode: "stream",
+    status: "running",
+    progress: 25,
+    message: `正在执行${serverServiceActionLabelMap[action]}`,
+  });
   try {
     const result = await serverServiceActionExecutor[action](
       service.serverServiceId,
@@ -3046,6 +3079,38 @@ const runServerServiceAction = async (
       : payload.message
         ? `：${payload.message}`
         : "";
+    if (payload.taskId) {
+      taskCenterProvider.addTask({
+        requestId: payload.taskId,
+        title: `AI 故障诊断 · ${service.serviceName || service.serverServiceId}`,
+        mode: "stream",
+        status:
+          normalizeText(payload.aiTaskStatus).toUpperCase() === "FAILED"
+            ? "error"
+            : normalizeText(payload.aiTaskStatus).toUpperCase() === "COMPLETED"
+              ? "success"
+              : "running",
+        progress:
+          normalizeText(payload.aiTaskStatus).toUpperCase() === "RUNNING"
+            ? 45
+            : 100,
+        message:
+          payload.aiReason || payload.aiSolution
+            ? payload.message || "AI 诊断结果已返回"
+            : "检测到服务异常，正在请求 AI 分析",
+      });
+    }
+    if (success) {
+      task.success({
+        progress: 100,
+        message: payload.message || `${serverServiceActionLabelMap[action]}完成`,
+      });
+    } else {
+      task.error({
+        progress: 100,
+        message: payload.message || `${serverServiceActionLabelMap[action]}失败`,
+      });
+    }
     message(
       `${serverServiceActionLabelMap[action]}${success ? "完成" : "失败"}${runtimeText}${aiHint}`,
       { type: success ? "success" : "error" },
@@ -3057,6 +3122,9 @@ const runServerServiceAction = async (
     }
   } catch (error) {
     console.error(error);
+    task.error({
+      message: `${serverServiceActionLabelMap[action]}失败`,
+    });
     message(`${serverServiceActionLabelMap[action]}失败`, { type: "error" });
   } finally {
     if (serverServiceActionLoadingKey.value === actionKey) {
@@ -3346,6 +3414,81 @@ const mergeServiceAiDraft = (draft?: ServerServiceAiDraft | null) => {
   }
 };
 
+const findServerHostById = (id?: number | null) =>
+  hosts.value.find((item) => Number(item.serverId || 0) === Number(id || 0)) ||
+  null;
+
+const resolveAiTaskTitle = (payload: ServerAiTaskPayload) => {
+  if (payload.taskType === "GENERATE_DRAFT") {
+    const service = findServerServiceById(payload.serverServiceId);
+    return `AI 服务草稿 · ${
+      service?.serviceName || payload.serverServiceId || "未命名服务"
+    }`;
+  }
+  if (payload.taskType === "ANALYZE_HOST_STABILITY") {
+    const host = findServerHostById(payload.serverId);
+    return `预警中心 AI 分析 · ${
+      host?.serverName || payload.serverId || "未命名服务器"
+    }`;
+  }
+  if (payload.taskType === "DIAGNOSE_FAILURE") {
+    const service = findServerServiceById(payload.serverServiceId);
+    return `AI 故障诊断 · ${
+      service?.serviceName || payload.serverServiceId || "未命名服务"
+    }`;
+  }
+  if (payload.taskType === "ANALYZE_METRIC_HISTORY") {
+    const host = findServerHostById(payload.serverId);
+    return `指标历史 AI 分析 · ${
+      host?.serverName || payload.serverId || "未命名服务器"
+    } · ${payload.metricType || "指标"}`;
+  }
+  if (payload.taskType === "ANALYZE_ALERT_HISTORY") {
+    const host = findServerHostById(payload.serverId);
+    return `告警历史 AI 分析 · ${
+      host?.serverName || payload.serverId || "未命名服务器"
+    }${payload.metricType ? ` · ${payload.metricType}` : ""}`;
+  }
+  return "AI 任务";
+};
+
+const syncAiTaskCenterStatus = (payload: ServerAiTaskPayload) => {
+  if (!payload.taskId) {
+    return;
+  }
+  const title = resolveAiTaskTitle(payload);
+  const taskMessage =
+    payload.message ||
+    (payload.status === "COMPLETED"
+      ? "AI 任务已完成"
+      : payload.status === "FAILED"
+        ? "AI 任务执行失败"
+        : "AI 任务执行中");
+  if (payload.status === "COMPLETED") {
+    taskCenterProvider.finishTask(payload.taskId, {
+      title,
+      progress: 100,
+      message: taskMessage,
+    });
+    return;
+  }
+  if (payload.status === "FAILED") {
+    taskCenterProvider.failTask(payload.taskId, {
+      title,
+      progress: 100,
+      message: taskMessage,
+    });
+    return;
+  }
+  taskCenterProvider.updateTask(payload.taskId, {
+    title,
+    mode: "stream",
+    status: "running",
+    progress: 45,
+    message: taskMessage,
+  });
+};
+
 const applyAiTaskPayload = async (payload?: ServerAiTaskPayload | null) => {
   if (!payload?.taskId) {
     return;
@@ -3355,6 +3498,7 @@ const applyAiTaskPayload = async (payload?: ServerAiTaskPayload | null) => {
     return;
   }
   handledAiTaskStateKeys.add(stateKey);
+  syncAiTaskCenterStatus(payload);
 
   const isEditingCurrentService =
     Number(serviceForm.serverServiceId || 0) ===
@@ -3410,6 +3554,72 @@ const applyAiTaskPayload = async (payload?: ServerAiTaskPayload | null) => {
     return;
   }
 
+  if (payload.taskType === "ANALYZE_METRIC_HISTORY") {
+    const historyKey =
+      payload.filterKey ||
+      buildMetricHistoryAiFilterKey(payload.serverId, {
+        metricKey: payload.metricType,
+        minutes: payload.minutes,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        stateFilter: payload.stateFilter,
+      });
+    if (payload.serverId && payload.metricType) {
+      metricHistoryAiMap.value = {
+        ...metricHistoryAiMap.value,
+        [historyKey]: payload,
+      };
+    }
+    if (payload.status === "RUNNING") {
+      metricHistoryAiAnalyzingKey.value = historyKey;
+      return;
+    }
+    if (payload.status === "COMPLETED") {
+      metricHistoryAiAnalyzingKey.value = "";
+      message(payload.message || "指标历史 AI 分析完成", { type: "success" });
+      return;
+    }
+    if (payload.status === "FAILED") {
+      metricHistoryAiAnalyzingKey.value = "";
+      message(payload.message || "指标历史 AI 分析失败", { type: "error" });
+      return;
+    }
+    return;
+  }
+
+  if (payload.taskType === "ANALYZE_ALERT_HISTORY") {
+    const historyKey =
+      payload.filterKey ||
+      buildAlertHistoryAiFilterKey(payload.serverId, {
+        metricType: payload.metricType,
+        severity: payload.severity,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        limit: 80,
+      });
+    if (payload.serverId) {
+      alertHistoryAiMap.value = {
+        ...alertHistoryAiMap.value,
+        [historyKey]: payload,
+      };
+    }
+    if (payload.status === "RUNNING") {
+      alertHistoryAiAnalyzingKey.value = historyKey;
+      return;
+    }
+    if (payload.status === "COMPLETED") {
+      alertHistoryAiAnalyzingKey.value = "";
+      message(payload.message || "告警历史 AI 分析完成", { type: "success" });
+      return;
+    }
+    if (payload.status === "FAILED") {
+      alertHistoryAiAnalyzingKey.value = "";
+      message(payload.message || "告警历史 AI 分析失败", { type: "error" });
+      return;
+    }
+    return;
+  }
+
   if (payload.taskType !== "DIAGNOSE_FAILURE") {
     return;
   }
@@ -3450,12 +3660,40 @@ const generateServiceAiDraft = async (draft?: ServerService) => {
     return;
   }
   serviceEditorGenerating.value = true;
+  const requestId = `server-service-ai-draft-${next.serverServiceId}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `AI 服务草稿 · ${next.serviceName || next.serverServiceId}`,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: "正在提交 AI 服务草稿任务",
+  });
   try {
     const result = await generateServerServiceAiDraft(next.serverServiceId);
     const ticket = result.data as ServerAiTaskTicket | undefined;
+    if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
+      task.update({
+        requestId: ticket.taskId,
+        title: `AI 服务草稿 · ${next.serviceName || next.serverServiceId}`,
+      });
+    }
+    if (ticket?.taskId) {
+      task.progress(45, {
+        message: ticket.message || "AI 草稿任务已进入后台执行",
+      });
+    } else {
+      task.success({
+        progress: 100,
+        message: ticket?.message || "AI 草稿生成任务已受理",
+      });
+    }
     message(ticket?.message || "AI 草稿生成任务已受理", { type: "success" });
   } catch (error) {
     console.error(error);
+    task.error({
+      message: "AI 生成服务主档失败",
+    });
     message("AI 生成服务主档失败", { type: "error" });
   } finally {
     serviceEditorGenerating.value = false;
@@ -3657,14 +3895,87 @@ const handleMetricHistoryRangeChange = async (minutes: number) => {
   await loadHostMetricsHistory(selectedHost.value, minutes, true);
 };
 
-const loadMetricsTaskSettings = async () => {
-  const result = await getServerMetricsTaskSettings().catch(() => null);
+const analyzeMetricHistory = async (payload: {
+  metricKey: MetricDetailKey;
+  minutes: number;
+  startTime?: number;
+  endTime?: number;
+  stateFilter: "all" | "normal" | "warning" | "danger";
+}) => {
+  if (!selectedHost.value?.serverId) {
+    return;
+  }
+  const metricType = payload.metricKey.toUpperCase();
+  const filterKey = buildMetricHistoryAiFilterKey(selectedHost.value.serverId, {
+    metricKey: metricType,
+    minutes: payload.minutes,
+    startTime: payload.startTime,
+    endTime: payload.endTime,
+    stateFilter: payload.stateFilter,
+  });
+  const requestId = `server-metric-history-ai-${selectedHost.value.serverId}-${metricType}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `指标历史 AI 分析 · ${selectedHost.value.serverName || selectedHost.value.serverId} · ${metricType}`,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: `正在分析${metricType}历史趋势`,
+  });
+  metricHistoryAiAnalyzingKey.value = filterKey;
+  try {
+    const result = await analyzeServerHostMetricHistory(
+      selectedHost.value.serverId,
+      {
+        metricType,
+        minutes: payload.minutes,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        stateFilter: payload.stateFilter,
+      },
+    );
+    const ticket = result.data || {};
+    if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
+      task.update({
+        requestId: ticket.taskId,
+        title: `指标历史 AI 分析 · ${selectedHost.value.serverName || selectedHost.value.serverId} · ${metricType}`,
+      });
+    }
+    if (ticket?.taskId) {
+      task.progress(45, {
+        message: ticket.message || "指标历史 AI 分析已进入后台执行",
+      });
+    } else {
+      task.success({
+        progress: 100,
+        message: ticket?.message || "指标历史 AI 分析任务已受理",
+      });
+      metricHistoryAiAnalyzingKey.value = "";
+    }
+    message(ticket?.message || "指标历史 AI 分析任务已受理", {
+      type: "success",
+    });
+  } catch (error) {
+    console.error(error);
+    metricHistoryAiAnalyzingKey.value = "";
+    task.error({
+      message: "指标历史 AI 分析提交失败",
+    });
+    message("指标历史 AI 分析提交失败", { type: "error" });
+  }
+};
+
+const loadMetricsTaskSettings = async (host?: ServerHost | null) => {
+  const serverId = toNumericId(host?.serverId);
+  const result = serverId
+    ? await getServerHostMetricsTaskSettings(serverId).catch(() => null)
+    : await getServerMetricsTaskSettings().catch(() => null);
   metricsTaskSettings.value = result?.data || null;
 };
 
 const openMetricsTaskDialog = async () => {
   metricsTaskVisible.value = true;
-  await loadMetricsTaskSettings();
+  await loadMetricsTaskSettings(selectedHost.value);
 };
 
 const submitMetricsTaskSettings = async (
@@ -3672,15 +3983,22 @@ const submitMetricsTaskSettings = async (
 ) => {
   metricsTaskSaving.value = true;
   try {
-    const result = await updateServerMetricsTaskSettings({
+    const payload = {
+      inheritGlobal: value.inheritGlobal,
       enabled: Boolean(value.enabled),
       refreshIntervalMs: Math.max(Number(value.refreshIntervalMs || 0), 1000),
       timeoutMs: Math.max(Number(value.timeoutMs || 0), 1000),
       cacheEnabled: Boolean(value.cacheEnabled),
       cacheTtlSeconds: Math.max(Number(value.cacheTtlSeconds || 0), 60),
-    });
+    };
+    const serverId = toNumericId(selectedHost.value?.serverId);
+    const result = serverId
+      ? await updateServerHostMetricsTaskSettings(serverId, payload)
+      : await updateServerMetricsTaskSettings(payload);
     metricsTaskSettings.value = result.data || null;
-    message("指标采集任务已更新", { type: "success" });
+    message(serverId ? "服务器采集策略已更新" : "指标采集任务已更新", {
+      type: "success",
+    });
     metricsTaskVisible.value = false;
   } catch (error) {
     console.error(error);
@@ -3703,7 +4021,7 @@ const refreshMetricsTaskNow = async () => {
   try {
     await refreshServerHostMetrics();
     await Promise.all([
-      loadMetricsTaskSettings(),
+      loadMetricsTaskSettings(selectedHost.value),
       selectedHost.value
         ? loadHostMetricsDetail(selectedHost.value, true)
         : Promise.resolve(),
@@ -3730,16 +4048,49 @@ const analyzeSelectedHostStability = async () => {
     return;
   }
   hostStabilityAnalyzingId.value = selectedHost.value.serverId;
+  const requestId = `server-host-stability-${selectedHost.value.serverId}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `预警中心 AI 分析 · ${
+      selectedHost.value.serverName || selectedHost.value.serverId
+    }`,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: "正在提交服务器稳定性分析",
+  });
   try {
     const result = await analyzeServerHostStability(
       selectedHost.value.serverId,
     );
+    const ticket = result.data || {};
+    if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
+      task.update({
+        requestId: ticket.taskId,
+        title: `预警中心 AI 分析 · ${
+          selectedHost.value.serverName || selectedHost.value.serverId
+        }`,
+      });
+    }
+    if (ticket?.taskId) {
+      task.progress(45, {
+        message: ticket.message || "稳定性分析任务已进入后台执行",
+      });
+    } else {
+      task.success({
+        progress: 100,
+        message: ticket?.message || "AI 稳定性分析任务已受理",
+      });
+    }
     message(result.data?.message || "AI 稳定性分析任务已受理", {
       type: "success",
     });
   } catch (error) {
     console.error(error);
     hostStabilityAnalyzingId.value = null;
+    task.error({
+      message: "AI 稳定性分析提交失败",
+    });
     message("AI 稳定性分析提交失败", { type: "error" });
   }
 };
@@ -3791,6 +4142,80 @@ const loadAlerts = async (serverId?: number | null) => {
     limit: serverId ? 30 : 60,
   }).catch(() => null);
   mergeAlertEvents(result?.data || []);
+};
+
+const loadAlertHistory = async (alert?: ServerAlertEvent | null) => {
+  const serverId = toNumericId(alert?.serverId || selectedHost.value?.serverId);
+  if (!serverId) {
+    selectedAlertHistory.value = [];
+    return;
+  }
+  const result = await listServerAlerts({
+    serverId,
+    limit: 160,
+  }).catch(() => null);
+  selectedAlertHistory.value = result?.data || [];
+};
+
+const analyzeAlertHistory = async (payload: {
+  metricType?: string;
+  severity?: string;
+  startTime?: number;
+  endTime?: number;
+  limit: number;
+}) => {
+  const serverId = toNumericId(selectedAlertDetail.value?.serverId || selectedHost.value?.serverId);
+  if (!serverId) {
+    return;
+  }
+  const filterKey = buildAlertHistoryAiFilterKey(serverId, payload);
+  const requestId = `server-alert-history-ai-${serverId}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `告警历史 AI 分析 · ${selectedHost.value?.serverName || serverId}`,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: "正在分析历史告警",
+  });
+  alertHistoryAiAnalyzingKey.value = filterKey;
+  try {
+    const result = await analyzeServerHostAlertHistory(serverId, {
+      metricType: payload.metricType,
+      severity: payload.severity,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      limit: payload.limit,
+    });
+    const ticket = result.data || {};
+    if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
+      task.update({
+        requestId: ticket.taskId,
+        title: `告警历史 AI 分析 · ${selectedHost.value?.serverName || serverId}`,
+      });
+    }
+    if (ticket?.taskId) {
+      task.progress(45, {
+        message: ticket.message || "告警历史 AI 分析已进入后台执行",
+      });
+    } else {
+      task.success({
+        progress: 100,
+        message: ticket?.message || "告警历史 AI 分析任务已受理",
+      });
+      alertHistoryAiAnalyzingKey.value = "";
+    }
+    message(ticket?.message || "告警历史 AI 分析任务已受理", {
+      type: "success",
+    });
+  } catch (error) {
+    console.error(error);
+    alertHistoryAiAnalyzingKey.value = "";
+    task.error({
+      message: "告警历史 AI 分析提交失败",
+    });
+    message("告警历史 AI 分析提交失败", { type: "error" });
+  }
 };
 
 const loadServerCapabilities = async () => {
@@ -4615,9 +5040,10 @@ const openProjectManagement = async (host?: ServerHost | null) => {
   });
 };
 
-const openAlertDetail = (alert: ServerAlertEvent) => {
+const openAlertDetail = async (alert: ServerAlertEvent) => {
   selectedAlertDetail.value = alert;
   alertDetailVisible.value = true;
+  await loadAlertHistory(alert);
 };
 const openSoftDrawer = async (host: ServerHost) => {
   if (!softEnabled.value) {
@@ -4905,6 +5331,8 @@ watch(
   (visible) => {
     if (!visible) {
       selectedAlertDetail.value = null;
+      selectedAlertHistory.value = [];
+      alertHistoryAiAnalyzingKey.value = "";
     }
   },
 );
@@ -5070,18 +5498,22 @@ onUnmounted(() => {
   display: grid;
   gap: 12px;
   color: #0f172a;
+  padding: 6px 0 2px;
   height: calc(
     100vh - var(--layout-navbar-height, 56px) - var(--layout-tag-height, 34px) -
       32px
   );
   min-height: 520px;
   overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 26%);
 }
 
 /* 布局容器 */
 .server-layout {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   grid-template-columns: 278px minmax(0, 1fr);
   height: 100%;
   min-height: 0;
@@ -5484,23 +5916,27 @@ onUnmounted(() => {
 }
 .server-file-grid {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
-  min-height: 440px;
+  gap: 16px;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+  min-height: 560px;
 }
 .server-file-list,
 .server-file-preview {
   min-height: 0;
-  padding: 12px;
-  border-radius: 20px;
-  background: rgba(248, 250, 252, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  padding: 14px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 32%),
+    rgba(248, 250, 252, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
 }
 .server-file-list {
   display: grid;
   align-content: start;
   gap: 10px;
   overflow: auto;
+  max-height: calc(100vh - 220px);
 }
 .server-file-tree {
   min-height: 100%;
@@ -5598,12 +6034,16 @@ onUnmounted(() => {
 .server-file-preview {
   display: grid;
   gap: 12px;
+  max-height: calc(100vh - 220px);
+  overflow: hidden;
 }
 .server-file-preview__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 .server-file-preview__header h4 {
   margin: 0;
@@ -5623,6 +6063,7 @@ onUnmounted(() => {
 }
 .server-file-preview__editor {
   min-height: 0;
+  overflow: hidden;
 }
 .server-chip-group {
   display: flex;
@@ -5782,6 +6223,10 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 .server-remote-console__hint {
   margin: 0;
@@ -5792,10 +6237,13 @@ onUnmounted(() => {
 .server-remote-console__stage {
   min-height: 0;
   flex: 1;
-  border-radius: 22px;
+  border-radius: 24px;
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(2, 6, 23, 0.9);
+  background:
+    radial-gradient(circle at top, rgba(96, 165, 250, 0.12), transparent 26%),
+    rgba(2, 6, 23, 0.94);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.2);
 }
 .server-remote-console__frame {
   width: 100%;

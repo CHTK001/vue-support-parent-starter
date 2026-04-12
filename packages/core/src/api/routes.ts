@@ -29,6 +29,91 @@ const getCachedAsyncRoutes = (): any[] => {
   return extractRouteArray(localStorageProxy().getItem(CACHE_ROUTER_KEY) as any);
 };
 
+const toRoutePrefixArray = (value: unknown): string[] => {
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const normalized = item.replace(/\\/g, "/").replace(/\/+$/, "");
+      if (!normalized || normalized === "/") {
+        return "/";
+      }
+      return normalized.startsWith("/") ? normalized : `/${normalized}`;
+    })
+    .filter((item, index, array) => array.indexOf(item) === index);
+};
+
+const resolveRouteFullPath = (routePath: unknown, parentPath = "/"): string => {
+  const rawPath = String(routePath || "").trim();
+  const normalizedParent =
+    parentPath && parentPath !== "/"
+      ? parentPath.replace(/\/+$/, "")
+      : "/";
+
+  if (!rawPath) {
+    return normalizedParent;
+  }
+
+  if (rawPath.startsWith("/")) {
+    return rawPath.replace(/\/+$/, "") || "/";
+  }
+
+  if (normalizedParent === "/") {
+    return `/${rawPath}`.replace(/\/+$/, "") || "/";
+  }
+
+  return `${normalizedParent}/${rawPath}`.replace(/\/+$/, "") || "/";
+};
+
+const isAllowedRoutePath = (routePath: string, prefixes: string[]): boolean => {
+  if (!prefixes.length) {
+    return true;
+  }
+
+  return prefixes.some((prefix) => {
+    if (prefix === "/") {
+      return routePath === "/";
+    }
+    return routePath === prefix || routePath.startsWith(`${prefix}/`);
+  });
+};
+
+const filterRoutesByAllowedPrefixes = (
+  routes: any[] = [],
+  prefixes: string[],
+  parentPath = "/",
+): any[] => {
+  if (!prefixes.length) {
+    return routes;
+  }
+
+  return routes.flatMap((route) => {
+    if (!route || typeof route !== "object") {
+      return [];
+    }
+
+    const nextRoute = { ...route };
+    const currentPath = resolveRouteFullPath(nextRoute.path, parentPath);
+    const children = Array.isArray(nextRoute.children)
+      ? filterRoutesByAllowedPrefixes(nextRoute.children, prefixes, currentPath)
+      : [];
+
+    if (children.length > 0) {
+      nextRoute.children = children;
+    } else {
+      delete nextRoute.children;
+    }
+
+    if (isAllowedRoutePath(currentPath, prefixes) || children.length > 0) {
+      return [nextRoute];
+    }
+
+    return [];
+  });
+};
+
 /**
  * 获取异步路由
  * 支持三种模式：
@@ -40,6 +125,7 @@ export const getAsyncRoutes = async () => {
   const config = getConfig();
   const routeSourceMode = resolveRouteSourceMode(config);
   const cachedRoutes = getCachedAsyncRoutes();
+  const allowedPrefixes = toRoutePrefixArray(config.RemoteMenuAllowPrefixes);
 
   // 模式1: 不使用远程菜单，返回空（由路由系统自动加载本地路由）
   if (routeSourceMode === "local-only") {
@@ -89,12 +175,15 @@ export const getAsyncRoutes = async () => {
       );
     }
 
-    const normalizedRemoteRoutes = extractRouteArray(remoteResult.data);
+    const normalizedRemoteRoutes = filterRoutesByAllowedPrefixes(
+      extractRouteArray(remoteResult.data),
+      allowedPrefixes,
+    );
 
     if (!normalizedRemoteRoutes.length && cachedRoutes.length) {
       return {
         ...remoteResult,
-        data: cachedRoutes,
+        data: filterRoutesByAllowedPrefixes(cachedRoutes, allowedPrefixes),
         success: true,
       } as any;
     }
@@ -107,7 +196,7 @@ export const getAsyncRoutes = async () => {
   } catch (error) {
     if (cachedRoutes.length) {
       return {
-        data: cachedRoutes,
+        data: filterRoutesByAllowedPrefixes(cachedRoutes, allowedPrefixes),
         success: true,
         msg: "远程菜单加载失败，已回退缓存菜单",
       } as any;

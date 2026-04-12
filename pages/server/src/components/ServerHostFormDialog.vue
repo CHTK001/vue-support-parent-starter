@@ -377,7 +377,7 @@ const connectionHint = computed(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px;
+  padding: 20px;
   border-radius: 24px;
   margin-bottom: 18px;
   background: linear-gradient(
@@ -385,6 +385,8 @@ const connectionHint = computed(() => {
     color-mix(in srgb, var(--el-color-primary) 10%, white),
     color-mix(in srgb, var(--el-fill-color-light) 84%, white)
   );
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
 }
 
 .server-form-dialog__badge {
@@ -431,24 +433,25 @@ const connectionHint = computed(() => {
 }
 
 .server-form-dialog__summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-top: -6px;
 }
 
 .server-form-dialog__summary-chip {
   display: inline-flex;
   align-items: center;
+  width: 100%;
   min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
+  padding: 10px 14px;
+  border-radius: 16px;
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
   background: color-mix(in srgb, var(--el-fill-color-light) 92%, white);
   border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.03);
 }
 
 .server-form-dialog__summary-chip.is-primary {
@@ -472,6 +475,7 @@ const connectionHint = computed(() => {
 :deep(.el-dialog) {
   border-radius: 26px;
   overflow: hidden;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.14);
 }
 
 .server-form-dialog__advanced-trigger {
@@ -482,10 +486,11 @@ const connectionHint = computed(() => {
 
 .server-form-dialog__advanced {
   margin-top: 8px;
-  padding: 16px;
-  border-radius: 20px;
+  padding: 18px;
+  border-radius: 22px;
   background: color-mix(in srgb, var(--el-bg-color-page) 88%, white);
   border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .server-form-dialog__auto-panel {
@@ -528,6 +533,10 @@ const connectionHint = computed(() => {
 }
 
 @media (max-width: 900px) {
+  .server-form-dialog__summary {
+    grid-template-columns: 1fr;
+  }
+
   .server-form-dialog__grid {
     grid-template-columns: 1fr;
   }

@@ -14,12 +14,10 @@ import ImageDetectIndex from "./views/ai/image/detect/index.vue";
 import LlmNewIndex from "./views/ai/llm-new/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
 import VideoIndex from "./views/ai/video/index.vue";
-import {
-  DeviceIndex,
-  DeviceMerchantPage,
-  DevicePreview,
-  DeviceTemplate,
-} from "@pages/device";
+import DeviceMerchantPage from "@pages/device/views/merchant/index.vue";
+import DeviceIndex from "@pages/device/views/device/index.vue";
+import DevicePreview from "@pages/device/views/template/device/preview/index.vue";
+import DeviceTemplate from "@pages/device/views/template/device/index.vue";
 import EmailTemplate from "./views/template/email/index.vue";
 import SmsTemplate from "./views/template/sms/index.vue";
 

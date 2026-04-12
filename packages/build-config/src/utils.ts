@@ -64,6 +64,7 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
     // pages 下各业务模块在开发环境直接指向源码入口，方便被各个 app 以包名方式引入
     "@pages/common": commonPagesRoot,
     "@pages/dict": resolve(root, "pages/dict/src"),
+    "@pages/device": resolve(root, "pages/device/src"),
     "@pages/example": resolve(root, "pages/example/src"),
     "@pages/map": resolve(root, "pages/map/src"),
     "@pages/music": resolve(root, "pages/music/src"),

@@ -42,6 +42,7 @@
       :ai-enabled="aiEnabled"
       :provider-label="spiLabel"
       :ai-tooltip="aiTooltipText"
+      :task-title="`AI 脚本生成 · ${title}`"
       :language="language"
       :context="aiContext"
       :build-prompt="buildPrompt"

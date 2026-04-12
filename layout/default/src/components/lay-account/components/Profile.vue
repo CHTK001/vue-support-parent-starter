@@ -307,4 +307,41 @@ Object.assign(userInfos, {
     align-items: flex-start;
   }
 }
+
+html.dark {
+  .profile-hero {
+    background:
+      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.16), transparent 46%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow:
+      0 18px 40px rgba(2, 8, 23, 0.28),
+      0 6px 18px rgba(2, 8, 23, 0.18);
+  }
+
+  .profile-form-card {
+    background: rgba(15, 23, 42, 0.82);
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow:
+      0 20px 44px rgba(2, 8, 23, 0.28),
+      0 6px 16px rgba(2, 8, 23, 0.18);
+  }
+
+  .profile-hero__headline,
+  .profile-form-card__title {
+    color: #f8fafc;
+  }
+
+  .profile-hero__subline,
+  .profile-form-card__desc,
+  .profile-avatar-row__hint {
+    color: #94a3b8;
+  }
+
+  .profile-chip {
+    background: rgba(var(--el-color-primary-rgb), 0.14);
+    border-color: rgba(var(--el-color-primary-rgb), 0.2);
+    color: #e2e8f0;
+  }
+}
 </style>

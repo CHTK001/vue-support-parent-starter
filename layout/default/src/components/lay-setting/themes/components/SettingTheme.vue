@@ -182,7 +182,10 @@ const props = withDefaults(defineProps<{
   border-radius: 12px;
   cursor: pointer;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
   border: 2px solid var(--el-border-color-light);
   box-shadow:
     0 6px 16px rgba(0, 0, 0, 0.12),
@@ -209,7 +212,7 @@ const props = withDefaults(defineProps<{
 
   // 悬停效果
   &:hover {
-    transform: translateY(-8px) scale(1.15);
+    transform: translateY(-3px) scale(1.04);
     box-shadow:
       0 12px 32px rgba(0, 0, 0, 0.25),
       0 6px 16px rgba(0, 0, 0, 0.18),
@@ -232,7 +235,7 @@ const props = withDefaults(defineProps<{
 
   // 点击效果
   &:active {
-    transform: translateY(-4px) scale(1.1);
+    transform: translateY(-1px) scale(1.02);
   }
 
   // 选中状态
@@ -243,7 +246,7 @@ const props = withDefaults(defineProps<{
       0 12px 32px rgba(64, 158, 255, 0.35),
       0 6px 16px rgba(64, 158, 255, 0.25),
       0 1px 0 rgba(255, 255, 255, 0.9) inset;
-    transform: translateY(-4px) scale(1.1);
+    transform: translateY(-2px) scale(1.03);
 
     .selection-indicator {
       opacity: 1;
@@ -273,7 +276,7 @@ const props = withDefaults(defineProps<{
       border-radius: 10px;
       border: 2px solid #409eff;
       opacity: 0;
-      animation: pulse-ring 1.5s infinite;
+      animation: none;
       pointer-events: none;
       z-index: 10;
     }
@@ -312,7 +315,7 @@ const props = withDefaults(defineProps<{
   right: 3px;
   opacity: 0;
   transform: scale(0.8);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.18s ease, opacity 0.18s ease;
   z-index: 5;
 
   .check-ring {
@@ -325,7 +328,10 @@ const props = withDefaults(defineProps<{
     align-items: center;
     justify-content: center;
     transform: scale(0.8);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      transform 0.18s ease,
+      border-color 0.18s ease,
+      background-color 0.18s ease;
     backdrop-filter: blur(4px);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 
@@ -333,7 +339,7 @@ const props = withDefaults(defineProps<{
       font-size: 7px;
       opacity: 0;
       transform: scale(0.5);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.18s ease, opacity 0.18s ease, color 0.18s ease;
       color: var(--el-color-primary);
     }
   }
@@ -354,7 +360,7 @@ const props = withDefaults(defineProps<{
   );
   opacity: 0;
   transform: translateX(-100%);
-  transition: all 0.6s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
   z-index: 2;
 }
@@ -374,6 +380,25 @@ const props = withDefaults(defineProps<{
   100% {
     opacity: 0;
     transform: scale(1.1);
+  }
+}
+
+html.dark {
+  .theme-color-grid {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow:
+      0 8px 20px rgba(2, 8, 23, 0.2),
+      0 2px 6px rgba(2, 8, 23, 0.14);
+  }
+
+  .theme-color-item.is-selected .selection-indicator .check-ring {
+    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(191, 219, 254, 0.6);
+
+    .check-icon {
+      color: #bfdbfe;
+    }
   }
 }
 </style>

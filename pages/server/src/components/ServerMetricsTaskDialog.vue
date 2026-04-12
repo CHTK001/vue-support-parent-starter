@@ -12,10 +12,13 @@
           <strong>采集任务状态</strong>
           <p>
             运行时修改采集开关、采样间隔与缓存策略；启用 `job-starter`
-            时会同步到任务表。
+            时会同步到任务表。单机模式下会在统一调度里按服务器自己的周期执行。
           </p>
         </div>
         <div class="server-metrics-task-dialog__chips">
+          <span v-if="draft.serverName" class="server-metrics-task-dialog__chip">
+            {{ draft.serverName }}
+          </span>
           <span class="server-metrics-task-dialog__chip">
             {{ draft.status || "UNKNOWN" }}
           </span>
@@ -30,11 +33,23 @@
 
       <el-form label-position="top" class="server-metrics-task-dialog__form">
         <div class="server-metrics-task-dialog__grid">
+          <el-form-item
+            v-if="draft.serverId"
+            label="继承全局策略"
+          >
+            <el-switch v-model="draft.inheritGlobal" />
+          </el-form-item>
           <el-form-item label="启用采集">
-            <el-switch v-model="draft.enabled" />
+            <el-switch
+              v-model="draft.enabled"
+              :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
+            />
           </el-form-item>
           <el-form-item label="缓存快照">
-            <el-switch v-model="draft.cacheEnabled" />
+            <el-switch
+              v-model="draft.cacheEnabled"
+              :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
+            />
           </el-form-item>
           <el-form-item label="刷新间隔(ms)">
             <ScInput
@@ -43,6 +58,7 @@
               layout="stepper"
               :min="1000"
               :step="1000"
+              :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
             />
           </el-form-item>
           <el-form-item label="采集超时(ms)">
@@ -52,6 +68,7 @@
               layout="stepper"
               :min="1000"
               :step="1000"
+              :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
             />
           </el-form-item>
           <el-form-item label="缓存 TTL(秒)">
@@ -61,6 +78,7 @@
               layout="stepper"
               :min="60"
               :step="60"
+              :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
             />
           </el-form-item>
           <el-form-item label="下次执行">
@@ -72,6 +90,16 @@
             />
           </el-form-item>
         </div>
+        <p
+          v-if="draft.serverId"
+          class="server-metrics-task-dialog__hint"
+        >
+          {{
+            draft.inheritGlobal
+              ? "当前服务器跟随全局采集策略。关闭继承后，可为这台服务器单独设置采样周期。"
+              : "当前服务器使用独立采集策略，统一任务会按这台服务器自己的周期判断是否采样。"
+          }}
+        </p>
       </el-form>
 
       <div class="server-metrics-task-dialog__timeline">
@@ -161,6 +189,7 @@ const emit = defineEmits<{
 
 const draft = reactive<ServerMetricsTaskSettings>({
   enabled: true,
+  inheritGlobal: true,
   refreshIntervalMs: 5000,
   timeoutMs: 8000,
   cacheEnabled: true,
@@ -187,6 +216,7 @@ const syncDraft = () => {
     draft,
     {
       enabled: true,
+      inheritGlobal: true,
       refreshIntervalMs: 5000,
       timeoutMs: 8000,
       cacheEnabled: true,
@@ -219,6 +249,7 @@ watch(
 
 const submit = () => {
   emit("submit", {
+    inheritGlobal: Boolean(draft.serverId) ? Boolean(draft.inheritGlobal) : undefined,
     enabled: Boolean(draft.enabled),
     refreshIntervalMs: Math.max(Number(draft.refreshIntervalMs || 0), 1000),
     timeoutMs: Math.max(Number(draft.timeoutMs || 0), 1000),
@@ -310,6 +341,13 @@ const formatTime = (value?: number | null) =>
 .server-metrics-task-dialog__card strong {
   color: var(--el-text-color-primary);
   font-size: 18px;
+}
+
+.server-metrics-task-dialog__hint {
+  margin: 2px 2px 0;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .server-metrics-task-dialog__footer {

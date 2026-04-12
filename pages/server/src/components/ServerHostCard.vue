@@ -210,8 +210,7 @@ const emit = defineEmits<{
 }>();
 
 const canOpenRemote = computed(
-  () =>
-    props.entry.remoteConfig?.enabled && props.entry.remoteConfig?.launchUrl,
+  () => Boolean(props.entry.remoteConfig?.enabled),
 );
 
 const metricRatio = (value?: number | null) => {
