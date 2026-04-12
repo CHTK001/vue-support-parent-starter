@@ -1,6 +1,8 @@
 import { http, type ReturnResult } from "@repo/utils";
 import type {
   MusicOverview,
+  MusicPlaylistCategoryCatalog,
+  MusicPlaylistCategoryResult,
   MusicPlaylistDetail,
   MusicPlaylistSearchResult,
   MusicSearchResult,
@@ -14,6 +16,21 @@ export const fetchMusicSources = () =>
 export const fetchMusicOverview = (source?: string) =>
   http.request<ReturnResult<MusicOverview>>("get", "/v1/music/overview", {
     params: { source },
+  });
+
+export const fetchMusicPlaylistCategories = (source?: string) =>
+  http.request<ReturnResult<MusicPlaylistCategoryCatalog>>("get", "/v1/music/playlist/categories", {
+    params: { source },
+  });
+
+export const fetchMusicCategoryPlaylists = (
+  source?: string,
+  tagId?: string,
+  page: number = 1,
+  pageSize: number = 12,
+) =>
+  http.request<ReturnResult<MusicPlaylistCategoryResult>>("get", "/v1/music/playlist/category", {
+    params: { source, tagId, page, pageSize },
   });
 
 export const searchMusicTracks = (

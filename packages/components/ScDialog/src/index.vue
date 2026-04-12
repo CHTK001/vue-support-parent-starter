@@ -17,6 +17,7 @@
     :draggable="draggable"
     :center="center"
     :destroy-on-close="destroyOnClose"
+    :style="dialogRadiusStyle"
     :class="['sc-dialog', `sc-dialog--${type}`, { 'has-float-icon': icon && iconMode === 'float' }]"
     @open="$emit('open')"
     @opened="$emit('opened')"
@@ -107,7 +108,7 @@
                 'has-float-icon': icon && iconMode === 'float'
               }
             ]"
-            :style="dialogStyle"
+            :style="[dialogStyle, dialogRadiusStyle]"
             @mousedown.capture="handleDialogMouseDown"
           >
             <!-- 浮动图标（float 模式） -->
@@ -248,6 +249,8 @@ const props = withDefaults(
     minSize?: { width: number; height: number };
     /** 最大尺寸 */
     maxSize?: { width: number; height: number };
+    /** 边框圆角 */
+    borderRadius?: string | number;
     /** 显示底部 */
     showFooter?: boolean;
     /** 显示取消按钮 */
@@ -327,6 +330,7 @@ const props = withDefaults(
     resizable: false,
     minSize: () => ({ width: 300, height: 200 }),
     maxSize: () => ({ width: Infinity, height: Infinity }),
+    borderRadius: "",
     showFooter: true,
     showCancelButton: true,
     showConfirmButton: true,
@@ -432,6 +436,18 @@ const dialogStyle = computed<CSSProperties>(() => ({
   width: typeof props.width === "number" ? `${props.width}px` : props.width,
   marginTop: props.top
 }));
+
+const dialogRadiusStyle = computed<CSSProperties>(() => {
+  if (props.borderRadius === "" || props.borderRadius === undefined || props.borderRadius === null) {
+    return {};
+  }
+  return {
+    "--sc-dialog-radius":
+      typeof props.borderRadius === "number"
+        ? `${props.borderRadius}px`
+        : props.borderRadius,
+  } as CSSProperties;
+});
 
 const minimizedIconStyle = computed<CSSProperties>(() => {
   if (!minimizedIconPosition.value) return {};
@@ -558,6 +574,8 @@ watch(
 // @use "@/styles/mixins.scss" as *;
 
 .sc-dialog {
+  border-radius: var(--sc-dialog-radius, var(--stitch-lay-radius-lg));
+
   &.has-float-icon {
     margin-top: 40px !important;
     overflow: visible;
@@ -566,6 +584,20 @@ watch(
       padding-top: 30px;
     }
   }
+}
+
+.sc-dialog:not(.sc-dialog--custom) {
+  overflow: hidden;
+}
+
+.sc-dialog:not(.sc-dialog--custom) :deep(.el-dialog__header) {
+  border-radius: var(--sc-dialog-radius, var(--stitch-lay-radius-lg))
+    var(--sc-dialog-radius, var(--stitch-lay-radius-lg)) 0 0;
+}
+
+.sc-dialog:not(.sc-dialog--custom) :deep(.el-dialog__footer) {
+  border-radius: 0 0 var(--sc-dialog-radius, var(--stitch-lay-radius-lg))
+    var(--sc-dialog-radius, var(--stitch-lay-radius-lg));
 }
 
 .sc-dialog__float-icon {
@@ -591,7 +623,8 @@ watch(
   background: linear-gradient(180deg, color-mix(in srgb, var(--stitch-lay-bg-panel), transparent 20%) 0%, color-mix(in srgb, var(--stitch-lay-bg-panel), transparent 60%) 100%);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--stitch-lay-border);
-  border-radius: var(--stitch-lay-radius-lg) var(--stitch-lay-radius-lg) 0 0;
+  border-radius: var(--sc-dialog-radius, var(--stitch-lay-radius-lg))
+    var(--sc-dialog-radius, var(--stitch-lay-radius-lg)) 0 0;
   cursor: move;
   transition: var(--stitch-lay-transition);
 }
@@ -698,7 +731,8 @@ watch(
   background: linear-gradient(180deg, color-mix(in srgb, var(--stitch-lay-bg-panel), transparent 60%) 0%, color-mix(in srgb, var(--stitch-lay-bg-panel), transparent 20%) 100%);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--stitch-lay-border);
-  border-radius: 0 0 var(--stitch-lay-radius-lg) var(--stitch-lay-radius-lg);
+  border-radius: 0 0 var(--sc-dialog-radius, var(--stitch-lay-radius-lg))
+    var(--sc-dialog-radius, var(--stitch-lay-radius-lg));
 }
 
 // 缩放手柄
@@ -751,7 +785,7 @@ watch(
   .sc-dialog--#{$type} {
     .sc-dialog__header {
       border-top: 3px solid var(--el-color-#{$type});
-      border-radius: 8px 8px 0 0;
+      border-radius: var(--sc-dialog-radius, 8px) var(--sc-dialog-radius, 8px) 0 0;
     }
   }
 }

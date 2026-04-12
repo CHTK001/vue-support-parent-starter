@@ -2,6 +2,7 @@ import { createStandardApp } from "@repo/core";
 import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import { MonitorGlobalSocketPlugin } from "./plugins/globalSocket";
+import "./utils/sso";
 
 const bootDebugEnabled = (() => {
   if (typeof window === "undefined") {

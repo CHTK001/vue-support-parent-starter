@@ -55,6 +55,17 @@ type JdbcTableStructure = {
   primaryKeys: string[];
 };
 
+type PanelRemarkView = {
+  panelRemarkKey: string;
+  panelConnectionId: string;
+  panelNodeType: string;
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName?: string | null;
+  panelColumnName?: string | null;
+  panelRemarkContent: string;
+};
+
 const now = () => new Date().toISOString();
 
 const catalogTree: JdbcCatalogNode[] = [
@@ -153,6 +164,7 @@ const rowMap: Record<string, Array<Record<string, unknown>>> = {
 };
 
 const handles = new Map<string, ConnectionHandle>();
+const panelRemarks = new Map<string, PanelRemarkView>();
 
 const ok = <T>(data: T) => ({
   code: 200,
@@ -295,6 +307,107 @@ const createPanelMockMiddleware = () =>
       return;
     }
 
+    if (req.method === "POST" && action === "table/data") {
+      const payload = JSON.parse(await readBody(req) || "{}") as {
+        panelTableName?: string;
+        panelPageNum?: number;
+        panelPageSize?: number;
+        panelLoadTotal?: boolean;
+      };
+      const tableName = payload.panelTableName || "";
+      const pageNum = payload.panelPageNum && payload.panelPageNum > 0 ? payload.panelPageNum : 1;
+      const pageSize = payload.panelPageSize && payload.panelPageSize > 0 ? payload.panelPageSize : 100;
+      const sourceRows = rowMap[tableName] || [];
+      const startIndex = (pageNum - 1) * pageSize;
+      const rows = sourceRows.slice(startIndex, startIndex + pageSize);
+      const columns = rows.length ? Object.keys(rows[0]) : structureMap[tableName]?.columns.map(item => item.name) || [];
+      sendJson(res, ok({
+        panelColumns: columns,
+        panelRows: rows,
+        panelTotal: payload.panelLoadTotal ? sourceRows.length : -1,
+        panelPageNum: pageNum,
+        panelPageSize: pageSize,
+        panelElapsedMillis: 19,
+      }));
+      return;
+    }
+
+    if (req.method === "GET" && action === "account") {
+      sendJson(res, ok([
+        {
+          panelAccountName: "root",
+          panelHost: "%",
+          panelGrants: [
+            "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION",
+          ],
+        },
+        {
+          panelAccountName: "panel_reader",
+          panelHost: "10.0.0.%",
+          panelGrants: [
+            "GRANT SELECT ON panel_case.* TO 'panel_reader'@'10.0.0.%'",
+          ],
+        },
+      ]));
+      return;
+    }
+
+    if (req.method === "GET" && action === "remark") {
+      const remarks = [...panelRemarks.values()].filter(item => item.panelConnectionId === connectionId);
+      sendJson(res, ok(remarks));
+      return;
+    }
+
+    if (req.method === "POST" && action === "remark") {
+      const payload = JSON.parse(await readBody(req) || "{}") as Omit<PanelRemarkView, "panelRemarkKey" | "panelConnectionId">;
+      const panelRemarkKey = [
+        connectionId,
+        payload.panelNodeType || "table",
+        payload.panelCatalogName || "catalog",
+        payload.panelSchemaName || "schema",
+        payload.panelTableName || "table",
+        payload.panelColumnName || "column",
+      ].join("::");
+      const panelRemark = {
+        ...payload,
+        panelConnectionId: connectionId,
+        panelRemarkKey,
+      } satisfies PanelRemarkView;
+      panelRemarks.set(panelRemarkKey, panelRemark);
+      sendJson(res, ok(panelRemark));
+      return;
+    }
+
+    if (req.method === "POST" && action === "sql/template") {
+      const payload = JSON.parse(await readBody(req) || "{}") as {
+        panelActionType?: string;
+        panelBackupTableName?: string;
+        panelCatalogName?: string;
+        panelSchemaName?: string;
+        panelTableName?: string;
+        panelPreviewLimit?: number;
+      };
+      const panelFullTableName = [payload.panelCatalogName, payload.panelSchemaName, payload.panelTableName]
+        .filter(Boolean)
+        .join(".");
+      const panelPreviewLimit = payload.panelPreviewLimit || 1000;
+      const panelBackupTableName = payload.panelBackupTableName || `${payload.panelTableName}_panel_backup_mock`;
+      const panelActionType = (payload.panelActionType || "").toLowerCase();
+      const sql = panelActionType === "count"
+        ? `select count(*) as total from ${panelFullTableName};`
+        : panelActionType === "truncate"
+          ? `truncate table ${panelFullTableName};`
+          : panelActionType === "clear"
+            ? `delete from ${panelFullTableName};`
+            : panelActionType === "drop"
+              ? `drop table ${panelFullTableName};`
+              : panelActionType === "backup"
+                ? `create table ${panelBackupTableName} as\nselect * from ${panelFullTableName};`
+                : `select * from ${panelFullTableName} limit ${panelPreviewLimit};`;
+      sendJson(res, ok(sql));
+      return;
+    }
+
     if (req.method === "GET" && action === "document") {
       const tableName = url.searchParams.get("tableName") || "";
       const structure = structureMap[tableName];
@@ -331,12 +444,29 @@ const createPanelMockMiddleware = () =>
       return;
     }
 
+    if (req.method === "POST" && action === "explain") {
+      const sql = parseSqlBody(await readBody(req)).toLowerCase();
+      const columns = ["id", "select_type", "table", "type", "rows", "extra"];
+      const rows = sql.includes("order_record")
+        ? [{ id: 1, select_type: "SIMPLE", table: "order_record", type: "ALL", rows: 2, extra: "Using where" }]
+        : [{ id: 1, select_type: "SIMPLE", table: "user_account", type: "ALL", rows: 2, extra: "Using where" }];
+      sendJson(res, ok({
+        query: true,
+        affectedRows: rows.length,
+        elapsedMillis: 18,
+        columns,
+        rows,
+      }));
+      return;
+    }
+
     if (req.method === "POST" && action === "execute") {
       const sql = parseSqlBody(await readBody(req)).toLowerCase();
       if (sql.includes("order_record")) {
         sendJson(res, ok({
           query: true,
           affectedRows: rowMap.order_record.length,
+          elapsedMillis: 26,
           columns: ["id", "order_name", "amount"],
           rows: rowMap.order_record,
         }));
@@ -346,6 +476,7 @@ const createPanelMockMiddleware = () =>
         sendJson(res, ok({
           query: true,
           affectedRows: rowMap.user_account.length,
+          elapsedMillis: 24,
           columns: ["id", "user_name", "status"],
           rows: rowMap.user_account,
         }));
@@ -354,6 +485,7 @@ const createPanelMockMiddleware = () =>
       sendJson(res, ok({
         query: true,
         affectedRows: 1,
+        elapsedMillis: 8,
         columns: ["ping"],
         rows: [{ ping: 1 }],
       }));
@@ -363,12 +495,35 @@ const createPanelMockMiddleware = () =>
     next();
   };
 
+const panelProxyTarget = process.env.PANEL_PROXY_TARGET?.trim();
+
 export default defineConfig({
   resolve: {
     dedupe: ["vue"],
     alias: {
+      "@repo/components": fileURLToPath(
+        new URL("../../packages/components", import.meta.url),
+      ),
+      "@repo/components/MonacoEditor/index.vue": fileURLToPath(
+        new URL("../../packages/components/MonacoEditor/index.vue", import.meta.url),
+      ),
+      "@repo/components/ScTag": fileURLToPath(
+        new URL("../../packages/components/ScTag", import.meta.url),
+      ),
+      "@repo/components/ScDialog": fileURLToPath(
+        new URL("../../packages/components/ScDialog", import.meta.url),
+      ),
+      "@repo/components/ScTable": fileURLToPath(
+        new URL("../../packages/components/ScTable", import.meta.url),
+      ),
+      "@repo/components/ScRouteLoading/loader-manager": fileURLToPath(
+        new URL("../../packages/components/ScRouteLoading/loader-manager.ts", import.meta.url),
+      ),
       "@repo/components/ScCodeEditor": fileURLToPath(
         new URL("../../packages/components-standalone/ScCodeEditor", import.meta.url),
+      ),
+      "@repo/core": fileURLToPath(
+        new URL("./src/shims/repo-core.ts", import.meta.url),
       ),
       "@repo/utils": fileURLToPath(
         new URL("./src/shims/repo-utils.ts", import.meta.url),
@@ -377,14 +532,28 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    {
-      name: "panel-playground-mock",
-      configureServer(server) {
-        server.middlewares.use(createPanelMockMiddleware());
-      },
-      configurePreviewServer(server) {
-        server.middlewares.use(createPanelMockMiddleware());
-      },
-    },
+    ...(!panelProxyTarget
+      ? [
+          {
+            name: "panel-playground-mock",
+            configureServer(server) {
+              server.middlewares.use(createPanelMockMiddleware());
+            },
+            configurePreviewServer(server) {
+              server.middlewares.use(createPanelMockMiddleware());
+            },
+          },
+        ]
+      : []),
   ],
+  server: panelProxyTarget
+    ? {
+        proxy: {
+          "/v1/panel": {
+            target: panelProxyTarget,
+            changeOrigin: true,
+          },
+        },
+      }
+    : undefined,
 });

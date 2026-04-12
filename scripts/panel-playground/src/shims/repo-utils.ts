@@ -1,3 +1,5 @@
+import type { App, Plugin } from "vue";
+
 export interface ReturnResult<E> {
   code: string | number;
   msg: string;
@@ -52,4 +54,70 @@ export const http = {
       headers: {},
     } as T;
   },
+};
+
+export const deepCopy = <T>(source: T, target?: T): T => {
+  const nextValue = JSON.parse(JSON.stringify(source)) as T;
+  if (target && typeof target === "object") {
+    Object.keys(target as Record<string, any>).forEach((key) => {
+      delete (target as Record<string, any>)[key];
+    });
+    Object.assign(target as Record<string, any>, nextValue as Record<string, any>);
+    return target;
+  }
+  return nextValue;
+};
+
+export const paginate = <T>(
+  data: T[] = [],
+  pageSize = 10,
+  currentPage = 1,
+) => {
+  const safeSize = Math.max(1, pageSize);
+  const safePage = Math.max(1, currentPage);
+  const start = (safePage - 1) * safeSize;
+  return {
+    data: data.slice(start, start + safeSize),
+    total: data.length,
+  };
+};
+
+export const localStorageProxy = () => ({
+  getItem<T = any>(key: string): T | null {
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) as T : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem(key: string, value: unknown) {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  },
+  removeItem(key: string) {
+    window.localStorage.removeItem(key);
+  },
+});
+
+const buildLoggerMethod = (prefix: string, method: "debug" | "error" | "info" | "warn") =>
+  (...args: any[]) => {
+    console[method](prefix, ...args);
+  };
+
+export const getLogger = (prefix = "[panel-playground]") => ({
+  debug: buildLoggerMethod(prefix, "debug"),
+  error: buildLoggerMethod(prefix, "error"),
+  info: buildLoggerMethod(prefix, "info"),
+  warn: buildLoggerMethod(prefix, "warn"),
+});
+
+export const withInstall = <T>(component: T, alias?: string) => {
+  const installable = component as T & Plugin & { name?: string };
+  installable.install = (app: App) => {
+    const name = alias || installable.name;
+    if (name) {
+      app.component(name, installable as any);
+    }
+  };
+  return installable;
 };

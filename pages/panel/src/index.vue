@@ -37,6 +37,13 @@
                 :step="100"
                 @update:model-value="handlePreviewLimitChange"
               />
+              <div class="config-panel__switch">
+                <span>允许多项展开</span>
+                <ElSwitch
+                  :model-value="treeMultiExpand"
+                  @update:model-value="handleTreeMultiExpandChange"
+                />
+              </div>
             </div>
           </ElPopover>
         </div>
@@ -61,10 +68,13 @@
               :catalog-tree="explorerTree"
               :collapsed="asideCollapsed"
               :expanded-keys="treeExpandedKeys"
+              :multiple-expand="treeMultiExpand"
               :search-keyword="searchKeyword"
               :source-name="workspaceSource?.connectionName || ''"
               @collapse-table="handleCollapseTable"
+              @collapse-node="handleCollapseNode"
               @context-action="handleContextAction"
+              @expand-node="handleExpandNode"
               @expand-table="handleExpandTable"
               @open-table="handleOpenTable"
               @refresh="handleLoadCatalog"
@@ -92,14 +102,24 @@
               :preview-limit="previewLimit"
               :query-result="queryResult"
               :sql-explain-content="sqlExplainContent"
+              :sql-explain-rows="sqlExplainRows"
               :sql-suggestions="sqlSuggestions"
               :submitting="submitting"
               :table-tabs="inspectorTabs"
+              @change-tab-setting="handleTableTabSettingChange"
               @activate-tab="handleActivateInspectorTab"
               @close-tab="handleCloseInspectorTab"
+              @create-account="handleCreateAccount"
+              @delete-account="handleDeleteAccount"
               @execute="handleExecuteSql"
               @execute-selected="handleExecuteSelected"
               @explain="handleExplainSql"
+              @generate-sample-data="handleGenerateSampleData"
+              @grant-account="handleGrantAccount"
+              @refresh-table-data="handleRefreshTableData"
+              @revoke-account="handleRevokeAccount"
+              @save-table-data="handleSaveTableData"
+              @update-account="handleUpdateAccount"
               @generate-sql="handleGenerateSql"
               @quick-run="handleQuickRun"
             />
@@ -142,7 +162,9 @@ import {
   ElInputNumber,
   ElMain,
   ElMessage,
+  ElMessageBox,
   ElPopover,
+  ElSwitch,
 } from "element-plus";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import {
@@ -158,48 +180,86 @@ import {
 } from "./panel";
 import {
   closeJdbcConnection,
+  createJdbcAccount,
+  deleteJdbcAccount,
+  deletePanelDatasource,
+  executeJdbcTableAction,
+  explainJdbcExecution,
   executeJdbcSql,
-  explainJdbcSql,
   explainJdbcStructure,
+  fetchJdbcAccounts,
   fetchJdbcCapabilities,
   fetchJdbcConnectionMetadata,
-  fetchPanelSqlTemplate,
-  fetchJdbcTableDocument,
+  fetchJdbcDatabaseDocument,
+  fetchJdbcTableData,
   fetchJdbcTableStructure,
+  generateJdbcMockData,
   generateJdbcSql,
   listJdbcCachedConnections,
+  listPanelDatasources,
   listJdbcCatalogTree,
   listPanelRemarks,
   openJdbcConnection,
+  grantJdbcAccount,
+  revokeJdbcAccount,
   savePanelRemark,
+  savePanelDatasource,
+  saveJdbcTableData,
   searchJdbcCatalogTree,
+  updateJdbcAccount,
   type JdbcCatalogNode,
   type JdbcConnectionMetadata,
   type JdbcQueryResult,
   type JdbcTableStructure,
+  type PanelJdbcAccountSaveRequest,
+  type PanelDatabaseDocumentView,
+  type PanelJdbcAccountView,
+  type PanelJdbcPrivilegeRequest,
   type PanelCapabilitySummary,
   type PanelConnectionDescriptor,
+  type PanelDatasourcePayload,
+  type PanelDatasourceView,
   type PanelRemarkView,
+  type PanelTableRowUpdate,
+  type PanelTableDataView,
 } from "./api";
 import { decryptWorkspaceTicket, encryptWorkspaceTicket } from "./utils/workspaceTicket";
 
 type ViewMode = "hub" | "workspace";
-type InspectorTabType = "table" | "table-edit";
-type InspectorViewMode = "data" | "structure" | "ddl" | "document" | "ai" | "indexes" | "columns";
+type InspectorTabType = "account" | "database-document" | "table" | "table-edit";
+type InspectorViewMode = "account" | "data" | "ddl" | "database-document" | "ai" | "indexes" | "columns";
+type CommentMode = "comment" | "mixed" | "native";
+type PaginationMode = "full" | "pagination";
 
 interface InspectorTableTab {
+  accounts: PanelJdbcAccountView[];
   aiContent: string;
+  databaseDocument?: PanelDatabaseDocumentView | null;
+  dataCommentMode: CommentMode;
+  dataResult: PanelTableDataView | null;
   ddlText: string;
   documentContent: string;
+  filterKeyword: string;
+  frozenColumns: string[];
+  loadTotal: boolean;
   node: JdbcCatalogNode;
+  paginationMode: PaginationMode;
+  pageNum: number;
+  pageSize: number;
+  railShape: "default" | "round";
+  showSequence: boolean;
   structure: JdbcTableStructure | null;
   tabId: string;
   tabName: string;
+  tableCommentMode: CommentMode;
   tabType: InspectorTabType;
   viewMode: InspectorViewMode;
 }
 
+type TableArtifacts = Pick<InspectorTableTab, "aiContent" | "ddlText" | "documentContent" | "structure">;
+
 const PANEL_CONFIG_STORAGE_KEY = "panel:workspace-config:v1";
+const INITIAL_WORKSPACE_TICKET = new URL(window.location.href).searchParams.get("ticket");
 
 type NoteEditorState = {
   node: JdbcCatalogNode | null;
@@ -211,7 +271,7 @@ type NoteEditorState = {
 };
 
 const jdbcForm = reactive<JdbcConnectionForm>({ ...DEFAULT_JDBC_CONNECTION });
-const viewMode = ref<ViewMode>("hub");
+const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "workspace" : "hub");
 const savedSources = ref<PanelSavedSource[]>([]);
 const cachedConnections = ref<PanelConnectionDescriptor[]>([]);
 const workspaceSource = ref<PanelSavedSource | null>(null);
@@ -224,15 +284,18 @@ const fieldNotes = ref<Record<string, string>>({});
 const objectNotes = ref<Record<string, string>>({});
 const inspectorTabs = ref<InspectorTableTab[]>([]);
 const activeInspectorTabId = ref("workspace");
+const expandedCatalogNodeId = ref("");
 const expandedTableNodeId = ref("");
 const capabilities = ref<PanelCapabilitySummary | null>(null);
 const datasourceMetadata = ref<JdbcConnectionMetadata | null>(null);
 const queryResult = ref<JdbcQueryResult | null>(null);
 const sqlText = ref("select 1 as ping;");
 const sqlExplainContent = ref("");
+const sqlExplainRows = ref<Record<string, any>[]>([]);
 const errorMessage = ref("");
 const submitting = ref(false);
 const previewLimit = ref(1000);
+const treeMultiExpand = ref(false);
 const asideWidth = ref(236);
 const asideCollapsed = ref(false);
 const workspaceContainerRef = ref<HTMLElement | null>(null);
@@ -248,6 +311,7 @@ const noteEditor = reactive<NoteEditorState>({
   x: 0,
   y: 0,
 });
+const tableArtifactRequests = new Map<string, Promise<TableArtifacts>>();
 
 const currentInspectorTab = computed(() =>
   inspectorTabs.value.find(tab => tab.tabId === activeInspectorTabId.value) || null,
@@ -276,7 +340,7 @@ const activePath = computed(() => {
 
 const buildFieldNoteKey = (node: JdbcCatalogNode, columnName: string) =>
   [
-    workspaceSource.value?.sourceId || workspaceSource.value?.connectionName || "workspace",
+    activeConnectionId.value || workspaceSource.value?.sourceId || workspaceSource.value?.connectionName || "workspace",
     node.catalogName || "catalog",
     node.tableName || node.nodeName,
     columnName,
@@ -284,7 +348,7 @@ const buildFieldNoteKey = (node: JdbcCatalogNode, columnName: string) =>
 
 const buildObjectNoteKey = (node: JdbcCatalogNode) =>
   [
-    workspaceSource.value?.sourceId || workspaceSource.value?.connectionName || "workspace",
+    activeConnectionId.value || workspaceSource.value?.sourceId || workspaceSource.value?.connectionName || "workspace",
     node.nodeType,
     node.catalogName || "catalog",
     node.schemaName || "schema",
@@ -344,11 +408,8 @@ const explorerTree = computed<JdbcCatalogNode[]>(() =>
 );
 
 const treeExpandedKeys = computed(() => {
-  const keys = explorerTree.value.map(item => item.nodeId);
-  if (expandedTableNodeId.value) {
-    keys.push(expandedTableNodeId.value);
-  }
-  return keys;
+  return [expandedCatalogNodeId.value, expandedTableNodeId.value]
+    .filter(Boolean) as string[];
 });
 
 const sqlSuggestions = computed(() => {
@@ -391,6 +452,38 @@ const normalizeTree = (nodes: JdbcCatalogNode[]) =>
     children: normalizeTree(node.children || []),
   }));
 
+const mapDatasourceViewToSource = (item: PanelDatasourceView): PanelSavedSource => ({
+  sourceId: item.panelSourceId,
+  connectionId: item.panelConnectionId || "",
+  sourceType: item.panelSourceType || "JDBC",
+  connectionName: item.panelConnectionName || "",
+  host: item.panelHost || "",
+  port: Number(item.panelPort || 0),
+  databaseName: item.panelDatabaseName || "",
+  username: item.panelUsername || "",
+  password: item.panelPassword || "",
+  protocol: item.panelProtocol || "",
+  note: item.panelNote || "",
+  favorite: Boolean(item.panelFavorite),
+  updatedAt: item.panelUpdatedAt,
+});
+
+const mapSourceToDatasourcePayload = (source: PanelSavedSource | JdbcConnectionForm): PanelDatasourcePayload => ({
+  panelSourceId: source.sourceId || undefined,
+  panelConnectionId: source.connectionId || undefined,
+  panelSourceType: source.sourceType,
+  panelConnectionName: source.connectionName,
+  panelHost: source.host,
+  panelPort: Number(source.port || 0),
+  panelDatabaseName: source.databaseName || "",
+  panelUsername: source.username,
+  panelPassword: source.password,
+  panelProtocol: source.protocol || "",
+  panelNote: source.note || "",
+  panelFavorite: Boolean(source.favorite),
+  panelUpdatedAt: source.updatedAt || undefined,
+});
+
 const persistSources = () => {
   localStorage.setItem(PANEL_SOURCE_STORAGE_KEY, JSON.stringify(savedSources.value));
 };
@@ -398,22 +491,34 @@ const persistSources = () => {
 const persistConfig = () => {
   localStorage.setItem(
     PANEL_CONFIG_STORAGE_KEY,
-    JSON.stringify({ previewLimit: previewLimit.value }),
+    JSON.stringify({
+      previewLimit: previewLimit.value,
+      treeMultiExpand: treeMultiExpand.value,
+    }),
   );
 };
 
-const loadSources = () => {
+const loadSources = async () => {
   try {
-    const raw = localStorage.getItem(PANEL_SOURCE_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    savedSources.value = Array.isArray(parsed)
-      ? parsed.map((item: any) => ({
-          sourceType: "JDBC",
-          ...item,
-        }))
+    const response = await listPanelDatasources();
+    const remoteSources = Array.isArray(response?.data)
+      ? response.data.map(mapDatasourceViewToSource)
       : [];
+    savedSources.value = remoteSources;
+    persistSources();
   } catch {
-    savedSources.value = [];
+    try {
+      const raw = localStorage.getItem(PANEL_SOURCE_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      savedSources.value = Array.isArray(parsed)
+        ? parsed.map((item: any) => ({
+            sourceType: "JDBC",
+            ...item,
+          }))
+        : [];
+    } catch {
+      savedSources.value = [];
+    }
   }
 };
 
@@ -422,8 +527,10 @@ const loadConfig = () => {
     const raw = localStorage.getItem(PANEL_CONFIG_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
     previewLimit.value = Number(parsed.previewLimit) > 0 ? Number(parsed.previewLimit) : 1000;
+    treeMultiExpand.value = Boolean(parsed.treeMultiExpand);
   } catch {
     previewLimit.value = 1000;
+    treeMultiExpand.value = false;
   }
 };
 
@@ -436,42 +543,76 @@ const loadCachedConnections = async () => {
   }
 };
 
-const handleSaveSource = () => {
-  const sourceId = jdbcForm.sourceId || `source-${Date.now()}`;
-  const next: PanelSavedSource = {
-    ...jdbcForm,
-    sourceId,
-    updatedAt: new Date().toISOString(),
-  };
-  const index = savedSources.value.findIndex(item => item.sourceId === sourceId);
-  if (index >= 0) {
-    savedSources.value[index] = next;
-  } else {
-    savedSources.value.unshift(next);
+const handleSaveSource = async () => {
+  submitting.value = true;
+  try {
+    const response = await savePanelDatasource(mapSourceToDatasourcePayload({
+      ...jdbcForm,
+      sourceId: jdbcForm.sourceId || "",
+      updatedAt: jdbcForm.updatedAt || "",
+    }));
+    const next = response?.data ? mapDatasourceViewToSource(response.data) : null;
+    if (!next) {
+      return;
+    }
+    const index = savedSources.value.findIndex(item => item.sourceId === next.sourceId);
+    if (index >= 0) {
+      savedSources.value[index] = next;
+    } else {
+      savedSources.value.unshift(next);
+    }
+    persistSources();
+    resetForm();
+  } catch (error: any) {
+    errorMessage.value = error?.message || "保存数据源失败";
+    ElMessage.error(errorMessage.value);
+  } finally {
+    submitting.value = false;
   }
-  persistSources();
-  resetForm();
 };
 
 const handleEditSource = (source: PanelSavedSource) => {
   Object.assign(jdbcForm, { ...source });
 };
 
-const handleDeleteSource = (sourceId: string) => {
-  savedSources.value = savedSources.value.filter(item => item.sourceId !== sourceId);
-  persistSources();
-  if (jdbcForm.sourceId === sourceId) {
-    resetForm();
+const handleDeleteSource = async (sourceId: string) => {
+  submitting.value = true;
+  try {
+    await deletePanelDatasource(sourceId);
+    savedSources.value = savedSources.value.filter(item => item.sourceId !== sourceId);
+    persistSources();
+    if (jdbcForm.sourceId === sourceId) {
+      resetForm();
+    }
+  } catch (error: any) {
+    errorMessage.value = error?.message || "删除数据源失败";
+    ElMessage.error(errorMessage.value);
+  } finally {
+    submitting.value = false;
   }
 };
 
-const handleToggleFavorite = (sourceId: string) => {
-  savedSources.value = savedSources.value.map(source =>
-    source.sourceId === sourceId
-      ? { ...source, favorite: !source.favorite, updatedAt: new Date().toISOString() }
-      : source,
-  );
-  persistSources();
+const handleToggleFavorite = async (sourceId: string) => {
+  const current = savedSources.value.find(source => source.sourceId === sourceId);
+  if (!current) {
+    return;
+  }
+  const next = {
+    ...current,
+    favorite: !current.favorite,
+    updatedAt: new Date().toISOString(),
+  };
+  try {
+    const response = await savePanelDatasource(mapSourceToDatasourcePayload(next));
+    const saved = response?.data ? mapDatasourceViewToSource(response.data) : next;
+    savedSources.value = savedSources.value.map(source =>
+      source.sourceId === sourceId ? saved : source,
+    );
+    persistSources();
+  } catch (error: any) {
+    errorMessage.value = error?.message || "更新收藏失败";
+    ElMessage.error(errorMessage.value);
+  }
 };
 
 const openSourceInWorkspace = async (source: PanelSavedSource) => {
@@ -496,9 +637,11 @@ const resetWorkspaceState = () => {
   objectNotes.value = {};
   inspectorTabs.value = [];
   activeInspectorTabId.value = "workspace";
+  expandedCatalogNodeId.value = "";
   expandedTableNodeId.value = "";
   queryResult.value = null;
   sqlExplainContent.value = "";
+  sqlExplainRows.value = [];
   errorMessage.value = "";
   capabilities.value = null;
   datasourceMetadata.value = null;
@@ -651,6 +794,22 @@ const handleSearch = async () => {
 const buildTableTabId = (node: JdbcCatalogNode, tabType: InspectorTabType) =>
   `${tabType}::${node.nodeId}`;
 
+const createInspectorTabDefaults = () => ({
+  accounts: [] as PanelJdbcAccountView[],
+  databaseDocument: null as PanelDatabaseDocumentView | null,
+  dataCommentMode: "native" as CommentMode,
+  dataResult: null as PanelTableDataView | null,
+  filterKeyword: "",
+  frozenColumns: [] as string[],
+  loadTotal: false,
+  paginationMode: "pagination" as PaginationMode,
+  pageNum: 1,
+  pageSize: 100,
+  railShape: "default" as "default" | "round",
+  showSequence: true,
+  tableCommentMode: "native" as CommentMode,
+});
+
 const buildTableDdl = (structure: JdbcTableStructure | null) => {
   if (!structure) {
     return "";
@@ -674,30 +833,122 @@ const buildTableDdl = (structure: JdbcTableStructure | null) => {
 };
 
 const fetchTableArtifacts = async (node: JdbcCatalogNode) => {
+  const requestKey = `${activeConnectionId.value}::${node.nodeId}`;
+  const pending = tableArtifactRequests.get(requestKey);
+  if (pending) {
+    return pending;
+  }
+
   const tableName = node.tableName || node.nodeName;
   const catalogName = node.catalogName || undefined;
   const schemaName = node.schemaName || undefined;
 
-  const [structureResponse, documentResponse, aiResponse] = await Promise.all([
-    fetchJdbcTableStructure(activeConnectionId.value, tableName, catalogName, schemaName),
-    fetchJdbcTableDocument(activeConnectionId.value, tableName, catalogName, schemaName),
-    explainJdbcStructure(activeConnectionId.value, tableName, catalogName, schemaName),
-  ]);
+  const request = (async () => {
+    const [structureResponse, aiResponse] = await Promise.all([
+      fetchJdbcTableStructure(activeConnectionId.value, tableName, catalogName, schemaName),
+      explainJdbcStructure(activeConnectionId.value, tableName, catalogName, schemaName),
+    ]);
 
-  const structure = structureResponse?.data || null;
-  if (structure) {
-    tableStructureCache.value = {
-      ...tableStructureCache.value,
-      [node.nodeId]: structure,
+    const structure = structureResponse?.data || null;
+    if (structure) {
+      tableStructureCache.value = {
+        ...tableStructureCache.value,
+        [node.nodeId]: structure,
+      };
+    }
+
+    return {
+      aiContent: aiResponse?.data || "",
+      ddlText: buildTableDdl(structure),
+      documentContent: "",
+      structure,
     };
-  }
+  })();
 
-  return {
-    aiContent: aiResponse?.data || "",
-    ddlText: buildTableDdl(structure),
-    documentContent: documentResponse?.data || "",
-    structure,
-  };
+  tableArtifactRequests.set(requestKey, request);
+  try {
+    return await request;
+  } finally {
+    tableArtifactRequests.delete(requestKey);
+  }
+};
+
+const buildPreviewSql = (node: JdbcCatalogNode) =>
+  `select * from ${fullTableName(node)} limit ${previewLimit.value};`;
+
+const fetchTableDataForTab = async (
+  node: JdbcCatalogNode,
+  pageNum = 1,
+  pageSize = 100,
+  loadTotal = false,
+) => {
+  if (!activeConnectionId.value) {
+    return null;
+  }
+  const response = await fetchJdbcTableData(activeConnectionId.value, {
+    panelCatalogName: node.catalogName,
+    panelSchemaName: node.schemaName,
+    panelTableName: node.tableName || node.nodeName,
+    panelPageNum: pageNum,
+    panelPageSize: pageSize,
+    panelLoadTotal: loadTotal,
+  });
+  return response?.data || null;
+};
+
+const fetchJdbcAccountTab = async (node: JdbcCatalogNode) => {
+  if (!activeConnectionId.value) {
+    return [];
+  }
+  const response = await fetchJdbcAccounts(activeConnectionId.value);
+  return response?.data || [];
+};
+
+const fetchJdbcDatabaseDocumentTab = async (node: JdbcCatalogNode) => {
+  if (!activeConnectionId.value) {
+    return null;
+  }
+  const response = await fetchJdbcDatabaseDocument(activeConnectionId.value, node.catalogName || undefined);
+  return response?.data || null;
+};
+
+const upsertInspectorTab = (tab: InspectorTableTab) => {
+  inspectorTabs.value = [
+    ...inspectorTabs.value.filter(item => item.tabId !== tab.tabId),
+    tab,
+  ];
+};
+
+const updateInspectorTab = (
+  tabId: string,
+  updater: (tab: InspectorTableTab) => InspectorTableTab,
+) => {
+  inspectorTabs.value = inspectorTabs.value.map(tab =>
+    tab.tabId === tabId ? updater(tab) : tab,
+  );
+};
+
+const syncInspectorTabArtifacts = async (
+  node: JdbcCatalogNode,
+  tabType: InspectorTabType,
+) => {
+  const tabId = buildTableTabId(node, tabType);
+  try {
+    const artifacts = await fetchTableArtifacts(node);
+    inspectorTabs.value = inspectorTabs.value.map(tab =>
+      tab.tabId === tabId
+        ? { ...tab, ...artifacts }
+        : tab,
+    );
+  } catch (error: any) {
+    if (activeNode.value?.nodeId === node.nodeId) {
+      errorMessage.value = error?.message || "读取表信息失败";
+    }
+  }
+};
+
+const deferBackgroundTask = (task: () => void) => {
+  window.setTimeout(task, 0);
 };
 
 const ensureInspectorTab = async (
@@ -705,55 +956,153 @@ const ensureInspectorTab = async (
   tabType: InspectorTabType,
   viewMode: InspectorViewMode,
   activate = true,
+  waitForArtifacts = false,
 ) => {
   const tabId = buildTableTabId(node, tabType);
   const existing = inspectorTabs.value.find(item => item.tabId === tabId);
   const cachedStructure = tableStructureCache.value[node.nodeId] || null;
-
-  const artifacts = existing || !cachedStructure
+  if (tabType === "account") {
+    const nextTab: InspectorTableTab = {
+      ...createInspectorTabDefaults(),
+      aiContent: "",
+      ddlText: "",
+      documentContent: "",
+      structure: null,
+      accounts: existing?.accounts || [],
+      node,
+      tabId,
+      tabName: `${node.nodeName} 账号`,
+      tabType,
+      viewMode,
+      loadTotal: false,
+      paginationMode: existing?.paginationMode || "pagination",
+      pageNum: 1,
+      pageSize: 100,
+      railShape: existing?.railShape || "default",
+      showSequence: existing?.showSequence ?? true,
+      tableCommentMode: "native",
+      dataCommentMode: "native",
+      filterKeyword: existing?.filterKeyword || "",
+      frozenColumns: existing?.frozenColumns || [],
+      dataResult: null,
+    };
+    upsertInspectorTab(nextTab);
+    if (activate) {
+      activeInspectorTabId.value = tabId;
+    }
+    activeNode.value = node;
+    return nextTab;
+  }
+  if (tabType === "database-document") {
+    const nextTab: InspectorTableTab = {
+      ...createInspectorTabDefaults(),
+      aiContent: "",
+      ddlText: "",
+      documentContent: "",
+      structure: null,
+      accounts: [],
+      databaseDocument: existing?.databaseDocument || null,
+      node,
+      tabId,
+      tabName: `${node.nodeName} 文档`,
+      tabType,
+      viewMode,
+      loadTotal: false,
+      paginationMode: existing?.paginationMode || "pagination",
+      pageNum: 1,
+      pageSize: 100,
+      railShape: existing?.railShape || "default",
+      showSequence: existing?.showSequence ?? true,
+      tableCommentMode: "native",
+      dataCommentMode: "native",
+      filterKeyword: existing?.filterKeyword || "",
+      frozenColumns: existing?.frozenColumns || [],
+      dataResult: null,
+    };
+    upsertInspectorTab(nextTab);
+    if (activate) {
+      activeInspectorTabId.value = tabId;
+    }
+    activeNode.value = node;
+    return nextTab;
+  }
+  const needsHydration = !cachedStructure
+    || !existing
+    || !existing.aiContent;
+  const baseArtifacts = {
+    aiContent: existing?.aiContent || "",
+    ddlText: existing?.ddlText || buildTableDdl(cachedStructure),
+    documentContent: existing?.documentContent || "",
+    structure: cachedStructure,
+  };
+  const artifacts = waitForArtifacts && needsHydration
     ? await fetchTableArtifacts(node)
-    : {
-        aiContent: existing?.aiContent || "",
-        ddlText: existing?.ddlText || buildTableDdl(cachedStructure),
-        documentContent: existing?.documentContent || "",
-        structure: cachedStructure,
-      };
+    : baseArtifacts;
 
   const nextTab: InspectorTableTab = {
+    ...createInspectorTabDefaults(),
     ...artifacts,
+    accounts: existing?.accounts || [],
+    dataCommentMode: existing?.dataCommentMode || "native",
+    dataResult: existing?.dataResult || null,
+    filterKeyword: existing?.filterKeyword || "",
+    frozenColumns: existing?.frozenColumns || [],
+    loadTotal: existing?.loadTotal || false,
     node,
+    paginationMode: existing?.paginationMode || "pagination",
+    pageNum: existing?.pageNum || 1,
+    pageSize: existing?.pageSize || 100,
+    railShape: existing?.railShape || "default",
+    showSequence: existing?.showSequence ?? true,
     tabId,
     tabName: node.tableName || node.nodeName,
+    tableCommentMode: existing?.tableCommentMode || "native",
     tabType,
     viewMode,
   };
 
-  inspectorTabs.value = [
-    ...inspectorTabs.value.filter(item => item.tabId !== tabId),
-    nextTab,
-  ];
+  upsertInspectorTab(nextTab);
 
   if (activate) {
     activeInspectorTabId.value = tabId;
   }
   activeNode.value = node;
+  if (!waitForArtifacts && needsHydration) {
+    deferBackgroundTask(() => {
+      void syncInspectorTabArtifacts(node, tabType);
+    });
+  }
   return nextTab;
 };
 
 const handleOpenTable = async (node: JdbcCatalogNode) => {
   activeNode.value = node;
-  injectSql((await requestSqlTemplate(node, "select")) || `select * from ${fullTableName(node)} limit ${previewLimit.value};`);
-  if (!tableStructureCache.value[node.nodeId]) {
-    await fetchTableArtifacts(node);
-  }
+  injectSql(buildPreviewSql(node));
   activeInspectorTabId.value = "workspace";
 };
 
 const handleExpandTable = async (node: JdbcCatalogNode) => {
+  expandedCatalogNodeId.value = node.parentId || expandedCatalogNodeId.value;
   expandedTableNodeId.value = node.nodeId;
   activeNode.value = node;
   if (!tableStructureCache.value[node.nodeId]) {
-    await fetchTableArtifacts(node);
+    deferBackgroundTask(() => {
+      void fetchTableArtifacts(node);
+    });
+  }
+};
+
+const handleExpandNode = (node: JdbcCatalogNode) => {
+  if (treeMultiExpand.value) {
+    return;
+  }
+  if (node.nodeType === "catalog") {
+    expandedCatalogNodeId.value = node.nodeId;
+    expandedTableNodeId.value = "";
+    return;
+  }
+  if (node.nodeType === "table") {
+    expandedCatalogNodeId.value = node.parentId || expandedCatalogNodeId.value;
   }
 };
 
@@ -763,11 +1112,240 @@ const handleCollapseTable = (node: JdbcCatalogNode) => {
   }
 };
 
+const handleCollapseNode = (node: JdbcCatalogNode) => {
+  if (node.nodeType === "catalog" && expandedCatalogNodeId.value === node.nodeId) {
+    expandedCatalogNodeId.value = "";
+    expandedTableNodeId.value = "";
+  }
+};
+
 const handleActivateInspectorTab = (tabId: string) => {
   activeInspectorTabId.value = tabId;
   const tab = inspectorTabs.value.find(item => item.tabId === tabId);
   if (tab?.node) {
     activeNode.value = tab.node;
+  }
+};
+
+const handleTableTabSettingChange = async (
+  tabId: string,
+  patch: Partial<Pick<InspectorTableTab, "dataCommentMode" | "filterKeyword" | "frozenColumns" | "loadTotal" | "paginationMode" | "pageNum" | "pageSize" | "railShape" | "showSequence" | "tableCommentMode" | "viewMode">>,
+) => {
+  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  if (!currentTab) {
+    return;
+  }
+  const nextPaginationMode = patch.paginationMode ?? currentTab.paginationMode;
+  const nextPageNum = nextPaginationMode === "full"
+    ? 1
+    : (patch.pageNum ?? currentTab.pageNum);
+  const nextPageSize = nextPaginationMode === "full"
+    ? Math.max(previewLimit.value, patch.pageSize ?? currentTab.pageSize)
+    : (patch.pageSize ?? currentTab.pageSize);
+  const nextPatch = {
+    ...patch,
+    pageNum: nextPageNum,
+    pageSize: nextPageSize,
+  };
+  updateInspectorTab(tabId, tab => ({ ...tab, ...nextPatch }));
+  if (currentTab.tabType !== "table") {
+    return;
+  }
+  const nextViewMode = nextPatch.viewMode ?? currentTab.viewMode;
+  const shouldRefreshData = nextViewMode === "data"
+    && ("loadTotal" in patch
+      || "pageNum" in patch
+      || "pageSize" in patch
+      || "paginationMode" in patch);
+  if (!shouldRefreshData) {
+    return;
+  }
+  try {
+    const nextLoadTotal = patch.loadTotal ?? currentTab.loadTotal;
+    const dataResult = await fetchTableDataForTab(currentTab.node, nextPageNum, nextPageSize, nextLoadTotal);
+    updateInspectorTab(tabId, tab => ({ ...tab, dataResult }));
+  } catch (error: any) {
+    errorMessage.value = error?.message || "读取表数据失败";
+  }
+};
+
+const handleRefreshTableData = async (tabId: string) => {
+  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  if (!currentTab || currentTab.tabType !== "table") {
+    return;
+  }
+  try {
+    const dataResult = await fetchTableDataForTab(
+      currentTab.node,
+      currentTab.pageNum,
+      currentTab.pageSize,
+      currentTab.loadTotal,
+    );
+    updateInspectorTab(tabId, tab => ({ ...tab, dataResult }));
+  } catch (error: any) {
+    errorMessage.value = error?.message || "刷新表数据失败";
+  }
+};
+
+const handleSaveTableData = async (tabId: string, updates: PanelTableRowUpdate[]) => {
+  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  if (!currentTab || currentTab.tabType !== "table" || !activeConnectionId.value) {
+    return;
+  }
+  if (!updates.length) {
+    ElMessage.info("当前没有需要保存的数据");
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    const response = await saveJdbcTableData(activeConnectionId.value, {
+      panelCatalogName: currentTab.node.catalogName,
+      panelSchemaName: currentTab.node.schemaName,
+      panelTableName: currentTab.node.tableName || currentTab.node.nodeName,
+      panelUpdates: updates,
+    });
+    const result = response?.data;
+    ElMessage.success(result?.panelMessage || "表数据已保存");
+    await handleRefreshTableData(tabId);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "保存表数据失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleOpenAccountManager = async (node: JdbcCatalogNode) => {
+  const accountTab = await ensureInspectorTab(node, "account", "account", true, false);
+  try {
+    const accounts = await fetchJdbcAccountTab(node);
+    updateInspectorTab(accountTab.tabId, tab => ({ ...tab, accounts }));
+  } catch (error: any) {
+    errorMessage.value = error?.message || "读取账号管理失败";
+  }
+};
+
+const reloadAccountTab = async (tabId: string) => {
+  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  if (!currentTab || currentTab.tabType !== "account") {
+    return;
+  }
+  const accounts = await fetchJdbcAccountTab(currentTab.node);
+  updateInspectorTab(tabId, tab => ({ ...tab, accounts }));
+};
+
+const handleCreateAccount = async (tabId: string, request: PanelJdbcAccountSaveRequest) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await createJdbcAccount(activeConnectionId.value, request);
+    ElMessage.success("账号已创建");
+    await reloadAccountTab(tabId);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "创建账号失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleUpdateAccount = async (tabId: string, request: PanelJdbcAccountSaveRequest) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await updateJdbcAccount(activeConnectionId.value, request);
+    ElMessage.success("账号已更新");
+    await reloadAccountTab(tabId);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "更新账号失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleDeleteAccount = async (tabId: string, accountName: string, host?: string) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `即将删除账号 ${accountName}@${host || "%"}`,
+      "删除账号",
+      {
+        cancelButtonText: "取消",
+        confirmButtonText: "删除",
+        confirmButtonClass: "el-button--danger",
+        type: "warning",
+      },
+    );
+  } catch {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await deleteJdbcAccount(activeConnectionId.value, accountName, host);
+    ElMessage.success("账号已删除");
+    await reloadAccountTab(tabId);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "删除账号失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleGrantAccount = async (tabId: string, request: PanelJdbcPrivilegeRequest) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await grantJdbcAccount(activeConnectionId.value, request);
+    ElMessage.success("权限已授予");
+    await reloadAccountTab(tabId);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "授予权限失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleRevokeAccount = async (tabId: string, request: PanelJdbcPrivilegeRequest) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    await revokeJdbcAccount(activeConnectionId.value, request);
+    ElMessage.success("权限已回收");
+    await reloadAccountTab(tabId);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "回收权限失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleOpenDatabaseDocument = async (node: JdbcCatalogNode) => {
+  const documentTab = await ensureInspectorTab(
+    node,
+    "database-document",
+    "database-document",
+    true,
+    false,
+  );
+  try {
+    const databaseDocument = await fetchJdbcDatabaseDocumentTab(node);
+    updateInspectorTab(documentTab.tabId, tab => ({ ...tab, databaseDocument }));
+  } catch (error: any) {
+    errorMessage.value = error?.message || "读取数据库文档失败";
   }
 };
 
@@ -801,6 +1379,8 @@ const handleExecuteSelected = async (selection: string) => {
   try {
     const response = await executeJdbcSql(activeConnectionId.value, statement);
     queryResult.value = response?.data || null;
+    sqlExplainContent.value = "";
+    sqlExplainRows.value = [];
     activeInspectorTabId.value = "workspace";
   } catch (error: any) {
     errorMessage.value = error?.message || "执行选中 SQL 失败";
@@ -811,19 +1391,25 @@ const handleExecuteSelected = async (selection: string) => {
 
 const handleQuickRun = async (sql: string) => {
   injectSql(sql);
-  await nextTick();
-  await handleExecuteSql();
+  await handleExecuteSql(sql);
 };
 
-const handleExecuteSql = async () => {
+const handleExecuteSql = async (statement?: string) => {
   if (!activeConnectionId.value) {
+    return;
+  }
+  const currentSql = (statement || sqlText.value).trim();
+  if (!currentSql) {
+    ElMessage.warning("请输入 SQL");
     return;
   }
   submitting.value = true;
   errorMessage.value = "";
   try {
-    const response = await executeJdbcSql(activeConnectionId.value, sqlText.value);
+    const response = await executeJdbcSql(activeConnectionId.value, currentSql);
     queryResult.value = response?.data || null;
+    sqlExplainContent.value = "";
+    sqlExplainRows.value = [];
   } catch (error: any) {
     errorMessage.value = error?.message || "执行 SQL 失败";
   } finally {
@@ -835,11 +1421,26 @@ const handleExplainSql = async () => {
   if (!activeConnectionId.value) {
     return;
   }
+  const currentSql = sqlText.value.trim();
+  if (!currentSql) {
+    ElMessage.warning("请输入 SQL");
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
   try {
-    const response = await explainJdbcSql(activeConnectionId.value, sqlText.value);
-    sqlExplainContent.value = response?.data || "";
+    const response = await explainJdbcExecution(activeConnectionId.value, currentSql);
+    const explainResult = response?.data || null;
+    queryResult.value = explainResult;
+    sqlExplainRows.value = explainResult?.rows || [];
+    sqlExplainContent.value = explainResult
+      ? `EXPLAIN 返回 ${explainResult.rows?.length || 0} 行，耗时 ${explainResult.elapsedMillis ?? 0} ms`
+      : "";
+    activeInspectorTabId.value = "workspace";
   } catch (error: any) {
-    errorMessage.value = error?.message || "AI 解释失败";
+    errorMessage.value = error?.message || "执行 EXPLAIN 失败";
+  } finally {
+    submitting.value = false;
   }
 };
 
@@ -858,6 +1459,48 @@ const handleGenerateSql = async (prompt: string) => {
     sqlText.value = response?.data || "";
   } catch (error: any) {
     errorMessage.value = error?.message || "AI 生成 SQL 失败";
+  }
+};
+
+const handleGenerateSampleData = async (tabId: string) => {
+  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  if (!currentTab || currentTab.tabType !== "table" || !activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    const response = await generateJdbcMockData(activeConnectionId.value, {
+      panelCatalogName: currentTab.node.catalogName,
+      panelSchemaName: currentTab.node.schemaName,
+      panelTableName: currentTab.node.tableName || currentTab.node.nodeName,
+      panelCount: 5,
+    });
+    const mockRows = (response?.data || []).map(row => ({
+      ...row,
+      __panelNewRow: true,
+    }));
+    const currentRows = currentTab.dataResult?.panelRows || [];
+    const columnNames = currentTab.structure?.columns?.length
+      ? currentTab.structure.columns.map(column => String(column.name || "")).filter(Boolean)
+      : [...new Set(mockRows.flatMap(row => Object.keys(row).filter(key => key !== "__panelNewRow")))];
+    updateInspectorTab(tabId, tab => ({
+      ...tab,
+      dataResult: {
+        panelColumns: columnNames,
+        panelRows: [...currentRows, ...mockRows],
+        panelTotal: (tab.dataResult?.panelTotal || 0) + mockRows.length,
+        panelPageNum: tab.pageNum,
+        panelPageSize: tab.pageSize,
+        panelElapsedMillis: 0,
+      },
+      viewMode: "data",
+    }));
+    ElMessage.success(`已生成 ${mockRows.length} 行示例数据`);
+  } catch (error: any) {
+    errorMessage.value = error?.message || "生成示例数据失败";
+  } finally {
+    submitting.value = false;
   }
 };
 
@@ -972,7 +1615,11 @@ const handleGlobalPointerDown = (event: MouseEvent) => {
   closeNoteEditor();
 };
 
-const requestSqlTemplate = async (node: JdbcCatalogNode, panelActionType: string) => {
+const requestSqlTemplate = async (
+  node: JdbcCatalogNode,
+  panelActionType: string,
+  panelBackupTableName?: string,
+) => {
   if (!activeConnectionId.value) {
     return "";
   }
@@ -981,9 +1628,108 @@ const requestSqlTemplate = async (node: JdbcCatalogNode, panelActionType: string
     panelSchemaName: node.schemaName,
     panelTableName: node.tableName || node.nodeName,
     panelActionType,
+    panelBackupTableName,
     panelPreviewLimit: previewLimit.value,
   });
   return response?.data || "";
+};
+
+const buildDefaultBackupTableName = (node: JdbcCatalogNode) =>
+  `${node.tableName || node.nodeName}_panel_backup_${Date.now()}`;
+
+const removeTableTabsByNode = (node: JdbcCatalogNode) => {
+  const removedTabIds = inspectorTabs.value
+    .filter(tab => tab.node.nodeId === node.nodeId)
+    .map(tab => tab.tabId);
+  inspectorTabs.value = inspectorTabs.value.filter(tab => tab.node.nodeId !== node.nodeId);
+  if (removedTabIds.includes(activeInspectorTabId.value)) {
+    activeInspectorTabId.value = "workspace";
+  }
+};
+
+const executeTableNodeAction = async (
+  node: JdbcCatalogNode,
+  panelActionType: string,
+  label: string,
+  panelBackupTableName?: string,
+) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    const response = await executeJdbcTableAction(activeConnectionId.value, {
+      panelCatalogName: node.catalogName,
+      panelSchemaName: node.schemaName,
+      panelTableName: node.tableName || node.nodeName,
+      panelActionType,
+      panelBackupTableName,
+    });
+    const result = response?.data;
+    ElMessage.success(result?.panelMessage || `${label}已完成`);
+
+    if (panelActionType === "drop") {
+      removeTableTabsByNode(node);
+    }
+    if (panelActionType === "clear" || panelActionType === "truncate") {
+      const targetTab = inspectorTabs.value.find(tab => tab.node.nodeId === node.nodeId && tab.tabType === "table");
+      if (targetTab) {
+        await handleRefreshTableData(targetTab.tabId);
+      }
+    }
+    await handleLoadCatalog();
+  } catch (error: any) {
+    errorMessage.value = error?.message || `${label}失败`;
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const confirmDangerousTableAction = async (
+  node: JdbcCatalogNode,
+  label: string,
+  actionType: string,
+) => {
+  try {
+    await ElMessageBox.confirm(
+      `即将对表 ${fullTableName(node)} 执行“${label}”操作，是否继续？`,
+      `${label}确认`,
+      {
+        cancelButtonText: "取消",
+        confirmButtonText: "继续",
+        confirmButtonClass: "el-button--danger",
+        type: "warning",
+      },
+    );
+  } catch {
+    return;
+  }
+  await executeTableNodeAction(node, actionType, label);
+};
+
+const promptBackupTableAction = async (node: JdbcCatalogNode) => {
+  let backupTableName = "";
+  try {
+    const result = await ElMessageBox.prompt(
+      `请输入 ${fullTableName(node)} 的备份表名`,
+      "备份表",
+      {
+        cancelButtonText: "取消",
+        confirmButtonText: "生成并执行",
+        inputPlaceholder: "输入备份表名",
+        inputValue: buildDefaultBackupTableName(node),
+      },
+    );
+    backupTableName = result.value.trim();
+  } catch {
+    return;
+  }
+  if (!backupTableName) {
+    ElMessage.warning("请输入备份表名");
+    return;
+  }
+  await executeTableNodeAction(node, "backup", "备份表", backupTableName);
 };
 
 const handleContextAction = async ({
@@ -1044,39 +1790,31 @@ const handleContextAction = async ({
     return;
   }
 
-  if (action === "design-table" || action === "generate-doc") {
-    await ensureInspectorTab(
-      node,
-      "table",
-      action === "generate-doc" ? "document" : "structure",
-      true,
-    );
+  if (action === "design-table") {
+    await ensureInspectorTab(node, "table-edit", "columns", true, false);
     return;
   }
 
   if (action === "edit-table") {
-    await ensureInspectorTab(node, "table-edit", "columns", true);
+    await ensureInspectorTab(node, "table-edit", "columns", true, false);
     return;
   }
 
   if (action === "open-data") {
-    await ensureInspectorTab(node, "table", "data", true);
-    injectSql(await requestSqlTemplate(node, "select"));
-    await handleExecuteSql();
+    const tab = await ensureInspectorTab(node, "table", "data", true, false);
+    deferBackgroundTask(() => {
+      void handleRefreshTableData(tab.tabId);
+    });
     return;
   }
 
-  if (action === "export-word") {
-    await ensureInspectorTab(node, "table", "document", true);
-    await nextTick();
-    await detailRef.value?.exportWord();
+  if (action === "account-manage" || action === "manage-account") {
+    await handleOpenAccountManager(node);
     return;
   }
 
-  if (action === "export-pdf") {
-    await ensureInspectorTab(node, "table", "document", true);
-    await nextTick();
-    await detailRef.value?.exportPdf();
+  if (action === "open-database-document") {
+    await handleOpenDatabaseDocument(node);
     return;
   }
 
@@ -1093,31 +1831,36 @@ const handleContextAction = async ({
   }
 
   if (action === "sql-clear") {
-    injectSql(await requestSqlTemplate(node, "clear"));
-    activeInspectorTabId.value = "workspace";
+    await confirmDangerousTableAction(node, "清空表", "clear");
     return;
   }
 
   if (action === "sql-backup") {
-    injectSql(await requestSqlTemplate(node, "backup"));
-    activeInspectorTabId.value = "workspace";
+    await promptBackupTableAction(node);
     return;
   }
 
   if (action === "sql-truncate") {
-    injectSql(await requestSqlTemplate(node, "truncate"));
-    activeInspectorTabId.value = "workspace";
+    await confirmDangerousTableAction(node, "截断表", "truncate");
     return;
   }
 
   if (action === "sql-drop") {
-    injectSql(await requestSqlTemplate(node, "drop"));
-    activeInspectorTabId.value = "workspace";
+    await confirmDangerousTableAction(node, "删除表", "drop");
   }
 };
 
 const handlePreviewLimitChange = (value: number | undefined) => {
   previewLimit.value = value && value > 0 ? value : 1000;
+  persistConfig();
+};
+
+const handleTreeMultiExpandChange = (value: boolean | string | number) => {
+  treeMultiExpand.value = Boolean(value);
+  if (!treeMultiExpand.value) {
+    expandedCatalogNodeId.value = "";
+    expandedTableNodeId.value = "";
+  }
   persistConfig();
 };
 
@@ -1166,11 +1909,11 @@ const startAsideResize = (event: MouseEvent) => {
 };
 
 onMounted(async () => {
-  loadSources();
+  await loadSources();
   loadConfig();
   document.addEventListener("mousedown", handleGlobalPointerDown);
   await loadCachedConnections();
-  const ticket = new URL(window.location.href).searchParams.get("ticket");
+  const ticket = INITIAL_WORKSPACE_TICKET;
   if (!ticket) {
     return;
   }
@@ -1181,6 +1924,7 @@ onMounted(async () => {
     }
   } catch (error: any) {
     errorMessage.value = error?.message || "ticket 解密失败";
+    viewMode.value = "hub";
   }
 });
 
@@ -1199,7 +1943,11 @@ onBeforeUnmount(() => {
 
 .workspace-mode {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
+  height: calc(100vh - 32px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .workspace-bar {
@@ -1241,18 +1989,30 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.config-panel__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .workspace-frame {
-  min-height: calc(100vh - 160px);
+  min-height: 0;
+  height: 100%;
 }
 
 .workspace-container {
   align-items: stretch;
   gap: 0;
+  min-height: 0;
+  height: 100%;
 }
 
 .workspace-aside {
   overflow: hidden;
   transition: width 0.24s ease;
+  min-height: 0;
+  height: 100%;
 }
 
 .workspace-resizer {
@@ -1275,6 +2035,9 @@ onBeforeUnmount(() => {
 
 .workspace-main {
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   padding: 0 0 0 10px;
 }
 

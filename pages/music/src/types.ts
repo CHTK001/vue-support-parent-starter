@@ -1,5 +1,15 @@
-export type MusicSection = "discover" | "search" | "favorites" | "history";
+export type MusicSection = "discover" | "moon" | "search" | "favorites" | "history";
 export type MusicSearchTab = "tracks" | "playlists";
+export type MusicLoopMode = "all" | "one";
+
+export interface MusicComment {
+  commentId: string;
+  author: string;
+  avatar?: string;
+  content: string;
+  likedCount?: number;
+  time?: string;
+}
 
 export interface MusicNavItem {
   code: MusicSection;
@@ -22,11 +32,14 @@ export interface MusicTrackSummary {
   album: string;
   coverUrl: string;
   durationSeconds: number;
+  playCount?: number;
+  commentCount?: number;
 }
 
 export interface MusicTrackDetail extends MusicTrackSummary {
   streamUrl: string;
   lyrics?: string;
+  comments?: MusicComment[];
 }
 
 export interface MusicPlaylistSummary {
@@ -38,10 +51,30 @@ export interface MusicPlaylistSummary {
   author: string;
   trackCount: number;
   accentColor?: string;
+  playCount?: number;
+  commentCount?: number;
 }
 
 export interface MusicPlaylistDetail extends MusicPlaylistSummary {
   tracks: MusicTrackSummary[];
+}
+
+export interface MusicPlaylistCategory {
+  tagId: string;
+  name: string;
+  hot: boolean;
+}
+
+export interface MusicPlaylistCategoryGroup {
+  groupId: string;
+  name: string;
+  tags: MusicPlaylistCategory[];
+}
+
+export interface MusicPlaylistCategoryCatalog {
+  source: string;
+  hotTags: MusicPlaylistCategory[];
+  groups: MusicPlaylistCategoryGroup[];
 }
 
 export interface MusicOverview {
@@ -63,6 +96,16 @@ export interface MusicSearchResult {
 export interface MusicPlaylistSearchResult {
   source: string;
   keyword: string;
+  page: number;
+  pageSize: number;
+  total: number;
+  playlists: MusicPlaylistSummary[];
+}
+
+export interface MusicPlaylistCategoryResult {
+  source: string;
+  tagId: string;
+  categoryName: string;
   page: number;
   pageSize: number;
   total: number;

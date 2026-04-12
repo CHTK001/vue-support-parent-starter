@@ -30,6 +30,27 @@ export interface PanelConnectionDescriptor {
   lastAccessTime?: string;
 }
 
+export interface PanelDatasourcePayload {
+  panelSourceId?: string;
+  panelConnectionId?: string;
+  panelSourceType: "JDBC" | "REDIS";
+  panelConnectionName: string;
+  panelHost: string;
+  panelPort: number;
+  panelDatabaseName?: string;
+  panelUsername: string;
+  panelPassword: string;
+  panelProtocol?: string;
+  panelNote?: string;
+  panelFavorite?: boolean;
+  panelUpdatedAt?: string;
+}
+
+export interface PanelDatasourceView extends PanelDatasourcePayload {
+  panelSourceId: string;
+  panelUpdatedAt: string;
+}
+
 export interface JdbcCatalogNode {
   attributes?: Record<string, any>;
   columnName?: string | null;
@@ -51,6 +72,7 @@ export interface JdbcTableStructure {
   tableComment?: string;
   columns: Record<string, any>[];
   indexes: Record<string, any>[];
+  triggers?: Record<string, any>[];
   primaryKeys: string[];
 }
 
@@ -58,7 +80,91 @@ export interface JdbcQueryResult {
   columns: string[];
   rows: Record<string, any>[];
   affectedRows: number;
+  elapsedMillis?: number;
   query: boolean;
+}
+
+export interface PanelTableDataRequest {
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName: string;
+  panelPageNum: number;
+  panelPageSize: number;
+  panelLoadTotal: boolean;
+}
+
+export interface PanelTableDataView {
+  panelColumns: string[];
+  panelRows: Record<string, any>[];
+  panelTotal: number;
+  panelPageNum: number;
+  panelPageSize: number;
+  panelElapsedMillis: number;
+}
+
+export interface PanelTableMutationView {
+  panelAffectedRows: number;
+  panelElapsedMillis: number;
+  panelMessage: string;
+}
+
+export interface PanelTableActionRequest {
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName: string;
+  panelActionType: string;
+  panelBackupTableName?: string;
+}
+
+export interface PanelTableRowUpdate {
+  panelOriginalRow: Record<string, any>;
+  panelCurrentRow: Record<string, any>;
+}
+
+export interface PanelTableSaveRequest {
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName: string;
+  panelUpdates: PanelTableRowUpdate[];
+}
+
+export interface PanelJdbcAccountView {
+  panelAccountName: string;
+  panelHost: string;
+  panelGrants: string[];
+}
+
+export interface PanelJdbcAccountSaveRequest {
+  panelAccountName: string;
+  panelHost?: string;
+  panelPassword?: string;
+}
+
+export interface PanelJdbcPrivilegeRequest {
+  panelAccountName: string;
+  panelHost?: string;
+  panelPrivileges: string[];
+  panelCatalogName?: string;
+  panelTableName?: string;
+  panelGrantOption?: boolean;
+}
+
+export interface PanelDatabaseTableDocumentView {
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName: string;
+  panelTableComment?: string;
+  panelPrimaryKeys: string[];
+  panelColumns: Record<string, any>[];
+  panelIndexes: Record<string, any>[];
+}
+
+export interface PanelDatabaseDocumentView {
+  panelCatalogName?: string | null;
+  panelSchemaCount: number;
+  panelTableCount: number;
+  panelGeneratedAt: string;
+  panelTables: PanelDatabaseTableDocumentView[];
 }
 
 export interface PanelCapabilitySummary {
@@ -85,6 +191,13 @@ export interface JdbcConnectionMetadata {
 export interface PanelAiSqlRequest {
   prompt: string;
   tableNames?: string[];
+}
+
+export interface PanelAiMockDataRequest {
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName: string;
+  panelCount?: number;
 }
 
 export interface PanelRemarkRequest {
@@ -123,6 +236,25 @@ export const openJdbcConnection = (data: PanelConnectionDefinition) =>
     "post",
     "/v1/panel/jdbc/connection/open",
     { data },
+  );
+
+export const listPanelDatasources = () =>
+  http.request<ReturnResult<PanelDatasourceView[]>>(
+    "get",
+    "/v1/panel/source",
+  );
+
+export const savePanelDatasource = (data: PanelDatasourcePayload) =>
+  http.request<ReturnResult<PanelDatasourceView>>(
+    "post",
+    "/v1/panel/source",
+    { data },
+  );
+
+export const deletePanelDatasource = (panelSourceId: string) =>
+  http.request<ReturnResult<boolean>>(
+    "delete",
+    `/v1/panel/source/${panelSourceId}`,
   );
 
 export const listJdbcCachedConnections = () =>
@@ -165,10 +297,47 @@ export const fetchJdbcTableStructure = (
     { params: { tableName, catalog, schema } },
   );
 
+export const fetchJdbcTableData = (
+  connectionId: string,
+  data: PanelTableDataRequest,
+) =>
+  http.request<ReturnResult<PanelTableDataView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/table/data`,
+    { data },
+  );
+
+export const saveJdbcTableData = (
+  connectionId: string,
+  data: PanelTableSaveRequest,
+) =>
+  http.request<ReturnResult<PanelTableMutationView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/table/save`,
+    { data },
+  );
+
+export const executeJdbcTableAction = (
+  connectionId: string,
+  data: PanelTableActionRequest,
+) =>
+  http.request<ReturnResult<PanelTableMutationView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/table/action`,
+    { data },
+  );
+
 export const executeJdbcSql = (connectionId: string, sql: string) =>
   http.request<ReturnResult<JdbcQueryResult>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/execute`,
+    { data: sql },
+  );
+
+export const explainJdbcExecution = (connectionId: string, sql: string) =>
+  http.request<ReturnResult<JdbcQueryResult>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/explain`,
     { data: sql },
   );
 
@@ -182,6 +351,16 @@ export const fetchJdbcTableDocument = (
     "get",
     `/v1/panel/jdbc/${connectionId}/document`,
     { params: { tableName, catalog, schema } },
+  );
+
+export const fetchJdbcDatabaseDocument = (
+  connectionId: string,
+  catalog?: string,
+) =>
+  http.request<ReturnResult<PanelDatabaseDocumentView>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/database/document`,
+    { params: { catalog } },
   );
 
 export const explainJdbcStructure = (
@@ -213,6 +392,16 @@ export const generateJdbcSql = (
     { data },
   );
 
+export const generateJdbcMockData = (
+  connectionId: string,
+  data: PanelAiMockDataRequest,
+) =>
+  http.request<ReturnResult<Record<string, any>[]>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/ai/mock-data`,
+    { data },
+  );
+
 export const fetchJdbcCapabilities = (connectionId: string) =>
   http.request<ReturnResult<PanelCapabilitySummary>>(
     "get",
@@ -223,6 +412,63 @@ export const fetchJdbcConnectionMetadata = (connectionId: string) =>
   http.request<ReturnResult<JdbcConnectionMetadata>>(
     "get",
     `/v1/panel/jdbc/${connectionId}/metadata`,
+  );
+
+export const fetchJdbcAccounts = (connectionId: string) =>
+  http.request<ReturnResult<PanelJdbcAccountView[]>>(
+    "get",
+    `/v1/panel/jdbc/${connectionId}/account`,
+  );
+
+export const createJdbcAccount = (
+  connectionId: string,
+  data: PanelJdbcAccountSaveRequest,
+) =>
+  http.request<ReturnResult<PanelJdbcAccountView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/account`,
+    { data },
+  );
+
+export const updateJdbcAccount = (
+  connectionId: string,
+  data: PanelJdbcAccountSaveRequest,
+) =>
+  http.request<ReturnResult<PanelJdbcAccountView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/account/update`,
+    { data },
+  );
+
+export const deleteJdbcAccount = (
+  connectionId: string,
+  accountName: string,
+  host?: string,
+) =>
+  http.request<ReturnResult<boolean>>(
+    "delete",
+    `/v1/panel/jdbc/${connectionId}/account`,
+    { params: { accountName, host } },
+  );
+
+export const grantJdbcAccount = (
+  connectionId: string,
+  data: PanelJdbcPrivilegeRequest,
+) =>
+  http.request<ReturnResult<PanelJdbcAccountView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/account/grant`,
+    { data },
+  );
+
+export const revokeJdbcAccount = (
+  connectionId: string,
+  data: PanelJdbcPrivilegeRequest,
+) =>
+  http.request<ReturnResult<PanelJdbcAccountView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/account/revoke`,
+    { data },
   );
 
 export const listPanelRemarks = (connectionId: string) =>

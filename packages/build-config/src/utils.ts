@@ -94,6 +94,10 @@ export const createAlias = (metaUrl: string): Record<string, string> => {
       root,
       "packages/components-standalone/ScMap",
     ),
+    "@repo/components/ScOverlayPage": resolve(
+      root,
+      "packages/components/ScOverlayPage",
+    ),
     "@repo/components/ScReteEditor": resolve(
       root,
       "packages/components-standalone/ScReteEditor",

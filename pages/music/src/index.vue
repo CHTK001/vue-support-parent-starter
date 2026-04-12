@@ -1,5 +1,8 @@
 <template>
-  <div class="music-shell system-container">
+  <div
+    class="music-shell system-container"
+    :class="{ 'is-dock-minimized': dockMinimized }"
+  >
     <audio
       ref="audioRef"
       :src="currentTrack?.streamUrl"
@@ -12,67 +15,120 @@
       @pause="isPlaying = false"
     />
 
-    <MusicSidebar
-      :sources="sources"
-      :active-source="activeSource"
-      :nav-items="navItems"
-      :active-section="activeSection"
-      :hot-keywords="hotKeywords"
-      @switch-source="switchSource"
-      @change-section="activeSection = $event"
-      @search-tag="searchByTag"
-    />
+    <div class="music-layout">
+      <MusicSidebar
+        :active-section="activeSection"
+        :favorites-count="favorites.length"
+        :history-count="history.length"
+        :featured-playlists="featuredPlaylists"
+        :current-track="currentTrack"
+        @change-section="changeSection"
+        @open-playlist="openPlaylist"
+      />
 
-    <MusicContent
-      v-model:search-keyword="searchKeyword"
-      :loading="isOverviewLoading || isPlaylistLoading || isSearchLoading"
-      :selected-playlist="selectedPlaylist"
+      <MusicContent
+        v-model:search-keyword="searchKeyword"
+        :loading="isOverviewLoading || isPlaylistLoading || isSearchLoading || isCategoryLoading"
+        :selected-playlist="selectedPlaylist"
+        :current-track-key="currentTrackKey"
+        :active-section="activeSection"
+        :active-source-label="activeSourceLabel"
+        :hero-title="heroTitle"
+        :hero-description="heroDescription"
+        :search-tab="searchTab"
+        :search-results="searchResults"
+        :playlist-results="playlistResults"
+        :search-total="searchTotal"
+        :playlist-total="playlistTotal"
+        :search-page="searchPage"
+        :playlist-page="playlistPage"
+        :search-page-size="searchPageSize"
+        :playlist-page-size="playlistPageSize"
+        :is-search-loading="isSearchLoading"
+        :featured-playlists="featuredPlaylists"
+        :playlist-categories="playlistCategories"
+        :active-category-id="activeCategoryId"
+        :active-category-name="activeCategoryName"
+        :category-playlists="categoryPlaylists"
+        :category-total="categoryTotal"
+        :is-category-loading="isCategoryLoading"
+        :favorites="favorites"
+        :history="history"
+        :hot-keywords="hotKeywords"
+        @search="performSearch()"
+        @search-tag="searchByTag"
+        @back-playlist="handleBackPlaylist"
+        @open-playlist="openPlaylist"
+        @play-track="playTrackFromSummary"
+        @download-track="downloadTrack"
+        @toggle-favorite="toggleFavorite"
+      />
+    </div>
+
+    <div class="music-dock" :class="{ 'is-minimized': dockMinimized }">
+      <MusicPlayerPanel
+        :loading="isTrackLoading"
+        :is-playing="isPlaying"
+        :current-track="currentTrack"
+        :current-track-key="currentTrackKey"
+        :favorite-active="isFavorite(currentTrack)"
+        :queue="queue"
+        :parsed-lyrics="parsedLyrics"
+        :active-lyric-index="activeLyricIndex"
+        :current-time="currentTime"
+        :duration="duration"
+        :slider-value="sliderValue"
+        :volume="volume"
+        :loop-mode="loopMode"
+        :minimized="dockMinimized"
+        @prev="playPrev"
+        @toggle="togglePlayback"
+        @next="playNext"
+        @toggle-loop="toggleLoopMode"
+        @toggle-favorite="toggleFavorite(currentTrack)"
+        @preview-seek="previewSeek"
+        @seek="seekTo"
+        @update-volume="handleVolumeChange"
+        @play-track="playTrackFromSummary"
+        @open-detail="detailOpen = true"
+        @open-lyrics="detailOpen = true"
+        @toggle-minimize="dockMinimized = !dockMinimized"
+      />
+    </div>
+
+    <MusicPlaylistDrawer
+      :visible="Boolean(selectedPlaylist)"
+      :playlist="selectedPlaylist"
       :current-track-key="currentTrackKey"
-      :active-section="activeSection"
-      :active-source-label="activeSourceLabel"
-      :hero-title="heroTitle"
-      :hero-description="heroDescription"
-      :search-tab="searchTab"
-      :search-results="searchResults"
-      :playlist-results="playlistResults"
-      :search-total="searchTotal"
-      :playlist-total="playlistTotal"
-      :search-page="searchPage"
-      :playlist-page="playlistPage"
-      :search-page-size="searchPageSize"
-      :playlist-page-size="playlistPageSize"
-      :is-search-loading="isSearchLoading"
-      :featured-playlists="featuredPlaylists"
-      :favorites="favorites"
-      :history="history"
-      @search="performSearch()"
-      @change-search-tab="changeSearchTab"
-      @back-playlist="selectedPlaylist = null"
-      @open-playlist="openPlaylist"
+      :favorite-keys="favoriteKeys"
+      @update:visible="handlePlaylistDrawerVisible"
       @play-track="playTrackFromSummary"
-      @change-search-page="changeSearchPage"
+      @play-all="playQueue"
+      @download-track="downloadTrack"
+      @toggle-favorite="toggleFavorite"
     />
 
-    <MusicPlayerPanel
-      :loading="isTrackLoading"
+    <MusicExpandedPlayer
+      v-if="detailOpen && currentTrack"
       :is-playing="isPlaying"
       :current-track="currentTrack"
-      :current-track-key="currentTrackKey"
       :favorite-active="isFavorite(currentTrack)"
-      :queue="queue"
       :parsed-lyrics="parsedLyrics"
       :active-lyric-index="activeLyricIndex"
       :current-time="currentTime"
       :duration="duration"
       :slider-value="sliderValue"
       :volume="volume"
+      :loop-mode="loopMode"
+      @close="detailOpen = false"
       @prev="playPrev"
       @toggle="togglePlayback"
       @next="playNext"
+      @toggle-loop="toggleLoopMode"
       @toggle-favorite="toggleFavorite(currentTrack)"
+      @preview-seek="previewSeek"
       @seek="seekTo"
       @update-volume="handleVolumeChange"
-      @play-track="playTrackFromSummary"
     />
   </div>
 </template>
@@ -80,19 +136,25 @@
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
 import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
+  fetchMusicCategoryPlaylists,
   fetchMusicOverview,
+  fetchMusicPlaylistCategories,
   fetchMusicPlaylist,
   fetchMusicTrack,
   searchMusicPlaylists,
   searchMusicTracks,
 } from "./api";
 import MusicContent from "./components/MusicContent.vue";
+import MusicExpandedPlayer from "./components/MusicExpandedPlayer.vue";
+import MusicPlaylistDrawer from "./components/MusicPlaylistDrawer.vue";
 import MusicPlayerPanel from "./components/MusicPlayerPanel.vue";
 import MusicSidebar from "./components/MusicSidebar.vue";
 import type {
-  MusicNavItem,
+  MusicLoopMode,
   MusicOverview,
+  MusicPlaylistCategoryCatalog,
   MusicPlaylistDetail,
   MusicPlaylistSummary,
   MusicSearchTab,
@@ -104,22 +166,24 @@ import type {
 
 const FAVORITES_KEY = "music-module:favorites";
 const HISTORY_KEY = "music-module:history";
+const VALID_SECTIONS: MusicSection[] = ["discover", "moon", "search", "favorites", "history"];
+const VALID_SEARCH_TABS: MusicSearchTab[] = ["tracks", "playlists"];
 
-const navItems: MusicNavItem[] = [
-  { code: "discover", label: "发现", hint: "精选歌单与入口" },
-  { code: "search", label: "搜索", hint: "按关键词找歌" },
-  { code: "favorites", label: "收藏", hint: "本地收藏列表" },
-  { code: "history", label: "历史", hint: "最近播放记录" },
-];
-
+const route = useRoute();
+const router = useRouter();
 const audioRef = ref<HTMLAudioElement>();
 const sources = ref<MusicSourceOption[]>([]);
-const activeSource = ref("demo");
-const activeSection = ref<MusicSection>("discover");
+const activeSource = ref(readRouteSource());
+const activeSection = ref<MusicSection>(readRouteSection());
 const hotKeywords = ref<string[]>([]);
 const featuredPlaylists = ref<MusicPlaylistSummary[]>([]);
-const searchKeyword = ref("");
-const searchTab = ref<MusicSearchTab>("tracks");
+const playlistCategories = ref<MusicPlaylistCategoryCatalog | null>(null);
+const activeCategoryId = ref(readRouteCategory());
+const activeCategoryName = ref("热门");
+const categoryPlaylists = ref<MusicPlaylistSummary[]>([]);
+const categoryTotal = ref(0);
+const searchKeyword = ref(readRouteKeyword());
+const searchTab = ref<MusicSearchTab>(readRouteSearchTab());
 const searchResults = ref<MusicTrackSummary[]>([]);
 const playlistResults = ref<MusicPlaylistSummary[]>([]);
 const searchTotal = ref(0);
@@ -136,12 +200,19 @@ const isOverviewLoading = ref(false);
 const isSearchLoading = ref(false);
 const isPlaylistLoading = ref(false);
 const isTrackLoading = ref(false);
+const isCategoryLoading = ref(false);
 const currentTime = ref(0);
 const duration = ref(0);
 const sliderValue = ref(0);
 const volume = ref(72);
+const loopMode = ref<MusicLoopMode>("all");
 const favorites = ref<MusicTrackSummary[]>(readLocal(FAVORITES_KEY, []));
 const history = ref<MusicTrackSummary[]>(readLocal(HISTORY_KEY, []));
+const syncingRoute = ref(false);
+const detailOpen = ref(false);
+const isSeeking = ref(false);
+const dockMinimized = ref(false);
+const baseDocumentTitle = document.title || "音乐";
 
 const currentTrackKey = computed(() => {
   return currentTrack.value ? trackKey(currentTrack.value) : "";
@@ -154,9 +225,10 @@ const activeSourceLabel = computed(() => {
 const heroTitle = computed(() => {
   if (selectedPlaylist.value) return selectedPlaylist.value.title;
   if (activeSection.value === "search") return "搜索与即点即播";
+  if (activeSection.value === "moon") return "月馆";
   if (activeSection.value === "favorites") return "收藏清单";
   if (activeSection.value === "history") return "最近播放";
-  return "发现与播放";
+  return activeCategoryName.value ? `${activeCategoryName.value}歌单` : "发现与播放";
 });
 
 const heroDescription = computed(() => {
@@ -164,11 +236,17 @@ const heroDescription = computed(() => {
   if (activeSection.value === "search") {
     return "原 CeruMusic 的 IPC 搜索链路已替换成标准 HTTP 查询。";
   }
+  if (activeSection.value === "moon") {
+    return "把夜色氛围、月下精选和深夜新声放进一个更安静的入口。";
+  }
   if (activeSection.value === "favorites") {
     return "收藏和历史先落浏览器本地，后续再接服务端同步。";
   }
   if (activeSection.value === "history") {
     return "当前先保障 Web 播放器闭环，桌面专属能力后置。";
+  }
+  if (activeSection.value === "discover") {
+    return "按 CeruMusic 的发现页思路补齐分类歌单，桌面 IPC 已经替换成 Java HTTP 接口。";
   }
   return "保留 CeruMusic 的产品骨架，播放数据和音源扩展全部走 Java 后端。";
 });
@@ -184,10 +262,91 @@ const activeLyricIndex = computed(() => {
   return -1;
 });
 
+const favoriteKeys = computed(() => {
+  return favorites.value.map(track => `${track.source}:${track.trackId}`);
+});
+
 watch(volume, () => updateVolume());
+watch(
+  () => currentTrack.value?.title,
+  title => {
+    document.title = title ? `${title} - ${baseDocumentTitle}` : baseDocumentTitle;
+  },
+  { immediate: true }
+);
+
+watch(
+  () => route.fullPath,
+  async () => {
+    if (syncingRoute.value) return;
+    const routeSource = readRouteSource();
+    if (routeSource !== activeSource.value) {
+      await switchSource(routeSource, { syncRoute: false, resetView: false });
+    }
+
+    const routeSection = readRouteSection();
+    if (routeSection !== activeSection.value) {
+      await changeSection(routeSection);
+    }
+
+    const routeKeyword = readRouteKeyword();
+    const routeTab = readRouteSearchTab();
+    const shouldRefreshSearch =
+      routeSection === "search" &&
+      routeKeyword.trim() &&
+      (routeKeyword !== searchKeyword.value || routeTab !== searchTab.value);
+    if (routeKeyword !== searchKeyword.value) {
+      searchKeyword.value = routeKeyword;
+    }
+    if (routeTab !== searchTab.value) {
+      searchTab.value = routeTab;
+    }
+    if (shouldRefreshSearch) {
+      await performSearch();
+    }
+
+    const routeCategory = readRouteCategory();
+    if (
+      routeCategory !== activeCategoryId.value &&
+      routeSection === "discover" &&
+      playlistCategories.value
+    ) {
+      const category = findCategoryById(playlistCategories.value, routeCategory);
+      if (category) {
+        await loadCategoryPlaylists(category.tagId, category.name);
+      }
+    }
+
+    const routePlaylist = typeof route.query.playlist === "string" ? route.query.playlist : "";
+    const routePlaylistSource =
+      typeof route.query.playlistSource === "string" ? route.query.playlistSource : activeSource.value;
+    if (
+      routePlaylist &&
+      (!selectedPlaylist.value ||
+        selectedPlaylist.value.playlistId !== routePlaylist ||
+        selectedPlaylist.value.source !== routePlaylistSource)
+    ) {
+      await openPlaylist({
+        playlistId: routePlaylist,
+        source: routePlaylistSource,
+        title: "歌单详情",
+        description: "",
+        coverUrl: "",
+        author: "",
+        trackCount: 0,
+      });
+      return;
+    }
+    if (!routePlaylist && selectedPlaylist.value) {
+      selectedPlaylist.value = null;
+    }
+  },
+);
 
 onMounted(async () => {
   await loadOverview();
+  await loadPlaylistCategories({ syncRoute: false });
+  await hydrateRouteState();
   await nextTick();
   updateVolume();
 });
@@ -210,19 +369,97 @@ async function loadOverview() {
   }
 }
 
-async function switchSource(source: string) {
+async function switchSource(
+  source: string,
+  options: {
+    syncRoute?: boolean;
+    resetView?: boolean;
+  } = {},
+) {
   if (activeSource.value === source) return;
+  const { syncRoute: shouldSyncRoute = true, resetView = true } = options;
   activeSource.value = source;
-  activeSection.value = "discover";
-  searchKeyword.value = "";
-  searchTab.value = "tracks";
-  searchResults.value = [];
-  playlistResults.value = [];
-  searchTotal.value = 0;
-  playlistTotal.value = 0;
-  searchPage.value = 1;
-  playlistPage.value = 1;
+  if (resetView) {
+    selectedPlaylist.value = null;
+    activeSection.value = "discover";
+    searchKeyword.value = "";
+    searchTab.value = "tracks";
+    searchResults.value = [];
+    playlistResults.value = [];
+    playlistCategories.value = null;
+    activeCategoryId.value = "";
+    activeCategoryName.value = "热门";
+    categoryPlaylists.value = [];
+    categoryTotal.value = 0;
+    searchTotal.value = 0;
+    playlistTotal.value = 0;
+    searchPage.value = 1;
+    playlistPage.value = 1;
+  }
   await loadOverview();
+  await loadPlaylistCategories({ syncRoute: shouldSyncRoute });
+  if (shouldSyncRoute) {
+    await syncRouteState();
+  }
+}
+
+async function loadPlaylistCategories(
+  options: {
+    syncRoute?: boolean;
+  } = {},
+) {
+  const { syncRoute: shouldSyncRoute = true } = options;
+  isCategoryLoading.value = true;
+  try {
+    const response = await fetchMusicPlaylistCategories(activeSource.value);
+    playlistCategories.value = response.data || null;
+    const preferredCategory = activeCategoryId.value;
+    const matchedCategory = findCategoryById(response.data, preferredCategory);
+    const firstHot = matchedCategory || response.data?.hotTags?.[0];
+    activeCategoryId.value = firstHot?.tagId || "";
+    activeCategoryName.value = firstHot?.name || "热门";
+    await loadCategoryPlaylists(activeCategoryId.value, activeCategoryName.value, {
+      syncRoute: shouldSyncRoute,
+    });
+  } catch (error) {
+    console.error(error);
+    playlistCategories.value = null;
+    categoryPlaylists.value = [...featuredPlaylists.value];
+    categoryTotal.value = featuredPlaylists.value.length;
+  } finally {
+    isCategoryLoading.value = false;
+  }
+}
+
+async function loadCategoryPlaylists(
+  tagId: string,
+  tagName?: string,
+  options: {
+    syncRoute?: boolean;
+  } = {},
+) {
+  const { syncRoute: shouldSyncRoute = true } = options;
+  isCategoryLoading.value = true;
+  try {
+    activeSection.value = "discover";
+    selectedPlaylist.value = null;
+    activeCategoryId.value = tagId;
+    activeCategoryName.value = tagName || activeCategoryName.value || "热门";
+    const response = await fetchMusicCategoryPlaylists(activeSource.value, tagId, 1, 12);
+    categoryPlaylists.value = response.data.playlists || [];
+    categoryTotal.value = response.data.total || 0;
+    if (response.data.categoryName) {
+      activeCategoryName.value = response.data.categoryName;
+    }
+    if (shouldSyncRoute) {
+      await syncRouteState();
+    }
+  } catch (error) {
+    console.error(error);
+    ElMessage.error("加载分类歌单失败");
+  } finally {
+    isCategoryLoading.value = false;
+  }
 }
 
 async function performSearch(page: number = 1) {
@@ -235,28 +472,18 @@ async function performSearch(page: number = 1) {
   try {
     activeSection.value = "search";
     selectedPlaylist.value = null;
-    if (searchTab.value === "tracks") {
-      searchPage.value = page;
-      const response = await searchMusicTracks(
-        keyword,
-        activeSource.value,
-        searchPage.value,
-        searchPageSize,
-      );
-      searchResults.value = response.data.tracks || [];
-      searchTotal.value = response.data.total || 0;
-      queue.value = [...searchResults.value];
-    } else {
-      playlistPage.value = page;
-      const response = await searchMusicPlaylists(
-        keyword,
-        activeSource.value,
-        playlistPage.value,
-        playlistPageSize,
-      );
-      playlistResults.value = response.data.playlists || [];
-      playlistTotal.value = response.data.total || 0;
-    }
+    searchPage.value = page;
+    playlistPage.value = 1;
+    const [trackResponse, playlistResponse] = await Promise.all([
+      searchMusicTracks(keyword, undefined, searchPage.value, searchPageSize),
+      searchMusicPlaylists(keyword, undefined, playlistPage.value, playlistPageSize),
+    ]);
+    searchResults.value = trackResponse.data.tracks || [];
+    searchTotal.value = trackResponse.data.total || 0;
+    playlistResults.value = playlistResponse.data.playlists || [];
+    playlistTotal.value = playlistResponse.data.total || 0;
+    queue.value = [...searchResults.value];
+    await syncRouteState();
   } catch (error) {
     console.error(error);
     ElMessage.error("搜索失败");
@@ -274,7 +501,9 @@ function changeSearchTab(tab: MusicSearchTab) {
   searchTab.value = tab;
   if (searchKeyword.value.trim()) {
     void performSearch(1);
+    return;
   }
+  void syncRouteState();
 }
 
 async function openPlaylist(playlist: MusicPlaylistSummary) {
@@ -283,6 +512,8 @@ async function openPlaylist(playlist: MusicPlaylistSummary) {
     const response = await fetchMusicPlaylist(playlist.source, playlist.playlistId);
     selectedPlaylist.value = response.data;
     queue.value = [...response.data.tracks];
+    activeSection.value = "discover";
+    await syncRouteState();
   } catch (error) {
     console.error(error);
     ElMessage.error("加载歌单失败");
@@ -297,7 +528,9 @@ async function playTrackFromSummary(
 ) {
   if (currentTrackKey.value === trackKey(summary)) {
     queue.value = [...nextQueue];
-    togglePlayback();
+    if (!isPlaying.value) {
+      togglePlayback();
+    }
     return;
   }
 
@@ -305,7 +538,9 @@ async function playTrackFromSummary(
   try {
     const response = await fetchMusicTrack(summary.source, summary.trackId);
     currentTrack.value = response.data;
+    dockMinimized.value = false;
     queue.value = [...nextQueue];
+    isSeeking.value = false;
     currentTime.value = 0;
     duration.value = response.data.durationSeconds || 0;
     sliderValue.value = 0;
@@ -318,6 +553,13 @@ async function playTrackFromSummary(
   } finally {
     isTrackLoading.value = false;
   }
+}
+
+function playQueue(nextQueue: MusicTrackSummary[]) {
+  if (!nextQueue.length) {
+    return;
+  }
+  void playTrackFromSummary(nextQueue[0], nextQueue);
 }
 
 function togglePlayback() {
@@ -334,6 +576,7 @@ function togglePlayback() {
 
 function handleTimeUpdate() {
   if (!audioRef.value) return;
+  if (isSeeking.value) return;
   currentTime.value = audioRef.value.currentTime || 0;
   sliderValue.value = currentTime.value;
 }
@@ -351,8 +594,16 @@ function handleAudioError() {
 
 function seekTo(value: number) {
   if (!audioRef.value) return;
+  isSeeking.value = false;
   audioRef.value.currentTime = value;
   currentTime.value = value;
+  sliderValue.value = value;
+}
+
+function previewSeek(value: number) {
+  isSeeking.value = true;
+  currentTime.value = value;
+  sliderValue.value = value;
 }
 
 function updateVolume() {
@@ -364,8 +615,35 @@ function handleVolumeChange(value: number) {
   volume.value = value;
 }
 
+async function downloadTrack(track: MusicTrackSummary) {
+  try {
+    const response = await fetchMusicTrack(track.source, track.trackId);
+    const detail = response.data;
+    if (!detail.streamUrl) {
+      ElMessage.warning("当前音源没有可下载的音频流");
+      return;
+    }
+    const anchor = document.createElement("a");
+    anchor.href = detail.streamUrl;
+    anchor.download = `${detail.artist || "未知歌手"} - ${detail.title}.mp3`;
+    anchor.target = "_blank";
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+  } catch (error) {
+    console.error(error);
+    ElMessage.error("下载失败");
+  }
+}
+
 function playNext() {
   if (!currentTrack.value || !queue.value.length) return;
+  if (loopMode.value === "one") {
+    seekTo(0);
+    void audioRef.value?.play();
+    return;
+  }
   const index = queue.value.findIndex((item) => trackKey(item) === currentTrackKey.value);
   const next = queue.value[(index + 1) % queue.value.length];
   void playTrackFromSummary(next, queue.value);
@@ -378,9 +656,37 @@ function playPrev() {
   void playTrackFromSummary(prev, queue.value);
 }
 
+function toggleLoopMode() {
+  loopMode.value = loopMode.value === "all" ? "one" : "all";
+}
+
 function searchByTag(tag: string) {
   searchKeyword.value = tag;
   void performSearch();
+}
+
+async function handleBackPlaylist() {
+  selectedPlaylist.value = null;
+  await syncRouteState();
+}
+
+function handlePlaylistDrawerVisible(value: boolean) {
+  if (!value) {
+    void handleBackPlaylist();
+  }
+}
+
+async function changeSection(section: MusicSection) {
+  if (activeSection.value === section && !selectedPlaylist.value) {
+    return;
+  }
+  activeSection.value = section;
+  selectedPlaylist.value = null;
+  if (section === "discover" && !categoryPlaylists.value.length) {
+    await loadCategoryPlaylists(activeCategoryId.value, activeCategoryName.value);
+    return;
+  }
+  await syncRouteState();
 }
 
 function isFavorite(track: MusicTrackSummary | MusicTrackDetail | null) {
@@ -456,46 +762,233 @@ function readLocal<T>(key: string, fallback: T): T {
 function writeLocal<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
 }
+
+function readRouteSource() {
+  const source = route.query.source;
+  return typeof source === "string" && source.trim() ? source : "tx";
+}
+
+function readRouteSection(): MusicSection {
+  const section = route.query.section;
+  if (typeof section === "string" && VALID_SECTIONS.includes(section as MusicSection)) {
+    return section as MusicSection;
+  }
+  return "discover";
+}
+
+function readRouteKeyword() {
+  return typeof route.query.keyword === "string" ? route.query.keyword : "";
+}
+
+function readRouteCategory() {
+  return typeof route.query.category === "string" ? route.query.category : "";
+}
+
+function readRouteSearchTab(): MusicSearchTab {
+  const tab = route.query.tab;
+  if (typeof tab === "string" && VALID_SEARCH_TABS.includes(tab as MusicSearchTab)) {
+    return tab as MusicSearchTab;
+  }
+  return "tracks";
+}
+
+function findCategoryById(catalog: MusicPlaylistCategoryCatalog | null | undefined, tagId: string) {
+  if (!catalog) return null;
+  return (
+    catalog.hotTags.find((item) => item.tagId === tagId) ||
+    catalog.groups.flatMap((item) => item.tags).find((item) => item.tagId === tagId) ||
+    null
+  );
+}
+
+async function hydrateRouteState() {
+  const routeSource = readRouteSource();
+  if (routeSource && routeSource !== activeSource.value) {
+    await switchSource(routeSource, { syncRoute: false, resetView: false });
+  }
+
+  const routeSection = readRouteSection();
+  activeSection.value = routeSection;
+  searchKeyword.value = readRouteKeyword();
+  searchTab.value = readRouteSearchTab();
+
+  const routeCategory = readRouteCategory();
+  if (routeCategory && routeCategory !== activeCategoryId.value) {
+    const category = findCategoryById(playlistCategories.value, routeCategory);
+    if (category) {
+      await loadCategoryPlaylists(category.tagId, category.name);
+    }
+  }
+
+  const playlistId = typeof route.query.playlist === "string" ? route.query.playlist : "";
+  if (playlistId) {
+    const source = typeof route.query.playlistSource === "string" ? route.query.playlistSource : activeSource.value;
+    const summary =
+      [...featuredPlaylists.value, ...categoryPlaylists.value, ...playlistResults.value].find(
+        (item) => item.playlistId === playlistId && item.source === source,
+      ) ||
+      ({
+        playlistId,
+        source,
+        title: "歌单详情",
+        description: "",
+        coverUrl: "",
+        author: "",
+        trackCount: 0,
+      } as MusicPlaylistSummary);
+    await openPlaylist(summary);
+    return;
+  }
+
+  if (routeSection === "search" && searchKeyword.value.trim()) {
+    await performSearch();
+    return;
+  }
+
+  await syncRouteState();
+}
+
+async function syncRouteState() {
+  if (syncingRoute.value) return;
+  syncingRoute.value = true;
+  try {
+    const nextQuery: Record<string, string> = {};
+    if (activeSource.value && activeSource.value !== "tx") nextQuery.source = activeSource.value;
+    if (activeSection.value !== "discover") nextQuery.section = activeSection.value;
+    if (activeCategoryId.value) nextQuery.category = activeCategoryId.value;
+    if (searchKeyword.value.trim()) nextQuery.keyword = searchKeyword.value.trim();
+    if (searchTab.value !== "tracks") nextQuery.tab = searchTab.value;
+    if (selectedPlaylist.value) {
+      nextQuery.playlist = selectedPlaylist.value.playlistId;
+      nextQuery.playlistSource = selectedPlaylist.value.source;
+    }
+    await router.replace({ query: nextQuery });
+  } finally {
+    syncingRoute.value = false;
+  }
+}
 </script>
 
 <style scoped lang="scss">
 .music-shell {
+  --music-dock-space: 228px;
+  --music-panel: linear-gradient(180deg, rgba(83, 39, 34, 0.92), rgba(53, 24, 20, 0.95));
+  --music-panel-soft: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  --music-stroke: rgba(255, 255, 255, 0.08);
+  --music-shadow: 0 30px 80px rgba(24, 8, 7, 0.34);
+  --music-text: #fff7ee;
+  --music-muted: rgba(246, 225, 212, 0.72);
+  --music-subtle: rgba(236, 203, 182, 0.56);
+  --music-accent: #f1bb67;
+  --music-accent-2: #ffd997;
+  position: relative;
   min-height: calc(100vh - 84px);
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 340px;
-  gap: 18px;
-  padding: 20px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 20px;
+  overflow: hidden;
+  padding: 20px 20px var(--music-dock-space);
   background:
-    radial-gradient(circle at top left, rgba(188, 127, 79, 0.16), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(47, 93, 115, 0.18), transparent 28%),
-    linear-gradient(180deg, #f8f4ea 0%, #ebe4d4 100%);
-  color: #14202a;
-  font-family: "Avenir Next", "PingFang SC", "Noto Serif SC", serif;
+    radial-gradient(circle at top left, rgba(165, 92, 72, 0.28), transparent 24%),
+    radial-gradient(circle at 82% 10%, rgba(92, 43, 95, 0.22), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(235, 147, 62, 0.22), transparent 30%),
+    linear-gradient(180deg, #3a2032 0%, #4a261f 48%, #5a2c0e 100%);
+  color: var(--music-text);
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.music-shell.is-dock-minimized {
+  --music-dock-space: 112px;
+}
+
+.music-shell::before,
+.music-shell::after {
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+  content: "";
+}
+
+.music-shell::before {
+  top: -80px;
+  right: -40px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 210, 116, 0.16), transparent 68%);
+}
+
+.music-shell::after {
+  left: -120px;
+  bottom: -160px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 171, 74, 0.18), transparent 72%);
 }
 
 .music-shell audio {
   display: none;
 }
 
-@media (max-width: 1320px) {
-  .music-shell {
-    grid-template-columns: 280px minmax(0, 1fr);
-  }
+.music-layout {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 18px;
+}
 
-  .music-shell :deep(.detail-panel) {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.music-dock {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  z-index: 3200;
+}
+
+.music-dock.is-minimized {
+  left: auto;
+  width: min(620px, calc(100vw - 40px));
+}
+
+.music-layout :deep(.nav-panel),
+.music-layout :deep(.content-panel),
+.music-dock :deep(.detail-panel) {
+  min-width: 0;
+}
+
+@media (max-width: 1320px) {
+  .music-layout {
+    grid-template-columns: 196px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 960px) {
   .music-shell {
+    padding: 14px 14px 168px;
+    gap: 16px;
+  }
+
+  .music-shell.is-dock-minimized {
+    padding-bottom: 118px;
+  }
+
+  .music-layout {
     grid-template-columns: 1fr;
   }
 
-  .music-shell :deep(.detail-panel) {
-    grid-template-columns: 1fr;
+  .music-dock {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .music-dock.is-minimized {
+    left: 14px;
+    right: 14px;
+    width: auto;
   }
 }
 </style>

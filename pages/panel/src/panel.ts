@@ -96,7 +96,7 @@ export const DEFAULT_JDBC_CONNECTION: JdbcConnectionForm = {
   connectionName: "Panel Playground",
   host: "127.0.0.1",
   port: 3306,
-  databaseName: "test",
+  databaseName: "",
   username: "root",
   password: "",
   protocol: "",

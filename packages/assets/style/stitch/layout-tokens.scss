@@ -18,6 +18,7 @@
   --stitch-lay-bg-hover: #f1f5f9;
   --stitch-lay-bg-active: #e2e8f0;
   --stitch-lay-bg-overlay: rgba(255, 255, 255, 0.8); /* Glass effect */
+  --stitch-lay-bg-light: #f8fafc;
   
   /* Text */
   --stitch-lay-text-main: #1e293b;
@@ -29,6 +30,7 @@
   /* Borders */
   --stitch-lay-border: #e2e8f0;
   --stitch-lay-border-hover: #cbd5e1;
+  --stitch-lay-border-light: #edf2f7;
 
   /* ================== Dimensions & Radius ================== */
   --stitch-lay-radius-sm: 8px;
@@ -41,6 +43,7 @@
   --stitch-lay-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --stitch-lay-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --stitch-lay-shadow-glow: 0 0 15px rgba(59, 130, 246, 0.3);
+  --stitch-lay-shadow: var(--stitch-lay-shadow-md);
 
   /* ================== Transitions ================== */
   --stitch-lay-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -83,6 +86,7 @@ html.dark {
   --stitch-lay-bg-hover: #3f3f46;
   --stitch-lay-bg-active: #52525b;
   --stitch-lay-bg-overlay: rgba(30, 41, 59, 0.8);
+  --stitch-lay-bg-light: #232428;
 
   /* Text */
   --stitch-lay-text-main: #f8fafc;
@@ -94,11 +98,13 @@ html.dark {
   /* Borders */
   --stitch-lay-border: #334155;
   --stitch-lay-border-hover: #475569;
+  --stitch-lay-border-light: #3a4556;
 
   /* Shadows - Adjust for dark mode visibility */
   --stitch-lay-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --stitch-lay-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --stitch-lay-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --stitch-lay-shadow: var(--stitch-lay-shadow-md);
 
   /* Semantic Types Dark */
   --stitch-lay-info: #909399;

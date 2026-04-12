@@ -1,207 +1,154 @@
 <template>
   <main v-loading="loading" class="content-panel">
-    <header class="hero-card">
-      <div>
-        <p class="hero-kicker">{{ activeSourceLabel }}</p>
-        <h2>{{ heroTitle }}</h2>
-        <p>{{ heroDescription }}</p>
-      </div>
-      <div class="search-strip">
-        <el-input
-          :model-value="searchKeyword"
-          placeholder="搜索歌曲、歌手、专辑"
-          size="large"
-          clearable
-          @update:model-value="emit('update:searchKeyword', $event)"
-          @keyup.enter="emit('search')"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <el-button :loading="isSearchLoading" type="primary" size="large" @click="emit('search')">
-          搜索
-        </el-button>
-      </div>
-    </header>
+    <MusicHeaderBar
+      :title="pageTitle"
+      :description="pageDescription"
+      :active-source-label="activeSourceLabel"
+      :search-keyword="searchKeyword"
+      :loading="isSearchLoading"
+      @update:search-keyword="emit('update:searchKeyword', $event)"
+      @search="emit('search')"
+    />
 
-    <section v-if="selectedPlaylist" class="playlist-stage">
-      <div class="playlist-hero">
-        <img :src="selectedPlaylist.coverUrl" :alt="selectedPlaylist.title" />
+    <section
+      v-if="activeSection === 'discover' || activeSection === 'moon'"
+      class="keyword-card"
+    >
+      <div class="keyword-head">
         <div>
-          <p class="playlist-label">Playlist Detail</p>
-          <h3>{{ selectedPlaylist.title }}</h3>
-          <p class="playlist-desc">{{ selectedPlaylist.description }}</p>
-          <div class="playlist-meta">
-            <span>{{ selectedPlaylist.author }}</span>
-            <span>{{ selectedPlaylist.trackCount }} 首</span>
-          </div>
+          <p class="keyword-kicker">
+            {{ activeSection === "moon" ? "Moon Hall" : "热点" }}
+          </p>
+          <h3>{{ activeSection === "moon" ? "月馆精选" : "热搜直达" }}</h3>
         </div>
-        <el-button class="back-btn" plain @click="emit('back-playlist')"> 返回 </el-button>
+        <span>
+          {{
+            activeSection === "moon"
+              ? "夜色歌单和情绪搜索都收在这里"
+              : "点击即可检索全来源歌曲"
+          }}
+        </span>
       </div>
 
-      <div class="track-grid detail-grid">
+      <div class="keyword-wall">
         <button
-          v-for="track in selectedPlaylist.tracks"
-          :key="`${track.source}:${track.trackId}`"
-          class="track-card"
-          :class="{ active: currentTrackKey === `${track.source}:${track.trackId}` }"
-          @click="emit('play-track', track, selectedPlaylist.tracks)"
+          v-for="tag in visibleKeywords"
+          :key="tag"
+          class="keyword-pill"
+          @click="emit('search-tag', tag)"
         >
-          <img :src="track.coverUrl" :alt="track.title" />
-          <div class="track-copy">
-            <strong>{{ track.title }}</strong>
-            <span>{{ track.artist }}</span>
-            <small>{{ track.album }}</small>
-          </div>
-          <span class="track-time">{{ formatDuration(track.durationSeconds) }}</span>
+          {{ tag }}
         </button>
       </div>
     </section>
 
-    <section v-else-if="activeSection === 'search'" class="content-stage">
-      <div class="stage-head">
-        <h3>搜索结果</h3>
-        <p>{{ resultCount }} / {{ resultTotal }} 条</p>
-      </div>
-      <div class="search-tab-row">
-        <el-segmented
-          :model-value="searchTab"
-          :options="searchTabOptions"
-          @change="emit('change-search-tab', $event as MusicSearchTab)"
-        />
-      </div>
-      <div v-if="searchTab === 'tracks' && searchResults.length" class="track-grid">
-        <button
-          v-for="track in searchResults"
-          :key="`${track.source}:${track.trackId}`"
-          class="track-card"
-          :class="{ active: currentTrackKey === `${track.source}:${track.trackId}` }"
-          @click="emit('play-track', track, searchResults)"
-        >
-          <img :src="track.coverUrl" :alt="track.title" />
-          <div class="track-copy">
-            <strong>{{ track.title }}</strong>
-            <span>{{ track.artist }}</span>
-            <small>{{ track.album }}</small>
-          </div>
-          <span class="track-time">{{ formatDuration(track.durationSeconds) }}</span>
-        </button>
-      </div>
-      <div v-else-if="searchTab === 'playlists' && playlistResults.length" class="playlist-grid">
-        <article
-          v-for="playlist in playlistResults"
-          :key="`${playlist.source}:${playlist.playlistId}`"
-          class="playlist-card"
-        >
-          <button class="playlist-button" @click="emit('open-playlist', playlist)">
-            <img :src="playlist.coverUrl" :alt="playlist.title" />
-            <div class="playlist-copy">
-              <p>{{ playlist.author }}</p>
-              <h3>{{ playlist.title }}</h3>
-              <span>{{ playlist.description }}</span>
-            </div>
-          </button>
-        </article>
-      </div>
-      <div v-else class="empty-state">
-        <p>还没有搜索结果，输入关键词开始。</p>
-      </div>
-      <div v-if="resultTotal > currentPageSize" class="pagination-row">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :current-page="currentPage"
-          :page-size="currentPageSize"
-          :total="resultTotal"
-          @current-change="emit('change-search-page', $event)"
-        />
-      </div>
-    </section>
+    <MusicPlaylistGrid
+      v-if="activeSection === 'discover'"
+      kicker="热门"
+      :title="activeCategoryName || '热门歌单'"
+      :playlists="hotPlaylists"
+      compact
+      empty-text="当前没有热门歌单。"
+      @open-playlist="emit('open-playlist', $event)"
+    />
 
-    <section v-else-if="activeSection === 'favorites'" class="content-stage">
-      <div class="stage-head">
-        <h3>收藏</h3>
-        <p>{{ favorites.length }} 首</p>
-      </div>
-      <div v-if="favorites.length" class="track-grid">
-        <button
-          v-for="track in favorites"
-          :key="`${track.source}:${track.trackId}`"
-          class="track-card"
-          :class="{ active: currentTrackKey === `${track.source}:${track.trackId}` }"
-          @click="emit('play-track', track, favorites)"
-        >
-          <img :src="track.coverUrl" :alt="track.title" />
-          <div class="track-copy">
-            <strong>{{ track.title }}</strong>
-            <span>{{ track.artist }}</span>
-            <small>{{ track.album }}</small>
-          </div>
-          <span class="track-time">{{ formatDuration(track.durationSeconds) }}</span>
-        </button>
-      </div>
-      <div v-else class="empty-state">
-        <p>当前没有收藏。播放歌曲后可加入收藏。</p>
-      </div>
-    </section>
+    <MusicPlaylistGrid
+      v-if="activeSection === 'discover'"
+      kicker="官方歌单"
+      title="官方歌单"
+      :playlists="officialPlaylists"
+      compact
+      empty-text="当前没有官方歌单。"
+      @open-playlist="emit('open-playlist', $event)"
+    />
 
-    <section v-else-if="activeSection === 'history'" class="content-stage">
-      <div class="stage-head">
-        <h3>最近播放</h3>
-        <p>{{ history.length }} 条</p>
-      </div>
-      <div v-if="history.length" class="track-grid">
-        <button
-          v-for="track in history"
-          :key="`${track.source}:${track.trackId}`"
-          class="track-card"
-          :class="{ active: currentTrackKey === `${track.source}:${track.trackId}` }"
-          @click="emit('play-track', track, history)"
-        >
-          <img :src="track.coverUrl" :alt="track.title" />
-          <div class="track-copy">
-            <strong>{{ track.title }}</strong>
-            <span>{{ track.artist }}</span>
-            <small>{{ track.album }}</small>
-          </div>
-          <span class="track-time">{{ formatDuration(track.durationSeconds) }}</span>
-        </button>
-      </div>
-      <div v-else class="empty-state">
-        <p>播放历史会保存在浏览器本地。</p>
-      </div>
-    </section>
+    <MusicPlaylistGrid
+      v-if="activeSection === 'discover'"
+      kicker="最新发行"
+      title="最新发行"
+      :playlists="latestPlaylists"
+      compact
+      empty-text="当前没有最新发行。"
+      @open-playlist="emit('open-playlist', $event)"
+    />
 
-    <section v-else class="content-stage">
-      <div class="stage-head">
-        <h3>精选歌单</h3>
-        <p>{{ featuredPlaylists.length }} 个入口</p>
-      </div>
-      <div class="playlist-grid">
-        <article
-          v-for="playlist in featuredPlaylists"
-          :key="playlist.playlistId"
-          class="playlist-card"
-        >
-          <button class="playlist-button" @click="emit('open-playlist', playlist)">
-            <img :src="playlist.coverUrl" :alt="playlist.title" />
-            <div class="playlist-copy">
-              <p>{{ playlist.author }}</p>
-              <h3>{{ playlist.title }}</h3>
-              <span>{{ playlist.description }}</span>
-            </div>
-          </button>
-        </article>
-      </div>
-    </section>
+    <MusicPlaylistGrid
+      v-if="activeSection === 'moon'"
+      kicker="月馆"
+      title="月下精选"
+      :playlists="moonPlaylists"
+      compact
+      empty-text="当前没有月馆推荐。"
+      @open-playlist="emit('open-playlist', $event)"
+    />
+
+    <MusicPlaylistGrid
+      v-if="activeSection === 'moon'"
+      kicker="夜色新声"
+      title="深夜最新发行"
+      :playlists="moonLatestPlaylists"
+      compact
+      empty-text="当前没有月馆新发行。"
+      @open-playlist="emit('open-playlist', $event)"
+    />
+
+    <MusicPlaylistGrid
+      v-if="activeSection === 'search' && playlistResults.length"
+      kicker="歌单结果"
+      title="搜索到的歌单"
+      :playlists="playlistResults"
+      empty-text="暂无相关歌单。"
+      @open-playlist="emit('open-playlist', $event)"
+    />
+
+    <MusicTrackTable
+      v-if="activeSection === 'search'"
+      kicker="搜索结果"
+      :title="searchKeyword.trim() ? `“${searchKeyword.trim()}”` : '搜索结果'"
+      :tracks="searchResults"
+      :current-track-key="currentTrackKey"
+      :favorite-keys="favoriteKeys"
+      empty-text="没有搜索到歌曲。"
+      @play-track="handlePlayTrack"
+      @download-track="handleDownloadTrack"
+      @toggle-favorite="handleToggleFavorite"
+    />
+
+    <MusicTrackTable
+      v-else-if="activeSection === 'favorites'"
+      kicker="我的喜欢"
+      title="喜欢的歌曲"
+      :tracks="favorites"
+      :current-track-key="currentTrackKey"
+      :favorite-keys="favoriteKeys"
+      empty-text="还没有收藏歌曲。"
+      @play-track="handlePlayTrack"
+      @download-track="handleDownloadTrack"
+      @toggle-favorite="handleToggleFavorite"
+    />
+
+    <MusicTrackTable
+      v-else-if="activeSection === 'history'"
+      kicker="最近播放"
+      title="播放历史"
+      :tracks="history"
+      :current-track-key="currentTrackKey"
+      :favorite-keys="favoriteKeys"
+      empty-text="还没有播放历史。"
+      @play-track="handlePlayTrack"
+      @download-track="handleDownloadTrack"
+      @toggle-favorite="handleToggleFavorite"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
-import { Search } from "@element-plus/icons-vue";
 import { computed } from "vue";
+import MusicHeaderBar from "./MusicHeaderBar.vue";
+import MusicPlaylistGrid from "./MusicPlaylistGrid.vue";
+import MusicTrackTable from "./MusicTrackTable.vue";
 import type {
+  MusicPlaylistCategoryCatalog,
   MusicPlaylistDetail,
   MusicPlaylistSummary,
   MusicSearchTab,
@@ -229,247 +176,184 @@ const props = defineProps<{
   playlistPageSize: number;
   isSearchLoading: boolean;
   featuredPlaylists: MusicPlaylistSummary[];
+  playlistCategories: MusicPlaylistCategoryCatalog | null;
+  activeCategoryId: string;
+  activeCategoryName: string;
+  categoryPlaylists: MusicPlaylistSummary[];
+  categoryTotal: number;
+  isCategoryLoading: boolean;
   favorites: MusicTrackSummary[];
   history: MusicTrackSummary[];
+  hotKeywords: string[];
 }>();
 
 const emit = defineEmits<{
   (e: "update:searchKeyword", value: string): void;
   (e: "search"): void;
+  (e: "search-tag", tag: string): void;
   (e: "back-playlist"): void;
   (e: "open-playlist", playlist: MusicPlaylistSummary): void;
   (e: "play-track", track: MusicTrackSummary, queue: MusicTrackSummary[]): void;
-  (e: "change-search-tab", tab: MusicSearchTab): void;
-  (e: "change-search-page", page: number): void;
+  (e: "toggle-favorite", track: MusicTrackSummary): void;
+  (e: "download-track", track: MusicTrackSummary): void;
 }>();
 
-const searchTabOptions = [
-  { label: "歌曲", value: "tracks" },
-  { label: "歌单", value: "playlists" },
-] as const;
-
-const resultCount = computed(() => {
-  return props.searchTab === "tracks" ? props.searchResults.length : props.playlistResults.length;
+const discoverPlaylists = computed(() => {
+  return props.categoryPlaylists.length
+    ? props.categoryPlaylists
+    : props.featuredPlaylists;
 });
 
-const resultTotal = computed(() => {
-  return props.searchTab === "tracks" ? props.searchTotal : props.playlistTotal;
+const mergedPlaylists = computed(() => {
+  const bucket = new Map<string, MusicPlaylistSummary>();
+  [
+    ...props.featuredPlaylists,
+    ...props.categoryPlaylists,
+    ...props.playlistResults,
+  ].forEach((item) => {
+    bucket.set(`${item.source}:${item.playlistId}`, item);
+  });
+  return Array.from(bucket.values());
 });
 
-const currentPage = computed(() => {
-  return props.searchTab === "tracks" ? props.searchPage : props.playlistPage;
+const hotPlaylists = computed(() => {
+  return discoverPlaylists.value.slice(0, 6);
 });
 
-const currentPageSize = computed(() => {
-  return props.searchTab === "tracks" ? props.searchPageSize : props.playlistPageSize;
+const officialPlaylists = computed(() => {
+  if (props.featuredPlaylists.length) {
+    return props.featuredPlaylists.slice(0, 6);
+  }
+  return discoverPlaylists.value.slice(0, 6);
 });
 
-function formatDuration(seconds: number) {
-  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const secs = Math.floor(seconds % 60).toString().padStart(2, "0");
-  return `${mins}:${secs}`;
+const latestPlaylists = computed(() => {
+  return [...mergedPlaylists.value].reverse().slice(0, 6);
+});
+
+const moonPlaylists = computed(() => {
+  const source = discoverPlaylists.value.length
+    ? discoverPlaylists.value
+    : mergedPlaylists.value;
+  return [
+    ...source.filter((_, index) => index % 2 === 0),
+    ...source.filter((_, index) => index % 2 === 1),
+  ].slice(0, 6);
+});
+
+const moonLatestPlaylists = computed(() => {
+  return [...latestPlaylists.value].reverse().slice(0, 6);
+});
+
+const favoriteKeys = computed(() => {
+  return props.favorites.map((track) => `${track.source}:${track.trackId}`);
+});
+
+const visibleKeywords = computed(() => {
+  if (props.activeSection === "moon") {
+    return props.hotKeywords.slice().reverse().slice(0, 6);
+  }
+  return props.hotKeywords.slice(0, 8);
+});
+
+const pageTitle = computed(() => {
+  if (props.activeSection === "favorites") return "我的喜欢";
+  if (props.activeSection === "history") return "最近播放";
+  if (props.activeSection === "search") return "搜索结果";
+  if (props.activeSection === "moon") return "月馆";
+  return "音乐首页";
+});
+
+const pageDescription = computed(() => {
+  if (props.activeSection === "favorites")
+    return "把喜欢的歌曲固定到你的专属列表。";
+  if (props.activeSection === "history")
+    return "播放过的歌曲会自动进入最近播放。";
+  if (props.activeSection === "search")
+    return "搜索直接访问后台聚合接口，支持跨音源检索。";
+  if (props.activeSection === "moon")
+    return "把夜色氛围、月下精选和深夜新声放进一个更安静的入口。";
+  return "热点、热门歌单、搜索和播放器都收在同一页，交互更接近 QQ 音乐桌面首页。";
+});
+
+function handlePlayTrack(track: MusicTrackSummary, queue: MusicTrackSummary[]) {
+  emit("play-track", track, queue);
+}
+
+function handleToggleFavorite(track: MusicTrackSummary) {
+  emit("toggle-favorite", track);
+}
+
+function handleDownloadTrack(track: MusicTrackSummary) {
+  emit("download-track", track);
 }
 </script>
 
 <style scoped lang="scss">
 .content-panel {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 16px;
 }
 
-.hero-card,
-.content-stage,
-.playlist-stage {
-  border: 1px solid rgba(20, 32, 42, 0.12);
+.keyword-card {
+  border: 1px solid var(--music-stroke);
   border-radius: 28px;
-  background: rgba(255, 252, 245, 0.88);
-  box-shadow: 0 18px 40px rgba(17, 25, 32, 0.08);
-  backdrop-filter: blur(16px);
+  background: rgba(69, 31, 28, 0.72);
+  box-shadow: var(--music-shadow);
+  padding: 16px 18px;
+  backdrop-filter: blur(18px);
 }
 
-.hero-card {
-  padding: 24px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 18px;
-}
-
-.hero-kicker,
-.playlist-label {
-  margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  opacity: 0.72;
-}
-
-.hero-card h2,
-.playlist-hero h3 {
-  margin: 0;
-  line-height: 1.05;
-}
-
-.hero-card h2 {
-  font-size: 36px;
-}
-
-.hero-card p,
-.playlist-desc,
-.playlist-meta,
-.stage-head p,
-.track-copy span,
-.track-copy small,
-.track-time,
-.empty-state,
-.playlist-copy p,
-.playlist-copy span {
-  color: #5f6a70;
-}
-
-.search-strip {
+.keyword-head {
   display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.content-stage,
-.playlist-stage {
-  min-height: 0;
-  overflow: auto;
-  padding: 18px;
-}
-
-.stage-head,
-.playlist-meta {
-  display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
 }
 
-.search-tab-row {
-  display: flex;
-  justify-content: flex-start;
-  margin-top: 18px;
+.keyword-kicker {
+  margin: 0 0 8px;
+  color: var(--music-subtle);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
-.playlist-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  margin-top: 18px;
-}
-
-.playlist-card {
-  overflow: hidden;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.playlist-button,
-.track-card {
-  border: 0;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.playlist-button {
-  width: 100%;
-  padding: 0;
-  background: transparent;
-  text-align: left;
-}
-
-.playlist-button img,
-.track-card img,
-.playlist-hero img {
-  width: 100%;
-  object-fit: cover;
-}
-
-.playlist-button img {
-  aspect-ratio: 1 / 1;
-}
-
-.playlist-copy {
-  padding: 16px;
-}
-
-.playlist-copy h3 {
-  margin: 8px 0;
+.keyword-head h3 {
+  margin: 0;
   font-size: 22px;
 }
 
-.playlist-hero {
-  display: grid;
-  grid-template-columns: 180px minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: center;
-  padding: 18px;
-  border-bottom: 1px solid rgba(20, 32, 42, 0.12);
+.keyword-head span {
+  color: var(--music-muted);
 }
 
-.playlist-hero img {
-  aspect-ratio: 1 / 1;
-  border-radius: 22px;
-}
-
-.track-grid {
-  display: grid;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.detail-grid {
-  margin-top: 0;
-  padding-top: 16px;
-}
-
-.track-card {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  padding: 12px;
-  border-radius: 20px;
-  text-align: left;
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.track-card.active {
-  background: linear-gradient(135deg, rgba(188, 127, 79, 0.16), rgba(47, 93, 115, 0.15));
-  box-shadow: inset 0 0 0 1px rgba(47, 93, 115, 0.22);
-}
-
-.track-card img {
-  height: 72px;
-  border-radius: 18px;
-}
-
-.track-copy strong,
-.track-copy span,
-.track-copy small {
-  display: block;
-}
-
-.empty-state {
+.keyword-wall {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 240px;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
 }
 
-.pagination-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 18px;
+.keyword-pill {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--music-text);
+  cursor: pointer;
+  padding: 10px 16px;
 }
 
-@media (max-width: 960px) {
-  .hero-card,
-  .playlist-hero {
-    grid-template-columns: 1fr;
+.keyword-pill:hover {
+  background: rgba(241, 187, 103, 0.16);
+}
+
+@media (max-width: 860px) {
+  .keyword-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
