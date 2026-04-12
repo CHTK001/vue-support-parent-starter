@@ -78,9 +78,15 @@
             <small class="server-host-card__name">{{
               entry.host.serverName
             }}</small>
-            <span class="server-host-card__latency">{{
-              formatLatency(entry.snapshot?.latencyMs)
-            }}</span>
+            <ScTag
+              size="small"
+              effect="plain"
+              round
+              class="server-host-card__latency"
+              :type="latencyTagType(entry.snapshot?.latencyMs)"
+            >
+              {{ formatLatency(entry.snapshot?.latencyMs) }}
+            </ScTag>
           </div>
           <strong class="server-host-card__address-text">{{
             hostAddress(entry.host)
@@ -168,6 +174,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
+import ScTag from "@repo/components/ScTag/src/index.vue";
 import type { ServerHost } from "../api";
 import type { ServerHostListEntry } from "./server-types";
 import {
@@ -219,6 +226,14 @@ const metricRatio = (value?: number | null) => {
     return 0.08;
   }
   return Math.min(1, Math.max(0.08, numeric / 100));
+};
+
+const latencyTagType = (value?: number | null) => {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric) || numeric <= 0) return "info";
+  if (numeric >= 350) return "danger";
+  if (numeric >= 180) return "warning";
+  return "success";
 };
 </script>
 

@@ -23,9 +23,10 @@
     scrollbar-color: var(--el-color-primary) transparent; /* 滑块颜色、轨道颜色 */
 
     /* Firefox */
-    scrollbar-width: thin; /* 可选值为 'auto', 'thin', 'none' */
+    scrollbar-width: none; /* 默认隐藏，hover 再显示 */
     ::-webkit-scrollbar {
-      width: 6px; /* 滚动条宽度 */
+      width: 0; /* 默认隐藏 */
+      height: 0;
     }
 
     /* 滚动条轨道 */
@@ -42,6 +43,16 @@
     /* 滚动条滑块：hover状态 */
     ::-webkit-scrollbar-thumb:hover {
       background: var(--el-color-primary); /* 滑块hover颜色 */
+    }
+
+    &:hover,
+    &:focus-within {
+      scrollbar-width: thin;
+
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
     }
   }
 }

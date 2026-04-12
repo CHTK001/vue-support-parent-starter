@@ -1,9 +1,9 @@
 <template>
   <el-dialog
     v-model="visible"
+    destroy-on-close
     :title="metricMeta.title"
     width="92%"
-    top="2vh"
     class="server-metric-detail-dialog"
     @close="emit('update:modelValue', false)"
   >
@@ -21,7 +21,11 @@
         <p>{{ host?.serverName || "服务器" }} · {{ metricMeta.description }}</p>
       </div>
       <div class="server-metric-detail-dialog__filters">
-        <el-select v-model="historyRange" size="small" style="width: 100px">
+        <el-select
+          v-model="historyRange"
+          size="small"
+          class="server-metric-detail-dialog__control server-metric-detail-dialog__control--select"
+        >
           <el-option
             v-for="option in rangeOptions"
             :key="option.value"
@@ -32,7 +36,7 @@
         <el-select
           v-model="historyStateFilter"
           size="small"
-          style="width: 110px"
+          class="server-metric-detail-dialog__control server-metric-detail-dialog__control--select"
         >
           <el-option label="全部状态" value="all" />
           <el-option label="正常" value="normal" />
@@ -47,6 +51,7 @@
           range-separator="至"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
+          class="server-metric-detail-dialog__control server-metric-detail-dialog__control--date"
           @change="handleHistoryDateRangeChange"
         />
         <el-tooltip
@@ -72,80 +77,74 @@
     <div class="server-metric-detail-dialog__body">
       <!-- Hero Card -->
       <section class="server-metric-detail-dialog__hero">
+        <div class="server-metric-detail-dialog__liquid-container">
+          <div
+            class="server-metric-detail-dialog__liquid-bg"
+            :style="{
+              background: `linear-gradient(135deg,
+                ${liquidColor}18 0%,
+                ${liquidColor}10 48%,
+                ${liquidColor}05 100%)`,
+            }"
+          />
+          <div
+            class="server-metric-detail-dialog__wave server-metric-detail-dialog__wave--1"
+          >
+            <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
+              <path
+                :fill="liquidColor"
+                fill-opacity="0.15"
+                d="M0,50 C360,100 720,0 1080,50 C1260,75 1350,25 1440,50 L1440,100 L0,100 Z"
+              />
+            </svg>
+          </div>
+          <div
+            class="server-metric-detail-dialog__wave server-metric-detail-dialog__wave--2"
+          >
+            <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
+              <path
+                :fill="liquidColor"
+                fill-opacity="0.1"
+                d="M0,50 C240,0 480,100 720,50 C960,0 1200,100 1440,50 L1440,100 L0,100 Z"
+              />
+            </svg>
+          </div>
+          <div
+            class="server-metric-detail-dialog__wave server-metric-detail-dialog__wave--3"
+          >
+            <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
+              <path
+                :fill="liquidColor"
+                fill-opacity="0.08"
+                d="M0,30 C180,80 540,20 720,60 C900,100 1260,40 1440,70 L1440,100 L0,100 Z"
+              />
+            </svg>
+          </div>
+          <el-tooltip
+            :content="`已使用 ${metricMeta.usedText}`"
+            placement="top"
+            effect="dark"
+          >
+            <div
+              class="server-metric-detail-dialog__liquid-overlay server-metric-detail-dialog__liquid-overlay--used"
+              :style="{ width: `${metricMeta.usagePercent}%` }"
+            />
+          </el-tooltip>
+          <el-tooltip
+            :content="`剩余 ${metricMeta.freeText}`"
+            placement="top"
+            effect="dark"
+          >
+            <div
+              class="server-metric-detail-dialog__liquid-overlay server-metric-detail-dialog__liquid-overlay--free"
+              :style="{ left: `${metricMeta.usagePercent}%` }"
+            />
+          </el-tooltip>
+        </div>
         <div class="server-metric-detail-dialog__value-card">
           <small>当前值</small>
-          <strong>{{ metricMeta.value }}</strong>
+          <strong :style="{ color: liquidColor }">{{ metricMeta.value }}</strong>
           <span>{{ metricMeta.total }}</span>
-          <!-- 液体波浪动画容器 -->
-          <div class="server-metric-detail-dialog__liquid-container">
-            <div
-              class="server-metric-detail-dialog__liquid-bg"
-              :style="{
-                background: `linear-gradient(to bottom, 
-                  ${liquidColor}18 0%, 
-                  ${liquidColor}10 50%, 
-                  ${liquidColor}05 100%)`,
-              }"
-            />
-            <!-- 波浪层1 -->
-            <div
-              class="server-metric-detail-dialog__wave server-metric-detail-dialog__wave--1"
-            >
-              <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
-                <path
-                  :fill="liquidColor"
-                  fill-opacity="0.15"
-                  d="M0,50 C360,100 720,0 1080,50 C1260,75 1350,25 1440,50 L1440,100 L0,100 Z"
-                />
-              </svg>
-            </div>
-            <!-- 波浪层2 -->
-            <div
-              class="server-metric-detail-dialog__wave server-metric-detail-dialog__wave--2"
-            >
-              <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
-                <path
-                  :fill="liquidColor"
-                  fill-opacity="0.1"
-                  d="M0,50 C240,0 480,100 720,50 C960,0 1200,100 1440,50 L1440,100 L0,100 Z"
-                />
-              </svg>
-            </div>
-            <!-- 波浪层3 -->
-            <div
-              class="server-metric-detail-dialog__wave server-metric-detail-dialog__wave--3"
-            >
-              <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
-                <path
-                  :fill="liquidColor"
-                  fill-opacity="0.08"
-                  d="M0,30 C180,80 540,20 720,60 C900,100 1260,40 1440,70 L1440,100 L0,100 Z"
-                />
-              </svg>
-            </div>
-            <!-- 已使用覆盖层 - 带Tooltip -->
-            <el-tooltip
-              :content="`已使用 ${metricMeta.usedText}`"
-              placement="top"
-              effect="dark"
-            >
-              <div
-                class="server-metric-detail-dialog__liquid-overlay server-metric-detail-dialog__liquid-overlay--used"
-                :style="{ width: `${metricMeta.usagePercent}%` }"
-              />
-            </el-tooltip>
-            <!-- 剩余覆盖层 - 带Tooltip -->
-            <el-tooltip
-              :content="`剩余 ${metricMeta.freeText}`"
-              placement="top"
-              effect="dark"
-            >
-              <div
-                class="server-metric-detail-dialog__liquid-overlay server-metric-detail-dialog__liquid-overlay--free"
-                :style="{ left: `${metricMeta.usagePercent}%` }"
-              />
-            </el-tooltip>
-          </div>
         </div>
         <div class="server-metric-detail-dialog__chips">
           <div class="server-metric-detail-dialog__chip">
@@ -283,7 +282,7 @@
               <span>{{ diskPartitions.length }} 个</span>
             </div>
           </template>
-          <div class="server-metric-detail-dialog__list">
+          <div class="server-metric-detail-dialog__list thin-scroller">
             <div
               v-for="item in diskPartitions"
               :key="item.mountPoint || item.name"
@@ -326,7 +325,7 @@
               <span>{{ networkInterfaces.length }} 张</span>
             </div>
           </template>
-          <div class="server-metric-detail-dialog__list">
+          <div class="server-metric-detail-dialog__list thin-scroller">
             <div
               v-for="(item, index) in networkInterfaces"
               :key="`${item.name}-${index}`"
@@ -367,7 +366,7 @@
               <span>{{ filteredHistory.length }} 条</span>
             </div>
           </template>
-          <div class="server-metric-detail-dialog__list">
+          <div class="server-metric-detail-dialog__list thin-scroller">
             <div
               v-for="(item, index) in recentHistory"
               :key="`${item.collectTimestamp}-${index}`"
@@ -1070,6 +1069,8 @@ function formatDateTime(
 }
 .server-metric-detail-dialog__header {
   gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 .server-metric-detail-dialog__title-row {
   gap: 10px;
@@ -1089,6 +1090,22 @@ function formatDateTime(
   display: grid;
   gap: 16px;
   padding-bottom: 8px;
+}
+.server-metric-detail-dialog__filters {
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.server-metric-detail-dialog__control--select {
+  width: 112px;
+}
+.server-metric-detail-dialog__control--date {
+  width: 340px;
+}
+.server-metric-detail-dialog__filters :deep(.el-select__wrapper),
+.server-metric-detail-dialog__filters :deep(.el-range-editor.el-input__wrapper) {
+  min-height: 34px;
+  border-radius: 12px;
 }
 .server-metric-detail-dialog__hero,
 .server-metric-detail-dialog__chart-panel,
@@ -1112,11 +1129,14 @@ function formatDateTime(
 .server-metric-detail-dialog__hero {
   gap: 16px;
   padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
 }
 .server-metric-detail-dialog__value-card {
   display: grid;
   gap: 6px;
   position: relative;
+  z-index: 2;
 }
 .server-metric-detail-dialog__value-card small,
 .server-metric-detail-dialog__thresholds span,
@@ -1135,6 +1155,8 @@ function formatDateTime(
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+  position: relative;
+  z-index: 2;
 }
 .server-metric-detail-dialog__chip,
 .server-metric-detail-dialog__badge {
@@ -1339,14 +1361,13 @@ function formatDateTime(
 /* 液体波浪动画容器 */
 .server-metric-detail-dialog__liquid-container {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 16px;
+  border-radius: 24px;
   overflow: hidden;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
 }
 
 .server-metric-detail-dialog__liquid-bg {

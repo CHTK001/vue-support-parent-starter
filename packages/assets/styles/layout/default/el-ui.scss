@@ -196,6 +196,44 @@ translate-x-50\% {
   }
 }
 
+.el-dialog__body,
+.el-drawer__body,
+.overflow-auto,
+.overflow-y-auto,
+.thin-scroller {
+  scrollbar-width: none;
+  scrollbar-color: color-mix(in srgb, var(--el-color-primary) 48%, rgba(148, 163, 184, 0.3)) transparent;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--el-color-primary) 38%, rgba(148, 163, 184, 0.4));
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 58%, rgba(100, 116, 139, 0.48));
+  }
+
+  &:hover,
+  &:focus-within {
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+  }
+}
+
 html[data-skin="8bit"],
 html.theme-8bit {
   .main-content {

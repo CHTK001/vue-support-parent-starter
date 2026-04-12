@@ -100,6 +100,12 @@
     <ServerHostContextMenu
       ref="hostContextMenuRef"
       :soft-enabled="softEnabled"
+      :selection-mode="aggregateMode"
+      :aggregate-ids="aggregateHostIds"
+      @refresh="loadAll"
+      @create="openCreate"
+      @open-global-remote="openGlobalRemoteGateway"
+      @open-global-alert="openGlobalAlertSettings"
       @select="selectHost($event.serverId)"
       @edit="openEdit"
       @remove="removeHost"
@@ -109,6 +115,8 @@
       @open-remote="openRemoteConsole"
       @open-processes="openProcessDialog"
       @open-files="openFileDrawer"
+      @toggle-aggregate-mode="toggleAggregateMode"
+      @open-aggregate-dashboard="openAggregateDashboard"
       @dashboard="openDashboard"
     />
 
@@ -123,17 +131,23 @@
       <template v-if="selectedHost">
         <div class="server-file-toolbar">
           <div class="server-chip-group">
-            <span class="server-chip"
-              >当前目录 {{ fileDisplayCurrentPath }}</span
-            >
-            <span class="server-chip">{{ fileLiveStatus }}</span>
-            <span class="server-chip">预览 {{ filePreviewLines }} 行</span>
-            <span class="server-chip">根目录 ./</span>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              当前目录 {{ fileDisplayCurrentPath }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ fileLiveStatus }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              预览 {{ filePreviewLines }} 行
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              根目录 ./
+            </el-tag>
           </div>
           <div class="server-action-row server-file-toolbar__actions">
             <el-radio-group v-model="fileViewMode" size="small">
-              <el-radio-button value="list">列表</el-radio-button>
-              <el-radio-button value="tree">树状</el-radio-button>
+              <el-radio-button label="list" value="list">列表</el-radio-button>
+              <el-radio-button label="tree" value="tree">经典</el-radio-button>
             </el-radio-group>
             <el-button
               v-if="canNavigateParentDirectory"
@@ -172,7 +186,7 @@
           @change="handleUpload"
         />
         <div class="server-file-grid">
-          <div v-loading="fileLoading" class="server-file-list">
+          <div v-loading="fileLoading" class="server-file-list thin-scroller">
             <template v-if="fileViewMode === 'list'">
               <div
                 v-for="entry in fileEntries"
@@ -224,42 +238,38 @@
                 description="当前目录没有文件"
               />
             </template>
-            <div v-else class="server-file-tree">
-              <el-tree
-                :data="fileTreeData"
-                node-key="key"
-                lazy
-                highlight-current
-                :expand-on-click-node="false"
-                :load="loadFileTreeChildren"
-                @node-click="handleFileTreeSelect"
+            <div v-else class="server-file-tree thin-scroller">
+              <button
+                v-for="entry in fileEntries"
+                :key="entry.path"
+                type="button"
+                class="server-file-tree__node server-file-tree__node--classic"
+                :class="{
+                  'is-active': entry.path === filePreviewPath,
+                  'is-directory': entry.directory,
+                }"
+                @click="enterFileEntry(entry)"
               >
-                <template #default="{ data }">
-                  <div class="server-file-tree__node">
-                    <span class="server-file-item__icon server-file-tree__icon">
-                      <IconifyIconOnline
-                        :icon="
-                          data.directory
-                            ? 'ri:folder-open-line'
-                            : fileEntryIcon(data)
-                        "
-                      />
-                    </span>
-                    <div class="server-file-tree__meta">
-                      <strong>{{ data.name }}</strong>
-                      <p>{{ data.relativePath }}</p>
-                    </div>
-                  </div>
-                </template>
-              </el-tree>
+                <span class="server-file-item__icon server-file-tree__icon">
+                  <IconifyIconOnline :icon="fileEntryIcon(entry)" />
+                </span>
+                <div class="server-file-tree__meta">
+                  <strong>{{ entry.name }}</strong>
+                  <p>{{ toRelativeFilePath(entry.path, selectedHost) }}</p>
+                  <small>
+                    {{ formatFileSize(entry.size) }} ·
+                    {{ formatFileTime(entry.lastModified) }}
+                  </small>
+                </div>
+              </button>
               <el-empty
-                v-if="!fileTreeData.length"
+                v-if="!fileEntries.length"
                 description="当前根目录没有可展示的文件"
               />
             </div>
           </div>
 
-          <div class="server-file-preview">
+          <div class="server-file-preview thin-scroller">
             <div class="server-file-preview__header">
               <div>
                 <h4>{{ fileDisplayPreviewPath || "选择文件查看内容" }}</h4>
@@ -274,9 +284,9 @@
                 </p>
               </div>
               <div class="server-file-preview__header-actions">
-                <span class="server-chip">{{
-                  filePreview?.language || "text"
-                }}</span>
+                <el-tag class="server-inline-tag" effect="plain" round size="small">
+                  {{ filePreview?.language || "text" }}
+                </el-tag>
                 <el-button
                   v-if="fileDirty"
                   size="small"
@@ -387,12 +397,12 @@
       <div v-loading="serviceLogLoading" class="server-service-log-drawer">
         <div class="server-service-log-drawer__toolbar">
           <div class="server-chip-group">
-            <span class="server-chip">{{
-              serviceLogService?.serviceType || "SERVER_SERVICE"
-            }}</span>
-            <span class="server-chip">{{
-              serviceLogService?.installPath || "未配置安装目录"
-            }}</span>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ serviceLogService?.serviceType || "SERVER_SERVICE" }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ serviceLogService?.installPath || "未配置安装目录" }}
+            </el-tag>
           </div>
           <el-button
             v-if="serviceLogService?.serverServiceId"
@@ -404,7 +414,10 @@
           </el-button>
         </div>
 
-        <div v-if="serviceLogs.length" class="server-service-log-drawer__list">
+        <div
+          v-if="serviceLogs.length"
+          class="server-service-log-drawer__list thin-scroller"
+        >
           <article
             v-for="item in serviceLogs"
             :key="item.serverServiceOperationLogId"
@@ -421,9 +434,15 @@
                 }}</strong>
                 <p>{{ item.createTime || "-" }}</p>
               </div>
-              <span class="server-chip">{{
-                item.success ? "成功" : "失败"
-              }}</span>
+              <el-tag
+                class="server-inline-tag"
+                :type="item.success ? 'success' : 'danger'"
+                effect="plain"
+                round
+                size="small"
+              >
+                {{ item.success ? "成功" : "失败" }}
+              </el-tag>
             </header>
             <p class="server-service-log-drawer__message">
               {{ item.operationMessage || "-" }}
@@ -469,15 +488,15 @@
         <div class="server-remote-console__toolbar">
           <div class="server-remote-console__meta">
             <div class="server-chip-group">
-              <span class="server-chip">{{
-                remoteConsoleConfig?.provider || "remote"
-              }}</span>
-              <span class="server-chip">{{
-                remoteConsoleConfig?.protocol || "auto"
-              }}</span>
-              <span class="server-chip">{{
-                remoteConsoleConfig?.connectionId || "-"
-              }}</span>
+              <el-tag class="server-inline-tag" effect="plain" round size="small">
+                {{ remoteConsoleConfig?.provider || "remote" }}
+              </el-tag>
+              <el-tag class="server-inline-tag" effect="plain" round size="small">
+                {{ remoteConsoleConfig?.protocol || "auto" }}
+              </el-tag>
+              <el-tag class="server-inline-tag" effect="plain" round size="small">
+                {{ remoteConsoleConfig?.connectionId || "-" }}
+              </el-tag>
             </div>
             <p class="server-remote-console__hint">
               {{
@@ -548,6 +567,7 @@
       description="当前服务器可以继承全局远程代理，也可以覆盖成自己的独立入口。"
       :saving="remoteGatewaySaving"
       :form="hostRemoteGatewayForm"
+      :resolved-gateway-url="resolvedHostRemoteGatewayUrl"
       :provider-options="remoteGatewayProviderOptions"
       :protocol-options="remoteGatewayProtocolOptions"
       show-inherit
@@ -714,14 +734,14 @@
                       item.versionName || item.installedVersion || "默认版本"
                     }}
                   </p>
-                  <div class="soft-drawer__item-chips">
-                    <span class="server-chip">
-                      备份点 {{ getInstallationBackupCount(item) }}
-                    </span>
-                    <span class="server-chip">
-                      {{ getInstallationUpgradeText(item) }}
-                    </span>
-                  </div>
+            <div class="soft-drawer__item-chips">
+              <el-tag class="server-inline-tag" effect="plain" round size="small">
+                备份点 {{ getInstallationBackupCount(item) }}
+              </el-tag>
+              <el-tag class="server-inline-tag" effect="plain" round size="small">
+                {{ getInstallationUpgradeText(item) }}
+              </el-tag>
+            </div>
                 </div>
                 <div class="soft-drawer__item-meta">
                   <span>{{
@@ -758,16 +778,27 @@
                       {{ item.installPath || "未配置安装目录" }}
                     </p>
                     <div class="soft-drawer__item-chips">
-                      <span class="server-chip">
+                      <el-tag
+                        class="server-inline-tag"
+                        effect="plain"
+                        round
+                        size="small"
+                      >
                         {{
                           item.softInstallationId
                             ? `安装实例 #${item.softInstallationId}`
                             : "独立服务器服务"
                         }}
-                      </span>
-                      <span v-if="item.softPackageId" class="server-chip">
+                      </el-tag>
+                      <el-tag
+                        v-if="item.softPackageId"
+                        class="server-inline-tag"
+                        effect="plain"
+                        round
+                        size="small"
+                      >
                         软件 #{{ item.softPackageId }}
-                      </span>
+                      </el-tag>
                     </div>
                   </div>
                   <div class="soft-drawer__item-meta">
@@ -900,9 +931,30 @@
       </ScScrollbar>
     </el-drawer>
 
+    <el-drawer
+      v-model="projectDrawerVisible"
+      size="min(90vw, 1440px)"
+      destroy-on-close
+      append-to-body
+      class="server-project-drawer"
+      :title="
+        projectDrawerHostName
+          ? `${projectDrawerHostName} · 项目管理`
+          : '项目管理'
+      "
+    >
+      <iframe
+        v-if="projectDrawerUrl"
+        class="server-project-drawer__frame"
+        :src="projectDrawerUrl"
+      />
+      <el-empty v-else description="请选择服务器后再打开项目管理" />
+    </el-drawer>
+
     <el-dialog
       v-model="installVisible"
       width="1120px"
+      destroy-on-close
       :title="installHost ? `安装软件到 ${installHost.serverName}` : '安装软件'"
     >
       <el-steps :active="installStep" simple class="install-steps">
@@ -918,14 +970,16 @@
             <p>软件列表已按当前服务器的操作系统、架构和启用状态过滤</p>
           </header>
           <div class="server-chip-group">
-            <span class="server-chip">{{
-              installHost?.serverName || "-"
-            }}</span>
-            <span class="server-chip">{{ hostAddress(installHost) }}</span>
-            <span class="server-chip">
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ installHost?.serverName || "-" }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ hostAddress(installHost) }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
               {{ osLabel(installHost?.osType) }} /
               {{ archLabel(installHost?.architecture) }}
-            </span>
+            </el-tag>
           </div>
         </article>
 
@@ -1062,13 +1116,15 @@
           </header>
 
           <div class="server-chip-group">
-            <span class="server-chip">{{
-              installHost?.serverName || "-"
-            }}</span>
-            <span class="server-chip">{{
-              installSelectedPackage?.packageName || "-"
-            }}</span>
-            <span class="server-chip">{{ installSelectedVersionLabel }}</span>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ installHost?.serverName || "-" }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ installSelectedPackage?.packageName || "-" }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ installSelectedVersionLabel }}
+            </el-tag>
           </div>
 
           <el-alert
@@ -1887,7 +1943,16 @@ const hostAlertSettingsTitle = computed(() =>
     ? `${selectedHost.value.serverName} · 预警设置`
     : "服务器预警设置",
 );
+const resolvedHostRemoteGatewayUrl = computed(
+  () =>
+    textValue(hostRemoteGatewayForm.gatewayUrl) ||
+    textValue(selectedRemoteGateway.value?.gatewayUrl) ||
+    textValue(globalRemoteGatewayForm.gatewayUrl),
+);
 const aiEnabled = computed(() => Boolean(serverCapabilities.value?.aiEnabled));
+const projectDrawerVisible = ref(false);
+const projectDrawerHostName = ref("");
+const projectDrawerUrl = ref("");
 const serviceAutoDetectEnabled = computed(() =>
   Boolean(serverCapabilities.value?.serviceAutoDetectEnabled),
 );
@@ -4607,17 +4672,18 @@ const openRemoteConsole = async (host?: ServerHost | null) => {
     selectHost(targetHost.serverId);
     await nextTick();
   }
-  const config =
-    targetHost.remoteGatewayConfig ||
-    targetHost.guacamoleConfig ||
-    selectedRemoteGateway.value ||
-    (targetHost.serverId
-      ? (
-          await getServerHostRemoteConsoleConfig(targetHost.serverId).catch(
-            () => null,
-          )
-        )?.data
-      : null);
+  const config = targetHost.serverId
+    ? (
+        await getServerHostRemoteConsoleConfig(targetHost.serverId).catch(
+          () => null,
+        )
+      )?.data ||
+      targetHost.remoteGatewayConfig ||
+      targetHost.guacamoleConfig ||
+      selectedRemoteGateway.value
+    : targetHost.remoteGatewayConfig ||
+      targetHost.guacamoleConfig ||
+      selectedRemoteGateway.value;
   if (!config?.launchUrl) {
     message(config?.message || "当前服务器未配置远程控制入口", {
       type: "warning",
@@ -4729,8 +4795,11 @@ const openEdit = (host: ServerHost) => {
   patchForm(host);
   dialogVisible.value = true;
 };
-const openHostContextMenu = (event: MouseEvent, entry: ServerHostListEntry) => {
-  hostContextMenuRef.value?.open(event, entry);
+const openHostContextMenu = (
+  event: MouseEvent,
+  entry?: ServerHostListEntry | null,
+) => {
+  hostContextMenuRef.value?.open(event, entry || null);
 };
 const openGlobalRemoteGateway = async () => {
   const result = await getServerRemoteGatewaySettings().catch(() => null);
@@ -4765,6 +4834,11 @@ const openHostRemoteGateway = async (host: ServerHost) => {
     () => null,
   );
   applyRemoteGatewayForm(hostRemoteGatewayForm, result?.data || null);
+  if (!globalRemoteGatewayForm.gatewayUrl) {
+    const globalResult = await getServerRemoteGatewaySettings().catch(() => null);
+    applyRemoteGatewayForm(globalRemoteGatewayForm, globalResult?.data || null);
+    globalRemoteGatewayForm.inheritGlobal = false;
+  }
   hostRemoteGatewayVisible.value = true;
 };
 const submitGlobalAlertSettings = async () => {
@@ -5031,13 +5105,16 @@ const openProjectManagement = async (host?: ServerHost | null) => {
     await nextTick();
   }
   const target = host || selectedHost.value;
-  router.push({
+  const route = router.resolve({
     path: "/server/projects",
     query: {
       serverId: target?.serverId || "",
       serverName: target?.serverName || "",
     },
   });
+  projectDrawerHostName.value = target?.serverName || "";
+  projectDrawerUrl.value = route.href;
+  projectDrawerVisible.value = true;
 };
 
 const openAlertDetail = async (alert: ServerAlertEvent) => {
@@ -5934,20 +6011,23 @@ onUnmounted(() => {
 .server-file-list {
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: 8px;
   overflow: auto;
   max-height: calc(100vh - 220px);
 }
 .server-file-tree {
   min-height: 100%;
+  display: grid;
+  gap: 6px;
+  align-content: start;
 }
 .server-file-tree :deep(.el-tree) {
   background: transparent;
 }
 .server-file-tree :deep(.el-tree-node__content) {
-  height: auto;
-  padding: 4px 0;
-  border-radius: 12px;
+  min-height: 38px;
+  padding: 2px 0;
+  border-radius: 10px;
 }
 .server-file-tree :deep(.el-tree-node__content:hover) {
   background: rgba(14, 165, 233, 0.08);
@@ -5956,25 +6036,52 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 6px 8px;
+  padding: 4px 8px;
+}
+.server-file-tree__node--classic {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.server-file-tree__node--classic:hover,
+.server-file-tree__node--classic.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(14, 165, 233, 0.3);
+  box-shadow: 0 12px 20px rgba(15, 23, 42, 0.06);
 }
 .server-file-tree__icon {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
 }
 .server-file-tree__meta {
   min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 .server-file-tree__meta strong {
   display: block;
   color: #0f172a;
+  font-size: 13px;
+  line-height: 1.1;
 }
 .server-file-tree__meta p {
-  margin: 4px 0 0;
+  margin: 0;
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.server-file-tree__meta small {
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.2;
 }
 .server-file-item {
   display: flex;
@@ -5982,9 +6089,9 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.88);
   text-align: left;
   cursor: default;
@@ -6010,23 +6117,24 @@ onUnmounted(() => {
 .server-file-item__main {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 .server-file-item__main p {
   margin: 4px 0 0;
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
 }
 .server-file-item__main strong {
   color: #0f172a;
+  font-size: 13px;
 }
 .server-file-item__icon {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
   background: rgba(14, 165, 233, 0.12);
   color: #0284c7;
   flex-shrink: 0;
@@ -6070,13 +6178,19 @@ onUnmounted(() => {
   gap: 8px;
   flex-wrap: wrap;
 }
-.server-chip {
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.06);
-  color: #334155;
-  font-size: 12px;
+
+.server-project-drawer__frame {
+  width: 100%;
+  height: calc(100vh - 110px);
+  border: 0;
+  border-radius: 18px;
+  background: var(--el-bg-color-page);
+}
+.server-inline-tag {
+  --el-tag-border-color: rgba(148, 163, 184, 0.18);
+  --el-tag-bg-color: rgba(255, 255, 255, 0.82);
+  --el-tag-text-color: #475569;
+  font-weight: 500;
 }
 .server-activity-list,
 .server-soft-instance-grid,

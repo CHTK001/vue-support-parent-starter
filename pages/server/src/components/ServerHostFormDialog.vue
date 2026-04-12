@@ -62,12 +62,28 @@
           </el-form-item>
 
           <el-form-item label="启用状态">
-            <el-switch
-              v-model="enabledModel"
-              inline-prompt
-              active-text="启用"
-              inactive-text="停用"
-            />
+            <div class="server-form-dialog__toggle-icons">
+              <el-tooltip content="启用服务器">
+                <button
+                  type="button"
+                  class="server-form-dialog__toggle-icon"
+                  :class="{ 'is-active': enabledModel }"
+                  @click="enabledModel = true"
+                >
+                  <IconifyIconOnline icon="ri:play-circle-line" />
+                </button>
+              </el-tooltip>
+              <el-tooltip content="停用服务器">
+                <button
+                  type="button"
+                  class="server-form-dialog__toggle-icon"
+                  :class="{ 'is-active': !enabledModel, 'is-danger': !enabledModel }"
+                  @click="enabledModel = false"
+                >
+                  <IconifyIconOnline icon="ri:pause-circle-line" />
+                </button>
+              </el-tooltip>
+            </div>
           </el-form-item>
 
           <el-form-item v-if="form.serverType !== 'LOCAL'" label="主机地址">
@@ -202,6 +218,7 @@
 import { computed, ref } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { ServerHost } from "../api";
 import type { SelectOption } from "./server-types";
 import { normalizeOs, osIcon } from "../utils/serverHost";
@@ -411,6 +428,46 @@ const connectionHint = computed(() => {
 
 .server-form-dialog__badge.is-macos {
   background: linear-gradient(145deg, #94a3b8, #475569);
+}
+
+.server-form-dialog__toggle-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.server-form-dialog__toggle-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+  color: #64748b;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.server-form-dialog__toggle-icon:hover {
+  transform: translateY(-1px);
+}
+
+.server-form-dialog__toggle-icon.is-active {
+  color: var(--el-color-primary);
+  border-color: color-mix(in srgb, var(--el-color-primary) 34%, rgba(148, 163, 184, 0.24));
+  box-shadow: 0 14px 28px rgba(59, 130, 246, 0.14);
+}
+
+.server-form-dialog__toggle-icon.is-danger.is-active {
+  color: var(--el-color-danger);
+  border-color: color-mix(in srgb, var(--el-color-danger) 34%, rgba(148, 163, 184, 0.24));
+  box-shadow: 0 14px 28px rgba(239, 68, 68, 0.12);
 }
 
 .server-form-dialog__hero h3 {
