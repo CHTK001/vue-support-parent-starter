@@ -492,6 +492,8 @@ const resetWorkspaceState = () => {
   catalogTree.value = [];
   activeNode.value = null;
   tableStructureCache.value = {};
+  fieldNotes.value = {};
+  objectNotes.value = {};
   inspectorTabs.value = [];
   activeInspectorTabId.value = "workspace";
   expandedTableNodeId.value = "";
