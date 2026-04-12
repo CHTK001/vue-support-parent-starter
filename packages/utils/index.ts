@@ -39,7 +39,7 @@ export * from "./src/session";
 export * from "./src/page-behavior";
 export * from "./src/performance";
 export * from "./src/time/clock";
-export * from "./src/face";
+export type * from "./src/face";
 export * from "./src/composables/usePage";
 export { withInstall } from "@pureadmin/utils";
 export { NProgress, Cookies, CryptoJS, date };
@@ -56,4 +56,8 @@ export function loadRemoteModule(...args: any[]) {
     const { loadRemoteModule: innerLoadRemoteModule } = await import("./src/sfc");
     return (innerLoadRemoteModule as (...params: any[]) => any)(...args);
   });
+}
+
+export async function loadFaceApiModule() {
+  return import("./src/face");
 }

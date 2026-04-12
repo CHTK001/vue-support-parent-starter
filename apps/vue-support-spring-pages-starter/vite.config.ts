@@ -10,6 +10,19 @@ const proxyPagesRoot = resolve(appRoot, "../../pages/proxy");
 const springPagesRoot = resolve(appRoot, "../../pages/spring");
 const syncPagesRoot = resolve(appRoot, "../../pages/sync");
 const strategyPagesRoot = resolve(appRoot, "../../pages/strategy");
+const spiderPagesRoot = resolve(appRoot, "../../pages/spider");
+const springPageKey = process.env.VITE_SPRING_PAGE_KEY || "job-console";
+const springPageEntryMap = {
+  "job-console": resolve(appRoot, "src/page-entries/job-console.ts"),
+  "payment-console": resolve(appRoot, "src/page-entries/payment-console.ts"),
+  "proxy-console": resolve(appRoot, "src/page-entries/proxy-console.ts"),
+  "spider-console": resolve(appRoot, "src/page-entries/spider-console.ts"),
+  "strategy-console": resolve(appRoot, "src/page-entries/strategy-console.ts"),
+  "sync-data-console": resolve(appRoot, "src/page-entries/sync-data-console.ts"),
+} as const;
+const springPageEntry =
+  springPageEntryMap[springPageKey as keyof typeof springPageEntryMap]
+  || springPageEntryMap["job-console"];
 
 export default createViteConfig(import.meta.url, pkg)
   .alias("@pages/job", resolve(jobPagesRoot, "src/simple.ts"))
@@ -18,12 +31,14 @@ export default createViteConfig(import.meta.url, pkg)
   .alias("@pages/spring", resolve(springPagesRoot, "src/index.ts"))
   .alias("@pages/sync", resolve(syncPagesRoot, "src/index.ts"))
   .alias("@pages/strategy", resolve(strategyPagesRoot, "src/simple.ts"))
+  .alias("@spring-page-entry", springPageEntry)
   .fsAllow(jobPagesRoot)
   .fsAllow(payPagesRoot)
   .fsAllow(proxyPagesRoot)
   .fsAllow(springPagesRoot)
   .fsAllow(syncPagesRoot)
   .fsAllow(strategyPagesRoot)
+  .fsAllow(spiderPagesRoot)
   .target("es2020")
   .removeConsole(false)
   .merge({

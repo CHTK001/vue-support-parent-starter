@@ -1,0 +1,67 @@
+export interface ReturnResult<E> {
+  code: string | number;
+  msg: string;
+  message: string;
+  data: E;
+  headers?: any;
+  success: boolean;
+}
+
+type RequestMethod = "get" | "post" | "put" | "delete";
+
+type RequestOptions = {
+  data?: unknown;
+  params?: Record<string, unknown>;
+};
+
+const buildUrl = (url: string, params?: Record<string, unknown>) => {
+  const target = new URL(url, window.location.origin);
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    target.searchParams.set(key, String(value));
+  }
+  return target.toString();
+};
+
+export const withInstall = <T extends { name?: string }>(component: T) => {
+  const target = component as T & {
+    install?: (app: { component: (name: string, value: unknown) => void }) => void;
+  };
+  target.install = app => {
+    if (component.name) {
+      app.component(component.name, component);
+    }
+  };
+  return target;
+};
+
+export const http = {
+  async request<T>(
+    method: RequestMethod,
+    url: string,
+    options?: RequestOptions,
+  ): Promise<T> {
+    const response = await fetch(buildUrl(url, options?.params), {
+      method: method.toUpperCase(),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body:
+        options?.data === undefined
+          ? undefined
+          : JSON.stringify(options.data),
+    });
+
+    const payload = await response.json();
+    return {
+      data: payload?.data ?? payload,
+      code: payload?.code ?? response.status,
+      msg: payload?.msg ?? payload?.message ?? response.statusText,
+      message: payload?.message ?? payload?.msg ?? response.statusText,
+      success: payload?.success ?? response.ok,
+      headers: {},
+    } as T;
+  },
+};

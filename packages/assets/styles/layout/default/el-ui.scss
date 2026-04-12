@@ -86,7 +86,7 @@
 //var(--el-segmented-item-selected-bg-color)
 .pure-segmented-item-selected {
   --el-segmented-item-selected-color: var(--el-color-white);
-  --el-segmented-item-selected-bg-color: var(--el-color-primary);
+  --el-segmented-item-selected-bg-color: #fff;
   background: var(--el-segmented-item-selected-bg-color) !important;
   color: var(--el-segmented-item-selected-color) !important;
 }

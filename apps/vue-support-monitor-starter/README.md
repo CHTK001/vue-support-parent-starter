@@ -10,19 +10,6 @@ Vue Support Monitor Starter 是一个基于 Vue 3 + TypeScript + Element Plus �
 - [monitor 联调测试报告](../../docs/monitor-test-report-20260328.md)
 - [文档索引](../../docs/README.md)
 
-### 数据管理控制台更新（2025-08-18）
-
-- Redis 控制台对齐 JDBC 控制台：
-  - 左侧统一为树结构，复用 /root、/children、/node 接口
-  - 右侧按 Key 类型自动渲染不同视图（string/hash/list/set/zset）
-  - 支持分栏拖拽与刷新当前值
-- 修改文件：src/views/data-management/console/RedisConsole.vue
-
-- 数据管理设置编辑页：
-  - 控制台类型改为“启用控制台”开关（关闭时提交空 consoleType）
-  - 远程模式（REMOTE）下增加必填校验：Server 或 Host+Port 二选一
-  - 后端新增接口：POST /system/data/setting/save
-
 ## 最新更新
 
 ### 软件管理模块组件化重构（2025-01-10）

@@ -1,479 +1,624 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card hero-card--main">
-        <p>Payment Readiness</p>
-        <strong>{{ readinessScore }}%</strong>
-        <span>基于商户激活、订单执行、钱包处理和微信支付分履约情况生成的运行态快照。</span>
-      </article>
-      <article class="hero-card">
-        <p>商户与渠道</p>
-        <strong>{{ merchantTotal }}</strong>
-        <span>激活商户 {{ activeMerchantCount }}，当前页已配置渠道 {{ configuredChannelCount }}。</span>
-      </article>
-      <article class="hero-card">
-        <p>订单与流水</p>
-        <strong>{{ orderTotal }}</strong>
-        <span>待处理订单 {{ pendingOrderCount }}，交易流水 {{ transactionTotal }}。</span>
-      </article>
-      <article class="hero-card">
-        <p>钱包订单</p>
-        <strong>{{ walletTotal }}</strong>
-        <span>处理中 {{ walletProcessingCount }}，成功 {{ walletSuccessCount }}。</span>
-      </article>
-      <article class="hero-card">
-        <p>微信支付分</p>
-        <strong>{{ payScoreTotal }}</strong>
-        <span>服务中 {{ payScoreDoingCount }}，已完结 {{ payScoreCompletedCount }}。</span>
-      </article>
-    </div>
-
-    <div class="dashboard-grid">
-      <el-card class="panel panel--highlight" shadow="never">
-        <template #header>
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Mission Board</p>
-              <h3>关键动作入口</h3>
-            </div>
+  <section class="home-view">
+    <div class="home-shell">
+      <section class="dashboard-card">
+        <div class="dashboard-card__header">
+          <div>
+            <p class="dashboard-card__eyebrow">Business Dashboard</p>
+            <h1>支付业务首页</h1>
+            <p class="dashboard-card__desc">
+              首页只保留业务统计和常用入口，默认展示今天的数据。
+            </p>
           </div>
-        </template>
-
-        <div class="action-grid">
-          <button class="action-tile" type="button" @click="router.push('/merchants')">
-            <span class="action-tile__tag">配置</span>
-            <strong>商户与渠道</strong>
-            <p>补齐商户、provider SPI、回调地址和可执行子渠道。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/orders')">
-            <span class="action-tile__tag">执行</span>
-            <strong>支付订单台</strong>
-            <p>查看订单状态机、发起支付、同步第三方状态和退款动作。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/wallet-orders')">
-            <span class="action-tile__tag">钱包</span>
-            <strong>钱包订单台</strong>
-            <p>创建充值、转账、提现订单，并确认回调地址与处理结果。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/wechat-pay-score')">
-            <span class="action-tile__tag">增强</span>
-            <strong>微信支付分</strong>
-            <p>创建服务订单、同步状态、完结订单并追踪专属回调。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/transactions')">
-            <span class="action-tile__tag">对账</span>
-            <strong>交易流水</strong>
-            <p>核对支付、退款和处理中流水，快速定位异常交易。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/refunds')">
-            <span class="action-tile__tag">退款</span>
-            <strong>退款管理</strong>
-            <p>集中查看退款单、确认成功/失败，并核对第三方退款单号。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/wallet-console')">
-            <span class="action-tile__tag">余额</span>
-            <strong>钱包账户</strong>
-            <p>查询余额、查看账变、直接充值，为钱包支付链路测试做准备。</p>
-          </button>
-          <button class="action-tile" type="button" @click="router.push('/operations')">
-            <span class="action-tile__tag">运维</span>
-            <strong>运营中心</strong>
-            <p>查看回调诊断、动态调整任务 cron，并处理回调异常重试。</p>
-          </button>
-        </div>
-      </el-card>
-
-      <el-card class="panel" shadow="never">
-        <template #header>
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Capability Matrix</p>
-              <h3>执行能力矩阵</h3>
-            </div>
-          </div>
-        </template>
-
-        <div class="matrix-grid">
-          <div class="matrix-item">
-            <span class="matrix-item__label">标准支付</span>
-            <strong>微信 / 支付宝 / 钱包 / 聚合路由</strong>
-            <p>JSAPI、H5、APP、MINI_PROGRAM、NATIVE、WEB、WAP 与钱包余额链路已统一进主线。</p>
-          </div>
-          <div class="matrix-item">
-            <span class="matrix-item__label">回调识别</span>
-            <strong>路径携带业务号</strong>
-            <p>`pay/refund/payscore/wallet` 都按路径上的订单号或退款号做精确分发。</p>
-          </div>
-          <div class="matrix-item">
-            <span class="matrix-item__label">特殊能力</span>
-            <strong>微信支付分与钱包订单已单独建模</strong>
-            <p>不混入普通支付订单，独立保存服务订单、钱包订单、状态和通知结果。</p>
-          </div>
-          <div class="matrix-item">
-            <span class="matrix-item__label">当前风险</span>
-            <strong>{{ readinessRisk }}</strong>
-            <p>{{ readinessAdvice }}</p>
+          <div class="dashboard-card__actions">
+            <el-button-group>
+              <el-button
+                v-for="item in rangePresets"
+                :key="item.value"
+                :type="activePreset === item.value ? 'primary' : 'default'"
+                @click="applyPreset(item.value)"
+              >
+                {{ item.label }}
+              </el-button>
+            </el-button-group>
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              unlink-panels
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              @change="handleRangeChange"
+            />
+            <el-button type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard">
+              刷新
+            </el-button>
           </div>
         </div>
-      </el-card>
 
-      <el-card class="panel" shadow="never">
-        <template #header>
-          <div class="panel__header">
-            <div>
-              <p class="panel__eyebrow">Runtime Snapshot</p>
-              <h3>实时快照</h3>
-            </div>
-            <el-button text @click="loadDashboard">刷新</el-button>
-          </div>
-        </template>
+        <div class="dashboard-card__tips">
+          <el-tag effect="plain" type="success">统计周期 {{ currentRangeLabel }}</el-tag>
+          <el-tag effect="plain">自动关单 {{ schedulerEngineLabel }}</el-tag>
+          <span class="dashboard-card__tip-text">支付、退款、回调均来自后端真实汇总接口</span>
+        </div>
+      </section>
 
-        <div class="snapshot-list">
-          <div class="snapshot-row">
-            <span>激活商户占比</span>
-            <el-progress :percentage="merchantActivationRate" :stroke-width="10" color="#b86f2c" />
+      <section class="stats-grid">
+        <article v-for="item in summaryCards" :key="item.label" class="metric-card">
+          <div class="metric-card__icon" :style="{ background: item.softColor, color: item.color }">
+            <el-icon><component :is="item.icon" /></el-icon>
           </div>
-          <div class="snapshot-row">
-            <span>成功订单占比</span>
-            <el-progress :percentage="paidOrderRate" :stroke-width="10" color="#3f7b53" />
+          <div class="metric-card__body">
+            <span class="metric-card__label">{{ item.label }}</span>
+            <strong class="metric-card__value">{{ item.value }}</strong>
+            <span class="metric-card__hint">{{ item.hint }}</span>
           </div>
-          <div class="snapshot-row">
-            <span>钱包成功占比</span>
-            <el-progress :percentage="walletSuccessRate" :stroke-width="10" color="#7d5d2e" />
-          </div>
-          <div class="snapshot-row">
-            <span>支付分完结占比</span>
-            <el-progress :percentage="payScoreCompletedRate" :stroke-width="10" color="#446d8f" />
+        </article>
+      </section>
+
+      <section class="info-strip">
+        <article class="info-chip">
+          <span>商户数</span>
+          <strong>{{ merchantTotal }}</strong>
+          <small>激活 {{ activeMerchantCount }} / 已配 {{ configuredMerchantCount }}</small>
+        </article>
+        <article class="info-chip">
+          <span>流水数</span>
+          <strong>{{ transactionCount }}</strong>
+          <small>按后端时间范围聚合</small>
+        </article>
+        <article class="info-chip">
+          <span>成功回调</span>
+          <strong>{{ successNotifyCount }}</strong>
+          <small>失败 {{ failedNotifyCount }}</small>
+        </article>
+        <article class="info-chip">
+          <span>定时任务</span>
+          <strong>{{ enabledTaskCount }}</strong>
+          <small>支持 payment / job</small>
+        </article>
+      </section>
+
+      <section class="entry-card">
+        <div class="entry-card__header">
+          <div>
+            <p class="dashboard-card__eyebrow">Quick Entry</p>
+            <h2>业务入口</h2>
           </div>
         </div>
-      </el-card>
+
+        <div class="entry-grid">
+          <a
+            v-for="item in entryCards"
+            :key="item.path"
+            class="entry-button"
+            :href="item.path"
+          >
+            <span class="entry-button__icon" :style="{ background: item.softColor, color: item.color }">
+              <el-icon><component :is="item.icon" /></el-icon>
+            </span>
+            <span class="entry-button__content">
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.description }}</small>
+            </span>
+          </a>
+        </div>
+      </section>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import { userKey } from "@repo/config";
 import {
-  getMerchantChannels,
-  getMerchantList,
-  getOrderList,
-  getTransactionList,
-  getWalletOrderList,
-  getWechatPayScoreList,
-} from "../api/payment";
-import type { Merchant } from "../types/payment";
+  Bell,
+  CreditCard,
+  DataAnalysis,
+  Money,
+  RefreshRight,
+  Setting,
+  Shop,
+  Tickets,
+  Timer,
+} from "@element-plus/icons-vue";
+import { getPaymentDashboardSummary, getSchedulerTasks } from "../api/payment";
+import type { PaymentDashboardSummary, PaymentSchedulerTask } from "../types/payment";
+import { formatCurrency } from "./support/paymentView";
 
-const router = useRouter();
+type PresetValue = "today" | "7d" | "30d" | "custom";
 
-const merchantTotal = ref(0);
-const activeMerchantCount = ref(0);
-const configuredChannelCount = ref(0);
-const orderTotal = ref(0);
-const pendingOrderCount = ref(0);
-const paidOrderCount = ref(0);
-const transactionTotal = ref(0);
-const walletTotal = ref(0);
-const walletProcessingCount = ref(0);
-const walletSuccessCount = ref(0);
-const payScoreTotal = ref(0);
-const payScoreDoingCount = ref(0);
-const payScoreCompletedCount = ref(0);
+const loading = ref(false);
+const activePreset = ref<PresetValue>("today");
+const dateRange = ref<[Date, Date] | null>(createPresetRange("today"));
+const schedulerTasks = ref<PaymentSchedulerTask[]>([]);
+const dashboardSummary = ref<PaymentDashboardSummary>({
+  merchantTotal: 0,
+  activeMerchantCount: 0,
+  configuredMerchantCount: 0,
+  paymentOrderCount: 0,
+  refundCount: 0,
+  transactionCount: 0,
+  callbackRequestCount: 0,
+  successNotifyCount: 0,
+  failedNotifyCount: 0,
+  averageProcessDurationMs: 0,
+  totalConsumeAmount: 0,
+  totalRefundAmount: 0,
+});
 
-const readinessScore = computed(() => {
-  const scores = [
-    merchantActivationRate.value,
-    paidOrderRate.value,
-    walletSuccessRate.value,
-    payScoreCompletedRate.value,
+const rangePresets: Array<{ label: string; value: PresetValue }> = [
+  { label: "今天", value: "today" },
+  { label: "近7天", value: "7d" },
+  { label: "近30天", value: "30d" },
+];
+
+const roles = computed(() => {
+  try {
+    const raw = localStorage.getItem(userKey);
+    if (!raw) {
+      return [] as string[];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.roles) ? parsed.roles : Array.isArray(parsed?.userInfo?.roles) ? parsed.userInfo.roles : [];
+  } catch {
+    return [] as string[];
+  }
+});
+
+const isAdmin = computed(() =>
+  roles.value.some((role) => ["ADMIN", "SUPER_ADMIN", "admin", "superadmin"].includes(String(role))),
+);
+
+const merchantTotal = computed(() => Number(dashboardSummary.value.merchantTotal || 0));
+const activeMerchantCount = computed(() => Number(dashboardSummary.value.activeMerchantCount || 0));
+const configuredMerchantCount = computed(() => Number(dashboardSummary.value.configuredMerchantCount || 0));
+const paymentOrderCount = computed(() => Number(dashboardSummary.value.paymentOrderCount || 0));
+const refundCount = computed(() => Number(dashboardSummary.value.refundCount || 0));
+const totalConsumeAmount = computed(() => Number(dashboardSummary.value.totalConsumeAmount || 0));
+const totalRefundAmount = computed(() => Number(dashboardSummary.value.totalRefundAmount || 0));
+const callbackRequestCount = computed(() => Number(dashboardSummary.value.callbackRequestCount || 0));
+const successNotifyCount = computed(() => Number(dashboardSummary.value.successNotifyCount || 0));
+const failedNotifyCount = computed(() => Number(dashboardSummary.value.failedNotifyCount || 0));
+const transactionCount = computed(() => Number(dashboardSummary.value.transactionCount || 0));
+const averageDuration = computed(() => formatDuration(Number(dashboardSummary.value.averageProcessDurationMs || 0)));
+const enabledTaskCount = computed(() => schedulerTasks.value.filter((item) => item.enabled).length);
+
+const schedulerEngineLabel = computed(() => {
+  if (!schedulerTasks.value.length) {
+    return "未发现任务";
+  }
+  return "内置调度，可切换 job-starter";
+});
+
+const currentRangeLabel = computed(() => {
+  if (!dateRange.value) {
+    return "-";
+  }
+  return `${formatDate(dateRange.value[0])} 至 ${formatDate(dateRange.value[1])}`;
+});
+
+const summaryCards = computed(() => [
+  {
+    label: "支付订单数",
+    value: `${paymentOrderCount.value}`,
+    hint: "按后端真实支付时间聚合",
+    icon: Tickets,
+    color: "#0f766e",
+    softColor: "rgba(15, 118, 110, 0.12)",
+  },
+  {
+    label: "退款数量",
+    value: `${refundCount.value}`,
+    hint: "按退款成功记录统计",
+    icon: CreditCard,
+    color: "#c2410c",
+    softColor: "rgba(194, 65, 12, 0.12)",
+  },
+  {
+    label: "总消费金额",
+    value: formatCurrency(totalConsumeAmount.value),
+    hint: "后端汇总 paidAmount / orderAmount",
+    icon: Money,
+    color: "#2563eb",
+    softColor: "rgba(37, 99, 235, 0.12)",
+  },
+  {
+    label: "退款金额",
+    value: formatCurrency(totalRefundAmount.value),
+    hint: "后端汇总退款成功金额",
+    icon: DataAnalysis,
+    color: "#9333ea",
+    softColor: "rgba(147, 51, 234, 0.12)",
+  },
+  {
+    label: "回调请求数量",
+    value: `${callbackRequestCount.value}`,
+    hint: `成功 ${successNotifyCount.value} / 失败 ${failedNotifyCount.value}`,
+    icon: Bell,
+    color: "#d97706",
+    softColor: "rgba(217, 119, 6, 0.12)",
+  },
+  {
+    label: "平均耗时",
+    value: averageDuration.value,
+    hint: "回调接收至处理完成耗时",
+    icon: Timer,
+    color: "#475467",
+    softColor: "rgba(71, 84, 103, 0.12)",
+  },
+]);
+
+const entryCards = computed(() => {
+  const cards = [
+    {
+      title: "商户管理",
+      description: "维护商户、支付方式和回调地址",
+      path: "/merchants",
+      icon: Shop,
+      color: "#0f766e",
+      softColor: "rgba(15, 118, 110, 0.12)",
+    },
+    {
+      title: "订单管理",
+      description: "查看订单、支付状态和退款动作",
+      path: "/orders",
+      icon: Tickets,
+      color: "#2563eb",
+      softColor: "rgba(37, 99, 235, 0.12)",
+    },
+    {
+      title: "交易流水",
+      description: "排查支付、退款、第三方交易记录",
+      path: "/transactions",
+      icon: CreditCard,
+      color: "#7c3aed",
+      softColor: "rgba(124, 58, 237, 0.12)",
+    },
   ];
-  return Math.round(scores.reduce((sum, item) => sum + item, 0) / scores.length);
+
+  if (isAdmin.value) {
+    cards.push({
+      title: "订单配置",
+      description: "管理自动关单、分表和迁移策略",
+      path: "/order-config",
+      icon: Setting,
+      color: "#475467",
+      softColor: "rgba(71, 84, 103, 0.12)",
+    });
+  }
+
+  return cards;
 });
 
-const merchantActivationRate = computed(() => percentage(activeMerchantCount.value, merchantTotal.value));
-const paidOrderRate = computed(() => percentage(paidOrderCount.value, orderTotal.value));
-const walletSuccessRate = computed(() => percentage(walletSuccessCount.value, walletTotal.value));
-const payScoreCompletedRate = computed(() => percentage(payScoreCompletedCount.value, payScoreTotal.value));
+function createPresetRange(preset: Exclude<PresetValue, "custom">): [Date, Date] {
+  const end = endOfDay(new Date());
+  if (preset === "today") {
+    return [startOfDay(new Date()), end];
+  }
+  if (preset === "7d") {
+    return [startOfDay(addDays(new Date(), -6)), end];
+  }
+  return [startOfDay(addDays(new Date(), -29)), end];
+}
 
-const readinessRisk = computed(() => {
-  if (merchantTotal.value === 0) {
-    return "尚未配置商户";
-  }
-  if (configuredChannelCount.value === 0) {
-    return "商户已存在但渠道未落地";
-  }
-  if (walletProcessingCount.value > walletSuccessCount.value && walletTotal.value > 0) {
-    return "钱包订单处理中偏多";
-  }
-  if (payScoreTotal.value === 0) {
-    return "支付分能力已接入但尚未实际创建订单";
-  }
-  if (pendingOrderCount.value > paidOrderCount.value) {
-    return "待处理订单偏多";
-  }
-  return "主链路可用";
-});
+function applyPreset(preset: Exclude<PresetValue, "custom">) {
+  activePreset.value = preset;
+  dateRange.value = createPresetRange(preset);
+  void loadDashboard();
+}
 
-const readinessAdvice = computed(() => {
-  if (merchantTotal.value === 0) {
-    return "先去商户页录入商户和渠道，否则后续页面都只有空壳数据。";
+function handleRangeChange(value: [Date, Date] | null) {
+  if (!value) {
+    applyPreset("today");
+    return;
   }
-  if (configuredChannelCount.value === 0) {
-    return "至少启用一个真实可执行渠道，再做订单、钱包或支付分联调。";
+  activePreset.value = "custom";
+  void loadDashboard();
+}
+
+function formatDuration(value: number) {
+  if (!value) {
+    return "-";
   }
-  if (walletProcessingCount.value > walletSuccessCount.value && walletTotal.value > 0) {
-    return "优先确认钱包回调地址和第三方状态，避免转账、提现长时间挂起。";
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(2)} s`;
   }
-  if (payScoreTotal.value === 0) {
-    return "如果这轮要测微信支付分，下一步直接在“微信支付分”页创建服务订单。";
-  }
-  if (pendingOrderCount.value > paidOrderCount.value) {
-    return "优先处理支付中、退款中和待回调订单，避免积压。";
-  }
-  return "可以继续做钱包、回调和支付分的联调验证。";
-});
+  return `${Math.round(value)} ms`;
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function endOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
+function addDays(date: Date, offset: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + offset);
+  return next;
+}
+
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 async function loadDashboard() {
-  const merchantRes = await getMerchantList({ page: 1, size: 200 });
-  const merchants = merchantRes.data.records;
-  merchantTotal.value = merchantRes.data.total;
-  activeMerchantCount.value = merchants.filter((item) => item.status === 1).length;
-
-  const channelResults = await Promise.all(
-    merchants.slice(0, 50).map((item: Merchant) => getMerchantChannels(item.id, { status: 1 })),
-  );
-  configuredChannelCount.value = channelResults.reduce((sum, item) => sum + item.data.length, 0);
-
-  const orderRes = await getOrderList({ page: 1, size: 200 });
-  orderTotal.value = orderRes.data.total;
-  pendingOrderCount.value = orderRes.data.records.filter((item) =>
-    ["PENDING", "PAYING", "REFUNDING"].includes(item.status),
-  ).length;
-  paidOrderCount.value = orderRes.data.records.filter((item) =>
-    ["PAID", "COMPLETED", "REFUNDED"].includes(item.status),
-  ).length;
-
-  const transactionRes = await getTransactionList({ pageNum: 1, pageSize: 200 });
-  transactionTotal.value = transactionRes.data.total;
-
-  const walletRes = await getWalletOrderList({ pageNum: 1, pageSize: 200 });
-  walletTotal.value = walletRes.data.total;
-  walletProcessingCount.value = walletRes.data.records.filter((item) =>
-    ["PENDING", "PROCESSING"].includes(item.status),
-  ).length;
-  walletSuccessCount.value = walletRes.data.records.filter((item) => item.status === "SUCCESS").length;
-
-  const payScoreRes = await getWechatPayScoreList({ pageNum: 1, pageSize: 200 });
-  payScoreTotal.value = payScoreRes.data.total;
-  payScoreDoingCount.value = payScoreRes.data.records.filter((item) => item.state === "DOING").length;
-  payScoreCompletedCount.value = payScoreRes.data.records.filter((item) =>
-    ["COMPLETED", "SUCCESS"].includes(item.state),
-  ).length;
-}
-
-function percentage(value: number, total: number) {
-  if (!total) {
-    return 0;
+  loading.value = true;
+  try {
+    const [summaryRes, schedulerRes] = await Promise.all([
+      getPaymentDashboardSummary({
+        startDate: dateRange.value ? formatDate(dateRange.value[0]) : undefined,
+        endDate: dateRange.value ? formatDate(dateRange.value[1]) : undefined,
+      }),
+      getSchedulerTasks(),
+    ]);
+    dashboardSummary.value = {
+      ...dashboardSummary.value,
+      ...(summaryRes.data || {}),
+    };
+    schedulerTasks.value = schedulerRes.data || [];
+  } catch (error) {
+    console.error(error);
+    ElMessage.error("首页统计加载失败");
+  } finally {
+    loading.value = false;
   }
-  return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
 }
 
-onMounted(loadDashboard);
+onMounted(() => {
+  dateRange.value = createPresetRange("today");
+  loadDashboard();
+});
 </script>
 
 <style scoped>
-.view {
+.home-view {
+  min-height: 100%;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, #f2f6f5 0%, #f7f8fa 220px, #f7f8fa 100%);
+}
+
+.home-shell {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1.45fr 1fr;
-  gap: 18px;
-}
-
-.hero-card,
-.panel {
-  border: none;
+.dashboard-card,
+.entry-card {
+  border: 1px solid #dde5e7;
   border-radius: 24px;
-  box-shadow: 0 18px 60px rgba(54, 37, 23, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
 }
 
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgba(255, 246, 234, 0.92) 0%, rgba(255, 255, 255, 0.9) 100%);
+.dashboard-card {
+  padding: 24px 28px 20px;
 }
 
-.hero-card--main {
-  background:
-    radial-gradient(circle at top right, rgba(216, 150, 74, 0.25), transparent 32%),
-    linear-gradient(160deg, #2a1a10 0%, #53321b 60%, #8a5623 100%);
-  color: #f9efe2;
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card--main p,
-.hero-card--main span,
-.hero-card--main strong {
-  color: #f9efe2;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
-.panel {
-  background: rgba(255, 251, 246, 0.92);
-}
-
-.panel--highlight {
-  grid-row: span 2;
-}
-
-.panel__header {
+.dashboard-card__header,
+.entry-card__header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
-.panel__eyebrow {
-  margin: 0 0 6px;
+.dashboard-card__eyebrow {
+  margin: 0 0 8px;
   font-size: 12px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #bf8445;
+  color: #64748b;
 }
 
-.panel__header h3 {
+.dashboard-card h1,
+.entry-card h2 {
   margin: 0;
-  font-size: 24px;
-  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
+  color: #101828;
 }
 
-.action-grid {
+.dashboard-card__desc {
+  margin: 10px 0 0;
+  color: #667085;
+  line-height: 1.75;
+}
+
+.dashboard-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-card__tips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.dashboard-card__tip-text {
+  color: #667085;
+  font-size: 13px;
+}
+
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
-.action-tile {
-  text-align: left;
-  border: 1px solid rgba(92, 63, 38, 0.08);
-  border-radius: 22px;
+.metric-card {
+  display: flex;
+  gap: 16px;
   padding: 20px;
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 235, 218, 0.96) 100%);
-  cursor: pointer;
+  border-radius: 22px;
+  border: 1px solid #dde5e7;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.04);
+}
+
+.metric-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.metric-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metric-card__label {
+  color: #667085;
+  font-size: 13px;
+}
+
+.metric-card__value {
+  color: #101828;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.metric-card__hint {
+  color: #667085;
+  line-height: 1.7;
+}
+
+.info-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.info-chip {
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid #dde5e7;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.info-chip span,
+.info-chip small {
+  display: block;
+  color: #667085;
+}
+
+.info-chip strong {
+  display: block;
+  margin: 8px 0 6px;
+  color: #101828;
+  font-size: 24px;
+}
+
+.entry-card {
+  padding: 24px 28px 28px;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.entry-button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d8e1e4;
+  border-radius: 20px;
+  background: #fff;
+  text-align: left;
+  text-decoration: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.action-tile:hover {
+.entry-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 40px rgba(75, 46, 22, 0.12);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.08);
 }
 
-.action-tile__tag {
+.entry-button__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
   display: inline-flex;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(187, 123, 49, 0.12);
-  color: #9a5d20;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.action-tile strong,
-.matrix-item strong {
-  display: block;
-  margin-top: 14px;
-  font-size: 20px;
-  color: #26170f;
+.entry-button__content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.action-tile p,
-.matrix-item p {
-  margin: 10px 0 0;
+.entry-button__content strong {
+  color: #101828;
+  font-size: 16px;
+}
+
+.entry-button__content small {
+  color: #667085;
   line-height: 1.7;
-  color: #705847;
 }
 
-.matrix-grid {
-  display: grid;
-  gap: 12px;
-}
+@media (max-width: 1280px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-.matrix-item {
-  padding: 18px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(86, 54, 28, 0.08);
-}
-
-.matrix-item__label {
-  font-size: 12px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #bf8445;
-}
-
-.snapshot-list {
-  display: grid;
-  gap: 20px;
-}
-
-.snapshot-row {
-  display: grid;
-  gap: 8px;
-}
-
-.snapshot-row span {
-  color: #6f5844;
-}
-
-@media (max-width: 1320px) {
-  .hero-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .info-strip,
+  .entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 1180px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 820px) {
+  .home-view {
+    padding: 16px;
   }
 
-  .panel--highlight {
-    grid-row: auto;
+  .dashboard-card,
+  .entry-card {
+    padding-inline: 18px;
   }
-}
 
-@media (max-width: 720px) {
-  .hero-grid,
-  .action-grid {
+  .dashboard-card__header,
+  .entry-card__header {
+    flex-direction: column;
+  }
+
+  .dashboard-card__actions {
+    justify-content: flex-start;
+  }
+
+  .stats-grid,
+  .info-strip,
+  .entry-grid {
     grid-template-columns: 1fr;
   }
 }

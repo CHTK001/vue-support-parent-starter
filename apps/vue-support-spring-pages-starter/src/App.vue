@@ -1,6 +1,6 @@
 <template>
   <component
-    :is="page.component"
+    :is="currentPageComponent"
     v-if="page"
     :title="page.title"
     :description="page.description"
@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import currentPageComponent from "@spring-page-entry";
 import { resolveSpringApiRoot, resolveSpringPageDefinition, resolveSpringStorageKey } from "./support/runtime";
 
 const page = computed(() => resolveSpringPageDefinition());

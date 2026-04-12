@@ -1,261 +1,193 @@
-<script setup lang="ts">
-defineProps({
-  env: Object,
-  playMusic: Function,
-  formatTime: Function,
-});
-</script>
-
 <template>
-  <div class="music-sidebar">
-    <!-- 导航菜单 -->
-    <div class="music-sidebar__nav">
-      <!-- 导航项... -->
+  <aside class="nav-panel">
+    <div class="brand-block">
+      <p class="brand-kicker">Ceru Web Port</p>
+      <h1>音乐播放器</h1>
+      <p class="brand-copy">
+        保留 CeruMusic 的结构感，把桌面 IPC 和插件宿主改造成 Java HTTP API
+        与可扩展 SPI。
+      </p>
     </div>
 
-    <!-- 最近播放 -->
-    <div class="music-sidebar__recent" v-if="env.playHistory.length">
-      <div class="music-sidebar__section-title">
-        <IconifyIconOnline icon="ri:time-line" />
-        <span>最近播放</span>
+    <div class="section-card">
+      <div class="section-head">
+        <span>音源</span>
+        <span class="section-meta">{{ sources.length }} 个</span>
       </div>
-
-      <div class="music-sidebar__recent-list">
-        <div
-          v-for="music in env.playHistory.slice(0, 5)"
-          :key="music.musicId"
-          class="music-sidebar__recent-item"
-          :class="{
-            'music-sidebar__recent-item--active':
-              env.currentMusic?.musicId === music.musicId,
-          }"
-          @click="playMusic(music)"
+      <div class="source-list">
+        <button
+          v-for="source in sources"
+          :key="source.code"
+          class="source-pill"
+          :class="{ active: activeSource === source.code }"
+          @click="emit('switch-source', source.code)"
         >
-          <div class="music-sidebar__recent-cover">
-            <img :src="music.musicCover" :alt="music.musicTitle" />
-            <div class="music-sidebar__recent-play">
-              <IconifyIconOnline
-                :icon="
-                  env.currentMusic?.musicId === music.musicId && env.isPlaying
-                    ? 'ri:pause-mini-fill'
-                    : 'ri:play-mini-fill'
-                "
-              />
-            </div>
-          </div>
-          <div class="music-sidebar__recent-info">
-            <div class="music-sidebar__playlist-title">
-              {{ music.musicTitle }}
-            </div>
-            <div class="music-sidebar__playlist-artist">
-              {{ music.musicArtist }}
-            </div>
-          </div>
-          <div class="music-sidebar__playlist-duration">
-            {{ formatTime(music.musicDuration) }}
-          </div>
-        </div>
+          <strong>{{ source.name }}</strong>
+          <span>{{ source.description }}</span>
+        </button>
       </div>
     </div>
-  </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span>导航</span>
+      </div>
+      <button
+        v-for="item in navItems"
+        :key="item.code"
+        class="nav-item"
+        :class="{ active: activeSection === item.code }"
+        @click="emit('change-section', item.code)"
+      >
+        <span>{{ item.label }}</span>
+        <small>{{ item.hint }}</small>
+      </button>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span>热词</span>
+      </div>
+      <div class="tag-wall">
+        <button
+          v-for="tag in hotKeywords"
+          :key="tag"
+          class="tag-pill"
+          @click="emit('search-tag', tag)"
+        >
+          {{ tag }}
+        </button>
+      </div>
+    </div>
+  </aside>
 </template>
 
-<style lang="scss" scoped>
-.music-sidebar {
-  width: 250px;
-  padding: 20px;
-  border-right: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
+<script setup lang="ts">
+import type { MusicNavItem, MusicSection, MusicSourceOption } from "../types";
+
+defineProps<{
+  sources: MusicSourceOption[];
+  activeSource: string;
+  navItems: MusicNavItem[];
+  activeSection: MusicSection;
+  hotKeywords: string[];
+}>();
+
+const emit = defineEmits<{
+  (e: "switch-source", source: string): void;
+  (e: "change-section", section: MusicSection): void;
+  (e: "search-tag", tag: string): void;
+}>();
+</script>
+
+<style scoped lang="scss">
+.nav-panel {
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  gap: 14px;
+}
 
-  &__nav {
-    margin-bottom: 30px;
-  }
+.brand-block,
+.section-card {
+  border: 1px solid rgba(20, 32, 42, 0.12);
+  border-radius: 28px;
+  background: rgba(255, 252, 245, 0.88);
+  box-shadow: 0 18px 40px rgba(17, 25, 32, 0.08);
+  backdrop-filter: blur(16px);
+}
 
-  &__nav-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-bottom: 5px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.brand-block {
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(16, 25, 31, 0.96), rgba(47, 93, 115, 0.92));
+  color: #f8f1e7;
+}
 
-    .iconify {
-      margin-right: 10px;
-      font-size: 18px;
-      transition: transform 0.3s ease;
-    }
+.brand-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
 
-    &:hover {
-      background: color-mix(
-        in srgb,
-        var(--el-color-primary) 10%,
-        var(--el-bg-color)
-      );
-      transform: translateX(4px);
+.brand-block h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+}
 
-      .iconify {
-        transform: scale(1.1);
-      }
-    }
+.section-card {
+  padding: 18px;
+}
 
-    &--active {
-      background: color-mix(
-        in srgb,
-        var(--el-color-primary) 15%,
-        var(--el-bg-color)
-      );
-      color: var(--el-color-primary);
-      font-weight: 500;
-      box-shadow: 0 2px 8px
-        color-mix(in srgb, var(--el-color-primary) 20%, transparent);
-    }
-  }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 
-  &__section-title {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--el-text-color-regular);
+.section-meta,
+.brand-copy,
+.source-pill span,
+.nav-item small {
+  color: #5f6a70;
+}
 
-    .iconify {
-      margin-right: 8px;
-      font-size: 16px;
-      color: var(--el-color-primary);
-    }
+.source-list,
+.tag-wall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
 
-    span {
-      flex: 1;
-    }
-  }
+.source-pill,
+.tag-pill,
+.nav-item {
+  border: 0;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
 
-  &__recent {
-    margin-top: 20px;
-  }
+.source-pill,
+.nav-item,
+.tag-pill {
+  background: rgba(255, 255, 255, 0.7);
+}
 
-  &__recent-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+.source-pill {
+  width: 100%;
+  padding: 14px;
+  border-radius: 18px;
+  text-align: left;
+}
 
-  &__recent-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid transparent;
+.source-pill strong,
+.source-pill span,
+.nav-item span,
+.nav-item small {
+  display: block;
+}
 
-    &:hover {
-      background: color-mix(
-        in srgb,
-        var(--el-color-primary) 8%,
-        var(--el-bg-color)
-      );
-      border-color: var(--el-border-color-lighter);
-      transform: translateX(4px);
-    }
+.source-pill.active,
+.nav-item.active,
+.tag-pill:hover {
+  background: linear-gradient(135deg, rgba(188, 127, 79, 0.16), rgba(47, 93, 115, 0.15));
+  box-shadow: inset 0 0 0 1px rgba(47, 93, 115, 0.22);
+}
 
-    &--active {
-      background: color-mix(
-        in srgb,
-        var(--el-color-primary) 12%,
-        var(--el-bg-color)
-      );
-      border-color: color-mix(
-        in srgb,
-        var(--el-color-primary) 30%,
-        transparent
-      );
-    }
-  }
+.nav-item {
+  width: 100%;
+  padding: 14px;
+  border-radius: 18px;
+  text-align: left;
+  margin-top: 10px;
+}
 
-  &__recent-cover {
-    position: relative;
-    width: 50px;
-    height: 50px;
-    border-radius: 6px;
-    overflow: hidden;
-    margin-right: 12px;
-    flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.3s ease;
-    }
-
-    &:hover img {
-      transform: scale(1.1);
-    }
-  }
-
-  &__recent-play {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: color-mix(in srgb, var(--el-color-primary) 80%, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-
-    .iconify {
-      font-size: 24px;
-      color: #fff;
-    }
-  }
-
-  &__recent-item:hover &__recent-play {
-    opacity: 1;
-  }
-
-  &__playlist-info {
-    flex: 1;
-    margin: 0 10px;
-    overflow: hidden;
-    min-width: 0;
-  }
-
-  &__playlist-title {
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__playlist-artist {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__playlist-duration {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    flex-shrink: 0;
-  }
-
-  &__current-playlist {
-    margin-top: auto;
-    padding-top: 20px;
-    border-top: 1px solid var(--el-border-color-lighter);
-  }
+.tag-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
 }
 </style>

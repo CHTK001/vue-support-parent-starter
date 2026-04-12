@@ -176,30 +176,6 @@ src/views/soft/
 
 ---
 
-## [历史更新] - 2025-08-18
-
-### 数据管理控制台 - RedisConsole 重构
-
-- 左侧与 JDBC 控制台保持一致：采用树形结构（数据库/Key），复用统一接口：/root、/children、/node
-- 右侧根据 Key 类型展示不同视图：
-  - string：多行只读文本
-  - hash：键值表格
-  - list：序号+值列表
-  - set：成员列表
-  - zset：成员+分数表格
-- 支持左/右分栏拖拽与刷新当前值
-- 不改变后端接口，仅前端视图与交互对齐
-
-### 修改的文件
-
-- src/views/data-management/console/RedisConsole.vue
-
-### 数据管理设置编辑页
-
-- 控制台类型改为“启用控制台”开关，关闭时提交空的 consoleType
-- 远程模式（REMOTE）下新增必填规则：需填写“地址(连接串)”或“主机+端口”
-- 后端新增接口：POST /system/data/setting/save（含校验）
-
 ## [最新更新] - 2025-01-18
 
 ### 文件存储配置优化

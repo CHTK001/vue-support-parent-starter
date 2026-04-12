@@ -8,8 +8,8 @@
 </template>
 
 <script setup lang="ts">
-import { SpringConsoleLoginPage } from "@pages/spring";
 import { computed } from "vue";
+import SpringConsoleLoginPage from "../../../pages/spring/src/views/common/SpringConsoleLoginPage.vue";
 import { resolveSpringAuthBasePath, resolveSpringPageDefinition } from "./support/runtime";
 
 const page = computed(() => resolveSpringPageDefinition());
