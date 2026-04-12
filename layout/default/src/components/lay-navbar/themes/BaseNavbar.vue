@@ -185,6 +185,7 @@ onBeforeUnmount(() => {
   border: none;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.42);
+  color: var(--el-text-color-primary);
   transition: background 0.2s, transform 0.15s;
   padding: 0;
   margin-left: 0;
@@ -197,6 +198,7 @@ onBeforeUnmount(() => {
 
   &.is-active {
     background: var(--el-color-primary-light-8);
+    color: var(--el-color-primary);
 
     .hamburger-line:nth-child(1) {
       transform: translateY(7px) rotate(45deg);
@@ -210,8 +212,17 @@ onBeforeUnmount(() => {
   }
 
   html.dark & {
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: #e2e8f0;
+
     &:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(var(--el-color-primary-rgb), 0.16);
+    }
+
+    &.is-active {
+      background: rgba(var(--el-color-primary-rgb), 0.22);
+      color: #ffffff;
     }
   }
 }
@@ -221,7 +232,7 @@ onBeforeUnmount(() => {
   width: 18px;
   height: 2px;
   border-radius: 2px;
-  background: var(--el-text-color-primary);
+  background: currentColor;
   transition: transform 0.25s, opacity 0.2s, background 0.2s;
 }
 </style>

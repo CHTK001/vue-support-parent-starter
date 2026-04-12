@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, toRaw, watch } from "vue";
 import { fetchListRole } from "@/api/manage/role";
-import {
-  fetchSaveMiniMenu,
-  fetchUpdateMiniMenu,
-} from "@/api/manage/mini-menu";
+import { fetchSaveMiniMenu, fetchUpdateMiniMenu } from "@/api/manage/mini-menu";
 import { IconSelect } from "@repo/components/IconSelect";
 import { message } from "@repo/utils";
 
@@ -114,7 +111,8 @@ const normalizeFlag = (value: unknown, defaultValue = 0) =>
       : defaultValue;
 
 const cloneValue = (value: any) => {
-  const raw = typeof value === "object" && value !== null ? toRaw(value) : value;
+  const raw =
+    typeof value === "object" && value !== null ? toRaw(value) : value;
   if (typeof structuredClone === "function") {
     try {
       return structuredClone(raw);
@@ -132,7 +130,10 @@ const sanitizeForm = (source: any) => {
   };
   nextForm.sysMiniMenuJumpMode = Number(nextForm.sysMiniMenuJumpMode ?? 0);
   nextForm.sysMiniMenuSort = Number(nextForm.sysMiniMenuSort ?? 1) || 1;
-  nextForm.sysMiniMenuKeepAlive = normalizeFlag(nextForm.sysMiniMenuKeepAlive, 1);
+  nextForm.sysMiniMenuKeepAlive = normalizeFlag(
+    nextForm.sysMiniMenuKeepAlive,
+    1,
+  );
   nextForm.sysMiniMenuHidden = normalizeFlag(nextForm.sysMiniMenuHidden, 0);
   if (!nextForm.sysMiniMenuBadgeType) {
     nextForm.sysMiniMenuBadgeType = "primary";
@@ -239,7 +240,7 @@ loadRoles();
   <sc-dialog
     v-model="dialogVisible"
     width="1040px"
-    top="18px"
+    top="24px"
     append-to-body
     draggable
     :close-on-click-modal="false"
@@ -256,7 +257,9 @@ loadRoles();
         </div>
         <div class="mini-preview__body">
           <div class="mini-preview__icon">
-            <IconifyIconOnline :icon="form.sysMiniMenuIcon || 'ri:apps-2-line'" />
+            <IconifyIconOnline
+              :icon="form.sysMiniMenuIcon || 'ri:apps-2-line'"
+            />
           </div>
           <div class="mini-preview__copy">
             <h4>{{ form.sysMiniMenuTitle || "卡片标题" }}</h4>
@@ -311,7 +314,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuTitle"
                     clearable
-                    maxlength="40"
+                    :maxlength="40"
                     show-word-limit
                     placeholder="如：服务工单"
                   />
@@ -322,7 +325,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuSubtitle"
                     clearable
-                    maxlength="60"
+                    :maxlength="60"
                     show-word-limit
                     placeholder="如：提交与跟踪处理进度"
                   />
@@ -333,7 +336,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuPath"
                     clearable
-                    maxlength="120"
+                    :maxlength="120"
                     show-word-limit
                     placeholder="/pages/workorder/index"
                   />
@@ -344,7 +347,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuCategory"
                     clearable
-                    maxlength="30"
+                    :maxlength="30"
                     show-word-limit
                     placeholder="工作台 / 服务 / 系统"
                   />
@@ -389,7 +392,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuCover"
                     clearable
-                    maxlength="240"
+                    :maxlength="240"
                     show-word-limit
                     placeholder="可填图片 URL 或 CDN 地址"
                   />
@@ -400,7 +403,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuBadge"
                     clearable
-                    maxlength="12"
+                    :maxlength="12"
                     show-word-limit
                     placeholder="HOT / NEW"
                   />
@@ -429,7 +432,7 @@ loadRoles();
                   <ScInput
                     v-model="form.sysMiniMenuPerm"
                     clearable
-                    maxlength="120"
+                    :maxlength="120"
                     show-word-limit
                     placeholder="mini:workorder:view"
                   />
@@ -482,7 +485,7 @@ loadRoles();
                     v-model="form.sysMiniMenuDescription"
                     type="textarea"
                     :rows="4"
-                    maxlength="200"
+                    :maxlength="200"
                     show-word-limit
                     placeholder="补充说明卡片用途、使用对象或运营备注"
                   />
@@ -506,16 +509,40 @@ loadRoles();
 </template>
 
 <style scoped lang="scss">
+:deep(.mini-menu-save-dialog .el-dialog) {
+  width: min(1040px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px);
+}
+
+:deep(.mini-menu-save-dialog .el-dialog__body) {
+  max-height: calc(100vh - 178px);
+  padding: 18px 20px 14px;
+  overflow: hidden;
+}
+
+:deep(.mini-menu-save-dialog .el-dialog__footer) {
+  padding: 14px 20px 20px;
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 82%),
+    rgb(255 255 255 / 96%)
+  );
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
 .mini-menu-form-shell {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 20px;
-  max-height: 72vh;
+  min-height: 0;
+  max-height: calc(100vh - 220px);
+  padding-bottom: 2px;
 }
 
 .mini-preview {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
@@ -539,11 +566,21 @@ loadRoles();
   border-radius: 999px;
 }
 
-.mini-preview__badge--primary { background: #3b82f6; }
-.mini-preview__badge--success { background: #22c55e; }
-.mini-preview__badge--warning { background: #f59e0b; }
-.mini-preview__badge--danger { background: #ef4444; }
-.mini-preview__badge--info { background: #64748b; }
+.mini-preview__badge--primary {
+  background: #3b82f6;
+}
+.mini-preview__badge--success {
+  background: #22c55e;
+}
+.mini-preview__badge--warning {
+  background: #f59e0b;
+}
+.mini-preview__badge--danger {
+  background: #ef4444;
+}
+.mini-preview__badge--info {
+  background: #64748b;
+}
 
 .mini-preview__body {
   display: flex;
@@ -594,7 +631,10 @@ loadRoles();
 }
 
 .mini-form-pane {
+  min-height: 0;
+  max-height: inherit;
   padding-right: 6px;
+  padding-bottom: 8px;
   overflow: auto;
 }
 
@@ -619,7 +659,52 @@ loadRoles();
   justify-content: flex-end;
 }
 
+html.dark {
+  .mini-menu-save-dialog {
+    :deep(.el-dialog__footer) {
+      background: linear-gradient(
+        180deg,
+        rgb(15 23 42 / 74%),
+        rgb(15 23 42 / 92%)
+      );
+      border-top-color: rgb(148 163 184 / 14%);
+    }
+
+    .mini-preview {
+      background: rgb(15 23 42 / 88%);
+      border-color: rgb(148 163 184 / 16%);
+      box-shadow: 0 24px 48px rgb(2 8 23 / 24%);
+    }
+
+    .mini-preview__icon {
+      background: rgb(var(--el-color-primary-rgb) / 16%);
+      color: #bfdbfe;
+    }
+
+    .mini-preview__copy p,
+    .mini-preview__path,
+    .mini-preview__meta span {
+      color: #94a3b8;
+    }
+
+    .mini-preview__meta span {
+      background: rgb(15 23 42 / 72%);
+    }
+
+    .mini-form__section {
+      background: rgb(15 23 42 / 72%);
+      border-color: rgb(148 163 184 / 16%);
+      box-shadow: 0 16px 32px rgb(2 8 23 / 16%);
+    }
+  }
+}
+
 @media (width <= 960px) {
+  :deep(.mini-menu-save-dialog .el-dialog__body) {
+    max-height: calc(100vh - 152px);
+    padding: 16px;
+  }
+
   .mini-menu-form-shell {
     grid-template-columns: 1fr;
   }

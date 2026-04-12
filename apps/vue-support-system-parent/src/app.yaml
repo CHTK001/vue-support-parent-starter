@@ -84,6 +84,10 @@ RemoteMenu: true
 # - true: 远程菜单 + 本地菜单（合并模式）
 # - false: 仅使用远程菜单
 MergeLocalMenu: false
+# 远程菜单只保留系统管理壳允许的路径，避免业务模块混入
+RemoteMenuAllowPrefixes:
+  - /home
+  - /manage
 # 是否开启小程序菜单管理（默认: false）
 OpenMiniProgramMenu: true
 # 本地模块路由路径，按 monorepo page 模块装配

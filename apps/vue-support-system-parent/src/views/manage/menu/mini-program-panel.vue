@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from "vue";
 import {
   fetchDeleteMiniMenu,
   fetchListMiniMenu,
@@ -35,6 +35,7 @@ const dialogState = reactive<{
 
 const searchKeyword = ref("");
 const tableData = ref<MiniMenu[]>([]);
+const isDark = ref(false);
 
 const cloneList = (value: MiniMenu[] = []) => JSON.parse(JSON.stringify(value));
 
@@ -166,6 +167,17 @@ const resolveBadgeClass = (type?: string) =>
 const resolveJumpModeLabel = (value?: number) =>
   value === 1 ? "tabBar" : value === 2 ? "WebView" : "普通页面";
 
+const tooltipEffect = computed(() => (isDark.value ? "dark" : "light"));
+
+const syncThemeState = () => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  isDark.value = document.documentElement.classList.contains("dark");
+};
+
+let themeObserver: MutationObserver | null = null;
+
 watch(
   () => props.active,
   (active) => {
@@ -175,6 +187,25 @@ watch(
   },
   { immediate: true },
 );
+
+onMounted(() => {
+  syncThemeState();
+  if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
+    return;
+  }
+  themeObserver = new MutationObserver(() => {
+    syncThemeState();
+  });
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+});
+
+onBeforeUnmount(() => {
+  themeObserver?.disconnect();
+  themeObserver = null;
+});
 </script>
 
 <template>
@@ -233,95 +264,74 @@ watch(
       <ScSkeleton animated :rows="5" />
     </div>
 
-    <div v-else-if="filteredCards.length" class="mini-card-grid">
-      <article
-        v-for="item in filteredCards"
-        :key="item.sysMiniMenuId"
-        class="mini-card"
-      >
-        <div class="mini-card__cover">
-          <div class="mini-card__cover-mask" />
-          <div class="mini-card__icon">
-            <IconifyIconOnline :icon="item.sysMiniMenuIcon || 'ri:apps-2-line'" />
-          </div>
-          <div
-            class="mini-card__badge"
-            :class="resolveBadgeClass(item.sysMiniMenuBadgeType)"
-          >
-            {{ item.sysMiniMenuBadge || "CARD" }}
-          </div>
-          <div class="mini-card__actions">
-            <ScButton type="primary" link @click="openDialog(item, 'edit')">
-              <IconifyIconOnline icon="mdi:pencil" />
-            </ScButton>
-            <ScPopconfirm
-              :title="$t('message.confimDelete')"
-              confirm-button-type="danger"
-              cancel-button-type="info"
-              @confirm="onDelete(item)"
-            >
-              <template #reference>
-                <ScButton type="danger" link>
-                  <IconifyIconOnline icon="mdi:delete" />
-                </ScButton>
-              </template>
-            </ScPopconfirm>
-          </div>
-        </div>
-
-        <div class="mini-card__body">
-          <div class="mini-card__header">
-            <div>
-              <h4>{{ item.sysMiniMenuTitle || "未命名卡片" }}</h4>
-              <p>{{ item.sysMiniMenuSubtitle || "未设置副标题" }}</p>
+    <ScTable
+      v-else-if="filteredCards.length"
+      class="mini-card-table"
+      layout="card"
+      card-layout="default"
+      :data="filteredCards"
+      row-key="sysMiniMenuId"
+      :hide-pagination="true"
+      :border="false"
+      :search="false"
+      :layout-mode="'flex'"
+      :card-min-width="116"
+      :col-size="6"
+      :height="'auto'"
+    >
+      <template #default="{ row }">
+        <ScTooltip placement="top" :effect="tooltipEffect" :show-after="120">
+          <template #content>
+            <div class="mini-card-tooltip">
+              <div class="mini-card-tooltip__title">
+                {{ row.sysMiniMenuTitle || "未命名卡片" }}
+              </div>
+              <div class="mini-card-tooltip__desc">
+                {{ row.sysMiniMenuSubtitle || "未设置副标题" }}
+              </div>
+              <div class="mini-card-tooltip__meta">
+                <span>路径：{{ row.sysMiniMenuPath || "-" }}</span>
+                <span>分组：{{ row.sysMiniMenuCategory || "未分组" }}</span>
+                <span>权限：{{ row.sysMiniMenuPerm || "未设置" }}</span>
+                <span>角色：{{ row.sysMiniMenuRole || "全部角色" }}</span>
+                <span>跳转：{{ resolveJumpModeLabel(Number(row.sysMiniMenuJumpMode ?? 0)) }}</span>
+                <span>缓存：{{ Number(row.sysMiniMenuKeepAlive ?? 0) === 1 ? "开启" : "关闭" }}</span>
+              </div>
             </div>
-            <span class="mini-card__sort">#{{ item.sysMiniMenuSort || 1 }}</span>
-          </div>
+          </template>
 
-          <div class="mini-card__path">{{ item.sysMiniMenuPath || "-" }}</div>
-
-          <div class="mini-card__tags">
-            <ScTag size="small" effect="plain">
-              {{ item.sysMiniMenuCategory || "未分组" }}
-            </ScTag>
-            <ScTag
-              size="small"
-              :type="Number(item.sysMiniMenuKeepAlive ?? 0) === 1 ? 'success' : 'info'"
-              effect="light"
+          <div class="mini-launcher-card">
+            <span class="mini-launcher-card__sort">#{{ row.sysMiniMenuSort || 1 }}</span>
+            <span
+              class="mini-launcher-card__status"
+              :class="resolveBadgeClass(row.sysMiniMenuBadgeType)"
             >
-              {{ Number(item.sysMiniMenuKeepAlive ?? 0) === 1 ? "缓存" : "不缓存" }}
-            </ScTag>
-            <ScTag
-              size="small"
-              :type="Number(item.sysMiniMenuHidden ?? 0) === 1 ? 'warning' : 'primary'"
-              effect="light"
-            >
-              {{
-                Number(item.sysMiniMenuHidden ?? 0) === 1 ? "已隐藏" : "显示中"
-              }}
-            </ScTag>
-            <ScTag size="small" type="info" effect="plain">
-              {{ resolveJumpModeLabel(Number(item.sysMiniMenuJumpMode ?? 0)) }}
-            </ScTag>
-          </div>
-
-          <div class="mini-card__meta">
-            <div>
-              <span>权限</span>
-              <strong>{{ item.sysMiniMenuPerm || "未设置" }}</strong>
+              {{ row.sysMiniMenuBadge || "卡" }}
+            </span>
+            <div class="mini-launcher-card__icon">
+              <IconifyIconOnline :icon="row.sysMiniMenuIcon || 'ri:apps-2-line'" />
             </div>
-            <div>
-              <span>角色</span>
-              <strong>{{ item.sysMiniMenuRole || "全部角色" }}</strong>
+            <div class="mini-launcher-card__actions">
+              <ScButton type="primary" link @click.stop="openDialog(row, 'edit')">
+                <IconifyIconOnline icon="mdi:pencil" />
+              </ScButton>
+              <ScPopconfirm
+                :title="$t('message.confimDelete')"
+                confirm-button-type="danger"
+                cancel-button-type="info"
+                @confirm="onDelete(row)"
+              >
+                <template #reference>
+                  <ScButton type="danger" link @click.stop>
+                    <IconifyIconOnline icon="mdi:delete" />
+                  </ScButton>
+                </template>
+              </ScPopconfirm>
             </div>
           </div>
-
-          <p v-if="item.sysMiniMenuDescription" class="mini-card__description">
-            {{ item.sysMiniMenuDescription }}
-          </p>
-        </div>
-      </article>
-    </div>
+        </ScTooltip>
+      </template>
+    </ScTable>
 
     <div v-else class="mini-empty-state">
       <IconifyIconOnline icon="ri:apps-2-line" />
@@ -333,6 +343,9 @@ watch(
 
 <style scoped lang="scss">
 .mini-menu-panel {
+  --mini-surface: var(--el-bg-color);
+  --mini-surface-soft: var(--el-fill-color-lighter);
+  --mini-border: var(--el-border-color-lighter);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -372,6 +385,13 @@ watch(
   padding: 0;
   background: transparent;
   border: 0;
+
+  :deep(.el-input__wrapper) {
+    box-shadow: none;
+    border-radius: 14px;
+    background: var(--mini-surface);
+    border: 1px solid var(--mini-border);
+  }
 }
 
 .mini-toolbar__left,
@@ -385,131 +405,147 @@ watch(
   width: 320px;
 }
 
-.mini-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
+.mini-card__badge--primary,
+.mini-launcher-card__status.mini-card__badge--primary { background: #3b82f6; }
+.mini-card__badge--success,
+.mini-launcher-card__status.mini-card__badge--success { background: #22c55e; }
+.mini-card__badge--warning,
+.mini-launcher-card__status.mini-card__badge--warning { background: #f59e0b; }
+.mini-card__badge--danger,
+.mini-launcher-card__status.mini-card__badge--danger { background: #ef4444; }
+.mini-card__badge--info,
+.mini-launcher-card__status.mini-card__badge--info { background: #64748b; }
+
+.mini-card-table {
+  :deep(.card-view-container) {
+    padding: 0;
+    background: transparent;
+    max-height: none;
+  }
+
+  :deep(.card-grid) {
+    gap: 14px !important;
+  }
+
+  :deep(.card-item-wrapper) {
+    max-width: 128px;
+    min-width: 116px;
+  }
+
+  :deep(.card-inner.card-default) {
+    padding: 0;
+    background: transparent;
+  }
 }
 
-.mini-card {
-  overflow: hidden;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 24px;
-  box-shadow: 0 18px 42px rgb(15 23 42 / 6%);
-}
-
-.mini-card__cover {
+.mini-launcher-card {
   position: relative;
-  min-height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 116px;
+  height: 116px;
+  border-radius: 28px;
+  border: 1px solid rgba(59, 130, 246, 0.12);
   background:
-    radial-gradient(circle at top left, rgb(59 130 246 / 22%), transparent 48%),
-    linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  box-shadow:
+    0 20px 36px rgba(15, 23, 42, 0.08),
+    0 6px 14px rgba(15, 23, 42, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-.mini-card__cover-mask {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent, rgb(15 23 42 / 6%));
+.mini-launcher-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--el-color-primary-rgb), 0.26);
+  box-shadow:
+    0 24px 42px rgba(15, 23, 42, 0.1),
+    0 10px 18px rgba(15, 23, 42, 0.06);
 }
 
-.mini-card__icon {
-  position: absolute;
-  top: 18px;
-  left: 18px;
+.mini-launcher-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
   color: var(--el-color-primary);
-  font-size: 28px;
-  background: rgb(255 255 255 / 88%);
-  border-radius: 18px;
+  font-size: 34px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12);
 }
 
-.mini-card__badge {
+.mini-launcher-card__sort {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  padding: 6px 10px;
-  font-size: 12px;
+  top: 10px;
+  left: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+}
+
+.mini-launcher-card__status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
   font-weight: 700;
   color: #fff;
-  border-radius: 999px;
 }
 
-.mini-card__badge--primary { background: #3b82f6; }
-.mini-card__badge--success { background: #22c55e; }
-.mini-card__badge--warning { background: #f59e0b; }
-.mini-card__badge--danger { background: #ef4444; }
-.mini-card__badge--info { background: #64748b; }
-
-.mini-card__actions {
+.mini-launcher-card__actions {
   position: absolute;
-  right: 14px;
-  bottom: 12px;
-  display: flex;
-  gap: 6px;
-  padding: 4px 8px;
-  background: rgb(255 255 255 / 84%);
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transition: opacity 0.18s ease;
 }
 
-.mini-card__body {
+.mini-launcher-card:hover .mini-launcher-card__actions {
+  opacity: 1;
+}
+
+.mini-card-tooltip {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-}
-
-.mini-card__header {
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
-}
-
-.mini-card__header h4 {
-  margin: 0 0 6px;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.mini-card__header p,
-.mini-card__description {
-  margin: 0;
-  color: var(--el-text-color-secondary);
-}
-
-.mini-card__sort,
-.mini-card__path {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.mini-card__tags {
-  display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  max-width: 280px;
 }
 
-.mini-card__meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+.mini-card-tooltip__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
 }
 
-.mini-card__meta span {
-  display: block;
-  margin-bottom: 6px;
+.mini-card-tooltip__desc {
   font-size: 12px;
+  line-height: 1.6;
   color: var(--el-text-color-secondary);
 }
 
-.mini-card__meta strong {
-  display: block;
-  word-break: break-all;
-  color: var(--el-text-color-primary);
+.mini-card-tooltip__meta {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-regular);
 }
 
 .mini-empty-state {
@@ -537,6 +573,10 @@ watch(
   .mini-toolbar__search {
     width: 100%;
   }
+
+  .mini-card-table :deep(.card-item-wrapper) {
+    max-width: 116px;
+  }
 }
 
 @media (width <= 720px) {
@@ -544,8 +584,74 @@ watch(
     grid-template-columns: 1fr;
   }
 
-  .mini-card__meta {
-    grid-template-columns: 1fr;
+  .mini-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mini-toolbar__left,
+  .mini-toolbar__right {
+    width: 100%;
+  }
+}
+
+html.dark {
+  .mini-menu-panel {
+    --mini-surface: rgb(15 23 42 / 88%);
+    --mini-surface-soft: rgb(15 23 42 / 72%);
+    --mini-border: rgb(148 163 184 / 16%);
+  }
+
+  .mini-stat-card {
+    background:
+      linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.9)),
+      var(--el-bg-color);
+    border-color: rgba(59, 130, 246, 0.14);
+  }
+
+  .mini-launcher-card {
+    border-color: rgba(148, 163, 184, 0.16);
+    background:
+      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.22), transparent 50%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+    box-shadow:
+      0 20px 36px rgba(2, 8, 23, 0.26),
+      0 6px 14px rgba(2, 8, 23, 0.18);
+  }
+
+  .mini-launcher-card__icon {
+    background: rgba(15, 23, 42, 0.84);
+    color: #bfdbfe;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  }
+
+  .mini-launcher-card__sort {
+    color: #94a3b8;
+  }
+
+  .mini-launcher-card__actions {
+    background: rgba(15, 23, 42, 0.92);
+  }
+
+  .mini-card-tooltip__title {
+    color: #f8fafc;
+  }
+
+  .mini-card-tooltip__desc,
+  .mini-card-tooltip__meta {
+    color: #cbd5e1;
+  }
+
+  .mini-empty-state {
+    border-color: var(--mini-border);
+    background: var(--mini-surface-soft);
+  }
+
+  .mini-toolbar {
+    :deep(.el-input__wrapper) {
+      background: var(--mini-surface-soft);
+      border-color: var(--mini-border);
+    }
   }
 }
 </style>

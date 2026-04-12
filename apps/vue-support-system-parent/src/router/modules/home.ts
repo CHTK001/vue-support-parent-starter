@@ -1,5 +1,6 @@
 import { t as $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
+import { RouterView } from "vue-router";
 
 const { VITE_HIDE_HOME } = import.meta.env;
 
@@ -31,7 +32,7 @@ export default [
   {
     path: "/manage",
     name: "ManageRoot",
-    component: () => import("@layout/default"),
+    component: RouterView,
     redirect: "/manage/user",
     meta: {
       title: "系统管理",

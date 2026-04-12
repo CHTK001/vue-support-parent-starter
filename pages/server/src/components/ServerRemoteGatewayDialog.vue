@@ -63,11 +63,27 @@
           <el-form-item label="代理实现">
             <ScSelect
               v-model="providerValue"
-              :options="providerOptions"
+              :options="normalizedProviderOptions"
               layout="pill"
               :disabled="inheritDisabled"
               class="server-remote-dialog__compact-select"
-            />
+            >
+              <template #pill="{ item, selected }">
+                <el-tooltip
+                  :content="`${item.label}${item.description ? ` · ${item.description}` : ''}`"
+                >
+                  <button
+                    type="button"
+                    class="server-remote-dialog__icon-pill"
+                    :class="{ 'is-selected': selected }"
+                  >
+                    <IconifyIconOnline
+                      :icon="String(item.icon || 'ri:route-line')"
+                    />
+                  </button>
+                </el-tooltip>
+              </template>
+            </ScSelect>
           </el-form-item>
 
           <el-form-item label="网关地址" class="server-remote-dialog__span-2">
@@ -81,12 +97,28 @@
           <el-form-item label="协议">
             <ScSelect
               v-model="protocolValue"
-              :options="protocolOptions"
+              :options="normalizedProtocolOptions"
               layout="pill"
               clearable
               :disabled="inheritDisabled"
               class="server-remote-dialog__compact-select"
-            />
+            >
+              <template #pill="{ item, selected }">
+                <el-tooltip
+                  :content="`${item.label}${item.description ? ` · ${item.description}` : ''}`"
+                >
+                  <button
+                    type="button"
+                    class="server-remote-dialog__icon-pill"
+                    :class="{ 'is-selected': selected }"
+                  >
+                    <IconifyIconOnline
+                      :icon="String(item.icon || 'ri:computer-line')"
+                    />
+                  </button>
+                </el-tooltip>
+              </template>
+            </ScSelect>
           </el-form-item>
 
           <el-form-item label="入口路径">
@@ -228,6 +260,31 @@ const previewMessage = computed(() =>
   props.form.enabled ? "保存后将生成远程入口按钮" : "当前未启用远程代理",
 );
 
+const normalizedProviderOptions = computed(() =>
+  props.providerOptions.map((item) => ({
+    ...item,
+    icon:
+      item.icon ||
+      (String(item.value || "").toLowerCase() === "guacamole"
+        ? "ri:terminal-window-line"
+        : "ri:route-line"),
+  })),
+);
+
+const normalizedProtocolOptions = computed(() =>
+  props.protocolOptions.map((item) => ({
+    ...item,
+    icon:
+      item.icon ||
+      ({
+        rdp: "ri:windows-line",
+        ssh: "ri:terminal-box-line",
+        vnc: "ri:device-line",
+        telnet: "ri:exchange-box-line",
+      }[String(item.value || "").toLowerCase()] || "ri:computer-line"),
+  })),
+);
+
 const inheritMode = computed({
   get: () => (props.form.inheritGlobal ? "global" : "local"),
   set: (value: string | number) => {
@@ -312,6 +369,33 @@ const inheritMode = computed({
   border-radius: 999px;
   background: transparent;
   cursor: pointer;
+}
+
+.server-remote-dialog__icon-pill {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--el-bg-color-page) 88%, white);
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease;
+}
+
+.server-remote-dialog__icon-pill:hover,
+.server-remote-dialog__icon-pill.is-selected {
+  color: var(--el-color-primary);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, white);
 }
 
 .server-remote-dialog__inherit-pill.is-selected {

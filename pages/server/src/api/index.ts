@@ -175,6 +175,10 @@ export const updateServerAlertSettings = (data: ServerAlertSettings) =>
 
 export const listServerAlerts = (params?: {
   serverId?: number;
+  metricType?: string;
+  severity?: string;
+  startTime?: number;
+  endTime?: number;
   limit?: number;
 }) => request<ServerAlertEvent[]>("GET", "/server/alerts", { query: params });
 
@@ -221,6 +225,24 @@ export const updateServerMetricsTaskSettings = (
     },
   );
 
+export const getServerHostMetricsTaskSettings = (id: number) =>
+  request<ServerMetricsTaskSettings>(
+    "GET",
+    `${hostsBase}/${id}/metrics/task-settings`,
+  );
+
+export const updateServerHostMetricsTaskSettings = (
+  id: number,
+  data: ServerMetricsTaskSettingsRequest,
+) =>
+  request<ServerMetricsTaskSettings>(
+    "PUT",
+    `${hostsBase}/${id}/metrics/task-settings`,
+    {
+      data,
+    },
+  );
+
 export const getServerHostMetrics = (id: number) =>
   request<ServerMetricsSnapshot>("GET", `${hostsBase}/${id}/metrics`);
 
@@ -239,6 +261,36 @@ export const getServerHostMetricsHistory = (
 
 export const analyzeServerHostStability = (id: number) =>
   request<ServerAiTaskTicket>("POST", `${hostsBase}/${id}/ai-analyze`);
+
+export const analyzeServerHostMetricHistory = (
+  id: number,
+  params: {
+    metricType: string;
+    minutes?: number;
+    startTime?: number;
+    endTime?: number;
+    stateFilter?: string;
+  },
+) =>
+  request<ServerAiTaskTicket>(
+    "POST",
+    `${hostsBase}/${id}/metrics/history/ai-analyze`,
+    { query: params },
+  );
+
+export const analyzeServerHostAlertHistory = (
+  id: number,
+  params?: {
+    metricType?: string;
+    severity?: string;
+    startTime?: number;
+    endTime?: number;
+    limit?: number;
+  },
+) =>
+  request<ServerAiTaskTicket>("POST", `${hostsBase}/${id}/alerts/ai-analyze`, {
+    query: params,
+  });
 
 export const listServerHostProcesses = (
   id: number,

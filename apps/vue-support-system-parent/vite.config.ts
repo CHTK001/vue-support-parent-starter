@@ -8,12 +8,6 @@ export default createViteConfig(import.meta.url, pkg)
   .removeConsoleRelative("../../packages/utils/src/http/index.ts")
   .aggressiveTerser()
   .chunkSizeWarningLimit(8000)
-  .manualChunkGroup(
-    "project-ai",
-    "/pages/project/src/views/ai/",
-    "/pages/project/src/api/ai/",
-    "/pages/project/src/api/manage/project-ai-module",
-  )
   .proxyFromEnv(
     "/system/api",
     "VITE_SYSTEM_API_PROXY_TARGET",

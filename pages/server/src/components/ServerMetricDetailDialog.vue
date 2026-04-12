@@ -29,6 +29,43 @@
             :value="option.value"
           />
         </el-select>
+        <el-select
+          v-model="historyStateFilter"
+          size="small"
+          style="width: 110px"
+        >
+          <el-option label="全部状态" value="all" />
+          <el-option label="正常" value="normal" />
+          <el-option label="预警" value="warning" />
+          <el-option label="危险" value="danger" />
+        </el-select>
+        <el-date-picker
+          v-model="historyDateRange"
+          type="datetimerange"
+          unlink-panels
+          value-format="x"
+          range-separator="至"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          @change="handleHistoryDateRangeChange"
+        />
+        <el-tooltip
+          :content="
+            aiEnabled
+              ? '基于当前筛选历史做 AI 分析'
+              : aiUnavailableReason || 'AI 能力未激活'
+          "
+        >
+          <el-button
+            circle
+            plain
+            :loading="currentAiAnalyzing"
+            :disabled="!aiEnabled || !filteredHistory.length"
+            @click="emitAnalyzeHistory"
+          >
+            <IconifyIconOnline icon="ri:ai-generate-2" />
+          </el-button>
+        </el-tooltip>
       </div>
     </header>
 
@@ -155,6 +192,55 @@
           </div>
         </header>
         <ScEcharts :option="chartOption" height="220px" />
+      </section>
+
+      <section
+        v-if="aiEnabled || currentAiAdvice?.aiReason || currentAiAdvice?.aiSolution"
+        class="server-metric-detail-dialog__ai-panel"
+      >
+        <header class="server-metric-detail-dialog__ai-header">
+          <div>
+            <strong>历史 AI 分析</strong>
+            <p>
+              {{
+                currentAiAdvice?.message ||
+                (currentAiAnalyzing
+                  ? "AI 正在结合当前筛选样本分析趋势与风险。"
+                  : "当前历史筛选结果支持直接发起 AI 分析。")
+              }}
+            </p>
+          </div>
+          <div class="server-metric-detail-dialog__chips">
+            <div class="server-metric-detail-dialog__chip">
+              {{ metricMeta.title }}
+            </div>
+            <div class="server-metric-detail-dialog__chip">
+              样本 {{ filteredHistory.length }}
+            </div>
+            <div
+              v-if="currentAiAdvice?.aiProvider || currentAiAdvice?.aiModel"
+              class="server-metric-detail-dialog__chip"
+            >
+              {{ currentAiAdvice?.aiProvider || "-" }} /
+              {{ currentAiAdvice?.aiModel || "-" }}
+            </div>
+          </div>
+        </header>
+        <div class="server-metric-detail-dialog__ai-grid">
+          <article class="server-metric-detail-dialog__ai-card">
+            <small>结论</small>
+            <p>{{ currentAiAdvice?.aiReason || "暂无 AI 历史分析结果" }}</p>
+          </article>
+          <article class="server-metric-detail-dialog__ai-card">
+            <small>建议</small>
+            <p>
+              {{
+                currentAiAdvice?.aiSolution ||
+                "点击右上角 AI 图标即可分析当前历史趋势。"
+              }}
+            </p>
+          </article>
+        </div>
       </section>
 
       <!-- Grid: Facts + Lists -->
@@ -318,7 +404,9 @@
 import { computed, ref, watch } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type {
+  ServerAiTaskPayload,
   ServerAlertSettings,
   ServerDiskPartitionView,
   ServerHost,
@@ -326,6 +414,7 @@ import type {
   ServerMetricsSnapshot,
   ServerNetworkInterfaceView,
 } from "../api";
+import { buildMetricHistoryAiFilterKey } from "../utils/historyAi";
 import {
   formatByteSize,
   formatLatency,
@@ -337,7 +426,8 @@ import {
 } from "../utils/serverHost";
 
 type MetricKey = "cpu" | "memory" | "disk" | "io";
-type RangeValue = 15 | 30 | 60 | 120;
+type RangeValue = number;
+type HistoryStateFilter = "all" | "normal" | "warning" | "danger";
 
 const props = withDefaults(
   defineProps<{
@@ -348,6 +438,10 @@ const props = withDefaults(
     history?: ServerMetricsSnapshot[];
     detail?: ServerMetricsDetail | null;
     alertSettings?: ServerAlertSettings | null;
+    aiEnabled?: boolean;
+    aiAnalyzingKey?: string;
+    aiAdviceMap?: Record<string, ServerAiTaskPayload>;
+    aiUnavailableReason?: string;
   }>(),
   {
     metricKey: null,
@@ -356,12 +450,25 @@ const props = withDefaults(
     history: () => [],
     detail: null,
     alertSettings: null,
+    aiEnabled: false,
+    aiAnalyzingKey: "",
+    aiAdviceMap: () => ({}),
+    aiUnavailableReason: "",
   },
 );
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
   "change-history-range": [minutes: RangeValue];
+  "analyze-history": [
+    payload: {
+      metricKey: MetricKey;
+      minutes: number;
+      startTime?: number;
+      endTime?: number;
+      stateFilter: HistoryStateFilter;
+    },
+  ];
 }>();
 
 const rangeOptions: Array<{ label: string; value: RangeValue }> = [
@@ -372,6 +479,8 @@ const rangeOptions: Array<{ label: string; value: RangeValue }> = [
 ];
 
 const historyRange = ref<RangeValue>(30);
+const historyStateFilter = ref<HistoryStateFilter>("all");
+const historyDateRange = ref<[string, string] | []>([]);
 
 watch(historyRange, (value) => {
   emit("change-history-range", value);
@@ -384,17 +493,76 @@ const visible = computed({
 
 const hostOsFallback = computed(() => osLabel(props.host?.osType));
 
+const resolveStateFilter = (value?: number | null): HistoryStateFilter => {
+  const numeric = Number(value || 0);
+  if (numeric >= Number(thresholds.value.danger || 0)) {
+    return "danger";
+  }
+  if (numeric >= Number(thresholds.value.warning || 0)) {
+    return "warning";
+  }
+  return "normal";
+};
+
 const filteredHistory = computed(() => {
   const history = props.history || [];
   if (!history.length) {
     return [];
   }
+  const [startText, endText] = historyDateRange.value;
+  const hasCustomRange = Boolean(startText && endText);
+  const startTime = hasCustomRange ? Number(startText) : undefined;
+  const endTime = hasCustomRange ? Number(endText) : undefined;
   const cutoff = Date.now() - historyRange.value * 60 * 1000;
-  return history.filter((item) => Number(item.collectTimestamp || 0) >= cutoff);
+  return history.filter((item) => {
+    const collectTimestamp = Number(item.collectTimestamp || 0);
+    if (!collectTimestamp) {
+      return false;
+    }
+    if (hasCustomRange) {
+      if (
+        (startTime && collectTimestamp < startTime) ||
+        (endTime && collectTimestamp > endTime)
+      ) {
+        return false;
+      }
+    } else if (collectTimestamp < cutoff) {
+      return false;
+    }
+    if (historyStateFilter.value === "all") {
+      return true;
+    }
+    return (
+      resolveStateFilter(metricMeta.value.itemRawValue(item)) ===
+      historyStateFilter.value
+    );
+  });
 });
 
 const recentHistory = computed(() =>
   filteredHistory.value.slice().reverse().slice(0, 8),
+);
+
+const currentAiFilterKey = computed(() =>
+  buildMetricHistoryAiFilterKey(props.host?.serverId, {
+    metricKey: props.metricKey,
+    minutes: historyRange.value,
+    startTime: historyDateRange.value[0]
+      ? Number(historyDateRange.value[0])
+      : undefined,
+    endTime: historyDateRange.value[1]
+      ? Number(historyDateRange.value[1])
+      : undefined,
+    stateFilter: historyStateFilter.value,
+  }),
+);
+
+const currentAiAdvice = computed(
+  () => props.aiAdviceMap?.[currentAiFilterKey.value] || null,
+);
+
+const currentAiAnalyzing = computed(
+  () => props.aiAnalyzingKey === currentAiFilterKey.value,
 );
 
 const diskPartitions = computed<ServerDiskPartitionView[]>(
@@ -404,6 +572,19 @@ const diskPartitions = computed<ServerDiskPartitionView[]>(
 const networkInterfaces = computed<ServerNetworkInterfaceView[]>(
   () => props.detail?.networkInterfaces || [],
 );
+
+const handleHistoryDateRangeChange = (value?: [string, string] | []) => {
+  if (!value || value.length !== 2) {
+    emit("change-history-range", historyRange.value);
+    return;
+  }
+  const startTime = Number(value[0] || 0);
+  const minutes = Math.max(
+    15,
+    Math.ceil((Date.now() - startTime) / (60 * 1000)),
+  );
+  emit("change-history-range", minutes);
+};
 
 const thresholds = computed(() => {
   const settings = props.alertSettings || {};
@@ -822,6 +1003,20 @@ const chartOption = computed(() => {
   };
 });
 
+const emitAnalyzeHistory = () => {
+  if (!props.metricKey) {
+    return;
+  }
+  const [startText, endText] = historyDateRange.value;
+  emit("analyze-history", {
+    metricKey: props.metricKey,
+    minutes: historyRange.value,
+    startTime: startText ? Number(startText) : undefined,
+    endTime: endText ? Number(endText) : undefined,
+    stateFilter: historyStateFilter.value,
+  });
+};
+
 function formatDateTime(
   value?: number | null,
   options: {
@@ -862,13 +1057,15 @@ function formatDateTime(
 .server-metric-detail-dialog__hero,
 .server-metric-detail-dialog__chips,
 .server-metric-detail-dialog__thresholds,
-.server-metric-detail-dialog__panel-header {
+.server-metric-detail-dialog__panel-header,
+.server-metric-detail-dialog__ai-header {
   display: flex;
   align-items: center;
 }
 .server-metric-detail-dialog__header,
 .server-metric-detail-dialog__hero,
-.server-metric-detail-dialog__panel-header {
+.server-metric-detail-dialog__panel-header,
+.server-metric-detail-dialog__ai-header {
   justify-content: space-between;
 }
 .server-metric-detail-dialog__header {
@@ -895,7 +1092,8 @@ function formatDateTime(
 }
 .server-metric-detail-dialog__hero,
 .server-metric-detail-dialog__chart-panel,
-.server-metric-detail-dialog__panel {
+.server-metric-detail-dialog__panel,
+.server-metric-detail-dialog__ai-panel {
   border: 1px solid color-mix(in srgb, var(--el-border-color) 76%, transparent);
   border-radius: 24px;
   background:
@@ -965,6 +1163,41 @@ function formatDateTime(
 }
 .server-metric-detail-dialog__chart-panel {
   padding: 18px 20px 10px;
+}
+.server-metric-detail-dialog__ai-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+}
+.server-metric-detail-dialog__ai-header {
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.server-metric-detail-dialog__ai-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+}
+.server-metric-detail-dialog__ai-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.server-metric-detail-dialog__ai-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+.server-metric-detail-dialog__ai-card small {
+  color: #64748b;
+}
+.server-metric-detail-dialog__ai-card p {
+  margin: 0;
+  color: #0f172a;
+  line-height: 1.7;
+  white-space: pre-wrap;
 }
 .server-metric-detail-dialog__chart-panel header,
 .server-metric-detail-dialog__thresholds {
@@ -1246,6 +1479,9 @@ function formatDateTime(
 
 @media (max-width: 1100px) {
   .server-metric-detail-dialog__grid {
+    grid-template-columns: 1fr;
+  }
+  .server-metric-detail-dialog__ai-grid {
     grid-template-columns: 1fr;
   }
   .server-metric-detail-dialog__hero,

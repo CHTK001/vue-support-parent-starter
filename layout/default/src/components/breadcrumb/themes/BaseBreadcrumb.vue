@@ -4,13 +4,8 @@ import { isEqual, useGlobal } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { useRoute, useRouter } from "vue-router";
-import { onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue";
-import {
-  emitter,
-  findRouteByPath,
-  getParentPaths,
-  useMultiTagsStoreHook,
-} from "@repo/core";
+import { computed, onBeforeUnmount, onMounted, ref, toRaw, watch } from "vue";
+import { emitter, useMultiTagsStoreHook } from "@repo/core";
 
 // 接收主题类名
 const props = defineProps<{
@@ -20,8 +15,7 @@ const props = defineProps<{
 const route = useRoute();
 const levelList = ref([]);
 const router = useRouter();
-const routes: any = router.options.routes;
-const multiTags: any = useMultiTagsStoreHook().multiTags;
+const multiTags = computed(() => useMultiTagsStoreHook().multiTags || []);
 
 // 全局配置
 const { $storage } = useGlobal<any>();
@@ -41,54 +35,55 @@ onBeforeUnmount(() => {
 });
 
 const getBreadcrumb = (): void => {
-  // 当前路由信息
+  const hasQuery = Object.keys(route.query).length > 0;
+  const hasParams = Object.keys(route.params).length > 0;
   let currentRoute;
 
-  if (Object.keys(route.query).length > 0) {
-    multiTags.forEach((item) => {
-      if (isEqual(route.query, item?.query)) {
-        currentRoute = toRaw(item);
-      }
-    });
-  } else if (Object.keys(route.params).length > 0) {
-    multiTags.forEach((item) => {
-      if (isEqual(route.params, item?.params)) {
-        currentRoute = toRaw(item);
-      }
-    });
-  } else {
-    currentRoute = findRouteByPath(router.currentRoute.value.path, routes);
+  if (hasQuery) {
+    currentRoute = multiTags.value.find((item) => isEqual(route.query, item?.query));
+  } else if (hasParams) {
+    currentRoute = multiTags.value.find((item) => isEqual(route.params, item?.params));
   }
 
-  // 当前路由的父级路径组成的数组
-  const parentRoutes = getParentPaths(
-    router.currentRoute.value.name as string,
-    routes,
-    "name",
-  );
-  // 存放组成面包屑的数组
-  const matched = [];
+  const matchedRoutes = router.currentRoute.value.matched
+    .map((item) => toRaw(item))
+    .filter((item) => item?.path && item.path !== "/" && item?.meta?.title !== false)
+    .map((item) => ({
+      ...item,
+      meta: {
+        ...item.meta,
+        showLink:
+          item.path === router.currentRoute.value.path ? true : item.meta?.showLink,
+        hiddenTag:
+          item.path === router.currentRoute.value.path
+            ? false
+            : item.meta?.hiddenTag,
+      },
+    }));
 
-  // 获取每个父级路径对应的路由信息
-  parentRoutes.forEach((path) => {
-    if (path !== "/") matched.push(findRouteByPath(path, routes));
-  });
-
-  matched.push(currentRoute);
-
-  matched.forEach((item, index) => {
-    if (currentRoute?.query || currentRoute?.params) return;
-    if (item?.children) {
-      item.children.forEach((v) => {
-        if (v?.meta?.title === item?.meta?.title) {
-          matched.splice(index, 1);
-        }
+  if (currentRoute) {
+    const targetPath = currentRoute.path || router.currentRoute.value.path;
+    const matchedIndex = matchedRoutes.findIndex((item) => item.path === targetPath);
+    if (matchedIndex !== -1) {
+      matchedRoutes.splice(matchedIndex, 1, {
+        ...matchedRoutes[matchedIndex],
+        ...toRaw(currentRoute),
+        path: targetPath,
+        meta: {
+          ...matchedRoutes[matchedIndex].meta,
+          ...toRaw(currentRoute).meta,
+        },
       });
+    } else {
+      matchedRoutes.push(toRaw(currentRoute));
     }
-  });
+  }
 
-  levelList.value = matched.filter(
-    (item) => item?.meta && item?.meta.title !== false,
+  levelList.value = matchedRoutes.filter(
+    (item, index, list) =>
+      item?.meta &&
+      item.meta.title !== false &&
+      list.findIndex((candidate) => candidate?.path === item?.path) === index,
   );
 };
 
@@ -97,7 +92,21 @@ const handleLink = (item) => {
   if (redirect) {
     router.push(redirect as any);
   } else {
-    if (name) {
+    if (path) {
+      if (item.query) {
+        router.push({
+          path,
+          query: item.query,
+        });
+      } else if (item.params && name) {
+        router.push({
+          name,
+          params: item.params,
+        });
+      } else {
+        router.push({ path });
+      }
+    } else if (name) {
       if (item.query) {
         router.push({
           name,

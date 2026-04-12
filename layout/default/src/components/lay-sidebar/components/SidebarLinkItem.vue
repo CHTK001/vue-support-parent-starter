@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { isUrl } from "@pureadmin/utils";
 import type { MenuType } from "@repo/core";
-import { computed, nextTick } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { useMultiTagsStoreHook } from "@repo/core";
 
 const props = defineProps<{
   to: MenuType | { path: string };
@@ -63,20 +62,6 @@ function handleClick(event: Event) {
       window.open(fullUrl, "_blank");
     }
     return;
-  }
-
-  // 普通菜单点击：直接跳转路由，由路由守卫统一处理 tag 添加
-  if (!isExternalLink.value && "meta" in props.to && "name" in props.to) {
-    event.preventDefault();
-
-    const menuItem = props.to as MenuType;
-
-    // 直接跳转路由
-    if (menuItem.name) {
-      router.push({ name: menuItem.name });
-    } else {
-      router.push({ path: menuItem.path });
-    }
   }
 }
 

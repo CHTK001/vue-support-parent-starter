@@ -492,7 +492,7 @@ export async function createStandardApp(
     injectResponsiveStorage,
     useI18n,
   } = await import("@repo/config");
-  const [{ router }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] =
+  const [{ router, routerReady }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] =
     await Promise.all([
       import("./router"),
       import("./store"),
@@ -571,6 +571,8 @@ export async function createStandardApp(
   const initialConfig = getInitialConfig();
   const frontendSystemConfig = getFrontendSystemConfig(initialConfig);
   bootDebugLog("createStandardApp:config-ready");
+  await routerReady;
+  bootDebugLog("createStandardApp:router-ready");
   await syncFrontendSystemRuntime(initialConfig);
   bootDebugLog("createStandardApp:frontend-system-runtime-ready");
 

@@ -116,17 +116,20 @@ export function useTags() {
   function conditionHandle(item, previous, next) {
     const currentPath = resolveTagPath(route);
     const directPath = normalizeRoutePath(route.path);
+    const hasQuery = Object.keys(route.query).length > 0;
+    const hasParams = Object.keys(route.params).length > 0;
 
     if (currentPath !== directPath) {
       return currentPath === resolveTagPath(item) ? previous : next;
     }
 
     if (isBoolean(route?.meta?.showLink) && route?.meta?.showLink === false) {
-      if (Object.keys(route.query).length > 0) {
+      if (hasQuery) {
         return isEqual(route.query, item.query) ? previous : next;
-      } else {
+      } else if (hasParams) {
         return isEqual(route.params, item.params) ? previous : next;
       }
+      return currentPath === resolveTagPath(item) ? previous : next;
     } else {
       return currentPath === resolveTagPath(item) ? previous : next;
     }

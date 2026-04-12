@@ -12,335 +12,385 @@
 
     <div class="menu-wrapper">
       <ScContainer>
-        <div v-if="showMiniProgramMenu" class="menu-engine-tabs">
-          <el-tabs v-model="menuEngineTab" stretch>
-            <el-tab-pane label="PC 菜单" name="0" />
-            <el-tab-pane label="小程序菜单" name="1" />
-          </el-tabs>
-        </div>
-        <div class="menu-source-note">
-          <IconifyIconOnline icon="ri:information-line" />
-          <span>{{ currentSourceHint }}</span>
-        </div>
-        <MiniProgramMenuPanel
-          v-if="isMiniProgramEngine"
-          :active="isMiniProgramEngine"
-        />
-        <template v-else>
-        <!-- 统计面板 -->
-        <div class="menu-stats">
-          <div class="stat-item">
-            <div class="stat-icon total">
-              <IconifyIconOnline icon="ri:menu-line" :size="24" />
+        <div
+          class="menu-engine-layout"
+          :class="{ 'has-mini-menu': showMiniProgramMenu }"
+        >
+          <div class="menu-engine-content">
+            <div class="menu-source-note">
+              <IconifyIconOnline icon="ri:information-line" />
+              <span>{{ currentSourceHint }}</span>
             </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.total }}</span>
-              <span class="stat-label">全部菜单</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon directory">
-              <IconifyIconOnline icon="ri:folder-line" :size="24" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.directories }}</span>
-              <span class="stat-label">目录</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon menu">
-              <IconifyIconOnline icon="ri:file-list-line" :size="24" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.menus }}</span>
-              <span class="stat-label">菜单</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon button">
-              <IconifyIconOnline icon="ri:cursor-line" :size="24" />
-            </div>
-            <div class="stat-info">
-              <span class="stat-value">{{ stats.buttons }}</span>
-              <span class="stat-label">按钮</span>
-            </div>
-          </div>
-        </div>
-        <!-- 表格头部 -->
-        <ScHeader class="toolbar-section menu-header">
-          <div class="toolbar-left header-left">
-            <ScInput
-              v-model="searchKeyword"
-              placeholder="搜索菜单名称/路由"
-              clearable
-              class="search-input"
-              @input="handleSearch"
-            >
-              <template #prefix>
-                <IconifyIconOnline icon="ri:search-line" />
-              </template>
-            </ScInput>
-          </div>
-          <div class="toolbar-right header-actions">
-            <!-- 展开/折叠全部 -->
-            <ScTooltip
-              :content="isExpanded ? '折叠全部' : '展开全部'"
-              placement="top"
-            >
-              <ScButton
-                :title="isExpanded ? '折叠全部菜单' : '展开全部菜单'"
-                :aria-label="isExpanded ? '折叠全部菜单' : '展开全部菜单'"
-                @click="toggleExpandAll"
-              >
-                <IconifyIconOnline
-                  :icon="
-                    isExpanded
-                      ? 'ri:collapse-diagonal-line'
-                      : 'ri:expand-diagonal-line'
-                  "
-                />
-              </ScButton>
-            </ScTooltip>
-            <!-- 刷新按钮 -->
-            <ScTooltip content="刷新" placement="top">
-              <ScButton
-                type="primary"
-                :loading="loading.query"
-                title="刷新菜单"
-                aria-label="刷新菜单"
-                @click="onSearch"
-              >
-                <IconifyIconOnline icon="ri:refresh-line" />
-              </ScButton>
-            </ScTooltip>
-            <!-- 添加菜单按钮 -->
-            <ScTooltip
-              v-if="getConfig().AccountType != 'tenant'"
-              content="添加菜单"
-              placement="top"
-            >
-              <ScButton
-                type="success"
-                title="新增菜单"
-                aria-label="新增菜单"
-                @click="dialogOpen({ sysMenuType: 0 }, 'save')"
-              >
-                <IconifyIconOnline icon="ri:add-line" />
-              </ScButton>
-            </ScTooltip>
-          </div>
-        </ScHeader>
-
-        <!-- 表格主体 -->
-        <ScMain class="menu-main page-table-fill">
-          <div class="menu-table-container">
-            <!-- 加载骨架屏 -->
-            <ScSkeleton v-if="loading.query" animated :rows="6" />
-
-            <!-- 表格 -->
-            <ScTable
-              v-else
-              ref="menuTableRef"
-              :data="filteredTableData"
-              class="menu-table table-fill"
-              row-key="sysMenuId"
-              border
-              layout="table"
-              :expand-row-keys="expandedRowKeys"
-              @row-click="getOpenDetail"
-            >
-              <!-- 菜单名称列 -->
-              <ScTableColumn
-                prop="sysMenuTitle"
-                label="菜单名称"
-                min-width="220"
-                show-overflow-tooltip
-              >
-                <template #default="{ row }">
-                  <div class="menu-name-cell flex">
-                    <span class="menu-icon">
+            <MiniProgramMenuPanel
+              v-if="isMiniProgramEngine"
+              :active="isMiniProgramEngine"
+            />
+            <template v-else>
+              <!-- 统计面板 -->
+              <div class="menu-stats">
+                <div class="stat-item">
+                  <div class="stat-icon total">
+                    <IconifyIconOnline icon="ri:menu-line" :size="24" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{ stats.total }}</span>
+                    <span class="stat-label">全部菜单</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon directory">
+                    <IconifyIconOnline icon="ri:folder-line" :size="24" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{ stats.directories }}</span>
+                    <span class="stat-label">目录</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon menu">
+                    <IconifyIconOnline icon="ri:file-list-line" :size="24" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{ stats.menus }}</span>
+                    <span class="stat-label">菜单</span>
+                  </div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-icon button">
+                    <IconifyIconOnline icon="ri:cursor-line" :size="24" />
+                  </div>
+                  <div class="stat-info">
+                    <span class="stat-value">{{ stats.buttons }}</span>
+                    <span class="stat-label">按钮</span>
+                  </div>
+                </div>
+              </div>
+              <!-- 表格头部 -->
+              <ScHeader class="toolbar-section menu-header">
+                <div class="toolbar-left header-left">
+                  <ScInput
+                    v-model="searchKeyword"
+                    placeholder="搜索菜单名称/路由"
+                    clearable
+                    class="search-input"
+                    @input="handleSearch"
+                  >
+                    <template #prefix>
+                      <IconifyIconOnline icon="ri:search-line" />
+                    </template>
+                  </ScInput>
+                </div>
+                <div class="toolbar-right header-actions">
+                  <!-- 展开/折叠全部 -->
+                  <ScTooltip
+                    :content="isExpanded ? '折叠全部' : '展开全部'"
+                    placement="top"
+                  >
+                    <ScButton
+                      :title="isExpanded ? '折叠全部菜单' : '展开全部菜单'"
+                      :aria-label="isExpanded ? '折叠全部菜单' : '展开全部菜单'"
+                      @click="toggleExpandAll"
+                    >
                       <IconifyIconOnline
-                        :icon="row.sysMenuIcon || 'mdi:menu'"
-                      />
-                    </span>
-                    <span v-if="row.sysMenuType !== 3" class="menu-title">
-                      {{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
-                    </span>
-                    <div v-else class="menu-button">
-                      <span class="button-title">{{
-                        transformI18n(row.sysMenuI18n || row.sysMenuTitle)
-                      }}</span>
-                      <span class="button-perm">{{ row.sysMenuPerm }}</span>
-                    </div>
-                  </div>
-                </template>
-              </ScTableColumn>
-
-              <!-- 菜单类型列 -->
-              <ScTableColumn
-                prop="sysMenuType"
-                label="菜单类型"
-                width="120"
-                align="center"
-              >
-                <template #default="{ row }">
-                  <ScTag
-                    :type="getMenuTypeTag(row.sysMenuType).type"
-                    effect="light"
-                    class="menu-type-tag"
-                  >
-                    <IconifyIconOnline
-                      :icon="getMenuTypeTag(row.sysMenuType).icon"
-                      class="tag-icon"
-                    />
-                    <span>{{ getMenuTypeTag(row.sysMenuType).label }}</span>
-                  </ScTag>
-                </template>
-              </ScTableColumn>
-
-              <!-- 路由名称列 -->
-              <ScTableColumn
-                prop="sysMenuPath"
-                label="路由名称"
-                min-width="150"
-                show-overflow-tooltip
-              >
-                <template #default="{ row }">
-                  <div class="route-name-cell">
-                    <span v-if="row.sysMenuName">{{ row.sysMenuName }}</span>
-                    <span v-else class="empty-value">-</span>
-                    <ScIcon
-                      v-if="row.sysMenuName"
-                      v-copy:click="row.sysMenuName"
-                      class="copy-icon"
-                    >
-                      <IconifyIconOnline icon="mdi:content-copy" />
-                    </ScIcon>
-                  </div>
-                </template>
-              </ScTableColumn>
-
-              <!-- 路由路径列 -->
-              <ScTableColumn
-                prop="sysMenuPath"
-                label="路由路径"
-                min-width="150"
-                show-overflow-tooltip
-              >
-                <template #default="{ row }">
-                  <span v-if="row.sysMenuPath">{{ row.sysMenuPath }}</span>
-                  <span v-else class="empty-value">-</span>
-                </template>
-              </ScTableColumn>
-
-              <!-- 组件路径列 -->
-              <ScTableColumn
-                prop="sysMenuComponent"
-                label="组件路径"
-                min-width="180"
-                show-overflow-tooltip
-              >
-                <template #default="{ row }">
-                  <span v-if="row.sysMenuComponent">{{
-                    row.sysMenuComponent
-                  }}</span>
-                  <span v-else class="empty-value">-</span>
-                </template>
-              </ScTableColumn>
-
-              <!-- 排序列 -->
-              <ScTableColumn
-                prop="sysMenuSort"
-                label="排序"
-                width="80"
-                align="center"
-              />
-
-              <!-- 隐藏列 -->
-              <ScTableColumn
-                v-if="getConfig().AccountType != 'tenant'"
-                prop="sysMenuHidden"
-                label="隐藏"
-                width="80"
-                align="center"
-              >
-                <template #default="{ row }">
-                  <ScTag
-                    :type="row.sysMenuHidden ? 'danger' : 'success'"
-                    effect="light"
-                    size="small"
-                  >
-                    {{ row.sysMenuHidden ? "是" : "否" }}
-                  </ScTag>
-                </template>
-              </ScTableColumn>
-
-              <!-- 操作列 -->
-              <ScTableColumn
-                v-if="getConfig().AccountType != 'tenant'"
-                label="操作"
-                width="180"
-                fixed="right"
-                align="center"
-              >
-                <template #default="{ row }">
-                  <div class="action-buttons">
-                    <!-- 编辑按钮 -->
-                    <ScTooltip content="编辑菜单" placement="top">
-                      <ScButton
-                        type="primary"
-                        link
-                        title="编辑菜单"
-                        aria-label="编辑菜单"
-                        @click.stop="dialogOpen(row, 'edit')"
-                      >
-                        <IconifyIconOnline icon="mdi:pencil" />
-                      </ScButton>
-                    </ScTooltip>
-
-                    <!-- 添加子菜单按钮 -->
-                    <ScTooltip content="添加子菜单" placement="top">
-                      <ScButton
-                        type="success"
-                        link
-                        title="添加子菜单"
-                        aria-label="添加子菜单"
-                        @click.stop="
-                          dialogOpen(
-                            { sysMenuPid: row.sysMenuId, sysMenuType: 0 },
-                            'save',
-                          )
+                        :icon="
+                          isExpanded
+                            ? 'ri:collapse-diagonal-line'
+                            : 'ri:expand-diagonal-line'
                         "
-                      >
-                        <IconifyIconOnline icon="mdi:playlist-plus" />
-                      </ScButton>
-                    </ScTooltip>
-
-                    <!-- 删除确认框 -->
-                    <ScPopconfirm
-                      :title="$t('message.confimDelete')"
-                      confirm-button-type="danger"
-                      cancel-button-type="info"
-                      @confirm="onDelete(row)"
+                      />
+                    </ScButton>
+                  </ScTooltip>
+                  <!-- 刷新按钮 -->
+                  <ScTooltip content="刷新" placement="top">
+                    <ScButton
+                      type="primary"
+                      :loading="loading.query"
+                      title="刷新菜单"
+                      aria-label="刷新菜单"
+                      @click="onSearch"
                     >
-                      <template #reference>
-                        <ScButton
-                          type="danger"
-                          link
-                          title="删除菜单"
-                          aria-label="删除菜单"
-                        >
-                          <IconifyIconOnline icon="mdi:delete" />
-                        </ScButton>
+                      <IconifyIconOnline icon="ri:refresh-line" />
+                    </ScButton>
+                  </ScTooltip>
+                  <!-- 添加菜单按钮 -->
+                  <ScTooltip
+                    v-if="getConfig().AccountType != 'tenant'"
+                    content="添加菜单"
+                    placement="top"
+                  >
+                    <ScButton
+                      type="success"
+                      title="新增菜单"
+                      aria-label="新增菜单"
+                      @click="dialogOpen({ sysMenuType: 0 }, 'save')"
+                    >
+                      <IconifyIconOnline icon="ri:add-line" />
+                    </ScButton>
+                  </ScTooltip>
+                </div>
+              </ScHeader>
+
+              <!-- 表格主体 -->
+              <ScMain class="menu-main page-table-fill">
+                <div class="menu-table-container">
+                  <!-- 加载骨架屏 -->
+                  <ScSkeleton v-if="loading.query" animated :rows="6" />
+
+                  <!-- 表格 -->
+                  <ScTable
+                    v-else
+                    ref="menuTableRef"
+                    :data="filteredTableData"
+                    class="menu-table table-fill"
+                    row-key="sysMenuId"
+                    border
+                    layout="table"
+                    :expand-row-keys="expandedRowKeys"
+                    @row-click="getOpenDetail"
+                  >
+                    <!-- 菜单名称列 -->
+                    <ScTableColumn
+                      prop="sysMenuTitle"
+                      label="菜单名称"
+                      min-width="220"
+                      show-overflow-tooltip
+                    >
+                      <template #default="{ row }">
+                        <div class="menu-name-cell flex">
+                          <span class="menu-icon">
+                            <IconifyIconOnline
+                              :icon="row.sysMenuIcon || 'mdi:menu'"
+                            />
+                          </span>
+                          <span v-if="row.sysMenuType !== 3" class="menu-title">
+                            {{
+                              transformI18n(row.sysMenuI18n || row.sysMenuTitle)
+                            }}
+                          </span>
+                          <div v-else class="menu-button">
+                            <span class="button-title">{{
+                              transformI18n(row.sysMenuI18n || row.sysMenuTitle)
+                            }}</span>
+                            <span class="button-perm">{{
+                              row.sysMenuPerm
+                            }}</span>
+                          </div>
+                        </div>
                       </template>
-                    </ScPopconfirm>
-                  </div>
-                </template>
-              </ScTableColumn>
-            </ScTable>
+                    </ScTableColumn>
+
+                    <!-- 菜单类型列 -->
+                    <ScTableColumn
+                      prop="sysMenuType"
+                      label="菜单类型"
+                      width="120"
+                      align="center"
+                    >
+                      <template #default="{ row }">
+                        <ScTag
+                          :type="getMenuTypeTag(row.sysMenuType).type"
+                          effect="light"
+                          class="menu-type-tag"
+                        >
+                          <IconifyIconOnline
+                            :icon="getMenuTypeTag(row.sysMenuType).icon"
+                            class="tag-icon"
+                          />
+                          <span>{{
+                            getMenuTypeTag(row.sysMenuType).label
+                          }}</span>
+                        </ScTag>
+                      </template>
+                    </ScTableColumn>
+
+                    <!-- 路由名称列 -->
+                    <ScTableColumn
+                      prop="sysMenuPath"
+                      label="路由名称"
+                      min-width="150"
+                      show-overflow-tooltip
+                    >
+                      <template #default="{ row }">
+                        <div class="route-name-cell">
+                          <span v-if="row.sysMenuName">{{
+                            row.sysMenuName
+                          }}</span>
+                          <span v-else class="empty-value">-</span>
+                          <ScIcon
+                            v-if="row.sysMenuName"
+                            v-copy:click="row.sysMenuName"
+                            class="copy-icon"
+                          >
+                            <IconifyIconOnline icon="mdi:content-copy" />
+                          </ScIcon>
+                        </div>
+                      </template>
+                    </ScTableColumn>
+
+                    <!-- 路由路径列 -->
+                    <ScTableColumn
+                      prop="sysMenuPath"
+                      label="路由路径"
+                      min-width="150"
+                      show-overflow-tooltip
+                    >
+                      <template #default="{ row }">
+                        <span v-if="row.sysMenuPath">{{
+                          row.sysMenuPath
+                        }}</span>
+                        <span v-else class="empty-value">-</span>
+                      </template>
+                    </ScTableColumn>
+
+                    <!-- 组件路径列 -->
+                    <ScTableColumn
+                      prop="sysMenuComponent"
+                      label="组件路径"
+                      min-width="180"
+                      show-overflow-tooltip
+                    >
+                      <template #default="{ row }">
+                        <div class="component-path-cell">
+                          <span v-if="row.sysMenuComponent">{{
+                            row.sysMenuComponent
+                          }}</span>
+                          <span v-else class="empty-value">-</span>
+                          <ScTooltip
+                            v-if="getComponentConflictMenu(row)"
+                            :content="getComponentConflictMessage(row)"
+                            placement="top"
+                          >
+                            <ScTag
+                              type="warning"
+                              effect="light"
+                              size="small"
+                              class="component-warning-tag"
+                            >
+                              指向
+                              {{ getComponentConflictMenu(row)?.sysMenuTitle }}
+                            </ScTag>
+                          </ScTooltip>
+                        </div>
+                      </template>
+                    </ScTableColumn>
+
+                    <!-- 排序列 -->
+                    <ScTableColumn
+                      prop="sysMenuSort"
+                      label="排序"
+                      width="80"
+                      align="center"
+                    />
+
+                    <!-- 隐藏列 -->
+                    <ScTableColumn
+                      v-if="getConfig().AccountType != 'tenant'"
+                      prop="sysMenuHidden"
+                      label="隐藏"
+                      width="80"
+                      align="center"
+                    >
+                      <template #default="{ row }">
+                        <ScTag
+                          :type="row.sysMenuHidden ? 'danger' : 'success'"
+                          effect="light"
+                          size="small"
+                        >
+                          {{ row.sysMenuHidden ? "是" : "否" }}
+                        </ScTag>
+                      </template>
+                    </ScTableColumn>
+
+                    <!-- 操作列 -->
+                    <ScTableColumn
+                      v-if="getConfig().AccountType != 'tenant'"
+                      label="操作"
+                      width="180"
+                      align="center"
+                      fixed="right"
+                    >
+                      <template #default="{ row }">
+                        <div class="action-buttons">
+                          <button
+                            type="button"
+                            class="menu-action-button menu-action-button--primary"
+                            title="编辑菜单"
+                            aria-label="编辑菜单"
+                            @click.stop.prevent="dialogOpen(row, 'edit')"
+                          >
+                            <IconifyIconOnline icon="mdi:pencil" />
+                          </button>
+
+                          <button
+                            type="button"
+                            class="menu-action-button menu-action-button--success"
+                            title="添加子菜单"
+                            aria-label="添加子菜单"
+                            @click.stop.prevent="
+                              dialogOpen(
+                                { sysMenuPid: row.sysMenuId, sysMenuType: 0 },
+                                'save',
+                              )
+                            "
+                          >
+                            <IconifyIconOnline icon="mdi:playlist-plus" />
+                          </button>
+
+                          <!-- 删除确认框 -->
+                          <ScPopconfirm
+                            :title="$t('message.confimDelete')"
+                            confirm-button-type="danger"
+                            cancel-button-type="info"
+                            @confirm="onDelete(row)"
+                          >
+                            <template #reference>
+                              <button
+                                type="button"
+                                class="menu-action-button menu-action-button--danger"
+                                title="删除菜单"
+                                aria-label="删除菜单"
+                                @click.stop.prevent
+                              >
+                                <IconifyIconOnline icon="mdi:delete" />
+                              </button>
+                            </template>
+                          </ScPopconfirm>
+                        </div>
+                      </template>
+                    </ScTableColumn>
+                  </ScTable>
+                </div>
+              </ScMain>
+            </template>
           </div>
-        </ScMain>
-        </template>
+
+          <aside v-if="showMiniProgramMenu" class="menu-engine-sidebar">
+            <ScTooltip
+              v-for="item in menuEngineOptions"
+              :key="item.value"
+              placement="left"
+              effect="dark"
+            >
+              <template #content>
+                <div class="menu-engine-tooltip">
+                  <strong>{{ item.label }}</strong>
+                  <span>{{ item.description }}</span>
+                </div>
+              </template>
+
+              <button
+                type="button"
+                class="menu-engine-sidebar__item"
+                :class="{ 'is-active': menuEngineTab === item.value }"
+                :title="item.label"
+                :aria-label="item.label"
+                @click="menuEngineTab = item.value"
+              >
+                <IconifyIconOnline :icon="item.icon" />
+              </button>
+            </ScTooltip>
+          </aside>
+        </div>
       </ScContainer>
     </div>
   </div>
@@ -441,6 +491,20 @@ const showMiniProgramMenu = computed(() => !!getConfig().OpenMiniProgramMenu);
 const isMiniProgramEngine = computed(
   () => showMiniProgramMenu.value && Number(menuEngine.value || 0) === 1,
 );
+const menuEngineOptions = [
+  {
+    value: "0",
+    label: "PC 菜单",
+    description: "管理后台导航、目录和按钮权限",
+    icon: "ri:layout-left-line",
+  },
+  {
+    value: "1",
+    label: "小程序菜单",
+    description: "管理小程序卡片、图标与访问权限",
+    icon: "ri:apps-2-line",
+  },
+];
 const currentSourceHint = computed(() =>
   Number(menuEngine.value || 0) === 0
     ? "当前管理页读取 /v2/menu/list；左侧运行时导航读取 /v2/user/menu。保存或删除后会自动刷新导航缓存。"
@@ -483,6 +547,75 @@ const buildRowMap = (items: any[] = [], map = new Map<number, any>()) => {
     }
   });
   return map;
+};
+
+const flattenMenuTree = (items: any[] = [], list: any[] = []) => {
+  items.forEach((item) => {
+    if (!item) {
+      return;
+    }
+    list.push(item);
+    if (Array.isArray(item.children) && item.children.length > 0) {
+      flattenMenuTree(item.children, list);
+    }
+  });
+  return list;
+};
+
+const normalizeComparablePath = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/[?#].*$/, "")
+    .replace(/^@repo\/pages\//, "")
+    .replace(/^@pages\/common\//, "")
+    .replace(/^@pages\//, "")
+    .replace(/^\/?src\/views\//, "")
+    .replace(/^\/?views\//, "")
+    .replace(/^\/+/, "")
+    .replace(/\.vue$/i, "")
+    .replace(/\/index$/i, "")
+    .replace(/\/+$/, "");
+
+const routeMenuPathMap = computed(() => {
+  return flattenMenuTree(tableData.value)
+    .filter((item) => Number(item?.sysMenuType) === 0)
+    .reduce((map, item) => {
+      const normalizedPath = normalizeComparablePath(item?.sysMenuPath);
+      if (normalizedPath) {
+        map.set(normalizedPath, item);
+      }
+      return map;
+    }, new Map<string, any>());
+});
+
+const getComponentConflictMenu = (row: any) => {
+  if (!row || Number(row?.sysMenuType) !== 0) {
+    return null;
+  }
+
+  const rowPath = normalizeComparablePath(row?.sysMenuPath);
+  const componentPath = normalizeComparablePath(row?.sysMenuComponent);
+  if (!rowPath || !componentPath) {
+    return null;
+  }
+
+  const linkedMenu = routeMenuPathMap.value.get(componentPath);
+  if (!linkedMenu || Number(linkedMenu?.sysMenuId) === Number(row?.sysMenuId)) {
+    return null;
+  }
+
+  return normalizeComparablePath(linkedMenu?.sysMenuPath) !== rowPath
+    ? linkedMenu
+    : null;
+};
+
+const getComponentConflictMessage = (row: any) => {
+  const conflictMenu = getComponentConflictMenu(row);
+  if (!conflictMenu) {
+    return "";
+  }
+  return `当前组件会命中已有菜单「${transformI18n(conflictMenu.sysMenuI18n || conflictMenu.sysMenuTitle)}」(${conflictMenu.sysMenuPath})，点击后会直接打开该页面。`;
 };
 
 const syncExpandedRows = async () => {
@@ -855,22 +988,17 @@ const getMenuTypeTag = (type) => {
 </script>
 
 <style scoped lang="scss">
-// 响应式适配
-@media (width <= 1200px) {
-  .menu-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (width <= 768px) {
-  .menu-stats {
-    grid-template-columns: 1fr;
-    padding: 12px;
-
-    .stat-item {
-      padding: 12px;
-    }
-  }
+.menu-container {
+  --menu-surface: var(--el-bg-color);
+  --menu-surface-alt: var(--el-fill-color-light);
+  --menu-surface-soft: var(--el-fill-color-lighter);
+  --menu-border: var(--el-border-color-lighter);
+  --menu-text-muted: var(--el-text-color-secondary);
+  --menu-shadow: 0 12px 28px rgb(15 23 42 / 6%);
+  --menu-shadow-strong: 0 18px 36px rgb(15 23 42 / 8%);
+  --menu-accent-soft: rgb(var(--el-color-primary-rgb) / 8%);
+  --menu-accent-strong: rgb(var(--el-color-primary-rgb) / 12%);
+  --menu-accent-border: rgb(var(--el-color-primary-rgb) / 24%);
 }
 
 :deep(.cell:first-child) {
@@ -878,26 +1006,145 @@ const getMenuTypeTag = (type) => {
   align-items: center;
 }
 
-// 统计面板
+.menu-engine-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 18px;
+  padding: 18px 20px 20px;
+}
+
+.menu-engine-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  order: 2;
+  width: 74px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 8px;
+  background: var(--menu-surface-soft);
+  border: 1px solid var(--menu-border);
+  border-radius: 22px;
+  box-shadow: var(--menu-shadow);
+}
+
+.menu-engine-sidebar__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 16px;
+  border: 1px solid var(--menu-border);
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 92%),
+    rgb(248 250 252 / 88%)
+  );
+  color: var(--el-text-color-regular);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  .iconify {
+    font-size: 20px;
+    color: var(--el-color-primary);
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--menu-accent-border);
+    background: var(--menu-accent-soft);
+    box-shadow: var(--menu-shadow);
+  }
+
+  &.is-active {
+    color: var(--el-color-primary);
+    border-color: rgb(var(--el-color-primary-rgb) / 30%);
+    background: var(--menu-accent-strong);
+    box-shadow: 0 10px 22px rgb(var(--el-color-primary-rgb) / 12%);
+  }
+}
+
+.menu-engine-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  span {
+    max-width: 220px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgb(226 232 240 / 88%);
+  }
+}
+
+.menu-engine-content {
+  display: flex;
+  flex: 1;
+  order: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.menu-source-note {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  color: var(--menu-text-muted);
+  font-size: 13px;
+  background: var(--menu-surface-soft);
+  border: 1px solid var(--menu-border);
+  border-radius: 14px;
+  box-shadow: var(--menu-shadow);
+
+  .iconify {
+    color: var(--el-color-primary);
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+}
+
 .menu-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   padding: 20px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--menu-surface);
+  border-bottom: 1px solid var(--menu-border);
 
   .stat-item {
     display: flex;
     gap: 12px;
     align-items: center;
     padding: 16px;
-    background: var(--el-fill-color-lighter);
+    background: var(--menu-surface-soft);
+    border: 1px solid rgb(226 232 240 / 80%);
     border-radius: 12px;
-    transition: box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
 
     &:hover {
-      box-shadow: 0 6px 14px rgb(15 23 42 / 6%);
+      border-color: var(--menu-accent-border);
+      box-shadow: var(--menu-shadow);
     }
 
     .stat-icon {
@@ -940,43 +1187,9 @@ const getMenuTypeTag = (type) => {
       .stat-label {
         margin-top: 4px;
         font-size: 13px;
-        color: var(--el-text-color-secondary);
+        color: var(--menu-text-muted);
       }
     }
-  }
-}
-
-.menu-source-note {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 12px 20px 0;
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-
-  .iconify {
-    color: var(--el-color-primary);
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-}
-
-.menu-engine-tabs {
-  padding: 16px 20px 0;
-
-  :deep(.el-tabs__header) {
-    margin-bottom: 12px;
-  }
-
-  :deep(.el-tabs__nav-wrap) {
-    padding: 4px;
-    background: var(--el-fill-color-light);
-    border-radius: 14px;
-  }
-
-  :deep(.el-tabs__item) {
-    height: 42px;
-    font-weight: 600;
   }
 }
 
@@ -988,12 +1201,12 @@ const getMenuTypeTag = (type) => {
     min-height: 0;
     overflow: hidden;
     border-radius: var(--el-border-radius-base);
-    box-shadow: none;
 
     :deep(.sc-container) {
       display: flex;
       flex: 1;
       flex-direction: column;
+      min-height: 0;
     }
   }
 
@@ -1012,8 +1225,8 @@ const getMenuTypeTag = (type) => {
     justify-content: space-between;
     height: auto !important;
     padding: 16px 20px;
-    background-color: var(--el-bg-color);
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    background-color: var(--menu-surface);
+    border-bottom: 1px solid var(--menu-border);
 
     .header-left {
       flex: 1;
@@ -1022,6 +1235,7 @@ const getMenuTypeTag = (type) => {
       .search-input {
         :deep(.el-input__wrapper) {
           border-radius: 8px;
+          box-shadow: none;
         }
       }
     }
@@ -1038,7 +1252,7 @@ const getMenuTypeTag = (type) => {
         transition: box-shadow 0.2s ease;
 
         &:hover {
-          box-shadow: 0 4px 10px rgb(15 23 42 / 8%);
+          box-shadow: var(--menu-shadow);
         }
 
         .iconify {
@@ -1053,8 +1267,10 @@ const getMenuTypeTag = (type) => {
     flex: 1;
     flex-direction: column;
     min-height: 0;
+    min-block-size: clamp(280px, 46vh, 420px);
     padding: 0;
-    background-color: var(--el-bg-color-page);
+    background-color: transparent;
+    overflow: hidden;
 
     .menu-table-container {
       display: flex;
@@ -1062,11 +1278,12 @@ const getMenuTypeTag = (type) => {
       flex-direction: column;
       height: 100%;
       min-height: 0;
+      min-block-size: inherit;
       overflow: hidden;
-      background-color: var(--el-bg-color);
-      // 添加圆角和阴影
+      background-color: var(--menu-surface);
+      border: 1px solid var(--menu-border);
       border-radius: var(--el-border-radius-base);
-      box-shadow: none;
+      box-shadow: var(--menu-shadow);
     }
 
     .menu-table {
@@ -1075,38 +1292,77 @@ const getMenuTypeTag = (type) => {
 
       :deep(.sc-table-container),
       :deep(.sc-table-wrapper),
+      :deep(.sc-table-auto-height),
+      :deep(.table-container),
       :deep(.sc-table-content-wrapper) {
         flex: 1;
         min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      :deep(.el-table),
+      :deep(.el-table__inner-wrapper),
+      :deep(.el-table__header-wrapper),
+      :deep(.el-table__body-wrapper) {
+        background: transparent;
       }
 
       :deep(.el-table) {
         height: 100%;
       }
 
-      :deep(.el-table__header) {
-        background-color: var(--el-bg-color);
+      :deep(.el-table__inner-wrapper) {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+      }
 
-        // 美化表头
+      :deep(.el-table__body-wrapper) {
+        flex: 1;
+        min-height: 0;
+      }
+
+      :deep(.sc-table-pagination-wrapper) {
+        flex-shrink: 0;
+      }
+
+      :deep(.el-table td.el-table__cell),
+      :deep(.el-table th.el-table__cell) {
+        border-bottom-color: var(--menu-border);
+      }
+
+      :deep(.el-table__inner-wrapper::before) {
+        background-color: transparent;
+      }
+
+      :deep(.el-table__header) {
+        background-color: var(--menu-surface);
+
         th {
           font-weight: 600;
           color: var(--el-text-color-primary);
-          background-color: var(--el-fill-color-light);
+          background-color: var(--menu-surface-alt);
         }
       }
 
       :deep(.el-table__row) {
         cursor: pointer;
         transition: background-color 0.2s ease;
+        background-color: var(--menu-surface);
 
         &:hover {
-          background-color: var(--el-fill-color-light);
+          background-color: var(--menu-surface-alt);
         }
 
-        // 添加斑马纹效果
         &:nth-child(even) {
-          background-color: var(--el-fill-color-lighter);
+          background-color: var(--menu-surface-soft);
         }
+      }
+
+      :deep(.el-table__row:hover > td.el-table__cell) {
+        background-color: var(--menu-surface-alt);
       }
 
       :deep(.el-table__expand-icon) {
@@ -1129,7 +1385,6 @@ const getMenuTypeTag = (type) => {
         height: 28px;
         font-size: 16px;
         color: var(--el-color-primary);
-        // 添加图标背景
         background-color: var(--el-color-primary-light-9);
         border-radius: 6px;
         transition: background-color 0.2s ease;
@@ -1139,7 +1394,8 @@ const getMenuTypeTag = (type) => {
         }
       }
 
-      .menu-title {
+      .menu-title,
+      .button-title {
         font-weight: 500;
       }
 
@@ -1149,16 +1405,11 @@ const getMenuTypeTag = (type) => {
         justify-content: space-between;
         width: 100%;
 
-        .button-title {
-          font-weight: 500;
-        }
-
         .button-perm {
           padding: 2px 6px;
           font-size: 12px;
-          color: var(--el-text-color-secondary);
-          // 添加权限标签样式
-          background-color: var(--el-fill-color-lighter);
+          color: var(--menu-text-muted);
+          background-color: var(--menu-surface-soft);
           border-radius: 4px;
         }
       }
@@ -1170,9 +1421,7 @@ const getMenuTypeTag = (type) => {
       align-items: center;
       padding: 4px 8px;
       font-weight: 500;
-      // 改进标签样式
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
 
       .tag-icon {
         font-size: 14px;
@@ -1188,19 +1437,32 @@ const getMenuTypeTag = (type) => {
         font-size: 14px;
         color: var(--el-color-primary);
         cursor: pointer;
-        opacity: 0.6;
-        transition: all 0.3s;
+        opacity: 0.7;
+        transition: all 0.2s ease;
 
         &:hover {
           opacity: 1;
-          transform: scale(1.2);
+          transform: scale(1.14);
         }
       }
     }
 
+    .component-path-cell {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .component-warning-tag {
+      border-color: rgb(var(--el-color-warning-rgb) / 26%);
+      background: rgb(var(--el-color-warning-rgb) / 14%);
+      color: var(--el-color-warning);
+    }
+
     .empty-value {
       font-style: italic;
-      color: var(--el-text-color-secondary);
+      color: var(--menu-text-muted);
     }
 
     .action-buttons {
@@ -1209,10 +1471,20 @@ const getMenuTypeTag = (type) => {
       align-items: center;
       justify-content: center;
 
-      .el-button {
-        // 改进操作按钮样式
+      .menu-action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
         border-radius: 6px;
-        transition: opacity 0.2s ease;
+        background: transparent;
+        transition:
+          opacity 0.2s ease,
+          background-color 0.2s ease,
+          color 0.2s ease;
 
         &:hover {
           opacity: 0.9;
@@ -1222,57 +1494,29 @@ const getMenuTypeTag = (type) => {
           font-size: 18px;
         }
       }
-    }
-  }
-}
 
-// 暗色主题适配
-:root[data-theme="dark"] {
-  .menu-stats {
-    background: var(--el-bg-color-overlay);
+      .menu-action-button--primary {
+        color: var(--el-color-primary);
 
-    .stat-item {
-      background: var(--el-fill-color);
-    }
-  }
-
-  .menu-container {
-    .menu-wrapper {
-      box-shadow: none;
-    }
-
-    .menu-header {
-      background-color: var(--el-bg-color-overlay);
-      background-image: linear-gradient(
-        to right,
-        var(--el-bg-color-overlay),
-        var(--el-bg-color)
-      );
-    }
-
-    .menu-table-container {
-      box-shadow: none;
-    }
-
-    .menu-table {
-      :deep(.el-table__header) {
-        background-color: var(--el-bg-color-overlay);
-
-        th {
-          background-color: var(--el-fill-color);
+        &:hover {
+          background: rgb(var(--el-color-primary-rgb) / 10%);
         }
       }
 
-      :deep(.el-table__row) {
-        &:nth-child(even) {
-          background-color: var(--el-fill-color);
+      .menu-action-button--success {
+        color: var(--el-color-success);
+
+        &:hover {
+          background: rgb(var(--el-color-success-rgb) / 10%);
         }
       }
-    }
 
-    .menu-name-cell {
-      .menu-icon {
-        background-color: rgb(64 158 255 / 10%);
+      .menu-action-button--danger {
+        color: var(--el-color-danger);
+
+        &:hover {
+          background: rgb(var(--el-color-danger-rgb) / 10%);
+        }
       }
     }
   }
@@ -1280,26 +1524,102 @@ const getMenuTypeTag = (type) => {
 
 .menu-wrapper,
 .menu-main,
-.menu-table-container {
-  box-shadow: none !important;
-}
-
-.menu-stats {
-  box-shadow: none !important;
-
-  .stat-item {
-    border: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: none !important;
-  }
-}
-
+.menu-table-container,
+.menu-stats,
 .menu-type-tag {
   box-shadow: none !important;
 }
 
+@media (width <= 1200px) {
+  .menu-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (width <= 960px) {
+  .menu-engine-layout {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .menu-engine-sidebar {
+    width: 100%;
+    flex-direction: row;
+    order: 1;
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+
+  .menu-engine-sidebar__item {
+    flex: 1;
+    width: auto;
+  }
+
+  .menu-engine-content {
+    order: 2;
+  }
+}
+
+@media (width <= 768px) {
+  .menu-stats {
+    grid-template-columns: 1fr;
+    padding: 12px;
+
+    .stat-item {
+      padding: 12px;
+    }
+  }
+}
+
 html.dark {
+  .menu-container {
+    --menu-surface: rgb(15 23 42 / 88%);
+    --menu-surface-alt: rgb(30 41 59 / 88%);
+    --menu-surface-soft: rgb(15 23 42 / 72%);
+    --menu-border: rgb(148 163 184 / 16%);
+    --menu-text-muted: #94a3b8;
+    --menu-shadow: 0 18px 34px rgb(2 8 23 / 24%);
+    --menu-shadow-strong: 0 22px 42px rgb(2 8 23 / 30%);
+    --menu-accent-soft: rgb(var(--el-color-primary-rgb) / 16%);
+    --menu-accent-strong: rgb(var(--el-color-primary-rgb) / 22%);
+    --menu-accent-border: rgb(var(--el-color-primary-rgb) / 26%);
+  }
+
   .menu-stats .stat-item {
-    border-color: rgba(71, 85, 105, 0.55);
+    border-color: rgb(71 85 105 / 55%);
+  }
+
+  .menu-engine-sidebar__item {
+    background: linear-gradient(
+      180deg,
+      rgb(15 23 42 / 92%),
+      rgb(30 41 59 / 84%)
+    );
+    color: #cbd5e1;
+
+    &:hover {
+      background: var(--menu-accent-soft);
+    }
+
+    &.is-active {
+      color: #ffffff;
+      box-shadow: var(--menu-shadow-strong);
+    }
+  }
+
+  .menu-name-cell {
+    .menu-icon {
+      background: rgb(var(--el-color-primary-rgb) / 16%);
+    }
+
+    .menu-button .button-perm {
+      background: rgb(15 23 42 / 76%);
+      color: #cbd5e1;
+    }
+  }
+
+  .route-name-cell .copy-icon {
+    color: #93c5fd;
   }
 }
 </style>

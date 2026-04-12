@@ -187,4 +187,42 @@ const supportActions = [
   }
 }
 
+html.dark {
+  .help-pane__hero {
+    background:
+      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.2), transparent 46%),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow:
+      0 18px 40px rgba(2, 8, 23, 0.26),
+      0 6px 16px rgba(2, 8, 23, 0.18);
+  }
+
+  .help-card {
+    background: rgba(15, 23, 42, 0.82);
+    border-color: rgba(148, 163, 184, 0.12);
+    box-shadow:
+      0 16px 32px rgba(2, 8, 23, 0.2),
+      0 4px 10px rgba(2, 8, 23, 0.12);
+  }
+
+  .help-card:hover {
+    border-color: rgba(var(--el-color-primary-rgb), 0.3);
+    box-shadow:
+      0 20px 38px rgba(2, 8, 23, 0.28),
+      0 8px 18px rgba(2, 8, 23, 0.18);
+  }
+
+  .help-card__title,
+  .help-pane__headline {
+    color: #f8fafc;
+  }
+
+  .help-card__desc,
+  .help-pane__desc,
+  .help-card__arrow {
+    color: #94a3b8;
+  }
+}
+
 </style>

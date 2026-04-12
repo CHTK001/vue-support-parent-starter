@@ -105,6 +105,72 @@ const frameSourceLabel = computed(() =>
   isIframeType.value ? "iframe 地址" : "外链地址",
 );
 
+const flattenMenuTree = (items: any[] = [], list: any[] = []) => {
+  items.forEach((item) => {
+    if (!item) {
+      return;
+    }
+    list.push(item);
+    if (Array.isArray(item.children) && item.children.length > 0) {
+      flattenMenuTree(item.children, list);
+    }
+  });
+  return list;
+};
+
+const normalizeComparablePath = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/[?#].*$/, "")
+    .replace(/^@repo\/pages\//, "")
+    .replace(/^@pages\/common\//, "")
+    .replace(/^@pages\//, "")
+    .replace(/^\/?src\/views\//, "")
+    .replace(/^\/?views\//, "")
+    .replace(/^\/+/, "")
+    .replace(/\.vue$/i, "")
+    .replace(/\/index$/i, "")
+    .replace(/\/+$/, "");
+
+const componentConflictMenu = computed(() => {
+  if (!showComponentField.value) {
+    return null;
+  }
+
+  const currentPath = normalizeComparablePath(form.value.sysMenuPath);
+  const componentPath = normalizeComparablePath(form.value.sysMenuComponent);
+  if (!currentPath || !componentPath) {
+    return null;
+  }
+
+  const linkedMenu = flattenMenuTree(props.tableData || []).find((item) => {
+    if (!item || Number(item?.sysMenuType) !== 0) {
+      return false;
+    }
+    if (Number(item?.sysMenuId) === Number(form.value.sysMenuId || 0)) {
+      return false;
+    }
+    return normalizeComparablePath(item?.sysMenuPath) === componentPath;
+  });
+
+  if (!linkedMenu) {
+    return null;
+  }
+
+  return normalizeComparablePath(linkedMenu?.sysMenuPath) !== currentPath
+    ? linkedMenu
+    : null;
+});
+
+const componentConflictMessage = computed(() => {
+  const linkedMenu = componentConflictMenu.value;
+  if (!linkedMenu) {
+    return "";
+  }
+  return `当前组件路径会命中已有菜单「${transformI18nValue(linkedMenu.sysMenuI18n || linkedMenu.sysMenuTitle)}」(${linkedMenu.sysMenuPath})，保存后会直接打开该页面。`;
+});
+
 const rules = computed(() => {
   const nextRules: Record<string, any[]> = {
     sysMenuTitle: [
@@ -124,6 +190,16 @@ const rules = computed(() => {
   if (showComponentField.value) {
     nextRules.sysMenuComponent = [
       { required: true, message: "请输入组件路径", trigger: "blur" },
+      {
+        validator: (_rule, _value, callback) => {
+          if (componentConflictMessage.value) {
+            callback(new Error(componentConflictMessage.value));
+            return;
+          }
+          callback();
+        },
+        trigger: "blur",
+      },
     ];
   }
 
@@ -484,6 +560,10 @@ loadRoles();
                     :maxlength="200"
                     show-word-limit
                   />
+                  <div v-if="componentConflictMessage" class="field-warning">
+                    <IconifyIconOnline icon="ri:error-warning-line" />
+                    <span>{{ componentConflictMessage }}</span>
+                  </div>
                 </ScFormItem>
               </ScCol>
               <ScCol v-if="showFrameSourceField" :span="12">
@@ -820,6 +900,26 @@ loadRoles();
   font-size: 12px;
 }
 
+.field-warning {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 8px;
+  padding: 10px 12px;
+  color: var(--el-color-warning);
+  font-size: 12px;
+  line-height: 1.6;
+  background: rgb(var(--el-color-warning-rgb) / 10%);
+  border: 1px solid rgb(var(--el-color-warning-rgb) / 24%);
+  border-radius: 12px;
+
+  .iconify {
+    margin-top: 2px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+}
+
 .flag-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -860,6 +960,32 @@ loadRoles();
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+html.dark {
+  .menu-save-dialog {
+    .form-section {
+      background: rgb(15 23 42 / 72%);
+      border-color: rgb(148 163 184 / 16%);
+      box-shadow: 0 16px 32px rgb(2 8 23 / 16%);
+    }
+
+    .flag-card {
+      background: rgb(15 23 42 / 88%);
+      border-color: rgb(148 163 184 / 16%);
+    }
+
+    .field-warning {
+      background: rgb(120 53 15 / 24%);
+      border-color: rgb(251 191 36 / 22%);
+      color: #fbbf24;
+    }
+
+    .flag-desc,
+    .menu-parent-count {
+      color: #94a3b8;
+    }
+  }
 }
 
 @media (max-width: 960px) {

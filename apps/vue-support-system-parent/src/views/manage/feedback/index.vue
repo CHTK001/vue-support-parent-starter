@@ -54,16 +54,65 @@ const statusOptions = [
   { label: "已处理", value: 1 },
 ];
 
+const normalizeFeedbackRecords = (response: any): Feedback[] => {
+  const records =
+    response?.data?.records ||
+    response?.data?.rows ||
+    response?.data?.data ||
+    response?.data ||
+    [];
+  return Array.isArray(records) ? records : [];
+};
+
+const applyStatisticPayload = (payload: any) => {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+  const hasSummary = ["total", "pending", "resolved"].some(
+    (key) => payload[key] !== undefined && payload[key] !== null,
+  );
+  if (!hasSummary) {
+    return false;
+  }
+  statistics.total = Number(payload.total || 0);
+  statistics.pending = Number(payload.pending || 0);
+  statistics.resolved = Number(payload.resolved || 0);
+  return true;
+};
+
+const aggregateStatisticsFromRecords = (records: Feedback[] = []) => {
+  statistics.total = records.length;
+  statistics.pending = records.filter(
+    (item) => Number(item?.sysFeedbackStatus ?? 0) === 0,
+  ).length;
+  statistics.resolved = records.filter(
+    (item) => Number(item?.sysFeedbackStatus ?? 0) === 1,
+  ).length;
+};
+
+const loadStatisticsByPageFallback = async () => {
+  const fallbackResponse = await fetchPageFeedback({
+    page: 1,
+    pageSize: 1000,
+    current: 1,
+    size: 1000,
+  });
+  aggregateStatisticsFromRecords(normalizeFeedbackRecords(fallbackResponse));
+};
+
 const loadStatistics = async () => {
   loading.statistic = true;
   try {
     const response = await fetchFeedbackStatistic();
-    const payload = response?.data;
-    statistics.total = Number(payload?.total || 0);
-    statistics.pending = Number(payload?.pending || 0);
-    statistics.resolved = Number(payload?.resolved || 0);
+    const payload = response?.data?.data || response?.data;
+    if (applyStatisticPayload(payload)) {
+      return;
+    }
+    await loadStatisticsByPageFallback();
   } catch (error) {
-    message("加载反馈统计失败", { type: "warning" });
+    try {
+      await loadStatisticsByPageFallback();
+    } catch {}
   } finally {
     loading.statistic = false;
   }
@@ -125,7 +174,9 @@ const submitIssue = async () => {
 };
 
 const typeText = (value?: string) => {
-  return typeOptions.find((item) => item.value === value)?.label || value || "-";
+  return (
+    typeOptions.find((item) => item.value === value)?.label || value || "-"
+  );
 };
 
 onMounted(() => {
@@ -135,10 +186,7 @@ onMounted(() => {
 
 <template>
   <div class="system-container feedback-page">
-    <FeedbackDetail
-      v-model="dialogVisible.detail"
-      :data="currentFeedback"
-    />
+    <FeedbackDetail v-model="dialogVisible.detail" :data="currentFeedback" />
 
     <ScDialog
       v-model="dialogVisible.issue"
@@ -148,7 +196,10 @@ onMounted(() => {
     >
       <ScForm label-width="84px">
         <ScFormItem label="反馈类型">
-          <ScInput :model-value="typeText(currentFeedback?.sysFeedbackType)" disabled />
+          <ScInput
+            :model-value="typeText(currentFeedback?.sysFeedbackType)"
+            disabled
+          />
         </ScFormItem>
         <ScFormItem label="回复内容" required>
           <ScInput
@@ -259,7 +310,12 @@ onMounted(() => {
             class="feedback-table"
             :row-click="openDetail"
           >
-            <ScTableColumn label="类型" prop="sysFeedbackType" width="126" align="center">
+            <ScTableColumn
+              label="类型"
+              prop="sysFeedbackType"
+              width="126"
+              align="center"
+            >
               <template #default="{ row }">
                 <ScTag
                   :type="
@@ -283,7 +339,12 @@ onMounted(() => {
               show-overflow-tooltip
             />
 
-            <ScTableColumn label="反馈图片" prop="sysFeedbackImages" width="120" align="center">
+            <ScTableColumn
+              label="反馈图片"
+              prop="sysFeedbackImages"
+              width="120"
+              align="center"
+            >
               <template #default="{ row }">
                 <ScImage
                   v-if="row.sysFeedbackImages"
@@ -297,9 +358,19 @@ onMounted(() => {
               </template>
             </ScTableColumn>
 
-            <ScTableColumn label="反馈人" prop="createBy" width="140" align="center" />
+            <ScTableColumn
+              label="反馈人"
+              prop="createBy"
+              width="140"
+              align="center"
+            />
 
-            <ScTableColumn label="反馈时间" prop="createTime" min-width="176" align="center">
+            <ScTableColumn
+              label="反馈时间"
+              prop="createTime"
+              min-width="176"
+              align="center"
+            >
               <template #default="{ row }">
                 <div class="feedback-time">
                   <strong>{{ getTimeAgo(row.createTime) }}</strong>
@@ -308,7 +379,12 @@ onMounted(() => {
               </template>
             </ScTableColumn>
 
-            <ScTableColumn label="处理状态" prop="sysFeedbackStatus" width="108" align="center">
+            <ScTableColumn
+              label="处理状态"
+              prop="sysFeedbackStatus"
+              width="108"
+              align="center"
+            >
               <template #default="{ row }">
                 <ScTag
                   :type="row.sysFeedbackStatus === 1 ? 'success' : 'warning'"
@@ -319,13 +395,23 @@ onMounted(() => {
               </template>
             </ScTableColumn>
 
-            <ScTableColumn label="处理人" prop="sysFeedbackDealName" width="140" align="center">
+            <ScTableColumn
+              label="处理人"
+              prop="sysFeedbackDealName"
+              width="140"
+              align="center"
+            >
               <template #default="{ row }">
                 {{ row.sysFeedbackDealName || "-" }}
               </template>
             </ScTableColumn>
 
-            <ScTableColumn label="操作" width="152" fixed="right" align="center">
+            <ScTableColumn
+              label="操作"
+              width="152"
+              fixed="right"
+              align="center"
+            >
               <template #default="{ row }">
                 <ScButton link type="primary" @click.stop="openDetail(row)">
                   详情
@@ -541,8 +627,16 @@ onMounted(() => {
 :root[data-theme="dark"] {
   .feedback-shell {
     background:
-      radial-gradient(circle at top right, rgb(14 165 233 / 0.12), transparent 30%),
-      radial-gradient(circle at left center, rgb(37 99 235 / 0.12), transparent 24%),
+      radial-gradient(
+        circle at top right,
+        rgb(14 165 233 / 0.12),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at left center,
+        rgb(37 99 235 / 0.12),
+        transparent 24%
+      ),
       var(--app-bg-base, var(--el-bg-color-page));
   }
 

@@ -217,7 +217,15 @@ export interface ServerAiTaskTicket {
   taskType?: string;
   status?: string;
   serverServiceId?: number;
+  serverId?: number;
+  metricType?: string;
+  severity?: string;
   operationLogId?: number;
+  minutes?: number;
+  startTime?: number;
+  endTime?: number;
+  stateFilter?: string;
+  filterKey?: string;
   message?: string;
 }
 
@@ -247,7 +255,14 @@ export interface ServerAiTaskPayload {
   status?: string;
   serverServiceId?: number;
   serverId?: number;
+  metricType?: string;
+  severity?: string;
   operationLogId?: number;
+  minutes?: number;
+  startTime?: number;
+  endTime?: number;
+  stateFilter?: string;
+  filterKey?: string;
   message?: string;
   aiReason?: string;
   aiSolution?: string;
@@ -376,6 +391,9 @@ export interface ServerMetricsDetail {
 }
 
 export interface ServerMetricsTaskSettings {
+  serverId?: number;
+  serverName?: string;
+  inheritGlobal?: boolean;
   enabled?: boolean;
   schedulerMode?: string;
   jobEnabled?: boolean;
@@ -399,6 +417,7 @@ export interface ServerMetricsTaskSettings {
 }
 
 export interface ServerMetricsTaskSettingsRequest {
+  inheritGlobal?: boolean;
   enabled?: boolean;
   refreshIntervalMs?: number;
   timeoutMs?: number;

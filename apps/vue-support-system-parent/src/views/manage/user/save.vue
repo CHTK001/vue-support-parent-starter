@@ -248,7 +248,7 @@
                       <div class="panel-header">
                         <div>
                           <div class="panel-eyebrow">联系方式</div>
-                          <h4>联系与备注</h4>
+                          <h4>联系、地址与备注</h4>
                         </div>
                       </div>
 
@@ -277,6 +277,42 @@
                             </ScInput>
                           </ScFormItem>
                         </ScCol>
+                        <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
+                          <ScFormItem
+                            label="常用地址"
+                            prop="sysUserLastAddress"
+                          >
+                            <ScInput
+                              v-model="form.sysUserLastAddress"
+                              placeholder="请输入常用联系地址"
+                              :maxlength="120"
+                              show-word-limit
+                            >
+                              <template #prefix>
+                                <IconifyIconOnline
+                                  icon="mdi:map-marker-outline"
+                                />
+                              </template>
+                            </ScInput>
+                          </ScFormItem>
+                        </ScCol>
+                        <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
+                          <ScFormItem
+                            label="注册地址"
+                            prop="sysUserRegisterAddress"
+                          >
+                            <ScInput
+                              v-model="form.sysUserRegisterAddress"
+                              placeholder="请输入注册地址"
+                              :maxlength="120"
+                              show-word-limit
+                            >
+                              <template #prefix>
+                                <IconifyIconOnline icon="mdi:home-map-marker" />
+                              </template>
+                            </ScInput>
+                          </ScFormItem>
+                        </ScCol>
                         <ScCol :span="24">
                           <ScFormItem label="备注" prop="sysUserRemark">
                             <ScInput
@@ -299,7 +335,7 @@
                       <div class="panel-header identity-panel__header">
                         <div>
                           <div class="panel-eyebrow">身份验证</div>
-                          <h4>实名与性别</h4>
+                          <h4>身份证与实名信息</h4>
                         </div>
                         <ScTag
                           size="small"
@@ -358,7 +394,9 @@
                           <div class="identity-inline">
                             <div class="identity-inline__item">
                               <span>识别生日</span>
-                              <strong>{{ identityInsight.birthdayLabel }}</strong>
+                              <strong>{{
+                                identityInsight.birthdayLabel
+                              }}</strong>
                             </div>
                             <div class="identity-inline__item">
                               <span>识别性别</span>
@@ -434,7 +472,10 @@
                   </div>
 
                   <div class="login-log-shell">
-                    <div v-if="!canLoadUserLogs" class="panel-empty panel-empty--fit">
+                    <div
+                      v-if="!canLoadUserLogs"
+                      class="panel-empty panel-empty--fit"
+                    >
                       新增用户尚未入库，保存后再查看登录日志。
                     </div>
                     <div
@@ -485,7 +526,9 @@
                             <span>IP：{{ item.sysLogIp || "--" }}</span>
                             <span>地址：{{ item.sysLogAddress || "--" }}</span>
                             <span
-                              >登录方式：{{ item.sysLogLoginType || "--" }}</span
+                              >登录方式：{{
+                                item.sysLogLoginType || "--"
+                              }}</span
                             >
                           </div>
                           <p class="login-log-ua">
@@ -1026,9 +1069,7 @@ const getMatchedDeptOption = (
     return null;
   }
 
-  return (
-    deptOptions.value.find((item) => item.plainLabel === deptName) || null
-  );
+  return deptOptions.value.find((item) => item.plainLabel === deptName) || null;
 };
 
 const syncDeptSelection = (
@@ -1358,7 +1399,9 @@ watch(
 
 watch(
   () =>
-    deptOptions.value.map((item) => `${item.value}:${item.plainLabel || item.label}`).join("|"),
+    deptOptions.value
+      .map((item) => `${item.value}:${item.plainLabel || item.label}`)
+      .join("|"),
   () => {
     syncDeptSelection(form.value.sysDeptId, form.value.sysDeptName);
   },
@@ -1879,8 +1922,7 @@ watch(
     border-style: solid;
     border-color: rgba(59, 130, 246, 0.42);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), #f6faff),
-      #fff;
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), #f6faff), #fff;
     box-shadow:
       inset 0 0 0 1px rgba(59, 130, 246, 0.08),
       0 12px 24px -22px rgba(59, 130, 246, 0.55);

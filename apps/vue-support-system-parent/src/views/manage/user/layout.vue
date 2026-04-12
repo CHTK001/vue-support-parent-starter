@@ -536,12 +536,15 @@ export default defineComponent({
       try {
         const { data } = await fetchListDept({});
         const records = Array.isArray(data) ? data : [];
-        this.deptNameMap = this.flattenDeptNodes(records).reduce((acc, item) => {
-          if (item?.sysDeptId !== null && item?.sysDeptId !== undefined) {
-            acc[String(item.sysDeptId)] = item?.sysDeptName || "";
-          }
-          return acc;
-        }, {});
+        this.deptNameMap = this.flattenDeptNodes(records).reduce(
+          (acc, item) => {
+            if (item?.sysDeptId !== null && item?.sysDeptId !== undefined) {
+              acc[String(item.sysDeptId)] = item?.sysDeptName || "";
+            }
+            return acc;
+          },
+          {},
+        );
       } catch (error) {
         this.deptNameMap = {};
       }
@@ -1365,6 +1368,43 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+:deep(.table-fill .el-table__fixed-right) {
+  background: var(--el-bg-color);
+  box-shadow: -1px 0 0 var(--el-border-color-lighter);
+}
+
+:deep(.table-fill .el-table__fixed-right::before) {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  content: "";
+  background: var(--el-border-color-lighter);
+  pointer-events: none;
+  z-index: 3;
+}
+
+:deep(.table-fill .el-table__fixed-right-patch) {
+  background: var(--el-fill-color-light) !important;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+
+:deep(
+  .table-fill
+    .el-table__fixed-right
+    .el-table__fixed-header-wrapper
+    th.el-table__cell
+),
+:deep(
+  .table-fill
+    .el-table__fixed-right
+    .el-table__fixed-body-wrapper
+    td.el-table__cell
+) {
+  background: inherit;
 }
 
 // 表格美化

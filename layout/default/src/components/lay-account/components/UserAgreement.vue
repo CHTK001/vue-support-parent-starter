@@ -285,4 +285,45 @@ onMounted(() => {
     justify-content: space-between;
   }
 }
+
+html.dark {
+  .agreement-hero {
+    background:
+      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.16), transparent 46%),
+      linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow:
+      0 18px 40px rgba(2, 8, 23, 0.28),
+      0 6px 16px rgba(2, 8, 23, 0.18);
+  }
+
+  .agreement-hero__headline,
+  .agreement-card__title {
+    color: #f8fafc;
+  }
+
+  .agreement-hero__desc,
+  .agreement-hero__meta,
+  .agreement-card__content {
+    color: #94a3b8;
+  }
+
+  .agreement-card {
+    background: rgba(15, 23, 42, 0.84);
+    border-color: rgba(148, 163, 184, 0.14);
+    box-shadow:
+      0 16px 32px rgba(2, 8, 23, 0.2),
+      0 4px 10px rgba(2, 8, 23, 0.12);
+  }
+
+  .agreement-hero__status {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+  }
+
+  .agreement-hero__status.is-pending {
+    background: rgba(var(--el-color-primary-rgb), 0.18);
+    color: #bfdbfe;
+  }
+}
 </style>

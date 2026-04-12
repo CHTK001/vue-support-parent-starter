@@ -284,7 +284,7 @@ const onSuspenseFallback = () => {
 const loadError = ref<Error | null>(null);
 const captureLoadError = (err: unknown, info?: string) => {
   //@ts-ignore
-  if(err?.code == "00000") {
+  if (err?.code == "00000") {
     //接口错误
     //@ts-ignore
     loadError.value = null;
@@ -603,7 +603,6 @@ onBeforeUnmount(() => {
   }
 }
 
-
 .content-shell {
   border: 0 !important;
   box-shadow: none !important;
@@ -611,7 +610,10 @@ onBeforeUnmount(() => {
 
 .content-shell--carded {
   border: 1px solid rgba(148, 163, 184, 0.1) !important;
-  box-shadow: none !important;
+  box-shadow: 0 18px 34px rgb(15 23 42 / 8%) !important;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 88%), rgb(255 255 255 / 94%)),
+    transparent;
 
   :deep(.el-card__body) {
     background: transparent;
@@ -620,6 +622,7 @@ onBeforeUnmount(() => {
   html.dark & {
     border-color: rgba(148, 163, 184, 0.12) !important;
     background: rgba(15, 23, 42, 0.28) !important;
+    box-shadow: 0 22px 42px rgb(2 8 23 / 28%) !important;
   }
 }
 
@@ -827,10 +830,11 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.4);
   border-radius: var(--layoutRadius, 10px);
   margin: var(--contentMargin, 16px);
-  box-shadow: none;
+  box-shadow: 0 18px 34px rgb(15 23 42 / 8%);
 
   html.dark & {
     background: rgba(15, 23, 42, 0.28);
+    box-shadow: 0 22px 42px rgb(2 8 23 / 24%);
   }
 }
 
@@ -844,7 +848,7 @@ onBeforeUnmount(() => {
   border-radius: var(--layoutRadius, 10px);
   margin: var(--contentMargin, 16px);
   border: 1px solid rgba(148, 163, 184, 0.1);
-  box-shadow: none;
+  box-shadow: 0 18px 34px rgb(15 23 42 / 8%);
 
   :deep(.el-skeleton) {
     padding: 20px;
@@ -853,6 +857,7 @@ onBeforeUnmount(() => {
   html.dark & {
     background: rgba(15, 23, 42, 0.28);
     border-color: rgba(148, 163, 184, 0.12);
+    box-shadow: 0 22px 42px rgb(2 8 23 / 24%);
   }
 }
 
@@ -883,11 +888,12 @@ onBeforeUnmount(() => {
 
 .sidebar-custom:hover,
 :deep(.main-content .el-card:hover) {
-  box-shadow: none !important;
+  box-shadow: 0 18px 34px rgb(15 23 42 / 8%) !important;
 }
 
 .content-shell--carded {
   border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  box-shadow: 0 18px 34px rgb(15 23 42 / 8%) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -895,6 +901,7 @@ onBeforeUnmount(() => {
 html.dark {
   .content-shell--carded {
     background: rgba(15, 23, 42, 0.2) !important;
+    box-shadow: 0 22px 42px rgb(2 8 23 / 28%) !important;
   }
 }
 </style>

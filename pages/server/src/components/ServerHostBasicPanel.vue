@@ -147,6 +147,7 @@
             :key="item.key"
             class="server-basic-panel__metric-card"
             :class="item.toneClass"
+            :style="metricProgressStyle(item.progress)"
             @click="emit('open-metric-detail', item.key)"
           >
             <div class="server-basic-panel__metric-top">
@@ -168,6 +169,7 @@
               type="button"
               class="server-basic-panel__realtime-mini"
               :class="item.toneClass"
+              :style="metricProgressStyle(item.progress)"
               @click="emit('open-metric-detail', item.key)"
             >
               <div class="server-basic-panel__realtime-mini-head">
@@ -197,24 +199,25 @@
       </article>
 
       <div class="server-basic-panel__content">
-        <article
-          class="server-basic-panel__card server-basic-panel__card--basic"
-          role="button"
-          tabindex="0"
-          @click="emit('open-basic-detail')"
-          @keydown.enter.prevent="emit('open-basic-detail')"
-        >
+        <article class="server-basic-panel__card server-basic-panel__card--basic">
           <header class="server-basic-panel__card-header">
             <h3>基础信息</h3>
-            <span class="server-basic-panel__chip">
-              {{
-                alertSettingsEnabled === false
-                  ? "预警关闭"
-                  : snapshot?.online
-                    ? "在线"
-                    : "离线"
-              }}
-            </span>
+            <div class="server-basic-panel__tag-group">
+              <span class="server-basic-panel__chip">
+                {{
+                  alertSettingsEnabled === false
+                    ? "预警关闭"
+                    : snapshot?.online
+                      ? "在线"
+                      : "离线"
+                }}
+              </span>
+              <el-tooltip content="查看基础信息详情" placement="top">
+                <el-button circle plain @click.stop="emit('open-basic-detail')">
+                  <IconifyIconOnline icon="ri:information-line" />
+                </el-button>
+              </el-tooltip>
+            </div>
           </header>
 
           <div class="server-basic-panel__content-scroll">
@@ -254,7 +257,7 @@
                 <dd>{{ runtimeDetail?.hostName || "-" }}</dd>
               </div>
               <div>
-                <dt>AI 能力</dt>
+                <dt>全局 AI</dt>
                 <dd>
                   <el-tag
                     size="small"
@@ -285,7 +288,7 @@
                             .join(" · ") || "已激活"
                         : aiUnavailableReason ||
                           aiStatusText ||
-                          "未检测到可用 AI"
+                          "未检测到全局 AI"
                     }}
                   </span>
                   <div
@@ -505,7 +508,7 @@
               class="server-basic-panel__ai-card server-basic-panel__ai-card--inactive"
             >
               <div class="server-basic-panel__ai-card-top">
-                <strong>AI 稳定性分析未激活</strong>
+                <strong>全局 AI 稳定性分析未激活</strong>
                 <div class="server-basic-panel__tag-group">
                   <span class="server-basic-panel__lay-tag is-warning">
                     需要先激活 AI
@@ -608,7 +611,7 @@
 
             <section
               v-if="orderedAlerts.length"
-              class="server-basic-panel__alert-list"
+              class="server-basic-panel__alert-list thin-scroller overflow-y-auto"
             >
               <header class="server-basic-panel__alert-list-header">
                 <div>
@@ -1006,6 +1009,10 @@ const usageToneClass = (value?: number | null, warning = 75, danger = 90) => {
 const metricCards = computed(() => {
   const snapshot = props.snapshot;
   const settings = props.alertSettings || {};
+  const cpuDanger = Number(settings.cpuDangerPercent || 90);
+  const memoryDanger = Number(settings.memoryDangerPercent || 90);
+  const diskDanger = Number(settings.diskDangerPercent || 92);
+  const ioDanger = Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024);
   return [
     {
       key: "cpu",
@@ -1013,14 +1020,15 @@ const metricCards = computed(() => {
       subLabel: `${snapshot?.cpuCores || "--"} 核`,
       value: formatMetricPercent(snapshot?.cpuUsage),
       total: snapshot?.cpuCores ? `逻辑核心 ${snapshot.cpuCores}` : "总量未知",
+      progress: clampProgress(snapshot?.cpuUsage),
       toneClass: usageToneClass(
         snapshot?.cpuUsage,
         Number(settings.cpuWarningPercent || 75),
-        Number(settings.cpuDangerPercent || 90),
+        cpuDanger,
       ),
       option: buildMetricSparkOption(props.history, "cpu", {
         warning: Number(settings.cpuWarningPercent || 75),
-        danger: Number(settings.cpuDangerPercent || 90),
+        danger: cpuDanger,
       }),
     },
     {
@@ -1029,14 +1037,15 @@ const metricCards = computed(() => {
       subLabel: formatByteSize(snapshot?.memoryUsedBytes),
       value: formatMetricPercent(snapshot?.memoryUsage),
       total: `总量 ${formatByteSize(snapshot?.memoryTotalBytes)}`,
+      progress: clampProgress(snapshot?.memoryUsage),
       toneClass: usageToneClass(
         snapshot?.memoryUsage,
         Number(settings.memoryWarningPercent || 75),
-        Number(settings.memoryDangerPercent || 90),
+        memoryDanger,
       ),
       option: buildMetricSparkOption(props.history, "memory", {
         warning: Number(settings.memoryWarningPercent || 75),
-        danger: Number(settings.memoryDangerPercent || 90),
+        danger: memoryDanger,
       }),
     },
     {
@@ -1045,14 +1054,15 @@ const metricCards = computed(() => {
       subLabel: formatByteSize(snapshot?.diskUsedBytes),
       value: formatMetricPercent(snapshot?.diskUsage),
       total: `总量 ${formatByteSize(snapshot?.diskTotalBytes)}`,
+      progress: clampProgress(snapshot?.diskUsage),
       toneClass: usageToneClass(
         snapshot?.diskUsage,
         Number(settings.diskWarningPercent || 80),
-        Number(settings.diskDangerPercent || 92),
+        diskDanger,
       ),
       option: buildMetricSparkOption(props.history, "disk", {
         warning: Number(settings.diskWarningPercent || 80),
-        danger: Number(settings.diskDangerPercent || 92),
+        danger: diskDanger,
       }),
     },
     {
@@ -1061,18 +1071,40 @@ const metricCards = computed(() => {
       subLabel: `入 ${formatThroughput(snapshot?.ioReadBytesPerSecond)}`,
       value: formatThroughput(resolveIoTotal(snapshot)),
       total: `出 ${formatThroughput(snapshot?.ioWriteBytesPerSecond)}`,
+      progress: clampProgress(resolveIoProgress(resolveIoTotal(snapshot), ioDanger)),
       toneClass: usageToneClass(
         resolveIoTotal(snapshot),
         Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
-        Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024),
+        ioDanger,
       ),
       option: buildMetricSparkOption(props.history, "io", {
         warning: Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
-        danger: Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024),
+        danger: ioDanger,
       }),
     },
   ];
 });
+
+const metricProgressStyle = (progress?: number | null) => ({
+  "--metric-progress": `${clampProgress(progress)}%`,
+});
+
+function clampProgress(value?: number | null) {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, numeric));
+}
+
+function resolveIoProgress(value?: number | null, dangerThreshold?: number | null) {
+  const numeric = Number(value ?? 0);
+  const threshold = Number(dangerThreshold ?? 0);
+  if (!Number.isFinite(numeric) || numeric <= 0 || !Number.isFinite(threshold) || threshold <= 0) {
+    return 0;
+  }
+  return (numeric / threshold) * 100;
+}
 
 function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   return {
@@ -1093,10 +1125,13 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding: 18px;
   min-height: 0;
   overflow: auto;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
 }
 
 .server-basic-panel__hero,
@@ -1117,7 +1152,14 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__hero {
-  gap: 12px;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 26px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--el-color-primary) 12%, transparent), transparent 44%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
 }
 
 .server-basic-panel__identity {
@@ -1202,8 +1244,17 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__actions {
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.server-basic-panel__actions :deep(.el-button) {
+  width: 34px;
+  height: 34px;
+  border-color: color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
 }
 
 .server-basic-panel__realtime,
@@ -1225,8 +1276,9 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__realtime {
   display: grid;
   gap: 10px;
-  padding: 14px;
-  border-radius: 22px;
+  padding: 16px;
+  border-radius: 24px;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.04);
 }
 
 .server-basic-panel__realtime-header {
@@ -1252,6 +1304,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-card {
+  position: relative;
   display: grid;
   gap: 6px;
   min-height: 116px;
@@ -1264,6 +1317,30 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
     transform 0.18s ease,
     box-shadow 0.18s ease,
     border-color 0.18s ease;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.server-basic-panel__metric-card::before,
+.server-basic-panel__realtime-mini::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: clamp(18px, calc(var(--metric-progress, 0%) * 0.62), 78px);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, currentColor 16%, transparent),
+    transparent
+  );
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.server-basic-panel__metric-card > *,
+.server-basic-panel__realtime-mini > * {
+  position: relative;
+  z-index: 1;
 }
 
 .server-basic-panel__metric-card:hover {
@@ -1333,6 +1410,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__realtime-mini {
+  position: relative;
   width: 100%;
   display: grid;
   gap: 9px;
@@ -1347,6 +1425,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
     transform 0.18s ease,
     box-shadow 0.18s ease,
     border-color 0.18s ease;
+  isolation: isolate;
+  overflow: hidden;
 }
 
 .server-basic-panel__realtime-mini:hover {
@@ -1415,7 +1495,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   grid-template-areas:
     "basic alert"
     "basic service";
-  gap: 14px;
+  gap: 16px;
   align-items: start;
   min-height: fit-content;
   flex: 1 1 auto;
@@ -1426,10 +1506,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 16px;
-  border-radius: 22px;
+  padding: 18px;
+  border-radius: 24px;
   overflow: visible;
   align-self: start;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.04);
 }
 
 .server-basic-panel__card--basic {
@@ -1447,12 +1528,14 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__card--service {
   grid-area: service;
   min-width: 0;
+  min-height: 474px;
 }
 
 .server-basic-panel__card--alert,
 .server-basic-panel__card--alert-detail {
   grid-area: alert;
   min-width: 0;
+  min-height: 474px;
 }
 
 .server-basic-panel__content-scroll {
@@ -1544,7 +1627,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 2px;
+  margin-top: 6px;
 }
 
 .server-basic-panel__ops-grid {
@@ -1637,8 +1720,10 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__alert-list {
   display: grid;
   gap: 12px;
-  max-height: none;
-  overflow: visible;
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 4px;
+  padding-top: 4px;
   align-content: start;
 }
 
@@ -1740,7 +1825,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__alert-list header {
-  margin-top: 10px;
+  margin-top: 2px;
   padding-bottom: 2px;
 }
 

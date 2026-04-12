@@ -114,7 +114,6 @@
     "@intlify/unplugin-vue-i18n": "catalog:",
     "@originjs/vite-plugin-commonjs": "catalog:",
     "@pages/dict": "workspace:^",
-    "@pages/project": "workspace:^",
     "@repo/build-config": "workspace:^",
     "@repo/tailwind-config": "workspace:^",
     "@types/gradient-string": "catalog:",

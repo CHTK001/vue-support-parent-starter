@@ -84,6 +84,7 @@
 import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { useGlobal } from "@pureadmin/utils";
+import { taskCenterProvider } from "@layout/default";
 import { getConfig } from "@repo/config";
 import { aesDecrypt } from "@repo/utils";
 import { IconifyIconOnline } from "../ReIcon";
@@ -131,6 +132,7 @@ interface Props {
   allowAppend?: boolean;
   clearInstructionOnSuccess?: boolean;
   aiTooltip?: string;
+  taskTitle?: string;
   templates?: ScAiTextareaTemplate[];
   url?: (payload: ScAiTextareaPayload) => Promise<unknown>;
   requestParser?: (response: unknown) => string;
@@ -169,6 +171,7 @@ const props = withDefaults(defineProps<Props>(), {
   allowAppend: true,
   clearInstructionOnSuccess: false,
   aiTooltip: "",
+  taskTitle: "AI 内容生成",
   templates: () => [],
   url: undefined,
   requestParser: undefined,
@@ -391,22 +394,83 @@ const normalizeAiText = (response: unknown) => {
     return "";
   }
   const objectResponse = response as Record<string, any>;
+  const dataResponse =
+    objectResponse.data && typeof objectResponse.data === "object"
+      ? (objectResponse.data as Record<string, any>)
+      : undefined;
+  const asyncAccepted =
+    objectResponse.taskId ||
+    objectResponse.requestId ||
+    dataResponse?.taskId ||
+    dataResponse?.requestId;
+  const directTextCandidates = [
+    objectResponse.content,
+    objectResponse.text,
+    objectResponse.result,
+    objectResponse.answer,
+    dataResponse?.content,
+    dataResponse?.text,
+    dataResponse?.result,
+    dataResponse?.answer,
+  ];
+  if (
+    asyncAccepted &&
+    !directTextCandidates.some(
+      (item) => typeof item === "string" && item.trim(),
+    )
+  ) {
+    return "";
+  }
   const candidates = [
     objectResponse.content,
     objectResponse.text,
-    objectResponse.message,
     objectResponse.result,
     objectResponse.answer,
-    objectResponse.data?.content,
-    objectResponse.data?.text,
-    objectResponse.data?.message,
-    objectResponse.data?.result,
-    objectResponse.data?.answer,
+    dataResponse?.content,
+    dataResponse?.text,
+    dataResponse?.message,
+    dataResponse?.result,
+    dataResponse?.answer,
   ];
   const hit = candidates.find(
     (item) => typeof item === "string" && item.trim(),
   );
   return typeof hit === "string" ? hit.trim() : "";
+};
+
+const createTaskRequestId = () =>
+  `sc-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const resolveResponseTaskMeta = (response: unknown) => {
+  if (!response || typeof response !== "object") {
+    return {
+      requestId: undefined as string | number | undefined,
+      message: "",
+    };
+  }
+  const objectResponse = response as Record<string, any>;
+  const dataResponse =
+    objectResponse.data && typeof objectResponse.data === "object"
+      ? (objectResponse.data as Record<string, any>)
+      : undefined;
+  const requestId =
+    objectResponse.taskId ||
+    objectResponse.requestId ||
+    dataResponse?.taskId ||
+    dataResponse?.requestId;
+  const message = [
+    objectResponse.msg,
+    objectResponse.message,
+    dataResponse?.msg,
+    dataResponse?.message,
+  ].find((item) => typeof item === "string" && item.trim());
+  return {
+    requestId:
+      typeof requestId === "string" || typeof requestId === "number"
+        ? requestId
+        : undefined,
+    message: typeof message === "string" ? message.trim() : "",
+  };
 };
 
 const normalizeWebLlmModel = (model: string) => {
@@ -534,6 +598,17 @@ const runAi = async (mode: GenerateMode) => {
   generating.value = true;
   generateMode.value = mode;
   lastError.value = "";
+  const localRequestId = createTaskRequestId();
+  const task = taskCenterProvider.addTask({
+    requestId: localRequestId,
+    title:
+      props.taskTitle || (mode === "append" ? "AI 追加内容" : "AI 生成内容"),
+    description: resolvedProviderLabel.value || undefined,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: mode === "append" ? "正在请求 AI 追加内容" : "正在请求 AI 生成内容",
+  });
   try {
     const payload = buildPayload(mode);
     emit("ai-start", payload);
@@ -541,8 +616,34 @@ const runAi = async (mode: GenerateMode) => {
       resolvedProviderMode.value === "url" && typeof props.url === "function"
         ? await props.url(payload)
         : await requestFromSettings(payload);
+    const responseTaskMeta = resolveResponseTaskMeta(response);
+    if (
+      responseTaskMeta.requestId &&
+      String(responseTaskMeta.requestId) !== String(localRequestId)
+    ) {
+      task.update({
+        requestId: responseTaskMeta.requestId,
+        title:
+          props.taskTitle ||
+          (mode === "append" ? "AI 追加内容" : "AI 生成内容"),
+      });
+    }
     const text = normalizeAiText(response);
     if (!text) {
+      if (responseTaskMeta.requestId || responseTaskMeta.message) {
+        const acceptedMessage =
+          responseTaskMeta.message || "AI 任务已提交，等待后台处理";
+        lastProviderInfo.value = resolvedProviderLabel.value;
+        lastSuccess.value = `${acceptedMessage}${
+          lastProviderInfo.value ? ` · ${lastProviderInfo.value}` : ""
+        }`;
+        task.progress(45, {
+          message: acceptedMessage,
+        });
+        ElMessage.success(acceptedMessage);
+        emit("ai-result", { payload, text: "", response });
+        return;
+      }
       throw new Error("AI 未返回可写入内容");
     }
 
@@ -559,12 +660,19 @@ const runAi = async (mode: GenerateMode) => {
     lastSuccess.value = `${mode === "append" ? "AI 已追加内容" : "AI 已更新内容"}${
       lastProviderInfo.value ? ` · ${lastProviderInfo.value}` : ""
     }`;
+    task.success({
+      progress: 100,
+      message: mode === "append" ? "AI 已追加内容" : "AI 已生成内容",
+    });
     ElMessage.success(mode === "append" ? "AI 已追加内容" : "AI 已生成内容");
     emit("ai-result", { payload, text, response });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     lastSuccess.value = "";
     lastError.value = err.message;
+    task.error({
+      message: err.message,
+    });
     emit("ai-error", err);
     ElMessage.error(err.message);
   } finally {
