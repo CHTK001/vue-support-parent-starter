@@ -90,7 +90,11 @@
             <ScInput
               v-model="gatewayUrlValue"
               :disabled="inheritDisabled"
-              placeholder="如 http://127.0.0.1:8080/guacamole"
+              :placeholder="
+                inheritDisabled && resolvedGatewayUrl
+                  ? resolvedGatewayUrl
+                  : '如 http://127.0.0.1:8080/guacamole'
+              "
             />
           </el-form-item>
 
@@ -142,7 +146,7 @@
       <div class="server-remote-dialog__preview">
         <strong>远程控制预览</strong>
         <span>{{ previewMessage }}</span>
-        <small>{{ form.gatewayUrl || "请先填写网关地址" }}</small>
+        <small>{{ resolvedGatewayUrl || "请先填写网关地址" }}</small>
         <div class="server-remote-dialog__preview-tags">
           <span class="server-remote-dialog__chip is-muted">
             {{
@@ -180,6 +184,7 @@ const props = defineProps<{
   providerOptions: SelectOption[];
   protocolOptions: SelectOption[];
   showInherit?: boolean;
+  resolvedGatewayUrl?: string;
 }>();
 
 const emit = defineEmits<{
@@ -229,7 +234,7 @@ const providerValue = computed({
 });
 
 const gatewayUrlValue = computed({
-  get: () => props.form.gatewayUrl || "",
+  get: () => props.form.gatewayUrl || props.resolvedGatewayUrl || "",
   set: (value: string | number) => {
     updateForm({ gatewayUrl: String(value || "") });
   },
@@ -257,7 +262,11 @@ const connectionIdValue = computed({
 });
 
 const previewMessage = computed(() =>
-  props.form.enabled ? "保存后将生成远程入口按钮" : "当前未启用远程代理",
+  props.form.enabled
+    ? props.form.inheritGlobal && props.resolvedGatewayUrl
+      ? "当前继承全局远程代理，保存后将生成入口按钮"
+      : "保存后将生成远程入口按钮"
+    : "当前未启用远程代理",
 );
 
 const normalizedProviderOptions = computed(() =>

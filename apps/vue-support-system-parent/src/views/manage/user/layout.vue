@@ -32,12 +32,12 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
+import SaveDialog from "./save.vue";
 
 const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp"));
 const ScFilter = defineAsyncComponent(
   () => import("@repo/components/ScFilter"),
 );
-const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SystemStatsCards = defineAsyncComponent(
   () => import("../components/SystemStatsCards.vue"),
 );
@@ -363,7 +363,6 @@ export default defineComponent({
       } catch (error) {}
     },
     async dialogOpen(item, mode) {
-      this.visible.save = true;
       const normalizedDeptId =
         item?.sysDeptId ??
         item?.sysDept?.sysDeptId ??
@@ -406,13 +405,28 @@ export default defineComponent({
               sysDeptId: normalizedDeptId,
               sysDeptName: normalizedDeptName,
             };
-      this.$nextTick(async () => {
-        if (!this.$refs.saveDialog) {
-          return;
+      const saveDialog = await this.waitForSaveDialog();
+      if (!saveDialog) {
+        message("用户编辑弹层加载失败，请重试", { type: "error" });
+        return;
+      }
+      await saveDialog.open(mode);
+      await saveDialog.setData(dialogData);
+    },
+    async waitForSaveDialog(retry = 12) {
+      for (let index = 0; index < retry; index += 1) {
+        await this.$nextTick();
+        const dialogRef = this.$refs.saveDialog;
+        if (
+          dialogRef &&
+          typeof dialogRef.open === "function" &&
+          typeof dialogRef.setData === "function"
+        ) {
+          return dialogRef;
         }
-        await this.$refs.saveDialog.open(mode);
-        this.$refs.saveDialog.setData(dialogData);
-      });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return null;
     },
     async dialogClose() {
       this.visible.save = false;
@@ -1090,13 +1104,15 @@ export default defineComponent({
                         content="编辑"
                         placement="top"
                       >
-                        <span class="user-action-trigger">
+                        <span
+                          class="user-action-trigger"
+                          @click.stop="dialogOpen(row, 'edit')"
+                        >
                           <ScButton
                             class="btn-text"
                             :icon="EditPen"
                             title="编辑用户"
                             aria-label="编辑用户"
-                            @click="dialogOpen(row, 'edit')"
                           />
                         </span>
                       </ScTooltip>

@@ -126,7 +126,7 @@
                     <div class="panel-header">
                       <div>
                         <div class="panel-eyebrow">基础信息</div>
-                        <h4>账户与组织</h4>
+                        <h4>必填与常用资料</h4>
                       </div>
                       <ScTag size="small" effect="plain">{{
                         dialogTitle
@@ -160,82 +160,51 @@
                           </ScInput>
                         </ScFormItem>
                       </ScCol>
-                      <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
+                      <ScCol :xl="12" :lg="12" :md="12" :sm="24" :span="24">
+                        <ScFormItem label="手机号" prop="sysUserPhone">
+                          <ScInput
+                            v-model="form.sysUserPhone"
+                            placeholder="请输入手机号"
+                            maxlength="11"
+                          >
+                            <template #prefix>
+                              <IconifyIconOnline icon="mdi:phone-outline" />
+                            </template>
+                          </ScInput>
+                        </ScFormItem>
+                      </ScCol>
+                      <ScCol :xl="12" :lg="12" :md="12" :sm="24" :span="24">
                         <ScFormItem
                           label="所属部门"
                           prop="sysDeptId"
                           class="field-highlight"
                         >
                           <ScSelect
-                            :key="`dept-${selectRenderSeed}-${form.sysDeptId ?? 'empty'}-${deptOptions.length}`"
+                            :key="`dept-tree-${selectRenderSeed}-${form.sysDeptId ?? 'empty'}-${deptTreeOptions.length}`"
                             v-model="form.sysDeptId"
+                            layout="tree"
+                            :options="deptTreeOptions"
+                            :props="deptTreeProps"
+                            :height="280"
+                            :tree-show-actions="false"
+                            :tree-default-expand-all="true"
+                            :tree-expand-on-click-node="true"
+                            tree-search-placeholder="搜索部门名称"
                             class="outlined-control"
                             placeholder="请选择部门"
                             clearable
-                            filterable
-                          >
-                            <ScOption
-                              v-for="item in deptOptions"
-                              :key="item.value"
-                              :label="item.label"
-                              :value="item.value"
-                            />
-                          </ScSelect>
-                        </ScFormItem>
-                      </ScCol>
-                      <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
-                        <ScFormItem
-                          label="角色"
-                          prop="roleIds"
-                          class="field-highlight"
-                        >
-                          <ScSelect
-                            :key="`role-${selectRenderSeed}-${form.roleIds.join('-')}-${roleOptions.length}`"
-                            v-model="form.roleIds"
-                            class="outlined-control"
-                            placeholder="请选择角色"
-                            clearable
-                            filterable
-                            multiple
-                            collapse-tags
-                            collapse-tags-tooltip
-                          >
-                            <template #prefix>
-                              <IconifyIconOnline icon="mdi:shield-account" />
-                            </template>
-                            <ScOption
-                              v-for="item in roleOptions"
-                              :key="item.sysRoleId"
-                              :value="item.sysRoleId"
-                              :label="item.sysRoleName"
-                            >
-                              <div class="role-option">
-                                <span>{{ item.sysRoleName }}</span>
-                                <small>{{ item.sysRoleCode }}</small>
-                              </div>
-                            </ScOption>
-                          </ScSelect>
-                        </ScFormItem>
-                      </ScCol>
-                      <ScCol :xl="12" :lg="12" :md="12" :sm="24" :span="24">
-                        <ScFormItem label="用户状态" prop="sysUserStatus">
-                          <el-segmented
-                            v-model="form.sysUserStatus"
-                            :options="statusOptions"
-                            class="panel-segmented"
                           />
                         </ScFormItem>
                       </ScCol>
                       <ScCol :xl="12" :lg="12" :md="12" :sm="24" :span="24">
-                        <ScFormItem label="登录密码" prop="sysUserPassword">
+                        <ScFormItem label="邮箱地址" prop="sysUserEmail">
                           <ScInput
-                            v-model="form.sysUserPassword"
-                            placeholder="新增必填，编辑留空则不修改"
-                            type="password"
-                            show-password
+                            v-model="form.sysUserEmail"
+                            placeholder="请输入邮箱地址"
+                            maxlength="120"
                           >
                             <template #prefix>
-                              <IconifyIconOnline icon="mdi:lock-outline" />
+                              <IconifyIconOnline icon="mdi:email-outline" />
                             </template>
                           </ScInput>
                         </ScFormItem>
@@ -243,107 +212,108 @@
                     </ScRow>
                   </section>
 
-                  <div class="content-stack">
-                    <section class="form-panel">
-                      <div class="panel-header">
-                        <div>
-                          <div class="panel-eyebrow">联系方式</div>
-                          <h4>联系、地址与备注</h4>
-                        </div>
+                  <section
+                    class="form-panel form-panel--secondary identity-summary-card"
+                  >
+                    <div class="panel-header">
+                      <div>
+                        <div class="panel-eyebrow">身份信息</div>
+                        <h4>证件录入与识别统计</h4>
                       </div>
+                      <ScTag
+                        size="small"
+                        :type="identityTagType"
+                        effect="plain"
+                      >
+                        {{ identityInsight.statusText }}
+                      </ScTag>
+                    </div>
 
-                      <ScRow :gutter="18" class="form-grid form-grid--compact">
-                        <ScCol :xl="12" :lg="12" :md="12" :sm="24" :span="24">
-                          <ScFormItem label="手机号" prop="sysUserPhone">
-                            <ScInput
-                              v-model="form.sysUserPhone"
-                              placeholder="请输入手机号"
-                            >
-                              <template #prefix>
-                                <IconifyIconOnline icon="mdi:phone-outline" />
-                              </template>
-                            </ScInput>
-                          </ScFormItem>
-                        </ScCol>
-                        <ScCol :xl="12" :lg="12" :md="12" :sm="24" :span="24">
-                          <ScFormItem label="邮箱地址" prop="sysUserEmail">
-                            <ScInput
-                              v-model="form.sysUserEmail"
-                              placeholder="请输入邮箱地址"
-                            >
-                              <template #prefix>
-                                <IconifyIconOnline icon="mdi:email-outline" />
-                              </template>
-                            </ScInput>
-                          </ScFormItem>
-                        </ScCol>
-                        <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
-                          <ScFormItem
-                            label="常用地址"
-                            prop="sysUserLastAddress"
-                          >
-                            <ScInput
-                              v-model="form.sysUserLastAddress"
-                              placeholder="请输入常用联系地址"
-                              :maxlength="120"
-                              show-word-limit
-                            >
-                              <template #prefix>
-                                <IconifyIconOnline
-                                  icon="mdi:map-marker-outline"
-                                />
-                              </template>
-                            </ScInput>
-                          </ScFormItem>
-                        </ScCol>
-                        <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
-                          <ScFormItem
-                            label="注册地址"
-                            prop="sysUserRegisterAddress"
-                          >
-                            <ScInput
-                              v-model="form.sysUserRegisterAddress"
-                              placeholder="请输入注册地址"
-                              :maxlength="120"
-                              show-word-limit
-                            >
-                              <template #prefix>
-                                <IconifyIconOnline icon="mdi:home-map-marker" />
-                              </template>
-                            </ScInput>
-                          </ScFormItem>
-                        </ScCol>
-                        <ScCol :span="24">
-                          <ScFormItem label="备注" prop="sysUserRemark">
-                            <ScInput
-                              v-model="form.sysUserRemark"
-                              placeholder="请输入备注"
-                              type="textarea"
-                              :rows="4"
-                              maxlength="200"
-                              show-word-limit
-                            />
-                          </ScFormItem>
-                        </ScCol>
-                      </ScRow>
-                    </section>
+                    <div
+                      class="identity-summary-banner"
+                      :class="identityStateClass"
+                    >
+                      <div class="identity-summary-banner__icon">
+                        <IconifyIconOnline
+                          :icon="
+                            identityStateClass === 'is-valid'
+                              ? 'mdi:badge-account-horizontal-outline'
+                              : 'mdi:card-account-details-outline'
+                          "
+                        />
+                      </div>
+                      <div class="identity-summary-banner__content">
+                        <strong>{{ identityInsight.statusText }}</strong>
+                        <span>{{ identityInsight.message }}</span>
+                      </div>
+                    </div>
 
+                    <ScRow :gutter="18" class="form-grid form-grid--compact">
+                      <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
+                        <ScFormItem label="身份证号" prop="sysUserCard">
+                          <ScInput
+                            v-model="form.sysUserCard"
+                            placeholder="请输入 15 或 18 位身份证号"
+                          >
+                            <template #prefix>
+                              <IconifyIconOnline
+                                icon="mdi:card-account-details-outline"
+                              />
+                            </template>
+                          </ScInput>
+                        </ScFormItem>
+                      </ScCol>
+                      <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
+                        <div class="identity-stats">
+                          <div class="identity-stat">
+                            <div class="identity-stat__label">
+                              <IconifyIconOnline
+                                icon="mdi:check-decagram-outline"
+                              />
+                              <span>识别状态</span>
+                            </div>
+                            <strong>{{ identityInsight.statusText }}</strong>
+                          </div>
+                          <div class="identity-stat">
+                            <div class="identity-stat__label">
+                              <IconifyIconOnline icon="mdi:human-male-female" />
+                              <span>证件性别</span>
+                            </div>
+                            <strong>{{ identityInsight.genderLabel }}</strong>
+                          </div>
+                          <div class="identity-stat">
+                            <div class="identity-stat__label">
+                              <IconifyIconOnline
+                                icon="mdi:cake-variant-outline"
+                              />
+                              <span>识别生日</span>
+                            </div>
+                            <strong>{{ identityInsight.birthdayLabel }}</strong>
+                          </div>
+                          <div class="identity-stat">
+                            <div class="identity-stat__label">
+                              <IconifyIconOnline
+                                icon="mdi:calendar-account-outline"
+                              />
+                              <span>识别年龄</span>
+                            </div>
+                            <strong>{{ identityInsight.ageLabel }}</strong>
+                          </div>
+                        </div>
+                      </ScCol>
+                    </ScRow>
+                  </section>
+
+                  <div class="content-stack">
                     <section
                       class="form-panel identity-panel"
                       :class="identityStateClass"
                     >
                       <div class="panel-header identity-panel__header">
                         <div>
-                          <div class="panel-eyebrow">身份验证</div>
-                          <h4>身份证与实名信息</h4>
+                          <div class="panel-eyebrow">身份校验</div>
+                          <h4>识别结果与人工修正</h4>
                         </div>
-                        <ScTag
-                          size="small"
-                          :type="identityTagType"
-                          effect="plain"
-                        >
-                          {{ identityInsight.statusText }}
-                        </ScTag>
                       </div>
 
                       <p class="identity-card__message">
@@ -351,22 +321,8 @@
                       </p>
 
                       <ScRow :gutter="18" class="form-grid form-grid--compact">
-                        <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
-                          <ScFormItem label="身份证号" prop="sysUserCard">
-                            <ScInput
-                              v-model="form.sysUserCard"
-                              placeholder="请输入 15 或 18 位身份证号"
-                            >
-                              <template #prefix>
-                                <IconifyIconOnline
-                                  icon="mdi:card-account-details-outline"
-                                />
-                              </template>
-                            </ScInput>
-                          </ScFormItem>
-                        </ScCol>
-                        <ScCol :xl="12" :lg="12" :md="24" :sm="24" :span="24">
-                          <ScFormItem label="性别" prop="sysUserSex">
+                        <ScCol :span="24">
+                          <ScFormItem label="当前性别" prop="sysUserSex">
                             <el-segmented
                               v-model="form.sysUserSex"
                               :options="sexOptions"
@@ -391,20 +347,18 @@
                           </ScFormItem>
                         </ScCol>
                         <ScCol :span="24">
-                          <div class="identity-inline">
-                            <div class="identity-inline__item">
-                              <span>识别生日</span>
-                              <strong>{{
-                                identityInsight.birthdayLabel
-                              }}</strong>
+                          <div class="identity-adjustment-note">
+                            <div class="identity-adjustment-note__item">
+                              <IconifyIconOnline icon="mdi:sync-circle" />
+                              <span>{{ identitySyncText }}</span>
                             </div>
-                            <div class="identity-inline__item">
-                              <span>识别性别</span>
-                              <strong>{{ identityInsight.genderLabel }}</strong>
-                            </div>
-                            <div class="identity-inline__item">
-                              <span>识别年龄</span>
-                              <strong>{{ identityInsight.ageLabel }}</strong>
+                            <div class="identity-adjustment-note__item">
+                              <IconifyIconOnline
+                                icon="mdi:card-account-details-outline"
+                              />
+                              <span>
+                                生日、证件性别、年龄已汇总在上方“身份信息统计”卡片中展示。
+                              </span>
                             </div>
                           </div>
                         </ScCol>
@@ -413,6 +367,169 @@
                       <div class="identity-card__footer">
                         {{ identitySyncText }}
                       </div>
+                    </section>
+
+                    <section
+                      class="form-panel form-panel--secondary form-panel--collapse"
+                    >
+                      <el-collapse
+                        v-model="collapsedPanels"
+                        class="detail-collapse"
+                      >
+                        <el-collapse-item name="account">
+                          <template #title>
+                            <div class="collapse-title">
+                              <div>
+                                <div class="panel-eyebrow">账号设置</div>
+                                <strong>权限、状态与居住信息</strong>
+                              </div>
+                            </div>
+                          </template>
+
+                          <ScRow
+                            :gutter="18"
+                            class="form-grid form-grid--compact"
+                          >
+                            <ScCol
+                              :xl="12"
+                              :lg="12"
+                              :md="24"
+                              :sm="24"
+                              :span="24"
+                            >
+                              <ScFormItem
+                                label="角色"
+                                prop="roleIds"
+                                class="field-highlight"
+                              >
+                                <ScSelect
+                                  :key="`role-${selectRenderSeed}-${form.roleIds.join('-')}-${roleOptions.length}`"
+                                  v-model="form.roleIds"
+                                  class="outlined-control"
+                                  placeholder="请选择角色"
+                                  clearable
+                                  filterable
+                                  multiple
+                                  collapse-tags
+                                  collapse-tags-tooltip
+                                >
+                                  <template #prefix>
+                                    <IconifyIconOnline
+                                      icon="mdi:shield-account"
+                                    />
+                                  </template>
+                                  <ScOption
+                                    v-for="item in roleOptions"
+                                    :key="item.sysRoleId"
+                                    :value="item.sysRoleId"
+                                    :label="item.sysRoleName"
+                                  >
+                                    <div class="role-option">
+                                      <span>{{ item.sysRoleName }}</span>
+                                      <small>{{ item.sysRoleCode }}</small>
+                                    </div>
+                                  </ScOption>
+                                </ScSelect>
+                              </ScFormItem>
+                            </ScCol>
+                            <ScCol
+                              :xl="12"
+                              :lg="12"
+                              :md="12"
+                              :sm="24"
+                              :span="24"
+                            >
+                              <ScFormItem label="用户状态" prop="sysUserStatus">
+                                <el-segmented
+                                  v-model="form.sysUserStatus"
+                                  :options="statusOptions"
+                                  class="panel-segmented"
+                                />
+                              </ScFormItem>
+                            </ScCol>
+                            <ScCol
+                              :xl="12"
+                              :lg="12"
+                              :md="12"
+                              :sm="24"
+                              :span="24"
+                            >
+                              <ScFormItem
+                                label="登录密码"
+                                prop="sysUserPassword"
+                              >
+                                <ScInput
+                                  v-model="form.sysUserPassword"
+                                  placeholder="新增必填，编辑留空则不修改"
+                                  type="password"
+                                  show-password
+                                >
+                                  <template #prefix>
+                                    <IconifyIconOnline
+                                      icon="mdi:lock-outline"
+                                    />
+                                  </template>
+                                </ScInput>
+                              </ScFormItem>
+                            </ScCol>
+                            <ScCol
+                              :xl="12"
+                              :lg="12"
+                              :md="24"
+                              :sm="24"
+                              :span="24"
+                            >
+                              <ScFormItem
+                                label="居住地址"
+                                prop="sysUserFullAddress"
+                              >
+                                <ScInput
+                                  v-model="form.sysUserFullAddress"
+                                  placeholder="请输入当前居住地址"
+                                  :maxlength="160"
+                                  show-word-limit
+                                >
+                                  <template #prefix>
+                                    <IconifyIconOnline
+                                      icon="mdi:home-city-outline"
+                                    />
+                                  </template>
+                                </ScInput>
+                              </ScFormItem>
+                            </ScCol>
+                          </ScRow>
+                        </el-collapse-item>
+
+                        <el-collapse-item name="note">
+                          <template #title>
+                            <div class="collapse-title">
+                              <div>
+                                <div class="panel-eyebrow">补充说明</div>
+                                <strong>备注与系统轨迹说明</strong>
+                              </div>
+                            </div>
+                          </template>
+
+                          <div class="system-field-note">
+                            <strong>系统轨迹字段自动维护</strong>
+                            <span>
+                              最后登录地点、注册
+                              IP、注册地点由系统根据登录与注册行为回写，已移动到“账号快照”页查看，不在基础资料中手动维护。
+                            </span>
+                          </div>
+
+                          <ScFormItem label="备注" prop="sysUserRemark">
+                            <ScInput
+                              v-model="form.sysUserRemark"
+                              placeholder="请输入备注"
+                              type="textarea"
+                              :rows="4"
+                              maxlength="200"
+                              show-word-limit
+                            />
+                          </ScFormItem>
+                        </el-collapse-item>
+                      </el-collapse>
                     </section>
                   </div>
                 </div>
@@ -447,6 +564,16 @@
                     <div class="overview-item">
                       <span>最后登录地点</span>
                       <strong>{{ form.sysUserLastAddress || "未记录" }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>注册 IP</span>
+                      <strong>{{ form.sysUserRegisterIp || "未记录" }}</strong>
+                    </div>
+                    <div class="overview-item">
+                      <span>注册地点</span>
+                      <strong>{{
+                        form.sysUserRegisterAddress || "未记录"
+                      }}</strong>
                     </div>
                   </div>
                 </section>
@@ -590,6 +717,10 @@ interface SelectOption {
   plainLabel?: string;
 }
 
+interface TreeSelectOption extends SelectOption {
+  children?: TreeSelectOption[];
+}
+
 interface UserForm {
   sysUserId?: number | string;
   sysUserInSystem?: number;
@@ -606,6 +737,7 @@ interface UserForm {
   sysUserStatus: number;
   sysUserCard: string;
   sysUserRemark: string;
+  sysUserFullAddress?: string;
   sysUserLastIp?: string;
   sysUserLastAddress?: string;
   sysUserLastLoginTime?: string;
@@ -636,8 +768,10 @@ const visible = ref(false);
 const loading = ref(false);
 const mode = ref("save");
 const activeEditorTab = ref("account");
+const collapsedPanels = ref(["account"]);
 const roleOptions = ref<any[]>([]);
 const deptOptions = ref<SelectOption[]>([]);
+const deptTreeOptions = ref<TreeSelectOption[]>([]);
 const selectRenderSeed = ref(0);
 const syncingSexFromCard = ref(false);
 const sexSource = ref<"default" | "card" | "manual">("default");
@@ -662,6 +796,7 @@ const createDefaultForm = (): UserForm => ({
   sysUserStatus: 1,
   sysUserCard: "",
   sysUserRemark: "",
+  sysUserFullAddress: "",
   sysUserInSystem: 0,
   sysDeptId: null,
   sysDeptName: "",
@@ -991,6 +1126,21 @@ const flattenDeptOptions = (items: any[] = [], depth = 0): SelectOption[] => {
   });
 };
 
+const buildDeptTreeOptions = (items: any[] = []): TreeSelectOption[] => {
+  return items.map((item) => ({
+    label: item.sysDeptName,
+    plainLabel: item.sysDeptName,
+    value: item.sysDeptId,
+    children: buildDeptTreeOptions(item.children || []),
+  }));
+};
+
+const deptTreeProps = {
+  value: "value",
+  label: "label",
+  children: "children",
+};
+
 const resolveDeptName = (data: any) => {
   return (
     data?.sysDeptName ??
@@ -1075,8 +1225,24 @@ const getMatchedDeptOption = (
 const syncDeptSelection = (
   deptId: number | string | null | undefined,
   fallbackName = "",
+  keepFallback = false,
 ) => {
+  const normalizedFallbackName = String(fallbackName || "").trim();
   if (deptId === null || deptId === undefined || deptId === "") {
+    if (keepFallback && normalizedFallbackName) {
+      const matchedByName = getMatchedDeptOption(null, normalizedFallbackName);
+      if (matchedByName) {
+        form.value.sysDeptId = normalizeOptionalNumericValue(
+          matchedByName.value,
+        );
+        form.value.sysDeptName =
+          matchedByName.plainLabel || matchedByName.label || "";
+        return;
+      }
+      form.value.sysDeptId = null;
+      form.value.sysDeptName = normalizedFallbackName;
+      return;
+    }
     form.value.sysDeptId = null;
     form.value.sysDeptName = "";
     return;
@@ -1099,8 +1265,9 @@ const syncDeptSelection = (
 const syncDeptNameFromOptions = (
   deptId: number | string | null | undefined,
   fallbackName = "",
+  keepFallback = false,
 ) => {
-  syncDeptSelection(deptId, fallbackName);
+  syncDeptSelection(deptId, fallbackName, keepFallback);
 };
 
 const refreshSelects = async () => {
@@ -1178,6 +1345,9 @@ const loadDeptOptions = async () => {
   try {
     const res = await fetchListDept({});
     const records = (res as any)?.data || [];
+    deptTreeOptions.value = buildDeptTreeOptions(
+      Array.isArray(records) ? records : [],
+    );
     deptOptions.value = flattenDeptOptions(
       Array.isArray(records) ? records : [],
     );
@@ -1188,8 +1358,9 @@ const loadDeptOptions = async () => {
       }
     }
     ensureCurrentDeptOption(form.value.sysDeptId, form.value.sysDeptName);
-    syncDeptNameFromOptions(form.value.sysDeptId, form.value.sysDeptName);
+    syncDeptNameFromOptions(form.value.sysDeptId, form.value.sysDeptName, true);
   } catch (error) {
+    deptTreeOptions.value = [];
     deptOptions.value = [];
   } finally {
     void refreshSelects();
@@ -1201,6 +1372,7 @@ const close = async () => {
   loading.value = false;
   avatarLoading.value = false;
   activeEditorTab.value = "account";
+  collapsedPanels.value = ["account"];
   sexSource.value = "default";
   delete rules["sysUserPassword"];
   form.value = createDefaultForm();
@@ -1232,9 +1404,10 @@ const setData = async (data: any) => {
   }
   form.value = cloned;
   ensureCurrentDeptOption(cloned.sysDeptId, cloned.sysDeptName);
-  syncDeptNameFromOptions(cloned.sysDeptId, cloned.sysDeptName);
+  syncDeptNameFromOptions(cloned.sysDeptId, cloned.sysDeptName, true);
   await refreshSelects();
   activeEditorTab.value = "account";
+  collapsedPanels.value = ["account"];
   sexSource.value = "default";
   identityInsight.value = parseIdentityCard(cloned.sysUserCard);
   loginLogState.loading = false;
@@ -1403,7 +1576,7 @@ watch(
       .map((item) => `${item.value}:${item.plainLabel || item.label}`)
       .join("|"),
   () => {
-    syncDeptSelection(form.value.sysDeptId, form.value.sysDeptName);
+    syncDeptSelection(form.value.sysDeptId, form.value.sysDeptName, true);
   },
 );
 
@@ -1465,7 +1638,7 @@ watch(
   display: grid;
   grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
   gap: 24px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .editor-column {
@@ -1476,13 +1649,13 @@ watch(
 }
 
 .editor-column--content {
-  gap: 20px;
+  gap: 16px;
 }
 
 .content-stack {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 20px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -1622,7 +1795,6 @@ watch(
 }
 
 .profile-metrics,
-.identity-card__meta,
 .overview-list {
   display: grid;
   gap: 10px;
@@ -1633,7 +1805,6 @@ watch(
 }
 
 .summary-item,
-.identity-meta-item,
 .overview-item {
   display: flex;
   flex-direction: column;
@@ -1670,6 +1841,9 @@ watch(
 }
 
 .identity-panel {
+  position: relative;
+  overflow: hidden;
+
   &.is-valid {
     border-color: rgba(16, 185, 129, 0.34);
     background: linear-gradient(180deg, #ffffff, #f0fdf4);
@@ -1686,6 +1860,142 @@ watch(
   margin: 0;
   color: #64748b;
   line-height: 1.7;
+}
+
+.identity-adjustment-note {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  border-radius: 18px;
+}
+
+.identity-adjustment-note__item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #64748b;
+  line-height: 1.6;
+
+  .iconify {
+    margin-top: 2px;
+    font-size: 16px;
+    color: #3b82f6;
+    flex: none;
+  }
+
+  span {
+    font-size: 13px;
+  }
+}
+
+.identity-summary-card {
+  gap: 14px;
+}
+
+.identity-summary-banner {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.92), #fff);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 18px;
+
+  &.is-valid {
+    border-color: rgba(16, 185, 129, 0.28);
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.95), #fff);
+
+    .identity-summary-banner__icon {
+      color: #059669;
+      background: rgba(16, 185, 129, 0.12);
+    }
+  }
+
+  &.is-invalid {
+    border-color: rgba(245, 158, 11, 0.28);
+    background: linear-gradient(135deg, rgba(255, 247, 237, 0.95), #fff);
+
+    .identity-summary-banner__icon {
+      color: #d97706;
+      background: rgba(245, 158, 11, 0.12);
+    }
+  }
+}
+
+.identity-summary-banner__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  font-size: 22px;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 14px;
+}
+
+.identity-summary-banner__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  strong {
+    color: #0f172a;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
+
+.identity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  height: 100%;
+}
+
+.identity-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  padding: 12px 14px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+
+  span {
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  strong {
+    color: #0f172a;
+    font-size: 15px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+}
+
+.identity-stat__label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+
+  .iconify {
+    font-size: 15px;
+    color: #3b82f6;
+  }
 }
 
 .editor-tabs {
@@ -1722,12 +2032,65 @@ watch(
 .form-panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px;
+  gap: 16px;
+  padding: 18px;
 }
 
-.form-panel--emphasis {
-  min-height: 100%;
+.form-panel--secondary {
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.form-panel--collapse {
+  padding: 12px 14px;
+}
+
+.detail-collapse {
+  :deep(.el-collapse) {
+    border: none;
+  }
+
+  :deep(.el-collapse-item) {
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    border-radius: 18px;
+    background: rgba(248, 250, 252, 0.88);
+    overflow: hidden;
+
+    & + .el-collapse-item {
+      margin-top: 12px;
+    }
+  }
+
+  :deep(.el-collapse-item__header) {
+    min-height: 58px;
+    padding: 0 16px;
+    background: transparent;
+    border: none;
+    color: #0f172a;
+  }
+
+  :deep(.el-collapse-item__wrap) {
+    border: none;
+    background: transparent;
+  }
+
+  :deep(.el-collapse-item__content) {
+    padding: 0 16px 16px;
+  }
+}
+
+.collapse-title {
+  display: flex;
+  align-items: center;
+  min-height: 58px;
+
+  strong {
+    display: block;
+    margin-top: 4px;
+    color: #0f172a;
+    font-size: 15px;
+    line-height: 1.35;
+  }
 }
 
 .form-panel--stack {
@@ -1743,8 +2106,17 @@ watch(
 }
 
 .form-grid--compact {
+  :deep(.el-row) {
+    row-gap: 14px;
+  }
+
   :deep(.el-form-item) {
     margin-bottom: 0;
+  }
+
+  :deep(.el-form-item__label) {
+    margin-bottom: 6px;
+    line-height: 1.3;
   }
 }
 
@@ -1773,31 +2145,6 @@ watch(
 .field-highlight {
   :deep(.el-form-item__label) {
     font-weight: 700;
-    color: #0f172a;
-  }
-}
-
-.identity-inline {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.identity-inline__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 14px;
-
-  span {
-    font-size: 12px;
-    color: #64748b;
-  }
-
-  strong {
     color: #0f172a;
   }
 }
@@ -1890,11 +2237,33 @@ watch(
   word-break: break-word;
 }
 
+.system-field-note {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.94), #fff);
+  border: 1px dashed rgba(148, 163, 184, 0.42);
+  border-radius: 18px;
+
+  strong {
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  span {
+    color: #64748b;
+    line-height: 1.65;
+    font-size: 13px;
+  }
+}
+
 :deep(.el-input__wrapper),
 :deep(.el-select__wrapper) {
-  border: 1px solid rgba(203, 213, 225, 0.96);
-  border-radius: 14px;
-  background: #fff;
+  min-height: var(--app-control-min-height, 30px);
+  border: 1px solid var(--app-control-border, rgba(203, 213, 225, 0.96));
+  border-radius: var(--app-control-radius, 14px);
+  background: var(--app-control-bg, #fff);
   box-shadow: 0 0 0 1px transparent;
   transition:
     border-color 0.2s ease,
@@ -1903,9 +2272,10 @@ watch(
 }
 
 :deep(.el-textarea__inner) {
-  border: 1px solid rgba(203, 213, 225, 0.96);
-  border-radius: 14px;
-  background: #fff;
+  min-height: max(96px, calc(var(--app-control-min-height, 30px) * 3));
+  border: 1px solid var(--app-control-border, rgba(203, 213, 225, 0.96));
+  border-radius: var(--app-control-radius, 14px);
+  background: var(--app-control-bg, #fff);
   box-shadow: none;
   transition:
     border-color 0.2s ease,
@@ -1917,7 +2287,7 @@ watch(
   display: block;
 
   :deep(.el-select__wrapper) {
-    min-height: 42px;
+    min-height: var(--app-control-min-height, 30px);
     border-width: 1px;
     border-style: solid;
     border-color: rgba(59, 130, 246, 0.42);
@@ -1981,10 +2351,14 @@ watch(
     align-items: flex-start;
   }
 
-  .identity-inline,
   .profile-metrics,
+  .identity-stats,
   .login-log-meta {
     grid-template-columns: 1fr;
+  }
+
+  .identity-summary-banner {
+    align-items: flex-start;
   }
 
   .user-save-container {

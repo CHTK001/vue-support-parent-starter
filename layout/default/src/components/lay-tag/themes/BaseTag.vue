@@ -90,6 +90,39 @@ const contextMenuStyle = computed(
 const currentTagPath = computed(() => resolveTagPath(route));
 const currentDirectPath = computed(() => normalizeRoutePath(route.path));
 
+const buildTagRouteLocation = (item: any) => {
+  const name = item?.name ? String(item.name) : "";
+  const path = item?.path ? String(item.path) : "";
+  const query = item?.query;
+  const params = item?.params;
+  const hasNamedRoute = name ? router.hasRoute(name) : false;
+  const hasDynamicPath = path.includes("/:") || path.includes("*");
+
+  if (params && hasNamedRoute) {
+    return { name, params };
+  }
+
+  if (path && !hasDynamicPath) {
+    return query ? { path, query } : { path };
+  }
+
+  if (hasNamedRoute) {
+    if (query) {
+      return { name, query };
+    }
+    if (params) {
+      return { name, params };
+    }
+    return { name };
+  }
+
+  if (path) {
+    return query ? { path, query } : { path };
+  }
+
+  return null;
+};
+
 // 标签页是否显示图标
 const showTagIcon = ref($storage.configure?.showTagIcon ?? false);
 
@@ -117,14 +150,17 @@ const dynamicTagView = async () => {
       !isAllEmpty(route.query) &&
       Object.keys(route.query).length > 0
     ) {
-      return isEqual(route.query, item.query) && resolveTagPath(item) === activePath;
+      return (
+        isEqual(route.query, item.query) && resolveTagPath(item) === activePath
+      );
     } else if (
       shouldMatchRouteState &&
       !isAllEmpty(route.params) &&
       Object.keys(route.params).length > 0
     ) {
       return (
-        isEqual(route.params, item.params) && resolveTagPath(item) === activePath
+        isEqual(route.params, item.params) &&
+        resolveTagPath(item) === activePath
       );
     } else {
       return resolveTagPath(item) === activePath;
@@ -298,26 +334,22 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
   const newRoute = multiTagsStore.handleTags("slice");
   if (current === currentTagPath.value) {
     if (tag === "left") return;
-    if (newRoute[0]?.query) {
-      router.push({ name: newRoute[0].name, query: newRoute[0].query });
-    } else if (newRoute[0]?.params) {
-      router.push({ name: newRoute[0].name, params: newRoute[0].params });
-    } else {
-      router.push({ path: newRoute[0].path });
+    const targetLocation = buildTagRouteLocation(newRoute[0]);
+    if (targetLocation) {
+      router.push(targetLocation);
     }
   } else {
     if (!multiTags.value.length) return;
     if (
-      multiTags.value.some((item) => resolveTagPath(item) === currentTagPath.value)
+      multiTags.value.some(
+        (item) => resolveTagPath(item) === currentTagPath.value,
+      )
     ) {
       return;
     }
-    if (newRoute[0]?.query) {
-      router.push({ name: newRoute[0].name, query: newRoute[0].query });
-    } else if (newRoute[0]?.params) {
-      router.push({ name: newRoute[0].name, params: newRoute[0].params });
-    } else {
-      router.push({ path: newRoute[0].path });
+    const targetLocation = buildTagRouteLocation(newRoute[0]);
+    if (targetLocation) {
+      router.push(targetLocation);
     }
   }
 }
@@ -471,7 +503,10 @@ function showMenuModel(
       tagsViews[2].disabled = true;
     }
     fixedTagDisabled();
-  } else if (currentIndex === 0 || normalizeRoutePath(currentPath) === topPath) {
+  } else if (
+    currentIndex === 0 ||
+    normalizeRoutePath(currentPath) === topPath
+  ) {
     disabledMenus(true);
   } else {
     disabledMenus(false, allRoute[currentIndex - 1]?.meta?.fixedTag);
@@ -497,10 +532,12 @@ function openMenu(tag, e) {
 
   currentSelect.value = tag;
   const visibleMenuCount =
-    tagsViews.slice(0, 6).filter(item => item.show).length || 1;
+    tagsViews.slice(0, 6).filter((item) => item.show).length || 1;
   const estimatedMenuHeight = visibleMenuCount * CONTEXT_MENU_ITEM_HEIGHT + 12;
-  const maxLeft = window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_EDGE_PADDING;
-  const maxTop = window.innerHeight - estimatedMenuHeight - CONTEXT_MENU_EDGE_PADDING;
+  const maxLeft =
+    window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_EDGE_PADDING;
+  const maxTop =
+    window.innerHeight - estimatedMenuHeight - CONTEXT_MENU_EDGE_PADDING;
 
   buttonLeft.value = Math.min(
     Math.max(CONTEXT_MENU_EDGE_PADDING, e.clientX + 8),
@@ -518,23 +555,9 @@ function openMenu(tag, e) {
 // 滚动逻辑已合并到上方
 
 function tagOnClick(item) {
-  const { name, path } = item;
-  if (name) {
-    if (item.query) {
-      router.push({
-        name,
-        query: item.query,
-      });
-    } else if (item.params) {
-      router.push({
-        name,
-        params: item.params,
-      });
-    } else {
-      router.push({ name });
-    }
-  } else {
-    router.push({ path });
+  const targetLocation = buildTagRouteLocation(item);
+  if (targetLocation) {
+    router.push(targetLocation);
   }
 }
 
@@ -647,8 +670,8 @@ const deferTag = useDefer(tagsViews?.length);
         >
           <template v-if="showModel !== 'chrome'">
             <component
-              v-if="showTagIcon && item.meta?.icon"
               :is="useRenderIcon(item.meta.icon)"
+              v-if="showTagIcon && item.meta?.icon"
               class="tag-icon"
             />
             <span class="tag-title">
@@ -677,8 +700,8 @@ const deferTag = useDefer(tagsViews?.length);
               <TagChrome />
             </div>
             <component
-              v-if="showTagIcon && item.meta?.icon"
               :is="useRenderIcon(item.meta.icon)"
+              v-if="showTagIcon && item.meta?.icon"
               class="tag-icon"
             />
             <span class="tag-title">
@@ -1190,8 +1213,11 @@ html.dark .chrome-tab {
   color: #475569;
   cursor: pointer;
   transition: all 0.28s ease;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(241, 245, 249, 0.92)
+  );
   border: 1px solid rgba(203, 213, 225, 0.9);
   box-shadow:
     0 10px 20px -18px rgba(15, 23, 42, 0.4),
@@ -1215,12 +1241,11 @@ html.dark .chrome-tab {
     color: #fff;
     font-weight: 600;
     border-color: rgba(var(--el-color-primary-rgb), 0.88);
-    background:
-      linear-gradient(
-        135deg,
-        rgba(var(--el-color-primary-rgb), 0.92) 0%,
-        rgba(var(--el-color-primary-rgb), 0.72) 100%
-      );
+    background: linear-gradient(
+      135deg,
+      rgba(var(--el-color-primary-rgb), 0.92) 0%,
+      rgba(var(--el-color-primary-rgb), 0.72) 100%
+    );
     box-shadow:
       0 18px 32px -22px rgba(var(--el-color-primary-rgb), 0.55),
       inset 0 1px 0 rgba(255, 255, 255, 0.18);
@@ -1310,7 +1335,11 @@ html.dark {
         rgba(var(--el-color-primary-rgb), 0.16) 100%
       );
       border-color: rgba(var(--el-color-primary-rgb), 0.52);
-      color: color-mix(in srgb, var(--el-color-primary-light-3) 70%, #ffffff 30%);
+      color: color-mix(
+        in srgb,
+        var(--el-color-primary-light-3) 70%,
+        #ffffff 30%
+      );
       box-shadow:
         0 0 0 1px rgba(var(--el-color-primary-rgb), 0.14),
         0 4px 12px rgba(0, 0, 0, 0.22);
@@ -1345,12 +1374,11 @@ html.dark {
 
   .modern-item {
     color: #e2e8f0;
-    background:
-      linear-gradient(
-        180deg,
-        rgba(30, 41, 59, 0.9),
-        rgba(15, 23, 42, 0.88)
-      );
+    background: linear-gradient(
+      180deg,
+      rgba(30, 41, 59, 0.9),
+      rgba(15, 23, 42, 0.88)
+    );
     border-color: rgba(148, 163, 184, 0.18);
     box-shadow:
       0 16px 28px -22px rgba(2, 8, 23, 0.44),
@@ -1367,12 +1395,11 @@ html.dark {
     &.is-active {
       color: #f8fafc;
       border-color: rgba(var(--el-color-primary-rgb), 0.82);
-      background:
-        linear-gradient(
-          135deg,
-          rgba(var(--el-color-primary-rgb), 0.88) 0%,
-          rgba(var(--el-color-primary-rgb), 0.66) 100%
-        );
+      background: linear-gradient(
+        135deg,
+        rgba(var(--el-color-primary-rgb), 0.88) 0%,
+        rgba(var(--el-color-primary-rgb), 0.66) 100%
+      );
     }
   }
 
@@ -1395,7 +1422,11 @@ html.dark {
     color-mix(in srgb, var(--el-color-primary) 92%, #ffffff 8%) 0%,
     color-mix(in srgb, var(--el-color-primary) 78%, #0f172a 22%) 100%
   ) !important;
-  border-color: color-mix(in srgb, var(--el-color-primary) 90%, #ffffff 10%) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 90%,
+    #ffffff 10%
+  ) !important;
   color: #fff !important;
 
   .tag-icon,

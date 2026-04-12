@@ -128,107 +128,139 @@
         </div>
       </div>
 
-      <div v-if="manualProjectCards.length" class="manual-project-grid">
-        <article
-          v-for="item in manualProjectCards"
-          :key="item.service.serverServiceId || item.service.serviceCode"
-          class="card manual-project-card"
-          :class="item.tone"
-          role="button"
-          tabindex="0"
-          @click="openProjectDetail(item.service)"
-          @keydown.enter.prevent="openProjectDetail(item.service)"
-        >
-          <header class="card-head">
-            <div>
-              <strong>{{ item.service.serviceName || "未命名项目" }}</strong>
-              <p>{{ item.typeLabel }} / {{ item.manageMode }}</p>
-            </div>
-            <span class="chip">{{ item.runtimeLabel }}</span>
-          </header>
-          <div class="chips">
-            <span class="chip">{{
-              item.service.installPath || "未配置项目目录"
-            }}</span>
-            <span class="chip">SPI {{ item.executionProviderLabel }}</span>
-            <span class="chip">日志 {{ item.logPathCount }} 条</span>
-          </div>
-          <p class="message">
-            {{
-              item.service.latestAiReason ||
-              item.service.lastOperationMessage ||
-              "支持脚本化启动、停止、重启、状态检查、AI 草稿和日志维护。"
-            }}
-          </p>
-          <div
-            v-if="
-              item.service.latestAiReason || item.service.latestAiSolution
-            "
-            class="ai-box"
+      <ScTable
+        v-if="manualProjectCards.length"
+        class="manual-project-table"
+        :data="manualProjectCards"
+        layout="card"
+        card-layout="default"
+        card-theme="default"
+        :search="false"
+        :hide-pagination="true"
+        :hide-do="true"
+        :hide-refresh="true"
+        :hide-setting="true"
+        :col-size="3"
+        :page-size="Math.max(manualProjectCards.length, 1)"
+        row-key="projectId"
+        :row-click="handleManualProjectRowClick"
+      >
+        <template #default="{ row }">
+          <article
+            class="project-card-shell"
+            :class="row.tone"
+            role="button"
+            tabindex="0"
+            @click="openProjectDetail(row.service)"
+            @keydown.enter.prevent="openProjectDetail(row.service)"
           >
-            <strong>AI 诊断</strong>
-            <p>{{ item.service.latestAiReason || "-" }}</p>
-            <small>{{ item.service.latestAiSolution || "-" }}</small>
-          </div>
-          <div class="actions">
-            <el-button
-              circle
-              plain
-              type="success"
-              :loading="
-                projectActionKey === `start:${item.service.serverServiceId}`
-              "
-              @click.stop="runProjectAction(item.service, 'start')"
+            <header class="project-card-shell__head">
+              <div class="project-card-shell__title">
+                <strong>{{ row.service.serviceName || "未命名项目" }}</strong>
+                <p>{{ row.typeLabel }} · {{ row.manageMode }}</p>
+              </div>
+              <div class="project-card-shell__status">
+                <el-tag
+                  effect="light"
+                  round
+                  :type="row.issue ? 'danger' : row.runtimeLabel === '运行中' ? 'success' : 'info'"
+                >
+                  {{ row.runtimeLabel }}
+                </el-tag>
+              </div>
+            </header>
+
+            <div class="project-card-shell__meta">
+              <el-tag effect="plain" round>{{ row.pathLabel }}</el-tag>
+              <el-tag effect="plain" round>SPI {{ row.executionProviderLabel }}</el-tag>
+              <el-tag effect="plain" round>日志 {{ row.logPathCount }} 条</el-tag>
+            </div>
+
+            <p class="project-card-shell__summary">{{ row.summaryText }}</p>
+
+            <section
+              v-if="row.service.latestAiReason || row.service.latestAiSolution"
+              class="project-card-shell__ai"
             >
-              <IconifyIconOnline icon="ri:play-circle-line" />
-            </el-button>
-            <el-button
-              circle
-              plain
-              type="warning"
-              :loading="
-                projectActionKey === `stop:${item.service.serverServiceId}`
-              "
-              @click.stop="runProjectAction(item.service, 'stop')"
-            >
-              <IconifyIconOnline icon="ri:stop-circle-line" />
-            </el-button>
-            <el-button
-              circle
-              plain
-              :loading="
-                projectActionKey === `restart:${item.service.serverServiceId}`
-              "
-              @click.stop="runProjectAction(item.service, 'restart')"
-            >
-              <IconifyIconOnline icon="ri:restart-line" />
-            </el-button>
-            <el-button
-              circle
-              plain
-              :loading="
-                projectActionKey === `status:${item.service.serverServiceId}`
-              "
-              @click.stop="runProjectAction(item.service, 'status')"
-            >
-              <IconifyIconOnline icon="ri:pulse-line" />
-            </el-button>
-            <el-button
-              circle
-              plain
-              @click.stop="openStandaloneScriptDialog(item.service)"
-            >
-              <IconifyIconOnline icon="ri:file-code-line" />
-            </el-button>
-            <el-button circle plain @click.stop="openProjectEditor(item.service)">
-              <IconifyIconOnline icon="ri:settings-4-line" />
-            </el-button>
-            <el-button circle plain @click.stop="openProjectDetail(item.service)">
-              <IconifyIconOnline icon="ri:article-line" />
-            </el-button>
-          </div>
-        </article>
-      </div>
+              <strong>AI 诊断</strong>
+              <p>{{ row.service.latestAiReason || "-" }}</p>
+              <small>{{ row.service.latestAiSolution || "-" }}</small>
+            </section>
+
+            <footer class="project-card-shell__actions">
+              <el-tooltip content="启动项目">
+                <el-button
+                  circle
+                  plain
+                  type="success"
+                  :loading="projectActionKey === `start:${row.service.serverServiceId}`"
+                  @click.stop="runProjectAction(row.service, 'start')"
+                >
+                  <IconifyIconOnline icon="ri:play-circle-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="停止项目">
+                <el-button
+                  circle
+                  plain
+                  type="warning"
+                  :loading="projectActionKey === `stop:${row.service.serverServiceId}`"
+                  @click.stop="runProjectAction(row.service, 'stop')"
+                >
+                  <IconifyIconOnline icon="ri:stop-circle-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="重启项目">
+                <el-button
+                  circle
+                  plain
+                  :loading="projectActionKey === `restart:${row.service.serverServiceId}`"
+                  @click.stop="runProjectAction(row.service, 'restart')"
+                >
+                  <IconifyIconOnline icon="ri:restart-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="状态检查">
+                <el-button
+                  circle
+                  plain
+                  :loading="projectActionKey === `status:${row.service.serverServiceId}`"
+                  @click.stop="runProjectAction(row.service, 'status')"
+                >
+                  <IconifyIconOnline icon="ri:pulse-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="脚本编辑">
+                <el-button
+                  circle
+                  plain
+                  @click.stop="openStandaloneScriptDialog(row.service)"
+                >
+                  <IconifyIconOnline icon="ri:file-code-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="项目配置">
+                <el-button
+                  circle
+                  plain
+                  @click.stop="openProjectEditor(row.service)"
+                >
+                  <IconifyIconOnline icon="ri:settings-4-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="详情">
+                <el-button
+                  circle
+                  plain
+                  @click.stop="openProjectDetail(row.service)"
+                >
+                  <IconifyIconOnline icon="ri:article-line" />
+                </el-button>
+              </el-tooltip>
+            </footer>
+          </article>
+        </template>
+      </ScTable>
       <el-empty
         v-else
         description="当前没有手工项目主档，可以直接在这里创建"
@@ -726,6 +758,7 @@ import { taskCenterProvider } from "@layout/default";
 import { emitter } from "@repo/core";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScInput from "@repo/components/ScInput/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 import ServerProjectScriptDialog from "../components/ServerProjectScriptDialog.vue";
 import ServerServiceDetailDialog from "../components/ServerServiceDetailDialog.vue";
 import ServerServiceEditorDialog from "../components/ServerServiceEditorDialog.vue";
@@ -793,6 +826,7 @@ type Card = {
   serviceManageMode: string;
 };
 type ManualProjectCard = {
+  projectId: number | string;
   service: ServerService;
   typeLabel: string;
   runtimeLabel: string;
@@ -801,6 +835,8 @@ type ManualProjectCard = {
   executionProviderLabel: string;
   manageMode: string;
   logPathCount: number;
+  pathLabel: string;
+  summaryText: string;
 };
 
 const serviceTypeOptions = [
@@ -1284,6 +1320,10 @@ const manualProjectCards = computed<ManualProjectCard[]>(() =>
       const meta = runtimeMeta(service.runtimeStatus, service.latestOperationSuccess);
       const serviceType = String(service.serviceType || "").toLowerCase();
       return {
+        projectId:
+          service.serverServiceId ||
+          service.serviceCode ||
+          `${service.serviceName || "project"}-${service.installPath || "path"}`,
         service,
         typeLabel: serviceType.includes("nginx")
           ? "Nginx / 静态页"
@@ -1305,6 +1345,12 @@ const manualProjectCards = computed<ManualProjectCard[]>(() =>
           metadata.detected,
         ),
         logPathCount: parseJsonArray(service.logPathsJson).length,
+        pathLabel: service.installPath || "未配置项目目录",
+        summaryText:
+          service.latestAiReason ||
+          service.lastOperationMessage ||
+          service.description ||
+          "支持脚本化启动、停止、重启、状态检查、AI 草稿和日志维护。",
       };
     }),
 );
@@ -1727,6 +1773,13 @@ const openProjectEditor = (service?: ServerService | null) => {
   projectEditorVisible.value = true;
 };
 
+const handleManualProjectRowClick = (row?: ManualProjectCard) => {
+  if (!row?.service) {
+    return;
+  }
+  openProjectDetail(row.service);
+};
+
 const openProjectDetail = (service?: ServerService | null) => {
   selectedStandaloneService.value = service ? { ...service } : null;
   projectDetailVisible.value = Boolean(service);
@@ -2136,25 +2189,24 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .server-project-page {
   display: grid;
-  gap: 18px;
+  gap: 20px;
   min-height: calc(100vh - 140px);
-  padding: 18px;
-  color: #dbeafe;
+  padding: 20px;
+  color: #1e293b;
   background:
-    radial-gradient(
-      circle at top left,
-      rgba(14, 165, 233, 0.14),
-      transparent 30%
-    ),
-    linear-gradient(160deg, #08111b 0%, #102131 48%, #17304a 100%);
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 28%),
+    radial-gradient(circle at right 20%, rgba(59, 130, 246, 0.1), transparent 24%),
+    linear-gradient(180deg, #f8fbff 0%, #eef5ff 46%, #f6f9fc 100%);
 }
 .hero,
 .summary-card,
 .card,
 .panel {
   border-radius: 24px;
-  border: 1px solid rgba(125, 211, 252, 0.16);
-  background: rgba(8, 24, 36, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
 }
 .hero,
 .toolbar,
@@ -2173,13 +2225,26 @@ onUnmounted(() => {
   justify-content: space-between;
 }
 .hero {
-  gap: 16px;
-  padding: 22px 24px;
+  gap: 20px;
+  padding: 26px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -48% auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 68%);
+  pointer-events: none;
 }
 .hero h1 {
   margin: 8px 0 10px;
-  font-size: 32px;
-  color: #f8fafc;
+  font-size: 34px;
+  letter-spacing: -0.03em;
+  color: #0f172a;
 }
 .hero p,
 .chip,
@@ -2191,7 +2256,12 @@ onUnmounted(() => {
 .ai-box small,
 .op p,
 .op small {
-  color: rgba(191, 219, 254, 0.88);
+  color: #475569;
+}
+.hero small {
+  color: #0284c7;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 .chips,
 .actions,
@@ -2203,8 +2273,10 @@ onUnmounted(() => {
 .manual-project-section,
 .project-installation-head {
   border-radius: 24px;
-  border: 1px solid rgba(125, 211, 252, 0.16);
-  background: rgba(8, 24, 36, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 20px 38px rgba(15, 23, 42, 0.07);
+  backdrop-filter: blur(14px);
 }
 .chip {
   display: inline-flex;
@@ -2212,54 +2284,71 @@ onUnmounted(() => {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(8, 47, 73, 0.72);
+  background: rgba(226, 232, 240, 0.68);
   font-size: 12px;
+  color: #334155;
 }
 .summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
 }
 .summary-card {
   display: grid;
-  gap: 6px;
-  padding: 18px 20px;
+  gap: 8px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.summary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #38bdf8 0%, #2563eb 100%);
 }
 .summary-card strong {
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1;
-  color: #f8fafc;
+  color: #0f172a;
+}
+.summary-card small {
+  color: #64748b;
+  font-weight: 600;
 }
 .toolbar {
   gap: 14px;
+  padding: 14px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 .toolbar :deep(.el-input) {
   max-width: 380px;
 }
+.toolbar :deep(.el-radio-group),
+.toolbar :deep(.el-input),
+.toolbar :deep(.sc-input) {
+  min-height: 40px;
+}
 .manual-project-section {
   display: grid;
   gap: 14px;
-  padding: 18px 20px;
+  padding: 20px 22px 24px;
 }
 .manual-project-section__head h3,
 .project-installation-head h3 {
   margin: 0 0 6px;
-  color: #f8fafc;
+  color: #0f172a;
 }
 .manual-project-section__head p,
 .project-installation-head p {
   margin: 0;
-  color: rgba(191, 219, 254, 0.82);
-}
-.manual-project-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-.manual-project-card {
-  min-height: 220px;
+  color: #64748b;
 }
 .project-installation-head {
-  padding: 16px 20px;
+  padding: 18px 20px;
   margin-top: 2px;
 }
 .grid {
@@ -2274,24 +2363,24 @@ onUnmounted(() => {
   padding: 18px 20px;
 }
 .ai-status.is-inactive {
-  border-color: rgba(251, 191, 36, 0.24);
-  background: rgba(120, 53, 15, 0.18);
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(255, 247, 237, 0.88);
 }
 .ai-status h3 {
   margin: 0 0 6px;
-  color: #f8fafc;
+  color: #0f172a;
 }
 .ai-status__chip--success {
-  background: rgba(20, 83, 45, 0.56);
+  background: rgba(220, 252, 231, 0.9);
 }
 .ai-status__chip--primary {
-  background: rgba(8, 47, 73, 0.9);
+  background: rgba(224, 242, 254, 0.95);
 }
 .ai-status__chip--warning {
-  background: rgba(120, 53, 15, 0.56);
+  background: rgba(254, 243, 199, 0.96);
 }
 .ai-status__chip--danger {
-  background: rgba(127, 29, 29, 0.58);
+  background: rgba(254, 226, 226, 0.96);
 }
 .card {
   display: grid;
@@ -2305,27 +2394,31 @@ onUnmounted(() => {
 }
 .card:hover {
   transform: translateY(-2px);
-  border-color: rgba(96, 165, 250, 0.35);
-  box-shadow: 0 18px 28px rgba(2, 6, 23, 0.28);
+  border-color: rgba(59, 130, 246, 0.28);
+  box-shadow: 0 24px 36px rgba(15, 23, 42, 0.12);
 }
 .card.is-success {
-  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(34, 197, 94, 0.16),
+    0 18px 34px rgba(15, 23, 42, 0.08);
 }
 .card.is-danger {
-  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(248, 113, 113, 0.18),
+    0 18px 34px rgba(15, 23, 42, 0.08);
 }
 .card strong,
 .detail-hero h3,
 .panel h4 {
-  color: #f8fafc;
+  color: #0f172a;
 }
 .ai-box {
   display: grid;
   gap: 6px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(146, 64, 14, 0.18);
-  border: 1px solid rgba(251, 191, 36, 0.2);
+  background: rgba(255, 247, 237, 0.9);
+  border: 1px solid rgba(251, 191, 36, 0.24);
 }
 .detail-hero {
   gap: 16px;
@@ -2351,8 +2444,147 @@ onUnmounted(() => {
   margin: 0;
 }
 .meta dt {
-  color: rgba(148, 163, 184, 0.92);
+  color: #64748b;
   font-size: 12px;
+}
+.manual-project-table :deep(.sc-table__do) {
+  display: none;
+}
+.manual-project-table :deep(.card-view-container) {
+  padding: 2px 0 0;
+  background: transparent;
+}
+.manual-project-table :deep(.card-grid) {
+  gap: 18px;
+}
+.manual-project-table :deep(.card-item-wrapper) {
+  background: transparent;
+}
+.manual-project-table :deep(.card-inner.card-default) {
+  padding: 0;
+  border-radius: 26px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.project-card-shell {
+  display: grid;
+  gap: 16px;
+  min-height: 250px;
+  padding: 22px;
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94)),
+    linear-gradient(120deg, rgba(14, 165, 233, 0.06), transparent 42%);
+  box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+.project-card-shell:hover {
+  transform: translateY(-3px);
+  border-color: rgba(59, 130, 246, 0.26);
+  box-shadow: 0 28px 48px rgba(15, 23, 42, 0.14);
+}
+.project-card-shell.is-success {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.9)),
+    linear-gradient(135deg, rgba(34, 197, 94, 0.08), transparent 42%);
+}
+.project-card-shell.is-danger {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(254, 242, 242, 0.92)),
+    linear-gradient(135deg, rgba(248, 113, 113, 0.08), transparent 42%);
+}
+.project-card-shell__head,
+.project-card-shell__actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.project-card-shell__title strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+  color: #0f172a;
+}
+.project-card-shell__title p {
+  margin: 0;
+  color: #64748b;
+}
+.project-card-shell__status {
+  flex-shrink: 0;
+}
+.project-card-shell__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.project-card-shell__meta :deep(.el-tag) {
+  margin: 0;
+  max-width: 100%;
+}
+.project-card-shell__summary {
+  margin: 0;
+  min-height: 42px;
+  color: #334155;
+  line-height: 1.65;
+}
+.project-card-shell__ai {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  background: linear-gradient(180deg, rgba(255, 247, 237, 0.96), rgba(255, 251, 235, 0.92));
+}
+.project-card-shell__ai strong {
+  color: #92400e;
+}
+.project-card-shell__ai p,
+.project-card-shell__ai small {
+  margin: 0;
+  color: #92400e;
+}
+.project-card-shell__actions {
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 6px;
+}
+.project-card-shell__actions :deep(.el-button) {
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+}
+@media (max-width: 960px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 768px) {
+  .server-project-page {
+    padding: 14px;
+  }
+  .hero,
+  .toolbar,
+  .manual-project-section,
+  .project-installation-head,
+  .ai-status {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .hero,
+  .toolbar,
+  .panel-head,
+  .project-card-shell__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .summary {
+    grid-template-columns: 1fr;
+  }
 }
 .list {
   display: grid;

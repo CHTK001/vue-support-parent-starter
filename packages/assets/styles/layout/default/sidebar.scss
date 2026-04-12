@@ -174,15 +174,20 @@
       min-height: 0;
     }
 
-    .el-scrollbar__bar.is-vertical {
+    .el-scrollbar__bar.is-vertical,
+    .el-scrollbar__bar.is-horizontal {
       right: 0;
       opacity: 0;
       transition: opacity 0.2s ease;
       pointer-events: none;
     }
 
-    &:hover .el-scrollbar__bar.is-vertical {
+    &:hover .el-scrollbar__bar.is-vertical,
+    &:hover .el-scrollbar__bar.is-horizontal,
+    &:focus-within .el-scrollbar__bar.is-vertical,
+    &:focus-within .el-scrollbar__bar.is-horizontal {
       opacity: 0.35;
+      pointer-events: auto;
     }
 
     &.has-logo {

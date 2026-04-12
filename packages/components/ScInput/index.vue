@@ -42,28 +42,67 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, markRaw, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  markRaw,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { getDefaultIcon } from "./defaultIcons";
 import { InputType } from "./types";
 
 // 使用异步组件导入各种类型的输入组件
-const TextInput = defineAsyncComponent(() => import("./components/TextInput.vue"));
-const TextareaInput = defineAsyncComponent(() => import("./components/TextareaInput.vue"));
-const NumberInput = defineAsyncComponent(() => import("./components/NumberInput.vue"));
-const PasswordInput = defineAsyncComponent(() => import("./components/PasswordInput.vue"));
-const SearchInput = defineAsyncComponent(() => import("./components/SearchInput.vue"));
-const EmailInput = defineAsyncComponent(() => import("./components/EmailInput.vue"));
-const ColorInput = defineAsyncComponent(() => import("./components/ColorInput.vue"));
-const BooleanInput = defineAsyncComponent(() => import("./components/BooleanInput.vue"));
-const DictInput = defineAsyncComponent(() => import("./components/DictInput.vue"));
+const TextInput = defineAsyncComponent(
+  () => import("./components/TextInput.vue"),
+);
+const TextareaInput = defineAsyncComponent(
+  () => import("./components/TextareaInput.vue"),
+);
+const NumberInput = defineAsyncComponent(
+  () => import("./components/NumberInput.vue"),
+);
+const PasswordInput = defineAsyncComponent(
+  () => import("./components/PasswordInput.vue"),
+);
+const SearchInput = defineAsyncComponent(
+  () => import("./components/SearchInput.vue"),
+);
+const EmailInput = defineAsyncComponent(
+  () => import("./components/EmailInput.vue"),
+);
+const ColorInput = defineAsyncComponent(
+  () => import("./components/ColorInput.vue"),
+);
+const BooleanInput = defineAsyncComponent(
+  () => import("./components/BooleanInput.vue"),
+);
+const DictInput = defineAsyncComponent(
+  () => import("./components/DictInput.vue"),
+);
 const IpInput = defineAsyncComponent(() => import("./components/IpInput.vue"));
-const CaptchaInput = defineAsyncComponent(() => import("./components/CaptchaInput.vue"));
-const SelectInput = defineAsyncComponent(() => import("./components/SelectInput.vue"));
-const TotpInput = defineAsyncComponent(() => import("./components/TotpInput.vue"));
-const DateTimeInput = defineAsyncComponent(() => import("./components/DateTimeInput.vue"));
-const CardInput = defineAsyncComponent(() => import("./components/CardInput.vue"));
-const RichTextInput = defineAsyncComponent(() => import("./components/RichTextInput.vue"));
-const ListInput = defineAsyncComponent(() => import("./components/ListInput.vue"));
+const CaptchaInput = defineAsyncComponent(
+  () => import("./components/CaptchaInput.vue"),
+);
+const SelectInput = defineAsyncComponent(
+  () => import("./components/SelectInput.vue"),
+);
+const TotpInput = defineAsyncComponent(
+  () => import("./components/TotpInput.vue"),
+);
+const DateTimeInput = defineAsyncComponent(
+  () => import("./components/DateTimeInput.vue"),
+);
+const CardInput = defineAsyncComponent(
+  () => import("./components/CardInput.vue"),
+);
+const RichTextInput = defineAsyncComponent(
+  () => import("./components/RichTextInput.vue"),
+);
+const ListInput = defineAsyncComponent(
+  () => import("./components/ListInput.vue"),
+);
 
 // 标记为原始类型以提高性能
 const Components = {
@@ -95,7 +134,7 @@ const Components = {
   [InputType.SELECT]: markRaw(SelectInput),
   [InputType.TOTP]: markRaw(TotpInput),
   [InputType.LIST]: markRaw(ListInput),
-  [InputType.ARRAY]: markRaw(ListInput)
+  [InputType.ARRAY]: markRaw(ListInput),
 };
 
 export type OptionItem = {
@@ -183,10 +222,18 @@ const props = withDefaults(defineProps<Props>(), {
   autoLoad: true,
   fetchParams: () => ({}),
   params: () => ({}),
-  theme: "default"
+  theme: "default",
 });
 
-const emit = defineEmits(["update:modelValue", "change", "input", "focus", "blur", "clear", "options-loaded"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "change",
+  "input",
+  "focus",
+  "blur",
+  "clear",
+  "options-loaded",
+]);
 
 // 加载状态
 const loading = ref(false);
@@ -223,7 +270,7 @@ const componentMap = {
   [InputType.SELECT]: Components[InputType.SELECT],
   [InputType.TOTP]: Components[InputType.TOTP],
   [InputType.LIST]: Components[InputType.LIST],
-  [InputType.ARRAY]: Components[InputType.ARRAY]
+  [InputType.ARRAY]: Components[InputType.ARRAY],
 };
 
 /**
@@ -253,22 +300,24 @@ const loadData = async () => {
       // 默认解析逻辑
       if (Array.isArray(result)) {
         // 如果返回的是数组，直接使用
-        optionsData.value = result.map(item => ({
+        optionsData.value = result.map((item) => ({
           label: item.label || item.name || String(item),
-          value: item.value || item.id || item
+          value: item.value || item.id || item,
         }));
       } else if (result && typeof result === "object") {
         // 处理返回对象的情况，通常是接口返回的标准格式
         if (Array.isArray(result.data)) {
-          optionsData.value = result.data.map(item => ({
+          optionsData.value = result.data.map((item) => ({
             label: item.label || item.name || String(item),
-            value: item.value || item.id || item
+            value: item.value || item.id || item,
           }));
         } else if (result.data && typeof result.data === "object") {
-          optionsData.value = Object.entries(result.data).map(([key, value]) => ({
-            label: String(value),
-            value: key
-          }));
+          optionsData.value = Object.entries(result.data).map(
+            ([key, value]) => ({
+              label: String(value),
+              value: key,
+            }),
+          );
         }
       }
     }
@@ -313,7 +362,7 @@ watch(
     if (props.autoLoad && typeof props.url === "function") {
       loadData();
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -368,12 +417,14 @@ const handleClear = () => {
 
 // 对外暴露方法
 defineExpose({
-  loadData
+  loadData,
 });
 </script>
 
 <style lang="scss" scoped>
 .sc-input {
+  --sc-control-radius: var(--app-control-radius, 14px);
+  --sc-control-min-height: var(--app-control-min-height, 30px);
   width: 100%;
   display: inline-block;
   position: relative;
@@ -384,15 +435,20 @@ defineExpose({
   // 悬停效果
   &:hover {
     :deep(.el-input__wrapper) {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: var(
+        --app-control-hover-shadow,
+        0 0 0 1px var(--el-color-primary-light-7) inset,
+        0 10px 22px rgba(15, 23, 42, 0.05)
+      );
       border-color: var(--el-color-primary-light-7);
     }
   }
 
   :deep(.el-input__wrapper),
   :deep(.el-textarea__inner) {
-    border-radius: 16px;
-    border: 1px solid color-mix(in srgb, var(--el-border-color) 78%, transparent);
+    border-radius: var(--sc-control-radius);
+    border: 1px solid
+      color-mix(in srgb, var(--el-border-color) 78%, transparent);
     background: color-mix(in srgb, var(--el-fill-color-blank) 96%, white);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.75),
@@ -404,7 +460,7 @@ defineExpose({
   }
 
   :deep(.el-input__wrapper) {
-    //min-height: 30px;
+    min-height: var(--sc-control-min-height);
     padding-inline: 14px;
   }
 
@@ -412,17 +468,43 @@ defineExpose({
     font-size: 13px;
   }
 
+  :deep(.el-input-group__prepend),
+  :deep(.el-input-group__append) {
+    min-height: var(--sc-control-min-height);
+    padding-inline: 12px;
+    border-radius: calc(var(--sc-control-radius) - 2px);
+    border: 1px solid
+      color-mix(in srgb, var(--el-border-color) 78%, transparent);
+    background: color-mix(in srgb, var(--el-fill-color-light) 82%, white);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.75),
+      0 8px 18px rgba(15, 23, 42, 0.04);
+  }
+
+  :deep(.el-input__prefix-inner),
+  :deep(.el-input__suffix-inner) {
+    color: var(--el-text-color-secondary);
+  }
+
   :deep(.el-textarea__inner) {
-    min-height: 96px;
+    min-height: max(96px, calc(var(--sc-control-min-height) * 3));
     padding: 12px 14px;
   }
 
   // 聚焦状态
   &:focus-within {
     :deep(.el-input__wrapper) {
-      box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
+      box-shadow: var(
+        --app-control-focus-shadow,
+        0 0 0 1px var(--el-color-primary) inset,
+        0 0 0 3px rgba(var(--el-color-primary-rgb), 0.12),
+        0 10px 24px rgba(var(--el-color-primary-rgb), 0.12)
+      );
       border-color: var(--el-color-primary);
-      background: var(--el-bg-color);
+      background: var(
+        --app-control-bg,
+        color-mix(in srgb, var(--el-fill-color-blank) 96%, white)
+      );
     }
   }
 

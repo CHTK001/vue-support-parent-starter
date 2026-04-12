@@ -4,6 +4,7 @@
     class="server-sidebar"
     shadow="never"
     :class="{ 'is-collapsed': collapsed }"
+    @contextmenu.prevent="emit('contextmenu', $event, null)"
   >
     <div class="server-sidebar__header">
       <div
@@ -15,62 +16,8 @@
             <IconifyIconOnline icon="ri:sidebar-unfold-line" />
           </el-button>
         </el-tooltip>
-        <el-tooltip
-          :content="selectionMode ? '退出聚合选择' : '聚合多选'"
-          placement="right"
-        >
-          <el-button
-            circle
-            :type="selectionMode ? 'primary' : undefined"
-            @click="emit('toggle-aggregate-mode')"
-          >
-            <IconifyIconOnline icon="ri:stack-line" />
-          </el-button>
-        </el-tooltip>
       </div>
       <div v-else class="server-sidebar__header-actions">
-        <el-tooltip content="刷新服务器" placement="top">
-          <el-button circle @click="emit('refresh')">
-            <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="全局远程代理" placement="top">
-          <el-button circle @click="emit('open-global-remote')">
-            <IconifyIconOnline icon="ri:route-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="全局预警设置" placement="top">
-          <el-button circle @click="emit('open-global-alert')">
-            <IconifyIconOnline icon="ri:alarm-warning-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="新增服务器" placement="top">
-          <el-button circle type="primary" @click="emit('create')">
-            <IconifyIconOnline icon="ri:add-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
-          :content="selectionMode ? '退出聚合选择' : '聚合多选'"
-          placement="top"
-        >
-          <el-button
-            circle
-            :type="selectionMode ? 'primary' : undefined"
-            @click="emit('toggle-aggregate-mode')"
-          >
-            <IconifyIconOnline icon="ri:stack-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip v-if="selectionMode" content="打开聚合大屏" placement="top">
-          <el-button
-            circle
-            type="success"
-            :disabled="!aggregateIds.length"
-            @click="emit('open-aggregate-dashboard')"
-          >
-            <IconifyIconOnline icon="ri:dashboard-horizontal-line" />
-          </el-button>
-        </el-tooltip>
         <el-tooltip content="收起服务器栏" placement="top">
           <el-button circle @click="emit('update:collapsed', true)">
             <IconifyIconOnline icon="ri:sidebar-fold-line" />
@@ -200,7 +147,7 @@ const emit = defineEmits<{
   "update:collapsed": [value: boolean];
   "update:keyword": [value: string];
   "update:filter": [value: string];
-  contextmenu: [event: MouseEvent, entry: ServerHostListEntry];
+  contextmenu: [event: MouseEvent, entry?: ServerHostListEntry | null];
 }>();
 </script>
 
@@ -248,8 +195,12 @@ const emit = defineEmits<{
 }
 
 .server-sidebar__header-actions :deep(.el-button) {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.07);
 }
 
 .server-sidebar__filters {
@@ -263,10 +214,13 @@ const emit = defineEmits<{
   justify-content: space-between;
   gap: 10px;
   margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--el-color-primary) 8%, white);
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 18%, transparent);
+  padding: 12px 14px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--el-color-primary) 14%, transparent), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.28));
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
 .server-sidebar__aggregate-chip {
@@ -292,6 +246,21 @@ const emit = defineEmits<{
 .server-sidebar__scroll {
   flex: 1;
   margin-top: 12px;
+}
+
+.server-sidebar__scroll :deep(.el-scrollbar__bar.is-vertical),
+.server-sidebar__scroll :deep(.el-scrollbar__bar.is-horizontal) {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.server-sidebar:hover .server-sidebar__scroll :deep(.el-scrollbar__bar.is-vertical),
+.server-sidebar:hover .server-sidebar__scroll :deep(.el-scrollbar__bar.is-horizontal),
+.server-sidebar:focus-within .server-sidebar__scroll :deep(.el-scrollbar__bar.is-vertical),
+.server-sidebar:focus-within .server-sidebar__scroll :deep(.el-scrollbar__bar.is-horizontal) {
+  opacity: 0.35;
+  pointer-events: auto;
 }
 
 .server-sidebar.is-collapsed .server-sidebar__scroll {

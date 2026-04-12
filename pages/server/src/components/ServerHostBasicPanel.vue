@@ -12,30 +12,34 @@
           <div>
             <div class="server-basic-panel__title-row">
               <h2>{{ host.serverName }}</h2>
-              <span
+              <ScTag
+                size="small"
+                effect="plain"
+                round
                 class="server-basic-panel__latency"
-                :class="latencyToneClass(snapshot?.latencyMs)"
+                :type="tagTypeFromTone(latencyToneClass(snapshot?.latencyMs))"
               >
                 {{ formatLatency(snapshot?.latencyMs) }}
-              </span>
+              </ScTag>
             </div>
             <div class="server-basic-panel__identity-meta">
-              <span class="server-basic-panel__chip">{{
-                serverTypeLabel(host.serverType)
-              }}</span>
-              <span class="server-basic-panel__chip">{{
-                hostAddress(host)
-              }}</span>
-              <span class="server-basic-panel__chip">{{
-                host.serverCode || "保存后自动生成编码"
-              }}</span>
-              <el-tag
+              <ScTag size="small" effect="plain" round>
+                {{ serverTypeLabel(host.serverType) }}
+              </ScTag>
+              <ScTag size="small" effect="plain" round>
+                {{ hostAddress(host) }}
+              </ScTag>
+              <ScTag size="small" effect="plain" round>
+                {{ host.serverCode || "保存后自动生成编码" }}
+              </ScTag>
+              <ScTag
                 size="small"
-                effect="light"
+                effect="plain"
+                round
                 :type="host.enabled !== false ? 'success' : 'info'"
               >
                 {{ host.enabled !== false ? "已启用" : "未启用" }}
-              </el-tag>
+              </ScTag>
             </div>
           </div>
         </div>
@@ -202,8 +206,8 @@
         <article class="server-basic-panel__card server-basic-panel__card--basic">
           <header class="server-basic-panel__card-header">
             <h3>基础信息</h3>
-            <div class="server-basic-panel__tag-group">
-              <span class="server-basic-panel__chip">
+              <div class="server-basic-panel__tag-group">
+              <ScTag size="small" effect="plain" round>
                 {{
                   alertSettingsEnabled === false
                     ? "预警关闭"
@@ -211,7 +215,7 @@
                       ? "在线"
                       : "离线"
                 }}
-              </span>
+              </ScTag>
               <el-tooltip content="查看基础信息详情" placement="top">
                 <el-button circle plain @click.stop="emit('open-basic-detail')">
                   <IconifyIconOnline icon="ri:information-line" />
@@ -259,13 +263,14 @@
               <div>
                 <dt>全局 AI</dt>
                 <dd>
-                  <el-tag
+                  <ScTag
                     size="small"
-                    effect="light"
+                    effect="plain"
+                    round
                     :type="aiEnabled ? 'success' : 'info'"
                   >
                     {{ aiEnabled ? "已启用" : "未启用" }}
-                  </el-tag>
+                  </ScTag>
                   <span
                     v-if="
                       aiStatusText ||
@@ -309,13 +314,14 @@
               <div>
                 <dt>软件能力</dt>
                 <dd>
-                  <el-tag
+                  <ScTag
                     size="small"
-                    effect="light"
+                    effect="plain"
+                    round
                     :type="softEnabled ? 'success' : 'info'"
                   >
                     {{ softEnabled ? "已启用" : "未启用" }}
-                  </el-tag>
+                  </ScTag>
                 </dd>
               </div>
               <div>
@@ -704,6 +710,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
+import ScTag from "@repo/components/ScTag/src/index.vue";
 import ServerServicePanel from "./ServerServicePanel.vue";
 import type {
   ServerAlertEvent,
@@ -741,6 +748,12 @@ type ServerServiceAction =
   | "restart"
   | "status";
 type MetricChartMode = "split" | "combined";
+
+const tagTypeFromTone = (toneClass?: string) => {
+  if (toneClass === "is-danger") return "danger";
+  if (toneClass === "is-warning") return "warning";
+  return "success";
+};
 
 const props = withDefaults(
   defineProps<{

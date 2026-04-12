@@ -1017,15 +1017,15 @@ const getMenuTypeTag = (type) => {
 .menu-engine-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   order: 2;
-  width: 74px;
+  width: 56px;
   flex-shrink: 0;
   align-self: flex-start;
-  padding: 8px;
+  padding: 6px;
   background: var(--menu-surface-soft);
   border: 1px solid var(--menu-border);
-  border-radius: 22px;
+  border-radius: 18px;
   box-shadow: var(--menu-shadow);
 }
 
@@ -1033,10 +1033,10 @@ const getMenuTypeTag = (type) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  min-height: 56px;
+  width: 42px;
+  min-height: 42px;
   padding: 0;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid var(--menu-border);
   background: linear-gradient(
     180deg,
@@ -1052,7 +1052,7 @@ const getMenuTypeTag = (type) => {
     box-shadow 0.2s ease;
 
   .iconify {
-    font-size: 20px;
+    font-size: 16px;
     color: var(--el-color-primary);
   }
 
@@ -1543,7 +1543,8 @@ const getMenuTypeTag = (type) => {
   }
 
   .menu-engine-sidebar {
-    width: 100%;
+    width: fit-content;
+    max-width: 100%;
     flex-direction: row;
     order: 1;
     align-self: stretch;
@@ -1551,7 +1552,7 @@ const getMenuTypeTag = (type) => {
   }
 
   .menu-engine-sidebar__item {
-    flex: 1;
+    flex: 0 0 auto;
     width: auto;
   }
 

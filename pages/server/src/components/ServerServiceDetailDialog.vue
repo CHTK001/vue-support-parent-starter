@@ -16,21 +16,28 @@
           </p>
         </div>
         <div class="server-service-detail-dialog__chips">
-          <span class="server-service-detail-dialog__chip">
+          <ScTag size="small" effect="plain" round>
             {{ detectedLabel }}
-          </span>
-          <span class="server-service-detail-dialog__chip">
+          </ScTag>
+          <ScTag size="small" effect="plain" round>
             {{ service.runtimeStatus || "UNKNOWN" }}
-          </span>
-          <span class="server-service-detail-dialog__chip">
+          </ScTag>
+          <ScTag
+            size="small"
+            effect="plain"
+            round
+            :type="service.enabled !== false ? 'success' : 'info'"
+          >
             {{ service.enabled !== false ? "已启用" : "未启用" }}
-          </span>
-          <span
+          </ScTag>
+          <ScTag
             v-if="service.softInstallationId"
-            class="server-service-detail-dialog__chip"
+            size="small"
+            effect="plain"
+            round
           >
             安装实例 #{{ service.softInstallationId }}
-          </span>
+          </ScTag>
         </div>
       </section>
 
@@ -224,6 +231,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import ScTag from "@repo/components/ScTag/src/index.vue";
 import type { ServerService } from "../api";
 
 const props = withDefaults(

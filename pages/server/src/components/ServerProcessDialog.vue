@@ -21,17 +21,21 @@
           </small>
         </div>
         <div class="server-process-dialog__summary">
-          <span class="server-process-dialog__chip"
-            >总数 {{ processes.length }}</span
-          >
-          <span class="server-process-dialog__chip">
+          <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
+            总数 {{ processes.length }}
+          </ScTag>
+          <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
             SPI {{ processProviderText }}
-          </span>
-          <span class="server-process-dialog__chip">
+          </ScTag>
+          <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
             高负载 {{ highRiskCount }}
-          </span>
-          <span
+          </ScTag>
+          <ScTag
+            size="small"
+            effect="plain"
+            round
             class="server-process-dialog__chip"
+            :type="streamConnected ? 'success' : 'info'"
             :class="streamConnected ? 'is-success' : 'is-muted'"
           >
             {{
@@ -39,14 +43,14 @@
                 ? `Socket ${streamLastEventAt ? `· ${formatDateTime(streamLastEventAt)}` : "在线"}`
                 : "Socket 未接管"
             }}
-          </span>
-          <span class="server-process-dialog__chip">
+          </ScTag>
+          <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
             {{
               refreshedAt
                 ? `刷新于 ${formatDateTime(refreshedAt)}`
                 : "尚未拉取进程"
             }}
-          </span>
+          </ScTag>
         </div>
       </div>
     </template>
@@ -75,7 +79,7 @@
     </div>
 
     <div class="server-process-dialog__stage">
-      <div v-loading="loading" class="server-process-dialog__list">
+      <div v-loading="loading" class="server-process-dialog__list thin-scroller">
         <article
           v-for="item in processes"
           :key="item.pid"
@@ -137,7 +141,7 @@
         />
       </div>
 
-      <div class="server-process-dialog__detail">
+      <div class="server-process-dialog__detail thin-scroller">
         <template v-if="selectedProcess">
           <div class="server-process-dialog__detail-hero">
             <div>
@@ -153,6 +157,17 @@
                   selectedProcess.commandLine || selectedProcess.command || "-"
                 }}
               </p>
+              <div class="server-process-dialog__detail-pills">
+                <ScTag size="small" effect="plain" round>
+                  PID {{ selectedProcess.pid || "--" }}
+                </ScTag>
+                <ScTag size="small" effect="plain" round>
+                  {{ selectedProcess.state || "RUNNING" }}
+                </ScTag>
+                <ScTag size="small" effect="plain" round>
+                  SPI {{ processProviderLabel(selectedProcess) }}
+                </ScTag>
+              </div>
             </div>
             <div class="server-process-dialog__detail-actions">
               <el-tooltip
@@ -216,6 +231,9 @@
             <div class="server-process-dialog__stat">
               <small>CPU</small>
               <strong>{{ formatPercent(selectedProcess.cpuPercent) }}</strong>
+              <div class="server-process-dialog__stat-bar">
+                <span :style="{ width: `${toPercent(selectedProcess.cpuPercent)}%` }" />
+              </div>
               <span>当前热点排序依据</span>
             </div>
             <div class="server-process-dialog__stat">
@@ -223,6 +241,11 @@
               <strong>{{
                 formatPercent(selectedProcess.memoryPercent)
               }}</strong>
+              <div class="server-process-dialog__stat-bar is-memory">
+                <span
+                  :style="{ width: `${toPercent(selectedProcess.memoryPercent)}%` }"
+                />
+              </div>
               <span>{{ formatBytes(selectedProcess.memoryBytes) }}</span>
             </div>
             <div class="server-process-dialog__stat">
@@ -278,12 +301,12 @@
             <div class="server-process-dialog__ai-top">
               <strong>AI / 诊断结论</strong>
               <div class="server-process-dialog__summary">
-                <span class="server-process-dialog__chip">
+                <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
                   {{ aiAdvice?.riskLevel || "UNKNOWN" }}
-                </span>
-                <span class="server-process-dialog__chip">
+                </ScTag>
+                <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
                   {{ aiAdvice?.provider || "LOCAL_HEURISTIC" }}
-                </span>
+                </ScTag>
               </div>
             </div>
             <p>{{ aiAdvice?.summary }}</p>
@@ -469,6 +492,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
+import ScTag from "@repo/components/ScTag/src/index.vue";
 import type {
   ServerHost,
   ServerProcessAiAdvice,
@@ -861,8 +885,13 @@ watch(
 .server-process-dialog__detail-hero {
   gap: 14px;
   align-items: flex-start;
-  padding-bottom: 4px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  padding: 16px 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.94));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
 }
 
 .server-process-dialog__detail-hero h4 {
@@ -875,6 +904,14 @@ watch(
   flex-wrap: wrap;
   justify-content: flex-end;
   flex-shrink: 0;
+}
+
+.server-process-dialog__detail-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
 }
 
 .server-process-dialog__stats {
@@ -895,6 +932,29 @@ watch(
   display: grid;
   gap: 6px;
   padding: 14px;
+}
+
+.server-process-dialog__stat-bar {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.server-process-dialog__stat-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0ea5e9, #0284c7);
+}
+
+.server-process-dialog__stat-bar.is-memory {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.server-process-dialog__stat-bar.is-memory span {
+  background: linear-gradient(90deg, #6366f1, #4338ca);
 }
 
 .server-process-dialog__stat small,
