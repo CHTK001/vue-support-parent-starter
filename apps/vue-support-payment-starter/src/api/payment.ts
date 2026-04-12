@@ -1,22 +1,14 @@
 import axios from "axios";
-import type {
-  ApiResponse,
-  ChannelForm,
-  Merchant,
-  MerchantChannel,
-  MerchantForm,
-  OrderForm,
-  OrderOperateForm,
-  OrderPayForm,
-  OrderStateLog,
-  PageResponse,
-  PaymentLaunchResult,
-  PaymentMethodGuide,
-  PaymentOrder,
-  ProviderSpiOption,
-  RefundForm,
-  TransactionRecord,
-} from "../types/payment";
+
+interface ApiResponse<T> {
+  code: string | number;
+  msg?: string;
+  message?: string;
+  data: T;
+  timestamp?: number;
+}
+
+type ApiPromise<T> = Promise<ApiResponse<T>>;
 
 const request = axios.create({
   timeout: 30000,
@@ -31,130 +23,195 @@ request.interceptors.request.use((config) => {
 });
 
 request.interceptors.response.use(
-  (response) => response.data,
-  (error) => Promise.reject(error)
+  (response) => {
+    const payload = response.data;
+    if (payload?.data && typeof payload.data === "object" && "data" in payload.data && "code" in payload.data) {
+      return payload.data;
+    }
+    return payload;
+  },
+  (error) => Promise.reject(error),
 );
 
-type ApiPromise<T> = Promise<ApiResponse<T>>;
+export const getMerchantList = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/merchant/list", { params });
 
-export function getMerchantList(params: Record<string, unknown>): ApiPromise<PageResponse<Merchant>> {
-  return request.get("/api/merchant/list", { params });
-}
+export const getMerchantDetail = (id: number): ApiPromise<any> =>
+  request.get(`/api/merchant/${id}`);
 
-export function getMerchantDetail(id: number): ApiPromise<Merchant> {
-  return request.get(`/api/merchant/${id}`);
-}
+export const createMerchant = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/merchant", data);
 
-export function createMerchant(data: MerchantForm): ApiPromise<Merchant> {
-  return request.post("/api/merchant", data);
-}
+export const updateMerchant = (id: number, data: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/merchant/${id}`, data);
 
-export function updateMerchant(id: number, data: MerchantForm): ApiPromise<Merchant> {
-  return request.put(`/api/merchant/${id}`, data);
-}
+export const activateMerchant = (id: number): ApiPromise<any> =>
+  request.put(`/api/merchant/${id}/activate`);
 
-export function activateMerchant(id: number): ApiPromise<boolean> {
-  return request.put(`/api/merchant/${id}/activate`);
-}
+export const deactivateMerchant = (id: number): ApiPromise<any> =>
+  request.put(`/api/merchant/${id}/deactivate`);
 
-export function deactivateMerchant(id: number): ApiPromise<boolean> {
-  return request.put(`/api/merchant/${id}/deactivate`);
-}
+export const deleteMerchant = (id: number): ApiPromise<any> =>
+  request.delete(`/api/merchant/${id}`);
 
-export function deleteMerchant(id: number): ApiPromise<boolean> {
-  return request.delete(`/api/merchant/${id}`);
-}
+export const getMerchantPaymentConfig = (merchantId: number): ApiPromise<any> =>
+  request.get(`/api/merchant/${merchantId}/payment-config`);
 
-export function getChannelCatalog(): ApiPromise<PaymentMethodGuide[]> {
-  return request.get("/api/channel/catalog");
-}
+export const updateMerchantPaymentConfig = (merchantId: number, data: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/merchant/${merchantId}/payment-config`, data);
 
-export function getProviderOptions(channelType: string): ApiPromise<ProviderSpiOption[]> {
-  return request.get("/api/channel/provider-options", {
-    params: { channelType },
-  });
-}
+export const getMerchantWalletLimit = (merchantId: number): ApiPromise<any> =>
+  request.get(`/api/merchant/${merchantId}/wallet-limit`);
 
-export function getMerchantChannels(merchantId: number, params?: Record<string, unknown>): ApiPromise<MerchantChannel[]> {
-  return request.get(`/api/channel/merchant/${merchantId}`, { params });
-}
+export const updateMerchantWalletLimit = (merchantId: number, data: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/merchant/${merchantId}/wallet-limit`, data);
 
-export function createChannel(data: ChannelForm): ApiPromise<MerchantChannel> {
-  return request.post("/api/channel", data);
-}
+export const getChannelCatalog = (): ApiPromise<any> =>
+  request.get("/api/channel/catalog");
 
-export function updateChannel(id: number, data: ChannelForm): ApiPromise<MerchantChannel> {
-  return request.put(`/api/channel/${id}`, data);
-}
+export const getProviderOptions = (channelType: string): ApiPromise<any> =>
+  request.get("/api/channel/provider-options", { params: { channelType } });
 
-export function enableChannel(id: number): ApiPromise<boolean> {
-  return request.put(`/api/channel/${id}/enable`);
-}
+export const getMerchantChannels = (merchantId: number, params?: Record<string, unknown>): ApiPromise<any> =>
+  request.get(`/api/channel/merchant/${merchantId}`, { params });
 
-export function disableChannel(id: number): ApiPromise<boolean> {
-  return request.put(`/api/channel/${id}/disable`);
-}
+export const createChannel = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/channel", data);
 
-export function getOrderList(params: Record<string, unknown>): ApiPromise<PageResponse<PaymentOrder>> {
-  return request.get("/api/order/list", { params });
-}
+export const updateChannel = (id: number, data: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/channel/${id}`, data);
 
-export function getOrderDetail(id: number): ApiPromise<PaymentOrder> {
-  return request.get(`/api/order/${id}`);
-}
+export const enableChannel = (id: number): ApiPromise<any> =>
+  request.put(`/api/channel/${id}/enable`);
 
-export function getOrderLogs(id: number): ApiPromise<OrderStateLog[]> {
-  return request.get(`/api/order/${id}/logs`);
-}
+export const disableChannel = (id: number): ApiPromise<any> =>
+  request.put(`/api/channel/${id}/disable`);
 
-export function createOrder(data: OrderForm): ApiPromise<PaymentOrder> {
-  return request.post("/api/order", data);
-}
+export const deleteChannel = (id: number): ApiPromise<any> =>
+  request.delete(`/api/channel/${id}`);
 
-export function payOrder(id: number, data?: OrderPayForm): ApiPromise<PaymentLaunchResult> {
-  return request.post(`/api/order/${id}/pay`, data ?? {});
-}
+export const getOrderList = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/order/list", { params });
 
-export function syncOrder(id: number): ApiPromise<PaymentOrder> {
-  return request.post(`/api/order/${id}/sync`);
-}
+export const getOrderDetail = (id: number): ApiPromise<any> =>
+  request.get(`/api/order/${id}`);
 
-export function startOrderPay(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/pay-start`, data ?? {});
-}
+export const createOrder = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/order", data);
 
-export function markOrderPaid(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/pay-success`, data ?? {});
-}
+export const getOrderLogs = (id: number): ApiPromise<any> =>
+  request.get(`/api/order/${id}/logs`);
 
-export function markOrderPayFail(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/pay-fail`, data ?? {});
-}
+export const payOrder = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.post(`/api/order/${id}/pay`, data ?? {});
 
-export function completeOrder(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/complete`, data ?? {});
-}
+export const syncOrder = (id: number): ApiPromise<any> =>
+  request.post(`/api/order/${id}/sync`);
 
-export function cancelOrder(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/cancel`, data ?? {});
-}
+export const startOrderPay = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/pay-start`, data ?? {});
 
-export function applyRefund(id: number, data: RefundForm): ApiPromise<boolean> {
-  return request.post(`/api/order/${id}/refund`, data);
-}
+export const markOrderPaid = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/pay-success`, data ?? {});
 
-export function markRefundSuccess(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/refund-success`, data ?? {});
-}
+export const markOrderPayFail = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/pay-fail`, data ?? {});
 
-export function markRefundFail(id: number, data?: OrderOperateForm): ApiPromise<boolean> {
-  return request.put(`/api/order/${id}/refund-fail`, data ?? {});
-}
+export const completeOrder = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/complete`, data ?? {});
 
-export function deleteOrder(id: number): ApiPromise<boolean> {
-  return request.delete(`/api/order/${id}`);
-}
+export const cancelOrder = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/cancel`, data ?? {});
 
-export function getTransactionList(params: Record<string, unknown>): ApiPromise<PageResponse<TransactionRecord>> {
-  return request.get("/api/transaction/page", { params });
-}
+export const applyRefund = (id: number, data: Record<string, unknown>): ApiPromise<any> =>
+  request.post(`/api/order/${id}/refund`, data);
+
+export const markRefundSuccess = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/refund-success`, data ?? {});
+
+export const markRefundFail = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/order/${id}/refund-fail`, data ?? {});
+
+export const deleteOrder = (id: number): ApiPromise<any> =>
+  request.delete(`/api/order/${id}`);
+
+export const getRefundList = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/refund/page", { params });
+
+export const getRefundDetail = (id: number): ApiPromise<any> =>
+  request.get(`/api/refund/${id}`);
+
+export const markRefundOrderSuccess = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/refund/${id}/success`, data ?? {});
+
+export const markRefundOrderFail = (id: number, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/refund/${id}/fail`, data ?? {});
+
+export const getTransactionList = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/transaction/page", { params });
+
+export const getWalletAccount = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/wallet/account", { params });
+
+export const rechargeWalletAccount = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/wallet/account/recharge", data);
+
+export const getWalletAccountLogs = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/wallet/account/log/page", { params });
+
+export const createWalletRechargeOrder = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/wallet/order/recharge", data);
+
+export const createWalletTransferOrder = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/wallet/order/transfer", data);
+
+export const createWalletWithdrawOrder = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/wallet/order/withdraw", data);
+
+export const getWalletOrderDetail = (orderNo: string): ApiPromise<any> =>
+  request.get(`/api/wallet/order/${orderNo}`);
+
+export const getWalletOrderList = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/wallet/order/page", { params });
+
+export const simulateWalletOrderNotify = (orderNo: string, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.post(`/api/wallet/order/${orderNo}/simulate-notify`, data ?? {});
+
+export const createWechatPayScoreOrder = (data: Record<string, unknown>): ApiPromise<any> =>
+  request.post("/api/wechat/payscore/order", data);
+
+export const getWechatPayScoreDetail = (outOrderNo: string): ApiPromise<any> =>
+  request.get(`/api/wechat/payscore/order/${outOrderNo}`);
+
+export const getWechatPayScoreList = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/wechat/payscore/order/page", { params });
+
+export const syncWechatPayScoreOrder = (outOrderNo: string): ApiPromise<any> =>
+  request.post(`/api/wechat/payscore/order/${outOrderNo}/sync`);
+
+export const completeWechatPayScoreOrder = (outOrderNo: string, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.post(`/api/wechat/payscore/order/${outOrderNo}/complete`, data ?? {});
+
+export const cancelWechatPayScoreOrder = (outOrderNo: string, data?: Record<string, unknown>): ApiPromise<any> =>
+  request.post(`/api/wechat/payscore/order/${outOrderNo}/cancel`, data ?? {});
+
+export const getPaymentOpsOverview = (): ApiPromise<any> =>
+  request.get("/api/ops/overview");
+
+export const getSchedulerTasks = (): ApiPromise<any> =>
+  request.get("/api/ops/scheduler/tasks");
+
+export const updateSchedulerTask = (taskKey: string, data: Record<string, unknown>): ApiPromise<any> =>
+  request.put(`/api/ops/scheduler/tasks/${taskKey}`, data);
+
+export const triggerSchedulerTask = (taskKey: string): ApiPromise<any> =>
+  request.post(`/api/ops/scheduler/tasks/${taskKey}/trigger`);
+
+export const getNotifyLogs = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/ops/notify/log/page", { params });
+
+export const getNotifyErrors = (params: Record<string, unknown>): ApiPromise<any> =>
+  request.get("/api/ops/notify/error/page", { params });
+
+export const retryNotifyError = (id: number): ApiPromise<any> =>
+  request.post(`/api/ops/notify/error/${id}/retry`);

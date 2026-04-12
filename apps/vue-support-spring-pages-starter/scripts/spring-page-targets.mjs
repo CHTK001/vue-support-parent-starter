@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 const scriptRoot = dirname(fileURLToPath(import.meta.url));
 export const appRoot = resolve(scriptRoot, "..");
 const workspaceRoot = resolve(appRoot, "..", "..");
-const springApiRoot = resolve(workspaceRoot, "..", "spring-support-api-parent");
+const springApiRoot = resolve(workspaceRoot, "..", "spring-support-api-starter");
 const springSupportRoot = resolve(
   workspaceRoot,
   "..",
@@ -15,7 +15,7 @@ export const springPageTargets = {
   "scheduler-job-console": {
     label: "Scheduler Job Console",
     pageKey: "job-console",
-    maxOldSpaceSize: "1024",
+    maxOldSpaceSize: "3072",
     viteEnv: {
       VITE_SPRING_API_ROOT: "../job-console/api/",
     },

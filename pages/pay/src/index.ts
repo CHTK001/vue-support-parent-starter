@@ -1,8 +1,9 @@
-export { default } from "./index.vue";
+export { default } from "./views/HomeView.vue";
 export { default as PaymentConsolePage } from "./views/console/PaymentConsolePage.vue";
 export { default as PaymentHomePage } from "./views/HomeView.vue";
 export { default as PaymentMerchantPage } from "./views/MerchantList.vue";
 export { default as PaymentOperationsCenterPage } from "./views/OperationsCenter.vue";
+export { default as PaymentOrderConfigPage } from "./views/OrderConfigView.vue";
 export { default as PaymentOrderPage } from "./views/OrderList.vue";
 export { default as PaymentRefundPage } from "./views/RefundList.vue";
 export { default as PaymentTransactionPage } from "./views/TransactionList.vue";

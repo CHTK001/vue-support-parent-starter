@@ -12,7 +12,7 @@ import { createLazySfcComponent } from "../utils/lazySfc";
 
 // 404 组件的异步加载
 const _NOT_FOUND = defineAsyncComponent(
-  () => import("@repo/common-pages/error/404.vue"),
+  () => import("@pages/common/error/404.vue"),
 );
 
 export const useLayoutLayoutStore = defineStore({

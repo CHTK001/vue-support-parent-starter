@@ -8,74 +8,52 @@ const routes = [
   {
     path: "/home",
     name: "HomeView",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentHomePage;
-    },
+    component: () => import("../../../../pages/pay/src/views/HomeView.vue"),
   },
   {
     path: "/merchants",
     name: "MerchantList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentMerchantPage;
-    },
+    component: () => import("../../../../pages/pay/src/views/MerchantList.vue"),
   },
   {
     path: "/orders",
     name: "OrderList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentOrderPage;
-    },
+    component: () => import("../../../../pages/pay/src/views/OrderList.vue"),
   },
   {
     path: "/refunds",
     name: "RefundList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentRefundPage;
-    },
+    component: () => import("../../../../pages/pay/src/views/RefundList.vue"),
   },
   {
     path: "/transactions",
     name: "TransactionList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentTransactionPage;
-    },
+    component: () => import("../../../../pages/pay/src/views/TransactionList.vue"),
   },
   {
     path: "/wallet-console",
     name: "WalletConsole",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentWalletConsolePage;
-    },
+    component: () => import("../../../../pages/pay/src/views/WalletConsole.vue"),
   },
   {
     path: "/wechat-pay-score",
     name: "WechatPayScoreList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentWechatPayScorePage;
-    },
+    component: () => import("../../../../pages/pay/src/views/WechatPayScoreList.vue"),
   },
   {
     path: "/wallet-orders",
     name: "WalletOrderList",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentWalletOrderPage;
-    },
+    component: () => import("../../../../pages/pay/src/views/WalletOrderList.vue"),
   },
   {
     path: "/operations",
     name: "OperationsCenter",
-    component: async () => {
-      const module = await import("@pages/pay");
-      return module.PaymentOperationsCenterPage;
-    },
+    component: () => import("../../../../pages/pay/src/views/OperationsCenter.vue"),
+  },
+  {
+    path: "/order-config",
+    name: "OrderConfigView",
+    component: () => import("../../../../pages/pay/src/views/OrderConfigView.vue"),
   },
 ];
 

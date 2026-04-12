@@ -95,14 +95,22 @@ const createBuilder = (
   const builder = createViteConfig(import.meta.url, pkg)
     .alias("@layout/default", resolve(root, "layout/default/src"))
     .alias("@pages/common", resolve(root, "pages/common"))
+    .alias("@pages/device", resolve(root, "pages/device/src"))
     .alias("@pages/dict", resolve(root, "pages/dict/src"))
+    .alias("@pages/doc", resolve(root, "pages/doc/src"))
+    .alias("@pages/email", resolve(root, "pages/email/src"))
     .alias("@pages/example", resolve(root, "pages/example/src"))
+    .alias("@pages/job", resolve(root, "pages/job/src"))
+    .alias("@pages/music", resolve(root, "pages/music/src"))
+    .alias("@pages/panel", resolve(root, "pages/panel/src"))
     .alias("@pages/pay", resolve(root, "pages/pay/src"))
     .alias("@pages/project", resolve(root, "pages/project/src"))
     .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
     .alias("@pages/setting", resolve(root, "pages/setting/src"))
     .alias("@pages/soft", resolve(root, "pages/soft/src"))
+    .alias("@pages/sync", resolve(root, "pages/sync/src"))
     .alias("@pages/system", resolve(root, "pages/system/src"))
+    .alias("@pages/tools", resolve(root, "pages/tools/src"))
     .alias("@pages/video", resolve(root, "pages/video/src"))
     .plugins(bundleElementPlusIconsRuntime());
 
@@ -140,6 +148,16 @@ export default (env: ConfigEnv): UserConfigExport => {
     ...(config.build ?? {}),
     rollupOptions: {
       ...(config.build?.rollupOptions ?? {}),
+      external: [
+        ...(Array.isArray(config.build?.rollupOptions?.external)
+          ? config.build.rollupOptions.external
+          : []),
+        "@tensorflow/tfjs",
+        "@tensorflow/tfjs-core",
+        "face-api.js",
+        "pixel-ui",
+        "pixel-ui/dist/index.css?url",
+      ],
       output: {
         ...(config.build?.rollupOptions &&
         !Array.isArray(config.build.rollupOptions.output)
