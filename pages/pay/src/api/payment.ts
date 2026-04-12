@@ -10,6 +10,7 @@ import type {
   OrderPartitionConfig,
   OrderPartitionPreview,
   OrderStateLog,
+  PaymentGlobalConfig,
   PaymentDashboardSummary,
   PageResponse,
   PaymentCallbackAudit,
@@ -21,7 +22,6 @@ import type {
   PaymentOrder,
   PaymentSchedulerTask,
   PaymentSchedulerTaskUpdateForm,
-  ProviderSpiOption,
   RefundForm,
   RefundOperateForm,
   RefundOrder,
@@ -112,9 +112,6 @@ export const updateMerchantWalletLimit = (
 export const getChannelCatalog = (): ApiPromise<PaymentMethodGuide[]> =>
   request.get("/api/channel/catalog");
 
-export const getProviderOptions = (channelType: string): ApiPromise<ProviderSpiOption[]> =>
-  request.get("/api/channel/provider-options", { params: { channelType } });
-
 export const getMerchantChannels = (
   merchantId: number,
   params?: Record<string, unknown>,
@@ -125,6 +122,12 @@ export const createChannel = (data: ChannelForm): ApiPromise<MerchantChannel> =>
 
 export const updateChannel = (id: number, data: Record<string, unknown>): ApiPromise<MerchantChannel> =>
   request.put(`/api/channel/${id}`, data);
+
+export const getPaymentGlobalConfig = (): ApiPromise<PaymentGlobalConfig> =>
+  request.get("/api/payment-global-config");
+
+export const updatePaymentGlobalConfig = (data: PaymentGlobalConfig): ApiPromise<PaymentGlobalConfig> =>
+  request.put("/api/payment-global-config", data);
 
 export const enableChannel = (id: number): ApiPromise<boolean> =>
   request.put(`/api/channel/${id}/enable`);
@@ -302,6 +305,7 @@ export type {
   OrderPartitionConfig,
   OrderPartitionPreview,
   OrderStateLog,
+  PaymentGlobalConfig,
   PaymentDashboardSummary,
   PageResponse,
   PaymentCallbackAudit,
@@ -313,7 +317,6 @@ export type {
   PaymentOrder,
   PaymentSchedulerTask,
   PaymentSchedulerTaskUpdateForm,
-  ProviderSpiOption,
   RefundForm,
   RefundOperateForm,
   RefundOrder,

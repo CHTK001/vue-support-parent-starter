@@ -1,199 +1,271 @@
 <template>
-  <section class="view">
-    <div class="hero-grid">
-      <article class="hero-card">
-        <p>退款单总数</p>
-        <strong>{{ pagination.total }}</strong>
-        <span>覆盖处理中、成功、失败的退款单全量视图。</span>
-      </article>
-      <article class="hero-card">
-        <p>处理中</p>
-        <strong>{{ processingCount }}</strong>
-        <span>需要渠道回调或人工确认的退款单。</span>
-      </article>
-      <article class="hero-card">
-        <p>已退款金额</p>
-        <strong>{{ formatCurrency(refundedAmount) }}</strong>
-        <span>基于当前页统计的退款成功金额。</span>
-      </article>
-    </div>
+  <section class="payment-page refund-page">
+    <header class="payment-surface">
+      <div>
+        <h1 class="payment-surface__title">退款管理</h1>
+        <p class="payment-surface__desc">统一查看退款单状态、金额、原订单和渠道处理结果。</p>
+      </div>
+      <div class="payment-surface__actions">
+        <el-tooltip content="刷新">
+          <el-button circle :icon="RefreshRight" @click="reloadAll" />
+        </el-tooltip>
+      </div>
+    </header>
 
-    <el-card class="panel" shadow="never">
-      <template #header>
-        <div class="panel__header">
-          <div>
-            <p class="panel__eyebrow">Refund Center</p>
-            <h3>退款管理</h3>
-          </div>
-          <el-button text @click="loadRefunds">刷新</el-button>
-        </div>
-      </template>
+    <section class="payment-stat-grid">
+      <article class="payment-stat">
+        <span class="payment-stat__label">退款单总数</span>
+        <strong class="payment-stat__value">{{ stats.total }}</strong>
+        <span class="payment-stat__hint">覆盖处理中、成功、失败的退款单全量视图。</span>
+      </article>
+      <article class="payment-stat">
+        <span class="payment-stat__label">处理中</span>
+        <strong class="payment-stat__value">{{ stats.processing }}</strong>
+        <span class="payment-stat__hint">需要渠道回调或人工确认的退款单。</span>
+      </article>
+      <article class="payment-stat">
+        <span class="payment-stat__label">已退款金额</span>
+        <strong class="payment-stat__value">{{ formatCurrency(stats.refundedAmount) }}</strong>
+        <span class="payment-stat__hint">基于当前退款单列表统计的退款成功金额。</span>
+      </article>
+    </section>
 
-      <el-form :inline="true" :model="searchForm" class="toolbar">
-        <el-form-item label="商户">
-          <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+    <section class="payment-toolbar">
+      <div class="payment-toolbar__row">
+        <div class="payment-toolbar__form">
+          <el-select v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
             <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="订单号">
-          <el-input v-model="searchForm.orderNo" clearable placeholder="请输入订单号" />
-        </el-form-item>
-        <el-form-item label="退款单号">
-          <el-input v-model="searchForm.refundNo" clearable placeholder="请输入退款单号" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+          <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
+          <el-input v-model="queryForm.refundNo" clearable placeholder="退款单号" style="width: 220px" @keyup.enter="handleSearch" />
+          <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
             <el-option label="处理中" value="PROCESSING" />
             <el-option label="已退款" value="REFUNDED" />
             <el-option label="失败" value="FAILED" />
           </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </div>
+      </div>
+    </section>
 
-      <el-table :data="refundList" v-loading="loading" border class="table">
-        <el-table-column prop="refundNo" label="退款单号" min-width="180" />
-        <el-table-column prop="orderNo" label="订单号" min-width="180" />
-        <el-table-column prop="merchantName" label="商户" width="160" />
-        <el-table-column prop="channelName" label="支付方式" width="180" />
-        <el-table-column label="原订单状态" width="140">
+    <section class="payment-panel">
+      <div class="payment-panel__head">
+        <div>
+          <h2 class="payment-panel__title">退款主表</h2>
+          <p class="payment-panel__desc">集中查看退款单号、原订单、渠道、第三方退款单号和处理动作。</p>
+        </div>
+      </div>
+
+      <ScTable
+        ref="tableRef"
+        table-name="payment-refund-table"
+        row-key="id"
+        border
+        stripe
+        :search="false"
+        :hide-do="true"
+        :hide-refresh="true"
+        :hide-setting="true"
+        :params="queryForm"
+        :url="fetchRefundTable"
+      >
+        <el-table-column label="退款单" min-width="220">
           <template #default="{ row }">
-            {{ row.sourceOrderStatusDesc || row.sourceOrderStatus || "-" }}
+            <div class="cell-main">
+              <strong>{{ row.refundNo }}</strong>
+              <span>{{ row.thirdPartyRefundNo || "未回填第三方退款单号" }}</span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="退款金额" width="140">
+        <el-table-column label="订单 / 商户" min-width="220">
+          <template #default="{ row }">
+            <div class="cell-main">
+              <strong>{{ row.orderNo }}</strong>
+              <span>{{ row.merchantName || `商户#${row.merchantId}` }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="支付方式 / 原状态" min-width="220">
+          <template #default="{ row }">
+            <div class="cell-main">
+              <strong>{{ row.channelName || "-" }}</strong>
+              <span>{{ row.sourceOrderStatusDesc || row.sourceOrderStatus || "未记录原订单状态" }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="退款金额" width="140" align="center">
           <template #default="{ row }">
             <strong>{{ formatCurrency(row.refundAmount) }}</strong>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="120">
+        <el-table-column label="状态" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTag(row.status)">{{ row.statusDesc || row.status }}</el-tag>
+            <el-tag :type="statusTag(row.status)" effect="plain">{{ row.statusDesc || row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="thirdPartyRefundNo" label="第三方退款单号" min-width="180" />
         <el-table-column prop="reason" label="退款原因" min-width="180" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="showDetail(row)">详情</el-button>
-            <el-button v-if="row.status === 'PROCESSING'" link type="success" @click="handleMarkSuccess(row)">成功</el-button>
-            <el-button v-if="row.status === 'PROCESSING'" link type="danger" @click="handleMarkFail(row)">失败</el-button>
+            <div class="payment-icon-actions">
+              <el-tooltip content="查看详情">
+                <el-button circle :icon="Document" @click="showDetail(row)" />
+              </el-tooltip>
+              <el-tooltip v-if="row.status === 'PROCESSING'" content="标记成功">
+                <el-button circle type="success" :icon="CircleCheck" @click="handleMarkSuccess(row)" />
+              </el-tooltip>
+              <el-tooltip v-if="row.status === 'PROCESSING'" content="标记失败">
+                <el-button circle type="danger" :icon="CloseBold" @click="handleMarkFail(row)" />
+              </el-tooltip>
+            </div>
           </template>
         </el-table-column>
-      </el-table>
+      </ScTable>
+    </section>
 
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.size"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next, jumper"
-        class="pager"
-        @current-change="loadRefunds"
-        @size-change="handlePageSizeChange"
-      />
-    </el-card>
+    <el-drawer v-model="detailVisible" size="720px" :title="currentRefund ? `${currentRefund.refundNo} · 退款详情` : '退款详情'">
+      <template v-if="currentRefund">
+        <div class="payment-dialog-shell">
+          <div class="payment-status-strip">
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">退款状态</span>
+              <strong class="payment-status-card__value">{{ currentRefund.statusDesc || currentRefund.status }}</strong>
+              <span class="payment-status-card__hint">{{ currentRefund.thirdPartyRefundNo || "未回填第三方退款单号" }}</span>
+            </div>
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">退款金额</span>
+              <strong class="payment-status-card__value">{{ formatCurrency(currentRefund.refundAmount) }}</strong>
+              <span class="payment-status-card__hint">{{ currentRefund.reason || "未填写退款原因" }}</span>
+            </div>
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">原订单</span>
+              <strong class="payment-status-card__value">{{ currentRefund.orderNo }}</strong>
+              <span class="payment-status-card__hint">{{ currentRefund.channelName || "-" }}</span>
+            </div>
+          </div>
 
-    <el-drawer v-model="detailVisible" size="560px" title="退款单详情">
-      <el-descriptions v-if="currentRefund" :column="1" border>
-        <el-descriptions-item label="退款单号">{{ currentRefund.refundNo }}</el-descriptions-item>
-        <el-descriptions-item label="订单号">{{ currentRefund.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="商户">{{ currentRefund.merchantName || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="支付方式">{{ currentRefund.channelName || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ currentRefund.statusDesc || currentRefund.status }}</el-descriptions-item>
-        <el-descriptions-item label="退款金额">{{ formatCurrency(currentRefund.refundAmount) }}</el-descriptions-item>
-        <el-descriptions-item label="第三方退款单号">{{ currentRefund.thirdPartyRefundNo || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="退款原因">{{ currentRefund.reason || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="备注">{{ currentRefund.remark || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="请求快照">{{ currentRefund.requestPayload || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="响应快照">{{ currentRefund.responsePayload || "-" }}</el-descriptions-item>
-      </el-descriptions>
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>基础信息</h3>
+                <p>用于核对退款单、原订单、商户、渠道和备注信息。</p>
+              </div>
+            </div>
+            <div class="payment-readonly-grid">
+              <div class="payment-readonly-item">
+                <span>退款单号</span>
+                <strong>{{ currentRefund.refundNo }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>订单号</span>
+                <strong>{{ currentRefund.orderNo }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>商户</span>
+                <strong>{{ currentRefund.merchantName || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>支付方式</span>
+                <strong>{{ currentRefund.channelName || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>原订单状态</span>
+                <strong>{{ currentRefund.sourceOrderStatusDesc || currentRefund.sourceOrderStatus || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>备注</span>
+                <strong>{{ currentRefund.remark || "-" }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>请求与响应快照</h3>
+                <p>便于定位渠道入参、出参和回写字段。</p>
+              </div>
+            </div>
+            <div class="payment-form-stack">
+              <div class="payment-soft-panel">
+                <strong>请求快照</strong>
+                <pre class="payment-code-preview">{{ currentRefund.requestPayload || "-" }}</pre>
+              </div>
+              <div class="payment-soft-panel">
+                <strong>响应快照</strong>
+                <pre class="payment-code-preview">{{ currentRefund.responsePayload || "-" }}</pre>
+              </div>
+            </div>
+          </section>
+        </div>
+      </template>
     </el-drawer>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import {
-  getMerchantList,
-  getRefundDetail,
-  getRefundList,
-  markRefundOrderFail,
-  markRefundOrderSuccess,
-} from "../api/payment";
+import { CircleCheck, CloseBold, Document, RefreshRight, Search } from "@element-plus/icons-vue";
+import { getMerchantList, getRefundDetail, getRefundList, markRefundOrderFail, markRefundOrderSuccess } from "../api/payment";
 import type { Merchant, RefundOrder } from "../types/payment";
 
-const loading = ref(false);
+const tableRef = ref();
 const detailVisible = ref(false);
 const merchantOptions = ref<Merchant[]>([]);
-const refundList = ref<RefundOrder[]>([]);
 const currentRefund = ref<RefundOrder | null>(null);
 
-const pagination = reactive({
-  page: 1,
-  size: 10,
-  total: 0,
-});
-
-const searchForm = reactive({
+const queryForm = reactive({
   merchantId: undefined as number | undefined,
   orderNo: "",
   refundNo: "",
   status: "",
 });
 
-const processingCount = computed(() => refundList.value.filter((item) => item.status === "PROCESSING").length);
-const refundedAmount = computed(() =>
-  refundList.value
-    .filter((item) => item.status === "REFUNDED")
-    .reduce((sum, item) => sum + Number(item.refundAmount || 0), 0),
-);
+const stats = reactive({
+  total: 0,
+  processing: 0,
+  refundedAmount: 0,
+});
+
+const fetchRefundTable = (params: Record<string, unknown>) =>
+  getRefundList({
+    pageNum: params.page,
+    pageSize: params.pageSize,
+    merchantId: params.merchantId,
+    orderNo: params.orderNo || undefined,
+    refundNo: params.refundNo || undefined,
+    status: params.status || undefined,
+  });
 
 async function loadMerchants() {
   const res = await getMerchantList({ page: 1, size: 200 });
-  merchantOptions.value = res.data.records;
+  merchantOptions.value = res.data.records || [];
 }
 
-async function loadRefunds() {
-  loading.value = true;
-  try {
-    const res = await getRefundList({
-      pageNum: pagination.page,
-      pageSize: pagination.size,
-      merchantId: searchForm.merchantId,
-      orderNo: searchForm.orderNo || undefined,
-      refundNo: searchForm.refundNo || undefined,
-      status: searchForm.status || undefined,
-    });
-    refundList.value = res.data.records;
-    pagination.total = res.data.total;
-  } finally {
-    loading.value = false;
-  }
+async function loadStats() {
+  const res = await getRefundList({ pageNum: 1, pageSize: 200 });
+  const records = res.data.records || [];
+  stats.total = res.data.total || 0;
+  stats.processing = records.filter((item) => item.status === "PROCESSING").length;
+  stats.refundedAmount = records.filter((item) => item.status === "REFUNDED").reduce((sum, item) => sum + Number(item.refundAmount || 0), 0);
+}
+
+async function reloadAll() {
+  await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]);
 }
 
 function handleSearch() {
-  pagination.page = 1;
-  loadRefunds();
+  tableRef.value?.reload({ ...queryForm }, 1);
 }
 
-function handleResetSearch() {
-  searchForm.merchantId = undefined;
-  searchForm.orderNo = "";
-  searchForm.refundNo = "";
-  searchForm.status = "";
+function handleReset() {
+  queryForm.merchantId = undefined;
+  queryForm.orderNo = "";
+  queryForm.refundNo = "";
+  queryForm.status = "";
   handleSearch();
-}
-
-function handlePageSizeChange(size: number) {
-  pagination.size = size;
-  pagination.page = 1;
-  loadRefunds();
 }
 
 async function showDetail(row: RefundOrder) {
@@ -213,7 +285,7 @@ async function handleMarkSuccess(row: RefundOrder) {
     remark: "管理台确认退款成功",
   });
   ElMessage.success("退款单已标记成功");
-  await loadRefunds();
+  await reloadAll();
 }
 
 async function handleMarkFail(row: RefundOrder) {
@@ -225,19 +297,13 @@ async function handleMarkFail(row: RefundOrder) {
     remark: value || "管理台确认退款失败",
   });
   ElMessage.success("退款单已标记失败");
-  await loadRefunds();
+  await reloadAll();
 }
 
 function statusTag(status?: string) {
-  if (status === "REFUNDED") {
-    return "success";
-  }
-  if (status === "PROCESSING") {
-    return "warning";
-  }
-  if (status === "FAILED") {
-    return "danger";
-  }
+  if (status === "REFUNDED") return "success";
+  if (status === "PROCESSING") return "warning";
+  if (status === "FAILED") return "danger";
   return "info";
 }
 
@@ -246,95 +312,25 @@ function formatCurrency(value?: number) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadMerchants(), loadRefunds()]);
+  await Promise.all([loadMerchants(), loadStats()]);
 });
 </script>
 
 <style scoped>
-.view {
+@import "./support/payment-page.css";
+
+.refund-page {
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
+}
+
+.cell-main {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 6px;
 }
 
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.hero-card,
-.panel {
-  border: none;
-  border-radius: 24px;
-  box-shadow: 0 18px 60px rgb(54 37 23 / 8%);
-}
-
-.hero-card {
-  padding: 20px 22px;
-  background: linear-gradient(160deg, rgb(255 246 234 / 90%) 0%, rgb(255 255 255 / 88%) 100%);
-}
-
-.hero-card p,
-.hero-card span {
-  margin: 0;
-}
-
-.hero-card p {
-  color: #8e6945;
-}
-
-.hero-card strong {
-  display: block;
-  margin: 10px 0 12px;
-  font-size: 34px;
-  color: #291b12;
-}
-
-.hero-card span {
-  line-height: 1.7;
-  color: #705847;
-}
-
-.panel__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
-.panel__eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #bf8445;
-}
-
-.panel__header h3 {
-  margin: 0;
-  font-size: 24px;
-  font-family: "STZhongsong", "Noto Serif SC", Georgia, serif;
-}
-
-.toolbar {
-  margin-bottom: 18px;
-}
-
-.table {
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.pager {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 1100px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-  }
+.cell-main span {
+  color: #667085;
+  line-height: 1.6;
 }
 </style>
