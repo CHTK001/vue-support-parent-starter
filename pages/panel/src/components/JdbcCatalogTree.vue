@@ -42,7 +42,9 @@
             >
               <div class="tree-node__copy">
                 <strong>{{ data.nodeName }}</strong>
-                <small>{{ resolveNodeSubtitle(data) }}</small>
+                <ElTooltip :content="resolveNodeSubtitle(data)" placement="top-start">
+                  <small>{{ resolveNodeSubtitle(data) }}</small>
+                </ElTooltip>
               </div>
 
               <ElTag
@@ -105,6 +107,7 @@ import {
   ElInput,
   ElScrollbar,
   ElTag,
+  ElTooltip,
   ElTree,
 } from "element-plus";
 import { computed, onBeforeUnmount, onMounted, reactive } from "vue";
@@ -130,7 +133,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   (
     e: "context-action",
-    payload: { action: string; node: JdbcCatalogNode | null; targetType: MenuTargetType },
+    payload: {
+      action: string;
+      node: JdbcCatalogNode | null;
+      position: { x: number; y: number };
+      targetType: MenuTargetType;
+    },
   ): void;
   (e: "collapse-table", node: JdbcCatalogNode): void;
   (e: "expand-table", node: JdbcCatalogNode): void;
@@ -178,6 +186,8 @@ const menuItemsMap: Record<MenuTargetType, MenuItem[]> = {
     { key: "export-pdf", label: "导出 PDF" },
     { key: "sql-select", label: "生成 SELECT" },
     { key: "sql-count", label: "生成 COUNT" },
+    { key: "sql-clear", label: "生成清空表", danger: true },
+    { key: "sql-backup", label: "生成备份表" },
     { key: "sql-truncate", label: "生成 TRUNCATE", danger: true },
     { key: "sql-drop", label: "生成 DROP", danger: true },
     { key: "copy-name", label: "复制表名" },
@@ -223,6 +233,7 @@ const handleMenuAction = (action: string) => {
   emit("context-action", {
     action,
     node: menu.node,
+    position: { x: menu.x, y: menu.y },
     targetType: menu.targetType,
   });
   closeMenu();
