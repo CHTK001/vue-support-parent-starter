@@ -1,6 +1,9 @@
 export { default as JdbcCatalogTree } from "./JdbcCatalogTree.vue";
 export { default as JdbcConnectionCard } from "./JdbcConnectionCard.vue";
+export { default as JdbcDatabaseDocument } from "./JdbcDatabaseDocument.vue";
 export { default as JdbcDatasourceProfile } from "./JdbcDatasourceProfile.vue";
 export { default as JdbcDetailCard } from "./JdbcDetailCard.vue";
+export { default as JdbcExplainFlow } from "./JdbcExplainFlow.vue";
 export { default as PanelDataSourceHub } from "./PanelDataSourceHub.vue";
+export { default as PanelContextMenu } from "./PanelContextMenu.vue";
 export { default as PanelHero } from "./PanelHero.vue";

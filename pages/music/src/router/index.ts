@@ -13,10 +13,7 @@ const routes = [
       {
         path: "/music/index",
         name: "MusicIndex",
-        component: async () => {
-          const { MusicPage } = await import("@pages/music");
-          return MusicPage;
-        },
+        component: () => import("../index.vue"),
         meta: {
           title: "音乐播放器",
           icon: "ri:disc-line",

@@ -559,6 +559,8 @@ export async function createStandardApp(
   const { ScTag } = await import("@repo/components/ScTag");
   const { ScText } = await import("@repo/components/ScText");
   const { ScDrawer } = await import("@repo/components/ScDrawer");
+  const { ScOverlayPage } = await import("@repo/components/ScOverlayPage");
+  const { ScVolumeControl } = await import("@repo/components/ScVolumeControl");
   const { ScDialog } = await import("@repo/components/ScDialog");
   const { ScTooltip } = await import("@repo/components/ScTooltip");
   bootDebugLog("createStandardApp:base-imports-ready");
@@ -731,6 +733,8 @@ export async function createStandardApp(
     .registerComponent("ScTabPane", ScTabPane)
     .registerComponent("ScTag", ScTag)
     .registerComponent("ScDrawer", ScDrawer)
+    .registerComponent("ScOverlayPage", ScOverlayPage)
+    .registerComponent("ScVolumeControl", ScVolumeControl)
     .registerComponent("ScDialog", ScDialog)
     .registerComponent("ScTooltip", ScTooltip)
     .registerComponent("ScText", ScText);
