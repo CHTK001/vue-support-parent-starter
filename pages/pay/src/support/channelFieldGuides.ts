@@ -79,8 +79,8 @@ function platformName(channelType?: string) {
   if (type === "ALIPAY") {
     return "支付宝";
   }
-  if (type === "COMPOSITE") {
-    return "综合支付";
+  if (type === "EPAY") {
+    return "易支付";
   }
   if (type === "WALLET") {
     return "站内钱包";
@@ -159,11 +159,11 @@ export function getChannelFieldGuide({
         "渠道类型",
         type,
         guide,
-        "先决定是微信、支付宝、综合支付还是钱包。类型一旦确定，下面的必填项、校验规则和后端执行器都会跟着变化。",
+        "先决定是微信、支付宝、易支付还是钱包。类型一旦确定，下面的必填项、校验规则和后端执行器都会跟着变化。",
         [
           "第三方直连接入优先选微信支付或支付宝。",
+          "接入易支付时选择易支付。",
           "只做内部余额扣减时选站内钱包。",
-          "需要系统先做路由再下发到真实渠道时选综合支付。",
         ],
       );
     case "channelSubType":
@@ -178,19 +178,6 @@ export function getChannelFieldGuide({
           "WEB/WAP 更依赖 returnUrl 和浏览器跳转体验。",
           "JSAPI、小程序等需要前端能拿到 openId 或平台侧用户标识。",
         ],
-      );
-    case "providerSpi":
-      return genericGuide(
-        fieldKey,
-        "Provider SPI",
-        type,
-        guide,
-        "这是后端实际调用哪套支付网关实现的开关。不确定时保持空值，系统会按当前渠道的默认 SPI 走。",
-        [
-          "只有在你明确知道要切换到自定义网关实现时才需要改它。",
-          "切换 SPI 后，必填字段和 extConfig 可能会跟着变化。",
-        ],
-        guide?.defaultProviderSpi ? `默认 SPI: ${guide.defaultProviderSpi}` : undefined,
       );
     case "channelName":
       return genericGuide(
@@ -249,6 +236,20 @@ export function getChannelFieldGuide({
           links: withFallbackLinks(buildGuideLinks(guide), guide),
         };
       }
+      if (type === "EPAY") {
+        return {
+          fieldKey,
+          fieldLabel: "AppID / 应用ID",
+          headline: "填写易支付应用标识",
+          description: "这里填写易支付通道对应的应用标识或你绑定的微信应用 AppID。",
+          bullets: [
+            "如果当前对接的是微信小程序或 JSAPI，建议填写绑定的微信 AppID。",
+            "字段用途主要用于支付场景识别和联调留档。",
+          ],
+          media: buildMedia("WECHAT"),
+          links: withFallbackLinks(buildGuideLinks(guide), guide),
+        };
+      }
       return genericGuide(
         fieldKey,
         "AppID / 应用ID",
@@ -267,7 +268,7 @@ export function getChannelFieldGuide({
           bullets: [
             "它和 AppID 不是一个字段，两个值都要配置。",
             "商户号通常用于签名、下单和回调验签。",
-            "如果是服务商模式，请按你当前 SPI 的约定填主商户号或子商户号。",
+            "如果是服务商模式，请按当前服务商接入约定填写主商户号或子商户号。",
           ],
           example: "示例: 1900000109",
           media: buildMedia(type),
@@ -282,22 +283,22 @@ export function getChannelFieldGuide({
           description: "支付宝直连场景通常填 PID 或你们内部约定的商户标识；如果是路由或服务商模式，则填网关实现要求的标识。",
           bullets: [
             "支付宝大多数场景核心是 AppID + 私钥 + 公钥，merchantNo 更多用于运营识别或路由。",
-            "如果你们接入的是自定义 SPI，优先看该 SPI 的字段约定。",
+            "如果你们接入的是自定义实现，优先看对应接入字段约定。",
           ],
           media: buildMedia(type),
           links: withFallbackLinks(buildGuideLinks(guide), guide),
         };
       }
-      if (type === "COMPOSITE") {
+      if (type === "EPAY") {
         return genericGuide(
           fieldKey,
-          "路由标识",
+          "商户号",
           type,
           guide,
-          "综合支付这里更适合填内部路由标识，帮助运营区分不同入口或策略组。",
+          "这里填写易支付平台分配的商户号或接入标识。",
           [
-            "真正的目标渠道一般在 extConfig.targetChannelId 或 defaultChannelId 里指定。",
-            "如果没有内部路由体系，这个字段可以只作为展示名辅助识别。",
+            "易支付场景通常需要商户号和 API Key 成对配置。",
+            "如果同时绑定微信场景，AppID 与商户号需要保持对应关系。",
           ],
         );
       }
@@ -332,10 +333,23 @@ export function getChannelFieldGuide({
           "API Key",
           type,
           guide,
-          "支付宝直连通常不需要额外 API Key。只有当前 Provider SPI 明确要求额外密钥时才填写。",
+          "支付宝直连通常不需要额外 API Key。只有当前接入实现明确要求额外密钥时才填写。",
           [
-            "如果你不确定，先留空，使用默认 SPI 的默认行为。",
-            "遇到签名或网关适配异常，再回头按 SPI 文档补这个字段。",
+            "如果你不确定，先留空，按默认接入实现处理。",
+            "遇到签名或网关适配异常，再回头按接入文档补这个字段。",
+          ],
+        );
+      }
+      if (type === "EPAY") {
+        return genericGuide(
+          fieldKey,
+          "API Key",
+          type,
+          guide,
+          "这里填写易支付提供的 API Key，用于接口验签和请求鉴权。",
+          [
+            "建议按商户维度单独保管，不要和微信 APIv3 Key 混用。",
+            "如易支付平台重置密钥，要同步更新这里。",
           ],
         );
       }
@@ -344,8 +358,8 @@ export function getChannelFieldGuide({
         "API Key",
         type,
         guide,
-        "这里填写当前网关实现要求的额外密钥。",
-        ["是否必填由当前渠道和 Provider SPI 决定。"],
+        "这里填写当前接入实现要求的额外密钥。",
+        ["是否必填由当前渠道类型和接入实现决定。"],
       );
     case "privateKey":
       if (type === "WECHAT") {
@@ -353,7 +367,7 @@ export function getChannelFieldGuide({
           fieldKey,
           fieldLabel: "私钥",
           headline: "填写微信商户私钥",
-          description: "这里通常填 apiclient_key.pem 的内容。系统会加密保存；如果当前 SPI 只认文件路径，则请同时配置证书路径。",
+          description: "这里通常填 apiclient_key.pem 的内容。系统会加密保存；如果当前接入实现只认文件路径，则请同时配置证书路径。",
           bullets: [
             "私钥必须和商户平台证书序列号配套使用。",
             "内容一般以 -----BEGIN PRIVATE KEY----- 开头。",
@@ -410,7 +424,7 @@ export function getChannelFieldGuide({
         headline: "填写微信证书文件路径",
         description: "这里填部署服务机器上可访问的证书私钥文件路径，例如 apiclient_key.pem。不是本地电脑路径，也不是下载链接。",
         bullets: [
-          "如果当前 SPI 直接读取 privateKey 文本，这个字段可以作为补充；如果 SPI 依赖文件路径，就必须填真实服务器绝对路径。",
+          "如果当前接入实现直接读取 privateKey 文本，这个字段可以作为补充；如果实现依赖文件路径，就必须填真实服务器绝对路径。",
           "部署到 Linux 时优先用类似 /data/certs/apiclient_key.pem 的绝对路径。",
           "改路径后记得一起检查容器挂载和文件权限。",
         ],
@@ -458,44 +472,19 @@ export function getChannelFieldGuide({
           "微信如果用测试商户，也建议单独建测试渠道，避免误用正式证书。",
         ],
       );
-    case "onboardingStatus":
-      return genericGuide(
-        fieldKey,
-        "开通状态",
-        type,
-        guide,
-        "这是运营可见的人工状态，不直接决定能否下单，主要用于标记当前渠道开通推进到了哪一步。",
-        [
-          "未开始: 还没在官方平台发起开户或创建应用。",
-          "开通中: 材料、审核或密钥配置还没收齐。",
-          "已开通: 官方平台能力和系统参数都已配齐，可进入联调或生产。",
-        ],
-      );
-    case "onboardingLink":
-      return genericGuide(
-        fieldKey,
-        "开通链接",
-        type,
-        guide,
-        "这里可以覆盖系统预置的官方开通入口，适合填你们内部 SOP、供应商操作台或指定产品文档。",
-        [
-          "不填时会优先使用系统内置的官方开通地址。",
-          "适合把团队内部常用的开户文档、沙箱说明或审批地址放这里。",
-        ],
-      );
     case "extConfig":
       if (type === "WECHAT") {
         return {
           fieldKey,
           fieldLabel: "扩展配置",
           headline: "填写微信扩展配置 JSON",
-          description: "微信渠道最关键的扩展项是 merchantSerialNumber。你也可以在这里显式指定 providerSpi 或其他网关实现需要的扩展字段。",
+          description: "微信渠道最关键的扩展项是 merchantSerialNumber，也可以在这里补充小程序 secret 等扩展字段。",
           bullets: [
             "merchantSerialNumber 是微信商户证书序列号，启用渠道时会校验。",
             "extConfig 必须是合法 JSON；字段名建议和后端约定完全一致。",
-            "如果当前 SPI 还要求别的扩展参数，也统一放在这里。",
+            "如果当前接入实现还要求别的扩展参数，也统一放在这里。",
           ],
-          example: '{\n  "merchantSerialNumber": "4A1B2C3D4E5F6A7B8C9D",\n  "providerSpi": "default"\n}',
+          example: '{\n  "merchantSerialNumber": "4A1B2C3D4E5F6A7B8C9D",\n  "miniProgramSecret": "wx-secret"\n}',
           media: buildMedia(type),
           links: withFallbackLinks(buildGuideLinks(guide), guide),
         };
@@ -509,27 +498,26 @@ export function getChannelFieldGuide({
           bullets: [
             "正式网关一般是 https://openapi.alipay.com/gateway.do。",
             "沙箱网关一般是 https://openapi-sandbox.dl.alipaydev.com/gateway.do。",
-            "如果当前 Provider SPI 还要求额外字段，也统一放在这个 JSON 里。",
+            "如果当前渠道还要求额外字段，也统一放在这个 JSON 里。",
           ],
-          example: '{\n  "serverUrl": "https://openapi-sandbox.dl.alipaydev.com/gateway.do",\n  "providerSpi": "default"\n}',
+          example: '{\n  "serverUrl": "https://openapi-sandbox.dl.alipaydev.com/gateway.do"\n}',
           media: buildMedia(type),
           links: withFallbackLinks(buildGuideLinks(guide), guide),
         };
       }
-      if (type === "COMPOSITE") {
+      if (type === "EPAY") {
         return {
           fieldKey,
           fieldLabel: "扩展配置",
-          headline: "填写综合支付路由配置",
-          description: "综合支付通过 extConfig 指向真实目标渠道。至少要填 targetChannelId 或 defaultChannelId 之一。",
+          headline: "填写易支付扩展配置",
+          description: "易支付扩展配置通常用于补充退款回调、支付分回调、密钥文件路径等参数。",
           bullets: [
-            "targetChannelId 指向默认下游渠道。",
-            "defaultChannelId 可作为兜底渠道。",
-            "目标渠道不能再是 COMPOSITE，避免出现递归路由。",
+            "建议优先通过结构化表单录入已知字段，不够再补充到 extConfig。",
+            "涉及退款或支付分扩展场景时，可在这里补充专属字段。",
           ],
-          example: '{\n  "targetChannelId": 123,\n  "defaultChannelId": 123\n}',
-          media: [],
-          links: [],
+          example: '{\n  "refundNotifyUrl": "https://example.com/refund/notify",\n  "keyPath": "C:/cert/apiclient_key.pem"\n}',
+          media: buildMedia("WECHAT"),
+          links: withFallbackLinks(buildGuideLinks(guide), guide),
         };
       }
       if (type === "WALLET") {
@@ -551,7 +539,7 @@ export function getChannelFieldGuide({
         "扩展配置",
         type,
         guide,
-        "这里填 JSON 扩展参数，具体字段由当前渠道类型和 Provider SPI 决定。",
+        "这里填 JSON 扩展参数，具体字段由当前渠道类型和接入实现决定。",
         ["不确定时先按表单占位示例填写，启用时报错再补齐缺失项。"],
       );
     default:

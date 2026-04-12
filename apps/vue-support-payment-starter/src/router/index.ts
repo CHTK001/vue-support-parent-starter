@@ -8,52 +8,90 @@ const routes = [
   {
     path: "/home",
     name: "HomeView",
-    component: () => import("../../../../pages/pay/src/views/HomeView.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentHomePage;
+    },
   },
   {
     path: "/merchants",
     name: "MerchantList",
-    component: () => import("../../../../pages/pay/src/views/MerchantList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentMerchantPage;
+    },
   },
   {
     path: "/orders",
     name: "OrderList",
-    component: () => import("../../../../pages/pay/src/views/OrderList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentOrderPage;
+    },
   },
   {
     path: "/refunds",
     name: "RefundList",
-    component: () => import("../../../../pages/pay/src/views/RefundList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentRefundPage;
+    },
   },
   {
     path: "/transactions",
     name: "TransactionList",
-    component: () => import("../../../../pages/pay/src/views/TransactionList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentTransactionPage;
+    },
   },
   {
     path: "/wallet-console",
     name: "WalletConsole",
-    component: () => import("../../../../pages/pay/src/views/WalletConsole.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWalletConsolePage;
+    },
   },
   {
     path: "/wechat-pay-score",
     name: "WechatPayScoreList",
-    component: () => import("../../../../pages/pay/src/views/WechatPayScoreList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWechatPayScorePage;
+    },
   },
   {
     path: "/wallet-orders",
     name: "WalletOrderList",
-    component: () => import("../../../../pages/pay/src/views/WalletOrderList.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentWalletOrderPage;
+    },
   },
   {
     path: "/operations",
     name: "OperationsCenter",
-    component: () => import("../../../../pages/pay/src/views/OperationsCenter.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentOperationsCenterPage;
+    },
   },
   {
     path: "/order-config",
     name: "OrderConfigView",
-    component: () => import("../../../../pages/pay/src/views/OrderConfigView.vue"),
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentOrderConfigPage;
+    },
+  },
+  {
+    path: "/global-config",
+    name: "PaymentGlobalConfigView",
+    component: async () => {
+      const module = await import("@pages/pay");
+      return module.PaymentGlobalConfigPage;
+    },
   },
 ];
 

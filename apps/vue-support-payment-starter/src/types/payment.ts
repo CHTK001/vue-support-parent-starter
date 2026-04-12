@@ -249,7 +249,7 @@ export const MerchantStatusMap: Record<number, string> = {
 export const ChannelTypeMap: Record<string, string> = {
   WECHAT: "微信支付",
   ALIPAY: "支付宝",
-  COMPOSITE: "综合支付",
+  COMPOSITE: "直营网关",
   WALLET: "钱包",
 };
 
@@ -295,7 +295,7 @@ export const ChannelSubTypeOptions: Record<string, Array<{ label: string; value:
     { label: "APP", value: "APP" },
   ],
   COMPOSITE: [
-    { label: "聚合路由", value: "AGGREGATE_ROUTE" },
+    { label: "直营网关", value: "AGGREGATE_ROUTE" },
   ],
   WALLET: [
     { label: "余额钱包", value: "BALANCE" },

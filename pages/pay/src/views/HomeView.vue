@@ -1,45 +1,51 @@
 <template>
   <section class="home-view">
     <div class="home-shell">
-      <section class="dashboard-card">
-        <div class="dashboard-card__header">
-          <div>
-            <p class="dashboard-card__eyebrow">Business Dashboard</p>
-            <h1>支付业务首页</h1>
-            <p class="dashboard-card__desc">
-              首页只保留业务统计和常用入口，默认展示今天的数据。
-            </p>
-          </div>
-          <div class="dashboard-card__actions">
-            <el-button-group>
-              <el-button
-                v-for="item in rangePresets"
-                :key="item.value"
-                :type="activePreset === item.value ? 'primary' : 'default'"
-                @click="applyPreset(item.value)"
-              >
-                {{ item.label }}
-              </el-button>
-            </el-button-group>
-            <el-date-picker
-              v-model="dateRange"
-              type="daterange"
-              unlink-panels
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
-              @change="handleRangeChange"
-            />
-            <el-button type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard">
-              刷新
-            </el-button>
-          </div>
+      <section class="dashboard-toolbar">
+        <div class="dashboard-toolbar__title">
+          <h1>支付业务首页</h1>
+          <p>
+            <span>{{ currentRangeLabel }}</span>
+            <span>{{ autoRefreshLabel }}</span>
+            <span>最近刷新 {{ lastUpdatedLabel }}</span>
+          </p>
         </div>
-
-        <div class="dashboard-card__tips">
-          <el-tag effect="plain" type="success">统计周期 {{ currentRangeLabel }}</el-tag>
-          <el-tag effect="plain">自动关单 {{ schedulerEngineLabel }}</el-tag>
-          <span class="dashboard-card__tip-text">支付、退款、回调均来自后端真实汇总接口</span>
+        <div class="dashboard-toolbar__actions">
+          <el-button-group size="small">
+            <el-button
+              v-for="item in rangePresets"
+              :key="item.value"
+              :type="activePreset === item.value ? 'primary' : 'default'"
+              @click="applyPreset(item.value)"
+            >
+              {{ item.label }}
+            </el-button>
+          </el-button-group>
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            unlink-panels
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            @change="handleRangeChange"
+          />
+          <el-select
+            v-model="refreshIntervalMs"
+            size="small"
+            class="dashboard-toolbar__refresh-select"
+            @change="handleRefreshIntervalChange"
+          >
+            <el-option
+              v-for="item in refreshIntervalOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+          <el-tooltip content="立即刷新">
+            <el-button circle type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard" />
+          </el-tooltip>
         </div>
       </section>
 
@@ -60,30 +66,29 @@
         <article class="info-chip">
           <span>商户数</span>
           <strong>{{ merchantTotal }}</strong>
-          <small>激活 {{ activeMerchantCount }} / 已配 {{ configuredMerchantCount }}</small>
+          <small>激活 {{ activeMerchantCount }} / 已配置 {{ configuredMerchantCount }}</small>
         </article>
         <article class="info-chip">
-          <span>流水数</span>
+          <span>交易流水</span>
           <strong>{{ transactionCount }}</strong>
-          <small>按后端时间范围聚合</small>
+          <small>按当前筛选时间统计</small>
         </article>
         <article class="info-chip">
-          <span>成功回调</span>
+          <span>回调成功</span>
           <strong>{{ successNotifyCount }}</strong>
           <small>失败 {{ failedNotifyCount }}</small>
         </article>
         <article class="info-chip">
           <span>定时任务</span>
           <strong>{{ enabledTaskCount }}</strong>
-          <small>支持 payment / job</small>
+          <small>{{ schedulerEngineLabel }}</small>
         </article>
       </section>
 
       <section class="entry-card">
         <div class="entry-card__header">
           <div>
-            <p class="dashboard-card__eyebrow">Quick Entry</p>
-            <h2>业务入口</h2>
+            <h2>常用入口</h2>
           </div>
         </div>
 
@@ -109,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { userKey } from "@repo/config";
 import {
@@ -123,16 +128,21 @@ import {
   Tickets,
   Timer,
 } from "@element-plus/icons-vue";
-import { getPaymentDashboardSummary, getSchedulerTasks } from "../api/payment";
-import type { PaymentDashboardSummary, PaymentSchedulerTask } from "../types/payment";
+import { getPaymentDashboardSummary, getPaymentGlobalConfig, getSchedulerTasks } from "../api/payment";
+import type { PaymentDashboardSummary, PaymentGlobalConfig, PaymentSchedulerTask } from "../types/payment";
 import { formatCurrency } from "./support/paymentView";
 
 type PresetValue = "today" | "7d" | "30d" | "custom";
+const DEFAULT_AUTO_REFRESH_MS = 30000;
+const AUTO_REFRESH_STORAGE_KEY = "payment.dashboard.autoRefreshMs";
 
 const loading = ref(false);
 const activePreset = ref<PresetValue>("today");
 const dateRange = ref<[Date, Date] | null>(createPresetRange("today"));
 const schedulerTasks = ref<PaymentSchedulerTask[]>([]);
+const lastUpdatedAt = ref<Date | null>(null);
+const refreshIntervalMs = ref(DEFAULT_AUTO_REFRESH_MS);
+let refreshTimer: number | null = null;
 const dashboardSummary = ref<PaymentDashboardSummary>({
   merchantTotal: 0,
   activeMerchantCount: 0,
@@ -152,6 +162,13 @@ const rangePresets: Array<{ label: string; value: PresetValue }> = [
   { label: "今天", value: "today" },
   { label: "近7天", value: "7d" },
   { label: "近30天", value: "30d" },
+];
+const refreshIntervalOptions = [
+  { label: "关闭自动刷新", value: 0 },
+  { label: "15 秒刷新", value: 15000 },
+  { label: "30 秒刷新", value: 30000 },
+  { label: "60 秒刷新", value: 60000 },
+  { label: "5 分钟刷新", value: 300000 },
 ];
 
 const roles = computed(() => {
@@ -187,9 +204,9 @@ const enabledTaskCount = computed(() => schedulerTasks.value.filter((item) => it
 
 const schedulerEngineLabel = computed(() => {
   if (!schedulerTasks.value.length) {
-    return "未发现任务";
+    return "暂无启用任务";
   }
-  return "内置调度，可切换 job-starter";
+  return "自动关单与分表任务已接入";
 });
 
 const currentRangeLabel = computed(() => {
@@ -199,11 +216,28 @@ const currentRangeLabel = computed(() => {
   return `${formatDate(dateRange.value[0])} 至 ${formatDate(dateRange.value[1])}`;
 });
 
+const lastUpdatedLabel = computed(() => {
+  if (!lastUpdatedAt.value) {
+    return "-";
+  }
+  const hours = `${lastUpdatedAt.value.getHours()}`.padStart(2, "0");
+  const minutes = `${lastUpdatedAt.value.getMinutes()}`.padStart(2, "0");
+  const seconds = `${lastUpdatedAt.value.getSeconds()}`.padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
+});
+
+const autoRefreshLabel = computed(() => {
+  if (refreshIntervalMs.value <= 0) {
+    return "自动刷新已关闭";
+  }
+  return `${formatRefreshInterval(refreshIntervalMs.value)}自动刷新`;
+});
+
 const summaryCards = computed(() => [
   {
     label: "支付订单数",
     value: `${paymentOrderCount.value}`,
-    hint: "按后端真实支付时间聚合",
+    hint: "按支付订单生成与完成记录统计",
     icon: Tickets,
     color: "#0f766e",
     softColor: "rgba(15, 118, 110, 0.12)",
@@ -219,7 +253,7 @@ const summaryCards = computed(() => [
   {
     label: "总消费金额",
     value: formatCurrency(totalConsumeAmount.value),
-    hint: "后端汇总 paidAmount / orderAmount",
+    hint: "按实付金额与下单金额汇总后的消费金额",
     icon: Money,
     color: "#2563eb",
     softColor: "rgba(37, 99, 235, 0.12)",
@@ -280,6 +314,14 @@ const entryCards = computed(() => {
 
   if (isAdmin.value) {
     cards.push({
+      title: "支付全局配置",
+      description: "维护回调基础地址、回跳地址和默认自动刷新",
+      path: "/global-config",
+      icon: Setting,
+      color: "#0f766e",
+      softColor: "rgba(15, 118, 110, 0.12)",
+    });
+    cards.push({
       title: "订单配置",
       description: "管理自动关单、分表和迁移策略",
       path: "/order-config",
@@ -328,6 +370,17 @@ function formatDuration(value: number) {
   return `${Math.round(value)} ms`;
 }
 
+function formatRefreshInterval(value: number) {
+  if (!value) {
+    return "关闭";
+  }
+  if (value >= 60000) {
+    const minutes = value / 60000;
+    return `${Number.isInteger(minutes) ? minutes : minutes.toFixed(1)} 分钟`;
+  }
+  return `${Math.round(value / 1000)} 秒`;
+}
+
 function startOfDay(date: Date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
@@ -368,6 +421,7 @@ async function loadDashboard() {
       ...(summaryRes.data || {}),
     };
     schedulerTasks.value = schedulerRes.data || [];
+    lastUpdatedAt.value = new Date();
   } catch (error) {
     console.error(error);
     ElMessage.error("首页统计加载失败");
@@ -376,90 +430,146 @@ async function loadDashboard() {
   }
 }
 
-onMounted(() => {
+function resolveRefreshIntervalFromConfig(config?: PaymentGlobalConfig | null) {
+  const seconds = Number(config?.paymentAutoRefreshSeconds || 0);
+  if (!seconds) {
+    return DEFAULT_AUTO_REFRESH_MS;
+  }
+  const milliseconds = seconds * 1000;
+  return refreshIntervalOptions.some((item) => item.value === milliseconds) ? milliseconds : DEFAULT_AUTO_REFRESH_MS;
+}
+
+async function restoreRefreshInterval() {
+  let fallbackValue = DEFAULT_AUTO_REFRESH_MS;
+  try {
+    const configRes = await getPaymentGlobalConfig();
+    fallbackValue = resolveRefreshIntervalFromConfig(configRes.data);
+  } catch (error) {
+    console.error(error);
+  }
+  try {
+    const raw = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY);
+    const resolved = Number(raw);
+    if (refreshIntervalOptions.some((item) => item.value === resolved)) {
+      refreshIntervalMs.value = resolved;
+      return;
+    }
+  } catch {
+    // ignore local storage read errors
+  }
+  refreshIntervalMs.value = fallbackValue;
+}
+
+function handleRefreshIntervalChange(value: number) {
+  refreshIntervalMs.value = value;
+  try {
+    localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(value));
+  } catch {
+    // ignore local storage write errors
+  }
+  startAutoRefresh();
+}
+
+function startAutoRefresh() {
+  if (refreshTimer !== null) {
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+  if (refreshIntervalMs.value <= 0) {
+    return;
+  }
+  refreshTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") {
+      void loadDashboard();
+    }
+  }, refreshIntervalMs.value);
+}
+
+onMounted(async () => {
+  await restoreRefreshInterval();
   dateRange.value = createPresetRange("today");
-  loadDashboard();
+  void loadDashboard();
+  startAutoRefresh();
+});
+
+onUnmounted(() => {
+  if (refreshTimer !== null) {
+    window.clearInterval(refreshTimer);
+  }
 });
 </script>
 
 <style scoped>
 .home-view {
   min-height: 100%;
-  padding: 24px;
-  background:
-    linear-gradient(180deg, #f2f6f5 0%, #f7f8fa 220px, #f7f8fa 100%);
+  padding: 20px;
+  background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%);
 }
 
 .home-shell {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
-.dashboard-card,
+.dashboard-toolbar,
 .entry-card {
   border: 1px solid #dde5e7;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
 }
 
-.dashboard-card {
-  padding: 24px 28px 20px;
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
 }
 
-.dashboard-card__header,
 .entry-card__header {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
 }
 
-.dashboard-card__eyebrow {
-  margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.dashboard-card h1,
+.dashboard-toolbar h1,
 .entry-card h2 {
   margin: 0;
   color: #101828;
 }
 
-.dashboard-card__desc {
-  margin: 10px 0 0;
-  color: #667085;
-  line-height: 1.75;
+.dashboard-toolbar h1 {
+  font-size: 24px;
 }
 
-.dashboard-card__actions {
+.dashboard-toolbar__title p {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #667085;
+  line-height: 1.6;
+}
+
+.dashboard-toolbar__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.dashboard-card__tips {
-  display: flex;
-  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 16px;
 }
 
-.dashboard-card__tip-text {
-  color: #667085;
-  font-size: 13px;
+.dashboard-toolbar__refresh-select {
+  width: 148px;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .metric-card {
@@ -531,7 +641,7 @@ onMounted(() => {
 }
 
 .entry-card {
-  padding: 24px 28px 28px;
+  padding: 18px 20px 20px;
 }
 
 .entry-grid {
@@ -602,17 +712,17 @@ onMounted(() => {
     padding: 16px;
   }
 
-  .dashboard-card,
+  .dashboard-toolbar,
   .entry-card {
     padding-inline: 18px;
   }
 
-  .dashboard-card__header,
+  .dashboard-toolbar,
   .entry-card__header {
     flex-direction: column;
   }
 
-  .dashboard-card__actions {
+  .dashboard-toolbar__actions {
     justify-content: flex-start;
   }
 

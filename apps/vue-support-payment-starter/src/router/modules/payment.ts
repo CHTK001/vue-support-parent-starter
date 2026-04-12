@@ -108,6 +108,30 @@ const paymentRouter: RouteConfigsTable = {
       },
     },
     {
+      path: "/global-config",
+      name: "PaymentGlobalConfigView",
+      component: async () => {
+        const module = await import("@pages/pay");
+        return module.PaymentGlobalConfigPage;
+      },
+      meta: {
+        title: "支付全局配置",
+        icon: "ep:setting",
+      },
+    },
+    {
+      path: "/order-config",
+      name: "PaymentOrderConfigView",
+      component: async () => {
+        const module = await import("@pages/pay");
+        return module.PaymentOrderConfigPage;
+      },
+      meta: {
+        title: "订单配置",
+        icon: "ep:tools",
+      },
+    },
+    {
       path: "/operations",
       name: "OperationsCenter",
       component: async () => {
@@ -115,7 +139,7 @@ const paymentRouter: RouteConfigsTable = {
         return module.PaymentOperationsCenterPage;
       },
       meta: {
-        title: "运营中心",
+        title: "回调与调度",
         icon: "ep:setting",
       },
     },

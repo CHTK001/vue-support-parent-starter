@@ -11,6 +11,8 @@ import ScButton from "@repo/components/ScButton";
 import ScEmpty from "@repo/components/ScEmpty";
 import ScTooltip from "@repo/components/ScTooltip";
 import ScPopover from "@repo/components/ScPopover";
+import ScCard from "@repo/components/ScCard";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 import "element-plus/dist/index.css";
 import "@repo/assets/styles/layout/default/reset.scss";
@@ -30,6 +32,8 @@ app.component("ScButton", ScButton);
 app.component("ScEmpty", ScEmpty);
 app.component("ScTooltip", ScTooltip);
 app.component("ScPopover", ScPopover);
+app.component("ScCard", ScCard);
+app.component("IconifyIconOnline", IconifyIconOnline);
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);

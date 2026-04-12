@@ -2,12 +2,13 @@
   <section class="payment-page transaction-page">
     <header class="payment-surface">
       <div>
-        <p class="payment-surface__eyebrow">Transaction Trace</p>
         <h1 class="payment-surface__title">交易流水</h1>
-        <p class="payment-surface__desc">流水统一切回 `ScTable`，只保留对账需要的字段和筛选条件，避免在一页塞太多排障信息。</p>
+        <p class="payment-surface__desc">统一查看支付流水、退款流水、渠道状态与金额。</p>
       </div>
       <div class="payment-surface__actions">
-        <el-button :icon="RefreshRight" @click="reloadAll">刷新</el-button>
+        <el-tooltip content="刷新">
+          <el-button circle :icon="RefreshRight" @click="reloadAll" />
+        </el-tooltip>
       </div>
     </header>
 
@@ -52,9 +53,8 @@
     <section class="payment-panel">
       <div class="payment-panel__head">
         <div>
-          <p class="payment-panel__eyebrow">ScTable</p>
           <h2 class="payment-panel__title">流水主表</h2>
-          <p class="payment-panel__desc">统一使用标准表格视图，保留流水号、订单号、金额、状态和第三方流水号。</p>
+          <p class="payment-panel__desc">统一查看流水号、订单号、交易类型、渠道和金额。</p>
         </div>
       </div>
       <ScTable ref="tableRef" table-name="payment-transaction-table" row-key="id" border stripe :search="false" :hide-do="true" :hide-refresh="true" :hide-setting="true" :params="queryForm" :url="fetchTransactionTable">
@@ -68,12 +68,12 @@
             <div class="cell-main"><strong>{{ row.orderNo }}</strong><span>商户 #{{ row.merchantId }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column label="类型 / 渠道" min-width="160">
+        <el-table-column label="交易类型 / 渠道" min-width="180">
           <template #default="{ row }">
-            <div class="cell-main"><strong>{{ row.transactionType }}</strong><span>{{ row.channelType }}</span></div>
+            <div class="cell-main"><strong>{{ row.transactionType === "PAY" ? "支付" : row.transactionType === "REFUND" ? "退款" : row.transactionType }}</strong><span>{{ row.channelType }}</span></div>
           </template>
         </el-table-column>
-        <el-table-column label="金额" width="140" align="center">
+        <el-table-column label="交易金额" width="140" align="center">
           <template #default="{ row }"><strong>{{ formatCurrency(row.amount) }}</strong></template>
         </el-table-column>
         <el-table-column label="状态" width="120" align="center">
@@ -81,21 +81,110 @@
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
         <el-table-column prop="createdAt" label="创建时间" width="180" />
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <div class="payment-icon-actions">
+              <el-tooltip content="查看详情">
+                <el-button circle :icon="Document" @click="showDetail(row)" />
+              </el-tooltip>
+            </div>
+          </template>
+        </el-table-column>
       </ScTable>
     </section>
+
+    <el-drawer v-model="detailVisible" size="720px" :title="currentTransaction ? `${currentTransaction.transactionNo} · 流水详情` : '流水详情'">
+      <template v-if="currentTransaction">
+        <div class="payment-dialog-shell">
+          <div class="payment-status-strip">
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">流水状态</span>
+              <strong class="payment-status-card__value">{{ TransactionStatusMap[currentTransaction.status] || currentTransaction.status }}</strong>
+              <span class="payment-status-card__hint">{{ currentTransaction.thirdPartyTransactionNo || "未回填第三方流水号" }}</span>
+            </div>
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">交易金额</span>
+              <strong class="payment-status-card__value">{{ formatCurrency(currentTransaction.amount) }}</strong>
+              <span class="payment-status-card__hint">{{ currentTransaction.transactionType === "PAY" ? "支付流水" : currentTransaction.transactionType === "REFUND" ? "退款流水" : currentTransaction.transactionType }}</span>
+            </div>
+            <div class="payment-status-card">
+              <span class="payment-status-card__label">关联订单</span>
+              <strong class="payment-status-card__value">{{ currentTransaction.orderNo }}</strong>
+              <span class="payment-status-card__hint">商户 #{{ currentTransaction.merchantId }}</span>
+            </div>
+          </div>
+
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>基础信息</h3>
+                <p>核对流水、订单、渠道、状态与备注。</p>
+              </div>
+            </div>
+            <div class="payment-readonly-grid">
+              <div class="payment-readonly-item">
+                <span>流水号</span>
+                <strong>{{ currentTransaction.transactionNo }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>订单号</span>
+                <strong>{{ currentTransaction.orderNo }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>交易类型</span>
+                <strong>{{ currentTransaction.transactionType === "PAY" ? "支付" : currentTransaction.transactionType === "REFUND" ? "退款" : currentTransaction.transactionType }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>渠道类型</span>
+                <strong>{{ currentTransaction.channelType }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>第三方流水号</span>
+                <strong>{{ currentTransaction.thirdPartyTransactionNo || "-" }}</strong>
+              </div>
+              <div class="payment-readonly-item">
+                <span>备注</span>
+                <strong>{{ currentTransaction.remark || "-" }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="payment-section-card">
+            <div class="payment-section-card__title">
+              <div>
+                <h3>请求与响应快照</h3>
+                <p>快速查看渠道请求体和返回内容。</p>
+              </div>
+            </div>
+            <div class="payment-form-stack">
+              <div class="payment-soft-panel">
+                <strong>请求快照</strong>
+                <pre class="payment-code-preview">{{ currentTransaction.requestPayload || "-" }}</pre>
+              </div>
+              <div class="payment-soft-panel">
+                <strong>响应快照</strong>
+                <pre class="payment-code-preview">{{ currentTransaction.responsePayload || "-" }}</pre>
+              </div>
+            </div>
+          </section>
+        </div>
+      </template>
+    </el-drawer>
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
-import { RefreshRight, Search } from "@element-plus/icons-vue";
+import { Document, RefreshRight, Search } from "@element-plus/icons-vue";
 import { getMerchantList, getTransactionList } from "../api/payment";
-import type { Merchant } from "../types/payment";
+import type { Merchant, TransactionRecord } from "../types/payment";
 import { TransactionStatusMap } from "../types/payment";
 import { formatCurrency } from "./support/paymentView";
 
 const tableRef = ref();
 const merchantOptions = ref<Merchant[]>([]);
+const currentTransaction = ref<TransactionRecord | null>(null);
+const detailVisible = ref(false);
 const stats = reactive({ total: 0, success: 0, processing: 0 });
 const queryForm = reactive({ merchantId: undefined as number | undefined, orderNo: "", transactionType: "", status: undefined as number | undefined });
 
@@ -106,6 +195,7 @@ async function loadStats() { const res = await getTransactionList({ pageNum: 1, 
 async function reloadAll() { await Promise.all([loadStats(), tableRef.value?.reload({ ...queryForm }, 1)]); }
 function handleSearch() { tableRef.value?.reload({ ...queryForm }, 1); }
 function handleReset() { queryForm.merchantId = undefined; queryForm.orderNo = ""; queryForm.transactionType = ""; queryForm.status = undefined; handleSearch(); }
+function showDetail(row: TransactionRecord) { currentTransaction.value = row; detailVisible.value = true; }
 
 onMounted(async () => { await Promise.all([loadBase(), loadStats()]); });
 </script>
@@ -113,7 +203,7 @@ onMounted(async () => { await Promise.all([loadBase(), loadStats()]); });
 <style scoped>
 @import "./support/payment-page.css";
 
-.transaction-page { background: linear-gradient(180deg, #f5faf7 0%, #f8fbf9 180px, #fafcfa 100%); }
+.transaction-page { background: linear-gradient(180deg, #eef7f6 0%, #f7f8fa 220px, #f7f8fa 100%); }
 .cell-main { display: flex; flex-direction: column; gap: 6px; }
 .cell-main span { color: #667085; line-height: 1.6; }
 </style>

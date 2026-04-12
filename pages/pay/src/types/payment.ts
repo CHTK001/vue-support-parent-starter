@@ -24,10 +24,12 @@ export interface Merchant {
   legalPerson?: string;
   defaultNotifyUrl?: string;
   defaultReturnUrl?: string;
-  walletEnabled: boolean;
-  compositeEnabled: boolean;
-  autoCloseEnabled: boolean;
-  autoCloseMinutes?: number;
+  paymentWalletEnabled: boolean;
+  paymentAutoCloseEnabled: boolean;
+  paymentAutoCloseMinutes?: number;
+  paymentSplitTableEnabled: boolean;
+  paymentProfitSharingEnabled: boolean;
+  paymentCouponEnabled: boolean;
   remark?: string;
   status: number;
   statusDesc?: string;
@@ -52,15 +54,14 @@ export interface MerchantChannel {
   sandboxMode: number;
   notifyUrl?: string;
   returnUrl?: string;
-  onboardingStatus: string;
-  onboardingStatusDesc?: string;
-  onboardingLink?: string;
   status: number;
   statusDesc?: string;
   extConfig?: string;
-  providerSpi?: string;
   guideTitle?: string;
   guideUrl?: string;
+  channelTypeDesc?: string;
+  effectiveNotifyUrl?: string;
+  effectiveReturnUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -74,18 +75,21 @@ export interface PaymentMethodGuide {
   applyUrl?: string;
   sandboxUrl?: string;
   summary?: string;
-  defaultProviderSpi?: string;
-  availableProviderSpis?: string[];
   requiredMaterials: string[];
   steps: string[];
   tips: string[];
 }
 
-export interface ProviderSpiOption {
-  channelType: string;
-  extensionName: string;
-  defaultOption?: boolean;
-  description?: string;
+export interface PaymentGlobalConfig {
+  configKey?: string;
+  paymentNotifyBaseUrl?: string;
+  paymentReturnUrl?: string;
+  paymentCallbackPathTemplate?: string;
+  paymentAutoRefreshSeconds?: number;
+  remark?: string;
+  paymentSamplePayNotifyUrl?: string;
+  paymentSampleRefundNotifyUrl?: string;
+  updatedAt?: string;
 }
 
 export interface PaymentLaunchResult {
@@ -387,10 +391,12 @@ export interface MerchantForm {
   legalPerson?: string;
   defaultNotifyUrl?: string;
   defaultReturnUrl?: string;
-  walletEnabled: boolean;
-  compositeEnabled: boolean;
-  autoCloseEnabled: boolean;
-  autoCloseMinutes?: number;
+  paymentWalletEnabled: boolean;
+  paymentAutoCloseEnabled: boolean;
+  paymentAutoCloseMinutes?: number;
+  paymentSplitTableEnabled: boolean;
+  paymentProfitSharingEnabled: boolean;
+  paymentCouponEnabled: boolean;
   remark?: string;
 }
 
@@ -408,10 +414,7 @@ export interface ChannelForm {
   sandboxMode: number;
   notifyUrl?: string;
   returnUrl?: string;
-  onboardingStatus?: string;
-  onboardingLink?: string;
   status?: number;
-  providerSpi?: string;
   extConfig?: string;
 }
 
@@ -584,19 +587,13 @@ export const MerchantStatusMap: Record<number, string> = {
 export const ChannelTypeMap: Record<string, string> = {
   WECHAT: "微信支付",
   ALIPAY: "支付宝",
-  COMPOSITE: "综合支付",
+  EPAY: "易支付",
   WALLET: "钱包",
 };
 
 export const ChannelStatusMap: Record<number, string> = {
   0: "已禁用",
   1: "已启用",
-};
-
-export const OnboardingStatusMap: Record<string, string> = {
-  NOT_STARTED: "未开始",
-  IN_PROGRESS: "开通中",
-  COMPLETED: "已开通",
 };
 
 export const OrderStatusMap: Record<string, string> = {
@@ -658,8 +655,10 @@ export const ChannelSubTypeOptions: Record<string, Array<{ label: string; value:
     { label: "手机网站", value: "WAP" },
     { label: "APP", value: "APP" },
   ],
-  COMPOSITE: [
-    { label: "聚合路由", value: "AGGREGATE_ROUTE" },
+  EPAY: [
+    { label: "微信 JSAPI", value: "JSAPI" },
+    { label: "微信小程序", value: "MINI_PROGRAM" },
+    { label: "H5", value: "H5" },
   ],
   WALLET: [
     { label: "余额钱包", value: "BALANCE" },
@@ -676,7 +675,10 @@ const ExecutableChannelKeys = new Set([
   "ALIPAY:WEB",
   "ALIPAY:WAP",
   "ALIPAY:APP",
-  "COMPOSITE:AGGREGATE_ROUTE",
+  "EPAY:JSAPI",
+  "EPAY:MINI_PROGRAM",
+  "EPAY:MINIPROGRAM",
+  "EPAY:H5",
   "WALLET:BALANCE",
 ]);
 

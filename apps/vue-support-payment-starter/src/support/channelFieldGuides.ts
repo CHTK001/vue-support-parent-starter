@@ -80,7 +80,7 @@ function platformName(channelType?: string) {
     return "支付宝";
   }
   if (type === "COMPOSITE") {
-    return "综合支付";
+    return "直营网关";
   }
   if (type === "WALLET") {
     return "站内钱包";
@@ -159,11 +159,11 @@ export function getChannelFieldGuide({
         "渠道类型",
         type,
         guide,
-        "先决定是微信、支付宝、综合支付还是钱包。类型一旦确定，下面的必填项、校验规则和后端执行器都会跟着变化。",
+        "先决定是微信、支付宝、直营网关还是钱包。类型一旦确定，下面的必填项、校验规则和后端执行器都会跟着变化。",
         [
           "第三方直连接入优先选微信支付或支付宝。",
           "只做内部余额扣减时选站内钱包。",
-          "需要系统先做路由再下发到真实渠道时选综合支付。",
+          "需要走内部路由或直营网关托管转发时选直营网关。",
         ],
       );
     case "channelSubType":
@@ -189,6 +189,7 @@ export function getChannelFieldGuide({
         [
           "只有在你明确知道要切换到自定义网关实现时才需要改它。",
           "切换 SPI 后，必填字段和 extConfig 可能会跟着变化。",
+          "对接易支付时，微信渠道通常选择 epay。",
         ],
         guide?.defaultProviderSpi ? `默认 SPI: ${guide.defaultProviderSpi}` : undefined,
       );
@@ -294,10 +295,10 @@ export function getChannelFieldGuide({
           "路由标识",
           type,
           guide,
-          "综合支付这里更适合填内部路由标识，帮助运营区分不同入口或策略组。",
+          "直营网关这里更适合填写渠道标识或业务线标识，帮助运营区分不同入口。",
           [
-            "真正的目标渠道一般在 extConfig.targetChannelId 或 defaultChannelId 里指定。",
-            "如果没有内部路由体系，这个字段可以只作为展示名辅助识别。",
+            "如果当前网关仍按内部目标渠道转发，目标渠道一般在 extConfig.targetChannelId 或 defaultChannelId 里指定。",
+            "如果只是单纯做托管收单，这个字段也可以作为展示名辅助识别。",
           ],
         );
       }
@@ -489,13 +490,13 @@ export function getChannelFieldGuide({
           fieldKey,
           fieldLabel: "扩展配置",
           headline: "填写微信扩展配置 JSON",
-          description: "微信渠道最关键的扩展项是 merchantSerialNumber。你也可以在这里显式指定 providerSpi 或其他网关实现需要的扩展字段。",
+          description: "微信渠道最关键的扩展项是 merchantSerialNumber。接入易支付时，建议在这里同时填写 providerSpi=epay 和小程序 secret 等扩展字段。",
           bullets: [
             "merchantSerialNumber 是微信商户证书序列号，启用渠道时会校验。",
             "extConfig 必须是合法 JSON；字段名建议和后端约定完全一致。",
             "如果当前 SPI 还要求别的扩展参数，也统一放在这里。",
           ],
-          example: '{\n  "merchantSerialNumber": "4A1B2C3D4E5F6A7B8C9D",\n  "providerSpi": "default"\n}',
+          example: '{\n  "merchantSerialNumber": "4A1B2C3D4E5F6A7B8C9D",\n  "miniProgramSecret": "wx-secret",\n  "providerSpi": "epay"\n}',
           media: buildMedia(type),
           links: withFallbackLinks(buildGuideLinks(guide), guide),
         };
@@ -520,12 +521,12 @@ export function getChannelFieldGuide({
         return {
           fieldKey,
           fieldLabel: "扩展配置",
-          headline: "填写综合支付路由配置",
-          description: "综合支付通过 extConfig 指向真实目标渠道。至少要填 targetChannelId 或 defaultChannelId 之一。",
+          headline: "填写直营网关扩展配置",
+          description: "直营网关扩展配置支持托管路由参数，也兼容当前内部转发模式。若仍使用内部转发，至少要填 targetChannelId 或 defaultChannelId 之一。",
           bullets: [
             "targetChannelId 指向默认下游渠道。",
             "defaultChannelId 可作为兜底渠道。",
-            "目标渠道不能再是 COMPOSITE，避免出现递归路由。",
+            "目标渠道不能再是直营网关自身，避免出现递归转发。",
           ],
           example: '{\n  "targetChannelId": 123,\n  "defaultChannelId": 123\n}',
           media: [],
