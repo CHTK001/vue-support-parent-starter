@@ -838,6 +838,17 @@ type ManualProjectCard = {
   pathLabel: string;
   summaryText: string;
 };
+type ProjectFocusEntry =
+  | {
+      kind: "installation";
+      card: Card;
+      timestamp: number;
+    }
+  | {
+      kind: "manual";
+      card: ManualProjectCard;
+      timestamp: number;
+    };
 
 const serviceTypeOptions = [
   { label: "Systemd 服务", value: "SYSTEMD_SERVICE" },
@@ -1023,39 +1034,6 @@ const latestOpTime = computed(() => {
     .sort((left, right) => right - left);
   return timestamps.length ? new Date(timestamps[0]).toLocaleString("zh-CN") : "";
 });
-const latestOperationCard = computed(() => {
-  const ranked = [...cards.value, ...manualProjectCards.value.map((item) => ({
-    installation: {
-      installationName: item.service.serviceName,
-      installPath: item.service.installPath,
-      serviceName: item.service.serviceName,
-      lastOperationTime: item.service.lastOperationTime,
-      lastOperationMessage: item.service.lastOperationMessage,
-      runtimeStatus: item.service.runtimeStatus,
-    },
-  }))];
-  ranked.sort((left, right) => {
-    const leftTime = Date.parse(
-      String(
-        left.installation.lastOperationTime ||
-          left.installation.updateTime ||
-          "",
-      ),
-    );
-    const rightTime = Date.parse(
-      String(
-        right.installation.lastOperationTime ||
-          right.installation.updateTime ||
-          "",
-      ),
-    );
-    return (
-      (Number.isFinite(rightTime) ? rightTime : 0) -
-      (Number.isFinite(leftTime) ? leftTime : 0)
-    );
-  });
-  return ranked[0] || null;
-});
 
 const parseMetadata = (value?: string | null) => {
   try {
@@ -1129,6 +1107,21 @@ const parseJsonArray = (value?: string | null) => {
       .map((item) => item.trim())
       .filter(Boolean);
   }
+};
+
+const isManualProjectService = (service?: ServerService | null) => {
+  if (!service || service.softInstallationId) {
+    return false;
+  }
+  const metadata = parseMetadata(service.metadataJson);
+  const manageMode = String(metadata.manageMode || "").trim().toUpperCase();
+  if (metadata.projectManaged === true || manageMode === "PROJECT_MANUAL") {
+    return true;
+  }
+  if (metadata.detected === true || manageMode === "SPI") {
+    return false;
+  }
+  return Boolean(service.installPath?.trim());
 };
 
 const createEmptyProjectForm = (): ServerService => ({
@@ -1278,10 +1271,10 @@ const cards = computed<Card[]>(() =>
 
 const manualProjectCards = computed<ManualProjectCard[]>(() =>
   services.value
+    .filter((item) => isManualProjectService(item))
     .filter(
       (item) =>
-        !item.softInstallationId &&
-        (!serverId.value || Number(item.serverId || 0) === serverId.value),
+        !serverId.value || Number(item.serverId || 0) === serverId.value,
     )
     .filter((item) => {
       if (filter.value === "running" && item.runtimeStatus !== "RUNNING") {
@@ -1354,6 +1347,38 @@ const manualProjectCards = computed<ManualProjectCard[]>(() =>
       };
     }),
 );
+
+const projectFocusEntries = computed<ProjectFocusEntry[]>(() => {
+  const installationEntries = cards.value.map((card) => ({
+    kind: "installation" as const,
+    card,
+    timestamp: Date.parse(
+      String(
+        card.installation.lastOperationTime || card.installation.updateTime || "",
+      ),
+    ),
+  }));
+  const manualEntries = manualProjectCards.value.map((card) => ({
+    kind: "manual" as const,
+    card,
+    timestamp: Date.parse(
+      String(
+        card.service.lastOperationTime ||
+          card.service.updateTime ||
+          card.service.createTime ||
+          "",
+      ),
+    ),
+  }));
+  return [...installationEntries, ...manualEntries]
+    .map((item) => ({
+      ...item,
+      timestamp: Number.isFinite(item.timestamp) ? item.timestamp : 0,
+    }))
+    .sort((left, right) => right.timestamp - left.timestamp);
+});
+
+const latestOperationCard = computed(() => projectFocusEntries.value[0] || null);
 
 const filteredCards = computed(() =>
   cards.value.filter((item) => {
@@ -1434,8 +1459,13 @@ const focusSummary = async (target: "all" | "running" | "issue" | "latest") => {
   if (target === "all") {
     filter.value = "all";
     keyword.value = "";
-    if (cards.value.length === 1) {
-      await openDetail(cards.value[0]);
+    if (projectFocusEntries.value.length === 1) {
+      const [entry] = projectFocusEntries.value;
+      if (entry?.kind === "manual") {
+        openProjectDetail(entry.card.service);
+      } else if (entry?.kind === "installation") {
+        await openDetail(entry.card);
+      }
     }
     return;
   }
@@ -1443,11 +1473,15 @@ const focusSummary = async (target: "all" | "running" | "issue" | "latest") => {
     filter.value = "running";
     keyword.value = "";
     if (runningCount.value === 1) {
-      const nextCard = cards.value.find(
-        (item) => item.runtimeLabel === "运行中",
+      const nextEntry = projectFocusEntries.value.find((item) =>
+        item.kind === "manual"
+          ? item.card.runtimeLabel === "运行中"
+          : item.card.runtimeLabel === "运行中",
       );
-      if (nextCard) {
-        await openDetail(nextCard);
+      if (nextEntry?.kind === "manual") {
+        openProjectDetail(nextEntry.card.service);
+      } else if (nextEntry?.kind === "installation") {
+        await openDetail(nextEntry.card);
       }
     }
     return;
@@ -1456,15 +1490,23 @@ const focusSummary = async (target: "all" | "running" | "issue" | "latest") => {
     filter.value = "issue";
     keyword.value = "";
     if (issueCount.value === 1) {
-      const nextCard = cards.value.find((item) => item.issue);
-      if (nextCard) {
-        await openDetail(nextCard);
+      const nextEntry = projectFocusEntries.value.find((item) =>
+        item.kind === "manual" ? item.card.issue : item.card.issue,
+      );
+      if (nextEntry?.kind === "manual") {
+        openProjectDetail(nextEntry.card.service);
+      } else if (nextEntry?.kind === "installation") {
+        await openDetail(nextEntry.card);
       }
     }
     return;
   }
   if (latestOperationCard.value) {
-    await openDetail(latestOperationCard.value);
+    if (latestOperationCard.value.kind === "manual") {
+      openProjectDetail(latestOperationCard.value.card.service);
+    } else {
+      await openDetail(latestOperationCard.value.card);
+    }
   }
 };
 const openAiSettings = () => {
