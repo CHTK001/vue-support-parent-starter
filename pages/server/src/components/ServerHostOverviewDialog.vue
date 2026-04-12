@@ -16,15 +16,20 @@
           </p>
         </div>
         <div class="server-host-overview-dialog__chips">
-          <span class="server-host-overview-dialog__chip">
+          <ScTag size="small" effect="plain" round>
             {{ host.enabled !== false ? "已启用" : "未启用" }}
-          </span>
-          <span class="server-host-overview-dialog__chip">
+          </ScTag>
+          <ScTag
+            size="small"
+            effect="plain"
+            round
+            :type="snapshot?.online ? 'success' : 'info'"
+          >
             {{ snapshot?.online ? "在线" : "离线" }}
-          </span>
-          <span class="server-host-overview-dialog__chip">
+          </ScTag>
+          <ScTag size="small" effect="plain" round>
             {{ snapshot?.latencyMs ? `${snapshot.latencyMs} ms` : "延迟未知" }}
-          </span>
+          </ScTag>
         </div>
       </section>
 
@@ -192,6 +197,7 @@
 import { computed } from "vue";
 import { emitter } from "@repo/core";
 import IconifyIconOnline from "@repo/components/ReIcon/src/iconifyIconOnline";
+import ScTag from "@repo/components/ScTag/src/index.vue";
 import type {
   ServerHost,
   ServerMetricsDetail,
@@ -288,15 +294,10 @@ const openAiSettings = () => {
   justify-content: flex-end;
 }
 
-.server-host-overview-dialog__chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.06);
-  color: #334155;
-  font-size: 12px;
+.server-host-overview-dialog__chips :deep(.el-tag) {
+  --el-tag-border-color: rgba(148, 163, 184, 0.18);
+  --el-tag-bg-color: rgba(255, 255, 255, 0.82);
+  --el-tag-text-color: #475569;
 }
 
 .server-host-overview-dialog__grid {

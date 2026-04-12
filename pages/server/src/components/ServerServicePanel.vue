@@ -15,13 +15,15 @@
         </small>
       </div>
       <div class="server-service-panel__header-actions">
-        <span class="server-service-panel__chip">{{ services.length }} 项</span>
-        <span class="server-service-panel__chip is-success"
-          >{{ runningCount }} 运行中</span
-        >
-        <span class="server-service-panel__chip is-warning"
-          >{{ issueCount }} 关注中</span
-        >
+        <ScTag size="small" effect="plain" round>
+          {{ services.length }} 项
+        </ScTag>
+        <ScTag size="small" effect="plain" round type="success">
+          {{ runningCount }} 运行中
+        </ScTag>
+        <ScTag size="small" effect="plain" round type="warning">
+          {{ issueCount }} 关注中
+        </ScTag>
         <el-tooltip content="新增服务" placement="top">
           <el-button circle plain aria-label="新增服务" @click="emit('create')">
             <IconifyIconOnline icon="ri:add-line" />
@@ -90,13 +92,14 @@
               </p>
             </div>
             <div class="server-service-panel__item-tags">
-              <el-tag
+              <ScTag
                 size="small"
-                effect="light"
+                effect="plain"
+                round
                 :type="item.enabled !== false ? 'success' : 'info'"
               >
                 {{ item.enabled !== false ? "已启用" : "未启用" }}
-              </el-tag>
+              </ScTag>
               <span
                 class="server-service-panel__status"
                 :class="runtimeStatusClass(item.runtimeStatus)"
@@ -107,19 +110,23 @@
           </div>
 
           <div class="server-service-panel__meta">
-            <span
+            <ScTag
               v-for="chip in resolveMetaChips(item)"
               :key="chip"
-              class="server-service-panel__chip"
+              size="small"
+              effect="plain"
+              round
             >
               {{ chip }}
-            </span>
-            <span
+            </ScTag>
+            <ScTag
               v-if="item.softInstallationId"
-              class="server-service-panel__chip"
+              size="small"
+              effect="plain"
+              round
             >
               安装实例 #{{ item.softInstallationId }}
-            </span>
+            </ScTag>
           </div>
 
           <small class="server-service-panel__message">
@@ -259,6 +266,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
+import ScTag from "@repo/components/ScTag/src/index.vue";
 import type { ServerService } from "../api";
 
 type ServerServiceAction =

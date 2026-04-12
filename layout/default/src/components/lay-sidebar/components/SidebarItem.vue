@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
       hasOneShowingChild(item.children, item) &&
       (!onlyOneChild.children || onlyOneChild.noShowingChildren)
     "
-    :to="onlyOneChild"
+    :to="{ ...onlyOneChild, path: resolvePath(onlyOneChild.path) }"
   >
     <ScMenuItem
       :index="resolvePath(onlyOneChild.path)"

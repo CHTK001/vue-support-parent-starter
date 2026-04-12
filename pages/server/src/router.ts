@@ -64,7 +64,7 @@ const routes = [
               import("./views/ServerProjectManagementPage.vue"),
             meta: {
               title: "项目管理",
-              icon: "mdi:folder-cog-outline",
+              showLink: false,
               activePath: "/server/list",
             },
           },

@@ -76,6 +76,43 @@ onBeforeUnmount(() => {
   emitter.off("breadcrumbModeChange");
 });
 
+const buildBreadcrumbLocation = (item: any) => {
+  const name = item?.name ? String(item.name) : "";
+  const path = item?.path ? String(item.path) : "";
+  const query = item?.query;
+  const params = item?.params;
+  const hasNamedRoute = name ? router.hasRoute(name) : false;
+  const hasDynamicPath = path.includes("/:") || path.includes("*");
+
+  if (item?.redirect) {
+    return item.redirect as any;
+  }
+
+  if (params && hasNamedRoute) {
+    return { name, params };
+  }
+
+  if (path && !hasDynamicPath) {
+    return query ? { path, query } : { path };
+  }
+
+  if (hasNamedRoute) {
+    if (query) {
+      return { name, query };
+    }
+    if (params) {
+      return { name, params };
+    }
+    return { name };
+  }
+
+  if (path) {
+    return query ? { path, query } : { path };
+  }
+
+  return null;
+};
+
 /**
  * 获取面包屑数据
  */
@@ -96,13 +133,17 @@ const getBreadcrumb = (): void => {
 
   const matchedRoutes = router.currentRoute.value.matched
     .map((item) => toRaw(item))
-    .filter((item) => item?.path && item.path !== "/" && item?.meta?.title !== false)
+    .filter(
+      (item) => item?.path && item.path !== "/" && item?.meta?.title !== false,
+    )
     .map((item) => ({
       ...item,
       meta: {
         ...item.meta,
         showLink:
-          item.path === router.currentRoute.value.path ? true : item.meta?.showLink,
+          item.path === router.currentRoute.value.path
+            ? true
+            : item.meta?.showLink,
         hiddenTag:
           item.path === router.currentRoute.value.path
             ? false
@@ -112,7 +153,9 @@ const getBreadcrumb = (): void => {
 
   if (currentRoute) {
     const targetPath = currentRoute.path || router.currentRoute.value.path;
-    const matchedIndex = matchedRoutes.findIndex((item) => item.path === targetPath);
+    const matchedIndex = matchedRoutes.findIndex(
+      (item) => item.path === targetPath,
+    );
     if (matchedIndex !== -1) {
       matchedRoutes.splice(matchedIndex, 1, {
         ...matchedRoutes[matchedIndex],
@@ -140,41 +183,9 @@ const getBreadcrumb = (): void => {
  * 处理链接点击
  */
 const handleLink = (item: any) => {
-  const { redirect, name, path } = item;
-  if (redirect) {
-    router.push(redirect as any);
-  } else {
-    if (path) {
-      if (item.query) {
-        router.push({
-          path,
-          query: item.query,
-        });
-      } else if (item.params && name) {
-        router.push({
-          name,
-          params: item.params,
-        });
-      } else {
-        router.push({ path });
-      }
-    } else if (name) {
-      if (item.query) {
-        router.push({
-          name,
-          query: item.query,
-        });
-      } else if (item.params) {
-        router.push({
-          name,
-          params: item.params,
-        });
-      } else {
-        router.push({ name });
-      }
-    } else {
-      router.push({ path });
-    }
+  const targetLocation = buildBreadcrumbLocation(item);
+  if (targetLocation) {
+    router.push(targetLocation);
   }
 };
 
@@ -229,8 +240,8 @@ watch(
     <div
       v-if="showHome"
       class="breadcrumb-home"
-      @click="goHome"
       :title="transformI18n('首页')"
+      @click="goHome"
     >
       <IconifyIconOnline icon="ri:home-5-line" class="home-icon" />
     </div>
@@ -267,7 +278,6 @@ watch(
               :show-after="500"
             >
               <a
-                @click.prevent="handleLink(item)"
                 :class="[
                   'breadcrumb-link',
                   {
@@ -275,6 +285,7 @@ watch(
                     'is-clickable': index !== displayList.length - 1,
                   },
                 ]"
+                @click.prevent="handleLink(item)"
               >
                 <ScIcon
                   v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
@@ -290,7 +301,6 @@ watch(
 
             <a
               v-else
-              @click.prevent="handleLink(item)"
               :class="[
                 'breadcrumb-link',
                 {
@@ -298,6 +308,7 @@ watch(
                   'is-clickable': index !== displayList.length - 1,
                 },
               ]"
+              @click.prevent="handleLink(item)"
             >
               <ScIcon
                 v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
@@ -340,7 +351,6 @@ watch(
               :show-after="500"
             >
               <a
-                @click.prevent="handleLink(item)"
                 :class="[
                   'breadcrumb-link',
                   {
@@ -348,6 +358,7 @@ watch(
                     'is-clickable': index !== displayList.length - 1,
                   },
                 ]"
+                @click.prevent="handleLink(item)"
               >
                 <ScIcon
                   v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
@@ -363,7 +374,6 @@ watch(
 
             <a
               v-else
-              @click.prevent="handleLink(item)"
               :class="[
                 'breadcrumb-link',
                 {
@@ -371,6 +381,7 @@ watch(
                   'is-clickable': index !== displayList.length - 1,
                 },
               ]"
+              @click.prevent="handleLink(item)"
             >
               <ScIcon
                 v-if="showIcon && item.meta.icon && breadcrumbMode !== 'text'"
