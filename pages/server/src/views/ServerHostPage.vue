@@ -400,7 +400,7 @@
       :service="selectedServiceDetail"
     />
 
-    <el-drawer
+    <ScDrawer
       v-model="serviceLogsVisible"
       size="760px"
       destroy-on-close
@@ -484,13 +484,13 @@
         </div>
         <el-empty v-else description="当前服务还没有操作日志" />
       </div>
-    </el-drawer>
+    </ScDrawer>
 
-    <el-drawer
+    <ScDrawer
       v-model="remoteConsoleVisible"
       size="min(84vw, 1280px)"
       destroy-on-close
-      append-to-body
+      append-to-body="true"
       class="server-remote-console"
       :class="{ 'is-fullscreen': remoteConsoleFullscreen }"
       :title="
@@ -578,7 +578,7 @@
           />
         </div>
       </div>
-    </el-drawer>
+    </ScDrawer>
 
     <ServerRemoteGatewayDialog
       v-model="globalRemoteGatewayVisible"
@@ -689,7 +689,7 @@
       @terminate-process="terminateProcessItem"
     />
 
-    <el-drawer
+    <ScDrawer
       v-model="softDrawerVisible"
       size="620px"
       destroy-on-close
@@ -970,9 +970,9 @@
           description="soft 模块未启用，无法展示服务器的软件与服务"
         />
       </ScScrollbar>
-    </el-drawer>
+    </ScDrawer>
 
-    <el-drawer
+    <ScDrawer
       v-model="projectDrawerVisible"
       size="min(90vw, 1440px)"
       destroy-on-close
@@ -990,9 +990,9 @@
         :src="projectDrawerUrl"
       />
       <el-empty v-else description="请选择服务器后再打开项目管理" />
-    </el-drawer>
+    </ScDrawer>
 
-    <el-dialog
+    <ScDialog
       v-model="installVisible"
       width="1120px"
       destroy-on-close
@@ -1200,7 +1200,7 @@
           提交安装
         </el-button>
       </template>
-    </el-dialog>
+    </ScDialog>
   </div>
 </template>
 

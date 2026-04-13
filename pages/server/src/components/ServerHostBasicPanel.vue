@@ -123,11 +123,6 @@
           >
             <span class="server-basic-panel__action-label">软件能力</span>
             <div class="server-basic-panel__actions">
-              <el-tooltip content="项目管理" placement="top">
-                <el-button circle plain @click="emit('open-projects')">
-                  <IconifyIconOnline icon="ri:folder-chart-line" />
-                </el-button>
-              </el-tooltip>
               <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
                 <el-button
                   circle
