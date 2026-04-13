@@ -1047,7 +1047,7 @@ function formatDateTime(
 }
 .server-metric-detail-dialog :deep(.el-dialog__body) {
   padding-top: 0;
-  max-height: calc(96vh - 118px);
+  max-height: calc(98vh - 104px);
   overflow: auto;
 }
 .server-metric-detail-dialog__header,
@@ -1128,7 +1128,7 @@ function formatDateTime(
 }
 .server-metric-detail-dialog__hero {
   gap: 16px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   position: relative;
   overflow: hidden;
 }
@@ -1184,12 +1184,12 @@ function formatDateTime(
   background: rgba(148, 163, 184, 0.16);
 }
 .server-metric-detail-dialog__chart-panel {
-  padding: 18px 20px 10px;
+  padding: 16px 18px 10px;
 }
 .server-metric-detail-dialog__ai-panel {
   display: grid;
   gap: 14px;
-  padding: 18px 20px;
+  padding: 16px 18px;
 }
 .server-metric-detail-dialog__ai-header {
   gap: 14px;
@@ -1273,7 +1273,7 @@ function formatDateTime(
   grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
 }
 .server-metric-detail-dialog__panel :deep(.el-card__body) {
-  padding: 18px 20px;
+  padding: 16px 18px;
 }
 .server-metric-detail-dialog__panel-header strong {
   color: #0f172a;
@@ -1301,7 +1301,7 @@ function formatDateTime(
 .server-metric-detail-dialog__list {
   display: grid;
   gap: 10px;
-  max-height: 360px;
+  max-height: 320px;
   overflow: auto;
   padding-right: 4px;
 }
@@ -1512,6 +1512,26 @@ function formatDateTime(
   }
   .server-metric-detail-dialog__chips {
     justify-content: flex-start;
+  }
+}
+
+@media (max-height: 840px) {
+  .server-metric-detail-dialog :deep(.el-dialog__body) {
+    max-height: calc(98vh - 88px);
+  }
+
+  .server-metric-detail-dialog__hero,
+  .server-metric-detail-dialog__chart-panel,
+  .server-metric-detail-dialog__ai-panel {
+    padding: 14px 16px;
+  }
+
+  .server-metric-detail-dialog__panel :deep(.el-card__body) {
+    padding: 14px 16px;
+  }
+
+  .server-metric-detail-dialog__list {
+    max-height: 280px;
   }
 }
 </style>

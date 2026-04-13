@@ -44,84 +44,112 @@
           </div>
         </div>
 
-        <div class="server-basic-panel__actions">
-          <el-tooltip content="进程管理" placement="top">
-            <el-button circle @click="emit('open-processes')">
-              <IconifyIconOnline icon="ri:stack-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="文件管理" placement="top">
-            <el-button circle @click="emit('open-files')">
-              <IconifyIconOnline icon="ri:folder-5-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="采集任务" placement="top">
-            <el-button circle @click="emit('open-metrics-task')">
-              <IconifyIconOnline icon="ri:timer-flash-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="预警设置" placement="top">
-            <el-button circle @click="emit('open-alert-settings')">
-              <IconifyIconOnline icon="ri:alarm-warning-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="远程代理" placement="top">
-            <el-button circle @click="emit('open-remote-settings')">
-              <IconifyIconOnline icon="ri:route-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip v-if="canOpenRemote" content="远程控制" placement="top">
-            <el-button circle type="info" plain @click="emit('open-remote')">
-              <IconifyIconOnline icon="ri:remote-control-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="服务器大屏" placement="top">
-            <el-button circle plain @click="emit('open-dashboard')">
-              <IconifyIconOnline icon="ri:dashboard-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="项目管理" placement="top">
-            <el-button circle plain @click="emit('open-projects')">
-              <IconifyIconOnline icon="ri:folder-chart-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
-            <el-button circle type="primary" plain @click="emit('open-soft')">
-              <IconifyIconOnline icon="ri:apps-2-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip v-if="softEnabled" content="安装软件" placement="top">
-            <el-button
-              circle
-              type="success"
-              plain
-              @click="emit('open-install')"
-            >
-              <IconifyIconOnline icon="ri:download-cloud-2-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip content="编辑服务器" placement="top">
-            <el-button circle @click="emit('edit')">
-              <IconifyIconOnline icon="ri:edit-line" />
-            </el-button>
-          </el-tooltip>
-          <el-tooltip
-            :content="host.enabled ? '停用服务器' : '启用服务器'"
-            placement="top"
+        <div class="server-basic-panel__action-groups">
+          <div class="server-basic-panel__action-row">
+            <span class="server-basic-panel__action-label">基础能力</span>
+            <div class="server-basic-panel__actions">
+              <el-tooltip content="进程管理" placement="top">
+                <el-button circle @click="emit('open-processes')">
+                  <IconifyIconOnline icon="ri:stack-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="文件管理" placement="top">
+                <el-button circle @click="emit('open-files')">
+                  <IconifyIconOnline icon="ri:folder-5-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="采集任务" placement="top">
+                <el-button circle @click="emit('open-metrics-task')">
+                  <IconifyIconOnline icon="ri:timer-flash-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="预警设置" placement="top">
+                <el-button circle @click="emit('open-alert-settings')">
+                  <IconifyIconOnline icon="ri:alarm-warning-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="远程代理" placement="top">
+                <el-button circle @click="emit('open-remote-settings')">
+                  <IconifyIconOnline icon="ri:route-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip
+                v-if="canOpenRemote"
+                content="远程控制"
+                placement="top"
+              >
+                <el-button
+                  circle
+                  type="info"
+                  plain
+                  @click="emit('open-remote')"
+                >
+                  <IconifyIconOnline icon="ri:remote-control-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="服务器大屏" placement="top">
+                <el-button circle plain @click="emit('open-dashboard')">
+                  <IconifyIconOnline icon="ri:dashboard-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="编辑服务器" placement="top">
+                <el-button circle @click="emit('edit')">
+                  <IconifyIconOnline icon="ri:edit-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip
+                :content="host.enabled ? '停用服务器' : '启用服务器'"
+                placement="top"
+              >
+                <el-button
+                  circle
+                  :type="host.enabled ? 'warning' : 'success'"
+                  plain
+                  @click="emit('toggle-enabled')"
+                >
+                  <IconifyIconOnline
+                    :icon="
+                      host.enabled
+                        ? 'ri:pause-circle-line'
+                        : 'ri:play-circle-line'
+                    "
+                  />
+                </el-button>
+              </el-tooltip>
+            </div>
+          </div>
+          <div
+            class="server-basic-panel__action-row server-basic-panel__action-row--software"
           >
-            <el-button
-              circle
-              :type="host.enabled ? 'warning' : 'success'"
-              plain
-              @click="emit('toggle-enabled')"
-            >
-              <IconifyIconOnline
-                :icon="
-                  host.enabled ? 'ri:pause-circle-line' : 'ri:play-circle-line'
-                "
-              />
-            </el-button>
-          </el-tooltip>
+            <span class="server-basic-panel__action-label">软件能力</span>
+            <div class="server-basic-panel__actions">
+              <el-tooltip content="项目管理" placement="top">
+                <el-button circle plain @click="emit('open-projects')">
+                  <IconifyIconOnline icon="ri:folder-chart-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
+                <el-button
+                  circle
+                  type="primary"
+                  plain
+                  @click="emit('open-soft')"
+                >
+                  <IconifyIconOnline icon="ri:apps-2-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="softEnabled" content="安装软件" placement="top">
+                <el-button
+                  circle
+                  type="success"
+                  plain
+                  @click="emit('open-install')"
+                >
+                  <IconifyIconOnline icon="ri:download-cloud-2-line" />
+                </el-button>
+              </el-tooltip>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -203,10 +231,12 @@
       </article>
 
       <div class="server-basic-panel__content">
-        <article class="server-basic-panel__card server-basic-panel__card--basic">
+        <article
+          class="server-basic-panel__card server-basic-panel__card--basic"
+        >
           <header class="server-basic-panel__card-header">
             <h3>基础信息</h3>
-              <div class="server-basic-panel__tag-group">
+            <div class="server-basic-panel__tag-group">
               <ScTag size="small" effect="plain" round>
                 {{
                   alertSettingsEnabled === false
@@ -617,6 +647,7 @@
 
             <section
               v-if="orderedAlerts.length"
+              ref="alertListRef"
               class="server-basic-panel__alert-list thin-scroller overflow-y-auto"
             >
               <header class="server-basic-panel__alert-list-header">
@@ -856,6 +887,7 @@ const openAiSettings = () => {
   emitter.emit("openPanel");
 };
 const alertScrollRef = ref<HTMLElement | null>(null);
+const alertListRef = ref<HTMLElement | null>(null);
 
 const severityLabel = (value?: string | null) =>
   value === "DANGER" ? "危险" : value === "WARNING" ? "预警" : value || "告警";
@@ -959,17 +991,47 @@ const aiDiagnosticItems = computed(() =>
   ].filter((item) => item.value),
 );
 
+const resetAlertScrollPosition = async (
+  behavior: ScrollBehavior = "auto",
+) => {
+  await nextTick();
+  alertScrollRef.value?.scrollTo({
+    top: 0,
+    behavior,
+  });
+  alertListRef.value?.scrollTo({
+    top: 0,
+    behavior,
+  });
+};
+
 watch(
   () => latestAlert.value?.serverAlertEventId,
   async (value, previous) => {
     if (!value || value === previous) {
       return;
     }
-    await nextTick();
-    alertScrollRef.value?.scrollTo({
-      top: 0,
-      behavior: previous ? "smooth" : "auto",
-    });
+    await resetAlertScrollPosition(previous ? "smooth" : "auto");
+  },
+);
+
+watch(
+  () => props.host?.serverId,
+  async (value, previous) => {
+    if (!value || value === previous) {
+      return;
+    }
+    await resetAlertScrollPosition("auto");
+  },
+);
+
+watch(
+  () => orderedAlerts.value.length,
+  async (value, previous) => {
+    if (!value || value === previous) {
+      return;
+    }
+    await resetAlertScrollPosition(previous ? "smooth" : "auto");
   },
 );
 
@@ -1084,7 +1146,9 @@ const metricCards = computed(() => {
       subLabel: `入 ${formatThroughput(snapshot?.ioReadBytesPerSecond)}`,
       value: formatThroughput(resolveIoTotal(snapshot)),
       total: `出 ${formatThroughput(snapshot?.ioWriteBytesPerSecond)}`,
-      progress: clampProgress(resolveIoProgress(resolveIoTotal(snapshot), ioDanger)),
+      progress: clampProgress(
+        resolveIoProgress(resolveIoTotal(snapshot), ioDanger),
+      ),
       toneClass: usageToneClass(
         resolveIoTotal(snapshot),
         Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
@@ -1110,10 +1174,18 @@ function clampProgress(value?: number | null) {
   return Math.max(0, Math.min(100, numeric));
 }
 
-function resolveIoProgress(value?: number | null, dangerThreshold?: number | null) {
+function resolveIoProgress(
+  value?: number | null,
+  dangerThreshold?: number | null,
+) {
   const numeric = Number(value ?? 0);
   const threshold = Number(dangerThreshold ?? 0);
-  if (!Number.isFinite(numeric) || numeric <= 0 || !Number.isFinite(threshold) || threshold <= 0) {
+  if (
+    !Number.isFinite(numeric) ||
+    numeric <= 0 ||
+    !Number.isFinite(threshold) ||
+    threshold <= 0
+  ) {
     return 0;
   }
   return (numeric / threshold) * 100;
@@ -1143,12 +1215,22 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   min-height: 0;
   overflow: auto;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+    radial-gradient(
+      circle at top left,
+      rgba(14, 165, 233, 0.08),
+      transparent 24%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(248, 250, 252, 0.98)
+    );
 }
 
 .server-basic-panel__hero,
 .server-basic-panel__identity,
+.server-basic-panel__action-groups,
+.server-basic-panel__action-row,
 .server-basic-panel__actions,
 .server-basic-panel__title-row,
 .server-basic-panel__card-header,
@@ -1170,8 +1252,16 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   border-radius: 26px;
   border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--el-color-primary) 12%, transparent), transparent 44%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+      transparent 44%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(248, 250, 252, 0.96)
+    );
   box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
 }
 
@@ -1245,6 +1335,37 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   margin-top: 6px;
 }
 
+.server-basic-panel__action-groups {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.server-basic-panel__action-row {
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.server-basic-panel__action-row--software {
+  padding-top: 6px;
+  border-top: 1px solid
+    color-mix(in srgb, var(--el-border-color) 62%, transparent);
+}
+
+.server-basic-panel__action-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(241, 245, 249, 0.9);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
 .server-basic-panel__chip {
   display: inline-flex;
   align-items: center;
@@ -1308,6 +1429,17 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   margin: 4px 0 0;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.server-basic-panel :deep(.el-radio-group) {
+  min-height: 38px;
+}
+
+.server-basic-panel :deep(.el-radio-button__inner) {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .server-basic-panel__metric-grid {
@@ -1640,7 +1772,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .server-basic-panel__ops-grid {
@@ -1736,7 +1868,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   max-height: 340px;
   overflow: auto;
   padding-right: 4px;
-  padding-top: 4px;
+  padding-top: 8px;
   align-content: start;
 }
 
@@ -1808,7 +1940,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-top: 12px;
+  padding-top: 4px;
+  margin-bottom: 4px;
 }
 
 .server-basic-panel__alert-list-header strong {

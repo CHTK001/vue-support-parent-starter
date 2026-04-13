@@ -256,6 +256,37 @@ export default defineComponent({
     resolveTypeLabel(item) {
       return item?.sysSettingValueType || "String";
     },
+    parseNumericConfig(item) {
+      if (!item?.sysSettingConfig) {
+        return {};
+      }
+
+      try {
+        const parsed = JSON.parse(item.sysSettingConfig);
+        if (!parsed || typeof parsed !== "object") {
+          return {};
+        }
+
+        const numberProps = {};
+        ["min", "max", "step", "precision"].forEach((key) => {
+          const rawValue = parsed[key];
+          const normalizedValue =
+            rawValue === "" || rawValue == null ? undefined : Number(rawValue);
+
+          if (Number.isFinite(normalizedValue)) {
+            numberProps[key] = normalizedValue;
+          }
+        });
+
+        if (typeof parsed.stepStrictly === "boolean") {
+          numberProps.stepStrictly = parsed.stepStrictly;
+        }
+
+        return numberProps;
+      } catch (error) {
+        return {};
+      }
+    },
     resolveButtonIcon(icon) {
       return useRenderIcon(icon);
     },
@@ -403,6 +434,7 @@ export default defineComponent({
                     v-if="element.sysSettingValueType == 'Number'"
                     v-model="element.sysSettingValue"
                     type="number"
+                    v-bind="parseNumericConfig(element)"
                     :disabled="isReadOnlySetting(element)"
                     :readonly="isReadOnlySetting(element)"
                   />
