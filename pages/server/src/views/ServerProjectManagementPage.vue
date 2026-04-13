@@ -163,7 +163,13 @@
                 <el-tag
                   effect="light"
                   round
-                  :type="row.issue ? 'danger' : row.runtimeLabel === '运行中' ? 'success' : 'info'"
+                  :type="
+                    row.issue
+                      ? 'danger'
+                      : row.runtimeLabel === '运行中'
+                        ? 'success'
+                        : 'info'
+                  "
                 >
                   {{ row.runtimeLabel }}
                 </el-tag>
@@ -172,8 +178,12 @@
 
             <div class="project-card-shell__meta">
               <el-tag effect="plain" round>{{ row.pathLabel }}</el-tag>
-              <el-tag effect="plain" round>SPI {{ row.executionProviderLabel }}</el-tag>
-              <el-tag effect="plain" round>日志 {{ row.logPathCount }} 条</el-tag>
+              <el-tag effect="plain" round
+                >SPI {{ row.executionProviderLabel }}</el-tag
+              >
+              <el-tag effect="plain" round
+                >日志 {{ row.logPathCount }} 条</el-tag
+              >
             </div>
 
             <p class="project-card-shell__summary">{{ row.summaryText }}</p>
@@ -193,7 +203,9 @@
                   circle
                   plain
                   type="success"
-                  :loading="projectActionKey === `start:${row.service.serverServiceId}`"
+                  :loading="
+                    projectActionKey === `start:${row.service.serverServiceId}`
+                  "
                   @click.stop="runProjectAction(row.service, 'start')"
                 >
                   <IconifyIconOnline icon="ri:play-circle-line" />
@@ -204,7 +216,9 @@
                   circle
                   plain
                   type="warning"
-                  :loading="projectActionKey === `stop:${row.service.serverServiceId}`"
+                  :loading="
+                    projectActionKey === `stop:${row.service.serverServiceId}`
+                  "
                   @click.stop="runProjectAction(row.service, 'stop')"
                 >
                   <IconifyIconOnline icon="ri:stop-circle-line" />
@@ -214,7 +228,10 @@
                 <el-button
                   circle
                   plain
-                  :loading="projectActionKey === `restart:${row.service.serverServiceId}`"
+                  :loading="
+                    projectActionKey ===
+                    `restart:${row.service.serverServiceId}`
+                  "
                   @click.stop="runProjectAction(row.service, 'restart')"
                 >
                   <IconifyIconOnline icon="ri:restart-line" />
@@ -224,7 +241,9 @@
                 <el-button
                   circle
                   plain
-                  :loading="projectActionKey === `status:${row.service.serverServiceId}`"
+                  :loading="
+                    projectActionKey === `status:${row.service.serverServiceId}`
+                  "
                   @click.stop="runProjectAction(row.service, 'status')"
                 >
                   <IconifyIconOnline icon="ri:pulse-line" />
@@ -261,16 +280,15 @@
           </article>
         </template>
       </ScTable>
-      <el-empty
-        v-else
-        description="当前没有手工项目主档，可以直接在这里创建"
-      />
+      <el-empty v-else description="当前没有手工项目主档，可以直接在这里创建" />
     </article>
 
     <div class="panel-head project-installation-head">
       <div>
-        <h3>安装项目实例</h3>
-        <p>保留 soft 安装实例的运行、配置快照、日志追尾和回滚能力。</p>
+        <h3>接入项目实例</h3>
+        <p>
+          仅展示可直接作为业务项目托管的实例，框架和运行时工具不在这里显示。
+        </p>
       </div>
       <div class="actions">
         <span class="chip">安装实例 {{ filteredCards.length }}</span>
@@ -1032,7 +1050,9 @@ const latestOpTime = computed(() => {
     .map((item) => Date.parse(String(item || "")))
     .filter((item) => Number.isFinite(item))
     .sort((left, right) => right - left);
-  return timestamps.length ? new Date(timestamps[0]).toLocaleString("zh-CN") : "";
+  return timestamps.length
+    ? new Date(timestamps[0]).toLocaleString("zh-CN")
+    : "";
 });
 
 const parseMetadata = (value?: string | null) => {
@@ -1114,7 +1134,9 @@ const isManualProjectService = (service?: ServerService | null) => {
     return false;
   }
   const metadata = parseMetadata(service.metadataJson);
-  const manageMode = String(metadata.manageMode || "").trim().toUpperCase();
+  const manageMode = String(metadata.manageMode || "")
+    .trim()
+    .toUpperCase();
   if (metadata.projectManaged === true || manageMode === "PROJECT_MANUAL") {
     return true;
   }
@@ -1166,9 +1188,11 @@ const patchProjectForm = (value?: ServerService | null) => {
 const buildScriptHostContext = (card?: Card | null) => ({
   serverId: serverId.value,
   serverName: route.query.serverName || card?.target?.targetName || "",
-  targetType: card?.detail?.target?.targetType || card?.target?.targetType || "",
+  targetType:
+    card?.detail?.target?.targetType || card?.target?.targetType || "",
   osType: card?.detail?.target?.osType || card?.target?.osType || "",
-  architecture: card?.detail?.target?.architecture || card?.target?.architecture || "",
+  architecture:
+    card?.detail?.target?.architecture || card?.target?.architecture || "",
   host: card?.detail?.target?.host || card?.target?.host || "",
   port: card?.detail?.target?.port || card?.target?.port || "",
   username: card?.detail?.target?.username || card?.target?.username || "",
@@ -1220,6 +1244,72 @@ const visibleTargetIds = computed(
     ),
 );
 
+const projectInstallationKeywords = [
+  "spring",
+  "boot",
+  "nginx",
+  "static",
+  "resource",
+  "site",
+  "web",
+  "project",
+  ".jar",
+  ".war",
+];
+
+const projectServiceTypeKeywords = [
+  "SPRING",
+  "NGINX",
+  "PROJECT",
+  "STATIC",
+  "DOCKER",
+];
+
+const isProjectInstallation = (
+  installation: ServerSoftInstallation,
+  detail?: Card["detail"] | null,
+  serverService?: ServerService | null,
+) => {
+  const serviceMetadata = parseMetadata(serverService?.metadataJson);
+  const serviceType = String(serverService?.serviceType || "").toUpperCase();
+  const packageCode = String(detail?.package?.packageCode || "").toLowerCase();
+  const packageName = String(
+    detail?.package?.packageName || installation.packageName || "",
+  ).toLowerCase();
+  const installationText = [
+    installation.installationName,
+    installation.serviceName,
+    installation.installPath,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    serviceMetadata.projectManaged === true ||
+    ["PROJECT", "PROJECT_MANUAL", "PROJECT_MANAGED"].includes(
+      String(serviceMetadata.manageMode || "")
+        .trim()
+        .toUpperCase(),
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    projectServiceTypeKeywords.some((keyword) => serviceType.includes(keyword))
+  ) {
+    return true;
+  }
+
+  return projectInstallationKeywords.some(
+    (keyword) =>
+      packageCode.includes(keyword) ||
+      packageName.includes(keyword) ||
+      installationText.includes(keyword),
+  );
+};
+
 const cards = computed<Card[]>(() =>
   installations.value
     .filter((item) =>
@@ -1266,7 +1356,10 @@ const cards = computed<Card[]>(() =>
           serviceMetadata.detected,
         ),
       };
-    }),
+    })
+    .filter((item) =>
+      isProjectInstallation(item.installation, item.detail, item.serverService),
+    ),
 );
 
 const manualProjectCards = computed<ManualProjectCard[]>(() =>
@@ -1310,7 +1403,10 @@ const manualProjectCards = computed<ManualProjectCard[]>(() =>
     })
     .map((service) => {
       const metadata = parseMetadata(service.metadataJson);
-      const meta = runtimeMeta(service.runtimeStatus, service.latestOperationSuccess);
+      const meta = runtimeMeta(
+        service.runtimeStatus,
+        service.latestOperationSuccess,
+      );
       const serviceType = String(service.serviceType || "").toLowerCase();
       return {
         projectId:
@@ -1354,7 +1450,9 @@ const projectFocusEntries = computed<ProjectFocusEntry[]>(() => {
     card,
     timestamp: Date.parse(
       String(
-        card.installation.lastOperationTime || card.installation.updateTime || "",
+        card.installation.lastOperationTime ||
+          card.installation.updateTime ||
+          "",
       ),
     ),
   }));
@@ -1378,7 +1476,9 @@ const projectFocusEntries = computed<ProjectFocusEntry[]>(() => {
     .sort((left, right) => right.timestamp - left.timestamp);
 });
 
-const latestOperationCard = computed(() => projectFocusEntries.value[0] || null);
+const latestOperationCard = computed(
+  () => projectFocusEntries.value[0] || null,
+);
 
 const filteredCards = computed(() =>
   cards.value.filter((item) => {
@@ -1628,7 +1728,9 @@ const syncProjectAiTaskCenter = (payload: ServerAiTaskPayload) => {
   });
 };
 
-const applyProjectAiTaskPayload = async (payload?: ServerAiTaskPayload | null) => {
+const applyProjectAiTaskPayload = async (
+  payload?: ServerAiTaskPayload | null,
+) => {
   if (!payload?.taskId) {
     return;
   }
@@ -1850,7 +1952,8 @@ const openScriptDialog = (card?: Card | null) => {
     return;
   }
   selectedInstallationId.value =
-    Number(card.installation.softInstallationId || 0) || selectedInstallationId.value;
+    Number(card.installation.softInstallationId || 0) ||
+    selectedInstallationId.value;
   scriptDialogService.value = {
     ...card.serverService,
   };
@@ -2049,7 +2152,9 @@ const submitProjectEditor = async (draft?: ServerService) => {
     ...projectForm.value,
     ...(draft || {}),
     serverId: serverId.value || projectForm.value.serverId,
-    serverName: String(route.query.serverName || projectForm.value.serverName || ""),
+    serverName: String(
+      route.query.serverName || projectForm.value.serverName || "",
+    ),
   };
   if (!next.serverId) {
     ElMessage.warning("当前没有选中服务器，无法保存项目主档");
@@ -2078,7 +2183,9 @@ const submitProjectEditor = async (draft?: ServerService) => {
       progress: 100,
       message: next.serverServiceId ? "项目主档已更新" : "项目主档已创建",
     });
-    ElMessage.success(next.serverServiceId ? "项目主档已更新" : "项目主档已创建");
+    ElMessage.success(
+      next.serverServiceId ? "项目主档已更新" : "项目主档已创建",
+    );
     await loadPage();
   } catch (error) {
     console.error(error);
@@ -2236,8 +2343,16 @@ onUnmounted(() => {
   padding: 20px;
   color: #1e293b;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 28%),
-    radial-gradient(circle at right 20%, rgba(59, 130, 246, 0.1), transparent 24%),
+    radial-gradient(
+      circle at top left,
+      rgba(14, 165, 233, 0.12),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at right 20%,
+      rgba(59, 130, 246, 0.1),
+      transparent 24%
+    ),
     linear-gradient(180deg, #f8fbff 0%, #eef5ff 46%, #f6f9fc 100%);
 }
 .hero,
@@ -2279,7 +2394,11 @@ onUnmounted(() => {
   width: 320px;
   height: 320px;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgba(14, 165, 233, 0.18),
+    transparent 68%
+  );
   pointer-events: none;
 }
 .hero h1 {
@@ -2373,6 +2492,13 @@ onUnmounted(() => {
 .toolbar :deep(.el-input),
 .toolbar :deep(.sc-input) {
   min-height: 40px;
+}
+
+.toolbar :deep(.el-radio-button__inner) {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 .manual-project-section {
   display: grid;
@@ -2517,7 +2643,11 @@ onUnmounted(() => {
   border-radius: 26px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(248, 250, 252, 0.94)
+    ),
     linear-gradient(120deg, rgba(14, 165, 233, 0.06), transparent 42%);
   box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
   transition:
@@ -2532,12 +2662,20 @@ onUnmounted(() => {
 }
 .project-card-shell.is-success {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(240, 253, 244, 0.9)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(240, 253, 244, 0.9)
+    ),
     linear-gradient(135deg, rgba(34, 197, 94, 0.08), transparent 42%);
 }
 .project-card-shell.is-danger {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(254, 242, 242, 0.92)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(254, 242, 242, 0.92)
+    ),
     linear-gradient(135deg, rgba(248, 113, 113, 0.08), transparent 42%);
 }
 .project-card-shell__head,
@@ -2581,7 +2719,11 @@ onUnmounted(() => {
   padding: 14px 16px;
   border-radius: 18px;
   border: 1px solid rgba(251, 191, 36, 0.26);
-  background: linear-gradient(180deg, rgba(255, 247, 237, 0.96), rgba(255, 251, 235, 0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 247, 237, 0.96),
+    rgba(255, 251, 235, 0.92)
+  );
 }
 .project-card-shell__ai strong {
   color: #92400e;

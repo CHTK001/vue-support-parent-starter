@@ -292,7 +292,6 @@ body {
   }
 
   .el-segmented__item.is-selected {
-    color: var(--el-color-primary);
     background: rgba(var(--el-color-primary-rgb), 0.1);
     box-shadow:
       0 0 0 1px rgba(var(--el-color-primary-rgb), 0.14) inset,

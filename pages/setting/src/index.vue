@@ -10,6 +10,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
   FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
   canManageFrontendSystemConfig,
@@ -130,6 +131,8 @@ const createFixedCard = (
 });
 
 const userStore = useUserStoreHook();
+const route = useRoute();
+const router = useRouter();
 const config = reactive({
   saveItemStatus: false,
   tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
@@ -223,6 +226,9 @@ const refreshFrontendSystemState = () => {
   frontendSystemState.value = getFrontendSystemConfig(getInitialConfig());
 };
 
+const resolveRequestedGroup = () =>
+  typeof route.query.group === "string" ? route.query.group.trim() : "";
+
 const syncActiveCard = () => {
   if (!products.value.length) {
     config.tabValue = "";
@@ -265,6 +271,14 @@ const openCard = async (card: SettingCard) => {
   config.tabValue = card.group;
   currentItem.value = card;
   localStorageProxyObject.setItem(SETTING_TAB_VALUE, card.group);
+  if (resolveRequestedGroup() !== card.group) {
+    router.replace({
+      query: {
+        ...route.query,
+        group: card.group,
+      },
+    });
+  }
 
   try {
     await nextTick();
@@ -295,6 +309,20 @@ const close = (group?: string) => {
     products.value.find((item) => item.group === config.tabValue) || null;
 };
 
+const openRequestedGroupCard = async () => {
+  const requestedGroup = resolveRequestedGroup();
+  if (!requestedGroup) {
+    return;
+  }
+
+  const targetCard = products.value.find((item) => item.group === requestedGroup);
+  if (!targetCard) {
+    return;
+  }
+
+  await openCard(targetCard);
+};
+
 const openGroupManagement = async () => {
   const groupCard = fixedProducts.value.find((item) => item.group === "group");
 
@@ -317,9 +345,10 @@ const handleCloseItemDialog = async () => {
 
 watch(products, syncActiveCard, { deep: true });
 
-onMounted(() => {
+onMounted(async () => {
   refreshFrontendSystemState();
-  loadProductsConfig();
+  await loadProductsConfig();
+  await openRequestedGroupCard();
   window.addEventListener(
     FRONTEND_SYSTEM_CONFIG_CHANGE_EVENT,
     refreshFrontendSystemState as EventListener,

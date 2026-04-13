@@ -1,8 +1,10 @@
 ﻿<template>
   <div class="server-page">
     <section
+      ref="serverLayoutRef"
       v-loading="loading"
       class="server-layout"
+      :style="serverLayoutStyle"
       :class="{ 'is-sidebar-collapsed': sidebarCollapsed }"
     >
       <ServerHostSidebar
@@ -10,7 +12,6 @@
         :entries="visibleHostEntries"
         :selected-id="selectedId"
         :collapsed="sidebarCollapsed"
-        :keyword="sidebarKeyword"
         :filter="sidebarFilter"
         :soft-enabled="softEnabled"
         :filter-options="sidebarFilterOptions"
@@ -31,9 +32,19 @@
         @open-remote="openRemoteConsole"
         @open-processes="openProcessDialog"
         @update:collapsed="sidebarCollapsed = $event"
-        @update:keyword="sidebarKeyword = $event"
         @update:filter="sidebarFilter = $event"
         @contextmenu="openHostContextMenu"
+      />
+      <button
+        type="button"
+        class="server-layout__resizer"
+        :class="{
+          'is-collapsed': sidebarCollapsed,
+          'is-dragging': sidebarResizing,
+        }"
+        :disabled="sidebarCollapsed"
+        aria-label="调整服务器列表宽度"
+        @mousedown.prevent="startSidebarResize"
       />
 
       <ServerHostBasicPanel
@@ -147,7 +158,7 @@
           <div class="server-action-row server-file-toolbar__actions">
             <el-radio-group v-model="fileViewMode" size="small">
               <el-radio-button label="list" value="list">列表</el-radio-button>
-              <el-radio-button label="tree" value="tree">经典</el-radio-button>
+              <el-radio-button label="tree" value="tree">树状</el-radio-button>
             </el-radio-group>
             <el-button
               v-if="canNavigateParentDirectory"
@@ -284,7 +295,12 @@
                 </p>
               </div>
               <div class="server-file-preview__header-actions">
-                <el-tag class="server-inline-tag" effect="plain" round size="small">
+                <el-tag
+                  class="server-inline-tag"
+                  effect="plain"
+                  round
+                  size="small"
+                >
                   {{ filePreview?.language || "text" }}
                 </el-tag>
                 <el-button
@@ -488,13 +504,28 @@
         <div class="server-remote-console__toolbar">
           <div class="server-remote-console__meta">
             <div class="server-chip-group">
-              <el-tag class="server-inline-tag" effect="plain" round size="small">
+              <el-tag
+                class="server-inline-tag"
+                effect="plain"
+                round
+                size="small"
+              >
                 {{ remoteConsoleConfig?.provider || "remote" }}
               </el-tag>
-              <el-tag class="server-inline-tag" effect="plain" round size="small">
+              <el-tag
+                class="server-inline-tag"
+                effect="plain"
+                round
+                size="small"
+              >
                 {{ remoteConsoleConfig?.protocol || "auto" }}
               </el-tag>
-              <el-tag class="server-inline-tag" effect="plain" round size="small">
+              <el-tag
+                class="server-inline-tag"
+                effect="plain"
+                round
+                size="small"
+              >
                 {{ remoteConsoleConfig?.connectionId || "-" }}
               </el-tag>
             </div>
@@ -734,14 +765,24 @@
                       item.versionName || item.installedVersion || "默认版本"
                     }}
                   </p>
-            <div class="soft-drawer__item-chips">
-              <el-tag class="server-inline-tag" effect="plain" round size="small">
-                备份点 {{ getInstallationBackupCount(item) }}
-              </el-tag>
-              <el-tag class="server-inline-tag" effect="plain" round size="small">
-                {{ getInstallationUpgradeText(item) }}
-              </el-tag>
-            </div>
+                  <div class="soft-drawer__item-chips">
+                    <el-tag
+                      class="server-inline-tag"
+                      effect="plain"
+                      round
+                      size="small"
+                    >
+                      备份点 {{ getInstallationBackupCount(item) }}
+                    </el-tag>
+                    <el-tag
+                      class="server-inline-tag"
+                      effect="plain"
+                      round
+                      size="small"
+                    >
+                      {{ getInstallationUpgradeText(item) }}
+                    </el-tag>
+                  </div>
                 </div>
                 <div class="soft-drawer__item-meta">
                   <span>{{
@@ -1421,8 +1462,9 @@ const installGuideLoading = ref(false);
 const installSubmitting = ref(false);
 const installStep = ref(0);
 const sidebarCollapsed = ref(false);
-const sidebarKeyword = ref("");
+const sidebarWidth = ref(278);
 const sidebarFilter = ref("ALL");
+const sidebarResizing = ref(false);
 const aggregateMode = ref(false);
 const aggregateHostIds = ref<number[]>([]);
 const fileViewMode = ref<FileViewMode>("list");
@@ -1446,6 +1488,7 @@ const remoteConsoleConfig = ref<ServerRemoteConsoleConfig | null>(null);
 const remoteConsoleHostName = ref("");
 const remoteConsoleFullscreen = ref(false);
 const remoteConsoleContainerRef = ref<HTMLElement | null>(null);
+const serverLayoutRef = ref<HTMLElement | null>(null);
 const hostContextMenuRef = ref<{
   open: (event: MouseEvent, entry: ServerHostListEntry) => void;
 } | null>(null);
@@ -1792,27 +1835,50 @@ const serviceEditorExecutionProvider = computed(() => {
   }
   return "本机 SPI / OSHI / 操作系统能力";
 });
+const resolveSidebarMaxWidth = () => {
+  const layoutWidth = Number(serverLayoutRef.value?.clientWidth || 0);
+  return layoutWidth ? Math.min(420, Math.max(236, layoutWidth - 560)) : 420;
+};
+const serverLayoutStyle = computed(() => ({
+  "--server-sidebar-width": `${sidebarCollapsed.value ? 74 : Math.min(resolveSidebarMaxWidth(), Math.max(236, sidebarWidth.value))}px`,
+}));
+const updateSidebarWidth = (clientX: number) => {
+  if (sidebarCollapsed.value || !serverLayoutRef.value) {
+    return;
+  }
+  const rect = serverLayoutRef.value.getBoundingClientRect();
+  const nextWidth = clientX - rect.left - 7;
+  sidebarWidth.value = Math.min(
+    resolveSidebarMaxWidth(),
+    Math.max(236, Math.round(nextWidth)),
+  );
+};
+const handleSidebarResizeMove = (event: MouseEvent) => {
+  updateSidebarWidth(event.clientX);
+};
+const stopSidebarResize = () => {
+  if (!sidebarResizing.value) {
+    return;
+  }
+  sidebarResizing.value = false;
+  window.removeEventListener("mousemove", handleSidebarResizeMove);
+  window.removeEventListener("mouseup", stopSidebarResize);
+  document.body.style.userSelect = "";
+  document.body.style.cursor = "";
+};
+const startSidebarResize = (event: MouseEvent) => {
+  if (sidebarCollapsed.value) {
+    return;
+  }
+  sidebarResizing.value = true;
+  updateSidebarWidth(event.clientX);
+  window.addEventListener("mousemove", handleSidebarResizeMove);
+  window.addEventListener("mouseup", stopSidebarResize);
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = "col-resize";
+};
 const visibleHostItems = computed(() => {
-  const keyword = normalizeText(sidebarKeyword.value);
   return hostItems.value.filter((item) => {
-    const matchesKeyword =
-      !keyword ||
-      [
-        item.serverName,
-        item.serverCode,
-        item.host,
-        item.username,
-        item.description,
-        item.tags,
-        ...(item.tagsList || []),
-      ]
-        .filter(Boolean)
-        .some((field) => normalizeText(field).includes(keyword));
-
-    if (!matchesKeyword) {
-      return false;
-    }
-
     switch (sidebarFilter.value) {
       case "LOCAL":
         return item.serverType === "LOCAL";
@@ -3168,12 +3234,14 @@ const runServerServiceAction = async (
     if (success) {
       task.success({
         progress: 100,
-        message: payload.message || `${serverServiceActionLabelMap[action]}完成`,
+        message:
+          payload.message || `${serverServiceActionLabelMap[action]}完成`,
       });
     } else {
       task.error({
         progress: 100,
-        message: payload.message || `${serverServiceActionLabelMap[action]}失败`,
+        message:
+          payload.message || `${serverServiceActionLabelMap[action]}失败`,
       });
     }
     message(
@@ -4229,7 +4297,9 @@ const analyzeAlertHistory = async (payload: {
   endTime?: number;
   limit: number;
 }) => {
-  const serverId = toNumericId(selectedAlertDetail.value?.serverId || selectedHost.value?.serverId);
+  const serverId = toNumericId(
+    selectedAlertDetail.value?.serverId || selectedHost.value?.serverId,
+  );
   if (!serverId) {
     return;
   }
@@ -4835,7 +4905,9 @@ const openHostRemoteGateway = async (host: ServerHost) => {
   );
   applyRemoteGatewayForm(hostRemoteGatewayForm, result?.data || null);
   if (!globalRemoteGatewayForm.gatewayUrl) {
-    const globalResult = await getServerRemoteGatewaySettings().catch(() => null);
+    const globalResult = await getServerRemoteGatewaySettings().catch(
+      () => null,
+    );
     applyRemoteGatewayForm(globalRemoteGatewayForm, globalResult?.data || null);
     globalRemoteGatewayForm.inheritGlobal = false;
   }
@@ -5548,6 +5620,7 @@ onUnmounted(() => {
   metricsStream.disconnect();
   processStream.disconnect();
   serviceStream.disconnect();
+  stopSidebarResize();
   stopProcessRefreshLoop();
   stopFileWatch();
 });
@@ -5583,22 +5656,93 @@ onUnmounted(() => {
   min-height: 520px;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 28%),
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 26%);
+    radial-gradient(
+      circle at top left,
+      rgba(14, 165, 233, 0.08),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(59, 130, 246, 0.08),
+      transparent 26%
+    );
 }
 
 /* 布局容器 */
 .server-layout {
   display: grid;
-  gap: 16px;
-  grid-template-columns: 278px minmax(0, 1fr);
+  gap: 0;
+  grid-template-columns: var(--server-sidebar-width, 278px) 14px minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   align-items: stretch;
   overflow: hidden;
 }
 .server-layout.is-sidebar-collapsed {
-  grid-template-columns: 74px minmax(0, 1fr);
+  grid-template-columns: 74px 14px minmax(0, 1fr);
+}
+.server-layout__resizer {
+  position: relative;
+  width: 14px;
+  height: 100%;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: col-resize;
+}
+.server-layout__resizer::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(148, 163, 184, 0.14),
+    rgba(148, 163, 184, 0.34),
+    rgba(148, 163, 184, 0.14)
+  );
+  transition: background 0.2s ease;
+}
+.server-layout__resizer::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  width: 10px;
+  height: 72px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.server-layout__resizer:hover::before,
+.server-layout__resizer.is-dragging::before {
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.18),
+    rgba(14, 165, 233, 0.74),
+    rgba(59, 130, 246, 0.18)
+  );
+}
+.server-layout__resizer:hover::after,
+.server-layout__resizer.is-dragging::after {
+  opacity: 1;
+}
+.server-layout__resizer.is-dragging::after {
+  transform: translateY(-50%) scale(1.03);
+}
+.server-layout__resizer.is-collapsed {
+  cursor: default;
+}
+.server-layout__resizer.is-collapsed::after {
+  display: none;
 }
 .server-grid-shell {
   display: grid;
@@ -6003,7 +6147,11 @@ onUnmounted(() => {
   padding: 14px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 32%),
+    radial-gradient(
+      circle at top left,
+      rgba(14, 165, 233, 0.08),
+      transparent 32%
+    ),
     rgba(248, 250, 252, 0.96);
   border: 1px solid rgba(148, 163, 184, 0.16);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
@@ -6023,6 +6171,13 @@ onUnmounted(() => {
 }
 .server-file-tree :deep(.el-tree) {
   background: transparent;
+}
+
+.server-page :deep(.el-radio-button__inner) {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 .server-file-tree :deep(.el-tree-node__content) {
   min-height: 38px;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useUserStoreHook } from "@repo/core";
+import { router, useUserStoreHook } from "@repo/core";
 import { message } from "@repo/utils";
 import { computed, onMounted, ref } from "vue";
 import {
@@ -60,6 +60,11 @@ const normalizeValue = (value: unknown) => String(value || "").trim();
 const currentAgreementVersion = computed(
   () => normalizeValue(userStore.agreementVersion || agreement.value.version),
 );
+const canManageAgreement = computed(() =>
+  userStore.roles.some((role) =>
+    ["admin", "superadmin", "ADMIN", "SUPER_ADMIN"].includes(String(role)),
+  ),
+);
 const acceptedAgreementVersion = computed(() =>
   normalizeValue(userStore.agreementAcceptedVersion),
 );
@@ -110,6 +115,15 @@ const handleAcceptAgreement = async () => {
   }
 };
 
+const gotoAgreementSetting = () => {
+  router.push({
+    name: "ManageSetting",
+    query: {
+      group: "userAgreement",
+    },
+  });
+};
+
 onMounted(() => {
   void loadAgreement();
 });
@@ -138,6 +152,14 @@ onMounted(() => {
           >
             {{ needsConfirm ? "待确认" : "已确认" }}
           </div>
+          <ScButton
+            v-if="canManageAgreement"
+            plain
+            size="default"
+            @click="gotoAgreementSetting"
+          >
+            编辑协议
+          </ScButton>
           <ScButton
             v-if="needsConfirm"
             type="primary"
