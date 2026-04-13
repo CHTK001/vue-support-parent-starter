@@ -42,6 +42,24 @@
         </span>
       </div>
 
+      <div class="server-form-dialog__focus-grid">
+        <article class="server-form-dialog__focus-card">
+          <small>连接摘要</small>
+          <strong>{{ connectionFocusTitle }}</strong>
+          <span>{{ connectionHint }}</span>
+        </article>
+        <article class="server-form-dialog__focus-card">
+          <small>目录策略</small>
+          <strong>{{ displayBaseDirectory }}</strong>
+          <span>{{ directoryHint }}</span>
+        </article>
+        <article class="server-form-dialog__focus-card">
+          <small>凭证策略</small>
+          <strong>{{ credentialFocusTitle }}</strong>
+          <span>{{ credentialHint }}</span>
+        </article>
+      </div>
+
       <el-form label-position="top" class="server-form-dialog__form">
         <div class="server-form-dialog__grid">
           <el-form-item label="服务器名称">
@@ -382,6 +400,44 @@ const connectionHint = computed(() => {
   }
   return `SSH 默认端口 ${props.form.port || 22}`;
 });
+
+const connectionFocusTitle = computed(() => {
+  if (props.form.serverType === "LOCAL") {
+    return "127.0.0.1 / LOCAL";
+  }
+  const host = props.form.host?.trim() || "待填写地址";
+  const port =
+    Number(props.form.port || 0) || resolveDefaultPort(props.form.serverType);
+  return `${host}:${port}`;
+});
+
+const directoryHint = computed(() =>
+  props.form.serverType === "LOCAL"
+    ? "本机默认根目录自动补齐"
+    : normalizeOs(props.form.osType) === "windows"
+      ? "Windows 默认使用 C:/"
+      : "Linux/Unix 默认使用 /",
+);
+
+const credentialFocusTitle = computed(() => {
+  if (props.form.serverType === "LOCAL") {
+    return "无需手填";
+  }
+  if (props.form.serverType === "WINRM") {
+    return "账号 + 密码";
+  }
+  return "账号 + 密码 / 私钥";
+});
+
+const credentialHint = computed(() => {
+  if (props.form.serverType === "LOCAL") {
+    return "运行时自动识别本机账号与能力";
+  }
+  if (props.form.serverType === "WINRM") {
+    return "WinRM 建议使用管理员或具备远程执行权限的账号";
+  }
+  return "SSH 可直接留密码，也可以补私钥走密钥登录";
+});
 </script>
 
 <style scoped lang="scss">
@@ -496,6 +552,42 @@ const connectionHint = computed(() => {
   margin-top: -6px;
 }
 
+.server-form-dialog__focus-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.server-form-dialog__focus-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--el-color-primary) 8%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+}
+
+.server-form-dialog__focus-card small,
+.server-form-dialog__focus-card span {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.server-form-dialog__focus-card strong {
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
 .server-form-dialog__summary-chip {
   display: inline-flex;
   align-items: center;
@@ -573,6 +665,11 @@ const connectionHint = computed(() => {
   margin-bottom: 14px;
 }
 
+.server-form-dialog__form :deep(.el-form-item__label) {
+  padding-bottom: 6px;
+  font-weight: 600;
+}
+
 .server-form-dialog__select {
   width: 100%;
 }
@@ -591,6 +688,10 @@ const connectionHint = computed(() => {
 
 @media (max-width: 900px) {
   .server-form-dialog__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .server-form-dialog__focus-grid {
     grid-template-columns: 1fr;
   }
 

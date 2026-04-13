@@ -52,6 +52,39 @@
         </div>
       </div>
 
+      <div class="server-alert-dialog__focus-grid">
+        <article class="server-alert-dialog__focus-card">
+          <small>核心阈值</small>
+          <strong
+            >CPU {{ props.form.cpuWarningPercent || 0 }}/{{
+              props.form.cpuDangerPercent || 0
+            }}%</strong
+          >
+          <span
+            >内存 {{ props.form.memoryWarningPercent || 0 }}/{{
+              props.form.memoryDangerPercent || 0
+            }}% · 磁盘 {{ props.form.diskWarningPercent || 0 }}/{{
+              props.form.diskDangerPercent || 0
+            }}%</span
+          >
+        </article>
+        <article class="server-alert-dialog__focus-card">
+          <small>网络 / 延迟</small>
+          <strong>{{ ioWarningModel }} / {{ ioDangerModel }} {{ ioUnit }}/s</strong>
+          <span
+            >延迟 {{ latencyWarningModel }} / {{ latencyDangerModel }}
+            {{ latencyUnit }}</span
+          >
+        </article>
+        <article class="server-alert-dialog__focus-card">
+          <small>联动策略</small>
+          <strong>{{ form.enabled ? "实时预警开启" : "预警关闭" }}</strong>
+          <span>{{
+            form.messageEnabled ? "告警会同步到消息中心" : "仅保留页内与 Socket 事件"
+          }}</span>
+        </article>
+      </div>
+
       <div class="server-alert-dialog__grid">
         <section class="server-alert-dialog__group">
           <header>
@@ -443,6 +476,40 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
   background: color-mix(in srgb, var(--el-fill-color-light) 82%, white);
 }
 
+.server-alert-dialog__focus-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.server-alert-dialog__focus-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--el-color-primary) 8%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+}
+
+.server-alert-dialog__focus-card small,
+.server-alert-dialog__focus-card span {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.server-alert-dialog__focus-card strong {
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
 .server-alert-dialog__toolbar-main,
 .server-alert-dialog__switches,
 .server-alert-dialog__summary,
@@ -537,6 +604,11 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
   font-size: 13px;
 }
 
+.server-alert-dialog :deep(.el-form-item__label) {
+  padding-bottom: 6px;
+  font-weight: 600;
+}
+
 .server-alert-dialog__unit-select {
   min-width: 150px;
 }
@@ -553,6 +625,7 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
 }
 
 @media (max-width: 900px) {
+  .server-alert-dialog__focus-grid,
   .server-alert-dialog__grid,
   .server-alert-dialog__fields {
     grid-template-columns: 1fr;

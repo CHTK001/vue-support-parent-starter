@@ -22,6 +22,30 @@
         </div>
       </div>
 
+      <div class="server-remote-dialog__focus-grid">
+        <article class="server-remote-dialog__focus-card">
+          <small>配置来源</small>
+          <strong>{{
+            showInherit
+              ? form.inheritGlobal
+                ? "继承全局"
+                : "单机覆盖"
+              : "全局主档"
+          }}</strong>
+          <span>{{ previewMessage }}</span>
+        </article>
+        <article class="server-remote-dialog__focus-card">
+          <small>代理实现</small>
+          <strong>{{ form.provider || "guacamole" }}</strong>
+          <span>{{ form.protocol || "auto" }} / {{ resolvedLaunchPath }}</span>
+        </article>
+        <article class="server-remote-dialog__focus-card">
+          <small>有效入口</small>
+          <strong>{{ resolvedGatewayUrl || "待填写网关地址" }}</strong>
+          <span>{{ form.connectionId || "保存后自动生成连接编号" }}</span>
+        </article>
+      </div>
+
       <el-form label-position="top" class="server-remote-dialog__form">
         <div class="server-remote-dialog__grid">
           <el-form-item
@@ -261,6 +285,8 @@ const connectionIdValue = computed({
   },
 });
 
+const resolvedLaunchPath = computed(() => props.form.launchPath || "/#/client/");
+
 const previewMessage = computed(() =>
   props.form.enabled
     ? props.form.inheritGlobal && props.resolvedGatewayUrl
@@ -362,6 +388,41 @@ const inheritMode = computed({
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 16px;
+}
+
+.server-remote-dialog__focus-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.server-remote-dialog__focus-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--el-color-primary) 8%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+}
+
+.server-remote-dialog__focus-card small,
+.server-remote-dialog__focus-card span {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.server-remote-dialog__focus-card strong {
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .server-remote-dialog__span-2 {
@@ -469,7 +530,13 @@ const inheritMode = computed({
   margin-bottom: 12px;
 }
 
+.server-remote-dialog__form :deep(.el-form-item__label) {
+  padding-bottom: 6px;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
+  .server-remote-dialog__focus-grid,
   .server-remote-dialog__grid {
     grid-template-columns: 1fr;
   }

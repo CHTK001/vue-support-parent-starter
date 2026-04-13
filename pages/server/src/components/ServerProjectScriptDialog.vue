@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     width="1180px"
     destroy-on-close
@@ -112,7 +112,7 @@
         </el-button>
       </div>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">
