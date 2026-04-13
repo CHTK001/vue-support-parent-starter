@@ -145,12 +145,12 @@ const handleBlur = (event: FocusEvent) => {
 .sc-number-input {
   width: 100%;
   :deep(.el-input-number) {
-    --sc-number-height: var(--el-component-size, 32px);
+    --sc-number-height: 44px;
     width: 100%;
     min-height: var(--sc-number-height);
     border-radius: 12px;
     background: transparent;
-    --el-input-number-controls-height: 16px;
+    --el-input-number-controls-height: 18px;
 
     .el-input__wrapper {
       min-height: var(--sc-number-height);
@@ -184,8 +184,8 @@ const handleBlur = (event: FocusEvent) => {
 
     .el-input-number__decrease,
     .el-input-number__increase {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       border: none;
       border-radius: 8px;
       background: color-mix(in srgb, var(--el-fill-color-light) 82%, white);
