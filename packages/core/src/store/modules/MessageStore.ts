@@ -112,7 +112,9 @@ export const useMessageStore = defineStore("message-store", () => {
       if (response?.data) {
         unreadMessages.value = [];
         messageIdSet.value.clear();
-        response.data.forEach((msg) => addMessage(msg));
+        response.data
+          .filter((msg) => Number(msg?.sysMessageRead ?? 0) !== 1)
+          .forEach((msg) => addMessage(msg));
       }
 
       // 2. 监听 Socket 推送
@@ -148,7 +150,9 @@ export const useMessageStore = defineStore("message-store", () => {
       if (response?.data) {
         unreadMessages.value = [];
         messageIdSet.value.clear();
-        response.data.forEach((msg) => addMessage(msg));
+        response.data
+          .filter((msg) => Number(msg?.sysMessageRead ?? 0) !== 1)
+          .forEach((msg) => addMessage(msg));
       }
     } catch (error) {
       console.error("刷新消息列表失败:", error);

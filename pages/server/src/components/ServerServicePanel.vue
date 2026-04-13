@@ -491,7 +491,7 @@ const filteredServices = computed(() => {
 .server-service-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   height: 100%;
   min-height: 0;
   padding: 2px 0;
@@ -542,7 +542,7 @@ const filteredServices = computed(() => {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 18px;
   background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
   border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
@@ -564,7 +564,7 @@ const filteredServices = computed(() => {
   max-height: 404px;
   overflow: auto;
   padding-right: 4px;
-  padding-top: 2px;
+  padding-top: 6px;
 }
 
 .server-service-panel__item {

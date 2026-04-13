@@ -27,17 +27,6 @@
     </div>
 
     <div v-if="!collapsed" class="server-sidebar__filters">
-      <ScInput
-        :model-value="keyword"
-        clearable
-        class="server-sidebar__search"
-        placeholder="搜索名称、IP、账号、标签"
-        @update:model-value="emit('update:keyword', String($event || ''))"
-      >
-        <template #prefix>
-          <IconifyIconOnline icon="ri:search-line" />
-        </template>
-      </ScInput>
       <ScSelect
         :model-value="filter"
         :options="filterOptions"
@@ -103,7 +92,6 @@
 
 <script setup lang="ts">
 import ScCard from "@repo/components/ScCard/index.vue";
-import ScInput from "@repo/components/ScInput/index.vue";
 import ScScrollbar from "@repo/components/ScScrollbar/src/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import ServerHostCard from "./ServerHostCard.vue";
@@ -116,7 +104,6 @@ withDefaults(
     entries: ServerHostListEntry[];
     selectedId?: number | null;
     collapsed?: boolean;
-    keyword?: string;
     filter?: string;
     softEnabled?: boolean;
     filterOptions: SelectOption[];
@@ -145,7 +132,6 @@ const emit = defineEmits<{
   "toggle-aggregate-host": [host: ServerHost];
   "open-aggregate-dashboard": [];
   "update:collapsed": [value: boolean];
-  "update:keyword": [value: string];
   "update:filter": [value: string];
   contextmenu: [event: MouseEvent, entry?: ServerHostListEntry | null];
 }>();
@@ -198,7 +184,11 @@ const emit = defineEmits<{
   width: 34px;
   height: 34px;
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.96));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(241, 245, 249, 0.96)
+  );
   border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.07);
 }
@@ -217,9 +207,18 @@ const emit = defineEmits<{
   padding: 12px 14px;
   border-radius: 18px;
   background:
-    radial-gradient(circle at top right, color-mix(in srgb, var(--el-color-primary) 14%, transparent), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.28));
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--el-color-primary) 14%, transparent),
+      transparent 42%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(248, 250, 252, 0.96)
+    );
+  border: 1px solid
+    color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.28));
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
 }
 
@@ -235,12 +234,8 @@ const emit = defineEmits<{
   font-weight: 600;
 }
 
-.server-sidebar__search {
-  flex: 1;
-}
-
 .server-sidebar__filter {
-  width: 176px;
+  width: 100%;
 }
 
 .server-sidebar__scroll {
@@ -255,10 +250,18 @@ const emit = defineEmits<{
   transition: opacity 0.2s ease;
 }
 
-.server-sidebar:hover .server-sidebar__scroll :deep(.el-scrollbar__bar.is-vertical),
-.server-sidebar:hover .server-sidebar__scroll :deep(.el-scrollbar__bar.is-horizontal),
-.server-sidebar:focus-within .server-sidebar__scroll :deep(.el-scrollbar__bar.is-vertical),
-.server-sidebar:focus-within .server-sidebar__scroll :deep(.el-scrollbar__bar.is-horizontal) {
+.server-sidebar:hover
+  .server-sidebar__scroll
+  :deep(.el-scrollbar__bar.is-vertical),
+.server-sidebar:hover
+  .server-sidebar__scroll
+  :deep(.el-scrollbar__bar.is-horizontal),
+.server-sidebar:focus-within
+  .server-sidebar__scroll
+  :deep(.el-scrollbar__bar.is-vertical),
+.server-sidebar:focus-within
+  .server-sidebar__scroll
+  :deep(.el-scrollbar__bar.is-horizontal) {
   opacity: 0.35;
   pointer-events: auto;
 }
