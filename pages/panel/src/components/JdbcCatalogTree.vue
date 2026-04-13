@@ -2,22 +2,31 @@
   <ElCard class="explorer-shell" shadow="never">
     <template v-if="collapsed">
       <div class="collapsed-shell">
-        <ElButton circle plain size="small" @click="$emit('toggle-collapse')">展</ElButton>
+        <ElButton circle plain size="small" @click="$emit('toggle-collapse')"
+          >展</ElButton
+        >
       </div>
     </template>
 
     <template v-else>
-      <div class="tree-search" @contextmenu.prevent="openMenu($event, 'datasource', null)">
+      <div
+        class="tree-search"
+        @contextmenu.prevent="openMenu($event, 'datasource', null)"
+      >
         <ElInput
           :model-value="searchKeyword"
           clearable
           placeholder="搜索表 / 字段"
-          size="small"
           @keyup.enter="$emit('search')"
           @update:model-value="$emit('update:searchKeyword', $event)"
         />
-        <ElButton :icon="Search" circle size="small" type="primary" @click="$emit('search')" />
-        <ElButton :icon="RefreshRight" circle size="small" @click="$emit('refresh')" />
+        <ElButton
+          :icon="Search"
+          circle
+          type="primary"
+          @click="$emit('search')"
+        />
+        <ElButton :icon="RefreshRight" circle @click="$emit('refresh')" />
       </div>
 
       <ElScrollbar class="tree-scroll">
@@ -41,9 +50,15 @@
               :class="[`tree-node--${data.nodeType}`]"
               @contextmenu.prevent="openTreeNodeMenu($event, data)"
             >
+              <ElIcon class="tree-node__icon">
+                <component :is="resolveNodeIcon(data)" />
+              </ElIcon>
               <div class="tree-node__copy">
                 <strong>{{ data.nodeName }}</strong>
-                <ElTooltip :content="resolveNodeSubtitle(data)" placement="top-start">
+                <ElTooltip
+                  :content="resolveNodeSubtitle(data)"
+                  placement="top-start"
+                >
                   <small>{{ resolveNodeSubtitle(data) }}</small>
                 </ElTooltip>
               </div>
@@ -90,11 +105,26 @@
 </template>
 
 <script setup lang="ts">
-import { RefreshRight, Search } from "@element-plus/icons-vue";
+import {
+  Collection,
+  Connection,
+  CopyDocument,
+  Delete,
+  EditPen,
+  Files,
+  FolderOpened,
+  Key,
+  MagicStick,
+  Reading,
+  RefreshRight,
+  Search,
+  Tickets,
+} from "@element-plus/icons-vue";
 import {
   ElButton,
   ElCard,
   ElEmpty,
+  ElIcon,
   ElInput,
   ElScrollbar,
   ElTag,
@@ -103,7 +133,9 @@ import {
 } from "element-plus";
 import { computed, reactive } from "vue";
 import type { JdbcCatalogNode } from "../api";
-import PanelContextMenu, { type PanelContextMenuItem } from "./PanelContextMenu.vue";
+import PanelContextMenu, {
+  type PanelContextMenuItem,
+} from "./PanelContextMenu.vue";
 
 type MenuTargetType = "catalog" | "datasource" | "field" | "table";
 
@@ -127,7 +159,7 @@ const emit = defineEmits<{
       node: JdbcCatalogNode | null;
       position: { x: number; y: number };
       targetType: MenuTargetType;
-    },
+    }
   ): void;
   (e: "collapse-table", node: JdbcCatalogNode): void;
   (e: "collapse-node", node: JdbcCatalogNode): void;
@@ -156,46 +188,47 @@ const menu = reactive<{
 
 const menuItemsMap: Record<MenuTargetType, MenuItem[]> = {
   datasource: [
-    { key: "refresh", label: "刷新连接" },
-    { key: "toggle-collapse", label: "收起对象树" },
+    { key: "refresh", label: "刷新连接", icon: RefreshRight },
+    { key: "toggle-collapse", label: "收起对象树", icon: FolderOpened },
     { key: "divider-datasource-danger", label: "", divider: true },
-    { key: "close-connection", label: "关闭连接", danger: true },
+    { key: "close-connection", label: "关闭连接", danger: true, icon: Connection },
   ],
   catalog: [
-    { key: "refresh", label: "刷新数据库" },
-    { key: "new-sql", label: "新建 SQL" },
-    { key: "account-manage", label: "账号管理" },
-    { key: "open-database-document", label: "打开文档" },
+    { key: "refresh", label: "刷新数据库", icon: RefreshRight },
+    { key: "new-sql", label: "新建 SQL", icon: MagicStick },
+    { key: "account-manage", label: "账号管理", icon: Key },
+    { key: "open-database-document", label: "打开文档", icon: Reading },
     { key: "divider-catalog-note", label: "", divider: true },
-    { key: "edit-note", label: "编辑备注" },
-    { key: "copy-name", label: "复制数据库名" },
+    { key: "edit-note", label: "编辑备注", icon: EditPen },
+    { key: "copy-name", label: "复制数据库名", icon: CopyDocument },
   ],
   table: [
-    { key: "design-table", label: "设计表" },
-    { key: "new-sql", label: "新建查询" },
-    { key: "edit-table", label: "编辑表" },
-    { key: "open-data", label: "打开表" },
+    { key: "design-table", label: "设计表", icon: Tickets },
+    { key: "new-sql", label: "新建查询", icon: MagicStick },
+    { key: "edit-table", label: "编辑表", icon: EditPen },
+    { key: "open-data", label: "打开表", icon: Collection },
     { key: "divider-table-doc", label: "", divider: true },
-    { key: "edit-note", label: "编辑备注" },
-    { key: "copy-name", label: "复制表名" },
+    { key: "edit-note", label: "编辑备注", icon: EditPen },
+    { key: "copy-name", label: "复制表名", icon: CopyDocument },
     { key: "divider-table-sql", label: "", divider: true },
     {
       key: "sql-actions",
       label: "SQL 操作",
+      icon: Files,
       children: [
-        { key: "sql-select", label: "生成 SELECT" },
-        { key: "sql-count", label: "生成 COUNT" },
-        { key: "sql-backup", label: "备份表" },
-        { key: "sql-clear", label: "清空表", danger: true },
-        { key: "sql-truncate", label: "截断表", danger: true },
-        { key: "sql-drop", label: "删除表", danger: true },
+        { key: "sql-select", label: "生成 SELECT", icon: Search },
+        { key: "sql-count", label: "生成 COUNT", icon: Collection },
+        { key: "sql-backup", label: "备份表", icon: CopyDocument },
+        { key: "sql-clear", label: "清空表", danger: true, icon: Delete },
+        { key: "sql-truncate", label: "截断表", danger: true, icon: Delete },
+        { key: "sql-drop", label: "删除表", danger: true, icon: Delete },
       ],
-    }
+    },
   ],
   field: [
-    { key: "edit-field-note", label: "编辑备注" },
+    { key: "edit-field-note", label: "编辑备注", icon: EditPen },
     { key: "divider-field-copy", label: "", divider: true },
-    { key: "copy-name", label: "复制字段名" },
+    { key: "copy-name", label: "复制字段名", icon: CopyDocument },
   ],
 };
 
@@ -221,7 +254,7 @@ const IMPLEMENTED_MENU_ACTIONS = new Set([
 ]);
 
 const normalizeMenuItems = (items: MenuItem[]): MenuItem[] =>
-  items.map(item => {
+  items.map((item) => {
     if (item.divider) {
       return item;
     }
@@ -231,7 +264,7 @@ const normalizeMenuItems = (items: MenuItem[]): MenuItem[] =>
       return {
         ...item,
         children,
-        disabled: item.disabled || children.every(child => child.disabled),
+        disabled: item.disabled || children.every((child) => child.disabled),
       };
     }
 
@@ -242,11 +275,25 @@ const normalizeMenuItems = (items: MenuItem[]): MenuItem[] =>
   });
 
 const currentMenuItems = computed(() =>
-  normalizeMenuItems(menuItemsMap[menu.targetType] || []),
+  normalizeMenuItems(menuItemsMap[menu.targetType] || [])
 );
 
+const resolveNodeIcon = (node: JdbcCatalogNode) => {
+  if (node.nodeType === "catalog") {
+    return FolderOpened;
+  }
+  if (node.nodeType === "field") {
+    return Key;
+  }
+  return Tickets;
+};
+
 const treeRenderKey = computed(() =>
-  [props.activeNodeId, props.expandedKeys.join("|"), props.catalogTree.length].join("::"),
+  [
+    props.activeNodeId,
+    props.expandedKeys.join("|"),
+    props.catalogTree.length,
+  ].join("::")
 );
 
 const closeMenu = () => {
@@ -256,7 +303,7 @@ const closeMenu = () => {
 const openMenu = (
   event: MouseEvent,
   targetType: MenuTargetType,
-  node: JdbcCatalogNode | null,
+  node: JdbcCatalogNode | null
 ) => {
   menu.visible = true;
   menu.targetType = targetType;
@@ -266,19 +313,20 @@ const openMenu = (
 };
 
 const openTreeNodeMenu = (event: MouseEvent, node: JdbcCatalogNode) => {
-  const targetType = node.nodeType === "field"
-    ? "field"
-    : node.nodeType === "catalog"
-      ? "catalog"
-      : "table";
+  const targetType =
+    node.nodeType === "field"
+      ? "field"
+      : node.nodeType === "catalog"
+        ? "catalog"
+        : "table";
   openMenu(event, targetType, node);
 };
 
 const handleMenuAction = (action: string, submenu = false) => {
-  const flatItems = currentMenuItems.value.flatMap(item =>
-    item.children?.length ? [item, ...item.children] : [item],
+  const flatItems = currentMenuItems.value.flatMap((item) =>
+    item.children?.length ? [item, ...item.children] : [item]
   );
-  if (submenu || flatItems.find(item => item.key === action)?.disabled) {
+  if (submenu || flatItems.find((item) => item.key === action)?.disabled) {
     return;
   }
   emit("context-action", {
@@ -321,7 +369,6 @@ const resolveNodeSubtitle = (node: JdbcCatalogNode) => {
 
   return node.description || "数据库";
 };
-
 </script>
 
 <style scoped lang="scss">
@@ -375,10 +422,17 @@ const resolveNodeSubtitle = (node: JdbcCatalogNode) => {
   border-radius: 8px;
 }
 
+.tree-node__icon {
+  flex-shrink: 0;
+  color: #4f6472;
+  font-size: 15px;
+}
+
 .tree-node__copy {
   display: grid;
   gap: 1px;
   min-width: 0;
+  flex: 1;
 }
 
 .tree-node__copy strong {
@@ -438,7 +492,12 @@ const resolveNodeSubtitle = (node: JdbcCatalogNode) => {
   background: rgba(37, 99, 235, 0.06);
 }
 
-.explorer-shell :deep(.el-tree--highlight-current .el-tree-node.is-current > .el-tree-node__content) {
+.explorer-shell
+  :deep(
+    .el-tree--highlight-current
+      .el-tree-node.is-current
+      > .el-tree-node__content
+  ) {
   background: rgba(37, 99, 235, 0.1);
 }
 </style>

@@ -9,7 +9,6 @@
       <div class="header-actions">
         <ScTooltip content="刷新目录" placement="top">
           <ScButton
-            size="small"
             circle
             :loading="isLoading"
             class="action-btn"
@@ -19,12 +18,12 @@
           </ScButton>
         </ScTooltip>
         <ScTooltip content="展开全部" placement="top">
-          <ScButton size="small" circle class="action-btn" @click="expandAll">
+          <ScButton circle class="action-btn" @click="expandAll">
             <IconifyIconOnline icon="ri:add-box-line" />
           </ScButton>
         </ScTooltip>
         <ScTooltip content="收起全部" placement="top">
-          <ScButton size="small" circle class="action-btn" @click="collapseAll">
+          <ScButton circle class="action-btn" @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-line" />
           </ScButton>
         </ScTooltip>
@@ -37,7 +36,6 @@
         v-model="searchText"
         placeholder="搜索目录..."
         clearable
-        size="small"
         class="search-input"
       >
         <template #prefix>
@@ -250,7 +248,7 @@ const filteredTreeData = computed(() => {
 // 方法
 const filterTreeData = (
   data: DirectoryNode[],
-  searchTerm: string,
+  searchTerm: string
 ): DirectoryNode[] => {
   return data.filter((node) => {
     const matchesSearch = node.name.toLowerCase().includes(searchTerm);
@@ -270,7 +268,7 @@ const filterTreeData = (
 
 const loadNode = async (
   node: ElTreeNode,
-  resolve: (data: DirectoryNode[]) => void,
+  resolve: (data: DirectoryNode[]) => void
 ) => {
   try {
     if (node.level === 0) {
@@ -479,7 +477,7 @@ const openInNewTab = () => {
     // 在新标签页打开
     window.open(
       `/file-manager?path=${encodeURIComponent(contextMenuNode.value.path)}`,
-      "_blank",
+      "_blank"
     );
   }
 };
@@ -526,7 +524,7 @@ watch(
     if (treeRef.value) {
       treeRef.value.setCurrentKey(newPath);
     }
-  },
+  }
 );
 
 // 组件挂载

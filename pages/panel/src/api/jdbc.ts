@@ -231,6 +231,14 @@ export interface PanelSqlTemplateRequest {
   panelBackupTableName?: string;
 }
 
+const buildPlainTextRequest = (text: string) => ({
+  data: String(text ?? ""),
+  headers: {
+    "Content-Type": "text/plain;charset=UTF-8",
+  },
+  transformRequest: [(data: string) => data],
+});
+
 export const openJdbcConnection = (data: PanelConnectionDefinition) =>
   http.request<ReturnResult<PanelConnectionHandle>>(
     "post",
@@ -331,14 +339,14 @@ export const executeJdbcSql = (connectionId: string, sql: string) =>
   http.request<ReturnResult<JdbcQueryResult>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/execute`,
-    { data: sql },
+    buildPlainTextRequest(sql),
   );
 
 export const explainJdbcExecution = (connectionId: string, sql: string) =>
   http.request<ReturnResult<JdbcQueryResult>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/explain`,
-    { data: sql },
+    buildPlainTextRequest(sql),
   );
 
 export const fetchJdbcTableDocument = (
@@ -379,7 +387,7 @@ export const explainJdbcSql = (connectionId: string, sql: string) =>
   http.request<ReturnResult<string>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/ai/sql`,
-    { data: sql },
+    buildPlainTextRequest(sql),
   );
 
 export const generateJdbcSql = (
