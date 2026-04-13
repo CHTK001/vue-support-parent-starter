@@ -91,7 +91,11 @@ const buildSummary = (row: Record<string, any>) => {
   bottom: -10px;
   width: 2px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.36), rgba(59, 130, 246, 0.06));
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.36),
+    rgba(59, 130, 246, 0.06)
+  );
   content: "";
 }
 

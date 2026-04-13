@@ -17,7 +17,10 @@
             v-if="activeWorkbenchTab.tabType === 'table-edit'"
             class="workbench-head__tools"
           >
-            <ScTabs v-model="editSection" class="toolbar-tabs toolbar-tabs--compact">
+            <ScTabs
+              v-model="editSection"
+              class="toolbar-tabs toolbar-tabs--compact"
+            >
               <ScTabPane
                 v-for="item in editSectionOptions"
                 :key="item.value"
@@ -28,7 +31,6 @@
             <ElTooltip content="复制当前 DDL">
               <ElButton
                 circle
-                size="small"
                 :icon="DocumentCopy"
                 @click="handleCopyEditDdl"
               />
@@ -36,24 +38,17 @@
             <ElTooltip content="复制变更 SQL">
               <ElButton
                 circle
-                size="small"
                 :disabled="!activeAlterSql"
                 :icon="CopyDocument"
                 @click="handleCopyAlterSql"
               />
             </ElTooltip>
             <ElTooltip content="写入 SQL 工作区">
-              <ElButton
-                circle
-                size="small"
-                :icon="Promotion"
-                @click="handleUseEditSql"
-              />
+              <ElButton circle :icon="Promotion" @click="handleUseEditSql" />
             </ElTooltip>
             <ElTooltip content="保存变更">
               <ElButton
                 circle
-                size="small"
                 type="primary"
                 :disabled="!activeAlterSql"
                 :icon="VideoPlay"
@@ -66,7 +61,10 @@
             class="workbench-head__tools workbench-head__tools--stack"
           >
             <div class="toolbar-row">
-              <ScTabs v-model="tableView" class="toolbar-tabs toolbar-tabs--compact">
+              <ScTabs
+                v-model="tableView"
+                class="toolbar-tabs toolbar-tabs--compact"
+              >
                 <ScTabPane
                   v-for="item in workbenchViewOptions"
                   :key="item.value"
@@ -80,7 +78,6 @@
               >
                 <ElButton
                   circle
-                  size="small"
                   type="primary"
                   :icon="FolderChecked"
                   @click="handleSaveTableChanges"
@@ -89,7 +86,6 @@
               <ElTooltip content="刷新当前表数据">
                 <ElButton
                   circle
-                  size="small"
                   :icon="RefreshRight"
                   @click="handleRefreshActiveTable"
                 />
@@ -97,7 +93,10 @@
             </div>
             <div class="toolbar-row">
               <span class="toolbar-label">表头</span>
-              <ScTabs v-model="tableCommentTab" class="toolbar-tabs toolbar-tabs--compact">
+              <ScTabs
+                v-model="tableCommentTab"
+                class="toolbar-tabs toolbar-tabs--compact"
+              >
                 <ScTabPane
                   v-for="item in commentModeOptions"
                   :key="`head-${item.value}`"
@@ -106,7 +105,10 @@
                 />
               </ScTabs>
               <span class="toolbar-label">数据</span>
-              <ScTabs v-model="dataCommentTab" class="toolbar-tabs toolbar-tabs--compact">
+              <ScTabs
+                v-model="dataCommentTab"
+                class="toolbar-tabs toolbar-tabs--compact"
+              >
                 <ScTabPane
                   v-for="item in commentModeOptions"
                   :key="`data-${item.value}`"
@@ -115,7 +117,10 @@
                 />
               </ScTabs>
               <span class="toolbar-label">页签形状</span>
-              <ScTabs v-model="railShapeTab" class="toolbar-tabs toolbar-tabs--compact">
+              <ScTabs
+                v-model="railShapeTab"
+                class="toolbar-tabs toolbar-tabs--compact"
+              >
                 <ScTabPane
                   v-for="item in railShapeOptions"
                   :key="`shape-${item.value}`"
@@ -137,7 +142,10 @@
             </div>
             <div class="toolbar-row">
               <span class="toolbar-label">数据模式</span>
-              <ScTabs v-model="paginationModeTab" class="toolbar-tabs toolbar-tabs--compact">
+              <ScTabs
+                v-model="paginationModeTab"
+                class="toolbar-tabs toolbar-tabs--compact"
+              >
                 <ScTabPane
                   v-for="item in paginationModeOptions"
                   :key="`mode-${item.value}`"
@@ -154,12 +162,7 @@
               />
               <ElPopover placement="bottom-end" trigger="click" width="320">
                 <template #reference>
-                  <ElButton
-                    circle
-                    size="small"
-                    :icon="SetUp"
-                    title="冻结列"
-                  />
+                  <ElButton circle :icon="SetUp" title="冻结列" />
                 </template>
                 <div class="column-setting-popover">
                   <strong>冻结列</strong>
@@ -191,6 +194,19 @@
               Schema
               {{ activeWorkbenchTab.databaseDocument?.panelSchemaCount || 0 }}
             </ScTag>
+            <ElButton
+              size="small"
+              :icon="Download"
+              @click="handleExportMarkdown"
+            >
+              MD
+            </ElButton>
+            <ElButton size="small" :icon="Download" @click="handleExportWord">
+              DOCX
+            </ElButton>
+            <ElButton size="small" :icon="Download" @click="handleExportPdf">
+              PDF
+            </ElButton>
           </div>
         </header>
 
@@ -276,7 +292,6 @@
                       <ElTooltip content="创建账号">
                         <ElButton
                           circle
-                          size="small"
                           :icon="Plus"
                           @click="openAccountDialog('create')"
                         />
@@ -284,7 +299,6 @@
                       <ElTooltip content="复制 user@host">
                         <ElButton
                           circle
-                          size="small"
                           :disabled="!activeSelectedAccount"
                           :icon="CopyDocument"
                           @click="handleCopyAccountPrincipal"
@@ -293,7 +307,6 @@
                       <ElTooltip content="复制授权 SQL">
                         <ElButton
                           circle
-                          size="small"
                           :disabled="!activeSelectedGrantText"
                           :icon="DocumentCopy"
                           @click="handleCopyAccountGrants"
@@ -302,7 +315,6 @@
                       <ElTooltip content="修改密码">
                         <ElButton
                           circle
-                          size="small"
                           :disabled="!activeSelectedAccount"
                           :icon="EditPen"
                           @click="openAccountDialog('update')"
@@ -311,7 +323,6 @@
                       <ElTooltip content="授予权限">
                         <ElButton
                           circle
-                          size="small"
                           :disabled="!activeSelectedAccount"
                           :icon="Promotion"
                           @click="openPrivilegeDialog('grant')"
@@ -320,7 +331,6 @@
                       <ElTooltip content="回收权限">
                         <ElButton
                           circle
-                          size="small"
                           :disabled="!activeSelectedAccount"
                           :icon="QuestionFilled"
                           @click="openPrivilegeDialog('revoke')"
@@ -329,7 +339,6 @@
                       <ElTooltip content="删除账号">
                         <ElButton
                           circle
-                          size="small"
                           :disabled="!activeSelectedAccount"
                           :icon="Delete"
                           @click="handleDeleteAccount"
@@ -389,17 +398,11 @@
             <div v-if="editSection === 'columns'" class="workbench-panel">
               <div class="table-edit-toolbar">
                 <ElTooltip content="新增字段">
-                  <ElButton
-                    circle
-                    size="small"
-                    :icon="Plus"
-                    @click="handleAddEditColumn"
-                  />
+                  <ElButton circle :icon="Plus" @click="handleAddEditColumn" />
                 </ElTooltip>
                 <ElTooltip content="重置为原始结构">
                   <ElButton
                     circle
-                    size="small"
                     :icon="RefreshRight"
                     @click="handleResetEditColumns"
                   />
@@ -409,7 +412,11 @@
                 <ElTableColumn label="#" type="index" width="54" />
                 <ElTableColumn label="字段名" min-width="180">
                   <template #default="{ row }">
-                    <ElInput v-model="row.name" class="table-edit__control" size="small" />
+                    <ElInput
+                      v-model="row.name"
+                      class="table-edit__control"
+                      size="small"
+                    />
                   </template>
                 </ElTableColumn>
                 <ElTableColumn label="类型" min-width="180">
@@ -465,12 +472,20 @@
                 </ElTableColumn>
                 <ElTableColumn label="默认值" min-width="140">
                   <template #default="{ row }">
-                    <ElInput v-model="row.defaultValue" class="table-edit__control" size="small" />
+                    <ElInput
+                      v-model="row.defaultValue"
+                      class="table-edit__control"
+                      size="small"
+                    />
                   </template>
                 </ElTableColumn>
                 <ElTableColumn label="备注" min-width="220">
                   <template #default="{ row }">
-                    <ElInput v-model="row.comment" class="table-edit__control" size="small" />
+                    <ElInput
+                      v-model="row.comment"
+                      class="table-edit__control"
+                      size="small"
+                    />
                   </template>
                 </ElTableColumn>
                 <ElTableColumn label="操作" width="70" fixed="right">
@@ -527,7 +542,11 @@
                 <ElTableColumn label="触发器" min-width="180" prop="name" />
                 <ElTableColumn label="时机" min-width="120" prop="timing" />
                 <ElTableColumn label="事件" min-width="120" prop="event" />
-                <ElTableColumn label="创建时间" min-width="180" prop="created" />
+                <ElTableColumn
+                  label="创建时间"
+                  min-width="180"
+                  prop="created"
+                />
                 <ElTableColumn
                   label="定义"
                   min-width="360"
@@ -546,23 +565,11 @@
           </template>
 
           <template v-else-if="activeWorkbenchTab.tabType === 'table'">
-            <div v-if="tableView === 'data'" class="workbench-panel workbench-panel--data">
+            <div
+              v-if="tableView === 'data'"
+              class="workbench-panel workbench-panel--data"
+            >
               <div class="data-preview-head">
-                <div class="data-preview-head__summary">
-                  <span>直接编辑数据</span>
-                  <ElInput
-                    :model-value="activeWorkbenchTab.filterKeyword"
-                    clearable
-                    placeholder="筛选当前结果集"
-                    size="small"
-                    class="data-preview-head__filter"
-                    @update:model-value="
-                      updateActiveTabSetting({
-                        filterKeyword: String($event || ''),
-                      })
-                    "
-                  />
-                </div>
                 <div class="data-preview-head__actions">
                   <ElTooltip
                     v-if="capabilities?.aiStarterEnabled"
@@ -570,9 +577,10 @@
                   >
                     <ElButton
                       circle
-                      size="small"
                       :icon="MagicStick"
-                      @click="$emit('generate-sample-data', activeWorkbenchTab.tabId)"
+                      @click="
+                        $emit('generate-sample-data', activeWorkbenchTab.tabId)
+                      "
                     />
                   </ElTooltip>
                   <code
@@ -634,7 +642,7 @@
                         :class="{
                           'data-cell--editing': isEditingCell(
                             row.__panelRowIndex,
-                            column,
+                            column
                           ),
                         }"
                         @click="activateCellEdit(row.__panelRowIndex, column)"
@@ -705,7 +713,10 @@
               </div>
               <div v-else class="data-pagination data-pagination--summary">
                 <span>非分页模式</span>
-                <small>当前按一次性结果集显示，最多返回 {{ previewLimit }} 行。</small>
+                <small
+                  >当前按一次性结果集显示，最多返回
+                  {{ previewLimit }} 行。</small
+                >
               </div>
             </div>
 
@@ -763,6 +774,7 @@
         <div class="metadata-body">
           <JdbcDatasourceProfile
             :capabilities="capabilities"
+            :catalogs="catalogs"
             :metadata="datasourceMetadata"
           />
         </div>
@@ -787,7 +799,6 @@
                 circle
                 :disabled="submitting"
                 :icon="VideoPlay"
-                size="small"
                 type="primary"
                 @click="$emit('execute')"
               />
@@ -797,7 +808,6 @@
                 circle
                 :disabled="submitting || !hasSelection"
                 :icon="CaretRight"
-                size="small"
                 @click="handleExecuteSelection"
               />
             </ElTooltip>
@@ -806,7 +816,6 @@
                 circle
                 :disabled="submitting || formatPending"
                 :icon="MagicStick"
-                size="small"
                 @click="handleFormatSql"
               />
             </ElTooltip>
@@ -815,7 +824,6 @@
                 circle
                 :disabled="submitting"
                 :icon="QuestionFilled"
-                size="small"
                 @click="$emit('explain')"
               />
             </ElTooltip>
@@ -824,7 +832,6 @@
                 circle
                 :disabled="submitting"
                 :icon="Promotion"
-                size="small"
                 @click="aiDialogVisible = true"
               />
             </ElTooltip>
@@ -832,18 +839,18 @@
               <ElButton
                 circle
                 :icon="DocumentCopy"
-                size="small"
                 @click="handleCopyCodeBlock"
               />
             </ElTooltip>
             <ElTooltip content="保存 SQL">
-              <ElButton
-                circle
-                :icon="FolderChecked"
-                size="small"
-                @click="handleSaveSql"
-              />
+              <ElButton circle :icon="FolderChecked" @click="handleSaveSql" />
             </ElTooltip>
+            <span
+              v-if="queryResult?.elapsedMillis !== undefined"
+              class="sql-elapsed"
+            >
+              {{ queryResult.elapsedMillis }} ms
+            </span>
           </div>
         </header>
 
@@ -1014,15 +1021,29 @@
       width="460px"
     >
       <div class="dialog-form">
-        <ElInput v-model="privilegeForm.panelAccountName" disabled placeholder="账号" />
-        <ElInput v-model="privilegeForm.panelHost" disabled placeholder="Host" />
+        <ElInput
+          v-model="privilegeForm.panelAccountName"
+          disabled
+          placeholder="账号"
+        />
+        <ElInput
+          v-model="privilegeForm.panelHost"
+          disabled
+          placeholder="Host"
+        />
         <ElInput
           :model-value="privilegeForm.panelPrivileges.join(', ')"
           placeholder="权限，逗号分隔，例如 SELECT, INSERT"
           @update:model-value="handlePrivilegeInput"
         />
-        <ElInput v-model="privilegeForm.panelCatalogName" placeholder="数据库，默认 *" />
-        <ElInput v-model="privilegeForm.panelTableName" placeholder="表，默认 *" />
+        <ElInput
+          v-model="privilegeForm.panelCatalogName"
+          placeholder="数据库，默认 *"
+        />
+        <ElInput
+          v-model="privilegeForm.panelTableName"
+          placeholder="表，默认 *"
+        />
         <div class="dialog-form__inline">
           <span>WITH GRANT OPTION</span>
           <ElSwitch
@@ -1045,6 +1066,7 @@ import {
   CopyDocument,
   DataAnalysis,
   Delete,
+  Download,
   Document,
   DocumentCopy,
   EditPen,
@@ -1106,7 +1128,10 @@ import type {
   PanelTableDataView,
 } from "../api";
 import {
+  exportDatabaseDocumentToMarkdown,
+  exportDatabaseDocumentToWord,
   exportDocumentToPdf,
+  exportStructureToMarkdown,
   exportStructureToWord,
 } from "../utils/documentExport";
 import JdbcDatabaseDocument from "./JdbcDatabaseDocument.vue";
@@ -1184,6 +1209,7 @@ const props = defineProps<{
   activePath: string;
   activeTabId: string;
   capabilities: PanelCapabilitySummary | null;
+  catalogs: string[];
   datasourceMetadata: JdbcConnectionMetadata | null;
   errorMessage: string;
   previewLimit: number;
@@ -1226,11 +1252,29 @@ const emit = defineEmits<{
   (e: "generate-sql", prompt: string): void;
   (e: "quick-run", sql: string): void;
   (e: "refresh-table-data", tabId: string): void;
-  (e: "create-account", tabId: string, request: PanelJdbcAccountSaveRequest): void;
-  (e: "update-account", tabId: string, request: PanelJdbcAccountSaveRequest): void;
-  (e: "delete-account", tabId: string, accountName: string, host?: string): void;
+  (e: "save-table-design", tabId: string, sql: string): void;
+  (
+    e: "create-account",
+    tabId: string,
+    request: PanelJdbcAccountSaveRequest
+  ): void;
+  (
+    e: "update-account",
+    tabId: string,
+    request: PanelJdbcAccountSaveRequest
+  ): void;
+  (
+    e: "delete-account",
+    tabId: string,
+    accountName: string,
+    host?: string
+  ): void;
   (e: "grant-account", tabId: string, request: PanelJdbcPrivilegeRequest): void;
-  (e: "revoke-account", tabId: string, request: PanelJdbcPrivilegeRequest): void;
+  (
+    e: "revoke-account",
+    tabId: string,
+    request: PanelJdbcPrivilegeRequest
+  ): void;
   (e: "save-table-data", tabId: string, updates: PanelTableRowUpdate[]): void;
   (e: "update:sqlText", value: string): void;
 }>();
@@ -1363,8 +1407,10 @@ const activeDisplayRows = computed(() => {
       if (!keyword) {
         return true;
       }
-      return Object.values(__panelRow || {}).some(value =>
-        String(value ?? "").toLowerCase().includes(keyword)
+      return Object.values(__panelRow || {}).some((value) =>
+        String(value ?? "")
+          .toLowerCase()
+          .includes(keyword)
       );
     });
 });
@@ -1426,13 +1472,14 @@ const railTabs = computed(() => [
     name: "metadata",
     title: "数据源信息",
   },
-  ...props.tableTabs.map(tab => ({
+  ...props.tableTabs.map((tab) => ({
     closable: true,
-    icon: tab.tabType === "table-edit"
-      ? EditPen
-      : tab.tabType === "database-document"
-        ? Document
-        : Tickets,
+    icon:
+      tab.tabType === "table-edit"
+        ? EditPen
+        : tab.tabType === "database-document"
+          ? Document
+          : Tickets,
     name: tab.tabId,
     title: tab.tabName,
   })),
@@ -1481,7 +1528,9 @@ const editableTypeOptions = computed(() => {
     "varchar",
   ]);
   [...activeColumns.value, ...activeEditableColumns.value].forEach((column) => {
-    const rawType = String(column.type || "").trim().toLowerCase();
+    const rawType = String(column.type || "")
+      .trim()
+      .toLowerCase();
     if (!rawType) {
       return;
     }
@@ -1630,10 +1679,17 @@ const buildEditableColumns = (tab: InspectorTableTab): EditableColumn[] =>
   }));
 
 const ensureTableEditDraft = (tab: InspectorTableTab) => {
-  if (tab.tabType !== "table-edit" || tableEditDrafts[tab.tabId]) {
+  if (tab.tabType !== "table-edit") {
     return;
   }
-  tableEditDrafts[tab.tabId] = buildEditableColumns(tab);
+  const currentDraft = tableEditDrafts[tab.tabId];
+  const sourceColumns = tab.structure?.columns || [];
+  if (currentDraft?.length) {
+    return;
+  }
+  if (!currentDraft || sourceColumns.length) {
+    tableEditDrafts[tab.tabId] = buildEditableColumns(tab);
+  }
 };
 
 const ensureTableDataDraft = (tab: InspectorTableTab) => {
@@ -1954,7 +2010,7 @@ const handleRailTabRemove = (name: string | number) => {
 
 const handleFrozenColumnsChange = (value: Array<string | number>) => {
   updateActiveTabSetting({
-    frozenColumns: value.map(item => String(item)),
+    frozenColumns: value.map((item) => String(item)),
   });
 };
 
@@ -1976,7 +2032,9 @@ const resolveSequence = (rowIndex: number) => {
   if (!tab || tab.paginationMode === "full") {
     return rowIndex + 1;
   }
-  return (Math.max(tab.pageNum, 1) - 1) * Math.max(tab.pageSize, 1) + rowIndex + 1;
+  return (
+    (Math.max(tab.pageNum, 1) - 1) * Math.max(tab.pageSize, 1) + rowIndex + 1
+  );
 };
 
 const activateCellEdit = (rowIndex: number, column: string) => {
@@ -2033,7 +2091,7 @@ const collectDataUpdates = (): PanelTableRowUpdate[] => {
   if (!draft) {
     return [];
   }
-  return draft.rows.reduce((acc, row, index) => {
+  return draft.rows.reduce<PanelTableRowUpdate[]>((acc, row, index) => {
     const original = draft.originalRows[index] || {};
     if (JSON.stringify(row) !== JSON.stringify(original)) {
       acc.push({
@@ -2174,7 +2232,8 @@ const handleCopyAccountGrants = async () => {
 const openAccountDialog = (mode: "create" | "update") => {
   accountDialogMode.value = mode;
   if (mode === "update" && activeSelectedAccount.value) {
-    accountForm.panelAccountName = activeSelectedAccount.value.panelAccountName || "";
+    accountForm.panelAccountName =
+      activeSelectedAccount.value.panelAccountName || "";
     accountForm.panelHost = activeSelectedAccount.value.panelHost || "%";
     accountForm.panelPassword = "";
   } else {
@@ -2199,18 +2258,15 @@ const submitAccountDialog = () => {
     ElMessage.warning("请输入账号");
     return;
   }
-  if (
-    accountDialogMode.value === "create" &&
-    !request.panelPassword
-  ) {
+  if (accountDialogMode.value === "create" && !request.panelPassword) {
     ElMessage.warning("创建账号时请输入密码");
     return;
   }
-  emit(
-    accountDialogMode.value === "create" ? "create-account" : "update-account",
-    tab.tabId,
-    request,
-  );
+  if (accountDialogMode.value === "create") {
+    emit("create-account", tab.tabId, request);
+  } else {
+    emit("update-account", tab.tabId, request);
+  }
   accountDialogVisible.value = false;
 };
 
@@ -2220,7 +2276,8 @@ const openPrivilegeDialog = (mode: "grant" | "revoke") => {
     return;
   }
   privilegeDialogMode.value = mode;
-  privilegeForm.panelAccountName = activeSelectedAccount.value.panelAccountName || "";
+  privilegeForm.panelAccountName =
+    activeSelectedAccount.value.panelAccountName || "";
   privilegeForm.panelHost = activeSelectedAccount.value.panelHost || "%";
   privilegeForm.panelPrivileges = [];
   privilegeForm.panelCatalogName = "*";
@@ -2232,7 +2289,7 @@ const openPrivilegeDialog = (mode: "grant" | "revoke") => {
 const handlePrivilegeInput = (value: string) => {
   privilegeForm.panelPrivileges = String(value || "")
     .split(",")
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
 };
 
@@ -2245,18 +2302,21 @@ const submitPrivilegeDialog = () => {
     ElMessage.warning("请输入至少一个权限");
     return;
   }
-  emit(
-    privilegeDialogMode.value === "grant" ? "grant-account" : "revoke-account",
-    tab.tabId,
-    {
-      panelAccountName: privilegeForm.panelAccountName,
-      panelHost: privilegeForm.panelHost,
-      panelPrivileges: [...privilegeForm.panelPrivileges],
-      panelCatalogName: privilegeForm.panelCatalogName,
-      panelTableName: privilegeForm.panelTableName,
-      panelGrantOption: privilegeDialogMode.value === "grant" && Boolean(privilegeForm.panelGrantOption),
-    },
-  );
+  const request = {
+    panelAccountName: privilegeForm.panelAccountName,
+    panelHost: privilegeForm.panelHost,
+    panelPrivileges: [...privilegeForm.panelPrivileges],
+    panelCatalogName: privilegeForm.panelCatalogName,
+    panelTableName: privilegeForm.panelTableName,
+    panelGrantOption:
+      privilegeDialogMode.value === "grant" &&
+      Boolean(privilegeForm.panelGrantOption),
+  };
+  if (privilegeDialogMode.value === "grant") {
+    emit("grant-account", tab.tabId, request);
+  } else {
+    emit("revoke-account", tab.tabId, request);
+  }
   privilegeDialogVisible.value = false;
 };
 
@@ -2269,18 +2329,20 @@ const handleDeleteAccount = () => {
     "delete-account",
     tab.tabId,
     activeSelectedAccount.value.panelAccountName,
-    activeSelectedAccount.value.panelHost,
+    activeSelectedAccount.value.panelHost
   );
 };
 
 const handleRunAlterSql = () => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab || tab.tabType !== "table-edit") {
+    return;
+  }
   if (!activeAlterSql.value) {
     ElMessage.warning("当前设计没有变更");
     return;
   }
-  emit("quick-run", activeAlterSql.value);
-  emit("activate-tab", "workspace");
-  ElMessage.success("已将变更 SQL 发送到工作区执行");
+  emit("save-table-design", tab.tabId, activeAlterSql.value);
 };
 
 const resolveColumnHeader = (columnName: string) => {
@@ -2353,6 +2415,10 @@ const handleExportWord = async () => {
   await exportWord();
 };
 
+const handleExportMarkdown = async () => {
+  await exportMarkdown();
+};
+
 const handleExportPdf = async () => {
   await exportPdf();
 };
@@ -2371,6 +2437,11 @@ const handleGenerateSql = () => {
 const handleKeydown = (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
     const tab = activeWorkbenchTab.value;
+    if (tab?.tabType === "table-edit" && activeAlterSql.value) {
+      event.preventDefault();
+      handleRunAlterSql();
+      return;
+    }
     if (
       tab?.tabType === "table" &&
       tableView.value === "data" &&
@@ -2397,11 +2468,32 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 const exportWord = async () => {
   const tab = activeWorkbenchTab.value;
+  if (tab?.tabType === "database-document" && tab.databaseDocument) {
+    await exportDatabaseDocumentToWord(tab.databaseDocument);
+    return;
+  }
   if (!tab?.structure) {
     ElMessage.warning("当前没有可导出的表结构");
     return;
   }
   await exportStructureToWord(
+    tab.structure,
+    tab.documentContent || "",
+    tab.aiContent || ""
+  );
+};
+
+const exportMarkdown = async () => {
+  const tab = activeWorkbenchTab.value;
+  if (tab?.tabType === "database-document" && tab.databaseDocument) {
+    await exportDatabaseDocumentToMarkdown(tab.databaseDocument);
+    return;
+  }
+  if (!tab?.structure) {
+    ElMessage.warning("当前没有可导出的文档");
+    return;
+  }
+  await exportStructureToMarkdown(
     tab.structure,
     tab.documentContent || "",
     tab.aiContent || ""
@@ -2417,9 +2509,18 @@ const exportPdf = async () => {
   await exportDocumentToPdf(documentPaperRef.value, `${tab.tabName}-document`);
 };
 
+const resetTableEditDraft = (tabId: string) => {
+  const tab = props.tableTabs.find((item) => item.tabId === tabId);
+  if (!tab || tab.tabType !== "table-edit") {
+    return;
+  }
+  tableEditDrafts[tabId] = buildEditableColumns(tab);
+};
+
 defineExpose({
   exportPdf,
   exportWord,
+  resetTableEditDraft,
 });
 
 onMounted(() => {

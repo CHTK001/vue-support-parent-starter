@@ -10,7 +10,12 @@
         <input
           :value="modelValue.connectionName"
           type="text"
-          @input="updateField('connectionName', ($event.target as HTMLInputElement).value)"
+          @input="
+            updateField(
+              'connectionName',
+              ($event.target as HTMLInputElement).value
+            )
+          "
         />
       </label>
       <label>
@@ -18,7 +23,9 @@
         <input
           :value="modelValue.host"
           type="text"
-          @input="updateField('host', ($event.target as HTMLInputElement).value)"
+          @input="
+            updateField('host', ($event.target as HTMLInputElement).value)
+          "
         />
       </label>
       <label>
@@ -26,7 +33,12 @@
         <input
           :value="modelValue.port"
           type="number"
-          @input="updateField('port', Number(($event.target as HTMLInputElement).value))"
+          @input="
+            updateField(
+              'port',
+              Number(($event.target as HTMLInputElement).value)
+            )
+          "
         />
       </label>
       <label>
@@ -34,7 +46,12 @@
         <input
           :value="modelValue.databaseName"
           type="text"
-          @input="updateField('databaseName', ($event.target as HTMLInputElement).value)"
+          @input="
+            updateField(
+              'databaseName',
+              ($event.target as HTMLInputElement).value
+            )
+          "
         />
       </label>
       <label>
@@ -43,7 +60,9 @@
           :value="modelValue.protocol"
           type="text"
           placeholder="jdbc:h2:mem:panel_case;MODE=MySQL"
-          @input="updateField('protocol', ($event.target as HTMLInputElement).value)"
+          @input="
+            updateField('protocol', ($event.target as HTMLInputElement).value)
+          "
         />
       </label>
       <label>
@@ -51,7 +70,9 @@
         <input
           :value="modelValue.username"
           type="text"
-          @input="updateField('username', ($event.target as HTMLInputElement).value)"
+          @input="
+            updateField('username', ($event.target as HTMLInputElement).value)
+          "
         />
       </label>
       <label>
@@ -59,7 +80,9 @@
         <input
           :value="modelValue.password"
           type="password"
-          @input="updateField('password', ($event.target as HTMLInputElement).value)"
+          @input="
+            updateField('password', ($event.target as HTMLInputElement).value)
+          "
         />
       </label>
     </div>
@@ -135,7 +158,7 @@ const formatTime = (value?: string) => {
 
 const updateField = <K extends keyof JdbcConnectionForm>(
   field: K,
-  value: JdbcConnectionForm[K],
+  value: JdbcConnectionForm[K]
 ) => {
   emit("update:modelValue", {
     ...props.modelValue,
