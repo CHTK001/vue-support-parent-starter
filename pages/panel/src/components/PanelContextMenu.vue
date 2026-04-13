@@ -19,7 +19,12 @@
             :disabled="item.disabled"
             @click="handleSelect(item)"
           >
-            <span>{{ item.label }}</span>
+            <span class="menu-item__label">
+              <ElIcon v-if="item.icon" class="menu-item__icon">
+                <component :is="item.icon" />
+              </ElIcon>
+              <span>{{ item.label }}</span>
+            </span>
             <span v-if="item.children?.length" class="menu-item__arrow">›</span>
           </button>
 
@@ -34,7 +39,12 @@
                 :disabled="child.disabled"
                 @click="handleSelect(child)"
               >
-                <span>{{ child.label }}</span>
+                <span class="menu-item__label">
+                  <ElIcon v-if="child.icon" class="menu-item__icon">
+                    <component :is="child.icon" />
+                  </ElIcon>
+                  <span>{{ child.label }}</span>
+                </span>
               </button>
             </template>
           </div>
@@ -45,13 +55,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { ElIcon } from "element-plus";
+import { type Component, computed, onBeforeUnmount, onMounted } from "vue";
 
 export type PanelContextMenuItem = {
   children?: PanelContextMenuItem[];
   danger?: boolean;
   disabled?: boolean;
   divider?: boolean;
+  icon?: Component;
   key: string;
   label: string;
 };
@@ -136,6 +148,16 @@ onBeforeUnmount(() => {
   font-size: 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.menu-item__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-item__icon {
+  font-size: 14px;
 }
 
 .menu-item:hover {

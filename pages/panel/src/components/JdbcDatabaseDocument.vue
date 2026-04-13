@@ -56,7 +56,11 @@
               <div class="column-name">
                 <strong>{{ row.name || "-" }}</strong>
                 <ScTag
-                  v-if="(table.panelPrimaryKeys || []).includes(String(row.name || ''))"
+                  v-if="
+                    (table.panelPrimaryKeys || []).includes(
+                      String(row.name || '')
+                    )
+                  "
                   class="table-doc-card__chip"
                   effect="plain"
                   size="small"
@@ -74,10 +78,14 @@
             <template #default="{ row }">{{ row.size ?? "-" }}</template>
           </ElTableColumn>
           <ElTableColumn label="允许空" min-width="88">
-            <template #default="{ row }">{{ row.nullable ? "YES" : "NO" }}</template>
+            <template #default="{ row }">{{
+              row.nullable ? "YES" : "NO"
+            }}</template>
           </ElTableColumn>
           <ElTableColumn label="默认值" min-width="140">
-            <template #default="{ row }">{{ row.defaultValue ?? "-" }}</template>
+            <template #default="{ row }">{{
+              row.defaultValue ?? "-"
+            }}</template>
           </ElTableColumn>
           <ElTableColumn label="备注" min-width="220">
             <template #default="{ row }">{{ row.comment || "-" }}</template>
@@ -103,7 +111,9 @@ const formatGeneratedAt = computed(() => {
     return "-";
   }
   const parsed = new Date(props.document.panelGeneratedAt);
-  return Number.isNaN(parsed.getTime()) ? props.document.panelGeneratedAt : parsed.toLocaleString();
+  return Number.isNaN(parsed.getTime())
+    ? props.document.panelGeneratedAt
+    : parsed.toLocaleString();
 });
 </script>
 
@@ -123,7 +133,11 @@ const formatGeneratedAt = computed(() => {
   padding: 16px 18px;
   border: 1px solid rgba(123, 138, 149, 0.14);
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(238, 245, 249, 0.96));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(238, 245, 249, 0.96)
+  );
 }
 
 .database-document__title {

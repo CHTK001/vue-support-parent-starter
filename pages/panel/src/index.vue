@@ -97,6 +97,7 @@
               :active-path="activePath"
               :active-tab-id="activeInspectorTabId"
               :capabilities="capabilities"
+              :catalogs="workspaceCatalogs"
               :datasource-metadata="datasourceMetadata"
               :error-message="errorMessage"
               :preview-limit="previewLimit"
@@ -118,6 +119,7 @@
               @grant-account="handleGrantAccount"
               @refresh-table-data="handleRefreshTableData"
               @revoke-account="handleRevokeAccount"
+              @save-table-design="handleSaveTableDesign"
               @save-table-data="handleSaveTableData"
               @update-account="handleUpdateAccount"
               @generate-sql="handleGenerateSql"
@@ -191,6 +193,7 @@ import {
   fetchJdbcCapabilities,
   fetchJdbcConnectionMetadata,
   fetchJdbcDatabaseDocument,
+  fetchPanelSqlTemplate,
   fetchJdbcTableData,
   fetchJdbcTableStructure,
   generateJdbcMockData,
@@ -302,6 +305,7 @@ const workspaceContainerRef = ref<HTMLElement | null>(null);
 const detailRef = ref<{
   exportPdf: () => Promise<void>;
   exportWord: () => Promise<void>;
+  resetTableEditDraft: (tabId: string) => void;
 } | null>(null);
 const noteEditor = reactive<NoteEditorState>({
   node: null,
@@ -411,6 +415,12 @@ const treeExpandedKeys = computed(() => {
   return [expandedCatalogNodeId.value, expandedTableNodeId.value]
     .filter(Boolean) as string[];
 });
+
+const workspaceCatalogs = computed(() =>
+  explorerTree.value
+    .map(item => item.catalogName || item.nodeName)
+    .filter((item): item is string => Boolean(item))
+);
 
 const sqlSuggestions = computed(() => {
   const tokens = new Set<string>();
@@ -775,6 +785,10 @@ const handleLoadCatalog = async () => {
   if (!activeConnectionId.value) {
     return;
   }
+  activeNode.value = null;
+  expandedCatalogNodeId.value = "";
+  expandedTableNodeId.value = "";
+  catalogTree.value = [];
   const response = await listJdbcCatalogTree(activeConnectionId.value);
   catalogTree.value = normalizeTree(response?.data || []);
 };
@@ -1187,6 +1201,40 @@ const handleRefreshTableData = async (tabId: string) => {
   }
 };
 
+const refreshTableStructureForNode = async (node: JdbcCatalogNode) => {
+  if (!activeConnectionId.value) {
+    return null;
+  }
+  const response = await fetchJdbcTableStructure(
+    activeConnectionId.value,
+    node.tableName || node.nodeName,
+    node.catalogName || undefined,
+    node.schemaName || undefined,
+  );
+  const structure = response?.data || null;
+  if (!structure) {
+    return null;
+  }
+  tableStructureCache.value = {
+    ...tableStructureCache.value,
+    [node.nodeId]: structure,
+  };
+  inspectorTabs.value = inspectorTabs.value.map(tab =>
+    tab.node.nodeId === node.nodeId
+      && (tab.tabType === "table" || tab.tabType === "table-edit")
+      ? { ...tab, ddlText: buildTableDdl(structure), structure }
+      : tab,
+  );
+  return structure;
+};
+
+const refreshOpenTableTabsByNode = async (node: JdbcCatalogNode) => {
+  const tableTabs = inspectorTabs.value.filter(
+    tab => tab.node.nodeId === node.nodeId && tab.tabType === "table",
+  );
+  await Promise.all(tableTabs.map(tab => handleRefreshTableData(tab.tabId)));
+};
+
 const handleSaveTableData = async (tabId: string, updates: PanelTableRowUpdate[]) => {
   const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
   if (!currentTab || currentTab.tabType !== "table" || !activeConnectionId.value) {
@@ -1210,6 +1258,47 @@ const handleSaveTableData = async (tabId: string, updates: PanelTableRowUpdate[]
     await handleRefreshTableData(tabId);
   } catch (error: any) {
     errorMessage.value = error?.message || "保存表数据失败";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const handleSaveTableDesign = async (tabId: string, sql: string) => {
+  if (!activeConnectionId.value) {
+    return;
+  }
+  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  if (!currentTab || currentTab.tabType !== "table-edit") {
+    return;
+  }
+  const statement = String(sql || "").trim();
+  if (!statement) {
+    ElMessage.info("当前设计没有变更");
+    return;
+  }
+
+  submitting.value = true;
+  errorMessage.value = "";
+  try {
+    const response = await executeJdbcSql(activeConnectionId.value, statement);
+    const result = response?.data || null;
+    queryResult.value = result;
+    sqlExplainContent.value = "";
+    sqlExplainRows.value = [];
+
+    await refreshTableStructureForNode(currentTab.node);
+    await refreshOpenTableTabsByNode(currentTab.node);
+    await nextTick();
+    detailRef.value?.resetTableEditDraft(tabId);
+
+    const elapsed = result?.elapsedMillis;
+    ElMessage.success(
+      elapsed !== undefined && elapsed !== null
+        ? `表结构已直接保存，耗时 ${elapsed} ms`
+        : "表结构已直接保存",
+    );
+  } catch (error: any) {
+    errorMessage.value = error?.message || "保存表结构失败";
   } finally {
     submitting.value = false;
   }

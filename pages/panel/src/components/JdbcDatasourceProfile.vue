@@ -71,6 +71,25 @@
         <strong>{{ capabilities?.documentEnabled ? "ON" : "OFF" }}</strong>
       </article>
     </div>
+
+    <article class="profile-directory-card">
+      <div class="profile-directory-card__head">
+        <small>数据目录</small>
+        <strong>{{ catalogCountLabel }}</strong>
+      </div>
+      <div class="profile-directory-card__body">
+        <span
+          v-for="catalog in normalizedCatalogs"
+          :key="catalog"
+          class="profile-directory-chip"
+        >
+          {{ catalog }}
+        </span>
+        <span v-if="!normalizedCatalogs.length" class="profile-directory-empty">
+          当前连接未返回可用目录
+        </span>
+      </div>
+    </article>
   </section>
 </template>
 
@@ -80,11 +99,22 @@ import type { JdbcConnectionMetadata, PanelCapabilitySummary } from "../api";
 
 const props = defineProps<{
   capabilities: PanelCapabilitySummary | null;
+  catalogs?: string[];
   metadata: JdbcConnectionMetadata | null;
 }>();
 
 const isMysql = computed(() =>
-  (props.metadata?.databaseProductName || "").toLowerCase().includes("mysql"),
+  (props.metadata?.databaseProductName || "").toLowerCase().includes("mysql")
+);
+
+const normalizedCatalogs = computed(() =>
+  [...new Set((props.catalogs || []).map(item => String(item || "").trim()).filter(Boolean))]
+);
+
+const catalogCountLabel = computed(() =>
+  normalizedCatalogs.value.length
+    ? `${normalizedCatalogs.value.length} 个目录`
+    : "暂无目录"
 );
 
 const resolveAttr = (key: string, fallback: string) => {
@@ -110,7 +140,8 @@ const resolveAttr = (key: string, fallback: string) => {
 }
 
 .profile-card,
-.capability-card {
+.capability-card,
+.profile-directory-card {
   display: grid;
   gap: 4px;
   padding: 10px;
@@ -120,7 +151,11 @@ const resolveAttr = (key: string, fallback: string) => {
 }
 
 .profile-card--primary {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(16, 185, 129, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.08),
+    rgba(16, 185, 129, 0.08)
+  );
 }
 
 .profile-card small,
@@ -139,5 +174,36 @@ const resolveAttr = (key: string, fallback: string) => {
   color: #68808f;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.profile-directory-card {
+  gap: 10px;
+}
+
+.profile-directory-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-directory-card__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-directory-chip {
+  padding: 4px 10px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.06);
+  color: #1e3a5f;
+  font-size: 12px;
+}
+
+.profile-directory-empty {
+  color: #68808f;
+  font-size: 12px;
 }
 </style>

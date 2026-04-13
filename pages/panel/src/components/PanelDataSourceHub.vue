@@ -4,7 +4,10 @@
       <div class="hub-toolbar__title">
         <small>Panel Workspace Hub</small>
         <strong>数据源管理</strong>
-        <span>工作台只能从已保存的数据源进入，连接配置已为 JDBC / Redis 预留。</span>
+        <span
+          >工作台只能从已保存的数据源进入，连接配置已为 JDBC / Redis
+          预留。</span
+        >
       </div>
 
       <div class="hub-toolbar__actions">
@@ -52,10 +55,15 @@
         <article class="source-card" @dblclick="$emit('open-source', row)">
           <div class="source-card__head">
             <div class="source-card__identity">
-              <span class="source-card__avatar">{{ sourceInitial(row.connectionName) }}</span>
+              <span class="source-card__avatar">{{
+                sourceInitial(row.connectionName)
+              }}</span>
               <div>
                 <strong>{{ row.connectionName }}</strong>
-                <span>{{ row.host }}:{{ row.port }} / {{ row.databaseName || "-" }}</span>
+                <span
+                  >{{ row.host }}:{{ row.port }} /
+                  {{ row.databaseName || "-" }}</span
+                >
               </div>
             </div>
 
@@ -91,7 +99,11 @@
               <ElIcon><EditPen /></ElIcon>
               编辑
             </ElButton>
-            <ElButton type="danger" plain @click.stop="$emit('delete-source', row.sourceId)">
+            <ElButton
+              type="danger"
+              plain
+              @click.stop="$emit('delete-source', row.sourceId)"
+            >
               <ElIcon><Delete /></ElIcon>
               删除
             </ElButton>
@@ -227,7 +239,15 @@
 </template>
 
 <script setup lang="ts">
-import { Delete, EditPen, FolderOpened, Plus, RefreshRight, Search, Star } from "@element-plus/icons-vue";
+import {
+  Delete,
+  EditPen,
+  FolderOpened,
+  Plus,
+  RefreshRight,
+  Search,
+  Star,
+} from "@element-plus/icons-vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScTable from "@repo/components/ScTable/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
@@ -269,23 +289,25 @@ const sourceTypeOptions = [
 ] as const;
 
 const sourceList = computed(() =>
-  (Array.isArray(props.sources) ? props.sources : []).filter((source): source is PanelSavedSource => {
-    if (!source || typeof source !== "object") {
-      return false;
+  (Array.isArray(props.sources) ? props.sources : []).filter(
+    (source): source is PanelSavedSource => {
+      if (!source || typeof source !== "object") {
+        return false;
+      }
+      const term = keyword.value.trim().toLowerCase();
+      if (!term) {
+        return true;
+      }
+      return [
+        source.connectionName,
+        source.host,
+        source.databaseName,
+        source.username,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term));
     }
-    const term = keyword.value.trim().toLowerCase();
-    if (!term) {
-      return true;
-    }
-    return [
-      source.connectionName,
-      source.host,
-      source.databaseName,
-      source.username,
-    ]
-      .filter(Boolean)
-      .some(value => String(value).toLowerCase().includes(term));
-  }),
+  )
 );
 
 const sourceTableData = computed(() => ({
@@ -294,38 +316,48 @@ const sourceTableData = computed(() => ({
 }));
 
 const favoriteCount = computed(
-  () => sourceList.value.filter(source => source.favorite).length,
+  () => sourceList.value.filter((source) => source.favorite).length
 );
 
 const databaseLabel = computed(() =>
-  props.modelValue.sourceType === "REDIS" ? "DB Index" : "数据库",
+  props.modelValue.sourceType === "REDIS" ? "DB Index" : "数据库"
 );
 
 const databasePlaceholder = computed(() =>
-  props.modelValue.sourceType === "REDIS" ? "例如：0" : "例如：mysql / analytics",
+  props.modelValue.sourceType === "REDIS"
+    ? "例如：0"
+    : "例如：mysql / analytics"
 );
 
 const protocolLabel = computed(() =>
-  props.modelValue.sourceType === "REDIS" ? "连接地址" : "JDBC URL",
+  props.modelValue.sourceType === "REDIS" ? "连接地址" : "JDBC URL"
 );
 
 const protocolPlaceholder = computed(() =>
   props.modelValue.sourceType === "REDIS"
     ? "redis://127.0.0.1:6379/0"
-    : "可留空，后端按 host/port/database 组合",
+    : "可留空，后端按 host/port/database 组合"
 );
 
-const formatTime = (value?: string) => (value ? value.replace("T", " ").slice(0, 16) : "未记录");
-const sourceInitial = (name?: string) => (name || "D").trim().slice(0, 1).toUpperCase();
+const formatTime = (value?: string) =>
+  value ? value.replace("T", " ").slice(0, 16) : "未记录";
+const sourceInitial = (name?: string) =>
+  (name || "D").trim().slice(0, 1).toUpperCase();
 
-const updateField = <K extends keyof JdbcConnectionForm>(key: K, value: JdbcConnectionForm[K]) => {
+const updateField = <K extends keyof JdbcConnectionForm>(
+  key: K,
+  value: JdbcConnectionForm[K]
+) => {
   emit("update:modelValue", {
     ...props.modelValue,
     [key]: value,
   });
 };
 
-const updateNumberField = (key: keyof JdbcConnectionForm, value: number | null | undefined) => {
+const updateNumberField = (
+  key: keyof JdbcConnectionForm,
+  value: number | null | undefined
+) => {
   emit("update:modelValue", {
     ...props.modelValue,
     [key]: Number(value || 0),
@@ -355,8 +387,16 @@ const handleSave = () => {
   min-height: calc(100vh - 96px);
   padding: 18px;
   background:
-    radial-gradient(circle at top left, rgba(29, 78, 216, 0.08), transparent 36%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 32%),
+    radial-gradient(
+      circle at top left,
+      rgba(29, 78, 216, 0.08),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(14, 165, 233, 0.08),
+      transparent 32%
+    ),
     linear-gradient(180deg, #f6f9fc, #eef4f8);
 }
 
@@ -453,8 +493,11 @@ const handleSave = () => {
   padding: 18px;
   border: 1px solid rgba(127, 144, 155, 0.16);
   border-radius: 18px;
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 252, 0.94));
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(244, 249, 252, 0.94)
+  );
   box-shadow: 0 18px 40px rgba(17, 24, 39, 0.06);
 }
 
