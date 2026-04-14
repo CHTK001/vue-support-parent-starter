@@ -321,6 +321,10 @@ export interface PlatformConfigs {
   OpenSettingSms?: boolean;
   /** 是否开启 LLM 设置 */
   OpenSettingLlm?: boolean;
+  /** AI 性能分析接口地址 */
+  AiPerformanceAnalyzeUrl?: string;
+  /** AI 性能分析默认目标 URL */
+  AiPerformanceDefaultTargetUrl?: string;
 
   // ===========================================
   // 页面行为配置
