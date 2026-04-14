@@ -1,2780 +1,1421 @@
 <template>
-  <SoftWorkspace title="软件目录">
-    <template #actions>
-      <el-tooltip content="仓库管理" placement="top">
-        <el-button circle @click="router.push('/soft/repositories')">
-          <IconifyIconOnline icon="ri:database-2-line" />
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="服务器管理" placement="top">
-        <el-button circle @click="router.push('/server/list')">
-          <IconifyIconOnline icon="ri:server-line" />
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="录入软件" placement="top">
-        <el-button circle type="success" @click="openIngestDialog">
-          <IconifyIconOnline icon="ri:upload-cloud-2-line" />
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="刷新目录" placement="top">
-        <el-button circle type="primary" @click="loadPackages">
-          <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
-      </el-tooltip>
-    </template>
-
-    <section class="soft-toolbar">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索软件名称、编码、分类"
-        clearable
-      >
-        <template #prefix>
-          <IconifyIconOnline icon="ri:search-line" />
-        </template>
-      </el-input>
-      <el-select v-model="osFilter" clearable placeholder="操作系统">
-        <el-option label="全部系统" value="" />
-        <el-option
-          v-for="option in osFilterOptions"
-          :key="option.value"
-          :label="option.label"
-          :value="option.value"
-        >
-          <div class="soft-option">
-            <IconifyIconOnline :icon="osIcon(option.value)" />
-            <span>{{ option.label }}</span>
-          </div>
-        </el-option>
-      </el-select>
-      <el-select v-model="architectureFilter" clearable placeholder="架构">
-        <el-option label="全部架构" value="" />
-        <el-option
-          v-for="option in architectureFilterOptions"
-          :key="option.value"
-          :label="option.label"
-          :value="option.value"
-        />
-      </el-select>
-      <div class="soft-toolbar__meta">
-        <span>当前软件 {{ filteredPackages.length }}</span>
-        <span>可安装服务器 {{ enabledServerCount }}</span>
-        <span>已启用仓库 {{ enabledRepositoryCount }}</span>
-      </div>
-    </section>
-
-    <ScTable
-      v-loading="loading"
-      :data="filteredPackages"
-      layout="card"
-      card-layout="default"
-      row-key="softwareKey"
-      :col-size="3"
-      :hide-pagination="true"
-      :border="false"
-      :stripe="false"
-      class="soft-card-table"
+  <section class="soft-home-page">
+    <ScLayout
+      v-model="railTab"
+      class="soft-home-layout"
+      rail-close-button-mode="always"
+      :left-enabled="false"
+      :rail-tabs="railTabs"
+      @tab-remove="handleRailTabRemove($event.name)"
     >
-      <template #default="{ row }">
-        <article class="soft-card">
-          <header class="soft-card__header">
-            <div class="soft-card__title">
-              <div class="soft-card__avatar">
-                <img
-                  v-if="row.iconUrl"
-                  :src="row.iconUrl"
-                  :alt="row.packageName"
-                />
-                <span v-else>{{ packageInitials(row.packageName) }}</span>
-              </div>
-              <div>
-                <h3>{{ row.packageName }}</h3>
-                <p>{{ row.packageCode }}</p>
-              </div>
-            </div>
-            <div class="soft-card__badges">
-              <el-tooltip
-                v-for="platform in row.platforms"
-                :key="`${row.softwareKey}-${platform.value}`"
-                :content="platform.description"
-                placement="top"
-              >
-                <span class="soft-chip soft-chip--platform">
-                  <IconifyIconOnline :icon="platform.icon" />
-                  <span>{{ platform.label }}</span>
-                </span>
-              </el-tooltip>
-              <el-tooltip
-                v-if="row.architectures.length"
-                :content="
-                  row.architectures
-                    .map((item) => architectureLabel(item))
-                    .join(' / ')
-                "
-                placement="top"
-              >
-                <span class="soft-chip">
-                  <IconifyIconOnline icon="ri:cpu-line" />
-                  <span>{{ row.architectures.length }} 架构</span>
-                </span>
-              </el-tooltip>
-            </div>
-          </header>
-
-          <div class="soft-card__meta">
-            <span>{{ row.packageCategory || "未分类" }}</span>
-            <span>{{ compatibleServerCount(row) }} 台匹配服务器</span>
-            <span>{{ row.platforms.length }} 个系统</span>
-            <span>{{ profileLabel(row.profileCode) }}</span>
+      <template #default>
+        <header class="soft-hero">
+          <div>
+            <small>SOFT / HOME</small>
+            <h1>软件列表</h1>
+            <p>主区聚合展示软件，右侧 tab 负责下载源编辑与检索。</p>
           </div>
-
-          <p class="soft-card__desc">
-            {{
-              row.description ||
-              "该软件尚未补充描述，可直接选择服务器进入安装引导。"
-            }}
-          </p>
-
-          <footer class="soft-card__actions">
-            <el-tooltip content="整理元数据" placement="top">
-              <el-button circle @click="openPackageEdit(row)">
-                <IconifyIconOnline icon="ri:edit-2-line" />
+          <div class="soft-hero__actions">
+            <el-tooltip content="刷新软件目录" placement="top">
+              <el-button circle :loading="loading" @click="loadHomeData">
+                <IconifyIconOnline icon="ri:refresh-line" />
               </el-button>
             </el-tooltip>
-            <el-tooltip content="查看详情" placement="top">
-              <el-button circle @click="openDetail(row)">
-                <IconifyIconOnline icon="ri:information-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="安装到服务器" placement="top">
-              <el-button
-                circle
-                type="primary"
-                :disabled="compatibleServerCount(row) === 0"
-                @click="openInstall(row)"
-              >
-                <IconifyIconOnline icon="ri:download-cloud-2-line" />
-              </el-button>
-            </el-tooltip>
-          </footer>
-        </article>
-      </template>
-      <template #empty>
-        <div class="soft-empty">
-          <el-empty
-            description="当前还没有软件主档。先配置仓库定义与服务器，再回到这里进行搜索、同步和安装。"
-          />
-          <div class="soft-empty__actions">
-            <el-button @click="router.push('/soft/repositories')">
-              去配置仓库
-            </el-button>
-            <el-button type="primary" @click="router.push('/server/list')">
-              去维护服务器
-            </el-button>
           </div>
-        </div>
-      </template>
-    </ScTable>
+        </header>
 
-    <el-dialog
-      v-model="installVisible"
-      width="1160px"
-      :title="
-        selectedSoftware ? `安装 ${selectedSoftware.packageName}` : '安装软件'
-      "
-    >
-      <el-steps :active="installStep" simple class="install-steps">
-        <el-step title="选择操作系统与服务器" />
-        <el-step title="选择版本与引导配置" />
-        <el-step title="提交与日志" />
-      </el-steps>
-
-      <section
-        v-if="installStep === 0"
-        class="install-step install-step--servers"
-      >
-        <article class="guide-section">
-          <header class="section-header">
-            <div>
-              <h3>选择操作系统</h3>
-              <p>
-                同一软件的不同系统版本会聚合展示，先选目标操作系统再匹配服务器
-              </p>
-            </div>
-            <span>{{ installPlatformOptions.length }} 项</span>
-          </header>
-
-          <div class="platform-switch-grid">
-            <button
-              v-for="item in installPlatformOptions"
-              :key="String(item.value)"
-              type="button"
-              class="platform-pill"
-              :class="{ 'is-selected': selectedOsType === item.value }"
-              @click="handlePlatformChange(String(item.value))"
-            >
-              <IconifyIconOnline
-                :icon="String(item.icon || 'ri:apps-2-line')"
-              />
-              <span>{{ item.label }}</span>
-              <small>{{ item.description }}</small>
-            </button>
-          </div>
-        </article>
-
-        <div class="install-basic-grid">
-          <el-form-item
-            v-if="selectedVariantOptions.length > 1"
-            label="安装包架构"
-          >
-            <el-select
-              v-model="selectedVariantPackageId"
-              placeholder="选择架构"
-              style="width: 100%"
-              @change="handleVariantChange"
-            >
-              <el-option
-                v-for="variant in selectedVariantOptions"
-                :key="variant.value"
-                :label="variant.label"
-                :value="variant.value"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="实例名称">
-            <el-input v-model="installForm.installationName" />
-          </el-form-item>
-          <el-form-item label="安装路径">
-            <el-input
-              v-model="installForm.installPath"
-              placeholder="可选，默认按服务器基础目录生成"
-            />
-          </el-form-item>
-          <el-form-item label="服务名称">
-            <el-input
-              v-model="installForm.serviceName"
-              placeholder="可选，默认按软件编码生成"
-            />
-          </el-form-item>
-        </div>
-
-        <article v-if="selectedPackage" class="install-variant-summary">
-          <header class="section-header">
-            <div>
-              <h3>已选安装包</h3>
-              <p>
-                按所选操作系统收口到具体安装包，版本和服务器都基于这个包匹配
-              </p>
-            </div>
-          </header>
-          <div class="soft-card__meta">
-            <span>{{ selectedPackage.packageCode }}</span>
-            <span>{{ osLabel(selectedPackage.osType) || "通用系统" }}</span>
-            <span>{{ architectureLabel(selectedPackage.architecture) }}</span>
-          </div>
-        </article>
-
-        <article class="guide-section">
-          <header class="section-header">
-            <div>
-              <h3>匹配服务器</h3>
-              <p>
-                仅显示与当前操作系统和架构兼容且已启用的服务器，可多选批量安装
-              </p>
-            </div>
-            <div class="section-header__actions">
-              <span>{{ matchedServers.length }} 台</span>
-              <el-tooltip content="全选匹配服务器" placement="top">
-                <el-button circle @click="selectAllMatchedServers">
-                  <IconifyIconOnline icon="ri:checkbox-multiple-line" />
-                </el-button>
-              </el-tooltip>
-              <el-tooltip content="清空已选服务器" placement="top">
-                <el-button circle @click="clearSelectedServers">
-                  <IconifyIconOnline icon="ri:close-circle-line" />
-                </el-button>
-              </el-tooltip>
-            </div>
-          </header>
-
-          <ScSelect
-            v-model="selectedServerIds"
-            :options="matchedServerOptions"
-            layout="dropdown"
-            multiple
-            width="100%"
-            class="server-select"
-            dropdown-title="选择匹配服务器"
-            dropdown-placeholder="搜索服务器名称、地址或目录"
-            dropdown-icon="ri:server-line"
-            :dropdown-show-batch-actions="true"
-            :dropdown-col="1"
-            display-mode="large"
-          >
-            <template #content="{ option }">
-              <div class="server-select-option">
-                <div class="server-select-option__title">
-                  <strong>{{ option.label }}</strong>
-                  <div class="server-select-option__icons">
-                    <IconifyIconOnline
-                      :icon="String(option.icon || 'ri:server-line')"
-                    />
-                    <IconifyIconOnline
-                      :icon="osIcon(String(option.osType || ''))"
-                    />
-                  </div>
-                </div>
-                <div class="server-select-option__meta">
-                  <span
-                    >{{ option.host || "-"
-                    }}{{ option.port ? `:${option.port}` : "" }}</span
-                  >
-                  <span>{{
-                    architectureLabel(String(option.architecture || ""))
-                  }}</span>
-                  <span>{{ option.targetTypeLabel || "-" }}</span>
-                </div>
-                <p>
-                  {{
-                    option.baseDirectory ||
-                    option.description ||
-                    "未配置基础目录"
-                  }}
-                </p>
-              </div>
-            </template>
-          </ScSelect>
-
-          <div v-if="selectedServers.length" class="server-select-summary">
-            <article
-              v-for="server in selectedServers"
-              :key="server.serverId"
-              class="server-select-card"
-            >
-              <div class="server-select-card__title">
-                <strong>{{ server.serverName }}</strong>
-                <div class="server-select-option__icons">
-                  <IconifyIconOnline
-                    :icon="targetTypeIcon(server.serverType)"
-                  />
-                  <IconifyIconOnline :icon="osIcon(server.osType)" />
-                </div>
-              </div>
-              <div class="server-select-option__meta">
-                <span
-                  >{{ server.host || "-"
-                  }}{{ server.port ? `:${server.port}` : "" }}</span
-                >
-                <span>{{ architectureLabel(server.architecture) }}</span>
-                <span>{{ targetTypeLabel(server.serverType) }}</span>
-              </div>
-              <p>
-                {{
-                  server.baseDirectory || server.description || "未配置基础目录"
-                }}
-              </p>
+        <template v-if="railTab === HOME_TAB">
+          <div class="soft-summary">
+            <article class="soft-summary__card">
+              <small>软件数量</small>
+              <strong>{{ softwareList.length }}</strong>
+            </article>
+            <article class="soft-summary__card">
+              <small>当前筛选</small>
+              <strong>{{ filteredSoftware.length }}</strong>
+            </article>
+            <article class="soft-summary__card">
+              <small>仓库定义</small>
+              <strong>{{ repositories.length }}</strong>
+            </article>
+            <article class="soft-summary__card">
+              <small>下载源数量</small>
+              <strong>{{ totalSourceCount }}</strong>
             </article>
           </div>
 
-          <el-empty
-            v-if="!matchedServers.length"
-            description="当前没有匹配的软件安装服务器，请先到服务器管理中补充对应操作系统与架构"
-          />
-        </article>
-      </section>
+          <section class="soft-toolbar">
+            <el-input v-model="keyword" clearable placeholder="搜索软件名称、编码、分类">
+              <template #prefix>
+                <IconifyIconOnline icon="ri:search-line" />
+              </template>
+            </el-input>
+            <el-select v-model="osFilter" clearable placeholder="按操作系统筛选">
+              <el-option label="全部系统" value="" />
+              <el-option
+                v-for="option in osFilterOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+            <el-select
+              v-model="architectureFilter"
+              clearable
+              placeholder="按架构筛选"
+            >
+              <el-option label="全部架构" value="" />
+              <el-option
+                v-for="option in architectureFilterOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+          </section>
 
-      <section v-else-if="installStep === 1" class="install-step">
-        <article class="guide-section">
-          <header class="section-header">
-            <div>
-              <h3>选择版本</h3>
-              <p>默认已选最新版本，可在提交前切换到其他可安装版本</p>
-            </div>
-            <span>{{ versions.length }} 个版本</span>
-          </header>
+          <div v-if="filteredSoftware.length" class="software-grid">
+            <article
+              v-for="item in filteredSoftware"
+              :key="item.key"
+              class="software-card"
+              @click="openSoftwareDetail(item)"
+            >
+              <header class="software-card__header">
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <p>{{ item.code }}</p>
+                </div>
+                <el-tag size="small" effect="light">{{ item.packageCount }} 包</el-tag>
+              </header>
 
-          <div class="install-basic-grid install-basic-grid--single">
-            <el-form-item label="软件版本">
-              <el-select
-                v-model="installForm.softPackageVersionId"
-                placeholder="选择版本"
-                style="width: 100%"
-                :disabled="!selectedPackage"
-              >
-                <el-option
-                  v-for="version in versions"
-                  :key="version.softPackageVersionId"
-                  :label="`${version.versionName} (${version.versionCode})`"
-                  :value="version.softPackageVersionId"
-                />
-              </el-select>
-            </el-form-item>
-          </div>
-        </article>
+              <p class="software-card__desc">
+                {{ item.description || "暂无描述，点击详情查看版本与安装实例。" }}
+              </p>
 
-        <div v-if="guideLoading" class="guide-loading">
-          <el-skeleton :rows="8" animated />
-        </div>
-        <template v-else>
-          <section
-            v-for="section in guideSections"
-            :key="section.key"
-            class="guide-section"
-          >
-            <header class="section-header">
-              <div>
-                <h3>{{ section.title }}</h3>
-                <p>{{ section.hint }}</p>
+              <div class="software-card__meta">
+                <span>{{ item.category || "未分类" }}</span>
+                <span>{{ item.osTypes.map((v) => osLabel(v)).join(" / ") || "通用系统" }}</span>
+                <span>
+                  {{
+                    item.architectures
+                      .map((value) => architectureLabel(value))
+                      .join(" / ") || "通用架构"
+                  }}
+                </span>
               </div>
-              <span>{{ section.fields.length }} 项</span>
+
+              <footer class="software-card__actions">
+                <el-button
+                  type="primary"
+                  plain
+                  @click.stop="openSoftwareDetail(item)"
+                >
+                  查看详情
+                </el-button>
+                <el-button @click.stop="openDetailPage(item.defaultPackageId)">
+                  打开详情页
+                </el-button>
+              </footer>
+            </article>
+          </div>
+          <el-empty v-else description="没有匹配的软件" />
+        </template>
+
+        <template v-else-if="railTab === SOURCE_TAB">
+          <section class="source-panel">
+            <header class="source-panel__header">
+              <div>
+                <h3>下载源设置</h3>
+                <p>编辑仓库主下载源与检索源，保存后立即生效。</p>
+              </div>
+              <div class="source-panel__actions">
+                <el-button :loading="sourceSearchLoading" @click="reloadSourceSearch">
+                  检索源
+                </el-button>
+                <el-button
+                  type="warning"
+                  :loading="syncingRepository"
+                  :disabled="!currentRepository?.softRepositoryId"
+                  @click="syncCurrentRepository"
+                >
+                  同步仓库
+                </el-button>
+                <el-button
+                  type="primary"
+                  :loading="savingSources"
+                  :disabled="!currentRepository?.softRepositoryId"
+                  @click="saveCurrentRepositorySources"
+                >
+                  保存下载源
+                </el-button>
+              </div>
             </header>
 
-            <div v-if="section.fields.length" class="guide-fields">
-              <template
-                v-for="field in section.fields"
-                :key="`${section.key}-${field.fieldKey}`"
+            <div class="source-panel__toolbar">
+              <el-select
+                v-model="activeRepositoryId"
+                filterable
+                clearable
+                placeholder="选择仓库"
               >
-                <el-form-item
-                  v-if="shouldRenderField(field)"
-                  :label="field.fieldLabel || field.fieldKey"
-                  :required="Boolean(field.requiredFlag)"
-                  class="guide-field"
-                >
-                  <template v-if="isTextareaField(field)">
-                    <el-input
-                      v-model="resolveModel(section.scope)[field.fieldKey]"
-                      type="textarea"
-                      :rows="4"
-                      :disabled="isFieldDisabled(field)"
-                      :placeholder="
-                        field.fieldDescription ||
-                        `请输入${field.fieldLabel || field.fieldKey}`
-                      "
-                    />
+                <el-option
+                  v-for="item in repositories"
+                  :key="item.softRepositoryId"
+                  :label="`${item.repositoryName} (${item.repositoryCode})`"
+                  :value="item.softRepositoryId"
+                />
+              </el-select>
+
+              <el-input
+                v-model="sourceSearchKeyword"
+                clearable
+                placeholder="检索源：支持源名称、类型、地址、仓库编码"
+                @keyup.enter="reloadSourceSearch"
+              >
+                <template #prefix>
+                  <IconifyIconOnline icon="ri:search-line" />
+                </template>
+              </el-input>
+            </div>
+
+            <template v-if="currentRepository">
+              <div class="source-panel__grid">
+                <article class="source-card">
+                  <header>
+                    <strong>主下载源</strong>
+                    <small>{{ repositoryTypeLabel(sourceEditor.repositoryType) }}</small>
+                  </header>
+                  <div class="source-form-grid">
+                    <el-form-item label="仓库类型">
+                      <el-select v-model="sourceEditor.repositoryType" disabled>
+                        <el-option
+                          v-for="item in sourceTypeOptions"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value"
+                        />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item v-if="requiresRepositoryUrl(sourceEditor.repositoryType)" label="主地址">
+                      <el-input
+                        v-model="sourceEditor.repositoryUrl"
+                        placeholder="例如: https://repo.example.com/index.json"
+                      />
+                    </el-form-item>
+                    <el-form-item v-if="requiresLocalDirectory(sourceEditor.repositoryType)" label="本地目录">
+                      <el-input
+                        v-model="sourceEditor.localDirectory"
+                        placeholder="例如: H:/workspace/soft-repository"
+                      />
+                    </el-form-item>
+                  </div>
+                </article>
+
+                <article class="source-card">
+                  <header class="source-card__header-row">
+                    <div>
+                      <strong>检索源</strong>
+                      <small>用于在线检索、补充索引与版本发现</small>
+                    </div>
+                    <el-button type="primary" plain @click="addSourceConfig">
+                      新增源
+                    </el-button>
+                  </header>
+
+                  <div v-if="sourceEditor.sourceConfigs.length" class="source-config-list">
+                    <div
+                      v-for="(item, index) in sourceEditor.sourceConfigs"
+                      :key="item.draftId"
+                      class="source-config-item"
+                    >
+                      <div class="source-config-item__head">
+                        <strong>{{ item.sourceName || `源 ${index + 1}` }}</strong>
+                        <el-button link type="danger" @click="removeSourceConfig(index)">
+                          删除
+                        </el-button>
+                      </div>
+
+                      <div class="source-form-grid source-form-grid--row">
+                        <el-input
+                          v-model="item.sourceName"
+                          placeholder="源名称（可选）"
+                        />
+                        <el-select v-model="item.sourceType" placeholder="源类型">
+                          <el-option
+                            v-for="option in sourceTypeOptions"
+                            :key="option.value"
+                            :label="option.label"
+                            :value="option.value"
+                          />
+                        </el-select>
+                        <el-input
+                          v-if="requiresRepositoryUrl(item.sourceType)"
+                          v-model="item.sourceUrl"
+                          placeholder="源地址"
+                        />
+                        <el-input
+                          v-if="requiresLocalDirectory(item.sourceType)"
+                          v-model="item.localDirectory"
+                          placeholder="本地目录"
+                        />
+                        <el-input
+                          v-model="item.sourceConfig"
+                          placeholder="源配置（可选 JSON）"
+                        />
+                        <el-switch
+                          v-model="item.enabled"
+                          inline-prompt
+                          active-text="启用"
+                          inactive-text="停用"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <el-empty v-else description="还没有检索源，点击新增源添加" />
+                </article>
+              </div>
+            </template>
+            <el-empty v-else description="请先选择一个仓库再编辑下载源" />
+
+            <article class="source-card source-search-result">
+              <header>
+                <strong>检索结果</strong>
+                <small>共 {{ sourceSearchResults.length }} 条</small>
+              </header>
+              <el-table :data="sourceSearchResults" size="small" border>
+                <el-table-column prop="repositoryName" label="仓库" min-width="160" />
+                <el-table-column prop="repositoryCode" label="编码" min-width="130" />
+                <el-table-column prop="sourceName" label="源名称" min-width="160" />
+                <el-table-column prop="sourceType" label="类型" width="120" />
+                <el-table-column prop="sourceAddress" label="地址/目录" min-width="240" show-overflow-tooltip />
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="row.enabled ? 'success' : 'info'" effect="light" size="small">
+                      {{ row.enabled ? '启用' : '停用' }}
+                    </el-tag>
                   </template>
-                  <template v-else-if="isNumberField(field)">
-                    <el-input-number
-                      v-model="resolveModel(section.scope)[field.fieldKey]"
-                      :min="numberValidation(field.validation, 'min')"
-                      :max="numberValidation(field.validation, 'max')"
-                      :disabled="isFieldDisabled(field)"
-                      style="width: 100%"
-                    />
-                  </template>
-                  <template v-else-if="isBooleanField(field)">
-                    <el-switch
-                      :model-value="
-                        Boolean(resolveModel(section.scope)[field.fieldKey])
-                      "
-                      @change="
-                        updateBooleanModel(
-                          section.scope,
-                          field.fieldKey,
-                          $event,
-                        )
-                      "
-                      :disabled="isFieldDisabled(field)"
-                    />
-                  </template>
-                  <template v-else-if="field.options?.length">
+                </el-table-column>
+              </el-table>
+            </article>
+          </section>
+        </template>
+
+        <template v-else-if="railTab === CREATE_TAB">
+          <section class="create-panel">
+            <article class="source-card">
+              <header class="source-card__header-row">
+                <div>
+                  <strong>添加软件</strong>
+                  <small>录入软件信息、脚本与服务接入配置，保存后立即可见。</small>
+                </div>
+                <div class="source-panel__actions">
+                  <el-button @click="resetCreatePackageForm">重置</el-button>
+                  <el-button
+                    type="primary"
+                    :loading="creatingPackage"
+                    @click="submitCreatePackage"
+                  >
+                    保存软件
+                  </el-button>
+                </div>
+              </header>
+
+              <section class="create-group">
+                <h4>AI 草稿</h4>
+                <el-input
+                  v-model="createPackageAiPrompt"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="描述你要添加的软件，例如：在 Linux AMD64 上部署 MySQL 8.4，接入 systemd 服务，给出安装/启动/停止/卸载脚本"
+                />
+                <div class="source-panel__actions">
+                  <el-button
+                    type="warning"
+                    :loading="creatingPackageAiDraft"
+                    @click="generateCreatePackageAiDraft"
+                  >
+                    AI 生成并回填表单
+                  </el-button>
+                </div>
+              </section>
+
+              <section class="create-group">
+                <h4>基础信息</h4>
+                <div class="source-form-grid source-form-grid--row">
+                  <el-form-item label="仓库">
                     <el-select
-                      v-model="resolveModel(section.scope)[field.fieldKey]"
-                      :disabled="isFieldDisabled(field)"
+                      v-model="createForm.softRepositoryId"
                       clearable
-                      style="width: 100%"
+                      filterable
+                      placeholder="可选，默认使用当前可用仓库"
                     >
                       <el-option
-                        v-for="option in normalizeOptions(field.options)"
-                        :key="`${field.fieldKey}-${option.value}`"
+                        v-for="item in repositories"
+                        :key="item.softRepositoryId"
+                        :label="`${item.repositoryName} (${item.repositoryCode})`"
+                        :value="item.softRepositoryId"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="软件编码">
+                    <el-input v-model="createForm.packageCode" placeholder="例如: mysql-community" />
+                  </el-form-item>
+                  <el-form-item label="软件名称">
+                    <el-input v-model="createForm.packageName" placeholder="例如: MySQL Community" />
+                  </el-form-item>
+                  <el-form-item label="软件分类">
+                    <el-input v-model="createForm.packageCategory" placeholder="例如: database" />
+                  </el-form-item>
+                  <el-form-item label="画像编码">
+                    <el-input v-model="createForm.profileCode" placeholder="可选" />
+                  </el-form-item>
+                  <el-form-item label="操作系统">
+                    <el-select v-model="createForm.osType" clearable placeholder="可选">
+                      <el-option
+                        v-for="option in osFilterOptions"
+                        :key="option.value"
                         :label="option.label"
                         :value="option.value"
                       />
                     </el-select>
-                  </template>
-                  <template v-else>
+                  </el-form-item>
+                  <el-form-item label="架构">
+                    <el-select v-model="createForm.architecture" clearable placeholder="可选">
+                      <el-option
+                        v-for="option in architectureFilterOptions"
+                        :key="option.value"
+                        :label="option.label"
+                        :value="option.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="图标地址">
+                    <el-input v-model="createForm.iconUrl" placeholder="可选" />
+                  </el-form-item>
+                  <el-form-item label="描述" class="create-form-span-2">
                     <el-input
-                      v-model="resolveModel(section.scope)[field.fieldKey]"
-                      :disabled="isFieldDisabled(field)"
-                      :type="isPasswordField(field) ? 'password' : 'text'"
-                      :show-password="isPasswordField(field)"
-                      :placeholder="
-                        field.fieldDescription ||
-                        `请输入${field.fieldLabel || field.fieldKey}`
-                      "
+                      v-model="createForm.description"
+                      type="textarea"
+                      :rows="3"
+                      placeholder="软件说明、用途、运行要求"
                     />
-                  </template>
-                  <div v-if="field.fieldDescription" class="guide-field__hint">
-                    {{ field.fieldDescription }}
-                  </div>
-                </el-form-item>
-              </template>
-            </div>
-            <el-empty v-else description="当前画像未定义该分组字段" />
-          </section>
-
-          <article v-if="previewResult" class="guide-preview">
-            <header class="section-header">
-              <div>
-                <h3>渲染预览</h3>
-                <p>配置模板、日志路径和落地路径预览</p>
-              </div>
-              <span
-                >{{
-                  previewResult.renderedConfigFiles?.length || 0
-                }}
-                个配置文件</span
-              >
-            </header>
-
-            <div class="guide-preview__grid">
-              <div class="guide-preview__card">
-                <h4>配置文件</h4>
-                <ul>
-                  <li
-                    v-for="item in previewResult.renderedConfigFiles || []"
-                    :key="item.templatePath || item.templateCode"
-                  >
-                    <strong>{{
-                      item.templateName || item.templateCode
-                    }}</strong>
-                    <span>{{ item.templatePath || "-" }}</span>
-                  </li>
-                </ul>
-              </div>
-              <div class="guide-preview__card">
-                <h4>运行路径</h4>
-                <ul>
-                  <li v-for="path in previewPaths" :key="path">
-                    {{ path }}
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </article>
-        </template>
-      </section>
-
-      <section v-else class="install-step">
-        <div class="install-review-grid">
-          <article class="install-review-card">
-            <header class="section-header">
-              <div>
-                <h3>目标服务器</h3>
-                <p>本次会逐台创建安装票据并进入统一日志面板</p>
-              </div>
-              <span>{{ selectedServers.length }} 台</span>
-            </header>
-            <ul class="review-list">
-              <li v-for="server in selectedServers" :key="server.serverId">
-                <strong>{{ server.serverName }}</strong>
-                <span
-                  >{{ osLabel(server.osType) }} /
-                  {{ targetTypeLabel(server.serverType) }}</span
-                >
-              </li>
-            </ul>
-          </article>
-
-          <article class="install-review-card">
-            <header class="section-header">
-              <div>
-                <h3>安装摘要</h3>
-                <p>版本、实例、路径与服务名</p>
-              </div>
-            </header>
-            <ul class="review-list">
-              <li>
-                <strong>版本</strong>
-                <span>{{ selectedVersionLabel }}</span>
-              </li>
-              <li>
-                <strong>实例</strong>
-                <span>{{ installForm.installationName || "-" }}</span>
-              </li>
-              <li>
-                <strong>安装路径</strong>
-                <span>{{
-                  installForm.installPath || "按服务器默认目录生成"
-                }}</span>
-              </li>
-              <li>
-                <strong>服务名称</strong>
-                <span>{{ installForm.serviceName || "按软件编码生成" }}</span>
-              </li>
-            </ul>
-          </article>
-        </div>
-
-        <div v-if="batchTasks.length" class="inline-task-list">
-          <header class="section-header">
-            <div>
-              <h3>已提交任务</h3>
-              <p>点击左侧任务可查看对应安装日志</p>
-            </div>
-            <span>{{ batchTasks.length }} 个</span>
-          </header>
-          <div class="inline-task-list__items">
-            <button
-              v-for="task in batchTasks"
-              :key="task.taskKey"
-              type="button"
-              class="inline-task-item"
-              :class="{ 'is-active': task.operationId === activeOperationId }"
-              @click="selectTask(task.operationId)"
-            >
-              <strong>{{ task.serverName }}</strong>
-              <span
-                >#{{ task.operationId || "-" }} ·
-                {{ operationStatusLabel(task.status) }}</span
-              >
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <template #footer>
-        <el-button @click="installVisible = false">取消</el-button>
-        <el-button v-if="installStep > 0" @click="installStep -= 1"
-          >上一步</el-button
-        >
-        <el-button
-          v-if="installStep === 0"
-          type="primary"
-          :disabled="
-            !selectedOsType ||
-            !selectedPackage?.softPackageId ||
-            !selectedServerIds.length
-          "
-          @click="installStep = 1"
-        >
-          下一步
-        </el-button>
-        <el-button
-          v-if="installStep === 1"
-          :disabled="!installForm.softPackageVersionId"
-          :loading="previewing"
-          @click="previewGuide"
-        >
-          渲染预览
-        </el-button>
-        <el-button
-          v-if="installStep === 1"
-          type="primary"
-          :disabled="!installForm.softPackageVersionId"
-          @click="installStep = 2"
-        >
-          下一步
-        </el-button>
-        <el-button
-          v-if="installStep === 2"
-          type="primary"
-          :loading="installing"
-          @click="submitInstall"
-        >
-          提交安装
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <el-drawer v-model="operationVisible" title="安装日志" size="54%">
-      <div class="operation-layout">
-        <aside class="operation-task-list">
-          <button
-            v-for="task in batchTasks"
-            :key="task.taskKey"
-            type="button"
-            class="operation-task"
-            :class="{ 'is-active': task.operationId === activeOperationId }"
-            @click="selectTask(task.operationId)"
-          >
-            <strong>{{ task.serverName }}</strong>
-            <span>#{{ task.operationId || "-" }}</span>
-            <small
-              >{{ operationStatusLabel(task.status) }} ·
-              {{ task.progressPercent || 0 }}%</small
-            >
-          </button>
-        </aside>
-
-        <section class="operation-panel">
-          <template v-if="activeTask">
-            <div class="operation-panel__header">
-              <div>
-                <strong>{{ activeTask.serverName }}</strong>
-                <p>
-                  #{{ activeTask.operationId || "-" }} ·
-                  {{ operationStatusLabel(activeTask.status) }}
-                </p>
-              </div>
-              <el-button
-                v-if="
-                  activeTask.installationId && selectedPackage?.softPackageId
-                "
-                link
-                type="primary"
-                @click="openInstallationDetail(activeTask)"
-              >
-                打开详情
-              </el-button>
-            </div>
-
-            <el-progress
-              :percentage="activeTask.progressPercent || 0"
-              :status="
-                activeTask.status === 'FAILED'
-                  ? 'exception'
-                  : activeTask.status === 'SUCCESS'
-                    ? 'success'
-                    : undefined
-              "
-              :stroke-width="14"
-            />
-
-            <div class="operation-metrics">
-              <span>阶段 {{ stageLabel(activeTask.stage) }}</span>
-              <span>状态 {{ operationStatusLabel(activeTask.status) }}</span>
-              <span>实例 {{ activeTask.installationId || "-" }}</span>
-            </div>
-
-            <el-alert
-              v-if="operationState.error"
-              :title="operationState.error"
-              type="error"
-              :closable="false"
-            />
-
-            <el-scrollbar height="460px" class="operation-console">
-              <pre>{{ activeTaskOutput }}</pre>
-            </el-scrollbar>
-          </template>
-          <el-empty v-else description="暂无安装任务" />
-        </section>
-      </div>
-    </el-drawer>
-
-    <el-dialog v-model="ingestVisible" title="录入软件" width="760px">
-      <div class="ingest-layout">
-        <el-alert
-          title="软件新增统一走仓库驱动。"
-          type="info"
-          :closable="false"
-          description="本地目录仓库支持直接上传安装包，远程目录型仓库通过同步拉取新增版本。"
-        />
-
-        <div class="install-basic-grid install-basic-grid--single">
-          <el-form-item label="选择仓库">
-            <el-select
-              v-model="ingestForm.softRepositoryId"
-              placeholder="选择软件仓库"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="item in repositories"
-                :key="item.softRepositoryId"
-                :label="`${item.repositoryName} (${item.repositoryType})`"
-                :value="item.softRepositoryId"
-              />
-            </el-select>
-          </el-form-item>
-        </div>
-
-        <article v-if="selectedIngestRepository" class="guide-section">
-          <header class="section-header">
-            <div>
-              <h3>{{ selectedIngestRepository.repositoryName }}</h3>
-              <p>
-                {{
-                  ingestUsesUpload
-                    ? "当前仓库会把安装包直接写入本地目录，再自动同步成软件与版本。"
-                    : "当前仓库以同步为主，适合 HTTP 目录、RPM 仓库和镜像站。"
-                }}
-              </p>
-            </div>
-            <span>{{ selectedIngestRepository.repositoryType }}</span>
-          </header>
-
-          <el-upload
-            v-if="ingestUsesUpload"
-            drag
-            multiple
-            :auto-upload="false"
-            :file-list="ingestUploadFiles"
-            :on-change="handleIngestFileChange"
-            :on-remove="handleIngestFileRemove"
-          >
-            <IconifyIconOnline icon="ri:upload-cloud-2-line" />
-            <div class="el-upload__text">
-              拖拽或点击选择 `rpm/deb/exe/msi/zip/tar.gz/bin`
-            </div>
-            <template #tip>
-              <div class="el-upload__tip">
-                上传后会自动写入仓库目录并执行同步，无需手工维护 JSON。
-              </div>
-            </template>
-          </el-upload>
-
-          <el-empty
-            v-else
-            description="当前仓库不支持直传安装包，将直接执行同步并刷新软件目录。"
-          />
-        </article>
-      </div>
-
-      <template #footer>
-        <el-button @click="ingestVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="ingesting"
-          @click="submitIngest"
-        >
-          {{ ingestUsesUpload ? "上传并同步" : "立即同步" }}
-        </el-button>
-      </template>
-    </el-dialog>
-
-    <el-dialog v-model="editVisible" title="整理软件" width="1040px">
-      <div v-if="editingSoftware" class="edit-layout">
-        <div class="install-basic-grid">
-          <el-form-item
-            v-if="editingSoftware.variants.length > 1"
-            label="软件包变体"
-          >
-            <el-select
-              v-model="editingPackageId"
-              style="width: 100%"
-              @change="handleEditingPackageChange"
-            >
-              <el-option
-                v-for="variant in editingSoftware.variants"
-                :key="variant.softPackageId"
-                :label="`${osLabel(variant.osType) || '通用系统'} / ${architectureLabel(variant.architecture)}`"
-                :value="variant.softPackageId"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="软件名称">
-            <el-input v-model="packageEditForm.packageName" />
-          </el-form-item>
-          <el-form-item label="分类">
-            <el-input v-model="packageEditForm.packageCategory" />
-          </el-form-item>
-          <el-form-item label="画像编码">
-            <el-input v-model="packageEditForm.profileCode" />
-          </el-form-item>
-          <el-form-item label="图标 URL">
-            <el-input v-model="packageEditForm.iconUrl" />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="描述">
-            <el-input
-              v-model="packageEditForm.description"
-              type="textarea"
-              :rows="4"
-            />
-          </el-form-item>
-        </div>
-
-        <article class="guide-section">
-          <header class="section-header">
-            <div>
-              <h3>版本整理</h3>
-              <p>只整理自动解析后的版本信息，不手工创建空白版本。</p>
-            </div>
-            <span>{{ editingVersions.length }} 个版本</span>
-          </header>
-
-          <el-table :data="editingVersions" border>
-            <el-table-column label="版本" min-width="220">
-              <template #default="{ row }">
-                <div class="version-cell">
-                  <strong>{{ row.versionName }}</strong>
-                  <small>{{ row.versionCode }}</small>
+                  </el-form-item>
                 </div>
+              </section>
+
+              <section class="create-group">
+                <h4>版本信息</h4>
+                <div class="source-form-grid source-form-grid--row">
+                  <el-form-item label="版本编码">
+                    <el-input v-model="createForm.versionCode" placeholder="例如: 8.4.3" />
+                  </el-form-item>
+                  <el-form-item label="版本名称">
+                    <el-input v-model="createForm.versionName" placeholder="可选，默认等于版本编码" />
+                  </el-form-item>
+                  <el-form-item label="下载地址" class="create-form-span-2">
+                    <el-input
+                      v-model="createForm.downloadUrlsText"
+                      type="textarea"
+                      :rows="3"
+                      placeholder="每行一个地址，或使用英文逗号分隔"
+                    />
+                  </el-form-item>
+                </div>
+              </section>
+
+              <section class="create-group">
+                <h4>脚本信息</h4>
+                <div class="source-form-grid source-form-grid--row">
+                  <el-form-item label="安装脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.installScript" type="textarea" :rows="4" />
+                  </el-form-item>
+                  <el-form-item label="初始化脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.initScript" type="textarea" :rows="3" />
+                  </el-form-item>
+                  <el-form-item label="启动脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.startScript" type="textarea" :rows="3" />
+                  </el-form-item>
+                  <el-form-item label="停止脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.stopScript" type="textarea" :rows="3" />
+                  </el-form-item>
+                  <el-form-item label="卸载脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.uninstallScript" type="textarea" :rows="3" />
+                  </el-form-item>
+                  <el-form-item label="服务注册脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.serviceRegisterScript" type="textarea" :rows="3" />
+                  </el-form-item>
+                  <el-form-item label="服务卸载脚本" class="create-form-span-2">
+                    <el-input v-model="createForm.serviceUnregisterScript" type="textarea" :rows="3" />
+                  </el-form-item>
+                </div>
+              </section>
+
+              <section class="create-group">
+                <h4>服务化接入</h4>
+                <div class="source-form-grid source-form-grid--row">
+                  <el-form-item label="接入 server 服务">
+                    <el-switch
+                      v-model="createForm.integrateServerService"
+                      inline-prompt
+                      active-text="接入"
+                      inactive-text="不接入"
+                    />
+                  </el-form-item>
+                  <el-form-item label="启用版本">
+                    <el-switch
+                      v-model="createForm.enabled"
+                      inline-prompt
+                      active-text="启用"
+                      inactive-text="停用"
+                    />
+                  </el-form-item>
+                  <template v-if="createForm.integrateServerService">
+                    <el-form-item label="服务编码">
+                      <el-input v-model="createForm.serverServiceCode" placeholder="例如: mysql-service" />
+                    </el-form-item>
+                    <el-form-item label="服务名称">
+                      <el-input v-model="createForm.serverServiceName" placeholder="例如: MySQL Service" />
+                    </el-form-item>
+                    <el-form-item label="服务类型">
+                      <el-input v-model="createForm.serverServiceType" placeholder="例如: SYSTEMD / WINDOWS_SERVICE" />
+                    </el-form-item>
+                    <el-form-item label="启动方式">
+                      <el-input v-model="createForm.serverServiceStartMode" placeholder="例如: AUTO / MANUAL" />
+                    </el-form-item>
+                    <el-form-item label="执行通道">
+                      <el-input v-model="createForm.serverExecutionProvider" placeholder="例如: LOCAL / SSH / WINRM" />
+                    </el-form-item>
+                  </template>
+                </div>
+              </section>
+            </article>
+          </section>
+        </template>
+      </template>
+
+      <template #rail-footer>
+        <div class="soft-rail-footer">
+          <el-tooltip content="下载源设置" placement="left">
+            <el-button circle type="primary" @click="openSourceSettingsTab">
+              <IconifyIconOnline icon="ri:settings-4-line" />
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="添加软件" placement="left">
+            <el-button circle type="success" @click="openCreatePackageTab">
+              <IconifyIconOnline icon="ri:add-line" />
+            </el-button>
+          </el-tooltip>
+        </div>
+      </template>
+    </ScLayout>
+
+    <el-dialog
+      v-model="softwareDetailVisible"
+      width="860px"
+      title="软件详情"
+      destroy-on-close
+    >
+      <template v-if="currentSoftwareDetail">
+        <section class="software-detail">
+          <header class="software-detail__head">
+            <div>
+              <h3>{{ currentSoftwareDetail.name }}</h3>
+              <p>{{ currentSoftwareDetail.code }}</p>
+            </div>
+            <el-tag size="small" effect="light">
+              {{ currentSoftwareDetail.packageCount }} 包
+            </el-tag>
+          </header>
+
+          <p class="software-detail__desc">
+            {{ currentSoftwareDetail.description || "暂无描述" }}
+          </p>
+
+          <div class="software-detail__meta">
+            <span>{{ currentSoftwareDetail.category || "未分类" }}</span>
+            <span>
+              {{
+                currentSoftwareDetail.osTypes.map((value) => osLabel(value)).join(" / ") || "通用系统"
+              }}
+            </span>
+            <span>
+              {{
+                currentSoftwareDetail.architectures
+                  .map((value) => architectureLabel(value))
+                  .join(" / ") || "通用架构"
+              }}
+            </span>
+          </div>
+
+          <el-table :data="currentSoftwareVariants" size="small" border>
+            <el-table-column prop="packageName" label="软件包" min-width="180" />
+            <el-table-column prop="packageCode" label="编码" min-width="150" />
+            <el-table-column prop="osType" label="系统" width="120">
+              <template #default="{ row }">
+                {{ osLabel(row.osType) }}
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+            <el-table-column prop="architecture" label="架构" width="120">
               <template #default="{ row }">
-                {{ row.enabled === false ? "停用" : "启用" }}
+                {{ architectureLabel(row.architecture) }}
               </template>
             </el-table-column>
-            <el-table-column label="下载源" min-width="220">
+            <el-table-column prop="softPackageId" label="操作" width="140">
               <template #default="{ row }">
-                {{ (row.downloadUrls || []).join(" / ") || "-" }}
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100" align="center">
-              <template #default="{ row }">
-                <el-tooltip content="编辑版本" placement="top">
-                  <el-button circle @click="openVersionEdit(row)">
-                    <IconifyIconOnline icon="ri:edit-line" />
-                  </el-button>
-                </el-tooltip>
+                <el-button
+                  link
+                  type="primary"
+                  @click="openDetailPage(row.softPackageId)"
+                >
+                  打开完整详情
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
-        </article>
-      </div>
-
-      <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" :loading="editSaving" @click="submitPackageEdit">
-          保存软件整理
-        </el-button>
+        </section>
       </template>
+      <el-empty v-else description="未选择软件" />
     </el-dialog>
-
-    <el-dialog v-model="versionEditVisible" title="整理版本" width="960px">
-      <div class="edit-layout">
-        <div class="install-basic-grid">
-          <el-form-item label="版本显示名">
-            <el-input v-model="versionEditForm.versionName" />
-          </el-form-item>
-          <el-form-item label="启用状态">
-            <el-switch v-model="versionEditForm.enabled" />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="下载地址 JSON">
-            <el-input
-              v-model="versionEditForm.downloadUrlsJson"
-              type="textarea"
-              :rows="3"
-            />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="安装脚本">
-            <el-input
-              v-model="versionEditForm.installScript"
-              type="textarea"
-              :rows="4"
-            />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="启动脚本">
-            <el-input
-              v-model="versionEditForm.startScript"
-              type="textarea"
-              :rows="4"
-            />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="停止脚本">
-            <el-input
-              v-model="versionEditForm.stopScript"
-              type="textarea"
-              :rows="3"
-            />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="重启脚本">
-            <el-input
-              v-model="versionEditForm.restartScript"
-              type="textarea"
-              :rows="3"
-            />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="状态脚本">
-            <el-input
-              v-model="versionEditForm.statusScript"
-              type="textarea"
-              :rows="3"
-            />
-          </el-form-item>
-          <el-form-item label="日志路径 JSON">
-            <el-input
-              v-model="versionEditForm.logPathsJson"
-              type="textarea"
-              :rows="3"
-            />
-          </el-form-item>
-          <el-form-item label="配置路径 JSON">
-            <el-input
-              v-model="versionEditForm.configPathsJson"
-              type="textarea"
-              :rows="3"
-            />
-          </el-form-item>
-          <el-form-item class="server-form-grid__span-2" label="扩展元数据 JSON">
-            <el-input
-              v-model="versionEditForm.metadataJson"
-              type="textarea"
-              :rows="5"
-            />
-          </el-form-item>
-        </div>
-      </div>
-
-      <template #footer>
-        <el-button @click="versionEditVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="editSaving"
-          @click="submitVersionEdit"
-        >
-          保存版本整理
-        </el-button>
-      </template>
-    </el-dialog>
-  </SoftWorkspace>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import { message } from "@repo/utils";
-import { ElMessageBox, type UploadUserFile } from "element-plus";
+import { ElMessage } from "element-plus";
+import ScLayout from "@repo/components/ScLayout";
 import {
-  createSoftTarget,
-  getSoftPackageDetail,
-  getSoftVersionGuide,
-  installSoftPackage,
-  listSoftOperationLogs,
+  createSoftPackage,
+  generateSoftPackageAiDraft,
   listSoftPackages,
   listSoftRepositories,
-  listSoftTargets,
-  previewSoftPackageGuide,
+  listSoftRepositorySources,
   syncSoftRepository,
-  updateSoftPackage,
-  updateSoftPackageVersion,
-  updateSoftTarget,
-  uploadSoftRepositoryArtifacts,
-  type SoftGuideField,
-  type SoftGuidePreviewResponse,
-  type SoftInstallRequest,
-  type SoftOperationLog,
-  type SoftPackage,
-  type SoftPackageGuide,
-  type SoftPackageVersion,
-  type SoftRepository,
-  type SoftTarget,
+  updateSoftRepositorySources,
 } from "../api";
-import {
-  getServerHost,
-  listServerHosts,
-  type ServerHost,
-} from "../../../server/src/api";
-import { useSoftOperationStream } from "../composables/useSoftOperationStream";
-import SoftWorkspace from "../components/SoftWorkspace.vue";
+import type {
+  SoftPackageAiDraftResponse,
+  SoftPackage,
+  SoftPackageCreateRequest,
+  SoftRepository,
+  SoftRepositorySource,
+  SoftRepositorySourceSearchItem,
+} from "../api";
 
-type GuideScope = "install" | "service" | "config";
+const HOME_TAB = "software-home";
+const SOURCE_TAB = "source-settings";
+const CREATE_TAB = "package-create";
 
-type GuideSection = {
-  key: string;
+type SourceDraft = SoftRepositorySource & {
+  draftId: string;
+};
+type SourceType = SoftRepositorySource["sourceType"];
+type RailTabItem = {
+  closable?: boolean;
+  name: string;
   title: string;
-  hint: string;
-  scope: GuideScope;
-  fields: SoftGuideField[];
 };
 
-type GuideOption = {
-  label: string;
-  value: unknown;
-};
-
-type BatchInstallTask = {
-  taskKey: string;
-  serverId: number;
-  serverName: string;
-  operationId: number;
-  installationId?: number;
-  status?: string;
-  stage?: string;
-  progressPercent?: number;
-  message?: string;
-};
-
-type CatalogPlatform = {
-  value: string;
-  label: string;
-  icon: string;
-  description: string;
+type SoftwareCard = {
   architectures: string[];
-  variants: SoftPackage[];
-};
-
-type CatalogSoftware = {
-  softwareKey: string;
-  packageName: string;
-  packageCode: string;
-  packageCategory?: string;
-  profileCode?: string;
+  category?: string;
+  code: string;
+  defaultPackageId: number | null;
   description?: string;
-  iconUrl?: string;
-  variants: SoftPackage[];
-  platforms: CatalogPlatform[];
-  architectures: string[];
-};
-
-type ServerSelectOption = {
-  label: string;
-  value: number;
-  icon: string;
-  host?: string;
-  port?: number;
-  osType?: string;
-  architecture?: string;
-  targetTypeLabel?: string;
-  baseDirectory?: string;
-  description?: string;
-};
-
-type IngestMode = "upload" | "sync";
-
-const toNumericId = (value: unknown) => {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+  key: string;
+  name: string;
+  osTypes: string[];
+  packageCount: number;
 };
 
 const router = useRouter();
 const loading = ref(false);
-const guideLoading = ref(false);
-const previewing = ref(false);
-const installing = ref(false);
-const ingesting = ref(false);
-const editSaving = ref(false);
-const installVisible = ref(false);
-const operationVisible = ref(false);
-const ingestVisible = ref(false);
-const editVisible = ref(false);
-const versionEditVisible = ref(false);
-const installStep = ref(0);
+const syncingRepository = ref(false);
+const savingSources = ref(false);
+const sourceSearchLoading = ref(false);
+const creatingPackage = ref(false);
+const creatingPackageAiDraft = ref(false);
+
+const railTab = ref<string>(HOME_TAB);
+const sourceTabVisible = ref(false);
+const createTabVisible = ref(false);
+const softwareDetailVisible = ref(false);
+const activeSoftwareKey = ref("");
+
+const packages = ref<SoftPackage[]>([]);
+const repositories = ref<SoftRepository[]>([]);
+const sourceSearchResults = ref<SoftRepositorySourceSearchItem[]>([]);
+
 const keyword = ref("");
 const osFilter = ref("");
 const architectureFilter = ref("");
-const packages = ref<SoftPackage[]>([]);
-const repositories = ref<SoftRepository[]>([]);
-const softTargets = ref<SoftTarget[]>([]);
-const servers = ref<ServerHost[]>([]);
-const versions = ref<SoftPackageVersion[]>([]);
-const selectedSoftware = ref<CatalogSoftware | null>(null);
-const selectedPackage = ref<SoftPackage | null>(null);
-const selectedOsType = ref("");
-const selectedVariantPackageId = ref<number | null>(null);
-const selectedServerIds = ref<number[]>([]);
-const ingestUploadFiles = ref<UploadUserFile[]>([]);
-const guide = ref<SoftPackageGuide | null>(null);
-const previewResult = ref<SoftGuidePreviewResponse | null>(null);
-const batchTasks = ref<BatchInstallTask[]>([]);
-const activeOperationId = ref<number | null>(null);
-const taskLogs = ref<Record<number, string[]>>({});
-const editingSoftware = ref<CatalogSoftware | null>(null);
-const editingPackageId = ref<number | null>(null);
-const editingVersions = ref<SoftPackageVersion[]>([]);
-const editingVersionId = ref<number | null>(null);
-let operationPollTimer: number | undefined;
-const versionCache = new Map<number, SoftPackageVersion[]>();
 
-const installOptions = reactive<Record<string, unknown>>({});
-const serviceOptions = reactive<Record<string, unknown>>({});
-const configOptions = reactive<Record<string, unknown>>({});
-const ingestForm = reactive<{
-  softRepositoryId: number;
-  mode: IngestMode;
-}>({
-  softRepositoryId: 0,
-  mode: "upload",
+const activeRepositoryId = ref<number | null>(null);
+const sourceSearchKeyword = ref("");
+const createPackageAiPrompt = ref("");
+
+const sourceEditor = reactive({
+  repositoryType: "MANUAL",
+  repositoryUrl: "",
+  localDirectory: "",
+  sourceConfigs: [] as SourceDraft[],
 });
-const packageEditForm = reactive<{
-  packageName: string;
-  packageCategory: string;
-  description: string;
-  iconUrl: string;
-  profileCode: string;
-}>({
-  packageName: "",
-  packageCategory: "",
+
+const createForm = reactive({
+  architecture: "",
   description: "",
-  iconUrl: "",
-  profileCode: "",
-});
-const versionEditForm = reactive<{
-  versionName: string;
-  enabled: boolean;
-  downloadUrlsJson: string;
-  installScript: string;
-  startScript: string;
-  stopScript: string;
-  restartScript: string;
-  statusScript: string;
-  logPathsJson: string;
-  configPathsJson: string;
-  metadataJson: string;
-}>({
-  versionName: "",
+  downloadUrlsText: "",
   enabled: true,
-  downloadUrlsJson: "[]",
+  iconUrl: "",
+  initScript: "",
   installScript: "",
+  integrateServerService: false,
+  osType: "",
+  packageCategory: "",
+  packageCode: "",
+  packageName: "",
+  profileCode: "",
+  serverExecutionProvider: "",
+  serverServiceCode: "",
+  serverServiceName: "",
+  serverServiceStartMode: "",
+  serverServiceType: "",
+  serviceRegisterScript: "",
+  serviceUnregisterScript: "",
+  softRepositoryId: null as number | null,
   startScript: "",
   stopScript: "",
-  restartScript: "",
-  statusScript: "",
-  logPathsJson: "[]",
-  configPathsJson: "[]",
-  metadataJson: "{}",
+  uninstallScript: "",
+  versionCode: "",
+  versionName: "",
 });
 
-const {
-  state: operationStateRef,
-  latest: operationLatest,
-  lines: operationLines,
-  connect: connectOperation,
-  disconnect: disconnectOperation,
-} = useSoftOperationStream();
+const sourceTypeOptions: Array<{ label: string; value: SourceType }> = [
+  { label: "手工维护", value: "MANUAL" },
+  { label: "HTTP JSON", value: "HTTP_JSON" },
+  { label: "HTTP 目录", value: "HTTP_DIR" },
+  { label: "本地目录", value: "LOCAL_DIR" },
+  { label: "RPM 仓库", value: "RPM_REPO" },
+  { label: "镜像目录", value: "MIRROR_REPO" },
+];
 
-const installForm = reactive<SoftInstallRequest>({
-  softPackageId: 0,
-  softPackageVersionId: 0,
-  softTargetId: 0,
-  installationName: "",
-  installPath: "",
-  serviceName: "",
-  installOptions,
-  serviceOptions,
-  configOptions,
-});
+const osFilterOptions = [
+  { label: "Linux", value: "LINUX" },
+  { label: "Windows", value: "WINDOWS" },
+  { label: "MacOS", value: "MACOS" },
+  { label: "Unix", value: "UNIX" },
+];
 
-const operationState = computed(() => operationStateRef.value);
+const architectureFilterOptions = [
+  { label: "amd64", value: "amd64" },
+  { label: "arm64", value: "arm64" },
+  { label: "x86", value: "x86" },
+];
 
-const variantTokenSet = new Set([
-  "windows",
-  "win",
-  "linux",
-  "mac",
-  "macos",
-  "darwin",
-  "amd64",
-  "arm64",
-  "aarch64",
-  "x64",
-  "x86_64",
-  "x86",
-]);
-
-const compactText = (value?: string | null) =>
-  String(value || "")
-    .trim()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ");
-
-const stripVariantTokens = (value?: string | null) => {
-  const normalized = compactText(value);
-  if (!normalized) {
-    return "";
-  }
-  const stripped = normalized
-    .split(" ")
-    .filter((part) => !variantTokenSet.has(part.toLowerCase()))
-    .join(" ")
-    .trim();
-  return stripped || normalized;
-};
-
-const normalizeSoftwareKey = (value?: string | null) =>
-  compactText(value)
-    .toLowerCase()
-    .split(" ")
-    .filter((part) => !variantTokenSet.has(part))
-    .join("-");
-
-const softwareDisplayName = (item: SoftPackage) =>
-  stripVariantTokens(item.packageName) || item.packageName;
-
-const softwareDisplayCode = (item: SoftPackage) =>
-  normalizeSoftwareKey(item.packageCode) ||
-  normalizeSoftwareKey(item.packageName) ||
-  item.profileCode ||
-  item.packageCode;
-
-const buildCatalogPlatforms = (variants: SoftPackage[]) => {
-  const platformMap = new Map<string, CatalogPlatform>();
-  for (const variant of variants) {
-    const osType = normalizeOs(variant.osType) || "generic";
-    if (!platformMap.has(osType)) {
-      platformMap.set(osType, {
-        value: osType,
-        label: osLabel(osType) || "通用系统",
-        icon: osIcon(osType),
-        description: "",
-        architectures: [],
-        variants: [],
-      });
-    }
-    const platform = platformMap.get(osType)!;
-    platform.variants.push(variant);
-    const arch = normalizeArch(variant.architecture);
-    if (arch && !platform.architectures.includes(arch)) {
-      platform.architectures.push(arch);
-    }
-  }
-  return Array.from(platformMap.values()).map((platform) => ({
-    ...platform,
-    description: `${platform.label}${platform.architectures.length ? ` · ${platform.architectures.map((item) => architectureLabel(item)).join(" / ")}` : ""}`,
-    variants: [...platform.variants].sort((left, right) =>
-      architectureLabel(left.architecture).localeCompare(
-        architectureLabel(right.architecture),
-      ),
-    ),
-  }));
-};
-
-const catalogSoftwares = computed<CatalogSoftware[]>(() => {
-  const mapping = new Map<string, CatalogSoftware>();
-  for (const item of packages.value) {
-    const softwareKey =
-      normalizeSoftwareKey(item.softwareKey) ||
-      softwareDisplayCode(item) ||
-      String(item.softPackageId || "");
-    if (!mapping.has(softwareKey)) {
-      mapping.set(softwareKey, {
-        softwareKey,
-        packageName: softwareDisplayName(item),
-        packageCode: softwareDisplayCode(item),
-        packageCategory: item.packageCategory,
-        profileCode: item.profileCode,
-        description: item.description,
-        iconUrl: item.iconUrl,
-        variants: [],
-        platforms: [],
-        architectures: [],
-      });
-    }
-    const software = mapping.get(softwareKey)!;
-    software.variants.push(item);
-    if (!software.description && item.description) {
-      software.description = item.description;
-    }
-    if (!software.iconUrl && item.iconUrl) {
-      software.iconUrl = item.iconUrl;
-    }
-  }
-  return Array.from(mapping.values())
-    .map((software) => {
-      const platforms = buildCatalogPlatforms(software.variants);
-      const architectures = Array.from(
-        new Set(
-          software.variants
-            .map((item) => normalizeArch(item.architecture))
-            .filter(Boolean),
-        ),
-      );
-      return {
-        ...software,
-        variants: [...software.variants].sort((left, right) => {
-          const osCompare = osLabel(left.osType).localeCompare(
-            osLabel(right.osType),
-          );
-          if (osCompare !== 0) {
-            return osCompare;
-          }
-          return architectureLabel(left.architecture).localeCompare(
-            architectureLabel(right.architecture),
-          );
-        }),
-        platforms,
-        architectures,
-      };
-    })
-    .sort((left, right) => left.packageName.localeCompare(right.packageName));
-});
-
-const visibleSoftwareVariants = (
-  software: CatalogSoftware,
-  osType = osFilter.value,
-  architecture = architectureFilter.value,
-) =>
-  software.variants.filter(
-    (item) =>
-      (!osType || normalizeOs(item.osType) === osType) &&
-      (!architecture || normalizeArch(item.architecture) === architecture),
-  );
-
-const filteredPackages = computed(() => {
-  const text = keyword.value.trim().toLowerCase();
-  return catalogSoftwares.value.filter(
-    (item) =>
-      (!text ||
-        [
-          item.packageName,
-          item.packageCode,
-          item.packageCategory,
-          item.profileCode,
-        ]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(text))) &&
-      visibleSoftwareVariants(item).length > 0,
-  );
-});
-
-const osFilterOptions = computed(() =>
-  Array.from(
-    new Set(
-      packages.value.map((item) => normalizeOs(item.osType)).filter(Boolean),
-    ),
-  ).map((value) => ({
-    value,
-    label: osLabel(value),
-  })),
-);
-
-const architectureFilterOptions = computed(() =>
-  Array.from(
-    new Set(
-      packages.value
-        .map((item) => normalizeArch(item.architecture))
-        .filter(Boolean),
-    ),
-  ).map((value) => ({
-    value,
-    label: architectureLabel(value),
-  })),
-);
-
-const enabledServerCount = computed(
-  () => servers.value.filter((item) => item.enabled !== false).length,
-);
-
-const enabledRepositoryCount = computed(
-  () => repositories.value.filter((item) => item.enabled !== false).length,
-);
-
-const normalizedSelectedVariantPackageId = computed(() => {
-  return toNumericId(selectedVariantPackageId.value);
-});
-
-const selectedServers = computed(() =>
-  servers.value.filter((item) =>
-    selectedServerIds.value.includes(item.serverId || -1),
-  ),
-);
-
-const selectedIngestRepository = computed(
-  () =>
-    repositories.value.find(
-      (item) => item.softRepositoryId === ingestForm.softRepositoryId,
-    ) || null,
-);
-
-const ingestUsesUpload = computed(
-  () => selectedIngestRepository.value?.repositoryType === "LOCAL_DIR",
-);
-
-const installPlatformOptions = computed(() =>
-  (selectedSoftware.value?.platforms || []).map((platform) => ({
-    value: platform.value,
-    label: platform.label,
-    icon: platform.icon,
-    description: platform.architectures.length
-      ? platform.architectures
-          .map((item) => architectureLabel(item))
-          .join(" / ")
-      : "通用架构",
-  })),
-);
-
-const selectedPlatformVariants = computed(() =>
-  (selectedSoftware.value?.variants || []).filter(
-    (item) =>
-      !selectedOsType.value ||
-      normalizeOs(item.osType) === selectedOsType.value,
-  ),
-);
-
-const editingPackage = computed(
-  () =>
-    editingSoftware.value?.variants.find(
-      (item) =>
-        toNumericId(item.softPackageId) === toNumericId(editingPackageId.value),
-    ) || null,
-);
-
-const selectedVariantOptions = computed(() =>
-  selectedPlatformVariants.value.map((item) => ({
-    value: item.softPackageId!,
-    label: `${architectureLabel(item.architecture)} · ${item.packageCode}`,
-  })),
-);
-
-const matchedServerOptions = computed<ServerSelectOption[]>(() =>
-  matchedServers.value.map((server) => ({
-    value: server.serverId!,
-    label: server.serverName,
-    icon: targetTypeIcon(server.serverType),
-    host: server.host,
-    port: server.port,
-    osType: server.osType,
-    architecture: server.architecture,
-    targetTypeLabel: targetTypeLabel(server.serverType),
-    baseDirectory: server.baseDirectory,
-    description: server.description,
-  })),
-);
-
-const guideSections = computed<GuideSection[]>(() => [
-  {
-    key: "install",
-    title: "基础安装",
-    hint: "安装目录、端口和初始化参数",
-    scope: "install",
-    fields: groupAndSortFields(guide.value?.installFields, [
-      "基础安装",
-      "目录与端口",
-      "账号凭证",
-    ]),
-  },
-  {
-    key: "config",
-    title: "配置初始化",
-    hint: "初始化配置模板和配置文件参数",
-    scope: "config",
-    fields: groupAndSortFields(guide.value?.configFields, ["配置初始化"]),
-  },
-  {
-    key: "service",
-    title: "服务引导",
-    hint: "服务注册、服务启动和运行控制参数",
-    scope: "service",
-    fields: groupAndSortFields(guide.value?.serviceFields, ["服务引导"]),
-  },
-]);
-
-const previewPaths = computed(() => {
-  const values = new Set<string>();
-  previewResult.value?.configPaths?.forEach((item) => item && values.add(item));
-  previewResult.value?.logPaths?.forEach((item) => item && values.add(item));
-  return Array.from(values);
-});
-
-const selectedVersionLabel = computed(() => {
-  const version = versions.value.find(
-    (item) =>
-      toNumericId(item.softPackageVersionId) ===
-      toNumericId(installForm.softPackageVersionId),
-  );
-  return version ? `${version.versionName} (${version.versionCode})` : "-";
-});
-
-const activeTask = computed(
-  () =>
-    batchTasks.value.find(
-      (item) => item.operationId === activeOperationId.value,
-    ) || null,
-);
-
-const activeTaskOutput = computed(() => {
-  const operationId = activeOperationId.value;
-  if (operationId && taskLogs.value[operationId]?.length) {
-    return taskLogs.value[operationId].join("\n");
-  }
-  return activeTask.value?.message || "等待安装日志...";
-});
-
-const clearOperationPoller = () => {
-  if (operationPollTimer) {
-    window.clearTimeout(operationPollTimer);
-    operationPollTimer = undefined;
-  }
-};
-
-const isFinishedStatus = (status?: string) =>
-  status === "SUCCESS" || status === "FAILED";
-
-const normalizeOs = (value?: string | null) => {
-  const text = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (!text) {
-    return "";
-  }
-  if (text.includes("win")) {
-    return "windows";
-  }
-  if (text.includes("linux")) {
-    return "linux";
-  }
-  if (text.includes("mac") || text.includes("darwin")) {
-    return "macos";
-  }
-  return text;
-};
-
-const normalizeArch = (value?: string | null) => {
-  const text = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (!text) {
-    return "";
-  }
-  if (["x64", "x86_64", "amd64"].includes(text)) {
-    return "amd64";
-  }
-  if (["arm64", "aarch64"].includes(text)) {
-    return "arm64";
-  }
-  return text;
-};
-
-const osLabel = (value?: string | null) =>
-  normalizeOs(value) === "windows"
-    ? "Windows"
-    : normalizeOs(value) === "linux"
-      ? "Linux"
-      : normalizeOs(value) === "macos"
-        ? "macOS"
-        : value || "";
-
-const osIcon = (value?: string | null) =>
-  normalizeOs(value) === "windows"
-    ? "ri:windows-line"
-    : normalizeOs(value) === "linux"
-      ? "ri:ubuntu-line"
-      : normalizeOs(value) === "macos"
-        ? "ri:apple-line"
-        : "ri:apps-2-line";
-
-const targetTypeLabel = (value?: string | null) =>
-  value === "LOCAL"
-    ? "本机"
-    : value === "SSH"
-      ? "SSH"
-      : value === "WINRM"
-        ? "WinRM"
-        : value || "-";
-
-const targetTypeIcon = (value?: string | null) =>
-  value === "LOCAL"
-    ? "ri:computer-line"
-    : value === "SSH"
-      ? "ri:terminal-box-line"
-      : value === "WINRM"
-        ? "ri:remote-control-line"
-        : "ri:server-line";
-
-const architectureLabel = (value?: string | null) => {
-  const normalized = normalizeArch(value);
-  if (!normalized) {
-    return "通用架构";
-  }
-  if (normalized === "amd64") {
-    return "AMD64";
-  }
-  if (normalized === "arm64") {
-    return "ARM64";
-  }
-  return String(value || normalized).toUpperCase();
-};
-
-const profileLabel = (value?: string | null) =>
-  value === "mysql"
-    ? "MySQL 画像"
-    : value === "redis"
-      ? "Redis 画像"
-      : value === "nginx"
-        ? "Nginx 画像"
-        : value === "minio"
-          ? "MinIO 画像"
-          : value === "generic" || !value
-            ? "通用画像"
-            : `${String(value).toUpperCase()} 画像`;
-
-const operationStatusLabel = (value?: string | null) =>
-  value === "SUCCESS"
-    ? "成功"
-    : value === "FAILED"
-      ? "失败"
-      : value === "RUNNING"
-        ? "执行中"
-        : value === "PENDING"
-          ? "待执行"
-          : value === "CANCELLED"
-            ? "已取消"
-            : value || "待执行";
-
-const stageLabel = (value?: string | null) =>
-  value === "PREPARE"
-    ? "准备"
-    : value === "VALIDATE"
-      ? "校验"
-      : value === "RENDER"
-        ? "渲染"
-        : value === "CONFIGURE"
-          ? "配置"
-          : value === "BACKUP"
-            ? "备份"
-            : value === "DOWNLOAD"
-              ? "下载"
-              : value === "INSTALL"
-                ? "安装"
-                : value === "UNINSTALL"
-                  ? "卸载"
-                  : value === "EXECUTE"
-                    ? "执行"
-                    : value === "WRITE"
-                      ? "写入"
-                      : value === "SERVICE_GUIDE"
-                        ? "服务引导"
-                        : value === "VERIFY"
-                          ? "校验结果"
-                          : value === "FINISH"
-                            ? "完成"
-                            : value || "准备";
-
-const packageInitials = (value?: string | null) =>
-  String(value || "SO")
-    .trim()
-    .slice(0, 2)
-    .toUpperCase();
-
-const matchPackageServer = (
-  softPackage: SoftPackage | null,
-  server: ServerHost,
-) => {
-  if (!softPackage) {
-    return true;
-  }
-  const packageOs = normalizeOs(softPackage.osType);
-  const serverOs = normalizeOs(server.osType);
-  if (packageOs && serverOs && packageOs !== serverOs) {
-    return false;
-  }
-  const packageArch = normalizeArch(softPackage.architecture);
-  const serverArch = normalizeArch(server.architecture);
-  if (packageArch && serverArch && packageArch !== serverArch) {
-    return false;
-  }
-  return true;
-};
-
-const resolvePreferredVariant = (
-  software: CatalogSoftware | null,
-  preferredOs = osFilter.value,
-  preferredArchitecture = architectureFilter.value,
-) => {
-  if (!software) {
-    return null;
-  }
-  const visibleVariants = visibleSoftwareVariants(
-    software,
-    preferredOs,
-    preferredArchitecture,
-  );
-  if (visibleVariants.length) {
-    return visibleVariants[0];
-  }
-  const osMatched = software.variants.filter(
-    (item) => !preferredOs || normalizeOs(item.osType) === preferredOs,
-  );
-  if (osMatched.length) {
-    return osMatched[0];
-  }
-  return software.variants[0] || null;
-};
-
-const matchedServers = computed(() =>
-  servers.value.filter(
-    (server) =>
-      server.enabled !== false &&
-      matchPackageServer(selectedPackage.value, server),
-  ),
-);
-
-const compatibleServerCount = (software: CatalogSoftware) =>
-  servers.value.filter(
-    (server) =>
-      server.enabled !== false &&
-      visibleSoftwareVariants(software).some((variant) =>
-        matchPackageServer(variant, server),
-      ),
-  ).length;
-
-const readMetadata = (value?: string) => {
-  if (!value) {
-    return {};
-  }
-  try {
-    return JSON.parse(value) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
-};
-
-const buildSoftTargetPayload = (server: ServerHost): SoftTarget => ({
-  targetName: server.serverName,
-  targetCode: `server-${server.serverId}`,
-  targetType: server.serverType,
-  osType: server.osType,
-  architecture: server.architecture,
-  host: server.serverType === "LOCAL" ? "127.0.0.1" : server.host,
-  port: server.port,
-  username: server.username,
-  password: server.password,
-  privateKey: server.privateKey,
-  baseDirectory: server.baseDirectory,
-  enabled: server.enabled,
-  description: server.description,
-  metadataJson: JSON.stringify({
-    source: "server-host",
-    serverId: server.serverId,
-    serverCode: server.serverCode,
-  }),
-});
-
-const findExistingSoftTarget = (server: ServerHost) =>
-  softTargets.value.find((target) => {
-    const metadata = readMetadata(target.metadataJson);
-    return (
-      String(metadata.serverId || "") === String(server.serverId || "") ||
-      target.targetCode === `server-${server.serverId}`
-    );
-  });
-
-const ensureSoftTargetForServer = async (server: ServerHost) => {
-  const payload = buildSoftTargetPayload(server);
-  const existing = findExistingSoftTarget(server);
-  if (existing?.softTargetId) {
-    const result = await updateSoftTarget(existing.softTargetId, {
-      ...payload,
-      softTargetId: existing.softTargetId,
+const railTabs = computed<RailTabItem[]>(() => {
+  const tabs: RailTabItem[] = [
+    {
+      name: HOME_TAB,
+      title: "软件列表",
+    },
+  ];
+  if (sourceTabVisible.value) {
+    tabs.push({
+      name: SOURCE_TAB,
+      title: "下载源设置",
+      closable: true,
     });
-    const saved = result.data;
-    softTargets.value = softTargets.value.map((item) =>
-      item.softTargetId === saved.softTargetId ? saved : item,
-    );
-    return saved.softTargetId!;
   }
-  const result = await createSoftTarget(payload);
-  const saved = result.data;
-  softTargets.value = [saved, ...softTargets.value];
-  return saved.softTargetId!;
-};
-
-const updateTaskFromRecord = (record: SoftOperationLog) => {
-  batchTasks.value = batchTasks.value.map((task) =>
-    task.operationId === record.softOperationLogId
-      ? {
-          ...task,
-          installationId: record.softInstallationId,
-          status: record.operationStatus,
-          stage: record.operationStage,
-          progressPercent: record.progressPercent,
-          message:
-            record.detailMessage ||
-            record.operationOutput ||
-            record.operationMessage ||
-            task.message,
-        }
-      : task,
-  );
-};
-
-const refreshOperationTasks = async () => {
-  if (!batchTasks.value.length) {
-    clearOperationPoller();
-    return;
+  if (createTabVisible.value) {
+    tabs.push({
+      name: CREATE_TAB,
+      title: "添加软件",
+      closable: true,
+    });
   }
-  const result = await listSoftOperationLogs();
-  const mapping = new Map(
-    (result.data || []).map((item) => [item.softOperationLogId, item]),
-  );
-  batchTasks.value.forEach((task) => {
-    const record = mapping.get(task.operationId);
-    if (record) {
-      updateTaskFromRecord(record);
+  return tabs;
+});
+
+const softwareList = computed<SoftwareCard[]>(() => {
+  const grouped = new Map<string, SoftwareCard>();
+  packages.value.forEach((item) => {
+    const code = normalizeText(item.packageCode) || "unknown";
+    const key = normalizeText(item.softwareKey) || code;
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(key, {
+        architectures: normalizeArray(item.architecture),
+        category: normalizeText(item.packageCategory) || undefined,
+        code,
+        defaultPackageId: Number.isFinite(Number(item.softPackageId))
+          ? Number(item.softPackageId)
+          : null,
+        description: normalizeText(item.description) || undefined,
+        key,
+        name: normalizeText(item.packageName) || code,
+        osTypes: normalizeArray(item.osType),
+        packageCount: 1,
+      });
+      return;
+    }
+
+    existing.packageCount += 1;
+    existing.osTypes = unique([...existing.osTypes, ...normalizeArray(item.osType)]);
+    existing.architectures = unique([
+      ...existing.architectures,
+      ...normalizeArray(item.architecture),
+    ]);
+
+    if (!existing.description && normalizeText(item.description)) {
+      existing.description = normalizeText(item.description) || undefined;
+    }
+    if (!existing.category && normalizeText(item.packageCategory)) {
+      existing.category = normalizeText(item.packageCategory) || undefined;
     }
   });
-  if (batchTasks.value.some((task) => !isFinishedStatus(task.status))) {
-    operationPollTimer = window.setTimeout(() => {
-      void refreshOperationTasks();
-    }, 1500);
+
+  return [...grouped.values()].sort((left, right) => left.name.localeCompare(right.name));
+});
+
+const filteredSoftware = computed(() => {
+  const text = normalizeText(keyword.value)?.toLowerCase();
+  const os = normalizeText(osFilter.value)?.toUpperCase();
+  const arch = normalizeText(architectureFilter.value)?.toLowerCase();
+
+  return softwareList.value.filter((item) => {
+    if (
+      text &&
+      ![item.name, item.code, item.category, item.description]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(text))
+    ) {
+      return false;
+    }
+    if (os && !item.osTypes.map((value) => value.toUpperCase()).includes(os)) {
+      return false;
+    }
+    if (
+      arch &&
+      !item.architectures.map((value) => value.toLowerCase()).includes(arch)
+    ) {
+      return false;
+    }
+    return true;
+  });
+});
+
+const currentSoftwareDetail = computed(() =>
+  softwareList.value.find((item) => item.key === activeSoftwareKey.value) || null,
+);
+
+const currentSoftwareVariants = computed(() => {
+  const softwareKey = activeSoftwareKey.value;
+  if (!softwareKey) {
+    return [];
   }
-};
+  return packages.value.filter(
+    (item) => resolveSoftwareKey(item) === softwareKey,
+  );
+});
 
-const selectTask = (operationId?: number | null) => {
-  if (!operationId) {
-    return;
-  }
-  activeOperationId.value = operationId;
-  connectOperation(operationId);
-};
+const totalSourceCount = computed(() =>
+  repositories.value.reduce((count, item) => {
+    const extra = Array.isArray(item.sourceConfigs) ? item.sourceConfigs.length : 0;
+    return count + extra + 1;
+  }, 0),
+);
 
-const selectAllMatchedServers = () => {
-  selectedServerIds.value = matchedServers.value
-    .map((server) => server.serverId!)
-    .filter(Boolean);
-};
+const currentRepository = computed(() =>
+  repositories.value.find(
+    (item) => Number(item.softRepositoryId || 0) === Number(activeRepositoryId.value || 0),
+  ) || null,
+);
 
-const clearSelectedServers = () => {
-  selectedServerIds.value = [];
-};
-
-const loadPackages = async () => {
+const loadHomeData = async () => {
   loading.value = true;
   try {
-    const [packageResult, repositoryResult, targetResult, serverResult] =
-      await Promise.all([
-        listSoftPackages(),
-        listSoftRepositories(),
-        listSoftTargets(),
-        listServerHosts({ enabled: true }),
-      ]);
-    packages.value = packageResult.data || [];
-    repositories.value = repositoryResult.data || [];
-    softTargets.value = targetResult.data || [];
-    servers.value = Array.isArray(serverResult.data) ? serverResult.data : [];
+    const [packageResult, repositoryResult] = await Promise.all([
+      listSoftPackages(),
+      listSoftRepositories(),
+    ]);
+    packages.value = Array.isArray(packageResult.data) ? packageResult.data : [];
+    repositories.value = Array.isArray(repositoryResult.data) ? repositoryResult.data : [];
+
+    if (
+      activeRepositoryId.value &&
+      !repositories.value.some(
+        (item) => Number(item.softRepositoryId || 0) === Number(activeRepositoryId.value || 0),
+      )
+    ) {
+      activeRepositoryId.value = null;
+    }
+
+    if (!activeRepositoryId.value && repositories.value.length) {
+      activeRepositoryId.value = Number(repositories.value[0].softRepositoryId || 0) || null;
+    }
+    if (!createForm.softRepositoryId && repositories.value.length) {
+      createForm.softRepositoryId =
+        Number(repositories.value[0].softRepositoryId || 0) || null;
+    }
   } finally {
     loading.value = false;
   }
 };
 
-const openIngestDialog = () => {
-  const repository =
-    repositories.value.find((item) => item.enabled !== false) ||
-    repositories.value[0] ||
-    null;
-  ingestForm.softRepositoryId = repository?.softRepositoryId || 0;
-  ingestForm.mode =
-    repository?.repositoryType === "LOCAL_DIR" ? "upload" : "sync";
-  ingestUploadFiles.value = [];
-  ingestVisible.value = true;
+const openSourceSettingsTab = async () => {
+  sourceTabVisible.value = true;
+  railTab.value = SOURCE_TAB;
+  if (!repositories.value.length) {
+    await loadHomeData();
+  }
+  await reloadSourceSearch();
 };
 
-const handleIngestFileChange = (_file: UploadUserFile, files: UploadUserFile[]) => {
-  ingestUploadFiles.value = [...files];
+const openCreatePackageTab = async () => {
+  if (!repositories.value.length) {
+    await loadHomeData();
+  }
+  if (!createForm.softRepositoryId && repositories.value.length) {
+    createForm.softRepositoryId =
+      Number(repositories.value[0].softRepositoryId || 0) || null;
+  }
+  createTabVisible.value = true;
+  railTab.value = CREATE_TAB;
 };
 
-const handleIngestFileRemove = (_file: UploadUserFile, files: UploadUserFile[]) => {
-  ingestUploadFiles.value = [...files];
+const handleRailTabRemove = (name: string | number) => {
+  const tabName = String(name);
+  if (tabName === SOURCE_TAB) {
+    sourceTabVisible.value = false;
+  }
+  if (tabName === CREATE_TAB) {
+    createTabVisible.value = false;
+  }
+  railTab.value = HOME_TAB;
 };
 
-const submitIngest = async () => {
-  const repositoryId = ingestForm.softRepositoryId;
+const reloadSourceSearch = async () => {
+  sourceSearchLoading.value = true;
+  try {
+    const result = await listSoftRepositorySources(sourceSearchKeyword.value);
+    sourceSearchResults.value = Array.isArray(result.data) ? result.data : [];
+  } finally {
+    sourceSearchLoading.value = false;
+  }
+};
+
+const syncCurrentRepository = async () => {
+  const repositoryId = Number(currentRepository.value?.softRepositoryId || 0);
   if (!repositoryId) {
-    message("请先选择仓库", { type: "warning" });
+    ElMessage.warning("请先选择仓库");
     return;
   }
-  ingesting.value = true;
+  syncingRepository.value = true;
   try {
-    const beforeIds = new Set(
-      packages.value
-        .map((item) => item.softPackageId)
-        .filter((item): item is number => Number.isFinite(Number(item))),
-    );
-    if (ingestUsesUpload.value) {
-      const files = ingestUploadFiles.value
-        .map((item) => item.raw)
-        .filter((item): item is File => item instanceof File);
-      if (!files.length) {
-        message("本地目录仓库请至少选择一个安装包", { type: "warning" });
-        return;
-      }
-      await uploadSoftRepositoryArtifacts(repositoryId, files);
-    } else {
-      await syncSoftRepository(repositoryId);
-    }
-    await loadPackages();
-    const addedCount = packages.value.filter(
-      (item) => item.softPackageId && !beforeIds.has(item.softPackageId),
-    ).length;
-    message(
-      ingestUsesUpload.value
-        ? `软件录入完成，新增 ${addedCount} 个软件包版本`
-        : `仓库同步完成，新增 ${addedCount} 个软件包版本`,
-      { type: "success" },
-    );
-    ingestVisible.value = false;
+    await syncSoftRepository(repositoryId);
+    ElMessage.success("仓库同步已提交");
+    await loadHomeData();
+    await reloadSourceSearch();
   } finally {
-    ingesting.value = false;
+    syncingRepository.value = false;
   }
 };
 
-const openDetail = (software: CatalogSoftware) => {
-  const variant = resolvePreferredVariant(software);
-  if (!variant?.softPackageId) {
+const saveCurrentRepositorySources = async () => {
+  const repositoryId = Number(currentRepository.value?.softRepositoryId || 0);
+  if (!repositoryId) {
+    ElMessage.warning("请先选择仓库");
     return;
   }
-  router.push(`/soft/detail/${variant.softPackageId}`);
-};
-
-const patchPackageEditForm = (softPackage: SoftPackage | null) => {
-  packageEditForm.packageName = softPackage?.packageName || "";
-  packageEditForm.packageCategory = softPackage?.packageCategory || "";
-  packageEditForm.description = softPackage?.description || "";
-  packageEditForm.iconUrl = softPackage?.iconUrl || "";
-  packageEditForm.profileCode = softPackage?.profileCode || "";
-};
-
-const patchVersionEditForm = (version: SoftPackageVersion | null) => {
-  versionEditForm.versionName = version?.versionName || "";
-  versionEditForm.enabled = version?.enabled !== false;
-  versionEditForm.downloadUrlsJson = version?.downloadUrlsJson || "[]";
-  versionEditForm.installScript = version?.installScript || "";
-  versionEditForm.startScript = version?.startScript || "";
-  versionEditForm.stopScript = version?.stopScript || "";
-  versionEditForm.restartScript = version?.restartScript || "";
-  versionEditForm.statusScript = version?.statusScript || "";
-  versionEditForm.logPathsJson = version?.logPathsJson || "[]";
-  versionEditForm.configPathsJson = version?.configPathsJson || "[]";
-  versionEditForm.metadataJson = version?.metadataJson || "{}";
-};
-
-const openPackageEdit = async (software: CatalogSoftware) => {
-  const variant = resolvePreferredVariant(software) || software.variants[0] || null;
-  if (!variant?.softPackageId) {
-    return;
-  }
-  editingSoftware.value = software;
-  editingPackageId.value = variant.softPackageId;
-  patchPackageEditForm(variant);
-  editingVersions.value = await loadPackageVersions(variant.softPackageId, true);
-  editVisible.value = true;
-};
-
-const handleEditingPackageChange = async (
-  value: string | number | Array<string | number>,
-) => {
-  const packageId = Array.isArray(value) ? Number(value[0]) : Number(value);
-  const nextPackage =
-    editingSoftware.value?.variants.find(
-      (item) => item.softPackageId === packageId,
-    ) || null;
-  editingPackageId.value = nextPackage?.softPackageId || null;
-  patchPackageEditForm(nextPackage);
-  editingVersions.value = nextPackage?.softPackageId
-    ? await loadPackageVersions(nextPackage.softPackageId, true)
-    : [];
-};
-
-const submitPackageEdit = async () => {
-  if (!editingPackage.value?.softPackageId) {
-    return;
-  }
-  editSaving.value = true;
+  savingSources.value = true;
   try {
-    await updateSoftPackage(editingPackage.value.softPackageId, {
-      packageName: packageEditForm.packageName,
-      packageCategory: packageEditForm.packageCategory,
-      description: packageEditForm.description,
-      iconUrl: packageEditForm.iconUrl,
-      profileCode: packageEditForm.profileCode,
+    await updateSoftRepositorySources(repositoryId, {
+      repositoryUrl: normalizeText(sourceEditor.repositoryUrl),
+      localDirectory: normalizeText(sourceEditor.localDirectory),
+      sourceConfigs: sourceEditor.sourceConfigs.map((item) => ({
+        sourceName: normalizeText(item.sourceName),
+        sourceType: toSourceType(item.sourceType),
+        sourceUrl: normalizeText(item.sourceUrl),
+        localDirectory: normalizeText(item.localDirectory),
+        enabled: item.enabled !== false,
+        sourceConfig: normalizeText(item.sourceConfig),
+      })),
     });
-    await loadPackages();
-    message("软件元数据已更新", { type: "success" });
-    editVisible.value = false;
+    ElMessage.success("下载源已保存");
+    await loadHomeData();
+    await reloadSourceSearch();
   } finally {
-    editSaving.value = false;
+    savingSources.value = false;
   }
 };
 
-const openVersionEdit = (version: SoftPackageVersion) => {
-  editingVersionId.value = version.softPackageVersionId || null;
-  patchVersionEditForm(version);
-  versionEditVisible.value = true;
-};
-
-const submitVersionEdit = async () => {
-  if (!editingPackage.value?.softPackageId || !editingVersionId.value) {
-    return;
-  }
-  editSaving.value = true;
-  try {
-    await updateSoftPackageVersion(
-      editingPackage.value.softPackageId,
-      editingVersionId.value,
-      {
-        versionName: versionEditForm.versionName,
-        enabled: versionEditForm.enabled,
-        downloadUrlsJson: versionEditForm.downloadUrlsJson,
-        installScript: versionEditForm.installScript,
-        startScript: versionEditForm.startScript,
-        stopScript: versionEditForm.stopScript,
-        restartScript: versionEditForm.restartScript,
-        statusScript: versionEditForm.statusScript,
-        logPathsJson: versionEditForm.logPathsJson,
-        configPathsJson: versionEditForm.configPathsJson,
-        metadataJson: versionEditForm.metadataJson,
-      },
-    );
-    editingVersions.value = await loadPackageVersions(
-      editingPackage.value.softPackageId,
-      true,
-    );
-    await loadPackages();
-    message("版本元数据已更新", { type: "success" });
-    versionEditVisible.value = false;
-  } finally {
-    editSaving.value = false;
-  }
-};
-
-const openInstallationDetail = (task: BatchInstallTask) => {
-  if (!task.installationId || !selectedPackage.value?.softPackageId) {
-    return;
-  }
-  router.push(
-    `/soft/detail/${selectedPackage.value.softPackageId}?installationId=${task.installationId}`,
-  );
-};
-
-const applyFieldDefaults = (
-  fields: SoftGuideField[] | undefined,
-  model: Record<string, unknown>,
-) => {
-  Object.keys(model).forEach((key) => delete model[key]);
-  for (const field of fields || []) {
-    if (
-      field.defaultValue !== undefined &&
-      field.defaultValue !== null &&
-      field.defaultValue !== ""
-    ) {
-      model[field.fieldKey] = field.defaultValue;
-      continue;
-    }
-    if (isBooleanField(field)) {
-      model[field.fieldKey] = false;
-    }
-  }
-};
-
-const resolvePreviewTargetId = () => {
-  const firstServer = selectedServers.value[0];
-  if (!firstServer) {
-    return undefined;
-  }
-  return findExistingSoftTarget(firstServer)?.softTargetId;
-};
-
-const loadPackageVersions = async (softPackageId: number, force = false) => {
-  const cached = versionCache.get(softPackageId);
-  if (cached && !force) {
-    return cached;
-  }
-  const detailResult = await getSoftPackageDetail(softPackageId);
-  const nextVersions = detailResult.data?.versions || [];
-  versionCache.set(softPackageId, nextVersions);
-  return nextVersions;
-};
-
-const applySelectedPackage = async (
-  nextPackage: SoftPackage | null,
-  preserveVersion = false,
-) => {
-  selectedPackage.value = nextPackage;
-  installForm.softPackageId = nextPackage?.softPackageId || 0;
-  previewResult.value = null;
-  if (!nextPackage?.softPackageId) {
-    versions.value = [];
-    installForm.softPackageVersionId = 0;
-    guide.value = null;
-    return;
-  }
-  const nextVersions = await loadPackageVersions(nextPackage.softPackageId);
-  versions.value = nextVersions;
-  const keepCurrentVersion =
-    preserveVersion &&
-    nextVersions.some(
-      (item) => item.softPackageVersionId === installForm.softPackageVersionId,
-    );
-  installForm.softPackageVersionId = keepCurrentVersion
-    ? installForm.softPackageVersionId
-    : nextVersions[0]?.softPackageVersionId || 0;
-};
-
-const handlePlatformChange = async (
-  value: string | number | Array<string | number>,
-) => {
-  const osType = Array.isArray(value)
-    ? String(value[0] || "")
-    : String(value || "");
-  selectedOsType.value = osType;
-  const nextPackage =
-    selectedPlatformVariants.value.find(
-      (item) =>
-        toNumericId(item.softPackageId) === normalizedSelectedVariantPackageId.value,
-    ) ||
-    resolvePreferredVariant(
-      selectedSoftware.value,
-      osType,
-      architectureFilter.value,
-    ) ||
-    selectedPlatformVariants.value[0] ||
-    null;
-  selectedVariantPackageId.value = nextPackage?.softPackageId || null;
-  await applySelectedPackage(nextPackage, false);
-};
-
-const handleVariantChange = async (
-  value: string | number | Array<string | number>,
-) => {
-  const packageId = Array.isArray(value) ? Number(value[0]) : Number(value);
-  const nextPackage =
-    selectedPlatformVariants.value.find(
-      (item) => toNumericId(item.softPackageId) === packageId,
-    ) || null;
-  selectedVariantPackageId.value = nextPackage?.softPackageId || null;
-  await applySelectedPackage(nextPackage, true);
-};
-
-const reloadGuide = async () => {
-  if (
-    !selectedPackage.value?.softPackageId ||
-    !installForm.softPackageVersionId
-  ) {
-    guide.value = null;
-    return;
-  }
-  guideLoading.value = true;
-  try {
-    const result = await getSoftVersionGuide(
-      selectedPackage.value.softPackageId,
-      installForm.softPackageVersionId,
-      { targetId: resolvePreviewTargetId() },
-    );
-    guide.value = result.data || null;
-    applyFieldDefaults(guide.value?.installFields, installOptions);
-    applyFieldDefaults(guide.value?.serviceFields, serviceOptions);
-    applyFieldDefaults(guide.value?.configFields, configOptions);
-    previewResult.value = null;
-  } finally {
-    guideLoading.value = false;
-  }
-};
-
-const openInstall = async (item: CatalogSoftware) => {
-  selectedSoftware.value = item;
-  installStep.value = 0;
-  installForm.softPackageId = 0;
-  installForm.softPackageVersionId = 0;
-  installForm.installationName = item.packageName;
-  installForm.installPath = "";
-  installForm.serviceName = item.packageCode;
-  batchTasks.value = [];
-  activeOperationId.value = null;
-  taskLogs.value = {};
-  selectedServerIds.value = [];
-  guide.value = null;
-  previewResult.value = null;
-  installVisible.value = true;
-
-  const preferredVariant = resolvePreferredVariant(item);
-  if (!preferredVariant) {
-    await ElMessageBox.alert("该软件当前没有可安装的平台版本。", "无法安装", {
-      type: "warning",
-    });
-    installVisible.value = false;
-    return;
-  }
-  selectedOsType.value = normalizeOs(preferredVariant.osType);
-  selectedVariantPackageId.value = preferredVariant.softPackageId || null;
-  await applySelectedPackage(preferredVariant, false);
-  if (!versions.value.length) {
-    await ElMessageBox.alert("该软件当前没有可安装版本。", "无法安装", {
-      type: "warning",
-    });
-    installVisible.value = false;
-    return;
-  }
-  selectedServerIds.value = matchedServers.value
-    .slice(0, 1)
-    .map((server) => server.serverId!)
-    .filter(Boolean);
-  await reloadGuide();
-};
-
-const previewGuide = async () => {
-  if (!selectedPackage.value?.softPackageId) {
-    return;
-  }
-  previewing.value = true;
-  try {
-    const result = await previewSoftPackageGuide(
-      selectedPackage.value.softPackageId,
-      {
-        softPackageVersionId: installForm.softPackageVersionId,
-        softTargetId: resolvePreviewTargetId(),
-        installationName: installForm.installationName,
-        installPath: installForm.installPath,
-        serviceName: installForm.serviceName,
-        installOptions: { ...installOptions },
-        serviceOptions: { ...serviceOptions },
-        configOptions: { ...configOptions },
-      },
-    );
-    previewResult.value = result.data || null;
-    message("已生成安装预览", { type: "success" });
-  } finally {
-    previewing.value = false;
-  }
-};
-
-const submitInstall = async () => {
-  if (
-    !selectedPackage.value?.softPackageId ||
-    !selectedServerIds.value.length
-  ) {
-    message("请至少选择一台服务器", { type: "warning" });
-    return;
-  }
-  installing.value = true;
-  batchTasks.value = [];
-  taskLogs.value = {};
-  try {
-    for (const serverId of selectedServerIds.value) {
-      try {
-        const serverResult = await getServerHost(serverId);
-        const server = serverResult.data;
-        const softTargetId = await ensureSoftTargetForServer(server);
-        const installResult = await installSoftPackage({
-          ...installForm,
-          softTargetId,
-          installOptions: { ...installOptions },
-          serviceOptions: { ...serviceOptions },
-          configOptions: { ...configOptions },
-        });
-        const ticket = installResult.data;
-        if (!ticket?.operationId) {
-          continue;
-        }
-        batchTasks.value = [
-          ...batchTasks.value,
-          {
-            taskKey: `${serverId}-${ticket.operationId}`,
-            serverId,
-            serverName: server.serverName,
-            operationId: ticket.operationId,
-            installationId: ticket.installationId,
-            status: ticket.operationStatus,
-            stage: "PREPARE",
-            progressPercent: 0,
-            message: `安装任务已提交到 ${server.serverName}`,
-          },
-        ];
-      } catch (error) {
-        message(`服务器 ${serverId} 安装提交失败`, { type: "error" });
-        console.error(error);
-      }
-    }
-    if (batchTasks.value.length) {
-      operationVisible.value = true;
-      installStep.value = 2;
-      selectTask(batchTasks.value[0].operationId);
-      clearOperationPoller();
-      void refreshOperationTasks();
-      message(`已提交 ${batchTasks.value.length} 个安装任务`, {
-        type: "success",
-      });
-    }
-  } finally {
-    installing.value = false;
-  }
-};
-
-const resolveModel = (scope: GuideScope) => {
-  if (scope === "service") {
-    return serviceOptions;
-  }
-  if (scope === "config") {
-    return configOptions;
-  }
-  return installOptions;
-};
-
-const updateBooleanModel = (
-  scope: GuideScope,
-  fieldKey: string,
-  value: string | number | boolean,
-) => {
-  resolveModel(scope)[fieldKey] = Boolean(value);
-};
-
-const normalizeOptions = (
-  options?: Array<Record<string, unknown>>,
-): GuideOption[] =>
-  (options || []).map((item) => ({
-    label: String(item.label ?? item.name ?? item.text ?? item.value ?? "-"),
-    value: item.value ?? item.key ?? item.code ?? item.label,
-  }));
-
-const groupAndSortFields = (
-  fields: SoftGuideField[] | undefined,
-  preferredGroups: string[],
-) => {
-  const groupOrder = new Map(
-    preferredGroups.map((item, index) => [item, index]),
-  );
-  return [...(fields || [])].sort((left, right) => {
-    const leftGroup =
-      groupOrder.get(left.groupName || "") ?? preferredGroups.length;
-    const rightGroup =
-      groupOrder.get(right.groupName || "") ?? preferredGroups.length;
-    if (leftGroup !== rightGroup) {
-      return leftGroup - rightGroup;
-    }
-    if ((left.sortOrder || 0) !== (right.sortOrder || 0)) {
-      return (left.sortOrder || 0) - (right.sortOrder || 0);
-    }
-    return String(left.fieldKey || "").localeCompare(
-      String(right.fieldKey || ""),
-    );
+const addSourceConfig = () => {
+  sourceEditor.sourceConfigs.push({
+    draftId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    sourceName: "",
+    sourceType: "HTTP_JSON",
+    sourceUrl: "",
+    localDirectory: "",
+    enabled: true,
+    sourceConfig: "",
   });
 };
 
-const conditionState = computed<Record<string, unknown>>(() => ({
-  ...installOptions,
-  ...serviceOptions,
-  ...configOptions,
-  targetType: selectedServers.value[0]?.serverType,
-  targetOsType: selectedServers.value[0]?.osType,
-  profileCode: guide.value?.profileCode,
-}));
-
-const readConditionValue = (
-  source: Record<string, unknown>,
-  keys: string[],
-) => {
-  for (const key of keys) {
-    if (key in source) {
-      return source[key];
-    }
-  }
-  return undefined;
+const removeSourceConfig = (index: number) => {
+  sourceEditor.sourceConfigs.splice(index, 1);
 };
 
-const conditionMatches = (condition?: Record<string, unknown>) => {
-  if (!condition || !Object.keys(condition).length) {
-    return true;
-  }
-  const source = conditionState.value;
-  const fieldKey = String(
-    condition.fieldKey ?? condition.dependsOn ?? condition.key ?? "",
-  );
-  const actual = readConditionValue(
-    source,
-    [fieldKey, String(condition.targetPath ?? "")].filter(Boolean),
-  );
-  if (condition.equals !== undefined) {
-    return actual === condition.equals;
-  }
-  if (condition.notEquals !== undefined) {
-    return actual !== condition.notEquals;
-  }
-  if (Array.isArray(condition.in)) {
-    return condition.in.includes(actual);
-  }
-  if (Array.isArray(condition.notIn)) {
-    return !condition.notIn.includes(actual);
-  }
-  if (condition.truthy !== undefined) {
-    return Boolean(actual) === Boolean(condition.truthy);
-  }
-  return true;
+const resetCreatePackageForm = () => {
+  createPackageAiPrompt.value = "";
+  createForm.softRepositoryId =
+    Number(repositories.value[0]?.softRepositoryId || 0) || null;
+  createForm.packageCode = "";
+  createForm.packageName = "";
+  createForm.packageCategory = "";
+  createForm.profileCode = "";
+  createForm.osType = "";
+  createForm.architecture = "";
+  createForm.description = "";
+  createForm.iconUrl = "";
+  createForm.versionCode = "";
+  createForm.versionName = "";
+  createForm.downloadUrlsText = "";
+  createForm.installScript = "";
+  createForm.initScript = "";
+  createForm.startScript = "";
+  createForm.stopScript = "";
+  createForm.uninstallScript = "";
+  createForm.serviceRegisterScript = "";
+  createForm.serviceUnregisterScript = "";
+  createForm.integrateServerService = false;
+  createForm.serverServiceCode = "";
+  createForm.serverServiceName = "";
+  createForm.serverServiceType = "";
+  createForm.serverServiceStartMode = "";
+  createForm.serverExecutionProvider = "";
+  createForm.enabled = true;
 };
 
-const shouldRenderField = (field: SoftGuideField) => {
-  const metadata = field.metadata || {};
-  const visibleCondition =
-    (metadata.visibleCondition as Record<string, unknown> | undefined) ||
-    field.condition;
-  return conditionMatches(visibleCondition);
+const applyCreatePackageAiDraft = (draft?: SoftPackageAiDraftResponse | null) => {
+  if (!draft) {
+    return;
+  }
+  createForm.packageCode = firstNonBlank(draft.packageCode, createForm.packageCode);
+  createForm.packageName = firstNonBlank(draft.packageName, createForm.packageName);
+  createForm.packageCategory = firstNonBlank(
+    draft.packageCategory,
+    createForm.packageCategory,
+  );
+  createForm.profileCode = firstNonBlank(draft.profileCode, createForm.profileCode);
+  createForm.osType = firstNonBlank(draft.osType, createForm.osType);
+  createForm.architecture = firstNonBlank(draft.architecture, createForm.architecture);
+  createForm.description = firstNonBlank(draft.description, createForm.description);
+  createForm.iconUrl = firstNonBlank(draft.iconUrl, createForm.iconUrl);
+  createForm.versionCode = firstNonBlank(draft.versionCode, createForm.versionCode);
+  createForm.versionName = firstNonBlank(draft.versionName, createForm.versionName);
+  createForm.downloadUrlsText = Array.isArray(draft.downloadUrls)
+    ? draft.downloadUrls.join("\n")
+    : createForm.downloadUrlsText;
+  createForm.installScript = firstNonBlank(draft.installScript, createForm.installScript);
+  createForm.initScript = firstNonBlank(draft.initScript, createForm.initScript);
+  createForm.startScript = firstNonBlank(draft.startScript, createForm.startScript);
+  createForm.stopScript = firstNonBlank(draft.stopScript, createForm.stopScript);
+  createForm.uninstallScript = firstNonBlank(
+    draft.uninstallScript,
+    createForm.uninstallScript,
+  );
+  createForm.serviceRegisterScript = firstNonBlank(
+    draft.serviceRegisterScript,
+    createForm.serviceRegisterScript,
+  );
+  createForm.serviceUnregisterScript = firstNonBlank(
+    draft.serviceUnregisterScript,
+    createForm.serviceUnregisterScript,
+  );
+  if (typeof draft.enabled === "boolean") {
+    createForm.enabled = draft.enabled;
+  }
+  if (typeof draft.integrateServerService === "boolean") {
+    createForm.integrateServerService = draft.integrateServerService;
+  }
+  createForm.serverServiceCode = firstNonBlank(
+    draft.serverServiceCode,
+    createForm.serverServiceCode,
+  );
+  createForm.serverServiceName = firstNonBlank(
+    draft.serverServiceName,
+    createForm.serverServiceName,
+  );
+  createForm.serverServiceType = firstNonBlank(
+    draft.serverServiceType,
+    createForm.serverServiceType,
+  );
+  createForm.serverServiceStartMode = firstNonBlank(
+    draft.serverServiceStartMode,
+    createForm.serverServiceStartMode,
+  );
+  createForm.serverExecutionProvider = firstNonBlank(
+    draft.serverExecutionProvider,
+    createForm.serverExecutionProvider,
+  );
 };
 
-const isFieldDisabled = (field: SoftGuideField) => {
-  const metadata = field.metadata || {};
-  const disabled = metadata.disabled;
-  if (typeof disabled === "boolean") {
-    return disabled;
+const generateCreatePackageAiDraft = async () => {
+  const prompt = normalizeText(createPackageAiPrompt.value);
+  if (!prompt) {
+    ElMessage.warning("请先输入 AI 描述");
+    return;
   }
-  const disabledCondition = metadata.disabledCondition as
-    | Record<string, unknown>
-    | undefined;
-  return disabledCondition ? conditionMatches(disabledCondition) : false;
+  creatingPackageAiDraft.value = true;
+  try {
+    const result = await generateSoftPackageAiDraft({
+      architecture: toOptionalText(createForm.architecture),
+      integrateServerService: createForm.integrateServerService,
+      osType: toOptionalText(createForm.osType),
+      packageCategory: toOptionalText(createForm.packageCategory),
+      packageCode: toOptionalText(createForm.packageCode),
+      packageName: toOptionalText(createForm.packageName),
+      prompt,
+      versionCode: toOptionalText(createForm.versionCode),
+    });
+    const draft = result.data;
+    applyCreatePackageAiDraft(draft);
+    const message = normalizeText(draft?.message);
+    if (message) {
+      ElMessage.success(message);
+    } else {
+      ElMessage.success("AI 草稿已回填");
+    }
+  } finally {
+    creatingPackageAiDraft.value = false;
+  }
 };
 
-const isTextareaField = (field: SoftGuideField) =>
-  ["textarea", "code", "json", "script"].includes(
-    String(field.componentType || "").toLowerCase(),
-  );
+const parseDownloadUrls = (value: string) =>
+  value
+    .split(/[\r\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-const isNumberField = (field: SoftGuideField) =>
-  ["number", "port", "integer"].includes(
-    String(field.componentType || "").toLowerCase(),
-  );
+const toOptionalText = (value?: string | null) => {
+  const normalized = normalizeText(value);
+  return normalized || undefined;
+};
 
-const isBooleanField = (field: SoftGuideField) =>
-  ["switch", "boolean", "checkbox"].includes(
-    String(field.componentType || "").toLowerCase(),
-  );
+const firstNonBlank = (left?: string | null, right?: string | null) =>
+  normalizeText(left) || normalizeText(right);
 
-const isPasswordField = (field: SoftGuideField) =>
-  ["password", "secret"].includes(
-    String(field.componentType || "").toLowerCase(),
-  ) ||
-  ["password", "token", "secret"].some((item) =>
-    String(field.fieldKey || "")
-      .toLowerCase()
-      .includes(item),
-  );
-
-const numberValidation = (
-  validation: Record<string, unknown> | undefined,
-  key: "min" | "max",
-) => {
-  const value = validation?.[key];
-  if (typeof value === "number") {
-    return value;
+const submitCreatePackage = async () => {
+  const packageCode = toOptionalText(createForm.packageCode);
+  const packageName = toOptionalText(createForm.packageName);
+  const versionCode = toOptionalText(createForm.versionCode);
+  if (!packageCode || !packageName || !versionCode) {
+    ElMessage.warning("软件编码、软件名称、版本编码为必填项");
+    return;
   }
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : undefined;
+
+  const payload: SoftPackageCreateRequest = {
+    architecture: toOptionalText(createForm.architecture),
+    description: toOptionalText(createForm.description),
+    downloadUrls: parseDownloadUrls(createForm.downloadUrlsText),
+    enabled: createForm.enabled,
+    iconUrl: toOptionalText(createForm.iconUrl),
+    initScript: toOptionalText(createForm.initScript),
+    installScript: toOptionalText(createForm.installScript),
+    integrateServerService: createForm.integrateServerService,
+    osType: toOptionalText(createForm.osType),
+    packageCategory: toOptionalText(createForm.packageCategory),
+    packageCode,
+    packageName,
+    profileCode: toOptionalText(createForm.profileCode),
+    serverExecutionProvider: createForm.integrateServerService
+      ? toOptionalText(createForm.serverExecutionProvider)
+      : undefined,
+    serverServiceCode: createForm.integrateServerService
+      ? toOptionalText(createForm.serverServiceCode)
+      : undefined,
+    serverServiceName: createForm.integrateServerService
+      ? toOptionalText(createForm.serverServiceName)
+      : undefined,
+    serverServiceStartMode: createForm.integrateServerService
+      ? toOptionalText(createForm.serverServiceStartMode)
+      : undefined,
+    serverServiceType: createForm.integrateServerService
+      ? toOptionalText(createForm.serverServiceType)
+      : undefined,
+    serviceRegisterScript: toOptionalText(createForm.serviceRegisterScript),
+    serviceUnregisterScript: toOptionalText(createForm.serviceUnregisterScript),
+    softRepositoryId:
+      Number(createForm.softRepositoryId || 0) > 0
+        ? Number(createForm.softRepositoryId)
+        : undefined,
+    startScript: toOptionalText(createForm.startScript),
+    stopScript: toOptionalText(createForm.stopScript),
+    uninstallScript: toOptionalText(createForm.uninstallScript),
+    versionCode,
+    versionName: toOptionalText(createForm.versionName),
+  };
+
+  creatingPackage.value = true;
+  try {
+    const result = await createSoftPackage(payload);
+    ElMessage.success("软件创建成功");
+    await loadHomeData();
+    const createdPackage = result.data?.package;
+    const createdKey =
+      normalizeText(createdPackage?.softwareKey) ||
+      normalizeText(createdPackage?.packageCode);
+    if (createdKey) {
+      activeSoftwareKey.value = createdKey;
+      softwareDetailVisible.value = true;
+      railTab.value = HOME_TAB;
+      createTabVisible.value = false;
+    }
+    resetCreatePackageForm();
+  } finally {
+    creatingPackage.value = false;
+  }
+};
+
+const openSoftwareDetail = (item: SoftwareCard) => {
+  activeSoftwareKey.value = item.key;
+  softwareDetailVisible.value = true;
+};
+
+const openDetailPage = (id?: number | null) => {
+  const packageId =
+    Number.isFinite(Number(id)) && Number(id) > 0
+      ? Number(id)
+      : Number(currentSoftwareVariants.value[0]?.softPackageId || 0);
+  if (!packageId) {
+    ElMessage.warning("未找到可打开的软件详情");
+    return;
+  }
+  softwareDetailVisible.value = false;
+  router.push(`/soft/detail/${packageId}`);
 };
 
 watch(
-  () => [installForm.softPackageVersionId, installVisible.value],
-  async ([versionId, visible], [oldVersionId, oldVisible]) => {
-    if (!visible || !selectedPackage.value?.softPackageId) {
+  currentRepository,
+  (repository) => {
+    if (!repository) {
+      sourceEditor.repositoryType = "MANUAL";
+      sourceEditor.repositoryUrl = "";
+      sourceEditor.localDirectory = "";
+      sourceEditor.sourceConfigs = [];
       return;
     }
-    if (versionId === oldVersionId && visible === oldVisible) {
-      return;
-    }
-    await reloadGuide();
+
+    sourceEditor.repositoryType = normalizeText(repository.repositoryType) || "MANUAL";
+    sourceEditor.repositoryUrl = normalizeText(repository.repositoryUrl) || "";
+    sourceEditor.localDirectory = normalizeText(repository.localDirectory) || "";
+    sourceEditor.sourceConfigs = (repository.sourceConfigs || []).map((item) => ({
+      draftId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      sourceName: normalizeText(item.sourceName) || "",
+      sourceType: toSourceType(item.sourceType),
+      sourceUrl: normalizeText(item.sourceUrl) || "",
+      localDirectory: normalizeText(item.localDirectory) || "",
+      enabled: item.enabled !== false,
+      sourceConfig: normalizeText(item.sourceConfig) || "",
+    }));
   },
+  { immediate: true },
 );
 
-watch(matchedServers, (current) => {
-  const validIds = new Set(current.map((item) => item.serverId));
-  selectedServerIds.value = selectedServerIds.value.filter((id) =>
-    validIds.has(id),
-  );
-  if (!selectedServerIds.value.length && current.length) {
-    selectedServerIds.value = [current[0].serverId!];
+const normalizeText = (value?: string | null) => {
+  if (value === null || value === undefined) {
+    return "";
   }
-});
+  return String(value).trim();
+};
 
-watch(
-  () => selectedIngestRepository.value?.repositoryType,
-  (repositoryType) => {
-    if (!repositoryType) {
-      return;
-    }
-    ingestForm.mode = repositoryType === "LOCAL_DIR" ? "upload" : "sync";
-    if (repositoryType !== "LOCAL_DIR") {
-      ingestUploadFiles.value = [];
-    }
-  },
-);
+const normalizeArray = (value?: string | null) =>
+  normalizeText(value)
+    .split(/[\s,|/]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-watch(
-  operationLines,
-  (value) => {
-    if (!activeOperationId.value) {
-      return;
-    }
-    taskLogs.value = {
-      ...taskLogs.value,
-      [activeOperationId.value]: [...value],
-    };
-  },
-  { deep: true },
-);
+const unique = (value: string[]) => [...new Set(value)];
 
-watch(
-  operationLatest,
-  (payload) => {
-    if (!payload?.operationId) {
-      return;
-    }
-    batchTasks.value = batchTasks.value.map((task) =>
-      task.operationId === payload.operationId
-        ? {
-            ...task,
-            installationId: payload.installationId || task.installationId,
-            status: payload.status || task.status,
-            stage: payload.stage || task.stage,
-            progressPercent: payload.progressPercent ?? task.progressPercent,
-            message: payload.detail || payload.message || task.message,
-          }
-        : task,
-    );
-  },
-  { deep: true },
-);
+const resolveSoftwareKey = (item?: SoftPackage | null) => {
+  const fromMetadata = normalizeText(item?.softwareKey);
+  if (fromMetadata) {
+    return fromMetadata;
+  }
+  return normalizeText(item?.packageCode);
+};
 
-watch(
-  () => operationVisible.value,
-  (visible) => {
-    if (!visible) {
-      disconnectOperation();
-    }
-  },
-);
+const toSourceType = (value?: string | null): SourceType => {
+  const normalized = normalizeText(value).toUpperCase();
+  const hit = sourceTypeOptions.find((item) => item.value === normalized);
+  return hit ? hit.value : "HTTP_JSON";
+};
 
-watch(
-  () => editVisible.value,
-  (visible) => {
-    if (!visible) {
-      editingSoftware.value = null;
-      editingPackageId.value = null;
-      editingVersions.value = [];
-    }
-  },
-);
+const requiresRepositoryUrl = (type?: string | null) => {
+  const normalized = normalizeText(type).toUpperCase();
+  return ["HTTP_JSON", "HTTP_DIR", "RPM_REPO", "MIRROR_REPO"].includes(normalized);
+};
 
-onMounted(loadPackages);
-onUnmounted(() => {
-  clearOperationPoller();
-  disconnectOperation();
-});
+const requiresLocalDirectory = (type?: string | null) =>
+  normalizeText(type).toUpperCase() === "LOCAL_DIR";
+
+const osLabel = (value?: string | null) => {
+  const normalized = normalizeText(value).toUpperCase();
+  if (!normalized) return "通用";
+  if (normalized.startsWith("WIN")) return "Windows";
+  if (normalized.startsWith("LINUX")) return "Linux";
+  if (normalized.startsWith("MAC")) return "MacOS";
+  return normalized;
+};
+
+const architectureLabel = (value?: string | null) => {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return "通用";
+  if (normalized === "amd64" || normalized === "x86_64") return "amd64";
+  if (normalized === "arm64" || normalized === "aarch64") return "arm64";
+  return normalized;
+};
+
+const repositoryTypeLabel = (value?: string | null) =>
+  sourceTypeOptions.find((item) => item.value === normalizeText(value).toUpperCase())
+    ?.label || normalizeText(value) || "MANUAL";
+
+onMounted(loadHomeData);
 </script>
 
 <style scoped lang="scss">
-.soft-toolbar {
-  display: grid;
-  grid-template-columns: minmax(240px, 1.2fr) 180px 180px auto;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.soft-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.soft-toolbar__meta {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.soft-card-table {
-  :deep(.card-view-container) {
-    padding: 0;
-    overflow: visible;
-  }
-
-  :deep(.card-grid) {
-    align-items: stretch;
-  }
-
-  :deep(.card-inner.card-default) {
-    padding: 0;
-    border-radius: 22px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-  }
-}
-
-.soft-card {
-  display: grid;
-  position: relative;
-  isolation: isolate;
-  gap: 14px;
-  height: 100%;
-  padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 22px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(241, 245, 249, 0.92)
-  );
-  overflow: hidden;
-  box-shadow:
-    0 18px 34px rgba(15, 23, 42, 0.08),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
-}
-
-.soft-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(14, 165, 233, 0.14),
-      transparent 38%
-    ),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 46%);
-}
-
-.soft-card > * {
-  position: relative;
-  z-index: 1;
-}
-
-.soft-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(14, 165, 233, 0.24);
-  box-shadow:
-    0 24px 42px rgba(15, 23, 42, 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.86) inset;
-}
-
-.soft-card__header,
-.soft-card__actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.soft-card__title {
-  display: flex;
-  gap: 12px;
+.soft-home-page {
+  width: 100%;
   min-width: 0;
 }
 
-.soft-card__title h3,
-.soft-card__title p {
-  margin: 0;
+.soft-home-layout {
+  min-height: calc(100vh - 150px);
 }
 
-.soft-card__title h3 {
-  color: #0f172a;
-  font-size: 18px;
+.soft-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(135deg, #ffffff, #eef6ff);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
 }
 
-.soft-card__title p {
-  margin-top: 4px;
+.soft-hero small {
   color: #64748b;
-  font-size: 12px;
+  letter-spacing: 0.08em;
 }
 
-.soft-card__avatar {
+.soft-hero h1 {
+  margin: 4px 0 8px;
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.soft-hero p {
+  margin: 0;
+  color: #475569;
+}
+
+.soft-hero__actions {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.soft-summary {
+  margin-top: 16px;
   display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.soft-summary__card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #0f172a, #0ea5e9);
-  color: #f8fafc;
-  font-weight: 700;
-  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.88);
 }
 
-.soft-card__avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.soft-summary__card small {
+  color: #64748b;
 }
 
-.soft-card__badges,
-.soft-card__meta {
+.soft-summary__card strong {
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.soft-toolbar {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 12px;
+}
+
+.software-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.software-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.software-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.software-card__header,
+.software-card__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.software-card__header strong {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.software-card__header p,
+.software-card__desc {
+  margin: 0;
+  color: #64748b;
+}
+
+.software-card__meta {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.soft-chip,
-.soft-card__meta span {
+.software-card__meta span {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 30px;
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.06);
@@ -2782,377 +1423,192 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
-.soft-chip {
-  min-width: 30px;
-  padding: 0 8px;
+.source-panel {
+  margin-top: 16px;
+  display: grid;
+  gap: 14px;
 }
 
-.soft-chip--platform {
-  padding: 0 12px;
+.create-panel {
+  margin-top: 16px;
 }
 
-.soft-card__desc {
-  min-height: 48px;
+.create-group {
+  display: grid;
+  gap: 10px;
+}
+
+.create-group h4 {
   margin: 0;
-  color: #475569;
-  line-height: 1.7;
-}
-
-.soft-card__actions {
-  justify-content: flex-end;
-}
-
-.ingest-layout,
-.edit-layout {
-  display: grid;
-  gap: 16px;
-}
-
-.version-cell {
-  display: grid;
-  gap: 4px;
-}
-
-.version-cell strong {
   color: #0f172a;
+  font-size: 14px;
 }
 
-.version-cell small {
-  color: #64748b;
-}
-
-.server-form-grid__span-2 {
+.create-form-span-2 {
   grid-column: 1 / -1;
 }
 
-.soft-empty {
-  display: grid;
-  place-items: center;
-  gap: 14px;
-  padding: 28px 0 12px;
+.source-panel__header,
+.source-card__header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.soft-empty__actions {
-  display: flex;
+.source-panel__header h3,
+.source-panel__header p,
+.source-card header strong,
+.source-card header small {
+  margin: 0;
+}
+
+.source-panel__header p,
+.source-card header small {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.source-panel__actions {
+  display: inline-flex;
   gap: 10px;
   flex-wrap: wrap;
-  justify-content: center;
 }
 
-.install-steps {
-  margin-bottom: 18px;
-}
-
-.install-step {
+.source-panel__toolbar {
   display: grid;
-  gap: 18px;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.1fr);
+  gap: 12px;
 }
 
-.install-basic-grid,
-.guide-fields,
-.guide-preview__grid,
-.install-review-grid {
+.source-panel__grid {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.source-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.source-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.source-form-grid :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+
+.source-config-list {
+  display: grid;
+  gap: 10px;
+}
+
+.source-config-item {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.36);
+}
+
+.source-config-item__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.source-form-grid--row {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.install-basic-grid--single {
-  grid-template-columns: minmax(0, 1fr);
+.source-search-result {
+  margin-top: 2px;
 }
 
-.section-header {
+.soft-rail-footer {
+  display: grid;
+  gap: 10px;
+}
+
+.software-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.software-detail__head {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
 }
 
-.section-header h3,
-.section-header p {
+.software-detail__head h3,
+.software-detail__head p {
   margin: 0;
 }
 
-.section-header p {
-  margin-top: 4px;
+.software-detail__head p,
+.software-detail__desc {
   color: #64748b;
-  font-size: 13px;
 }
 
-.section-header span {
-  color: #475569;
-  font-size: 12px;
-  white-space: nowrap;
+.software-detail__desc {
+  margin: 0;
 }
 
-.section-header__actions {
+.software-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.software-detail__meta span {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.platform-switch-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-  width: 100%;
-}
-
-.platform-pill {
-  display: grid;
-  gap: 10px;
-  min-height: 110px;
-  padding: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
   color: #334155;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
-}
-
-.platform-pill small {
-  color: #64748b;
   font-size: 12px;
-  line-height: 1.5;
 }
 
-.platform-pill:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.08);
+@media (max-width: 1200px) {
+  .software-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .source-panel__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.platform-pill.is-selected {
-  border-color: rgba(14, 165, 233, 0.36);
-  background: linear-gradient(
-    180deg,
-    rgba(224, 242, 254, 0.96),
-    rgba(240, 249, 255, 0.9)
-  );
-  color: #0f172a;
-  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.14);
-}
-
-.install-variant-summary {
-  padding: 16px 18px;
-  border: 1px dashed rgba(148, 163, 184, 0.28);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.server-select {
-  width: 100%;
-}
-
-.server-select-option,
-.server-select-card {
-  display: grid;
-  gap: 10px;
-}
-
-.server-select-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.server-select-card {
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.88);
-}
-
-.server-select-option__title,
-.server-select-card__title,
-.server-select-option__meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.server-select-option__title strong,
-.server-select-card__title strong {
-  color: #0f172a;
-}
-
-.server-select-option__icons {
-  display: inline-flex;
-  gap: 8px;
-  color: #0369a1;
-}
-
-.server-select-option__meta,
-.server-select-option p,
-.server-select-card p {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.server-select-option p,
-.server-select-card p {
-  margin: 0;
-}
-
-.guide-loading,
-.guide-section,
-.guide-preview,
-.install-review-card,
-.inline-task-list {
-  padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 22px;
-  background: rgba(248, 250, 252, 0.82);
-}
-
-.guide-field :deep(.el-form-item__content) {
-  display: grid;
-}
-
-.guide-field__hint {
-  margin-top: 6px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.guide-preview__card {
-  padding: 16px;
-  border-radius: 18px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.94),
-    rgba(226, 232, 240, 0.88)
-  );
-}
-
-.guide-preview__card h4 {
-  margin: 0 0 12px;
-  color: #0f172a;
-}
-
-.guide-preview__card ul,
-.review-list {
-  display: grid;
-  gap: 10px;
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.guide-preview__card li,
-.review-list li {
-  display: grid;
-  gap: 4px;
-  color: #334155;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.review-list li strong {
-  color: #0f172a;
-}
-
-.inline-task-list__items {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.inline-task-item,
-.operation-task {
-  display: grid;
-  gap: 4px;
-  width: 100%;
-  padding: 14px 16px;
-  text-align: left;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  cursor: pointer;
-}
-
-.inline-task-item.is-active,
-.operation-task.is-active {
-  border-color: rgba(14, 165, 233, 0.36);
-  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.12);
-}
-
-.operation-layout {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 16px;
-  min-height: 540px;
-}
-
-.operation-task-list {
-  display: grid;
-  gap: 10px;
-  align-content: start;
-}
-
-.operation-panel {
-  display: grid;
-  gap: 16px;
-}
-
-.operation-panel__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.operation-panel__header strong,
-.operation-panel__header p {
-  display: block;
-  margin: 0;
-}
-
-.operation-panel__header p {
-  margin-top: 6px;
-  color: #64748b;
-}
-
-.operation-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  color: #475569;
-  font-size: 13px;
-}
-
-.operation-console {
-  padding: 18px;
-  border-radius: 20px;
-  background: #020617;
-  color: #dbeafe;
-}
-
-.operation-console pre {
-  margin: 0;
-  white-space: pre-wrap;
-  line-height: 1.7;
-}
-
-@media (max-width: 980px) {
+@media (max-width: 900px) {
+  .soft-summary,
   .soft-toolbar,
-  .install-basic-grid,
-  .guide-fields,
-  .guide-preview__grid,
-  .install-review-grid,
-  .operation-layout {
+  .software-grid,
+  .source-panel__toolbar,
+  .source-form-grid,
+  .source-form-grid--row {
     grid-template-columns: 1fr;
   }
 
-  .soft-toolbar__meta {
+  .soft-hero {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .soft-hero__actions {
     justify-content: flex-start;
   }
 }

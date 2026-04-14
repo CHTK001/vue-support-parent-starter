@@ -1,4 +1,5 @@
 import { createStandardApp } from "@repo/core";
+import "./styles/app.scss";
 
 createStandardApp({
   setup(app) {

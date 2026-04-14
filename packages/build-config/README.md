@@ -125,8 +125,8 @@ export default createViteConfig(import.meta.url, pkg)
 
 说明:
 
-- `true`: 使用 `esbuild` 压缩，并关闭额外的 `gzip/brotli` 产物压缩，显著降低构建内存占用，更适合本地开发机构建。
-- `false`: 保留完整构建策略，会继续按环境变量 `VITE_COMPRESSION` 生成额外压缩产物，更适合 CI 或发布机构建。
+- `true`: 关闭主产物 `minify`，并关闭额外的 `gzip/brotli` 产物压缩，显著降低构建内存占用，更适合本地开发机和低内存环境。
+- `false`: 恢复默认完整构建，主产物继续使用 `esbuild` 压缩，并按环境变量 `VITE_COMPRESSION` 生成额外压缩产物，更适合 CI 或发布机构建。
 - 两种模式输出的主产物都可以直接部署使用，区别主要在构建资源消耗，以及是否额外输出 `.gz` / `.br` 文件。
 
 #### .build()

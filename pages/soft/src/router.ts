@@ -31,7 +31,7 @@ const routes = [
               return SoftCatalogPage;
             },
             meta: {
-              title: "软件目录",
+              title: "软件列表",
               icon: "mdi:view-grid-outline",
             },
           },
@@ -45,6 +45,8 @@ const routes = [
             meta: {
               title: "仓库管理",
               icon: "mdi:database-sync-outline",
+              showLink: false,
+              activePath: "/soft/catalog",
             },
           },
           {
@@ -67,6 +69,8 @@ const routes = [
             meta: {
               title: "安装实例",
               icon: "mdi:layers-triple-outline",
+              showLink: false,
+              activePath: "/soft/catalog",
             },
           },
           {
@@ -79,6 +83,8 @@ const routes = [
             meta: {
               title: "操作记录",
               icon: "mdi:clipboard-text-clock-outline",
+              showLink: false,
+              activePath: "/soft/catalog",
             },
           },
           {

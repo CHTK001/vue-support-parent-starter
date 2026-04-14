@@ -1,5 +1,5 @@
-import ServerHostPage from "./views/ServerHostPage.vue";
+import ServerHomePage from "./index.vue";
 
 export * from "./api";
-export { ServerHostPage };
-export default ServerHostPage;
+export { ServerHomePage, ServerHomePage as ServerHostPage };
+export default ServerHomePage;

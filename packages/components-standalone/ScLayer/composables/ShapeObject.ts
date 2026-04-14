@@ -29,14 +29,13 @@ import {
 } from "../types/shape";
 import logger from "./LogObject";
 import { DataType } from "../types";
-// 导入ol-ext
-import "ol-ext/dist/ol-ext.css";
 import FlowLine from "ol-ext/style/FlowLine.js";
 // 添加额外需要的导入
 import Collection from "ol/Collection.js";
 import { singleClick } from "ol/events/condition.js";
 import { CoordSystem } from "../types/coordinate";
 import { GcoordUtils } from "../utils/GcoordUtils";
+import { ensureScLayerOlExtVendorStyles } from "../style-loader";
 
 // 图形模块日志前缀
 const LOG_MODULE = "Shape";
@@ -113,6 +112,8 @@ export class ShapeObject {
    * @param style 样式配置
    */
   constructor(mapInstance: OlMap | null = null, style?: ShapeStyle) {
+    void ensureScLayerOlExtVendorStyles();
+
     if (mapInstance) {
       this.setMapInstance(mapInstance);
     }

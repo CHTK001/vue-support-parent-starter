@@ -13,6 +13,26 @@ export interface SoftRepositorySource {
   sourceConfig?: string;
 }
 
+export interface SoftRepositorySourceSearchItem {
+  repositoryId?: number;
+  repositoryName?: string;
+  repositoryCode?: string;
+  repositoryType?: string;
+  primarySource?: boolean;
+  sourceName?: string;
+  sourceType?: string;
+  sourceUrl?: string;
+  localDirectory?: string;
+  sourceAddress?: string;
+  enabled?: boolean;
+}
+
+export interface SoftRepositorySourceUpdateRequest {
+  repositoryUrl?: string;
+  localDirectory?: string;
+  sourceConfigs?: SoftRepositorySource[];
+}
+
 export interface SoftRepository {
   softRepositoryId?: number;
   repositoryName: string;
@@ -66,6 +86,85 @@ export interface SoftPackage {
   description?: string;
   iconUrl?: string;
   softwareKey?: string;
+}
+
+export interface SoftPackageCreateRequest {
+  softRepositoryId?: number;
+  packageCode: string;
+  packageName: string;
+  packageCategory?: string;
+  profileCode?: string;
+  osType?: string;
+  architecture?: string;
+  description?: string;
+  iconUrl?: string;
+  versionCode: string;
+  versionName?: string;
+  downloadUrls?: string[];
+  installScript?: string;
+  initScript?: string;
+  startScript?: string;
+  stopScript?: string;
+  uninstallScript?: string;
+  serviceRegisterScript?: string;
+  serviceUnregisterScript?: string;
+  enabled?: boolean;
+  integrateServerService?: boolean;
+  serverServiceCode?: string;
+  serverServiceName?: string;
+  serverServiceType?: string;
+  serverServiceStartMode?: string;
+  serverExecutionProvider?: string;
+}
+
+export interface SoftPackageCreateResult {
+  package: SoftPackage;
+  version: SoftPackageVersion;
+}
+
+export interface SoftPackageAiDraftRequest {
+  prompt?: string;
+  packageName?: string;
+  packageCode?: string;
+  packageCategory?: string;
+  osType?: string;
+  architecture?: string;
+  versionCode?: string;
+  integrateServerService?: boolean;
+}
+
+export interface SoftPackageAiDraftResponse {
+  summary?: string;
+  packageCode?: string;
+  packageName?: string;
+  packageCategory?: string;
+  profileCode?: string;
+  osType?: string;
+  architecture?: string;
+  description?: string;
+  iconUrl?: string;
+  versionCode?: string;
+  versionName?: string;
+  downloadUrls?: string[];
+  installScript?: string;
+  initScript?: string;
+  startScript?: string;
+  stopScript?: string;
+  uninstallScript?: string;
+  serviceRegisterScript?: string;
+  serviceUnregisterScript?: string;
+  enabled?: boolean;
+  integrateServerService?: boolean;
+  serverServiceCode?: string;
+  serverServiceName?: string;
+  serverServiceType?: string;
+  serverServiceStartMode?: string;
+  serverExecutionProvider?: string;
+  aiGenerated?: boolean;
+  provider?: string;
+  model?: string;
+  fallbackReason?: string;
+  message?: string;
 }
 
 export interface SoftPackageVersion {

@@ -1,6 +1,2 @@
-import ScMap from "./index.vue";
-
-export { ScMap };
-export default ScMap;
-
-export * from "./types";
+export * from "../../components-standalone/ScMap";
+export { default } from "../../components-standalone/ScMap";

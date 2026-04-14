@@ -1,0 +1,25 @@
+{
+  "name": "spider-test-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "serve": "pnpm dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pages/spider": "workspace:^",
+    "@repo/components": "workspace:^",
+    "@repo/core": "workspace:^",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/build-config": "workspace:^",
+    "@vitejs/plugin-vue": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

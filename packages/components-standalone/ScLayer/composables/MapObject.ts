@@ -26,6 +26,7 @@ import logger from "./LogObject";
 import { CoordinateInfo } from "../types/coordinate";
 import { GcoordObject } from "./GcoordObject";
 import { GeoPoint } from "../types/coordinate";
+import { ensureScLayerBaseVendorStyles } from "../style-loader";
 export interface MapEmitter {
   "map-click": (event: any) => void;
   "marker-click": (event: any) => void;
@@ -101,6 +102,8 @@ export class MapObject {
    * @returns 是否初始化成功
    */
   public init(target: HTMLElement, emitter: any): boolean {
+    void ensureScLayerBaseVendorStyles();
+
     if (!target) return false;
 
     logger.info(

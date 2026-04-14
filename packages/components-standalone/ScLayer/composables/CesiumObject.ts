@@ -13,6 +13,7 @@ import {
   Model3DOptions,
   ModelEventHandlers,
 } from "./CesiumModelObject";
+import { ensureScLayerCesiumVendorStyles } from "../style-loader";
 
 // 视角配置
 export interface ViewOptions {
@@ -48,6 +49,7 @@ export class CesiumObject {
   ) {
     this.cesiumBaseUrl = cesiumBaseUrl;
     this.olMap = olMap;
+    void ensureScLayerCesiumVendorStyles();
 
     if (olMap) {
       try {
@@ -82,6 +84,10 @@ export class CesiumObject {
     value: boolean,
     viewMode: "2D" | "3D" | "2.5D" = "3D",
   ): boolean {
+    if (value) {
+      void ensureScLayerCesiumVendorStyles();
+    }
+
     if (!this.olCesium) {
       logger.error("无法切换3D模式: OLCesium实例未初始化");
       return false;

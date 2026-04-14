@@ -1,0 +1,5 @@
+Title: Soft 测试台
+BaseUrl: /soft-test/api
+OpenAuth: false
+SocketPath: /socket.io
+SocketProtocol: socketio

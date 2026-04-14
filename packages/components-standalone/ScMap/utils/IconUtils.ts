@@ -3,8 +3,6 @@
  * @description 统一处理地图上的图标创建，支持本地和远程图片地址
  */
 import { Style, Icon, Fill, Stroke, Circle as CircleStyle } from "ol/style.js";
-// 引入ol-ext的样式处理组件
-import "ol-ext/dist/ol-ext.css";
 import OLStyleIcon from "ol-ext/style/FontSymbol.js";
 import OLStyleShadow from "ol-ext/style/Shadow.js";
 import OLStylePhoto from "ol-ext/style/Photo.js"; // 引入Photo样式
@@ -12,6 +10,7 @@ import logger from "../composables/LogObject";
 import { MarkerOptions } from "../types/marker";
 import { Point } from "ol/geom.js";
 import { fromLonLat } from "ol/proj.js";
+import { ensureScMapOlExtVendorStyles } from "../style-loader";
 
 // 图标工具模块的日志前缀
 const LOG_MODULE = "IconUtils";
@@ -145,6 +144,8 @@ export class IconUtils {
     fallbackColor: string = "#1890ff",
     photoOptions?: IconOptions["photoOptions"],
   ): Style {
+    void ensureScMapOlExtVendorStyles();
+
     // 首先验证图标URL
     if (this.isIconValid(url)) {
       try {

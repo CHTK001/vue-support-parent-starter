@@ -3,6 +3,7 @@ import { setupDirectives } from "./directives";
 import { setupFullscreenSocket } from "./plugins/fullscreenSocket";
 import { MonitorGlobalSocketPlugin } from "./plugins/globalSocket";
 import "./utils/sso";
+import "./styles/app.scss";
 
 createStandardApp({
   enableElementPlusX: true,

@@ -1,1 +1,8 @@
-@forward "../../styles/stitch-layout-tokens.scss";
+/* Legacy compatibility entry: keep the old import path without forwarding
+   back into the new module graph, otherwise Vite/Sass can detect a loop. */
+:root {
+  --stitch-lay-bg-overlay: rgba(255, 255, 255, 0.9);
+  --stitch-lay-bg-header: #ffffff;
+  --stitch-lay-text-main: #333333;
+  --stitch-lay-border: #eeeeee;
+}

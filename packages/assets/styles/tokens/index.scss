@@ -1,1 +1,2 @@
-@forward "./app-base.scss";
+@forward "../layout/default/variables.scss";
+@forward "./app-base.scss" as app-*;
