@@ -1,1 +1,9 @@
-@forward "../style/stitch/semantic-tokens.scss";
+/* Semantic tokens for shared stitch theme usage. */
+:root {
+  --stitch-text-primary: var(--app-text-primary, #111827);
+  --stitch-text-secondary: var(--app-text-secondary, #4b5563);
+  --stitch-bg-primary: var(--app-bg-primary, #ffffff);
+  --stitch-bg-secondary: var(--app-bg-secondary, #f9fafb);
+  --stitch-border-primary: var(--app-border-primary, #e5e7eb);
+  --stitch-accent: var(--app-primary, #3b82f6);
+}

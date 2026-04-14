@@ -1,6 +1,13 @@
-export type MusicSection = "discover" | "moon" | "search" | "favorites" | "history";
+export type MusicSection =
+  | "discover"
+  | "moon"
+  | "radio"
+  | "radar"
+  | "search"
+  | "favorites"
+  | "history";
 export type MusicSearchTab = "tracks" | "playlists";
-export type MusicLoopMode = "all" | "one";
+export type MusicLoopMode = "all" | "one" | "random";
 
 export interface MusicComment {
   commentId: string;

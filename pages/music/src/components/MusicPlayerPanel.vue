@@ -1,13 +1,12 @@
 <template>
   <section
-    v-loading="loading"
     class="detail-panel"
     :class="{ 'detail-panel--minimized': minimized }"
   >
     <template v-if="minimized">
       <button
         class="mini-track"
-        :aria-label="currentTrack ? `打开 ${currentTrack.title} 详情` : '暂无播放歌曲'"
+        :aria-label="currentTrack ? `查看 ${currentTrack.title} 详情` : '暂无播放歌曲'"
         @click="emit('open-detail')"
       >
         <img v-if="currentTrack" :src="currentTrack.coverUrl" :alt="currentTrack.title" />
@@ -46,18 +45,11 @@
 
       <div class="mini-actions">
         <button class="icon-btn" aria-label="展开播放器" @click="emit('toggle-minimize')">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg class="icon-stroke" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M7 14V7h7" />
             <path d="M17 10v7h-7" />
             <path d="M14 7 6 15" />
             <path d="m10 17 8-8" />
-          </svg>
-        </button>
-
-        <button class="icon-btn" aria-label="查看详情" @click="emit('open-detail')">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
           </svg>
         </button>
       </div>
@@ -66,28 +58,32 @@
     <template v-else>
     <button
       class="track-card"
-      :aria-label="currentTrack ? `打开 ${currentTrack.title} 详情` : '暂无播放歌曲'"
+      :aria-label="currentTrack ? `查看 ${currentTrack.title} 详情` : '暂无播放歌曲'"
       @click="emit('open-detail')"
     >
       <img v-if="currentTrack" :src="currentTrack.coverUrl" :alt="currentTrack.title" />
       <div v-else class="cover-placeholder">♪</div>
-      <div class="track-copy">
-        <strong>{{ currentTrack?.title || "等待播放" }}</strong>
-        <span>{{ currentTrack?.artist || "从列表里点一首歌开始播放" }}</span>
-      </div>
     </button>
 
     <div class="player-center">
+      <button
+        v-if="currentTrack"
+        class="lyrics-shortcut"
+        type="button"
+        @click="emit('open-lyrics')"
+      >
+        歌词
+      </button>
+
       <MusicTransportControls
         compact
         :is-playing="isPlaying"
         :loop-mode="loopMode"
-        show-lyrics-button
+        :loading="loading"
         @prev="emit('prev')"
         @toggle="emit('toggle')"
         @next="emit('next')"
         @toggle-loop="emit('toggle-loop')"
-        @open-lyrics="emit('open-lyrics')"
       />
 
       <MusicProgressBar
@@ -115,22 +111,15 @@
         </svg>
       </button>
 
-      <button class="lyric-preview" type="button" @click="emit('open-lyrics')">
-        <p>歌词</p>
-        <strong>{{ lyricPreview }}</strong>
-      </button>
-
       <button class="icon-btn" aria-label="最小化控制器" @click="emit('toggle-minimize')">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 12h12" />
-          <path d="M6 18h12" />
+        <svg class="icon-stroke" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 15h12" />
         </svg>
       </button>
 
-      <ScVolumeControl
-        compact
-        direct-show
+      <MusicVolumeControl
         :model-value="volume"
+        direction="up"
         @update:model-value="emit('update-volume', $event)"
       />
     </div>
@@ -139,8 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import ScVolumeControl from "@repo/components/ScVolumeControl";
-import { computed } from "vue";
+import MusicVolumeControl from "./MusicVolumeControl.vue";
 import MusicProgressBar from "./MusicProgressBar.vue";
 import MusicTransportControls from "./MusicTransportControls.vue";
 import type {
@@ -149,11 +137,6 @@ import type {
   MusicTrackSummary,
 } from "../types";
 
-interface LyricLine {
-  time: number;
-  text: string;
-}
-
 const props = defineProps<{
   loading: boolean;
   isPlaying: boolean;
@@ -161,8 +144,6 @@ const props = defineProps<{
   currentTrackKey: string;
   favoriteActive: boolean;
   queue: MusicTrackSummary[];
-  parsedLyrics: LyricLine[];
-  activeLyricIndex: number;
   currentTime: number;
   duration: number;
   sliderValue: number;
@@ -185,20 +166,12 @@ const emit = defineEmits<{
   (e: "open-lyrics"): void;
   (e: "toggle-minimize"): void;
 }>();
-
-const lyricPreview = computed(() => {
-  if (!props.parsedLyrics.length) return "打开歌词页查看完整歌词";
-  if (props.activeLyricIndex >= 0) {
-    return props.parsedLyrics[props.activeLyricIndex]?.text || "歌词加载中";
-  }
-  return props.parsedLyrics[0]?.text || "歌词加载中";
-});
 </script>
 
 <style scoped lang="scss">
 .detail-panel {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 280px;
+  grid-template-columns: 96px minmax(0, 1fr) 198px;
   gap: 16px;
   align-items: center;
   border: 1px solid var(--music-stroke);
@@ -218,18 +191,16 @@ const lyricPreview = computed(() => {
 }
 
 .track-card {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  width: 100%;
+  width: 76px;
+  height: 76px;
   border: 0;
-  border-radius: 20px;
+  border-radius: 22px;
   background: rgba(255, 255, 255, 0.05);
-  color: var(--music-text);
   cursor: pointer;
-  padding: 10px;
-  text-align: left;
+  padding: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
 }
 
 .mini-track {
@@ -274,9 +245,9 @@ const lyricPreview = computed(() => {
 
 .track-card img,
 .cover-placeholder {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
 }
 
 .track-card img {
@@ -290,33 +261,35 @@ const lyricPreview = computed(() => {
   font-size: 24px;
 }
 
-.track-copy strong,
-.track-copy span {
-  display: block;
-}
-
-.track-copy strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.track-copy span {
-  margin-top: 4px;
-  color: var(--music-muted);
-  font-size: 12px;
-}
-
 .player-center {
   display: grid;
   gap: 10px;
 }
 
+.lyrics-shortcut {
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--music-text);
+  cursor: pointer;
+  padding: 6px 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
 .player-side {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px auto;
-  gap: 10px 12px;
+  grid-template-columns: 44px 44px 44px;
+  gap: 10px;
   align-items: center;
+  justify-content: end;
+}
+
+.player-side :deep(.volume-control.dir-up .volume-panel) {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .mini-controls,
@@ -350,33 +323,17 @@ const lyricPreview = computed(() => {
   fill: currentColor;
 }
 
+.icon-btn svg.icon-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .icon-btn.active {
   background: rgba(241, 187, 103, 0.18);
   color: var(--music-accent);
-}
-
-.lyric-preview {
-  border: 0;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  color: inherit;
-  cursor: pointer;
-  padding: 10px 14px;
-  text-align: left;
-}
-
-.lyric-preview p {
-  margin: 0;
-  color: var(--music-muted);
-  font-size: 12px;
-}
-
-.lyric-preview strong {
-  display: block;
-  margin-top: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 @media (max-width: 1120px) {

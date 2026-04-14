@@ -411,7 +411,7 @@
       />
     </div>
 
-    <el-dialog
+    <ScDialog
       v-model="detailVisible"
       width="1120px"
       destroy-on-close
@@ -735,7 +735,7 @@
           </article>
         </div>
       </template>
-    </el-dialog>
+    </ScDialog>
     <ServerProjectScriptDialog
       v-model="scriptDialogVisible"
       :service="scriptDialogService"
@@ -2338,7 +2338,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .server-project-page {
   display: grid;
-  gap: 20px;
+  gap: 22px;
   min-height: calc(100vh - 140px);
   padding: 20px;
   color: #1e293b;
@@ -2353,17 +2353,41 @@ onUnmounted(() => {
       rgba(59, 130, 246, 0.1),
       transparent 24%
     ),
+    radial-gradient(
+      circle at top right,
+      rgba(245, 158, 11, 0.08),
+      transparent 18%
+    ),
     linear-gradient(180deg, #f8fbff 0%, #eef5ff 46%, #f6f9fc 100%);
 }
 .hero,
 .summary-card,
 .card,
 .panel {
-  border-radius: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+  box-shadow:
+    0 22px 42px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(14px);
+}
+
+.hero::before,
+.summary-card::after,
+.card::after,
+.panel::after,
+.manual-project-section::after,
+.project-installation-head::after,
+.project-card-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 32%);
 }
 .hero,
 .toolbar,
@@ -2383,7 +2407,7 @@ onUnmounted(() => {
 }
 .hero {
   gap: 20px;
-  padding: 26px 28px;
+  padding: 28px 30px;
   position: relative;
   overflow: hidden;
 }
@@ -2433,10 +2457,14 @@ onUnmounted(() => {
 }
 .manual-project-section,
 .project-installation-head {
-  border-radius: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 20px 38px rgba(15, 23, 42, 0.07);
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 22px 42px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(14px);
 }
 .chip {
@@ -2460,6 +2488,10 @@ onUnmounted(() => {
   padding: 20px 22px;
   position: relative;
   overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 .summary-card::before {
   content: "";
@@ -2479,11 +2511,11 @@ onUnmounted(() => {
 }
 .toolbar {
   gap: 14px;
-  padding: 14px 18px;
-  border-radius: 20px;
+  padding: 16px 18px;
+  border-radius: 22px;
   border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
 }
 .toolbar :deep(.el-input) {
   max-width: 380px;
@@ -2600,7 +2632,7 @@ onUnmounted(() => {
 .panel {
   display: grid;
   gap: 12px;
-  padding: 18px 20px;
+  padding: 20px 22px;
 }
 .panel-wide {
   grid-column: 1/-1;
@@ -2640,8 +2672,8 @@ onUnmounted(() => {
   gap: 16px;
   min-height: 250px;
   padding: 22px;
-  border-radius: 26px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
   background:
     linear-gradient(
       180deg,

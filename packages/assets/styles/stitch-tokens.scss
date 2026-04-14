@@ -1,1 +1,12 @@
-@forward "../style/stitch/tokens.scss";
+/* Base stitch tokens. Keep this file as the one-way source of truth. */
+:root {
+  --stitch-radius-sm: 6px;
+  --stitch-radius-md: 10px;
+  --stitch-radius-lg: 14px;
+  --stitch-gap-xs: 4px;
+  --stitch-gap-sm: 8px;
+  --stitch-gap-md: 12px;
+  --stitch-gap-lg: 16px;
+  --stitch-shadow-sm: 0 1px 2px rgb(0 0 0 / 6%);
+  --stitch-shadow-md: 0 8px 24px rgb(0 0 0 / 10%);
+}

@@ -65,8 +65,6 @@ const encodingIssueFiles = [
   'packages/components-standalone/ScLayer/components/MarkerDetail.vue',
   'layout/default/src/components/lay-message/index.vue',
   'pages/dict/src/components/layout.vue',
-  'pages/doc/src/components/ApiParamsEditor.vue',
-  'pages/doc/src/components/NodeSelector.vue',
   'pages/example/src/components/ScCodeExample.vue',
   'pages/example/src/components/ScLoadExample.vue',
   'pages/example/src/components/ScSocketEventProcessExample.vue',

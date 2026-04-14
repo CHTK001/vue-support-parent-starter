@@ -1,0 +1,41 @@
+{
+  "appId": "com.chua.music.desktop",
+  "productName": "Music Desktop",
+  "asar": true,
+  "files": [
+    "electron/main.cjs",
+    "electron/preload.cjs",
+    "electron/server.cjs"
+  ],
+  "extraResources": [
+    {
+      "from": "electron/build/renderer",
+      "to": "renderer"
+    },
+    {
+      "from": "electron/build/backend",
+      "to": "backend"
+    }
+  ],
+  "directories": {
+    "output": "electron/dist"
+  },
+  "win": {
+    "target": [
+      "nsis",
+      "zip"
+    ]
+  },
+  "mac": {
+    "target": [
+      "dmg",
+      "zip"
+    ]
+  },
+  "linux": {
+    "target": [
+      "AppImage",
+      "deb"
+    ]
+  }
+}

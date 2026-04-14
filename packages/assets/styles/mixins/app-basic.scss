@@ -1,0 +1,74 @@
+/**
+ * ????? mixins?
+ * ?? @forward ... with (...) ??????????? app ???????
+ */
+$radius-lg: 12px !default;
+$shadow-md: 0 6px 18px rgb(15 23 42 / 12%) !default;
+$shadow-hover-md: 0 10px 30px rgb(15 23 42 / 18%) !default;
+$border-light: rgb(148 163 184 / 40%) !default;
+$duration-normal: 0.25s !default;
+$ease-standard: cubic-bezier(0.4, 0, 0.2, 1) !default;
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-align-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-multiline($lines: 2) {
+  display: -webkit-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+}
+
+@mixin card-base {
+  border: 1px solid $border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+  transition: all $duration-normal $ease-standard;
+}
+
+@mixin card-hover {
+  &:hover {
+    box-shadow: $shadow-hover-md;
+    transform: translateY(-2px);
+  }
+}
+
+@mixin card-style {
+  @include card-base;
+  @include card-hover;
+}
+
+@mixin clearfix {
+  &::after {
+    display: table;
+    clear: both;
+    content: "";
+  }
+}

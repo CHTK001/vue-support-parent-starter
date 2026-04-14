@@ -288,6 +288,8 @@ const metricLabel = (value?: string | null) =>
       ? "内存"
       : value === "DISK"
         ? "磁盘"
+        : value === "DISK_IO"
+          ? "磁盘IO"
         : value === "IO"
           ? "网络"
           : value === "LATENCY"
@@ -333,6 +335,9 @@ const formatAlertMetricValue = (
   if (metricType === "IO") {
     return formatThroughput(numeric);
   }
+  if (metricType === "DISK_IO") {
+    return formatThroughput(numeric);
+  }
   if (metricType === "LATENCY") {
     return formatLatency(numeric);
   }
@@ -367,6 +372,10 @@ const payload = computed(() => {
       cpuUsage: Number(parsed.cpuUsage || 0) || undefined,
       memoryUsage: Number(parsed.memoryUsage || 0) || undefined,
       diskUsage: Number(parsed.diskUsage || 0) || undefined,
+      diskReadBytesPerSecond:
+        Number(parsed.diskReadBytesPerSecond || 0) || undefined,
+      diskWriteBytesPerSecond:
+        Number(parsed.diskWriteBytesPerSecond || 0) || undefined,
       ioReadBytesPerSecond: ioRead || undefined,
       ioWriteBytesPerSecond: ioWrite || undefined,
       ioTotal: ioRead + ioWrite || undefined,

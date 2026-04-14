@@ -1,1 +1,15 @@
-@use "./stitch/global.scss";
+@use "./stitch-tokens.scss";
+@use "./semantic-tokens.scss";
+
+/* Shared global helpers used by stitch-compatible components. */
+.stitch-bg {
+  background: var(--stitch-bg-primary);
+  color: var(--stitch-text-primary);
+}
+
+.stitch-card {
+  background: var(--stitch-bg-primary);
+  border: 1px solid var(--stitch-border-primary);
+  border-radius: var(--stitch-radius-md);
+  box-shadow: var(--stitch-shadow-sm);
+}

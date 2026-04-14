@@ -27,6 +27,22 @@
       </button>
       <button
         class="menu-item"
+        :class="{ active: activeSection === 'radio' }"
+        @click="emit('change-section', 'radio')"
+      >
+        <strong>电台</strong>
+        <span>连续播放、自动续播</span>
+      </button>
+      <button
+        class="menu-item"
+        :class="{ active: activeSection === 'radar' }"
+        @click="emit('change-section', 'radar')"
+      >
+        <strong>雷达</strong>
+        <span>按你在听的歌做推荐</span>
+      </button>
+      <button
+        class="menu-item"
         :class="{ active: activeSection === 'favorites' }"
         @click="emit('change-section', 'favorites')"
       >
@@ -152,6 +168,8 @@ const emit = defineEmits<{
 .profile-card h2 {
   margin: 0;
   font-size: 22px;
+  color: var(--music-text);
+  text-shadow: 0 4px 14px rgba(15, 6, 8, 0.2);
 }
 
 .menu-card {

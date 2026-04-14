@@ -72,11 +72,9 @@
                 <el-form-item label="服务类型">
                   <ScSelect
                     v-model="draft.serviceType"
-                    layout="dropdown"
-                    :options="serviceTypeOptions"
-                    width="100%"
-                    dropdown-title="选择服务类型"
-                    dropdown-placeholder="选择服务类型"
+                    layout="icon"
+                    :options="normalizedServiceTypeOptions"
+                    class="server-service-editor__type-select"
                   />
                 </el-form-item>
                 <el-form-item label="启用状态">
@@ -577,6 +575,43 @@ const configTemplateAiContext = computed(() => ({
   configTemplate: draft.configTemplate,
 }));
 
+const normalizedServiceTypeOptions = computed(() =>
+  props.serviceTypeOptions.map((item) => {
+    const key = String(item.value || "").toUpperCase();
+    const meta =
+      {
+        SYSTEMD_SERVICE: {
+          icon: "ri:settings-3-line",
+          description: "Linux systemd 托管服务",
+        },
+        WINDOWS_SERVICE: {
+          icon: "ri:windows-line",
+          description: "Windows Service 托管服务",
+        },
+        SPRING_BOOT_APP: {
+          icon: "ri:spring-line",
+          description: "Java / Spring Boot 应用进程",
+        },
+        NGINX: {
+          icon: "ri:service-line",
+          description: "Nginx 站点与代理服务",
+        },
+        DOCKER_CONTAINER: {
+          icon: "ri:docker-line",
+          description: "Docker 容器运行服务",
+        },
+      }[key] || {
+        icon: "ri:apps-2-line",
+        description: item.label,
+      };
+    return {
+      ...item,
+      icon: (item as { icon?: string }).icon || meta.icon,
+      description: (item as { description?: string }).description || meta.description,
+    };
+  }),
+);
+
 const buildConfigTemplatePrompt = (payload: ScAiTextareaPayload) =>
   [
     `请为服务器服务“${draft.serviceName || "demo-service"}”生成配置模板内容。`,
@@ -901,6 +936,15 @@ const unregisterShortcuts = computed<ServerScriptShortcut[]>(() =>
 .server-service-editor__three-column :deep(.el-form-item) {
   flex: 1;
   min-width: 0;
+}
+
+.server-service-editor__type-select :deep(.icon-selector-flex) {
+  gap: 8px;
+}
+
+.server-service-editor__type-select :deep(.icon-selector-item) {
+  width: 46px;
+  height: 46px;
 }
 
 .server-service-editor__script-grid {

@@ -1,7 +1,7 @@
 <template>
   <ScCard class="server-basic-panel" shadow="never">
     <template v-if="host">
-      <div class="server-basic-panel__hero">
+      <div class="server-basic-panel__hero min-h-[200px]">
         <div class="server-basic-panel__identity">
           <div
             class="server-basic-panel__badge"
@@ -246,6 +246,11 @@
                   <IconifyIconOnline icon="ri:information-line" />
                 </el-button>
               </el-tooltip>
+              <el-tooltip content="重新获取公网 IP" placement="top">
+                <el-button circle plain @click.stop="emit('refresh-public-ip')">
+                  <IconifyIconOnline icon="ri:global-line" />
+                </el-button>
+              </el-tooltip>
             </div>
           </header>
 
@@ -351,7 +356,7 @@
               </div>
               <div>
                 <dt>公网地址</dt>
-                <dd>{{ runtimeDetail?.publicIp || "-" }}</dd>
+                <dd>{{ host.publicIp || runtimeDetail?.publicIp || "-" }}</dd>
               </div>
               <div>
                 <dt>内核 / 版本</dt>
@@ -864,7 +869,8 @@ const emit = defineEmits<{
   "open-alert-settings": [];
   "open-remote-settings": [];
   "open-basic-detail": [];
-  "open-metric-detail": [metric: "cpu" | "memory" | "disk" | "io"];
+  "refresh-public-ip": [];
+  "open-metric-detail": [metric: "cpu" | "memory" | "disk" | "io" | "diskIo"];
   "open-alert-detail": [alert: ServerAlertEvent];
   "create-service": [];
   "service-action": [service: ServerService, action: ServerServiceAction];
@@ -1037,6 +1043,8 @@ const metricLabel = (value?: string | null) =>
       ? "内存"
       : value === "DISK"
         ? "磁盘"
+        : value === "DISK_IO"
+          ? "磁盘IO"
         : value === "IO"
           ? "网络"
           : value === "LATENCY"
@@ -1083,6 +1091,8 @@ const metricCards = computed(() => {
   const memoryDanger = Number(settings.memoryDangerPercent || 90);
   const diskDanger = Number(settings.diskDangerPercent || 92);
   const ioDanger = Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024);
+  const diskIoWarning = 80 * 1024 * 1024;
+  const diskIoDanger = 160 * 1024 * 1024;
   return [
     {
       key: "cpu",
@@ -1152,6 +1162,25 @@ const metricCards = computed(() => {
       option: buildMetricSparkOption(props.history, "io", {
         warning: Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
         danger: ioDanger,
+      }),
+    },
+    {
+      key: "diskIo",
+      label: "磁盘 IO",
+      subLabel: `读 ${formatThroughput(snapshot?.diskReadBytesPerSecond)}`,
+      value: formatThroughput(resolveDiskIoTotal(snapshot)),
+      total: `写 ${formatThroughput(snapshot?.diskWriteBytesPerSecond)}`,
+      progress: clampProgress(
+        resolveIoProgress(resolveDiskIoTotal(snapshot), diskIoDanger),
+      ),
+      toneClass: usageToneClass(
+        resolveDiskIoTotal(snapshot),
+        diskIoWarning,
+        diskIoDanger,
+      ),
+      option: buildMetricSparkOption(props.history, "diskIo", {
+        warning: diskIoWarning,
+        danger: diskIoDanger,
       }),
     },
   ];
@@ -1242,42 +1271,64 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__hero {
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: 26px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  position: relative;
+  gap: 18px;
+  padding: 18px 20px;
+  border-radius: 30px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.22));
   background:
     radial-gradient(
+      circle at 84% 18%,
+      rgba(245, 158, 11, 0.16),
+      transparent 20%
+    ),
+    radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--el-color-primary) 12%, transparent),
-      transparent 44%
+      color-mix(in srgb, var(--el-color-primary) 18%, transparent),
+      transparent 42%
     ),
     linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(248, 250, 252, 0.96)
+      135deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(248, 250, 252, 0.98) 54%,
+      rgba(239, 246, 255, 0.94) 100%
     );
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 22px 40px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  overflow: hidden;
+}
+
+.server-basic-panel__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(130deg, rgba(255, 255, 255, 0.28), transparent 34%),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.18), transparent 50%);
 }
 
 .server-basic-panel__identity {
   gap: 14px;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .server-basic-panel__badge {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 26px;
   color: white;
   background: linear-gradient(145deg, #64748b, #1e293b);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    0 16px 26px rgba(15, 23, 42, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 18px 32px rgba(15, 23, 42, 0.18);
 }
 
 .server-basic-panel__badge.is-windows {
@@ -1298,8 +1349,9 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__title-row h2 {
   margin: 0;
-  font-size: 23px;
-  line-height: 1.1;
+  font-size: 24px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .server-basic-panel__latency {
@@ -1326,26 +1378,32 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__identity-meta {
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .server-basic-panel__action-groups {
+  position: relative;
+  z-index: 1;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
 .server-basic-panel__action-row {
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
   flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
 }
 
 .server-basic-panel__action-row--software {
-  padding-top: 6px;
-  border-top: 1px solid
-    color-mix(in srgb, var(--el-border-color) 62%, transparent);
+  padding-top: 10px;
 }
 
 .server-basic-panel__action-label {
@@ -1354,11 +1412,12 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(241, 245, 249, 0.9);
-  color: #475569;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
+  color: #334155;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .server-basic-panel__chip {
@@ -1379,35 +1438,56 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__actions :deep(.el-button) {
-  width: 34px;
-  height: 34px;
-  border-color: color-mix(in srgb, var(--el-border-color) 72%, transparent);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+  width: 36px;
+  height: 36px;
+  border-color: color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.22));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.9));
+  box-shadow:
+    0 10px 18px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.server-basic-panel__actions :deep(.el-button:hover) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--el-color-primary) 26%, rgba(148, 163, 184, 0.22));
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
 .server-basic-panel__realtime,
 .server-basic-panel__card {
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 68%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 9%, rgba(148, 163, 184, 0.2));
   background:
     radial-gradient(
+      circle at top right,
+      rgba(14, 165, 233, 0.08),
+      transparent 22%
+    ),
+    radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--el-color-primary) 8%, transparent),
+      color-mix(in srgb, var(--el-color-primary) 10%, transparent),
       transparent 52%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--el-fill-color-light) 48%, white),
-      white
+      color-mix(in srgb, var(--el-fill-color-light) 42%, white),
+      rgba(255, 255, 255, 0.98)
     );
+  box-shadow:
+    0 20px 36px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .server-basic-panel__realtime {
   display: grid;
-  gap: 10px;
-  padding: 16px;
-  border-radius: 24px;
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.04);
+  gap: 14px;
+  padding: 18px;
+  border-radius: 28px;
 }
 
 .server-basic-panel__realtime-header {
@@ -1417,7 +1497,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__realtime-header h3,
 .server-basic-panel__card-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
+  letter-spacing: -0.01em;
 }
 
 .server-basic-panel__realtime-header p {
@@ -1440,18 +1521,19 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .server-basic-panel__metric-card {
   position: relative;
   display: grid;
-  gap: 6px;
-  min-height: 116px;
-  padding: 12px;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--el-bg-color-page) 84%, white);
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  gap: 8px;
+  min-height: 124px;
+  padding: 14px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid color-mix(in srgb, currentColor 10%, rgba(148, 163, 184, 0.18));
   cursor: pointer;
   transition:
     transform 0.18s ease,
@@ -1465,12 +1547,12 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__realtime-mini::before {
   content: "";
   position: absolute;
-  inset: 0 0 auto 0;
-  height: clamp(18px, calc(var(--metric-progress, 0%) * 0.62), 78px);
+  inset: auto 0 0 0;
+  height: clamp(18px, calc(var(--metric-progress, 0%) * 0.74), 92px);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, currentColor 16%, transparent),
-    transparent
+    transparent 0%,
+    color-mix(in srgb, currentColor 16%, transparent) 100%
   );
   opacity: 0.9;
   pointer-events: none;
@@ -1484,13 +1566,15 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: color-mix(
     in srgb,
-    var(--el-color-primary) 26%,
-    var(--el-border-color)
+    currentColor 22%,
+    rgba(148, 163, 184, 0.18)
   );
-  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.09);
+  box-shadow:
+    0 20px 34px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .server-basic-panel__metric-card.is-success {
@@ -1526,20 +1610,27 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-main strong {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .server-basic-panel__realtime-chart {
   min-width: 0;
   display: grid;
   gap: 10px;
+  padding: 14px 14px 10px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 252, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .server-basic-panel__realtime-combined {
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -1556,9 +1647,10 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   gap: 9px;
   padding: 14px;
   appearance: none;
-  border-radius: 20px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  background: color-mix(in srgb, var(--el-bg-color-page) 88%, white);
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, currentColor 10%, rgba(148, 163, 184, 0.18));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
   text-align: left;
   cursor: pointer;
   transition:
@@ -1570,13 +1662,15 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__realtime-mini:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: color-mix(
     in srgb,
-    var(--el-color-primary) 26%,
-    var(--el-border-color)
+    currentColor 22%,
+    rgba(148, 163, 184, 0.18)
   );
-  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 18px 30px rgba(15, 23, 42, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-basic-panel__realtime-mini.is-success {
@@ -1607,8 +1701,9 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__realtime-mini-main strong {
-  font-size: 22px;
+  font-size: 23px;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .server-basic-panel__realtime-chart-head {
@@ -1646,11 +1741,10 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 18px;
-  border-radius: 24px;
+  padding: 20px;
+  border-radius: 28px;
   overflow: visible;
   align-self: start;
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.04);
 }
 
 .server-basic-panel__card--basic {
@@ -1682,9 +1776,9 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   flex: 1;
   min-height: 0;
   overflow: visible;
-  padding-right: 4px;
+  padding-right: 2px;
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .server-basic-panel__alert-scroll {
@@ -1698,10 +1792,23 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   margin: 0;
 }
 
+.server-basic-panel__info-grid > div {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 10px 18px rgba(15, 23, 42, 0.03);
+}
+
 .server-basic-panel__info-grid dd {
   margin: 6px 0 0;
   word-break: break-word;
   color: var(--el-text-color-primary);
+  font-weight: 600;
+  line-height: 1.6;
 }
 
 .server-basic-panel__info-span-2 {
@@ -2194,5 +2301,6 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   .server-basic-panel__content {
     display: grid;
   }
+
 }
 </style>

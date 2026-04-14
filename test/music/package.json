@@ -1,0 +1,22 @@
+{
+  "name": "music-test-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@pages/music": "workspace:^",
+    "@repo/core": "workspace:^",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@repo/build-config": "workspace:^",
+    "@vitejs/plugin-vue": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

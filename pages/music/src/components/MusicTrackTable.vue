@@ -37,7 +37,15 @@
         @keyup.enter="emit('play-track', track, tracks)"
       >
         <div class="track-main">
-          <img :src="track.coverUrl" :alt="track.title" />
+          <img
+            v-if="hasTrackCover(track)"
+            :src="track.coverUrl"
+            :alt="track.title"
+            @error="markTrackCoverError(track)"
+          />
+          <div v-else class="track-cover-placeholder">
+            {{ placeholderText(track.title) }}
+          </div>
           <div class="track-copy">
             <strong>{{ track.title }}</strong>
             <span>{{ track.artist }}</span>
@@ -47,19 +55,34 @@
             </small>
           </div>
         </div>
-        <small>{{ track.album }}</small>
+        <div class="album-copy">
+          <strong>{{ track.album || "未知专辑" }}</strong>
+          <small v-if="showSourceLabel" class="track-source">
+            来源 · {{ sourceLabelMap?.[track.source] || track.source.toUpperCase() }}
+          </small>
+        </div>
         <span class="track-time">{{ formatDuration(track.durationSeconds) }}</span>
         <div class="row-actions">
-          <button class="row-btn" :aria-label="`播放 ${track.title}`" @click.stop="emit('play-track', track, tracks)">
-            播放
+          <button
+            class="row-btn row-btn--icon"
+            :aria-label="`播放 ${track.title}`"
+            @click.stop="emit('play-track', track, tracks)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 6l10 6-10 6V6z" />
+            </svg>
           </button>
           <button
             v-if="allowDownload"
-            class="row-btn"
+            class="row-btn row-btn--icon"
             :aria-label="`下载 ${track.title}`"
             @click.stop="emit('download-track', track)"
           >
-            下载
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4v10" />
+              <path d="m8 10 4 4 4-4" />
+              <path d="M5 19h14" />
+            </svg>
           </button>
           <button
             class="favorite-btn"
@@ -80,9 +103,10 @@
 <script setup lang="ts">
 import { Star } from "@element-plus/icons-vue";
 import { ElIcon } from "element-plus";
+import { ref } from "vue";
 import type { MusicTrackSummary } from "../types";
 
-defineProps<{
+withDefaults(defineProps<{
   title: string;
   kicker: string;
   tracks: MusicTrackSummary[];
@@ -91,7 +115,11 @@ defineProps<{
   emptyText: string;
   showPlayAll?: boolean;
   allowDownload?: boolean;
-}>();
+  showSourceLabel?: boolean;
+  sourceLabelMap?: Record<string, string>;
+}>(), {
+  allowDownload: true,
+});
 
 const emit = defineEmits<{
   (e: "play-track", track: MusicTrackSummary, queue: MusicTrackSummary[]): void;
@@ -99,6 +127,27 @@ const emit = defineEmits<{
   (e: "play-all", queue: MusicTrackSummary[]): void;
   (e: "download-track", track: MusicTrackSummary): void;
 }>();
+
+const failedTrackCoverKeys = ref<string[]>([]);
+
+function getTrackKey(track: MusicTrackSummary) {
+  return `${track.source}:${track.trackId}`;
+}
+
+function hasTrackCover(track: MusicTrackSummary) {
+  return Boolean(track.coverUrl) && !failedTrackCoverKeys.value.includes(getTrackKey(track));
+}
+
+function markTrackCoverError(track: MusicTrackSummary) {
+  const key = getTrackKey(track);
+  if (!failedTrackCoverKeys.value.includes(key)) {
+    failedTrackCoverKeys.value = [...failedTrackCoverKeys.value, key];
+  }
+}
+
+function placeholderText(title: string) {
+  return (title || "♪").trim().slice(0, 1).toUpperCase();
+}
 
 function formatDuration(seconds: number) {
   const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -148,6 +197,8 @@ function formatCount(value?: number) {
 .section-head h3 {
   margin: 0;
   font-size: 28px;
+  color: var(--music-text);
+  text-shadow: 0 4px 14px rgba(15, 6, 8, 0.2);
 }
 
 .section-head span,
@@ -167,7 +218,7 @@ function formatCount(value?: number) {
 .table-head,
 .track-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.8fr) 80px 64px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.86fr) 80px 148px;
   gap: 14px;
   align-items: center;
 }
@@ -216,6 +267,18 @@ function formatCount(value?: number) {
   object-fit: cover;
 }
 
+.track-cover-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(241, 187, 103, 0.22), rgba(121, 58, 44, 0.92));
+  color: #fff3e4;
+  font-size: 22px;
+  font-weight: 700;
+}
+
 .track-copy {
   min-width: 0;
 }
@@ -239,6 +302,30 @@ function formatCount(value?: number) {
   font-style: normal;
 }
 
+.album-copy {
+  min-width: 0;
+}
+
+.album-copy strong,
+.album-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album-copy strong {
+  color: var(--music-text);
+  font-weight: 600;
+}
+
+.track-source {
+  margin-top: 6px;
+  color: var(--music-subtle);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
 .favorite-btn {
   width: 42px;
   height: 42px;
@@ -257,6 +344,7 @@ function formatCount(value?: number) {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
 }
 
 .row-btn,
@@ -267,6 +355,37 @@ function formatCount(value?: number) {
   color: var(--music-text);
   cursor: pointer;
   padding: 8px 14px;
+}
+
+.row-btn--icon,
+.favorite-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.row-btn--icon {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--music-text);
+}
+
+.row-btn--icon svg,
+.favorite-btn :deep(svg) {
+  width: 18px;
+  height: 18px;
+}
+
+.row-btn--icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .head-btn--accent {
@@ -285,12 +404,15 @@ function formatCount(value?: number) {
   }
 
   .track-row {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
   }
 
-  .track-row small,
   .track-time {
     display: none;
+  }
+
+  .album-copy {
+    margin-top: -4px;
   }
 
   .row-actions {

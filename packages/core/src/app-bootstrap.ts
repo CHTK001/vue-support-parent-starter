@@ -4,7 +4,7 @@
  * 同时包含 createStandardApp 完整实现（原 standard-app.ts 已合并至此）。
  */
 
-import type { App, Directive, DirectiveBinding } from "vue";
+import type { App, Component, Directive, DirectiveBinding } from "vue";
 import type { Router } from "vue-router";
 import type { SocketServiceConfig } from "./config/socketService";
 import { getLoaderStorageKey } from "@repo/components/ScRouteLoading/loader-manager";
@@ -179,8 +179,17 @@ export interface StandardAppOptions {
    * 不传则不启用全局 socket 服务。
    */
   socket?: SocketServiceConfig;
-  /** 覆盖内置 @repo/core router，使用应用自定义路由 */
-  router?: Router;
+  /**
+   * 路由配置：
+   * - 传入 Router：覆盖内置 @repo/core router
+   * - 传入 false：创建无路由应用
+   */
+  router?: Router | false;
+  /**
+   * 无路由模式下的首页组件。
+   * 当 router=false 时必须提供，用于直接渲染主页面。
+   */
+  homeComponent?: Component;
   /** 自定义初始化函数 */
   setup?: (app: App, config?: any) => void | Promise<void>;
 }
@@ -209,9 +218,7 @@ export class AppBootstrap {
             import("element-plus/theme-chalk/dark/css-vars.css"),
             import("tippy.js/dist/tippy.css"),
             import("tippy.js/themes/light.css"),
-            import("@repo/assets/styles/layout/default/reset.scss"),
-            import("@repo/assets/styles/layout/default/tailwind.css"),
-            import("@repo/assets/styles/layout/default/index.scss"),
+            import("@repo/assets/styles/base/index.scss"),
           ]);
           bootDebugLog("registerCoreStyles:done");
         } catch (error) {
@@ -464,8 +471,13 @@ export async function createStandardApp(
     socketSetup,
     socket,
     router: customRouter,
+    homeComponent,
     setup,
   } = options;
+  const useCustomRouter = Boolean(customRouter && customRouter !== false);
+  const useHomeRouter = !useCustomRouter && Boolean(homeComponent);
+  const useBuiltinRouter = !useCustomRouter && !useHomeRouter && customRouter !== false;
+  const routerEnabled = useCustomRouter || useHomeRouter || useBuiltinRouter;
 
   // 1. 尽早启动 WASM 初始化，并在 mount 前确保完成
   const wasmInitPromise = resolveWasmEnabled(enableWasm)
@@ -481,9 +493,7 @@ export async function createStandardApp(
     : null;
 
   // 2. 导入必要依赖
-  const { createApp } = await import("vue");
-  // @ts-ignore - app-root 无类型声明
-  const AppRoot = (await import("@repo/app-root")).default;
+  const { createApp, defineComponent, h } = await import("vue");
   const {
     getInitialConfig,
     getPlatformConfig,
@@ -492,14 +502,46 @@ export async function createStandardApp(
     injectResponsiveStorage,
     useI18n,
   } = await import("@repo/config");
-  const [{ router, routerReady }, { setupStore }, { menu }, { Ripple }, { useElementPlus }] =
-    await Promise.all([
-      import("./router"),
-      import("./store"),
-      import("./directives/menu"),
-      import("./directives/ripple"),
-      import("@repo/plugins"),
-    ]);
+  const [
+    routerModule,
+    { setupStore },
+    { menu },
+    { Ripple },
+    { useElementPlus },
+    { ReDialog },
+    { ElConfigProvider },
+  ] = await Promise.all([
+    useBuiltinRouter
+      ? import("./router")
+      : Promise.resolve({ router: undefined, routerReady: Promise.resolve() }),
+    import("./store"),
+    import("./directives/menu"),
+    import("./directives/ripple"),
+    import("@repo/plugins"),
+    import("@repo/components/ReDialog"),
+    import("element-plus"),
+  ]);
+  const { elementPlusLocale } = await import("@repo/config");
+  let router = routerModule.router;
+  let routerReady = routerModule.routerReady;
+  if (useHomeRouter && homeComponent) {
+    const { createRouter, createWebHashHistory } = await import("vue-router");
+    router = createRouter({
+      history: createWebHashHistory(),
+      routes: [
+        {
+          path: "/",
+          name: "Home",
+          component: homeComponent,
+        },
+        {
+          path: "/:pathMatch(.*)*",
+          redirect: "/",
+        },
+      ],
+    });
+    routerReady = Promise.resolve();
+  }
   const { getFrontendFontEncryptionOptions, syncFrontendSystemRuntime } =
     await import("./runtime/frontend-system");
   let motionEnabled = enableMotion;
@@ -566,15 +608,40 @@ export async function createStandardApp(
   bootDebugLog("createStandardApp:base-imports-ready");
 
   // 3. 创建应用实例
-  const app = createApp(AppRoot);
+  const rootComponent = routerEnabled
+    ? // @ts-ignore - app-root 无类型声明
+      (await import("@repo/app-root")).default
+    : (() => {
+        if (!homeComponent) {
+          throw new Error(
+            "[createStandardApp] router=false 时必须提供 homeComponent",
+          );
+        }
+        return defineComponent({
+          name: "StandaloneAppRoot",
+          setup() {
+            return () =>
+              h(
+                ElConfigProvider,
+                { locale: elementPlusLocale },
+                {
+                  default: () => [h(homeComponent), h(ReDialog)],
+                },
+              );
+          },
+        });
+      })();
+  const app = createApp(rootComponent);
 
   // 4. 获取平台配置
   const config = await getPlatformConfig(app);
   const initialConfig = getInitialConfig();
   const frontendSystemConfig = getFrontendSystemConfig(initialConfig);
   bootDebugLog("createStandardApp:config-ready");
-  await routerReady;
-  bootDebugLog("createStandardApp:router-ready");
+  if (routerEnabled) {
+    await routerReady;
+    bootDebugLog("createStandardApp:router-ready");
+  }
   await syncFrontendSystemRuntime(initialConfig);
   bootDebugLog("createStandardApp:frontend-system-runtime-ready");
 
@@ -766,7 +833,8 @@ export async function createStandardApp(
   }
 
   // 5.5 注册核心功能
-  const activeRouter = customRouter ?? router;
+  const activeRouter =
+    customRouter && customRouter !== false ? customRouter : router;
   const corePlugins: any[] = [];
   if (motionEnabled && MotionPlugin) corePlugins.push(MotionPlugin);
   if (enableI18n) corePlugins.push(useI18n);
@@ -776,10 +844,12 @@ export async function createStandardApp(
 
   bootstrap
     .registerStore(setupStore)
-    .registerRouter(activeRouter)
     .use(() => injectResponsiveStorage(app, config))
     .registerPlugins([...corePlugins, ...plugins, ...socketPlugins])
     .registerEncryptedFonts();
+  if (activeRouter) {
+    bootstrap.registerRouter(activeRouter);
+  }
   bootDebugLog("createStandardApp:core-bootstrap-registered");
 
   // 5.6 全局 Socket 服务初始化
@@ -798,7 +868,7 @@ export async function createStandardApp(
   }
 
   // 5.7 socketSetup 路由钩子
-  if (socketSetup) {
+  if (socketSetup && activeRouter) {
     bootstrap.use(() => socketSetup(activeRouter));
   }
   bootDebugLog("createStandardApp:socket-setup-registered");

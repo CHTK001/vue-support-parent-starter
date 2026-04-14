@@ -737,10 +737,15 @@ watch(
   gap: 14px;
   margin-bottom: 16px;
   align-items: stretch;
-  padding: 12px 14px;
-  border-radius: 20px;
-  background: rgba(248, 250, 252, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  padding: 15px 16px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-process-dialog__toolbar-actions {
@@ -765,13 +770,16 @@ watch(
 .server-process-dialog__detail {
   min-height: 0;
   min-width: 0;
-  padding: 16px;
-  border-radius: 24px;
+  padding: 18px;
+  border-radius: 26px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 22%),
     radial-gradient(circle at top left, rgba(14, 165, 233, 0.08), transparent 30%),
     rgba(248, 250, 252, 0.94);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 18px 34px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-process-dialog__list {
@@ -797,9 +805,10 @@ watch(
   display: grid;
   gap: 10px;
   padding: 14px 16px;
-  border-radius: 20px;
+  border-radius: 22px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.96);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
   text-align: left;
   cursor: pointer;
   transition:
@@ -812,7 +821,9 @@ watch(
 .server-process-dialog__item.is-active {
   transform: translateY(-2px);
   border-color: rgba(14, 165, 233, 0.3);
-  box-shadow: 0 18px 28px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 18px 28px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-process-dialog__item.is-warning {
@@ -885,13 +896,17 @@ watch(
 .server-process-dialog__detail-hero {
   gap: 14px;
   align-items: flex-start;
-  padding: 16px 18px;
-  border-radius: 22px;
+  padding: 20px 22px;
+  min-height: 112px;
+  border-radius: 26px;
   background:
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.08), transparent 24%),
     radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 34%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.94));
   border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 18px 32px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .server-process-dialog__detail-hero h4 {
@@ -923,9 +938,13 @@ watch(
 .server-process-dialog__stat,
 .server-process-dialog__detail-card,
 .server-process-dialog__ai-card {
-  border-radius: 20px;
+  border-radius: 22px;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.96);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  box-shadow:
+    0 10px 18px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-process-dialog__stat {

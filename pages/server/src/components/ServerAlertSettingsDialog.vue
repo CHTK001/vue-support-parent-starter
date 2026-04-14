@@ -72,8 +72,9 @@
           <small>网络 / 延迟</small>
           <strong>{{ ioWarningModel }} / {{ ioDangerModel }} {{ ioUnit }}/s</strong>
           <span
-            >延迟 {{ latencyWarningModel }} / {{ latencyDangerModel }}
-            {{ latencyUnit }}</span
+            >磁盘IO {{ diskIoWarningModel }} / {{ diskIoDangerModel }}
+            {{ ioUnit }}/s · 延迟 {{ latencyWarningModel }} /
+            {{ latencyDangerModel }} {{ latencyUnit }}</span
           >
         </article>
         <article class="server-alert-dialog__focus-card">
@@ -168,18 +169,38 @@
               <ScSelect
                 v-model="ioUnit"
                 :options="ioUnitOptions"
-                layout="pill"
+                layout="icon"
                 class="server-alert-dialog__unit-select"
               />
               <ScSelect
                 v-model="latencyUnit"
                 :options="latencyUnitOptions"
-                layout="pill"
+                layout="icon"
                 class="server-alert-dialog__unit-select"
               />
             </div>
           </header>
           <div class="server-alert-dialog__fields">
+            <label>
+              <span>磁盘IO预警</span>
+              <ScInput
+                v-model="diskIoWarningModel"
+                type="number"
+                layout="stepper"
+                :min="0"
+                :step="ioStep"
+              />
+            </label>
+            <label>
+              <span>磁盘IO危险</span>
+              <ScInput
+                v-model="diskIoDangerModel"
+                type="number"
+                layout="stepper"
+                :min="0"
+                :step="ioStep"
+              />
+            </label>
             <label>
               <span>网络预警</span>
               <ScInput
@@ -241,6 +262,9 @@
           }}%
         </span>
         <span class="server-alert-dialog__summary-tag is-warning">
+          磁盘IO {{ diskIoWarningModel }} / {{ diskIoDangerModel }} {{ ioUnit }}/s
+        </span>
+        <span class="server-alert-dialog__summary-tag is-warning">
           网络 {{ ioWarningModel }} / {{ ioDangerModel }} {{ ioUnit }}/s
         </span>
         <span class="server-alert-dialog__summary-tag is-muted">
@@ -283,14 +307,14 @@ const emit = defineEmits<{
 }>();
 
 const ioUnitOptions = [
-  { label: "KB/s", value: "KB" },
-  { label: "MB/s", value: "MB" },
-  { label: "GB/s", value: "GB" },
+  { label: "KB/s", value: "KB", description: "按 KB/s 设置网络阈值" },
+  { label: "MB/s", value: "MB", description: "按 MB/s 设置网络阈值" },
+  { label: "GB/s", value: "GB", description: "按 GB/s 设置网络阈值" },
 ];
 
 const latencyUnitOptions = [
-  { label: "ms", value: "ms" },
-  { label: "秒", value: "s" },
+  { label: "ms", value: "ms", description: "按毫秒设置延迟阈值" },
+  { label: "秒", value: "s", description: "按秒设置延迟阈值" },
 ];
 
 const ioUnit = ref<"KB" | "MB" | "GB">("MB");
@@ -331,6 +355,8 @@ const resolveLatencyFactor = (unit: "ms" | "s") => (unit === "s" ? 1000 : 1);
 
 const syncUnits = (settings?: ServerAlertSettings) => {
   const ioValue = Math.max(
+    Number(settings?.diskIoDangerBytesPerSecond || 0),
+    Number(settings?.diskIoWarningBytesPerSecond || 0),
     Number(settings?.ioDangerBytesPerSecond || 0),
     Number(settings?.ioWarningBytesPerSecond || 0),
   );
@@ -370,6 +396,40 @@ const ioWarningModel = computed({
   set: (value: number) => {
     updateForm({
       ioWarningBytesPerSecond: Math.round(
+        (Number(value || 0) || 0) * resolveIoFactor(ioUnit.value),
+      ),
+    });
+  },
+});
+
+const diskIoWarningModel = computed({
+  get: () =>
+    Number(
+      (
+        (props.form.diskIoWarningBytesPerSecond || 0) /
+        resolveIoFactor(ioUnit.value)
+      ).toFixed(2),
+    ),
+  set: (value: number) => {
+    updateForm({
+      diskIoWarningBytesPerSecond: Math.round(
+        (Number(value || 0) || 0) * resolveIoFactor(ioUnit.value),
+      ),
+    });
+  },
+});
+
+const diskIoDangerModel = computed({
+  get: () =>
+    Number(
+      (
+        (props.form.diskIoDangerBytesPerSecond || 0) /
+        resolveIoFactor(ioUnit.value)
+      ).toFixed(2),
+    ),
+  set: (value: number) => {
+    updateForm({
+      diskIoDangerBytesPerSecond: Math.round(
         (Number(value || 0) || 0) * resolveIoFactor(ioUnit.value),
       ),
     });
@@ -471,9 +531,15 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
 .server-alert-dialog__toolbar {
   display: grid;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--el-fill-color-light) 82%, white);
+  padding: 16px 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-alert-dialog__focus-grid {
@@ -486,15 +552,19 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
   background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
     radial-gradient(
       circle at top left,
       color-mix(in srgb, var(--el-color-primary) 8%, transparent),
       transparent 58%
     ),
-    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+    color-mix(in srgb, var(--el-bg-color-page) 92%, white);
+  box-shadow:
+    0 14px 24px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-alert-dialog__focus-card small,
@@ -545,7 +615,8 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
-  background: color-mix(in srgb, var(--el-fill-color-light) 92%, white);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.88));
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .server-alert-dialog__summary-tag.is-primary {
@@ -571,16 +642,20 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
 .server-alert-dialog__group {
   display: grid;
   gap: 12px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
   background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 24%),
     radial-gradient(
       circle at top left,
       color-mix(in srgb, var(--el-color-primary) 7%, transparent),
       transparent 54%
     ),
-    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+    color-mix(in srgb, var(--el-bg-color-page) 92%, white);
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .server-alert-dialog__group header span {
@@ -618,6 +693,7 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  padding: 12px 14px 0;
 }
 
 .server-alert-dialog :deep(.sc-number-stepper) {
@@ -639,7 +715,7 @@ const diskDangerPercentModel = createNumberProxy("diskDangerPercent");
   }
 }
 
-.server-alert-dialog__unit-select :deep(.pill-selector-flex) {
+.server-alert-dialog__unit-select :deep(.icon-selector-flex) {
   gap: 8px;
   justify-content: flex-end;
 }

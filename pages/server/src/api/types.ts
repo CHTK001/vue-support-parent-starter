@@ -6,6 +6,7 @@ export interface ServerHost {
   osType?: string;
   architecture?: string;
   host?: string;
+  publicIp?: string;
   port?: number;
   username?: string;
   password?: string;
@@ -61,6 +62,8 @@ export interface ServerAlertSettings {
   memoryDangerPercent?: number;
   diskWarningPercent?: number;
   diskDangerPercent?: number;
+  diskIoWarningBytesPerSecond?: number;
+  diskIoDangerBytesPerSecond?: number;
   ioWarningBytesPerSecond?: number;
   ioDangerBytesPerSecond?: number;
   latencyWarningMs?: number;
@@ -346,6 +349,8 @@ export interface ServerMetricsSnapshot {
   diskUsage?: number;
   diskTotalBytes?: number;
   diskUsedBytes?: number;
+  diskReadBytesPerSecond?: number;
+  diskWriteBytesPerSecond?: number;
   ioReadBytesPerSecond?: number;
   ioWriteBytesPerSecond?: number;
   networkRxPacketsPerSecond?: number;
@@ -507,6 +512,8 @@ export interface ServerRealtimePayload {
   diskUsage?: number;
   diskTotalBytes?: number;
   diskUsedBytes?: number;
+  diskReadBytesPerSecond?: number;
+  diskWriteBytesPerSecond?: number;
   ioReadBytesPerSecond?: number;
   ioWriteBytesPerSecond?: number;
   networkRxPacketsPerSecond?: number;

@@ -1,66 +1,10 @@
-/**
- * 公共样式 Mixins（热点应用）
- * 复用监控应用中的通用布局、文本与卡片样式，保持视觉一致性
- */
-
-@use "./variables.scss" as *;
-@forward "./variables";
-
-// 基础 Flex 布局
-@mixin flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-@mixin flex-align-center {
-  display: flex;
-  align-items: center;
-}
-
-@mixin flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-@mixin flex-column {
-  display: flex;
-  flex-direction: column;
-}
-
-// 文本相关
-@mixin text-ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@mixin text-ellipsis-multiline($lines: 2) {
-  display: -webkit-box;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  -webkit-line-clamp: $lines;
-  line-clamp: $lines;
-  -webkit-box-orient: vertical;
-}
-
-// 卡片常用样式
-@mixin card-base {
-  border: 1px solid $border-light;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-md;
-  transition: all $duration-normal $ease-standard;
-}
-
-@mixin card-hover {
-  &:hover {
-    box-shadow: $shadow-hover-md;
-    transform: translateY(-2px);
-  }
-}
-
-@mixin card-style {
-  @include card-base;
-  @include card-hover;
-}
+@forward "./variables.scss";
+@use "./variables.scss" as tokens;
+@forward "@repo/assets/styles/mixins/app-basic.scss" with (
+  $radius-lg: tokens.$radius-lg,
+  $shadow-md: tokens.$shadow-md,
+  $shadow-hover-md: tokens.$shadow-hover-md,
+  $border-light: tokens.$border-light,
+  $duration-normal: tokens.$duration-normal,
+  $ease-standard: tokens.$ease-standard
+);

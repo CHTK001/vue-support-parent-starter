@@ -30,13 +30,8 @@
       <ScSelect
         :model-value="filter"
         :options="filterOptions"
-        layout="dropdown"
+        layout="icon"
         class="server-sidebar__filter"
-        width="100%"
-        dropdown-title="筛选服务器"
-        dropdown-placeholder="筛选服务器"
-        dropdown-icon="ri:filter-3-line"
-        display-mode="normal"
         @update:model-value="emit('update:filter', String($event || 'ALL'))"
       />
     </div>
@@ -141,6 +136,16 @@ const emit = defineEmits<{
 .server-sidebar {
   height: 100%;
   border-radius: 28px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 250, 0.96));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow:
+    0 22px 40px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-sidebar :deep(.el-card__body) {
@@ -148,6 +153,7 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   padding: 16px;
+  background: transparent;
 }
 
 .server-sidebar.is-collapsed :deep(.el-card__body) {
@@ -164,6 +170,8 @@ const emit = defineEmits<{
 .server-sidebar__header {
   justify-content: flex-end;
   gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .server-sidebar__header-actions {
@@ -191,11 +199,27 @@ const emit = defineEmits<{
   );
   border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.07);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.server-sidebar__header-actions :deep(.el-button:hover) {
+  transform: translateY(-1px);
+  border-color: rgba(14, 165, 233, 0.22);
+  box-shadow: 0 16px 26px rgba(15, 23, 42, 0.1);
 }
 
 .server-sidebar__filters {
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.86));
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .server-sidebar__aggregate-bar {
@@ -220,6 +244,16 @@ const emit = defineEmits<{
   border: 1px solid
     color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.28));
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-sidebar__aggregate-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 34%);
 }
 
 .server-sidebar__aggregate-chip {
@@ -238,9 +272,21 @@ const emit = defineEmits<{
   width: 100%;
 }
 
+.server-sidebar__filter :deep(.icon-selector-flex) {
+  gap: 8px;
+}
+
+.server-sidebar__filter :deep(.icon-selector-item) {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.05);
+}
+
 .server-sidebar__scroll {
   flex: 1;
-  margin-top: 12px;
+  margin-top: 14px;
+  min-height: 0;
 }
 
 .server-sidebar__scroll :deep(.el-scrollbar__bar.is-vertical),
@@ -273,7 +319,7 @@ const emit = defineEmits<{
 .server-sidebar__list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding-right: 6px;
 }
 

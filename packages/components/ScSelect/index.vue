@@ -98,6 +98,33 @@
       />
     </div>
 
+    <!-- 图标选择器布局 -->
+    <div v-else-if="layout === 'icon'" class="icon-selector-flex" :style="flexStyles">
+      <template v-if="$slots.icon">
+        <div
+          v-for="item in selectListOptions"
+          :key="item.value"
+          class="sc-select__icon-slot"
+          :class="{ 'is-selected': isSelected(item.value), 'is-disabled': isItemDisabled(item.value) }"
+          @click="!isItemDisabled(item.value) && handleSelect(item.value)"
+        >
+          <slot name="icon" :item="item" :selected="isSelected(item.value)" :disabled="isItemDisabled(item.value)" />
+        </div>
+      </template>
+      <IconLayout
+        v-else
+        v-for="item in selectListOptions"
+        :key="item.value"
+        :label="item.label || item.describe || item.name"
+        :value="item.value"
+        :icon="item.icon"
+        :description="item.description || item.describe"
+        :is-selected="isSelected(item.value)"
+        :is-disabled="isItemDisabled(item.value)"
+        @select="handleSelect"
+      />
+    </div>
+
     <!-- 列表选择器布局 -->
     <div v-else-if="layout === 'list'" class="sc-select__list">
       <div v-if="listShowSearch" class="sc-select__list-search">
@@ -280,6 +307,7 @@ import { computed, onMounted, ref, watch, type PropType } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
+import IconLayout from "./components/IconLayout.vue";
 import { ScButton } from "../ScButton";
 import { ScInput } from "../ScInput";
 import PillLayout from "./components/PillLayout.vue";
@@ -369,7 +397,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "dropdown", "list", "filter", "table", "tree", "position"].includes(value);
+      return ["card", "select", "pill", "icon", "dropdown", "list", "filter", "table", "tree", "position"].includes(value);
     }
   },
   // 位置选择器模式：9=3x3九格，4=2x2四角（仅 layout="position" 时生效）
@@ -1064,6 +1092,16 @@ const treeSelectValue = computed<TreeSelectValue>({
     }
   }
 
+  .sc-select__icon-slot {
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.is-disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
   // 通用图标样式
   .action-icon {
     display: inline-flex;
@@ -1083,6 +1121,14 @@ const treeSelectValue = computed<TreeSelectValue>({
 
   // 药丸flex布局
   .pill-selector-flex {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 10px !important;
+    justify-content: flex-start;
+  }
+
+  .icon-selector-flex {
     display: flex;
     flex-wrap: wrap;
     width: 100%;
@@ -1124,7 +1170,8 @@ const treeSelectValue = computed<TreeSelectValue>({
   /* 响应式布局 */
   @media screen and (max-width: 768px) {
     .card-selector-flex,
-    .pill-selector-flex {
+    .pill-selector-flex,
+    .icon-selector-flex {
       justify-content: space-between;
     }
   }

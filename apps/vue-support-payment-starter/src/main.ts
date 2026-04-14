@@ -15,9 +15,7 @@ import ScCard from "@repo/components/ScCard";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 import "element-plus/dist/index.css";
-import "@repo/assets/styles/layout/default/reset.scss";
-import "@repo/assets/styles/layout/default/tailwind.css";
-import "@repo/assets/styles/layout/default/index.scss";
+import "@repo/assets/styles/base/index.scss";
 import "./styles/index.scss";
 
 const app = createApp(App);

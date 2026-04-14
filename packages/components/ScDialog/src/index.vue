@@ -4,7 +4,9 @@
     :is="currentDialogComponent"
     v-if="mode === 'element'"
     v-model="dialogVisible"
-    :title="iconMode === 'inline' && icon ? undefined : title"
+    :title="
+      hideHeader ? undefined : iconMode === 'inline' && icon ? undefined : title
+    "
     :width="width"
     :top="top"
     :modal="modal"
@@ -12,20 +14,27 @@
     :lock-scroll="lockScroll"
     :close-on-click-modal="closeOnClickModal"
     :close-on-press-escape="closeOnPressEscape"
-    :show-close="showClose"
+    :show-close="hideHeader ? false : showClose"
     :before-close="handleBeforeClose"
     :draggable="draggable"
     :center="center"
     :destroy-on-close="destroyOnClose"
     :style="dialogRadiusStyle"
-    :class="['sc-dialog', `sc-dialog--${type}`, { 'has-float-icon': icon && iconMode === 'float' }]"
+    :class="[
+      'sc-dialog',
+      `sc-dialog--${type}`,
+      {
+        'has-float-icon': icon && iconMode === 'float',
+        'sc-dialog--headerless': hideHeader,
+      }
+    ]"
     @open="$emit('open')"
     @opened="$emit('opened')"
     @close="$emit('close')"
     @closed="$emit('closed')"
   >
     <!-- 浮动图标（float 模式） -->
-    <template #header>
+    <template v-if="!hideHeader" #header>
       <div v-if="icon && iconMode === 'float'" class="sc-dialog__float-icon" :style="floatIconStyle">
         <component :is="iconComponentName" :icon="icon" :style="{ fontSize: `${iconSize}px`, color: '#fff' }" />
       </div>
@@ -41,7 +50,20 @@
       </template>
     </template>
 
-    <slot />
+    <div
+      class="sc-dialog__body-shell"
+      :class="{ 'has-body-close': hideHeader && showClose }"
+    >
+      <button
+        v-if="hideHeader && showClose"
+        type="button"
+        class="sc-dialog__btn sc-dialog__body-close"
+        @click="handleClose"
+      >
+        <IconifyIconOnline icon="ep:close" />
+      </button>
+      <slot />
+    </div>
 
     <template v-if="showFooter" #footer>
       <slot name="footer">
@@ -117,7 +139,7 @@
             </div>
 
             <!-- 头部 -->
-            <div class="sc-dialog__header" @mousedown="onHeaderMouseDown">
+            <div v-if="!hideHeader" class="sc-dialog__header" @mousedown="onHeaderMouseDown">
               <slot name="header">
                 <div class="sc-dialog__header-content">
                   <!-- 内联图标（inline 模式） -->
@@ -148,7 +170,18 @@
             </div>
 
             <!-- 内容 -->
-            <div class="sc-dialog__body">
+            <div
+              class="sc-dialog__body"
+              :class="{ 'sc-dialog__body--with-close': hideHeader && showClose }"
+            >
+              <button
+                v-if="hideHeader && showClose"
+                type="button"
+                class="sc-dialog__btn sc-dialog__body-close"
+                @click="handleClose"
+              >
+                <IconifyIconOnline icon="ep:close" />
+              </button>
               <slot />
             </div>
 
@@ -235,6 +268,8 @@ const props = withDefaults(
     closeOnPressEscape?: boolean;
     /** 显示关闭按钮 */
     showClose?: boolean;
+    /** 是否隐藏 header，隐藏时关闭按钮保留在 body */
+    hideHeader?: boolean;
     /** 关闭前回调 */
     beforeClose?: (done: () => void) => void;
     /** 是否可拖拽 */
@@ -324,6 +359,7 @@ const props = withDefaults(
     closeOnClickModal: false,
     closeOnPressEscape: true,
     showClose: true,
+    hideHeader: false,
     draggable: true,
     center: false,
     destroyOnClose: false,
@@ -595,6 +631,15 @@ watch(
     var(--sc-dialog-radius, var(--stitch-lay-radius-lg)) 0 0;
 }
 
+.sc-dialog.sc-dialog--headerless:not(.sc-dialog--custom) :deep(.el-dialog__header) {
+  display: none;
+}
+
+.sc-dialog.sc-dialog--headerless:not(.sc-dialog--custom) :deep(.el-dialog__body) {
+  position: relative;
+  padding-top: 20px;
+}
+
 .sc-dialog:not(.sc-dialog--custom) :deep(.el-dialog__footer) {
   border-radius: 0 0 var(--sc-dialog-radius, var(--stitch-lay-radius-lg))
     var(--sc-dialog-radius, var(--stitch-lay-radius-lg));
@@ -633,6 +678,15 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sc-dialog__body-shell {
+  position: relative;
+  min-height: 0;
+}
+
+.sc-dialog__body-shell.has-body-close {
+  padding-right: 40px;
 }
 
 .sc-dialog__inline-icon {
@@ -694,6 +748,13 @@ watch(
   box-shadow: 0 2px 8px var(--el-color-danger-light-5);
 }
 
+.sc-dialog__body-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+}
+
 // 最大化状态
 .sc-dialog.is-maximized {
   position: fixed !important;
@@ -721,6 +782,11 @@ watch(
   padding: 24px;
   overflow: auto;
   background: color-mix(in srgb, var(--stitch-lay-bg-panel), transparent 50%);
+  position: relative;
+}
+
+.sc-dialog__body.sc-dialog__body--with-close {
+  padding-top: 56px;
 }
 
 .sc-dialog__footer {

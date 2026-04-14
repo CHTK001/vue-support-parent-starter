@@ -1,1 +1,10 @@
-@use "./pages/modern-page.scss";
+/* Shared modern page shell styles. */
+.modern-page {
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 92%) 0%,
+    rgb(248 250 252 / 92%) 100%
+  );
+  border: 1px solid var(--app-border-primary, #e5e7eb);
+  border-radius: 12px;
+}

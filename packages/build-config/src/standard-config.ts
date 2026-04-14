@@ -184,8 +184,8 @@ export function createStandardViteConfig(
       scss: {
         api: "modern-compiler",
         additionalData: `
-          @use "@layout/default/styles/layout/variables.scss" as *;
-          @use "@layout/default/styles/layout/mixin.scss";
+          @use "@repo/assets/styles/layout/default/variables.scss" as *;
+          @use "@repo/assets/styles/layout/default/mixin.scss";
         `,
         silenceDeprecations: ["color-functions", "global-builtin", "import"],
         ...options.cssPreprocessorOptions?.scss,

@@ -56,22 +56,9 @@
             <ScSelect
               v-model="inheritMode"
               :options="inheritOptions"
-              layout="pill"
+              layout="icon"
               class="server-remote-dialog__inherit"
-            >
-              <template #pill="{ item, selected }">
-                <button
-                  type="button"
-                  class="server-remote-dialog__inherit-pill"
-                  :class="{ 'is-selected': selected }"
-                >
-                  <IconifyIconOnline
-                    :icon="String(item.icon || 'ri:settings-3-line')"
-                  />
-                  <span>{{ item.label }}</span>
-                </button>
-              </template>
-            </ScSelect>
+            />
           </el-form-item>
 
           <el-form-item label="启用状态">
@@ -88,26 +75,10 @@
             <ScSelect
               v-model="providerValue"
               :options="normalizedProviderOptions"
-              layout="pill"
+              layout="icon"
               :disabled="inheritDisabled"
               class="server-remote-dialog__compact-select"
-            >
-              <template #pill="{ item, selected }">
-                <el-tooltip
-                  :content="`${item.label}${item.description ? ` · ${item.description}` : ''}`"
-                >
-                  <button
-                    type="button"
-                    class="server-remote-dialog__icon-pill"
-                    :class="{ 'is-selected': selected }"
-                  >
-                    <IconifyIconOnline
-                      :icon="String(item.icon || 'ri:route-line')"
-                    />
-                  </button>
-                </el-tooltip>
-              </template>
-            </ScSelect>
+            />
           </el-form-item>
 
           <el-form-item label="网关地址" class="server-remote-dialog__span-2">
@@ -126,27 +97,11 @@
             <ScSelect
               v-model="protocolValue"
               :options="normalizedProtocolOptions"
-              layout="pill"
+              layout="icon"
               clearable
               :disabled="inheritDisabled"
               class="server-remote-dialog__compact-select"
-            >
-              <template #pill="{ item, selected }">
-                <el-tooltip
-                  :content="`${item.label}${item.description ? ` · ${item.description}` : ''}`"
-                >
-                  <button
-                    type="button"
-                    class="server-remote-dialog__icon-pill"
-                    :class="{ 'is-selected': selected }"
-                  >
-                    <IconifyIconOnline
-                      :icon="String(item.icon || 'ri:computer-line')"
-                    />
-                  </button>
-                </el-tooltip>
-              </template>
-            </ScSelect>
+            />
           </el-form-item>
 
           <el-form-item label="入口路径">
@@ -340,13 +295,18 @@ const inheritMode = computed({
   justify-content: space-between;
   gap: 16px;
   padding: 18px 20px;
-  border-radius: 24px;
+  border-radius: 28px;
   margin-bottom: 18px;
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--el-color-primary) 12%, white),
-    color-mix(in srgb, var(--el-fill-color-light) 82%, white)
+    rgba(248, 250, 252, 0.96) 56%,
+    rgba(239, 246, 255, 0.94)
   );
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, rgba(148, 163, 184, 0.2));
+  box-shadow:
+    0 20px 36px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-remote-dialog__hero h3 {
@@ -377,6 +337,7 @@ const inheritMode = computed({
   border-radius: 999px;
   color: var(--el-color-primary);
   background: color-mix(in srgb, var(--el-color-primary) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, transparent);
 }
 
 .server-remote-dialog__chip.is-muted {
@@ -400,15 +361,19 @@ const inheritMode = computed({
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
   background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
     radial-gradient(
       circle at top left,
       color-mix(in srgb, var(--el-color-primary) 8%, transparent),
       transparent 58%
     ),
-    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+    color-mix(in srgb, var(--el-bg-color-page) 92%, white);
+  box-shadow:
+    0 14px 24px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-remote-dialog__focus-card small,
@@ -429,50 +394,6 @@ const inheritMode = computed({
   grid-column: span 2;
 }
 
-.server-remote-dialog__inherit-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.server-remote-dialog__icon-pill {
-  width: 42px;
-  height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--el-bg-color-page) 88%, white);
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    color 0.18s ease;
-}
-
-.server-remote-dialog__icon-pill:hover,
-.server-remote-dialog__icon-pill.is-selected {
-  color: var(--el-color-primary);
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-  background: color-mix(in srgb, var(--el-color-primary) 10%, white);
-}
-
-.server-remote-dialog__inherit-pill.is-selected {
-  color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 12%, white);
-}
-
 .server-remote-dialog__inherit {
   width: 100%;
 }
@@ -481,18 +402,24 @@ const inheritMode = computed({
   width: 100%;
 }
 
-.server-remote-dialog__inherit :deep(.sc-select__pill-list) {
+.server-remote-dialog__inherit :deep(.icon-selector-flex) {
   justify-content: flex-start;
+  gap: 8px;
 }
 
 .server-remote-dialog__preview {
   display: grid;
   gap: 8px;
   margin-top: 10px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--el-bg-color-page) 86%, white);
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
+  padding: 16px 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-remote-dialog__preview span,
@@ -504,13 +431,19 @@ const inheritMode = computed({
   width: 100%;
 }
 
-.server-remote-dialog__compact-select :deep(.sc-select),
-.server-remote-dialog__compact-select :deep(.sc-select__pill-list) {
+.server-remote-dialog__compact-select :deep(.sc-select) {
   width: 100%;
 }
 
-.server-remote-dialog__compact-select :deep(.sc-select__pill-list) {
+.server-remote-dialog__compact-select :deep(.icon-selector-flex) {
   justify-content: flex-start;
+  gap: 8px;
+}
+
+.server-remote-dialog__inherit :deep(.icon-selector-item),
+.server-remote-dialog__compact-select :deep(.icon-selector-item) {
+  width: 46px;
+  height: 46px;
 }
 
 :deep(.el-dialog) {

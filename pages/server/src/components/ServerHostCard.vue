@@ -242,13 +242,18 @@ const latencyTagType = (value?: number | null) => {
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  border-radius: 20px;
+  border-radius: 24px;
   border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
   background:
     radial-gradient(
       circle at top left,
       color-mix(in srgb, var(--el-color-primary) 10%, transparent),
       transparent 60%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(245, 158, 11, 0.08),
+      transparent 24%
     ),
     linear-gradient(
       180deg,
@@ -263,6 +268,14 @@ const latencyTagType = (value?: number | null) => {
     box-shadow 0.18s ease,
     border-color 0.18s ease,
     background 0.18s ease;
+}
+
+.server-host-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 34%);
 }
 
 .server-host-card:hover {
@@ -310,8 +323,8 @@ const latencyTagType = (value?: number | null) => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 16px 16px 13px;
-  min-height: 126px;
+  padding: 18px 18px 18px 14px;
+  min-height: 136px;
 }
 
 .server-host-card.is-collapsed {
@@ -353,7 +366,7 @@ const latencyTagType = (value?: number | null) => {
 
 .server-host-card__main {
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
   flex: 1;
   padding-right: 12px;
@@ -403,6 +416,17 @@ const latencyTagType = (value?: number | null) => {
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     inset 0 -8px 18px rgba(15, 23, 42, 0.18),
     0 18px 28px rgba(15, 23, 42, 0.16);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.server-host-card:hover .server-host-card__orb {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -8px 18px rgba(15, 23, 42, 0.18),
+    0 24px 34px rgba(15, 23, 42, 0.18);
 }
 
 .server-host-card__orb .server-host-card__dot {
@@ -471,7 +495,7 @@ const latencyTagType = (value?: number | null) => {
 
 .server-host-card__content {
   display: grid;
-  gap: 7px;
+  gap: 9px;
   min-width: 0;
 }
 
@@ -526,6 +550,58 @@ const latencyTagType = (value?: number | null) => {
   text-overflow: ellipsis;
 }
 
+.server-host-card__quickstrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.server-host-card__quick {
+  display: grid;
+  gap: 2px;
+  padding: 8px 9px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(241, 245, 249, 0.9));
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 64%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 10px 18px rgba(15, 23, 42, 0.04);
+}
+
+.server-host-card__quick small {
+  color: var(--el-text-color-secondary);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.server-host-card__quick strong {
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.server-host-card__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.server-host-card__summary-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, white);
+  color: color-mix(in srgb, var(--el-color-primary) 72%, #0f172a);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+
 .server-host-card__toolbar {
   position: absolute;
   top: 50%;
@@ -539,16 +615,19 @@ const latencyTagType = (value?: number | null) => {
     opacity 0.18s ease,
     transform 0.18s ease;
   padding: 7px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.94);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
   backdrop-filter: blur(16px);
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .server-host-card__toolbar :deep(.el-button) {
   width: 28px;
   height: 28px;
   min-height: 28px;
+  border-radius: 10px;
 }
 
 .server-host-card:hover .server-host-card__toolbar,
@@ -567,9 +646,9 @@ const latencyTagType = (value?: number | null) => {
 }
 
 .server-host-card__collapsed-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -594,5 +673,11 @@ const latencyTagType = (value?: number | null) => {
   flex-direction: column;
   gap: 4px;
   min-width: 180px;
+}
+
+@media (max-width: 1280px) {
+  .server-host-card__quickstrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 </style>

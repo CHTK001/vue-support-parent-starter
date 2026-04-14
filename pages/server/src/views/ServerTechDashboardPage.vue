@@ -611,9 +611,9 @@ onMounted(() => {
 <style scoped lang="scss">
 .server-tech-page {
   display: grid;
-  gap: 18px;
+  gap: 20px;
   min-height: calc(100vh - 140px);
-  padding: 18px;
+  padding: 20px;
   color: #dbeafe;
   background:
     radial-gradient(
@@ -626,16 +626,38 @@ onMounted(() => {
       rgba(59, 130, 246, 0.16),
       transparent 28%
     ),
-    linear-gradient(160deg, #06101f 0%, #09162e 48%, #0b1d3b 100%);
+    radial-gradient(
+      circle at top right,
+      rgba(245, 158, 11, 0.12),
+      transparent 22%
+    ),
+    linear-gradient(160deg, #040b16 0%, #09162e 48%, #0b1d3b 100%);
 }
 
 .server-tech-page__hero,
 .server-tech-page__stat-card,
 .server-tech-page__panel {
-  border: 1px solid rgba(96, 165, 250, 0.18);
-  border-radius: 24px;
-  background: rgba(8, 18, 38, 0.78);
-  box-shadow: 0 30px 60px -42px rgba(2, 132, 199, 0.46);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(96, 165, 250, 0.16);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(8, 18, 38, 0.82), rgba(6, 14, 30, 0.88)),
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 36%);
+  box-shadow:
+    0 24px 48px rgba(2, 6, 23, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+}
+
+.server-tech-page__hero::after,
+.server-tech-page__stat-card::after,
+.server-tech-page__panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%);
 }
 
 .server-tech-page__hero,
@@ -649,7 +671,7 @@ onMounted(() => {
 }
 
 .server-tech-page__hero {
-  padding: 22px 24px;
+  padding: 26px 28px;
 }
 
 .server-tech-page__hero small,
@@ -665,7 +687,7 @@ onMounted(() => {
 
 .server-tech-page__hero h1 {
   margin: 8px 0 10px;
-  font-size: 34px;
+  font-size: 36px;
   line-height: 1.05;
   color: #f8fbff;
 }
@@ -685,12 +707,13 @@ onMounted(() => {
 
 .server-tech-page__stats {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .server-tech-page__stat-card {
   display: grid;
-  gap: 8px;
-  padding: 18px 20px;
+  gap: 10px;
+  padding: 20px 22px;
   cursor: pointer;
   transition:
     transform 0.18s ease,
@@ -701,7 +724,9 @@ onMounted(() => {
 .server-tech-page__stat-card:hover,
 .server-tech-page__alert-item:hover,
 .server-tech-page__service-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  border-color: rgba(56, 189, 248, 0.26);
+  box-shadow: 0 22px 34px rgba(2, 6, 23, 0.28);
 }
 
 .server-tech-page__stat-card strong {
@@ -732,7 +757,8 @@ onMounted(() => {
   min-height: 34px;
   padding: 0 14px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .server-tech-page__chip.is-muted {
@@ -762,7 +788,7 @@ onMounted(() => {
 .server-tech-page__panel {
   display: grid;
   gap: 14px;
-  padding: 20px;
+  padding: 22px;
 }
 
 .server-tech-page__panel--chart {
@@ -782,10 +808,11 @@ onMounted(() => {
 
 .server-tech-page__alert-item,
 .server-tech-page__service-item {
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 16px 18px;
+  border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(2, 6, 23, 0.32);
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.4), rgba(3, 10, 24, 0.34));
 }
 
 .server-tech-page__alert-item.is-warning {
@@ -821,9 +848,10 @@ onMounted(() => {
 .server-tech-page__detail-card {
   display: grid;
   gap: 6px;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(148, 163, 184, 0.08);
+  padding: 18px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.08));
 }
 
 .server-tech-page__detail-card small {

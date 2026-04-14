@@ -518,12 +518,13 @@ const filteredServices = computed(() => {
 .server-service-panel__header {
   justify-content: space-between;
   gap: 14px;
-  padding: 2px 2px 0;
+  padding: 2px 2px 2px;
 }
 
 .server-service-panel__header h3 {
   margin: 0;
   font-size: 17px;
+  letter-spacing: -0.01em;
 }
 
 .server-service-panel__header p {
@@ -542,10 +543,15 @@ const filteredServices = computed(() => {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  padding: 14px 16px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-service-panel__filters {
@@ -558,29 +564,33 @@ const filteredServices = computed(() => {
 
 .server-service-panel__list {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   flex: 1;
   min-height: 356px;
   max-height: 404px;
   overflow: auto;
   padding-right: 4px;
-  padding-top: 6px;
+  padding-top: 8px;
 }
 
 .server-service-panel__item {
+  position: relative;
   display: grid;
-  gap: 10px;
-  padding: 16px 16px 15px;
-  border-radius: 24px;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  border-radius: 26px;
   background:
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.08), transparent 24%),
     radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--el-color-primary) 7%, transparent),
+      color-mix(in srgb, var(--el-color-primary) 10%, transparent),
       transparent 54%
     ),
-    color-mix(in srgb, var(--el-bg-color-page) 84%, white);
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 9%, rgba(148, 163, 184, 0.18));
+  box-shadow:
+    0 18px 30px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   transition:
     transform 0.18s ease,
     box-shadow 0.18s ease,
@@ -588,12 +598,14 @@ const filteredServices = computed(() => {
 }
 
 .server-service-panel__item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
+  transform: translateY(-3px);
+  box-shadow:
+    0 22px 34px rgba(15, 23, 42, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
   border-color: color-mix(
     in srgb,
-    var(--el-color-primary) 26%,
-    var(--el-border-color)
+    var(--el-color-primary) 22%,
+    rgba(148, 163, 184, 0.18)
   );
 }
 
@@ -628,9 +640,10 @@ const filteredServices = computed(() => {
   min-height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.88));
   color: var(--el-text-color-regular);
   font-size: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .server-service-panel__status.is-success,
@@ -667,16 +680,17 @@ const filteredServices = computed(() => {
 .server-service-panel__ai {
   display: grid;
   gap: 8px;
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 15px 16px;
+  border-radius: 20px;
   background:
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--el-color-warning) 14%, white),
-      transparent 68%
+      color-mix(in srgb, var(--el-color-warning) 16%, white),
+      transparent 66%
     ),
-    color-mix(in srgb, var(--el-bg-color) 92%, white);
-  border: 1px solid color-mix(in srgb, var(--el-color-warning) 24%, transparent);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 251, 235, 0.92));
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 28%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .server-service-panel__ai-head {
@@ -710,10 +724,12 @@ const filteredServices = computed(() => {
 .server-service-panel__empty-state {
   display: grid;
   gap: 8px;
-  padding: 18px;
-  border-radius: 20px;
+  padding: 20px;
+  border-radius: 22px;
   border: 1px dashed color-mix(in srgb, var(--el-border-color) 72%, transparent);
-  background: color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.06), transparent 32%),
+    color-mix(in srgb, var(--el-bg-color-page) 92%, white);
 }
 
 .server-service-panel__empty-state strong {

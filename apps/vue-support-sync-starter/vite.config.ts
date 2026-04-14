@@ -6,8 +6,8 @@ export default createViteConfig(import.meta.url, pkg)
   .target("es2015")
   .cssPreprocessor("scss", {
     additionalData: `
-      @use "@layout/default/styles/layout/variables.scss" as *;
-      @use "@layout/default/styles/layout/mixin.scss" as *;
+      @use "@repo/assets/styles/layout/default/variables.scss" as *;
+      @use "@repo/assets/styles/layout/default/mixin.scss" as *;
     `,
   })
   .packageAlias(
