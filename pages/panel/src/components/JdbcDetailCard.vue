@@ -12,6 +12,7 @@
         <div class="detail-main">
           <section
             v-if="activeWorkbenchTab"
+            :key="`workbench-${activeWorkbenchTab.tabId}-${activeWorkbenchTab.tabType}`"
             ref="documentPaperRef"
             class="workbench-shell"
           >
@@ -24,6 +25,7 @@
 
           <div
             v-if="activeWorkbenchTab.tabType === 'table-edit'"
+            :key="`workbench-tools-${activeWorkbenchTab.tabId}-table-edit`"
             class="workbench-head__tools"
           >
             <ScTabs
@@ -67,6 +69,7 @@
           </div>
           <div
             v-else-if="activeWorkbenchTab.tabType === 'table'"
+            :key="`workbench-tools-${activeWorkbenchTab.tabId}-table`"
             class="workbench-head__tools workbench-head__tools--stack"
           >
             <div class="toolbar-row">
@@ -194,6 +197,7 @@
           </div>
           <div
             v-else-if="activeWorkbenchTab.tabType === 'database-document'"
+            :key="`workbench-tools-${activeWorkbenchTab.tabId}-database-document`"
             class="workbench-head__tools"
           >
             <ScTag class="toolbar-chip" effect="plain">
@@ -404,8 +408,16 @@
           </template>
 
           <template v-else-if="activeWorkbenchTab.tabType === 'table-edit'">
-            <div v-if="editSection === 'columns'" class="workbench-panel">
+            <div
+              v-if="editSection === 'columns'"
+              :key="`table-edit-columns-${activeWorkbenchTab.tabId}`"
+              class="workbench-panel"
+            >
               <div class="table-edit-toolbar">
+                <span class="table-edit-toolbar__hint">
+                  <ElIcon><Rank /></ElIcon>
+                  拖动字段左侧手柄可调整顺序
+                </span>
                 <ElTooltip content="新增字段">
                   <ElButton circle :icon="Plus" @click="handleAddEditColumn" />
                 </ElTooltip>
@@ -417,7 +429,23 @@
                   />
                 </ElTooltip>
               </div>
-              <ElTable :data="activeEditableColumns" border height="100%">
+              <ElTable
+                ref="editTableRef"
+                :data="activeEditableColumns"
+                border
+                height="100%"
+              >
+                <ElTableColumn label="" width="52" align="center">
+                  <template #default>
+                    <button
+                      type="button"
+                      class="table-edit__drag"
+                      title="拖动排序"
+                    >
+                      <ElIcon><Rank /></ElIcon>
+                    </button>
+                  </template>
+                </ElTableColumn>
                 <ElTableColumn label="#" type="index" width="54" />
                 <ElTableColumn label="字段名" min-width="180">
                   <template #default="{ row }">
@@ -510,7 +538,11 @@
               </ElTable>
             </div>
 
-            <div v-else-if="editSection === 'indexes'" class="workbench-panel">
+            <div
+              v-else-if="editSection === 'indexes'"
+              :key="`table-edit-indexes-${activeWorkbenchTab.tabId}`"
+              class="workbench-panel"
+            >
               <ElTable :data="activeIndexes" border height="100%">
                 <ElTableColumn label="索引名" min-width="220" prop="name" />
                 <ElTableColumn label="列" min-width="180" prop="column" />
@@ -525,6 +557,7 @@
 
             <div
               v-else-if="editSection === 'ddl'"
+              :key="`table-edit-ddl-${activeWorkbenchTab.tabId}`"
               class="workbench-panel workbench-panel--code"
             >
               <pre>{{
@@ -534,6 +567,7 @@
 
             <div
               v-else-if="editSection === 'changes'"
+              :key="`table-edit-changes-${activeWorkbenchTab.tabId}`"
               class="workbench-panel workbench-panel--code"
             >
               <pre>{{
@@ -541,7 +575,11 @@
               }}</pre>
             </div>
 
-            <div v-else-if="editSection === 'triggers'" class="workbench-panel">
+            <div
+              v-else-if="editSection === 'triggers'"
+              :key="`table-edit-triggers-${activeWorkbenchTab.tabId}`"
+              class="workbench-panel"
+            >
               <ElTable
                 v-if="activeTriggers.length"
                 :data="activeTriggers"
@@ -566,7 +604,11 @@
               <ElEmpty v-else description="当前表没有可见触发器。" />
             </div>
 
-            <div v-else class="workbench-panel workbench-panel--placeholder">
+            <div
+              v-else
+              :key="`table-edit-placeholder-${activeWorkbenchTab.tabId}-${editSection}`"
+              class="workbench-panel workbench-panel--placeholder"
+            >
               <ElEmpty
                 :description="`${editSectionLabel} 暂按当前数据库能力预留。`"
               />
@@ -576,26 +618,44 @@
           <template v-else-if="activeWorkbenchTab.tabType === 'table'">
             <div
               v-if="tableView === 'data'"
+              :key="`table-view-data-${activeWorkbenchTab.tabId}`"
               class="workbench-panel workbench-panel--data"
             >
               <div class="data-preview-head">
-                <div class="data-preview-head__actions">
-                  <ElTooltip
-                    v-if="capabilities?.aiStarterEnabled"
-                    content="基于表结构生成示例数据"
-                  >
-                    <ElButton
-                      circle
-                      :icon="MagicStick"
-                      @click="
-                        $emit('generate-sample-data', activeWorkbenchTab.tabId)
+                <div class="data-preview-head__summary">
+                  <div class="data-preview-head__summary-line">
+                    <code
+                      >page {{ activeWorkbenchTab.pageNum }} / size
+                      {{ activeWorkbenchTab.pageSize }}</code
+                    >
+                    <ScTag
+                      v-if="
+                        activeWorkbenchTab.dataResult?.panelElapsedMillis !==
+                        undefined
                       "
-                    />
-                  </ElTooltip>
-                  <code
-                    >page {{ activeWorkbenchTab.pageNum }} / size
-                    {{ activeWorkbenchTab.pageSize }}</code
-                  >
+                      class="toolbar-chip data-preview-head__elapsed"
+                      effect="plain"
+                      size="small"
+                    >
+                      {{ activeWorkbenchTab.dataResult?.panelElapsedMillis }} ms
+                    </ScTag>
+                    <ScTag
+                      class="toolbar-chip data-preview-head__elapsed"
+                      effect="plain"
+                      size="small"
+                    >
+                      rows {{ activeDisplayRows.length }}
+                    </ScTag>
+                  </div>
+                  <ElInput
+                    v-model="tableFilterKeyword"
+                    class="data-preview-head__filter"
+                    clearable
+                    :prefix-icon="Search"
+                    placeholder="筛选当前结果集"
+                  />
+                </div>
+                <div class="data-preview-head__actions">
                   <ScTag
                     v-if="activeDataDirtyCount"
                     class="toolbar-chip data-preview-head__elapsed"
@@ -603,17 +663,6 @@
                     size="small"
                   >
                     dirty {{ activeDataDirtyCount }}
-                  </ScTag>
-                  <ScTag
-                    v-if="
-                      activeWorkbenchTab.dataResult?.panelElapsedMillis !==
-                      undefined
-                    "
-                    class="toolbar-chip data-preview-head__elapsed"
-                    effect="plain"
-                    size="small"
-                  >
-                    {{ activeWorkbenchTab.dataResult?.panelElapsedMillis }} ms
                   </ScTag>
                 </div>
               </div>
@@ -641,10 +690,33 @@
                     v-for="column in activeDataColumns"
                     :key="column"
                     :fixed="resolveColumnFixed(column)"
-                    :label="resolveColumnHeader(column)"
                     :min-width="140"
                     show-overflow-tooltip
                   >
+                    <template #header>
+                      <div class="data-column-header">
+                        <span class="data-column-header__label">
+                          {{ resolveColumnHeader(column) }}
+                        </span>
+                        <button
+                          type="button"
+                          class="data-column-header__sort"
+                          :class="[
+                            `is-${resolveColumnSortOrder(column) || 'none'}`,
+                          ]"
+                          :title="`切换 ${column} 排序`"
+                          @click.stop="toggleColumnSort(column)"
+                        >
+                          {{
+                            resolveColumnSortOrder(column) === "asc"
+                              ? "↑"
+                              : resolveColumnSortOrder(column) === "desc"
+                                ? "↓"
+                                : "↕"
+                          }}
+                        </button>
+                      </div>
+                    </template>
                     <template #default="{ row }">
                       <div
                         class="data-cell"
@@ -731,6 +803,7 @@
 
             <div
               v-else-if="tableView === 'ddl'"
+              :key="`table-view-ddl-${activeWorkbenchTab.tabId}`"
               class="workbench-panel workbench-panel--code"
             >
               <pre>{{ activeWorkbenchTab.ddlText || "-- 暂无 DDL" }}</pre>
@@ -738,6 +811,7 @@
 
             <div
               v-else-if="tableView === 'ai'"
+              :key="`table-view-ai-${activeWorkbenchTab.tabId}`"
               class="workbench-panel workbench-panel--code"
             >
               <pre>{{
@@ -745,7 +819,11 @@
               }}</pre>
             </div>
 
-            <div v-else class="workbench-panel">
+            <div
+              v-else
+              :key="`table-view-indexes-${activeWorkbenchTab.tabId}`"
+              class="workbench-panel"
+            >
               <ElTable :data="activeIndexes" border height="100%">
                 <ElTableColumn label="索引名" min-width="220" prop="name" />
                 <ElTableColumn label="列" min-width="180" prop="column" />
@@ -771,7 +849,11 @@
         </div>
       </section>
 
-      <section v-else-if="activeTabId === 'metadata'" class="metadata-shell">
+      <section
+        v-else-if="activeTabId === 'metadata'"
+        key="metadata-shell"
+        class="metadata-shell"
+      >
         <header class="sql-toolbar sql-toolbar--plain">
           <div class="sql-toolbar__title">
             <small>DATASOURCE PROFILE</small>
@@ -789,7 +871,7 @@
         </div>
       </section>
 
-      <section v-else class="sql-shell">
+      <section v-else key="workspace-shell" class="sql-shell">
         <header class="sql-toolbar">
           <div class="sql-toolbar__title">
             <small>SQL WORKSPACE</small>
@@ -1000,19 +1082,51 @@
       width="420px"
     >
       <div class="dialog-form">
-        <ElInput
-          v-model="accountForm.panelAccountName"
-          :disabled="accountDialogMode === 'update'"
-          placeholder="账号"
-        />
-        <ElInput v-model="accountForm.panelHost" placeholder="Host，默认 %" />
-        <ElInput
-          v-model="accountForm.panelPassword"
-          placeholder="密码"
-          show-password
-        />
+        <label class="dialog-field">
+          <span class="dialog-field__label dialog-field__label--required">
+            账号
+          </span>
+          <ElInput
+            v-model="accountForm.panelAccountName"
+            :disabled="accountDialogMode === 'update'"
+            placeholder="账号"
+          />
+          <small
+            class="dialog-field__error"
+            :class="{
+              'dialog-field__error--hidden': !accountFormErrors.panelAccountName,
+            }"
+          >
+            {{ accountFormErrors.panelAccountName || " " }}
+          </small>
+        </label>
+        <label class="dialog-field">
+          <span class="dialog-field__label">Host</span>
+          <ElInput v-model="accountForm.panelHost" placeholder="Host，默认 %" />
+        </label>
+        <label class="dialog-field">
+          <span class="dialog-field__label dialog-field__label--required">
+            {{ accountDialogMode === "create" ? "密码" : "新密码" }}
+          </span>
+          <ElInput
+            v-model="accountForm.panelPassword"
+            :placeholder="
+              accountDialogMode === 'create' ? '密码' : '请输入新密码'
+            "
+            show-password
+          />
+          <small
+            class="dialog-field__error"
+            :class="{
+              'dialog-field__error--hidden': !accountFormErrors.panelPassword,
+            }"
+          >
+            {{ accountFormErrors.panelPassword || " " }}
+          </small>
+        </label>
       </div>
       <template #footer>
+        <span class="dialog-footer-tip">带 * 为必填</span>
         <ElButton @click="accountDialogVisible = false">取消</ElButton>
         <ElButton type="primary" @click="submitAccountDialog">确定</ElButton>
       </template>
@@ -1024,29 +1138,55 @@
       width="460px"
     >
       <div class="dialog-form">
-        <ElInput
-          v-model="privilegeForm.panelAccountName"
-          disabled
-          placeholder="账号"
-        />
-        <ElInput
-          v-model="privilegeForm.panelHost"
-          disabled
-          placeholder="Host"
-        />
-        <ElInput
-          :model-value="privilegeForm.panelPrivileges.join(', ')"
-          placeholder="权限，逗号分隔，例如 SELECT, INSERT"
-          @update:model-value="handlePrivilegeInput"
-        />
-        <ElInput
-          v-model="privilegeForm.panelCatalogName"
-          placeholder="数据库，默认 *"
-        />
-        <ElInput
-          v-model="privilegeForm.panelTableName"
-          placeholder="表，默认 *"
-        />
+        <label class="dialog-field">
+          <span class="dialog-field__label">账号</span>
+          <ElInput
+            v-model="privilegeForm.panelAccountName"
+            disabled
+            placeholder="账号"
+          />
+        </label>
+        <label class="dialog-field">
+          <span class="dialog-field__label">Host</span>
+          <ElInput
+            v-model="privilegeForm.panelHost"
+            disabled
+            placeholder="Host"
+          />
+        </label>
+        <label class="dialog-field">
+          <span class="dialog-field__label dialog-field__label--required">
+            权限
+          </span>
+          <ElInput
+            :model-value="privilegeForm.panelPrivileges.join(', ')"
+            placeholder="权限，逗号分隔，例如 SELECT, INSERT"
+            @update:model-value="handlePrivilegeInput"
+          />
+          <small
+            class="dialog-field__error"
+            :class="{
+              'dialog-field__error--hidden':
+                !privilegeFormErrors.panelPrivileges,
+            }"
+          >
+            {{ privilegeFormErrors.panelPrivileges || " " }}
+          </small>
+        </label>
+        <label class="dialog-field">
+          <span class="dialog-field__label">数据库</span>
+          <ElInput
+            v-model="privilegeForm.panelCatalogName"
+            placeholder="数据库，默认 *"
+          />
+        </label>
+        <label class="dialog-field">
+          <span class="dialog-field__label">表</span>
+          <ElInput
+            v-model="privilegeForm.panelTableName"
+            placeholder="表，默认 *"
+          />
+        </label>
         <div class="dialog-form__inline">
           <span>WITH GRANT OPTION</span>
           <ElSwitch
@@ -1056,6 +1196,7 @@
         </div>
       </div>
       <template #footer>
+        <span class="dialog-footer-tip">带 * 为必填</span>
         <ElButton @click="privilegeDialogVisible = false">取消</ElButton>
         <ElButton type="primary" @click="submitPrivilegeDialog">确定</ElButton>
       </template>
@@ -1080,6 +1221,8 @@ import {
   RefreshRight,
   Promotion,
   QuestionFilled,
+  Rank,
+  Search,
   SetUp,
   Tickets,
   VideoPlay,
@@ -1108,9 +1251,11 @@ import {
   ElTag,
   ElTooltip,
 } from "element-plus";
+import Sortable from "sortablejs";
 import { format as formatSqlText } from "sql-formatter";
 import {
   computed,
+  markRaw,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -1165,6 +1310,7 @@ type EditSection =
   | "options";
 type CommentMode = "comment" | "mixed" | "native";
 type RailShape = "default" | "round";
+type SortOrder = "" | "asc" | "desc";
 type EditableColumn = {
   comment: string;
   defaultValue: string;
@@ -1198,6 +1344,8 @@ interface InspectorTableTab {
   pageSize: number;
   railShape: RailShape;
   showSequence: boolean;
+  sortField: string;
+  sortOrder: SortOrder;
   structure: JdbcTableStructure | null;
   tabId: string;
   tabName: string;
@@ -1242,6 +1390,8 @@ const emit = defineEmits<{
         | "pageSize"
         | "railShape"
         | "showSequence"
+        | "sortField"
+        | "sortOrder"
         | "tableCommentMode"
         | "viewMode"
       >
@@ -1251,7 +1401,6 @@ const emit = defineEmits<{
   (e: "execute"): void;
   (e: "execute-selected", value: string): void;
   (e: "explain"): void;
-  (e: "generate-sample-data", tabId: string): void;
   (e: "generate-sql", prompt: string): void;
   (e: "quick-run", sql: string): void;
   (e: "refresh-table-data", tabId: string): void;
@@ -1283,6 +1432,7 @@ const emit = defineEmits<{
 }>();
 
 const sqlEditorRef = ref<any>(null);
+const editTableRef = ref<any>(null);
 const documentPaperRef = ref<HTMLElement | null>(null);
 const aiDialogVisible = ref(false);
 const accountDialogVisible = ref(false);
@@ -1312,6 +1462,10 @@ const accountForm = reactive<PanelJdbcAccountSaveRequest>({
   panelHost: "%",
   panelPassword: "",
 });
+const accountFormErrors = reactive<Record<string, string>>({
+  panelAccountName: "",
+  panelPassword: "",
+});
 const privilegeForm = reactive<PanelJdbcPrivilegeRequest>({
   panelAccountName: "",
   panelCatalogName: "*",
@@ -1319,6 +1473,9 @@ const privilegeForm = reactive<PanelJdbcPrivilegeRequest>({
   panelHost: "%",
   panelPrivileges: [],
   panelTableName: "*",
+});
+const privilegeFormErrors = reactive<Record<string, string>>({
+  panelPrivileges: "",
 });
 
 const editSectionOptions = [
@@ -1464,25 +1621,29 @@ const activeFrozenColumns = computed(
 const railRound = computed(
   () => activeWorkbenchTab.value?.railShape === "round"
 );
+const railIconByTabType = (tabType: InspectorTabType) => {
+  if (tabType === "table-edit") {
+    return markRaw(EditPen);
+  }
+  if (tabType === "database-document") {
+    return markRaw(Document);
+  }
+  return markRaw(Tickets);
+};
 const railTabs = computed(() => [
   {
-    icon: Monitor,
+    icon: markRaw(Monitor),
     name: "workspace",
     title: "工作区",
   },
   {
-    icon: DataAnalysis,
+    icon: markRaw(DataAnalysis),
     name: "metadata",
     title: "数据源信息",
   },
   ...props.tableTabs.map((tab) => ({
     closable: true,
-    icon:
-      tab.tabType === "table-edit"
-        ? EditPen
-        : tab.tabType === "database-document"
-          ? Document
-          : Tickets,
+    icon: railIconByTabType(tab.tabType),
     name: tab.tabId,
     title: tab.tabName,
   })),
@@ -1586,6 +1747,14 @@ const paginationModeTab = computed<PaginationMode>({
   },
   set(value) {
     handlePaginationModeChange(value);
+  },
+});
+const tableFilterKeyword = computed<string>({
+  get() {
+    return activeWorkbenchTab.value?.filterKeyword || "";
+  },
+  set(value) {
+    updateActiveTabSetting({ filterKeyword: value });
   },
 });
 
@@ -1971,6 +2140,8 @@ const updateActiveTabSetting = (
       | "pageSize"
       | "railShape"
       | "showSequence"
+      | "sortField"
+      | "sortOrder"
       | "tableCommentMode"
       | "viewMode"
     >
@@ -2014,6 +2185,100 @@ const handleRailTabRemove = (name: string | number) => {
 const handleFrozenColumnsChange = (value: Array<string | number>) => {
   updateActiveTabSetting({
     frozenColumns: value.map((item) => String(item)),
+  });
+};
+
+const resolveColumnSortOrder = (columnName: string): SortOrder => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab || tab.tabType !== "table") {
+    return "";
+  }
+  return tab.sortField === columnName ? tab.sortOrder : "";
+};
+
+const toggleColumnSort = (columnName: string) => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab || tab.tabType !== "table") {
+    return;
+  }
+  const current = resolveColumnSortOrder(columnName);
+  const nextOrder: SortOrder =
+    current === ""
+      ? "asc"
+      : current === "asc"
+        ? "desc"
+        : "";
+  updateActiveTabSetting({
+    pageNum: 1,
+    sortField: nextOrder ? columnName : "",
+    sortOrder: nextOrder,
+    viewMode: "data",
+  });
+};
+
+let editTableSortable: Sortable | null = null;
+
+const destroyEditTableSortable = () => {
+  if (!editTableSortable) {
+    return;
+  }
+  editTableSortable.destroy();
+  editTableSortable = null;
+};
+
+const moveEditableColumn = (oldIndex: number, newIndex: number) => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab || tab.tabType !== "table-edit") {
+    return;
+  }
+  const current = [...(tableEditDrafts[tab.tabId] || [])];
+  if (
+    oldIndex < 0 ||
+    newIndex < 0 ||
+    oldIndex >= current.length ||
+    newIndex >= current.length ||
+    oldIndex === newIndex
+  ) {
+    return;
+  }
+  const [moved] = current.splice(oldIndex, 1);
+  current.splice(newIndex, 0, moved);
+  tableEditDrafts[tab.tabId] = current;
+};
+
+const setupEditTableSortable = async () => {
+  const tab = activeWorkbenchTab.value;
+  if (
+    !tab ||
+    tab.tabType !== "table-edit" ||
+    editSection.value !== "columns" ||
+    activeEditableColumns.value.length <= 1
+  ) {
+    destroyEditTableSortable();
+    return;
+  }
+  await nextTick();
+  const tbody = editTableRef.value?.$el?.querySelector?.(
+    ".el-table__body-wrapper tbody"
+  ) as HTMLElement | null;
+  if (!tbody) {
+    destroyEditTableSortable();
+    return;
+  }
+  destroyEditTableSortable();
+  editTableSortable = Sortable.create(tbody, {
+    animation: 180,
+    ghostClass: "table-edit-row--ghost",
+    handle: ".table-edit__drag",
+    onEnd: ({ newIndex, oldIndex }) => {
+      if (
+        typeof oldIndex !== "number" ||
+        typeof newIndex !== "number"
+      ) {
+        return;
+      }
+      moveEditableColumn(oldIndex, newIndex);
+    },
   });
 };
 
@@ -2234,6 +2499,8 @@ const handleCopyAccountGrants = async () => {
 
 const openAccountDialog = (mode: "create" | "update") => {
   accountDialogMode.value = mode;
+  accountFormErrors.panelAccountName = "";
+  accountFormErrors.panelPassword = "";
   if (mode === "update" && activeSelectedAccount.value) {
     accountForm.panelAccountName =
       activeSelectedAccount.value.panelAccountName || "";
@@ -2257,12 +2524,16 @@ const submitAccountDialog = () => {
     panelHost: String(accountForm.panelHost || "%").trim() || "%",
     panelPassword: String(accountForm.panelPassword || ""),
   };
-  if (!request.panelAccountName) {
-    ElMessage.warning("请输入账号");
-    return;
-  }
-  if (accountDialogMode.value === "create" && !request.panelPassword) {
-    ElMessage.warning("创建账号时请输入密码");
+  accountFormErrors.panelAccountName = request.panelAccountName
+    ? ""
+    : "请输入账号";
+  accountFormErrors.panelPassword = request.panelPassword
+    ? ""
+    : accountDialogMode.value === "create"
+      ? "创建账号时必须填写密码"
+      : "修改密码时必须填写新密码";
+
+  if (accountFormErrors.panelAccountName || accountFormErrors.panelPassword) {
     return;
   }
   if (accountDialogMode.value === "create") {
@@ -2279,6 +2550,7 @@ const openPrivilegeDialog = (mode: "grant" | "revoke") => {
     return;
   }
   privilegeDialogMode.value = mode;
+  privilegeFormErrors.panelPrivileges = "";
   privilegeForm.panelAccountName =
     activeSelectedAccount.value.panelAccountName || "";
   privilegeForm.panelHost = activeSelectedAccount.value.panelHost || "%";
@@ -2294,6 +2566,7 @@ const handlePrivilegeInput = (value: string) => {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+  privilegeFormErrors.panelPrivileges = "";
 };
 
 const submitPrivilegeDialog = () => {
@@ -2301,8 +2574,10 @@ const submitPrivilegeDialog = () => {
   if (!tab || tab.tabType !== "account") {
     return;
   }
-  if (!privilegeForm.panelPrivileges.length) {
-    ElMessage.warning("请输入至少一个权限");
+  privilegeFormErrors.panelPrivileges = privilegeForm.panelPrivileges.length
+    ? ""
+    : "请输入至少一个权限";
+  if (privilegeFormErrors.panelPrivileges) {
     return;
   }
   const request = {
@@ -2378,6 +2653,19 @@ watch(
     await nextTick();
     sqlEditorRef.value?.upgradeHits?.(codeMirrorHints.value);
     syncSelectionState();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => [
+    activeWorkbenchTab.value?.tabId || "",
+    activeWorkbenchTab.value?.tabType || "",
+    editSection.value,
+    activeEditableColumns.value.length,
+  ],
+  async () => {
+    await setupEditTableSortable();
   },
   { immediate: true }
 );
@@ -2531,6 +2819,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  destroyEditTableSortable();
   window.removeEventListener("keydown", handleKeydown);
 });
 </script>
@@ -3042,6 +3331,13 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.data-preview-head__summary-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .data-preview-head__filter {
   max-width: 320px;
 }
@@ -3070,9 +3366,78 @@ onBeforeUnmount(() => {
 
 .table-edit-toolbar {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 12px 10px;
+}
+
+.table-edit-toolbar__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  color: #6f8595;
+  font-size: 12px;
+}
+
+.table-edit__drag {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1454a8;
+  cursor: move;
+}
+
+.table-edit__drag:hover {
+  background: rgba(37, 99, 235, 0.14);
+}
+
+.workbench-panel :deep(.table-edit-row--ghost td.el-table__cell) {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.data-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.data-column-header__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-column-header__sort {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.05);
+  color: #708595;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.data-column-header__sort:hover,
+.data-column-header__sort.is-asc,
+.data-column-header__sort.is-desc {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1454a8;
 }
 
 .column-setting-popover {
@@ -3097,12 +3462,44 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
+.dialog-field {
+  display: grid;
+  gap: 8px;
+}
+
+.dialog-field__label {
+  color: #60798a;
+  font-size: 12px;
+}
+
+.dialog-field__label--required::after {
+  content: " *";
+  color: #dc2626;
+}
+
+.dialog-field__error {
+  min-height: 16px;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dialog-field__error--hidden {
+  visibility: hidden;
+}
+
 .dialog-form__inline {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   color: #5f7686;
+  font-size: 12px;
+}
+
+.dialog-footer-tip {
+  margin-right: auto;
+  color: #6f8796;
   font-size: 12px;
 }
 

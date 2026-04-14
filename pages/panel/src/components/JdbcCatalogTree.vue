@@ -131,7 +131,7 @@ import {
   ElTooltip,
   ElTree,
 } from "element-plus";
-import { computed, reactive } from "vue";
+import { computed, markRaw, reactive } from "vue";
 import type { JdbcCatalogNode } from "../api";
 import PanelContextMenu, {
   type PanelContextMenuItem,
@@ -186,54 +186,59 @@ const menu = reactive<{
   y: 0,
 });
 
+const rawIcon = <T,>(icon: T): T => markRaw(icon);
+
 const menuItemsMap: Record<MenuTargetType, MenuItem[]> = {
   datasource: [
-    { key: "refresh", label: "刷新连接", icon: RefreshRight },
-    { key: "toggle-collapse", label: "收起对象树", icon: FolderOpened },
+    { key: "refresh", label: "刷新连接", icon: rawIcon(RefreshRight) },
+    { key: "toggle-collapse", label: "收起对象树", icon: rawIcon(FolderOpened) },
     { key: "divider-datasource-danger", label: "", divider: true },
-    { key: "close-connection", label: "关闭连接", danger: true, icon: Connection },
+    { key: "close-connection", label: "关闭连接", danger: true, icon: rawIcon(Connection) },
   ],
   catalog: [
-    { key: "refresh", label: "刷新数据库", icon: RefreshRight },
-    { key: "new-sql", label: "新建 SQL", icon: MagicStick },
-    { key: "account-manage", label: "账号管理", icon: Key },
-    { key: "open-database-document", label: "打开文档", icon: Reading },
+    { key: "refresh", label: "刷新数据库", icon: rawIcon(RefreshRight) },
+    { key: "refresh-data", label: "刷新数据", icon: rawIcon(RefreshRight) },
+    { key: "new-sql", label: "新建 SQL", icon: rawIcon(MagicStick) },
+    { key: "account-manage", label: "账号管理", icon: rawIcon(Key) },
+    { key: "open-database-document", label: "打开文档", icon: rawIcon(Reading) },
     { key: "divider-catalog-note", label: "", divider: true },
-    { key: "edit-note", label: "编辑备注", icon: EditPen },
-    { key: "copy-name", label: "复制数据库名", icon: CopyDocument },
+    { key: "edit-note", label: "编辑备注", icon: rawIcon(EditPen) },
+    { key: "copy-name", label: "复制数据库名", icon: rawIcon(CopyDocument) },
   ],
   table: [
-    { key: "design-table", label: "设计表", icon: Tickets },
-    { key: "new-sql", label: "新建查询", icon: MagicStick },
-    { key: "edit-table", label: "编辑表", icon: EditPen },
-    { key: "open-data", label: "打开表", icon: Collection },
+    { key: "design-table", label: "设计表", icon: rawIcon(Tickets) },
+    { key: "new-sql", label: "新建查询", icon: rawIcon(MagicStick) },
+    { key: "open-data", label: "打开表", icon: rawIcon(Collection) },
+    { key: "refresh-table", label: "刷新表", icon: rawIcon(RefreshRight) },
     { key: "divider-table-doc", label: "", divider: true },
-    { key: "edit-note", label: "编辑备注", icon: EditPen },
-    { key: "copy-name", label: "复制表名", icon: CopyDocument },
+    { key: "edit-note", label: "编辑备注", icon: rawIcon(EditPen) },
+    { key: "copy-name", label: "复制表名", icon: rawIcon(CopyDocument) },
     { key: "divider-table-sql", label: "", divider: true },
     {
       key: "sql-actions",
       label: "SQL 操作",
-      icon: Files,
+      icon: rawIcon(Files),
       children: [
-        { key: "sql-select", label: "生成 SELECT", icon: Search },
-        { key: "sql-count", label: "生成 COUNT", icon: Collection },
-        { key: "sql-backup", label: "备份表", icon: CopyDocument },
-        { key: "sql-clear", label: "清空表", danger: true, icon: Delete },
-        { key: "sql-truncate", label: "截断表", danger: true, icon: Delete },
-        { key: "sql-drop", label: "删除表", danger: true, icon: Delete },
+        { key: "sql-select", label: "生成 SELECT", icon: rawIcon(Search) },
+        { key: "sql-count", label: "生成 COUNT", icon: rawIcon(Collection) },
+        { key: "sql-backup", label: "备份表", icon: rawIcon(CopyDocument) },
+        { key: "sql-clear", label: "清空表", danger: true, icon: rawIcon(Delete) },
+        { key: "sql-truncate", label: "截断表", danger: true, icon: rawIcon(Delete) },
+        { key: "sql-drop", label: "删除表", danger: true, icon: rawIcon(Delete) },
       ],
     },
   ],
   field: [
-    { key: "edit-field-note", label: "编辑备注", icon: EditPen },
+    { key: "edit-field-note", label: "编辑备注", icon: rawIcon(EditPen) },
     { key: "divider-field-copy", label: "", divider: true },
-    { key: "copy-name", label: "复制字段名", icon: CopyDocument },
+    { key: "copy-name", label: "复制字段名", icon: rawIcon(CopyDocument) },
   ],
 };
 
 const IMPLEMENTED_MENU_ACTIONS = new Set([
   "refresh",
+  "refresh-data",
+  "refresh-table",
   "toggle-collapse",
   "close-connection",
   "new-sql",
@@ -242,7 +247,6 @@ const IMPLEMENTED_MENU_ACTIONS = new Set([
   "edit-note",
   "copy-name",
   "design-table",
-  "edit-table",
   "open-data",
   "sql-select",
   "sql-count",
@@ -280,12 +284,12 @@ const currentMenuItems = computed(() =>
 
 const resolveNodeIcon = (node: JdbcCatalogNode) => {
   if (node.nodeType === "catalog") {
-    return FolderOpened;
+    return rawIcon(FolderOpened);
   }
   if (node.nodeType === "field") {
-    return Key;
+    return rawIcon(Key);
   }
-  return Tickets;
+  return rawIcon(Tickets);
 };
 
 const treeRenderKey = computed(() =>

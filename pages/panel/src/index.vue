@@ -18,9 +18,15 @@
     <section v-else class="workspace-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="toggleAside">
-            {{ asideCollapsed ? "展开对象树" : "收起对象树" }}
-          </ElButton>
+          <ElTooltip :content="asideCollapsed ? '展开对象树' : '收起对象树'">
+            <ElButton
+              circle
+              plain
+              size="small"
+              :icon="asideCollapsed ? Expand : Fold"
+              @click="toggleAside"
+            />
+          </ElTooltip>
           <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
           <ElButton plain size="small" @click="handleLoadCatalog">刷新对象</ElButton>
 
@@ -57,12 +63,17 @@
         </div>
       </header>
 
-      <div ref="workspaceContainerRef" class="workspace-frame">
-        <ElContainer class="workspace-container">
-          <ElAside
-            class="workspace-aside"
-            :style="{ width: asideCollapsed ? '56px' : `${asideWidth}px` }"
-          >
+      <ScLayout
+        class="workspace-frame"
+        :left-collapsed="asideCollapsed"
+        :left-collapsed-width="0"
+        :left-enabled="true"
+        :left-width="asideWidth"
+        :rail-enabled="false"
+        @left-resize="asideWidth = $event.width"
+        @update:left-collapsed="asideCollapsed = $event"
+      >
+        <template #left>
             <JdbcCatalogTree
               :active-node-id="activeNode?.nodeId || ''"
               :catalog-tree="explorerTree"
@@ -82,15 +93,10 @@
               @toggle-collapse="toggleAside"
               @update:search-keyword="searchKeyword = $event"
             />
-          </ElAside>
+        </template>
 
-          <div
-            v-if="!asideCollapsed"
-            class="workspace-resizer"
-            @mousedown.prevent="startAsideResize"
-          />
-
-          <ElMain class="workspace-main">
+        <template #default>
+          <div class="workspace-main">
             <JdbcDetailCard
               ref="detailRef"
               v-model:sql-text="sqlText"
@@ -115,7 +121,6 @@
               @execute="handleExecuteSql"
               @execute-selected="handleExecuteSelected"
               @explain="handleExplainSql"
-              @generate-sample-data="handleGenerateSampleData"
               @grant-account="handleGrantAccount"
               @refresh-table-data="handleRefreshTableData"
               @revoke-account="handleRevokeAccount"
@@ -125,9 +130,9 @@
               @generate-sql="handleGenerateSql"
               @quick-run="handleQuickRun"
             />
-          </ElMain>
-        </ElContainer>
-      </div>
+          </div>
+        </template>
+      </ScLayout>
     </section>
 
     <teleport to="body">
@@ -156,19 +161,19 @@
 </template>
 
 <script setup lang="ts">
+import { Expand, Fold } from "@element-plus/icons-vue";
 import {
-  ElAside,
   ElButton,
-  ElContainer,
   ElInput,
   ElInputNumber,
-  ElMain,
   ElMessage,
   ElMessageBox,
   ElPopover,
   ElSwitch,
+  ElTooltip,
 } from "element-plus";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import ScLayout from "@repo/components/ScLayout";
 import {
   JdbcCatalogTree,
   JdbcDetailCard,
@@ -196,7 +201,6 @@ import {
   fetchPanelSqlTemplate,
   fetchJdbcTableData,
   fetchJdbcTableStructure,
-  generateJdbcMockData,
   generateJdbcSql,
   listJdbcCachedConnections,
   listPanelDatasources,
@@ -233,6 +237,7 @@ type InspectorTabType = "account" | "database-document" | "table" | "table-edit"
 type InspectorViewMode = "account" | "data" | "ddl" | "database-document" | "ai" | "indexes" | "columns";
 type CommentMode = "comment" | "mixed" | "native";
 type PaginationMode = "full" | "pagination";
+type SortOrder = "" | "asc" | "desc";
 
 interface InspectorTableTab {
   accounts: PanelJdbcAccountView[];
@@ -251,6 +256,8 @@ interface InspectorTableTab {
   pageSize: number;
   railShape: "default" | "round";
   showSequence: boolean;
+  sortField: string;
+  sortOrder: SortOrder;
   structure: JdbcTableStructure | null;
   tabId: string;
   tabName: string;
@@ -301,7 +308,6 @@ const previewLimit = ref(1000);
 const treeMultiExpand = ref(false);
 const asideWidth = ref(236);
 const asideCollapsed = ref(false);
-const workspaceContainerRef = ref<HTMLElement | null>(null);
 const detailRef = ref<{
   exportPdf: () => Promise<void>;
   exportWord: () => Promise<void>;
@@ -494,6 +500,25 @@ const mapSourceToDatasourcePayload = (source: PanelSavedSource | JdbcConnectionF
   panelUpdatedAt: source.updatedAt || undefined,
 });
 
+const validateJdbcFormBeforeSave = (form: JdbcConnectionForm) => {
+  if (!String(form.sourceType || "").trim()) {
+    return "请选择数据源类型";
+  }
+  if (!String(form.connectionName || "").trim()) {
+    return "请输入数据源名称";
+  }
+  if (!String(form.host || "").trim()) {
+    return "请输入主机地址";
+  }
+  if (Number(form.port) <= 0) {
+    return "请输入有效端口";
+  }
+  if (form.sourceType === "JDBC" && !String(form.username || "").trim()) {
+    return "JDBC 数据源必须填写用户名";
+  }
+  return "";
+};
+
 const persistSources = () => {
   localStorage.setItem(PANEL_SOURCE_STORAGE_KEY, JSON.stringify(savedSources.value));
 };
@@ -517,18 +542,7 @@ const loadSources = async () => {
     savedSources.value = remoteSources;
     persistSources();
   } catch {
-    try {
-      const raw = localStorage.getItem(PANEL_SOURCE_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      savedSources.value = Array.isArray(parsed)
-        ? parsed.map((item: any) => ({
-            sourceType: "JDBC",
-            ...item,
-          }))
-        : [];
-    } catch {
-      savedSources.value = [];
-    }
+    savedSources.value = [];
   }
 };
 
@@ -554,6 +568,11 @@ const loadCachedConnections = async () => {
 };
 
 const handleSaveSource = async () => {
+  const validationMessage = validateJdbcFormBeforeSave(jdbcForm);
+  if (validationMessage) {
+    ElMessage.warning(validationMessage);
+    return;
+  }
   submitting.value = true;
   try {
     const response = await savePanelDatasource(mapSourceToDatasourcePayload({
@@ -629,10 +648,13 @@ const openSourceInWorkspace = async (source: PanelSavedSource) => {
   const ticket = await encryptWorkspaceTicket({ source });
   const url = new URL(window.location.href);
   url.searchParams.set("ticket", ticket);
-  const child = window.open(url.toString(), "_blank", "noopener,noreferrer");
-  if (!child) {
-    window.location.href = url.toString();
+  const child = window.open("", "_blank");
+  if (child) {
+    child.opener = null;
+    child.location.href = url.toString();
+    return;
   }
+  window.location.href = url.toString();
 };
 
 const handleOpenSource = async (source: PanelSavedSource) => {
@@ -821,6 +843,8 @@ const createInspectorTabDefaults = () => ({
   pageSize: 100,
   railShape: "default" as "default" | "round",
   showSequence: true,
+  sortField: "",
+  sortOrder: "" as SortOrder,
   tableCommentMode: "native" as CommentMode,
 });
 
@@ -891,7 +915,7 @@ const buildPreviewSql = (node: JdbcCatalogNode) =>
   `select * from ${fullTableName(node)} limit ${previewLimit.value};`;
 
 const fetchTableDataForTab = async (
-  node: JdbcCatalogNode,
+  tab: InspectorTableTab,
   pageNum = 1,
   pageSize = 100,
   loadTotal = false,
@@ -900,12 +924,14 @@ const fetchTableDataForTab = async (
     return null;
   }
   const response = await fetchJdbcTableData(activeConnectionId.value, {
-    panelCatalogName: node.catalogName,
-    panelSchemaName: node.schemaName,
-    panelTableName: node.tableName || node.nodeName,
+    panelCatalogName: tab.node.catalogName,
+    panelSchemaName: tab.node.schemaName,
+    panelTableName: tab.node.tableName || tab.node.nodeName,
     panelPageNum: pageNum,
     panelPageSize: pageSize,
     panelLoadTotal: loadTotal,
+    panelSortField: tab.sortField || undefined,
+    panelSortOrder: tab.sortOrder || undefined,
   });
   return response?.data || null;
 };
@@ -994,6 +1020,8 @@ const ensureInspectorTab = async (
       pageSize: 100,
       railShape: existing?.railShape || "default",
       showSequence: existing?.showSequence ?? true,
+      sortField: existing?.sortField || "",
+      sortOrder: existing?.sortOrder || "",
       tableCommentMode: "native",
       dataCommentMode: "native",
       filterKeyword: existing?.filterKeyword || "",
@@ -1027,6 +1055,8 @@ const ensureInspectorTab = async (
       pageSize: 100,
       railShape: existing?.railShape || "default",
       showSequence: existing?.showSequence ?? true,
+      sortField: existing?.sortField || "",
+      sortOrder: existing?.sortOrder || "",
       tableCommentMode: "native",
       dataCommentMode: "native",
       filterKeyword: existing?.filterKeyword || "",
@@ -1068,6 +1098,8 @@ const ensureInspectorTab = async (
     pageSize: existing?.pageSize || 100,
     railShape: existing?.railShape || "default",
     showSequence: existing?.showSequence ?? true,
+    sortField: existing?.sortField || "",
+    sortOrder: existing?.sortOrder || "",
     tabId,
     tabName: node.tableName || node.nodeName,
     tableCommentMode: existing?.tableCommentMode || "native",
@@ -1143,7 +1175,7 @@ const handleActivateInspectorTab = (tabId: string) => {
 
 const handleTableTabSettingChange = async (
   tabId: string,
-  patch: Partial<Pick<InspectorTableTab, "dataCommentMode" | "filterKeyword" | "frozenColumns" | "loadTotal" | "paginationMode" | "pageNum" | "pageSize" | "railShape" | "showSequence" | "tableCommentMode" | "viewMode">>,
+  patch: Partial<Pick<InspectorTableTab, "dataCommentMode" | "filterKeyword" | "frozenColumns" | "loadTotal" | "paginationMode" | "pageNum" | "pageSize" | "railShape" | "showSequence" | "sortField" | "sortOrder" | "tableCommentMode" | "viewMode">>,
 ) => {
   const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
   if (!currentTab) {
@@ -1170,13 +1202,20 @@ const handleTableTabSettingChange = async (
     && ("loadTotal" in patch
       || "pageNum" in patch
       || "pageSize" in patch
-      || "paginationMode" in patch);
+      || "paginationMode" in patch
+      || "sortField" in patch
+      || "sortOrder" in patch);
   if (!shouldRefreshData) {
     return;
   }
   try {
     const nextLoadTotal = patch.loadTotal ?? currentTab.loadTotal;
-    const dataResult = await fetchTableDataForTab(currentTab.node, nextPageNum, nextPageSize, nextLoadTotal);
+    const dataResult = await fetchTableDataForTab(
+      { ...currentTab, ...nextPatch },
+      nextPageNum,
+      nextPageSize,
+      nextLoadTotal,
+    );
     updateInspectorTab(tabId, tab => ({ ...tab, dataResult }));
   } catch (error: any) {
     errorMessage.value = error?.message || "读取表数据失败";
@@ -1190,7 +1229,7 @@ const handleRefreshTableData = async (tabId: string) => {
   }
   try {
     const dataResult = await fetchTableDataForTab(
-      currentTab.node,
+      currentTab,
       currentTab.pageNum,
       currentTab.pageSize,
       currentTab.loadTotal,
@@ -1551,48 +1590,6 @@ const handleGenerateSql = async (prompt: string) => {
   }
 };
 
-const handleGenerateSampleData = async (tabId: string) => {
-  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
-  if (!currentTab || currentTab.tabType !== "table" || !activeConnectionId.value) {
-    return;
-  }
-  submitting.value = true;
-  errorMessage.value = "";
-  try {
-    const response = await generateJdbcMockData(activeConnectionId.value, {
-      panelCatalogName: currentTab.node.catalogName,
-      panelSchemaName: currentTab.node.schemaName,
-      panelTableName: currentTab.node.tableName || currentTab.node.nodeName,
-      panelCount: 5,
-    });
-    const mockRows = (response?.data || []).map(row => ({
-      ...row,
-      __panelNewRow: true,
-    }));
-    const currentRows = currentTab.dataResult?.panelRows || [];
-    const columnNames = currentTab.structure?.columns?.length
-      ? currentTab.structure.columns.map(column => String(column.name || "")).filter(Boolean)
-      : [...new Set(mockRows.flatMap(row => Object.keys(row).filter(key => key !== "__panelNewRow")))];
-    updateInspectorTab(tabId, tab => ({
-      ...tab,
-      dataResult: {
-        panelColumns: columnNames,
-        panelRows: [...currentRows, ...mockRows],
-        panelTotal: (tab.dataResult?.panelTotal || 0) + mockRows.length,
-        panelPageNum: tab.pageNum,
-        panelPageSize: tab.pageSize,
-        panelElapsedMillis: 0,
-      },
-      viewMode: "data",
-    }));
-    ElMessage.success(`已生成 ${mockRows.length} 行示例数据`);
-  } catch (error: any) {
-    errorMessage.value = error?.message || "生成示例数据失败";
-  } finally {
-    submitting.value = false;
-  }
-};
-
 const handleFieldNote = (node: JdbcCatalogNode) => {
   const key = buildFieldNoteKey(
     {
@@ -1837,6 +1834,11 @@ const handleContextAction = async ({
     return;
   }
 
+  if (action === "refresh-data") {
+    await handleLoadCatalog();
+    return;
+  }
+
   if (action === "toggle-collapse") {
     toggleAside();
     return;
@@ -1884,16 +1886,17 @@ const handleContextAction = async ({
     return;
   }
 
-  if (action === "edit-table") {
-    await ensureInspectorTab(node, "table-edit", "columns", true, false);
-    return;
-  }
-
   if (action === "open-data") {
     const tab = await ensureInspectorTab(node, "table", "data", true, false);
     deferBackgroundTask(() => {
       void handleRefreshTableData(tab.tabId);
     });
+    return;
+  }
+
+  if (action === "refresh-table") {
+    await refreshTableStructureForNode(node);
+    await refreshOpenTableTabsByNode(node);
     return;
   }
 
@@ -1957,46 +1960,6 @@ const toggleAside = () => {
   asideCollapsed.value = !asideCollapsed.value;
 };
 
-const resizeListeners = {
-  move: null as ((event: MouseEvent) => void) | null,
-  up: null as (() => void) | null,
-};
-
-const stopAsideResize = () => {
-  if (resizeListeners.move) {
-    window.removeEventListener("mousemove", resizeListeners.move);
-    resizeListeners.move = null;
-  }
-  if (resizeListeners.up) {
-    window.removeEventListener("mouseup", resizeListeners.up);
-    resizeListeners.up = null;
-  }
-  document.body.style.userSelect = "";
-};
-
-const startAsideResize = (event: MouseEvent) => {
-  if (!workspaceContainerRef.value) {
-    return;
-  }
-
-  const containerRect = workspaceContainerRef.value.getBoundingClientRect();
-  asideCollapsed.value = false;
-  document.body.style.userSelect = "none";
-
-  resizeListeners.move = (moveEvent: MouseEvent) => {
-    const nextWidth = moveEvent.clientX - containerRect.left;
-    asideWidth.value = Math.min(320, Math.max(180, nextWidth));
-  };
-
-  resizeListeners.up = () => {
-    stopAsideResize();
-  };
-
-  window.addEventListener("mousemove", resizeListeners.move);
-  window.addEventListener("mouseup", resizeListeners.up);
-  event.preventDefault();
-};
-
 onMounted(async () => {
   await loadSources();
   loadConfig();
@@ -2018,7 +1981,6 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  stopAsideResize();
   document.removeEventListener("mousedown", handleGlobalPointerDown);
 });
 </script>
@@ -2090,38 +2052,6 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
-.workspace-container {
-  align-items: stretch;
-  gap: 0;
-  min-height: 0;
-  height: 100%;
-}
-
-.workspace-aside {
-  overflow: hidden;
-  transition: width 0.24s ease;
-  min-height: 0;
-  height: 100%;
-}
-
-.workspace-resizer {
-  position: relative;
-  width: 8px;
-  cursor: col-resize;
-}
-
-.workspace-resizer::before {
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  left: 50%;
-  width: 2px;
-  border-radius: 999px;
-  background: rgba(102, 130, 148, 0.22);
-  transform: translateX(-50%);
-  content: "";
-}
-
 .workspace-main {
   min-width: 0;
   min-height: 0;
@@ -2176,15 +2106,6 @@ onBeforeUnmount(() => {
   .workspace-bar {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .workspace-container {
-    display: grid;
-    gap: 10px;
-  }
-
-  .workspace-resizer {
-    display: none;
   }
 
   .workspace-main {

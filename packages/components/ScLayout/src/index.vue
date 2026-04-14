@@ -431,7 +431,12 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.sc-layout__left {
+  grid-column: 1;
+}
+
 .sc-layout__resizer {
+  grid-column: 2;
   position: relative;
   height: 100%;
   cursor: col-resize;
@@ -499,10 +504,12 @@ onBeforeUnmount(() => {
 }
 
 .sc-layout__main {
+  grid-column: 3;
   overflow: auto;
 }
 
 .sc-layout__rail {
+  grid-column: 4;
   display: flex;
   flex-direction: column;
   align-items: stretch;
