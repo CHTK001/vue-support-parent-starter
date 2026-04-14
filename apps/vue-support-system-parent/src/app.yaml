@@ -74,6 +74,10 @@ OpenSettingEmail: true
 OpenSettingSms: true
 # 是否开启LLM设置（默认: false）
 OpenSettingLlm: true
+# AI 性能分析接口地址（默认: /v1/ai/performance/website/analyze）
+AiPerformanceAnalyzeUrl: /v1/ai/performance/website/analyze
+# AI 性能分析默认目标 URL（默认: 当前站点 origin；留空则使用当前站点）
+# AiPerformanceDefaultTargetUrl: https://example.com
 
 # ===========================================
 # 布局与菜单配置

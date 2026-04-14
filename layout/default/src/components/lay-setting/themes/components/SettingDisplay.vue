@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { storeToRefs } from "pinia";
 import Segmented, {
@@ -7,6 +8,7 @@ import Segmented, {
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScTooltip from "@repo/components/ScTooltip/index";
+import AiPerformanceAnalysisDialog from "./AiPerformanceAnalysisDialog.vue";
 import { useThemeStore } from "../../../../stores/themeStore";
 
 const { t } = useI18n();
@@ -27,6 +29,8 @@ const {
   performanceMonitorDirection,
   isPerformanceMonitorVisible,
 } = storeToRefs(themeStore);
+
+const aiPerformanceDialogVisible = ref(false);
 
 // ---- Props 定义 ----
 const props = defineProps<{
@@ -418,10 +422,72 @@ const props = defineProps<{
                 />
               </div>
             </div>
+
+            <div class="ai-performance-entry">
+              <div class="ai-performance-entry__meta">
+                <span class="ai-performance-entry__title">AI 性能分析</span>
+                <span class="ai-performance-entry__desc">
+                  对目标站点执行采样分析并生成图形报告与优化建议
+                </span>
+              </div>
+              <el-button
+                type="primary"
+                size="small"
+                @click="aiPerformanceDialogVisible = true"
+              >
+                <IconifyIconOnline icon="ri:bar-chart-box-line" />
+                打开分析弹窗
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
 
     </div>
+
+    <AiPerformanceAnalysisDialog v-model="aiPerformanceDialogVisible" />
   </div>
 </template>
+
+<style scoped lang="scss">
+.ai-performance-entry {
+  margin-top: 14px;
+  width: 100%;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--el-color-primary-rgb), 0.08),
+    rgba(var(--el-color-primary-rgb), 0.02)
+  );
+}
+
+.ai-performance-entry__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-performance-entry__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ai-performance-entry__desc {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+@media (max-width: 900px) {
+  .ai-performance-entry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
