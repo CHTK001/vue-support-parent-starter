@@ -48,7 +48,9 @@
             <div
               class="tree-node"
               :class="[`tree-node--${data.nodeType}`]"
-              @contextmenu.prevent="openTreeNodeMenu($event, data)"
+              @mousedown.right.prevent.stop
+              @mouseup.right.prevent.stop
+              @contextmenu.prevent.stop="openTreeNodeMenu($event, data)"
             >
               <ElIcon class="tree-node__icon">
                 <component :is="resolveNodeIcon(data)" />
@@ -131,7 +133,7 @@ import {
   ElTooltip,
   ElTree,
 } from "element-plus";
-import { computed, markRaw, reactive } from "vue";
+import { computed, markRaw, reactive, ref } from "vue";
 import type { JdbcCatalogNode } from "../api";
 import PanelContextMenu, {
   type PanelContextMenuItem,
@@ -185,6 +187,10 @@ const menu = reactive<{
   x: 0,
   y: 0,
 });
+const suppressedNodeClick = ref<{
+  expireAt: number;
+  nodeId: string;
+} | null>(null);
 
 const rawIcon = <T,>(icon: T): T => markRaw(icon);
 
@@ -317,6 +323,10 @@ const openMenu = (
 };
 
 const openTreeNodeMenu = (event: MouseEvent, node: JdbcCatalogNode) => {
+  suppressedNodeClick.value = {
+    expireAt: Date.now() + 600,
+    nodeId: node.nodeId,
+  };
   const targetType =
     node.nodeType === "field"
       ? "field"
@@ -343,6 +353,15 @@ const handleMenuAction = (action: string, submenu = false) => {
 };
 
 const handleNodeClick = (node: JdbcCatalogNode) => {
+  if (
+    suppressedNodeClick.value &&
+    suppressedNodeClick.value.nodeId === node.nodeId &&
+    suppressedNodeClick.value.expireAt > Date.now()
+  ) {
+    suppressedNodeClick.value = null;
+    return;
+  }
+  suppressedNodeClick.value = null;
   if (node.nodeType === "table") {
     emit("open-table", node);
   }
