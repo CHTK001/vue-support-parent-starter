@@ -91,6 +91,8 @@ export interface PanelTableDataRequest {
   panelPageNum: number;
   panelPageSize: number;
   panelLoadTotal: boolean;
+  panelSortField?: string;
+  panelSortOrder?: string;
 }
 
 export interface PanelTableDataView {
@@ -191,13 +193,6 @@ export interface JdbcConnectionMetadata {
 export interface PanelAiSqlRequest {
   prompt: string;
   tableNames?: string[];
-}
-
-export interface PanelAiMockDataRequest {
-  panelCatalogName?: string | null;
-  panelSchemaName?: string | null;
-  panelTableName: string;
-  panelCount?: number;
 }
 
 export interface PanelRemarkRequest {
@@ -397,16 +392,6 @@ export const generateJdbcSql = (
   http.request<ReturnResult<string>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/ai/sql/generate`,
-    { data },
-  );
-
-export const generateJdbcMockData = (
-  connectionId: string,
-  data: PanelAiMockDataRequest,
-) =>
-  http.request<ReturnResult<Record<string, any>[]>>(
-    "post",
-    `/v1/panel/jdbc/${connectionId}/ai/mock-data`,
     { data },
   );
 

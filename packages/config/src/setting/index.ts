@@ -194,8 +194,8 @@ export const globalSetting: PlatformConfigs = {
   BaseUrl: "",
   /** API版本号 */
   apiVersion: "1.0.0",
-  /** 签名密钥 */
-  secretKey: "1234567890",
+  /** Nonce 签名密钥，需与后端 NonceSignProperties.DEFAULT_SECRET 保持一致 */
+  secretKey: "aP9xL3sV7mQ2zT5kB8nR1cY4wH6eD0fJ",
 
   // ===========================================
   // 国际化配置
