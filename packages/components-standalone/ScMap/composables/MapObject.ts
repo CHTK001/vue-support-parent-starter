@@ -3,7 +3,6 @@
  * @description 使用Leaflet实现的地图核心功能
  */
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { ConfigObject } from "./ConfigObject";
 import { MapType, DEFAULT_MAP_CONFIG } from "../types/map";
 import { MapTile } from "../types";
@@ -12,6 +11,7 @@ import { CoordinateObject } from "./CoordinateObject";
 import { HeatmapObject } from "./HeatmapObject";
 import { GcoordObject, CoordSystem } from "./GcoordObject";
 import { getCoordSystemByMapType } from "./MapUtils";
+import { ensureScMapVendorStyles } from "../style-loader";
 
 // 地图事件回调类型
 export type MapEventCallback = (event: string, payload: any) => void;
@@ -44,6 +44,8 @@ export class MapObject {
    */
   public init(container: HTMLElement, callback?: MapEventCallback): boolean {
     try {
+      void ensureScMapVendorStyles();
+
       if (!container) {
         logger.error("初始化地图失败：容器元素不存在");
         return false;

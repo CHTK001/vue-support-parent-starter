@@ -9,15 +9,10 @@
     ".": {
       "types": "./index.ts",
       "default": "./index.ts"
-    },
-    "./*": {
-      "types": "./*",
-      "default": "./*"
     }
   },
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.79",
-    "vue": "catalog:"
+    "@repo/components/ScWebLLM": "workspace:^"
   },
   "license": "ISC"
 }

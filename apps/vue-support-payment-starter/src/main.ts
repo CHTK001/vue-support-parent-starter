@@ -16,7 +16,8 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 import "element-plus/dist/index.css";
 import "@repo/assets/styles/base/index.scss";
-import "./styles/index.scss";
+import "@repo/assets/styles/theme/index.scss";
+import "./styles/app.scss";
 
 const app = createApp(App);
 

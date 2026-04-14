@@ -219,6 +219,7 @@ export class AppBootstrap {
             import("tippy.js/dist/tippy.css"),
             import("tippy.js/themes/light.css"),
             import("@repo/assets/styles/base/index.scss"),
+            import("@repo/assets/styles/theme/index.scss"),
           ]);
           bootDebugLog("registerCoreStyles:done");
         } catch (error) {

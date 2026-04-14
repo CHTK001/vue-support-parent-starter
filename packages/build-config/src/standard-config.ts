@@ -80,7 +80,7 @@ export interface StandardViteConfigOptions {
   preserveSymlinks?: boolean;
   /** 是否启用 sourcemap，默认 false */
   sourcemap?: boolean;
-  /** 是否启用轻量构建（默认读取 VITE_LIGHT_BUILD 或 true） */
+  /** 是否启用轻量构建（默认读取 VITE_LIGHT_BUILD 或 true，启用时关闭主产物压缩与额外压缩产物） */
   lightBuild?: boolean;
   /** 构建目标，默认 "es2020" */
   target?: string;
@@ -170,6 +170,7 @@ export function createStandardViteConfig(
       VITE_LIGHT_BUILD,
     } = wrapperEnv(env);
     const lightBuild = options.lightBuild ?? VITE_LIGHT_BUILD !== false;
+    const buildMinify = lightBuild ? false : "esbuild";
     const effectiveCompression = lightBuild ? "none" : VITE_COMPRESSION;
 
     const alias = {
@@ -184,8 +185,8 @@ export function createStandardViteConfig(
       scss: {
         api: "modern-compiler",
         additionalData: `
-          @use "@repo/assets/styles/layout/default/variables.scss" as *;
-          @use "@repo/assets/styles/layout/default/mixin.scss";
+          @use "@repo/assets/styles/tokens/index.scss" as *;
+          @use "@repo/assets/styles/mixins/index.scss" as *;
         `,
         silenceDeprecations: ["color-functions", "global-builtin", "import"],
         ...options.cssPreprocessorOptions?.scss,
@@ -306,7 +307,7 @@ export function createStandardViteConfig(
       },
       build: {
         target: options.target || (lightBuild ? "es2022" : "es2020"),
-        minify: "esbuild",
+        minify: buildMinify,
         sourcemap: options.sourcemap || false,
         reportCompressedSize: !lightBuild,
         chunkSizeWarningLimit: options.chunkSizeWarningLimit || 4000,
@@ -567,8 +568,8 @@ export function createViteConfig(metaUrl: string, pkg: any) {
 
     /**
      * 设置轻量构建
-     * - true: 使用 esbuild 压缩，关闭额外产物压缩插件，降低内存占用
-     * - false: 使用应用原有的完整构建策略
+     * - true: 关闭主产物压缩与额外产物压缩插件，降低内存占用
+     * - false: 使用应用原有的完整构建策略（主产物仍走 esbuild 压缩）
      * 两种模式产物都可直接部署，差异主要在构建耗时、内存和是否额外生成 gzip/brotli 文件
      */
     lightBuild(enabled = true) {

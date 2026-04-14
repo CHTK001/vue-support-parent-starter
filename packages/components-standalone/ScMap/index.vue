@@ -86,7 +86,6 @@ export default {
 <script setup lang="ts">
 //@ts-ignore
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import "./styles/measure.scss"; // 导入测距样式
 import {
   computed,
@@ -97,6 +96,7 @@ import {
   watch,
 } from "vue";
 import type { ComponentPublicInstance } from "vue";
+import { ensureScMapVendorStyles } from "./style-loader";
 
 // 组件导入
 import CoordinatePanel from "./components/CoordinatePanel.vue";
@@ -492,6 +492,8 @@ const initMap = async () => {
       logger.error("地图容器未找到，无法初始化地图");
       return;
     }
+
+    await ensureScMapVendorStyles();
 
     // 创建配置对象
     configObject = new ConfigObject(config.value);
@@ -1072,7 +1074,7 @@ onMounted(() => {
 
   // 初始化地图
   nextTick(() => {
-    initMap();
+    void initMap();
 
     // 如果配置了自动激活鹰眼地图，则激活它
     if (props.overviewMapConfig?.autoActivate && toolbarObject) {

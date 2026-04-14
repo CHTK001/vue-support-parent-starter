@@ -59,8 +59,8 @@ import {
   Coordinate,
 } from "../composables/GcoordObject";
 import { MapType } from "../types/map";
+import { ensureScMapVendorStyles } from "../style-loader";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
 export default defineComponent({
   name: "CoordTransformExample",
@@ -83,7 +83,9 @@ export default defineComponent({
     const markers = ref<L.Marker[]>([]);
 
     // 初始化地图
-    onMounted(() => {
+    onMounted(async () => {
+      await ensureScMapVendorStyles();
+
       if (mapRef.value) {
         // 创建地图对象
         mapObj.value = new MapObject({

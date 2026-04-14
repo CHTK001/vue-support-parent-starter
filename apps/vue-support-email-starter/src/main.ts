@@ -5,5 +5,6 @@
  * @since 2026-03-18
  */
 import { createStandardApp } from "@repo/core";
+import "./styles/app.scss";
 
 createStandardApp().then((bootstrap) => bootstrap.mount("#app"));

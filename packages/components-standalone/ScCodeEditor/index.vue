@@ -7,12 +7,8 @@
 <script>
 import { markRaw } from "vue";
 import CodeMirror from "codemirror";
-import "codemirror/lib/codemirror.css";
-import "codemirror/theme/idea.css";
-import "codemirror/theme/darcula.css";
 import "codemirror/addon/display/autorefresh";
 import "codemirror/addon/selection/active-line";
-import "codemirror/addon/hint/show-hint.css";
 import "codemirror/addon/hint/show-hint";
 import "codemirror/addon/hint/sql-hint";
 import "codemirror/mode/javascript/javascript";
@@ -21,6 +17,10 @@ import "codemirror/mode/shell/shell";
 import "codemirror/mode/sql/sql";
 import "codemirror/mode/xml/xml";
 import "codemirror/mode/yaml/yaml";
+import {
+  ensureScCodeEditorStyles,
+  ensureScCodeEditorThemeStyle,
+} from "./style-loader";
 
 export default {
   name: "ScCodeEditor",
@@ -91,11 +91,21 @@ export default {
         this.coder.setValue(val);
       }
     },
+    theme(val) {
+      if (this.options?.theme) {
+        return;
+      }
+
+      void this.applyTheme(val);
+    },
   },
   mounted() {
-    this.init();
+    void this.init();
   },
   methods: {
+    getEditorTheme() {
+      return this.opt?.theme || this.theme || "idea";
+    },
     refresh() {
       setTimeout(() => {
         if (this.coder) {
@@ -109,7 +119,16 @@ export default {
         tables: hits,
       });
     },
-    init() {
+    async applyTheme(theme) {
+      const nextTheme = theme || "idea";
+      await ensureScCodeEditorThemeStyle(nextTheme);
+      this.opt.theme = nextTheme;
+      if (this.coder) {
+        this.coder.setOption("theme", nextTheme);
+      }
+    },
+    async init() {
+      await ensureScCodeEditorStyles(this.getEditorTheme());
       this.coder = markRaw(
         CodeMirror.fromTextArea(this.$refs.textarea, this.opt),
       );
