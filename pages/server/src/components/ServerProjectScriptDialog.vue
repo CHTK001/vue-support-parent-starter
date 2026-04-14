@@ -3,6 +3,7 @@
     :model-value="modelValue"
     width="1180px"
     destroy-on-close
+    hide-header
     :title="dialogTitle"
     @update:model-value="emit('update:modelValue', $event)"
   >

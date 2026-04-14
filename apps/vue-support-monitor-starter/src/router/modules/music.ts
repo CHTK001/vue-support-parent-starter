@@ -22,6 +22,17 @@ export default [
           showParent: true,
         },
       },
+      {
+        path: "/music/source-admin",
+        name: "musicSourceAdmin",
+        component: () => import("@/views/music/source-admin/index.vue"),
+        meta: {
+          icon: "ri:equalizer-2-line",
+          title: "音源管理",
+          showLink: true,
+          showParent: true,
+        },
+      },
     ],
   },
 ] satisfies Array<RouteConfigsTable>;

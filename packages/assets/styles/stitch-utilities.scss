@@ -1,1 +1,12 @@
-@use "./stitch/utilities.scss";
+/* Shared utility helpers for stitch visuals. */
+.stitch-text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stitch-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

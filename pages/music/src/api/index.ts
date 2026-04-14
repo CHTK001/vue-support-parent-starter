@@ -13,6 +13,18 @@ import type {
 export const fetchMusicSources = () =>
   http.request<ReturnResult<MusicSourceOption[]>>("get", "/v1/music/sources");
 
+export const fetchMusicAdminSources = () =>
+  http.request<ReturnResult<MusicSourceOption[]>>("get", "/v1/music/admin/sources");
+
+export const updateMusicAdminSource = (sourceCode: string, enabled: boolean) =>
+  http.request<ReturnResult<MusicSourceOption>>(
+    "put",
+    `/v1/music/admin/sources/${sourceCode}`,
+    {
+      data: { enabled },
+    },
+  );
+
 export const fetchMusicOverview = (source?: string) =>
   http.request<ReturnResult<MusicOverview>>("get", "/v1/music/overview", {
     params: { source },

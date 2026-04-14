@@ -1,1 +1,7 @@
-@forward "../style/stitch/layout-tokens.scss";
+/* Stitch layout token fallback for asset entry imports. */
+:root {
+  --stitch-lay-bg-overlay: rgba(255, 255, 255, 0.9);
+  --stitch-lay-bg-header: #ffffff;
+  --stitch-lay-text-main: #333333;
+  --stitch-lay-border: #eeeeee;
+}

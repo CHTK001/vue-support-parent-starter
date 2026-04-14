@@ -7,35 +7,52 @@
       </div>
       <div class="section-actions">
         <span>{{ playlists.length }} 个入口</span>
-        <div v-if="playlists.length > 4" class="switcher">
-          <button class="switcher-btn" type="button" aria-label="上一组" @click="scrollBy(-1)">‹</button>
-          <button class="switcher-btn" type="button" aria-label="下一组" @click="scrollBy(1)">›</button>
-        </div>
       </div>
     </div>
 
-    <div
-      v-if="playlists.length"
-      ref="scrollerRef"
-      class="playlist-grid"
-      :class="{ 'playlist-grid--compact': compact }"
-    >
+    <div v-if="playlists.length" class="playlist-stage">
       <button
-        v-for="playlist in playlists"
-        :key="`${playlist.source}:${playlist.playlistId}`"
-        class="playlist-card"
-        :class="{ 'playlist-card--compact': compact }"
-        @click="emit('open-playlist', playlist)"
+        v-show="canScrollPrev"
+        class="switcher-btn switcher-btn--left"
+        type="button"
+        aria-label="上一组"
+        @click="scrollBy(-1)"
       >
-        <span v-if="playlist.playCount" class="playlist-stat">
-          {{ formatCount(playlist.playCount) }} 播放
-        </span>
-        <img :src="playlist.coverUrl" :alt="playlist.title" />
-        <div class="playlist-copy">
-          <strong>{{ playlist.title }}</strong>
-          <span>{{ playlist.author }}</span>
-          <small>{{ playlist.trackCount }} 首</small>
-        </div>
+        ‹
+      </button>
+
+      <div
+        ref="scrollerRef"
+        class="playlist-grid"
+        :class="{ 'playlist-grid--compact': compact }"
+      >
+        <button
+          v-for="playlist in playlists"
+          :key="`${playlist.source}:${playlist.playlistId}`"
+          class="playlist-card"
+          :class="{ 'playlist-card--compact': compact }"
+          @click="emit('open-playlist', playlist)"
+        >
+          <span v-if="playlist.playCount" class="playlist-stat">
+            {{ formatCount(playlist.playCount) }} 播放
+          </span>
+          <img :src="playlist.coverUrl" :alt="playlist.title" />
+          <div class="playlist-copy">
+            <strong>{{ playlist.title }}</strong>
+            <span>{{ playlist.author }}</span>
+            <small>共 {{ playlist.trackCount || 0 }} 首</small>
+          </div>
+        </button>
+      </div>
+
+      <button
+        v-show="canScrollNext"
+        class="switcher-btn switcher-btn--right"
+        type="button"
+        aria-label="下一组"
+        @click="scrollBy(1)"
+      >
+        ›
       </button>
     </div>
 
@@ -44,10 +61,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { MusicPlaylistSummary } from "../types";
 
-defineProps<{
+const props = defineProps<{
   title: string;
   kicker: string;
   playlists: MusicPlaylistSummary[];
@@ -60,6 +77,9 @@ const emit = defineEmits<{
 }>();
 
 const scrollerRef = ref<HTMLElement>();
+const canScrollPrev = ref(false);
+const canScrollNext = ref(false);
+let resizeObserver: ResizeObserver | null = null;
 
 function scrollBy(direction: number) {
   scrollerRef.value?.scrollBy({
@@ -67,6 +87,56 @@ function scrollBy(direction: number) {
     behavior: "smooth"
   });
 }
+
+function updateScrollButtons() {
+  const element = scrollerRef.value;
+  if (!element) {
+    canScrollPrev.value = false;
+    canScrollNext.value = false;
+    return;
+  }
+
+  const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
+  canScrollPrev.value = element.scrollLeft > 8;
+  canScrollNext.value = maxScrollLeft - element.scrollLeft > 8;
+}
+
+function bindScrollerEvents() {
+  const element = scrollerRef.value;
+  if (!element) return;
+  element.addEventListener("scroll", updateScrollButtons, { passive: true });
+  resizeObserver = new ResizeObserver(() => updateScrollButtons());
+  resizeObserver.observe(element);
+}
+
+function unbindScrollerEvents() {
+  const element = scrollerRef.value;
+  if (element) {
+    element.removeEventListener("scroll", updateScrollButtons);
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+}
+
+onMounted(async () => {
+  await nextTick();
+  bindScrollerEvents();
+  updateScrollButtons();
+});
+
+onBeforeUnmount(() => {
+  unbindScrollerEvents();
+});
+
+watch(
+  () => [props.playlists.length, props.compact],
+  async () => {
+    await nextTick();
+    updateScrollButtons();
+  },
+);
 
 function formatCount(value?: number) {
   if (!value) return "0";
@@ -114,6 +184,8 @@ function formatCount(value?: number) {
 .section-head h3 {
   margin: 0;
   font-size: 28px;
+  color: var(--music-text);
+  text-shadow: 0 4px 14px rgba(15, 6, 8, 0.2);
 }
 
 .section-card--compact .section-head h3 {
@@ -124,14 +196,18 @@ function formatCount(value?: number) {
   color: var(--music-muted);
 }
 
+.playlist-stage {
+  position: relative;
+  margin-top: 18px;
+}
+
 .playlist-grid {
   display: flex;
   gap: 14px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scrollbar-width: none;
-  gap: 14px;
-  margin-top: 18px;
+  padding: 0 48px;
 }
 
 .playlist-grid::-webkit-scrollbar {
@@ -230,21 +306,32 @@ function formatCount(value?: number) {
   margin-top: 16px;
 }
 
-.switcher {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .switcher-btn {
-  width: 34px;
-  height: 34px;
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 26px rgba(10, 4, 4, 0.24);
   color: var(--music-text);
   cursor: pointer;
   font-size: 20px;
   line-height: 1;
+  transform: translateY(-50%);
+}
+
+.switcher-btn--left {
+  left: 6px;
+}
+
+.switcher-btn--right {
+  right: 6px;
 }
 </style>

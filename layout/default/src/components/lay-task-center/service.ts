@@ -323,11 +323,17 @@ export const updateTaskCenterTask = (
   patch: Omit<TaskCenterTaskInput, "id">,
 ) => upsertTaskCenterTask({ ...patch, id: taskId });
 
-export const getTaskCenterTask = (taskOrRequestId: string | number) =>
-  findTask({
-    id: typeof taskOrRequestId === "string" ? taskOrRequestId : undefined,
-    requestId: taskOrRequestId,
-  }) ?? null;
+export const getTaskCenterTask = (taskOrRequestId: string | number) => {
+  if (typeof taskOrRequestId === "string") {
+    return (
+      findTask({ id: taskOrRequestId }) ??
+      findTask({ requestId: taskOrRequestId }) ??
+      null
+    );
+  }
+
+  return findTask({ requestId: taskOrRequestId }) ?? null;
+};
 
 export const getTaskCenterTaskByRequestId = (requestId: string | number) =>
   findTaskByRequestId(requestId) ?? null;

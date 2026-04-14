@@ -1,1 +1,1 @@
-export * from "@pages/doc";
+export * from "../server/node-documentation";
