@@ -47,7 +47,7 @@
       class="hub-card-table"
       layout="card"
       row-key="sourceId"
-      :col-size="3"
+      :col-size="4"
       :page-size="12"
       :data="sourceTableData"
     >
@@ -55,9 +55,11 @@
         <article class="source-card" @dblclick="$emit('open-source', row)">
           <div class="source-card__head">
             <div class="source-card__identity">
-              <span class="source-card__avatar">{{
-                sourceInitial(row.connectionName)
-              }}</span>
+              <span class="source-card__avatar">
+                <ElIcon>
+                  <component :is="sourceAvatarIcon(row.sourceType)" />
+                </ElIcon>
+              </span>
               <div>
                 <strong>{{ row.connectionName }}</strong>
                 <span
@@ -69,6 +71,7 @@
 
             <button
               class="source-card__favorite"
+              :class="{ 'source-card__favorite--active': row.favorite }"
               type="button"
               @click.stop="$emit('toggle-favorite', row.sourceId)"
             >
@@ -76,11 +79,29 @@
             </button>
           </div>
 
-          <div class="source-card__meta">
-            <ScTag effect="plain">{{ row.sourceType }}</ScTag>
-            <ScTag effect="plain">{{ row.username || "-" }}</ScTag>
-            <ScTag effect="plain">{{ formatTime(row.updatedAt) }}</ScTag>
+          <div class="source-card__strip">
+            <ScTag class="source-card__type" effect="plain">
+              {{ row.sourceType }}
+            </ScTag>
+            <span class="source-card__updated">
+              最近更新 {{ formatTime(row.updatedAt) }}
+            </span>
           </div>
+
+          <dl class="source-card__facts">
+            <div class="source-card__fact">
+              <dt>地址</dt>
+              <dd>{{ row.host }}:{{ row.port }}</dd>
+            </div>
+            <div class="source-card__fact">
+              <dt>{{ row.sourceType === "REDIS" ? "目录" : "数据库" }}</dt>
+              <dd>{{ row.databaseName || "未指定" }}</dd>
+            </div>
+            <div class="source-card__fact">
+              <dt>账号</dt>
+              <dd>{{ row.username || "未填写" }}</dd>
+            </div>
+          </dl>
 
           <p class="source-card__note">
             {{ row.note || "未填写备注，建议记录用途、权限边界和 owner。" }}
@@ -88,6 +109,7 @@
 
           <div class="source-card__footer">
             <ElButton
+              class="source-card__open"
               :disabled="row.sourceType !== 'JDBC'"
               type="primary"
               @click.stop="$emit('open-source', row)"
@@ -95,18 +117,20 @@
               <ElIcon><FolderOpened /></ElIcon>
               打开工作台
             </ElButton>
-            <ElButton @click.stop="openEditDialog(row)">
-              <ElIcon><EditPen /></ElIcon>
-              编辑
-            </ElButton>
-            <ElButton
-              type="danger"
-              plain
-              @click.stop="$emit('delete-source', row.sourceId)"
-            >
-              <ElIcon><Delete /></ElIcon>
-              删除
-            </ElButton>
+            <div class="source-card__actions">
+              <ElButton text @click.stop="openEditDialog(row)">
+                <ElIcon><EditPen /></ElIcon>
+                编辑
+              </ElButton>
+              <ElButton
+                text
+                type="danger"
+                @click.stop="$emit('delete-source', row.sourceId)"
+              >
+                <ElIcon><Delete /></ElIcon>
+                删除
+              </ElButton>
+            </div>
           </div>
         </article>
       </template>
@@ -131,7 +155,7 @@
       <div class="dialog-shell">
         <div class="dialog-grid">
           <label class="field">
-            <span>数据源类型</span>
+            <span class="field__label field__label--required">数据源类型</span>
             <ElSelect
               :model-value="modelValue.sourceType"
               placeholder="选择数据源类型"
@@ -144,38 +168,62 @@
                 :value="option.value"
               />
             </ElSelect>
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.sourceType }"
+            >
+              {{ fieldErrors.sourceType || " " }}
+            </small>
           </label>
 
           <label class="field">
-            <span>名称</span>
+            <span class="field__label field__label--required">名称</span>
             <ElInput
               :model-value="modelValue.connectionName"
               placeholder="例如：生产 MySQL / 财务库"
               @update:model-value="updateField('connectionName', $event)"
             />
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.connectionName }"
+            >
+              {{ fieldErrors.connectionName || " " }}
+            </small>
           </label>
 
           <label class="field">
-            <span>主机</span>
+            <span class="field__label field__label--required">主机</span>
             <ElInput
               :model-value="modelValue.host"
               placeholder="172.16.0.40"
               @update:model-value="updateField('host', $event)"
             />
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.host }"
+            >
+              {{ fieldErrors.host || " " }}
+            </small>
           </label>
 
           <label class="field">
-            <span>端口</span>
+            <span class="field__label field__label--required">端口</span>
             <ElInputNumber
               :controls="false"
               :min="0"
               :model-value="modelValue.port"
               @update:model-value="updateNumberField('port', $event)"
             />
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.port }"
+            >
+              {{ fieldErrors.port || " " }}
+            </small>
           </label>
 
           <label class="field">
-            <span>{{ databaseLabel }}</span>
+            <span class="field__label">{{ databaseLabel }}</span>
             <ElInput
               :model-value="modelValue.databaseName"
               :placeholder="databasePlaceholder"
@@ -184,7 +232,7 @@
           </label>
 
           <label class="field field--full">
-            <span>{{ protocolLabel }}</span>
+            <span class="field__label">{{ protocolLabel }}</span>
             <ElInput
               :model-value="modelValue.protocol"
               :placeholder="protocolPlaceholder"
@@ -193,16 +241,29 @@
           </label>
 
           <label class="field">
-            <span>用户名</span>
+            <span
+              class="field__label"
+              :class="{
+                'field__label--required': isUsernameRequired,
+              }"
+            >
+              用户名
+            </span>
             <ElInput
               :model-value="modelValue.username"
               placeholder="root"
               @update:model-value="updateField('username', $event)"
             />
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.username }"
+            >
+              {{ fieldErrors.username || " " }}
+            </small>
           </label>
 
           <label class="field">
-            <span>密码</span>
+            <span class="field__label">密码</span>
             <ElInput
               :model-value="modelValue.password"
               placeholder="请输入连接密码"
@@ -210,6 +271,7 @@
               type="password"
               @update:model-value="updateField('password', $event)"
             />
+            <small class="field__error field__error--hidden"> </small>
           </label>
 
           <label class="field field--full">
@@ -225,7 +287,10 @@
         </div>
 
         <div class="dialog-footer">
-          <span>保存后才允许进入工作台。非 JDBC 类型当前仅保留配置入口。</span>
+          <span>
+            带 <strong>*</strong> 为必填。保存后才允许进入工作台，非 JDBC
+            类型当前仅保留配置入口。
+          </span>
           <div class="dialog-footer__actions">
             <ElButton @click="dialogVisible = false">取消</ElButton>
             <ElButton :loading="submitting" type="primary" @click="handleSave">
@@ -240,12 +305,14 @@
 
 <script setup lang="ts">
 import {
+  Coin,
   Delete,
   EditPen,
   FolderOpened,
   Plus,
   RefreshRight,
   Search,
+  SetUp,
   Star,
 } from "@element-plus/icons-vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
@@ -260,7 +327,7 @@ import {
   ElOption,
   ElSelect,
 } from "element-plus";
-import { computed, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import type { JdbcConnectionForm, PanelSavedSource } from "../panel";
 
 const props = defineProps<{
@@ -282,6 +349,13 @@ const emit = defineEmits<{
 
 const dialogVisible = ref(false);
 const keyword = ref("");
+const fieldErrors = reactive<Record<string, string>>({
+  sourceType: "",
+  connectionName: "",
+  host: "",
+  port: "",
+  username: "",
+});
 
 const sourceTypeOptions = [
   { label: "JDBC / SQL", value: "JDBC" },
@@ -338,16 +412,19 @@ const protocolPlaceholder = computed(() =>
     ? "redis://127.0.0.1:6379/0"
     : "可留空，后端按 host/port/database 组合"
 );
+const isUsernameRequired = computed(() => props.modelValue.sourceType === "JDBC");
 
 const formatTime = (value?: string) =>
   value ? value.replace("T", " ").slice(0, 16) : "未记录";
-const sourceInitial = (name?: string) =>
-  (name || "D").trim().slice(0, 1).toUpperCase();
+const sourceAvatarIcon = (type?: string) => (type === "REDIS" ? SetUp : Coin);
 
 const updateField = <K extends keyof JdbcConnectionForm>(
   key: K,
   value: JdbcConnectionForm[K]
 ) => {
+  if (key in fieldErrors) {
+    fieldErrors[String(key)] = "";
+  }
   emit("update:modelValue", {
     ...props.modelValue,
     [key]: value,
@@ -358,10 +435,31 @@ const updateNumberField = (
   key: keyof JdbcConnectionForm,
   value: number | null | undefined
 ) => {
+  if (key in fieldErrors) {
+    fieldErrors[String(key)] = "";
+  }
   emit("update:modelValue", {
     ...props.modelValue,
     [key]: Number(value || 0),
   });
+};
+
+const validateForm = () => {
+  fieldErrors.sourceType = props.modelValue.sourceType ? "" : "请选择数据源类型";
+  fieldErrors.connectionName = String(props.modelValue.connectionName || "").trim()
+    ? ""
+    : "请输入数据源名称";
+  fieldErrors.host = String(props.modelValue.host || "").trim()
+    ? ""
+    : "请输入主机地址";
+  fieldErrors.port =
+    Number(props.modelValue.port) > 0 ? "" : "请输入有效端口";
+  fieldErrors.username =
+    !isUsernameRequired.value || String(props.modelValue.username || "").trim()
+      ? ""
+      : "JDBC 数据源必须填写用户名";
+
+  return !Object.values(fieldErrors).some(Boolean);
 };
 
 const openCreateDialog = () => {
@@ -375,6 +473,9 @@ const openEditDialog = (source: PanelSavedSource) => {
 };
 
 const handleSave = () => {
+  if (!validateForm()) {
+    return;
+  }
   emit("save-source");
   dialogVisible.value = false;
 };
@@ -479,32 +580,72 @@ const handleSave = () => {
 
 .hub-card-table {
   min-height: 0;
-  padding: 12px;
-  border: 1px solid rgba(121, 138, 149, 0.12);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.76);
-  backdrop-filter: blur(12px);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.hub-card-table :deep(.card-item-wrapper) {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.hub-card-table :deep(.card-content-wrapper) {
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.hub-card-table :deep(.card-inner),
+.hub-card-table :deep(.card-inner.card-default) {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .source-card {
   display: grid;
-  gap: 14px;
-  min-height: 236px;
-  padding: 18px;
-  border: 1px solid rgba(127, 144, 155, 0.16);
-  border-radius: 18px;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(244, 249, 252, 0.94)
-  );
-  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.06);
+  gap: 12px;
+  width: min(100%, 348px);
+  min-height: 228px;
+  margin: 0 auto;
+  padding: 16px;
+  border: 1px solid rgba(127, 144, 155, 0.14);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(59, 130, 246, 0.14),
+      transparent 34%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 251, 0.96));
+  box-shadow: 0 16px 34px rgba(15, 37, 52, 0.08);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.source-card:hover {
+  border-color: rgba(59, 130, 246, 0.24);
+  box-shadow: 0 20px 38px rgba(15, 37, 52, 0.12);
+  transform: translateY(-2px);
 }
 
 .source-card__head,
 .source-card__footer,
 .source-card__identity,
-.source-card__meta {
+.source-card__strip,
+.source-card__actions {
   display: flex;
   align-items: center;
 }
@@ -528,7 +669,7 @@ const handleSave = () => {
 
 .source-card__identity strong {
   color: #102534;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.2;
 }
 
@@ -542,13 +683,19 @@ const handleSave = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #0f4c81, #38bdf8);
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.source-card__avatar :deep(.el-icon) {
+  color: #fff;
+  font-size: 18px;
 }
 
 .source-card__favorite {
@@ -557,27 +704,96 @@ const handleSave = () => {
   justify-content: center;
   width: 34px;
   height: 34px;
-  border: 0;
+  border: 1px solid rgba(245, 158, 11, 0.18);
   border-radius: 12px;
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
+  background: rgba(255, 255, 255, 0.9);
+  color: #f59e0b;
   cursor: pointer;
 }
 
-.source-card__meta {
+.source-card__favorite--active {
+  background: rgba(245, 158, 11, 0.16);
+  color: #c2410c;
+}
+
+.source-card__strip {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.source-card__type {
+  border-color: rgba(59, 130, 246, 0.2);
+  background: rgba(59, 130, 246, 0.08);
+  color: #0f4c81;
+}
+
+.source-card__updated {
+  color: #7a8f9d;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.source-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  flex-wrap: wrap;
+  margin: 0;
+}
+
+.source-card__fact {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(127, 144, 155, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.source-card__fact dt {
+  color: #7b8f9d;
+  font-size: 11px;
+}
+
+.source-card__fact dd {
+  margin: 0;
+  overflow: hidden;
+  color: #132c3e;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .source-card__note {
-  min-height: 54px;
+  min-height: 48px;
   margin: 0;
-  line-height: 1.7;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(240, 245, 249, 0.9);
+  line-height: 1.6;
 }
 
 .source-card__footer {
   margin-top: auto;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.source-card__open {
+  width: 100%;
+  border-radius: 14px;
+}
+
+.source-card__actions {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.source-card__actions :deep(.el-button) {
+  margin: 0;
+  padding-inline: 0;
 }
 
 .hub-empty {
@@ -600,11 +816,28 @@ const handleSave = () => {
 .field {
   display: grid;
   gap: 8px;
+  grid-template-rows: auto minmax(42px, auto) 16px;
 }
 
-.field span {
+.field__label {
   color: #60798a;
   font-size: 12px;
+}
+
+.field__label--required::after {
+  content: " *";
+  color: #dc2626;
+}
+
+.field__error {
+  min-height: 16px;
+  color: #dc2626;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.field__error--hidden {
+  visibility: hidden;
 }
 
 .field--full {
@@ -620,6 +853,7 @@ const handleSave = () => {
 .field :deep(.el-select__wrapper),
 .field :deep(.el-textarea__inner),
 .field :deep(.el-input-number .el-input__wrapper) {
+  min-height: 42px;
   border-radius: 18px;
 }
 
@@ -660,6 +894,14 @@ const handleSave = () => {
 
   .hub-summary {
     flex-wrap: wrap;
+  }
+
+  .source-card {
+    width: 100%;
+  }
+
+  .source-card__facts {
+    grid-template-columns: 1fr;
   }
 
   .dialog-grid {

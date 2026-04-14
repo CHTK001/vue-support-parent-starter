@@ -11,8 +11,6 @@ export default defineBuildConfig({
       pattern: [
         "**/*.vue",
         "!**/*20250903.vue",
-        "!views/device/**/*.vue",
-        "!views/template/device/**/*.vue",
       ],
     },
     {
@@ -20,14 +18,7 @@ export default defineBuildConfig({
       format: "esm",
       input: "./src",
       loaders: ["js"],
-      pattern: [
-        "**/*.ts",
-        "!api/manage/device.ts",
-        "!api/manage/device-channel.ts",
-        "!api/manage/device-message.ts",
-        "!api/manage/project-device.ts",
-        "!views/template/device/**/*.ts",
-      ],
+      pattern: ["**/*.ts"],
     },
   ],
 });

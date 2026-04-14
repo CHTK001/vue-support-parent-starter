@@ -19,8 +19,6 @@ const loadProjectIndex = async () =>
   (await import("@pages/project/views/project/index.vue")).default;
 const loadSecretIndex = async () =>
   (await import("@pages/project/views/secret/index.vue")).default;
-const loadProjectDeviceTemplate = async () =>
-  (await import("@pages/project/views/template/device/index.vue")).default;
 const loadSmsTemplate = async () =>
   (await import("@pages/project/views/template/sms/index.vue")).default;
 const loadEmailTemplate = async () =>
@@ -178,15 +176,6 @@ export default [
         component: loadResolutionIndex,
         meta: {
           title: "图像分辨率增强",
-          showLink: false,
-        },
-      },
-      {
-        path: "/project/template/device",
-        name: "device-template",
-        component: loadProjectDeviceTemplate,
-        meta: {
-          title: "设备模板",
           showLink: false,
         },
       },

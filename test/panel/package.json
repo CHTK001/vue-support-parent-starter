@@ -1,16 +1,20 @@
 {
-  "name": "panel-playground",
+  "name": "panel-test-app",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5701"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@pages/panel": "workspace:^",
+    "@repo/core": "workspace:^",
     "vue": "catalog:"
   },
   "devDependencies": {
+    "@repo/build-config": "workspace:^",
     "@vitejs/plugin-vue": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"

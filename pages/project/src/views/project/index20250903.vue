@@ -451,7 +451,7 @@ const eventMap = {
   },
   SHE_BEI: (row, item1) => {
     router.push({
-      name: "device-template",
+      name: "DeviceTemplate",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
