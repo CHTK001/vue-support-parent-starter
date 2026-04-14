@@ -580,36 +580,45 @@ const handleSave = () => {
 
 .hub-card-table {
   min-height: 0;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  backdrop-filter: none;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+.hub-card-table :deep(.card-view-container) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 .hub-card-table :deep(.card-item-wrapper) {
   padding: 0;
   background: transparent;
-  border: 0;
-  box-shadow: none;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 .hub-card-table :deep(.card-content-wrapper) {
   height: 100%;
-  padding: 0;
-  background: transparent;
-  border: 0;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
 }
 
 .hub-card-table :deep(.card-inner),
-.hub-card-table :deep(.card-inner.card-default) {
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  backdrop-filter: none;
+.hub-card-table :deep(.card-inner.card-default),
+.hub-card-table :deep(.card-inner.theme--default),
+.hub-card-table :deep(.card-inner.card-default.theme--default) {
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 
 .source-card {

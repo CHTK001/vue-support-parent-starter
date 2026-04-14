@@ -51,15 +51,39 @@
           :set-active-tab="setActiveTab"
           :tabs="localRailTabs"
         >
-          <ScTabs
-            v-model="currentRailValue"
-            layout="rail"
-            :rail-close-button-mode="railCloseButtonMode"
-            :rail-items="localRailTabs"
-            :rail-round="railRound"
-            tab-position="left"
-            @tab-remove="handleRailTabRemove"
-          />
+          <nav
+            class="sc-layout__rail-tabs"
+            :class="{
+              'is-round': railRound,
+              [`close-mode-${railCloseButtonMode}`]: true,
+            }"
+          >
+            <button
+              v-for="tab in localRailTabs"
+              :key="String(tab.name)"
+              type="button"
+              class="sc-layout__rail-tab"
+              :class="{
+                'is-active': String(currentRailValue) === String(tab.name),
+              }"
+              :title="tab.title || tab.label || String(tab.name)"
+              @click="setActiveTab(tab.name)"
+            >
+              <ElIcon v-if="tab.icon" class="sc-layout__rail-icon">
+                <component :is="tab.icon" />
+              </ElIcon>
+              <span v-else class="sc-layout__rail-text">
+                {{ tab.label || tab.name }}
+              </span>
+              <span
+                v-if="tab.closable"
+                class="sc-layout__rail-close"
+                @click.stop="handleRailTabRemove(tab.name)"
+              >
+                ×
+              </span>
+            </button>
+          </nav>
         </slot>
       </div>
       <div v-if="hasRailFooterSlot" class="sc-layout__rail-footer">
@@ -78,7 +102,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useSlots, watch } from "vue";
-import { ScTabs } from "@repo/components/ScTabs";
+import { ElIcon } from "element-plus";
 
 export interface ScLayoutRailTab {
   closable?: boolean;
@@ -540,7 +564,94 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.88);
 }
 
-.sc-layout__rail :deep(.sc-tabs--layout-rail) {
+.sc-layout__rail-tabs {
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.sc-layout__rail-tab {
+  position: relative;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #5f7686;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.sc-layout__rail-tabs.is-round .sc-layout__rail-tab {
+  border-radius: 999px;
+}
+
+.sc-layout__rail-tab:hover {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1252aa;
+}
+
+.sc-layout__rail-tab.is-active {
+  background: rgba(37, 99, 235, 0.14);
+  color: #1252aa;
+}
+
+.sc-layout__rail-icon,
+.sc-layout__rail-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-layout__rail-text {
+  max-width: 36px;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sc-layout__rail-close {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #b42318;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.92);
+}
+
+.sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-close {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.92);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-tab:hover .sc-layout__rail-close,
+.sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-tab.is-active .sc-layout__rail-close {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
 }
 </style>

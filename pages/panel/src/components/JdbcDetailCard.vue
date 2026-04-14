@@ -28,17 +28,18 @@
             :key="`workbench-tools-${activeWorkbenchTab.tabId}-table-edit`"
             class="workbench-head__tools"
           >
-            <ScTabs
-              v-model="editSection"
-              class="toolbar-tabs toolbar-tabs--compact"
-            >
-              <ScTabPane
+            <div class="toolbar-segment" role="tablist" aria-label="设计表分组">
+              <button
                 v-for="item in editSectionOptions"
                 :key="item.value"
-                :label="item.label"
-                :name="item.value"
-              />
-            </ScTabs>
+                type="button"
+                class="toolbar-segment__item"
+                :class="{ 'is-active': editSection === item.value }"
+                @click="editSection = item.value"
+              >
+                {{ item.label }}
+              </button>
+            </div>
             <ElTooltip content="复制当前 DDL">
               <ElButton
                 circle
@@ -73,17 +74,18 @@
             class="workbench-head__tools workbench-head__tools--stack"
           >
             <div class="toolbar-row">
-              <ScTabs
-                v-model="tableView"
-                class="toolbar-tabs toolbar-tabs--compact"
-              >
-                <ScTabPane
+              <div class="toolbar-segment" role="tablist" aria-label="工作台视图">
+                <button
                   v-for="item in workbenchViewOptions"
                   :key="item.value"
-                  :label="item.label"
-                  :name="item.value"
-                />
-              </ScTabs>
+                  type="button"
+                  class="toolbar-segment__item"
+                  :class="{ 'is-active': tableView === item.value }"
+                  @click="tableView = item.value"
+                >
+                  {{ item.label }}
+                </button>
+              </div>
               <ElTooltip
                 v-if="activeDataDirtyCount"
                 content="保存修改 (Ctrl+S)"
@@ -105,41 +107,44 @@
             </div>
             <div class="toolbar-row">
               <span class="toolbar-label">表头</span>
-              <ScTabs
-                v-model="tableCommentTab"
-                class="toolbar-tabs toolbar-tabs--compact"
-              >
-                <ScTabPane
+              <div class="toolbar-segment" role="tablist" aria-label="表头显示模式">
+                <button
                   v-for="item in commentModeOptions"
                   :key="`head-${item.value}`"
-                  :label="item.label"
-                  :name="item.value"
-                />
-              </ScTabs>
+                  type="button"
+                  class="toolbar-segment__item"
+                  :class="{ 'is-active': tableCommentTab === item.value }"
+                  @click="tableCommentTab = item.value"
+                >
+                  {{ item.label }}
+                </button>
+              </div>
               <span class="toolbar-label">数据</span>
-              <ScTabs
-                v-model="dataCommentTab"
-                class="toolbar-tabs toolbar-tabs--compact"
-              >
-                <ScTabPane
+              <div class="toolbar-segment" role="tablist" aria-label="数据显示模式">
+                <button
                   v-for="item in commentModeOptions"
                   :key="`data-${item.value}`"
-                  :label="item.label"
-                  :name="item.value"
-                />
-              </ScTabs>
+                  type="button"
+                  class="toolbar-segment__item"
+                  :class="{ 'is-active': dataCommentTab === item.value }"
+                  @click="dataCommentTab = item.value"
+                >
+                  {{ item.label }}
+                </button>
+              </div>
               <span class="toolbar-label">页签形状</span>
-              <ScTabs
-                v-model="railShapeTab"
-                class="toolbar-tabs toolbar-tabs--compact"
-              >
-                <ScTabPane
+              <div class="toolbar-segment" role="tablist" aria-label="页签形状">
+                <button
                   v-for="item in railShapeOptions"
                   :key="`shape-${item.value}`"
-                  :label="item.label"
-                  :name="item.value"
-                />
-              </ScTabs>
+                  type="button"
+                  class="toolbar-segment__item"
+                  :class="{ 'is-active': railShapeTab === item.value }"
+                  @click="railShapeTab = item.value"
+                >
+                  {{ item.label }}
+                </button>
+              </div>
               <span class="toolbar-label">查总量</span>
               <ElSwitch
                 :model-value="activeWorkbenchTab.loadTotal"
@@ -154,17 +159,18 @@
             </div>
             <div class="toolbar-row">
               <span class="toolbar-label">数据模式</span>
-              <ScTabs
-                v-model="paginationModeTab"
-                class="toolbar-tabs toolbar-tabs--compact"
-              >
-                <ScTabPane
+              <div class="toolbar-segment" role="tablist" aria-label="数据模式">
+                <button
                   v-for="item in paginationModeOptions"
                   :key="`mode-${item.value}`"
-                  :label="item.label"
-                  :name="item.value"
-                />
-              </ScTabs>
+                  type="button"
+                  class="toolbar-segment__item"
+                  :class="{ 'is-active': paginationModeTab === item.value }"
+                  @click="paginationModeTab = item.value"
+                >
+                  {{ item.label }}
+                </button>
+              </div>
               <span class="toolbar-label">显示序列</span>
               <ElSwitch
                 :model-value="activeWorkbenchTab.showSequence"
@@ -179,7 +185,7 @@
                 <div class="column-setting-popover">
                   <strong>冻结列</strong>
                   <ElCheckboxGroup
-                    :model-value="activeWorkbenchTab.frozenColumns"
+                    :model-value="activeFrozenColumns"
                     class="column-setting-group"
                     @update:model-value="handleFrozenColumnsChange"
                   >
@@ -981,23 +987,23 @@
 
           <div class="sql-footer__body">
             <div v-if="bottomPanel === 'result'" class="footer-panel">
-              <ElTable
+              <div
                 v-if="queryResult?.query && queryResult.columns?.length"
-                :data="queryResult.rows"
-                border
-                height="100%"
+                class="sql-result-table"
               >
-                <ElTableColumn
-                  v-for="column in queryResult.columns"
-                  :key="column"
-                  :label="column"
-                  :min-width="140"
-                >
-                  <template #default="{ row }">{{
-                    row[column] ?? "-"
-                  }}</template>
-                </ElTableColumn>
-              </ElTable>
+                <ElAutoResizer>
+                  <template #default="{ height, width }">
+                    <ElTableV2
+                      :columns="queryResultVirtualColumns"
+                      :data="queryResultVirtualRows"
+                      :header-height="40"
+                      :height="Math.max(height, 220)"
+                      :row-height="40"
+                      :width="width"
+                    />
+                  </template>
+                </ElAutoResizer>
+              </div>
 
               <div v-else class="footer-placeholder">
                 <strong>{{
@@ -1230,9 +1236,9 @@ import {
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScLayout from "@repo/components/ScLayout";
 import ScTag from "@repo/components/ScTag/src/index.vue";
-import { ScTabs, ScTabPane } from "@repo/components/ScTabs";
 import {
   ElButton,
+  ElAutoResizer,
   ElCheckbox,
   ElCheckboxGroup,
   ElDialog,
@@ -1248,6 +1254,7 @@ import {
   ElSwitch,
   ElTable,
   ElTableColumn,
+  ElTableV2,
   ElTag,
   ElTooltip,
 } from "element-plus";
@@ -1806,6 +1813,28 @@ const codeMirrorHints = computed(() =>
     {} as Record<string, string[]>
   )
 );
+
+const measureQueryResultColumnWidth = (column: string, rows: Record<string, any>[]) => {
+  const samples = rows.slice(0, 20).map((row) => String(row?.[column] ?? "-"));
+  const maxLength = Math.max(
+    String(column || "").length,
+    ...samples.map((value) => value.length),
+  );
+  return Math.min(Math.max(maxLength * 12, 160), 320);
+};
+
+const queryResultVirtualColumns = computed(() =>
+  (props.queryResult?.columns || []).map((column) => ({
+    key: column,
+    dataKey: column,
+    title: column,
+    width: measureQueryResultColumnWidth(column, props.queryResult?.rows || []),
+    cellRenderer: ({ cellData }: { cellData: unknown }) =>
+      String(cellData ?? "-"),
+  }))
+);
+
+const queryResultVirtualRows = computed(() => props.queryResult?.rows || []);
 
 const buildAccountKey = (account: PanelJdbcAccountView) =>
   `${account.panelAccountName || ""}@${account.panelHost || "%"}`;
@@ -2999,11 +3028,40 @@ onBeforeUnmount(() => {
 
 .footer-panel {
   overflow: hidden;
+  min-width: 0;
 }
 
 .footer-panel :deep(.el-table),
 .workbench-panel :deep(.el-table) {
   height: 100%;
+}
+
+.sql-result-table {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sql-result-table :deep(.el-auto-resizer) {
+  width: 100%;
+  height: 100%;
+}
+
+.sql-result-table :deep(.el-table-v2) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.sql-result-table :deep(.el-table-v2__header-cell),
+.sql-result-table :deep(.el-table-v2__row-cell) {
+  padding: 0 12px;
+}
+
+.sql-result-table :deep(.el-table-v2__row-cell) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .footer-placeholder,
@@ -3101,45 +3159,30 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.toolbar-tabs {
+.toolbar-segment {
   min-width: 0;
-}
-
-.toolbar-tabs :deep(.el-tabs__header) {
-  margin: 0;
-}
-
-.toolbar-tabs :deep(.el-tabs__nav) {
+  display: inline-flex;
+  flex-wrap: wrap;
   gap: 6px;
-  border: 0;
 }
 
-.toolbar-tabs :deep(.el-tabs__nav-wrap::after),
-.rail-tabs :deep(.el-tabs__nav-wrap::after) {
-  display: none;
-}
-
-.toolbar-tabs :deep(.el-tabs__item) {
+.toolbar-segment__item {
   height: 30px;
-  padding: 0 12px !important;
-  border: 0 !important;
+  padding: 0 12px;
+  border: 0;
   border-radius: 10px;
+  background: transparent;
   color: #5f7686;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
-.toolbar-tabs :deep(.el-tabs__item:first-child),
-.toolbar-tabs :deep(.el-tabs__item:last-child) {
-  padding: 0 12px !important;
-}
-
-.toolbar-tabs :deep(.el-tabs__item.is-active) {
+.toolbar-segment__item.is-active {
   background: rgba(37, 99, 235, 0.14);
   color: #1252aa;
-}
-
-.toolbar-tabs :deep(.el-tabs__active-bar),
-.toolbar-tabs :deep(.el-tabs__content) {
-  display: none;
+  font-weight: 600;
 }
 
 .workbench-body {

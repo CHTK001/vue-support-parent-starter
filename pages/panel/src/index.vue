@@ -912,7 +912,7 @@ const fetchTableArtifacts = async (node: JdbcCatalogNode) => {
 };
 
 const buildPreviewSql = (node: JdbcCatalogNode) =>
-  `select * from ${fullTableName(node)} limit ${previewLimit.value};`;
+  `select * from ${fullTableName(node)};`;
 
 const fetchTableDataForTab = async (
   tab: InspectorTableTab,
@@ -1871,7 +1871,7 @@ const handleContextAction = async ({
       return;
     }
     if (node) {
-      injectSql(`select * from ${fullTableName(node)} limit ${previewLimit.value};`);
+      injectSql(`select * from ${fullTableName(node)};`);
       activeInspectorTabId.value = "workspace";
     }
     return;
