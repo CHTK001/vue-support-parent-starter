@@ -194,6 +194,9 @@ export const createServerHost = (data: ServerHost) =>
 export const updateServerHost = (id: number, data: ServerHost) =>
   request<ServerHost>("PUT", `${hostsBase}/${id}`, { data });
 
+export const refreshServerHostPublicIp = (id: number) =>
+  request<ServerHost>("POST", `${hostsBase}/${id}/public-ip/refresh`);
+
 export const updateServerHostEnabled = (id: number, enabled: boolean) =>
   request<ServerHost>("PATCH", `${hostsBase}/${id}/enabled`, {
     query: { enabled },

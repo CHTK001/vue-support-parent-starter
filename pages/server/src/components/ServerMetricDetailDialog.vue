@@ -155,7 +155,9 @@
           </div>
           <div class="server-metric-detail-dialog__chip">
             {{
-              detail?.publicIp ? `公网 ${detail.publicIp}` : "公网地址未获取"
+              detail?.publicIp || host?.publicIp
+                ? `公网 ${detail?.publicIp || host?.publicIp}`
+                : "公网地址未获取"
             }}
           </div>
           <div class="server-metric-detail-dialog__chip">
@@ -266,7 +268,7 @@
             </div>
             <div>
               <dt>公网地址</dt>
-              <dd>{{ detail?.publicIp || "-" }}</dd>
+              <dd>{{ detail?.publicIp || host?.publicIp || "-" }}</dd>
             </div>
           </dl>
         </ScCard>
@@ -421,10 +423,11 @@ import {
   formatPacketCount,
   formatThroughput,
   osLabel,
+  resolveDiskIoTotal,
   resolveIoTotal,
 } from "../utils/serverHost";
 
-type MetricKey = "cpu" | "memory" | "disk" | "io";
+type MetricKey = "cpu" | "memory" | "disk" | "io" | "diskIo";
 type RangeValue = number;
 type HistoryStateFilter = "all" | "normal" | "warning" | "danger";
 
@@ -544,7 +547,7 @@ const recentHistory = computed(() =>
 
 const currentAiFilterKey = computed(() =>
   buildMetricHistoryAiFilterKey(props.host?.serverId, {
-    metricKey: props.metricKey,
+    metricKey: props.metricKey === "diskIo" ? "DISK_IO" : props.metricKey,
     minutes: historyRange.value,
     startTime: historyDateRange.value[0]
       ? Number(historyDateRange.value[0])
@@ -603,6 +606,11 @@ const thresholds = computed(() => {
         warning: Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
         danger: Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024),
       };
+    case "diskIo":
+      return {
+        warning: 80 * 1024 * 1024,
+        danger: 160 * 1024 * 1024,
+      };
     default:
       return {
         warning: Number(settings.cpuWarningPercent || 75),
@@ -629,6 +637,10 @@ const liquidColor = computed(() => {
       ? props.snapshot.memoryUsage
       : props.metricKey === "disk"
         ? props.snapshot.diskUsage
+        : props.metricKey === "diskIo"
+          ? resolveDiskIoTotal(props.snapshot)
+          : props.metricKey === "io"
+            ? resolveIoTotal(props.snapshot)
         : props.snapshot.cpuUsage
     : 0;
   return resolveUsageColor(usage);
@@ -723,6 +735,28 @@ const metricMeta = computed(() => {
       freeText: "",
     };
   }
+  if (props.metricKey === "diskIo") {
+    return {
+      title: "磁盘 IO 指标详情",
+      description: "查看磁盘读写吞吐趋势，辅助判断存储是否成为瓶颈。",
+      chartTitle: "磁盘 IO 历史趋势",
+      value: formatThroughput(resolveDiskIoTotal(snapshot)),
+      total: `读 ${formatThroughput(snapshot?.diskReadBytesPerSecond)} · 写 ${formatThroughput(snapshot?.diskWriteBytesPerSecond)}`,
+      warningText: formatThroughput(warning),
+      dangerText: formatThroughput(danger),
+      badgeText: "实时磁盘吞吐",
+      badgeClass: snapshot?.online ? "is-primary" : "is-muted",
+      itemText: (item: ServerMetricsSnapshot) =>
+        `读 ${formatThroughput(item.diskReadBytesPerSecond)} / 写 ${formatThroughput(item.diskWriteBytesPerSecond)}`,
+      itemValue: (item: ServerMetricsSnapshot) =>
+        formatThroughput(resolveDiskIoTotal(item)),
+      itemExtra: (item: ServerMetricsSnapshot) => formatLatency(item.latencyMs),
+      itemRawValue: (item: ServerMetricsSnapshot) => resolveDiskIoTotal(item),
+      usagePercent: 0,
+      usedText: "",
+      freeText: "",
+    };
+  }
   return {
     title: "CPU 指标详情",
     description: "查看 CPU 历史波动、阈值线与核心数基线。",
@@ -811,9 +845,16 @@ const chartOption = computed(() => {
       return Math.round(Number(item.memoryUsage || 0) * 100) / 100;
     if (props.metricKey === "disk")
       return Math.round(Number(item.diskUsage || 0) * 100) / 100;
+    if (props.metricKey === "diskIo") return Math.round(resolveDiskIoTotal(item));
     if (props.metricKey === "io") return Math.round(resolveIoTotal(item));
     return Math.round(Number(item.cpuUsage || 0) * 100) / 100;
   });
+  const diskReadSeriesData = data.map((item) =>
+    Math.round(Number(item.diskReadBytesPerSecond || 0)),
+  );
+  const diskWriteSeriesData = data.map((item) =>
+    Math.round(Number(item.diskWriteBytesPerSecond || 0)),
+  );
   const ioReadSeriesData = data.map((item) =>
     Math.round(Number(item.ioReadBytesPerSecond || 0)),
   );
@@ -821,7 +862,7 @@ const chartOption = computed(() => {
     Math.round(Number(item.ioWriteBytesPerSecond || 0)),
   );
 
-  const isPercent = props.metricKey !== "io";
+  const isPercent = props.metricKey !== "io" && props.metricKey !== "diskIo";
   const warningLine = Number(thresholds.value.warning || 0);
   const dangerLine = Number(thresholds.value.danger || 0);
   const maxValue = isPercent
@@ -829,6 +870,8 @@ const chartOption = computed(() => {
     : Math.max(
         dangerLine,
         ...totalSeriesData.map((item) => Number(item || 0)),
+        ...diskReadSeriesData.map((item) => Number(item || 0)),
+        ...diskWriteSeriesData.map((item) => Number(item || 0)),
         ...ioReadSeriesData.map((item) => Number(item || 0)),
         ...ioWriteSeriesData.map((item) => Number(item || 0)),
         1,
@@ -965,6 +1008,62 @@ const chartOption = computed(() => {
               },
             },
           ]
+        : props.metricKey === "diskIo"
+          ? [
+              {
+                name: "总吞吐",
+                type: "line",
+                smooth: true,
+                showSymbol: false,
+                data: totalSeriesData,
+                lineStyle: {
+                  width: 3,
+                  color: "#ec4899",
+                },
+                areaStyle: {
+                  color: "rgba(236, 72, 153, 0.12)",
+                },
+                markLine: {
+                  symbol: "none",
+                  label: {
+                    formatter: ({ value }: { value?: number }) =>
+                      formatThroughput(value),
+                  },
+                  data: [
+                    {
+                      yAxis: warningLine,
+                      lineStyle: { color: "#f59e0b", type: "dashed" },
+                    },
+                    {
+                      yAxis: dangerLine,
+                      lineStyle: { color: "#ef4444", type: "dashed" },
+                    },
+                  ],
+                },
+              },
+              {
+                name: "读取",
+                type: "line",
+                smooth: true,
+                showSymbol: false,
+                data: diskReadSeriesData,
+                lineStyle: {
+                  width: 2,
+                  color: "#db2777",
+                },
+              },
+              {
+                name: "写入",
+                type: "line",
+                smooth: true,
+                showSymbol: false,
+                data: diskWriteSeriesData,
+                lineStyle: {
+                  width: 2,
+                  color: "#be185d",
+                },
+              },
+            ]
         : [
             {
               name: "指标值",
@@ -1071,6 +1170,17 @@ function formatDateTime(
   gap: 16px;
   align-items: flex-start;
   flex-wrap: wrap;
+  padding: 20px 22px;
+  min-height: 108px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  box-shadow:
+    0 20px 36px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 .server-metric-detail-dialog__title-row {
   gap: 10px;
@@ -1112,8 +1222,9 @@ function formatDateTime(
 .server-metric-detail-dialog__panel,
 .server-metric-detail-dialog__ai-panel {
   border: 1px solid color-mix(in srgb, var(--el-border-color) 76%, transparent);
-  border-radius: 24px;
+  border-radius: 26px;
   background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 22%),
     radial-gradient(
       circle at top left,
       color-mix(in srgb, var(--el-color-primary) 10%, transparent),
@@ -1124,11 +1235,13 @@ function formatDateTime(
       color-mix(in srgb, var(--el-bg-color-overlay) 98%, white) 0%,
       var(--el-bg-color-overlay) 100%
     );
-  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.07);
+  box-shadow:
+    0 20px 48px rgba(15, 23, 42, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 .server-metric-detail-dialog__hero {
   gap: 16px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   position: relative;
   overflow: hidden;
 }
@@ -1169,7 +1282,8 @@ function formatDateTime(
   font-weight: 600;
 }
 .server-metric-detail-dialog__chip {
-  background: rgba(148, 163, 184, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 .server-metric-detail-dialog__badge.is-success {
   color: #166534;
@@ -1209,7 +1323,8 @@ function formatDateTime(
   gap: 8px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
   border: 1px solid rgba(148, 163, 184, 0.18);
 }
 .server-metric-detail-dialog__ai-card small {
@@ -1287,6 +1402,11 @@ function formatDateTime(
 .server-metric-detail-dialog__facts div {
   display: grid;
   gap: 4px;
+  padding: 13px 15px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 .server-metric-detail-dialog__facts dt {
   font-size: 12px;

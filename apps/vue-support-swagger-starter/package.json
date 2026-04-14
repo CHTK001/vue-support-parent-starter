@@ -18,7 +18,6 @@
     "lint": "pnpm lint:eslint && pnpm lint:prettier && pnpm lint:stylelint"
   },
   "dependencies": {
-    "@pages/doc": "workspace:^",
     "@pureadmin/utils": "catalog:",
     "@tailwindcss/typography": "catalog:",
     "@vueuse/core": "catalog:",

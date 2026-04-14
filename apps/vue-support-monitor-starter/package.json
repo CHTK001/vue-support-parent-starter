@@ -124,8 +124,7 @@
     "@pages/project": "workspace:^",
     "@pages/proxy": "workspace:^",
     "@pages/video": "workspace:^",
-    "@pages/pay": "workspace:^",
-    "@pages/doc": "workspace:^"
+    "@pages/pay": "workspace:^"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

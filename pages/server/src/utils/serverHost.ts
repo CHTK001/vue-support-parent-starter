@@ -239,6 +239,10 @@ export const resolveIoTotal = (snapshot?: ServerMetricsSnapshot | null) =>
   Math.max(0, Number(snapshot?.ioReadBytesPerSecond || 0)) +
   Math.max(0, Number(snapshot?.ioWriteBytesPerSecond || 0));
 
+export const resolveDiskIoTotal = (snapshot?: ServerMetricsSnapshot | null) =>
+  Math.max(0, Number(snapshot?.diskReadBytesPerSecond || 0)) +
+  Math.max(0, Number(snapshot?.diskWriteBytesPerSecond || 0));
+
 export const resolveNetworkPacketTotal = (
   snapshot?: ServerMetricsSnapshot | null,
 ) =>
@@ -347,11 +351,19 @@ export const buildMetricChartOption = (
         yAxisIndex: 1,
         data: data.map((item) => Math.round(resolveIoTotal(item))),
       },
+      {
+        name: "磁盘IO",
+        type: "line",
+        smooth: true,
+        showSymbol: false,
+        yAxisIndex: 1,
+        data: data.map((item) => Math.round(resolveDiskIoTotal(item))),
+      },
     ],
   };
 };
 
-type MetricSparkType = "cpu" | "memory" | "disk" | "io";
+type MetricSparkType = "cpu" | "memory" | "disk" | "io" | "diskIo";
 
 const resolveMetricSparkData = (
   history: ServerMetricsSnapshot[],
@@ -361,6 +373,7 @@ const resolveMetricSparkData = (
     if (type === "cpu") return Math.round(safePercent(item.cpuUsage));
     if (type === "memory") return Math.round(safePercent(item.memoryUsage));
     if (type === "disk") return Math.round(safePercent(item.diskUsage));
+    if (type === "diskIo") return Math.round(resolveDiskIoTotal(item));
     return Math.round(resolveIoTotal(item));
   });
 
@@ -370,6 +383,7 @@ const resolveMetricSparkColor = (type: MetricSparkType) =>
     memory: "#14b8a6",
     disk: "#f59e0b",
     io: "#8b5cf6",
+    diskIo: "#ec4899",
   })[type];
 
 export const buildMetricSparkOption = (
@@ -379,7 +393,7 @@ export const buildMetricSparkOption = (
 ) => {
   const data = resolveMetricSparkData(history, type);
   const color = resolveMetricSparkColor(type);
-  const isPercent = type !== "io";
+  const isPercent = type !== "io" && type !== "diskIo";
   const maxValue = isPercent
     ? 100
     : Math.max(

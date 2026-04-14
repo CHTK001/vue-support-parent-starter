@@ -118,7 +118,6 @@ html[data-skin="default"] {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
       &:hover {
-        color: var(--app-text-primary) !important;
         transform: translateX(2px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
@@ -129,7 +128,6 @@ html[data-skin="default"] {
         line-height: 46px;
         font-size: 14px;
         letter-spacing: 0.3px;
-        color: var(--app-text-primary);
       }
       
       &.is-active {

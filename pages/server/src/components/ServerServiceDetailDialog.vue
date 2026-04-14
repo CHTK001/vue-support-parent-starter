@@ -410,7 +410,18 @@ const scriptPreviews = computed(() =>
 .server-service-detail-dialog__hero {
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  padding: 20px 22px;
+  min-height: 112px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  box-shadow:
+    0 20px 36px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .server-service-detail-dialog__hero h3 {
@@ -429,6 +440,7 @@ const scriptPreviews = computed(() =>
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-self: flex-start;
 }
 
 .server-service-detail-dialog__chip {
@@ -438,7 +450,8 @@ const scriptPreviews = computed(() =>
   padding: 0 12px;
   border-radius: 999px;
   color: #334155;
-  background: rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.12);
   font-size: 12px;
 }
 

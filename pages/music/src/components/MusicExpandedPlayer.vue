@@ -48,39 +48,6 @@
           <p v-if="!parsedLyrics.length" class="lyric-empty">当前歌曲没有歌词。</p>
         </div>
 
-        <div class="control-stack">
-          <MusicTransportControls
-            :is-playing="isPlaying"
-            :loop-mode="loopMode"
-            show-lyrics-button
-            @prev="emit('prev')"
-            @toggle="emit('toggle')"
-            @next="emit('next')"
-            @toggle-loop="emit('toggle-loop')"
-            @open-lyrics="focusLyrics"
-          />
-
-          <MusicProgressBar
-            :current-time="currentTime"
-            :duration="duration"
-            :slider-value="sliderValue"
-            @preview-seek="emit('preview-seek', $event)"
-            @seek="emit('seek', $event)"
-          />
-
-          <div class="detail-footer">
-            <div class="detail-footer__meta">
-              <span>音量</span>
-            </div>
-
-            <ScVolumeControl
-              direct-show
-              :model-value="volume"
-              @update:model-value="emit('update-volume', $event)"
-            />
-          </div>
-        </div>
-
         <div v-if="currentTrack.comments?.length" class="comment-panel">
           <div class="lyrics-head">
             <div>
@@ -110,10 +77,7 @@
 
 <script setup lang="ts">
 import ScOverlayPage from "@repo/components/ScOverlayPage";
-import ScVolumeControl from "@repo/components/ScVolumeControl";
 import { nextTick, ref, watch } from "vue";
-import MusicProgressBar from "./MusicProgressBar.vue";
-import MusicTransportControls from "./MusicTransportControls.vue";
 import type { MusicLoopMode, MusicTrackDetail } from "../types";
 
 interface LyricLine {
@@ -136,14 +100,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "prev"): void;
-  (e: "toggle"): void;
-  (e: "next"): void;
-  (e: "toggle-loop"): void;
   (e: "toggle-favorite"): void;
-  (e: "preview-seek", value: number): void;
-  (e: "seek", value: number): void;
-  (e: "update-volume", value: number): void;
 }>();
 
 const lyricsBodyRef = ref<HTMLDivElement>();
@@ -162,13 +119,6 @@ watch(
     });
   }
 );
-
-function focusLyrics() {
-  lyricsBodyRef.value?.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
 
 function formatCount(value?: number) {
   if (!value) return "0";
@@ -251,6 +201,12 @@ function formatCount(value?: number) {
   display: grid;
   gap: 18px;
   min-height: 0;
+  border: 1px solid rgba(255, 239, 225, 0.08);
+  border-radius: 32px;
+  background: linear-gradient(180deg, rgba(74, 31, 29, 0.74), rgba(50, 18, 18, 0.82));
+  box-shadow: 0 24px 56px rgba(15, 6, 8, 0.2);
+  padding: 22px 24px;
+  backdrop-filter: blur(18px);
 }
 
 .lyrics-head {
@@ -277,10 +233,11 @@ function formatCount(value?: number) {
 .favorite-btn {
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff3e5;
   cursor: pointer;
   padding: 10px 18px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .favorite-btn.active {
@@ -293,6 +250,9 @@ function formatCount(value?: number) {
   max-height: 48vh;
   overflow: auto;
   padding-right: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 16px 18px 16px 0;
 }
 
 .lyrics-body p {
@@ -312,22 +272,6 @@ function formatCount(value?: number) {
   color: rgba(255, 236, 221, 0.54);
 }
 
-.control-stack {
-  display: grid;
-  gap: 16px;
-}
-
-.detail-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.detail-footer__meta span {
-  color: rgba(255, 236, 221, 0.68);
-  font-size: 13px;
-}
 
 .comment-panel {
   display: grid;
@@ -384,11 +328,6 @@ function formatCount(value?: number) {
 
   .lyrics-body {
     max-height: none;
-  }
-
-  .detail-footer {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
 </style>

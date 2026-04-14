@@ -604,26 +604,48 @@ onMounted(() => {
 <style scoped lang="scss">
 .server-aggregate-page {
   display: grid;
-  gap: 18px;
+  gap: 20px;
   min-height: calc(100vh - 140px);
-  padding: 18px;
+  padding: 20px;
   color: #ecfeff;
   background:
     radial-gradient(
       circle at top left,
-      rgba(14, 165, 233, 0.18),
-      transparent 30%
+      rgba(14, 165, 233, 0.2),
+      transparent 28%
     ),
-    linear-gradient(150deg, #07121e 0%, #0c2134 55%, #102d42 100%);
+    radial-gradient(
+      circle at top right,
+      rgba(245, 158, 11, 0.12),
+      transparent 20%
+    ),
+    linear-gradient(150deg, #040b16 0%, #0c2134 55%, #10263d 100%);
 }
 
 .server-aggregate-page__hero,
 .server-aggregate-page__stat-card,
 .server-aggregate-page__panel {
-  border-radius: 24px;
-  border: 1px solid rgba(34, 211, 238, 0.16);
-  background: rgba(6, 24, 36, 0.76);
-  box-shadow: 0 28px 54px -40px rgba(6, 182, 212, 0.45);
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(34, 211, 238, 0.14);
+  background:
+    linear-gradient(180deg, rgba(6, 24, 36, 0.82), rgba(5, 17, 29, 0.88)),
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 36%);
+  box-shadow:
+    0 24px 48px rgba(2, 6, 23, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+}
+
+.server-aggregate-page__hero::after,
+.server-aggregate-page__stat-card::after,
+.server-aggregate-page__panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 28%);
 }
 
 .server-aggregate-page__hero,
@@ -637,7 +659,7 @@ onMounted(() => {
 }
 
 .server-aggregate-page__hero {
-  padding: 22px 24px;
+  padding: 26px 28px;
 }
 
 .server-aggregate-page__hero small,
@@ -652,7 +674,7 @@ onMounted(() => {
 
 .server-aggregate-page__hero h1 {
   margin: 8px 0 10px;
-  font-size: 32px;
+  font-size: 36px;
   color: #f0fdff;
 }
 
@@ -671,13 +693,14 @@ onMounted(() => {
 
 .server-aggregate-page__stats {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .server-aggregate-page__stat-card,
 .server-aggregate-page__panel {
   display: grid;
   gap: 12px;
-  padding: 20px;
+  padding: 22px;
 }
 
 .server-aggregate-page__stat-card strong,
@@ -700,7 +723,9 @@ onMounted(() => {
 .server-aggregate-page__stat-card:hover,
 .server-aggregate-page__alert-item:hover,
 .server-aggregate-page__host-item:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  border-color: rgba(56, 189, 248, 0.26);
+  box-shadow: 0 22px 34px rgba(2, 6, 23, 0.28);
 }
 
 .server-aggregate-page__stat-card strong {
@@ -715,6 +740,7 @@ onMounted(() => {
   padding: 0 14px;
   border-radius: 999px;
   background: rgba(8, 47, 73, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .server-aggregate-page__badge.is-muted {
@@ -752,10 +778,11 @@ onMounted(() => {
 
 .server-aggregate-page__alert-item,
 .server-aggregate-page__host-item {
-  padding: 14px 16px;
-  border-radius: 18px;
+  padding: 16px 18px;
+  border-radius: 20px;
   border: 1px solid rgba(34, 211, 238, 0.14);
-  background: rgba(6, 24, 36, 0.42);
+  background:
+    linear-gradient(180deg, rgba(6, 24, 36, 0.5), rgba(4, 16, 26, 0.44));
 }
 
 .server-aggregate-page__alert-item.is-warning {
@@ -791,9 +818,10 @@ onMounted(() => {
 .server-aggregate-page__detail-card {
   display: grid;
   gap: 6px;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(148, 163, 184, 0.08);
+  padding: 18px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.08));
 }
 
 .server-aggregate-page__detail-card small {

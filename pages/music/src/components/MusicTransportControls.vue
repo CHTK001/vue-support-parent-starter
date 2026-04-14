@@ -3,17 +3,24 @@
     <button
       type="button"
       class="transport-btn"
-      :class="{ active: loopMode === 'one' }"
+      :class="{ active: loopMode !== 'all' }"
       :aria-label="loopLabel"
       @click="emit('toggle-loop')"
     >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
+      <svg v-if="loopMode === 'random'" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h3l4 5 4-5h5" />
+        <path d="m17 7 3 0-2.2-2.2" />
+        <path d="M4 17h5l4-5 3.5 4.4H20" />
+        <path d="m17 17 3 0-2.2 2.2" />
+      </svg>
+      <svg v-else viewBox="0 0 24 24" aria-hidden="true">
         <path d="M5 8h11l-2.8-2.8" />
         <path d="M19 16H8l2.8 2.8" />
         <path d="M18.5 8l2.5 2.5-2.5 2.5" />
         <path d="M5.5 16L3 13.5 5.5 11" />
       </svg>
       <span v-if="loopMode === 'one'" class="loop-one">1</span>
+      <span v-else-if="loopMode === 'random'" class="loop-random">R</span>
     </button>
 
     <button type="button" class="transport-btn" aria-label="上一首" @click="emit('prev')">
@@ -24,7 +31,8 @@
     </button>
 
     <button type="button" class="transport-btn transport-btn--major" aria-label="播放或暂停" @click="emit('toggle')">
-      <svg v-if="isPlaying" viewBox="0 0 24 24" aria-hidden="true">
+      <span v-if="loading" class="loading-spinner" />
+      <svg v-else-if="isPlaying" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M8 6h3v12H8z" />
         <path d="M13 6h3v12h-3z" />
       </svg>
@@ -60,10 +68,12 @@ const props = withDefaults(
   defineProps<{
     isPlaying: boolean;
     loopMode: MusicLoopMode;
+    loading?: boolean;
     compact?: boolean;
     showLyricsButton?: boolean;
   }>(),
   {
+    loading: false,
     compact: false,
     showLyricsButton: false
   }
@@ -78,7 +88,9 @@ const emit = defineEmits<{
 }>();
 
 const loopLabel = computed(() => {
-  return props.loopMode === "one" ? "单曲循环" : "列表循环";
+  if (props.loopMode === "one") return "单曲循环";
+  if (props.loopMode === "random") return "随机播放";
+  return "列表循环";
 });
 </script>
 
@@ -141,9 +153,23 @@ const loopLabel = computed(() => {
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
 }
 
+.transport-btn--major:hover {
+  transform: none;
+  background: linear-gradient(135deg, var(--music-accent), var(--music-accent-2));
+}
+
 .transport-btn--major svg {
   width: 21px;
   height: 21px;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(58, 30, 22, 0.24);
+  border-top-color: #4b2518;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .transport-btn--lyric {
@@ -177,5 +203,19 @@ const loopLabel = computed(() => {
   bottom: 6px;
   font-size: 11px;
   font-weight: 700;
+}
+
+.loop-random {
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

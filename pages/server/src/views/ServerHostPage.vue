@@ -1,112 +1,125 @@
 ﻿<template>
   <div class="server-page">
-    <section
-      ref="serverLayoutRef"
-      v-loading="loading"
-      class="server-layout"
-      :style="serverLayoutStyle"
-      :class="{ 'is-sidebar-collapsed': sidebarCollapsed }"
-    >
-      <ServerHostSidebar
-        :loading="loading"
-        :entries="visibleHostEntries"
-        :selected-id="selectedId"
-        :collapsed="sidebarCollapsed"
-        :filter="sidebarFilter"
-        :soft-enabled="softEnabled"
-        :filter-options="sidebarFilterOptions"
-        :selection-mode="aggregateMode"
-        :aggregate-ids="aggregateHostIds"
-        @refresh="loadAll"
-        @create="openCreate"
-        @open-global-remote="openGlobalRemoteGateway"
-        @open-global-alert="openGlobalAlertSettings"
-        @toggle-aggregate-mode="toggleAggregateMode"
-        @toggle-aggregate-host="toggleAggregateHostSelection"
-        @open-aggregate-dashboard="openAggregateDashboard"
-        @select="selectHost($event.serverId)"
-        @edit="openEdit"
-        @toggle-enabled="toggleEnabled"
-        @open-soft="openSoftDrawer"
-        @open-install="openInstallDialog"
-        @open-remote="openRemoteConsole"
-        @open-processes="openProcessDialog"
-        @update:collapsed="sidebarCollapsed = $event"
-        @update:filter="sidebarFilter = $event"
-        @contextmenu="openHostContextMenu"
-      />
-      <button
-        type="button"
-        class="server-layout__resizer"
-        :class="{
-          'is-collapsed': sidebarCollapsed,
-          'is-dragging': sidebarResizing,
-        }"
-        :disabled="sidebarCollapsed"
-        aria-label="调整服务器列表宽度"
-        @mousedown.prevent="startSidebarResize"
-      />
+    <div class="server-page__backdrop" aria-hidden="true">
+      <span class="server-page__orb server-page__orb--cyan"></span>
+      <span class="server-page__orb server-page__orb--amber"></span>
+      <span class="server-page__mesh"></span>
+    </div>
 
-      <ServerHostBasicPanel
-        :host="selectedHost"
-        :snapshot="selectedSnapshot"
-        :history="selectedMetricHistory"
-        :runtime-detail="selectedMetricDetail"
-        :remote-config="selectedRemoteGateway"
-        :can-open-remote="canOpenRemoteConsole"
-        :soft-enabled="softEnabled"
-        :ai-enabled="aiEnabled"
-        :ai-provider="serverCapabilities?.aiProvider"
-        :ai-default-provider="serverCapabilities?.aiDefaultProvider"
-        :ai-provider-count="serverCapabilities?.aiProviderCount"
-        :ai-provider-names="serverCapabilities?.aiProviderNames"
-        :ai-config-ready="serverCapabilities?.aiConfigReady"
-        :ai-chat-client-ready="serverCapabilities?.aiChatClientReady"
-        :ai-status-text="serverCapabilities?.aiStatusText"
-        :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
-        :ai-unavailable-code="serverCapabilities?.aiUnavailableCode"
-        :ai-provider-resolved-from="serverCapabilities?.aiProviderResolvedFrom"
-        :alert-settings="selectedHostAlertSettings"
-        :alert-settings-enabled="selectedHostAlertSettings?.enabled !== false"
-        :alert-message-enabled="
-          selectedHostAlertSettings?.messageEnabled === true
-        "
-        :stability-ai-task="selectedHostAiAnalysis"
-        :analyzing-stability="selectedHostAiAnalyzing"
-        :latest-alerts="selectedHostAlerts"
-        :can-auto-detect-services="serviceAutoDetectEnabled"
-        :detecting-services="serviceDetecting"
-        :software-summary="selectedHostSoftSummary"
-        :services="selectedHostServerServices"
-        :service-action-loading-key="serverServiceActionLoadingKey"
-        @open-files="openFileDrawer()"
-        @open-metrics-task="openMetricsTaskDialog"
-        @open-alert-settings="
-          selectedHost && openHostAlertSettings(selectedHost)
-        "
-        @open-install="selectedHost && openInstallDialog(selectedHost)"
-        @open-soft="selectedHost && openSoftDrawer(selectedHost)"
-        @open-dashboard="selectedHost && openDashboard(selectedHost)"
-        @open-projects="selectedHost && openProjectManagement(selectedHost)"
-        @open-processes="selectedHost && openProcessDialog(selectedHost)"
-        @open-remote="openRemoteConsole()"
-        @open-basic-detail="selectedHost && openHostOverview(selectedHost)"
-        @open-remote-settings="
-          selectedHost && openHostRemoteGateway(selectedHost)
-        "
-        @edit="selectedHost && openEdit(selectedHost)"
-        @toggle-enabled="selectedHost && toggleEnabled(selectedHost)"
-        @open-metric-detail="openMetricDetail"
-        @create-service="selectedHost && openCreateService(selectedHost)"
-        @service-action="runServerServiceAction"
-        @service-ai-fix="runServerServiceAiFix"
-        @view-service-logs="openServiceLogs"
-        @edit-service="openServiceEditor"
-        @detail-service="openServiceDetail"
-        @detect-services="selectedHost && detectHostServices(selectedHost)"
-        @analyze-stability="selectedHost && analyzeSelectedHostStability()"
-        @open-alert-detail="openAlertDetail"
-      />
+    <section class="server-page__stage">
+      <section
+        ref="serverLayoutRef"
+        v-loading="loading"
+        class="server-layout"
+        :style="serverLayoutStyle"
+        :class="{ 'is-sidebar-collapsed': sidebarCollapsed }"
+      >
+        <div class="server-layout__sidebar-stage">
+          <ServerHostSidebar
+            :loading="loading"
+            :entries="visibleHostEntries"
+            :selected-id="selectedId"
+            :collapsed="sidebarCollapsed"
+            :filter="sidebarFilter"
+            :soft-enabled="softEnabled"
+            :filter-options="sidebarFilterOptions"
+            :selection-mode="aggregateMode"
+            :aggregate-ids="aggregateHostIds"
+            @refresh="loadAll"
+            @create="openCreate"
+            @open-global-remote="openGlobalRemoteGateway"
+            @open-global-alert="openGlobalAlertSettings"
+            @toggle-aggregate-mode="toggleAggregateMode"
+            @toggle-aggregate-host="toggleAggregateHostSelection"
+            @open-aggregate-dashboard="openAggregateDashboard"
+            @select="selectHost($event.serverId)"
+            @edit="openEdit"
+            @toggle-enabled="toggleEnabled"
+            @open-soft="openSoftDrawer"
+            @open-install="openInstallDialog"
+            @open-remote="openRemoteConsole"
+            @open-processes="openProcessDialog"
+            @update:collapsed="sidebarCollapsed = $event"
+            @update:filter="sidebarFilter = $event"
+            @contextmenu="openHostContextMenu"
+          />
+        </div>
+        <button
+          type="button"
+          class="server-layout__resizer"
+          :class="{
+            'is-collapsed': sidebarCollapsed,
+            'is-dragging': sidebarResizing,
+          }"
+          :disabled="sidebarCollapsed"
+          aria-label="调整服务器列表宽度"
+          @mousedown.prevent="startSidebarResize"
+        />
+
+        <div class="server-layout__main-stage">
+          <ServerHostBasicPanel
+            :host="selectedHost"
+            :snapshot="selectedSnapshot"
+            :history="selectedMetricHistory"
+            :runtime-detail="selectedMetricDetail"
+            :remote-config="selectedRemoteGateway"
+            :can-open-remote="canOpenRemoteConsole"
+            :soft-enabled="softEnabled"
+            :ai-enabled="aiEnabled"
+            :ai-provider="serverCapabilities?.aiProvider"
+            :ai-default-provider="serverCapabilities?.aiDefaultProvider"
+            :ai-provider-count="serverCapabilities?.aiProviderCount"
+            :ai-provider-names="serverCapabilities?.aiProviderNames"
+            :ai-config-ready="serverCapabilities?.aiConfigReady"
+            :ai-chat-client-ready="serverCapabilities?.aiChatClientReady"
+            :ai-status-text="serverCapabilities?.aiStatusText"
+            :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
+            :ai-unavailable-code="serverCapabilities?.aiUnavailableCode"
+            :ai-provider-resolved-from="serverCapabilities?.aiProviderResolvedFrom"
+            :alert-settings="selectedHostAlertSettings"
+            :alert-settings-enabled="selectedHostAlertSettings?.enabled !== false"
+            :alert-message-enabled="
+              selectedHostAlertSettings?.messageEnabled === true
+            "
+            :stability-ai-task="selectedHostAiAnalysis"
+            :analyzing-stability="selectedHostAiAnalyzing"
+            :latest-alerts="selectedHostAlerts"
+            :can-auto-detect-services="serviceAutoDetectEnabled"
+            :detecting-services="serviceDetecting"
+            :software-summary="selectedHostSoftSummary"
+            :services="selectedHostServerServices"
+            :service-action-loading-key="serverServiceActionLoadingKey"
+            @open-files="openFileDrawer()"
+            @open-metrics-task="openMetricsTaskDialog"
+            @open-alert-settings="
+              selectedHost && openHostAlertSettings(selectedHost)
+            "
+            @open-install="selectedHost && openInstallDialog(selectedHost)"
+            @open-soft="selectedHost && openSoftDrawer(selectedHost)"
+            @open-dashboard="selectedHost && openDashboard(selectedHost)"
+            @open-projects="selectedHost && openProjectManagement(selectedHost)"
+            @open-processes="selectedHost && openProcessDialog(selectedHost)"
+            @open-remote="openRemoteConsole()"
+            @open-basic-detail="selectedHost && openHostOverview(selectedHost)"
+            @refresh-public-ip="selectedHost && refreshSelectedHostPublicIp()"
+            @open-remote-settings="
+              selectedHost && openHostRemoteGateway(selectedHost)
+            "
+            @edit="selectedHost && openEdit(selectedHost)"
+            @toggle-enabled="selectedHost && toggleEnabled(selectedHost)"
+            @open-metric-detail="openMetricDetail"
+            @create-service="selectedHost && openCreateService(selectedHost)"
+            @service-action="runServerServiceAction"
+            @service-ai-fix="runServerServiceAiFix"
+            @view-service-logs="openServiceLogs"
+            @edit-service="openServiceEditor"
+            @detail-service="openServiceDetail"
+            @detect-services="selectedHost && detectHostServices(selectedHost)"
+            @analyze-stability="selectedHost && analyzeSelectedHostStability()"
+            @open-alert-detail="openAlertDetail"
+          />
+        </div>
+      </section>
     </section>
     <ServerHostContextMenu
       ref="hostContextMenuRef"
@@ -131,217 +144,42 @@
       @dashboard="openDashboard"
     />
 
-    <el-drawer
+    <ServerFileDrawer
       v-model="fileDrawerVisible"
-      size="1220px"
-      destroy-on-close
-      :title="
-        selectedHost ? `${selectedHost.serverName} · 文件管理` : '文件管理'
-      "
-    >
-      <template v-if="selectedHost">
-        <div class="server-file-toolbar">
-          <div class="server-chip-group">
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              当前目录 {{ fileDisplayCurrentPath }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ fileLiveStatus }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              预览 {{ filePreviewLines }} 行
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              根目录 ./
-            </el-tag>
-          </div>
-          <div class="server-action-row server-file-toolbar__actions">
-            <el-radio-group v-model="fileViewMode" size="small">
-              <el-radio-button label="list" value="list">列表</el-radio-button>
-              <el-radio-button label="tree" value="tree">树状</el-radio-button>
-            </el-radio-group>
-            <el-button
-              v-if="canNavigateParentDirectory"
-              circle
-              @click="openParentDirectory"
-            >
-              <IconifyIconOnline icon="ri:arrow-up-line" />
-            </el-button>
-            <el-button circle @click="loadFiles()">
-              <IconifyIconOnline icon="ri:refresh-line" />
-            </el-button>
-            <el-button circle @click="createFolder">
-              <IconifyIconOnline icon="ri:folder-add-line" />
-            </el-button>
-            <el-button circle @click="triggerUpload">
-              <IconifyIconOnline icon="ri:upload-2-line" />
-            </el-button>
-            <el-button
-              circle
-              :type="fileWatchEnabled ? 'danger' : 'success'"
-              @click="toggleFileWatch()"
-            >
-              <IconifyIconOnline
-                :icon="
-                  fileWatchEnabled ? 'ri:stop-circle-line' : 'ri:radar-line'
-                "
-              />
-            </el-button>
-          </div>
-        </div>
-        <input
-          id="server-file-upload-input"
-          :key="uploadInputKey"
-          class="server-file-upload-input"
-          type="file"
-          @change="handleUpload"
-        />
-        <div class="server-file-grid">
-          <div v-loading="fileLoading" class="server-file-list thin-scroller">
-            <template v-if="fileViewMode === 'list'">
-              <div
-                v-for="entry in fileEntries"
-                :key="entry.path"
-                class="server-file-item"
-                :class="{
-                  'is-active': entry.path === filePreviewPath,
-                  'is-directory': entry.directory,
-                  'is-file': entry.file,
-                }"
-                @click="enterFileEntry(entry)"
-              >
-                <div class="server-file-item__main">
-                  <span class="server-file-item__icon">
-                    <IconifyIconOnline :icon="fileEntryIcon(entry)" />
-                  </span>
-                  <div>
-                    <strong>{{ entry.name }}</strong>
-                    <p>{{ toRelativeFilePath(entry.path, selectedHost) }}</p>
-                    <p>
-                      {{ formatFileSize(entry.size) }} ·
-                      {{ formatFileTime(entry.lastModified) }}
-                    </p>
-                  </div>
-                </div>
-                <div class="server-action-row">
-                  <el-button circle @click.stop="renameEntry(entry)">
-                    <IconifyIconOnline icon="ri:edit-line" />
-                  </el-button>
-                  <el-button
-                    circle
-                    :disabled="entry.directory"
-                    @click.stop="downloadEntry(entry)"
-                  >
-                    <IconifyIconOnline icon="ri:download-2-line" />
-                  </el-button>
-                  <el-button
-                    circle
-                    type="danger"
-                    plain
-                    @click.stop="removeEntry(entry)"
-                  >
-                    <IconifyIconOnline icon="ri:delete-bin-6-line" />
-                  </el-button>
-                </div>
-              </div>
-              <el-empty
-                v-if="!fileEntries.length"
-                description="当前目录没有文件"
-              />
-            </template>
-            <div v-else class="server-file-tree thin-scroller">
-              <button
-                v-for="entry in fileEntries"
-                :key="entry.path"
-                type="button"
-                class="server-file-tree__node server-file-tree__node--classic"
-                :class="{
-                  'is-active': entry.path === filePreviewPath,
-                  'is-directory': entry.directory,
-                }"
-                @click="enterFileEntry(entry)"
-              >
-                <span class="server-file-item__icon server-file-tree__icon">
-                  <IconifyIconOnline :icon="fileEntryIcon(entry)" />
-                </span>
-                <div class="server-file-tree__meta">
-                  <strong>{{ entry.name }}</strong>
-                  <p>{{ toRelativeFilePath(entry.path, selectedHost) }}</p>
-                  <small>
-                    {{ formatFileSize(entry.size) }} ·
-                    {{ formatFileTime(entry.lastModified) }}
-                  </small>
-                </div>
-              </button>
-              <el-empty
-                v-if="!fileEntries.length"
-                description="当前根目录没有可展示的文件"
-              />
-            </div>
-          </div>
-
-          <div class="server-file-preview thin-scroller">
-            <div class="server-file-preview__header">
-              <div>
-                <h4>{{ fileDisplayPreviewPath || "选择文件查看内容" }}</h4>
-                <p>
-                  {{
-                    filePreview?.truncated
-                      ? "当前内容为截断预览，暂不允许直接同步"
-                      : fileDirty
-                        ? "内容已修改，点击同步写回服务器"
-                        : "支持文本编辑与日志实时追尾"
-                  }}
-                </p>
-              </div>
-              <div class="server-file-preview__header-actions">
-                <el-tag
-                  class="server-inline-tag"
-                  effect="plain"
-                  round
-                  size="small"
-                >
-                  {{ filePreview?.language || "text" }}
-                </el-tag>
-                <el-button
-                  v-if="fileDirty"
-                  size="small"
-                  plain
-                  @click="resetFileDraft"
-                >
-                  还原
-                </el-button>
-                <el-button
-                  v-if="fileDirty"
-                  size="small"
-                  type="primary"
-                  :loading="fileSaving"
-                  @click="saveFileDraft"
-                >
-                  同步
-                </el-button>
-              </div>
-            </div>
-            <div
-              v-if="filePreviewPath"
-              v-loading="fileContentLoading"
-              class="server-file-preview__editor"
-            >
-              <ScCodeEditor
-                v-model="fileDraftContent"
-                :read-only="fileEditorReadonly"
-                :height="'420px'"
-                :mode="
-                  resolveFileEditorMode(filePreview?.language, filePreviewPath)
-                "
-              />
-            </div>
-            <el-empty v-else description="选择左侧文件后在这里预览" />
-          </div>
-        </div>
-      </template>
-      <el-empty v-else description="请选择服务器后再查看文件管理" />
-    </el-drawer>
+      :host="selectedHost"
+      :loading="fileLoading"
+      :display-current-path="fileDisplayCurrentPath"
+      :live-status="fileLiveStatus"
+      :preview-lines="filePreviewLines"
+      :can-navigate-parent-directory="canNavigateParentDirectory"
+      :file-view-mode="fileViewMode"
+      :watch-enabled="fileWatchEnabled"
+      :upload-input-key="uploadInputKey"
+      :file-entries="fileDrawerEntries"
+      :preview-path="filePreviewPath"
+      :display-preview-path="fileDisplayPreviewPath"
+      :preview="filePreview"
+      :content-loading="fileContentLoading"
+      :draft-content="fileDraftContent"
+      :editor-readonly="fileEditorReadonly"
+      :dirty="fileDirty"
+      :saving="fileSaving"
+      :editor-mode="fileEditorMode"
+      @update:file-view-mode="fileViewMode = $event"
+      @update:draft-content="fileDraftContent = $event"
+      @refresh="loadFiles()"
+      @open-parent-directory="openParentDirectory"
+      @create-folder="createFolder"
+      @trigger-upload="triggerUpload"
+      @toggle-watch="toggleFileWatch()"
+      @upload="handleUpload"
+      @open-entry="enterFileEntry"
+      @rename-entry="renameEntry"
+      @download-entry="downloadEntry"
+      @remove-entry="removeEntry"
+      @reset-draft="resetFileDraft"
+      @save-draft="saveFileDraft"
+    />
 
     <ServerHostFormDialog
       v-model="dialogVisible"
@@ -400,185 +238,22 @@
       :service="selectedServiceDetail"
     />
 
-    <ScDrawer
+    <ServerServiceLogsDrawer
       v-model="serviceLogsVisible"
-      size="760px"
-      destroy-on-close
-      :title="
-        serviceLogService
-          ? `${serviceLogService.serviceName} · 启动日志`
-          : '服务日志'
-      "
-    >
-      <div v-loading="serviceLogLoading" class="server-service-log-drawer">
-        <div class="server-service-log-drawer__toolbar">
-          <div class="server-chip-group">
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ serviceLogService?.serviceType || "SERVER_SERVICE" }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ serviceLogService?.installPath || "未配置安装目录" }}
-            </el-tag>
-          </div>
-          <el-button
-            v-if="serviceLogService?.serverServiceId"
-            plain
-            @click="openServiceLogs(serviceLogService)"
-          >
-            <IconifyIconOnline icon="ri:refresh-line" />
-            <span>刷新日志</span>
-          </el-button>
-        </div>
+      :loading="serviceLogLoading"
+      :service="serviceLogService"
+      :cards="serviceLogCards"
+      @refresh="serviceLogService && openServiceLogs(serviceLogService)"
+    />
 
-        <div
-          v-if="serviceLogs.length"
-          class="server-service-log-drawer__list thin-scroller"
-        >
-          <article
-            v-for="item in serviceLogs"
-            :key="item.serverServiceOperationLogId"
-            class="server-service-log-drawer__item"
-          >
-            <header>
-              <div>
-                <strong>{{
-                  serverServiceActionLabelMap[
-                    toServiceActionLabelKey(item.operationType)
-                  ] ||
-                  item.operationType ||
-                  "操作"
-                }}</strong>
-                <p>{{ item.createTime || "-" }}</p>
-              </div>
-              <el-tag
-                class="server-inline-tag"
-                :type="item.success ? 'success' : 'danger'"
-                effect="plain"
-                round
-                size="small"
-              >
-                {{ item.success ? "成功" : "失败" }}
-              </el-tag>
-            </header>
-            <p class="server-service-log-drawer__message">
-              {{ item.operationMessage || "-" }}
-            </p>
-            <div
-              v-if="item.aiReason || item.aiSolution"
-              class="server-service-log-drawer__ai"
-            >
-              <p><span>原因</span>{{ item.aiReason || "-" }}</p>
-              <p><span>方案</span>{{ item.aiSolution || "-" }}</p>
-              <p v-if="item.knowledgeId">
-                <span>知识库</span>#{{ item.knowledgeId }}
-              </p>
-              <p v-if="item.expireAt"><span>保留到</span>{{ item.expireAt }}</p>
-            </div>
-            <ScCodeEditor
-              :model-value="item.operationOutput || ''"
-              :read-only="true"
-              height="180px"
-              mode="shell"
-            />
-          </article>
-        </div>
-        <el-empty v-else description="当前服务还没有操作日志" />
-      </div>
-    </ScDrawer>
-
-    <ScDrawer
+    <ServerRemoteConsoleDrawer
       v-model="remoteConsoleVisible"
-      size="min(84vw, 1280px)"
-      destroy-on-close
-      append-to-body="true"
-      class="server-remote-console"
-      :class="{ 'is-fullscreen': remoteConsoleFullscreen }"
-      :title="
-        remoteConsoleHostName
-          ? `${remoteConsoleHostName} · 远程控制`
-          : '远程控制'
-      "
+      :host-name="remoteConsoleHostName"
+      :config="remoteConsoleConfig"
+      :loading="remoteConsoleLoading"
+      @update:loading="remoteConsoleLoading = $event"
       @closed="handleRemoteConsoleClosed"
-    >
-      <div ref="remoteConsoleContainerRef" class="server-remote-console__body">
-        <div class="server-remote-console__toolbar">
-          <div class="server-remote-console__meta">
-            <div class="server-chip-group">
-              <el-tag
-                class="server-inline-tag"
-                effect="plain"
-                round
-                size="small"
-              >
-                {{ remoteConsoleConfig?.provider || "remote" }}
-              </el-tag>
-              <el-tag
-                class="server-inline-tag"
-                effect="plain"
-                round
-                size="small"
-              >
-                {{ remoteConsoleConfig?.protocol || "auto" }}
-              </el-tag>
-              <el-tag
-                class="server-inline-tag"
-                effect="plain"
-                round
-                size="small"
-              >
-                {{ remoteConsoleConfig?.connectionId || "-" }}
-              </el-tag>
-            </div>
-            <p class="server-remote-console__hint">
-              {{
-                remoteConsoleLaunchUrl
-                  ? "右侧面板已加载远程入口，可直接全屏或新标签打开"
-                  : remoteConsoleConfig?.message || "当前远程入口未返回可用地址"
-              }}
-            </p>
-          </div>
-          <div class="server-action-row">
-            <el-tooltip
-              v-if="remoteConsoleLaunchUrl"
-              content="新标签页打开远程控制"
-            >
-              <el-button circle @click="openRemoteConsoleInNewTab">
-                <IconifyIconOnline icon="ri:external-link-line" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip :content="remoteConsoleFullscreenTooltip">
-              <el-button circle @click="toggleRemoteConsoleFullscreen">
-                <IconifyIconOnline :icon="remoteConsoleFullscreenIcon" />
-              </el-button>
-            </el-tooltip>
-            <el-tooltip content="关闭远程面板">
-              <el-button circle @click="remoteConsoleVisible = false">
-                <IconifyIconOnline icon="ri:close-line" />
-              </el-button>
-            </el-tooltip>
-          </div>
-        </div>
-        <div
-          v-loading="remoteConsoleLoading"
-          class="server-remote-console__stage"
-        >
-          <iframe
-            v-if="remoteConsoleConfig?.launchUrl"
-            class="server-remote-console__frame"
-            :src="remoteConsoleConfig.launchUrl"
-            allowfullscreen
-            @load="remoteConsoleLoading = false"
-            @error="remoteConsoleLoading = false"
-          />
-          <el-empty
-            v-else
-            :description="
-              remoteConsoleConfig?.message || '当前远程入口未返回可用地址'
-            "
-          />
-        </div>
-      </div>
-    </ScDrawer>
+    />
 
     <ServerRemoteGatewayDialog
       v-model="globalRemoteGatewayVisible"
@@ -689,518 +364,51 @@
       @terminate-process="terminateProcessItem"
     />
 
-    <ScDrawer
+    <ServerSoftOverviewDrawer
       v-model="softDrawerVisible"
-      size="620px"
-      destroy-on-close
-      :title="
-        softDrawerHost
-          ? `${softDrawerHost.serverName} 的软件驾驶舱`
-          : '软件驾驶舱'
-      "
-    >
-      <ScScrollbar v-loading="softLoading" class="soft-drawer__scroll">
-        <template v-if="softDrawerHost && softEnabled">
-          <div class="server-action-row soft-drawer__toolbar">
-            <el-button
-              type="primary"
-              plain
-              @click="openInstallDialog(softDrawerHost)"
-            >
-              <IconifyIconOnline icon="ri:download-cloud-2-line" />
-              <span>安装软件</span>
-            </el-button>
-          </div>
+      :host="softDrawerHost"
+      :soft-enabled="softEnabled"
+      :loading="softLoading"
+      :target-count="softDrawerTargets.length"
+      :installation-count="softDrawerInstallations.length"
+      :service-count="softDrawerServerServices.length"
+      :operation-count="softDrawerOperations.length"
+      :backup-count="softDrawerBackupCount"
+      :upgradeable-count="softDrawerUpgradeableCount"
+      :installation-cards="softDrawerInstallationCards"
+      :service-cards="softDrawerServiceCards"
+      :operation-cards="softDrawerOperationCards"
+      @open-install="softDrawerHost && openInstallDialog(softDrawerHost)"
+      @open-installation-detail="openInstallationDetail"
+      @service-action="runServerServiceAction($event.item, $event.action)"
+    />
 
-          <div class="soft-drawer__stats">
-            <div class="soft-drawer__stat">
-              <strong>{{ softDrawerTargets.length }}</strong>
-              <span>绑定目标</span>
-            </div>
-            <div class="soft-drawer__stat">
-              <strong>{{ softDrawerInstallations.length }}</strong>
-              <span>软件实例</span>
-            </div>
-            <div class="soft-drawer__stat">
-              <strong>{{ softDrawerServerServices.length }}</strong>
-              <span>服务器服务</span>
-            </div>
-            <div class="soft-drawer__stat">
-              <strong>{{ softDrawerOperations.length }}</strong>
-              <span>最近操作</span>
-            </div>
-            <div class="soft-drawer__stat">
-              <strong>{{ softDrawerBackupCount }}</strong>
-              <span>备份点</span>
-            </div>
-            <div class="soft-drawer__stat">
-              <strong>{{ softDrawerUpgradeableCount }}</strong>
-              <span>可升级</span>
-            </div>
-          </div>
-
-          <article class="soft-drawer__card">
-            <header>
-              <h3>软件实例</h3>
-              <p>服务实例、备份点和升级候选都会在这里收口</p>
-            </header>
-            <div
-              v-if="softDrawerInstallations.length"
-              class="soft-drawer__list"
-            >
-              <button
-                v-for="item in softDrawerInstallations"
-                :key="item.softInstallationId"
-                type="button"
-                class="soft-drawer__item"
-                @click="openInstallationDetail(item)"
-              >
-                <div>
-                  <strong>{{
-                    item.packageName || item.installationName
-                  }}</strong>
-                  <p>
-                    {{ item.installationName }} /
-                    {{
-                      item.versionName || item.installedVersion || "默认版本"
-                    }}
-                  </p>
-                  <div class="soft-drawer__item-chips">
-                    <el-tag
-                      class="server-inline-tag"
-                      effect="plain"
-                      round
-                      size="small"
-                    >
-                      备份点 {{ getInstallationBackupCount(item) }}
-                    </el-tag>
-                    <el-tag
-                      class="server-inline-tag"
-                      effect="plain"
-                      round
-                      size="small"
-                    >
-                      {{ getInstallationUpgradeText(item) }}
-                    </el-tag>
-                  </div>
-                </div>
-                <div class="soft-drawer__item-meta">
-                  <span>{{
-                    softStatusLabel(item.runtimeStatus || item.installStatus)
-                  }}</span>
-                  <small>{{ item.serviceName || "未配置服务名" }}</small>
-                </div>
-              </button>
-            </div>
-            <el-empty v-else description="当前服务器还没有 soft 安装实例" />
-          </article>
-
-          <article class="soft-drawer__card">
-            <header>
-              <h3>服务器服务</h3>
-              <p>服务主档已下沉到服务器模块，可选关联软件安装。</p>
-            </header>
-            <div
-              v-if="softDrawerServerServices.length"
-              class="soft-drawer__list"
-            >
-              <div
-                v-for="item in softDrawerServerServices"
-                :key="
-                  item.serverServiceId || item.serviceCode || item.serviceName
-                "
-                class="soft-drawer__item soft-drawer__item--static soft-drawer__service-card"
-              >
-                <div class="soft-drawer__service-body">
-                  <div>
-                    <strong>{{ item.serviceName }}</strong>
-                    <p>
-                      {{ item.serviceType || "SERVER_SERVICE" }} /
-                      {{ item.installPath || "未配置安装目录" }}
-                    </p>
-                    <div class="soft-drawer__item-chips">
-                      <el-tag
-                        class="server-inline-tag"
-                        effect="plain"
-                        round
-                        size="small"
-                      >
-                        {{
-                          item.softInstallationId
-                            ? `安装实例 #${item.softInstallationId}`
-                            : "独立服务器服务"
-                        }}
-                      </el-tag>
-                      <el-tag
-                        v-if="item.softPackageId"
-                        class="server-inline-tag"
-                        effect="plain"
-                        round
-                        size="small"
-                      >
-                        软件 #{{ item.softPackageId }}
-                      </el-tag>
-                    </div>
-                  </div>
-                  <div class="soft-drawer__item-meta">
-                    <span>{{ softStatusLabel(item.runtimeStatus) }}</span>
-                    <small>{{
-                      item.lastOperationMessage || "服务器服务主档"
-                    }}</small>
-                  </div>
-                </div>
-                <div class="soft-drawer__service-actions">
-                  <el-tooltip content="状态检查">
-                    <el-button
-                      circle
-                      plain
-                      :loading="isServerServiceActionLoading(item, 'status')"
-                      @click="runServerServiceAction(item, 'status')"
-                    >
-                      <IconifyIconOnline icon="ri:pulse-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip
-                    :content="
-                      isServerServiceRunning(item) ? '停止服务' : '启动服务'
-                    "
-                  >
-                    <el-button
-                      circle
-                      plain
-                      :type="
-                        isServerServiceRunning(item) ? 'danger' : 'success'
-                      "
-                      :loading="
-                        isServerServiceActionLoading(
-                          item,
-                          isServerServiceRunning(item) ? 'stop' : 'start',
-                        )
-                      "
-                      @click="
-                        runServerServiceAction(
-                          item,
-                          isServerServiceRunning(item) ? 'stop' : 'start',
-                        )
-                      "
-                    >
-                      <IconifyIconOnline
-                        :icon="
-                          isServerServiceRunning(item)
-                            ? 'ri:stop-circle-line'
-                            : 'ri:play-circle-line'
-                        "
-                      />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip content="重启服务">
-                    <el-button
-                      circle
-                      plain
-                      :loading="isServerServiceActionLoading(item, 'restart')"
-                      @click="runServerServiceAction(item, 'restart')"
-                    >
-                      <IconifyIconOnline icon="ri:restart-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-if="hasServerServiceRegisterScript(item)"
-                    content="注册服务"
-                  >
-                    <el-button
-                      circle
-                      plain
-                      :loading="isServerServiceActionLoading(item, 'register')"
-                      @click="runServerServiceAction(item, 'register')"
-                    >
-                      <IconifyIconOnline icon="ri:shield-check-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-if="hasServerServiceUnregisterScript(item)"
-                    content="取消注册"
-                  >
-                    <el-button
-                      circle
-                      plain
-                      type="warning"
-                      :loading="
-                        isServerServiceActionLoading(item, 'unregister')
-                      "
-                      @click="runServerServiceAction(item, 'unregister')"
-                    >
-                      <IconifyIconOnline icon="ri:shield-cross-line" />
-                    </el-button>
-                  </el-tooltip>
-                </div>
-              </div>
-            </div>
-            <el-empty v-else description="当前服务器没有已绑定的服务器服务" />
-          </article>
-
-          <article class="soft-drawer__card">
-            <header>
-              <h3>最近操作</h3>
-              <p>最近 8 条软件操作，便于直接从服务器视角看安装与服务动作</p>
-            </header>
-            <div v-if="softDrawerOperations.length" class="soft-drawer__list">
-              <div
-                v-for="item in softDrawerOperations.slice(0, 8)"
-                :key="item.softOperationLogId"
-                class="soft-drawer__item soft-drawer__item--static"
-              >
-                <div>
-                  <strong>{{ softOperationLabel(item.operationType) }}</strong>
-                  <p>
-                    {{ item.detailMessage || item.operationMessage || "-" }}
-                  </p>
-                </div>
-                <div class="soft-drawer__item-meta">
-                  <span>{{ softStatusLabel(item.operationStatus) }}</span>
-                  <small>{{ item.endTime || item.startTime || "-" }}</small>
-                </div>
-              </div>
-            </div>
-            <el-empty v-else description="当前服务器没有相关操作记录" />
-          </article>
-        </template>
-
-        <el-empty
-          v-else
-          description="soft 模块未启用，无法展示服务器的软件与服务"
-        />
-      </ScScrollbar>
-    </ScDrawer>
-
-    <ScDrawer
+    <ServerProjectFrameDrawer
       v-model="projectDrawerVisible"
-      size="min(90vw, 1440px)"
-      destroy-on-close
-      append-to-body
-      class="server-project-drawer"
-      :title="
-        projectDrawerHostName
-          ? `${projectDrawerHostName} · 项目管理`
-          : '项目管理'
-      "
-    >
-      <iframe
-        v-if="projectDrawerUrl"
-        class="server-project-drawer__frame"
-        :src="projectDrawerUrl"
-      />
-      <el-empty v-else description="请选择服务器后再打开项目管理" />
-    </ScDrawer>
+      :host-name="projectDrawerHostName"
+      :url="projectDrawerUrl"
+    />
 
-    <ScDialog
+    <ServerInstallWizardDialog
       v-model="installVisible"
-      width="1120px"
-      destroy-on-close
-      :title="installHost ? `安装软件到 ${installHost.serverName}` : '安装软件'"
-    >
-      <el-steps :active="installStep" simple class="install-steps">
-        <el-step title="选择软件" />
-        <el-step title="选择版本与引导配置" />
-        <el-step title="提交与日志" />
-      </el-steps>
-
-      <section v-if="installStep === 0" class="install-step">
-        <article class="server-detail-card">
-          <header>
-            <h3>当前服务器</h3>
-            <p>软件列表已按当前服务器的操作系统、架构和启用状态过滤</p>
-          </header>
-          <div class="server-chip-group">
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ installHost?.serverName || "-" }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ hostAddress(installHost) }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ osLabel(installHost?.osType) }} /
-              {{ archLabel(installHost?.architecture) }}
-            </el-tag>
-          </div>
-        </article>
-
-        <article class="server-detail-card">
-          <header>
-            <h3>选择软件</h3>
-            <p>这里只展示当前服务器可安装的软件。</p>
-          </header>
-          <ScSelect
-            v-model="installPackageId"
-            :options="installPackageOptions"
-            layout="list"
-            width="100%"
-            list-height="320px"
-            list-placeholder="搜索软件名称、编码或分类"
-            list-empty-text="当前服务器没有匹配的软件"
-          >
-            <template #content="{ option }">
-              <div class="server-install-option">
-                <strong>{{ option.label }}</strong>
-                <span>
-                  {{ option.packageCode }} ·
-                  {{ option.packageCategory || "未分类" }}
-                </span>
-                <small>
-                  {{ option.description || "可直接进入版本与引导配置。" }}
-                </small>
-              </div>
-            </template>
-          </ScSelect>
-        </article>
-      </section>
-
-      <section v-else-if="installStep === 1" class="install-step">
-        <article class="server-detail-card">
-          <header>
-            <h3>选择版本</h3>
-            <p>默认选最新版本，可切换并补充安装引导参数。</p>
-          </header>
-
-          <div class="server-form-grid">
-            <el-form-item label="软件版本">
-              <el-select
-                v-model="installForm.softPackageVersionId"
-                placeholder="选择版本"
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="version in installVersions"
-                  :key="version.softPackageVersionId"
-                  :label="`${version.versionName} (${version.versionCode})`"
-                  :value="version.softPackageVersionId"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="实例名称">
-              <ScInput v-model="installForm.installationName" />
-            </el-form-item>
-            <el-form-item label="安装路径">
-              <ScInput v-model="installForm.installPath" />
-            </el-form-item>
-            <el-form-item label="服务名称">
-              <ScInput v-model="installForm.serviceName" />
-            </el-form-item>
-          </div>
-        </article>
-
-        <div v-if="installGuideLoading" class="server-install-loading">
-          <el-skeleton :rows="10" animated />
-        </div>
-        <template v-else>
-          <article
-            v-for="section in installGuideSections"
-            :key="section.key"
-            class="server-detail-card"
-          >
-            <header>
-              <h3>{{ section.title }}</h3>
-              <p>{{ section.hint }}</p>
-            </header>
-
-            <div class="server-form-grid">
-              <el-form-item
-                v-for="field in section.fields"
-                :key="`${section.key}-${field.fieldKey}`"
-                :label="field.fieldLabel || field.fieldKey"
-                :class="{
-                  'server-form-grid__span-2': isInstallTextareaField(field),
-                }"
-              >
-                <el-switch
-                  v-if="isInstallBooleanField(field)"
-                  :model-value="
-                    Boolean(resolveInstallModel(section.scope)[field.fieldKey])
-                  "
-                  @change="
-                    updateInstallBoolean(section.scope, field.fieldKey, $event)
-                  "
-                />
-                <ScInput
-                  v-else-if="isInstallNumberField(field)"
-                  v-model="resolveInstallModel(section.scope)[field.fieldKey]"
-                  type="number"
-                  layout="stepper"
-                  :min="numberValidation(field.validation, 'min')"
-                  :max="numberValidation(field.validation, 'max')"
-                />
-                <ScInput
-                  v-else-if="isInstallTextareaField(field)"
-                  v-model="resolveInstallModel(section.scope)[field.fieldKey]"
-                  type="textarea"
-                  :rows="4"
-                />
-                <ScInput
-                  v-else
-                  v-model="resolveInstallModel(section.scope)[field.fieldKey]"
-                  :type="isInstallPasswordField(field) ? 'password' : 'text'"
-                  passwd-strong="none"
-                />
-                <small class="server-install-field__hint">
-                  {{ field.fieldDescription || "按当前软件画像动态生成" }}
-                </small>
-              </el-form-item>
-            </div>
-          </article>
-        </template>
-      </section>
-
-      <section v-else class="install-step">
-        <article class="server-detail-card">
-          <header>
-            <h3>提交安装</h3>
-            <p>安装提交后会直接跳转到对应软件实例详情页继续查看日志和控制。</p>
-          </header>
-
-          <div class="server-chip-group">
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ installHost?.serverName || "-" }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ installSelectedPackage?.packageName || "-" }}
-            </el-tag>
-            <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ installSelectedVersionLabel }}
-            </el-tag>
-          </div>
-
-          <el-alert
-            v-if="installTask"
-            :title="installTask.message || '安装任务已提交'"
-            type="success"
-            :closable="false"
-          />
-          <el-empty v-else description="确认无误后提交安装。" />
-        </article>
-      </section>
-
-      <template #footer>
-        <el-button v-if="installStep > 0" @click="installStep -= 1">
-          上一步
-        </el-button>
-        <el-button @click="installVisible = false">取消</el-button>
-        <el-button
-          v-if="installStep === 0"
-          type="primary"
-          :disabled="!normalizedInstallPackageId"
-          @click="goInstallVersionStep"
-        >
-          下一步
-        </el-button>
-        <el-button
-          v-else-if="installStep === 1"
-          type="primary"
-          :loading="installSubmitting"
-          @click="submitInstallFromServer"
-        >
-          提交安装
-        </el-button>
-      </template>
-    </ScDialog>
+      :host="installHost"
+      :step="installStep"
+      :package-id="installPackageId"
+      :package-options="installPackageOptions"
+      :versions="installVersions"
+      :guide-sections="installGuideSections"
+      :guide-loading="installGuideLoading"
+      :submitting="installSubmitting"
+      :task="installTask"
+      :form="installForm"
+      :install-models="installModels"
+      :selected-package-name="installSelectedPackage?.packageName || ''"
+      :selected-version-label="installSelectedVersionLabel"
+      @update:step="installStep = $event"
+      @update:package-id="installPackageId = $event"
+      @next-step="goInstallVersionStep"
+      @submit="submitInstallFromServer"
+    />
   </div>
 </template>
 
@@ -1217,8 +425,6 @@ import {
 import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { taskCenterProvider } from "@layout/default";
-import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
 import {
   analyzeServerHostProcess,
@@ -1241,12 +447,11 @@ import {
   getServerHostRemoteGateway,
   getServerHostMetrics,
   getServerHostMetricsHistory,
-  getServerHostRemoteConsoleConfig,
+  refreshServerHostPublicIp,
   getServerMetricsTaskSettings,
   getServerRemoteGatewaySettings,
   generateServerServiceAiDraft,
   getServerServiceStatus,
-  getServerServiceOperationLogs,
   listServerHosts,
   listServerFiles,
   listServerAlerts,
@@ -1297,7 +502,6 @@ import {
   type ServerService,
   type ServerServiceAiDraft,
   type ServerServiceCommandResult,
-  type ServerServiceOperationLog,
   type ServerSoftBindingTarget,
   type ServerSoftInstallation,
   type ServerSoftOperation,
@@ -1324,30 +528,45 @@ import { useServerAlertStream } from "../composables/useServerAlertStream";
 import { useServerFileLogStream } from "../composables/useServerFileLogStream";
 import { useServerMetricsStream } from "../composables/useServerMetricsStream";
 import { useServerProcessStream } from "../composables/useServerProcessStream";
+import { useServerRemoteConsole } from "../composables/useServerRemoteConsole";
+import { useServerServiceLogs } from "../composables/useServerServiceLogs";
 import { useServerServiceStream } from "../composables/useServerServiceStream";
-import ScInput from "@repo/components/ScInput/index.vue";
 import ServerAlertSettingsDialog from "../components/ServerAlertSettingsDialog.vue";
 import ServerAlertDetailDialog from "../components/ServerAlertDetailDialog.vue";
 import ServerHostBasicPanel from "../components/ServerHostBasicPanel.vue";
-import ServerHostCard from "../components/ServerHostCard.vue";
 import ServerHostContextMenu from "../components/ServerHostContextMenu.vue";
+import ServerFileDrawer from "../components/ServerFileDrawer.vue";
 import ServerHostFormDialog from "../components/ServerHostFormDialog.vue";
 import ServerHostOverviewDialog from "../components/ServerHostOverviewDialog.vue";
+import ServerInstallWizardDialog from "../components/ServerInstallWizardDialog.vue";
+import ServerProjectFrameDrawer from "../components/ServerProjectFrameDrawer.vue";
 import ServerRemoteGatewayDialog from "../components/ServerRemoteGatewayDialog.vue";
+import ServerRemoteConsoleDrawer from "../components/ServerRemoteConsoleDrawer.vue";
 import ServerServiceEditorDialog from "../components/ServerServiceEditorDialog.vue";
 import ServerServiceDetailDialog from "../components/ServerServiceDetailDialog.vue";
+import ServerServiceLogsDrawer from "../components/ServerServiceLogsDrawer.vue";
 import ServerHostSidebar from "../components/ServerHostSidebar.vue";
 import ServerMetricDetailDialog from "../components/ServerMetricDetailDialog.vue";
 import ServerMetricsTaskDialog from "../components/ServerMetricsTaskDialog.vue";
 import ServerProcessDialog from "../components/ServerProcessDialog.vue";
+import ServerSoftOverviewDrawer from "../components/ServerSoftOverviewDrawer.vue";
 import {
   buildAlertHistoryAiFilterKey,
   buildMetricHistoryAiFilterKey,
 } from "../utils/historyAi";
 import type {
+  FileViewMode,
+  GuideScope,
+  GuideSection,
   RemoteGatewayFormModel,
   SelectOption,
+  ServerFileEntryCard,
   ServerHostListEntry,
+  ServerInstallTask,
+  ServerServiceLogCard,
+  ServerSoftInstallationCard,
+  ServerSoftOperationCard,
+  ServerSoftServiceCard,
 } from "../components/server-types";
 import {
   archLabel,
@@ -1371,25 +590,6 @@ const toNumericId = (value: unknown) => {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 };
 
-type GuideScope = "install" | "service" | "config";
-
-type GuideSection = {
-  key: string;
-  title: string;
-  hint: string;
-  scope: GuideScope;
-  fields: SoftGuideField[];
-};
-
-type ServerInstallTask = {
-  operationId?: number;
-  installationId?: number;
-  status?: string;
-  stage?: string;
-  progressPercent?: number;
-  message?: string;
-};
-
 type ServerMetadata = Record<string, unknown>;
 type ServerServiceAction =
   | "register"
@@ -1401,7 +601,7 @@ type ServerServiceAction =
   | "ai-fix"
   | "config-write";
 type RunnableServerServiceAction = Exclude<ServerServiceAction, "config-write">;
-type MetricDetailKey = "cpu" | "memory" | "disk" | "io";
+type MetricDetailKey = "cpu" | "memory" | "disk" | "io" | "diskIo";
 type FileViewMode = "list" | "tree";
 type ServerFileTreeNode = {
   key: string;
@@ -1422,6 +622,14 @@ const metricsStream = useServerMetricsStream();
 const fileLogStream = useServerFileLogStream();
 const processStream = useServerProcessStream();
 const serviceStream = useServerServiceStream();
+const {
+  serviceLogsVisible,
+  serviceLogLoading,
+  serviceLogs,
+  serviceLogService,
+  openServiceLogs,
+  resetServiceLogs,
+} = useServerServiceLogs();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -1436,8 +644,6 @@ const serviceEditorGenerating = ref(false);
 const serviceEditorPublishing = ref(false);
 const hostOverviewVisible = ref(false);
 const serviceDetailVisible = ref(false);
-const serviceLogsVisible = ref(false);
-const serviceLogLoading = ref(false);
 const processDialogVisible = ref(false);
 const processLoading = ref(false);
 const processAiAnalyzing = ref(false);
@@ -1482,12 +688,6 @@ const fileOriginalContent = ref("");
 const fileTreeData = ref<ServerFileTreeNode[]>([]);
 const fileLogLineCount = ref(0);
 const uploadInputKey = ref(0);
-const remoteConsoleVisible = ref(false);
-const remoteConsoleLoading = ref(false);
-const remoteConsoleConfig = ref<ServerRemoteConsoleConfig | null>(null);
-const remoteConsoleHostName = ref("");
-const remoteConsoleFullscreen = ref(false);
-const remoteConsoleContainerRef = ref<HTMLElement | null>(null);
 const serverLayoutRef = ref<HTMLElement | null>(null);
 const hostContextMenuRef = ref<{
   open: (event: MouseEvent, entry: ServerHostListEntry) => void;
@@ -1505,8 +705,6 @@ const selectedAlertDetail = ref<ServerAlertEvent | null>(null);
 const selectedAlertHistory = ref<ServerAlertEvent[]>([]);
 const hosts = ref<ServerHost[]>([]);
 const serverServices = ref<ServerService[]>([]);
-const serviceLogs = ref<ServerServiceOperationLog[]>([]);
-const serviceLogService = ref<ServerService | null>(null);
 const selectedServiceDetail = ref<ServerService | null>(null);
 const softTargets = ref<ServerSoftBindingTarget[]>([]);
 const softInstallations = ref<ServerSoftInstallation[]>([]);
@@ -1529,6 +727,11 @@ const serverMetricsDetailMap = ref<Record<number, ServerMetricsDetail>>({});
 const installOptions = reactive<Record<string, unknown>>({});
 const installServiceOptions = reactive<Record<string, unknown>>({});
 const installConfigOptions = reactive<Record<string, unknown>>({});
+const installModels: Record<GuideScope, Record<string, unknown>> = {
+  install: installOptions,
+  service: installServiceOptions,
+  config: installConfigOptions,
+};
 const globalRemoteGatewayForm = reactive<RemoteGatewayFormModel>({
   enabled: false,
   provider: "guacamole",
@@ -1977,6 +1180,16 @@ const fileEditorReadonly = computed(
     fileWatchEnabled.value ||
     Boolean(filePreview.value?.truncated),
 );
+const fileEditorMode = computed(() =>
+  resolveFileEditorMode(filePreview.value?.language, filePreviewPath.value),
+);
+const fileDrawerEntries = computed<ServerFileEntryCard[]>(() =>
+  fileEntries.value.map((entry) => ({
+    ...entry,
+    relativePath: toRelativeFilePath(entry.path, selectedHost.value),
+    icon: fileEntryIcon(entry),
+  })),
+);
 const selectedHostSoftSummary = computed(() =>
   selectedHost.value
     ? getHostSoftSummary(selectedHost.value)
@@ -1987,17 +1200,6 @@ const selectedHostServerServices = computed(() =>
 );
 const canOpenRemoteConsole = computed(() =>
   Boolean(selectedRemoteGateway.value?.enabled),
-);
-const remoteConsoleLaunchUrl = computed(
-  () => remoteConsoleConfig.value?.launchUrl || "",
-);
-const remoteConsoleFullscreenIcon = computed(() =>
-  remoteConsoleFullscreen.value
-    ? "ri:fullscreen-exit-line"
-    : "ri:fullscreen-line",
-);
-const remoteConsoleFullscreenTooltip = computed(() =>
-  remoteConsoleFullscreen.value ? "退出全屏" : "远程控制全屏",
 );
 const hostRemoteGatewayTitle = computed(() =>
   selectedHost.value?.serverName
@@ -3070,6 +2272,74 @@ const softDrawerUpgradeableCount = computed(
       getInstallationUpgradeText(item).startsWith("可升级到 "),
     ).length,
 );
+const softDrawerInstallationCards = computed<ServerSoftInstallationCard[]>(() =>
+  softDrawerInstallations.value.map((item) => ({
+    item,
+    title: item.packageName || item.installationName || "未命名实例",
+    subtitle: `${item.installationName || "-"} / ${
+      item.versionName || item.installedVersion || "默认版本"
+    }`,
+    backupCount: getInstallationBackupCount(item),
+    upgradeText: getInstallationUpgradeText(item),
+    statusText: softStatusLabel(item.runtimeStatus || item.installStatus),
+    metaText: item.serviceName || "未配置服务名",
+  })),
+);
+const softDrawerServiceCards = computed<ServerSoftServiceCard[]>(() =>
+  softDrawerServerServices.value.map((item) => {
+    const running = isServerServiceRunning(item);
+    return {
+      item,
+      title: item.serviceName || "未命名服务",
+      subtitle: `${item.serviceType || "SERVER_SERVICE"} / ${
+        item.installPath || "未配置安装目录"
+      }`,
+      statusText: softStatusLabel(item.runtimeStatus),
+      metaText: item.lastOperationMessage || "服务器服务主档",
+      primaryChip: item.softInstallationId
+        ? `安装实例 #${item.softInstallationId}`
+        : "独立服务器服务",
+      secondaryChip: item.softPackageId ? `软件 #${item.softPackageId}` : undefined,
+      running,
+      canRegister: hasServerServiceRegisterScript(item),
+      canUnregister: hasServerServiceUnregisterScript(item),
+      loadingStatus: isServerServiceActionLoading(item, "status"),
+      loadingStartStop: isServerServiceActionLoading(
+        item,
+        running ? "stop" : "start",
+      ),
+      loadingRestart: isServerServiceActionLoading(item, "restart"),
+      loadingRegister: isServerServiceActionLoading(item, "register"),
+      loadingUnregister: isServerServiceActionLoading(item, "unregister"),
+    };
+  }),
+);
+const softDrawerOperationCards = computed<ServerSoftOperationCard[]>(() =>
+  softDrawerOperations.value.slice(0, 8).map((item) => ({
+    item,
+    title: softOperationLabel(item.operationType),
+    message: item.detailMessage || item.operationMessage || "-",
+    statusText: softStatusLabel(item.operationStatus),
+    timeText: item.endTime || item.startTime || "-",
+  })),
+);
+const serviceLogCards = computed<ServerServiceLogCard[]>(() =>
+  serviceLogs.value.map((item) => ({
+    item,
+    title:
+      serverServiceActionLabelMap[toServiceActionLabelKey(item.operationType)] ||
+      item.operationType ||
+      "操作",
+    createTime: item.createTime || "-",
+    success: item.success !== false,
+    message: item.operationMessage || "-",
+    aiReason: item.aiReason,
+    aiSolution: item.aiSolution,
+    knowledgeId: item.knowledgeId,
+    expireAt: item.expireAt,
+    output: item.operationOutput || "",
+  })),
+);
 
 const serverServiceActionLabelMap: Record<ServerServiceAction, string> = {
   register: "注册服务",
@@ -3291,24 +2561,6 @@ const detectHostServices = async (host?: ServerHost | null, silent = false) => {
     return false;
   } finally {
     serviceDetecting.value = false;
-  }
-};
-
-const openServiceLogs = async (service: ServerService) => {
-  if (!service.serverServiceId) {
-    return;
-  }
-  serviceLogService.value = service;
-  serviceLogsVisible.value = true;
-  serviceLogLoading.value = true;
-  try {
-    const result = await getServerServiceOperationLogs(
-      service.serverServiceId,
-      20,
-    );
-    serviceLogs.value = result.data || [];
-  } finally {
-    serviceLogLoading.value = false;
   }
 };
 
@@ -4038,7 +3290,8 @@ const analyzeMetricHistory = async (payload: {
   if (!selectedHost.value?.serverId) {
     return;
   }
-  const metricType = payload.metricKey.toUpperCase();
+  const metricType =
+    payload.metricKey === "diskIo" ? "DISK_IO" : payload.metricKey.toUpperCase();
   const filterKey = buildMetricHistoryAiFilterKey(selectedHost.value.serverId, {
     metricKey: metricType,
     minutes: payload.minutes,
@@ -4730,91 +3983,6 @@ const saveFileDraft = async () => {
   }
 };
 
-const openRemoteConsole = async (host?: ServerHost | null) => {
-  const targetHost = host || selectedHost.value;
-  if (!targetHost) {
-    return;
-  }
-  if (
-    targetHost.serverId &&
-    targetHost.serverId !== selectedHost.value?.serverId
-  ) {
-    selectHost(targetHost.serverId);
-    await nextTick();
-  }
-  const config = targetHost.serverId
-    ? (
-        await getServerHostRemoteConsoleConfig(targetHost.serverId).catch(
-          () => null,
-        )
-      )?.data ||
-      targetHost.remoteGatewayConfig ||
-      targetHost.guacamoleConfig ||
-      selectedRemoteGateway.value
-    : targetHost.remoteGatewayConfig ||
-      targetHost.guacamoleConfig ||
-      selectedRemoteGateway.value;
-  if (!config?.launchUrl) {
-    message(config?.message || "当前服务器未配置远程控制入口", {
-      type: "warning",
-    });
-    return;
-  }
-  remoteConsoleConfig.value = config;
-  remoteConsoleHostName.value = targetHost.serverName || "";
-  remoteConsoleLoading.value = true;
-  remoteConsoleVisible.value = true;
-};
-
-const syncRemoteConsoleFullscreenState = () => {
-  const container = remoteConsoleContainerRef.value;
-  remoteConsoleFullscreen.value = Boolean(
-    container && document.fullscreenElement === container,
-  );
-};
-
-const toggleRemoteConsoleFullscreen = async () => {
-  const container = remoteConsoleContainerRef.value;
-  if (!container) {
-    return;
-  }
-  try {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
-    }
-    await container.requestFullscreen();
-  } catch (error) {
-    console.error(error);
-    message("当前环境不支持远程全屏", { type: "warning" });
-  }
-};
-
-const openRemoteConsoleInNewTab = () => {
-  if (!remoteConsoleLaunchUrl.value) {
-    return;
-  }
-  const popup = window.open(
-    remoteConsoleLaunchUrl.value,
-    "_blank",
-    "noopener,noreferrer",
-  );
-  if (!popup) {
-    message("浏览器拦截了新标签页，请允许弹窗后重试", {
-      type: "warning",
-    });
-  }
-};
-
-const handleRemoteConsoleClosed = async () => {
-  if (document.fullscreenElement === remoteConsoleContainerRef.value) {
-    await document.exitFullscreen().catch(() => undefined);
-  }
-  remoteConsoleFullscreen.value = false;
-  remoteConsoleConfig.value = null;
-  remoteConsoleLoading.value = false;
-};
-
 const loadServerServices = async () => {
   try {
     const result = await listServerServices();
@@ -4852,6 +4020,32 @@ const loadAll = async () => {
 const selectHost = (id?: number) => {
   selectedId.value = id || null;
 };
+
+const refreshSelectedHostPublicIp = async () => {
+  if (!selectedHost.value?.serverId) {
+    return;
+  }
+  const result = await refreshServerHostPublicIp(selectedHost.value.serverId);
+  if (result?.data) {
+    hosts.value = hosts.value.map((item) =>
+      item.serverId === result.data.serverId ? { ...item, ...result.data } : item,
+    );
+  }
+  await loadHostMetricsDetail(selectedHost.value, true);
+  message("公网 IP 已重新获取", { type: "success" });
+};
+const {
+  remoteConsoleVisible,
+  remoteConsoleLoading,
+  remoteConsoleConfig,
+  remoteConsoleHostName,
+  openRemoteConsole,
+  handleRemoteConsoleClosed,
+} = useServerRemoteConsole({
+  selectedHost,
+  selectedRemoteGateway,
+  selectHost,
+});
 const openCreate = () => {
   editingId.value = null;
   patchForm({
@@ -5470,8 +4664,7 @@ watch(
   () => serviceLogsVisible.value,
   (visible) => {
     if (!visible) {
-      serviceLogs.value = [];
-      serviceLogService.value = null;
+      resetServiceLogs();
     }
   },
 );
@@ -5599,10 +4792,6 @@ watch(
 );
 
 onMounted(async () => {
-  document.addEventListener(
-    "fullscreenchange",
-    syncRemoteConsoleFullscreenState,
-  );
   aiTaskStream.connect();
   alertStream.connect();
   metricsStream.connect();
@@ -5611,10 +4800,6 @@ onMounted(async () => {
   await loadAll();
 });
 onUnmounted(() => {
-  document.removeEventListener(
-    "fullscreenchange",
-    syncRemoteConsoleFullscreenState,
-  );
   aiTaskStream.disconnect();
   alertStream.disconnect();
   metricsStream.disconnect();
@@ -5635,20 +4820,18 @@ onUnmounted(() => {
 .server-panel__scroll,
 .server-node-list,
 .server-node,
-.server-detail-grid,
 .server-grid,
-.server-grid-card,
-.server-form-grid,
-.soft-drawer__scroll,
-.soft-drawer__list {
+.server-grid-card {
   min-width: 0;
 }
 
 .server-page {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  gap: 12px;
+  gap: 0;
   color: #0f172a;
-  padding: 6px 0 2px;
+  padding: 8px 0 2px;
   height: calc(
     100vh - var(--layout-navbar-height, 56px) - var(--layout-tag-height, 34px) -
       32px
@@ -5658,14 +4841,69 @@ onUnmounted(() => {
   background:
     radial-gradient(
       circle at top left,
-      rgba(14, 165, 233, 0.08),
-      transparent 28%
+      rgba(14, 165, 233, 0.12),
+      transparent 24%
     ),
     radial-gradient(
       circle at top right,
-      rgba(59, 130, 246, 0.08),
-      transparent 26%
-    );
+      rgba(245, 158, 11, 0.1),
+      transparent 20%
+    ),
+    linear-gradient(180deg, #f8fbff 0%, #f3f7fb 42%, #eef3f8 100%);
+}
+
+.server-page__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.server-page__orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(14px);
+  opacity: 0.72;
+}
+
+.server-page__orb--cyan {
+  width: 320px;
+  height: 320px;
+  left: -60px;
+  top: -72px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.22), transparent 68%);
+}
+
+.server-page__orb--amber {
+  width: 260px;
+  height: 260px;
+  right: -50px;
+  top: 18px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.18), transparent 70%);
+}
+
+.server-page__mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.2), transparent 70%);
+}
+
+.server-page__stage {
+  min-height: 0;
+  border-radius: 36px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.4));
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 22px 48px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
 }
 
 /* 布局容器 */
@@ -5678,6 +4916,41 @@ onUnmounted(() => {
   align-items: stretch;
   overflow: hidden;
 }
+
+.server-layout__sidebar-stage,
+.server-layout__main-stage {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  border-radius: 30px;
+  padding: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(248, 250, 252, 0.24));
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 16px 38px rgba(15, 23, 42, 0.05);
+}
+
+.server-layout__sidebar-stage::after,
+.server-layout__main-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 26%);
+}
+
+.server-layout__sidebar-stage :deep(.server-sidebar),
+.server-layout__main-stage :deep(.server-basic-panel) {
+  height: 100%;
+}
+
+.server-layout__main-stage :deep(.server-basic-panel) {
+  border-radius: 26px;
+}
+
 .server-layout.is-sidebar-collapsed {
   grid-template-columns: 74px 14px minmax(0, 1fr);
 }
@@ -5715,7 +4988,7 @@ onUnmounted(() => {
   height: 72px;
   transform: translateY(-50%);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2);
   opacity: 0;
   transition:
@@ -6056,480 +5329,54 @@ onUnmounted(() => {
   border-radius: 50%;
 }
 
-/* 以下为原有右侧详情、弹窗、文件管理样式，保持不变，保证功能完整 */
-.server-detail-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.server-detail-card,
-.soft-drawer__card {
-  padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.84);
-}
-.server-detail-card--wide {
-  grid-column: 1 / -1;
-}
-.server-detail-card header {
-  margin-bottom: 14px;
-}
-.server-detail-card dl {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-}
-.server-detail-card dl div {
-  display: grid;
-  gap: 4px;
-}
-.server-detail-card dt {
-  color: #64748b;
-  font-size: 12px;
-}
-.server-detail-card dd {
-  margin: 0;
-  color: #0f172a;
-  line-height: 1.7;
-  word-break: break-all;
-}
-.server-runtime-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.server-runtime-metric {
-  display: grid;
-  gap: 4px;
-  min-height: 86px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: linear-gradient(
-    180deg,
-    rgba(248, 250, 252, 0.96),
-    rgba(255, 255, 255, 0.78)
-  );
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-.server-runtime-metric small {
-  color: #64748b;
-  font-size: 11px;
-}
-.server-runtime-metric strong {
-  color: #0f172a;
-  font-size: 18px;
-  line-height: 1.45;
-}
-.server-file-toolbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-.server-file-toolbar__actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.server-file-upload-input {
-  display: none;
-}
-.server-file-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
-  min-height: 560px;
-}
-.server-file-list,
-.server-file-preview {
-  min-height: 0;
-  padding: 14px;
-  border-radius: 24px;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(14, 165, 233, 0.08),
-      transparent 32%
-    ),
-    rgba(248, 250, 252, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
-}
-.server-file-list {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  overflow: auto;
-  max-height: calc(100vh - 220px);
-}
-.server-file-tree {
-  min-height: 100%;
-  display: grid;
-  gap: 6px;
-  align-content: start;
-}
-.server-file-tree :deep(.el-tree) {
-  background: transparent;
-}
-
 .server-page :deep(.el-radio-button__inner) {
   min-height: 38px;
   display: inline-flex;
   align-items: center;
   line-height: 1;
 }
-.server-file-tree :deep(.el-tree-node__content) {
-  min-height: 38px;
-  padding: 2px 0;
-  border-radius: 10px;
-}
-.server-file-tree :deep(.el-tree-node__content:hover) {
-  background: rgba(14, 165, 233, 0.08);
-}
-.server-file-tree__node {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 4px 8px;
-}
-.server-file-tree__node--classic {
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.88);
-  text-align: left;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-.server-file-tree__node--classic:hover,
-.server-file-tree__node--classic.is-active {
-  transform: translateY(-1px);
-  border-color: rgba(14, 165, 233, 0.3);
-  box-shadow: 0 12px 20px rgba(15, 23, 42, 0.06);
-}
-.server-file-tree__icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 10px;
-}
-.server-file-tree__meta {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-.server-file-tree__meta strong {
-  display: block;
-  color: #0f172a;
-  font-size: 13px;
-  line-height: 1.1;
-}
-.server-file-tree__meta p {
-  margin: 0;
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.2;
-}
-.server-file-tree__meta small {
-  color: #94a3b8;
-  font-size: 11px;
-  line-height: 1.2;
-}
-.server-file-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.88);
-  text-align: left;
-  cursor: default;
-  transition:
-    border-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.server-file-item.is-directory {
-  cursor: pointer;
-}
-
-.server-file-item.is-file {
-  cursor: text;
-}
-.server-file-item:hover,
-.server-file-item.is-active {
-  transform: translateY(-1px);
-  border-color: #0ea5e9;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-}
-.server-file-item__main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.server-file-item__main p {
-  margin: 4px 0 0;
-  color: #64748b;
-  font-size: 11px;
-}
-.server-file-item__main strong {
-  color: #0f172a;
-  font-size: 13px;
-}
-.server-file-item__icon {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  background: rgba(14, 165, 233, 0.12);
-  color: #0284c7;
-  flex-shrink: 0;
-}
-.server-file-preview {
-  display: grid;
-  gap: 12px;
-  max-height: calc(100vh - 220px);
-  overflow: hidden;
-}
-.server-file-preview__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-}
-.server-file-preview__header h4 {
-  margin: 0;
-  color: #0f172a;
-}
-.server-file-preview__header p {
-  margin: 4px 0 0;
-  color: #64748b;
-  font-size: 12px;
-}
-.server-file-preview__header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.server-file-preview__editor {
-  min-height: 0;
-  overflow: hidden;
-}
-.server-chip-group {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.server-project-drawer__frame {
-  width: 100%;
-  height: calc(100vh - 110px);
-  border: 0;
-  border-radius: 18px;
-  background: var(--el-bg-color-page);
-}
-.server-inline-tag {
-  --el-tag-border-color: rgba(148, 163, 184, 0.18);
-  --el-tag-bg-color: rgba(255, 255, 255, 0.82);
-  --el-tag-text-color: #475569;
-  font-weight: 500;
-}
-.server-activity-list,
-.server-soft-instance-grid,
-.soft-drawer__list {
-  display: grid;
-  gap: 10px;
-}
-.server-activity-item,
-.server-soft-instance,
-.soft-drawer__item {
-  padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 18px;
-  background: rgba(248, 250, 252, 0.92);
-}
-.server-soft-instance {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: flex-start;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-.server-soft-instance:hover {
-  transform: translateY(-2px);
-  border-color: rgba(14, 165, 233, 0.28);
-  box-shadow: 0 16px 26px rgba(14, 165, 233, 0.1);
-}
-.soft-drawer__item {
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-.soft-drawer__item:hover {
-  transform: translateY(-2px);
-  border-color: rgba(14, 165, 233, 0.26);
-  box-shadow: 0 16px 26px rgba(14, 165, 233, 0.1);
-}
-.soft-drawer__service-card {
-  cursor: default;
-}
-.soft-drawer__service-card:hover {
-  transform: none;
-}
-.soft-drawer__service-body {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: flex-start;
-}
-.soft-drawer__item-chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-.soft-drawer__item-meta {
-  display: grid;
-  gap: 4px;
-  justify-items: end;
-  text-align: right;
-}
-.soft-drawer__item-meta span {
-  color: #0f172a;
-  font-weight: 600;
-}
-.soft-drawer__item-meta small {
-  color: #64748b;
-}
-.soft-drawer__service-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-.server-form__hero {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-  padding: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 20px;
-  background: rgba(248, 250, 252, 0.88);
-}
-.server-form-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.server-form-grid__span-2 {
-  grid-column: 1 / -1;
-}
-.soft-drawer__stats {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  margin-bottom: 16px;
-}
-.soft-drawer__stat {
-  display: grid;
-  gap: 2px;
-  padding: 14px 16px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 18px;
-  background: rgba(248, 250, 252, 0.88);
-}
-.soft-drawer__stat strong {
-  color: #0f172a;
-  font-size: 20px;
-  line-height: 1;
-}
-.soft-drawer__stat span {
-  color: #64748b;
-  font-size: 12px;
-}
-.server-remote-console__body,
-.server-remote-console__toolbar {
-  display: flex;
-  flex-direction: column;
-}
-.server-remote-console__body {
-  gap: 12px;
-  height: 100%;
-  min-height: 0;
-}
-.server-remote-console__meta {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-}
-.server-remote-console__toolbar {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 20px;
-  background: rgba(15, 23, 42, 0.04);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-.server-remote-console__hint {
-  margin: 0;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.4;
-}
-.server-remote-console__stage {
-  min-height: 0;
-  flex: 1;
-  border-radius: 24px;
-  overflow: hidden;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background:
-    radial-gradient(circle at top, rgba(96, 165, 250, 0.12), transparent 26%),
-    rgba(2, 6, 23, 0.94);
-  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.2);
-}
-.server-remote-console__frame {
-  width: 100%;
-  height: 100%;
-  min-height: calc(100vh - 170px);
-  border: none;
-  background: #020617;
-}
-:deep(.server-remote-console.is-fullscreen .el-drawer__body) {
-  padding-top: 10px;
-}
-.server-remote-console.is-fullscreen .server-remote-console__stage {
-  border-color: rgba(96, 165, 250, 0.35);
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.16);
-}
 :deep(.el-button.is-circle) {
   width: 30px;
   height: 30px;
+}
+
+.server-layout__main-stage :deep(.server-basic-panel__hero) {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 247, 250, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+}
+
+.server-layout__main-stage :deep(.server-basic-panel__realtime),
+.server-layout__main-stage :deep(.server-basic-panel__card),
+.server-layout__main-stage :deep(.server-service-panel) {
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+}
+
+@media (max-width: 1100px) {
+  .server-page {
+    padding: 8px 0 2px;
+  }
+
+  .server-page__stage {
+    padding: 8px;
+    border-radius: 26px;
+  }
+}
+
+@media (max-width: 900px) {
+  .server-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .server-layout.is-sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .server-layout__resizer {
+    display: none;
+  }
 }
 </style>

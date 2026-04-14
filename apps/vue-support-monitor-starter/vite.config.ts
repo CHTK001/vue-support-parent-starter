@@ -1,6 +1,5 @@
 import { createViteConfig } from "@repo/build-config";
-import type { ConfigEnv, Plugin, UserConfigExport } from "vite";
-import { loadEnv } from "vite";
+import type { Plugin } from "vite";
 import pkg from "./package.json";
 import { resolve } from "path";
 import { createRequire } from "module";
@@ -70,108 +69,54 @@ const manualChunks = (id: string) => {
 
   return undefined;
 };
-
-const resolveEnableFakeServer = (mode: string) => {
-  const env = loadEnv(mode, __dirname, "");
-  return (
-    process.env.VITE_ENABLE_FAKE_SERVER === "true" ||
-    env.VITE_ENABLE_FAKE_SERVER === "true"
-  );
-};
-
-const resolveProxyTarget = (
-  env: Record<string, string>,
-  key: string,
-  fallback: string,
-) => {
-  const value = (process.env[key] || env[key] || "").trim();
-  return value || fallback;
-};
-
-const createBuilder = (
-  enableFakeServer: boolean,
-  env: Record<string, string>,
-) => {
-  const builder = createViteConfig(import.meta.url, pkg)
-    .alias("@layout/default", resolve(root, "layout/default/src"))
-    .alias("@pages/common", resolve(root, "pages/common"))
-    .alias("@pages/device", resolve(root, "pages/device/src"))
-    .alias("@pages/dict", resolve(root, "pages/dict/src"))
-    .alias("@pages/doc", resolve(root, "pages/doc/src"))
-    .alias("@pages/email", resolve(root, "pages/email/src"))
-    .alias("@pages/example", resolve(root, "pages/example/src"))
-    .alias("@pages/job", resolve(root, "pages/job/src"))
-    .alias("@pages/music", resolve(root, "pages/music/src"))
-    .alias("@pages/panel", resolve(root, "pages/panel/src"))
-    .alias("@pages/pay", resolve(root, "pages/pay/src"))
-    .alias("@pages/project", resolve(root, "pages/project/src"))
-    .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
-    .alias("@pages/setting", resolve(root, "pages/setting/src"))
-    .alias("@pages/soft", resolve(root, "pages/soft/src"))
-    .alias("@pages/sync", resolve(root, "pages/sync/src"))
-    .alias("@pages/system", resolve(root, "pages/system/src"))
-    .alias("@pages/tools", resolve(root, "pages/tools/src"))
-    .alias("@pages/video", resolve(root, "pages/video/src"))
-    .plugins(bundleElementPlusIconsRuntime());
-
-  if (!enableFakeServer) {
-    const monitorApiTarget = resolveProxyTarget(
-      env,
-      "VITE_MONITOR_API_TARGET",
-      "http://127.0.0.1:19170",
-    );
-    const monitorSocketTarget = resolveProxyTarget(
-      env,
-      "VITE_MONITOR_SOCKET_TARGET",
-      "http://127.0.0.1:29181",
-    );
-
-    builder.proxy("/monitor/api/v1/music", "http://127.0.0.1:19091", true, {
-      rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
-    });
-    builder.proxy("/monitor/api", monitorApiTarget);
-    builder.proxy("/socket.io", monitorSocketTarget);
-    builder.proxy("/api", "http://127.0.0.1:8080");
-  }
-
-  if (enableFakeServer) {
-    builder.mock(["mock"]);
-  }
-
-  return builder;
-};
-
-export default (env: ConfigEnv): UserConfigExport => {
-  const runtimeEnv = loadEnv(env.mode, __dirname, "");
-  const config = createBuilder(
-    resolveEnableFakeServer(env.mode),
-    runtimeEnv,
-  ).build()(env);
-  config.build = {
-    ...(config.build ?? {}),
-    rollupOptions: {
-      ...(config.build?.rollupOptions ?? {}),
-      external: [
-        ...(Array.isArray(config.build?.rollupOptions?.external)
-          ? config.build.rollupOptions.external
-          : []),
-        "@tensorflow/tfjs",
-        "@tensorflow/tfjs-core",
-        "face-api.js",
-        "pixel-ui",
-        "pixel-ui/dist/index.css?url",
-      ],
-      output: {
-        ...(config.build?.rollupOptions &&
-        !Array.isArray(config.build.rollupOptions.output)
-          ? config.build.rollupOptions.output
-          : {}),
-        manualChunks,
-      },
+export default createViteConfig(import.meta.url, pkg)
+  .alias("@layout/default", resolve(root, "layout/default/src"))
+  .alias("@pages/common", resolve(root, "pages/common"))
+  .alias("@pages/device", resolve(root, "pages/device/src"))
+  .alias("@pages/dict", resolve(root, "pages/dict/src"))
+  .alias("@pages/email", resolve(root, "pages/email/src"))
+  .alias("@pages/example", resolve(root, "pages/example/src"))
+  .alias("@pages/job", resolve(root, "pages/job/src"))
+  .alias("@pages/music", resolve(root, "pages/music/src"))
+  .alias("@pages/panel", resolve(root, "pages/panel/src"))
+  .alias("@pages/pay", resolve(root, "pages/pay/src"))
+  .alias("@pages/project", resolve(root, "pages/project/src"))
+  .alias("@pages/proxy", resolve(root, "pages/proxy/src"))
+  .alias("@pages/setting", resolve(root, "pages/setting/src"))
+  .alias("@pages/soft", resolve(root, "pages/soft/src"))
+  .alias("@pages/sync", resolve(root, "pages/sync/src"))
+  .alias("@pages/system", resolve(root, "pages/system/src"))
+  .alias("@pages/tools", resolve(root, "pages/tools/src"))
+  .alias("@pages/video", resolve(root, "pages/video/src"))
+  .plugins(bundleElementPlusIconsRuntime())
+  .proxy("/monitor/api/v1/music", "http://127.0.0.1:19171", true, {
+    rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
+  })
+  .proxyFromEnv(
+    "/monitor/api",
+    "VITE_MONITOR_API_TARGET",
+    "http://127.0.0.1:19170",
+  )
+  .proxyFromEnv(
+    "/socket.io",
+    "VITE_MONITOR_SOCKET_TARGET",
+    "http://127.0.0.1:29181",
+  )
+  .proxy("/api", "http://127.0.0.1:8080")
+  .mockWhenEnv("VITE_ENABLE_FAKE_SERVER", ["mock"])
+  .rollup({
+    external: [
+      "@tensorflow/tfjs",
+      "@tensorflow/tfjs-core",
+      "face-api.js",
+      "pixel-ui",
+      "pixel-ui/dist/index.css?url",
+    ],
+  })
+  .manualChunks(manualChunks)
+  .merge({
+    ssr: {
+      noExternal: ["@repo/core", "@layout/default"],
     },
-  };
-  config.ssr = {
-    noExternal: ["@repo/core", "@layout/default"],
-  };
-  return config;
-};
+  })
+  .build();

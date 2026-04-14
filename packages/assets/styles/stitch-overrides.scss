@@ -1,1 +1,6 @@
-@use "./stitch/overrides.scss";
+/* Shared style overrides for stitch surfaces. */
+.stitch-surface {
+  border-radius: var(--stitch-radius-md, 10px);
+  border: 1px solid var(--stitch-border-primary, #e5e7eb);
+  background: var(--stitch-bg-primary, #ffffff);
+}

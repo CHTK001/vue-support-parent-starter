@@ -74,7 +74,7 @@
             <ScSelect
               v-model="serverTypeModel"
               :options="serverTypeOptions"
-              layout="pill"
+              layout="icon"
               class="server-form-dialog__select"
             />
           </el-form-item>
@@ -132,7 +132,7 @@
             <ScSelect
               v-model="osTypeModel"
               :options="osTypeOptions"
-              layout="pill"
+              layout="icon"
               class="server-form-dialog__select"
             />
           </el-form-item>
@@ -141,7 +141,7 @@
             <ScSelect
               v-model="architectureModel"
               :options="architectureOptions"
-              layout="pill"
+              layout="icon"
               class="server-form-dialog__select"
             />
           </el-form-item>
@@ -451,15 +451,18 @@ const credentialHint = computed(() => {
   align-items: center;
   gap: 14px;
   padding: 20px;
-  border-radius: 24px;
+  border-radius: 28px;
   margin-bottom: 18px;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--el-color-primary) 10%, white),
-    color-mix(in srgb, var(--el-fill-color-light) 84%, white)
+    color-mix(in srgb, var(--el-color-primary) 12%, white),
+    rgba(248, 250, 252, 0.96) 56%,
+    rgba(239, 246, 255, 0.94)
   );
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 70%, transparent);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.05);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 12%, rgba(148, 163, 184, 0.2));
+  box-shadow:
+    0 20px 36px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .server-form-dialog__badge {
@@ -545,6 +548,11 @@ const credentialHint = computed(() => {
   overflow: visible;
 }
 
+.server-form-dialog__form {
+  display: grid;
+  gap: 16px;
+}
+
 .server-form-dialog__summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -562,16 +570,19 @@ const credentialHint = computed(() => {
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.18));
   background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
     radial-gradient(
       circle at top left,
       color-mix(in srgb, var(--el-color-primary) 8%, transparent),
       transparent 58%
     ),
-    color-mix(in srgb, var(--el-bg-color-page) 90%, white);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+    color-mix(in srgb, var(--el-bg-color-page) 92%, white);
+  box-shadow:
+    0 14px 26px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-form-dialog__focus-card small,
@@ -594,13 +605,16 @@ const credentialHint = computed(() => {
   width: 100%;
   min-height: 30px;
   padding: 10px 14px;
-  border-radius: 16px;
+  border-radius: 18px;
   font-size: 12px;
   font-weight: 600;
   color: var(--el-text-color-secondary);
-  background: color-mix(in srgb, var(--el-fill-color-light) 92%, white);
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.03);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 8%, rgba(148, 163, 184, 0.16));
+  box-shadow:
+    0 10px 18px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .server-form-dialog__summary-chip.is-primary {
@@ -619,6 +633,37 @@ const credentialHint = computed(() => {
 
 :deep(.el-dialog__body) {
   overflow: visible;
+}
+
+.server-form-dialog :deep(.el-form-item) {
+  margin-bottom: 14px;
+}
+
+.server-form-dialog :deep(.el-form-item__content) {
+  min-height: 42px;
+}
+
+.server-form-dialog__advanced {
+  padding: 16px 18px 4px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.06), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  box-shadow:
+    0 16px 28px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.server-form-dialog__auto-panel {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 :deep(.el-dialog) {
@@ -678,12 +723,13 @@ const credentialHint = computed(() => {
   width: 100%;
 }
 
-.server-form-dialog__select :deep(.pill-selector-flex) {
+.server-form-dialog__select :deep(.icon-selector-flex) {
   gap: 8px;
 }
 
-.server-form-dialog__select :deep(.pill-selector-item) {
-  min-height: 38px;
+.server-form-dialog__select :deep(.icon-selector-item) {
+  width: 46px;
+  height: 46px;
 }
 
 @media (max-width: 900px) {

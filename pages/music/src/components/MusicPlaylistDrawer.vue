@@ -36,6 +36,8 @@
         :tracks="playlist.tracks"
         :current-track-key="currentTrackKey"
         :favorite-keys="favoriteKeys"
+        :show-source-label="showSourceLabel"
+        :source-label-map="sourceLabelMap"
         empty-text="歌单暂无歌曲。"
         show-play-all
         @play-track="handlePlayTrack"
@@ -57,6 +59,8 @@ defineProps<{
   playlist: MusicPlaylistDetail | null;
   currentTrackKey: string;
   favoriteKeys: string[];
+  showSourceLabel?: boolean;
+  sourceLabelMap?: Record<string, string>;
 }>();
 
 const emit = defineEmits<{
