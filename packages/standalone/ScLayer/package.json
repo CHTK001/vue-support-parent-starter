@@ -10,25 +10,13 @@
       "types": "./index.ts",
       "default": "./index.ts"
     },
-    "./*": {
-      "types": "./*",
-      "default": "./*"
+    "./styles/*": {
+      "types": "./styles/*",
+      "default": "./styles/*"
     }
   },
   "dependencies": {
-    "@repo/components": "workspace:^",
-    "@repo/utils": "workspace:^",
-    "vue": "catalog:",
-    "gcoord": "catalog:",
-    "ol": "catalog:",
-    "ol-contextmenu": "catalog:",
-    "ol-echarts": "catalog:",
-    "ol-ext": "catalog:",
-    "ol-layerswitcher": "catalog:",
-    "ol-wind": "catalog:",
-    "olcs": "catalog:",
-    "cesium": "catalog:",
-    "echarts": "catalog:"
+    "@repo/components/ScLayer": "workspace:^"
   },
   "license": "ISC"
 }

@@ -9,16 +9,10 @@
     ".": {
       "types": "./index.ts",
       "default": "./index.ts"
-    },
-    "./*": {
-      "types": "./*",
-      "default": "./*"
     }
   },
   "dependencies": {
-    "@repo/utils": "workspace:^",
-    "vue": "catalog:",
-    "codemirror": "catalog:"
+    "@repo/components/ScCodeEditor": "workspace:^"
   },
   "license": "ISC"
 }

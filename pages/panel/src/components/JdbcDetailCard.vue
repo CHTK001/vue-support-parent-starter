@@ -1,12 +1,21 @@
 <template>
   <section class="detail-shell">
-    <div class="detail-main">
-      <section
-        v-if="activeWorkbenchTab"
-        ref="documentPaperRef"
-        class="workbench-shell"
-      >
-        <header class="workbench-head">
+    <ScLayout
+      v-model="railTabValue"
+      class="detail-layout"
+      rail-close-button-mode="always"
+      :rail-round="railRound"
+      :rail-tabs="railTabs"
+      @tab-remove="handleRailTabRemove($event.name)"
+    >
+      <template #default>
+        <div class="detail-main">
+          <section
+            v-if="activeWorkbenchTab"
+            ref="documentPaperRef"
+            class="workbench-shell"
+          >
+            <header class="workbench-head">
           <div class="workbench-head__title">
             <small>{{ workbenchHeaderLabel }}</small>
             <strong>{{ activeWorkbenchTab.tabName }}</strong>
@@ -966,17 +975,11 @@
               </article>
             </div>
           </div>
+          </section>
         </section>
-      </section>
-    </div>
-
-    <ScTabsRailLayout
-      v-model="railTabValue"
-      close-button-mode="always"
-      :items="railTabs"
-      :round="railRound"
-      @tab-remove="handleRailTabRemove"
-    />
+        </div>
+      </template>
+    </ScLayout>
 
     <ElDialog v-model="aiDialogVisible" title="AI 生成 SQL" width="480px">
       <ElInput
@@ -1082,8 +1085,8 @@ import {
   VideoPlay,
 } from "@element-plus/icons-vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
+import ScLayout from "@repo/components/ScLayout";
 import ScTag from "@repo/components/ScTag/src/index.vue";
-import ScTabsRailLayout from "@repo/components/ScTabsRailLayout/index.vue";
 import { ScTabs, ScTabPane } from "@repo/components/ScTabs";
 import {
   ElButton,
@@ -2534,12 +2537,14 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .detail-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px;
-  gap: 10px;
   min-height: 0;
   height: 100%;
   max-height: 100%;
+}
+
+.detail-layout {
+  width: 100%;
+  height: 100%;
 }
 
 .detail-main {
@@ -3235,10 +3240,6 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 1200px) {
-  .detail-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .account-summary-grid {
     grid-template-columns: 1fr;
   }

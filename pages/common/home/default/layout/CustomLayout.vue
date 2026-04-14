@@ -1,12 +1,16 @@
 <script setup>
-import { defineAsyncComponent, reactive, ref, computed } from "vue";
+import { computed } from "vue";
 import { GridLayout } from "grid-layout-plus";
-import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { useLayoutLayoutStore } from "@repo/core";
 
 const loadingCollection = {};
 const userLayoutObject = useLayoutLayoutStore();
+const gridMeta = computed(() => userLayoutObject.getGridMeta?.() || {
+  columnCount: 12,
+  cellHeight: 200,
+  margin: 8,
+});
 
 const props = defineProps({
   modelValue: {
@@ -44,7 +48,9 @@ const handleRemove = async (key) => {
   <div class="customizing h-full">
     <GridLayout 
       class="!h-full grid-layout-container" 
-      :row-height="200" 
+      :col-num="gridMeta.columnCount"
+      :row-height="200"
+      :margin="[gridMeta.margin, gridMeta.margin]"
       v-model:layout="userLayoutObject.layout" 
       :is-draggable="props.modelValue" 
       :is-resizable="props.modelValue" 

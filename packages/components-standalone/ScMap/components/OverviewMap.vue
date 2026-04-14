@@ -16,7 +16,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import L from "leaflet";
 import "leaflet-minimap";
 import { MapTile, MapType } from "../types";
-import "leaflet-minimap/dist/Control.MiniMap.min.css";
+import { ensureScMapMiniMapVendorStyles } from "../style-loader";
 
 // 定义配置接口
 export interface OverviewMapConfig {
@@ -132,11 +132,17 @@ function createMiniMapLayer() {
   });
 }
 
-const initMiniMap = () => {
-  if (!props.mainMap) return;
+const initMiniMap = async () => {
+  const mainMap = props.mainMap;
+  if (!mainMap) return;
+
+  await ensureScMapMiniMapVendorStyles();
+
+  if (!props.mainMap || props.mainMap !== mainMap) return;
+
   // 移除旧控件
   if (miniMapControl.value) {
-    props.mainMap.removeControl(miniMapControl.value);
+    mainMap.removeControl(miniMapControl.value);
     miniMapControl.value = null;
   }
   const layer = createMiniMapLayer();
@@ -160,14 +166,14 @@ const initMiniMap = () => {
       showText: "显示鹰眼",
     },
   });
-  props.mainMap.addControl(miniMapControl.value);
+  mainMap.addControl(miniMapControl.value);
 };
 
 // 组件挂载
 onMounted(() => {
   // 初始化鸟瞰图
   if (finalConfig.value.visible && !collapsed.value) {
-    initMiniMap();
+    void initMiniMap();
   }
 });
 
@@ -188,7 +194,7 @@ watch(configVersion, () => {
     miniMapControl.value = null;
   }
   if (finalConfig.value.visible && !collapsed.value) {
-    initMiniMap();
+    void initMiniMap();
   }
 });
 
@@ -201,7 +207,7 @@ watch(
       miniMapControl.value = null;
     }
     if (finalConfig.value.visible && !collapsed.value) {
-      initMiniMap();
+      void initMiniMap();
     }
   },
 );
@@ -211,7 +217,7 @@ watch(
   () => props.visible,
   (newVisible) => {
     if (newVisible && !miniMapControl.value && !collapsed.value) {
-      initMiniMap();
+      void initMiniMap();
     }
   },
 );

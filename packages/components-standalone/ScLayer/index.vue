@@ -156,6 +156,10 @@ import { TrackObject } from "./composables/TrackObject";
 import { Model3DOptions } from "./composables/CesiumModelObject";
 import { CesiumObject } from "./composables/CesiumObject";
 import { SearchObject } from "./composables/SearchObject";
+import {
+  ensureScLayerBaseVendorStyles,
+  ensureScLayerCesiumVendorStyles,
+} from "./style-loader";
 import { getCurrentPoint, getLocationCityCode } from "./utils/locationUtils";
 import {
   // 类型导入
@@ -189,12 +193,9 @@ import {
   Shape,
 } from "./types";
 import { ApiUrls } from "./types/api";
-// 引入OpenLayers样式
-import "ol/ol.css";
 import FlightLinePanel from "./components/FlightLinePanel.vue";
 // 导入Cesium相关
 import * as Cesium from "cesium";
-import "cesium/Build/Cesium/Widgets/widgets.css";
 // 导入CesiumObject和其他类型
 import BoundarySelector from "./components/BoundarySelector.vue"; // 导入区划选择器组件
 import SearchBox from "./components/SearchBox.vue";
@@ -434,7 +435,7 @@ const toolbarConfig = computed(() => {
 });
 
 // 初始化地图
-const initMap = () => {
+const initMap = async () => {
   if (!mapContainer.value) {
     logger.error("地图容器未找到，无法初始化地图");
     return;
@@ -444,7 +445,7 @@ const initMap = () => {
     // 记录地图容器信息
     logMapContainerInfo();
     // 初始化地图组件
-    initializeMapComponents();
+    await initializeMapComponents();
     // 触发初始化完成事件
     emitMapInitializedEvent();
   } catch (error) {
@@ -463,6 +464,8 @@ const logMapContainerInfo = () => {
 // 初始化地图组件
 const initializeMapComponents = async () => {
   try {
+    await ensureScLayerBaseVendorStyles();
+
     // 创建配置对象
     configObject = new ConfigObject(config.value);
 
@@ -1999,7 +2002,9 @@ onMounted(() => {
 
   // 初始化地图
   logger.info("ScLayer组件已挂载");
-  nextTick(initMap);
+  nextTick(() => {
+    void initMap();
+  });
 
   // 添加窗口大小变化监听
   window.addEventListener("resize", resizeMap);
@@ -2018,12 +2023,6 @@ onMounted(() => {
       checkBoundaryState();
     }
   }, 2000);
-
-  // 地图初始化完成后，预创建Cesium对象但不启用
-  if (mapObj && mapObj.getMapInstance) {
-    cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);
-    cesiumObj.setEnabled(false);
-  }
 
   // 设置工具栏状态变更回调
   if (toolbarObject) {
@@ -2813,6 +2812,8 @@ defineExpose({
   // Cesium 3D模型相关方法
   getCesiumObject: () => cesiumObj,
   enable3D: () => {
+    void ensureScLayerCesiumVendorStyles();
+
     if (!cesiumObj && mapObj && mapObj.getMapInstance) {
       cesiumObj = new CesiumObject(
         mapObj.getMapInstance(),
@@ -2836,6 +2837,8 @@ defineExpose({
     return cesiumObj ? cesiumObj.isEnabled() : false;
   },
   addModel: (options: Model3DOptions) => {
+    void ensureScLayerCesiumVendorStyles();
+
     if (!cesiumObj) {
       if (mapObj && mapObj.getMapInstance) {
         cesiumObj = new CesiumObject(
@@ -2944,7 +2947,9 @@ watch(aggregationOptionsVersion, () => {
 const is3D = ref(false);
 let cesiumObj: CesiumObject | null = null;
 
-function toggle3D() {
+async function toggle3D() {
+  await ensureScLayerCesiumVendorStyles();
+
   if (!cesiumObj && mapObj && mapObj.getMapInstance) {
     // 创建CesiumObject
     cesiumObj = new CesiumObject(mapObj.getMapInstance(), props.cesiumBaseUrl);

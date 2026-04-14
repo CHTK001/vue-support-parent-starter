@@ -1,1 +1,2 @@
-@forward "./app-basic.scss";
+@forward "../layout/default/mixin.scss";
+@forward "./app-basic.scss" as app-*;

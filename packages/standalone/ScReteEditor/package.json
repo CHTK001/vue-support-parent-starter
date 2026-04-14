@@ -9,23 +9,10 @@
     ".": {
       "types": "./index.ts",
       "default": "./index.ts"
-    },
-    "./*": {
-      "types": "./*",
-      "default": "./*"
     }
   },
   "dependencies": {
-    "@repo/components": "workspace:^",
-    "vue": "catalog:",
-    "element-plus": "catalog:",
-    "rete": "catalog:",
-    "rete-area-plugin": "catalog:",
-    "rete-auto-arrange-plugin": "catalog:",
-    "rete-connection-plugin": "catalog:",
-    "rete-context-menu-plugin": "catalog:",
-    "rete-minimap-plugin": "catalog:",
-    "rete-vue-plugin": "catalog:"
+    "@repo/components/ScReteEditor": "workspace:^"
   },
   "license": "ISC"
 }

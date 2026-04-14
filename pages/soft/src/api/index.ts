@@ -13,12 +13,18 @@ import type {
   SoftLogWatchTicket,
   SoftOperationLog,
   SoftOperationTicket,
+  SoftPackageAiDraftRequest,
+  SoftPackageAiDraftResponse,
   SoftPackageGuide,
   SoftPackage,
+  SoftPackageCreateRequest,
+  SoftPackageCreateResult,
   SoftPackageDetail,
   SoftPackageVersion,
   SoftPackageVersionUpdateResult,
   SoftRepository,
+  SoftRepositorySourceSearchItem,
+  SoftRepositorySourceUpdateRequest,
   SoftRepositoryUploadResult,
   SoftRepositorySource,
   SoftRealtimeEnvelope,
@@ -145,6 +151,20 @@ export const createSoftRepository = (data: SoftRepository) =>
 export const updateSoftRepository = (id: number, data: SoftRepository) =>
   softRequest<SoftRepository>("put", `${repositoriesBase}/${id}`, { data });
 
+export const updateSoftRepositorySources = (
+  id: number,
+  data: SoftRepositorySourceUpdateRequest,
+) =>
+  softRequest<SoftRepository>("put", `${repositoriesBase}/${id}/sources`, {
+    data,
+  });
+
+export const listSoftRepositorySources = (keyword?: string) =>
+  softRequest<SoftRepositorySourceSearchItem[]>(
+    "get",
+    appendQuery(`${repositoriesBase}/sources`, { keyword }),
+  );
+
 export const deleteSoftRepository = (id: number) =>
   softRequest<boolean>("delete", `${repositoriesBase}/${id}`);
 
@@ -163,6 +183,14 @@ export const uploadSoftRepositoryArtifacts = (id: number, files: File[]) => {
 
 export const listSoftPackages = () =>
   softRequest<SoftPackage[]>("get", packagesBase);
+
+export const createSoftPackage = (data: SoftPackageCreateRequest) =>
+  softRequest<SoftPackageCreateResult>("post", packagesBase, { data });
+
+export const generateSoftPackageAiDraft = (data: SoftPackageAiDraftRequest) =>
+  softRequest<SoftPackageAiDraftResponse>("post", `${packagesBase}/ai-draft`, {
+    data,
+  });
 
 export const getSoftPackageDetail = (id: number) =>
   softRequest<SoftPackageDetail>("get", `${packagesBase}/${id}`);
@@ -334,6 +362,10 @@ export type {
   SoftOperationTicket,
   SoftPackageGuide,
   SoftPackage,
+  SoftPackageAiDraftRequest,
+  SoftPackageAiDraftResponse,
+  SoftPackageCreateRequest,
+  SoftPackageCreateResult,
   SoftPackageDetail,
   SoftPackageVersionUpdateResult,
   SoftRenderedConfigFile,
@@ -341,6 +373,8 @@ export type {
   SoftRepository,
   SoftRepositoryUploadFile,
   SoftRepositoryUploadResult,
+  SoftRepositorySourceSearchItem,
+  SoftRepositorySourceUpdateRequest,
   SoftRepositorySource,
   SoftRealtimeEnvelope,
   SoftRealtimePayload,
