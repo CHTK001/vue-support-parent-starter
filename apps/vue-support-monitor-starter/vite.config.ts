@@ -60,17 +60,18 @@ const manualChunks = (id: string) => {
   const normalized = id.replace(/\\/g, "/");
 
   if (
-    normalized.includes("/pages/project/src/views/ai/") ||
-    normalized.includes("/pages/project/src/api/ai/") ||
-    normalized.includes("/pages/project/src/api/manage/project-ai-module")
+    normalized.includes("/pages/ai/src/views/ai/") ||
+    normalized.includes("/pages/ai/src/api/ai/") ||
+    normalized.includes("/pages/ai/src/api/manage/project-ai-module")
   ) {
-    return "project-ai";
+    return "ai-center";
   }
 
   return undefined;
 };
 export default createViteConfig(import.meta.url, pkg)
   .alias("@layout/default", resolve(root, "layout/default/src"))
+  .alias("@pages/ai", resolve(root, "pages/ai/src"))
   .alias("@pages/common", resolve(root, "pages/common"))
   .alias("@pages/device", resolve(root, "pages/device/src"))
   .alias("@pages/dict", resolve(root, "pages/dict/src"))
