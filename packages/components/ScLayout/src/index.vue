@@ -64,26 +64,27 @@
               :key="String(tab.name)"
               type="button"
               class="sc-layout__rail-tab"
+              :title="tab.title || tab.label || String(tab.name)"
               :class="{
                 'is-active': String(currentRailValue) === String(tab.name),
               }"
               @click="setActiveTab(tab.name)"
             >
-              <el-tooltip :content="tab.title || tab.label || String(tab.name)" placement="left">
-                <ElIcon v-if="tab.icon" class="sc-layout__rail-icon">
+              <div class="sc-layout__rail-icon-wrap">
+                <span v-if="tab.icon" class="sc-layout__rail-icon">
                   <component :is="tab.icon" />
-                </ElIcon>
+                </span>
                 <span v-else class="sc-layout__rail-text">
                   {{ tab.label || tab.name }}
                 </span>
-                <span
-                  v-if="tab.closable"
-                  class="sc-layout__rail-close"
-                  @click.stop="handleRailTabRemove(tab.name)"
-                >
-                  ×
-                </span>
-              </el-tooltip>
+              </div>
+              <span
+                v-if="tab.closable"
+                class="sc-layout__rail-close"
+                @click.stop="handleRailTabRemove(tab.name)"
+              >
+                ×
+              </span>
             </button>
           </nav>
         </slot>
@@ -136,7 +137,6 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useSlots, watch } from "vue";
-import { ElIcon } from "element-plus";
 
 export interface ScLayoutRailTab {
   closable?: boolean;
@@ -345,10 +345,15 @@ const syncRailTabs = (tabs: ScLayoutRailTab[]) => {
 };
 
 const ensureValidActiveTab = () => {
+  // 固定 tab（workspace/metadata）始终有效，不需要重置
+  const fixedTabs = ["workspace", "metadata"];
+  if (fixedTabs.includes(String(localRailValue.value))) return;
+
   const hasCurrent = localRailTabs.value.some(
     (item) => String(item.name) === String(localRailValue.value),
   );
   if (hasCurrent) return;
+  // 当前 active tab 已被移除，回退到第一个 tab
   const next = localRailTabs.value[0];
   localRailValue.value = next?.name ?? "";
   emit("update:modelValue", localRailValue.value);
@@ -569,16 +574,14 @@ onBeforeUnmount(() => {
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0.92);
+  transform: translate(-50%, -50%);
   transition:
     opacity 0.2s ease,
-    transform 0.2s ease,
     border-color 0.2s ease;
 }
 
 .sc-layout__collapse.is-visible {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
 }
 
 .sc-layout__collapse:hover {
@@ -601,13 +604,12 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: inset 1px 0 0 rgba(15, 23, 42, 0.08);
   box-sizing: border-box;
-  transition:
-    opacity 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease;
+  contain: layout paint;
+  will-change: opacity;
+  transition: opacity 0.2s ease;
 }
 
 .sc-layout.is-rail-collapsed .sc-layout__rail {
@@ -622,9 +624,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: stretch;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
   box-sizing: border-box;
+  contain: layout paint;
 }
 
 .sc-layout__rail-footer {
@@ -635,8 +638,9 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 0;
   box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.94);
   box-sizing: border-box;
+  contain: paint;
 }
 
 .sc-layout__rail-tabs {
@@ -646,7 +650,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  overflow-x: visible;
 }
 
 .sc-layout__rail-tab {
@@ -664,8 +670,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition:
     background-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.18s ease;
+    color 0.18s ease;
 }
 
 .sc-layout__rail-tabs.is-round .sc-layout__rail-tab {
@@ -683,7 +688,8 @@ onBeforeUnmount(() => {
 }
 
 .sc-layout__rail-icon,
-.sc-layout__rail-text {
+.sc-layout__rail-text,
+.sc-layout__rail-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -711,16 +717,12 @@ onBeforeUnmount(() => {
   color: #b42318;
   font-size: 11px;
   line-height: 1;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.92);
 }
 
 .sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-close {
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.92);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+  transition: opacity 0.18s ease;
 }
 
 .sc-layout__rail-tabs.close-mode-hover
@@ -731,7 +733,6 @@ onBeforeUnmount(() => {
   .sc-layout__rail-close {
   opacity: 1;
   pointer-events: auto;
-  transform: scale(1);
 }
 
 .sc-layout__rail-collapse,
@@ -748,9 +749,9 @@ onBeforeUnmount(() => {
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
+  will-change: opacity;
   transition:
     opacity 0.2s ease,
-    transform 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -777,11 +778,10 @@ onBeforeUnmount(() => {
 .sc-layout__rail-expand {
   right: -1px;
   opacity: 0;
-  transform: translate(50%, -50%) scale(0.92);
+  transform: translate(50%, -50%);
 }
 
 .sc-layout__rail-expand-hotspot:hover .sc-layout__rail-expand {
   opacity: 1;
-  transform: translate(50%, -50%) scale(1);
 }
 </style>
