@@ -16,6 +16,7 @@ const logger = getLogger("[ThemeStore]");
 
 export const useThemeStore = defineStore("theme", () => {
   const { $storage } = useGlobal<GlobalPropertiesApi>();
+  let themeSwitchingClearTimer: ReturnType<typeof setTimeout> | null = null;
 
   function bindConfigFallback<T>(
     storageKey: string,
@@ -31,6 +32,20 @@ export const useThemeStore = defineStore("theme", () => {
 
   function normalizeMonitorLayout(layout?: string | null): string {
     return layout && !layout.startsWith("split-") ? layout : "merged";
+  }
+
+  function markThemeSwitching(): void {
+    const htmlEl = document.documentElement;
+    htmlEl.classList.add("theme-switching");
+
+    if (themeSwitchingClearTimer) {
+      clearTimeout(themeSwitchingClearTimer);
+    }
+
+    themeSwitchingClearTimer = setTimeout(() => {
+      htmlEl.classList.remove("theme-switching");
+      themeSwitchingClearTimer = null;
+    }, 160);
   }
 
   /**
@@ -259,12 +274,10 @@ export const useThemeStore = defineStore("theme", () => {
     }
 
     const htmlEl = document.documentElement;
+    markThemeSwitching();
 
     // 更新 data-skin，用于组件主题系统
-    htmlEl.setAttribute("data-skin", normalizedThemeKey);
-
-    if (normalizedThemeKey === "default") {
-      htmlEl.removeAttribute("data-skin");
+    if (htmlEl.getAttribute("data-skin") !== normalizedThemeKey) {
       htmlEl.setAttribute("data-skin", normalizedThemeKey);
     }
 
@@ -391,7 +404,9 @@ export const useThemeStore = defineStore("theme", () => {
     }
 
     const htmlEl = document.documentElement;
-    htmlEl.setAttribute("data-skin", currentTheme.value);
+    if (htmlEl.getAttribute("data-skin") !== currentTheme.value) {
+      htmlEl.setAttribute("data-skin", currentTheme.value);
+    }
     updateThemeClass(currentTheme.value);
     loadThemeStylesheet(currentTheme.value);
 

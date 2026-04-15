@@ -1,5 +1,9 @@
 <template>
-  <SoftWorkspace title="仓库管理">
+  <SoftWorkspace
+    title="仓库管理"
+    subtitle="统一管理主定义源、参考同步源与安装包上传入口。"
+    :metrics="workspaceMetrics"
+  >
     <template #actions>
       <el-dropdown trigger="click" @command="applyRepositoryPreset">
         <el-button circle>
@@ -64,7 +68,7 @@
       layout="card"
       card-layout="default"
       row-key="softRepositoryId"
-      :col-size="3"
+      :col-size="4"
       :hide-pagination="true"
       :border="false"
       :stripe="false"
@@ -203,16 +207,22 @@
       </template>
     </ScTable>
 
-    <el-dialog v-model="visible" width="960px" :title="dialogTitle">
-      <el-form label-position="top">
+    <el-dialog v-model="visible" width="980px" :title="dialogTitle">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="repositoryRules"
+        label-position="top"
+        class="repository-dialog-form"
+      >
         <div class="repository-form-grid">
-          <el-form-item label="仓库名称">
+          <el-form-item label="仓库名称" prop="repositoryName">
             <el-input v-model="form.repositoryName" />
           </el-form-item>
-          <el-form-item label="仓库编码">
+          <el-form-item label="仓库编码" prop="repositoryCode">
             <el-input v-model="form.repositoryCode" />
           </el-form-item>
-          <el-form-item label="仓库类型">
+          <el-form-item label="仓库类型" prop="repositoryType">
             <ScSelect
               v-model="form.repositoryType"
               :options="repositoryTypeOptions"
@@ -238,6 +248,7 @@
               isRemoteRepositoryType(form.repositoryType)
             "
             label="主定义地址"
+            prop="repositoryUrl"
           >
             <el-input
               v-model="form.repositoryUrl"
@@ -255,26 +266,27 @@
           <el-form-item
             v-if="form.repositoryType === 'LOCAL_DIR'"
             label="本地扫描目录"
+            prop="localDirectory"
           >
             <el-input
               v-model="form.localDirectory"
               placeholder="扫描本地 rpm、deb、exe、msi、zip、tar.gz 等目录，为软件添加和在线搜索建立索引"
             />
           </el-form-item>
-          <el-form-item label="认证类型">
+          <el-form-item label="认证类型" prop="authType">
             <el-select v-model="form.authType" clearable style="width: 100%">
               <el-option label="无认证" value="" />
               <el-option label="Basic" value="BASIC" />
               <el-option label="Bearer" value="BEARER" />
             </el-select>
           </el-form-item>
-          <el-form-item label="用户名">
+          <el-form-item label="用户名" prop="username">
             <el-input v-model="form.username" />
           </el-form-item>
-          <el-form-item label="密码">
+          <el-form-item label="密码" prop="password">
             <el-input v-model="form.password" type="password" show-password />
           </el-form-item>
-          <el-form-item label="令牌">
+          <el-form-item label="令牌" prop="token">
             <el-input v-model="form.token" type="password" show-password />
           </el-form-item>
           <el-form-item
@@ -294,7 +306,7 @@
               placeholder="填写搜索规则、索引说明、本地扫描备注或参考同步策略"
             />
           </el-form-item>
-          <el-form-item label="参考同步源" class="repository-form-grid__span-2">
+          <el-form-item label="参考同步源" class="repository-form-grid__span-2" prop="sourceConfigs">
             <div class="repository-source-editor">
               <div
                 v-for="(source, index) in form.sourceConfigs"
@@ -399,6 +411,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
+import type { FormInstance, FormRules } from "element-plus";
 import { message } from "@repo/utils";
 import {
   createSoftRepository,
@@ -423,6 +436,7 @@ const statusFilter = ref<"enabled" | "disabled" | "">("");
 const repositories = ref<SoftRepository[]>([]);
 const artifactInputRef = ref<HTMLInputElement | null>(null);
 const pendingUploadRepositoryId = ref<number | null>(null);
+const formRef = ref<FormInstance>();
 
 const repositoryTypeOptions = [
   {
@@ -609,8 +623,26 @@ const emptyForm = (): SoftRepository => ({
 });
 
 const form = reactive<SoftRepository>(emptyForm());
+const repositoryCodeReg = /^[a-z0-9][a-z0-9-_]{1,63}$/;
 
 const dialogTitle = computed(() => (editingId.value ? "编辑仓库" : "新建仓库"));
+const workspaceMetrics = computed(() => [
+  {
+    label: "仓库定义",
+    value: repositories.value.length,
+    hint: "主定义 + 参考同步源",
+  },
+  {
+    label: "启用仓库",
+    value: enabledCount.value,
+    hint: "当前参与同步与检索",
+  },
+  {
+    label: "多源仓库",
+    value: multiSourceCount.value,
+    hint: "包含额外 source 配置",
+  },
+]);
 
 const enabledCount = computed(
   () => repositories.value.filter((item) => item.enabled).length,
@@ -653,6 +685,125 @@ const patchForm = (value: SoftRepository) => {
   );
   Object.assign(next, value, { sourceConfigs });
   Object.assign(form, emptyForm(), next);
+  formRef.value?.clearValidate();
+};
+
+const repositoryRules: FormRules<SoftRepository> = {
+  repositoryName: [
+    { required: true, message: "请输入仓库名称", trigger: "blur" },
+    { min: 2, max: 64, message: "仓库名称长度需在 2 到 64 个字符之间", trigger: "blur" },
+  ],
+  repositoryCode: [
+    { required: true, message: "请输入仓库编码", trigger: "blur" },
+    {
+      pattern: repositoryCodeReg,
+      message: "仓库编码仅允许小写字母、数字、-、_，且必须以字母或数字开头",
+      trigger: "blur",
+    },
+  ],
+  repositoryType: [{ required: true, message: "请选择仓库类型", trigger: "change" }],
+  repositoryUrl: [
+    {
+      validator: (_rule, value, callback) => {
+        if (!isRemoteRepositoryType(form.repositoryType)) {
+          callback();
+          return;
+        }
+        if (normalizeText(value)) {
+          callback();
+          return;
+        }
+        callback(new Error("当前仓库类型必须填写主定义地址"));
+      },
+      trigger: ["blur", "change"],
+    },
+  ],
+  localDirectory: [
+    {
+      validator: (_rule, value, callback) => {
+        if (form.repositoryType !== "LOCAL_DIR") {
+          callback();
+          return;
+        }
+        if (normalizeText(value)) {
+          callback();
+          return;
+        }
+        callback(new Error("本地扫描目录不能为空"));
+      },
+      trigger: ["blur", "change"],
+    },
+  ],
+  username: [
+    {
+      validator: (_rule, value, callback) => {
+        if (form.authType !== "BASIC") {
+          callback();
+          return;
+        }
+        if (normalizeText(value)) {
+          callback();
+          return;
+        }
+        callback(new Error("Basic 认证必须填写用户名"));
+      },
+      trigger: "blur",
+    },
+  ],
+  password: [
+    {
+      validator: (_rule, value, callback) => {
+        if (form.authType !== "BASIC") {
+          callback();
+          return;
+        }
+        if (normalizeText(value)) {
+          callback();
+          return;
+        }
+        callback(new Error("Basic 认证必须填写密码"));
+      },
+      trigger: "blur",
+    },
+  ],
+  token: [
+    {
+      validator: (_rule, value, callback) => {
+        if (form.authType !== "BEARER") {
+          callback();
+          return;
+        }
+        if (normalizeText(value)) {
+          callback();
+          return;
+        }
+        callback(new Error("Bearer 认证必须填写令牌"));
+      },
+      trigger: "blur",
+    },
+  ],
+  sourceConfigs: [
+    {
+      validator: (_rule, value, callback) => {
+        const sources = Array.isArray(value) ? value : [];
+        const invalid = sources.find((source) => {
+          if (source.enabled === false) {
+            return false;
+          }
+          if (source.sourceType === "LOCAL_DIR") {
+            return !normalizeText(source.localDirectory);
+          }
+          return !normalizeText(source.sourceUrl);
+        });
+        if (invalid) {
+          callback(new Error("启用中的参考同步源必须填写完整地址或本地目录"));
+          return;
+        }
+        callback();
+      },
+      trigger: "change",
+    },
+  ],
 };
 
 const loadRepositories = async () => {
@@ -699,8 +850,12 @@ const toggleRepository = async (row: SoftRepository) => {
 };
 
 const submit = async () => {
-  if (!form.repositoryName || !form.repositoryCode) {
-    message("仓库名称和编码不能为空", { type: "warning" });
+  const valid = await formRef.value
+    ?.validate()
+    .then(() => true)
+    .catch(() => false);
+  if (!valid) {
+    message("请先修正仓库表单错误后再保存", { type: "warning" });
     return;
   }
   const sourceConfigs = normalizeSourceConfigs(form.sourceConfigs);
@@ -844,11 +999,12 @@ const applyRepositoryPreset = (command: string) => {
   if (!preset) {
     return;
   }
+  const presetRepository = preset.repository as Partial<SoftRepository>;
   editingId.value = null;
   patchForm({
     ...emptyForm(),
-    ...preset.repository,
-    sourceConfigs: normalizeSourceConfigs(preset.repository.sourceConfigs),
+    ...presetRepository,
+    sourceConfigs: normalizeSourceConfigs(presetRepository.sourceConfigs),
   } as SoftRepository);
   visible.value = true;
 };
@@ -1001,7 +1157,7 @@ onMounted(loadRepositories);
   grid-template-columns: minmax(220px, 1fr) 140px auto;
   gap: 12px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .repository-hidden-input {
@@ -1053,6 +1209,16 @@ onMounted(loadRepositories);
     rgba(241, 245, 249, 0.92)
   );
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.repository-card:hover {
+  border-color: rgba(14, 165, 233, 0.3);
+  box-shadow: 0 18px 32px rgba(14, 165, 233, 0.12);
+  transform: translateY(-2px);
 }
 
 .repository-card__header,
@@ -1175,10 +1341,15 @@ onMounted(loadRepositories);
   align-items: center;
 }
 
+.repository-dialog-form {
+  display: grid;
+  gap: 14px;
+}
+
 .repository-form-grid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .repository-form-grid__span-2 {
@@ -1187,6 +1358,13 @@ onMounted(loadRepositories);
 
 .repository-form-grid :deep(.el-form-item) {
   margin-bottom: 0;
+}
+
+.repository-form-grid :deep(.el-input),
+.repository-form-grid :deep(.el-select),
+.repository-form-grid :deep(.el-select__wrapper),
+.repository-form-grid :deep(.el-textarea) {
+  width: 100%;
 }
 
 .repository-source-editor {
@@ -1235,7 +1413,7 @@ onMounted(loadRepositories);
 .repository-source-item__grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 @media (max-width: 980px) {

@@ -68,8 +68,30 @@
               border-color 0.3s ease;
 }
 
-// 应用过渡到所有元素 (Apply transition to all elements)
-* {
+// 只给主题切换时真正需要视觉反馈的关键节点保留过渡，避免全页面 * 级别动画拉低帧率。
+html,
+body,
+#app,
+.theme-skin-provider,
+.main-container,
+.layout-navbar,
+.right-panel,
+.project-configuration,
+.setting-section,
+.theme-card,
+.el-card,
+.el-button,
+.el-input__wrapper,
+.el-select__wrapper,
+.el-drawer,
+.el-dialog,
+.el-menu,
+.el-menu-item,
+.el-sub-menu__title,
+.el-tabs__item,
+.el-tag,
+.el-switch,
+.el-radio-button__inner {
   @extend .theme-transition;
 }
 
@@ -361,18 +383,8 @@
   }
 }
 
-// 暗黑模式切换动画 (Dark mode toggle animation)
-@keyframes theme-fade {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
 .theme-switching {
-  animation: theme-fade 0.3s ease;
+  cursor: default;
 }
 
 // 自动暗黑模式 (Auto dark mode)
