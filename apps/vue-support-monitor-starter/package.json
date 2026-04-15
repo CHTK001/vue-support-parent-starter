@@ -115,6 +115,8 @@
     "@xterm/addon-unicode11": "catalog:",
     "xterm-addon-web-links": "catalog:",
     "@pages/common": "workspace:^",
+    "@pages/ai": "workspace:^",
+    "@pages/device": "workspace:^",
     "@pages/example": "workspace:^",
     "@pages/music": "workspace:^",
     "@pages/setting": "workspace:^",
