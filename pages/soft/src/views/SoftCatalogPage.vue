@@ -264,6 +264,14 @@
                           v-model="item.sourceName"
                           placeholder="源名称（可选）"
                         />
+                        <el-select v-model="item.sourceKind" placeholder="来源分类">
+                          <el-option
+                            v-for="option in sourceKindOptions"
+                            :key="option.value"
+                            :label="option.label"
+                            :value="option.value"
+                          />
+                        </el-select>
                         <el-select v-model="item.sourceType" placeholder="源类型">
                           <el-option
                             v-for="option in sourceTypeOptions"
@@ -310,6 +318,11 @@
                 <el-table-column prop="repositoryName" label="仓库" min-width="160" />
                 <el-table-column prop="repositoryCode" label="编码" min-width="130" />
                 <el-table-column prop="sourceName" label="源名称" min-width="160" />
+                <el-table-column label="来源分类" width="120">
+                  <template #default="{ row }">
+                    {{ sourceKindLabel(row.sourceKind) }}
+                  </template>
+                </el-table-column>
                 <el-table-column prop="sourceType" label="类型" width="120" />
                 <el-table-column prop="sourceAddress" label="地址/目录" min-width="240" show-overflow-tooltip />
                 <el-table-column label="状态" width="100">
@@ -330,19 +343,10 @@
               <header class="source-card__header-row">
                 <div>
                   <strong>添加软件</strong>
-                  <small>录入软件信息、脚本与服务接入配置，保存后立即可见。</small>
+                  <small>先完成仓库检索与版本信息回填，再录入脚本与服务接入配置。</small>
                 </div>
                 <div class="source-panel__actions">
                   <el-button @click="resetCreatePackageForm">重置</el-button>
-                  <el-button
-                    type="primary"
-                    plain
-                    :disabled="!createInstallHostId"
-                    :loading="creatingPackage"
-                    @click="submitCreatePackage(true)"
-                  >
-                    保存并安装
-                  </el-button>
                   <el-button
                     type="primary"
                     :loading="creatingPackage"
@@ -382,35 +386,20 @@
                 <section class="create-group create-group--accent">
                   <div class="create-group__title">
                     <div>
-                      <h4>创建后安装到服务器</h4>
-                      <p>新增完成后直接接入 pages/server 的安装向导，继续选择版本和引导参数。</p>
+                      <h4>仓库检索辅助</h4>
+                      <p>跨已配置仓库搜索软件与版本，快速回填编码、名称、版本、系统、架构与来源策略。</p>
                     </div>
-                    <el-tag size="small" effect="plain">Server Flow</el-tag>
+                    <el-tag size="small" effect="plain">Repository Search</el-tag>
                   </div>
                   <div class="create-install-panel">
-                    <el-form-item label="目标服务器">
-                      <el-select
-                        v-model="createInstallHostId"
-                        clearable
-                        filterable
-                        :loading="installContextLoading"
-                        placeholder="选择兼容服务器"
-                      >
-                        <el-option
-                          v-for="host in createCompatibleHosts"
-                          :key="host.serverId"
-                          :label="formatHostOptionLabel(host)"
-                          :value="host.serverId"
-                        />
-                      </el-select>
-                    </el-form-item>
+                    <el-button plain @click="openRepositoryPackageSearch">
+                      仓库搜索
+                    </el-button>
                     <p class="create-install-panel__hint">
                       {{
-                        createCompatibleHosts.length
-                          ? `当前有 ${createCompatibleHosts.length} 台兼容服务器可直接联动安装`
-                          : installContextLoading
-                            ? "正在加载服务器列表..."
-                            : "先补充操作系统和架构，可自动筛出可安装服务器"
+                        createVersionCandidates.length
+                          ? `已载入 ${createVersionCandidates.length} 个仓库版本候选，可继续切换版本或手工修改`
+                          : "先执行仓库搜索，可直接回填软件编码、名称和版本候选"
                       }}
                     </p>
                   </div>
@@ -435,7 +424,11 @@
                       </el-select>
                     </el-form-item>
                     <el-form-item label="软件编码" prop="packageCode">
-                      <el-input v-model="createForm.packageCode" placeholder="例如: mysql-community" />
+                      <el-input v-model="createForm.packageCode" placeholder="例如: mysql-community">
+                        <template #append>
+                          <el-button @click="openRepositoryPackageSearch">仓库搜索</el-button>
+                        </template>
+                      </el-input>
                     </el-form-item>
                     <el-form-item label="软件名称" prop="packageName">
                       <el-input v-model="createForm.packageName" placeholder="例如: MySQL Community" />
@@ -484,10 +477,45 @@
                   <h4>版本信息</h4>
                   <div class="source-form-grid source-form-grid--row">
                     <el-form-item label="版本编码" prop="versionCode">
-                      <el-input v-model="createForm.versionCode" placeholder="例如: 8.4.3" />
+                      <el-select
+                        v-model="createForm.versionCode"
+                        filterable
+                        allow-create
+                        default-first-option
+                        clearable
+                        placeholder="例如: 8.4.3"
+                        @change="handleCreateVersionCodeChange"
+                      >
+                        <el-option
+                          v-for="option in createVersionCandidates"
+                          :key="option.softPackageVersionId || option.versionCode"
+                          :label="repositoryVersionLabel(option)"
+                          :value="option.versionCode || ''"
+                        />
+                      </el-select>
                     </el-form-item>
                     <el-form-item label="版本名称">
                       <el-input v-model="createForm.versionName" placeholder="可选，默认等于版本编码" />
+                    </el-form-item>
+                    <el-form-item label="来源分类">
+                      <el-select v-model="createForm.sourceKind" placeholder="选择来源分类">
+                        <el-option
+                          v-for="option in sourceKindOptions"
+                          :key="option.value"
+                          :label="option.label"
+                          :value="option.value"
+                        />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="安装模式">
+                      <el-select v-model="createForm.installMode" placeholder="选择安装模式">
+                        <el-option
+                          v-for="option in installModeOptions"
+                          :key="option.value"
+                          :label="option.label"
+                          :value="option.value"
+                        />
+                      </el-select>
                     </el-form-item>
                     <el-form-item label="下载地址" class="create-form-span-2" prop="downloadUrlsText">
                       <el-input
@@ -495,6 +523,18 @@
                         type="textarea"
                         :rows="3"
                         placeholder="每行一个地址，或使用英文逗号分隔"
+                      />
+                    </el-form-item>
+                    <el-form-item label="主下载地址">
+                      <el-input
+                        v-model="createForm.downloadUrl"
+                        placeholder="远程下载安装模式可填写单一主下载地址"
+                      />
+                    </el-form-item>
+                    <el-form-item label="本地包路径">
+                      <el-input
+                        v-model="createForm.artifactPath"
+                        placeholder="本地仓库模式可填写仓库内制品路径"
                       />
                     </el-form-item>
                   </div>
@@ -607,6 +647,67 @@
         </div>
       </template>
     </ScLayout>
+
+    <el-dialog
+      v-model="packageSearchVisible"
+      width="980px"
+      title="跨仓库搜索软件"
+      destroy-on-close
+    >
+      <section class="source-panel">
+        <div class="source-panel__toolbar">
+          <el-input
+            v-model="packageSearchKeyword"
+            clearable
+            placeholder="输入软件编码、名称或关键词"
+            @keyup.enter="performRepositoryPackageSearch"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+          </el-input>
+          <el-button
+            type="primary"
+            :loading="packageSearchLoading"
+            @click="performRepositoryPackageSearch"
+          >
+            搜索
+          </el-button>
+        </div>
+
+        <el-table v-loading="packageSearchLoading" :data="packageSearchResults" border>
+          <el-table-column prop="repositoryName" label="仓库" min-width="160" />
+          <el-table-column prop="packageCode" label="软件编码" min-width="160" />
+          <el-table-column prop="packageName" label="软件名称" min-width="180" />
+          <el-table-column label="版本候选" min-width="320">
+            <template #default="{ row }">
+              <div class="create-version-chip-list">
+                <el-button
+                  v-for="version in row.versions || []"
+                  :key="version.softPackageVersionId || version.versionCode"
+                  size="small"
+                  plain
+                  @click="applyRepositorySearchSelection(row, version)"
+                >
+                  {{ repositoryVersionLabel(version) }}
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default="{ row }">
+              <el-button
+                type="primary"
+                link
+                @click="applyRepositorySearchSelection(row, row.versions?.[0])"
+              >
+                回填首个版本
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </section>
+    </el-dialog>
 
     <el-dialog
       v-model="softwareDetailVisible"
@@ -803,6 +904,7 @@ import {
   installSoftPackage,
   listSoftPackages,
   listSoftRepositories,
+  searchSoftRepositoryPackages,
   listSoftRepositorySources,
   listSoftTargets,
   syncSoftRepository,
@@ -820,6 +922,8 @@ import type {
   SoftPackageGuide,
   SoftPackageVersion,
   SoftRepository,
+  SoftRepositoryPackageSearchItem,
+  SoftRepositoryPackageSearchVersion,
   SoftRepositorySource,
   SoftRepositorySourceSearchItem,
   SoftTarget,
@@ -833,6 +937,7 @@ type SourceDraft = SoftRepositorySource & {
   draftId: string;
 };
 type SourceType = SoftRepositorySource["sourceType"];
+type SourceKind = NonNullable<SoftRepositorySource["sourceKind"]>;
 type RailTabItem = {
   closable?: boolean;
   icon?: any;
@@ -880,7 +985,11 @@ const installSubmitting = ref(false);
 const installTask = ref<ServerInstallTask | null>(null);
 const detailInstallPackageId = ref<number | null>(null);
 const detailInstallHostId = ref<number | null>(null);
-const createInstallHostId = ref<number | null>(null);
+const packageSearchVisible = ref(false);
+const packageSearchLoading = ref(false);
+const packageSearchKeyword = ref("");
+const packageSearchResults = ref<SoftRepositoryPackageSearchItem[]>([]);
+const createVersionCandidates = ref<SoftRepositoryPackageSearchVersion[]>([]);
 
 const packages = ref<SoftPackage[]>([]);
 const repositories = ref<SoftRepository[]>([]);
@@ -906,11 +1015,14 @@ const sourceEditor = reactive({
 
 const createForm = reactive({
   architecture: "",
+  artifactPath: "",
   description: "",
+  downloadUrl: "",
   downloadUrlsText: "",
   enabled: true,
   iconUrl: "",
   initScript: "",
+  installMode: "REMOTE_DOWNLOAD",
   installScript: "",
   integrateServerService: false,
   osType: "",
@@ -918,6 +1030,7 @@ const createForm = reactive({
   packageCode: "",
   packageName: "",
   profileCode: "",
+  repositorySourceId: null as number | null,
   serverExecutionProvider: "",
   serverServiceCode: "",
   serverServiceName: "",
@@ -926,6 +1039,7 @@ const createForm = reactive({
   serviceRegisterScript: "",
   serviceUnregisterScript: "",
   softRepositoryId: null as number | null,
+  sourceKind: "THIRD_PARTY" as SourceKind,
   startScript: "",
   stopScript: "",
   uninstallScript: "",
@@ -963,7 +1077,20 @@ const createFormRules: FormRules<typeof createForm> = {
     {
       validator: (_rule, value, callback) => {
         const urls = parseDownloadUrls(String(value || ""));
-        if (!urls.length) {
+        if (createForm.installMode === "PKG_MANAGER") {
+          callback();
+          return;
+        }
+        if (createForm.installMode === "LOCAL_UPLOAD") {
+          if (normalizeText(createForm.artifactPath)) {
+            callback();
+            return;
+          }
+          if (!urls.length) {
+            callback(new Error("本地仓库模式至少填写一个下载地址或本地包路径"));
+            return;
+          }
+        } else if (!urls.length && !normalizeText(createForm.downloadUrl)) {
           callback(new Error("请至少填写一个下载地址"));
           return;
         }
@@ -1108,6 +1235,18 @@ const sourceTypeOptions: Array<{ label: string; value: SourceType }> = [
   { label: "本地目录", value: "LOCAL_DIR" },
   { label: "RPM 仓库", value: "RPM_REPO" },
   { label: "镜像目录", value: "MIRROR_REPO" },
+];
+
+const sourceKindOptions: Array<{ label: string; value: SourceKind }> = [
+  { label: "Linux 默认源", value: "LINUX_DEFAULT" },
+  { label: "本地仓库", value: "LOCAL_REPOSITORY" },
+  { label: "第三方下载源", value: "THIRD_PARTY" },
+];
+
+const installModeOptions = [
+  { label: "包管理器安装", value: "PKG_MANAGER" },
+  { label: "本地包安装", value: "LOCAL_UPLOAD" },
+  { label: "远程下载安装", value: "REMOTE_DOWNLOAD" },
 ];
 
 const osFilterOptions = [
@@ -1269,25 +1408,12 @@ const installHost = computed(
     ) || null,
 );
 
-const createPackageMatcher = computed(
-  (): Partial<SoftPackage> => ({
-    osType: createForm.osType,
-    architecture: createForm.architecture,
-  }),
-);
-
 const compatibleDetailHosts = computed(() =>
   detailInstallPackage.value
     ? serverHosts.value.filter((host) =>
         matchPackageServer(detailInstallPackage.value, host),
       )
     : [],
-);
-
-const createCompatibleHosts = computed(() =>
-  serverHosts.value.filter((host) =>
-    matchPackageServer(createPackageMatcher.value, host),
-  ),
 );
 
 const compatibleInstallPackages = computed(() =>
@@ -1491,6 +1617,7 @@ const saveCurrentRepositorySources = async () => {
 
   const normalizedSourceConfigs = sourceEditor.sourceConfigs.map((item) => ({
     sourceName: normalizeText(item.sourceName),
+    sourceKind: toSourceKind(item.sourceKind, item.sourceType),
     sourceType: toSourceType(item.sourceType),
     sourceUrl: normalizeText(item.sourceUrl),
     localDirectory: normalizeText(item.localDirectory),
@@ -1534,6 +1661,7 @@ const addSourceConfig = () => {
   sourceEditor.sourceConfigs.push({
     draftId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     sourceName: "",
+    sourceKind: "THIRD_PARTY",
     sourceType: "HTTP_JSON",
     sourceUrl: "",
     localDirectory: "",
@@ -1548,7 +1676,9 @@ const removeSourceConfig = (index: number) => {
 
 const resetCreatePackageForm = () => {
   createPackageAiPrompt.value = "";
-  createInstallHostId.value = null;
+  packageSearchKeyword.value = "";
+  packageSearchResults.value = [];
+  createVersionCandidates.value = [];
   createForm.softRepositoryId =
     Number(repositories.value[0]?.softRepositoryId || 0) || null;
   createForm.packageCode = "";
@@ -1561,6 +1691,11 @@ const resetCreatePackageForm = () => {
   createForm.iconUrl = "";
   createForm.versionCode = "";
   createForm.versionName = "";
+  createForm.sourceKind = "THIRD_PARTY";
+  createForm.installMode = "REMOTE_DOWNLOAD";
+  createForm.repositorySourceId = null;
+  createForm.artifactPath = "";
+  createForm.downloadUrl = "";
   createForm.downloadUrlsText = "";
   createForm.installScript = "";
   createForm.initScript = "";
@@ -1688,7 +1823,104 @@ const toOptionalText = (value?: string | null) => {
 const firstNonBlank = (left?: string | null, right?: string | null) =>
   normalizeText(left) || normalizeText(right);
 
-const submitCreatePackage = async (installAfterCreate = false) => {
+const openRepositoryPackageSearch = async () => {
+  if (!repositories.value.length) {
+    await loadHomeData();
+  }
+  packageSearchVisible.value = true;
+  packageSearchKeyword.value =
+    normalizeText(createForm.packageCode) ||
+    normalizeText(createForm.packageName) ||
+    normalizeText(packageSearchKeyword.value);
+  if (!packageSearchResults.value.length) {
+    await performRepositoryPackageSearch();
+  }
+};
+
+const performRepositoryPackageSearch = async () => {
+  const keyword =
+    normalizeText(packageSearchKeyword.value) ||
+    normalizeText(createForm.packageCode) ||
+    normalizeText(createForm.packageName);
+  if (!keyword) {
+    ElMessage.warning("请先输入软件编码或名称");
+    return;
+  }
+  packageSearchLoading.value = true;
+  try {
+    const repositoryId = toNumericId(createForm.softRepositoryId);
+    const result = await searchSoftRepositoryPackages({
+      keyword,
+      osType: toOptionalText(createForm.osType),
+      repositoryIds: repositoryId ? [repositoryId] : [],
+    });
+    packageSearchResults.value = Array.isArray(result.data) ? result.data : [];
+    if (!packageSearchResults.value.length) {
+      ElMessage.warning("当前仓库范围内没有搜索到匹配软件");
+    }
+  } catch (error) {
+    console.error(error);
+    packageSearchResults.value = [];
+    ElMessage.error("仓库搜索失败");
+  } finally {
+    packageSearchLoading.value = false;
+  }
+};
+
+const applyRepositorySearchSelection = (
+  item: SoftRepositoryPackageSearchItem,
+  version?: SoftRepositoryPackageSearchVersion,
+) => {
+  const selectedVersion = version || item.versions?.[0];
+  createForm.softRepositoryId = toNumericId(item.repositoryId);
+  createForm.packageCode = firstNonBlank(item.packageCode, createForm.packageCode);
+  createForm.packageName = firstNonBlank(
+    selectedVersion?.packageName || item.packageName,
+    createForm.packageName,
+  );
+  createVersionCandidates.value = Array.isArray(item.versions) ? [...item.versions] : [];
+  if (selectedVersion?.versionCode) {
+    createForm.versionCode = selectedVersion.versionCode;
+    createForm.versionName = firstNonBlank(
+      selectedVersion.versionName,
+      selectedVersion.versionCode,
+    );
+    createForm.osType = firstNonBlank(selectedVersion.osType, createForm.osType);
+    createForm.architecture = firstNonBlank(
+      selectedVersion.architecture,
+      createForm.architecture,
+    );
+    createForm.sourceKind = toSourceKind(
+      selectedVersion.sourceKind || createForm.sourceKind,
+    );
+    createForm.installMode = normalizeInstallModeChoice(
+      selectedVersion.installMode,
+      createForm.sourceKind,
+    );
+  }
+  packageSearchVisible.value = false;
+  ElMessage.success("仓库搜索结果已回填");
+};
+
+const handleCreateVersionCodeChange = (value?: string) => {
+  const selectedVersion = createVersionCandidates.value.find(
+    (item) => normalizeText(item.versionCode) === normalizeText(value),
+  );
+  if (!selectedVersion) {
+    return;
+  }
+  createForm.versionName = firstNonBlank(selectedVersion.versionName, createForm.versionName);
+  createForm.packageName = firstNonBlank(selectedVersion.packageName, createForm.packageName);
+  createForm.osType = firstNonBlank(selectedVersion.osType, createForm.osType);
+  createForm.architecture = firstNonBlank(selectedVersion.architecture, createForm.architecture);
+  createForm.sourceKind = toSourceKind(selectedVersion.sourceKind || createForm.sourceKind);
+  createForm.installMode = normalizeInstallModeChoice(
+    selectedVersion.installMode,
+    createForm.sourceKind,
+  );
+};
+
+const submitCreatePackage = async () => {
   const isValid = await createFormRef.value
     ?.validate()
     .then(() => true)
@@ -1698,10 +1930,6 @@ const submitCreatePackage = async (installAfterCreate = false) => {
     return;
   }
 
-  if (installAfterCreate && !toNumericId(createInstallHostId.value)) {
-    ElMessage.warning("请先选择一台兼容服务器");
-    return;
-  }
   const packageCode = toOptionalText(createForm.packageCode);
   const packageName = toOptionalText(createForm.packageName);
   const versionCode = toOptionalText(createForm.versionCode);
@@ -1717,6 +1945,7 @@ const submitCreatePackage = async (installAfterCreate = false) => {
     enabled: createForm.enabled,
     iconUrl: toOptionalText(createForm.iconUrl),
     initScript: toOptionalText(createForm.initScript),
+    installMode: normalizeInstallModeChoice(createForm.installMode, createForm.sourceKind),
     installScript: toOptionalText(createForm.installScript),
     integrateServerService: createForm.integrateServerService,
     osType: toOptionalText(createForm.osType),
@@ -1724,6 +1953,7 @@ const submitCreatePackage = async (installAfterCreate = false) => {
     packageCode,
     packageName,
     profileCode: toOptionalText(createForm.profileCode),
+    repositorySourceId: toNumericId(createForm.repositorySourceId) || undefined,
     serverExecutionProvider: createForm.integrateServerService
       ? toOptionalText(createForm.serverExecutionProvider)
       : undefined,
@@ -1745,9 +1975,12 @@ const submitCreatePackage = async (installAfterCreate = false) => {
       Number(createForm.softRepositoryId || 0) > 0
         ? Number(createForm.softRepositoryId)
         : undefined,
+    sourceKind: toSourceKind(createForm.sourceKind),
     startScript: toOptionalText(createForm.startScript),
     stopScript: toOptionalText(createForm.stopScript),
     uninstallScript: toOptionalText(createForm.uninstallScript),
+    artifactPath: toOptionalText(createForm.artifactPath),
+    downloadUrl: toOptionalText(createForm.downloadUrl),
     versionCode,
     versionName: toOptionalText(createForm.versionName),
   };
@@ -1758,20 +1991,10 @@ const submitCreatePackage = async (installAfterCreate = false) => {
     ElMessage.success("软件创建成功");
     await loadHomeData();
     const createdPackage = resolveCreatedPackage(result.data);
-    const createdPackageId =
-      toNumericId(createdPackage?.softPackageId) ||
-      findPackageIdByKey(
-        normalizeText(createdPackage?.softwareKey) ||
-          normalizeText(createdPackage?.packageCode),
-      );
     const createdKey =
       normalizeText(createdPackage?.softwareKey) ||
       normalizeText(createdPackage?.packageCode);
-    if (installAfterCreate && createdPackageId && createInstallHostId.value) {
-      createTabVisible.value = false;
-      railTab.value = HOME_TAB;
-      await openInstallWizardForPackage(createdPackageId, createInstallHostId.value);
-    } else if (createdKey) {
+    if (createdKey) {
       activeSoftwareKey.value = createdKey;
       softwareDetailVisible.value = true;
       railTab.value = HOME_TAB;
@@ -1836,11 +2059,6 @@ const toNumericId = (value: unknown) => {
 
 const resolveCreatedPackage = (value?: SoftPackageCreateResult | null) =>
   value?.package || null;
-
-const findPackageIdByKey = (softwareKey: string) =>
-  toNumericId(
-    packages.value.find((item) => resolveSoftwareKey(item) === softwareKey)?.softPackageId,
-  );
 
 const normalizeHostList = (value: unknown): ServerHost[] => {
   if (Array.isArray(value)) {
@@ -2222,6 +2440,7 @@ watch(
     sourceEditor.sourceConfigs = (repository.sourceConfigs || []).map((item) => ({
       draftId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       sourceName: normalizeText(item.sourceName) || "",
+      sourceKind: toSourceKind(item.sourceKind, item.sourceType),
       sourceType: toSourceType(item.sourceType),
       sourceUrl: normalizeText(item.sourceUrl) || "",
       localDirectory: normalizeText(item.localDirectory) || "",
@@ -2253,17 +2472,6 @@ watch(
     const current = toNumericId(detailInstallHostId.value);
     if (!hosts.some((item) => toNumericId(item.serverId) === current)) {
       detailInstallHostId.value = toNumericId(hosts[0]?.serverId);
-    }
-  },
-  { immediate: true },
-);
-
-watch(
-  createCompatibleHosts,
-  (hosts) => {
-    const current = toNumericId(createInstallHostId.value);
-    if (!hosts.some((item) => toNumericId(item.serverId) === current)) {
-      createInstallHostId.value = toNumericId(hosts[0]?.serverId);
     }
   },
   { immediate: true },
@@ -2338,6 +2546,69 @@ function toSourceType(value?: string | null): SourceType {
   const normalized = normalizeText(value).toUpperCase();
   const hit = sourceTypeOptions.find((item) => item.value === normalized);
   return hit ? hit.value : "HTTP_JSON";
+}
+
+function toSourceKind(value?: string | null, sourceType?: string | null): SourceKind {
+  const normalized = normalizeText(value).toUpperCase();
+  if (
+    normalized === "LINUX_DEFAULT" ||
+    normalized === "LOCAL_REPOSITORY" ||
+    normalized === "THIRD_PARTY"
+  ) {
+    return normalized;
+  }
+  const normalizedType = normalizeText(sourceType).toUpperCase();
+  if (normalizedType === "LOCAL_DIR") {
+    return "LOCAL_REPOSITORY";
+  }
+  if (normalizedType === "RPM_REPO") {
+    return "LINUX_DEFAULT";
+  }
+  return "THIRD_PARTY";
+}
+
+function normalizeInstallModeChoice(value?: string | null, sourceKind?: string | null) {
+  const normalized = normalizeText(value).toUpperCase();
+  if (
+    normalized === "PKG_MANAGER" ||
+    normalized === "LOCAL_UPLOAD" ||
+    normalized === "REMOTE_DOWNLOAD"
+  ) {
+    return normalized;
+  }
+  const nextKind = toSourceKind(sourceKind);
+  if (nextKind === "LINUX_DEFAULT") {
+    return "PKG_MANAGER";
+  }
+  if (nextKind === "LOCAL_REPOSITORY") {
+    return "LOCAL_UPLOAD";
+  }
+  return "REMOTE_DOWNLOAD";
+}
+
+function sourceKindLabel(value?: string | null) {
+  const normalized = toSourceKind(value);
+  return sourceKindOptions.find((item) => item.value === normalized)?.label || normalized;
+}
+
+function installModeLabel(value?: string | null) {
+  const normalized = normalizeInstallModeChoice(value);
+  return installModeOptions.find((item) => item.value === normalized)?.label || normalized;
+}
+
+function repositoryVersionLabel(version?: SoftRepositoryPackageSearchVersion | null) {
+  if (!version) {
+    return "未命名版本";
+  }
+  const versionCode = normalizeText(version.versionCode) || "未命名版本";
+  const tags = [
+    normalizeText(version.versionName),
+    osLabel(version.osType),
+    architectureLabel(version.architecture),
+    sourceKindLabel(version.sourceKind),
+    installModeLabel(version.installMode),
+  ].filter(Boolean);
+  return [versionCode, ...tags].join(" / ");
 }
 
 function requiresRepositoryUrl(type?: string | null) {
@@ -2803,6 +3074,12 @@ onMounted(loadHomeData);
   color: var(--soft-text-regular);
   font-size: 13px;
   line-height: 1.6;
+}
+
+.create-version-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .create-form-span-2 {

@@ -775,7 +775,10 @@
                   :hide-pagination="true"
                   :hide-refresh="true"
                   :hide-setting="false"
-                  :layout="'virtual'"
+                  :auto-virtual="true"
+                  :virtual-threshold="600"
+                  :column-header-menu="true"
+                  :column-meta="activeColumnMeta"
                   :page-size="Math.max(activeWorkbenchTab.pageSize, 1)"
                   :row-class="resolveDataRowClass"
                   :row-key="'__panelRowIndex'"
@@ -784,12 +787,20 @@
                   class="data-table-virtual"
                   @column-config-change="handlePanelTableColumnConfigChange"
                   @sort-change="handlePanelTableSortChange"
+                  @cell-dblclick="handleCellDblClick"
                 />
                 <ElEmpty
                   v-else
                   description="当前还没有表数据，点击刷新后重试。"
                 />
               </div>
+              <ScCellEditor
+                v-model="cellEditorState.value"
+                v-model:visible="cellEditorState.visible"
+                :field-name="cellEditorState.fieldName"
+                :field-type="cellEditorState.fieldType"
+                @save="handleCellEditorSave"
+              />
               <div
                 v-if="activeWorkbenchTab.paginationMode === 'pagination'"
                 class="data-pagination"
@@ -1261,6 +1272,7 @@ import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScLayout from "@repo/components/ScLayout";
 import ScTable from "@repo/components/ScTable";
 import ScTag from "@repo/components/ScTag/src/index.vue";
+import ScCellEditor from "@repo/components/ScCellEditor/index.vue";
 import {
   ElButton,
   ElAutoResizer,
@@ -1493,6 +1505,13 @@ const emit = defineEmits<{
 const sqlEditorRef = ref<any>(null);
 const editTableRef = ref<any>(null);
 const panelDataTableRef = ref<any>(null);
+const cellEditorState = reactive({
+  visible: false,
+  column: '',
+  value: null as any,
+  fieldType: '',
+  fieldName: '',
+});
 const documentPaperRef = ref<HTMLElement | null>(null);
 const panelFilterPanelOpen = ref(false);
 const aiDialogVisible = ref(false);
@@ -1662,6 +1681,13 @@ const activeColumnMetaMap = computed(() =>
     },
     {} as Record<string, Record<string, any>>
   )
+);
+const activeColumnMeta = computed(() =>
+  activeColumns.value.map(col => ({
+    name: String(col.name || ''),
+    type: String(col.type || ''),
+    comment: String(col.comment || col.remark || ''),
+  }))
 );
 const resolveFilterColumnFamily = (columnName: string) => {
   const rawType = String(activeColumnMetaMap.value[columnName]?.type || "")
@@ -2617,6 +2643,23 @@ const handlePanelTableSortChange = (payload: {
     sortOrder: nextOrder,
     viewMode: "data",
   });
+};
+
+const handleCellDblClick = (row: any, column: any) => {
+  const colName = column?.property || column?.prop || '';
+  if (!colName) return;
+  const meta = activeColumnMetaMap.value[colName];
+  cellEditorState.visible = true;
+  cellEditorState.column = colName;
+  cellEditorState.value = row?.[colName] ?? null;
+  cellEditorState.fieldType = String(meta?.type || '');
+  cellEditorState.fieldName = colName;
+};
+
+const handleCellEditorSave = ({ fieldName, value }: { fieldName: string; value: any }) => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab?.tabId) return;
+  emit('save-table-data', tab.tabId, []);
 };
 
 let editTableSortable: Sortable | null = null;

@@ -318,6 +318,22 @@ const props = defineProps({
    * 需要合并的列
    */
   rowMergeColumns: { type: Array, default: () => [] },
+  /**
+   * 是否根据数据量自动决定 layout（virtual vs table）
+   */
+  autoVirtual: { type: Boolean, default: false },
+  /**
+   * 触发虚拟滚动的行数阈值，仅在 autoVirtual=true 时生效
+   */
+  virtualThreshold: { type: Number, default: 600 },
+  /**
+   * 是否启用列头右键菜单
+   */
+  columnHeaderMenu: { type: Boolean, default: false },
+  /**
+   * 字段元数据数组，结构：{ name: string, type: string, comment: string }
+   */
+  columnMeta: { type: Array, default: () => [] },
 });
 
 // 定义组件事件
@@ -629,6 +645,13 @@ const computedHeight = computed(() => {
 
 const hasExplicitHeight = computed(() => {
   return computedHeight.value !== "auto" && computedHeight.value !== undefined;
+});
+
+// 自动虚拟滚动：根据数据量决定实际 layout
+const computedLayout = computed(() => {
+  if (!props.autoVirtual) return props.layout;
+  const threshold = props.virtualThreshold > 0 ? props.virtualThreshold : 600;
+  return tableData.value.length > threshold ? "virtual" : "table";
 });
 
 const tableContentStyle = computed(() => {
@@ -2185,7 +2208,7 @@ defineExpose({
 
       <!-- 大数据量提示 - 建议切换虚拟滚动 -->
       <div
-        v-if="showLargeDataTip && layout === 'table'"
+        v-if="showLargeDataTip && computedLayout === 'table'"
         class="sc-table-large-data-tip"
       >
         <div class="tip-content">
@@ -2209,10 +2232,10 @@ defineExpose({
         :style="tableContentStyle"
       >
         <component
-          :is="componentMap[layout]"
+          :is="componentMap[computedLayout]"
           ref="scTable"
           :key="tableRenderKey"
-          v-loading="layout === 'table' ? false : loading"
+          v-loading="computedLayout === 'table' ? false : loading"
           :center="center"
           v-bind="$attrs"
           :table-data="tableData"
@@ -2245,6 +2268,9 @@ defineExpose({
           :drag-handle-width="dragHandleWidth"
           :drag-scroll-enabled="dragScrollEnabled"
           :border="configState.border"
+          :column-header-menu="props.columnHeaderMenu"
+          :column-meta="props.columnMeta"
+          :table-id="props.tableId"
           @row-click="onRowClick"
           @col-click="onColClick"
           @selection-change="selectionChange"

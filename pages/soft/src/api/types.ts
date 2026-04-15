@@ -1,5 +1,7 @@
 export interface SoftRepositorySource {
+  softRepositorySourceId?: number;
   sourceName?: string;
+  sourceKind?: "LINUX_DEFAULT" | "LOCAL_REPOSITORY" | "THIRD_PARTY" | string;
   sourceType:
     | "MANUAL"
     | "HTTP_JSON"
@@ -14,17 +16,40 @@ export interface SoftRepositorySource {
 }
 
 export interface SoftRepositorySourceSearchItem {
+  softRepositorySourceId?: number;
   repositoryId?: number;
   repositoryName?: string;
   repositoryCode?: string;
   repositoryType?: string;
   primarySource?: boolean;
   sourceName?: string;
+  sourceKind?: string;
   sourceType?: string;
   sourceUrl?: string;
   localDirectory?: string;
   sourceAddress?: string;
   enabled?: boolean;
+}
+
+export interface SoftRepositoryPackageSearchVersion {
+  softPackageVersionId?: number;
+  versionCode?: string;
+  versionName?: string;
+  packageName?: string;
+  osType?: string;
+  architecture?: string;
+  sourceKind?: string;
+  installMode?: string;
+}
+
+export interface SoftRepositoryPackageSearchItem {
+  repositoryId?: number;
+  repositoryName?: string;
+  repositoryCode?: string;
+  softPackageId?: number;
+  packageCode?: string;
+  packageName?: string;
+  versions?: SoftRepositoryPackageSearchVersion[];
 }
 
 export interface SoftRepositorySourceUpdateRequest {
@@ -101,6 +126,11 @@ export interface SoftPackageCreateRequest {
   versionCode: string;
   versionName?: string;
   downloadUrls?: string[];
+  sourceKind?: string;
+  installMode?: string;
+  repositorySourceId?: number;
+  artifactPath?: string;
+  downloadUrl?: string;
   installScript?: string;
   initScript?: string;
   startScript?: string;
@@ -172,6 +202,15 @@ export interface SoftPackageVersion {
   softPackageId?: number;
   versionCode: string;
   versionName: string;
+  packageName?: string;
+  osType?: string;
+  architecture?: string;
+  sourceKind?: string;
+  installMode?: string;
+  repositorySourceId?: number;
+  artifactPath?: string;
+  downloadUrl?: string;
+  templateFromVersionId?: number;
   downloadUrlsJson?: string;
   md5?: string;
   sha256?: string;
@@ -271,6 +310,11 @@ export interface SoftPackageDetail {
 export interface SoftPackageVersionUpdateResult {
   package: SoftPackage;
   version: SoftPackageVersion;
+}
+
+export interface SoftPackageVersionCopyInstallProfileRequest {
+  sourceVersionId?: number;
+  copyDownloadUrls?: boolean;
 }
 
 export interface SoftGuideField {

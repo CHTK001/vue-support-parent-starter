@@ -132,7 +132,7 @@
               >
                 <div>
                   <strong>{{ source.sourceName || `源 ${index + 1}` }}</strong>
-                  <span>{{ sourceLabel(source) }}</span>
+                  <span>{{ sourceKindLabel(source.sourceKind) }} / {{ sourceLabel(source) }}</span>
                 </div>
                 <el-tag
                   size="small"
@@ -318,7 +318,9 @@
                     <strong>{{
                       source.sourceName || `同步源 ${index + 1}`
                     }}</strong>
-                    <span>{{ repositoryTypeLabel(source.sourceType) }}</span>
+                    <span>
+                      {{ sourceKindLabel(source.sourceKind) }} / {{ repositoryTypeLabel(source.sourceType) }}
+                    </span>
                   </div>
                   <div class="repository-source-item__actions">
                     <el-switch
@@ -341,6 +343,17 @@
                 </div>
                 <div class="repository-source-item__grid">
                   <el-input v-model="source.sourceName" placeholder="源名称" />
+                  <ScSelect
+                    v-model="source.sourceKind"
+                    :options="sourceKindOptions"
+                    layout="dropdown"
+                    width="100%"
+                    dropdown-title="选择来源分类"
+                    dropdown-placeholder="选择来源分类"
+                    dropdown-icon="ri:price-tag-3-line"
+                    :dropdown-col="1"
+                    display-mode="normal"
+                  />
                   <ScSelect
                     v-model="source.sourceType"
                     :options="repositoryTypeOptions"
@@ -474,6 +487,27 @@ const repositoryTypeOptions = [
     value: "MIRROR_REPO",
     icon: "ri:git-repository-private-line",
     description: "镜像站或分发镜像目录",
+  },
+] as const;
+
+const sourceKindOptions = [
+  {
+    label: "Linux 默认源",
+    value: "LINUX_DEFAULT",
+    icon: "ri:terminal-box-line",
+    description: "使用系统包管理器安装",
+  },
+  {
+    label: "本地仓库",
+    value: "LOCAL_REPOSITORY",
+    icon: "ri:folder-shared-line",
+    description: "从本地仓库或制品目录安装",
+  },
+  {
+    label: "第三方下载源",
+    value: "THIRD_PARTY",
+    icon: "ri:links-line",
+    description: "从第三方地址下载安装",
   },
 ] as const;
 
@@ -1014,6 +1048,12 @@ const addSource = () => {
     ...(form.sourceConfigs || []),
     {
       sourceName: "",
+      sourceKind:
+        form.repositoryType === "LOCAL_DIR"
+          ? "LOCAL_REPOSITORY"
+          : form.repositoryType === "RPM_REPO"
+            ? "LINUX_DEFAULT"
+            : "THIRD_PARTY",
       sourceType:
         form.repositoryType === "LOCAL_DIR"
           ? "LOCAL_DIR"
@@ -1057,6 +1097,7 @@ const normalizeSourceConfigs = (sources?: SoftRepositorySource[]) =>
   (sources || [])
     .map((source) => ({
       sourceName: normalizeText(source.sourceName),
+      sourceKind: normalizeSourceKind(source.sourceKind, source.sourceType),
       sourceType: source.sourceType || "HTTP_JSON",
       sourceUrl: normalizeText(source.sourceUrl),
       localDirectory: normalizeText(source.localDirectory),
@@ -1127,6 +1168,33 @@ const sourceLabel = (source: SoftRepositorySource) =>
         source.sourceType === "MIRROR_REPO"
       ? source.sourceUrl || "未配置目录地址"
       : source.sourceUrl || "未配置地址";
+
+const normalizeSourceKind = (value?: string, sourceType?: string) => {
+  const normalized = value?.trim().toUpperCase();
+  if (
+    normalized === "LINUX_DEFAULT" ||
+    normalized === "LOCAL_REPOSITORY" ||
+    normalized === "THIRD_PARTY"
+  ) {
+    return normalized;
+  }
+  if (sourceType === "LOCAL_DIR") {
+    return "LOCAL_REPOSITORY";
+  }
+  if (sourceType === "RPM_REPO") {
+    return "LINUX_DEFAULT";
+  }
+  return "THIRD_PARTY";
+};
+
+const sourceKindLabel = (value?: string) =>
+  value === "LINUX_DEFAULT"
+    ? "Linux 默认源"
+    : value === "LOCAL_REPOSITORY"
+      ? "本地仓库"
+      : value === "THIRD_PARTY"
+        ? "第三方下载源"
+        : "第三方下载源";
 
 const syncStatusLabel = (status?: string) =>
   status === "SUCCESS"

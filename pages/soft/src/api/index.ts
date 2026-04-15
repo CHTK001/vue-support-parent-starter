@@ -20,9 +20,12 @@ import type {
   SoftPackageCreateRequest,
   SoftPackageCreateResult,
   SoftPackageDetail,
+  SoftPackageVersionCopyInstallProfileRequest,
   SoftPackageVersion,
   SoftPackageVersionUpdateResult,
   SoftRepository,
+  SoftRepositoryPackageSearchItem,
+  SoftRepositoryPackageSearchVersion,
   SoftRepositorySourceSearchItem,
   SoftRepositorySourceUpdateRequest,
   SoftRepositoryUploadResult,
@@ -165,6 +168,53 @@ export const listSoftRepositorySources = (keyword?: string) =>
     appendQuery(`${repositoriesBase}/sources`, { keyword }),
   );
 
+export const listSoftRepositorySourceItems = (id: number) =>
+  softRequest<SoftRepositorySource[]>("get", `${repositoriesBase}/${id}/sources`);
+
+export const createSoftRepositorySource = (
+  id: number,
+  data: SoftRepositorySource,
+) => softRequest<SoftRepositorySource>("post", `${repositoriesBase}/${id}/sources`, { data });
+
+export const updateSoftRepositorySource = (
+  id: number,
+  sourceId: number,
+  data: SoftRepositorySource,
+) =>
+  softRequest<SoftRepositorySource>(
+    "put",
+    `${repositoriesBase}/${id}/sources/${sourceId}`,
+    { data },
+  );
+
+export const deleteSoftRepositorySource = (id: number, sourceId: number) =>
+  softRequest<boolean>("delete", `${repositoriesBase}/${id}/sources/${sourceId}`);
+
+export const searchSoftRepositoryPackages = (params?: {
+  keyword?: string;
+  repositoryIds?: number[];
+  osType?: string;
+}) => {
+  const search = new URLSearchParams();
+  const keyword = params?.keyword?.trim();
+  const osType = params?.osType?.trim();
+  if (keyword) {
+    search.set("keyword", keyword);
+  }
+  if (osType) {
+    search.set("osType", osType);
+  }
+  (params?.repositoryIds || [])
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item) && item > 0)
+    .forEach((item) => search.append("repositoryIds", String(item)));
+  const query = search.toString();
+  return softRequest<SoftRepositoryPackageSearchItem[]>(
+    "get",
+    query ? `${repositoriesBase}/search/packages?${query}` : `${repositoriesBase}/search/packages`,
+  );
+};
+
 export const deleteSoftRepository = (id: number) =>
   softRequest<boolean>("delete", `${repositoriesBase}/${id}`);
 
@@ -208,6 +258,17 @@ export const updateSoftPackageVersion = (
   softRequest<SoftPackageVersionUpdateResult>(
     "put",
     `${packagesBase}/${packageId}/versions/${versionId}`,
+    { data },
+  );
+
+export const copySoftPackageVersionInstallProfile = (
+  packageId: number,
+  versionId: number,
+  data: SoftPackageVersionCopyInstallProfileRequest,
+) =>
+  softRequest<SoftPackageVersionUpdateResult>(
+    "post",
+    `${packagesBase}/${packageId}/versions/${versionId}/copy-install-profile`,
     { data },
   );
 
@@ -367,10 +428,13 @@ export type {
   SoftPackageCreateRequest,
   SoftPackageCreateResult,
   SoftPackageDetail,
+  SoftPackageVersionCopyInstallProfileRequest,
   SoftPackageVersionUpdateResult,
   SoftRenderedConfigFile,
   SoftPackageVersion,
   SoftRepository,
+  SoftRepositoryPackageSearchItem,
+  SoftRepositoryPackageSearchVersion,
   SoftRepositoryUploadFile,
   SoftRepositoryUploadResult,
   SoftRepositorySourceSearchItem,
