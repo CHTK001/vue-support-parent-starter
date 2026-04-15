@@ -35,6 +35,7 @@
         style="width: 100%; max-width: 100%"
         @row-click="onRowClick"
         @cell-click="onCellClick"
+        @cell-dblclick="onCellDblClick"
         @selection-change="onSelectionChange"
         @sort-change="onSortChange"
         @header-dragend="onHeaderDragend"
@@ -63,10 +64,7 @@
               <slot :name="col.headerSlot" v-bind="scope" />
             </template>
             <template v-else-if="columnHeaderMenu" #header="scope">
-              <div
-                class="col-header-wrapper"
-                @contextmenu.prevent="openColumnHeaderMenu($event, col)"
-              >
+              <div class="col-header-wrapper">
                 <span class="col-header-title">{{ col.label }}</span>
                 <small
                   v-if="columnHeaderMenuState.showColumnType && getColMeta(col.prop)?.type"
@@ -100,6 +98,7 @@
       style="width: 100%; max-width: 100%"
       @row-click="onRowClick"
       @cell-click="onCellClick"
+      @cell-dblclick="onCellDblClick"
       @selection-change="onSelectionChange"
       @sort-change="onSortChange"
       @header-dragend="onHeaderDragend"
@@ -130,7 +129,6 @@
           <template v-else-if="columnHeaderMenu" #header="scope">
             <div
               class="col-header-wrapper"
-              @contextmenu.prevent="openColumnHeaderMenu($event, col)"
             >
               <span class="col-header-title">{{ col.label }}</span>
               <small
@@ -317,6 +315,7 @@ const emit = defineEmits([
   "expand-change",
   "drag-sort-change",
   "edit-annotation",
+  "cell-dblclick",
 ]);
 
 // ==================== 列头右键菜单 ====================
@@ -359,13 +358,6 @@ const saveHeaderMenuState = () => {
 const getColMeta = (prop) => {
   if (!props.columnMeta || !prop) return null
   return props.columnMeta.find(m => m.name === prop) || null
-}
-
-const openColumnHeaderMenu = (event, col) => {
-  columnHeaderMenuState.column = col
-  columnHeaderMenuState.columnMeta = getColMeta(col.prop)
-  columnHeaderMenuState.position = { x: event.clientX + 2, y: event.clientY + 2 }
-  columnHeaderMenuState.visible = true
 }
 
 const handleHeaderSortAsc = ({ prop }) => {
@@ -579,6 +571,10 @@ const onCellClick = (row, column, cell, event) => {
 
 const onSelectionChange = (selection) => {
   emit("selection-change", selection);
+};
+
+const onCellDblClick = (row, column, cell, event) => {
+  emit("cell-dblclick", row, column, cell, event);
 };
 
 const onSortChange = (data) => {
@@ -961,44 +957,55 @@ onMounted(() => {
   loadHeaderMenuState();
 });
 
-// 处理表格右键菜单
+// 处理表格右键菜单（行右键 + 表头右键统一入口）
 const handleTableContextMenu = (event) => {
-  if (!props.contextmenu || !scTable.value) return;
+  const target = event.target
 
-  const tableEl = scTable.value.$el;
-  if (!tableEl) return;
-
-  // 查找点击的行
-  const target = event.target;
-  let rowElement = target.closest(".el-table__row");
-
-  if (!rowElement) {
-    // 如果点击的不是行，不处理
-    return;
+  // ---- 表头右键 ----
+  if (props.columnHeaderMenu) {
+    const headerWrapper = scTable.value?.$el?.querySelector('.el-table__header-wrapper')
+    if (headerWrapper && headerWrapper.contains(target)) {
+      // 找到点击的 th，从中取 column-key
+      const th = target.closest('th.el-table__cell')
+      let col = null
+      if (th) {
+        const columnKey = th.getAttribute('column-key') || th.getAttribute('data-column-key')
+        col = props.userColumn.find(c => c.prop === columnKey) || null
+      }
+      // 如果没找到具体列（如点在空白处），取第一列兜底
+      if (!col && props.userColumn.length) col = props.userColumn[0]
+      if (col) {
+        columnHeaderMenuState.column = col
+        columnHeaderMenuState.columnMeta = getColMeta(col.prop)
+        columnHeaderMenuState.position = { x: event.clientX + 2, y: event.clientY + 2 }
+        columnHeaderMenuState.visible = true
+      }
+      return
+    }
   }
 
-  // 获取行索引
-  const rows = tableEl.querySelectorAll(".el-table__body tbody tr");
-  const rowIndex = Array.from(rows).indexOf(rowElement);
+  // ---- 行右键 ----
+  if (!props.contextmenu || !scTable.value) return
 
-  if (rowIndex === -1 || rowIndex >= props.tableData.length) {
-    return;
-  }
+  const tableEl = scTable.value.$el
+  if (!tableEl) return
 
-  const row = props.tableData[rowIndex];
+  let rowElement = target.closest(".el-table__row")
+  if (!rowElement) return
 
-  // 保存当前行数据
-  currentRowData.value = row;
+  const rows = tableEl.querySelectorAll(".el-table__body tbody tr")
+  const rowIndex = Array.from(rows).indexOf(rowElement)
+  if (rowIndex === -1 || rowIndex >= props.tableData.length) return
 
-  // 调用外部传入的contextmenu函数获取菜单项
-  const items = props.contextmenu(row, null, event);
+  const row = props.tableData[rowIndex]
+  currentRowData.value = row
 
+  const items = props.contextmenu(row, null, event)
   if (items && items.length > 0) {
-    menuItems.value = items;
-    // 显示右键菜单
+    menuItems.value = items
     nextTick(() => {
-      contextMenuRef.value?.open(event, row);
-    });
+      contextMenuRef.value?.open(event, row)
+    })
   }
 };
 
