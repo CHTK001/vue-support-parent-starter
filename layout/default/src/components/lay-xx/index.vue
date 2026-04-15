@@ -494,9 +494,9 @@ const removeRailTab = (name: string | number) => {
   padding: 18px;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  contain: layout paint;
 }
 
 .lay-xx-unified-home__header {
@@ -524,6 +524,7 @@ const removeRailTab = (name: string | number) => {
   gap: 10px;
   align-content: start;
   overflow: auto;
+  contain: layout paint;
 }
 
 .lay-xx-shortcut-item {
@@ -539,13 +540,10 @@ const removeRailTab = (name: string | number) => {
   font-size: 13px;
   cursor: pointer;
   padding: 0 12px;
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease;
+  transition: border-color 0.18s ease;
 }
 
 .lay-xx-shortcut-item:hover {
-  transform: translateY(-1px);
   border-color: rgba(var(--el-color-primary-rgb), 0.48);
 }
 
@@ -566,17 +564,14 @@ const removeRailTab = (name: string | number) => {
   height: 36px;
   border: 0;
   border-radius: 12px;
-  background: rgba(var(--el-color-primary-rgb), 0.12);
+  background: rgba(var(--el-color-primary-rgb), 0.1);
   color: var(--el-color-primary);
   cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    background-color 0.18s ease;
+  transition: background-color 0.18s ease;
 }
 
 .lay-xx-action:hover {
-  transform: translateY(-1px);
-  background: rgba(var(--el-color-primary-rgb), 0.18);
+  background: rgba(var(--el-color-primary-rgb), 0.15);
 }
 
 .lay-xx-picker-grid {
@@ -585,6 +580,7 @@ const removeRailTab = (name: string | number) => {
   gap: 10px;
   max-height: 420px;
   overflow: auto;
+  contain: layout paint;
 }
 
 .lay-xx-picker-item {
@@ -600,20 +596,17 @@ const removeRailTab = (name: string | number) => {
   color: #334155;
   font-size: 13px;
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    transform 0.2s ease;
+  transition: border-color 0.18s ease;
 }
 
 .lay-xx-picker-item:hover {
   border-color: rgba(var(--el-color-primary-rgb), 0.48);
-  transform: translateY(-1px);
 }
 
 :global(html.dark) .lay-xx-unified-home {
   border-color: rgba(148, 163, 184, 0.24);
-  background: rgba(15, 23, 42, 0.92);
-  box-shadow: 0 20px 38px rgba(2, 8, 23, 0.45);
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 12px 24px rgba(2, 8, 23, 0.28);
 }
 
 :global(html.dark) .lay-xx-unified-home__header h3,
