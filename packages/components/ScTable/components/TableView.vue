@@ -62,6 +62,22 @@
             <template v-if="col.headerSlot" #header="scope">
               <slot :name="col.headerSlot" v-bind="scope" />
             </template>
+            <template v-else-if="columnHeaderMenu" #header="scope">
+              <div
+                class="col-header-wrapper"
+                @contextmenu.prevent="openColumnHeaderMenu($event, col)"
+              >
+                <span class="col-header-title">{{ col.label }}</span>
+                <small
+                  v-if="columnHeaderMenuState.showColumnType && getColMeta(col.prop)?.type"
+                  class="col-type"
+                >{{ getColMeta(col.prop)?.type }}</small>
+                <small
+                  v-if="columnHeaderMenuState.showColumnComment && getColMeta(col.prop)?.comment"
+                  class="col-comment"
+                >{{ getColMeta(col.prop)?.comment }}</small>
+              </div>
+            </template>
           </ScTableColumn>
         </template>
         <slot />
@@ -111,6 +127,22 @@
           <template v-if="col.headerSlot" #header="scope">
             <slot :name="col.headerSlot" v-bind="scope" />
           </template>
+          <template v-else-if="columnHeaderMenu" #header="scope">
+            <div
+              class="col-header-wrapper"
+              @contextmenu.prevent="openColumnHeaderMenu($event, col)"
+            >
+              <span class="col-header-title">{{ col.label }}</span>
+              <small
+                v-if="columnHeaderMenuState.showColumnType && getColMeta(col.prop)?.type"
+                class="col-type"
+              >{{ getColMeta(col.prop)?.type }}</small>
+              <small
+                v-if="columnHeaderMenuState.showColumnComment && getColMeta(col.prop)?.comment"
+                class="col-comment"
+              >{{ getColMeta(col.prop)?.comment }}</small>
+            </div>
+          </template>
         </ScTableColumn>
       </template>
       <slot />
@@ -123,6 +155,26 @@
       :class-name="config.contextmenuClass"
       @menu-action="handleMenuAction"
     />
+    <!-- 列头右键菜单 -->
+    <ColumnHeaderMenu
+      v-if="columnHeaderMenu"
+      :visible="columnHeaderMenuState.visible"
+      :position="columnHeaderMenuState.position"
+      :column="columnHeaderMenuState.column"
+      :column-meta="columnHeaderMenuState.columnMeta"
+      :show-column-type="columnHeaderMenuState.showColumnType"
+      :show-column-comment="columnHeaderMenuState.showColumnComment"
+      :show-data-comment="columnHeaderMenuState.showDataComment"
+      :table-id="tableId"
+      @close="columnHeaderMenuState.visible = false"
+      @sort-asc="handleHeaderSortAsc"
+      @sort-desc="handleHeaderSortDesc"
+      @fit-width="handleHeaderFitWidth"
+      @toggle-type="columnHeaderMenuState.showColumnType = !columnHeaderMenuState.showColumnType; saveHeaderMenuState()"
+      @toggle-comment="columnHeaderMenuState.showColumnComment = !columnHeaderMenuState.showColumnComment; saveHeaderMenuState()"
+      @toggle-data-comment="columnHeaderMenuState.showDataComment = !columnHeaderMenuState.showDataComment; saveHeaderMenuState()"
+      @edit-annotation="handleEditAnnotation"
+    />
   </div>
 </template>
 
@@ -134,6 +186,7 @@ import {
   onMounted,
   onBeforeUnmount,
   computed,
+  reactive,
   defineComponent,
   h,
 } from "vue";
@@ -143,6 +196,7 @@ import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { getLogger } from "@repo/utils";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
 import ContextMenu from "../plugins/ContextMenu.vue";
+import ColumnHeaderMenu from "../plugins/ColumnHeaderMenu.vue";
 import { useTableCrossHighlight } from "../composables/useTableCrossHighlight";
 import { ScTableColumn } from "../../ScTableColumn";
 
@@ -250,6 +304,9 @@ const props = defineProps({
   dragHandleWidth: { type: Number, default: 50 },
   contextmenu: { type: Function, default: null },
   dragScrollEnabled: { type: Boolean, default: false },
+  columnHeaderMenu: { type: Boolean, default: false },
+  columnMeta: { type: Array, default: () => [] },
+  tableId: { type: String, default: "" },
 });
 
 const emit = defineEmits([
@@ -259,7 +316,105 @@ const emit = defineEmits([
   "header-dragend",
   "expand-change",
   "drag-sort-change",
+  "edit-annotation",
 ]);
+
+// ==================== 列头右键菜单 ====================
+const columnHeaderMenuState = reactive({
+  visible: false,
+  position: { x: 0, y: 0 },
+  column: null,
+  columnMeta: null,
+  showColumnType: false,
+  showColumnComment: false,
+  showDataComment: false,
+})
+
+const HEADER_MENU_STORAGE_KEY = computed(
+  () => `sc_table_column_header_${props.tableId || 'shared'}`
+)
+
+const loadHeaderMenuState = () => {
+  try {
+    const raw = localStorage.getItem(HEADER_MENU_STORAGE_KEY.value)
+    if (raw) {
+      const saved = JSON.parse(raw)
+      columnHeaderMenuState.showColumnType = !!saved.showColumnType
+      columnHeaderMenuState.showColumnComment = !!saved.showColumnComment
+      columnHeaderMenuState.showDataComment = !!saved.showDataComment
+    }
+  } catch (_) { /* ignore */ }
+}
+
+const saveHeaderMenuState = () => {
+  try {
+    localStorage.setItem(HEADER_MENU_STORAGE_KEY.value, JSON.stringify({
+      showColumnType: columnHeaderMenuState.showColumnType,
+      showColumnComment: columnHeaderMenuState.showColumnComment,
+      showDataComment: columnHeaderMenuState.showDataComment,
+    }))
+  } catch (_) { /* ignore */ }
+}
+
+const getColMeta = (prop) => {
+  if (!props.columnMeta || !prop) return null
+  return props.columnMeta.find(m => m.name === prop) || null
+}
+
+const openColumnHeaderMenu = (event, col) => {
+  columnHeaderMenuState.column = col
+  columnHeaderMenuState.columnMeta = getColMeta(col.prop)
+  columnHeaderMenuState.position = { x: event.clientX + 2, y: event.clientY + 2 }
+  columnHeaderMenuState.visible = true
+}
+
+const handleHeaderSortAsc = ({ prop }) => {
+  emit('sort-change', { prop, order: 'ascending' })
+}
+
+const handleHeaderSortDesc = ({ prop }) => {
+  emit('sort-change', { prop, order: 'descending' })
+}
+
+const handleHeaderFitWidth = ({ prop }) => {
+  if (!prop || !scTable.value) return
+  const tableEl = scTable.value.$el
+  if (!tableEl) return
+  // 找到该列所有单元格，取最大内容宽度
+  const cells = tableEl.querySelectorAll(`td[class*="el-table__cell"] .cell`)
+  let maxWidth = 80
+  // 通过列 prop 找到对应列索引
+  const colIndex = props.userColumn.findIndex(c => c.prop === prop)
+  if (colIndex >= 0) {
+    const allRows = tableEl.querySelectorAll('.el-table__body tbody tr')
+    allRows.forEach(row => {
+      const tds = row.querySelectorAll('td.el-table__cell')
+      // 偏移：如果有拖拽列则 +1
+      const offset = props.draggable ? 1 : 0
+      const td = tds[colIndex + offset]
+      if (td) {
+        const cell = td.querySelector('.cell')
+        if (cell) {
+          maxWidth = Math.max(maxWidth, cell.scrollWidth + 16)
+        }
+      }
+    })
+  }
+  // 更新列宽
+  const col = props.userColumn[colIndex]
+  if (col) {
+    col.width = maxWidth
+  }
+  nextTick(() => {
+    scTable.value?.doLayout()
+  })
+}
+
+const handleEditAnnotation = ({ prop, currentComment }) => {
+  // 只 emit 事件，由业务层处理
+  emit('edit-annotation', { prop, currentComment })
+}
+// ==================== END 列头右键菜单 ====================
 
 const scTable = ref(null);
 const tableContainerRef = ref(null);
@@ -271,6 +426,7 @@ let overflowResizeObserver = null;
 let overflowSyncFrame = 0;
 let hiddenInteractiveObserver = null;
 let hiddenInteractiveSyncFrame = 0;
+let isHiddenInteractiveSyncing = false;
 
 const HIDDEN_INTERACTIVE_ATTR = "data-sc-hidden-interactive";
 const HIDDEN_INTERACTIVE_ORIGINAL_TABINDEX_ATTR =
@@ -584,17 +740,29 @@ const syncHiddenInteractiveElements = () => {
       return;
     }
 
-    tableEl.querySelectorAll(HIDDEN_INTERACTIVE_SELECTOR).forEach((element) => {
-      const style = window.getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      const isHidden =
-        style.visibility === "hidden" ||
-        style.display === "none" ||
-        rect.width === 0 ||
-        rect.height === 0 ||
-        !!element.closest(".hidden-columns");
+    const hiddenElements = new Set(
+      Array.from(
+        tableEl.querySelectorAll(`.hidden-columns ${HIDDEN_INTERACTIVE_SELECTOR}`),
+      ),
+    );
+    const markedElements = Array.from(
+      tableEl.querySelectorAll(`[${HIDDEN_INTERACTIVE_ATTR}="true"]`),
+    );
 
-      if (isHidden) {
+    // 没有隐藏列元素且没有历史标记时，直接跳过，避免无效 DOM 写入
+    if (hiddenElements.size === 0 && markedElements.length === 0) {
+      return;
+    }
+
+    isHiddenInteractiveSyncing = true;
+    try {
+      markedElements.forEach((element) => {
+        if (!hiddenElements.has(element)) {
+          restoreHiddenInteractiveState(element);
+        }
+      });
+
+      hiddenElements.forEach((element) => {
         if (!element.hasAttribute(HIDDEN_INTERACTIVE_ATTR)) {
           const currentTabIndex = element.getAttribute("tabindex");
           const currentAriaHidden = element.getAttribute("aria-hidden");
@@ -615,13 +783,10 @@ const syncHiddenInteractiveElements = () => {
         element.setAttribute(HIDDEN_INTERACTIVE_ATTR, "true");
         element.setAttribute("tabindex", "-1");
         element.setAttribute("aria-hidden", "true");
-        return;
-      }
-
-      if (element.hasAttribute(HIDDEN_INTERACTIVE_ATTR)) {
-        restoreHiddenInteractiveState(element);
-      }
-    });
+      });
+    } finally {
+      isHiddenInteractiveSyncing = false;
+    }
   });
 };
 
@@ -721,7 +886,46 @@ const initHiddenInteractiveObserver = () => {
     return;
   }
 
-  hiddenInteractiveObserver = new MutationObserver(() => {
+  hiddenInteractiveObserver = new MutationObserver((mutations) => {
+    if (isHiddenInteractiveSyncing) {
+      return;
+    }
+
+    // 仅当变更与 hidden-columns 或已标记元素有关时才触发同步，降低观察器噪音
+    const shouldSync = mutations.some((mutation) => {
+      const target = mutation.target;
+      if (!(target instanceof Element)) {
+        return mutation.type === "childList";
+      }
+
+      const inHiddenColumns = !!target.closest(".hidden-columns");
+      const isHiddenColumnsRoot = target.classList?.contains("hidden-columns");
+      const touchesHiddenColumns =
+        target.querySelector?.(".hidden-columns") ||
+        (mutation.type === "childList" &&
+          [...mutation.addedNodes, ...mutation.removedNodes].some(
+            (node) =>
+              node instanceof Element &&
+              (node.classList?.contains("hidden-columns") ||
+                !!node.closest?.(".hidden-columns") ||
+                !!node.querySelector?.(".hidden-columns")),
+          ));
+      const touchesMarked =
+        target.hasAttribute(HIDDEN_INTERACTIVE_ATTR) ||
+        target.hasAttribute(HIDDEN_INTERACTIVE_ORIGINAL_TABINDEX_ATTR) ||
+        target.hasAttribute(HIDDEN_INTERACTIVE_ORIGINAL_ARIA_HIDDEN_ATTR);
+
+      return (
+        inHiddenColumns ||
+        isHiddenColumnsRoot ||
+        !!touchesHiddenColumns ||
+        touchesMarked
+      );
+    });
+
+    if (!shouldSync) {
+      return;
+    }
     syncHiddenInteractiveElements();
   });
 
@@ -729,7 +933,7 @@ const initHiddenInteractiveObserver = () => {
     subtree: true,
     childList: true,
     attributes: true,
-    attributeFilter: ["style", "class", "aria-hidden", "tabindex"],
+    attributeFilter: ["style", "class"],
   });
 };
 
@@ -754,6 +958,7 @@ onMounted(() => {
     initOverflowObserver();
     initHiddenInteractiveObserver();
   });
+  loadHeaderMenuState();
 });
 
 // 处理表格右键菜单
@@ -1180,5 +1385,28 @@ defineExpose({
 .drag-scroll-wrapper {
   width: 100%;
   height: 100%;
+}
+
+/* 列头右键菜单 - 列头 wrapper 样式 */
+:deep(.col-header-wrapper) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+
+:deep(.col-header-title) {
+  font-weight: 500;
+}
+
+:deep(.col-type),
+:deep(.col-comment) {
+  font-size: 11px;
+  color: var(--stitch-lay-text-secondary);
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
