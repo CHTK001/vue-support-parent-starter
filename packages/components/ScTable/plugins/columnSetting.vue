@@ -6,75 +6,113 @@ import { useRenderIcon } from "@repo/components/ReIcon";
 
 export default defineComponent({
   props: {
-    column: { type: Object, default: () => {} },
-    layout: { type: String, default: "table" }, // 添加 layout 属性
-    liveUpdate: { type: Boolean, default: false }, // 是否实时更新（不等待保存按钮）
-    theme: { type: String, default: "" } // 主题
+    column: { type: Array, default: () => [] },
+    layout: { type: String, default: "table" },
+    liveUpdate: { type: Boolean, default: false },
+    theme: { type: String, default: "" }
   },
   data() {
     return {
       icon: { Caret: null },
       isSave: false,
+      filterKeyword: "",
+      sortableInstance: null,
       usercolumn: JSON.parse(JSON.stringify(this.column || []))
     };
   },
   computed: {
-    // 版本号用于监听 usercolumn 变化，避免深度监听
     usercolumnVersion() {
       return JSON.stringify(this.usercolumn);
     },
-    // 版本号用于监听 column 变化
     columnVersion() {
       return JSON.stringify(this.column);
+    },
+    normalizedFilterKeyword() {
+      return (this.filterKeyword || "").trim().toLowerCase();
+    },
+    filteredColumns() {
+      if (!this.normalizedFilterKeyword) {
+        return this.usercolumn;
+      }
+
+      return this.usercolumn.filter(item => {
+        const label = String(item?.label || "").toLowerCase();
+        const prop = String(item?.prop || "").toLowerCase();
+        return label.includes(this.normalizedFilterKeyword) || prop.includes(this.normalizedFilterKeyword);
+      });
+    },
+    canDragColumns() {
+      return !this.normalizedFilterKeyword;
     }
   },
   watch: {
     usercolumnVersion() {
       this.$emit("userChange", this.usercolumn);
-      // 如果开启了实时更新，立即发送变更的列数据
       if (this.liveUpdate) {
         this.$emit("live-update", this.usercolumn);
       }
     },
-    // 监听外部传入的column变化
     columnVersion(newVersion, oldVersion) {
       if (newVersion !== oldVersion) {
         this.usercolumn = JSON.parse(JSON.stringify(this.column || []));
         this.$nextTick(() => {
           if (this.usercolumn.length > 0) {
-            this.rowDrop();
+            this.syncSortable();
           }
         });
       }
+    },
+    filterKeyword() {
+      this.$nextTick(() => {
+        this.syncSortable();
+      });
     }
   },
   mounted() {
     this.icon.Caret = useRenderIcon(Caret);
-    this.usercolumn.length > 0 && this.rowDrop();
+    this.usercolumn.length > 0 && this.syncSortable();
+  },
+  beforeUnmount() {
+    this.destroySortable();
   },
   methods: {
-    rowDrop() {
-      const _this = this;
-      if (!this.$refs.list) return;
+    getColumnKey(item, index) {
+      return item?.prop || item?.label || `column-${index}`;
+    },
+    getColumnLabel(item) {
+      return item?.label || item?.prop || "未命名列";
+    },
+    destroySortable() {
+      if (this.sortableInstance) {
+        this.sortableInstance.destroy();
+        this.sortableInstance = null;
+      }
+    },
+    syncSortable() {
+      this.destroySortable();
+
+      if (!this.canDragColumns || !this.$refs.list) return;
 
       const tbody = this.$refs.list.querySelector("ul");
       if (!tbody) return;
 
-      Sortable.create(tbody, {
+      this.sortableInstance = Sortable.create(tbody, {
         handle: ".move",
         animation: 300,
         ghostClass: "ghost",
-        onEnd({ newIndex, oldIndex }) {
-          const tableData = _this.usercolumn;
+        onEnd: ({ newIndex, oldIndex }) => {
+          const tableData = this.usercolumn;
           const currRow = tableData.splice(oldIndex, 1)[0];
           tableData.splice(newIndex, 0, currRow);
 
-          // 如果开启了实时更新，在排序后立即通知变更
-          if (_this.liveUpdate) {
-            _this.$emit("live-update", _this.usercolumn);
+          if (this.liveUpdate) {
+            this.$emit("live-update", this.usercolumn);
           }
         }
       });
+    },
+    rowDrop() {
+      this.syncSortable();
     },
     backDefaul() {
       this.$emit("back", this.usercolumn);
@@ -82,30 +120,22 @@ export default defineComponent({
     save() {
       this.$emit("save", this.usercolumn);
     },
-    // 单独处理切换显示状态
-    handleVisibilityChange(item) {
-      // 立即通知变更
+    handleVisibilityChange() {
       if (this.liveUpdate) {
         this.$emit("live-update", this.usercolumn);
       }
     },
-    // 单独处理宽度变化
-    handleWidthChange(item) {
-      // 立即通知变更
+    handleWidthChange() {
       if (this.liveUpdate) {
         this.$emit("live-update", this.usercolumn);
       }
     },
-    // 单独处理排序状态变化
-    handleSortableChange(item) {
-      // 立即通知变更
+    handleSortableChange() {
       if (this.liveUpdate) {
         this.$emit("live-update", this.usercolumn);
       }
     },
-    // 单独处理固定状态变化
-    handleFixedChange(item) {
-      // 立即通知变更
+    handleFixedChange() {
       if (this.liveUpdate) {
         this.$emit("live-update", this.usercolumn);
       }
@@ -113,6 +143,7 @@ export default defineComponent({
   }
 });
 </script>
+
 <template>
   <div v-if="usercolumn && usercolumn.length > 0" class="column-setting-container" :class="[`theme--${theme}`]">
     <div class="setting-column__header">
@@ -124,33 +155,47 @@ export default defineComponent({
         <span class="sortable_b" v-if="layout === 'table'">排序</span>
         <span class="fixed_b" v-if="layout === 'table'">固定</span>
       </div>
+
+      <div class="setting-column__toolbar">
+        <ScInput
+          v-model="filterKeyword"
+          clearable
+          size="small"
+          placeholder="筛选列名或字段名"
+          class="setting-column__search"
+        />
+        <span class="setting-column__count">{{ filteredColumns.length }}/{{ usercolumn.length }}</span>
+      </div>
+
+      <div v-if="!canDragColumns" class="setting-column__tip">筛选中已禁用拖拽排序，清空筛选后可调整列顺序</div>
     </div>
 
     <div ref="list" class="setting-column__list custom-scrollbar">
-      <ul>
-        <li v-for="item in usercolumn" :key="item.prop" class="column-item">
+      <ul v-if="filteredColumns.length > 0">
+        <li v-for="(item, index) in filteredColumns" :key="getColumnKey(item, index)" class="column-item">
           <span class="move_b">
-            <ScTag class="move" size="small" type="info" effect="plain">
+            <ScTag class="move" :class="{ 'move--disabled': !canDragColumns }" size="small" type="info" effect="plain">
               <ScIcon style="width: 1em; height: 1em">
                 <component :is="icon.Caret" />
               </ScIcon>
             </ScTag>
           </span>
           <span class="show_b">
-            <ScSwitch v-model="item.hide" :active-value="false" :inactive-value="true" @change="() => handleVisibilityChange(item)" class="visibility-switch" />
+            <ScSwitch v-model="item.hide" :active-value="false" :inactive-value="true" @change="handleVisibilityChange" class="visibility-switch" />
           </span>
-          <span class="name_b" :title="item.label">{{ item.label }}</span>
+          <span class="name_b" :title="getColumnLabel(item)">{{ getColumnLabel(item) }}</span>
           <span class="width_b" v-if="layout === 'table'">
-            <ScInputNumber v-model="item.width" :min="50" :max="1000" :step="10" controls-position="right" size="small" class="width-control" @change="() => handleWidthChange(item)" />
+            <ScInputNumber v-model="item.width" :min="50" :max="1000" :step="10" controls-position="right" size="small" class="width-control" @change="handleWidthChange" />
           </span>
           <span class="sortable_b" v-if="layout === 'table'">
-            <ScSwitch v-model="item.sortable" @change="() => handleSortableChange(item)" class="feature-switch" />
+            <ScSwitch v-model="item.sortable" @change="handleSortableChange" class="feature-switch" />
           </span>
           <span class="fixed_b" v-if="layout === 'table'">
-            <ScSwitch v-model="item.fixed" @change="() => handleFixedChange(item)" class="feature-switch" />
+            <ScSwitch v-model="item.fixed" @change="handleFixedChange" class="feature-switch" />
           </span>
         </li>
       </ul>
+      <div v-else class="setting-column__empty">未找到匹配的列</div>
     </div>
 
     <div class="setting-column__bottom">
@@ -167,8 +212,6 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
-// @use "@/styles/mixins.scss" as *;
-
 .column-setting-container {
   border-radius: 8px;
   background-color: var(--stitch-lay-bg-panel);
@@ -177,7 +220,6 @@ export default defineComponent({
   max-height: 450px;
   position: relative;
 
-  // 主题变体
   @mixin theme-variant($type) {
     .ghost {
       background: var(--stitch-lay-#{$type}-bg);
@@ -231,6 +273,31 @@ export default defineComponent({
 .setting-column__title {
   display: flex;
   align-items: center;
+}
+
+.setting-column__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.setting-column__search {
+  flex: 1;
+}
+
+.setting-column__count {
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--stitch-lay-text-sub);
+}
+
+.setting-column__tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--stitch-lay-warning);
 }
 
 .setting-column__title span {
@@ -369,6 +436,21 @@ export default defineComponent({
   justify-content: center;
 }
 
+.move.move--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.setting-column__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  padding: 16px;
+  color: var(--stitch-lay-text-sub);
+  font-size: 13px;
+}
+
 .visibility-switch,
 .feature-switch {
   display: inline-flex;
@@ -384,7 +466,6 @@ export default defineComponent({
   text-align: center;
 }
 
-/* Ghost class for sortable */
 .ghost {
   opacity: 0.5;
   background: var(--stitch-lay-primary-alpha);

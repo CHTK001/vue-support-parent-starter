@@ -587,6 +587,9 @@ export function useReteEditor(
       for (const nodeData of data.nodes) {
         const node = createNode(nodeData.type, nodeData.label);
         if (node) {
+          // 尽量保留外部传入的节点 ID，避免切换 Tab 或重载数据后元数据映射失效。
+          (node as any).id = nodeData.id;
+
           // 恢复控件值
           if (nodeData.controls) {
             Object.entries(nodeData.controls).forEach(([key, value]) => {

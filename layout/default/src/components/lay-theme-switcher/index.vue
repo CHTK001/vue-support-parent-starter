@@ -69,12 +69,13 @@
 import { computed, ref } from "vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import ScRibbon from "@repo/components/ScRibbon/index.vue";
-import { switchTheme as switchThemeUtil } from "@repo/components/hooks/useThemeComponent";
+import { preloadTheme } from "@repo/components/hooks/useThemeComponent";
 import { useThemeStore } from "../../stores/themeStore";
 import { useGlobal } from "@pureadmin/utils";
+import { getConfig } from "@repo/config";
 import { message } from "@repo/utils";
-import { useThemeAnimation } from "../../hooks/useThemeAnimation";
 import { getAvailableThemes, type LayoutTheme } from "../../themes";
+import { useTheme } from "../../hooks/useThemeComponent";
 
 // 节日日期配置
 const festivalDates: Record<string, string> = {
@@ -109,6 +110,8 @@ const getDaysUntilFestival = (themeName: string): number | null => {
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
+const { applyOverallStyle, dataTheme, overallStyle } = useTheme();
+const THEME_STYLE_MEMORY_KEY = "themeSkinPreferredOverallStyle";
 
 // 按分组获取所有可用主题（从布局主题系统）
 const themesByGroup = computed(() => {
@@ -185,30 +188,48 @@ const handleSwitchTheme = async (themeName: string) => {
   }
 
   switching.value = true;
+  const previousThemeMeta = getAvailableThemes().find(
+    (item) => item.key === currentTheme.value,
+  );
+  const themeMeta = getAvailableThemes().find((item) => item.key === themeName);
+  const leavingForcedBaseStyle = !themeMeta?.baseStyle && !!previousThemeMeta?.baseStyle;
 
   try {
-    await useThemeAnimation(async () => {
-      // 使用新的 switchTheme 函数，先预加载再切换
-      await switchThemeUtil(themeName);
+    // 皮肤切换会触发全局样式重算，这里不再叠加额外的 clip-path 过渡，
+    // 优先保证切换响应和帧率稳定。
+    await preloadTheme(themeName);
 
-      // 通过主题 store 更新状态
-      themeStore.setTheme(themeName as any);
+    const storageConfigure = $storage.configure || {};
 
-      // 持久化到本地存储
-      const storageConfigure = $storage.configure || {};
-      storageConfigure.systemTheme = themeName;
-      $storage.configure = storageConfigure;
+    // 从强制明暗皮肤退回默认皮肤时，先恢复整体明暗，再切换皮肤，
+    // 避免 default 皮肤在同一帧内先按旧 dark 状态计算一遍又立刻回 light。
+    if (leavingForcedBaseStyle) {
+      const restoredStyle =
+        storageConfigure[THEME_STYLE_MEMORY_KEY] ||
+        getConfig().OverallStyle ||
+        "light";
+      overallStyle.value = restoredStyle;
+      dataTheme.value = restoredStyle === "dark";
+      await applyOverallStyle(restoredStyle);
+      delete storageConfigure[THEME_STYLE_MEMORY_KEY];
+    }
 
-      // 如果切换到非默认主题，强制切换到浅色模式
-      if (themeName !== "default") {
-        const dataTheme = document.documentElement.dataset.theme;
-        if (dataTheme === "dark") {
-          document.documentElement.dataset.theme = "light";
-          storageConfigure.dataTheme = false;
-          $storage.configure = storageConfigure;
-        }
+    themeStore.setTheme(themeName as any);
+
+    // 主题自带基础明暗风格时，同步整体模式，避免皮肤切换后残留旧明暗状态。
+    if (themeMeta?.baseStyle) {
+      if (!previousThemeMeta?.baseStyle) {
+        storageConfigure[THEME_STYLE_MEMORY_KEY] =
+          overallStyle.value || getConfig().OverallStyle || "light";
       }
-    });
+      const nextStyle = themeMeta.baseStyle;
+      overallStyle.value = nextStyle;
+      dataTheme.value = nextStyle === "dark";
+      await applyOverallStyle(nextStyle);
+    }
+
+    storageConfigure.systemTheme = themeName;
+    $storage.configure = storageConfigure;
 
     const themeName显示 = themeName === "default" ? "默认" : themeName;
     message.success(`已切换到${themeName显示}主题`);

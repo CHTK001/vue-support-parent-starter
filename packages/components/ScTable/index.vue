@@ -331,6 +331,8 @@ const emit = defineEmits([
   "row-click",
   "colClick",
   "col-click",
+  "column-config-change",
+  "sort-change",
   "drag-sort-change", // 拖拽排序变化
   "drag-sort-save", // 拖拽排序保存
   "drag-sort-success", // 拖拽排序保存成功
@@ -1093,9 +1095,52 @@ const reload = (params, page = 1) => {
   getData(true);
 };
 
+const normalizeSortOrderDetail = (order) => {
+  if (order === "ascending" || order === "asc") {
+    return "asc";
+  }
+  if (order === "descending" || order === "desc") {
+    return "desc";
+  }
+  return "";
+};
+
+const buildSortChangeDetail = (sort = {}) => {
+  const sortOrder = normalizeSortOrderDetail(sort?.order);
+  return {
+    sortField: sortOrder && sort?.prop ? String(sort.prop) : "",
+    sortOrder,
+  };
+};
+
+const buildColumnConfigDetail = (columns = []) => {
+  const normalizedColumns = (columns || []).filter(
+    (column) => String(column?.prop || "").trim(),
+  );
+  return {
+    columns: normalizedColumns,
+    columnOrder: normalizedColumns
+      .map((column) => String(column?.prop || ""))
+      .filter(Boolean),
+    frozenColumns: normalizedColumns
+      .filter((column) => Boolean(column?.fixed))
+      .map((column) => String(column?.prop || ""))
+      .filter(Boolean),
+    hiddenColumns: normalizedColumns
+      .filter((column) => Boolean(column?.hide))
+      .map((column) => String(column?.prop || ""))
+      .filter(Boolean),
+  };
+};
+
 // 自定义变化事件
 const columnSettingChangeHandler = (column) => {
   userColumn.value = column;
+  emit(
+    "column-config-change",
+    userColumn.value,
+    buildColumnConfigDetail(userColumn.value),
+  );
   triggerRerender();
 };
 
@@ -1130,6 +1175,7 @@ const columnSettingBackHandler = async () => {
 
 // 排序事件
 const sortChange = (obj) => {
+  emit("sort-change", obj, buildSortChangeDetail(obj));
   if (!props.remoteSort) {
     return false;
   }
@@ -1843,6 +1889,11 @@ const saveConfig = (config) => {
 
       // 触发重新渲染
       nextTick(() => {
+        emit(
+          "column-config-change",
+          userColumn.value,
+          buildColumnConfigDetail(userColumn.value),
+        );
         triggerRerender();
         if (scTable.value?.doLayout) {
           scTable.value.doLayout();
@@ -2218,7 +2269,10 @@ defineExpose({
 
       <!-- 分页区域 - 瀑布流布局使用滚动分页，不显示分页按钮 -->
       <div
-        v-if="!hidePagination && layout !== 'waterfall'"
+        v-if="
+          layout !== 'waterfall'
+            && (!hidePagination || !hideRefresh || !hideSetting)
+        "
         class="sc-table-pagination-wrapper"
       >
         <Pagination

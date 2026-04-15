@@ -16,6 +16,7 @@ import {
 } from "@repo/config/src/i18n";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchVerifyCode, initRouter } from "@repo/core";
+import { message } from "@repo/utils";
 import {
   computed,
   defineAsyncComponent,

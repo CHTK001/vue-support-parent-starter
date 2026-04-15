@@ -66,7 +66,7 @@
               </div>
 
               <ElTag
-                v-if="data.nodeType === 'table'"
+                v-if="data.nodeType === 'table' && (data.children || []).length > 0"
                 class="tree-node__tag"
                 effect="plain"
                 size="small"

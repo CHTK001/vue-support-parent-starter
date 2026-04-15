@@ -178,27 +178,6 @@
                   updateActiveTabSetting({ showSequence: Boolean($event) })
                 "
               />
-              <ElPopover placement="bottom-end" trigger="click" width="320">
-                <template #reference>
-                  <ElButton circle :icon="SetUp" title="冻结列" />
-                </template>
-                <div class="column-setting-popover">
-                  <strong>冻结列</strong>
-                  <ElCheckboxGroup
-                    :model-value="activeFrozenColumns"
-                    class="column-setting-group"
-                    @update:model-value="handleFrozenColumnsChange"
-                  >
-                    <ElCheckbox
-                      v-for="column in activeDataColumns"
-                      :key="column"
-                      :label="column"
-                    >
-                      {{ resolveColumnHeader(column) }}
-                    </ElCheckbox>
-                  </ElCheckboxGroup>
-                </div>
-              </ElPopover>
             </div>
           </div>
           <div
@@ -214,7 +193,6 @@
               {{ activeWorkbenchTab.databaseDocument?.panelSchemaCount || 0 }}
             </ScTag>
             <ElButton
-              size="small"
               :icon="Download"
               @click="handleExportMarkdown"
             >
@@ -441,7 +419,7 @@
                 border
                 height="100%"
               >
-                <ElTableColumn label="" width="52" align="center">
+                <ElTableColumn label="" width="60" align="center">
                   <template #default>
                     <button
                       type="button"
@@ -535,7 +513,6 @@
                   <template #default="{ $index }">
                     <ElButton
                       circle
-                      size="small"
                       :icon="Delete"
                       @click="handleRemoveEditColumn($index)"
                     />
@@ -628,138 +605,186 @@
               class="workbench-panel workbench-panel--data"
             >
               <div class="data-preview-head">
-                <div class="data-preview-head__summary">
-                  <div class="data-preview-head__summary-line">
-                    <code
-                      >page {{ activeWorkbenchTab.pageNum }} / size
-                      {{ activeWorkbenchTab.pageSize }}</code
+                <div class="data-preview-head__top">
+                  <div class="data-preview-head__summary">
+                    <div class="data-preview-head__summary-line">
+                      <code
+                        >page {{ activeWorkbenchTab.pageNum }} / size
+                        {{ activeWorkbenchTab.pageSize }}</code
+                      >
+                      <ScTag
+                        v-if="
+                          activeWorkbenchTab.dataResult?.panelElapsedMillis !==
+                          undefined
+                        "
+                        class="toolbar-chip data-preview-head__elapsed"
+                        effect="plain"
+                        size="small"
+                      >
+                        {{ activeWorkbenchTab.dataResult?.panelElapsedMillis }} ms
+                      </ScTag>
+                      <ScTag
+                        class="toolbar-chip data-preview-head__elapsed"
+                        effect="plain"
+                        size="small"
+                      >
+                        rows {{ activeDisplayRows.length }}
+                      </ScTag>
+                      <ScTag
+                        v-if="activeFilterCount"
+                        class="toolbar-chip data-preview-head__elapsed"
+                        effect="plain"
+                        size="small"
+                      >
+                        filters {{ activeFilterCount }}
+                      </ScTag>
+                    </div>
+                    <ElInput
+                      v-model="tableFilterKeyword"
+                      class="data-preview-head__filter"
+                      clearable
+                      :prefix-icon="Search"
+                      placeholder="筛选整张表"
+                    />
+                  </div>
+                  <div class="data-preview-head__actions">
+                    <ElButton plain size="small" @click="toggleAdvancedFilterPanel">
+                      {{ showAdvancedFilterPanel ? "收起筛选" : "高级筛选" }}
+                    </ElButton>
+                    <ElButton
+                      plain
+                      size="small"
+                      :disabled="!activeTableFilters.length"
+                      @click="handleClearAdvancedFilters"
                     >
+                      清空条件
+                    </ElButton>
                     <ScTag
-                      v-if="
-                        activeWorkbenchTab.dataResult?.panelElapsedMillis !==
-                        undefined
-                      "
+                      v-if="activeDataDirtyCount"
                       class="toolbar-chip data-preview-head__elapsed"
                       effect="plain"
                       size="small"
                     >
-                      {{ activeWorkbenchTab.dataResult?.panelElapsedMillis }} ms
-                    </ScTag>
-                    <ScTag
-                      class="toolbar-chip data-preview-head__elapsed"
-                      effect="plain"
-                      size="small"
-                    >
-                      rows {{ activeDisplayRows.length }}
+                      dirty {{ activeDataDirtyCount }}
                     </ScTag>
                   </div>
-                  <ElInput
-                    v-model="tableFilterKeyword"
-                    class="data-preview-head__filter"
-                    clearable
-                    :prefix-icon="Search"
-                    placeholder="筛选当前结果集"
-                  />
                 </div>
-                <div class="data-preview-head__actions">
-                  <ScTag
-                    v-if="activeDataDirtyCount"
-                    class="toolbar-chip data-preview-head__elapsed"
-                    effect="plain"
-                    size="small"
+                <div
+                  v-if="showAdvancedFilterPanel"
+                  class="data-preview-filter-panel"
+                >
+                  <div class="data-preview-filter-panel__head">
+                    <div class="toolbar-segment" role="tablist" aria-label="筛选关系">
+                      <button
+                        v-for="item in [
+                          { label: '且', value: 'and' },
+                          { label: '或', value: 'or' },
+                        ]"
+                        :key="item.value"
+                        type="button"
+                        class="toolbar-segment__item"
+                        :class="{ 'is-active': activeTableFilterJoin === item.value }"
+                        @click="handleAdvancedFilterJoinChange(item.value)"
+                      >
+                        {{ item.label }}
+                      </button>
+                    </div>
+                    <ElButton plain size="small" @click="handleAddAdvancedFilter">
+                      添加条件
+                    </ElButton>
+                  </div>
+                  <div
+                    v-if="activeTableFilters.length"
+                    class="data-preview-filter-list"
                   >
-                    dirty {{ activeDataDirtyCount }}
-                  </ScTag>
+                    <div
+                      v-for="(filter, index) in activeTableFilters"
+                      :key="`${filter.panelColumnName}-${index}`"
+                      class="data-preview-filter-item"
+                    >
+                      <ElSelect
+                        :model-value="filter.panelColumnName"
+                        class="data-preview-filter-item__column"
+                        size="small"
+                        @update:model-value="
+                          handleAdvancedFilterColumnChange(index, String($event))
+                        "
+                      >
+                        <ElOption
+                          v-for="column in activeFilterableColumns"
+                          :key="column.value"
+                          :label="column.label"
+                          :value="column.value"
+                        />
+                      </ElSelect>
+                      <ElSelect
+                        :model-value="filter.panelOperator"
+                        class="data-preview-filter-item__operator"
+                        size="small"
+                        @update:model-value="
+                          handleAdvancedFilterOperatorChange(
+                            index,
+                            String($event)
+                          )
+                        "
+                      >
+                        <ElOption
+                          v-for="operator in getFilterOperators(filter.panelColumnName)"
+                          :key="operator.value"
+                          :label="operator.label"
+                          :value="operator.value"
+                        />
+                      </ElSelect>
+                      <ElInput
+                        :model-value="filter.panelValue"
+                        class="data-preview-filter-item__value"
+                        clearable
+                        :disabled="isValuelessFilterOperator(filter.panelOperator)"
+                        placeholder="输入筛选值"
+                        size="small"
+                        @update:model-value="
+                          handleAdvancedFilterValueChange(index, String($event))
+                        "
+                      />
+                      <ElButton
+                        circle
+                        plain
+                        size="small"
+                        @click="handleRemoveAdvancedFilter(index)"
+                      >
+                        <ElIcon><Delete /></ElIcon>
+                      </ElButton>
+                    </div>
+                  </div>
+                  <div v-else class="data-preview-filter-panel__empty">
+                    添加条件后按列筛选，仍会与“筛选整张表”共同生效
+                  </div>
                 </div>
               </div>
               <div class="data-table-shell">
-                <ElTable
+                <ScTable
                   v-if="activeDataColumns.length"
-                  :data="activeDisplayRows"
-                  border
-                  height="100%"
-                  table-layout="fixed"
-                  :row-class-name="resolveDataRowClass"
-                >
-                  <ElTableColumn
-                    v-if="activeWorkbenchTab.showSequence"
-                    align="center"
-                    fixed="left"
-                    label="#"
-                    width="60"
-                  >
-                    <template #default="{ row }">
-                      {{ resolveSequence(row.__panelRowIndex) }}
-                    </template>
-                  </ElTableColumn>
-                  <ElTableColumn
-                    v-for="column in activeDataColumns"
-                    :key="column"
-                    :fixed="resolveColumnFixed(column)"
-                    :min-width="140"
-                    show-overflow-tooltip
-                  >
-                    <template #header>
-                      <div class="data-column-header">
-                        <span class="data-column-header__label">
-                          {{ resolveColumnHeader(column) }}
-                        </span>
-                        <button
-                          type="button"
-                          class="data-column-header__sort"
-                          :class="[
-                            `is-${resolveColumnSortOrder(column) || 'none'}`,
-                          ]"
-                          :title="`切换 ${column} 排序`"
-                          @click.stop="toggleColumnSort(column)"
-                        >
-                          {{
-                            resolveColumnSortOrder(column) === "asc"
-                              ? "↑"
-                              : resolveColumnSortOrder(column) === "desc"
-                                ? "↓"
-                                : "↕"
-                          }}
-                        </button>
-                      </div>
-                    </template>
-                    <template #default="{ row }">
-                      <div
-                        class="data-cell"
-                        :class="{
-                          'data-cell--editing': isEditingCell(
-                            row.__panelRowIndex,
-                            column
-                          ),
-                        }"
-                        @click="activateCellEdit(row.__panelRowIndex, column)"
-                      >
-                        <ElInput
-                          v-if="isEditingCell(row.__panelRowIndex, column)"
-                          :model-value="editingCell.value"
-                          :autosize="{ minRows: 1, maxRows: 1 }"
-                          autofocus
-                          class="data-cell__editor"
-                          resize="none"
-                          size="small"
-                          type="textarea"
-                          @blur="commitCellEdit"
-                          @keydown.enter.exact.prevent="commitCellEdit"
-                          @keydown.esc.prevent="cancelCellEdit"
-                          @update:model-value="editingCell.value = $event"
-                        />
-                        <div v-else class="data-cell__content">
-                          <span class="data-cell__value">{{
-                            formatCellValue(row.__panelRow[column])
-                          }}</span>
-                          <small v-if="resolveCellComment(column)">{{
-                            resolveCellComment(column)
-                          }}</small>
-                        </div>
-                      </div>
-                    </template>
-                  </ElTableColumn>
-                </ElTable>
+                  ref="panelDataTableRef"
+                  :key="`panel-data-table-${activeWorkbenchTab.tabId}`"
+                  :border="true"
+                  :columns="activeDataTableColumns"
+                  :data="activeDataTablePayload"
+                  :default-sortable="false"
+                  :height="'100%'"
+                  :hide-do="true"
+                  :hide-pagination="true"
+                  :hide-refresh="true"
+                  :hide-setting="false"
+                  :layout="'virtual'"
+                  :page-size="Math.max(activeWorkbenchTab.pageSize, 1)"
+                  :row-class="resolveDataRowClass"
+                  :row-key="'__panelRowIndex'"
+                  :search="true"
+                  :table-id="`panel-data-${activeWorkbenchTab.tabId}`"
+                  class="data-table-virtual"
+                  @column-config-change="handlePanelTableColumnConfigChange"
+                  @sort-change="handlePanelTableSortChange"
+                />
                 <ElEmpty
                   v-else
                   description="当前还没有表数据，点击刷新后重试。"
@@ -1229,18 +1254,16 @@ import {
   QuestionFilled,
   Rank,
   Search,
-  SetUp,
   Tickets,
   VideoPlay,
 } from "@element-plus/icons-vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScLayout from "@repo/components/ScLayout";
+import ScTable from "@repo/components/ScTable";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import {
   ElButton,
   ElAutoResizer,
-  ElCheckbox,
-  ElCheckboxGroup,
   ElDialog,
   ElEmpty,
   ElIcon,
@@ -1249,7 +1272,6 @@ import {
   ElOption,
   ElPagination,
   ElMessage,
-  ElPopover,
   ElSelect,
   ElSwitch,
   ElTable,
@@ -1262,6 +1284,7 @@ import Sortable from "sortablejs";
 import { format as formatSqlText } from "sql-formatter";
 import {
   computed,
+  h,
   markRaw,
   nextTick,
   onBeforeUnmount,
@@ -1279,6 +1302,8 @@ import type {
   PanelDatabaseDocumentView,
   PanelJdbcAccountView,
   PanelCapabilitySummary,
+  PanelTableFilterItem,
+  PanelTableFilterJoin,
   PanelTableRowUpdate,
   PanelTableDataView,
 } from "../api";
@@ -1318,6 +1343,21 @@ type EditSection =
 type CommentMode = "comment" | "mixed" | "native";
 type RailShape = "default" | "round";
 type SortOrder = "" | "asc" | "desc";
+type FilterOperator =
+  | "contains"
+  | "notContains"
+  | "equals"
+  | "notEquals"
+  | "startsWith"
+  | "endsWith"
+  | "gt"
+  | "ge"
+  | "lt"
+  | "le"
+  | "isEmpty"
+  | "isNotEmpty"
+  | "isNull"
+  | "isNotNull";
 type EditableColumn = {
   comment: string;
   defaultValue: string;
@@ -1333,17 +1373,25 @@ type DataDraftState = {
   originalRows: Record<string, any>[];
   rows: Record<string, any>[];
 };
+type PanelDraftRow = {
+  __panelRow: Record<string, any>;
+  __panelRowIndex: number;
+};
 
 interface InspectorTableTab {
   accounts: PanelJdbcAccountView[];
   aiContent: string;
+  columnOrder: string[];
   databaseDocument?: PanelDatabaseDocumentView | null;
   dataCommentMode: CommentMode;
   dataResult: PanelTableDataView | null;
   ddlText: string;
   documentContent: string;
   filterKeyword: string;
+  filterJoin: PanelTableFilterJoin;
+  filters: PanelTableFilterItem[];
   frozenColumns: string[];
+  hiddenColumns: string[];
   loadTotal: boolean;
   node: Record<string, any>;
   paginationMode: PaginationMode;
@@ -1388,9 +1436,13 @@ const emit = defineEmits<{
     patch: Partial<
       Pick<
         InspectorTableTab,
+        | "columnOrder"
         | "dataCommentMode"
+        | "filterJoin"
         | "filterKeyword"
+        | "filters"
         | "frozenColumns"
+        | "hiddenColumns"
         | "loadTotal"
         | "paginationMode"
         | "pageNum"
@@ -1440,7 +1492,9 @@ const emit = defineEmits<{
 
 const sqlEditorRef = ref<any>(null);
 const editTableRef = ref<any>(null);
+const panelDataTableRef = ref<any>(null);
 const documentPaperRef = ref<HTMLElement | null>(null);
+const panelFilterPanelOpen = ref(false);
 const aiDialogVisible = ref(false);
 const accountDialogVisible = ref(false);
 const privilegeDialogVisible = ref(false);
@@ -1518,6 +1572,57 @@ const railShapeOptions = [
   { label: "圆形", value: "round" },
 ] satisfies Array<{ label: string; value: RailShape }>;
 
+const filterOperatorOptions = {
+  boolean: [
+    { label: "等于", value: "equals" },
+    { label: "不等于", value: "notEquals" },
+    { label: "为空", value: "isNull" },
+    { label: "非空", value: "isNotNull" },
+  ],
+  date: [
+    { label: "等于", value: "equals" },
+    { label: "不等于", value: "notEquals" },
+    { label: "大于", value: "gt" },
+    { label: "大于等于", value: "ge" },
+    { label: "小于", value: "lt" },
+    { label: "小于等于", value: "le" },
+    { label: "为空", value: "isNull" },
+    { label: "非空", value: "isNotNull" },
+  ],
+  number: [
+    { label: "等于", value: "equals" },
+    { label: "不等于", value: "notEquals" },
+    { label: "大于", value: "gt" },
+    { label: "大于等于", value: "ge" },
+    { label: "小于", value: "lt" },
+    { label: "小于等于", value: "le" },
+    { label: "为空", value: "isNull" },
+    { label: "非空", value: "isNotNull" },
+  ],
+  text: [
+    { label: "包含", value: "contains" },
+    { label: "不包含", value: "notContains" },
+    { label: "等于", value: "equals" },
+    { label: "不等于", value: "notEquals" },
+    { label: "开头是", value: "startsWith" },
+    { label: "结尾是", value: "endsWith" },
+    { label: "空串", value: "isEmpty" },
+    { label: "非空串", value: "isNotEmpty" },
+    { label: "为空", value: "isNull" },
+    { label: "非空", value: "isNotNull" },
+  ],
+} satisfies Record<
+  "boolean" | "date" | "number" | "text",
+  Array<{ label: string; value: FilterOperator }>
+>;
+
+const valuelessFilterOperators = new Set<FilterOperator>([
+  "isEmpty",
+  "isNotEmpty",
+  "isNull",
+  "isNotNull",
+]);
+
 const activeWorkbenchTab = computed(
   () => props.tableTabs.find((item) => item.tabId === props.activeTabId) || null
 );
@@ -1546,6 +1651,84 @@ const activeTriggers = computed(
 const activeDataColumns = computed(
   () => activeWorkbenchTab.value?.dataResult?.panelColumns || []
 );
+const activeColumnMetaMap = computed(() =>
+  activeColumns.value.reduce(
+    (acc, column) => {
+      const key = String(column.name || "");
+      if (key) {
+        acc[key] = column;
+      }
+      return acc;
+    },
+    {} as Record<string, Record<string, any>>
+  )
+);
+const resolveFilterColumnFamily = (columnName: string) => {
+  const rawType = String(activeColumnMetaMap.value[columnName]?.type || "")
+    .trim()
+    .toLowerCase();
+  if (
+    rawType.includes("int") ||
+    rawType.includes("decimal") ||
+    rawType.includes("numeric") ||
+    rawType.includes("double") ||
+    rawType.includes("float") ||
+    rawType.includes("real") ||
+    rawType.includes("serial")
+  ) {
+    return "number" as const;
+  }
+  if (
+    rawType.includes("date") ||
+    rawType.includes("time") ||
+    rawType.includes("year")
+  ) {
+    return "date" as const;
+  }
+  if (
+    rawType.includes("bool") ||
+    rawType === "bit" ||
+    rawType === "boolean"
+  ) {
+    return "boolean" as const;
+  }
+  return "text" as const;
+};
+const activeFilterableColumns = computed(() =>
+  activeDataColumns.value.map((column) => ({
+    label: resolveColumnHeader(column),
+    typeFamily: resolveFilterColumnFamily(column),
+    value: column,
+  }))
+);
+const activeTableFilters = computed(
+  () => activeWorkbenchTab.value?.filters || []
+);
+const activeTableFilterJoin = computed<PanelTableFilterJoin>({
+  get() {
+    return activeWorkbenchTab.value?.filterJoin || "and";
+  },
+  set(value) {
+    updateActiveTabSetting({
+      filterJoin: value,
+      pageNum: 1,
+      viewMode: "data",
+    });
+  },
+});
+const activeFilterCount = computed(() =>
+  activeTableFilters.value.filter(
+    (item) =>
+      item?.panelColumnName &&
+      (valuelessFilterOperators.has(
+        (item?.panelOperator || "contains") as FilterOperator
+      ) ||
+        String(item?.panelValue || "").trim())
+  ).length
+);
+const showAdvancedFilterPanel = computed(
+  () => panelFilterPanelOpen.value || activeTableFilters.value.length > 0
+);
 const activeDataDraft = computed(() => {
   const tab = activeWorkbenchTab.value;
   if (!tab || tab.tabType !== "table") {
@@ -1557,30 +1740,18 @@ const activeDataRows = computed(() => activeDataDraft.value?.rows || []);
 const activeDisplayRows = computed(() => {
   const draft = activeDataDraft.value;
   if (!draft) {
-    return [] as Array<{
-      __panelRow: Record<string, any>;
-      __panelRowIndex: number;
-    }>;
+    return [] as PanelDraftRow[];
   }
-  const keyword = String(activeWorkbenchTab.value?.filterKeyword || "")
-    .trim()
-    .toLowerCase();
   return draft.rows
     .map((row, index) => ({
       __panelRow: row,
       __panelRowIndex: index,
-    }))
-    .filter(({ __panelRow }) => {
-      if (!keyword) {
-        return true;
-      }
-      return Object.values(__panelRow || {}).some((value) =>
-        String(value ?? "")
-          .toLowerCase()
-          .includes(keyword)
-      );
-    });
+    })) as PanelDraftRow[];
 });
+const activeDataTablePayload = computed(() => ({
+  data: activeDisplayRows.value,
+  total: activeDisplayRows.value.length,
+}));
 const activeAccounts = computed(() => activeWorkbenchTab.value?.accounts || []);
 const activeGrantCount = computed(() =>
   activeAccounts.value.reduce(
@@ -1625,6 +1796,20 @@ const activeDataDirtyCount = computed(() => {
 const activeFrozenColumns = computed(
   () => activeWorkbenchTab.value?.frozenColumns || []
 );
+const activeHiddenColumns = computed(
+  () => activeWorkbenchTab.value?.hiddenColumns || []
+);
+const activeOrderedDataColumns = computed(() => {
+  const sourceColumns = activeDataColumns.value;
+  const orderedColumns = activeWorkbenchTab.value?.columnOrder || [];
+  const resolvedOrder = orderedColumns.filter((column) =>
+    sourceColumns.includes(column)
+  );
+  return [
+    ...resolvedOrder,
+    ...sourceColumns.filter((column) => !resolvedOrder.includes(column)),
+  ];
+});
 const railRound = computed(
   () => activeWorkbenchTab.value?.railShape === "round"
 );
@@ -1761,9 +1946,112 @@ const tableFilterKeyword = computed<string>({
     return activeWorkbenchTab.value?.filterKeyword || "";
   },
   set(value) {
-    updateActiveTabSetting({ filterKeyword: value });
+    updateActiveTabSetting({
+      filterKeyword: value,
+      pageNum: 1,
+      viewMode: "data",
+    });
   },
 });
+
+const createEmptyAdvancedFilter = (): PanelTableFilterItem => ({
+  panelColumnName: activeFilterableColumns.value[0]?.value || "",
+  panelOperator: "contains",
+  panelValue: "",
+});
+
+const getFilterOperators = (columnName: string) =>
+  filterOperatorOptions[resolveFilterColumnFamily(columnName)];
+
+const isValuelessFilterOperator = (operator: string) =>
+  valuelessFilterOperators.has((operator || "contains") as FilterOperator);
+
+const toggleAdvancedFilterPanel = () => {
+  panelFilterPanelOpen.value = !panelFilterPanelOpen.value;
+};
+
+const updateAdvancedFilters = (filters: PanelTableFilterItem[]) => {
+  updateActiveTabSetting({
+    filters,
+    pageNum: 1,
+    viewMode: "data",
+  });
+};
+
+const handleAddAdvancedFilter = () => {
+  updateAdvancedFilters([...activeTableFilters.value, createEmptyAdvancedFilter()]);
+  panelFilterPanelOpen.value = true;
+};
+
+const handleAdvancedFilterJoinChange = (value: string) => {
+  updateActiveTabSetting({
+    filterJoin: value === "or" ? "or" : "and",
+    pageNum: 1,
+    viewMode: "data",
+  });
+};
+
+const handleClearAdvancedFilters = () => {
+  updateActiveTabSetting({
+    filterJoin: "and",
+    filters: [],
+    pageNum: 1,
+    viewMode: "data",
+  });
+};
+
+const handleRemoveAdvancedFilter = (index: number) => {
+  updateAdvancedFilters(
+    activeTableFilters.value.filter((_, currentIndex) => currentIndex !== index)
+  );
+};
+
+const handleAdvancedFilterColumnChange = (index: number, columnName: string) => {
+  const nextFilters = activeTableFilters.value.map((item, currentIndex) => {
+    if (currentIndex !== index) {
+      return item;
+    }
+    const nextOperator = getFilterOperators(columnName)[0]?.value || "contains";
+    return {
+      ...item,
+      panelColumnName: columnName,
+      panelOperator: nextOperator,
+      panelValue: "",
+    };
+  });
+  updateAdvancedFilters(nextFilters);
+};
+
+const handleAdvancedFilterOperatorChange = (
+  index: number,
+  operator: string
+) => {
+  const nextOperator = (operator || "contains") as FilterOperator;
+  const nextFilters = activeTableFilters.value.map((item, currentIndex) =>
+    currentIndex !== index
+      ? item
+      : {
+          ...item,
+          panelOperator: nextOperator,
+          panelValue: valuelessFilterOperators.has(nextOperator)
+            ? ""
+            : item.panelValue || "",
+        }
+  );
+  updateAdvancedFilters(nextFilters);
+};
+
+const handleAdvancedFilterValueChange = (index: number, value: string) => {
+  const nextFilters = activeTableFilters.value.map((item, currentIndex) =>
+    currentIndex !== index
+      ? item
+      : {
+          ...item,
+          panelValue: value,
+        }
+  );
+  updateAdvancedFilters(nextFilters);
+};
 
 const tableView = computed<InspectorViewMode>({
   get() {
@@ -1822,6 +2110,16 @@ const measureQueryResultColumnWidth = (column: string, rows: Record<string, any>
   );
   return Math.min(Math.max(maxLength * 12, 160), 320);
 };
+const measurePanelDataColumnWidth = (column: string, rows: PanelDraftRow[]) => {
+  const samples = rows
+    .slice(0, 20)
+    .map((row) => String(row?.__panelRow?.[column] ?? "-"));
+  const maxLength = Math.max(
+    String(resolveColumnHeader(column) || column).length,
+    ...samples.map((value) => value.length),
+  );
+  return Math.min(Math.max(maxLength * 12, 160), 320);
+};
 
 const queryResultVirtualColumns = computed(() =>
   (props.queryResult?.columns || []).map((column) => ({
@@ -1835,6 +2133,40 @@ const queryResultVirtualColumns = computed(() =>
 );
 
 const queryResultVirtualRows = computed(() => props.queryResult?.rows || []);
+const activeDataTableColumns = computed(() => {
+  const currentEditingCell = `${editingCell.rowIndex}:${editingCell.column}`;
+  const currentDataCommentMode =
+    activeWorkbenchTab.value?.dataCommentMode || "native";
+  void currentEditingCell;
+  void currentDataCommentMode;
+  const rows = activeDisplayRows.value;
+  const columns: Array<Record<string, any>> = [];
+
+  if (activeWorkbenchTab.value?.showSequence) {
+    columns.push({
+      align: "center",
+      fixed: "left",
+      formatter: (row: PanelDraftRow) => resolveSequence(row.__panelRowIndex),
+      label: "#",
+      prop: "__panelSequence",
+      width: 60,
+    });
+  }
+
+  activeOrderedDataColumns.value.forEach((column) => {
+    columns.push({
+      fixed: resolveColumnFixed(column) || undefined,
+      formatter: (row: PanelDraftRow) => renderPanelDataCell(row, column),
+      hide: activeHiddenColumns.value.includes(column),
+      label: resolveColumnHeader(column),
+      prop: column,
+      sortable: true,
+      width: measurePanelDataColumnWidth(column, rows),
+    });
+  });
+
+  return columns;
+});
 
 const buildAccountKey = (account: PanelJdbcAccountView) =>
   `${account.panelAccountName || ""}@${account.panelHost || "%"}`;
@@ -2125,6 +2457,14 @@ watch(
 );
 
 watch(
+  () => activeWorkbenchTab.value?.tabId || "",
+  () => {
+    panelFilterPanelOpen.value = activeTableFilters.value.length > 0;
+  },
+  { immediate: true }
+);
+
+watch(
   activeAccounts,
   (accounts) => {
     const tab = activeWorkbenchTab.value;
@@ -2160,9 +2500,13 @@ const updateActiveTabSetting = (
   patch: Partial<
     Pick<
       InspectorTableTab,
+      | "columnOrder"
       | "dataCommentMode"
+      | "filterJoin"
       | "filterKeyword"
+      | "filters"
       | "frozenColumns"
+      | "hiddenColumns"
       | "loadTotal"
       | "paginationMode"
       | "pageNum"
@@ -2211,35 +2555,65 @@ const handleRailTabRemove = (name: string | number) => {
   emit("close-tab", String(name));
 };
 
-const handleFrozenColumnsChange = (value: Array<string | number>) => {
+const handlePanelTableColumnConfigChange = (
+  columns: Array<Record<string, any>>,
+  detail?: {
+    columnOrder?: string[];
+    frozenColumns?: string[];
+    hiddenColumns?: string[];
+  }
+) => {
+  const nextColumns =
+    detail?.columnOrder?.length ||
+    detail?.frozenColumns?.length ||
+    detail?.hiddenColumns?.length
+      ? null
+      : (columns || []).filter(
+          (column) => String(column?.prop || "") !== "__panelSequence"
+        );
   updateActiveTabSetting({
-    frozenColumns: value.map((item) => String(item)),
+    columnOrder:
+      detail?.columnOrder ||
+      nextColumns?.map((column) => String(column?.prop || "")).filter(Boolean) ||
+      [],
+    frozenColumns:
+      detail?.frozenColumns ||
+      nextColumns
+        ?.filter((column) => Boolean(column?.fixed))
+        .map((column) => String(column?.prop || ""))
+        .filter(Boolean) ||
+      [],
+    hiddenColumns:
+      detail?.hiddenColumns ||
+      nextColumns
+        ?.filter((column) => Boolean(column?.hide))
+        .map((column) => String(column?.prop || ""))
+        .filter(Boolean) ||
+      [],
   });
 };
 
-const resolveColumnSortOrder = (columnName: string): SortOrder => {
-  const tab = activeWorkbenchTab.value;
-  if (!tab || tab.tabType !== "table") {
-    return "";
+const normalizeTableSortOrder = (order?: string | null): SortOrder => {
+  if (order === "asc" || order === "ascending") {
+    return "asc";
   }
-  return tab.sortField === columnName ? tab.sortOrder : "";
+  if (order === "desc" || order === "descending") {
+    return "desc";
+  }
+  return "";
 };
-
-const toggleColumnSort = (columnName: string) => {
-  const tab = activeWorkbenchTab.value;
-  if (!tab || tab.tabType !== "table") {
-    return;
-  }
-  const current = resolveColumnSortOrder(columnName);
-  const nextOrder: SortOrder =
-    current === ""
-      ? "asc"
-      : current === "asc"
-        ? "desc"
-        : "";
+const handlePanelTableSortChange = (payload: {
+  order?: string | null;
+  prop?: string;
+}, detail?: {
+  sortField?: string;
+  sortOrder?: SortOrder;
+}) => {
+  const nextOrder = detail?.sortOrder || normalizeTableSortOrder(payload?.order);
   updateActiveTabSetting({
     pageNum: 1,
-    sortField: nextOrder ? columnName : "",
+    sortField:
+      detail?.sortField || (nextOrder && payload?.prop ? payload.prop : ""),
     sortOrder: nextOrder,
     viewMode: "data",
   });
@@ -2317,6 +2691,55 @@ const formatCellValue = (value: unknown) => {
   }
   return String(value);
 };
+const handlePanelCellKeydown = (event: Event | KeyboardEvent) => {
+  if (!(event instanceof KeyboardEvent)) {
+    return;
+  }
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    commitCellEdit();
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    cancelCellEdit();
+  }
+};
+const renderPanelDataCell = (row: PanelDraftRow, column: string) => {
+  if (isEditingCell(row.__panelRowIndex, column)) {
+    return h("div", { class: ["data-cell", "data-cell--editing"] }, [
+      h(ElInput, {
+        "onUpdate:modelValue": (value: string) => {
+          editingCell.value = value;
+        },
+        autosize: { minRows: 1, maxRows: 1 },
+        autofocus: true,
+        class: "data-cell__editor",
+        modelValue: editingCell.value,
+        onBlur: commitCellEdit,
+        onKeydown: handlePanelCellKeydown,
+        resize: "none",
+        size: "small",
+        type: "textarea",
+      }),
+    ]);
+  }
+
+  const comment = resolveCellComment(column);
+  return h(
+    "div",
+    {
+      class: "data-cell",
+      onClick: () => activateCellEdit(row.__panelRowIndex, column),
+    },
+    [
+      h("div", { class: "data-cell__content" }, [
+        h("span", { class: "data-cell__value" }, formatCellValue(row.__panelRow[column])),
+        comment ? h("small", comment) : null,
+      ]),
+    ],
+  );
+};
 
 const isEditingCell = (rowIndex: number, column: string) =>
   editingCell.rowIndex === rowIndex && editingCell.column === column;
@@ -2369,19 +2792,50 @@ const cancelCellEdit = () => {
 
 const resolveDataRowClass = ({
   row,
+  rowData,
 }: {
-  row: { __panelRow: Record<string, any>; __panelRowIndex: number };
+  row?: PanelDraftRow;
+  rowData?: PanelDraftRow;
 }) => {
+  const currentRow = row || rowData;
+  if (!currentRow) {
+    return "";
+  }
   const draft = activeDataDraft.value;
   if (!draft) {
     return "";
   }
-  const original = draft.originalRows[row.__panelRowIndex] || {};
-  const current = draft.rows[row.__panelRowIndex] || {};
+  const original = draft.originalRows[currentRow.__panelRowIndex] || {};
+  const current = draft.rows[currentRow.__panelRowIndex] || {};
   return JSON.stringify(original) === JSON.stringify(current)
     ? ""
     : "panel-row--dirty";
 };
+const syncPanelDataTableSort = () => {
+  const table = panelDataTableRef.value;
+  const tab = activeWorkbenchTab.value;
+  if (!table || !tab || tab.tabType !== "table" || tableView.value !== "data") {
+    return;
+  }
+  if (tab.sortField && tab.sortOrder) {
+    table.sort(tab.sortField, tab.sortOrder);
+    return;
+  }
+  table.clearSort();
+};
+const panelDataTableSortSignature = computed(() => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab || tab.tabType !== "table") {
+    return "";
+  }
+  return [
+    tab.tabId,
+    tableView.value,
+    tab.sortField,
+    tab.sortOrder,
+    activeDataColumns.value.join("|"),
+  ].join("|");
+});
 
 const collectDataUpdates = (): PanelTableRowUpdate[] => {
   const draft = activeDataDraft.value;
@@ -2675,6 +3129,16 @@ const resolveCellComment = (columnName: string) => {
   }
   return `${columnName} · ${comment}`;
 };
+
+watch(
+  panelDataTableSortSignature,
+  () => {
+    nextTick(() => {
+      syncPanelDataTableSort();
+    });
+  },
+  { immediate: true }
+);
 
 watch(
   codeMirrorHints,
@@ -3360,12 +3824,17 @@ onBeforeUnmount(() => {
 
 .data-preview-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(123, 138, 149, 0.14);
   color: #5e7686;
   font-size: 12px;
+}
+
+.data-preview-head__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
 }
 
 .data-preview-head__summary {
@@ -3407,6 +3876,46 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
+.data-preview-filter-panel {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(123, 138, 149, 0.14);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.data-preview-filter-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.data-preview-filter-list {
+  display: grid;
+  gap: 8px;
+}
+
+.data-preview-filter-item {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(140px, 0.9fr) minmax(180px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.data-preview-filter-item__column,
+.data-preview-filter-item__operator,
+.data-preview-filter-item__value {
+  width: 100%;
+}
+
+.data-preview-filter-panel__empty {
+  color: #718798;
+  font-size: 12px;
+}
+
 .table-edit-toolbar {
   display: flex;
   align-items: center;
@@ -3443,61 +3952,6 @@ onBeforeUnmount(() => {
 
 .workbench-panel :deep(.table-edit-row--ghost td.el-table__cell) {
   background: rgba(37, 99, 235, 0.08);
-}
-
-.data-column-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
-.data-column-header__label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.data-column-header__sort {
-  display: inline-flex;
-  width: 22px;
-  height: 22px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.05);
-  color: #708595;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.data-column-header__sort:hover,
-.data-column-header__sort.is-asc,
-.data-column-header__sort.is-desc {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1454a8;
-}
-
-.column-setting-popover {
-  display: grid;
-  gap: 10px;
-}
-
-.column-setting-popover strong {
-  color: #173246;
-  font-size: 13px;
-}
-
-.column-setting-group {
-  display: grid;
-  gap: 8px;
-  max-height: 280px;
-  overflow: auto;
 }
 
 .dialog-form {
@@ -3640,6 +4094,10 @@ onBeforeUnmount(() => {
   background: rgba(251, 191, 36, 0.1);
 }
 
+.workbench-panel :deep(.panel-row--dirty .virtual-table-cell) {
+  background: rgba(251, 191, 36, 0.1);
+}
+
 .grant-cell {
   display: flex;
   flex-wrap: wrap;
@@ -3692,6 +4150,11 @@ onBeforeUnmount(() => {
   .metadata-shell,
   .workbench-shell {
     min-height: auto;
+  }
+
+  .data-preview-head__top,
+  .data-preview-filter-item {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -39,11 +39,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } from "vue";
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive, useAttrs } from "vue";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
 
 const logger = getLogger("[ScTable][VirtualTableView]");
+const attrs = useAttrs();
 
 // 定义props
 const props = defineProps({
@@ -244,8 +245,15 @@ const rerenderTable = () => {
   });
 };
 
-const getRowClass = ({ rowIndex }) => {
+const getRowClass = ({ rowData, rowIndex }) => {
   const classes = ["virtual-table-row", `size-${currentSize.value}`];
+  const externalRowClass = attrs.rowClass || attrs["row-class"];
+  const resolvedRowClass = typeof externalRowClass === "function"
+    ? externalRowClass({ rowData, rowIndex })
+    : externalRowClass;
+  if (resolvedRowClass) {
+    classes.push(...String(resolvedRowClass).split(/\s+/).filter(Boolean));
+  }
   if (props.config.stripe && rowIndex % 2 === 1) {
     classes.push("is-striped");
   }
