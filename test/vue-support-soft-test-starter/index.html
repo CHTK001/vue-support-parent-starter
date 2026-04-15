@@ -15,18 +15,57 @@
       window.__SYS_APP_CODE__ = "soft-test";
       document.documentElement.setAttribute("data-system-code", "soft-test");
       try {
-        var storage = localStorage.getItem("responsive-layout");
-        if (storage) {
-          var layoutConfig = JSON.parse(storage);
-          if (layoutConfig.darkMode) {
-            document.documentElement.classList.add("dark");
-          }
+        var htmlEl = document.documentElement;
+        var layoutStorage = localStorage.getItem("responsive-layout");
+        var configureStorage = localStorage.getItem("responsive-configure");
+        var themeKey = "default";
+        var shouldUseDark = false;
+
+        var applyBootThemeState = function () {
+          htmlEl.classList.toggle("dark", shouldUseDark);
+          htmlEl.setAttribute("data-theme", shouldUseDark ? "dark" : "light");
+          htmlEl.setAttribute("data-skin", themeKey);
+          Array.from(htmlEl.classList)
+            .filter(function (className) {
+              return className.indexOf("theme-") === 0;
+            })
+            .forEach(function (className) {
+              htmlEl.classList.remove(className);
+            });
+          htmlEl.classList.add("theme-" + themeKey);
+        };
+
+        if (layoutStorage) {
+          var layoutConfig = JSON.parse(layoutStorage);
+          shouldUseDark = !!layoutConfig.darkMode;
         } else if (
           window.matchMedia &&
           window.matchMedia("(prefers-color-scheme: dark)").matches
         ) {
-          document.documentElement.classList.add("dark");
+          shouldUseDark = true;
         }
+
+        if (configureStorage) {
+          var configure = JSON.parse(configureStorage);
+          if (
+            configure &&
+            typeof configure.systemTheme === "string" &&
+            configure.systemTheme.trim()
+          ) {
+            themeKey = configure.systemTheme.trim();
+          }
+        }
+
+        if (themeKey === "pixel-art" || themeKey === "8-bit") {
+          themeKey = "8bit";
+        }
+
+        applyBootThemeState();
+        if (typeof requestAnimationFrame === "function") {
+          requestAnimationFrame(applyBootThemeState);
+        }
+        setTimeout(applyBootThemeState, 0);
+        setTimeout(applyBootThemeState, 300);
       } catch (e) {}
     </script>
     <script src="/loader-config.js"></script>

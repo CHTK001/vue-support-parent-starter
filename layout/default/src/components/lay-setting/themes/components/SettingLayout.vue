@@ -35,6 +35,7 @@ const props = defineProps<{
   mobileRef: any;
   doubleRef: any;
   drawerRef: any;
+  layXxRef: any;
   setLayoutModel: (layout: string) => void;
   stretchTypeOptions: Array<OptionsType>;
   stretchTypeChange: (val: { option: OptionsType }) => void;
@@ -234,6 +235,31 @@ const props = defineProps<{
               <span class="layout-mode-desc">{{ t("panel.layoutDrawerDesc") }}</span>
             </div>
             <div v-if="layoutTheme.layout === 'drawer'" class="layout-mode-badge">
+              <IconifyIconOnline icon="ri:check-line" />
+            </div>
+          </div>
+        </ScTooltip>
+
+        <ScTooltip
+          :content="'ScLayout 右侧快捷入口布局（无 lay-tag）'"
+          placement="top"
+          :append-to-body="true"
+          :z-index="41000"
+        >
+          <div
+            :ref="layXxRef"
+            class="layout-mode-item"
+            :class="{ 'is-active': layoutTheme.layout === 'lay-xx' }"
+            @click="setLayoutModel('lay-xx')"
+          >
+            <div class="layout-mode-preview">
+              <IconifyIconOnline icon="ri:layout-right-2-line" />
+            </div>
+            <div class="layout-mode-info">
+              <span class="layout-mode-name">Lay-XX</span>
+              <span class="layout-mode-desc">ScLayout 右侧快捷入口</span>
+            </div>
+            <div v-if="layoutTheme.layout === 'lay-xx'" class="layout-mode-badge">
               <IconifyIconOnline icon="ri:check-line" />
             </div>
           </div>

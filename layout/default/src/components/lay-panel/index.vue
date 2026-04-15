@@ -200,6 +200,49 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="scss" scoped>
+:global(html) {
+  --lay-panel-backdrop-bg: rgb(0 0 0 / 28%);
+  --lay-panel-backdrop-blur: 0px;
+  --lay-panel-surface-bg: var(--el-bg-color-overlay);
+  --lay-panel-surface-blur: 8px;
+  --lay-panel-border: var(--stitch-glass-border);
+  --lay-panel-shadow: -18px 0 40px rgba(15, 23, 42, 0.16);
+  --lay-panel-header-bg: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  --lay-panel-footer-bg: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02),
+    transparent
+  );
+}
+
+:global(html[data-skin="future-tech"]),
+:global(html.theme-future-tech) {
+  --lay-panel-backdrop-bg: rgba(1, 6, 18, 0.5);
+  --lay-panel-backdrop-blur: 0px;
+  --lay-panel-surface-bg: linear-gradient(
+    180deg,
+    rgba(4, 10, 28, 0.98),
+    rgba(7, 19, 43, 0.96)
+  );
+  --lay-panel-surface-blur: 6px;
+  --lay-panel-border: rgba(102, 248, 255, 0.18);
+  --lay-panel-shadow: -22px 0 54px rgba(0, 187, 255, 0.14);
+  --lay-panel-header-bg: linear-gradient(
+    90deg,
+    rgba(102, 248, 255, 0.08),
+    transparent 72%
+  );
+  --lay-panel-footer-bg: linear-gradient(
+    90deg,
+    rgba(102, 248, 255, 0.05),
+    transparent 72%
+  );
+}
+
 :deep(.el-scrollbar) {
   flex: 1;
   width: 100%;
@@ -223,11 +266,11 @@ onBeforeUnmount(() => {
   z-index: -1;
   width: 100vw;
   height: 100vh;
-  background: rgb(0 0 0 / 30%);
+  background: var(--lay-panel-backdrop-bg);
   opacity: 0;
   transition: opacity 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
   pointer-events: none;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--lay-panel-backdrop-blur));
 }
 
 // 设置面板 - 从右侧滑入，固定宽度 520px 与系统设置一致
@@ -242,8 +285,13 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
-  transform: translateX(100%);
-  border-left: 1px solid var(--stitch-glass-border);
+  transform: translate3d(100%, 0, 0);
+  border-left: 1px solid var(--lay-panel-border);
+  background: var(--lay-panel-surface-bg);
+  box-shadow: var(--lay-panel-shadow);
+  backdrop-filter: blur(var(--lay-panel-surface-blur));
+  contain: layout paint style;
+  will-change: transform;
 }
 
 .show {
@@ -254,7 +302,7 @@ onBeforeUnmount(() => {
   }
 
   .right-panel {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -263,8 +311,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--stitch-glass-border);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent);
+  border-bottom: 1px solid var(--lay-panel-border);
+  background: var(--lay-panel-header-bg);
 }
 
 .panel-title {
@@ -292,13 +340,13 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   padding: 16px 20px;
-  border-top: 1px solid var(--stitch-glass-border);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), transparent);
+  border-top: 1px solid var(--lay-panel-border);
+  background: var(--lay-panel-footer-bg);
 }
 
 .bg-bg_color {
-  background-color: var(--el-bg-color-overlay) !important; // Match overlay bg
-  backdrop-filter: blur(10px); // Glass effect
+  background: var(--lay-panel-surface-bg) !important;
+  backdrop-filter: blur(var(--lay-panel-surface-blur));
 }
 
 .close-icon {

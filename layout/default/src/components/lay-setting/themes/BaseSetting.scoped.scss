@@ -2481,8 +2481,16 @@ html.dark {
 
 /* 当前轮修复：深色可读性、窄宽度布局和交互卡顿收口 */
 .modern-setting-container {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 58px);
+  max-height: calc(100vh - 58px);
   min-height: auto;
   min-width: min(100%, 760px);
+  contain: layout paint style;
+  overflow: hidden;
+  will-change: transform;
 }
 
 .setting-shell-nav {
@@ -2504,12 +2512,20 @@ html.dark {
 }
 
 .setting-shell-stage {
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 0;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  contain: layout paint;
 }
 
 .setting-shell-stage__item {
   min-width: 0;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: 420px;
 }
 
 .setting-shell-tools__search,
@@ -2529,6 +2545,10 @@ html.dark {
 .theme-color-item .shine-effect,
 .theme-color-item::before {
   animation: none !important;
+}
+
+.modern-setting-container::after {
+  opacity: 0.16 !important;
 }
 
 .modern-setting-container,

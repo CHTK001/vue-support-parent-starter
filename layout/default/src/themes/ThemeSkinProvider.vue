@@ -32,6 +32,19 @@ const currentTheme = ref<string>(
   normalizeThemeKey($storage?.configure?.systemTheme),
 );
 
+const themeClasses = [
+  "theme-default",
+  "theme-christmas",
+  "theme-spring-festival",
+  "theme-valentines-day",
+  "theme-mid-autumn",
+  "theme-national-day",
+  "theme-new-year",
+  "theme-halloween",
+  "theme-8bit",
+  "theme-future-tech",
+];
+
 /**
  * 计算动态样式
  */
@@ -68,27 +81,17 @@ watch(
  * @param themeKey 主题键值
  */
 const applyThemeSkin = (themeKey: string): void => {
+  const normalizedTheme = normalizeThemeKey(themeKey);
   const htmlEl = document.documentElement;
-
-  // 移除所有主题类
-  const themeClasses = [
-    "theme-default",
-    "theme-christmas",
-    "theme-spring-festival",
-    "theme-valentines-day",
-    "theme-mid-autumn",
-    "theme-national-day",
-    "theme-new-year",
-    "theme-halloween",
-    "theme-8bit",
-    "theme-future-tech",
-  ];
 
   themeClasses.forEach((cls) => {
     htmlEl.classList.remove(cls);
   });
 
-  // 添加新主题类
+  htmlEl.classList.add(`theme-${normalizedTheme}`);
+  if (htmlEl.getAttribute("data-skin") !== normalizedTheme) {
+    htmlEl.setAttribute("data-skin", normalizedTheme);
+  }
 };
 
 /**
@@ -110,9 +113,5 @@ onMounted(() => {
   background-color: var(--el-bg-color-page);
   color: var(--el-text-color-primary);
 
-  // 确保子元素能够继承这些变量
-  :deep(*) {
-    transition: inherit;
-  }
 }
 </style>

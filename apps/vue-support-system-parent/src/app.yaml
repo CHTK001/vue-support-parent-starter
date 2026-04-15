@@ -31,7 +31,7 @@ AutoErrorMessage: true
 # 鉴权与登录配置
 # ===========================================
 # 是否开启远程权限控制（默认: true）
-OpenAuth: true
+OpenAuth: false
 # 是否开启动态配置面板（默认: true）
 # OpenSetting: true
 # 是否开启租户登录（默认: false）
@@ -83,7 +83,7 @@ AiPerformanceAnalyzeUrl: /v1/ai/performance/website/analyze
 # 布局与菜单配置
 # ===========================================
 # 是否自动远程菜单-从后端获取菜单（默认: false）
-RemoteMenu: true
+RemoteMenu: false
 # 是否在远程菜单基础上合并本地菜单（默认: false，仅当RemoteMenu为true时生效）
 # - true: 远程菜单 + 本地菜单（合并模式）
 # - false: 仅使用远程菜单
@@ -136,6 +136,8 @@ LocationLayout: true
 # ===========================================
 # 是否显示设置按钮（默认: false）
 ShowBarSetting: true
+# 是否显示 FPS 监控面板（开发态性能测试用）
+ShowFpsMonitor: true
 # 是否显示通知按钮（默认: false）
 # ShowBarNotice: false
 # 是否显示消息按钮（默认: false）

@@ -43,6 +43,7 @@ export type ThemeComponentMap<T = any> = Partial<Record<ThemeKey, T>>;
 export type LayoutType =
   | "vertical"
   | "horizontal"
+  | "lay-xx"
   | "card"
   | "double"
   | "drawer"

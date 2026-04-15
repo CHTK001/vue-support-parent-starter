@@ -47,7 +47,7 @@
       class="hub-card-table"
       layout="card"
       row-key="sourceId"
-      :col-size="4"
+      :col-size="5"
       :page-size="12"
       :data="sourceTableData"
     >
@@ -159,7 +159,7 @@
             <ElSelect
               :model-value="modelValue.sourceType"
               placeholder="选择数据源类型"
-              @update:model-value="updateField('sourceType', $event)"
+              @update:model-value="handleSourceTypeChange(String($event || 'JDBC'))"
             >
               <ElOption
                 v-for="option in sourceTypeOptions"
@@ -173,6 +173,24 @@
               :class="{ 'field__error--hidden': !fieldErrors.sourceType }"
             >
               {{ fieldErrors.sourceType || " " }}
+            </small>
+          </label>
+
+          <label v-if="isJdbcSource" class="field field--full">
+            <span class="field__label field__label--required">数据库类型</span>
+            <ScSelect
+              :model-value="modelValue.jdbcDialectType"
+              :columns="3"
+              :gap="10"
+              :options="jdbcDialectOptions"
+              layout="icon"
+              @update:model-value="handleJdbcDialectChange(String($event || 'MYSQL'))"
+            />
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.jdbcDialectType }"
+            >
+              {{ fieldErrors.jdbcDialectType || " " }}
             </small>
           </label>
 
@@ -238,6 +256,67 @@
               :placeholder="protocolPlaceholder"
               @update:model-value="updateField('protocol', $event)"
             />
+          </label>
+
+          <label v-if="isJdbcSource" class="field field--full">
+            <span class="field__label field__label--required">驱动类</span>
+            <ElSelect
+              :model-value="modelValue.driverClassName"
+              allow-create
+              default-first-option
+              filterable
+              placeholder="选择或输入 JDBC Driver"
+              @update:model-value="updateField('driverClassName', String($event || ''))"
+            >
+              <ElOption
+                v-for="option in driverClassOptions"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </ElSelect>
+            <small
+              class="field__error"
+              :class="{ 'field__error--hidden': !fieldErrors.driverClassName }"
+            >
+              {{ fieldErrors.driverClassName || " " }}
+            </small>
+          </label>
+
+          <label v-if="isJdbcSource" class="field field--full">
+            <span class="field__label">驱动包</span>
+            <div class="field__upload">
+              <ElUpload
+                :auto-upload="false"
+                :show-file-list="false"
+                accept=".jar"
+                :before-upload="handleBeforeDriverUpload"
+              >
+                <ElButton :loading="uploadingDriver" plain>
+                  上传驱动包
+                </ElButton>
+              </ElUpload>
+
+              <div class="field__upload-meta">
+                <ScTag
+                  v-if="modelValue.driverJarName"
+                  class="field__driver-tag"
+                  effect="plain"
+                  type="success"
+                >
+                  {{ modelValue.driverJarName }}
+                </ScTag>
+                <small>服务器没有内置驱动时上传 jar，连接会优先使用它。</small>
+                <ElButton
+                  v-if="modelValue.driverJarPath"
+                  link
+                  type="danger"
+                  @click="clearDriverJar"
+                >
+                  移除驱动包
+                </ElButton>
+              </div>
+            </div>
           </label>
 
           <label class="field">
@@ -316,6 +395,7 @@ import {
   Star,
 } from "@element-plus/icons-vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScTable from "@repo/components/ScTable/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import {
@@ -326,6 +406,7 @@ import {
   ElInputNumber,
   ElOption,
   ElSelect,
+  ElUpload,
 } from "element-plus";
 import { computed, reactive, ref } from "vue";
 import type { JdbcConnectionForm, PanelSavedSource } from "../panel";
@@ -335,6 +416,7 @@ const props = defineProps<{
   modelValue: JdbcConnectionForm;
   sources: PanelSavedSource[];
   submitting: boolean;
+  uploadingDriver: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -344,6 +426,7 @@ const emit = defineEmits<{
   (e: "reset-form"): void;
   (e: "save-source"): void;
   (e: "toggle-favorite", sourceId: string): void;
+  (e: "upload-driver", file: File): void;
   (e: "update:modelValue", value: JdbcConnectionForm): void;
 }>();
 
@@ -351,15 +434,68 @@ const dialogVisible = ref(false);
 const keyword = ref("");
 const fieldErrors = reactive<Record<string, string>>({
   sourceType: "",
+  jdbcDialectType: "",
   connectionName: "",
   host: "",
   port: "",
+  driverClassName: "",
   username: "",
 });
 
 const sourceTypeOptions = [
   { label: "JDBC / SQL", value: "JDBC" },
   { label: "Redis", value: "REDIS" },
+] as const;
+
+const jdbcDialectOptions = [
+  {
+    label: "MySQL",
+    value: "MYSQL",
+    icon: "logos:mysql",
+    description: "MySQL / Percona",
+    defaultPort: 3306,
+    driverClassName: "com.mysql.cj.jdbc.Driver",
+  },
+  {
+    label: "MariaDB",
+    value: "MARIADB",
+    icon: "simple-icons:mariadb",
+    description: "MariaDB",
+    defaultPort: 3306,
+    driverClassName: "org.mariadb.jdbc.Driver",
+  },
+  {
+    label: "Oracle",
+    value: "ORACLE",
+    icon: "simple-icons:oracle",
+    description: "Oracle / OJDBC",
+    defaultPort: 1521,
+    driverClassName: "oracle.jdbc.OracleDriver",
+  },
+  {
+    label: "PostgreSQL",
+    value: "POSTGRESQL",
+    icon: "logos:postgresql",
+    description: "PostgreSQL",
+    defaultPort: 5432,
+    driverClassName: "org.postgresql.Driver",
+  },
+  {
+    label: "SQL Server",
+    value: "SQLSERVER",
+    icon: "simple-icons:microsoftsqlserver",
+    description: "Microsoft SQL Server",
+    defaultPort: 1433,
+    driverClassName: "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+  },
+  {
+    label: "ClickHouse",
+    value: "CLICKHOUSE",
+    icon: "simple-icons:clickhouse",
+    description: "ClickHouse",
+    defaultPort: 8123,
+    driverClassName: "com.clickhouse.jdbc.ClickHouseDriver",
+  },
 ] as const;
 
 const sourceList = computed(() =>
@@ -393,14 +529,29 @@ const favoriteCount = computed(
   () => sourceList.value.filter((source) => source.favorite).length
 );
 
+const isJdbcSource = computed(() => props.modelValue.sourceType === "JDBC");
+
+const currentDialectPreset = computed(
+  () =>
+    jdbcDialectOptions.find(
+      option => option.value === props.modelValue.jdbcDialectType
+    ) || jdbcDialectOptions[0]
+);
+
 const databaseLabel = computed(() =>
-  props.modelValue.sourceType === "REDIS" ? "DB Index" : "数据库"
+  props.modelValue.sourceType === "REDIS"
+    ? "DB Index"
+    : props.modelValue.jdbcDialectType === "ORACLE"
+      ? "服务名 / SID"
+      : "数据库"
 );
 
 const databasePlaceholder = computed(() =>
   props.modelValue.sourceType === "REDIS"
     ? "例如：0"
-    : "例如：mysql / analytics"
+    : props.modelValue.jdbcDialectType === "ORACLE"
+      ? "例如：xe / orcl / service_name"
+      : "例如：mysql / analytics"
 );
 
 const protocolLabel = computed(() =>
@@ -410,9 +561,24 @@ const protocolLabel = computed(() =>
 const protocolPlaceholder = computed(() =>
   props.modelValue.sourceType === "REDIS"
     ? "redis://127.0.0.1:6379/0"
-    : "可留空，后端按 host/port/database 组合"
+    : "可留空，后端会按数据库类型自动拼装 JDBC URL"
 );
 const isUsernameRequired = computed(() => props.modelValue.sourceType === "JDBC");
+
+const driverClassOptions = computed(() => {
+  const options = jdbcDialectOptions.map(option => ({
+    label: `${option.label} · ${option.driverClassName}`,
+    value: option.driverClassName,
+  }));
+  const currentValue = String(props.modelValue.driverClassName || "").trim();
+  if (currentValue && !options.some(option => option.value === currentValue)) {
+    options.unshift({
+      label: `当前驱动 · ${currentValue}`,
+      value: currentValue,
+    });
+  }
+  return options;
+});
 
 const formatTime = (value?: string) =>
   value ? value.replace("T", " ").slice(0, 16) : "未记录";
@@ -431,6 +597,49 @@ const updateField = <K extends keyof JdbcConnectionForm>(
   });
 };
 
+const handleSourceTypeChange = (value: string) => {
+  const nextSourceType = value === "REDIS" ? "REDIS" : "JDBC";
+  fieldErrors.sourceType = "";
+  if (nextSourceType === "REDIS") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: nextSourceType,
+    });
+    return;
+  }
+  emit("update:modelValue", {
+    ...props.modelValue,
+    sourceType: "JDBC",
+    jdbcDialectType: props.modelValue.jdbcDialectType || currentDialectPreset.value.value,
+    driverClassName:
+      props.modelValue.driverClassName || currentDialectPreset.value.driverClassName,
+    port:
+      Number(props.modelValue.port) > 0
+        ? props.modelValue.port
+        : currentDialectPreset.value.defaultPort,
+  });
+};
+
+const handleJdbcDialectChange = (value: string) => {
+  const nextPreset =
+    jdbcDialectOptions.find(option => option.value === value) || jdbcDialectOptions[0];
+  const previousPreset = currentDialectPreset.value;
+  fieldErrors.jdbcDialectType = "";
+  emit("update:modelValue", {
+    ...props.modelValue,
+    jdbcDialectType: nextPreset.value,
+    driverClassName:
+      !props.modelValue.driverClassName ||
+      props.modelValue.driverClassName === previousPreset.driverClassName
+        ? nextPreset.driverClassName
+        : props.modelValue.driverClassName,
+    port:
+      !props.modelValue.port || props.modelValue.port === previousPreset.defaultPort
+        ? nextPreset.defaultPort
+        : props.modelValue.port,
+  });
+};
+
 const updateNumberField = (
   key: keyof JdbcConnectionForm,
   value: number | null | undefined
@@ -446,6 +655,10 @@ const updateNumberField = (
 
 const validateForm = () => {
   fieldErrors.sourceType = props.modelValue.sourceType ? "" : "请选择数据源类型";
+  fieldErrors.jdbcDialectType =
+    !isJdbcSource.value || String(props.modelValue.jdbcDialectType || "").trim()
+      ? ""
+      : "请选择数据库类型";
   fieldErrors.connectionName = String(props.modelValue.connectionName || "").trim()
     ? ""
     : "请输入数据源名称";
@@ -454,6 +667,10 @@ const validateForm = () => {
     : "请输入主机地址";
   fieldErrors.port =
     Number(props.modelValue.port) > 0 ? "" : "请输入有效端口";
+  fieldErrors.driverClassName =
+    !isJdbcSource.value || String(props.modelValue.driverClassName || "").trim()
+      ? ""
+      : "请选择 JDBC 驱动类";
   fieldErrors.username =
     !isUsernameRequired.value || String(props.modelValue.username || "").trim()
       ? ""
@@ -479,13 +696,26 @@ const handleSave = () => {
   emit("save-source");
   dialogVisible.value = false;
 };
+
+const handleBeforeDriverUpload = (file: File) => {
+  emit("upload-driver", file);
+  return false;
+};
+
+const clearDriverJar = () => {
+  emit("update:modelValue", {
+    ...props.modelValue,
+    driverJarName: "",
+    driverJarPath: "",
+  });
+};
 </script>
 
 <style scoped lang="scss">
 .hub-shell {
   display: grid;
   gap: 18px;
-  min-height: calc(100vh - 96px);
+  min-height: 100%;
   padding: 18px;
   background:
     radial-gradient(
@@ -868,6 +1098,27 @@ const handleSave = () => {
 
 .field :deep(.el-textarea__inner) {
   padding: 12px 14px;
+}
+
+.field__upload {
+  display: grid;
+  gap: 10px;
+}
+
+.field__upload-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.field__upload-meta small {
+  color: #688194;
+  line-height: 1.5;
+}
+
+.field__driver-tag {
+  max-width: 100%;
 }
 
 .dialog-footer {

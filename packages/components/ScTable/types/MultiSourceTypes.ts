@@ -219,7 +219,10 @@ export interface MultiSourceTableEvents {
   /** 选择变化事件 */
   "selection-change": (selection: any[]) => void;
   /** 排序变化事件 */
-  "sort-change": (sort: { prop: string; order: string }) => void;
+  "sort-change": (
+    sort: { prop: string; order: string },
+    detail?: { sortField: string; sortOrder: "" | "asc" | "desc" }
+  ) => void;
   /** 筛选变化事件 */
   "filter-change": (filters: Record<string, any>) => void;
   /** 页码变化事件 */

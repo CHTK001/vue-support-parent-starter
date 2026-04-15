@@ -41,6 +41,10 @@ export interface PanelDatasourcePayload {
   panelUsername: string;
   panelPassword: string;
   panelProtocol?: string;
+  panelDialectType?: string;
+  panelDriverClassName?: string;
+  panelDriverJarName?: string;
+  panelDriverJarPath?: string;
   panelNote?: string;
   panelFavorite?: boolean;
   panelUpdatedAt?: string;
@@ -49,6 +53,13 @@ export interface PanelDatasourcePayload {
 export interface PanelDatasourceView extends PanelDatasourcePayload {
   panelSourceId: string;
   panelUpdatedAt: string;
+}
+
+export interface PanelDriverUploadView {
+  panelDialectType?: string;
+  panelDriverClassName?: string;
+  panelDriverJarName?: string;
+  panelDriverJarPath?: string;
 }
 
 export interface JdbcCatalogNode {
@@ -91,8 +102,19 @@ export interface PanelTableDataRequest {
   panelPageNum: number;
   panelPageSize: number;
   panelLoadTotal: boolean;
+  panelFilterKeyword?: string;
+  panelFilterJoin?: PanelTableFilterJoin;
+  panelFilters?: PanelTableFilterItem[];
   panelSortField?: string;
   panelSortOrder?: string;
+}
+
+export type PanelTableFilterJoin = "and" | "or";
+
+export interface PanelTableFilterItem {
+  panelColumnName: string;
+  panelOperator: string;
+  panelValue?: string;
 }
 
 export interface PanelTableDataView {
@@ -216,6 +238,14 @@ export interface PanelRemarkView {
   panelRemarkContent: string;
 }
 
+export interface PanelJdbcCommentRequest {
+  panelCatalogName?: string | null;
+  panelSchemaName?: string | null;
+  panelTableName: string;
+  panelColumnName?: string | null;
+  panelCommentContent: string;
+}
+
 export interface PanelSqlTemplateRequest {
   panelConnectionId?: string;
   panelCatalogName?: string | null;
@@ -253,6 +283,27 @@ export const savePanelDatasource = (data: PanelDatasourcePayload) =>
     "/v1/panel/source",
     { data },
   );
+
+export const uploadPanelDatasourceDriver = (
+  file: File,
+  panelDialectType?: string,
+) => {
+  const data = new FormData();
+  data.append("file", file);
+  if (panelDialectType) {
+    data.append("panelDialectType", panelDialectType);
+  }
+  return http.request<ReturnResult<PanelDriverUploadView>>(
+    "post",
+    "/v1/panel/source/driver/upload",
+    {
+      data,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+};
 
 export const deletePanelDatasource = (panelSourceId: string) =>
   http.request<ReturnResult<boolean>>(
@@ -461,6 +512,26 @@ export const revokeJdbcAccount = (
   http.request<ReturnResult<PanelJdbcAccountView>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/account/revoke`,
+    { data },
+  );
+
+export const updateJdbcTableComment = (
+  connectionId: string,
+  data: PanelJdbcCommentRequest,
+) =>
+  http.request<ReturnResult<PanelTableMutationView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/comment/table`,
+    { data },
+  );
+
+export const updateJdbcColumnComment = (
+  connectionId: string,
+  data: PanelJdbcCommentRequest,
+) =>
+  http.request<ReturnResult<PanelTableMutationView>>(
+    "post",
+    `/v1/panel/jdbc/${connectionId}/comment/column`,
     { data },
   );
 

@@ -6,6 +6,7 @@
       'is-left-enabled': leftEnabled,
       'is-left-collapsed': leftEnabled && localLeftCollapsed,
       'is-rail-enabled': railEnabled,
+      'is-rail-collapsed': railEnabled && localRightCollapsed,
       'is-resizing': isResizing,
     }"
     :style="layoutStyle"
@@ -66,22 +67,23 @@
               :class="{
                 'is-active': String(currentRailValue) === String(tab.name),
               }"
-              :title="tab.title || tab.label || String(tab.name)"
               @click="setActiveTab(tab.name)"
             >
-              <ElIcon v-if="tab.icon" class="sc-layout__rail-icon">
-                <component :is="tab.icon" />
-              </ElIcon>
-              <span v-else class="sc-layout__rail-text">
-                {{ tab.label || tab.name }}
-              </span>
-              <span
-                v-if="tab.closable"
-                class="sc-layout__rail-close"
-                @click.stop="handleRailTabRemove(tab.name)"
-              >
-                ×
-              </span>
+              <el-tooltip :content="tab.title || tab.label || String(tab.name)" placement="left">
+                <ElIcon v-if="tab.icon" class="sc-layout__rail-icon">
+                  <component :is="tab.icon" />
+                </ElIcon>
+                <span v-else class="sc-layout__rail-text">
+                  {{ tab.label || tab.name }}
+                </span>
+                <span
+                  v-if="tab.closable"
+                  class="sc-layout__rail-close"
+                  @click.stop="handleRailTabRemove(tab.name)"
+                >
+                  ×
+                </span>
+              </el-tooltip>
             </button>
           </nav>
         </slot>
@@ -96,7 +98,39 @@
           :tabs="localRailTabs"
         />
       </div>
+      <button
+        v-if="
+          rightCollapsible &&
+          showRightCollapseButton &&
+          !localRightCollapsed
+        "
+        type="button"
+        class="sc-layout__rail-collapse"
+        title="折叠右侧面板"
+        @click.stop="toggleRightCollapse(true)"
+      >
+        >
+      </button>
     </aside>
+
+    <div
+      v-if="
+        railEnabled &&
+        rightCollapsible &&
+        showRightCollapseButton &&
+        localRightCollapsed
+      "
+      class="sc-layout__rail-expand-hotspot"
+    >
+      <button
+        type="button"
+        class="sc-layout__rail-expand"
+        title="展开右侧面板"
+        @click.stop="toggleRightCollapse(false)"
+      >
+        <
+      </button>
+    </div>
   </section>
 </template>
 
@@ -123,11 +157,14 @@ const props = withDefaults(
     leftWidth?: number;
     mainMinWidth?: number;
     modelValue?: string | number;
+    rightCollapsed?: boolean;
+    rightCollapsible?: boolean;
     railCloseButtonMode?: "always" | "hover";
     railEnabled?: boolean;
     railRound?: boolean;
     railTabs?: ScLayoutRailTab[];
     railWidth?: number;
+    showRightCollapseButton?: boolean;
   }>(),
   {
     leftCollapsed: false,
@@ -139,11 +176,14 @@ const props = withDefaults(
     leftWidth: 280,
     mainMinWidth: 360,
     modelValue: "",
+    rightCollapsed: false,
+    rightCollapsible: true,
     railCloseButtonMode: "hover",
     railEnabled: true,
     railRound: false,
     railTabs: () => [],
-    railWidth: 52,
+    railWidth: 48,
+    showRightCollapseButton: true,
   },
 );
 
@@ -179,23 +219,16 @@ const emit = defineEmits<{
       tab?: ScLayoutRailTab;
     },
   ): void;
-  (
-    event: "update:leftCollapsed",
-    value: boolean,
-  ): void;
-  (
-    event: "update:modelValue",
-    value: string | number,
-  ): void;
-  (
-    event: "update:railTabs",
-    tabs: ScLayoutRailTab[],
-  ): void;
+  (event: "update:leftCollapsed", value: boolean): void;
+  (event: "update:modelValue", value: string | number): void;
+  (event: "update:rightCollapsed", value: boolean): void;
+  (event: "update:railTabs", tabs: ScLayoutRailTab[]): void;
 }>();
 
 const containerRef = ref<HTMLElement>();
 const localLeftWidth = ref(props.leftWidth);
 const localLeftCollapsed = ref(props.leftCollapsed);
+const localRightCollapsed = ref(props.rightCollapsed);
 const localRailTabs = ref<ScLayoutRailTab[]>([...props.railTabs]);
 const localRailValue = ref<string | number>(props.modelValue);
 const isResizerHovered = ref(false);
@@ -217,6 +250,13 @@ watch(
 );
 
 watch(
+  () => props.rightCollapsed,
+  (value) => {
+    localRightCollapsed.value = value;
+  },
+);
+
+watch(
   () => props.railTabs,
   (value) => {
     localRailTabs.value = [...value];
@@ -234,12 +274,13 @@ watch(
   },
 );
 
-watch(
-  localLeftCollapsed,
-  (value) => {
-    emit("update:leftCollapsed", value);
-  },
-);
+watch(localLeftCollapsed, (value) => {
+  emit("update:leftCollapsed", value);
+});
+
+watch(localRightCollapsed, (value) => {
+  emit("update:rightCollapsed", value);
+});
 
 const currentRailValue = computed({
   get() {
@@ -256,6 +297,10 @@ const showCollapseButton = computed(
 );
 
 const leftEnabled = computed(() => props.leftEnabled);
+const rightCollapsible = computed(
+  () => props.railEnabled && props.rightCollapsible,
+);
+const showRightCollapseButton = computed(() => props.showRightCollapseButton);
 const hasRailFooterSlot = computed(() => Boolean(slots["rail-footer"]));
 
 const safeLeftMaxWidth = computed(() => {
@@ -283,7 +328,9 @@ const layoutStyle = computed(() => {
       ? `${leftWidthResolved.value}px`
       : "0px",
     "--sc-layout-main-min-width": `${props.mainMinWidth}px`,
-    "--sc-layout-rail-track": props.railEnabled ? `${props.railWidth}px` : "0px",
+    "--sc-layout-rail-track": props.railEnabled
+      ? `${localRightCollapsed.value ? 0 : props.railWidth}px`
+      : "0px",
     "--sc-layout-resizer-track": props.leftEnabled ? "12px" : "0px",
   };
 });
@@ -313,6 +360,12 @@ const toggleLeftCollapse = (force?: boolean) => {
   if (!next) {
     localLeftWidth.value = clampLeftWidth(localLeftWidth.value);
   }
+};
+
+const toggleRightCollapse = (force?: boolean) => {
+  if (!rightCollapsible.value) return;
+  const next = typeof force === "boolean" ? force : !localRightCollapsed.value;
+  localRightCollapsed.value = next;
 };
 
 const stopResize = () => {
@@ -417,11 +470,14 @@ defineExpose({
   addTab,
   clearTabs,
   collapseLeft: () => toggleLeftCollapse(true),
+  collapseRight: () => toggleRightCollapse(true),
   expandLeft: () => toggleLeftCollapse(false),
+  expandRight: () => toggleRightCollapse(false),
   getTabs,
   removeTab,
   setActiveTab,
   toggleLeftCollapse,
+  toggleRightCollapse,
 });
 
 ensureValidActiveTab();
@@ -433,12 +489,14 @@ onBeforeUnmount(() => {
 
 <style scoped lang="scss">
 .sc-layout {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns:
     var(--sc-layout-left-track, 0px)
     var(--sc-layout-resizer-track, 0px)
     minmax(var(--sc-layout-main-min-width, 360px), 1fr)
-    var(--sc-layout-rail-track, 52px);
+    var(--sc-layout-rail-track, 48px);
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -484,7 +542,7 @@ onBeforeUnmount(() => {
   width: 4px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(15, 23, 42, 0.12);
   content: "";
   opacity: 0;
   transform: translate(-50%, -50%);
@@ -506,7 +564,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(15, 23, 42, 0.14);
   border-radius: 999px;
   background: #ffffff;
-  color: #1d4ed8;
+  color: #475569;
   font-size: 12px;
   line-height: 1;
   cursor: pointer;
@@ -524,23 +582,37 @@ onBeforeUnmount(() => {
 }
 
 .sc-layout__collapse:hover {
-  border-color: rgba(37, 99, 235, 0.45);
+  border-color: rgba(15, 23, 42, 0.22);
 }
 
 .sc-layout__main {
   grid-column: 3;
+  position: relative;
+  z-index: 1;
   overflow: auto;
 }
 
 .sc-layout__rail {
   grid-column: 4;
+  position: relative;
+  z-index: 8;
   display: flex;
+  border-radius: 12px;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  padding-left: 4px;
-  border-left: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 1px 0 0 rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+  transition:
+    opacity 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.sc-layout.is-rail-collapsed .sc-layout__rail {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sc-layout__rail-body {
@@ -551,6 +623,8 @@ onBeforeUnmount(() => {
   align-items: stretch;
   justify-content: center;
   overflow: hidden;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .sc-layout__rail-footer {
@@ -559,9 +633,10 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 8px 0 10px;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0;
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.08);
   background: rgba(255, 255, 255, 0.88);
+  box-sizing: border-box;
 }
 
 .sc-layout__rail-tabs {
@@ -570,15 +645,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px 0;
+  gap: 4px;
+  padding: 0;
 }
 
 .sc-layout__rail-tab {
   position: relative;
   display: inline-flex;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   align-items: center;
   justify-content: center;
   padding: 0;
@@ -598,13 +673,13 @@ onBeforeUnmount(() => {
 }
 
 .sc-layout__rail-tab:hover {
-  background: rgba(37, 99, 235, 0.08);
-  color: #1252aa;
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
 }
 
 .sc-layout__rail-tab.is-active {
-  background: rgba(37, 99, 235, 0.14);
-  color: #1252aa;
+  background: rgba(15, 23, 42, 0.1);
+  color: #0f172a;
 }
 
 .sc-layout__rail-icon,
@@ -648,10 +723,65 @@ onBeforeUnmount(() => {
     transform 0.18s ease;
 }
 
-.sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-tab:hover .sc-layout__rail-close,
-.sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-tab.is-active .sc-layout__rail-close {
+.sc-layout__rail-tabs.close-mode-hover
+  .sc-layout__rail-tab:hover
+  .sc-layout__rail-close,
+.sc-layout__rail-tabs.close-mode-hover
+  .sc-layout__rail-tab.is-active
+  .sc-layout__rail-close {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
+}
+
+.sc-layout__rail-collapse,
+.sc-layout__rail-expand {
+  position: absolute;
+  top: 50%;
+  z-index: 60;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #475569;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sc-layout__rail-collapse {
+  left: -1px;
+  transform: translate(-50%, -50%);
+}
+
+.sc-layout__rail-collapse:hover,
+.sc-layout__rail-expand:hover {
+  border-color: rgba(15, 23, 42, 0.24);
+}
+
+.sc-layout__rail-expand-hotspot {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 16px;
+  height: 64px;
+  z-index: 50;
+  transform: translateY(-50%);
+}
+
+.sc-layout__rail-expand {
+  right: -1px;
+  opacity: 0;
+  transform: translate(50%, -50%) scale(0.92);
+}
+
+.sc-layout__rail-expand-hotspot:hover .sc-layout__rail-expand {
+  opacity: 1;
+  transform: translate(50%, -50%) scale(1);
 }
 </style>

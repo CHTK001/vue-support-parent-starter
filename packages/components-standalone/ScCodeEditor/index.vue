@@ -6,21 +6,11 @@
 
 <script>
 import { markRaw } from "vue";
-import CodeMirror from "codemirror";
-import "codemirror/addon/display/autorefresh";
-import "codemirror/addon/selection/active-line";
-import "codemirror/addon/hint/show-hint";
-import "codemirror/addon/hint/sql-hint";
-import "codemirror/mode/javascript/javascript";
-import "codemirror/mode/properties/properties";
-import "codemirror/mode/shell/shell";
-import "codemirror/mode/sql/sql";
-import "codemirror/mode/xml/xml";
-import "codemirror/mode/yaml/yaml";
 import {
   ensureScCodeEditorStyles,
   ensureScCodeEditorThemeStyle,
 } from "./style-loader";
+import { ensureScCodeEditorRuntime } from "./runtime-loader";
 
 export default {
   name: "ScCodeEditor",
@@ -91,6 +81,9 @@ export default {
         this.coder.setValue(val);
       }
     },
+    mode(val) {
+      void this.applyMode(val);
+    },
     theme(val) {
       if (this.options?.theme) {
         return;
@@ -127,8 +120,19 @@ export default {
         this.coder.setOption("theme", nextTheme);
       }
     },
+    async applyMode(mode) {
+      const nextMode = mode || "sql";
+      await ensureScCodeEditorRuntime(nextMode);
+      this.opt.mode = nextMode;
+      if (this.coder) {
+        this.coder.setOption("mode", nextMode);
+      }
+    },
     async init() {
-      await ensureScCodeEditorStyles(this.getEditorTheme());
+      const [CodeMirror] = await Promise.all([
+        ensureScCodeEditorRuntime(this.opt.mode || this.mode),
+        ensureScCodeEditorStyles(this.getEditorTheme()),
+      ]);
       this.coder = markRaw(
         CodeMirror.fromTextArea(this.$refs.textarea, this.opt),
       );

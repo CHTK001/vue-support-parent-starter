@@ -81,6 +81,10 @@ const overlayTasksByPosition = computed(() =>
   ),
 );
 
+const hasOverlayTasks = computed(() =>
+  Object.values(overlayTasksByPosition.value).some((tasks) => tasks.length > 0),
+);
+
 const formatTime = (value?: number) =>
   value
     ? new Date(value).toLocaleTimeString("zh-CN", {
@@ -333,7 +337,7 @@ onUnmounted(() => {
       @click="closeTaskCenterPanel"
     />
 
-    <div v-if="showTaskCenter" class="task-center-overlay-root">
+    <div v-if="showTaskCenter && hasOverlayTasks" class="task-center-overlay-root">
       <div
         v-for="position in POSITIONS"
         :key="position"
@@ -412,11 +416,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <aside
-      v-if="showTaskCenter"
-      class="task-center-panel"
-      :class="{ 'is-open': state.panelVisible }"
-    >
+    <aside v-if="showTaskCenter && state.panelVisible" class="task-center-panel is-open">
       <div class="task-center-panel-header">
         <div>
           <div class="task-center-eyebrow">Task Center</div>
@@ -572,12 +572,90 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
+:global(html) {
+  --task-center-backdrop-bg: rgba(8, 15, 26, 0.18);
+  --task-center-backdrop-blur: 0px;
+  --task-center-card-bg: rgba(255, 255, 255, 0.92);
+  --task-center-panel-bg: rgba(248, 250, 252, 0.96);
+  --task-center-card-border: rgba(122, 142, 170, 0.18);
+  --task-center-panel-border: rgba(148, 163, 184, 0.16);
+  --task-center-shadow: 0 18px 38px rgba(20, 31, 51, 0.16);
+  --task-center-panel-shadow: 0 28px 60px rgba(15, 23, 42, 0.24);
+  --task-center-title: #101828;
+  --task-center-text: rgba(42, 58, 79, 0.78);
+  --task-center-subtle-text: rgba(42, 58, 79, 0.72);
+  --task-center-icon-bg: rgba(255, 255, 255, 0.72);
+  --task-center-icon-border: rgba(120, 136, 160, 0.18);
+  --task-center-icon-color: rgba(33, 46, 62, 0.72);
+  --task-center-tabs-bg: rgba(148, 163, 184, 0.12);
+  --task-center-tab-active-bg: #ffffff;
+  --task-center-tab-active-color: #0f172a;
+  --task-center-progress-track: rgba(148, 163, 184, 0.18);
+  --task-center-summary-bg: rgba(255, 255, 255, 0.78);
+  --task-center-summary-border: rgba(148, 163, 184, 0.14);
+  --task-center-empty-border: rgba(148, 163, 184, 0.3);
+  --task-center-card-blur: 8px;
+  --task-center-panel-blur: 10px;
+}
+
+:global(html.dark) {
+  --task-center-backdrop-bg: rgba(2, 8, 23, 0.42);
+  --task-center-card-bg: rgba(15, 23, 42, 0.9);
+  --task-center-panel-bg: rgba(15, 23, 42, 0.9);
+  --task-center-card-border: rgba(148, 163, 184, 0.18);
+  --task-center-panel-border: rgba(148, 163, 184, 0.18);
+  --task-center-shadow: 0 24px 48px rgba(2, 8, 23, 0.42);
+  --task-center-panel-shadow: 0 24px 48px rgba(2, 8, 23, 0.42);
+  --task-center-title: #f8fafc;
+  --task-center-text: #94a3b8;
+  --task-center-subtle-text: #94a3b8;
+  --task-center-icon-bg: rgba(15, 23, 42, 0.72);
+  --task-center-icon-border: rgba(120, 136, 160, 0.18);
+  --task-center-icon-color: #94a3b8;
+  --task-center-tabs-bg: rgba(30, 41, 59, 0.88);
+  --task-center-tab-active-bg: rgba(var(--el-color-primary-rgb), 0.22);
+  --task-center-tab-active-color: #f8fafc;
+  --task-center-progress-track: rgba(71, 85, 105, 0.42);
+  --task-center-summary-bg: rgba(15, 23, 42, 0.76);
+  --task-center-summary-border: rgba(148, 163, 184, 0.14);
+  --task-center-empty-border: rgba(148, 163, 184, 0.2);
+}
+
+:global(html[data-skin="future-tech"]),
+:global(html.theme-future-tech) {
+  --task-center-backdrop-bg: rgba(1, 6, 18, 0.52);
+  --task-center-backdrop-blur: 0px;
+  --task-center-card-bg:
+    linear-gradient(160deg, rgba(5, 12, 31, 0.94), rgba(8, 22, 50, 0.9));
+  --task-center-panel-bg:
+    linear-gradient(165deg, rgba(4, 10, 28, 0.97), rgba(7, 19, 43, 0.94));
+  --task-center-card-border: rgba(102, 248, 255, 0.2);
+  --task-center-panel-border: rgba(102, 248, 255, 0.24);
+  --task-center-shadow: 0 22px 48px rgba(0, 187, 255, 0.1);
+  --task-center-panel-shadow: 0 26px 56px rgba(0, 187, 255, 0.12);
+  --task-center-title: #e6f9ff;
+  --task-center-text: rgba(168, 240, 255, 0.78);
+  --task-center-subtle-text: rgba(148, 214, 232, 0.72);
+  --task-center-icon-bg: rgba(7, 21, 43, 0.76);
+  --task-center-icon-border: rgba(102, 248, 255, 0.18);
+  --task-center-icon-color: #9ae7ff;
+  --task-center-tabs-bg: rgba(7, 21, 43, 0.88);
+  --task-center-tab-active-bg: rgba(102, 248, 255, 0.16);
+  --task-center-tab-active-color: #dffcff;
+  --task-center-progress-track: rgba(18, 47, 84, 0.82);
+  --task-center-summary-bg: rgba(7, 21, 43, 0.7);
+  --task-center-summary-border: rgba(102, 248, 255, 0.16);
+  --task-center-empty-border: rgba(102, 248, 255, 0.22);
+  --task-center-card-blur: 4px;
+  --task-center-panel-blur: 6px;
+}
+
 .task-center-backdrop {
   position: fixed;
   inset: 0;
   z-index: 4990;
-  background: rgba(8, 15, 26, 0.22);
-  backdrop-filter: blur(4px);
+  background: var(--task-center-backdrop-bg);
+  backdrop-filter: blur(var(--task-center-backdrop-blur));
 }
 .task-center-overlay-root {
   position: fixed;
@@ -631,16 +709,17 @@ onUnmounted(() => {
 }
 .task-center-card,
 .task-center-detail-card {
-  border: 1px solid rgba(122, 142, 170, 0.18);
+  border: 1px solid var(--task-center-card-border);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18px 38px rgba(20, 31, 51, 0.16);
+  background: var(--task-center-card-bg);
+  box-shadow: var(--task-center-shadow);
   text-align: left;
+  contain: layout paint style;
 }
 .task-center-card {
   padding: 14px;
   pointer-events: auto;
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(var(--task-center-card-blur));
 }
 .task-center-detail-card {
   padding: 14px;
@@ -692,7 +771,7 @@ onUnmounted(() => {
 }
 .task-center-card-title {
   font-weight: 700;
-  color: #101828;
+  color: var(--task-center-title);
 }
 .task-center-card-meta,
 .task-center-description,
@@ -700,7 +779,7 @@ onUnmounted(() => {
 .task-center-eyebrow,
 .task-center-panel-header p {
   font-size: 12px;
-  color: rgba(42, 58, 79, 0.78);
+  color: var(--task-center-text);
 }
 .task-center-card-meta {
   margin-top: 8px;
@@ -711,7 +790,7 @@ onUnmounted(() => {
 .task-center-progress span,
 .task-center-log-time {
   font-size: 11px;
-  color: rgba(42, 58, 79, 0.72);
+  color: var(--task-center-subtle-text);
 }
 .task-center-progress-track {
   position: relative;
@@ -719,7 +798,7 @@ onUnmounted(() => {
   flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.18);
+  background: var(--task-center-progress-track);
 }
 .task-center-progress-fill {
   position: absolute;
@@ -741,9 +820,9 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(120, 136, 160, 0.18);
-  background: rgba(255, 255, 255, 0.72);
-  color: rgba(33, 46, 62, 0.72);
+  border: 1px solid var(--task-center-icon-border);
+  background: var(--task-center-icon-bg);
+  color: var(--task-center-icon-color);
 }
 .task-center-icon-btn {
   width: 30px;
@@ -758,8 +837,8 @@ onUnmounted(() => {
   font-weight: 600;
 }
 .task-center-tab.is-active {
-  background: #fff;
-  color: #0f172a;
+  background: var(--task-center-tab-active-bg);
+  color: var(--task-center-tab-active-color);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
 }
 .task-center-log-list {
@@ -812,28 +891,28 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 16px;
   padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  border: 1px solid var(--task-center-panel-border);
   border-radius: 28px;
-  background: rgba(248, 250, 252, 0.96);
-  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.24);
-  backdrop-filter: blur(24px);
-  transform: translateX(calc(100% + 20px));
-  transition: transform 0.28s ease;
+  background: var(--task-center-panel-bg);
+  box-shadow: var(--task-center-panel-shadow);
+  backdrop-filter: blur(var(--task-center-panel-blur));
+  contain: layout paint style;
+  will-change: transform;
 }
 .task-center-panel.is-open {
-  transform: translateX(0);
+  transform: translateZ(0);
 }
 .task-center-panel-header h3 {
   margin: 6px 0 4px;
   font-size: 20px;
-  color: #0f172a;
+  color: var(--task-center-title);
 }
 .task-center-eyebrow {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(15, 146, 255, 0.82);
+  color: color-mix(in srgb, var(--el-color-primary) 74%, #66f8ff 26%);
 }
 .task-center-summary {
   display: grid;
@@ -843,24 +922,24 @@ onUnmounted(() => {
 .task-center-summary-item {
   padding: 12px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: var(--task-center-summary-bg);
+  border: 1px solid var(--task-center-summary-border);
 }
 .task-center-summary-item span {
   display: block;
   font-size: 11px;
-  color: rgba(71, 85, 105, 0.72);
+  color: var(--task-center-subtle-text);
 }
 .task-center-summary-item strong {
   display: block;
   margin-top: 6px;
   font-size: 18px;
-  color: #0f172a;
+  color: var(--task-center-title);
 }
 .task-center-tabs {
   padding: 4px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.12);
+  background: var(--task-center-tabs-bg);
 }
 .task-center-panel-body {
   display: flex;
@@ -875,70 +954,20 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border: 1px dashed var(--task-center-empty-border);
   border-radius: 22px;
-  color: rgba(71, 85, 105, 0.78);
+  color: var(--task-center-text);
 }
 .task-center-item-enter-active,
 .task-center-item-leave-active {
-  transition: all 0.24s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 .task-center-item-enter-from,
 .task-center-item-leave-to {
   opacity: 0;
-  transform: translateY(8px) scale(0.98);
-}
-
-html.dark {
-  .task-center-backdrop {
-    background: rgba(2, 8, 23, 0.42);
-  }
-
-  .task-center-card,
-  .task-center-detail-card,
-  .task-center-panel {
-    background: rgba(15, 23, 42, 0.9);
-    border-color: rgba(148, 163, 184, 0.18);
-    box-shadow: 0 24px 48px rgba(2, 8, 23, 0.42);
-  }
-
-  .task-center-card-title,
-  .task-center-panel-header h3,
-  .task-center-summary-item strong {
-    color: #f8fafc;
-  }
-
-  .task-center-card-meta,
-  .task-center-description,
-  .task-center-log-row,
-  .task-center-eyebrow,
-  .task-center-panel-header p,
-  .task-center-progress span,
-  .task-center-log-time,
-  .task-center-empty {
-    color: #94a3b8;
-  }
-
-  .task-center-tabs {
-    background: rgba(30, 41, 59, 0.88);
-  }
-
-  .task-center-tab {
-    color: #94a3b8;
-  }
-
-  .task-center-tab.is-active {
-    color: #f8fafc;
-    background: rgba(var(--el-color-primary-rgb), 0.22);
-  }
-
-  .task-center-progress-track {
-    background: rgba(71, 85, 105, 0.42);
-  }
-
-  .task-center-empty {
-    border-color: rgba(148, 163, 184, 0.2);
-  }
+  transform: translateY(6px);
 }
 
 @keyframes task-center-indeterminate {

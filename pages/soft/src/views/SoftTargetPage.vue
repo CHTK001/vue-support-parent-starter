@@ -1,6 +1,7 @@
 <template>
   <SoftWorkspace
     title="目标管理"
+    subtitle="管理本机与远程执行目标，供安装、运维与脚本执行复用。"
     :metrics="metrics"
   >
     <template #actions>
@@ -8,7 +9,7 @@
       <el-button type="primary" @click="openCreate">新增目标</el-button>
     </template>
 
-    <el-table v-loading="loading" :data="targets" border>
+    <el-table v-loading="loading" :data="targets" border class="target-table">
       <el-table-column prop="targetName" label="名称" min-width="150" />
       <el-table-column prop="targetCode" label="编码" min-width="120" />
       <el-table-column prop="targetType" label="类型" width="120" />
@@ -33,8 +34,8 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="visible" width="700px" :title="dialogTitle">
-      <el-form label-width="92px">
+    <el-dialog v-model="visible" width="760px" :title="dialogTitle" class="target-dialog">
+      <el-form label-width="92px" class="target-form">
         <el-form-item label="目标名称">
           <el-input v-model="form.targetName" />
         </el-form-item>
@@ -219,3 +220,20 @@ const removeTarget = async (id?: number) => {
 
 onMounted(loadTargets);
 </script>
+
+<style scoped lang="scss">
+.target-table {
+  :deep(.el-table__header-wrapper th) {
+    background: rgba(241, 245, 249, 0.9);
+  }
+
+  :deep(.el-table__row td) {
+    background: rgba(255, 255, 255, 0.86);
+  }
+}
+
+.target-form {
+  display: grid;
+  gap: 12px;
+}
+</style>

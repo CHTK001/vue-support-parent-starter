@@ -15,12 +15,16 @@ export interface JdbcConnectionForm {
   sourceId?: string;
   connectionId: string;
   sourceType: "JDBC" | "REDIS";
+  jdbcDialectType: string;
   connectionName: string;
   host: string;
   port: number;
   databaseName: string;
   username: string;
   password: string;
+  driverClassName: string;
+  driverJarName: string;
+  driverJarPath: string;
   protocol: string;
   note?: string;
   favorite?: boolean;
@@ -93,12 +97,16 @@ export const DEFAULT_JDBC_CONNECTION: JdbcConnectionForm = {
   sourceId: "",
   connectionId: "",
   sourceType: "JDBC",
+  jdbcDialectType: "MYSQL",
   connectionName: "",
   host: "",
   port: 3306,
   databaseName: "",
   username: "",
   password: "",
+  driverClassName: "com.mysql.cj.jdbc.Driver",
+  driverJarName: "",
+  driverJarPath: "",
   protocol: "",
   note: "",
   favorite: false,

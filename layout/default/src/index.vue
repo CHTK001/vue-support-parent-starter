@@ -53,13 +53,6 @@ import {
 } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LayContent from "./components/lay-content/index.vue";
-import CardNavigation from "./components/lay-sidebar/components/CardNavigation.vue";
-import NavDouble from "./components/lay-sidebar/NavDouble.vue";
-import NavDrawer from "./components/lay-sidebar/NavDrawer.vue";
-import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
-import NavHover from "./components/lay-sidebar/NavHover.vue";
-import LaySetting from "./components/lay-setting/index.vue";
-import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
@@ -91,7 +84,30 @@ if (document.readyState === "complete") {
 }
 
 // 使用带 loading/error 状态的异步组件加载器
-const NavVertical = NavVerticalLayout;
+const NavVertical = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavVertical.vue"),
+);
+const NavHorizontal = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavHorizontal.vue"),
+);
+const NavHover = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavHover.vue"),
+);
+const NavDrawer = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavDrawer.vue"),
+);
+const LayXx = createLayoutAsyncComponent(
+  () => import("./components/lay-xx/index.vue"),
+);
+const NavDouble = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/NavDouble.vue"),
+);
+const CardNavigation = createLayoutAsyncComponent(
+  () => import("./components/lay-sidebar/components/CardNavigation.vue"),
+);
+const LaySetting = createLayoutAsyncComponent(
+  () => import("./components/lay-setting/index.vue"),
+);
 const LayAiChat = createLayoutAsyncComponent(
   () => import("./components/lay-ai-chat/index.vue"),
 );
@@ -590,6 +606,7 @@ const LayHeader = defineComponent({
         default: () => [
           !pureSetting.hiddenSideBar &&
           (layout.value === "vertical" ||
+            layout.value === "lay-xx" ||
             layout.value === "mix" ||
             layout.value === "hover" ||
             layout.value === "drawer" ||
@@ -599,7 +616,7 @@ const LayHeader = defineComponent({
           !pureSetting.hiddenSideBar && layout.value === "horizontal"
             ? h(NavHorizontal)
             : null,
-          h(LayTag),
+          layout.value !== "lay-xx" ? h(LayTag) : null,
         ],
       },
     );
@@ -704,7 +721,10 @@ const LayHeader = defineComponent({
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">
-              <LayContent :fixed-header="set.fixedHeader" />
+              <LayXx v-if="layout === 'lay-xx'">
+                <LayContent :fixed-header="set.fixedHeader" />
+              </LayXx>
+              <LayContent v-else :fixed-header="set.fixedHeader" />
             </div>
           </div>
           <ScScrollbar v-else style="flex: 1">
@@ -717,7 +737,10 @@ const LayHeader = defineComponent({
             <LayHeader />
             <!-- 主体内容 -->
             <div style="flex: 1">
-              <LayContent :fixed-header="set.fixedHeader" />
+              <LayXx v-if="layout === 'lay-xx'">
+                <LayContent :fixed-header="set.fixedHeader" />
+              </LayXx>
+              <LayContent v-else :fixed-header="set.fixedHeader" />
             </div>
           </ScScrollbar>
         </div>

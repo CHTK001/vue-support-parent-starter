@@ -10,6 +10,7 @@ let isStorageInitialized = false;
 export const validLayouts: LayoutType[] = [
   "vertical",
   "horizontal",
+  "lay-xx",
   "card",
   "double",
   "drawer",

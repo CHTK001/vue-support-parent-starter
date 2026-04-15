@@ -28,6 +28,7 @@ import { formatSize, http, message, type ReturnResult } from "@repo/utils";
 import { useThemeAnimation } from "../../../hooks/useThemeAnimation";
 import { useTheme } from "../../../hooks/useThemeComponent";
 import { useThemeStore } from "../../../stores/themeStore";
+import { getLayoutTheme } from "../../../themes";
 import { getThemeComponents, type ComponentMap } from "../components";
 
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
@@ -38,6 +39,7 @@ const { t } = useI18n();
 const { device } = useNav();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
+const THEME_STYLE_MEMORY_KEY = "themeSkinPreferredOverallStyle";
 const {
   // 全局 theme 统一出口
   isDark,
@@ -109,6 +111,18 @@ const settingSectionLabels: Record<SettingSectionKey, string> = {
   advanced: "高级",
 };
 
+const sectionSearchHints: Record<SettingSectionKey, string[]> = {
+  theme: ["主题", "皮肤", "颜色", "暗色", "浅色", "动画"],
+  layout: ["布局", "导航", "页宽", "圆角", "边距", "抽屉"],
+  tabs: ["标签", "页签", "缓存", "风格"],
+  toolbar: ["工具栏", "搜索", "全屏", "任务中心", "顶部时间"],
+  display: ["显示", "面包屑", "logo", "页脚", "卡片", "性能监控"],
+  menu: ["菜单", "动画", "加载", "新增菜单"],
+  message: ["消息", "通知", "下拉位置"],
+  ai: ["AI", "助手", "模型", "接口", "外观"],
+  advanced: ["高级", "缓存", "同步", "无障碍", "调试", "云端"],
+};
+
 const themeDisplayLabels: Record<string, string> = {
   default: "默认主题",
   "8bit": "8Bit 像素",
@@ -121,6 +135,7 @@ const themeDisplayLabels: Record<string, string> = {
 const layoutDisplayLabels: Record<string, string> = {
   vertical: "纵向导航",
   horizontal: "顶部导航",
+  "lay-xx": "Lay-XX 布局",
   mix: "混合布局",
   hover: "悬浮导航",
   mobile: "移动布局",
@@ -589,19 +604,39 @@ const switchSystemTheme = (
     return;
   }
 
-  useThemeAnimation(() => {
-    // 统一通过主题 store 设置，确保 data-skin、class 和样式表一致更新
-    themeStore.setTheme(themeKey as any);
+  const previousThemeMeta = getLayoutTheme(currentTheme as any);
+  const targetTheme = getLayoutTheme(themeKey as any);
+  const storageConfigure = $storage.configure || {};
+  const leavingForcedBaseStyle =
+    !targetTheme?.baseStyle && !!previousThemeMeta?.baseStyle;
 
-    // 如果切换到非默认主题，强制切换到浅色模式，避免深色残留
-    if (themeKey !== "default") {
-      dataTheme.value = false;
-      applyOverallStyle("light");
+  // 皮肤切换优先保证全局样式落地速度，不叠加额外的根节点裁剪动画。
+  if (leavingForcedBaseStyle) {
+    const restoredStyle =
+      storageConfigure[THEME_STYLE_MEMORY_KEY] ||
+      getConfig().OverallStyle ||
+      "light";
+    dataTheme.value = restoredStyle === "dark";
+    overallStyle.value = restoredStyle;
+    applyOverallStyle(restoredStyle);
+    delete storageConfigure[THEME_STYLE_MEMORY_KEY];
+  }
+
+  themeStore.setTheme(themeKey as any);
+
+  if (targetTheme?.baseStyle) {
+    if (!previousThemeMeta?.baseStyle) {
+      storageConfigure[THEME_STYLE_MEMORY_KEY] =
+        overallStyle.value || getConfig().OverallStyle || "light";
     }
+    dataTheme.value = targetTheme.baseStyle === "dark";
+    overallStyle.value = targetTheme.baseStyle;
+    applyOverallStyle(targetTheme.baseStyle);
+  }
 
-    // 持久化当前系统主题
-    storageConfigureChange("systemTheme", themeKey);
-  });
+  storageConfigure.systemTheme = themeKey;
+  $storage.configure = storageConfigure;
+  refreshCacheSize();
 
   if (showMessage) {
     const themeName = themeKey === "default" ? "默认" : themeKey;
@@ -852,28 +887,99 @@ watch($storage, ({ layout }) => {
   switch (layout["layout"]) {
     case "vertical":
       toggleClass(true, "is-select", unref(verticalRef));
-      debounce(setFalse([horizontalRef, mixRef, hoverRef, doubleRef]), 50);
+      debounce(
+        setFalse([
+          horizontalRef,
+          mixRef,
+          hoverRef,
+          doubleRef,
+          drawerRef,
+          layXxRef,
+        ]),
+        50,
+      );
       break;
     case "horizontal":
       toggleClass(true, "is-select", unref(horizontalRef));
-      debounce(setFalse([verticalRef, mixRef, hoverRef, doubleRef]), 50);
+      debounce(
+        setFalse([
+          verticalRef,
+          mixRef,
+          hoverRef,
+          doubleRef,
+          drawerRef,
+          layXxRef,
+        ]),
+        50,
+      );
       break;
     case "mix":
       toggleClass(true, "is-select", unref(mixRef));
-      debounce(setFalse([verticalRef, horizontalRef, hoverRef, doubleRef]), 50);
+      debounce(
+        setFalse([
+          verticalRef,
+          horizontalRef,
+          hoverRef,
+          doubleRef,
+          drawerRef,
+          layXxRef,
+        ]),
+        50,
+      );
       break;
     case "hover":
       toggleClass(true, "is-select", unref(hoverRef));
-      debounce(setFalse([verticalRef, horizontalRef, mixRef, doubleRef]), 50);
+      debounce(
+        setFalse([
+          verticalRef,
+          horizontalRef,
+          mixRef,
+          doubleRef,
+          drawerRef,
+          layXxRef,
+        ]),
+        50,
+      );
       break;
     case "double":
       toggleClass(true, "is-select", unref(doubleRef));
-      debounce(setFalse([verticalRef, horizontalRef, mixRef, hoverRef]), 50);
+      debounce(
+        setFalse([
+          verticalRef,
+          horizontalRef,
+          mixRef,
+          hoverRef,
+          drawerRef,
+          layXxRef,
+        ]),
+        50,
+      );
       break;
     case "drawer":
       toggleClass(true, "is-select", unref(drawerRef));
       debounce(
-        setFalse([verticalRef, horizontalRef, mixRef, hoverRef, doubleRef]),
+        setFalse([
+          verticalRef,
+          horizontalRef,
+          mixRef,
+          hoverRef,
+          doubleRef,
+          layXxRef,
+        ]),
+        50,
+      );
+      break;
+    case "lay-xx":
+      toggleClass(true, "is-select", unref(layXxRef));
+      debounce(
+        setFalse([
+          verticalRef,
+          horizontalRef,
+          mixRef,
+          hoverRef,
+          doubleRef,
+          drawerRef,
+        ]),
         50,
       );
       break;
@@ -982,6 +1088,7 @@ const hoverRef = ref();
 const mobileRef = ref();
 const doubleRef = ref();
 const drawerRef = ref();
+const layXxRef = ref();
 
 function showBreadcrumbChange() {
   storageConfigureChange("showBreadcrumb", settings.showBreadcrumb);
@@ -1671,6 +1778,10 @@ const disconnectSectionObserver = () => {
 };
 
 const syncActiveSectionFromScroll = () => {
+  if (!renderAllMatchingSections.value) {
+    return;
+  }
+
   const root =
     sectionScrollRoot ??
     ((settingStageRef.value?.closest(".el-scrollbar__wrap") as HTMLElement | null) ??
@@ -1709,6 +1820,12 @@ const syncActiveSectionFromScroll = () => {
 };
 
 const bindSectionScrollListener = () => {
+  if (!renderAllMatchingSections.value) {
+    sectionScrollRoot?.removeEventListener("scroll", syncActiveSectionFromScroll);
+    sectionScrollRoot = null;
+    return;
+  }
+
   const nextRoot =
     (settingStageRef.value?.closest(".el-scrollbar__wrap") as HTMLElement | null) ??
     null;
@@ -1729,7 +1846,7 @@ const bindSectionScrollListener = () => {
 const observeSections = () => {
   nextTick(() => {
     disconnectSectionObserver();
-    if (!sectionElements.size) {
+    if (!renderAllMatchingSections.value || !sectionElements.size) {
       return;
     }
 
@@ -1793,41 +1910,13 @@ const sectionSortOptions = computed<
   },
 ]);
 
-const extractSearchText = (value: unknown, bucket = new Set<string>()) => {
-  if (value === null || value === undefined) {
-    return bucket;
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    const text = String(value).trim();
-    if (text) {
-      bucket.add(text);
-    }
-    return bucket;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((item) => extractSearchText(item, bucket));
-    return bucket;
-  }
-
-  if (typeof value === "object") {
-    Object.values(value as Record<string, unknown>).forEach((item) =>
-      extractSearchText(item, bucket),
-    );
-  }
-
-  return bucket;
-};
-
 const resolveSectionProps = (props: Record<string, unknown>) =>
   Object.fromEntries(
     Object.entries(props).map(([key, value]) => [key, unref(value)]),
   );
+
+const resolveRenderedSectionProps = (key: SettingSectionKey) =>
+  resolveSectionProps(settingSectionProps.value[key]);
 
 const settingSectionProps = computed<
   Record<SettingSectionKey, Record<string, unknown>>
@@ -1860,6 +1949,7 @@ const settingSectionProps = computed<
     mobileRef,
     doubleRef,
     drawerRef,
+    layXxRef,
     setLayoutModel,
     stretchTypeOptions: stretchTypeOptions.value,
     stretchTypeChange,
@@ -1979,7 +2069,6 @@ const allSettingSections = computed<
     key: SettingSectionKey;
     label: string;
     component: keyof ComponentMap;
-    props: Record<string, unknown>;
     sortWeight: number;
     searchText: string;
   }>
@@ -1990,7 +2079,6 @@ const allSettingSections = computed<
         key: "theme",
         label: settingSectionLabels.theme,
         component: "SettingTheme",
-        props: resolveSectionProps(settingSectionProps.value.theme),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("theme"),
         searchText: "",
       },
@@ -1998,7 +2086,6 @@ const allSettingSections = computed<
         key: "layout",
         label: settingSectionLabels.layout,
         component: "SettingLayout",
-        props: resolveSectionProps(settingSectionProps.value.layout),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("layout"),
         searchText: "",
       },
@@ -2006,7 +2093,6 @@ const allSettingSections = computed<
         key: "tabs",
         label: settingSectionLabels.tabs,
         component: "SettingTabs",
-        props: resolveSectionProps(settingSectionProps.value.tabs),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("tabs"),
         searchText: "",
       },
@@ -2014,7 +2100,6 @@ const allSettingSections = computed<
         key: "toolbar",
         label: settingSectionLabels.toolbar,
         component: "SettingToolbar",
-        props: resolveSectionProps(settingSectionProps.value.toolbar),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("toolbar"),
         searchText: "",
       },
@@ -2022,7 +2107,6 @@ const allSettingSections = computed<
         key: "display",
         label: settingSectionLabels.display,
         component: "SettingDisplay",
-        props: resolveSectionProps(settingSectionProps.value.display),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("display"),
         searchText: "",
       },
@@ -2030,7 +2114,6 @@ const allSettingSections = computed<
         key: "menu",
         label: settingSectionLabels.menu,
         component: "SettingMenu",
-        props: resolveSectionProps(settingSectionProps.value.menu),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("menu"),
         searchText: "",
       },
@@ -2038,7 +2121,6 @@ const allSettingSections = computed<
         key: "message",
         label: settingSectionLabels.message,
         component: "SettingMessage",
-        props: resolveSectionProps(settingSectionProps.value.message),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("message"),
         searchText: "",
       },
@@ -2046,7 +2128,6 @@ const allSettingSections = computed<
         key: "ai",
         label: settingSectionLabels.ai,
         component: "SettingAiChat",
-        props: resolveSectionProps(settingSectionProps.value.ai),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("ai"),
         searchText: "",
       },
@@ -2054,20 +2135,18 @@ const allSettingSections = computed<
         key: "advanced",
         label: settingSectionLabels.advanced,
         component: "SettingAdvanced",
-        props: resolveSectionProps(settingSectionProps.value.advanced),
         sortWeight: DEFAULT_SECTION_ORDER.indexOf("advanced"),
         searchText: "",
       },
     ].map((section) => ({
       ...section,
-      searchText: [section.label, ...extractSearchText(section.props)]
+      searchText: [section.label, ...sectionSearchHints[section.key]]
         .join(" ")
         .toLowerCase(),
     })) as Array<{
       key: SettingSectionKey;
       label: string;
       component: keyof ComponentMap;
-      props: Record<string, unknown>;
       sortWeight: number;
       searchText: string;
     }>,
@@ -2093,6 +2172,18 @@ const displayedSettingSections = computed(() => {
   );
 });
 
+const renderAllMatchingSections = computed(() => !!sectionSearch.value.trim());
+
+const renderedSettingSections = computed(() => {
+  if (renderAllMatchingSections.value) {
+    return displayedSettingSections.value;
+  }
+
+  return displayedSettingSections.value.filter(
+    (section) => section.key === activeSection.value,
+  );
+});
+
 const setSectionRef = (
   key: SettingSectionKey,
   element: Element | ComponentPublicInstance | null,
@@ -2111,10 +2202,18 @@ const setSectionRef = (
 const scrollToSection = (key: SettingSectionKey) => {
   activeSection.value = key;
   nextTick(() => {
-    sectionElements.get(key)?.scrollIntoView({
+    if (renderAllMatchingSections.value) {
+      sectionElements.get(key)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+      return;
+    }
+
+    settingStageRef.value?.scrollTo({
+      top: 0,
       behavior: "smooth",
-      block: "start",
-      inline: "nearest",
     });
   });
 };
@@ -2280,7 +2379,7 @@ onUnmounted(() => {
               </p>
             </div>
             <section
-              v-for="section in displayedSettingSections"
+              v-for="section in renderedSettingSections"
               :key="section.key"
               :ref="(element) => setSectionRef(section.key, element)"
               class="setting-shell-stage__item"
@@ -2288,7 +2387,7 @@ onUnmounted(() => {
             >
               <component
                 :is="themeSectionComponents[section.component]"
-                v-bind="section.props"
+                v-bind="resolveRenderedSectionProps(section.key)"
               />
             </section>
           </div>

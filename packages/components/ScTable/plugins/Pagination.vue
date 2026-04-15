@@ -90,10 +90,13 @@ const columnSettingRef = ref(null);
 // 计算属性
 const isListLayout = computed(() => props.tableLayout === "list");
 const isCardLayout = computed(() => props.tableLayout === "card");
+const isTableLikeLayout = computed(() =>
+  ["canvas", "table", "virtual"].includes(props.tableLayout)
+);
 // 只有表格模式才显示表格设置
 const isTableLayout = computed(() => props.tableLayout === "table");
 const showTableSettings = computed(() => !props.hideSetting && isTableLayout.value);
-const showColumnSettings = computed(() => !props.hideSetting && isTableLayout.value && props.columns && props.columns.length > 0);
+const showColumnSettings = computed(() => !props.hideSetting && isTableLikeLayout.value && props.columns && props.columns.length > 0);
 // 列表模式显示设置按钮，但只显示拖拽选项
 const showListSettings = computed(() => !props.hideSetting && isListLayout.value);
 // 卡片模式显示设置按钮
@@ -322,6 +325,10 @@ const handleCardLayoutChange = value => {
 onMounted(() => {
   // 初始化表格配置
   getTableConfig();
+});
+
+defineExpose({
+  openColumnSetting,
 });
 </script>
 

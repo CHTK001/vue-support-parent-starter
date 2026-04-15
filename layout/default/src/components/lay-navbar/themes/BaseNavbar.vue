@@ -91,6 +91,7 @@ onBeforeUnmount(() => {
     <div
       v-if="
         layout === 'vertical' ||
+        layout === 'lay-xx' ||
         layout === 'hover' ||
         layout === 'card' ||
         layout === 'double' ||

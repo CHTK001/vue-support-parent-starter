@@ -24,7 +24,7 @@ html.theme-default {
         rgba(255, 255, 255, 0.78) 100%
       );
       --setting-shell-card-border: rgba(148, 163, 184, 0.16);
-      --setting-shell-shadow: 0 26px 50px -38px rgba(15, 23, 42, 0.22);
+      --setting-shell-shadow: 0 18px 34px -30px rgba(15, 23, 42, 0.18);
       --setting-shell-hero-bg: linear-gradient(
         135deg,
         rgba(255, 255, 255, 0.92) 0%,
@@ -43,7 +43,7 @@ html.theme-default {
       --setting-shell-nav-active-text: #2563eb;
       --setting-shell-stage-gap: 10px;
       --setting-shell-card-radius: 22px;
-      --setting-shell-card-blur: 20px;
+      --setting-shell-card-blur: 4px;
       --setting-shell-divider: rgba(191, 219, 254, 0.72);
       --setting-shell-heading-font:
         "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -121,28 +121,28 @@ html.theme-default {
 
     .setting-shell-chip,
     .setting-shell-hero__status {
-      backdrop-filter: blur(12px);
+      backdrop-filter: none;
       background: linear-gradient(
         180deg,
         rgba(255, 255, 255, 0.8),
         rgba(255, 255, 255, 0.72)
       );
       box-shadow:
-        0 18px 28px -28px rgba(15, 23, 42, 0.22),
+        0 10px 18px -18px rgba(15, 23, 42, 0.14),
         inset 0 1px 0 rgba(255, 255, 255, 0.9);
     }
 
     .setting-shell-nav__item {
-      backdrop-filter: blur(8px);
+      backdrop-filter: none;
       border-color: rgba(255, 255, 255, 0.54);
-      box-shadow: 0 12px 20px -18px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 8px 14px -14px rgba(15, 23, 42, 0.12);
     }
 
     .setting-shell-nav__item.is-active {
       color: #1d4ed8;
       transform: translateY(-1px);
       box-shadow:
-        0 18px 24px -22px rgba(37, 99, 235, 0.32),
+        0 12px 18px -16px rgba(37, 99, 235, 0.22),
         inset 0 1px 0 rgba(255, 255, 255, 0.78);
     }
 
@@ -162,7 +162,7 @@ html.theme-default {
         rgba(255, 255, 255, 0.76) 100%
       ) !important;
       box-shadow:
-        0 16px 24px -22px rgba(15, 23, 42, 0.18),
+        0 10px 18px -18px rgba(15, 23, 42, 0.12),
         0 1px 0 rgba(191, 219, 254, 0.24),
         inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
     }
@@ -170,7 +170,7 @@ html.theme-default {
     .theme-setting-shell--default .setting-section:hover {
       border-color: rgba(96, 165, 250, 0.26) !important;
       box-shadow:
-        0 18px 26px -22px rgba(37, 99, 235, 0.16),
+        0 12px 20px -18px rgba(37, 99, 235, 0.12),
         0 1px 0 rgba(191, 219, 254, 0.32),
         inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
     }

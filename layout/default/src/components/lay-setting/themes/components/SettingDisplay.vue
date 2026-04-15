@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { defineAsyncComponent, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { storeToRefs } from "pinia";
 import Segmented, {
@@ -8,8 +8,11 @@ import Segmented, {
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScTooltip from "@repo/components/ScTooltip/index";
-import AiPerformanceAnalysisDialog from "./AiPerformanceAnalysisDialog.vue";
 import { useThemeStore } from "../../../../stores/themeStore";
+
+const AiPerformanceAnalysisDialog = defineAsyncComponent(
+  () => import("./AiPerformanceAnalysisDialog.vue"),
+);
 
 const { t } = useI18n();
 
@@ -445,7 +448,10 @@ const props = defineProps<{
 
     </div>
 
-    <AiPerformanceAnalysisDialog v-model="aiPerformanceDialogVisible" />
+    <AiPerformanceAnalysisDialog
+      v-if="aiPerformanceDialogVisible"
+      v-model="aiPerformanceDialogVisible"
+    />
   </div>
 </template>
 
