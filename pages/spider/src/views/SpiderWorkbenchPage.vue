@@ -3,10 +3,7 @@
     <ScLayout
       v-model="activeTabId"
       class="spider-workbench-layout"
-      :left-enabled="true"
-      :left-width="360"
-      :left-min-width="320"
-      :left-max-width="430"
+      :left-enabled="false"
       :main-min-width="720"
       rail-close-button-mode="always"
       :rail-tabs="railTabs"
