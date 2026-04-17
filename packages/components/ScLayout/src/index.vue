@@ -802,7 +802,14 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 8px 0;
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sc-layout__rail-tabs::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .sc-layout__rail-tab {
@@ -827,7 +834,7 @@ onBeforeUnmount(() => {
 
 .sc-layout__rail-tab::before {
   position: absolute;
-  left: -7px;
+  left: 2px;
   width: 3px;
   height: 18px;
   border-radius: 999px;
@@ -895,11 +902,11 @@ onBeforeUnmount(() => {
 
 .sc-layout__rail-close {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 3px;
+  right: 3px;
   display: inline-flex;
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
@@ -907,7 +914,7 @@ onBeforeUnmount(() => {
   color: var(--sc-layout-rail-close-color);
   font-size: 11px;
   line-height: 1;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
 }
 
 .sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-close {
@@ -972,7 +979,7 @@ onBeforeUnmount(() => {
 }
 
 .sc-layout__rail-collapse {
-  left: -1px;
+  left: 12px;
   transform: translate(-50%, -50%);
 }
 
@@ -985,16 +992,16 @@ onBeforeUnmount(() => {
   position: absolute;
   right: 0;
   top: 50%;
-  width: 16px;
+  width: 32px;
   height: 64px;
   z-index: 50;
   transform: translateY(-50%);
 }
 
 .sc-layout__rail-expand {
-  right: -1px;
+  right: 10px;
   opacity: 0;
-  transform: translate(50%, -50%);
+  transform: translateY(-50%);
 }
 
 .sc-layout__rail-expand-hotspot:hover .sc-layout__rail-expand {
