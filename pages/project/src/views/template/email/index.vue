@@ -1,7 +1,6 @@
 <script setup>
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
 import { defineAsyncComponent, nextTick, onMounted, reactive, ref, watch } from "vue";
@@ -13,6 +12,7 @@ import {
   fetchSyncProjectForEmail,
   fetchUpdateProjectForEmail,
 } from "../../../api/manage/project-email";
+import { getTemplateCategoryOptions } from "../../../constants/project-fixed-dicts";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const EmailDialog = defineAsyncComponent(() => import("./email.vue"));
 const LogDialog = defineAsyncComponent(() => import("./log.vue"));
@@ -45,8 +45,7 @@ const handleSend = async (row) => {
   emailDialogRef.value.handleOpen(row);
 };
 const onCategory = async () => {
-  const { data } = await fetchListDictItem({ sysDictId: 2 });
-  categoryData.value = data;
+  categoryData.value = getTemplateCategoryOptions("email");
 };
 
 const renderContent = (h, { node, data }) => {

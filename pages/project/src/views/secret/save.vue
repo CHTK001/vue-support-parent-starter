@@ -394,21 +394,34 @@ const getSubmitLoadingText = () => {
   return texts[operationMode.value] || "处理中...";
 };
 
+const splitValueList = (value) => {
+  return String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const findOption = (options, value) => {
+  const token = String(value ?? "");
+  return options.find(
+    (item) =>
+      String(item.sysDictItemId) === token || String(item.sysDictItemCode) === token,
+  );
+};
+
 const getVenderName = (venderId) => {
-  const vender = venderOptions.value.find((item) => item.sysDictItemId === venderId);
+  const vender = findOption(venderOptions.value, venderId);
   return vender?.sysDictItemName || "未知厂商";
 };
 
 const getFunctionIds = (functionStr) => {
-  if (!functionStr) return [];
-  return functionStr
-    .split(",")
-    .map((id) => parseInt(id))
-    .filter((id) => !isNaN(id));
+  return splitValueList(functionStr).map((id) => {
+    return findOption(functionOptions.value, id)?.sysDictItemId ?? id;
+  });
 };
 
 const getFunctionName = (functionId) => {
-  const func = functionOptions.value.find((item) => item.sysDictItemId === functionId);
+  const func = findOption(functionOptions.value, functionId);
   return func?.sysDictItemName || "未知功能";
 };
 

@@ -121,13 +121,13 @@
 <script setup>
 import { debounce } from "@pureadmin/utils";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, ref, shallowRef } from "vue";
 import {
   fetchSaveProjectForAiModule,
   fetchUpdateProjectForAiModule,
 } from "../../api/manage/project-ai-module";
+import { getProjectVendorOptions } from "../../constants/project-fixed-dicts";
 import DirectorySelector from "./DirectorySelector.vue";
 import { DEFAULT_MODULE_TYPE } from "./hook";
 const emit = defineEmits();
@@ -143,10 +143,10 @@ const rules = {
   sysAiModuleLocation: [
     { required: true, message: "请选择是否本地模型", trigger: "blur" },
   ],
-  sysApiModuleManufacturers: [
+  sysAiModuleManufacturers: [
     { required: true, message: "请选择模块厂家", trigger: "change" },
   ],
-  sysApiModuleType: [
+  sysAiModuleType: [
     { required: true, message: "请选择模块类型", trigger: "change" },
   ],
   sysAiModuleVlm: [
@@ -162,7 +162,7 @@ const env = reactive({
   title: "模块更新",
 });
 
-const manufacturers = shallowRef([]);
+const manufacturers = shallowRef(getProjectVendorOptions("AI"));
 const handleUpdate = () => {
   formRef.value.validate((valid) => {
     if (valid) {
@@ -187,14 +187,6 @@ const handleUpdate = () => {
     }
   });
 };
-const initialManufacturers = async () => {
-  fetchListDictItem({
-    sysDictId: 1,
-  }).then((res) => {
-    manufacturers.value = res?.data;
-  });
-};
-
 const handleClose = () => {
   env.visible = false;
 };
@@ -207,9 +199,8 @@ const handleOpen = async (item, mode) => {
       : "模块更新" + " - " + (item.sysProjectName || item.sysAiModuleName);
   env.mode = mode;
   form.value = item;
-  initialManufacturers();
   if (mode == "add" || mode == "save") {
-    form.value.sysApiModuleSort = 1;
+    form.value.sysAiModuleSort = 1;
   }
 };
 
