@@ -8,7 +8,7 @@
           <p class="payment-surface__desc">只有超管和管理员可见，用于维护订单/流水分表策略、自动建表和主表迁移窗口。</p>
         </div>
         <div class="payment-surface__actions">
-          <el-button :icon="RefreshRight" @click="loadConfigs">刷新</el-button>
+          <ScButton :icon="RefreshRight" @click="loadConfigs">刷新</ScButton>
         </div>
       </header>
 
@@ -40,14 +40,14 @@
         </div>
 
         <div class="config-grid">
-          <el-card v-for="item in configs" :key="item.businessType" shadow="never" class="config-card">
+          <ScCard v-for="item in configs" :key="item.businessType" shadow="never" class="config-card">
             <template #header>
               <div class="config-card__header">
                 <div>
                   <strong>{{ item.businessType === "ORDER" ? "订单主表" : "交易流水主表" }}</strong>
                   <p>{{ item.sourceTable }} -> {{ item.partitionPrefix }}_YYYYMM</p>
                 </div>
-                <el-button type="primary" text @click="previewConfig(item.businessType)">预览</el-button>
+                <ScButton type="primary" text @click="previewConfig(item.businessType)">预览</ScButton>
               </div>
             </template>
 
@@ -58,7 +58,7 @@
             </div>
 
             <div class="payment-form-grid">
-              <el-form-item label="分表粒度"><el-select v-model="item.partitionGranularity"><el-option label="按月" value="MONTH" /><el-option label="按天" value="DAY" /></el-select></el-form-item>
+              <el-form-item label="分表粒度"><ScSelect v-model="item.partitionGranularity"><ScOption label="按月" value="MONTH" /><ScOption label="按天" value="DAY" /></ScSelect></el-form-item>
               <el-form-item label="保留天数"><el-input-number v-model="item.retentionDays" :min="1" :max="3650" /></el-form-item>
               <el-form-item label="提前建表天数"><el-input-number v-model="item.createAheadDays" :min="0" :max="365" /></el-form-item>
               <el-form-item label="迁移阈值天数"><el-input-number v-model="item.migrateBeforeDays" :min="1" :max="3650" /></el-form-item>
@@ -68,20 +68,20 @@
             </div>
 
             <div class="config-card__footer">
-              <el-button :loading="savingType === item.businessType" type="primary" @click="saveConfig(item)">保存配置</el-button>
+              <ScButton :loading="savingType === item.businessType" type="primary" @click="saveConfig(item)">保存配置</ScButton>
             </div>
-          </el-card>
+          </ScCard>
         </div>
       </section>
 
-      <el-dialog v-model="previewVisible" title="分表预览" width="640px">
+      <ScDialog v-model="previewVisible" title="分表预览" width="640px" layout="simple">
         <div v-if="preview" class="preview-grid">
           <div class="payment-note"><strong>源表：</strong>{{ preview.sourceTable }}</div>
           <div class="payment-note"><strong>下一个分表：</strong>{{ preview.nextPartitionTable }}</div>
           <div class="payment-note"><strong>迁移目标表：</strong>{{ preview.migrateTargetTable }}</div>
           <div class="payment-note"><strong>迁移阈值时间：</strong>{{ preview.migrateBeforeTime || "-" }}</div>
         </div>
-      </el-dialog>
+      </ScDialog>
     </template>
 
     <section v-else class="payment-empty">

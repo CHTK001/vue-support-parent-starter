@@ -5,11 +5,12 @@
   --pure-segmented-line-width: 1px;
   --pure-segmented-text-color: var(--el-text-color);
   --pure-segmented-track-bg: rgba(15, 23, 42, 0.05);
-  --pure-segmented-selected-bg: var(--el-bg-color);
+  --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.18);
+  --pure-segmented-active-text-color: #111827;
   --pure-segmented-selected-shadow:
-    0 2px 8px -2px rgb(0 0 0 / 5%),
-    0 1px 4px -1px rgb(0 0 0 / 7%),
-    0 0 1px rgb(0 0 0 / 7%);
+    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.2),
+    0 10px 20px -16px rgba(var(--el-color-primary-rgb), 0.42),
+    0 2px 8px -4px rgba(15, 23, 42, 0.12);
 
   --pure-segmented-border-radius-small: 4px;
   --pure-segmented-border-radius-base: 6px;
@@ -108,13 +109,14 @@
   transition: 0.1s;
 }
 
-html.dark .pure-segmented {
+:is(html.dark, html[data-theme="dark"]) .pure-segmented {
   --pure-segmented-text-color: #cbd5e1;
   --pure-segmented-track-bg: rgba(15, 23, 42, 0.78);
-  --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.24);
+  --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.32);
+  --pure-segmented-active-text-color: #ffffff;
   --pure-segmented-selected-shadow:
-    0 14px 28px rgba(2, 8, 23, 0.24),
-    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.18);
+    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.28),
+    0 14px 28px rgba(2, 8, 23, 0.34);
 }
 .pure-segmented-group {
   position: relative;
@@ -143,7 +145,7 @@ html.dark .pure-segmented {
   will-change: transform, width;
 }
 .pure-segmented-item-selected span {
-  color: #fff !important;
+  color: var(--pure-segmented-active-text-color) !important;
 }
 
 .pure-segmented-item > input {

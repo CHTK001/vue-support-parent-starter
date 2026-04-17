@@ -27,10 +27,10 @@
     <el-main>
       <div class="toolbar">
         <h2>收件箱</h2>
-        <el-button type="primary" @click="refreshEmails">
+        <ScButton type="primary" @click="refreshEmails">
           <el-icon><Refresh /></el-icon>
           刷新
-        </el-button>
+        </ScButton>
       </div>
       <el-table
         :data="emails"
@@ -47,13 +47,13 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="scope">
-            <el-button
+            <ScButton
               size="small"
               type="danger"
               @click.stop="deleteEmail(scope.row)"
             >
               删除
-            </el-button>
+            </ScButton>
           </template>
         </el-table-column>
       </el-table>

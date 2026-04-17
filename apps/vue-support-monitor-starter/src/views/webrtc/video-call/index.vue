@@ -41,20 +41,20 @@
             muted
           ></video>
           <div class="local-controls">
-            <el-button
+            <ScButton
               :type="videoEnabled ? 'primary' : 'danger'"
               circle
               @click="toggleVideo"
             >
               <el-icon><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else /></el-icon>
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               :type="audioEnabled ? 'primary' : 'danger'"
               circle
               @click="toggleAudio"
             >
               <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -62,52 +62,52 @@
       <!-- 控制栏 -->
       <div class="control-bar">
         <div class="control-group">
-          <el-button
+          <ScButton
             :type="audioEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleAudio"
           >
             <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="danger"
             size="large"
             circle
             @click="endCall"
           >
             <el-icon><PhoneFilled /></el-icon>
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             :type="videoEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleVideo"
           >
             <el-icon><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else /></el-icon>
-          </el-button>
+          </ScButton>
         </div>
         
         <div class="additional-controls">
-          <el-button
+          <ScButton
             :type="screenSharing ? 'success' : 'info'"
             size="small"
             @click="toggleScreenShare"
           >
             <el-icon><Monitor /></el-icon>
             {{ screenSharing ? '停止共享' : '屏幕共享' }}
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="info"
             size="small"
             @click="showSettings = true"
           >
             <el-icon><Setting /></el-icon>
             设置
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -118,16 +118,16 @@
         <el-icon class="waiting-icon"><Loading /></el-icon>
         <h3>等待对方接听...</h3>
         <p>正在连接到 {{ targetUser?.username }}</p>
-        <el-button type="danger" @click="cancelCall">
+        <ScButton type="danger" @click="cancelCall">
           取消通话
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 主界面 -->
     <div class="main-interface" v-else>
       <!-- 快速拨号 -->
-      <el-card class="quick-dial-card" shadow="hover">
+      <ScCard class="quick-dial-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>快速拨号</span>
@@ -136,13 +136,13 @@
         
         <el-form :model="callForm" label-width="80px">
           <el-form-item label="用户选择">
-            <el-select
+            <ScSelect
               v-model="callForm.targetUserId"
               placeholder="选择要通话的用户"
               filterable
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="user in onlineUsers"
                 :key="user.userId"
                 :label="user.username"
@@ -154,12 +154,12 @@
                     {{ getUserStatusText(user.status) }}
                   </el-tag>
                 </div>
-              </el-option>
-            </el-select>
+              </ScOption>
+            </ScSelect>
           </el-form-item>
           
           <el-form-item>
-            <el-button
+            <ScButton
               type="primary"
               size="large"
               :disabled="!callForm.targetUserId"
@@ -168,19 +168,19 @@
             >
               <el-icon><Phone /></el-icon>
               发起通话
-            </el-button>
+            </ScButton>
           </el-form-item>
         </el-form>
-      </el-card>
+      </ScCard>
 
       <!-- 通话历史 -->
-      <el-card class="history-card" shadow="hover">
+      <ScCard class="history-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>通话历史</span>
-            <el-button type="text" @click="loadCallHistory">
+            <ScButton type="text" @click="loadCallHistory">
               <el-icon><Refresh /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
         </template>
         
@@ -205,53 +205,53 @@
           </el-table-column>
           <el-table-column label="操作" width="100">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 @click="callUser(row.targetUserId)"
               >
                 回拨
-              </el-button>
+              </ScButton>
             </template>
           </el-table-column>
         </el-table>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 设置对话框 -->
     <sc-dialog v-model="showSettings" title="通话设置" width="500px">
       <el-form :model="settings" label-width="120px">
         <el-form-item label="摄像头">
-          <el-select v-model="settings.videoDeviceId" placeholder="选择摄像头">
-            <el-option
+          <ScSelect v-model="settings.videoDeviceId" placeholder="选择摄像头">
+            <ScOption
               v-for="device in videoDevices"
               :key="device.deviceId"
               :label="device.label"
               :value="device.deviceId"
             />
-          </el-select>
+          </ScSelect>
         </el-form-item>
         
         <el-form-item label="麦克风">
-          <el-select v-model="settings.audioDeviceId" placeholder="选择麦克风">
-            <el-option
+          <ScSelect v-model="settings.audioDeviceId" placeholder="选择麦克风">
+            <ScOption
               v-for="device in audioDevices"
               :key="device.deviceId"
               :label="device.label"
               :value="device.deviceId"
             />
-          </el-select>
+          </ScSelect>
         </el-form-item>
         
         <el-form-item label="扬声器">
-          <el-select v-model="settings.speakerDeviceId" placeholder="选择扬声器">
-            <el-option
+          <ScSelect v-model="settings.speakerDeviceId" placeholder="选择扬声器">
+            <ScOption
               v-for="device in speakerDevices"
               :key="device.deviceId"
               :label="device.label"
               :value="device.deviceId"
             />
-          </el-select>
+          </ScSelect>
         </el-form-item>
         
         <el-form-item label="视频质量">
@@ -264,8 +264,8 @@
       </el-form>
       
       <template #footer>
-        <el-button @click="showSettings = false">取消</el-button>
-        <el-button type="primary" @click="applySettings">应用</el-button>
+        <ScButton @click="showSettings = false">取消</ScButton>
+        <ScButton type="primary" @click="applySettings">应用</ScButton>
       </template>
     </sc-dialog>
   </div>

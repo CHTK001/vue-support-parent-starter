@@ -1,9 +1,10 @@
 <template>
-  <el-drawer
+  <ScDrawer
     v-model="visible"
     size="1220px"
     destroy-on-close
     :title="host ? `${host.serverName} · 文件管理` : '文件管理'"
+    layout="simple"
   >
     <template v-if="host">
       <section class="server-file-shell">
@@ -37,23 +38,23 @@
               <el-radio-button label="list" value="list">列表</el-radio-button>
               <el-radio-button label="tree" value="tree">树状</el-radio-button>
             </el-radio-group>
-            <el-button
+            <ScButton
               v-if="canNavigateParentDirectory"
               circle
               @click="$emit('open-parent-directory')"
             >
               <IconifyIconOnline icon="ri:arrow-up-line" />
-            </el-button>
-            <el-button circle @click="$emit('refresh')">
+            </ScButton>
+            <ScButton circle @click="$emit('refresh')">
               <IconifyIconOnline icon="ri:refresh-line" />
-            </el-button>
-            <el-button circle @click="$emit('create-folder')">
+            </ScButton>
+            <ScButton circle @click="$emit('create-folder')">
               <IconifyIconOnline icon="ri:folder-add-line" />
-            </el-button>
-            <el-button circle @click="$emit('trigger-upload')">
+            </ScButton>
+            <ScButton circle @click="$emit('trigger-upload')">
               <IconifyIconOnline icon="ri:upload-2-line" />
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               circle
               :type="watchEnabled ? 'danger' : 'success'"
               @click="$emit('toggle-watch')"
@@ -61,7 +62,7 @@
               <IconifyIconOnline
                 :icon="watchEnabled ? 'ri:stop-circle-line' : 'ri:radar-line'"
               />
-            </el-button>
+            </ScButton>
           </div>
         </div>
 
@@ -101,24 +102,24 @@
                   </div>
                 </div>
                 <div class="server-action-row">
-                  <el-button circle @click.stop="$emit('rename-entry', entry)">
+                  <ScButton circle @click.stop="$emit('rename-entry', entry)">
                     <IconifyIconOnline icon="ri:edit-line" />
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     circle
                     :disabled="entry.directory"
                     @click.stop="$emit('download-entry', entry)"
                   >
                     <IconifyIconOnline icon="ri:download-2-line" />
-                  </el-button>
-                  <el-button
+                  </ScButton>
+                  <ScButton
                     circle
                     type="danger"
                     plain
                     @click.stop="$emit('remove-entry', entry)"
                   >
                     <IconifyIconOnline icon="ri:delete-bin-6-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
               <el-empty
@@ -181,10 +182,10 @@
                 >
                   {{ preview?.language || "text" }}
                 </el-tag>
-                <el-button v-if="dirty" size="small" plain @click="$emit('reset-draft')">
+                <ScButton v-if="dirty" size="small" plain @click="$emit('reset-draft')">
                   还原
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-if="dirty"
                   size="small"
                   type="primary"
@@ -192,7 +193,7 @@
                   @click="$emit('save-draft')"
                 >
                   同步
-                </el-button>
+                </ScButton>
               </div>
             </div>
             <div
@@ -214,12 +215,13 @@
       </section>
     </template>
     <el-empty v-else description="请选择服务器后再查看文件管理" />
-  </el-drawer>
+  </ScDrawer>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
+import ScDrawer from "@repo/components/ScDrawer";
 import type { ServerFileContent, ServerHost } from "../api";
 import type { FileViewMode, ServerFileEntryCard } from "./server-types";
 

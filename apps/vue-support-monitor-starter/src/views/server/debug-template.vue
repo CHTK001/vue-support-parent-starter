@@ -3,12 +3,12 @@
     <h2>模板逻辑调试</h2>
     
     <div class="controls">
-      <el-button @click="leftPanelMinimized = !leftPanelMinimized">
+      <ScButton @click="leftPanelMinimized = !leftPanelMinimized">
         {{ leftPanelMinimized ? '展开面板' : '最小化面板' }}
-      </el-button>
-      <el-button @click="toggleServers">
+      </ScButton>
+      <ScButton @click="toggleServers">
         {{ servers.length > 0 ? '清空服务器' : '添加服务器' }}
-      </el-button>
+      </ScButton>
     </div>
 
     <div class="status">
@@ -49,7 +49,7 @@
         
         <!-- 正常状态下的空状态 -->
         <el-empty v-if="filteredServers.length === 0" description="暂无服务器">
-          <el-button type="primary">新增服务器</el-button>
+          <ScButton type="primary">新增服务器</ScButton>
         </el-empty>
 
         <!-- 正常状态下的服务器列表 -->

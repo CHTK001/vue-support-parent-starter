@@ -10,4 +10,5 @@ export {
   PixelIcon,
   useRenderIcon,
 } from "./ReIcon";
+export { ScDrawer } from "./ScDrawer";
 

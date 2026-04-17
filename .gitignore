@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 **/**/docs/**
 **/**/docs
+*.png
 **/**/.vscode/**
 **/**/.vscode
 apps/vue-support-soft-test-starter

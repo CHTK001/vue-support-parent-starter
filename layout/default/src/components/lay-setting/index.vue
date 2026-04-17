@@ -5,24 +5,24 @@
  * @version 2.1.1 - 布局级设置面板改为静态主题映射，避免切换时触发布局抖动
  */
 import { useThemeComponent } from "../../hooks/useThemeComponent";
-import { createLayoutAsyncComponent } from "../../utils/asyncComponentLoader";
+import { createOverlayAsyncComponent } from "../../utils/asyncComponentLoader";
 
-const DefaultSetting = createLayoutAsyncComponent(
+const DefaultSetting = createOverlayAsyncComponent(
   () => import("./themes/Default.vue"),
 );
-const EightBitSetting = createLayoutAsyncComponent(
+const EightBitSetting = createOverlayAsyncComponent(
   () => import("./themes/EightBit.vue"),
 );
-const SpringFestivalSetting = createLayoutAsyncComponent(
+const SpringFestivalSetting = createOverlayAsyncComponent(
   () => import("./themes/SpringFestival.vue"),
 );
-const HalloweenSetting = createLayoutAsyncComponent(
+const HalloweenSetting = createOverlayAsyncComponent(
   () => import("./themes/Halloween.vue"),
 );
-const ChristmasSetting = createLayoutAsyncComponent(
+const ChristmasSetting = createOverlayAsyncComponent(
   () => import("./themes/Christmas.vue"),
 );
-const FutureTechSetting = createLayoutAsyncComponent(
+const FutureTechSetting = createOverlayAsyncComponent(
   () => import("./themes/FutureTech.vue"),
 );
 

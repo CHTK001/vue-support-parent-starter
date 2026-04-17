@@ -134,6 +134,7 @@ const handleCancel = () => {
 | draggable          | 是否可拖拽                   | boolean                                                  | true                                  |
 | resizable          | 是否可缩放（仅 custom 模式） | boolean                                                  | false                                 |
 | showClose          | 显示关闭按钮                 | boolean                                                  | true                                  |
+| closeButtonType    | 关闭按钮类型                 | 'default' \| 'external'                                  | 'default'                             |
 | closeOnClickModal  | 点击遮罩关闭                 | boolean                                                  | false                                 |
 | closeOnPressEscape | ESC 关闭                     | boolean                                                  | true                                  |
 | showFooter         | 显示底部                     | boolean                                                  | true                                  |
@@ -167,6 +168,18 @@ const handleCancel = () => {
 | default | 对话框内容 |
 | header  | 自定义头部 |
 | footer  | 自定义底部 |
+
+## 关闭按钮类型
+
+```vue
+<ScDialog v-model="visible" title="默认关闭按钮" close-button-type="default">
+  <p>关闭按钮在头部内侧。</p>
+</ScDialog>
+
+<ScDialog v-model="visible2" title="外置关闭按钮" close-button-type="external">
+  <p>关闭按钮悬挂在右上角外侧。</p>
+</ScDialog>
+```
 
 ## Exposes
 

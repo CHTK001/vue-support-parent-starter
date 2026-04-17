@@ -12,16 +12,21 @@
         class="server-sidebar__header-actions is-collapsed-only"
       >
         <el-tooltip content="展开服务器栏" placement="right">
-          <el-button circle @click="emit('update:collapsed', false)">
+          <ScButton circle @click="emit('update:collapsed', false)">
             <IconifyIconOnline icon="ri:sidebar-unfold-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
       <div v-else class="server-sidebar__header-actions">
+        <el-tooltip content="添加服务器" placement="top">
+          <ScButton circle  @click="emit('create')">
+            <IconifyIconOnline icon="ri:add-line" />
+          </ScButton>
+        </el-tooltip>
         <el-tooltip content="收起服务器栏" placement="top">
-          <el-button circle @click="emit('update:collapsed', true)">
+          <ScButton circle @click="emit('update:collapsed', true)">
             <IconifyIconOnline icon="ri:sidebar-fold-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
     </div>
@@ -43,14 +48,14 @@
       <span class="server-sidebar__aggregate-chip">
         已选 {{ aggregateIds.length }} 台服务器
       </span>
-      <el-button
+      <ScButton
         size="small"
         type="success"
         :disabled="!aggregateIds.length"
         @click="emit('open-aggregate-dashboard')"
       >
         聚合大屏
-      </el-button>
+      </ScButton>
     </div>
 
     <ScScrollbar class="server-sidebar__scroll">
@@ -77,6 +82,7 @@
           @open-install="emit('open-install', $event)"
           @open-remote="emit('open-remote', $event)"
           @open-processes="emit('open-processes', $event)"
+          @open-projects="emit('open-projects', $event)"
           @contextmenu="emit('contextmenu', $event, entry)"
         />
       </div>
@@ -123,6 +129,7 @@ const emit = defineEmits<{
   "open-install": [host: ServerHost];
   "open-remote": [host: ServerHost];
   "open-processes": [host: ServerHost];
+  "open-projects": [host: ServerHost];
   "toggle-aggregate-mode": [];
   "toggle-aggregate-host": [host: ServerHost];
   "open-aggregate-dashboard": [];

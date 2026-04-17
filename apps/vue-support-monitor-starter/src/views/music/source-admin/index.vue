@@ -9,10 +9,10 @@
         </p>
       </div>
       <div class="hero-actions">
-        <el-button type="primary" @click="loadSources" :loading="loading">
+        <ScButton type="primary" @click="loadSources" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新状态
-        </el-button>
+        </ScButton>
       </div>
     </section>
 
@@ -82,14 +82,14 @@
           <span class="source-card__hint">
             {{ item.enabled ? "聚合搜索可见" : "聚合搜索已隐藏" }}
           </span>
-          <el-button
+          <ScButton
             text
             type="primary"
             :disabled="pendingCode === item.code"
             @click="handleToggle(item, !item.enabled)"
           >
             {{ item.enabled ? "立即停用" : "重新启用" }}
-          </el-button>
+          </ScButton>
         </div>
       </article>
     </section>

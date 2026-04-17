@@ -38,8 +38,12 @@ export interface SoftRepositoryPackageSearchVersion {
   packageName?: string;
   osType?: string;
   architecture?: string;
+  repositorySourceId?: number;
+  repositorySourceName?: string;
   sourceKind?: string;
   installMode?: string;
+  downloadUrl?: string;
+  downloadUrls?: string[];
 }
 
 export interface SoftRepositoryPackageSearchItem {
@@ -123,7 +127,7 @@ export interface SoftPackageCreateRequest {
   architecture?: string;
   description?: string;
   iconUrl?: string;
-  versionCode: string;
+  versionCode?: string;
   versionName?: string;
   downloadUrls?: string[];
   sourceKind?: string;
@@ -149,7 +153,34 @@ export interface SoftPackageCreateRequest {
 
 export interface SoftPackageCreateResult {
   package: SoftPackage;
-  version: SoftPackageVersion;
+  version?: SoftPackageVersion | null;
+}
+
+export interface SoftPackageVersionCreateRequest {
+  versionCode: string;
+  versionName?: string;
+  packageName?: string;
+  osType?: string;
+  architecture?: string;
+  sourceKind?: string;
+  installMode?: string;
+  repositorySourceId?: number;
+  artifactPath?: string;
+  downloadUrl?: string;
+  templateFromVersionId?: number;
+  enabled?: boolean;
+  downloadUrls?: string[];
+  installScript?: string;
+  uninstallScript?: string;
+  startScript?: string;
+  stopScript?: string;
+  restartScript?: string;
+  statusScript?: string;
+  serviceRegisterScript?: string;
+  serviceUnregisterScript?: string;
+  logPathsJson?: string;
+  configPathsJson?: string;
+  metadataJson?: string;
 }
 
 export interface SoftPackageAiDraftRequest {

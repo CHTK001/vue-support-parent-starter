@@ -81,3 +81,43 @@ const cryptoApi = {
 export default {
   ...cryptoApi,
 };
+
+/**
+ * RSA-OAEP 加密（浏览器 Web Crypto API）
+ * @param plaintext 明文字符串
+ * @param publicKeyPem PEM 格式公钥（含 header/footer）
+ * @returns Base64 编码的密文
+ * @throws 若公钥格式无效或加密失败则抛出 Error
+ */
+export async function rsaEncrypt(
+  plaintext: string,
+  publicKeyPem: string,
+): Promise<string> {
+  // 1. PEM → ArrayBuffer：去除 header/footer 和换行，atob 解码
+  const pemBody = publicKeyPem
+    .replace(/-----BEGIN PUBLIC KEY-----/, "")
+    .replace(/-----END PUBLIC KEY-----/, "")
+    .replace(/\s+/g, "");
+  const binaryStr = atob(pemBody);
+  const keyBuffer = Uint8Array.from(binaryStr, (c) => c.charCodeAt(0)).buffer;
+
+  // 2. 导入公钥
+  const cryptoKey = await crypto.subtle.importKey(
+    "spki",
+    keyBuffer,
+    { name: "RSA-OAEP", hash: "SHA-256" },
+    false,
+    ["encrypt"],
+  );
+
+  // 3. 加密
+  const cipherBuffer = await crypto.subtle.encrypt(
+    { name: "RSA-OAEP" },
+    cryptoKey,
+    new TextEncoder().encode(plaintext),
+  );
+
+  // 4. ArrayBuffer → Base64
+  const cipherArray = Array.from(new Uint8Array(cipherBuffer));
+  return btoa(String.fromCharCode(...cipherArray));
+}

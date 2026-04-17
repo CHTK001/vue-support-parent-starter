@@ -6,9 +6,9 @@
   >
     <template #actions>
       <el-dropdown trigger="click" @command="applyRepositoryPreset">
-        <el-button circle>
+        <ScButton circle>
           <IconifyIconOnline icon="ri:apps-2-line" />
-        </el-button>
+        </ScButton>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item
@@ -22,14 +22,14 @@
         </template>
       </el-dropdown>
       <el-tooltip content="刷新定义" placement="top">
-        <el-button circle @click="loadRepositories">
+        <ScButton circle @click="loadRepositories">
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </el-tooltip>
       <el-tooltip content="新建仓库定义" placement="top">
-        <el-button circle type="primary" @click="openCreate">
+        <ScButton circle type="primary" @click="openCreate">
           <IconifyIconOnline icon="ri:add-line" />
-        </el-button>
+        </ScButton>
       </el-tooltip>
     </template>
 
@@ -107,60 +107,35 @@
           <div class="repository-card__body">
             <div class="repository-card__meta">
               <span>{{ repositoryTypeLabel(row.repositoryType) }}</span>
-              <span>参考源 {{ getExtraSources(row).length }}</span>
-              <span>启用源 {{ enabledSourceCount(row) }}</span>
+              <span>源 {{ getExtraSources(row).length }}</span>
             </div>
 
             <div class="repository-card__block">
-              <label>主定义源</label>
+              <label>主地址</label>
               <strong>{{ describePrimarySource(row) }}</strong>
             </div>
 
-            <div class="repository-card__block">
-              <label>版本参考同步</label>
-              <span>{{ row.lastSyncMessage || "尚未同步参考版本信息" }}</span>
-            </div>
-
-            <div
-              v-if="getExtraSources(row).length"
-              class="repository-card__sources"
-            >
-              <div
-                v-for="(source, index) in getExtraSources(row)"
-                :key="`${row.softRepositoryId}-${index}`"
-                class="repository-card__source"
-              >
-                <div>
-                  <strong>{{ source.sourceName || `源 ${index + 1}` }}</strong>
-                  <span>{{ sourceKindLabel(source.sourceKind) }} / {{ sourceLabel(source) }}</span>
-                </div>
-                <el-tag
-                  size="small"
-                  effect="light"
-                  :type="source.enabled === false ? 'info' : 'success'"
-                >
-                  {{ source.enabled === false ? "停用" : "启用" }}
-                </el-tag>
-              </div>
-            </div>
+            <small class="repository-card__hint">
+              {{ row.lastSyncMessage || "未同步" }}
+            </small>
           </div>
 
           <footer class="repository-card__actions">
             <el-tooltip content="同步参考版本" placement="top">
-              <el-button
+              <ScButton
                 circle
                 :loading="syncingId === row.softRepositoryId"
                 @click="syncRepository(row.softRepositoryId)"
               >
                 <IconifyIconOnline icon="ri:download-cloud-2-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip
               v-if="row.repositoryType === 'LOCAL_DIR'"
               content="上传安装包并自动同步"
               placement="top"
             >
-              <el-button
+              <ScButton
                 circle
                 type="success"
                 plain
@@ -168,34 +143,34 @@
                 @click="openArtifactUpload(row)"
               >
                 <IconifyIconOnline icon="ri:upload-2-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip
               :content="row.enabled ? '停用仓库' : '启用仓库'"
               placement="top"
             >
-              <el-button circle @click="toggleRepository(row)">
+              <ScButton circle @click="toggleRepository(row)">
                 <IconifyIconOnline
                   :icon="
                     row.enabled ? 'ri:pause-circle-line' : 'ri:play-circle-line'
                   "
                 />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="编辑仓库" placement="top">
-              <el-button circle type="primary" plain @click="openEdit(row)">
+              <ScButton circle type="primary" plain @click="openEdit(row)">
                 <IconifyIconOnline icon="ri:edit-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="删除仓库" placement="top">
-              <el-button
+              <ScButton
                 circle
                 type="danger"
                 plain
                 @click="removeRepository(row.softRepositoryId)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
           </footer>
         </article>
@@ -207,7 +182,7 @@
       </template>
     </ScTable>
 
-    <el-dialog v-model="visible" width="980px" :title="dialogTitle">
+    <ScDialog v-model="visible" width="980px" :title="dialogTitle" layout="simple">
       <el-form
         ref="formRef"
         :model="form"
@@ -274,11 +249,11 @@
             />
           </el-form-item>
           <el-form-item label="认证类型" prop="authType">
-            <el-select v-model="form.authType" clearable style="width: 100%">
-              <el-option label="无认证" value="" />
-              <el-option label="Basic" value="BASIC" />
-              <el-option label="Bearer" value="BEARER" />
-            </el-select>
+            <ScSelect v-model="form.authType" clearable style="width: 100%">
+              <ScOption label="无认证" value="" />
+              <ScOption label="Basic" value="BASIC" />
+              <ScOption label="Bearer" value="BEARER" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="用户名" prop="username">
             <el-input v-model="form.username" />
@@ -330,14 +305,15 @@
                       inactive-text="停用"
                     />
                     <el-tooltip content="删除同步源" placement="top">
-                      <el-button
+                      <ScButton
                         circle
                         type="danger"
                         plain
+                        :loading="deletingSourceId === source.softRepositorySourceId"
                         @click="removeSource(index)"
                       >
                         <IconifyIconOnline icon="ri:delete-bin-line" />
-                      </el-button>
+                      </ScButton>
                     </el-tooltip>
                   </div>
                 </div>
@@ -391,9 +367,9 @@
               </div>
               <div class="repository-source-editor__footer">
                 <el-tooltip content="添加参考源" placement="top">
-                  <el-button circle plain @click="addSource">
+                  <ScButton circle plain @click="addSource">
                     <IconifyIconOnline icon="ri:add-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <span>支持多个在线搜索源、在线安装包目录和本地扫描目录</span>
               </div>
@@ -403,12 +379,12 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submit">
+        <ScButton @click="visible = false">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="submit">
           保存定义
-        </el-button>
+        </ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
     <input
       ref="artifactInputRef"
@@ -429,7 +405,9 @@ import { message } from "@repo/utils";
 import {
   createSoftRepository,
   deleteSoftRepository,
+  deleteSoftRepositorySource,
   listSoftRepositories,
+  listSoftRepositorySourceItems,
   syncSoftRepository,
   uploadSoftRepositoryArtifacts,
   updateSoftRepository,
@@ -443,6 +421,7 @@ const saving = ref(false);
 const visible = ref(false);
 const syncingId = ref<number | null>(null);
 const uploadingId = ref<number | null>(null);
+const deletingSourceId = ref<number | null>(null);
 const editingId = ref<number | null>(null);
 const keyword = ref("");
 const statusFilter = ref<"enabled" | "disabled" | "">("");
@@ -635,6 +614,83 @@ const repositoryPresets = [
           sourceConfig: "停用源示例",
         },
       ],
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "nodejs-dist",
+    label: "Node.js 官方发布库",
+    repository: {
+      repositoryName: "Node.js 官方发布库",
+      repositoryCode: "nodejs-dist",
+      repositoryType: "HTTP_DIR",
+      repositoryUrl: "https://nodejs.org/dist/",
+      syncConfig: "Node.js 官方版本发布目录，适合搜索各平台二进制包与源码包。",
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "nginx-download",
+    label: "NGINX 官方下载",
+    repository: {
+      repositoryName: "NGINX 官方下载",
+      repositoryCode: "nginx-download",
+      repositoryType: "HTTP_DIR",
+      repositoryUrl: "https://nginx.org/download/",
+      syncConfig: "NGINX 官方下载目录，支持 Linux 源码包和 Windows ZIP 包检索。",
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "redis-releases",
+    label: "Redis 官方发布库",
+    repository: {
+      repositoryName: "Redis 官方发布库",
+      repositoryCode: "redis-releases",
+      repositoryType: "HTTP_DIR",
+      repositoryUrl: "https://download.redis.io/releases/",
+      syncConfig: "Redis 官方 release 目录，支持 tar.gz 版本包检索。",
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "kafka-apache-4-1",
+    label: "Kafka 官方 4.1.1",
+    repository: {
+      repositoryName: "Kafka 官方二进制库",
+      repositoryCode: "kafka-apache-4-1",
+      repositoryType: "HTTP_DIR",
+      repositoryUrl: "https://downloads.apache.org/kafka/4.1.1/",
+      syncConfig: "Apache Kafka 官方 4.1.1 目录，可直接同步 tgz 包。",
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "apache-archive",
+    label: "Apache Archive",
+    repository: {
+      repositoryName: "Apache Archive",
+      repositoryCode: "apache-archive",
+      repositoryType: "HTTP_DIR",
+      repositoryUrl: "https://archive.apache.org/dist/",
+      syncConfig: "Apache 历史发布归档目录，适合搜索 Kafka、Maven、Tomcat、Doris 等常见组件。",
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "maven-central",
+    label: "Maven Central",
+    repository: {
+      repositoryName: "Maven Central",
+      repositoryCode: "maven-central",
+      repositoryType: "HTTP_DIR",
+      repositoryUrl: "https://repo1.maven.org/maven2/",
+      syncConfig: "Maven Central 制品目录，适合 Java 工具、jar 包、插件及依赖制品检索。",
+    } satisfies Partial<SoftRepository>,
+  },
+  {
+    key: "mysql-yum",
+    label: "MySQL Yum 仓库",
+    repository: {
+      repositoryName: "MySQL Yum 仓库",
+      repositoryCode: "mysql-yum",
+      repositoryType: "RPM_REPO",
+      repositoryUrl: "https://repo.mysql.com/yum/mysql-8.4-community/el/9/x86_64/",
+      syncConfig: "MySQL 官方 Yum EL9 x86_64 目录，适合 Linux RPM 版本检索与同步。",
     } satisfies Partial<SoftRepository>,
   },
 ] as const;
@@ -856,9 +912,19 @@ const openCreate = () => {
   visible.value = true;
 };
 
-const openEdit = (row: SoftRepository) => {
+const openEdit = async (row: SoftRepository) => {
   editingId.value = row.softRepositoryId || null;
   patchForm(row);
+  const repositoryId = Number(row.softRepositoryId || 0);
+  if (repositoryId) {
+    try {
+      const result = await listSoftRepositorySourceItems(repositoryId);
+      form.sourceConfigs = normalizeSourceConfigs(result.data || []);
+    } catch (error) {
+      console.error(error);
+      message("加载仓库源明细失败，已回退到当前页面缓存", { type: "warning" });
+    }
+  }
   visible.value = true;
 };
 
@@ -1070,7 +1136,26 @@ const addSource = () => {
   ];
 };
 
-const removeSource = (index: number) => {
+const removeSource = async (index: number) => {
+  const source = (form.sourceConfigs || [])[index];
+  if (!source) {
+    return;
+  }
+  const sourceId = Number(source.softRepositorySourceId || 0);
+  if (editingId.value && sourceId > 0) {
+    await ElMessageBox.confirm(
+      `确认删除同步源“${source.sourceName || `同步源 ${index + 1}`}”吗？`,
+      "删除同步源",
+      { type: "warning" },
+    );
+    deletingSourceId.value = sourceId;
+    try {
+      await deleteSoftRepositorySource(editingId.value, sourceId);
+      message("同步源已删除", { type: "success" });
+    } finally {
+      deletingSourceId.value = null;
+    }
+  }
   form.sourceConfigs = (form.sourceConfigs || []).filter(
     (_, itemIndex) => itemIndex !== index,
   );
@@ -1096,6 +1181,7 @@ const parseSourceConfigs = (value?: string): SoftRepositorySource[] => {
 const normalizeSourceConfigs = (sources?: SoftRepositorySource[]) =>
   (sources || [])
     .map((source) => ({
+      softRepositorySourceId: source.softRepositorySourceId,
       sourceName: normalizeText(source.sourceName),
       sourceKind: normalizeSourceKind(source.sourceKind, source.sourceType),
       sourceType: source.sourceType || "HTTP_JSON",
@@ -1266,27 +1352,13 @@ onMounted(loadRepositories);
 
 .repository-card {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   height: 100%;
-  padding: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 22px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(241, 245, 249, 0.92)
-  );
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
-  transition:
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.repository-card:hover {
-  border-color: rgba(14, 165, 233, 0.3);
-  box-shadow: 0 18px 32px rgba(14, 165, 233, 0.12);
-  transform: translateY(-2px);
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
 .repository-card__header,
@@ -1311,7 +1383,7 @@ onMounted(loadRepositories);
 
 .repository-card__title h3 {
   color: #0f172a;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .repository-card__title p {
@@ -1323,12 +1395,12 @@ onMounted(loadRepositories);
 .repository-card__icon {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #0f172a, #0ea5e9);
   color: #f8fafc;
-  font-size: 18px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 
@@ -1341,7 +1413,7 @@ onMounted(loadRepositories);
 
 .repository-card__body {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .repository-card__meta {
@@ -1351,16 +1423,16 @@ onMounted(loadRepositories);
 }
 
 .repository-card__meta span {
-  padding: 5px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.06);
   color: #334155;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .repository-card__block {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .repository-card__block label {
@@ -1371,37 +1443,16 @@ onMounted(loadRepositories);
 .repository-card__block strong,
 .repository-card__block span {
   color: #0f172a;
-  line-height: 1.6;
+  line-height: 1.4;
   word-break: break-all;
+  font-size: 12px;
 }
 
-.repository-card__sources {
-  display: grid;
-  gap: 10px;
-}
-
-.repository-card__source {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(248, 250, 252, 0.88);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-}
-
-.repository-card__source strong,
-.repository-card__source span {
-  display: block;
-}
-
-.repository-card__source strong {
-  color: #0f172a;
-  font-size: 13px;
-}
-
-.repository-card__source span {
-  margin-top: 2px;
+.repository-card__hint {
   color: #64748b;
   font-size: 12px;
-  word-break: break-all;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .repository-card__actions {
@@ -1436,9 +1487,11 @@ onMounted(loadRepositories);
 }
 
 .repository-source-editor {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
+  min-height: 0;
 }
 
 .repository-source-editor__footer {
@@ -1450,12 +1503,14 @@ onMounted(loadRepositories);
 }
 
 .repository-source-item {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--el-border-color);
   border-radius: 16px;
   background: var(--el-fill-color-light);
+  width: 100%;
 }
 
 .repository-source-item__head,

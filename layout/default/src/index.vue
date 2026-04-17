@@ -2,6 +2,7 @@
 import "animate.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/offlineIcon";
+import { preloadAllThemes } from "@repo/components/hooks/useThemeComponent";
 import {
   emitter,
   getMine,
@@ -40,7 +41,11 @@ import {
   watch,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { createLayoutAsyncComponent } from "./utils/asyncComponentLoader";
+import {
+  createLayoutAsyncComponent,
+  createOverlayAsyncComponent,
+  createSidebarAsyncComponent,
+} from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
 import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
@@ -75,52 +80,69 @@ const scheduleFingerprintCollection = () => {
   });
 };
 
+const scheduleThemePreload = () => {
+  registerRequestIdleCallback(() => {
+    if ((window as any).__LAYOUT_THEME_PRELOADED__) {
+      return;
+    }
+    (window as any).__LAYOUT_THEME_PRELOADED__ = true;
+    preloadAllThemes().catch((error) => {
+      console.warn("[Layout] theme preload failed", error);
+      (window as any).__LAYOUT_THEME_PRELOADED__ = false;
+    });
+  });
+};
+
 if (document.readyState === "complete") {
   scheduleFingerprintCollection();
+  scheduleThemePreload();
 } else {
   window.addEventListener("load", scheduleFingerprintCollection, {
+    once: true,
+  });
+  window.addEventListener("load", scheduleThemePreload, {
     once: true,
   });
 }
 
 // 使用带 loading/error 状态的异步组件加载器
-const NavVertical = createLayoutAsyncComponent(
+const NavVertical = createSidebarAsyncComponent(
   () => import("./components/lay-sidebar/NavVertical.vue"),
 );
 const NavHorizontal = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/NavHorizontal.vue"),
 );
-const NavHover = createLayoutAsyncComponent(
+const NavHover = createSidebarAsyncComponent(
   () => import("./components/lay-sidebar/NavHover.vue"),
 );
-const NavDrawer = createLayoutAsyncComponent(
+const NavDrawer = createSidebarAsyncComponent(
   () => import("./components/lay-sidebar/NavDrawer.vue"),
 );
 const LayXx = createLayoutAsyncComponent(
   () => import("./components/lay-xx/index.vue"),
 );
-const NavDouble = createLayoutAsyncComponent(
+const NavDouble = createSidebarAsyncComponent(
   () => import("./components/lay-sidebar/NavDouble.vue"),
 );
-const CardNavigation = createLayoutAsyncComponent(
+const CardNavigation = createSidebarAsyncComponent(
   () => import("./components/lay-sidebar/components/CardNavigation.vue"),
 );
-const LaySetting = createLayoutAsyncComponent(
+const LaySetting = createOverlayAsyncComponent(
   () => import("./components/lay-setting/index.vue"),
 );
-const LayAiChat = createLayoutAsyncComponent(
+const LayAiChat = createOverlayAsyncComponent(
   () => import("./components/lay-ai-chat/index.vue"),
 );
-const FpsMonitor = createLayoutAsyncComponent(
+const FpsMonitor = createOverlayAsyncComponent(
   () => import("./components/lay-performance/FpsMonitor.vue"),
 );
-const LiteInspector = createLayoutAsyncComponent(
+const LiteInspector = createOverlayAsyncComponent(
   () => import("./components/lay-dev-tools/LiteInspector.vue"),
 );
-const HeatmapOverlay = createLayoutAsyncComponent(
+const HeatmapOverlay = createOverlayAsyncComponent(
   () => import("./components/lay-dev-tools/HeatmapOverlay.vue"),
 );
-const FestivalLayer = createLayoutAsyncComponent(
+const FestivalLayer = createOverlayAsyncComponent(
   () => import("./components/lay-festival/index.vue"),
 );
 
@@ -163,14 +185,9 @@ const aiChatVisible = computed(() => {
   if (typeof storageEnabled === "boolean") {
     return storageEnabled;
   }
-  return getConfig().ShowAiChat !== false;
+  return false;
 });
-const isManageRoute = computed(() =>
-  String(route.path || "").startsWith("/manage/"),
-);
-const resolvedAiChatVisible = computed(
-  () => aiChatVisible.value && !isManageRoute.value,
-);
+const resolvedAiChatVisible = computed(() => aiChatVisible.value);
 const aiChatPosition = computed(
   () => $storage?.configure?.aiChatPosition || "bottom-right",
 );
@@ -181,9 +198,26 @@ const aiChatHeaders = computed(() => {
   return { Authorization: `Bearer ${apiKey}` };
 });
 
+const isDevEnv =
+  import.meta.env.DEV ||
+  import.meta.env.MODE === "development" ||
+  import.meta.env.MODE === "test";
+
+const showLiteInspector = computed(
+  () => isDevEnv && !!$storage?.configure?.devLiteTools,
+);
+
+const showHeatmapOverlay = computed(
+  () => isDevEnv && !!$storage?.configure?.devHeatmap,
+);
+
 const showAgreementBanner = computed(() => {
   const agreementVersion = String(userStore.agreementVersion || "").trim();
-  if (!layoutMounted.value || !userStore.agreementNeedConfirm || !agreementVersion) {
+  if (
+    !layoutMounted.value ||
+    !userStore.agreementNeedConfirm ||
+    !agreementVersion
+  ) {
     return false;
   }
   return !(
@@ -638,7 +672,8 @@ const LayHeader = defineComponent({
       <div v-if="showAgreementBanner" class="agreement-notice-banner">
         <div class="agreement-notice-banner__title">用户协议待确认</div>
         <div class="agreement-notice-banner__desc">
-          用户协议已更新至 {{ userStore.agreementVersion }}，请查看并确认后再继续使用。
+          用户协议已更新至
+          {{ userStore.agreementVersion }}，请查看并确认后再继续使用。
         </div>
         <ScButton type="primary" size="small" @click="openAgreementPane">
           查看协议
@@ -747,7 +782,7 @@ const LayHeader = defineComponent({
       </template>
 
       <!-- 系统设置 -->
-      <LaySetting v-if="deferredOverlayReady && pureSetting.ShowBarSetting" />
+      <LaySetting v-if="pureSetting.ShowBarSetting" />
 
       <!-- AI 助手 -->
       <LayAiChat
@@ -772,9 +807,9 @@ const LayHeader = defineComponent({
       />
 
       <!-- DevTools 轻量调试工具（仅开发环境生效，由配置控制） -->
-      <LiteInspector v-if="deferredOverlayReady" />
+      <LiteInspector v-if="deferredOverlayReady && showLiteInspector" />
       <!-- 热点工具热力图覆盖层（仅开发/测试环境生效，由配置控制） -->
-      <HeatmapOverlay v-if="deferredOverlayReady" />
+      <HeatmapOverlay v-if="deferredOverlayReady && showHeatmapOverlay" />
     </div>
 
     <!-- 节日特效层（根据主题动态渲染） -->
@@ -798,8 +833,16 @@ const LayHeader = defineComponent({
   border-radius: 18px;
   border: 1px solid rgba(var(--el-color-primary-rgb), 0.22);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
-    radial-gradient(circle at top right, rgba(var(--el-color-primary-rgb), 0.16), transparent 52%);
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(248, 250, 252, 0.92)
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(var(--el-color-primary-rgb), 0.16),
+      transparent 52%
+    );
   box-shadow:
     0 20px 44px rgba(15, 23, 42, 0.14),
     0 8px 18px rgba(var(--el-color-primary-rgb), 0.12);
@@ -822,7 +865,11 @@ const LayHeader = defineComponent({
 :deep(html.dark) .agreement-notice-banner {
   background:
     linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.92)),
-    radial-gradient(circle at top right, rgba(var(--el-color-primary-rgb), 0.24), transparent 55%);
+    radial-gradient(
+      circle at top right,
+      rgba(var(--el-color-primary-rgb), 0.24),
+      transparent 55%
+    );
   border-color: rgba(var(--el-color-primary-rgb), 0.3);
   box-shadow:
     0 24px 48px rgba(2, 8, 23, 0.4),

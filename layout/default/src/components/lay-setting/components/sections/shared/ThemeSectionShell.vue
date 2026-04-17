@@ -161,4 +161,38 @@ const sectionClass = computed(() => props.section.toLowerCase());
   );
   --theme-shell-shadow: rgba(0, 255, 255, 0.18);
 }
+
+// 深色主题适配
+html.dark {
+  .theme-setting-shell {
+    :deep(.setting-section) {
+      background: var(--el-bg-color-overlay) !important;
+      border-color: var(--el-border-color) !important;
+    }
+
+    :deep(.section-title),
+    :deep(.section-icon) {
+      color: var(--el-color-primary-light-3) !important;
+    }
+
+    :deep(.section-description),
+    :deep(.switch-card-desc),
+    :deep(.param-label) {
+      color: var(--el-text-color-secondary) !important;
+    }
+  }
+
+  .theme-setting-shell--future-tech {
+    --theme-shell-accent: #66ffff;
+    --theme-shell-text: #e6f9ff;
+    --theme-shell-muted: rgba(168, 240, 255, 0.76);
+    --theme-shell-line: rgba(0, 255, 255, 0.2);
+    --theme-shell-surface: rgba(0, 255, 255, 0.08);
+    --theme-shell-card: linear-gradient(
+      145deg,
+      rgba(5, 12, 31, 0.95),
+      rgba(8, 22, 50, 0.9)
+    );
+  }
+}
 </style>

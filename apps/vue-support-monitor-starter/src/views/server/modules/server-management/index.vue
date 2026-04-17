@@ -617,7 +617,7 @@
                           </template>
                         </ScDropdown>
                       </ScTooltip>
-                    </el-button-group>
+                     </el-button-group>
                   </div>
                 </div>
               </ScTooltip>

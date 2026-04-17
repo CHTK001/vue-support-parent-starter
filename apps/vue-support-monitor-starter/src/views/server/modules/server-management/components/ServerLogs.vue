@@ -152,7 +152,7 @@
                 </ScDropdownMenu>
               </template>
             </ScDropdown>
-          </el-button-group>
+           </el-button-group>
         </template>
       </ScTableColumn>
     </ScTable>

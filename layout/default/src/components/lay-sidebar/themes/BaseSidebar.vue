@@ -151,7 +151,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    v-loading="loading"
     :class="[
       'base-sidebar',
       'sidebar-custom',
@@ -163,7 +162,26 @@ onBeforeUnmount(() => {
     @mouseleave.prevent="isShow = false"
   >
     <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
+    <div
+      v-if="loading"
+      class="sidebar-loading-skeleton"
+      :class="[showLogo ? 'with-logo' : 'without-logo']"
+      aria-hidden="true"
+    >
+      <div
+        class="sidebar-loading-skeleton__block sidebar-loading-skeleton__logo"
+      />
+      <div
+        v-for="index in 10"
+        :key="`skeleton-${index}`"
+        class="sidebar-loading-skeleton__block"
+        :style="{
+          width: index % 3 === 0 ? '86%' : index % 3 === 1 ? '72%' : '80%',
+        }"
+      />
+    </div>
     <ScScrollbar
+      v-else
       wrap-class="scrollbar-wrapper"
       :class="[device === 'mobile' ? 'mobile' : 'pc']"
     >
@@ -196,12 +214,12 @@ onBeforeUnmount(() => {
       </ScMenu>
     </ScScrollbar>
     <LaySidebarCenterCollapse
-      v-if="device !== 'mobile' && (isShow || isCollapse)"
+      v-if="!loading && device !== 'mobile' && (isShow || isCollapse)"
       :is-active="pureApp?.sidebar?.opened"
       @toggleClick="toggleSideBar"
     />
     <LaySidebarLeftCollapse
-      v-if="device !== 'mobile'"
+      v-if="!loading && device !== 'mobile'"
       :is-active="pureApp?.sidebar?.opened"
       @toggleClick="toggleSideBar"
     />
@@ -245,9 +263,45 @@ onBeforeUnmount(() => {
   display: block;
 }
 
-:deep(.el-loading-mask) {
-  opacity: 0.45;
-  backdrop-filter: blur(4px);
+.sidebar-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  padding: 12px 10px;
+  overflow: hidden;
+}
+
+.sidebar-loading-skeleton.with-logo {
+  height: calc(100% - 60px);
+}
+
+.sidebar-loading-skeleton__block {
+  height: 12px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.12) 25%,
+    rgba(148, 163, 184, 0.22) 50%,
+    rgba(148, 163, 184, 0.12) 75%
+  );
+  background-size: 200% 100%;
+  animation: sidebar-skeleton-shimmer 1.4s ease infinite;
+}
+
+.sidebar-loading-skeleton__logo {
+  width: 78%;
+  height: 24px;
+  margin-bottom: 6px;
+}
+
+@keyframes sidebar-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .outer-most {

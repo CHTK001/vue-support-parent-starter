@@ -172,12 +172,12 @@
       </article>
     </div>
 
-    <el-dialog
+    <ScDialog
       v-model="detailVisible"
       width="760px"
       destroy-on-close
       :title="detailState.title || '聚合卡片详情'"
-    >
+     layout="simple">
       <div v-if="detailState.title" class="server-aggregate-page__detail">
         <p class="server-aggregate-page__detail-message">
           {{ detailState.message || "暂无补充信息" }}
@@ -193,11 +193,13 @@
           </article>
         </div>
       </div>
-    </el-dialog>
+    </ScDialog>
   </section>
 </template>
 
 <script setup lang="ts">
+
+
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";

@@ -67,7 +67,7 @@
               >
                 跳过
               </ScButton>
-            </el-button-group>
+             </el-button-group>
           </div>
 
           <div class="pomodoro-tool__timer-cycles">
@@ -248,7 +248,7 @@
   </div>
 </template>
 
-<script setup>
+>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { ScSlider } from "@repo/components/ScSlider";
 import { message , ScNotification} from "@repo/utils";

@@ -2,7 +2,7 @@
   <div class="job-management-container system-container modern-bg">
     <!-- 搜索和筛选 -->
     <div class="search-section">
-      <el-card class="search-card" shadow="never">
+      <ScCard class="search-card" shadow="never">
         <div class="page-guide-banner">
           <div class="page-guide-copy">
             <div class="page-guide-badge">任务平台</div>
@@ -22,10 +22,10 @@
               先筛选，再看状态和调度信息，最后执行、停启或进入编辑页。列表页负责日常管理，详细配置放在任务编辑页。
             </p>
           </div>
-          <el-button class="page-guide-action" plain @click="pageGuideVisible = true">
+          <ScButton class="page-guide-action" plain @click="pageGuideVisible = true">
             <IconifyIconOnline icon="ri:question-line" />
             使用指南
-          </el-button>
+          </ScButton>
         </div>
         <div class="search-container">
           <div class="search-left">
@@ -40,40 +40,40 @@
                 <IconifyIconOnline icon="ri:search-line" />
               </template>
             </el-input>
-            <el-select
+            <ScSelect
               v-model="form.jobGroup"
               placeholder="选择任务组"
               class="app-filter"
               clearable
               @change="handleGroupFilter"
             >
-              <el-option :value="0" label="全部任务组" />
-              <el-option
+              <ScOption :value="0" label="全部任务组" />
+              <ScOption
                 v-for="item in executorData"
                 :key="item.monitorId"
                 :label="item.monitorName"
                 :value="item.monitorId"
               />
-            </el-select>
-            <el-select
+            </ScSelect>
+            <ScSelect
               v-model="form.jobTriggerStatus"
               placeholder="任务状态"
               class="status-filter"
               clearable
               @change="handleStatusFilter"
             >
-              <el-option label="运行中" :value="1" />
-              <el-option label="已停止" :value="0" />
-            </el-select>
+              <ScOption label="运行中" :value="1" />
+              <ScOption label="已停止" :value="0" />
+            </ScSelect>
           </div>
           <div class="search-right">
-            <el-button type="primary" @click="add">
+            <ScButton type="primary" @click="add">
               <IconifyIconOnline icon="ri:add-line" />
               新建任务
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 任务列表 -->
@@ -136,9 +136,9 @@
                 class="more-dropdown"
                 popper-class="job-dropdown-popper"
               >
-                <el-button class="more-btn" @click.stop>
+                <ScButton class="more-btn" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
                   <el-dropdown-menu class="job-dropdown-menu">
                     <div class="dropdown-header">
@@ -258,19 +258,19 @@
             <!-- 卡片底部操作 -->
             <div class="card-footer">
               <el-tooltip content="执行一次" placement="top">
-                <el-button
+                <ScButton
                   class="action-btn trigger"
                   @click.stop="trigger(row)"
                 >
                   <IconifyIconOnline icon="ri:flashlight-line" />
                   <span>执行</span>
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip
                 :content="row.jobTriggerStatus === 1 ? '停止任务' : '启动任务'"
                 placement="top"
               >
-                <el-button
+                <ScButton
                   class="action-btn power"
                   :class="row.jobTriggerStatus === 1 ? 'stop' : 'start'"
                   @click.stop="
@@ -287,7 +287,7 @@
                   <span>{{
                     row.jobTriggerStatus === 1 ? "停止" : "启动"
                   }}</span>
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -313,13 +313,13 @@
       </el-form>
       <template #footer>
         <span class="job-dialog-footer">
-          <el-button :loading="triggerLoadding" @click="triggerShow = false"
-            >取消</el-button>
-          <el-button
+          <ScButton :loading="triggerLoadding" @click="triggerShow = false"
+            >取消</ScButton>
+          <ScButton
             :loading="triggerLoadding"
             type="primary"
             @click="triggerExecute"
-            >确定</el-button>
+            >确定</ScButton>
         </span>
       </template>
     </sc-dialog>

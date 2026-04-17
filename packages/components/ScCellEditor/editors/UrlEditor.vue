@@ -9,18 +9,18 @@
       >
         <template #prepend>URL</template>
       </el-input>
-      <el-button
+      <ScButton
         :disabled="!localValue"
         @click="openInNewTab"
       >
         在新标签页打开
-      </el-button>
+      </ScButton>
     </div>
 
     <div v-if="localValue" class="url-preview">
       <div class="preview-header">
         <span class="preview-label">内嵌预览</span>
-        <el-button size="small" text @click="refreshPreview">刷新</el-button>
+        <ScButton size="small" text @click="refreshPreview">刷新</ScButton>
       </div>
       <iframe
         v-if="showPreview"
@@ -31,13 +31,13 @@
         referrerpolicy="no-referrer"
       />
       <div v-else class="preview-placeholder">
-        <el-button size="small" @click="showPreview = true">加载预览</el-button>
+        <ScButton size="small" @click="showPreview = true">加载预览</ScButton>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 
 const props = defineProps({

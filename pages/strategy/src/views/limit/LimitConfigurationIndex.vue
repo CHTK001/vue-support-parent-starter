@@ -105,7 +105,7 @@
           <ScTableColumn prop="createTime" label="创建时间" width="170" />
           <ScTableColumn label="操作" width="150" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button-group size="small">
+              <ScButton-group size="small">
                 <ScButton @click="handleEdit(row)">
                   <i class="ri-edit-line"></i>
                   编辑
@@ -114,7 +114,7 @@
                   <i class="ri-delete-bin-line"></i>
                   删除
                 </ScButton>
-              </el-button-group>
+              <el-button-group>
             </template>
           </ScTableColumn>
         </ScTable>

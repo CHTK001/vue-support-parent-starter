@@ -539,10 +539,30 @@ html.theme-halloween {
       border-bottom: 1px solid rgba(255, 117, 24, 0.5) !important;
     }
 
-    .scroll-item {
+    .scroll-item,
+    .chrome-item,
+    .card-item,
+    .modern-item,
+    .smart-item,
+    .glass-item,
+    .outline-item {
       background: rgba(44, 0, 62, 0.6) !important;
       border: 1px solid rgba(255, 117, 24, 0.3) !important;
       color: rgba(255, 117, 24, 0.9) !important;
+      box-shadow: 0 12px 26px -24px rgba(255, 117, 24, 0.44) !important;
+
+      .chrome-tab,
+      .chrome-tab__bg {
+        background: transparent !important;
+      }
+
+      .tag-title,
+      .tag-icon,
+      .el-icon-close,
+      .chrome-tab-divider {
+        color: inherit !important;
+        border-color: rgba(255, 117, 24, 0.28) !important;
+      }
       
       &:hover {
         background: rgba(255, 117, 24, 0.2) !important;
@@ -554,8 +574,45 @@ html.theme-halloween {
         background: rgba(255, 117, 24, 0.3) !important;
         border-color: #ff7518 !important;
         color: #ff7518 !important;
+
+        .tag-title,
+        .tag-icon,
+        .el-icon-close,
+        .chrome-tab-divider {
+          color: #ff7518 !important;
+          border-color: rgba(255, 117, 24, 0.32) !important;
+        }
       }
     }
+  }
+
+  .sidebar-logo-container .env-badge {
+    border: 1px solid rgba(255, 117, 24, 0.24);
+  }
+
+  .card-navigation-container,
+  .card-navigation-header,
+  .horizontal-card-wrapper,
+  .sub-menu-popup {
+    background: linear-gradient(145deg, rgba(36, 0, 52, 0.98), rgba(18, 0, 28, 0.94)) !important;
+    border-color: rgba(255, 117, 24, 0.22) !important;
+    box-shadow: 0 18px 36px -30px rgba(18, 0, 28, 0.86) !important;
+  }
+
+  .menu-card,
+  .sub-menu-card,
+  .back-button,
+  .scroll-arrow {
+    background: rgba(255, 117, 24, 0.12) !important;
+    border: 1px solid rgba(255, 117, 24, 0.2) !important;
+    color: #ffb566 !important;
+  }
+
+  .card-title,
+  .sub-card-title,
+  .sub-menu-indicator,
+  .back-button span {
+    color: #fff3de !important;
   }
 
   // lay-setting 主题适配

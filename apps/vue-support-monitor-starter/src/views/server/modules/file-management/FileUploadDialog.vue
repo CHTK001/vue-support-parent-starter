@@ -25,10 +25,10 @@
               <IconifyIconOnline icon="ri:folder-open-line" />
             </template>
           </el-input>
-          <el-button @click="selectPath" type="primary">
+          <ScButton @click="selectPath" type="primary">
             <IconifyIconOnline icon="ri:folder-open-line" class="mr-1" />
             选择路径
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -134,14 +134,14 @@
             </div>
 
             <div class="file-actions">
-              <el-button
+              <ScButton
                 v-if="!file.uploading && !file.success"
                 size="small"
                 text
                 @click="removeFile(index)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -171,10 +171,10 @@
           </span>
         </div>
         <div class="footer-actions">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button @click="clearFiles" v-if="fileList.length > 0"
-            >清空</el-button>
-          <el-button
+          <ScButton @click="closeDialog">取消</ScButton>
+          <ScButton @click="clearFiles" v-if="fileList.length > 0"
+            >清空</ScButton>
+          <ScButton
             type="primary"
             @click="startUpload"
             :disabled="fileList.length === 0 || !uploadPath || isUploading"
@@ -182,7 +182,7 @@
           >
             <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
             {{ isUploading ? "上传中..." : "开始上传" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

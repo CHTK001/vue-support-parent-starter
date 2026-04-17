@@ -1,7 +1,7 @@
 ﻿<script setup lang="ts">
 import Calendar from "@iconify-icons/ep/calendar";
 import Refresh from "@iconify-icons/line-md/backup-restore";
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import ScFilterBar from "@repo/components/ScFilterBar/index.vue";
 import { message } from "@repo/utils";
 import {
@@ -26,7 +26,7 @@ import {
 
 // 异步加载组件
 const HolidayCalendar = defineAsyncComponent(
-  () => import("./HolidayCalendar.vue")
+  () => import("./HolidayCalendar.vue"),
 );
 
 // 响应式数据
@@ -86,7 +86,7 @@ const nearestFutureHoliday = computed(() => {
     .sort(
       (a, b) =>
         new Date(a.sysHolidayDate).getTime() -
-        new Date(b.sysHolidayDate).getTime()
+        new Date(b.sysHolidayDate).getTime(),
     );
   return futureHolidays.length > 0 ? futureHolidays[0] : null;
 });
@@ -249,26 +249,24 @@ onMounted(() => {
               <div class="flex items-center gap-2 ml-4">
                 <!-- 视图切换按钮 -->
                 <el-button-group>
-                  <ScButton 
+                  <ScButton
                     :type="viewMode === 'table' ? 'primary' : 'default'"
                     @click="switchViewMode('table')"
                   >
                     <ScIcon><ep-list /></ScIcon>
                     列表
                   </ScButton>
-                  <ScButton 
+                  <ScButton
                     :type="viewMode === 'calendar' ? 'primary' : 'default'"
                     @click="switchViewMode('calendar')"
                   >
-                    <ScIcon 
-                      ><component :is="useRenderIcon(Calendar)"
-                    /></ScIcon>
+                    <ScIcon><component :is="useRenderIcon(Calendar)" /></ScIcon>
                     日历
                   </ScButton>
                 </el-button-group>
 
                 <!-- 海报模式切换 -->
-                <ScButton 
+                <ScButton
                   v-if="viewMode === 'calendar'"
                   :type="posterMode ? 'success' : 'default'"
                   @click="posterMode = !posterMode"
@@ -278,7 +276,7 @@ onMounted(() => {
                 </ScButton>
 
                 <!-- 海报模式开关 -->
-                <ScPopover 
+                <ScPopover
                   v-if="viewMode === 'calendar' && posterMode"
                   placement="bottom"
                   :width="200"
@@ -302,7 +300,7 @@ onMounted(() => {
                 </ScPopover>
 
                 <!-- 同步按钮 -->
-                <ScButton 
+                <ScButton
                   v-auth="'holiday:sync'"
                   type="primary"
                   :loading="syncLoading"
@@ -332,7 +330,7 @@ onMounted(() => {
               v-loading="loading"
               class="thin-scroller"
             >
-              <ScTable 
+              <ScTable
                 :data="sortedHolidayData"
                 border
                 stripe
@@ -343,21 +341,21 @@ onMounted(() => {
                     isNearestFuture(row) ? 'nearest-future-row' : ''
                 "
               >
-                <ScTableColumn 
+                <ScTableColumn
                   label="序号"
                   type="index"
                   align="center"
                   width="60px"
                 />
 
-                <ScTableColumn 
+                <ScTableColumn
                   prop="sysHolidayYear"
                   label="年份"
                   align="center"
                   width="100px"
                 />
 
-                <ScTableColumn 
+                <ScTableColumn
                   prop="sysHolidayDate"
                   label="日期"
                   align="center"
@@ -366,7 +364,7 @@ onMounted(() => {
                   <template #default="{ row }">
                     <div class="date-cell">
                       <span>{{ formatDate(row.sysHolidayDate) }}</span>
-                      <ScTag 
+                      <ScTag
                         v-if="isNearestFuture(row)"
                         type="success"
                         size="small"
@@ -379,14 +377,14 @@ onMounted(() => {
                   </template>
                 </ScTableColumn>
 
-                <ScTableColumn 
+                <ScTableColumn
                   prop="sysHolidayName"
                   label="节假日名称"
                   align="center"
                   min-width="150px"
                 >
                   <template #default="{ row }">
-                    <ScTag 
+                    <ScTag
                       :type="getHolidayTagType(row.sysHolidayIsHoliday)"
                       effect="dark"
                       size="small"
@@ -396,14 +394,14 @@ onMounted(() => {
                   </template>
                 </ScTableColumn>
 
-                <ScTableColumn 
+                <ScTableColumn
                   prop="sysHolidayIsHoliday"
                   label="类型"
                   align="center"
                   width="100px"
                 >
                   <template #default="{ row }">
-                    <ScTag 
+                    <ScTag
                       :type="getHolidayTagType(row.sysHolidayIsHoliday)"
                       effect="plain"
                       size="small"

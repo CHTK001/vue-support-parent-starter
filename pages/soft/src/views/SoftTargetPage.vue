@@ -5,8 +5,8 @@
     :metrics="metrics"
   >
     <template #actions>
-      <el-button @click="loadTargets">刷新</el-button>
-      <el-button type="primary" @click="openCreate">新增目标</el-button>
+      <ScButton @click="loadTargets">刷新</ScButton>
+      <ScButton type="primary" @click="openCreate">新增目标</ScButton>
     </template>
 
     <el-table v-loading="loading" :data="targets" border class="target-table">
@@ -25,16 +25,16 @@
       <el-table-column fixed="right" label="操作" width="180">
         <template #default="{ row }">
           <el-space wrap>
-            <el-button link @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="removeTarget(row.softTargetId)">
+            <ScButton link @click="openEdit(row)">编辑</ScButton>
+            <ScButton link type="danger" @click="removeTarget(row.softTargetId)">
               删除
-            </el-button>
+            </ScButton>
           </el-space>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="visible" width="760px" :title="dialogTitle" class="target-dialog">
+    <ScDialog v-model="visible" width="760px" :title="dialogTitle" class="target-dialog" layout="simple">
       <el-form label-width="92px" class="target-form">
         <el-form-item label="目标名称">
           <el-input v-model="form.targetName" />
@@ -43,11 +43,11 @@
           <el-input v-model="form.targetCode" />
         </el-form-item>
         <el-form-item label="目标类型">
-          <el-select v-model="form.targetType" style="width: 100%">
-            <el-option label="本机" value="LOCAL" />
-            <el-option label="SSH" value="SSH" />
-            <el-option label="WinRM" value="WINRM" />
-          </el-select>
+          <ScSelect v-model="form.targetType" style="width: 100%">
+            <ScOption label="本机" value="LOCAL" />
+            <ScOption label="SSH" value="SSH" />
+            <ScOption label="WinRM" value="WINRM" />
+          </ScSelect>
         </el-form-item>
         <el-form-item label="操作系统">
           <el-input v-model="form.osType" placeholder="linux / windows" />
@@ -92,10 +92,10 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submit">保存</el-button>
+        <ScButton @click="visible = false">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="submit">保存</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
   </SoftWorkspace>
 </template>
 

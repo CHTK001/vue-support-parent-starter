@@ -17,10 +17,10 @@
       <div v-if="fileList.length" class="file-list">
         <div class="list-header">
           <span>待上传文件 ({{ fileList.length }})</span>
-          <el-button size="small" text @click="clearFiles">
+          <ScButton size="small" text @click="clearFiles">
             <IconifyIconOnline icon="ri:delete-bin-line" />
             清空
-          </el-button>
+          </ScButton>
         </div>
         <div class="list-content">
           <div v-for="(file, index) in fileList" :key="index" class="file-item">
@@ -32,9 +32,9 @@
               </div>
             </div>
             <div class="file-actions">
-              <el-button size="small" text type="danger" @click="removeFile(index)">
+              <ScButton size="small" text type="danger" @click="removeFile(index)">
                 <IconifyIconOnline icon="ri:close-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -56,9 +56,9 @@
       <div class="upload-config">
         <el-form :model="uploadConfig" label-width="100px" size="small">
           <el-form-item label="文件分组">
-            <el-select v-model="uploadConfig.groupId" placeholder="选择文件分组（可选）" clearable style="width: 100%">
-              <el-option v-for="group in groupList" :key="group.fileSystemGroupId" :label="group.fileSystemGroupName" :value="group.fileSystemGroupId" />
-            </el-select>
+            <ScSelect v-model="uploadConfig.groupId" placeholder="选择文件分组（可选）" clearable style="width: 100%">
+              <ScOption v-for="group in groupList" :key="group.fileSystemGroupId" :label="group.fileSystemGroupName" :value="group.fileSystemGroupId" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="并发数">
             <el-input-number v-model="uploadConfig.concurrent" :min="1" :max="5" controls-position="right" />
@@ -75,10 +75,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :disabled="!fileList.length || uploading" :loading="uploading" @click="startUpload">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :disabled="!fileList.length || uploading" :loading="uploading" @click="startUpload">
           {{ uploading ? "上传中..." : "开始上传" }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

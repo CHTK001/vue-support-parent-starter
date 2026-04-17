@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     width="760px"
     destroy-on-close
     :title="dialogTitle"
     @update:model-value="emit('update:modelValue', $event)"
-  >
+   layout="simple">
     <template v-if="alert">
       <div class="server-alert-detail-dialog">
         <section class="server-alert-detail-dialog__hero">
@@ -110,20 +110,20 @@
               <span>支持按指标、级别和时间过滤</span>
             </div>
             <div class="server-alert-detail-dialog__history-filters">
-              <el-select v-model="historyMetricType" size="small" style="width: 120px">
-                <el-option label="全部指标" value="" />
-                <el-option
+              <ScSelect v-model="historyMetricType" size="small" style="width: 120px">
+                <ScOption label="全部指标" value="" />
+                <ScOption
                   v-for="item in historyMetricOptions"
                   :key="item"
                   :label="metricLabel(item)"
                   :value="item"
                 />
-              </el-select>
-              <el-select v-model="historySeverity" size="small" style="width: 100px">
-                <el-option label="全部级别" value="" />
-                <el-option label="预警" value="WARNING" />
-                <el-option label="危险" value="DANGER" />
-              </el-select>
+              </ScSelect>
+              <ScSelect v-model="historySeverity" size="small" style="width: 100px">
+                <ScOption label="全部级别" value="" />
+                <ScOption label="预警" value="WARNING" />
+                <ScOption label="危险" value="DANGER" />
+              </ScSelect>
               <el-date-picker
                 v-model="historyDateRange"
                 type="datetimerange"
@@ -140,7 +140,7 @@
                     : aiUnavailableReason || 'AI 能力未激活'
                 "
               >
-                <el-button
+                <ScButton
                   circle
                   plain
                   :loading="currentAiAnalyzing"
@@ -148,7 +148,7 @@
                   @click="emitAnalyzeHistory"
                 >
                   <IconifyIconOnline icon='ri:ai-generate-2' />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </header>
@@ -205,7 +205,7 @@
       </div>
     </template>
     <el-empty v-else description="当前没有可展示的告警详情" />
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">

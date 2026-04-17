@@ -33,23 +33,23 @@
         </div>
         <div class="server-action-row">
           <el-tooltip v-if="launchUrl" content="新标签页打开远程控制">
-            <el-button circle @click="openInNewTab">
+            <ScButton circle @click="openInNewTab">
               <IconifyIconOnline icon="ri:external-link-line" />
-            </el-button>
+            </ScButton>
           </el-tooltip>
           <el-tooltip :content="fullscreen ? '退出全屏' : '远程控制全屏'">
-            <el-button circle @click="toggleFullscreen">
+            <ScButton circle @click="toggleFullscreen">
               <IconifyIconOnline
                 :icon="
                   fullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-line'
                 "
               />
-            </el-button>
+            </ScButton>
           </el-tooltip>
           <el-tooltip content="关闭远程面板">
-            <el-button circle @click="visible = false">
+            <ScButton circle @click="visible = false">
               <IconifyIconOnline icon="ri:close-line" />
-            </el-button>
+            </ScButton>
           </el-tooltip>
         </div>
       </div>

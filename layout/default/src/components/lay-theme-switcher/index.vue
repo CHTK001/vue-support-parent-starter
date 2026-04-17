@@ -110,7 +110,7 @@ const getDaysUntilFestival = (themeName: string): number | null => {
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeStore = useThemeStore();
-const { applyOverallStyle, dataTheme, overallStyle } = useTheme();
+const { applyOverallStyleImmediately, dataTheme, overallStyle } = useTheme();
 const THEME_STYLE_MEMORY_KEY = "themeSkinPreferredOverallStyle";
 
 // 按分组获取所有可用主题（从布局主题系统）
@@ -182,6 +182,23 @@ const getGroupBadge = (group: string): string => {
 };
 
 // 切换主题
+const runInThemeSwitchFrame = async (
+  fn: () => void,
+  clearDelay = 140,
+) => {
+  const htmlEl = document.documentElement;
+  htmlEl.classList.add("theme-switching");
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      fn();
+      resolve();
+    });
+  });
+  window.setTimeout(() => {
+    htmlEl.classList.remove("theme-switching");
+  }, clearDelay);
+};
+
 const handleSwitchTheme = async (themeName: string) => {
   if (currentTheme.value === themeName || switching.value) {
     return;
@@ -210,23 +227,32 @@ const handleSwitchTheme = async (themeName: string) => {
         "light";
       overallStyle.value = restoredStyle;
       dataTheme.value = restoredStyle === "dark";
-      await applyOverallStyle(restoredStyle);
+      await runInThemeSwitchFrame(() => {
+        applyOverallStyleImmediately(restoredStyle);
+      }, 120);
       delete storageConfigure[THEME_STYLE_MEMORY_KEY];
     }
 
-    themeStore.setTheme(themeName as any);
-
-    // 主题自带基础明暗风格时，同步整体模式，避免皮肤切换后残留旧明暗状态。
-    if (themeMeta?.baseStyle) {
-      if (!previousThemeMeta?.baseStyle) {
-        storageConfigure[THEME_STYLE_MEMORY_KEY] =
-          overallStyle.value || getConfig().OverallStyle || "light";
+    await runInThemeSwitchFrame(() => {
+      // 主题自带基础明暗风格时，同步整体模式，避免皮肤切换后残留旧明暗状态。
+      if (themeMeta?.baseStyle) {
+        if (!previousThemeMeta?.baseStyle) {
+          storageConfigure[THEME_STYLE_MEMORY_KEY] =
+            overallStyle.value || getConfig().OverallStyle || "light";
+        }
+        const nextStyle = themeMeta.baseStyle;
+        overallStyle.value = nextStyle;
+        dataTheme.value = nextStyle === "dark";
       }
-      const nextStyle = themeMeta.baseStyle;
-      overallStyle.value = nextStyle;
-      dataTheme.value = nextStyle === "dark";
-      await applyOverallStyle(nextStyle);
-    }
+
+      themeStore.setTheme(themeName as any);
+
+      if (themeMeta?.baseStyle) {
+        applyOverallStyleImmediately(themeMeta.baseStyle);
+      } else {
+        applyOverallStyleImmediately(overallStyle.value);
+      }
+    });
 
     storageConfigure.systemTheme = themeName;
     $storage.configure = storageConfigure;

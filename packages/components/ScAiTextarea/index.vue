@@ -6,7 +6,7 @@
     >
       <div class="sc-ai-textarea__toolbar-main">
         <div v-if="templates.length" class="sc-ai-textarea__templates">
-          <el-button
+          <ScButton
             v-for="item in templates"
             :key="item.key"
             plain
@@ -14,7 +14,7 @@
             @click="applyTemplate(item)"
           >
             {{ item.label }}
-          </el-button>
+          </ScButton>
         </div>
         <ScInput
           v-if="showInstruction"
@@ -31,7 +31,7 @@
         </span>
 
         <el-tooltip :content="replaceTooltip">
-          <el-button
+          <ScButton
             circle
             plain
             size="small"
@@ -40,11 +40,11 @@
             @click="runAi('replace')"
           >
             <IconifyIconOnline icon="ri:ai-generate-2" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
 
         <el-tooltip v-if="allowAppend" content="让 AI 在当前内容后继续补充">
-          <el-button
+          <ScButton
             circle
             plain
             size="small"
@@ -53,7 +53,7 @@
             @click="runAi('append')"
           >
             <IconifyIconOnline icon="ri:add-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
     </div>

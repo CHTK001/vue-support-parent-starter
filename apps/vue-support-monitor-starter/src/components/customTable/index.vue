@@ -219,7 +219,7 @@
     </div>
   </div>
 </template>
-<script lang="ts">
+<script setup lang="ts">
 import { defineComponent, ref, computed, watch, onMounted } from "vue";
 import { Empty } from "ant-design-vue";
 import { SizeType } from "ant-design-vue/es/config-provider";

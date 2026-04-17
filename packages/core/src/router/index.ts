@@ -38,6 +38,7 @@ import {
 } from "./utils";
 import {
   isAlwaysAvailableStaticRoute,
+  resolveRouteSourceMode,
   resolveLocalRouteModulePaths,
   shouldEnableLocalModuleDiscovery,
   shouldLoadLocalBusinessRoutes,
@@ -691,6 +692,25 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   }
   if (!getConfig().OpenAuth) {
     if (!usePermissionStoreHook().menusReady) {
+      if (resolveRouteSourceMode(getConfig()) !== "local-only") {
+        initRouter(to.path)
+          .then(() => {
+            const targetPath =
+              to.path === "/" ? getTopMenu()?.path || to.path : to.path;
+            next({
+              path: targetPath,
+              query: to.query,
+              hash: to.hash,
+              replace: true,
+            });
+          })
+          .catch(() => {
+            usePermissionStoreHook().handleWholeMenus([]);
+            next();
+          });
+        return;
+      }
+
       usePermissionStoreHook().handleWholeMenus([]);
     }
     next();

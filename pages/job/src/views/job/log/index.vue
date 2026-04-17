@@ -20,10 +20,10 @@
             先看近七日趋势判断问题规模，再按时间、执行器和状态过滤，最后进入详情或日志正文定位失败原因。
           </p>
         </div>
-        <el-button class="page-guide-action" plain @click="pageGuideVisible = true">
+        <ScButton class="page-guide-action" plain @click="pageGuideVisible = true">
           <IconifyIconOnline icon="ri:question-line" />
           使用指南
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 统计图表区域 -->
@@ -84,56 +84,56 @@
               />
             </div>
             <div class="filter-item">
-              <el-select
+              <ScSelect
                 v-model="form.jobLogTriggerCode"
                 clearable
                 placeholder="任务状态"
                 class="filter-select"
               >
-                <el-option value="" label="全部状态" />
-                <el-option :value="1" label="成功" />
-                <el-option :value="0" label="失败" />
-              </el-select>
+                <ScOption value="" label="全部状态" />
+                <ScOption :value="1" label="成功" />
+                <ScOption :value="0" label="失败" />
+              </ScSelect>
             </div>
             <div class="filter-item">
-              <el-select
+              <ScSelect
                 v-model="form.jobLogApp"
                 clearable
                 placeholder="执行器"
                 class="filter-select"
               >
-                <el-option value="" label="全部执行器" />
-                <el-option
+                <ScOption value="" label="全部执行器" />
+                <ScOption
                   v-for="item in executorData"
                   :key="item.monitorId"
                   :value="item.monitorApplicationName"
                   :label="item.monitorName"
                 />
-              </el-select>
+              </ScSelect>
             </div>
             <div class="filter-item">
-              <el-select
+              <ScSelect
                 v-model="form.jobLogProfile"
                 clearable
                 placeholder="环境"
                 class="filter-select"
               >
-                <el-option value="" label="全部环境" />
-                <el-option value="dev" label="开发" />
-                <el-option value="prod" label="生产" />
-                <el-option value="test" label="测试" />
-              </el-select>
+                <ScOption value="" label="全部环境" />
+                <ScOption value="dev" label="开发" />
+                <ScOption value="prod" label="生产" />
+                <ScOption value="test" label="测试" />
+              </ScSelect>
             </div>
             <div class="filter-actions">
               <el-tooltip content="搜索" placement="top">
-                <el-button type="primary" class="action-btn" @click="search">
+                <ScButton type="primary" class="action-btn" @click="search">
                   <IconifyIconOnline icon="ri:search-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="清理日志" placement="top">
-                <el-button type="danger" class="action-btn" @click="clear">
+                <ScButton type="danger" class="action-btn" @click="clear">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -259,14 +259,14 @@
             <template #default="scope">
               <div class="action-cell">
                 <el-tooltip content="查看详情" placement="top">
-                  <el-button class="action-btn-sm" @click="rowClick(scope.row)">
+                  <ScButton class="action-btn-sm" @click="rowClick(scope.row)">
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="查看日志" placement="top">
-                  <el-button class="action-btn-sm" @click="cat(scope.row)">
+                  <ScButton class="action-btn-sm" @click="cat(scope.row)">
                     <IconifyIconOnline icon="ri:terminal-box-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </template>
@@ -283,23 +283,23 @@
           <el-input v-model="jobName" disabled readonly />
         </el-form-item>
         <el-form-item label="">
-          <el-select v-model="clearType" style="width: 100%">
-            <el-option label="清理一个月之前的日志数据" :value="1" />
-            <el-option label="清理三个月之前的日志数据" :value="2" />
-            <el-option label="清理六个月之前的日志数据" :value="3" />
-            <el-option label="清理一年之前的日志数据" :value="4" />
-            <!-- <el-option label="清理一千条之前的日志数据" :value="5" />
-            <el-option label="清理一万条之前的日志数据" :value="6" />
-            <el-option label="清理三万条之前的日志数据" :value="7" />
-            <el-option label="清理十万条之前的日志数据" :value="8" /> -->
-            <el-option label="清理所以日志数据" :value="9" />
-          </el-select>
+          <ScSelect v-model="clearType" style="width: 100%">
+            <ScOption label="清理一个月之前的日志数据" :value="1" />
+            <ScOption label="清理三个月之前的日志数据" :value="2" />
+            <ScOption label="清理六个月之前的日志数据" :value="3" />
+            <ScOption label="清理一年之前的日志数据" :value="4" />
+            <!-- <ScOption label="清理一千条之前的日志数据" :value="5" />
+            <ScOption label="清理一万条之前的日志数据" :value="6" />
+            <ScOption label="清理三万条之前的日志数据" :value="7" />
+            <ScOption label="清理十万条之前的日志数据" :value="8" /> -->
+            <ScOption label="清理所以日志数据" :value="9" />
+          </ScSelect>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="clearShow = false">取消</el-button>
-          <el-button type="primary" @click="clearLog(0)">确定</el-button>
+          <ScButton @click="clearShow = false">取消</ScButton>
+          <ScButton type="primary" @click="clearLog(0)">确定</ScButton>
         </span>
       </template>
     </sc-dialog>

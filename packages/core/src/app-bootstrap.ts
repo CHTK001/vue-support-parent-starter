@@ -477,7 +477,8 @@ export async function createStandardApp(
   } = options;
   const useCustomRouter = Boolean(customRouter && customRouter !== false);
   const useHomeRouter = !useCustomRouter && Boolean(homeComponent);
-  const useBuiltinRouter = !useCustomRouter && !useHomeRouter && customRouter !== false;
+  const useBuiltinRouter =
+    !useCustomRouter && !useHomeRouter && customRouter !== false;
   const routerEnabled = useCustomRouter || useHomeRouter || useBuiltinRouter;
 
   // 1. 尽早启动 WASM 初始化，并在 mount 前确保完成
@@ -652,7 +653,7 @@ export async function createStandardApp(
     const loaderStorageKey = getLoaderStorageKey(
       String(config?.SystemCode || "").trim(),
     );
-    if (loaderStyleFromConfig && !localStorage.getItem(loaderStorageKey)) {
+    if (loaderStyleFromConfig) {
       const mapping: Record<string, string> = {
         spinner: "simple",
         clock: "default",
@@ -664,10 +665,20 @@ export async function createStandardApp(
         space: "rings",
         servererror: "book",
       };
-      localStorage.setItem(
-        loaderStorageKey,
-        mapping[String(loaderStyleFromConfig)] || "none",
-      );
+      const loaderSyncKey = `${loaderStorageKey}:config-sync`;
+      const currentStoredStyle = localStorage.getItem(loaderStorageKey);
+      const currentSyncedConfig = localStorage.getItem(loaderSyncKey);
+      const nextStyle = mapping[String(loaderStyleFromConfig)] || "none";
+
+      // 配置首次生效或配置值发生变更时，同步一次首屏 loader 样式；
+      // 之后用户在设置面板里的手动切换仍然保留，不会在每次启动时被强制覆盖。
+      if (
+        !currentStoredStyle ||
+        currentSyncedConfig !== String(loaderStyleFromConfig)
+      ) {
+        localStorage.setItem(loaderStorageKey, nextStyle);
+        localStorage.setItem(loaderSyncKey, String(loaderStyleFromConfig));
+      }
     }
   } catch (error) {
     console.warn("[createStandardApp] 初始化加载动画样式失败:", error);

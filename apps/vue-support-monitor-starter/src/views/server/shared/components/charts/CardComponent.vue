@@ -6,22 +6,22 @@
         <span>{{ componentData.monitorSysGenServerDetailComponentTitle }}</span>
       </div>
       <div class="card-actions" v-if="editMode">
-        <el-button
+        <ScButton
           type="primary"
           text
           size="small"
           @click="handleEdit"
         >
           <IconifyIconOnline icon="ri:edit-line" />
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           type="danger"
           text
           size="small"
           @click="handleDelete"
         >
           <IconifyIconOnline icon="ri:delete-bin-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
     
@@ -51,7 +51,7 @@
     </div>
 
     <div class="card-footer" v-if="!editMode">
-      <el-button
+      <ScButton
         type="primary"
         text
         size="small"
@@ -60,7 +60,7 @@
       >
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
-      </el-button>
+      </ScButton>
     </div>
   </div>
 </template>

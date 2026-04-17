@@ -1,6 +1,6 @@
 <template>
   <div class="log-container">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="header-actions">
           <div class="title-group">
@@ -18,27 +18,27 @@
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-select
+            <ScSelect
               v-model="selectedStatus"
               placeholder="执行状态"
               clearable
               style="width: 140px"
             >
-              <el-option label="运行中" value="RUNNING" />
-              <el-option label="成功" value="SUCCESS" />
-              <el-option label="失败" value="FAIL" />
-              <el-option label="超时" value="TIMEOUT" />
-            </el-select>
-            <el-button :loading="loading" @click="handleRefresh"
-              >刷新</el-button
+              <ScOption label="运行中" value="RUNNING" />
+              <ScOption label="成功" value="SUCCESS" />
+              <ScOption label="失败" value="FAIL" />
+              <ScOption label="超时" value="TIMEOUT" />
+            </ScSelect>
+            <ScButton :loading="loading" @click="handleRefresh"
+              >刷新</ScButton
             >
-            <el-button
+            <ScButton
               :disabled="filteredLogs.length === 0"
               @click="handleExport"
             >
               导出
-            </el-button>
-            <el-button @click="handleBack">返回</el-button>
+            </ScButton>
+            <ScButton @click="handleBack">返回</ScButton>
           </div>
         </div>
       </template>
@@ -124,7 +124,7 @@
           />
         </div>
       </template>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

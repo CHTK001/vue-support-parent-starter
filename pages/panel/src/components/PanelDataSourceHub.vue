@@ -21,9 +21,8 @@
           />
         </label>
         <ElButton circle :icon="RefreshRight" @click="keyword = ''" />
-        <ElButton type="primary" @click="openCreateDialog">
+        <ElButton circle type="primary" @click="openCreateDialog">
           <ElIcon><Plus /></ElIcon>
-          新建数据源
         </ElButton>
       </div>
     </header>
@@ -43,104 +42,84 @@
       </article>
     </div>
 
-    <ScTable
-      class="hub-card-table"
-      layout="card"
-      row-key="sourceId"
-      :col-size="5"
-      :page-size="12"
-      :data="sourceTableData"
-    >
-      <template #default="{ row }">
-        <article class="source-card" @dblclick="$emit('open-source', row)">
-          <div class="source-card__head">
-            <div class="source-card__identity">
-              <span class="source-card__avatar">
-                <ElIcon>
-                  <component :is="sourceAvatarIcon(row.sourceType)" />
-                </ElIcon>
-              </span>
-              <div>
-                <strong>{{ row.connectionName }}</strong>
-                <span
-                  >{{ row.host }}:{{ row.port }} /
-                  {{ row.databaseName || "-" }}</span
-                >
-              </div>
-            </div>
-
-            <button
-              class="source-card__favorite"
-              :class="{ 'source-card__favorite--active': row.favorite }"
-              type="button"
-              @click.stop="$emit('toggle-favorite', row.sourceId)"
-            >
-              <ElIcon><Star /></ElIcon>
-            </button>
-          </div>
-
-          <div class="source-card__strip">
-            <ScTag class="source-card__type" effect="plain">
-              {{ row.sourceType }}
-            </ScTag>
-            <span class="source-card__updated">
-              最近更新 {{ formatTime(row.updatedAt) }}
+    <div class="hub-grid">
+      <article
+        v-for="row in sourceList"
+        :key="row.sourceId"
+        class="source-card"
+        @dblclick="$emit('open-source', row)"
+      >
+        <div class="source-card__head">
+          <div class="source-card__identity">
+            <span class="source-card__avatar">
+              <ElIcon>
+                <component :is="sourceAvatarIcon(row.sourceType)" />
+              </ElIcon>
             </span>
-          </div>
-
-          <dl class="source-card__facts">
-            <div class="source-card__fact">
-              <dt>地址</dt>
-              <dd>{{ row.host }}:{{ row.port }}</dd>
-            </div>
-            <div class="source-card__fact">
-              <dt>{{ row.sourceType === "REDIS" ? "目录" : "数据库" }}</dt>
-              <dd>{{ row.databaseName || "未指定" }}</dd>
-            </div>
-            <div class="source-card__fact">
-              <dt>账号</dt>
-              <dd>{{ row.username || "未填写" }}</dd>
-            </div>
-          </dl>
-
-          <p class="source-card__note">
-            {{ row.note || "未填写备注，建议记录用途、权限边界和 owner。" }}
-          </p>
-
-          <div class="source-card__footer">
-            <ElButton
-              class="source-card__open"
-              :disabled="row.sourceType !== 'JDBC'"
-              type="primary"
-              @click.stop="$emit('open-source', row)"
-            >
-              <ElIcon><FolderOpened /></ElIcon>
-              打开工作台
-            </ElButton>
-            <div class="source-card__actions">
-              <ElButton text @click.stop="openEditDialog(row)">
-                <ElIcon><EditPen /></ElIcon>
-                编辑
-              </ElButton>
-              <ElButton
-                text
-                type="danger"
-                @click.stop="$emit('delete-source', row.sourceId)"
-              >
-                <ElIcon><Delete /></ElIcon>
-                删除
-              </ElButton>
+            <div>
+              <strong>{{ row.connectionName }}</strong>
+              <span>{{ row.host }}:{{ row.port }} / {{ row.databaseName || "-" }}</span>
             </div>
           </div>
-        </article>
-      </template>
-
-      <template #empty>
-        <div class="hub-empty">
-          <ElEmpty description="先保存一个数据源，再从这里进入工作台。" />
+          <button
+            class="source-card__favorite"
+            :class="{ 'source-card__favorite--active': row.favorite }"
+            type="button"
+            @click.stop="$emit('toggle-favorite', row.sourceId)"
+          >
+            <ElIcon><Star /></ElIcon>
+          </button>
         </div>
-      </template>
-    </ScTable>
+
+        <div class="source-card__strip">
+          <ScTag class="source-card__type" size="small" effect="plain">{{ row.jdbcDialectType || row.sourceType }}</ScTag>
+          <span class="source-card__updated">{{ formatTime(row.updatedAt) }}</span>
+        </div>
+
+        <dl class="source-card__facts">
+          <div class="source-card__fact">
+            <dt>地址</dt>
+            <dd>{{ row.host }}:{{ row.port }}</dd>
+          </div>
+          <div class="source-card__fact">
+            <dt>数据库</dt>
+            <dd>{{ row.databaseName || "未指定" }}</dd>
+          </div>
+          <div class="source-card__fact">
+            <dt>账号</dt>
+            <dd>{{ row.username || "未填写" }}</dd>
+          </div>
+        </dl>
+
+        <p class="source-card__note">
+          {{ row.note || "未填写备注" }}
+        </p>
+
+        <div class="source-card__footer">
+          <ElButton
+            class="source-card__open"
+            :disabled="row.sourceType !== 'JDBC' && row.sourceType !== 'REDIS' && row.sourceType !== 'MONGODB' && row.sourceType !== 'ZOOKEEPER' && row.sourceType !== 'PROMETHEUS' && row.sourceType !== 'INFLUXDB2' && row.sourceType !== 'INFLUXDB3' && row.sourceType !== 'NGINX'"
+            type="primary"
+            @click.stop="$emit('open-source', row)"
+          >
+            <ElIcon><FolderOpened /></ElIcon>
+            打开工作台
+          </ElButton>
+          <div class="source-card__actions">
+            <ElButton text @click.stop="openEditDialog(row)">
+              <ElIcon><EditPen /></ElIcon>编辑
+            </ElButton>
+            <ElButton text type="danger" @click.stop="$emit('delete-source', row.sourceId)">
+              <ElIcon><Delete /></ElIcon>删除
+            </ElButton>
+          </div>
+        </div>
+      </article>
+
+      <div v-if="!sourceList.length" class="hub-empty">
+        <ElEmpty description="先保存一个数据源，再从这里进入工作台。" />
+      </div>
+    </div>
 
     <ScDialog
       v-model="dialogVisible"
@@ -260,7 +239,16 @@
 
           <label v-if="isJdbcSource" class="field field--full">
             <span class="field__label field__label--required">驱动类</span>
+            <!-- 自定义类型：纯文本输入 -->
+            <ElInput
+              v-if="modelValue.jdbcDialectType === 'CUSTOM'"
+              :model-value="modelValue.driverClassName"
+              placeholder="例如：com.example.jdbc.Driver"
+              @update:model-value="updateField('driverClassName', String($event || ''))"
+            />
+            <!-- 其他类型：下拉 + 可自定义输入 -->
             <ElSelect
+              v-else
               :model-value="modelValue.driverClassName"
               allow-create
               default-first-option
@@ -286,17 +274,29 @@
           <label v-if="isJdbcSource" class="field field--full">
             <span class="field__label">驱动包</span>
             <div class="field__upload">
-              <ElUpload
-                :auto-upload="false"
-                :show-file-list="false"
-                accept=".jar"
-                :before-upload="handleBeforeDriverUpload"
-              >
-                <ElButton :loading="uploadingDriver" plain>
-                  上传驱动包
-                </ElButton>
-              </ElUpload>
-
+              <div class="field__upload-row">
+                <ElUpload
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  accept=".jar"
+                  :before-upload="handleBeforeDriverUpload"
+                >
+                  <ElButton :loading="uploadingDriver" plain>
+                    上传 .jar
+                  </ElButton>
+                </ElUpload>
+                <span class="field__upload-sep">或</span>
+                <ElInput
+                  v-model="driverDownloadUrl"
+                  class="field__upload-url"
+                  placeholder="输入 jar 下载地址（http/https）"
+                  clearable
+                >
+                  <template #append>
+                    <ElButton :loading="downloadingDriver" @click="handleDownloadDriver">下载</ElButton>
+                  </template>
+                </ElInput>
+              </div>
               <div class="field__upload-meta">
                 <ScTag
                   v-if="modelValue.driverJarName"
@@ -326,11 +326,11 @@
                 'field__label--required': isUsernameRequired,
               }"
             >
-              用户名
+              {{ usernameLabel }}
             </span>
             <ElInput
               :model-value="modelValue.username"
-              placeholder="root"
+              :placeholder="usernamePlaceholder"
               @update:model-value="updateField('username', $event)"
             />
             <small
@@ -342,10 +342,10 @@
           </label>
 
           <label class="field">
-            <span class="field__label">密码</span>
+            <span class="field__label">{{ modelValue.sourceType === 'INFLUXDB2' || modelValue.sourceType === 'INFLUXDB3' ? 'Token' : '密码' }}</span>
             <ElInput
               :model-value="modelValue.password"
-              placeholder="请输入连接密码"
+              :placeholder="modelValue.sourceType === 'INFLUXDB2' || modelValue.sourceType === 'INFLUXDB3' ? '请输入 InfluxDB Token' : '请输入连接密码'"
               show-password
               type="password"
               @update:model-value="updateField('password', $event)"
@@ -388,6 +388,7 @@ import {
   Delete,
   EditPen,
   FolderOpened,
+  Grid,
   Plus,
   RefreshRight,
   Search,
@@ -396,7 +397,6 @@ import {
 } from "@element-plus/icons-vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
-import ScTable from "@repo/components/ScTable/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import {
   ElButton,
@@ -432,6 +432,8 @@ const emit = defineEmits<{
 
 const dialogVisible = ref(false);
 const keyword = ref("");
+const driverDownloadUrl = ref("");
+const downloadingDriver = ref(false);
 const fieldErrors = reactive<Record<string, string>>({
   sourceType: "",
   jdbcDialectType: "",
@@ -445,6 +447,12 @@ const fieldErrors = reactive<Record<string, string>>({
 const sourceTypeOptions = [
   { label: "JDBC / SQL", value: "JDBC" },
   { label: "Redis", value: "REDIS" },
+  { label: "MongoDB", value: "MONGODB" },
+  { label: "ZooKeeper", value: "ZOOKEEPER" },
+  { label: "Prometheus", value: "PROMETHEUS" },
+  { label: "InfluxDB 2.x", value: "INFLUXDB2" },
+  { label: "InfluxDB 3.x", value: "INFLUXDB3" },
+  { label: "Nginx (SSH)", value: "NGINX" },
 ] as const;
 
 const jdbcDialectOptions = [
@@ -496,6 +504,14 @@ const jdbcDialectOptions = [
     defaultPort: 8123,
     driverClassName: "com.clickhouse.jdbc.ClickHouseDriver",
   },
+  {
+    label: "自定义",
+    value: "CUSTOM",
+    icon: "ep:setting",
+    description: "自定义 JDBC",
+    defaultPort: 3306,
+    driverClassName: "",
+  },
 ] as const;
 
 const sourceList = computed(() =>
@@ -520,11 +536,6 @@ const sourceList = computed(() =>
   )
 );
 
-const sourceTableData = computed(() => ({
-  data: sourceList.value,
-  total: sourceList.value.length,
-}));
-
 const favoriteCount = computed(
   () => sourceList.value.filter((source) => source.favorite).length
 );
@@ -538,51 +549,89 @@ const currentDialectPreset = computed(
     ) || jdbcDialectOptions[0]
 );
 
-const databaseLabel = computed(() =>
-  props.modelValue.sourceType === "REDIS"
-    ? "DB Index"
-    : props.modelValue.jdbcDialectType === "ORACLE"
-      ? "服务名 / SID"
-      : "数据库"
-);
+const databaseLabel = computed(() => {
+  const t = props.modelValue.sourceType as string;
+  if (t === "REDIS") return "DB Index";
+  if (t === "MONGODB") return "认证数据库";
+  if (t === "ZOOKEEPER") return "会话超时(ms)";
+  if (t === "INFLUXDB2") return "Bucket";
+  if (t === "INFLUXDB3") return "默认数据库";
+  if (props.modelValue.jdbcDialectType === "ORACLE") return "服务名 / SID";
+  return "数据库";
+});
 
-const databasePlaceholder = computed(() =>
-  props.modelValue.sourceType === "REDIS"
-    ? "例如：0"
-    : props.modelValue.jdbcDialectType === "ORACLE"
-      ? "例如：xe / orcl / service_name"
-      : "例如：mysql / analytics"
-);
+const databasePlaceholder = computed(() => {
+  const t = props.modelValue.sourceType as string;
+  if (t === "REDIS") return "例如：0";
+  if (t === "MONGODB") return "例如：admin";
+  if (t === "ZOOKEEPER") return "例如：30000";
+  if (t === "INFLUXDB2") return "例如：my-bucket";
+  if (t === "INFLUXDB3") return "例如：my-database";
+  if (props.modelValue.jdbcDialectType === "ORACLE") return "例如：xe / orcl / service_name";
+  return "例如：mysql / analytics";
+});
 
-const protocolLabel = computed(() =>
-  props.modelValue.sourceType === "REDIS" ? "连接地址" : "JDBC URL"
-);
+const protocolLabel = computed(() => {
+  const t = props.modelValue.sourceType as string;
+  if (t === "REDIS") return "连接地址";
+  if (t === "MONGODB") return "连接字符串（可选）";
+  if (t === "INFLUXDB2") return "Org（组织）";
+  if (t === "NGINX") return "认证方式";
+  return "JDBC URL";
+});
 
-const protocolPlaceholder = computed(() =>
-  props.modelValue.sourceType === "REDIS"
-    ? "redis://127.0.0.1:6379/0"
-    : "可留空，后端会按数据库类型自动拼装 JDBC URL"
-);
+const protocolPlaceholder = computed(() => {
+  const t = props.modelValue.sourceType as string;
+  if (t === "REDIS") return "redis://127.0.0.1:6379/0";
+  if (t === "MONGODB") return "mongodb://host:27017（可留空，按上方配置自动拼装）";
+  if (t === "INFLUXDB2") return "例如：my-org";
+  if (t === "NGINX") return "password 或 privateKey（留空使用密码认证）";
+  return "可留空，后端会按数据库类型自动拼装 JDBC URL";
+});
 const isUsernameRequired = computed(() => props.modelValue.sourceType === "JDBC");
 
+const usernameLabel = computed(() => {
+  const t = props.modelValue.sourceType as string;
+  if (t === "INFLUXDB2") return "Org（组织）";
+  return "用户名";
+});
+
+const usernamePlaceholder = computed(() => {
+  const t = props.modelValue.sourceType as string;
+  if (t === "INFLUXDB2") return "例如：my-org";
+  if (t === "PROMETHEUS") return "Basic Auth 用户名（可选）";
+  return "root";
+});
+
 const driverClassOptions = computed(() => {
-  const options = jdbcDialectOptions.map(option => ({
-    label: `${option.label} · ${option.driverClassName}`,
-    value: option.driverClassName,
-  }));
-  const currentValue = String(props.modelValue.driverClassName || "").trim();
-  if (currentValue && !options.some(option => option.value === currentValue)) {
-    options.unshift({
-      label: `当前驱动 · ${currentValue}`,
-      value: currentValue,
+  // 只显示当前选中方言的驱动类
+  const preset = currentDialectPreset.value;
+  const options: { label: string; value: string }[] = [];
+
+  if (preset) {
+    // 当前方言的默认驱动
+    options.push({
+      label: `${preset.label} 默认 · ${preset.driverClassName}`,
+      value: preset.driverClassName,
     });
   }
+
+  // 如果当前填写的驱动不在列表里，加入
+  const currentValue = String(props.modelValue.driverClassName || "").trim();
+  if (currentValue && !options.some(o => o.value === currentValue)) {
+    options.unshift({ label: `自定义 · ${currentValue}`, value: currentValue });
+  }
+
   return options;
 });
 
 const formatTime = (value?: string) =>
   value ? value.replace("T", " ").slice(0, 16) : "未记录";
-const sourceAvatarIcon = (type?: string) => (type === "REDIS" ? SetUp : Coin);
+const sourceAvatarIcon = (type?: string) => {
+  if (type === "REDIS") return SetUp;
+  if (type === "MONGODB") return Grid;
+  return Coin;
+};
 
 const updateField = <K extends keyof JdbcConnectionForm>(
   key: K,
@@ -598,25 +647,78 @@ const updateField = <K extends keyof JdbcConnectionForm>(
 };
 
 const handleSourceTypeChange = (value: string) => {
-  const nextSourceType = value === "REDIS" ? "REDIS" : "JDBC";
+  const nextSourceType = value === "REDIS" ? "REDIS" : value === "MONGODB" ? "MONGODB" : "JDBC";
   fieldErrors.sourceType = "";
   if (nextSourceType === "REDIS") {
     emit("update:modelValue", {
       ...props.modelValue,
       sourceType: nextSourceType,
+      port: 6379,
+      driverClassName: "",
     });
     return;
   }
+  if (nextSourceType === "MONGODB") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: nextSourceType,
+      port: 27017,
+      driverClassName: "",
+    });
+    return;
+  }
+  if (value === "ZOOKEEPER") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: "ZOOKEEPER" as any,
+      port: 2181,
+      driverClassName: "",
+    });
+    return;
+  }
+  if (value === "PROMETHEUS") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: "PROMETHEUS" as any,
+      port: 9090,
+      driverClassName: "",
+    });
+    return;
+  }
+  if (value === "INFLUXDB2") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: "INFLUXDB2" as any,
+      port: 8086,
+      driverClassName: "",
+    });
+    return;
+  }
+  if (value === "INFLUXDB3") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: "INFLUXDB3" as any,
+      port: 8086,
+      driverClassName: "",
+    });
+    return;
+  }
+  if (value === "NGINX") {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      sourceType: "NGINX" as any,
+      port: 22,
+      driverClassName: "",
+    });
+    return;
+  }
+  // 切回 JDBC：端口重置为当前方言默认值
   emit("update:modelValue", {
     ...props.modelValue,
     sourceType: "JDBC",
     jdbcDialectType: props.modelValue.jdbcDialectType || currentDialectPreset.value.value,
-    driverClassName:
-      props.modelValue.driverClassName || currentDialectPreset.value.driverClassName,
-    port:
-      Number(props.modelValue.port) > 0
-        ? props.modelValue.port
-        : currentDialectPreset.value.defaultPort,
+    driverClassName: props.modelValue.driverClassName || currentDialectPreset.value.driverClassName,
+    port: currentDialectPreset.value.defaultPort,
   });
 };
 
@@ -625,18 +727,20 @@ const handleJdbcDialectChange = (value: string) => {
     jdbcDialectOptions.find(option => option.value === value) || jdbcDialectOptions[0];
   const previousPreset = currentDialectPreset.value;
   fieldErrors.jdbcDialectType = "";
+  const isCustom = nextPreset.value === 'CUSTOM';
   emit("update:modelValue", {
     ...props.modelValue,
     jdbcDialectType: nextPreset.value,
-    driverClassName:
-      !props.modelValue.driverClassName ||
-      props.modelValue.driverClassName === previousPreset.driverClassName
-        ? nextPreset.driverClassName
-        : props.modelValue.driverClassName,
-    port:
-      !props.modelValue.port || props.modelValue.port === previousPreset.defaultPort
-        ? nextPreset.defaultPort
-        : props.modelValue.port,
+    // 自定义类型：清空驱动类让用户手动填；其他类型：切换时自动填对应驱动
+    driverClassName: isCustom
+      ? ''
+      : (!props.modelValue.driverClassName || props.modelValue.driverClassName === previousPreset.driverClassName
+          ? nextPreset.driverClassName
+          : props.modelValue.driverClassName),
+    // 端口始终跟随方言默认值（自定义类型保留当前值）
+    port: isCustom
+      ? (props.modelValue.port || nextPreset.defaultPort)
+      : nextPreset.defaultPort,
   });
 };
 
@@ -702,6 +806,27 @@ const handleBeforeDriverUpload = (file: File) => {
   return false;
 };
 
+const handleDownloadDriver = async () => {
+  const url = driverDownloadUrl.value.trim();
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    return;
+  }
+  downloadingDriver.value = true;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const fileName = url.split('/').pop()?.split('?')[0] || 'driver.jar';
+    const file = new File([blob], fileName, { type: 'application/java-archive' });
+    emit("upload-driver", file);
+    driverDownloadUrl.value = '';
+  } catch (e: any) {
+    // 静默失败，让父组件处理
+  } finally {
+    downloadingDriver.value = false;
+  }
+};
+
 const clearDriverJar = () => {
   emit("update:modelValue", {
     ...props.modelValue,
@@ -713,10 +838,15 @@ const clearDriverJar = () => {
 
 <style scoped lang="scss">
 .hub-shell {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
-  min-height: 100%;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   padding: 18px;
+  box-sizing: border-box;
+  overflow: hidden;
   background:
     radial-gradient(
       circle at top left,
@@ -808,47 +938,15 @@ const clearDriverJar = () => {
   line-height: 1;
 }
 
-.hub-card-table {
+.hub-grid {
+  flex: 1;
   min-height: 0;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-}
-
-.hub-card-table :deep(.card-view-container) {
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-.hub-card-table :deep(.card-item-wrapper) {
-  padding: 0;
-  background: transparent;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-.hub-card-table :deep(.card-content-wrapper) {
-  height: 100%;
-  padding: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-}
-
-.hub-card-table :deep(.card-inner),
-.hub-card-table :deep(.card-inner.card-default),
-.hub-card-table :deep(.card-inner.theme--default),
-.hub-card-table :deep(.card-inner.card-default.theme--default) {
-  padding: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-content: start;
+  padding: 2px 0 16px;
 }
 
 .source-card {
@@ -1039,6 +1137,24 @@ const clearDriverJar = () => {
   display: grid;
   place-items: center;
   min-height: 320px;
+}
+
+.field__upload-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.field__upload-sep {
+  font-size: 12px;
+  color: #8a9aaa;
+  flex-shrink: 0;
+}
+
+.field__upload-url {
+  flex: 1;
+  min-width: 200px;
 }
 
 .dialog-shell {

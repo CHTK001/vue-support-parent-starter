@@ -1135,6 +1135,54 @@ defineExpose({
   &.theme--info {
     @include theme-variant("info");
   }
+
+  // 深色主题适配
+  html.dark &,
+  [data-theme='dark'] &,
+  &.theme--dark {
+    :deep(.el-table) {
+      background-color: var(--el-bg-color);
+      color: var(--el-text-color-primary);
+
+      th.el-table__cell,
+      td.el-table__cell {
+        background-color: var(--el-bg-color);
+        border-bottom-color: var(--el-border-color);
+      }
+
+      // 表头样式
+      th.el-table__cell {
+        background-color: var(--el-fill-color-light) !important;
+        color: var(--el-text-color-primary);
+      }
+
+      // 斑马纹
+      .el-table__row--striped td.el-table__cell {
+        background-color: var(--el-fill-color-lighter);
+      }
+
+      // 悬停
+      .el-table__body tr:hover > td.el-table__cell {
+        background-color: var(--el-fill-color-light) !important;
+      }
+
+      // 边框
+      &.el-table--border {
+        .el-table__cell {
+          border-right-color: var(--el-border-color);
+        }
+      }
+    }
+
+    // 滚动条样式
+    :deep(.el-scrollbar__bar) {
+      background-color: var(--el-fill-color-dark);
+    }
+
+    :deep(.el-table__empty-text) {
+      color: var(--el-text-color-secondary);
+    }
+  }
 }
 
 .table-container :deep(.el-table__body-wrapper) {

@@ -8,7 +8,7 @@
   >
     <div v-loading="loading" class="server-info">
       <!-- 基本信息 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:information-line" class="mr-2" />
@@ -73,15 +73,15 @@
             {{ formatDate(serverData.monitorSysGenServerUpdateTime) }}
           </el-descriptions-item>
         </el-descriptions>
-      </el-card>
+      </ScCard>
 
       <!-- 连接状态 -->
-      <el-card class="info-card" shadow="never">
+      <ScCard class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:link" class="mr-2" />
             连接状态
-            <el-button
+            <ScButton
               type="primary"
               size="small"
               :loading="statusLoading"
@@ -89,7 +89,7 @@
               class="ml-auto"
             >
               刷新状态
-            </el-button>
+            </ScButton>
           </div>
         </template>
         
@@ -109,15 +109,15 @@
             {{ formatDuration(connectionStatus.onlineDuration) }}
           </el-descriptions-item>
         </el-descriptions>
-      </el-card>
+      </ScCard>
 
       <!-- 系统信息 -->
-      <el-card v-if="systemInfo && Object.keys(systemInfo).length > 0" class="info-card" shadow="never">
+      <ScCard v-if="systemInfo && Object.keys(systemInfo).length > 0" class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:computer-line" class="mr-2" />
             系统信息
-            <el-button
+            <ScButton
               type="primary"
               size="small"
               :loading="infoLoading"
@@ -125,7 +125,7 @@
               class="ml-auto"
             >
               刷新信息
-            </el-button>
+            </ScButton>
           </div>
         </template>
         
@@ -179,10 +179,10 @@
             {{ formatDuration(systemInfo.uptime) }}
           </el-descriptions-item>
         </el-descriptions>
-      </el-card>
+      </ScCard>
 
       <!-- 最近指标 -->
-      <el-card v-if="recentMetrics.length > 0" class="info-card" shadow="never">
+      <ScCard v-if="recentMetrics.length > 0" class="info-card" shadow="never">
         <template #header>
           <div class="card-header">
             <IconifyIconOnline icon="ri:line-chart-line" class="mr-2" />
@@ -243,14 +243,14 @@
             </template>
           </el-table-column>
         </el-table>
-      </el-card>
+      </ScCard>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button type="primary" @click="handleEdit">编辑</el-button>
-        <el-button type="success" @click="handleConnect">连接</el-button>
+        <ScButton @click="visible = false">关闭</ScButton>
+        <ScButton type="primary" @click="handleEdit">编辑</ScButton>
+        <ScButton type="success" @click="handleConnect">连接</ScButton>
       </div>
     </template>
   </sc-dialog>

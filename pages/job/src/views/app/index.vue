@@ -31,28 +31,28 @@
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
+        <ScSelect
           v-model="query.platform"
           clearable
           placeholder="选择平台"
           class="toolbar-select"
         >
-          <el-option label="全部平台" value="" />
-          <el-option label="Spring Boot" value="spring" />
-          <el-option label="Node.js" value="node" />
-          <el-option label="Python" value="python" />
-          <el-option label="Docker" value="docker" />
-        </el-select>
+          <ScOption label="全部平台" value="" />
+          <ScOption label="Spring Boot" value="spring" />
+          <ScOption label="Node.js" value="node" />
+          <ScOption label="Python" value="python" />
+          <ScOption label="Docker" value="docker" />
+        </ScSelect>
       </div>
       <div class="toolbar-right">
-        <el-button @click="reload">
+        <ScButton @click="reload">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </el-button>
-        <el-button type="primary" @click="handleOpenEdit({})">
+        </ScButton>
+        <ScButton type="primary" @click="handleOpenEdit({})">
           <IconifyIconOnline icon="ri:add-circle-line" />
           新建项目
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -66,7 +66,7 @@
     >
       <template #empty>
         <el-empty description="暂无应用配置">
-          <el-button type="primary" @click="handleOpenEdit({})">立即创建</el-button>
+          <ScButton type="primary" @click="handleOpenEdit({})">立即创建</ScButton>
         </el-empty>
       </template>
 
@@ -99,18 +99,18 @@
           </div>
 
           <div class="app-actions" @click.stop>
-            <el-button size="small" @click="handleViewDetail(item)">
+            <ScButton size="small" @click="handleViewDetail(item)">
               <IconifyIconOnline icon="ri:eye-line" />
-            </el-button>
-            <el-button size="small" @click="handleOpenEdit(item)">
+            </ScButton>
+            <ScButton size="small" @click="handleOpenEdit(item)">
               <IconifyIconOnline icon="ri:edit-line" />
-            </el-button>
-            <el-button size="small" @click="handleCopy(item)">
+            </ScButton>
+            <ScButton size="small" @click="handleCopy(item)">
               <IconifyIconOnline icon="ri:file-copy-line" />
-            </el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(item)">
+            </ScButton>
+            <ScButton size="small" type="danger" plain @click="handleDelete(item)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>

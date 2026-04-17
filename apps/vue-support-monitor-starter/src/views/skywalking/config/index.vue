@@ -13,18 +13,18 @@
       </div>
       <div class="header-actions">
         <el-input v-model="searchForm.name" placeholder="配置名称" clearable style="width: 160px" />
-        <el-select v-model="searchForm.status" placeholder="状态" clearable style="width: 100px">
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
-        <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-        <el-button :icon="RefreshRight" @click="handleReset">重置</el-button>
-        <el-button type="success" :icon="Plus" @click="handleAdd">新增配置</el-button>
+        <ScSelect v-model="searchForm.status" placeholder="状态" clearable style="width: 100px">
+          <ScOption label="启用" :value="1" />
+          <ScOption label="禁用" :value="0" />
+        </ScSelect>
+        <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+        <ScButton :icon="RefreshRight" @click="handleReset">重置</ScButton>
+        <ScButton type="success" :icon="Plus" @click="handleAdd">新增配置</ScButton>
       </div>
     </div>
 
     <!-- 表格区域 -->
-    <el-card class="table-card" shadow="never">
+    <ScCard class="table-card" shadow="never">
       <ScTable
         ref="tableRef"
         :url="getSkywalkingConfigPage"
@@ -58,17 +58,17 @@
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleTest(row)">测试</el-button>
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+            <ScButton type="primary" link size="small" @click="handleTest(row)">测试</ScButton>
+            <ScButton type="primary" link size="small" @click="handleEdit(row)">编辑</ScButton>
             <el-popconfirm title="确定删除该配置吗？" @confirm="handleDelete(row)">
               <template #reference>
-                <el-button type="danger" link size="small">删除</el-button>
+                <ScButton type="danger" link size="small">删除</ScButton>
               </template>
             </el-popconfirm>
           </template>
         </el-table-column>
       </ScTable>
-    </el-card>
+    </ScCard>
 
     <!-- 新增/编辑弹窗 -->
     <sc-dialog 
@@ -211,14 +211,14 @@
 
         <!-- 底部操作按钮 -->
         <div class="form-actions">
-          <el-button @click="dialogVisible = false">
+          <ScButton @click="dialogVisible = false">
             <IconifyIconOnline icon="ri:close-line" />
             取消
-          </el-button>
-          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+          </ScButton>
+          <ScButton type="primary" :loading="submitLoading" @click="handleSubmit">
             <IconifyIconOnline icon="ri:check-line" />
             {{ formData.skywalkingConfigId ? '更新配置' : '创建配置' }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </sc-dialog>

@@ -49,15 +49,19 @@ const ReSegmentedComponent = defineComponent({
     );
     const isDark = computed(() => {
       if (typeof document === "undefined") return false;
-      return document.documentElement.classList.contains("dark");
+      const htmlEl = document.documentElement;
+      return (
+        htmlEl.classList.contains("dark") ||
+        htmlEl.getAttribute("data-theme") === "dark"
+      );
     });
     const hoverBackground = computed(() =>
       isDark.value
         ? "rgba(var(--el-color-primary-rgb), 0.22)"
         : "rgba(var(--el-color-primary-rgb), 0.12)"
     );
-    const activeTextColor = computed(() =>
-      "var(--el-text-color-primary)"
+    const activeTextColor = computed(
+      () => "var(--pure-segmented-active-text-color, #111827)",
     );
     const initStatus = ref(false);
     const curMouseActive = ref(-1);

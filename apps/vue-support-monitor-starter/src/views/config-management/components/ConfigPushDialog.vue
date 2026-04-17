@@ -97,11 +97,11 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button type="primary" :loading="pushing" :disabled="selectedServerCount === 0" @click="submit">
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton type="primary" :loading="pushing" :disabled="selectedServerCount === 0" @click="submit">
           <IconifyIconOnline icon="ri:send-plane-line" class="mr-1" v-if="!pushing" />
           {{ pushing ? '下发中...' : '开始下发' }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

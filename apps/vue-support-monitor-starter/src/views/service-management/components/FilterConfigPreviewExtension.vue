@@ -8,7 +8,7 @@
   >
     <div class="preview-extension-config" v-loading="loading">
       <!-- 模式切换 -->
-      <el-card class="config-card" shadow="never">
+      <ScCard class="config-card" shadow="never">
         <template #header>
           <div class="card-header">
             <span class="title">预览模式</span>
@@ -42,10 +42,10 @@
             </template>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 黑名单配置 -->
-      <el-card
+      <ScCard
         class="config-card"
         shadow="never"
         v-show="!config.whitelistMode"
@@ -72,12 +72,12 @@
             >
               <template #prepend>.</template>
               <template #append>
-                <el-button
+                <ScButton
                   @click="addDisabledExtension"
                   :disabled="!newDisabledExt.trim()"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
-                </el-button>
+                </ScButton>
               </template>
             </el-input>
           </div>
@@ -100,22 +100,22 @@
           </div>
           <div class="quick-add">
             <span class="label">快速添加：</span>
-            <el-button
+            <ScButton
               size="small"
               @click="addQuickDisabled('exe,dll,bat,cmd,sh')"
-              >可执行文件</el-button>
-            <el-button
+              >可执行文件</ScButton>
+            <ScButton
               size="small"
               @click="addQuickDisabled('zip,rar,7z,tar,gz')"
-              >压缩包</el-button>
-            <el-button size="small" @click="addQuickDisabled('db,sql,bak')"
-              >数据库文件</el-button>
+              >压缩包</ScButton>
+            <ScButton size="small" @click="addQuickDisabled('db,sql,bak')"
+              >数据库文件</ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 白名单配置 -->
-      <el-card class="config-card" shadow="never" v-show="config.whitelistMode">
+      <ScCard class="config-card" shadow="never" v-show="config.whitelistMode">
         <template #header>
           <div class="card-header">
             <span class="title">
@@ -138,12 +138,12 @@
             >
               <template #prepend>.</template>
               <template #append>
-                <el-button
+                <ScButton
                   @click="addAllowedExtension"
                   :disabled="!newAllowedExt.trim()"
                 >
                   <IconifyIconOnline icon="ri:add-line" />
-                </el-button>
+                </ScButton>
               </template>
             </el-input>
           </div>
@@ -166,31 +166,31 @@
           </div>
           <div class="quick-add">
             <span class="label">快速添加：</span>
-            <el-button
+            <ScButton
               size="small"
               @click="addQuickAllowed('pdf,doc,docx,xls,xlsx,ppt,pptx')"
-              >Office文档</el-button>
-            <el-button
+              >Office文档</ScButton>
+            <ScButton
               size="small"
               @click="addQuickAllowed('jpg,jpeg,png,gif,bmp,webp,svg')"
-              >图片</el-button>
-            <el-button
+              >图片</ScButton>
+            <ScButton
               size="small"
               @click="addQuickAllowed('txt,md,json,xml,html,css,js')"
-              >文本代码</el-button>
-            <el-button size="small" @click="addQuickAllowed('mp4,mp3,wav,avi')"
-              >音视频</el-button>
+              >文本代码</ScButton>
+            <ScButton size="small" @click="addQuickAllowed('mp4,mp3,wav,avi')"
+              >音视频</ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="danger" @click="handleClear">清空配置</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving"
-          >保存</el-button>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="danger" @click="handleClear">清空配置</ScButton>
+        <ScButton type="primary" @click="handleSave" :loading="saving"
+          >保存</ScButton>
       </div>
     </template>
   </sc-dialog>

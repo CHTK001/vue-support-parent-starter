@@ -8,8 +8,8 @@
           <p class="payment-surface__desc">统一维护支付回调基础地址、浏览器回跳地址和首页默认自动刷新周期。</p>
         </div>
         <div class="payment-surface__actions">
-          <el-button :icon="RefreshRight" @click="loadConfig">刷新</el-button>
-          <el-button type="primary" :loading="saving" @click="saveConfig">保存配置</el-button>
+          <ScButton :icon="RefreshRight" @click="loadConfig">刷新</ScButton>
+          <ScButton type="primary" :loading="saving" @click="saveConfig">保存配置</ScButton>
         </div>
       </header>
 
@@ -52,9 +52,9 @@
               <el-input v-model="form.paymentCallbackPathTemplate" placeholder="/{orderNo}/{merchantId}" />
             </el-form-item>
             <el-form-item label="首页自动刷新">
-              <el-select v-model="form.paymentAutoRefreshSeconds">
-                <el-option v-for="item in refreshOptions" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
+              <ScSelect v-model="form.paymentAutoRefreshSeconds">
+                <ScOption v-for="item in refreshOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </ScSelect>
             </el-form-item>
             <el-form-item label="备注" class="payment-form-span-2">
               <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="记录当前环境、网关域名和运维说明。" />

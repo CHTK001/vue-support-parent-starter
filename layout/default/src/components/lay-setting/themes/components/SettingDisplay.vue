@@ -433,14 +433,14 @@ const props = defineProps<{
                   对目标站点执行采样分析并生成图形报告与优化建议
                 </span>
               </div>
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 @click="aiPerformanceDialogVisible = true"
               >
                 <IconifyIconOnline icon="ri:bar-chart-box-line" />
                 打开分析弹窗
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>

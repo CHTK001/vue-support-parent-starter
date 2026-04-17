@@ -93,6 +93,15 @@ export interface JdbcQueryResult {
   affectedRows: number;
   elapsedMillis?: number;
   query: boolean;
+  total?: number;
+  pageNum?: number;
+  pageSize?: number;
+}
+
+export interface JdbcExecuteRequest {
+  sql: string;
+  pageNum?: number;
+  pageSize?: number;
 }
 
 export interface PanelTableDataRequest {
@@ -381,11 +390,11 @@ export const executeJdbcTableAction = (
     { data },
   );
 
-export const executeJdbcSql = (connectionId: string, sql: string) =>
+export const executeJdbcSql = (connectionId: string, sql: string, pageNum?: number, pageSize?: number) =>
   http.request<ReturnResult<JdbcQueryResult>>(
     "post",
     `/v1/panel/jdbc/${connectionId}/execute`,
-    buildPlainTextRequest(sql),
+    { data: { sql, pageNum, pageSize } satisfies JdbcExecuteRequest },
   );
 
 export const explainJdbcExecution = (connectionId: string, sql: string) =>

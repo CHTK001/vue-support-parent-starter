@@ -17,6 +17,137 @@
       @update:model-value="handleFormUpdate"
     />
 
+    <!-- Nginx 工作区 -->
+    <div v-else-if="viewMode === 'nginx'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "Nginx" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <NginxWorkspace
+          v-if="nginxConnectionId"
+          :connection-id="nginxConnectionId"
+          :host="workspaceSource?.host"
+          :port="workspaceSource?.port"
+          :username="workspaceSource?.username || 'root'"
+          :password="workspaceSource?.password"
+          @close="handleBackHome"
+        />
+        <ElEmpty v-else description="SSH 连接中..." />
+      </div>
+    </div>
+
+    <!-- Redis 工作区 -->
+    <div v-else-if="viewMode === 'redis'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "Redis" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <RedisWorkspace
+          v-if="redisConnectionId"
+          :connection-id="redisConnectionId"
+          @close="handleBackHome"
+        />
+        <ElEmpty v-else description="Redis 连接中..." />
+      </div>
+    </div>
+
+    <!-- MongoDB 工作区 -->
+    <div v-else-if="viewMode === 'mongo'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "MongoDB" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <MongoWorkspace v-if="mongoConnectionId" :connection-id="mongoConnectionId" @close="handleBackHome" />
+        <ElEmpty v-else description="MongoDB 连接中..." />
+      </div>
+    </div>
+
+    <!-- ZooKeeper 工作区 -->
+    <div v-else-if="viewMode === 'zookeeper'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "ZooKeeper" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <ZookeeperWorkspace v-if="zookeeperConnectionId" :connection-id="zookeeperConnectionId" @close="handleBackHome" />
+        <ElEmpty v-else description="ZooKeeper 连接中..." />
+      </div>
+    </div>
+
+    <!-- Prometheus 工作区 -->
+    <div v-else-if="viewMode === 'prometheus'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "Prometheus" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <PrometheusWorkspace v-if="prometheusConnectionId" :connection-id="prometheusConnectionId" @close="handleBackHome" />
+        <ElEmpty v-else description="Prometheus 连接中..." />
+      </div>
+    </div>
+
+    <!-- InfluxDB 2.x 工作区 -->
+    <div v-else-if="viewMode === 'influx'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "InfluxDB" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <InfluxWorkspace v-if="influxConnectionId" :connection-id="influxConnectionId" @close="handleBackHome" />
+        <ElEmpty v-else description="InfluxDB 连接中..." />
+      </div>
+    </div>
+
+    <!-- InfluxDB 3.x 工作区 -->
+    <div v-else-if="viewMode === 'influxv3'" class="redis-mode">
+      <header class="workspace-bar">
+        <div class="workspace-bar__main">
+          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+        </div>
+        <div class="workspace-bar__meta">
+          <strong>{{ workspaceSource?.connectionName || "InfluxDB 3" }}</strong>
+          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+        </div>
+      </header>
+      <div class="redis-mode__body">
+        <InfluxV3Workspace v-if="influxV3ConnectionId" :connection-id="influxV3ConnectionId" @close="handleBackHome" />
+        <ElEmpty v-else description="InfluxDB 3 连接中..." />
+      </div>
+    </div>
+
     <section v-else class="workspace-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
@@ -89,6 +220,7 @@
               @context-action="handleContextAction"
               @expand-node="handleExpandNode"
               @expand-table="handleExpandTable"
+              @inject-sql="(node) => { injectSql(`select * from ${fullTableName(node)};`); activeInspectorTabId = 'workspace' }"
               @open-table="handleOpenTable"
               @refresh="handleLoadCatalog"
               @search="handleSearch"
@@ -110,6 +242,7 @@
               :error-message="errorMessage"
               :preview-limit="previewLimit"
               :query-result="queryResult"
+              :sql-result-page-num="sqlResultPageNum"
               :sql-explain-content="sqlExplainContent"
               :sql-explain-rows="sqlExplainRows"
               :sql-suggestions="sqlSuggestions"
@@ -122,6 +255,7 @@
               @delete-account="handleDeleteAccount"
               @execute="handleExecuteSql"
               @execute-selected="handleExecuteSelected"
+              @execute-page="handleExecuteSqlPage"
               @explain="handleExplainSql"
               @grant-account="handleGrantAccount"
               @refresh-table-data="handleRefreshTableData"
@@ -180,6 +314,13 @@ import {
   JdbcCatalogTree,
   JdbcDetailCard,
   PanelDataSourceHub,
+  RedisWorkspace,
+  NginxWorkspace,
+  MongoWorkspace,
+  ZookeeperWorkspace,
+  PrometheusWorkspace,
+  InfluxWorkspace,
+  InfluxV3Workspace,
 } from "./components";
 import {
   DEFAULT_JDBC_CONNECTION,
@@ -219,6 +360,20 @@ import {
   searchJdbcCatalogTree,
   updateJdbcAccount,
   uploadPanelDatasourceDriver,
+  openRedisConnection,
+  closeRedisConnection,
+  openNginxConnection,
+  closeNginxConnection,
+  openMongoConnection,
+  closeMongoConnection,
+  openZookeeperConnection,
+  closeZookeeperConnection,
+  openPrometheusConnection,
+  closePrometheusConnection,
+  openInfluxConnection,
+  closeInfluxConnection,
+  openInfluxV3Connection,
+  closeInfluxV3Connection,
   type JdbcCatalogNode,
   type JdbcConnectionMetadata,
   type JdbcQueryResult,
@@ -239,7 +394,7 @@ import {
 } from "./api";
 import { decryptWorkspaceTicket, encryptWorkspaceTicket } from "./utils/workspaceTicket";
 
-type ViewMode = "hub" | "workspace";
+type ViewMode = "hub" | "redis" | "nginx" | "mongo" | "zookeeper" | "prometheus" | "influx" | "influxv3" | "workspace";
 type InspectorTabType = "account" | "database-document" | "table" | "table-edit";
 type InspectorViewMode = "account" | "data" | "ddl" | "database-document" | "ai" | "indexes" | "columns";
 type CommentMode = "comment" | "mixed" | "native";
@@ -310,6 +465,14 @@ const expandedTableNodeId = ref("");
 const capabilities = ref<PanelCapabilitySummary | null>(null);
 const datasourceMetadata = ref<JdbcConnectionMetadata | null>(null);
 const queryResult = ref<JdbcQueryResult | null>(null);
+const sqlResultPageNum = ref(1);
+const redisConnectionId = ref("");
+const nginxConnectionId = ref("");
+const mongoConnectionId = ref("");
+const zookeeperConnectionId = ref("");
+const prometheusConnectionId = ref("");
+const influxConnectionId = ref("");
+const influxV3ConnectionId = ref("");
 const sqlText = ref("select 1 as ping;");
 const sqlExplainContent = ref("");
 const sqlExplainRows = ref<Record<string, any>[]>([]);
@@ -716,7 +879,152 @@ const openSourceInWorkspace = async (source: PanelSavedSource) => {
 };
 
 const handleOpenSource = async (source: PanelSavedSource) => {
+  // Redis 和 JDBC 都走 ticket 跳转，在新标签页打开
   await openSourceInWorkspace(source);
+};
+
+const openRedisWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "redis";
+  submitting.value = true;
+  try {
+    const res = await openRedisConnection(
+      source.host,
+      source.port,
+      source.password || "",
+      Number(source.databaseName) || 0,
+    );
+    redisConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "Redis 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openNginxWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "nginx";
+  submitting.value = true;
+  try {
+    const res = await openNginxConnection(
+      source.host,
+      source.port,
+      source.username || "root",
+      source.password || undefined,
+    );
+    nginxConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "SSH 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openMongoWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "mongo";
+  submitting.value = true;
+  try {
+    const res = await openMongoConnection(
+      source.host,
+      source.port,
+      source.username || undefined,
+      source.password || undefined,
+      source.databaseName || undefined,
+    );
+    mongoConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "MongoDB 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openZookeeperWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "zookeeper";
+  submitting.value = true;
+  try {
+    const res = await openZookeeperConnection(source.host, source.port);
+    zookeeperConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "ZooKeeper 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openPrometheusWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "prometheus";
+  submitting.value = true;
+  try {
+    const res = await openPrometheusConnection(
+      source.host,
+      source.port,
+      source.username || undefined,
+      source.password || undefined,
+    );
+    prometheusConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "Prometheus 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openInfluxWorkspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "influx";
+  submitting.value = true;
+  try {
+    const res = await openInfluxConnection(
+      source.host,
+      source.port,
+      source.password || "",
+      source.username || "",
+      source.databaseName || "",
+    );
+    influxConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "InfluxDB 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+const openInfluxV3Workspace = async (source: PanelSavedSource) => {
+  workspaceSource.value = source;
+  viewMode.value = "influxv3";
+  submitting.value = true;
+  try {
+    const res = await openInfluxV3Connection(
+      source.host,
+      source.port,
+      source.password || "",
+      source.databaseName || "",
+    );
+    influxV3ConnectionId.value = res?.data || "";
+  } catch (error: any) {
+    const msg = error?.response?.data?.msg || error?.message || "InfluxDB 3 连接失败";
+    ElMessage.error(`连接失败：${msg}`);
+    viewMode.value = "hub";
+  } finally {
+    submitting.value = false;
+  }
 };
 
 const resetWorkspaceState = () => {
@@ -808,6 +1116,43 @@ const loadWorkspaceRemarks = async () => {
 };
 
 const bootstrapWorkspace = async (source: PanelSavedSource) => {
+  // 进入工作区时设置页面标题为数据源名称
+  document.title = source.connectionName || source.host || "Panel Workspace";
+  // Redis 数据源走 Redis 工作区
+  if (source.sourceType === "REDIS") {
+    await openRedisWorkspace(source);
+    return;
+  }
+  // Nginx 数据源走 Nginx 工作区
+  if ((source.sourceType as string) === "NGINX") {
+    await openNginxWorkspace(source);
+    return;
+  }
+  // MongoDB 数据源走 Mongo 工作区
+  if ((source.sourceType as string) === "MONGODB") {
+    await openMongoWorkspace(source);
+    return;
+  }
+  // ZooKeeper 数据源走 ZooKeeper 工作区
+  if ((source.sourceType as string) === "ZOOKEEPER") {
+    await openZookeeperWorkspace(source);
+    return;
+  }
+  // Prometheus 数据源走 Prometheus 工作区
+  if ((source.sourceType as string) === "PROMETHEUS") {
+    await openPrometheusWorkspace(source);
+    return;
+  }
+  // InfluxDB 2.x 数据源走 Influx 工作区
+  if ((source.sourceType as string) === "INFLUXDB2") {
+    await openInfluxWorkspace(source);
+    return;
+  }
+  // InfluxDB 3.x 数据源走 InfluxV3 工作区
+  if ((source.sourceType as string) === "INFLUXDB3") {
+    await openInfluxV3Workspace(source);
+    return;
+  }
   workspaceSource.value = source;
   viewMode.value = "workspace";
   resetWorkspaceState();
@@ -847,9 +1192,66 @@ const handleBackHome = async () => {
       // ignore
     }
   }
+  if (redisConnectionId.value) {
+    try {
+      await closeRedisConnection(redisConnectionId.value);
+    } catch {
+      // ignore
+    }
+    redisConnectionId.value = "";
+  }
+  if (nginxConnectionId.value) {
+    try {
+      await closeNginxConnection(nginxConnectionId.value);
+    } catch {
+      // ignore
+    }
+    nginxConnectionId.value = "";
+  }
+  if (mongoConnectionId.value) {
+    try {
+      await closeMongoConnection(mongoConnectionId.value);
+    } catch {
+      // ignore
+    }
+    mongoConnectionId.value = "";
+  }
+  if (zookeeperConnectionId.value) {
+    try {
+      await closeZookeeperConnection(zookeeperConnectionId.value);
+    } catch {
+      // ignore
+    }
+    zookeeperConnectionId.value = "";
+  }
+  if (prometheusConnectionId.value) {
+    try {
+      await closePrometheusConnection(prometheusConnectionId.value);
+    } catch {
+      // ignore
+    }
+    prometheusConnectionId.value = "";
+  }
+  if (influxConnectionId.value) {
+    try {
+      await closeInfluxConnection(influxConnectionId.value);
+    } catch {
+      // ignore
+    }
+    influxConnectionId.value = "";
+  }
+  if (influxV3ConnectionId.value) {
+    try {
+      await closeInfluxV3Connection(influxV3ConnectionId.value);
+    } catch {
+      // ignore
+    }
+    influxV3ConnectionId.value = "";
+  }
   activeConnectionId.value = "";
   workspaceSource.value = null;
   viewMode.value = "hub";
+  document.title = "Panel Workspace Hub";
   asideCollapsed.value = false;
   resetWorkspaceState();
   const url = new URL(window.location.href);
@@ -1636,8 +2038,17 @@ const handleExecuteSql = async (statement?: string) => {
   submitting.value = true;
   errorMessage.value = "";
   try {
-    const response = await executeJdbcSql(activeConnectionId.value, currentSql);
+    const response = await executeJdbcSql(
+      activeConnectionId.value,
+      currentSql,
+      sqlResultPageNum.value,
+      previewLimit.value,
+    );
     queryResult.value = response?.data || null;
+    // 如果后端返回了分页信息，同步页码
+    if (queryResult.value?.pageNum) {
+      sqlResultPageNum.value = queryResult.value.pageNum;
+    }
     sqlExplainContent.value = "";
     sqlExplainRows.value = [];
   } catch (error: any) {
@@ -1645,6 +2056,11 @@ const handleExecuteSql = async (statement?: string) => {
   } finally {
     submitting.value = false;
   }
+};
+
+const handleExecuteSqlPage = async (page: number) => {
+  sqlResultPageNum.value = page;
+  await handleExecuteSql();
 };
 
 const handleExplainSql = async () => {
@@ -2000,12 +2416,14 @@ const handleContextAction = async ({
   }
 
   if (action === "design-table") {
-    await ensureInspectorTab(node, "table-edit", "columns", true, false);
+    const tab = await ensureInspectorTab(node, "table-edit", "columns", true, false);
+    activeInspectorTabId.value = tab.tabId;
     return;
   }
 
   if (action === "open-data") {
     const tab = await ensureInspectorTab(node, "table", "data", true, false);
+    activeInspectorTabId.value = tab.tabId;
     deferBackgroundTask(() => {
       void handleRefreshTableData(tab.tabId);
     });
@@ -2118,6 +2536,23 @@ onBeforeUnmount(() => {
   height: calc(100vh - 32px);
   min-height: 0;
   overflow: hidden;
+}
+
+.redis-mode {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: calc(100vh - 32px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.redis-mode__body {
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.96);
+  margin: 0;
 }
 
 .workspace-bar {

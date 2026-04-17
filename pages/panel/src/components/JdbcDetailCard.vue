@@ -71,114 +71,38 @@
           <div
             v-else-if="activeWorkbenchTab.tabType === 'table'"
             :key="`workbench-tools-${activeWorkbenchTab.tabId}-table`"
-            class="workbench-head__tools workbench-head__tools--stack"
+            class="workbench-head__tools"
           >
-            <div class="toolbar-row">
-              <div class="toolbar-segment" role="tablist" aria-label="工作台视图">
-                <button
-                  v-for="item in workbenchViewOptions"
-                  :key="item.value"
-                  type="button"
-                  class="toolbar-segment__item"
-                  :class="{ 'is-active': tableView === item.value }"
-                  @click="tableView = item.value"
-                >
-                  {{ item.label }}
-                </button>
-              </div>
-              <ElTooltip
-                v-if="activeDataDirtyCount"
-                content="保存修改 (Ctrl+S)"
+            <div class="toolbar-segment" role="tablist" aria-label="工作台视图">
+              <button
+                v-for="item in workbenchViewOptions"
+                :key="item.value"
+                type="button"
+                class="toolbar-segment__item"
+                :class="{ 'is-active': tableView === item.value }"
+                @click="tableView = item.value"
               >
-                <ElButton
-                  circle
-                  type="primary"
-                  :icon="FolderChecked"
-                  @click="handleSaveTableChanges"
-                />
-              </ElTooltip>
-              <ElTooltip content="刷新当前表数据">
-                <ElButton
-                  circle
-                  :icon="RefreshRight"
-                  @click="handleRefreshActiveTable"
-                />
-              </ElTooltip>
+                {{ item.label }}
+              </button>
             </div>
-            <div class="toolbar-row">
-              <span class="toolbar-label">表头</span>
-              <div class="toolbar-segment" role="tablist" aria-label="表头显示模式">
-                <button
-                  v-for="item in commentModeOptions"
-                  :key="`head-${item.value}`"
-                  type="button"
-                  class="toolbar-segment__item"
-                  :class="{ 'is-active': tableCommentTab === item.value }"
-                  @click="tableCommentTab = item.value"
-                >
-                  {{ item.label }}
-                </button>
-              </div>
-              <span class="toolbar-label">数据</span>
-              <div class="toolbar-segment" role="tablist" aria-label="数据显示模式">
-                <button
-                  v-for="item in commentModeOptions"
-                  :key="`data-${item.value}`"
-                  type="button"
-                  class="toolbar-segment__item"
-                  :class="{ 'is-active': dataCommentTab === item.value }"
-                  @click="dataCommentTab = item.value"
-                >
-                  {{ item.label }}
-                </button>
-              </div>
-              <span class="toolbar-label">页签形状</span>
-              <div class="toolbar-segment" role="tablist" aria-label="页签形状">
-                <button
-                  v-for="item in railShapeOptions"
-                  :key="`shape-${item.value}`"
-                  type="button"
-                  class="toolbar-segment__item"
-                  :class="{ 'is-active': railShapeTab === item.value }"
-                  @click="railShapeTab = item.value"
-                >
-                  {{ item.label }}
-                </button>
-              </div>
-              <span class="toolbar-label">查总量</span>
-              <ElSwitch
-                :model-value="activeWorkbenchTab.loadTotal"
-                @update:model-value="
-                  updateActiveTabSetting({
-                    loadTotal: Boolean($event),
-                    pageNum: 1,
-                    viewMode: 'data',
-                  })
-                "
+            <ElTooltip
+              v-if="activeDataDirtyCount"
+              content="保存修改 (Ctrl+S)"
+            >
+              <ElButton
+                circle
+                type="primary"
+                :icon="FolderChecked"
+                @click="handleSaveTableChanges"
               />
-            </div>
-            <div class="toolbar-row">
-              <span class="toolbar-label">数据模式</span>
-              <div class="toolbar-segment" role="tablist" aria-label="数据模式">
-                <button
-                  v-for="item in paginationModeOptions"
-                  :key="`mode-${item.value}`"
-                  type="button"
-                  class="toolbar-segment__item"
-                  :class="{ 'is-active': paginationModeTab === item.value }"
-                  @click="paginationModeTab = item.value"
-                >
-                  {{ item.label }}
-                </button>
-              </div>
-              <span class="toolbar-label">显示序列</span>
-              <ElSwitch
-                :model-value="activeWorkbenchTab.showSequence"
-                @update:model-value="
-                  updateActiveTabSetting({ showSequence: Boolean($event) })
-                "
+            </ElTooltip>
+            <ElTooltip content="刷新当前表数据">
+              <ElButton
+                circle
+                :icon="RefreshRight"
+                @click="handleRefreshActiveTable"
               />
-            </div>
+            </ElTooltip>
           </div>
           <div
             v-else-if="activeWorkbenchTab.tabType === 'database-document'"
@@ -648,22 +572,21 @@
                     />
                   </div>
                   <div class="data-preview-head__actions">
-                    <ElButton plain size="small" @click="toggleAdvancedFilterPanel">
-                      {{ showAdvancedFilterPanel ? "收起筛选" : "高级筛选" }}
-                    </ElButton>
-                    <ElButton
-                      plain
-                      size="small"
-                      :disabled="!activeTableFilters.length"
-                      @click="handleClearAdvancedFilters"
-                    >
-                      清空条件
-                    </ElButton>
                     <ScTag
-                      v-if="activeDataDirtyCount"
-                      class="toolbar-chip data-preview-head__elapsed"
+                      v-if="activeFilterCount"
+                      class="toolbar-chip"
                       effect="plain"
                       size="small"
+                      type="warning"
+                    >
+                      filters {{ activeFilterCount }}
+                    </ScTag>
+                    <ScTag
+                      v-if="activeDataDirtyCount"
+                      class="toolbar-chip"
+                      effect="plain"
+                      size="small"
+                      type="danger"
                     >
                       dirty {{ activeDataDirtyCount }}
                     </ScTag>
@@ -691,6 +614,9 @@
                     </div>
                     <ElButton plain size="small" @click="handleAddAdvancedFilter">
                       添加条件
+                    </ElButton>
+                    <ElButton plain size="small" @click="panelFilterPanelOpen = false">
+                      收起
                     </ElButton>
                   </div>
                   <div
@@ -761,39 +687,179 @@
                   </div>
                 </div>
               </div>
-              <div class="data-table-shell">
-                <ScTable
+              <div class="data-table-shell" @contextmenu.prevent="handleTableShellContextMenu">
+                <ElTable
                   v-if="activeDataColumns.length"
                   ref="panelDataTableRef"
                   :key="`panel-data-table-${activeWorkbenchTab.tabId}`"
+                  :data="activeDisplayRows"
                   :border="true"
-                  :columns="activeDataTableColumns"
-                  :data="activeDataTablePayload"
-                  :default-sortable="false"
                   :height="'100%'"
-                  :hide-do="true"
-                  :hide-pagination="true"
-                  :hide-refresh="true"
-                  :hide-setting="false"
-                  :auto-virtual="true"
-                  :virtual-threshold="600"
-                  :column-header-menu="true"
-                  :column-meta="activeColumnMeta"
-                  :page-size="Math.max(activeWorkbenchTab.pageSize, 1)"
-                  :row-class="resolveDataRowClass"
                   :row-key="'__panelRowIndex'"
-                  :search="true"
-                  :table-id="`panel-data-${activeWorkbenchTab.tabId}`"
-                  class="data-table-virtual"
-                  @column-config-change="handlePanelTableColumnConfigChange"
-                  @sort-change="handlePanelTableSortChange"
-                  @cell-dblclick="handleCellDblClick"
-                />
+                  :row-class-name="resolveDataRowClass"
+                  class="data-table-native"
+                  @cell-dblclick="(row, col) => handleCellDblClick(row.__panelRow, col)"
+                  @cell-contextmenu="(row, col, cell, e) => openCellViewer(e, row.__panelRow[col?.property], col?.property)"
+                >
+                  <ElTableColumn
+                    v-if="activeWorkbenchTab.showSequence"
+                    align="center"
+                    fixed="left"
+                    label="#"
+                    width="60"
+                  >
+                    <template #default="{ row }">
+                      {{ resolveSequence(row.__panelRowIndex) }}
+                    </template>
+                  </ElTableColumn>
+                  <ElTableColumn
+                    v-for="col in activeOrderedDataColumns"
+                    :key="col"
+                    :column-key="col"
+                    :fixed="resolveColumnFixed(col) || undefined"
+                    :min-width="measurePanelDataColumnWidth(col, activeDisplayRows)"
+                    :prop="col"
+                    :show-overflow-tooltip="true"
+                    :sortable="false"
+                  >
+                    <template #header>
+                      <div class="col-header-wrapper">
+                        <div class="col-header-row">
+                          <span class="col-header-title">{{ resolveColumnHeader(col) }}</span>
+                          <span class="col-header-sort" @click.stop="handleHeaderSortClick(col)">
+                            <ElIcon
+                              v-if="activeWorkbenchTab?.sortField === col && activeWorkbenchTab?.sortOrder === 'asc'"
+                              class="col-sort-icon col-sort-icon--asc"
+                            ><Top /></ElIcon>
+                            <ElIcon
+                              v-else-if="activeWorkbenchTab?.sortField === col && activeWorkbenchTab?.sortOrder === 'desc'"
+                              class="col-sort-icon col-sort-icon--desc"
+                            ><Bottom /></ElIcon>
+                            <ElIcon v-else class="col-sort-icon col-sort-icon--idle"><DCaret /></ElIcon>
+                          </span>
+                        </div>
+                        <small
+                          v-if="colHeaderMenuState.showColumnType && activeColumnMetaMap[col]?.type"
+                          class="col-type"
+                        >{{ activeColumnMetaMap[col]?.type }}</small>
+                        <small
+                          v-if="colHeaderMenuState.showColumnComment && (activeColumnMetaMap[col]?.comment || activeColumnMetaMap[col]?.remark)"
+                          class="col-comment"
+                        >{{ activeColumnMetaMap[col]?.comment || activeColumnMetaMap[col]?.remark }}</small>
+                      </div>
+                    </template>
+                    <template #default="{ row }">
+                      <div
+                        class="data-cell"
+                        :class="{ 'data-cell--dirty': isDirtyCell(row.__panelRowIndex, col) }"
+                        @click="activateCellEdit(row.__panelRowIndex, col)"
+                      >
+                        <template v-if="isEditingCell(row.__panelRowIndex, col)">
+                          <ElInput
+                            :model-value="editingCell.value"
+                            autofocus
+                            class="data-cell__editor"
+                            size="small"
+                            type="textarea"
+                            :autosize="{ minRows: 1, maxRows: 3 }"
+                            resize="none"
+                            @update:model-value="editingCell.value = $event"
+                            @blur="commitCellEdit"
+                            @keydown="handlePanelCellKeydown"
+                            @click.stop
+                          />
+                        </template>
+                        <template v-else>
+                          <span class="data-cell__value">{{ formatCellValue(row.__panelRow[col]) }}</span>
+                          <small
+                            v-if="colHeaderMenuState.showDataComment && activeColumnCommentMap[col]"
+                            class="data-cell__comment"
+                          >{{ activeColumnCommentMap[col] }}</small>
+                        </template>
+                      </div>
+                    </template>
+                  </ElTableColumn>
+                </ElTable>
                 <ElEmpty
                   v-else
                   description="当前还没有表数据，点击刷新后重试。"
                 />
+                <ColumnHeaderMenu
+                  :visible="colHeaderMenuState.visible"
+                  :position="colHeaderMenuState.position"
+                  :column="colHeaderMenuState.column"
+                  :column-meta="colHeaderMenuState.columnMeta"
+                  :show-column-type="colHeaderMenuState.showColumnType"
+                  :show-column-comment="colHeaderMenuState.showColumnComment"
+                  :show-data-comment="colHeaderMenuState.showDataComment"
+                  :all-columns="activeOrderedDataColumns"
+                  :frozen-columns="activeFrozenColumns"
+                  :has-filters="activeTableFilters.length > 0"
+                  :table-comment-mode="activeWorkbenchTab?.tableCommentMode || 'native'"
+                  :data-comment-mode="activeWorkbenchTab?.dataCommentMode || 'native'"
+                  :show-sequence="activeWorkbenchTab?.showSequence ?? true"
+                  :load-total="activeWorkbenchTab?.loadTotal ?? false"
+                  :pagination-mode="activeWorkbenchTab?.paginationMode || 'pagination'"
+                  @close="colHeaderMenuState.visible = false"
+                  @sort-asc="handleColHeaderSortAsc"
+                  @sort-desc="handleColHeaderSortDesc"
+                  @toggle-type="colHeaderMenuState.showColumnType = !colHeaderMenuState.showColumnType; saveColHeaderMenuState()"
+                  @toggle-comment="colHeaderMenuState.showColumnComment = !colHeaderMenuState.showColumnComment; saveColHeaderMenuState()"
+                  @toggle-data-comment="colHeaderMenuState.showDataComment = !colHeaderMenuState.showDataComment; saveColHeaderMenuState()"
+                  @edit-annotation="handleEditAnnotation"
+                  @filter-column="handleColHeaderFilterColumn"
+                  @clear-filters="handleClearAdvancedFilters"
+                  @toggle-freeze-column="handleToggleFreezeColumn"
+                  @change-table-comment-mode="updateActiveTabSetting({ tableCommentMode: $event })"
+                  @change-data-comment-mode="updateActiveTabSetting({ dataCommentMode: $event })"
+                  @toggle-sequence="updateActiveTabSetting({ showSequence: !(activeWorkbenchTab?.showSequence ?? true) })"
+                  @toggle-load-total="updateActiveTabSetting({ loadTotal: !(activeWorkbenchTab?.loadTotal ?? false), pageNum: 1, viewMode: 'data' })"
+                  @change-pagination-mode="handlePaginationModeChange($event)"
+                />
               </div>
+              <!-- 单元格查看器 -->
+              <Teleport to="body">
+                <div
+                  v-if="cellViewer.visible"
+                  class="cell-viewer"
+                  :style="{ top: `${cellViewer.y}px`, left: `${cellViewer.x}px` }"
+                  @click.stop
+                  @contextmenu.prevent
+                >
+                  <div class="cell-viewer__head">
+                    <span class="cell-viewer__col">{{ cellViewer.column }}</span>
+                    <div class="cell-viewer__tabs">
+                      <button
+                        v-for="mode in cellViewerModes"
+                        :key="mode.value"
+                        type="button"
+                        class="cell-viewer__tab"
+                        :class="{ 'is-active': cellViewer.mode === mode.value }"
+                        @click="cellViewer.mode = mode.value"
+                      >{{ mode.label }}</button>
+                    </div>
+                    <button type="button" class="cell-viewer__close" @click="cellViewer.visible = false">×</button>
+                  </div>
+                  <div class="cell-viewer__body">
+                    <!-- 文本模式 -->
+                    <pre v-if="cellViewer.mode === 'text'" class="cell-viewer__text">{{ cellViewer.value ?? 'NULL' }}</pre>
+                    <!-- 图片模式 -->
+                    <div v-else-if="cellViewer.mode === 'image'" class="cell-viewer__image-wrap">
+                      <img
+                        v-if="cellViewerImageSrc"
+                        :src="cellViewerImageSrc"
+                        class="cell-viewer__image"
+                        alt="预览"
+                      />
+                      <span v-else class="cell-viewer__empty">无法识别为图片</span>
+                    </div>
+                    <!-- Base64 解码模式 -->
+                    <pre v-else-if="cellViewer.mode === 'base64'" class="cell-viewer__text">{{ cellViewerBase64Decoded }}</pre>
+                    <!-- JSON 模式 -->
+                    <pre v-else-if="cellViewer.mode === 'json'" class="cell-viewer__text cell-viewer__text--json">{{ cellViewerJsonFormatted }}</pre>
+                  </div>
+                </div>
+              </Teleport>
               <ScCellEditor
                 v-model="cellEditorState.value"
                 v-model:visible="cellEditorState.visible"
@@ -802,7 +868,7 @@
                 @save="handleCellEditorSave"
               />
               <div
-                v-if="activeWorkbenchTab.paginationMode === 'pagination'"
+                v-if="activeWorkbenchTab.paginationMode === 'pagination' && activeDataColumns.length"
                 class="data-pagination"
               >
                 <ElPagination
@@ -834,7 +900,7 @@
                   "
                 />
               </div>
-              <div v-else class="data-pagination data-pagination--summary">
+              <div v-else-if="activeDataColumns.length" class="data-pagination data-pagination--summary">
                 <span>非分页模式</span>
                 <small
                   >当前按一次性结果集显示，最多返回
@@ -1001,7 +1067,11 @@
           />
         </div>
 
-        <section class="sql-footer">
+        <section class="sql-footer" :style="{ height: sqlFooterHeight + 'px' }">
+          <div
+            class="sql-footer__resizer"
+            @mousedown="startSqlFooterResize"
+          />
           <div class="sql-footer__tabs">
             <button
               type="button"
@@ -1033,12 +1103,23 @@
                       :columns="queryResultVirtualColumns"
                       :data="queryResultVirtualRows"
                       :header-height="40"
-                      :height="Math.max(height, 220)"
+                      :height="Math.max(height - 44, 180)"
                       :row-height="40"
                       :width="width"
                     />
                   </template>
                 </ElAutoResizer>
+                <!-- 分页 -->
+                <div v-if="queryResult.pageSize && queryResult.pageSize > 0" class="sql-result-pagination">
+                  <ElPagination
+                    background
+                    layout="prev, pager, next, total"
+                    :current-page="queryResult.pageNum || 1"
+                    :page-size="queryResult.pageSize"
+                    :total="queryResult.total && queryResult.total >= 0 ? Number(queryResult.total) : (queryResult.pageNum || 1) * queryResult.pageSize"
+                    @current-change="$emit('execute-page', $event)"
+                  />
+                </div>
               </div>
 
               <div v-else class="footer-placeholder">
@@ -1248,9 +1329,13 @@
 
 <script setup lang="ts">
 import {
+  ArrowDown,
+  ArrowUp,
+  Bottom,
   CaretRight,
   CopyDocument,
   DataAnalysis,
+  DCaret,
   Delete,
   Download,
   Document,
@@ -1266,13 +1351,14 @@ import {
   Rank,
   Search,
   Tickets,
+  Top,
   VideoPlay,
 } from "@element-plus/icons-vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import ScLayout from "@repo/components/ScLayout";
-import ScTable from "@repo/components/ScTable";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import ScCellEditor from "@repo/components/ScCellEditor/index.vue";
+import ColumnHeaderMenu from "@repo/components/ScTable/plugins/ColumnHeaderMenu.vue";
 import {
   ElButton,
   ElAutoResizer,
@@ -1432,6 +1518,7 @@ const props = defineProps<{
   errorMessage: string;
   previewLimit: number;
   queryResult: JdbcQueryResult | null;
+  sqlResultPageNum?: number;
   sqlExplainContent: string;
   sqlExplainRows: Record<string, any>[];
   sqlSuggestions: string[];
@@ -1471,6 +1558,7 @@ const emit = defineEmits<{
   (e: "close-tab", value: string): void;
   (e: "execute"): void;
   (e: "execute-selected", value: string): void;
+  (e: "execute-page", page: number): void;
   (e: "explain"): void;
   (e: "generate-sql", prompt: string): void;
   (e: "quick-run", sql: string): void;
@@ -1512,8 +1600,207 @@ const cellEditorState = reactive({
   fieldType: '',
   fieldName: '',
 });
+
+// 列头右键菜单状态
+const colHeaderMenuState = reactive({
+  visible: false,
+  position: { x: 0, y: 0 },
+  column: null as { prop: string; label: string } | null,
+  columnMeta: null as { type: string; comment: string } | null,
+  showColumnType: false,
+  showColumnComment: false,
+  showDataComment: false,
+});
+
+const COL_HEADER_MENU_KEY = computed(
+  () => `sc_table_column_header_panel-data-${activeWorkbenchTab.value?.tabId || 'shared'}`
+);
+
+const loadColHeaderMenuState = () => {
+  try {
+    const raw = localStorage.getItem(COL_HEADER_MENU_KEY.value);
+    if (raw) {
+      const s = JSON.parse(raw);
+      colHeaderMenuState.showColumnType = !!s.showColumnType;
+      colHeaderMenuState.showColumnComment = !!s.showColumnComment;
+      colHeaderMenuState.showDataComment = !!s.showDataComment;
+    }
+  } catch { /* ignore */ }
+};
+
+const saveColHeaderMenuState = () => {
+  try {
+    localStorage.setItem(COL_HEADER_MENU_KEY.value, JSON.stringify({
+      showColumnType: colHeaderMenuState.showColumnType,
+      showColumnComment: colHeaderMenuState.showColumnComment,
+      showDataComment: colHeaderMenuState.showDataComment,
+    }));
+  } catch { /* ignore */ }
+};
+
+const handleTableShellContextMenu = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  // 表头区域右键 → 列头菜单
+  const th = target.closest('th.el-table__cell') as HTMLElement | null;
+  if (th) {
+    const colKey = th.getAttribute('column-key') || th.getAttribute('data-column-key');
+    if (colKey && colKey !== '__panelSequence') {
+      openColHeaderMenu(event, colKey);
+    } else if (!colKey) {
+      // 没有 column-key 的表头（如序列列），用第一个有效列兜底
+      const firstCol = activeOrderedDataColumns.value[0];
+      if (firstCol) openColHeaderMenu(event, firstCol);
+    }
+    return;
+  }
+  // 非表头区域不处理（单元格右键由 @cell-contextmenu 处理）
+};
+
+const openColHeaderMenu = (event: MouseEvent, colProp: string) => {
+  event.preventDefault();
+  const meta = activeColumnMetaMap.value[colProp];
+  colHeaderMenuState.column = { prop: colProp, label: resolveColumnHeader(colProp) };
+  colHeaderMenuState.columnMeta = meta
+    ? { type: String(meta.type || ''), comment: String(meta.comment || meta.remark || '') }
+    : null;
+  colHeaderMenuState.position = { x: event.clientX + 2, y: event.clientY + 2 };
+  colHeaderMenuState.visible = true;
+};
+
+const handleColHeaderSortAsc = ({ prop }: { prop: string }) => {
+  updateActiveTabSetting({ sortField: prop, sortOrder: 'asc', pageNum: 1, viewMode: 'data' });
+};
+
+const handleColHeaderSortDesc = ({ prop }: { prop: string }) => {
+  updateActiveTabSetting({ sortField: prop, sortOrder: 'desc', pageNum: 1, viewMode: 'data' });
+};
+
+const handleHeaderSortClick = (col: string) => {
+  const tab = activeWorkbenchTab.value;
+  if (!tab) return;
+  const current = tab.sortField === col ? tab.sortOrder : '';
+  if (!current) {
+    updateActiveTabSetting({ sortField: col, sortOrder: 'asc', pageNum: 1, viewMode: 'data' });
+  } else if (current === 'asc') {
+    updateActiveTabSetting({ sortField: col, sortOrder: 'desc', pageNum: 1, viewMode: 'data' });
+  } else {
+    updateActiveTabSetting({ sortField: '', sortOrder: '', pageNum: 1, viewMode: 'data' });
+  }
+};
+
+// 单元格查看器
+const cellViewer = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  value: null as any,
+  column: '',
+  mode: 'text' as 'text' | 'image' | 'base64' | 'json',
+});
+
+const cellViewerModes = [
+  { label: '文本', value: 'text' },
+  { label: '图片', value: 'image' },
+  { label: 'Base64', value: 'base64' },
+  { label: 'JSON', value: 'json' },
+];
+
+const cellViewerImageSrc = computed(() => {
+  const v = cellViewer.value;
+  if (!v) return '';
+  const s = String(v);
+  if (s.startsWith('data:image')) return s;
+  // 尝试 base64 图片
+  try {
+    if (/^[A-Za-z0-9+/=]+$/.test(s.trim())) {
+      return `data:image/png;base64,${s.trim()}`;
+    }
+  } catch { /* ignore */ }
+  return '';
+});
+
+const cellViewerBase64Decoded = computed(() => {
+  try {
+    return atob(String(cellViewer.value ?? ''));
+  } catch {
+    return '无法解码为 Base64';
+  }
+});
+
+const cellViewerJsonFormatted = computed(() => {
+  try {
+    return JSON.stringify(JSON.parse(String(cellViewer.value ?? '')), null, 2);
+  } catch {
+    return String(cellViewer.value ?? 'NULL');
+  }
+});
+
+const openCellViewer = (event: MouseEvent, value: any, column: string) => {
+  event.preventDefault();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const w = 360, h = 280;
+  cellViewer.x = Math.min(event.clientX + 4, vw - w - 8);
+  cellViewer.y = Math.min(event.clientY + 4, vh - h - 8);
+  cellViewer.value = value;
+  cellViewer.column = column || '';
+  // 自动检测模式
+  const s = String(value ?? '');
+  if (s.startsWith('{') || s.startsWith('[')) {
+    cellViewer.mode = 'json';
+  } else if (s.startsWith('data:image') || /^[A-Za-z0-9+/=]{20,}$/.test(s.trim())) {
+    cellViewer.mode = 'image';
+  } else {
+    cellViewer.mode = 'text';
+  }
+  cellViewer.visible = true;
+};
+
+// 点击外部关闭查看器
+const handleCellViewerOutsideClick = (e: MouseEvent) => {
+  if (!cellViewer.visible) return;
+  const target = e.target as HTMLElement;
+  if (!target.closest('.cell-viewer')) {
+    cellViewer.visible = false;
+  }
+};
+
+const handleColHeaderFilterColumn = ({ prop }: { prop: string }) => {
+  // 添加一条针对该列的筛选条件并展开筛选面板
+  const nextOperator = getFilterOperators(prop)[0]?.value || 'contains';
+  updateAdvancedFilters([
+    ...activeTableFilters.value,
+    { panelColumnName: prop, panelOperator: nextOperator, panelValue: '' },
+  ]);
+  panelFilterPanelOpen.value = true;
+};
+
+const handleToggleFreezeColumn = ({ col }: { col: string }) => {
+  const current = activeFrozenColumns.value;
+  const next = current.includes(col)
+    ? current.filter(c => c !== col)
+    : [...current, col];
+  updateActiveTabSetting({ frozenColumns: next });
+};
 const documentPaperRef = ref<HTMLElement | null>(null);
 const panelFilterPanelOpen = ref(false);
+const sqlFooterHeight = ref(280);
+
+const startSqlFooterResize = (e: MouseEvent) => {
+  e.preventDefault();
+  const startY = e.clientY;
+  const startH = sqlFooterHeight.value;
+  const onMove = (ev: MouseEvent) => {
+    const delta = startY - ev.clientY;
+    sqlFooterHeight.value = Math.max(120, Math.min(600, startH + delta));
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+};
 const aiDialogVisible = ref(false);
 const accountDialogVisible = ref(false);
 const privilegeDialogVisible = ref(false);
@@ -2186,7 +2473,7 @@ const activeDataTableColumns = computed(() => {
       hide: activeHiddenColumns.value.includes(column),
       label: resolveColumnHeader(column),
       prop: column,
-      sortable: true,
+      sortable: false,
       width: measurePanelDataColumnWidth(column, rows),
     });
   });
@@ -2733,6 +3020,20 @@ const formatCellValue = (value: unknown) => {
     return "NULL";
   }
   return String(value);
+};
+
+const isDirtyCell = (rowIndex: number, column: string) => {
+  const draft = activeDataDraft.value;
+  if (!draft) return false;
+  const current = draft.rows[rowIndex];
+  const original = draft.originalRows[rowIndex];
+  if (!current || !original) return false;
+  return JSON.stringify(current[column]) !== JSON.stringify(original[column]);
+};
+
+const handleEditAnnotation = ({ prop, currentComment }: { prop: string; currentComment: string }) => {
+  // 暂时用 ElMessage 提示，后续可扩展为弹窗编辑
+  ElMessage.info(`编辑注解：${prop}（当前：${currentComment || '无'}）`);
 };
 const handlePanelCellKeydown = (event: Event | KeyboardEvent) => {
   if (!(event instanceof KeyboardEvent)) {
@@ -3352,11 +3653,14 @@ defineExpose({
 
 onMounted(() => {
   window.addEventListener("keydown", handleKeydown);
+  loadColHeaderMenuState();
+  document.addEventListener("mousedown", handleCellViewerOutsideClick);
 });
 
 onBeforeUnmount(() => {
   destroyEditTableSortable();
   window.removeEventListener("keydown", handleKeydown);
+  document.removeEventListener("mousedown", handleCellViewerOutsideClick);
 });
 </script>
 
@@ -3397,7 +3701,15 @@ onBeforeUnmount(() => {
 }
 
 .sql-shell {
-  grid-template-rows: auto minmax(260px, 1fr) 300px;
+  display: flex;
+  flex-direction: column;
+  grid-template-rows: unset;
+}
+
+.sql-editor-wrap {
+  flex: 1;
+  min-height: 120px;
+  overflow: hidden;
 }
 
 .sql-toolbar {
@@ -3464,7 +3776,9 @@ onBeforeUnmount(() => {
 }
 
 .sql-editor-wrap {
-  min-height: 0;
+  flex: 1;
+  min-height: 120px;
+  overflow: hidden;
   padding: 10px;
   background: linear-gradient(
     180deg,
@@ -3487,10 +3801,43 @@ onBeforeUnmount(() => {
 
 .sql-footer {
   display: grid;
-  grid-template-rows: 44px minmax(0, 1fr);
+  grid-template-rows: 8px 44px minmax(0, 1fr);
   min-height: 0;
-  border-top: 1px solid rgba(123, 138, 149, 0.16);
+  flex-shrink: 0;
+  border-top: none;
   background: rgba(249, 251, 253, 0.95);
+}
+
+.sql-footer__resizer {
+  height: 8px;
+  cursor: ns-resize;
+  background: transparent;
+  border-top: 1px solid rgba(123, 138, 149, 0.16);
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sql-footer__resizer::after {
+  content: '';
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(123, 138, 149, 0.3);
+  transition: background 0.15s;
+}
+
+.sql-footer__resizer:hover { background: rgba(37, 99, 235, 0.06); }
+.sql-footer__resizer:hover::after { background: rgba(37, 99, 235, 0.4); }
+
+.sql-result-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  border-top: 1px solid rgba(123, 138, 149, 0.12);
+  background: rgba(249, 251, 253, 0.95);
+  flex-shrink: 0;
 }
 
 .sql-footer__tabs {
@@ -3905,6 +4252,204 @@ onBeforeUnmount(() => {
   min-height: 0;
   height: 100%;
   overflow: hidden;
+  position: relative;
+}
+
+.data-table-native {
+  width: 100%;
+  height: 100%;
+}
+
+.data-table-native :deep(.el-table__cell .cell) {
+  padding: 0 8px;
+}
+
+/* 单元格查看器 */
+.cell-viewer {
+  position: fixed;
+  z-index: 9998;
+  width: 360px;
+  max-height: 320px;
+  border: 1px solid rgba(112, 136, 151, 0.18);
+  border-radius: 10px;
+  background: rgba(250, 252, 255, 0.98);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: cellViewerIn 0.12s ease-out;
+}
+
+@keyframes cellViewerIn {
+  from { opacity: 0; transform: scale(0.97) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.cell-viewer__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid rgba(112, 136, 151, 0.12);
+  flex-shrink: 0;
+}
+
+.cell-viewer__col {
+  font-size: 11px;
+  color: #8a9aaa;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.cell-viewer__tabs {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.cell-viewer__tab {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #5a7080;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.cell-viewer__tab:hover { background: rgba(37, 99, 235, 0.08); }
+.cell-viewer__tab.is-active {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--el-color-primary, #409eff);
+  font-weight: 500;
+}
+
+.cell-viewer__close {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(180, 35, 24, 0.08);
+  color: #b42318;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cell-viewer__body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 10px;
+}
+
+.cell-viewer__text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #213a4b;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.cell-viewer__text--json { color: #1a5276; }
+
+.cell-viewer__image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.cell-viewer__image {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.cell-viewer__empty {
+  font-size: 12px;
+  color: #8a9aaa;
+}
+
+.col-header-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.col-header-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.col-header-title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.col-header-sort {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+}
+
+.col-header-sort:hover { opacity: 1; }
+
+.col-sort-icon { font-size: 12px; }
+.col-sort-icon--idle { color: #8a9aaa; }
+.col-sort-icon--asc,
+.col-sort-icon--desc {
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 当前列有排序时，图标始终可见 */
+.col-header-sort:has(.col-sort-icon--asc),
+.col-header-sort:has(.col-sort-icon--desc) {
+  opacity: 1;
+}
+
+.col-type {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  font-weight: normal;
+}
+
+.col-comment {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  font-weight: normal;
+}
+
+.data-cell__comment {
+  display: block;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+}
+
+/* 禁用数据表格的原生排序箭头 */
+.data-table-native :deep(.el-table .caret-wrapper),
+.data-table-shell :deep(.el-table .caret-wrapper) {
+  display: none;
 }
 
 .data-preview-head__actions {

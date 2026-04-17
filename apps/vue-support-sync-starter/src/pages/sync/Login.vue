@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <el-card class="login-card">
+    <ScCard class="login-card">
       <template #header>
         <div class="card-header">
           <h2>数据同步系统</h2>
@@ -38,7 +38,7 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button
+          <ScButton
             type="primary"
             style="width: 100%"
             size="large"
@@ -46,10 +46,10 @@
             @click="handleLogin"
           >
             登录
-          </el-button>
+          </ScButton>
         </el-form-item>
       </el-form>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

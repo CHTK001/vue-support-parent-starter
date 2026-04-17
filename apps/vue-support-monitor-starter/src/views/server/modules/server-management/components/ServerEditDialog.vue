@@ -50,7 +50,7 @@
                   label="服务器组"
                   prop="monitorSysGenServerGroupId"
                 >
-                  <el-select
+                  <ScSelect
                     v-model="formData.monitorSysGenServerGroupId"
                     placeholder="请选择服务器组"
                     style="width: 100%"
@@ -59,7 +59,7 @@
                     @change="handleGroupChange"
                   >
                     <!-- 新建组选项 -->
-                    <el-option
+                    <ScOption
                       value="__CREATE_NEW_GROUP__"
                       label="+ 新建服务器组"
                       class="create-group-option"
@@ -74,20 +74,20 @@
                         />
                         <span class="create-text">新建服务器组</span>
                       </div>
-                    </el-option>
+                    </ScOption>
 
                     <!-- 分隔线 -->
-                    <el-option
+                    <ScOption
                       disabled
                       value=""
                       label=""
                       class="divider-option"
                     >
                       <div class="option-divider"></div>
-                    </el-option>
+                    </ScOption>
 
                     <!-- 现有组选项 -->
-                    <el-option
+                    <ScOption
                       v-for="group in serverGroups"
                       :key="group.monitorSysGenServerGroupId"
                       :label="group.monitorSysGenServerGroupName"
@@ -117,8 +117,8 @@
                           默认
                         </el-tag>
                       </div>
-                    </el-option>
-                  </el-select>
+                    </ScOption>
+                  </ScSelect>
                 </el-form-item>
 
                 <!-- 操作系统信息展示 - 简化版 -->
@@ -156,31 +156,31 @@
                   label="协议类型"
                   prop="monitorSysGenServerProtocol"
                 >
-                  <el-select
+                  <ScSelect
                     v-model="formData.monitorSysGenServerProtocol"
                     placeholder="选择协议类型"
                     style="width: 100%"
                     @change="handleProtocolChange"
                   >
-                    <el-option label="SSH" value="SSH">
+                    <ScOption label="SSH" value="SSH">
                       <div class="protocol-option">
                         <IconifyIconOnline icon="ri:terminal-line" />
                         <span>SSH</span>
                       </div>
-                    </el-option>
-                    <el-option label="RDP" value="RDP">
+                    </ScOption>
+                    <ScOption label="RDP" value="RDP">
                       <div class="protocol-option">
                         <IconifyIconOnline icon="ri:computer-line" />
                         <span>RDP</span>
                       </div>
-                    </el-option>
-                    <el-option label="VNC" value="VNC">
+                    </ScOption>
+                    <ScOption label="VNC" value="VNC">
                       <div class="protocol-option">
                         <IconifyIconOnline icon="ri:remote-control-line" />
                         <span>VNC</span>
                       </div>
-                    </el-option>
-                  </el-select>
+                    </ScOption>
+                  </ScSelect>
                 </el-form-item>
 
                 <el-form-item label="服务器地址" prop="monitorSysGenServerHost">
@@ -198,14 +198,14 @@
                         content="自动检测操作系统信息"
                         placement="top"
                       >
-                        <el-button
+                        <ScButton
                           type="text"
                           size="small"
                           @click="detectServerInfo"
                           :loading="detectLoading"
                         >
                           <IconifyIconOnline icon="ri:refresh-line" />
-                        </el-button>
+                        </ScButton>
                       </el-tooltip>
                     </template>
                   </el-input>
@@ -281,7 +281,7 @@
 
                 <!-- 操作系统信息 - 简化版 -->
                 <el-form-item label="操作系统" prop="monitorSysGenServerOsType">
-                  <el-select
+                  <ScSelect
                     v-model="formData.monitorSysGenServerOsType"
                     placeholder="选择操作系统类型"
                     style="width: 100%"
@@ -292,8 +292,8 @@
                     "
                     filterable
                   >
-                    <el-option-group label="Windows 系列">
-                      <el-option label="Windows Server" value="Windows Server">
+                    <ScOption-group label="Windows 系列">
+                      <ScOption label="Windows Server" value="Windows Server">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:windows-line"
@@ -301,8 +301,8 @@
                           />
                           <span>Windows Server</span>
                         </div>
-                      </el-option>
-                      <el-option label="Windows" value="Windows">
+                      </ScOption>
+                      <ScOption label="Windows" value="Windows">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:windows-line"
@@ -310,10 +310,10 @@
                           />
                           <span>Windows</span>
                         </div>
-                      </el-option>
+                      </ScOption>
                     </el-option-group>
-                    <el-option-group label="Linux 发行版">
-                      <el-option label="Ubuntu" value="Ubuntu">
+                    <ScOption-group label="Linux 发行版">
+                      <ScOption label="Ubuntu" value="Ubuntu">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:ubuntu-line"
@@ -321,8 +321,8 @@
                           />
                           <span>Ubuntu</span>
                         </div>
-                      </el-option>
-                      <el-option label="CentOS" value="CentOS">
+                      </ScOption>
+                      <ScOption label="CentOS" value="CentOS">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:centos-line"
@@ -330,8 +330,8 @@
                           />
                           <span>CentOS</span>
                         </div>
-                      </el-option>
-                      <el-option label="Debian" value="Debian">
+                      </ScOption>
+                      <ScOption label="Debian" value="Debian">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:debian-line"
@@ -339,8 +339,8 @@
                           />
                           <span>Debian</span>
                         </div>
-                      </el-option>
-                      <el-option label="Red Hat" value="Red Hat">
+                      </ScOption>
+                      <ScOption label="Red Hat" value="Red Hat">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:redhat-line"
@@ -348,10 +348,10 @@
                           />
                           <span>Red Hat</span>
                         </div>
-                      </el-option>
+                      </ScOption>
                     </el-option-group>
-                    <el-option-group label="其他">
-                      <el-option label="macOS" value="macOS">
+                    <ScOption-group label="其他">
+                      <ScOption label="macOS" value="macOS">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:apple-line"
@@ -359,8 +359,8 @@
                           />
                           <span>macOS</span>
                         </div>
-                      </el-option>
-                      <el-option label="自定义" value="Custom">
+                      </ScOption>
+                      <ScOption label="自定义" value="Custom">
                         <div class="os-option">
                           <IconifyIconOnline
                             icon="ri:settings-line"
@@ -368,9 +368,9 @@
                           />
                           <span>自定义</span>
                         </div>
-                      </el-option>
+                      </ScOption>
                     </el-option-group>
-                  </el-select>
+                  </ScSelect>
 
                   <!-- 自定义操作系统输入 -->
                   <el-input
@@ -416,24 +416,24 @@
                   label="认证方式"
                   prop="monitorSysGenServerAuthType"
                 >
-                  <el-select
+                  <ScSelect
                     v-model="formData.monitorSysGenServerAuthType"
                     placeholder="选择认证方式"
                     style="width: 100%"
                   >
-                    <el-option label="密码认证" value="password">
+                    <ScOption label="密码认证" value="password">
                       <div class="auth-option">
                         <IconifyIconOnline icon="ri:lock-password-line" />
                         <span>密码认证</span>
                       </div>
-                    </el-option>
-                    <el-option label="密钥认证" value="key">
+                    </ScOption>
+                    <ScOption label="密钥认证" value="key">
                       <div class="auth-option">
                         <IconifyIconOnline icon="ri:key-line" />
                         <span>密钥认证</span>
                       </div>
-                    </el-option>
-                  </el-select>
+                    </ScOption>
+                  </ScSelect>
                 </el-form-item>
 
                 <el-form-item
@@ -491,15 +491,15 @@
                 <!-- 协议特定配置 -->
                 <template v-if="formData.monitorSysGenServerProtocol === 'SSH'">
                   <el-form-item label="字符编码">
-                    <el-select
+                    <ScSelect
                       v-model="formData.monitorSysGenServerCharset"
                       placeholder="选择字符编码"
                       style="width: 100%"
                     >
-                      <el-option label="UTF-8" value="UTF-8" />
-                      <el-option label="GBK" value="GBK" />
-                      <el-option label="GB2312" value="GB2312" />
-                    </el-select>
+                      <ScOption label="UTF-8" value="UTF-8" />
+                      <ScOption label="GBK" value="GBK" />
+                      <ScOption label="GB2312" value="GB2312" />
+                    </ScSelect>
                   </el-form-item>
 
                   <el-form-item label="连接超时">
@@ -541,15 +541,15 @@
                   </el-form-item>
 
                   <el-form-item label="颜色深度">
-                    <el-select
+                    <ScSelect
                       v-model="formData.monitorSysGenServerColorDepth"
                       placeholder="选择颜色深度"
                       style="width: 100%"
                     >
-                      <el-option label="16位" value="16" />
-                      <el-option label="24位" value="24" />
-                      <el-option label="32位" value="32" />
-                    </el-select>
+                      <ScOption label="16位" value="16" />
+                      <ScOption label="24位" value="24" />
+                      <ScOption label="32位" value="32" />
+                    </ScSelect>
                   </el-form-item>
                 </template>
 
@@ -592,17 +592,17 @@
     <template #footer>
       <div class="dialog-footer">
         <div class="footer-right">
-          <el-button @click="visible = false">
+          <ScButton @click="visible = false">
             <IconifyIconOnline icon="ri:close-line" class="mr-1" />
             取消
-          </el-button>
-          <el-button type="primary" :loading="loading" @click="handleSubmit">
+          </ScButton>
+          <ScButton type="primary" :loading="loading" @click="handleSubmit">
             <IconifyIconOnline
               :icon="mode === 'add' ? 'ri:add-line' : 'ri:save-line'"
               class="mr-1"
             />
             {{ mode === "add" ? "新增" : "保存" }}
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>

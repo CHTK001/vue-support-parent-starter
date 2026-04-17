@@ -3,50 +3,50 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button type="primary" @click="$emit('create')">
+        <ScButton type="primary" @click="$emit('create')">
           <IconifyIconOnline icon="ep:plus" class="mr-1" />
           新建脚本
-        </el-button>
+        </ScButton>
 
-        <el-button @click="handleRefresh">
+        <ScButton @click="handleRefresh">
           <IconifyIconOnline icon="ep:refresh" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
 
-        <el-button @click="handleImport">
+        <ScButton @click="handleImport">
           <IconifyIconOnline icon="ri:upload-line" class="mr-1" />
           导入脚本
-        </el-button>
+        </ScButton>
       </div>
 
       <div class="toolbar-right">
-        <el-select
+        <ScSelect
           v-model="filterType"
           placeholder="脚本类型"
           clearable
           style="width: 120px"
           @change="handleFilter"
         >
-          <el-option label="Shell" value="SHELL" />
-          <el-option label="Python" value="PYTHON" />
-          <el-option label="PowerShell" value="POWERSHELL" />
-          <el-option label="Batch" value="BATCH" />
-          <el-option label="JavaScript" value="JAVASCRIPT" />
-        </el-select>
+          <ScOption label="Shell" value="SHELL" />
+          <ScOption label="Python" value="PYTHON" />
+          <ScOption label="PowerShell" value="POWERSHELL" />
+          <ScOption label="Batch" value="BATCH" />
+          <ScOption label="JavaScript" value="JAVASCRIPT" />
+        </ScSelect>
 
-        <el-select
+        <ScSelect
           v-model="filterCategory"
           placeholder="分类"
           clearable
           style="width: 120px; margin-left: 12px"
           @change="handleFilter"
         >
-          <el-option label="系统管理" value="system" />
-          <el-option label="监控检查" value="monitor" />
-          <el-option label="部署脚本" value="deploy" />
-          <el-option label="备份脚本" value="backup" />
-          <el-option label="其他" value="other" />
-        </el-select>
+          <ScOption label="系统管理" value="system" />
+          <ScOption label="监控检查" value="monitor" />
+          <ScOption label="部署脚本" value="deploy" />
+          <ScOption label="备份脚本" value="backup" />
+          <ScOption label="其他" value="other" />
+        </ScSelect>
 
         <el-input
           v-model="searchKeyword"
@@ -164,24 +164,24 @@
       <el-table-column label="操作" width="280" align="center" fixed="right">
         <template #default="{ row }">
           <el-button-group>
-            <el-button
+            <ScButton
               size="small"
               type="primary"
               @click="$emit('execute', row)"
             >
               <IconifyIconOnline icon="ri:play-line" />
               执行
-            </el-button>
+            </ScButton>
 
-            <el-button size="small" @click="$emit('edit', row)">
+            <ScButton size="small" @click="$emit('edit', row)">
               <IconifyIconOnline icon="ri:edit-line" />
               编辑
-            </el-button>
+            </ScButton>
 
             <el-dropdown @command="(cmd) => handleAction(cmd, row)">
-              <el-button size="small">
+              <ScButton size="small">
                 <IconifyIconOnline icon="ri:more-line" />
-              </el-button>
+              </ScButton>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="view">查看代码</el-dropdown-item>
@@ -197,7 +197,7 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-          </el-button-group>
+           </el-button-group>
         </template>
       </el-table-column>
     </el-table>
@@ -266,9 +266,9 @@
       </el-upload>
 
       <template #footer>
-        <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleUploadScript"
-          >确定导入</el-button>
+        <ScButton @click="importDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleUploadScript"
+          >确定导入</ScButton>
       </template>
     </sc-dialog>
   </div>

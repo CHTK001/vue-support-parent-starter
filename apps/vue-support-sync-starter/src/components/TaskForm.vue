@@ -1,10 +1,10 @@
 <template>
-  <el-dialog
+  <ScDialog
     v-model="visible"
     :title="isEdit ? '编辑任务' : '创建任务'"
     width="640px"
     @close="handleClose"
-  >
+   layout="simple">
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="120px">
       <el-form-item label="任务名称" prop="syncTaskName">
         <el-input
@@ -23,14 +23,14 @@
       </el-form-item>
 
       <el-form-item label="同步模式" prop="syncTaskSyncMode">
-        <el-select
+        <ScSelect
           v-model="formData.syncTaskSyncMode"
           placeholder="请选择同步模式"
         >
-          <el-option label="全量同步" value="FULL" />
-          <el-option label="增量同步" value="INCREMENTAL" />
-          <el-option label="双向同步" value="BIDIRECTIONAL" />
-        </el-select>
+          <ScOption label="全量同步" value="FULL" />
+          <ScOption label="增量同步" value="INCREMENTAL" />
+          <ScOption label="双向同步" value="BIDIRECTIONAL" />
+        </ScSelect>
       </el-form-item>
 
       <el-form-item label="增量字段" prop="syncTaskIncrementalField">
@@ -41,14 +41,14 @@
       </el-form-item>
 
       <el-form-item label="冲突策略" prop="syncTaskConflictStrategy">
-        <el-select
+        <ScSelect
           v-model="formData.syncTaskConflictStrategy"
           placeholder="请选择冲突策略"
         >
-          <el-option label="覆盖" value="OVERWRITE" />
-          <el-option label="跳过" value="SKIP" />
-          <el-option label="合并" value="MERGE" />
-        </el-select>
+          <ScOption label="覆盖" value="OVERWRITE" />
+          <ScOption label="跳过" value="SKIP" />
+          <ScOption label="合并" value="MERGE" />
+        </ScSelect>
       </el-form-item>
 
       <el-form-item label="批次大小" prop="syncTaskBatchSize">
@@ -132,12 +132,12 @@
     </el-form>
 
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="loading" @click="handleSubmit">
+      <ScButton @click="handleClose">取消</ScButton>
+      <ScButton type="primary" :loading="loading" @click="handleSubmit">
         {{ isEdit ? "保存" : "创建并设计" }}
-      </el-button>
+      </ScButton>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">

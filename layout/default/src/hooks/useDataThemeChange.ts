@@ -120,6 +120,8 @@ export function useDataThemeChange() {
   );
 
   const body = document.documentElement as HTMLElement;
+  let primaryDerivedJob: number | null = null;
+  let primaryDerivedIdleJob: number | null = null;
 
   function toggleClass(flag: boolean, clsName: string, target?: HTMLElement) {
     const targetEl = target || document.body;
@@ -185,35 +187,76 @@ export function useDataThemeChange() {
     epThemeStore.setEpThemeColor(color);
 
     const style = document.documentElement.style;
+    const primary = String(color || "").trim() || "#409EFF";
+    const rgbHex = primary.replace(/^#/, "");
+    const normalizedHex =
+      rgbHex.length === 3
+        ? rgbHex
+            .split("")
+            .map((item) => `${item}${item}`)
+            .join("")
+        : rgbHex;
+    const numeric = parseInt(normalizedHex, 16);
+    const r = Number.isNaN(numeric) ? 64 : (numeric >> 16) & 255;
+    const g = Number.isNaN(numeric) ? 158 : (numeric >> 8) & 255;
+    const b = Number.isNaN(numeric) ? 255 : numeric & 255;
 
-    const cssProperties = new Map<string, string>();
-    cssProperties.set("--el-color-primary", color);
-    cssProperties.set("--app-primary", color);
+    // 关键颜色变量同步写入，保证切换首帧视觉立即对齐
+    style.setProperty("--el-color-primary", primary);
+    style.setProperty("--app-primary", primary);
+    style.setProperty("--el-color-primary-rgb", `${r}, ${g}, ${b}`);
 
-    for (let i = 1; i <= 2; i++) {
-      cssProperties.set(
-        `--el-color-primary-dark-${i}`,
-        dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
-      );
+    if (primaryDerivedJob !== null) {
+      window.cancelAnimationFrame(primaryDerivedJob);
+      primaryDerivedJob = null;
     }
-    for (let i = 1; i <= 9; i++) {
-      cssProperties.set(
-        `--el-color-primary-light-${i}`,
-        dataTheme.value ? darken(color, i / 10) : lighten(color, i / 10),
-      );
+    if (primaryDerivedIdleJob !== null) {
+      const cancelIdle = (window as any).cancelIdleCallback;
+      if (typeof cancelIdle === "function") {
+        cancelIdle(primaryDerivedIdleJob);
+      } else {
+        clearTimeout(primaryDerivedIdleJob);
+      }
+      primaryDerivedIdleJob = null;
     }
 
-    cssProperties.forEach((value, property) => {
-      style.setProperty(property, value);
+    const applyDerivedPalette = () => {
+      for (let i = 1; i <= 2; i++) {
+        style.setProperty(
+          `--el-color-primary-dark-${i}`,
+          dataTheme.value ? darken(primary, i / 10) : lighten(primary, i / 10),
+        );
+      }
+      for (let i = 1; i <= 9; i++) {
+        style.setProperty(
+          `--el-color-primary-light-${i}`,
+          dataTheme.value ? darken(primary, i / 10) : lighten(primary, i / 10),
+        );
+      }
+    };
+
+    // 其余派生色延后一帧到空闲阶段，降低切换瞬时主线程阻塞
+    primaryDerivedJob = window.requestAnimationFrame(() => {
+      primaryDerivedJob = null;
+      const requestIdle = (window as any).requestIdleCallback;
+      if (typeof requestIdle === "function") {
+        primaryDerivedIdleJob = requestIdle(
+          () => {
+            primaryDerivedIdleJob = null;
+            applyDerivedPalette();
+          },
+          { timeout: 120 },
+        );
+      } else {
+        primaryDerivedIdleJob = window.setTimeout(() => {
+          primaryDerivedIdleJob = null;
+          applyDerivedPalette();
+        }, 0);
+      }
     });
   };
 
-  /** 浅色、深色整体风格切换 - 优化性能 */
-  async function dataThemeChange(overall?: string) {
-    const htmlElement = document.documentElement;
-
-    htmlElement.classList.add("theme-switching");
-
+  function applyOverallStyleImmediately(overall?: string) {
     overallStyle.value = overall;
     const targetTheme =
       epThemeStore.epTheme === "light" && dataTheme.value
@@ -222,10 +265,20 @@ export function useDataThemeChange() {
           ? "light"
           : epThemeStore.epTheme;
 
+    const htmlElement = document.documentElement;
+    htmlElement.classList.toggle("dark", !!dataTheme.value);
+    setLayoutThemeColor(targetTheme, false);
+  }
+
+  /** 浅色、深色整体风格切换 - 优化性能 */
+  async function dataThemeChange(overall?: string) {
+    const htmlElement = document.documentElement;
+
+    htmlElement.classList.add("theme-switching");
+
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => {
-        htmlElement.classList.toggle("dark", !!dataTheme.value);
-        setLayoutThemeColor(targetTheme, false);
+        applyOverallStyleImmediately(overall);
         resolve();
       });
     });
@@ -269,6 +322,7 @@ export function useDataThemeChange() {
     onReset,
     toggleClass,
     dataThemeChange,
+    applyOverallStyleImmediately,
     setEpThemeColor,
     setLayoutThemeColor,
   };

@@ -14,7 +14,7 @@
     :lock-scroll="lockScroll"
     :close-on-click-modal="closeOnClickModal"
     :close-on-press-escape="closeOnPressEscape"
-    :show-close="hideHeader ? false : showClose"
+    :show-close="!hideHeader && showClose && closeButtonType === 'default'"
     :before-close="handleBeforeClose"
     :draggable="draggable"
     :center="center"
@@ -25,7 +25,10 @@
       `sc-dialog--${type}`,
       {
         'has-float-icon': icon && iconMode === 'float',
-        'sc-dialog--headerless': hideHeader,
+        'sc-dialog--headerless': hideHeader || (layout === 'simple' && closeButtonType !== 'default'),
+        'sc-dialog--simple': layout === 'simple',
+        'sc-dialog--close-in-header': closeButtonType === 'default',
+        'sc-dialog--close-external': closeButtonType === 'external',
       }
     ]"
     @open="$emit('open')"
@@ -50,12 +53,21 @@
       </template>
     </template>
 
+    <button
+      v-if="showClose && closeButtonType === 'external'"
+      type="button"
+      class="sc-dialog__btn sc-dialog__external-close"
+      @click="handleClose"
+    >
+      <IconifyIconOnline icon="ep:close" />
+    </button>
+
     <div
       class="sc-dialog__body-shell"
-      :class="{ 'has-body-close': hideHeader && showClose }"
+      :class="{ 'has-body-close': hideHeader && showClose && closeButtonType === 'default' }"
     >
       <button
-        v-if="hideHeader && showClose"
+        v-if="hideHeader && showClose && closeButtonType === 'default'"
         type="button"
         class="sc-dialog__btn sc-dialog__body-close"
         @click="handleClose"
@@ -139,7 +151,11 @@
             </div>
 
             <!-- 头部 -->
-            <div v-if="!hideHeader" class="sc-dialog__header" @mousedown="onHeaderMouseDown">
+            <div
+              v-if="!hideHeader && (layout !== 'simple' || closeButtonType === 'default')"
+              class="sc-dialog__header"
+              @mousedown="onHeaderMouseDown"
+            >
               <slot name="header">
                 <div class="sc-dialog__header-content">
                   <!-- 内联图标（inline 模式） -->
@@ -163,19 +179,32 @@
                   <IconifyIconOnline :icon="isMaximized ? 'ep:copy-document' : 'ep:full-screen'" />
                 </button>
                 <!-- 关闭按钮 -->
-                <button v-if="showClose" class="sc-dialog__btn sc-dialog__close" @click="handleClose">
+                <button
+                  v-if="showClose && closeButtonType === 'default'"
+                  class="sc-dialog__btn sc-dialog__close"
+                  @click="handleClose"
+                >
                   <IconifyIconOnline icon="ep:close" />
                 </button>
               </div>
             </div>
 
+            <button
+              v-if="showClose && closeButtonType === 'external'"
+              type="button"
+              class="sc-dialog__btn sc-dialog__external-close"
+              @click="handleClose"
+            >
+              <IconifyIconOnline icon="ep:close" />
+            </button>
+
             <!-- 内容 -->
             <div
               class="sc-dialog__body"
-              :class="{ 'sc-dialog__body--with-close': hideHeader && showClose }"
+              :class="{ 'sc-dialog__body--with-close': hideHeader && showClose && closeButtonType === 'default' }"
             >
               <button
-                v-if="hideHeader && showClose"
+                v-if="hideHeader && showClose && closeButtonType === 'default'"
                 type="button"
                 class="sc-dialog__btn sc-dialog__body-close"
                 @click="handleClose"
@@ -241,6 +270,12 @@ type DialogType = "default" | "info" | "success" | "warning" | "error";
 
 /** 图标显示模式 */
 type IconMode = "inline" | "float";
+
+/** 布局模式 */
+type DialogLayout = "default" | "simple";
+
+/** 关闭按钮类型 */
+type DialogCloseButtonType = "default" | "external";
 
 const props = withDefaults(
   defineProps<{
@@ -345,6 +380,10 @@ const props = withDefaults(
     memoryId?: string | number;
     /** 是否启用记忆功能 */
     memoryEnabled?: boolean;
+    /** 布局模式：default(标准) / simple(简洁) */
+    layout?: DialogLayout;
+    /** 关闭按钮类型：default(头部内) / external(右上角外置) */
+    closeButtonType?: DialogCloseButtonType;
   }>(),
   {
     modelValue: false,
@@ -393,7 +432,9 @@ const props = withDefaults(
     group: "",
     dragOutside: false,
     memoryId: "",
-    memoryEnabled: false
+    memoryEnabled: false,
+    layout: "simple",
+    closeButtonType: "default"
   }
 );
 
@@ -610,6 +651,7 @@ watch(
 // @use "@/styles/mixins.scss" as *;
 
 .sc-dialog {
+  position: relative;
   border-radius: var(--sc-dialog-radius, var(--stitch-lay-radius-lg));
 
   &.has-float-icon {
@@ -637,6 +679,28 @@ watch(
 
 .sc-dialog.sc-dialog--headerless:not(.sc-dialog--custom) :deep(.el-dialog__body) {
   position: relative;
+  padding-top: 20px;
+}
+
+// Simple 布局 + external：隐藏原生头部，关闭按钮外置
+.sc-dialog.sc-dialog--simple.sc-dialog--close-external:not(.sc-dialog--custom)
+  :deep(.el-dialog__header) {
+  display: none;
+}
+
+.sc-dialog.sc-dialog--simple.sc-dialog--close-external:not(.sc-dialog--custom)
+  :deep(.el-dialog__body) {
+  position: relative;
+  padding-top: 24px;
+}
+
+.sc-dialog.sc-dialog--simple.sc-dialog--close-in-header:not(.sc-dialog--custom)
+  :deep(.el-dialog__header) {
+  padding: 14px 18px 12px;
+}
+
+.sc-dialog.sc-dialog--simple.sc-dialog--close-in-header:not(.sc-dialog--custom)
+  :deep(.el-dialog__body) {
   padding-top: 20px;
 }
 
@@ -753,6 +817,26 @@ watch(
   top: 0;
   right: 0;
   z-index: 2;
+}
+
+.sc-dialog__external-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--stitch-lay-border), transparent 20%);
+  background: color-mix(in srgb, var(--stitch-lay-bg-panel), white 28%);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  transform: translate(42%, -42%);
+
+  &:hover {
+    background: var(--el-color-danger-light-9);
+    color: var(--el-color-danger);
+    box-shadow: 0 12px 26px rgba(239, 68, 68, 0.16);
+  }
 }
 
 // 最大化状态

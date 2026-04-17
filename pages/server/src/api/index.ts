@@ -566,6 +566,16 @@ const softOperationsBase = "/soft/operations";
 
 export const checkSoftModuleReady = () => headRequest(softPackagesBase);
 
+export const listServerLoginRecords = (params?: {
+  serverId?: number;
+  topN?: number;
+}) => {
+  const query = params?.serverId !== undefined
+    ? { serverId: params.serverId, topN: params.topN ?? 10 }
+    : { topN: params?.topN ?? 10 };
+  return request<ServerLoginRecord[]>("GET", "/server/login/records", { query });
+};
+
 export const listSoftBindingTargets = () =>
   request<ServerSoftBindingTarget[]>("GET", softTargetsBase);
 

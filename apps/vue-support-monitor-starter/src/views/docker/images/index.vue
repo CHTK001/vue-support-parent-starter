@@ -46,33 +46,33 @@
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
+        <ScSelect
           v-model="searchParams.serverId"
           placeholder="全部服务器"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部服务器" :value="undefined" />
-          <el-option
+          <ScOption label="全部服务器" :value="undefined" />
+          <ScOption
             v-for="server in servers"
             :key="server.monitorSysGenServerId"
             :label="server.monitorSysGenServerName"
             :value="server.monitorSysGenServerId"
           />
-        </el-select>
-        <el-select
+        </ScSelect>
+        <ScSelect
           v-model="searchParams.status"
           placeholder="全部状态"
           clearable
           class="filter-select"
           @change="handleSearch"
         >
-          <el-option label="全部状态" :value="undefined" />
-          <el-option label="可用" value="AVAILABLE" />
-          <el-option label="拉取中" value="PULLING" />
-          <el-option label="错误" value="PULL_FAILED" />
-        </el-select>
+          <ScOption label="全部状态" :value="undefined" />
+          <ScOption label="可用" value="AVAILABLE" />
+          <ScOption label="拉取中" value="PULLING" />
+          <ScOption label="错误" value="PULL_FAILED" />
+        </ScSelect>
         <div class="view-toggle">
           <button
             v-for="view in viewOptions"
@@ -86,22 +86,22 @@
         </div>
       </div>
       <div class="toolbar-right">
-        <el-button @click="handleRefresh" :loading="loading">
+        <ScButton @click="handleRefresh" :loading="loading">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button @click="syncVisible = true">
+        </ScButton>
+        <ScButton @click="syncVisible = true">
           <IconifyIconOnline icon="ri:cloud-line" class="mr-1" />
           同步
-        </el-button>
-        <el-button @click="importVisible = true">
+        </ScButton>
+        <ScButton @click="importVisible = true">
           <IconifyIconOnline icon="ri:upload-2-line" class="mr-1" />
           导入
-        </el-button>
-        <el-button type="primary" @click="pullVisible = true">
+        </ScButton>
+        <ScButton type="primary" @click="pullVisible = true">
           <IconifyIconOnline icon="ri:download-cloud-line" class="mr-1" />
           拉取镜像
-        </el-button>
+        </ScButton>
       </div>
     </div>
 

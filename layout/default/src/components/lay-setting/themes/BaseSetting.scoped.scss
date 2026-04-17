@@ -2484,12 +2484,12 @@ html.dark {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 58px);
-  max-height: calc(100vh - 58px);
-  min-height: auto;
+  height: auto;
+  max-height: none;
+  min-height: 100%;
   min-width: min(100%, 760px);
-  contain: layout paint style;
-  overflow: hidden;
+  contain: layout style;
+  overflow: visible;
   will-change: transform;
 }
 
@@ -2516,9 +2516,9 @@ html.dark {
   min-height: 0;
   min-width: 0;
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  contain: layout paint;
+  overflow-y: visible;
+  overscroll-behavior: auto;
+  contain: layout style;
 }
 
 .setting-shell-stage__item {
@@ -2565,7 +2565,8 @@ html.dark {
     transform 0.18s ease !important;
 }
 
-html.dark {
+html.dark,
+html[data-theme="dark"] {
   .setting-shell-tools__search,
   .setting-shell-tools__sort {
     :deep(.el-input__wrapper),
@@ -2609,6 +2610,7 @@ html.dark {
 
   .modern-segmented,
   :deep(.modern-segmented) {
+    --pure-segmented-text-color: #e2e8f0;
     --pure-segmented-track-bg: rgba(15, 23, 42, 0.82);
     --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.24);
     --pure-segmented-selected-shadow:

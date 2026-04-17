@@ -1823,7 +1823,8 @@ html.dark .lay-setting {
   }
 }
 
-html.dark {
+html.dark,
+html[data-theme="dark"] {
   .right-panel .lay-setting {
     .el-switch {
       --el-switch-on-color: rgba(var(--el-color-primary-rgb), 0.92);
@@ -1870,7 +1871,8 @@ html.dark {
   }
 }
 
-html.dark .right-panel {
+html.dark .right-panel,
+html[data-theme="dark"] .right-panel {
   .lay-setting.modern-setting-container {
     --setting-shell-bg: linear-gradient(
       180deg,

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { router } from "@repo/core";
+import { getConfig } from "@repo/config";
+import { computed } from "vue";
 import { useNav } from "../../../hooks/useNav";
 import { useTranslationLang } from "../../../hooks/useTranslationLang";
 import LayAvatar from "../../lay-avatar/index.vue";
@@ -10,6 +12,9 @@ import { ScText } from "@repo/components/ScText";
 
 const { t } = useTranslationLang();
 const { logout, username, userAvatar, avatarsStyle } = useNav();
+const showHelpFeedbackEntry = computed(
+  () => getConfig("BusinessEntry.helpFeedback") !== false,
+);
 
 /**
  * 跳转到账户设置页面
@@ -22,7 +27,6 @@ const gotoAccountSetting = (pane = "profile") => {
     },
   });
 };
-
 </script>
 
 <template>
@@ -40,29 +44,29 @@ const gotoAccountSetting = (pane = "profile") => {
             boundary: 'viewport',
             padding: 16,
             altAxis: true,
-            tether: false
-          }
+            tether: false,
+          },
         },
         {
           name: 'flip',
           options: {
             fallbackPlacements: ['bottom-start', 'top-end', 'top-start'],
-            padding: 16
-          }
+            padding: 16,
+          },
         },
         {
           name: 'offset',
           options: {
-            offset: [0, 8]
-          }
-        }
-      ]
+            offset: [0, 8],
+          },
+        },
+      ],
     }"
   >
     <div class="user-trigger">
       <div class="avatar-container">
         <LayAvatar :src="userAvatar" :style="avatarsStyle" class="avatar-img" />
-        <span class="status-dot"></span>
+        <span class="status-dot" />
       </div>
       <div v-if="username" class="user-info">
         <ScText class="user-name fe-sensitive">{{ username }}</ScText>
@@ -148,6 +152,7 @@ const gotoAccountSetting = (pane = "profile") => {
           </ScDropdownItem>
 
           <ScDropdownItem
+            v-if="showHelpFeedbackEntry"
             v-menu="['AccountSettings']"
             class="menu-item"
             @click="gotoAccountSetting('helpFeedback')"
@@ -379,8 +384,11 @@ html.dark .user-dropdown {
     overflow: hidden;
     border-radius: 24px;
     border: 1px solid rgba(148, 163, 184, 0.14);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(248, 250, 252, 0.96)
+    );
     box-shadow:
       0 24px 48px rgba(15, 23, 42, 0.12),
       0 10px 22px rgba(15, 23, 42, 0.06);
@@ -393,7 +401,11 @@ html.dark .user-dropdown {
     padding: 18px 18px 16px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     background:
-      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.14), transparent 44%),
+      radial-gradient(
+        circle at top left,
+        rgba(var(--el-color-primary-rgb), 0.14),
+        transparent 44%
+      ),
       rgba(255, 255, 255, 0.7);
   }
 
@@ -434,7 +446,10 @@ html.dark .user-dropdown {
     padding: 12px 14px;
     border-radius: 18px;
     border: 1px solid transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
 
     &:hover {
       background: rgba(var(--el-color-primary-rgb), 0.08);
@@ -506,8 +521,11 @@ html.dark .user-dropdown {
 html.dark .user-dropdown-popper {
   .user-menu {
     border-color: rgba(148, 163, 184, 0.18);
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(2, 8, 23, 0.98));
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.98),
+      rgba(2, 8, 23, 0.98)
+    );
     box-shadow:
       0 28px 60px rgba(2, 8, 23, 0.5),
       0 0 0 1px rgba(255, 255, 255, 0.04);
@@ -516,7 +534,11 @@ html.dark .user-dropdown-popper {
   .menu-header {
     border-color: rgba(148, 163, 184, 0.12);
     background:
-      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.22), transparent 46%),
+      radial-gradient(
+        circle at top left,
+        rgba(var(--el-color-primary-rgb), 0.22),
+        transparent 46%
+      ),
       rgba(15, 23, 42, 0.78);
   }
 

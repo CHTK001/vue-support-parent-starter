@@ -41,140 +41,18 @@
     </el-tooltip>
 
     <template v-else>
-      <div v-if="active" class="server-host-card__active-bar" />
-
-      <div class="server-host-card__main">
-        <div class="server-host-card__visual">
-          <div
-            class="server-host-card__orb"
-            :class="`is-${normalizeOs(entry.host.osType) || 'default'}`"
-          >
-            <IconifyIconOnline :icon="osIcon(entry.host.osType)" />
-            <span
-              class="server-host-card__dot"
-              :class="
-                metricDotClass(entry.snapshot, entry.host.enabled !== false)
-              "
-            />
-            <div class="server-host-card__metric-arcs">
-              <span
-                class="is-cpu"
-                :style="{ '--ratio': metricRatio(entry.snapshot?.cpuUsage) }"
-              />
-              <span
-                class="is-memory"
-                :style="{ '--ratio': metricRatio(entry.snapshot?.memoryUsage) }"
-              />
-              <span
-                class="is-disk"
-                :style="{ '--ratio': metricRatio(entry.snapshot?.diskUsage) }"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="server-host-card__content">
-          <div class="server-host-card__content-top">
-            <small class="server-host-card__name">{{
-              entry.host.serverName
-            }}</small>
-            <ScTag
-              size="small"
-              effect="plain"
-              round
-              class="server-host-card__latency"
-              :type="latencyTagType(entry.snapshot?.latencyMs)"
-            >
-              {{ formatLatency(entry.snapshot?.latencyMs) }}
-            </ScTag>
-          </div>
-          <strong class="server-host-card__address-text">{{
-            hostAddress(entry.host)
-          }}</strong>
-          <span class="server-host-card__meta">
-            {{ osLabel(entry.host.osType) }} ·
-            {{ serverTypeLabel(entry.host.serverType) }}
-          </span>
-        </div>
-      </div>
-
-      <div class="server-host-card__toolbar">
-        <el-tooltip content="编辑" placement="top">
-          <el-button circle @click.stop="emit('edit', entry.host)">
-            <IconifyIconOnline icon="ri:edit-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
-          :content="entry.host.enabled ? '停用' : '启用'"
-          placement="top"
-        >
-          <el-button
-            circle
-            :type="entry.host.enabled ? 'warning' : 'success'"
-            plain
-            @click.stop="emit('toggle-enabled', entry.host)"
-          >
-            <IconifyIconOnline
-              :icon="
-                entry.host.enabled
-                  ? 'ri:pause-circle-line'
-                  : 'ri:play-circle-line'
-              "
-            />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip v-if="canOpenRemote" content="远程控制" placement="top">
-          <el-button
-            circle
-            type="info"
-            plain
-            @click.stop="emit('open-remote', entry.host)"
-          >
-            <IconifyIconOnline icon="ri:remote-control-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="进程管理" placement="top">
-          <el-button
-            circle
-            plain
-            @click.stop="emit('open-processes', entry.host)"
-          >
-            <IconifyIconOnline icon="ri:stack-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip v-if="softEnabled" content="安装软件" placement="top">
-          <el-button
-            circle
-            type="success"
-            plain
-            @click.stop="emit('open-install', entry.host)"
-          >
-            <IconifyIconOnline icon="ri:download-cloud-2-line" />
-          </el-button>
-        </el-tooltip>
-        <el-tooltip
-          v-if="softEnabled && entry.summary.installations > 0"
-          content="软件视图"
-          placement="top"
-        >
-          <el-button
-            circle
-            type="primary"
-            plain
-            @click.stop="emit('open-soft', entry.host)"
-          >
-            <IconifyIconOnline icon="ri:apps-2-line" />
-          </el-button>
-        </el-tooltip>
+      <div class="server-host-card__icon" :class="`is-${normalizeOs(entry.host.osType) || 'default'}`">
+        <IconifyIconOnline :icon="osIcon(entry.host.osType)" />
+        <span class="server-host-card__dot" :class="metricDotClass(entry.snapshot, entry.host.enabled !== false)" />
       </div>
     </template>
   </ScCard>
 </template>
 
 <script setup lang="ts">
+
 import { computed } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
-import ScTag from "@repo/components/ScTag/src/index.vue";
 import type { ServerHost } from "../api";
 import type { ServerHostListEntry } from "./server-types";
 import {
@@ -213,28 +91,13 @@ const emit = defineEmits<{
   "open-install": [host: ServerHost];
   "open-remote": [host: ServerHost];
   "open-processes": [host: ServerHost];
+  "open-projects": [host: ServerHost];
   contextmenu: [event: MouseEvent, entry: ServerHostListEntry];
 }>();
 
 const canOpenRemote = computed(
   () => Boolean(props.entry.remoteConfig?.enabled),
 );
-
-const metricRatio = (value?: number | null) => {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return 0.08;
-  }
-  return Math.min(1, Math.max(0.08, numeric / 100));
-};
-
-const latencyTagType = (value?: number | null) => {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric) || numeric <= 0) return "info";
-  if (numeric >= 350) return "danger";
-  if (numeric >= 180) return "warning";
-  return "success";
-};
 </script>
 
 <style scoped lang="scss">
@@ -322,9 +185,9 @@ const latencyTagType = (value?: number | null) => {
 .server-host-card :deep(.el-card__body) {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 18px 18px 14px;
-  min-height: 136px;
+  justify-content: center;
+  padding: 12px;
+  min-height: 56px;
 }
 
 .server-host-card.is-collapsed {
@@ -346,7 +209,7 @@ const latencyTagType = (value?: number | null) => {
 .server-host-card__active-bar {
   position: absolute;
   top: 14px;
-  right: 0;
+  left: 0;
   width: 5px;
   height: calc(100% - 28px);
   border-radius: 999px 0 0 999px;
@@ -395,55 +258,45 @@ const latencyTagType = (value?: number | null) => {
   box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
 }
 
-.server-host-card__visual {
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.server-host-card__orb {
+.server-host-card__icon {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 18px;
   color: white;
   background: linear-gradient(145deg, #64748b, #1e293b);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -8px 18px rgba(15, 23, 42, 0.18),
-    0 18px 28px rgba(15, 23, 42, 0.16);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    0 8px 16px rgba(15, 23, 42, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.server-host-card:hover .server-host-card__orb {
-  transform: translateY(-2px) scale(1.02);
+.server-host-card:hover .server-host-card__icon {
+  transform: translateY(-2px) scale(1.05);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    inset 0 -8px 18px rgba(15, 23, 42, 0.18),
-    0 24px 34px rgba(15, 23, 42, 0.18);
+    0 12px 20px rgba(15, 23, 42, 0.16);
 }
 
-.server-host-card__orb .server-host-card__dot {
+.server-host-card__icon .server-host-card__dot {
   position: absolute;
   right: -3px;
   bottom: -3px;
 }
 
-.server-host-card__orb.is-windows {
+.server-host-card__icon.is-windows {
   background: linear-gradient(145deg, #60a5fa, #2563eb);
 }
 
-.server-host-card__orb.is-linux {
+.server-host-card__icon.is-linux {
   background: linear-gradient(145deg, #f59e0b, #d97706);
 }
 
-.server-host-card__orb.is-macos {
+.server-host-card__icon.is-macos {
   background: linear-gradient(145deg, #94a3b8, #334155);
 }
 

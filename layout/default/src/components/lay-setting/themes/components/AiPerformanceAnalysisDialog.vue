@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { getConfig } from "@repo/config";
 import { http, message, type ReturnResult } from "@repo/utils";
+import { ScDialog, ScButton } from "@repo/components";
 
 interface WebPerformanceSummary {
   sampleCount?: number;
@@ -255,12 +256,12 @@ const formatBytes = (value: number) => {
 </script>
 
 <template>
-  <el-dialog
+  <ScDialog
     v-model="dialogVisible"
     title="AI 性能分析"
     width="980px"
-    class="ai-performance-dialog"
     :close-on-click-modal="false"
+    layout="simple"
   >
     <div class="ai-performance-dialog__toolbar">
       <el-input
@@ -276,14 +277,14 @@ const formatBytes = (value: number) => {
         size="default"
         class="toolbar-sample-count"
       />
-      <el-button
+      <ScButton
         type="primary"
         :loading="loading"
         @click="runAnalyze"
       >
         <IconifyIconOnline icon="ri:flashlight-line" />
         开始分析
-      </el-button>
+      </ScButton>
     </div>
     <div class="ai-performance-dialog__endpoint">
       分析接口：{{ analyzeEndpoint }}
@@ -383,7 +384,7 @@ const formatBytes = (value: number) => {
         </div>
       </section>
     </div>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <style scoped lang="scss">

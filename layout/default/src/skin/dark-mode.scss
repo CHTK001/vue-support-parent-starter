@@ -385,6 +385,53 @@ body,
 
 .theme-switching {
   cursor: default;
+
+  // 切换窗口内临时降级高成本绘制效果，优先压低瞬时掉帧
+  // 结束切换后由常规样式自动恢复
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  // 切换窗口内临时隐藏高成本表格渲染层，避免表格页在单帧内触发大面积重绘
+  .el-table__header-wrapper,
+  .el-table__body-wrapper,
+  .el-table__fixed,
+  .el-table__fixed-right,
+  .el-table__fixed-header-wrapper,
+  .el-table__fixed-body-wrapper,
+  .sc-table-container,
+  .sc-table-wrapper {
+    visibility: hidden !important;
+  }
+}
+
+// 皮肤切换动画 - 与主题切换保持一致
+.skin-switching {
+  cursor: default;
+
+  // 切换窗口内临时降级高成本绘制效果
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    transition: none !important;
+  }
+
+  // 表格层在切换期间隐藏
+  .el-table__header-wrapper,
+  .el-table__body-wrapper,
+  .el-table__fixed,
+  .el-table__fixed-right,
+  .el-table__fixed-header-wrapper,
+  .el-table__fixed-body-wrapper,
+  .sc-table-container,
+  .sc-table-wrapper {
+    visibility: hidden !important;
+  }
 }
 
 // 自动暗黑模式 (Auto dark mode)

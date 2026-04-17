@@ -119,7 +119,7 @@ export const globalSetting: PlatformConfigs = {
   /** 是否显示搜索按钮 */
   ShowBarSearch: true,
   /** 是否显示AI助手 */
-  ShowAiChat: true,
+  ShowAiChat: false,
   /** AI助手皮肤主题 */
   AiChatTheme: "default",
 
@@ -258,6 +258,14 @@ export const globalSetting: PlatformConfigs = {
   },
 
   // ===========================================
+  // 业务入口配置
+  // ===========================================
+  BusinessEntry: {
+    helpFeedback: true,
+    feedbackReportRoute: "/manage/feedback",
+  },
+
+  // ===========================================
   // 页面行为配置（默认不启用）
   // ===========================================
   PageBehavior: {
@@ -305,6 +313,6 @@ export const globalSetting: PlatformConfigs = {
   },
 };
 
-const settingStorage = {
+const _settingStorage = {
   token: null,
 };

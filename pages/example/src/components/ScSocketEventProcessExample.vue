@@ -42,27 +42,33 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     type="primary"
                     @click="simulateProgress(processRef1, 0)"
-                  >开始</ScButton>
-                  <ScButton 
+                    >开始</ScButton
+                  >
+                  <ScButton
                     size="small"
                     type="success"
                     @click="simulateProgress(processRef1, 100)"
-                  >完成</ScButton>
-                  <ScButton 
+                    >完成</ScButton
+                  >
+                  <ScButton
                     size="small"
                     type="warning"
                     @click="simulateProgress(processRef1, 50)"
-                  >进行中</ScButton>
-                  <ScButton 
+                    >进行中</ScButton
+                  >
+                  <ScButton
                     size="small"
                     type="danger"
                     @click="simulateError(processRef1)"
-                  >错误</ScButton>
-                  <ScButton size="small" @click="processRef1?.resetProgress()">重置</ScButton>
+                    >错误</ScButton
+                  >
+                  <ScButton size="small" @click="processRef1?.resetProgress()"
+                    >重置</ScButton
+                  >
                 </el-button-group>
               </div>
 
@@ -99,18 +105,24 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     type="primary"
                     @click="addRandomLog(processRef2)"
-                  >添加日志</ScButton>
-                  <ScButton 
+                    >添加日志</ScButton
+                  >
+                  <ScButton
                     size="small"
                     type="success"
                     @click="simulateLogComplete(processRef2)"
-                  >完成</ScButton>
-                  <ScButton size="small" @click="processRef2?.clearLogs()">清空日志</ScButton>
-                  <ScButton size="small" @click="processRef2?.resetProgress()">重置</ScButton>
+                    >完成</ScButton
+                  >
+                  <ScButton size="small" @click="processRef2?.clearLogs()"
+                    >清空日志</ScButton
+                  >
+                  <ScButton size="small" @click="processRef2?.resetProgress()"
+                    >重置</ScButton
+                  >
                 </el-button-group>
               </div>
 
@@ -153,7 +165,7 @@
                       <span class="custom-percentage">{{ percentage }}%</span>
                     </div>
                     <div class="custom-content">
-                      <ScProgress 
+                      <ScProgress
                         :percentage="percentage"
                         :color="getProgressColor(percentage)"
                         :stroke-width="20"
@@ -174,17 +186,21 @@
 
               <div class="action-buttons mt-3">
                 <el-button-group>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     type="primary"
                     @click="simulateProgress(processRef3, 30)"
-                  >30%</ScButton>
-                  <ScButton 
+                    >30%</ScButton
+                  >
+                  <ScButton
                     size="small"
                     type="success"
                     @click="simulateProgress(processRef3, 70)"
-                  >70%</ScButton>
-                  <ScButton size="small" @click="processRef3?.resetProgress()">重置</ScButton>
+                    >70%</ScButton
+                  >
+                  <ScButton size="small" @click="processRef3?.resetProgress()"
+                    >重置</ScButton
+                  >
                 </el-button-group>
               </div>
 
@@ -242,7 +258,7 @@
 
       <!-- 弹框模式示例 -->
       <div v-if="currentMode === 'dialog'" class="dialog-examples">
-        <ScAlert 
+        <ScAlert
           title="弹框模式说明"
           type="info"
           :closable="false"
@@ -312,19 +328,24 @@
               <div class="control-section">
                 <span class="control-label">测试进度更新：</span>
                 <el-space wrap>
-                  <ScButton 
+                  <ScButton
                     size="small"
                     @click="simulateProgress(dialogRef1, 30)"
-                  >更新弹框1进度</ScButton>
-                  <ScButton size="small" @click="addRandomLog(dialogRef2)">添加弹框2日志</ScButton>
-                  <ScButton 
+                    >更新弹框1进度</ScButton
+                  >
+                  <ScButton size="small" @click="addRandomLog(dialogRef2)"
+                    >添加弹框2日志</ScButton
+                  >
+                  <ScButton
                     size="small"
                     @click="simulateProgress(dialogRef3, 70)"
-                  >更新弹框3进度</ScButton>
-                  <ScButton 
+                    >更新弹框3进度</ScButton
+                  >
+                  <ScButton
                     size="small"
                     @click="simulateProgress(dialogRef4, 100)"
-                  >完成弹框4</ScButton>
+                    >完成弹框4</ScButton
+                  >
                 </el-space>
               </div>
             </div>
@@ -440,7 +461,7 @@
             :sub-title="`进度: ${percentage}%`"
           >
             <template #extra>
-              <ScProgress 
+              <ScProgress
                 type="circle"
                 :percentage="percentage"
                 :color="getProgressColor(percentage)"
@@ -455,7 +476,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess"
+import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess";
 import CodePreview from "./CodePreview.vue";
 
 // 配置

@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     v-model="dialogVisible"
     :title="dialogTitle"
     width="600px"
     :close-on-click-modal="false"
     @close="handleCancel"
-  >
+   layout="simple">
     <div class="sc-cell-editor">
       <DateTimeEditor
         v-if="editorType === 'datetime'"
@@ -38,14 +38,14 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleCancel">取消</el-button>
-        <el-button type="primary" :disabled="!!validateError" @click="handleSave">保存</el-button>
+        <ScButton @click="handleCancel">取消</ScButton>
+        <ScButton type="primary" :disabled="!!validateError" @click="handleSave">保存</ScButton>
       </div>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { resolveEditorType } from './resolveEditorType.js'
 import DateTimeEditor from './editors/DateTimeEditor.vue'

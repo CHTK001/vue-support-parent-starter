@@ -23,21 +23,21 @@
       </article>
     </div>
 
-    <el-card class="panel shell-card" shadow="never">
+    <ScCard class="panel shell-card" shadow="never">
       <template #header>
         <div class="panel__header">
           <div>
             <p class="panel__eyebrow">Operations Center</p>
             <h3>支付运营诊断与调度中心</h3>
           </div>
-          <el-button text @click="loadAll">刷新全部</el-button>
+          <ScButton text @click="loadAll">刷新全部</ScButton>
         </div>
       </template>
 
       <el-tabs v-model="activeTab" class="ops-tabs">
         <el-tab-pane label="回调诊断" name="diagnostics">
           <div class="diagnostics-grid">
-            <el-card class="sub-panel" shadow="never">
+            <ScCard class="sub-panel" shadow="never">
               <template #header>
                 <div class="sub-panel__header">
                   <div>
@@ -61,9 +61,9 @@
                 <el-table-column prop="effectivePriority" label="实际优先级" min-width="260" show-overflow-tooltip />
                 <el-table-column prop="notes" label="结论" min-width="280" show-overflow-tooltip />
               </el-table>
-            </el-card>
+            </ScCard>
 
-            <el-card class="sub-panel" shadow="never">
+            <ScCard class="sub-panel" shadow="never">
               <template #header>
                 <div class="sub-panel__header">
                   <div>
@@ -83,12 +83,12 @@
                   <p><strong>补充说明：</strong>{{ item.notes }}</p>
                 </article>
               </div>
-            </el-card>
+            </ScCard>
           </div>
         </el-tab-pane>
 
         <el-tab-pane label="调度任务" name="scheduler">
-          <el-card class="sub-panel" shadow="never">
+          <ScCard class="sub-panel" shadow="never">
             <template #header>
               <div class="sub-panel__header">
                 <div>
@@ -125,21 +125,21 @@
               <el-table-column prop="lastRunMessage" label="最近消息" min-width="220" show-overflow-tooltip />
               <el-table-column label="操作" width="180" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" :loading="savingTaskKey === row.taskKey" @click="saveTask(row.taskKey)">
+                  <ScButton link type="primary" :loading="savingTaskKey === row.taskKey" @click="saveTask(row.taskKey)">
                     保存
-                  </el-button>
-                  <el-button link type="success" :loading="triggeringTaskKey === row.taskKey" @click="triggerTask(row.taskKey)">
+                  </ScButton>
+                  <ScButton link type="success" :loading="triggeringTaskKey === row.taskKey" @click="triggerTask(row.taskKey)">
                     立即执行
-                  </el-button>
+                  </ScButton>
                 </template>
               </el-table-column>
             </el-table>
-          </el-card>
+          </ScCard>
         </el-tab-pane>
 
         <el-tab-pane label="回调异常" name="notify">
           <div class="diagnostics-grid">
-            <el-card class="sub-panel" shadow="never">
+            <ScCard class="sub-panel" shadow="never">
               <template #header>
                 <div class="sub-panel__header">
                   <div>
@@ -160,8 +160,8 @@
                   <el-input v-model="errorSearchForm.orderNo" placeholder="订单号" clearable />
                 </el-form-item>
                 <el-form-item>
-                  <el-button type="primary" @click="loadNotifyErrors(1)">查询</el-button>
-                  <el-button @click="resetNotifyErrors">重置</el-button>
+                  <ScButton type="primary" @click="loadNotifyErrors(1)">查询</ScButton>
+                  <ScButton @click="resetNotifyErrors">重置</ScButton>
                 </el-form-item>
               </el-form>
 
@@ -180,9 +180,9 @@
                 <el-table-column prop="nextRetryTime" label="下次重试" width="180" />
                 <el-table-column label="操作" width="120" fixed="right">
                   <template #default="{ row }">
-                    <el-button link type="danger" :loading="retryingErrorId === row.id" @click="retryError(row.id)">
+                    <ScButton link type="danger" :loading="retryingErrorId === row.id" @click="retryError(row.id)">
                       立即重试
-                    </el-button>
+                    </ScButton>
                   </template>
                 </el-table-column>
               </el-table>
@@ -197,9 +197,9 @@
                 @current-change="loadNotifyErrors"
                 @size-change="handleNotifyErrorSizeChange"
               />
-            </el-card>
+            </ScCard>
 
-            <el-card class="sub-panel" shadow="never">
+            <ScCard class="sub-panel" shadow="never">
               <template #header>
                 <div class="sub-panel__header">
                   <div>
@@ -220,8 +220,8 @@
                   <el-input v-model="logSearchForm.orderNo" placeholder="订单号" clearable />
                 </el-form-item>
                 <el-form-item>
-                  <el-button type="primary" @click="loadNotifyLogs(1)">查询</el-button>
-                  <el-button @click="resetNotifyLogs">重置</el-button>
+                  <ScButton type="primary" @click="loadNotifyLogs(1)">查询</ScButton>
+                  <ScButton @click="resetNotifyLogs">重置</ScButton>
                 </el-form-item>
               </el-form>
 
@@ -246,11 +246,11 @@
                 @current-change="loadNotifyLogs"
                 @size-change="handleNotifyLogSizeChange"
               />
-            </el-card>
+            </ScCard>
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+    </ScCard>
   </section>
 </template>
 

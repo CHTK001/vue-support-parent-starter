@@ -8,24 +8,24 @@
       </div>
       <div class="tree-actions">
         <el-tooltip content="刷新目录树" placement="top">
-          <el-button size="small" text @click="refreshTree">
+          <ScButton size="small" text @click="refreshTree">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
         <el-tooltip content="展开所有" placement="top">
-          <el-button size="small" text @click="expandAll">
+          <ScButton size="small" text @click="expandAll">
             <IconifyIconOnline icon="ri:add-box-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
         <!-- <el-tooltip content="折叠所有" placement="top">
-          <el-button size="small" text @click="collapseAll">
+          <ScButton size="small" text @click="collapseAll">
             <IconifyIconOnline icon="ri:subtract-box-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip> -->
         <el-tooltip content="关闭" placement="top">
-          <el-button size="small" text @click="$emit('close')">
+          <ScButton size="small" text @click="$emit('close')">
             <IconifyIconOnline icon="ep:close" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
     </div>
@@ -62,14 +62,14 @@
 
             <div class="node-actions" v-if="data.isDirectory" @click.stop>
               <el-tooltip content="新建文件夹" placement="top">
-                <el-button size="small" text @click="createFolder(data)">
+                <ScButton size="small" text @click="createFolder(data)">
                   <IconifyIconOnline icon="ri:folder-add-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="刷新" placement="top">
-                <el-button size="small" text @click="refreshNode(node, data)" :loading="loadingNodes.has(data.path)">
+                <ScButton size="small" text @click="refreshNode(node, data)" :loading="loadingNodes.has(data.path)">
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -85,8 +85,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createFolderVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
+        <ScButton @click="createFolderVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="confirmCreateFolder">确定</ScButton>
       </template>
     </sc-dialog>
   </div>

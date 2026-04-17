@@ -11,10 +11,10 @@
           </div>
         </div>
         <div class="header-actions">
-          <el-button type="primary" @click="handleCreate">
+          <ScButton type="primary" @click="handleCreate">
             <el-icon><Plus /></el-icon>
             新建任务
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -22,7 +22,7 @@
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="stats-row">
       <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon total">
               <el-icon><List /></el-icon>
@@ -32,10 +32,10 @@
               <div class="stat-label">任务总数</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon running">
               <el-icon><VideoPlay /></el-icon>
@@ -45,10 +45,10 @@
               <div class="stat-label">运行中</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon success">
               <el-icon><CircleCheck /></el-icon>
@@ -58,10 +58,10 @@
               <div class="stat-label">成功率</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card" shadow="hover">
+        <ScCard class="stat-card" shadow="hover">
           <div class="stat-content">
             <div class="stat-icon error">
               <el-icon><WarningFilled /></el-icon>
@@ -71,12 +71,12 @@
               <div class="stat-label">异常任务</div>
             </div>
           </div>
-        </el-card>
+        </ScCard>
       </el-col>
     </el-row>
 
     <!-- 查询和列表 -->
-    <el-card class="filter-card">
+    <ScCard class="filter-card">
       <el-form :inline="true" :model="queryParams" class="filter-form">
         <el-form-item label="任务名称">
           <el-input
@@ -88,25 +88,25 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="queryParams.taskStatus" placeholder="全部" clearable style="width: 120px">
-            <el-option label="已停止" value="STOPPED" />
-            <el-option label="运行中" value="RUNNING" />
-            <el-option label="异常" value="ERROR" />
-          </el-select>
+          <ScSelect v-model="queryParams.taskStatus" placeholder="全部" clearable style="width: 120px">
+            <ScOption label="已停止" value="STOPPED" />
+            <ScOption label="运行中" value="RUNNING" />
+            <ScOption label="异常" value="ERROR" />
+          </ScSelect>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">
+          <ScButton type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>
             查询
-          </el-button>
-          <el-button @click="handleReset">
+          </ScButton>
+          <ScButton @click="handleReset">
             <el-icon><RefreshRight /></el-icon>
             重置
-          </el-button>
-          <el-button :loading="refreshing" @click="handleRefresh">
+          </ScButton>
+          <ScButton :loading="refreshing" @click="handleRefresh">
             <el-icon><Refresh /></el-icon>
             刷新
-          </el-button>
+          </ScButton>
         </el-form-item>
       </el-form>
 
@@ -133,20 +133,20 @@
         <el-table-column prop="createTime" label="创建时间" width="180" />
         <el-table-column label="操作" width="350" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="info" @click="handleDesign(row)">设计流程</el-button>
-            <el-button
+            <ScButton link type="primary" @click="handleEdit(row)">编辑</ScButton>
+            <ScButton link type="info" @click="handleDesign(row)">设计流程</ScButton>
+            <ScButton
               v-if="row.syncTaskStatus !== 'RUNNING'"
               link
               type="success"
               @click="handleStart(row)"
             >
               启动
-            </el-button>
-            <el-button v-else link type="warning" @click="handleStop(row)">停止</el-button>
-            <el-button link type="info" @click="handleExecuteOnce(row)">执行</el-button>
-            <el-button link type="primary" @click="handleLogs(row)">日志</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            </ScButton>
+            <ScButton v-else link type="warning" @click="handleStop(row)">停止</ScButton>
+            <ScButton link type="info" @click="handleExecuteOnce(row)">执行</ScButton>
+            <ScButton link type="primary" @click="handleLogs(row)">日志</ScButton>
+            <ScButton link type="danger" @click="handleDelete(row)">删除</ScButton>
           </template>
         </el-table-column>
       </el-table>
@@ -161,7 +161,7 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
-    </el-card>
+    </ScCard>
 
     <!-- 新建/编辑任务对话框 -->
     <sc-dialog
@@ -218,10 +218,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitLoading" @click="handleSubmit">
           确定
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 

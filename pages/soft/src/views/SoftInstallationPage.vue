@@ -2,19 +2,19 @@
   <SoftWorkspace title="安装实例">
     <template #actions>
       <el-tooltip content="刷新实例" placement="top">
-        <el-button circle @click="loadInstallations">
+        <ScButton circle @click="loadInstallations">
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </el-tooltip>
       <el-tooltip content="操作记录" placement="top">
-        <el-button circle @click="router.push('/soft/records')">
+        <ScButton circle @click="router.push('/soft/records')">
           <IconifyIconOnline icon="ri:file-list-3-line" />
-        </el-button>
+        </ScButton>
       </el-tooltip>
       <el-tooltip content="去安装软件" placement="top">
-        <el-button circle type="primary" @click="router.push('/soft/catalog')">
+        <ScButton circle type="primary" @click="router.push('/soft/catalog')">
           <IconifyIconOnline icon="ri:download-cloud-2-line" />
-        </el-button>
+        </ScButton>
       </el-tooltip>
     </template>
 
@@ -89,64 +89,64 @@
         <template #default="{ row }">
           <el-space wrap>
             <el-tooltip content="查看详情" placement="top">
-              <el-button
+              <ScButton
                 circle
                 :disabled="!row.softPackageId"
                 @click="openDetail(row.softPackageId, row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:information-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="启动服务" placement="top">
-              <el-button
+              <ScButton
                 circle
                 type="success"
                 @click="runAction('start', row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:play-circle-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="停止服务" placement="top">
-              <el-button
+              <ScButton
                 circle
                 type="warning"
                 @click="runAction('stop', row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:pause-circle-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="重启服务" placement="top">
-              <el-button
+              <ScButton
                 circle
                 @click="runAction('restart', row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:restart-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="注册服务" placement="top">
-              <el-button
+              <ScButton
                 circle
                 @click="runAction('register', row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:shield-check-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="检查状态" placement="top">
-              <el-button
+              <ScButton
                 circle
                 @click="runAction('status', row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:pulse-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="卸载实例" placement="top">
-              <el-button
+              <ScButton
                 circle
                 type="danger"
                 @click="removeInstallation(row.softInstallationId)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
           </el-space>
         </template>

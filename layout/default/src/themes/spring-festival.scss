@@ -535,10 +535,30 @@ html.theme-spring-festival {
       border-bottom: 1px solid rgba(255, 215, 0, 0.5) !important;
     }
 
-    .scroll-item {
+    .scroll-item,
+    .chrome-item,
+    .card-item,
+    .modern-item,
+    .smart-item,
+    .glass-item,
+    .outline-item {
       background: rgba(139, 0, 0, 0.6) !important;
       border: 1px solid rgba(255, 215, 0, 0.3) !important;
       color: rgba(255, 215, 0, 0.9) !important;
+      box-shadow: 0 10px 24px -24px rgba(255, 215, 0, 0.48) !important;
+
+      .chrome-tab,
+      .chrome-tab__bg {
+        background: transparent !important;
+      }
+
+      .tag-title,
+      .tag-icon,
+      .el-icon-close,
+      .chrome-tab-divider {
+        color: inherit !important;
+        border-color: rgba(255, 215, 0, 0.24) !important;
+      }
       
       &:hover {
         background: rgba(255, 215, 0, 0.15) !important;
@@ -550,8 +570,60 @@ html.theme-spring-festival {
         background: linear-gradient(135deg, rgba(255, 215, 0, 0.9), rgba(255, 165, 0, 0.8)) !important;
         border-color: #ffd700 !important;
         color: #8b0000 !important;
+
+        .tag-title,
+        .tag-icon,
+        .el-icon-close,
+        .chrome-tab-divider {
+          color: #8b0000 !important;
+          border-color: rgba(139, 0, 0, 0.28) !important;
+        }
       }
     }
+  }
+
+  .sidebar-logo-container,
+  .sidebar-logo-container .sidebar-logo-link {
+    background: linear-gradient(135deg, rgba(107, 0, 0, 0.96), rgba(72, 0, 0, 0.9)) !important;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.18) !important;
+  }
+
+  .sidebar-logo-container img {
+    filter: drop-shadow(0 6px 14px rgba(255, 215, 0, 0.24)) !important;
+  }
+
+  .sidebar-logo-container .sidebar-title {
+    color: #ffe7a3 !important;
+    text-shadow: 0 8px 16px rgba(72, 0, 0, 0.32);
+  }
+
+  .sidebar-logo-container .env-badge {
+    border: 1px solid rgba(255, 215, 0, 0.24);
+  }
+
+  .card-navigation-container,
+  .card-navigation-header,
+  .horizontal-card-wrapper,
+  .sub-menu-popup {
+    background: linear-gradient(145deg, rgba(107, 0, 0, 0.96), rgba(72, 0, 0, 0.92)) !important;
+    border-color: rgba(255, 215, 0, 0.22) !important;
+    box-shadow: 0 18px 36px -30px rgba(72, 0, 0, 0.82) !important;
+  }
+
+  .menu-card,
+  .sub-menu-card,
+  .back-button,
+  .scroll-arrow {
+    background: rgba(255, 215, 0, 0.1) !important;
+    border: 1px solid rgba(255, 215, 0, 0.18) !important;
+    color: #ffe7a3 !important;
+  }
+
+  .card-title,
+  .sub-card-title,
+  .sub-menu-indicator,
+  .back-button span {
+    color: #ffe7a3 !important;
   }
 
   // lay-setting 主题适配

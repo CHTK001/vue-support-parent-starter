@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import Segmented, {
   type OptionsType,
@@ -32,6 +33,10 @@ const props = withDefaults(defineProps<{
   dataTheme: false,
   overallStyle: "light",
 });
+
+const tooltipEffect = computed(() =>
+  props.isDark || props.dataTheme ? "dark" : "light",
+);
 </script>
 
 <template>
@@ -69,7 +74,7 @@ const props = withDefaults(defineProps<{
           :key="index"
           :content="item.description || item.themeColor"
           placement="top"
-          effect="light"
+          :effect="tooltipEffect"
         >
           <div
             class="theme-color-item"
@@ -383,7 +388,17 @@ const props = withDefaults(defineProps<{
   }
 }
 
-html.dark {
+html.dark,
+html[data-theme="dark"] {
+  .setting-section .section-title,
+  .setting-section .setting-label {
+    color: var(--el-text-color-primary) !important;
+  }
+
+  .setting-section .section-description {
+    color: var(--el-text-color-secondary) !important;
+  }
+
   .theme-color-grid {
     background: rgba(15, 23, 42, 0.7);
     border-color: rgba(148, 163, 184, 0.16);
@@ -399,6 +414,12 @@ html.dark {
     .check-icon {
       color: #bfdbfe;
     }
+  }
+
+  :deep(.modern-segmented) {
+    --pure-segmented-text-color: #e2e8f0;
+    --pure-segmented-track-bg: rgba(15, 23, 42, 0.82);
+    --pure-segmented-selected-bg: rgba(var(--el-color-primary-rgb), 0.24);
   }
 }
 </style>

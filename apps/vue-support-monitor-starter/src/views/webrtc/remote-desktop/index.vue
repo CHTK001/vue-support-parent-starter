@@ -10,7 +10,7 @@
     </div>
 
     <!-- 连接配置面板 -->
-    <el-card v-if="!isConnected" class="config-card" shadow="hover">
+    <ScCard v-if="!isConnected" class="config-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <el-icon><Setting /></el-icon>
@@ -44,14 +44,14 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" size="large" @click="connect" :loading="connecting">
+          <ScButton type="primary" size="large" @click="connect" :loading="connecting">
             <el-icon><Connection /></el-icon>
             连接
-          </el-button>
-          <el-button @click="loadDefaultConfig">加载默认配置</el-button>
+          </ScButton>
+          <ScButton @click="loadDefaultConfig">加载默认配置</ScButton>
         </el-form-item>
       </el-form>
-    </el-card>
+    </ScCard>
 
     <!-- 远程桌面显示区域 -->
     <div v-if="isConnected" class="desktop-container">
@@ -69,22 +69,22 @@
         <div class="toolbar-right">
           <el-button-group>
             <el-tooltip content="全屏" placement="bottom">
-              <el-button size="small" @click="toggleFullscreen">
+              <ScButton size="small" @click="toggleFullscreen">
                 <el-icon><FullScreen /></el-icon>
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="截图" placement="bottom">
-              <el-button size="small" @click="takeScreenshot">
+              <ScButton size="small" @click="takeScreenshot">
                 <el-icon><Camera /></el-icon>
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="断开连接" placement="bottom">
-              <el-button size="small" type="danger" @click="disconnect">
+              <ScButton size="small" type="danger" @click="disconnect">
                 <el-icon><Close /></el-icon>
                 断开
-              </el-button>
+              </ScButton>
             </el-tooltip>
-          </el-button-group>
+           </el-button-group>
         </div>
       </div>
 
@@ -109,18 +109,18 @@
         <div v-if="errorMessage" class="error-overlay">
           <el-icon :size="48"><CircleClose /></el-icon>
           <p>{{ errorMessage }}</p>
-          <el-button type="primary" @click="reconnect">重新连接</el-button>
+          <ScButton type="primary" @click="reconnect">重新连接</ScButton>
         </div>
       </div>
     </div>
 
     <!-- 日志面板 -->
-    <el-card v-if="logs.length > 0" class="log-card" shadow="hover">
+    <ScCard v-if="logs.length > 0" class="log-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <el-icon><Document /></el-icon>
           <span>连接日志</span>
-          <el-button type="text" size="small" @click="clearLogs">清空</el-button>
+          <ScButton type="text" size="small" @click="clearLogs">清空</ScButton>
         </div>
       </template>
       <div class="log-container">
@@ -132,7 +132,7 @@
           [{{ log.time }}] {{ log.message }}
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

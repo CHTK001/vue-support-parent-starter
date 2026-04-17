@@ -70,16 +70,16 @@
                       @open="openFieldGuide('jobApplicationActive')"
                     />
                   </template>
-                  <el-select
+                  <ScSelect
                     v-model="form.jobApplicationActive"
                     allow-create
                     placeholder="请选择"
                     style="width: 100%"
                   >
-                    <el-option value="dev" label="开发" />
-                    <el-option value="prod" label="生产" />
-                    <el-option value="test" label="测试" />
-                  </el-select>
+                    <ScOption value="dev" label="开发" />
+                    <ScOption value="prod" label="生产" />
+                    <ScOption value="test" label="测试" />
+                  </ScSelect>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
@@ -87,20 +87,20 @@
                   <template #label>
                     <FieldGuideLabel label="执行器" @open="openFieldGuide('monitorId')" />
                   </template>
-                  <el-select
+                  <ScSelect
                     v-model="form.monitorId"
                     clearable
                     filterable
                     placeholder="请选择"
                     style="width: 100%"
                   >
-                    <el-option
+                    <ScOption
                       v-for="item in executorData"
                       :key="item.monitorId"
                       :value="item.monitorId"
                       :label="item.monitorName"
                     />
-                  </el-select>
+                  </ScSelect>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
@@ -108,18 +108,18 @@
                   <template #label>
                     <FieldGuideLabel label="运行模式" @open="openFieldGuide('jobGlueType')" />
                   </template>
-                  <el-select
+                  <ScSelect
                     v-model="form.jobGlueType"
                     clearable
                     filterable
                     style="width: 100%"
                   >
-                    <el-option value="BEAN" label="BEAN" />
-                    <el-option value="GLUE_GROOVY" label="GLUE(Java)" />
-                    <el-option value="GLUE_SHELL" label="GLUE(Shell)" />
-                    <el-option value="GLUE_PYTHON" label="GLUE(Python)" />
-                    <el-option value="GLUE_NODEJS" label="GLUE(NodeJs)" />
-                  </el-select>
+                    <ScOption value="BEAN" label="BEAN" />
+                    <ScOption value="GLUE_GROOVY" label="GLUE(Java)" />
+                    <ScOption value="GLUE_SHELL" label="GLUE(Shell)" />
+                    <ScOption value="GLUE_PYTHON" label="GLUE(Python)" />
+                    <ScOption value="GLUE_NODEJS" label="GLUE(NodeJs)" />
+                  </ScSelect>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
@@ -261,19 +261,19 @@
                       @open="openFieldGuide('jobExecutorRouteStrategy')"
                     />
                   </template>
-                  <el-select
+                  <ScSelect
                     v-model="form.jobExecutorRouteStrategy"
                     clearable
                     filterable
                     style="width: 100%"
                   >
-                    <el-option value="FIRST" label="第一个" />
-                    <el-option value="LAST" label="最后一个" />
-                    <el-option value="ROUND" label="轮询" />
-                    <el-option value="RANDOM" label="随机" />
-                    <el-option value="FAILOVER" label="故障转移" />
-                    <el-option value="SHARDING_BROADCAST" label="分片广播" />
-                  </el-select>
+                    <ScOption value="FIRST" label="第一个" />
+                    <ScOption value="LAST" label="最后一个" />
+                    <ScOption value="ROUND" label="轮询" />
+                    <ScOption value="RANDOM" label="随机" />
+                    <ScOption value="FAILOVER" label="故障转移" />
+                    <ScOption value="SHARDING_BROADCAST" label="分片广播" />
+                  </ScSelect>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
@@ -284,13 +284,13 @@
                       @open="openFieldGuide('jobExecuteMisfireStrategy')"
                     />
                   </template>
-                  <el-select
+                  <ScSelect
                     v-model="form.jobExecuteMisfireStrategy"
                     style="width: 100%"
                   >
-                    <el-option value="DO_NOTHING" label="忽略" />
-                    <el-option value="FIRE_ONCE_NOW" label="立即执行一次" />
-                  </el-select>
+                    <ScOption value="DO_NOTHING" label="忽略" />
+                    <ScOption value="FIRE_ONCE_NOW" label="立即执行一次" />
+                  </ScSelect>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
@@ -301,16 +301,16 @@
                       @open="openFieldGuide('jobExecutorBlockStrategy')"
                     />
                   </template>
-                  <el-select
+                  <ScSelect
                     v-model="form.jobExecutorBlockStrategy"
                     clearable
                     filterable
                     style="width: 100%"
                   >
-                    <el-option value="SERIAL_EXECUTION" label="单机串行" />
-                    <el-option value="DISCARD_LATER" label="丢弃后续调度" />
-                    <el-option value="COVER_EARLY" label="覆盖之前调度" />
-                  </el-select>
+                    <ScOption value="SERIAL_EXECUTION" label="单机串行" />
+                    <ScOption value="DISCARD_LATER" label="丢弃后续调度" />
+                    <ScOption value="COVER_EARLY" label="覆盖之前调度" />
+                  </ScSelect>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
@@ -370,22 +370,22 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="triggerShow = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="submit">
+        <ScButton @click="triggerShow = false">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="submit">
           <IconifyIconOnline icon="ri:check-line" />
           <span>确认提交</span>
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>
 
-  <el-dialog
+  <ScDialog
     v-model="fieldGuideDialogVisible"
     append-to-body
     width="860px"
     class="task-guide-dialog"
     destroy-on-close
-  >
+   layout="simple">
     <template #header>
       <div class="guide-dialog__header" v-if="currentFieldGuide">
         <div class="guide-dialog__icon">
@@ -447,7 +447,7 @@
       >
         <div class="guide-section__title">相关资料</div>
         <div class="guide-link-list">
-          <el-button
+          <ScButton
             v-for="link in currentFieldGuide.links"
             :key="link.url"
             text
@@ -455,11 +455,11 @@
             @click="openGuideLink(link.url)"
           >
             {{ link.label }}
-          </el-button>
+          </ScButton>
         </div>
       </section>
     </div>
-  </el-dialog>
+  </ScDialog>
 </template>
 <script>
 import { fetchJobSave, fetchJobUpdate } from "../../../api/monitor/job";

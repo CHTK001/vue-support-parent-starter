@@ -167,6 +167,7 @@ const emit = defineEmits<{
   (e: "collapse-node", node: JdbcCatalogNode): void;
   (e: "expand-node", node: JdbcCatalogNode): void;
   (e: "expand-table", node: JdbcCatalogNode): void;
+  (e: "inject-sql", node: JdbcCatalogNode): void;
   (e: "open-table", node: JdbcCatalogNode): void;
   (e: "refresh"): void;
   (e: "search"): void;
@@ -363,7 +364,7 @@ const handleNodeClick = (node: JdbcCatalogNode) => {
   }
   suppressedNodeClick.value = null;
   if (node.nodeType === "table") {
-    emit("open-table", node);
+    emit("inject-sql", node);
   }
 };
 

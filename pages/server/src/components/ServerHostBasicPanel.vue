@@ -48,60 +48,103 @@
           <div class="server-basic-panel__action-row">
             <span class="server-basic-panel__action-label">基础能力</span>
             <div class="server-basic-panel__actions">
+              <el-dropdown trigger="click" @command="handleLoginRecordCommand">
+                <el-tooltip content="登录记录" placement="top">
+                  <ScButton circle>
+                    <IconifyIconOnline icon="ri:history-line" />
+                  </ScButton>
+                </el-tooltip>
+                <template #dropdown>
+                  <el-dropdown-menu class="server-basic-panel__login-dropdown">
+                    <div class="server-basic-panel__login-dropdown-header">
+                      <span>最近登录记录</span>
+                      <ScButton link type="primary" size="small" @click="loadLoginRecords">
+                        <IconifyIconOnline icon="ri:refresh-line" />
+                      </ScButton>
+                    </div>
+                    <el-dropdown-item v-if="loginRecords.length === 0" disabled>
+                      <span class="server-basic-panel__login-empty">暂无登录记录</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item
+                      v-for="record in loginRecords"
+                      :key="record.id"
+                      :command="record.id"
+                      class="server-basic-panel__login-item"
+                    >
+                      <div class="server-basic-panel__login-item-content">
+                        <div class="server-basic-panel__login-item-row">
+                          <span class="server-basic-panel__login-user">{{ record.username }}</span>
+                          <span class="server-basic-panel__login-status" :class="`is-${record.status?.toLowerCase()}`">
+                            {{ record.status === 'SUCCESS' ? '成功' : '失败' }}
+                          </span>
+                        </div>
+                        <div class="server-basic-panel__login-item-row">
+                          <span class="server-basic-panel__login-ip">{{ record.loginIp || '-' }}</span>
+                          <span class="server-basic-panel__login-time">{{ formatLoginTime(record.loginTime) }}</span>
+                        </div>
+                        <div class="server-basic-panel__login-item-row server-basic-panel__login-server">
+                          <IconifyIconOnline icon="ri:server-line" />
+                          <span>{{ record.serverName || record.host }}</span>
+                        </div>
+                      </div>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
               <el-tooltip content="进程管理" placement="top">
-                <el-button circle @click="emit('open-processes')">
+                <ScButton circle @click="emit('open-processes')">
                   <IconifyIconOnline icon="ri:stack-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="文件管理" placement="top">
-                <el-button circle @click="emit('open-files')">
+                <ScButton circle @click="emit('open-files')">
                   <IconifyIconOnline icon="ri:folder-5-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="采集任务" placement="top">
-                <el-button circle @click="emit('open-metrics-task')">
+                <ScButton circle @click="emit('open-metrics-task')">
                   <IconifyIconOnline icon="ri:timer-flash-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="预警设置" placement="top">
-                <el-button circle @click="emit('open-alert-settings')">
+                <ScButton circle @click="emit('open-alert-settings')">
                   <IconifyIconOnline icon="ri:alarm-warning-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="远程代理" placement="top">
-                <el-button circle @click="emit('open-remote-settings')">
+                <ScButton circle @click="emit('open-remote-settings')">
                   <IconifyIconOnline icon="ri:route-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip
                 v-if="canOpenRemote"
                 content="远程控制"
                 placement="top"
               >
-                <el-button
+                <ScButton
                   circle
                   type="info"
                   plain
                   @click="emit('open-remote')"
                 >
                   <IconifyIconOnline icon="ri:remote-control-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="服务器大屏" placement="top">
-                <el-button circle plain @click="emit('open-dashboard')">
+                <ScButton circle plain @click="emit('open-dashboard')">
                   <IconifyIconOnline icon="ri:dashboard-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="编辑服务器" placement="top">
-                <el-button circle @click="emit('edit')">
+                <ScButton circle @click="emit('edit')">
                   <IconifyIconOnline icon="ri:edit-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip
                 :content="host.enabled ? '停用服务器' : '启用服务器'"
                 placement="top"
               >
-                <el-button
+                <ScButton
                   circle
                   :type="host.enabled ? 'warning' : 'success'"
                   plain
@@ -114,7 +157,7 @@
                         : 'ri:play-circle-line'
                     "
                   />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -124,24 +167,24 @@
             <span class="server-basic-panel__action-label">软件能力</span>
             <div class="server-basic-panel__actions">
               <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
-                <el-button
+                <ScButton
                   circle
                   type="primary"
                   plain
                   @click="emit('open-soft')"
                 >
                   <IconifyIconOnline icon="ri:apps-2-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip v-if="softEnabled" content="安装软件" placement="top">
-                <el-button
+                <ScButton
                   circle
                   type="success"
                   plain
                   @click="emit('open-install')"
                 >
                   <IconifyIconOnline icon="ri:download-cloud-2-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -242,14 +285,14 @@
                 }}
               </ScTag>
               <el-tooltip content="查看基础信息详情" placement="top">
-                <el-button circle plain @click.stop="emit('open-basic-detail')">
+                <ScButton circle plain @click.stop="emit('open-basic-detail')">
                   <IconifyIconOnline icon="ri:information-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="重新获取公网 IP" placement="top">
-                <el-button circle plain @click.stop="emit('refresh-public-ip')">
+                <ScButton circle plain @click.stop="emit('refresh-public-ip')">
                   <IconifyIconOnline icon="ri:global-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </header>
@@ -373,7 +416,7 @@
                   </p>
                   <div class="server-basic-panel__diagnostic-actions">
                     <el-tooltip content="打开系统设置并配置 AI Provider">
-                      <el-button
+                      <ScButton
                         circle
                         size="small"
                         type="primary"
@@ -381,7 +424,7 @@
                         @click.stop="openAiSettings"
                       >
                         <IconifyIconOnline icon="ri:settings-4-line" />
-                      </el-button>
+                      </ScButton>
                     </el-tooltip>
                   </div>
                   <div
@@ -475,7 +518,7 @@
                 "
                 placement="top"
               >
-                <el-button
+                <ScButton
                   circle
                   plain
                   :disabled="!aiEnabled"
@@ -483,7 +526,7 @@
                   @click="emit('analyze-stability')"
                 >
                   <IconifyIconOnline icon="ri:ai-generate-2" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <span
                 class="server-basic-panel__lay-tag"
@@ -555,7 +598,7 @@
               <small>激活后可在这里生成当前时间的稳定性结论和处理建议。</small>
               <div class="server-basic-panel__diagnostic-actions">
                 <el-tooltip content="打开系统设置并配置 AI Provider">
-                  <el-button
+                  <ScButton
                     circle
                     size="small"
                     type="primary"
@@ -563,7 +606,7 @@
                     @click.stop="openAiSettings"
                   >
                     <IconifyIconOnline icon="ri:settings-4-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </article>
@@ -737,7 +780,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
@@ -748,11 +792,13 @@ import type {
   ServerAlertSettings,
   ServerAiTaskPayload,
   ServerHost,
+  ServerLoginRecord,
   ServerMetricsDetail,
   ServerMetricsSnapshot,
   ServerRemoteConsoleConfig,
   ServerService,
 } from "../api";
+import { listServerLoginRecords } from "../api";
 import type { HostSoftSummary } from "./server-types";
 import {
   archLabel,
@@ -768,6 +814,7 @@ import {
   osIcon,
   osLabel,
   resolveIoTotal,
+  resolveDiskIoTotal,
   serverTypeLabel,
 } from "../utils/serverHost";
 
@@ -884,9 +931,45 @@ const emit = defineEmits<{
 
 const metricChartMode = ref<MetricChartMode>("split");
 
+const loginRecords = ref<ServerLoginRecord[]>([]);
+
+const loadLoginRecords = async () => {
+  try {
+    const result = await listServerLoginRecords({ topN: 10 });
+    if (result.data) {
+      loginRecords.value = result.data;
+    }
+  } catch (e) {
+    console.error("加载登录记录失败", e);
+  }
+};
+
+const formatLoginTime = (time?: string) => {
+  if (!time) return "-";
+  const date = new Date(time);
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const handleLoginRecordCommand = (command: number) => {
+  const record = loginRecords.value.find((r) => r.id === command);
+  if (record) {
+    // 可以添加点击登录记录后的处理逻辑
+  }
+};
+
 const openAiSettings = () => {
   emitter.emit("openPanel");
 };
+
+onMounted(() => {
+  loadLoginRecords();
+});
+
 const alertScrollRef = ref<HTMLElement | null>(null);
 const alertListRef = ref<HTMLElement | null>(null);
 
@@ -1273,30 +1356,70 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__hero {
   position: relative;
   gap: 18px;
+  min-height: 200px;
   padding: 18px 20px;
   border-radius: 30px;
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.22));
   background:
     radial-gradient(
+      ellipse 80% 60% at 90% 10%,
+      rgba(14, 165, 233, 0.12),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 60% 80% at 10% 90%,
+      rgba(245, 158, 11, 0.1),
+      transparent 50%
+    ),
+    radial-gradient(
       circle at 84% 18%,
-      rgba(245, 158, 11, 0.16),
+      rgba(245, 158, 11, 0.18),
       transparent 20%
     ),
     radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--el-color-primary) 18%, transparent),
+      color-mix(in srgb, var(--el-color-primary) 20%, transparent),
       transparent 42%
     ),
     linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 255, 255, 0.99) 0%,
       rgba(248, 250, 252, 0.98) 54%,
-      rgba(239, 246, 255, 0.94) 100%
+      rgba(239, 246, 255, 0.96) 100%
     );
   box-shadow:
-    0 22px 40px rgba(15, 23, 42, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    0 24px 48px rgba(15, 23, 42, 0.08),
+    0 8px 16px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(148, 163, 184, 0.1);
   overflow: hidden;
+}
+
+.server-basic-panel__hero::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.03) 60deg,
+    transparent 120deg,
+    rgba(14, 165, 233, 0.02) 180deg,
+    transparent 240deg,
+    rgba(245, 158, 11, 0.02) 300deg,
+    transparent 360deg
+  );
+  animation: heroShine 20s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes heroShine {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .server-basic-panel__hero::after {
@@ -1305,8 +1428,10 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(130deg, rgba(255, 255, 255, 0.28), transparent 34%),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.18), transparent 50%);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, transparent 50%),
+    linear-gradient(315deg, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.2) 0%, transparent 30%);
+  border-radius: inherit;
 }
 
 .server-basic-panel__identity {
@@ -1327,20 +1452,50 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   color: white;
   background: linear-gradient(145deg, #64748b, #1e293b);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 18px 32px rgba(15, 23, 42, 0.18);
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    0 20px 40px rgba(15, 23, 42, 0.25),
+    0 8px 16px rgba(15, 23, 42, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-basic-panel__badge::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent);
+  border-radius: 20px 20px 0 0;
 }
 
 .server-basic-panel__badge.is-windows {
   background: linear-gradient(145deg, #60a5fa, #2563eb);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(37, 99, 235, 0.3),
+    0 8px 16px rgba(37, 99, 235, 0.2);
 }
 
 .server-basic-panel__badge.is-linux {
-  background: linear-gradient(145deg, #f59e0b, #d97706);
+  background: linear-gradient(145deg, #fbbf24, #d97706);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+    0 20px 40px rgba(217, 119, 6, 0.3),
+    0 8px 16px rgba(217, 119, 6, 0.2);
 }
 
 .server-basic-panel__badge.is-macos {
   background: linear-gradient(145deg, #94a3b8, #334155);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    0 20px 40px rgba(51, 65, 85, 0.3),
+    0 8px 16px rgba(51, 65, 85, 0.2);
 }
 
 .server-basic-panel__title-row {
@@ -1394,12 +1549,16 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   gap: 12px;
   justify-content: flex-end;
   flex-wrap: wrap;
-  padding: 10px 12px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
+  padding: 12px 14px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(241, 245, 249, 0.65));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(148, 163, 184, 0.08),
+    0 4px 12px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(12px);
 }
 
 .server-basic-panel__action-row--software {
@@ -1437,50 +1596,70 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   justify-content: flex-end;
 }
 
+.server-basic-panel__actions :deep(.el-dropdown) {
+  display: inline-flex;
+}
+
 .server-basic-panel__actions :deep(.el-button) {
   width: 36px;
   height: 36px;
-  border-color: color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.22));
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.9));
+  border-color: color-mix(in srgb, var(--el-color-primary) 12%, rgba(148, 163, 184, 0.24));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(241, 245, 249, 0.92));
   box-shadow:
-    0 10px 18px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    0 12px 24px rgba(15, 23, 42, 0.07),
+    0 4px 8px rgba(15, 23, 42, 0.04),
+    inset 0 2px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(148, 163, 184, 0.1);
   transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .server-basic-panel__actions :deep(.el-button:hover) {
-  transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--el-color-primary) 26%, rgba(148, 163, 184, 0.22));
+  transform: translateY(-2px) scale(1.08);
+  border-color: color-mix(in srgb, var(--el-color-primary) 30%, rgba(148, 163, 184, 0.24));
   box-shadow:
-    0 16px 28px rgba(15, 23, 42, 0.09),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    0 20px 40px rgba(15, 23, 42, 0.1),
+    0 8px 16px rgba(15, 23, 42, 0.06),
+    inset 0 2px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(148, 163, 184, 0.15);
 }
 
 .server-basic-panel__realtime,
 .server-basic-panel__card {
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 9%, rgba(148, 163, 184, 0.2));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.22));
   background:
     radial-gradient(
-      circle at top right,
+      ellipse 80% 50% at 95% 5%,
       rgba(14, 165, 233, 0.08),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 5% 95%,
+      rgba(245, 158, 11, 0.06),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(14, 165, 233, 0.1),
       transparent 22%
     ),
     radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--el-color-primary) 10%, transparent),
+      color-mix(in srgb, var(--el-color-primary) 12%, transparent),
       transparent 52%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--el-fill-color-light) 42%, white),
-      rgba(255, 255, 255, 0.98)
+      color-mix(in srgb, var(--el-fill-color-light) 45%, white),
+      rgba(255, 255, 255, 0.99)
     );
   box-shadow:
-    0 20px 36px rgba(15, 23, 42, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 24px 48px rgba(15, 23, 42, 0.06),
+    0 8px 16px rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(148, 163, 184, 0.05);
 }
 
 .server-basic-panel__realtime {
@@ -1532,19 +1711,62 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   padding: 14px;
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
-  border: 1px solid color-mix(in srgb, currentColor 10%, rgba(148, 163, 184, 0.18));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.95));
+  border: 1px solid color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
   cursor: pointer;
   transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
   isolation: isolate;
   overflow: hidden;
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
 }
 
-.server-basic-panel__metric-card::before,
-.server-basic-panel__realtime-mini::before {
+/* 玻璃拟态效果 - 增强版 */
+.server-basic-panel__metric-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 渐变边框效果 */
+.server-basic-panel__metric-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(148, 163, 184, 0.3),
+    rgba(255, 255, 255, 0.5)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 进度填充效果 */
+.server-basic-panel__metric-card::after {
   content: "";
   position: absolute;
   inset: auto 0 0 0;
@@ -1552,9 +1774,9 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, currentColor 16%, transparent) 100%
+    color-mix(in srgb, currentColor 20%, transparent) 100%
   );
-  opacity: 0.9;
+  opacity: 0.95;
   pointer-events: none;
   z-index: 0;
 }
@@ -1566,15 +1788,33 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px) scale(1.02);
   border-color: color-mix(
     in srgb,
-    currentColor 22%,
-    rgba(148, 163, 184, 0.18)
+    currentColor 28%,
+    rgba(148, 163, 184, 0.2)
   );
   box-shadow:
-    0 20px 34px rgba(15, 23, 42, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 24px 48px rgba(15, 23, 42, 0.12),
+    0 12px 24px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  animation: metric-card-pulse 2s ease-in-out infinite;
+}
+
+/* 卡片微光动画 */
+@keyframes metric-card-pulse {
+  0%, 100% {
+    box-shadow:
+      0 24px 48px rgba(15, 23, 42, 0.12),
+      0 12px 24px rgba(15, 23, 42, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  50% {
+    box-shadow:
+      0 28px 56px rgba(15, 23, 42, 0.16),
+      0 14px 28px rgba(15, 23, 42, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
 }
 
 .server-basic-panel__metric-card.is-success {
@@ -1610,21 +1850,113 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-main strong {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    #1e293b 0%,
+    #334155 40%,
+    #475569 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.8));
+}
+
+/* 指标标签增强 */
+.server-basic-panel__metric-top small {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 指标数值增强 */
+.server-basic-panel__metric-main strong {
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    #0f172a 0%,
+    #1e293b 50%,
+    #334155 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.5));
+}
+
+/* 卡片底部进度条渐变 */
+.server-basic-panel__metric-card::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: clamp(18px, calc(var(--metric-progress, 0%) * 0.74), 92px);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, currentColor 20%, transparent) 100%
+  );
+  opacity: 0.95;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 彩色光晕效果 */
+.server-basic-panel__metric-card.is-success::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(34, 197, 94, 0.25) 100%
+  );
+}
+
+.server-basic-panel__metric-card.is-warning::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(245, 158, 11, 0.3) 100%
+  );
+}
+
+.server-basic-panel__metric-card.is-danger::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(239, 68, 68, 0.35) 100%
+  );
+}
+
+.server-basic-panel__metric-card.is-idle::before {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(148, 163, 184, 0.2) 100%
+  );
 }
 
 .server-basic-panel__realtime-chart {
   min-width: 0;
   display: grid;
   gap: 10px;
-  padding: 14px 14px 10px;
-  border-radius: 24px;
+  padding: 16px 16px 12px;
+  border-radius: 26px;
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 252, 0.92));
-  border: 1px solid rgba(148, 163, 184, 0.12);
+    radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.1), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.95));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  box-shadow:
+    0 12px 32px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .server-basic-panel__realtime-combined {
@@ -1648,29 +1980,34 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   padding: 14px;
   appearance: none;
   border-radius: 22px;
-  border: 1px solid color-mix(in srgb, currentColor 10%, rgba(148, 163, 184, 0.18));
+  border: 1px solid color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.95));
   text-align: left;
   cursor: pointer;
   transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    border-color 0.18s ease;
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
   isolation: isolate;
   overflow: hidden;
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.04),
+    0 2px 4px rgba(15, 23, 42, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .server-basic-panel__realtime-mini:hover {
-  transform: translateY(-3px);
+  transform: translateY(-3px) scale(1.02);
   border-color: color-mix(
     in srgb,
-    currentColor 22%,
-    rgba(148, 163, 184, 0.18)
+    currentColor 26%,
+    rgba(148, 163, 184, 0.2)
   );
   box-shadow:
-    0 18px 30px rgba(15, 23, 42, 0.09),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    0 20px 40px rgba(15, 23, 42, 0.1),
+    0 8px 16px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .server-basic-panel__realtime-mini.is-success {
@@ -1704,6 +2041,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   font-size: 23px;
   line-height: 1;
   letter-spacing: -0.02em;
+  font-weight: 700;
+  background: linear-gradient(180deg, #1e293b, #334155);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .server-basic-panel__realtime-chart-head {
@@ -2221,6 +2563,90 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
     color-mix(in srgb, var(--el-color-primary) 10%, white),
     color-mix(in srgb, var(--el-bg-color-page) 90%, white)
   );
+}
+
+.server-basic-panel__login-dropdown {
+  min-width: 280px !important;
+  max-width: 320px;
+  padding: 0;
+}
+
+.server-basic-panel__login-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.server-basic-panel__login-empty {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.server-basic-panel__login-item {
+  padding: 10px 14px !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+}
+
+.server-basic-panel__login-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.server-basic-panel__login-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.server-basic-panel__login-user {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.server-basic-panel__login-status {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.server-basic-panel__login-status.is-success {
+  color: var(--el-color-success);
+  background: rgba(var(--el-color-success-rgb), 0.1);
+}
+
+.server-basic-panel__login-status.is-failed {
+  color: var(--el-color-danger);
+  background: rgba(var(--el-color-danger-rgb), 0.1);
+}
+
+.server-basic-panel__login-ip {
+  color: var(--el-text-color-secondary);
+  font-family: monospace;
+}
+
+.server-basic-panel__login-time {
+  color: var(--el-text-color-secondary);
+}
+
+.server-basic-panel__login-server {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+
+.server-basic-panel__login-server span {
+  margin-left: 4px;
 }
 
 .server-basic-panel__ai-card--inactive {

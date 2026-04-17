@@ -21,14 +21,14 @@
                 "
               />
               <el-tooltip content="回到目录" placement="top">
-                <el-button circle @click="router.push('/soft/catalog')">
+                <ScButton circle @click="router.push('/soft/catalog')">
                   <IconifyIconOnline icon="ri:arrow-left-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="刷新详情" placement="top">
-                <el-button circle type="primary" @click="reloadAll">
+                <ScButton circle type="primary" @click="reloadAll">
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -539,51 +539,51 @@
               </header>
               <div class="service-actions">
                 <el-tooltip content="注册服务" placement="top">
-                  <el-button circle @click="runServiceAction('register')">
+                  <ScButton circle @click="runServiceAction('register')">
                     <IconifyIconOnline icon="ri:shield-check-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="启动服务" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     type="success"
                     @click="runServiceAction('start')"
                   >
                     <IconifyIconOnline icon="ri:play-circle-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="停止服务" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     type="warning"
                     @click="runServiceAction('stop')"
                   >
                     <IconifyIconOnline icon="ri:pause-circle-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="重启服务" placement="top">
-                  <el-button circle @click="runServiceAction('restart')">
+                  <ScButton circle @click="runServiceAction('restart')">
                     <IconifyIconOnline icon="ri:restart-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="检查状态" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     type="primary"
                     @click="runServiceAction('status')"
                   >
                     <IconifyIconOnline icon="ri:pulse-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="取消注册" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     type="danger"
                     plain
                     @click="runServiceAction('unregister')"
                   >
                     <IconifyIconOnline icon="ri:shield-cross-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </article>
@@ -620,28 +620,28 @@
               </template>
             </ScSelect>
             <el-tooltip content="读取最新日志" placement="top">
-              <el-button circle @click="loadLogs">
+              <ScButton circle @click="loadLogs">
                 <IconifyIconOnline icon="ri:file-list-3-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip
               v-if="!runtimeState.connected"
               content="建立日志 watch"
               placement="top"
             >
-              <el-button circle type="primary" @click="connectLogStream">
+              <ScButton circle type="primary" @click="connectLogStream">
                 <IconifyIconOnline icon="ri:radar-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip v-else content="停止日志 watch" placement="top">
-              <el-button
+              <ScButton
                 circle
                 type="danger"
                 plain
                 @click="disconnectLogStream"
               >
                 <IconifyIconOnline icon="ri:stop-circle-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <span class="stream-toolbar__meta">{{
               selectedLogPath || "自动选择有效日志文件"
@@ -698,19 +698,19 @@
               </template>
             </ScSelect>
             <el-tooltip content="读取配置" placement="top">
-              <el-button circle @click="loadConfig">
+              <ScButton circle @click="loadConfig">
                 <IconifyIconOnline icon="ri:file-copy-2-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="保存配置" placement="top">
-              <el-button
+              <ScButton
                 circle
                 type="primary"
                 :loading="savingConfig"
                 @click="saveConfig"
               >
                 <IconifyIconOnline icon="ri:save-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
           </div>
 
@@ -754,14 +754,14 @@
             <el-table-column label="操作" width="100" align="center">
               <template #default="{ row }">
                 <el-tooltip content="回滚到这个备份点" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     type="warning"
                     plain
                     @click="rollback(row.softConfigSnapshotId)"
                   >
                     <IconifyIconOnline icon="ri:history-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </template>
             </el-table-column>

@@ -215,6 +215,22 @@ export interface ServerServiceCommandResult {
   aiTaskStatus?: string;
 }
 
+export interface ServerLoginRecord {
+  id?: number;
+  serverId?: number;
+  serverName?: string;
+  host?: string;
+  username?: string;
+  loginType?: string;
+  loginIp?: string;
+  status?: string;
+  loginTime?: string;
+  logoutTime?: string;
+  duration?: number;
+  message?: string;
+  createTime?: string;
+}
+
 export interface ServerAiTaskTicket {
   taskId?: string;
   taskType?: string;

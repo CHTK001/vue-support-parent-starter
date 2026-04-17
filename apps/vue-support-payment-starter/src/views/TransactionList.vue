@@ -47,7 +47,7 @@
       </p>
     </div>
 
-    <el-card class="ops-panel">
+    <ScCard class="ops-panel">
       <template #header>
         <div class="panel__header">
           <div>
@@ -60,27 +60,27 @@
       <div class="ops-toolbar">
         <el-form :inline="true" :model="searchForm" class="toolbar">
           <el-form-item label="商户">
-            <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </el-select>
+            <ScSelect v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+              <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="订单号">
             <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
           </el-form-item>
           <el-form-item label="交易类型">
-            <el-select v-model="searchForm.transactionType" clearable placeholder="全部类型" style="width: 180px">
-              <el-option label="支付" value="PAY" />
-              <el-option label="退款" value="REFUND" />
-            </el-select>
+            <ScSelect v-model="searchForm.transactionType" clearable placeholder="全部类型" style="width: 180px">
+              <ScOption label="支付" value="PAY" />
+              <ScOption label="退款" value="REFUND" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
-              <el-option v-for="(label, value) in TransactionStatusMap" :key="value" :label="label" :value="Number(value)" />
-            </el-select>
+            <ScSelect v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+              <ScOption v-for="(label, value) in TransactionStatusMap" :key="value" :label="label" :value="Number(value)" />
+            </ScSelect>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="handleSearch">查询</el-button>
-            <el-button @click="handleResetSearch">重置</el-button>
+            <ScButton type="primary" @click="handleSearch">查询</ScButton>
+            <ScButton @click="handleResetSearch">重置</ScButton>
           </el-form-item>
         </el-form>
 
@@ -124,7 +124,7 @@
         @current-change="loadTransactions"
         @size-change="loadTransactions"
       />
-    </el-card>
+    </ScCard>
   </section>
 </template>
 

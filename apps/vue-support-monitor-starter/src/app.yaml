@@ -42,7 +42,7 @@ PostLoginRedirect: /docker/containers
 # 鉴权与登录配置
 # ===========================================
 # 是否开启远程权限控制（默认: true）
-OpenAuth: true
+OpenAuth: false
 # 是否开启动态配置面板（默认: true）
 # OpenSetting: true
 # 是否开启租户登录（默认: false）

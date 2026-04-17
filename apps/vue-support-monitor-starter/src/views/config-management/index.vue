@@ -35,14 +35,14 @@
     <!-- 工具栏 -->
     <div class="toolbar-section">
       <div class="toolbar-left">
-        <el-button @click="reload">
+        <ScButton @click="reload">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button type="primary" @click="openEdit()">
+        </ScButton>
+        <ScButton type="primary" @click="openEdit()">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增配置
-        </el-button>
+        </ScButton>
         <el-input
           v-model="params.keyword"
           placeholder="搜索配置键/值/描述"
@@ -54,43 +54,43 @@
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
+        <ScSelect
           v-model="params.env"
           placeholder="环境"
           clearable
           class="filter-select"
           @change="reload"
         >
-          <el-option label="全部环境" value="" />
-          <el-option v-for="env in envList" :key="env" :label="env" :value="env" />
-        </el-select>
-        <el-select
+          <ScOption label="全部环境" value="" />
+          <ScOption v-for="env in envList" :key="env" :label="env" :value="env" />
+        </ScSelect>
+        <ScSelect
           v-model="params.status"
           placeholder="状态"
           clearable
           class="filter-select"
           @change="reload"
         >
-          <el-option label="启用" :value="1" />
-          <el-option label="禁用" :value="0" />
-        </el-select>
-        <el-button type="primary" @click="reload">
+          <ScOption label="启用" :value="1" />
+          <ScOption label="禁用" :value="0" />
+        </ScSelect>
+        <ScButton type="primary" @click="reload">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
-        </el-button>
+        </ScButton>
       </div>
       <div class="toolbar-right">
-        <el-button @click="openHistoryDialog">
+        <ScButton @click="openHistoryDialog">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           推送历史
-        </el-button>
-        <el-button 
+        </ScButton>
+        <ScButton 
           :disabled="selectedConfigs.length === 0" 
           @click="openPushDialog"
         >
           <IconifyIconOnline icon="ri:send-plane-line" class="mr-1" />
           下发配置 ({{ selectedConfigs.length }})
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -157,15 +157,15 @@
                 {{ formatTime(row.updateTime) }}
               </div>
               <div class="card-actions">
-                <el-button size="small" type="primary" plain @click.stop="openEdit(row)">
+                <ScButton size="small" type="primary" plain @click.stop="openEdit(row)">
                   <IconifyIconOnline icon="ri:edit-line" />
-                </el-button>
-                <el-button size="small" plain @click.stop="openPushSingle(row)">
+                </ScButton>
+                <ScButton size="small" plain @click.stop="openPushSingle(row)">
                   <IconifyIconOnline icon="ri:send-plane-line" />
-                </el-button>
-                <el-button size="small" type="danger" plain @click.stop="handleDelete(row)">
+                </ScButton>
+                <ScButton size="small" type="danger" plain @click.stop="handleDelete(row)">
                   <IconifyIconOnline icon="ri:delete-bin-line" />
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>

@@ -46,7 +46,7 @@
               <el-tooltip
                 :content="viewer.enabled ? '禁用此查看器' : '启用此查看器'"
               >
-                <el-button
+                <ScButton
                   :type="viewer.enabled ? 'danger' : 'success'"
                   size="small"
                   text
@@ -59,7 +59,7 @@
                         : 'ri:checkbox-circle-line'
                     "
                   />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -169,11 +169,11 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
           <IconifyIconOnline icon="ri:save-line" />
           保存并热应用
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

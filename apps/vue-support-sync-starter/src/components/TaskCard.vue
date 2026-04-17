@@ -1,5 +1,5 @@
 <template>
-  <el-card class="task-card" shadow="hover">
+  <ScCard class="task-card" shadow="hover">
     <template #header>
       <div class="card-header">
         <span class="task-name">{{ task.syncTaskName }}</span>
@@ -32,42 +32,42 @@
 
     <template #footer>
       <div class="card-actions">
-        <el-button size="small" @click="$emit('design', task)">设计</el-button>
-        <el-button
+        <ScButton size="small" @click="$emit('design', task)">设计</ScButton>
+        <ScButton
           size="small"
           :disabled="task.syncTaskStatus === 'RUNNING'"
           @click="$emit('edit', task)"
         >
           编辑
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           size="small"
           type="success"
           :disabled="task.syncTaskStatus === 'RUNNING'"
           @click="$emit('start', task)"
         >
           启动
-        </el-button>
-        <el-button
+        </ScButton>
+        <ScButton
           size="small"
           type="warning"
           :disabled="task.syncTaskStatus !== 'RUNNING'"
           @click="$emit('stop', task)"
         >
           停止
-        </el-button>
-        <el-button size="small" type="info" @click="$emit('logs', task)">
+        </ScButton>
+        <ScButton size="small" type="info" @click="$emit('logs', task)">
           日志
-        </el-button>
-        <el-button size="small" type="primary" @click="$emit('monitor', task)">
+        </ScButton>
+        <ScButton size="small" type="primary" @click="$emit('monitor', task)">
           监控
-        </el-button>
-        <el-button size="small" type="danger" @click="$emit('delete', task)">
+        </ScButton>
+        <ScButton size="small" type="danger" @click="$emit('delete', task)">
           删除
-        </el-button>
+        </ScButton>
       </div>
     </template>
-  </el-card>
+  </ScCard>
 </template>
 
 <script setup lang="ts">

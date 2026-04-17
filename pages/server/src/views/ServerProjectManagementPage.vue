@@ -65,9 +65,9 @@
         <el-radio-button value="issue">异常</el-radio-button>
         <el-radio-button value="ai">AI</el-radio-button>
       </el-radio-group>
-      <el-button circle :loading="loading" @click="loadPage"
+      <ScButton circle :loading="loading" @click="loadPage"
         ><IconifyIconOnline icon="ri:refresh-line"
-      /></el-button>
+      /></ScButton>
     </div>
 
     <article
@@ -92,9 +92,9 @@
             v-if="!capabilities?.aiEnabled"
             content="打开系统设置并配置 AI Provider"
           >
-            <el-button circle plain type="primary" @click="openAiSettings">
+            <ScButton circle plain type="primary" @click="openAiSettings">
               <IconifyIconOnline icon="ri:settings-4-line" />
-            </el-button>
+            </ScButton>
           </el-tooltip>
         </div>
       </div>
@@ -121,9 +121,9 @@
         <div class="actions">
           <span class="chip">项目主档 {{ manualProjectCards.length }}</span>
           <el-tooltip content="新增项目主档">
-            <el-button circle plain type="primary" @click="openCreateProject">
+            <ScButton circle plain type="primary" @click="openCreateProject">
               <IconifyIconOnline icon="ri:add-line" />
-            </el-button>
+            </ScButton>
           </el-tooltip>
         </div>
       </div>
@@ -199,7 +199,7 @@
 
             <footer class="project-card-shell__actions">
               <el-tooltip content="启动项目">
-                <el-button
+                <ScButton
                   circle
                   plain
                   type="success"
@@ -209,10 +209,10 @@
                   @click.stop="runProjectAction(row.service, 'start')"
                 >
                   <IconifyIconOnline icon="ri:play-circle-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="停止项目">
-                <el-button
+                <ScButton
                   circle
                   plain
                   type="warning"
@@ -222,10 +222,10 @@
                   @click.stop="runProjectAction(row.service, 'stop')"
                 >
                   <IconifyIconOnline icon="ri:stop-circle-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="重启项目">
-                <el-button
+                <ScButton
                   circle
                   plain
                   :loading="
@@ -235,10 +235,10 @@
                   @click.stop="runProjectAction(row.service, 'restart')"
                 >
                   <IconifyIconOnline icon="ri:restart-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="状态检查">
-                <el-button
+                <ScButton
                   circle
                   plain
                   :loading="
@@ -247,34 +247,34 @@
                   @click.stop="runProjectAction(row.service, 'status')"
                 >
                   <IconifyIconOnline icon="ri:pulse-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="脚本编辑">
-                <el-button
+                <ScButton
                   circle
                   plain
                   @click.stop="openStandaloneScriptDialog(row.service)"
                 >
                   <IconifyIconOnline icon="ri:file-code-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="项目配置">
-                <el-button
+                <ScButton
                   circle
                   plain
                   @click.stop="openProjectEditor(row.service)"
                 >
                   <IconifyIconOnline icon="ri:settings-4-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="详情">
-                <el-button
+                <ScButton
                   circle
                   plain
                   @click.stop="openProjectDetail(row.service)"
                 >
                   <IconifyIconOnline icon="ri:article-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </footer>
           </article>
@@ -347,7 +347,7 @@
           <small>{{ item.serverService?.latestAiSolution || "-" }}</small>
         </div>
         <div class="actions">
-          <el-button
+          <ScButton
             circle
             plain
             type="success"
@@ -358,8 +358,8 @@
               runAction(item.installation.softInstallationId!, 'start')
             "
             ><IconifyIconOnline icon="ri:play-circle-line"
-          /></el-button>
-          <el-button
+          /></ScButton>
+          <ScButton
             circle
             plain
             type="warning"
@@ -370,8 +370,8 @@
               runAction(item.installation.softInstallationId!, 'stop')
             "
             ><IconifyIconOnline icon="ri:stop-circle-line"
-          /></el-button>
-          <el-button
+          /></ScButton>
+          <ScButton
             circle
             plain
             :loading="
@@ -381,8 +381,8 @@
               runAction(item.installation.softInstallationId!, 'restart')
             "
             ><IconifyIconOnline icon="ri:restart-line"
-          /></el-button>
-          <el-button
+          /></ScButton>
+          <ScButton
             circle
             plain
             :loading="
@@ -392,17 +392,17 @@
               runAction(item.installation.softInstallationId!, 'status')
             "
             ><IconifyIconOnline icon="ri:pulse-line"
-          /></el-button>
-          <el-button
+          /></ScButton>
+          <ScButton
             circle
             plain
             :disabled="!item.serverService?.serverServiceId"
             @click.stop="openScriptDialog(item)"
             ><IconifyIconOnline icon="ri:file-code-line"
-          /></el-button>
-          <el-button circle plain @click.stop="openDetail(item)"
+          /></ScButton>
+          <ScButton circle plain @click.stop="openDetail(item)"
             ><IconifyIconOnline icon="ri:article-line"
-          /></el-button>
+          /></ScButton>
         </div>
       </article>
       <el-empty
@@ -431,7 +431,7 @@
             </p>
           </div>
           <div class="actions">
-            <el-button
+            <ScButton
               plain
               type="success"
               :loading="
@@ -444,9 +444,9 @@
                   'start',
                 )
               "
-              >启动</el-button
+              >启动</ScButton
             >
-            <el-button
+            <ScButton
               plain
               type="warning"
               :loading="
@@ -456,9 +456,9 @@
               @click="
                 runAction(selectedCard.installation.softInstallationId!, 'stop')
               "
-              >停止</el-button
+              >停止</ScButton
             >
-            <el-button
+            <ScButton
               plain
               :loading="
                 actionKey ===
@@ -470,9 +470,9 @@
                   'restart',
                 )
               "
-              >重启</el-button
+              >重启</ScButton
             >
-            <el-button
+            <ScButton
               plain
               :loading="
                 actionKey ===
@@ -484,18 +484,18 @@
                   'status',
                 )
               "
-              >状态</el-button
+              >状态</ScButton
             >
-            <el-button
+            <ScButton
               plain
               @click="loadDetail(selectedCard.installation.softInstallationId!)"
-              >刷新</el-button
+              >刷新</ScButton
             >
-            <el-button
+            <ScButton
               plain
               :disabled="!selectedCard.serverService?.serverServiceId"
               @click="openScriptDialog(selectedCard)"
-              >脚本</el-button
+              >脚本</ScButton
             >
           </div>
         </div>
@@ -603,10 +603,10 @@
             <div class="panel-head">
               <h4>实时日志</h4>
               <div class="actions">
-                <el-button plain @click="toggleWatch">{{
+                <ScButton plain @click="toggleWatch">{{
                   runtimeWatching ? "停止追尾" : "开始追尾"
-                }}</el-button>
-                <el-button plain @click="refreshLogTail">拉取尾部</el-button>
+                }}</ScButton>
+                <ScButton plain @click="refreshLogTail">拉取尾部</ScButton>
               </div>
             </div>
             <ScCodeEditor
@@ -683,14 +683,14 @@
               </div>
               <div class="actions">
                 <el-tooltip content="打开系统设置并配置 AI Provider">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     type="primary"
                     @click="openAiSettings"
                   >
                     <IconifyIconOnline icon="ri:settings-4-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </template>
@@ -700,14 +700,14 @@
           <article ref="servicePanelRef" class="panel panel-wide">
             <div class="panel-head">
               <h4>服务操作记录</h4>
-              <el-button
+              <ScButton
                 plain
                 :disabled="!selectedCard.serverService?.serverServiceId"
                 @click="
                   selectedCard.serverService?.serverServiceId &&
                   loadServiceLogs(selectedCard.serverService.serverServiceId)
                 "
-                >刷新</el-button
+                >刷新</ScButton
               >
             </div>
             <div class="list">
@@ -769,6 +769,7 @@
 </template>
 
 <script setup lang="ts">
+
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";

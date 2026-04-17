@@ -7,12 +7,12 @@
           已安装的存储
         </div>
         <div class="actions">
-          <el-button size="small" type="primary" @click="addStorage">
+          <ScButton size="small" type="primary" @click="addStorage">
             <IconifyIconOnline icon="ri:add-line" />
-          </el-button>
-          <el-button size="small" @click="reload()">
+          </ScButton>
+          <ScButton size="small" @click="reload()">
             <IconifyIconOnline icon="ri:refresh-line" />
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -43,10 +43,10 @@
             </span>
           </div>
           <div class="row3">
-            <el-button link size="small" @click.stop="doPreview(idx)">
+            <ScButton link size="small" @click.stop="doPreview(idx)">
               <IconifyIconOnline icon="ri:eye-line" />
               预览
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </el-scrollbar>
@@ -59,14 +59,14 @@
           <el-radio-button label="card">卡片</el-radio-button>
           <el-radio-button label="image">大图</el-radio-button>
         </el-radio-group>
-        <el-button size="small" @click="fetchPreviewItems">
+        <ScButton size="small" @click="fetchPreviewItems">
           <IconifyIconOnline icon="ri:refresh-line" />
           刷新
-        </el-button>
+        </ScButton>
         <!-- 面包屑与上级 -->
         <div class="crumbs">
-          <el-button size="small" @click="goUp" :disabled="!canGoUp"
-            >上级</el-button>
+          <ScButton size="small" @click="goUp" :disabled="!canGoUp"
+            >上级</ScButton>
           <el-breadcrumb separator="/" class="bc">
             <el-breadcrumb-item
               v-for="(c, i) in crumbs"
@@ -106,28 +106,28 @@
         <div class="spacer" />
         <div class="pager">
           <span>每页</span>
-          <el-select
+          <ScSelect
             v-model="pager.limit"
             size="small"
             style="width: 90px"
             @change="onLimitChange"
           >
-            <el-option :value="20" label="20" />
-            <el-option :value="50" label="50" />
-            <el-option :value="100" label="100" />
-          </el-select>
+            <ScOption :value="20" label="20" />
+            <ScOption :value="50" label="50" />
+            <ScOption :value="100" label="100" />
+          </ScSelect>
           <span>条</span>
           <span class="gap" />
-          <el-button
+          <ScButton
             size="small"
             @click="goPrevPage"
             :disabled="pager.page <= 1"
-            >上一页</el-button>
-          <el-button
+            >上一页</ScButton>
+          <ScButton
             size="small"
             @click="goNextPage"
             :disabled="previewItems.length < pager.limit"
-            >下一页</el-button>
+            >下一页</ScButton>
         </div>
       </div>
 
@@ -187,17 +187,17 @@
                 </div>
               </div>
               <div class="list-actions">
-                <el-button link size="small" @click.stop="onItemClick(it)">
+                <ScButton link size="small" @click.stop="onItemClick(it)">
                   <IconifyIconOnline icon="ri:eye-line" />
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-if="!it.directory"
                   link
                   size="small"
                   @click.stop="downloadFile(it)"
                 >
                   <IconifyIconOnline icon="ri:download-line" />
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
@@ -227,8 +227,8 @@
                     <template #error>
                       <div class="img-error">
                         <span>加载失败</span>
-                        <el-button size="small" @click.stop="retryImage(it)"
-                          >重试</el-button>
+                        <ScButton size="small" @click.stop="retryImage(it)"
+                          >重试</ScButton>
                       </div>
                     </template>
                   </el-image>
@@ -243,7 +243,7 @@
                 <div class="card-name" :title="it.name">{{ it.name }}</div>
                 <div class="card-meta">
                   <span class="card-size">{{ formatSize(it.size) }}</span>
-                  <el-button
+                  <ScButton
                     v-if="!it.directory"
                     class="card-download"
                     size="small"
@@ -251,7 +251,7 @@
                     @click.stop="downloadFile(it)"
                   >
                     <IconifyIconOnline icon="ri:download-line" />
-                  </el-button>
+                  </ScButton>
                 </div>
               </div>
             </div>
@@ -281,8 +281,8 @@
                   <template #error>
                     <div class="img-error">
                       <span>加载失败</span>
-                      <el-button size="small" @click.stop="retryImage(it)"
-                        >重试</el-button>
+                      <ScButton size="small" @click.stop="retryImage(it)"
+                        >重试</ScButton>
                     </div>
                   </template>
                 </el-image>
@@ -298,7 +298,7 @@
                   <span class="ov-size">{{ formatSize(it.size) }}</span>
                   <span class="ov-time">{{ it.modified }}</span>
                 </div>
-                <el-button
+                <ScButton
                   v-if="!it.directory"
                   class="ov-download"
                   size="small"
@@ -307,7 +307,7 @@
                 >
                   <IconifyIconOnline icon="ri:download-line" />
                   下载
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>

@@ -16,10 +16,10 @@
             </p>
           </div>
           <div class="server-action-row soft-drawer__toolbar">
-            <el-button type="primary" plain @click="$emit('open-install')">
+            <ScButton type="primary" plain @click="$emit('open-install')">
               <IconifyIconOnline icon="ri:download-cloud-2-line" />
               <span>安装软件</span>
-            </el-button>
+            </ScButton>
           </div>
         </section>
 
@@ -136,17 +136,17 @@
               </div>
               <div class="soft-drawer__service-actions">
                 <el-tooltip content="状态检查">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     :loading="card.loadingStatus"
                     @click="emitServiceAction(card.item, 'status')"
                   >
                     <IconifyIconOnline icon="ri:pulse-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip :content="card.running ? '停止服务' : '启动服务'">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     :type="card.running ? 'danger' : 'success'"
@@ -162,30 +162,30 @@
                           : 'ri:play-circle-line'
                       "
                     />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="重启服务">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     :loading="card.loadingRestart"
                     @click="emitServiceAction(card.item, 'restart')"
                   >
                     <IconifyIconOnline icon="ri:restart-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip v-if="card.canRegister" content="注册服务">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     :loading="card.loadingRegister"
                     @click="emitServiceAction(card.item, 'register')"
                   >
                     <IconifyIconOnline icon="ri:shield-check-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip v-if="card.canUnregister" content="取消注册">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     type="warning"
@@ -193,7 +193,7 @@
                     @click="emitServiceAction(card.item, 'unregister')"
                   >
                     <IconifyIconOnline icon="ri:shield-cross-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </div>

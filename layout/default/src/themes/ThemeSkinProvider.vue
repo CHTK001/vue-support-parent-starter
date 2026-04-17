@@ -36,7 +36,6 @@ const themeClasses = [
   "theme-default",
   "theme-christmas",
   "theme-spring-festival",
-  "theme-valentines-day",
   "theme-mid-autumn",
   "theme-national-day",
   "theme-new-year",
@@ -63,21 +62,30 @@ const providerStyles = computed(() => {
 });
 
 /**
- * 监听主题变化
+ * 皮肤切换动画
+ * 使用分帧处理，与主题色切换保持一致的体验
  */
-watch(
-  () => $storage?.configure?.systemTheme,
-  (newTheme) => {
-    if (newTheme) {
-      const normalizedTheme = normalizeThemeKey(newTheme);
-      currentTheme.value = normalizedTheme;
-      applyThemeSkin(normalizedTheme);
-    }
-  },
-);
+const runInSkinSwitchFrame = async (
+  fn: () => void,
+  clearDelay = 120,
+): Promise<void> => {
+  const htmlEl = document.documentElement;
+  htmlEl.classList.add("skin-switching");
+
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      fn();
+      resolve();
+    });
+  });
+
+  window.setTimeout(() => {
+    htmlEl.classList.remove("skin-switching");
+  }, clearDelay);
+};
 
 /**
- * 应用主题皮肤
+ * 应用主题皮肤（带动画）
  * @param themeKey 主题键值
  */
 const applyThemeSkin = (themeKey: string): void => {
@@ -93,6 +101,30 @@ const applyThemeSkin = (themeKey: string): void => {
     htmlEl.setAttribute("data-skin", normalizedTheme);
   }
 };
+
+/**
+ * 带动画的皮肤切换
+ * @param themeKey 主题键值
+ */
+const applyThemeSkinWithAnimation = async (themeKey: string): Promise<void> => {
+  await runInSkinSwitchFrame(() => {
+    applyThemeSkin(themeKey);
+  });
+};
+
+/**
+ * 监听主题变化（带动画）
+ */
+watch(
+  () => $storage?.configure?.systemTheme,
+  (newTheme) => {
+    if (newTheme) {
+      const normalizedTheme = normalizeThemeKey(newTheme);
+      currentTheme.value = normalizedTheme;
+      applyThemeSkinWithAnimation(normalizedTheme);
+    }
+  },
+);
 
 /**
  * 初始化主题皮肤

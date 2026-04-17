@@ -7,10 +7,10 @@
       </div>
       <div class="payment-surface__actions">
         <el-tooltip content="刷新">
-          <el-button circle :icon="RefreshRight" @click="loadAccountAndLogs" />
+          <ScButton circle :icon="RefreshRight" @click="loadAccountAndLogs" />
         </el-tooltip>
         <el-tooltip content="执行充值">
-          <el-button circle type="primary" :icon="WalletFilled" :loading="recharging" @click="handleRecharge" />
+          <ScButton circle type="primary" :icon="WalletFilled" :loading="recharging" @click="handleRecharge" />
         </el-tooltip>
       </div>
     </header>
@@ -53,17 +53,17 @@
             <el-form label-width="96px">
               <div class="payment-form-grid">
                 <el-form-item label="商户" required>
-                  <el-select v-model="queryForm.merchantId" placeholder="请选择商户">
-                    <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-                  </el-select>
+                  <ScSelect v-model="queryForm.merchantId" placeholder="请选择商户">
+                    <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+                  </ScSelect>
                 </el-form-item>
                 <el-form-item label="用户ID" required>
                   <el-input-number v-model="queryForm.userId" :min="1" :precision="0" />
                 </el-form-item>
               </div>
               <div class="payment-card-actions">
-                <el-button type="primary" @click="loadAccountAndLogs">查询账户</el-button>
-                <el-button @click="resetQuery">重置</el-button>
+                <ScButton type="primary" @click="loadAccountAndLogs">查询账户</ScButton>
+                <ScButton @click="resetQuery">重置</ScButton>
               </div>
             </el-form>
           </section>
@@ -114,7 +114,7 @@
                 </el-form-item>
               </div>
               <div class="payment-card-actions">
-                <el-button type="primary" :loading="recharging" @click="handleRecharge">执行充值</el-button>
+                <ScButton type="primary" :loading="recharging" @click="handleRecharge">执行充值</ScButton>
               </div>
             </el-form>
           </section>
@@ -173,16 +173,16 @@
       <section class="payment-toolbar payment-toolbar--flat">
         <div class="payment-toolbar__row">
           <div class="payment-toolbar__form">
-            <el-select v-model="logSearchForm.bizType" clearable placeholder="业务类型" style="width: 200px">
-              <el-option label="充值" value="RECHARGE" />
-              <el-option label="支付" value="PAY" />
-              <el-option label="退款" value="REFUND" />
-              <el-option label="转出" value="TRANSFER_OUT" />
-              <el-option label="转入" value="TRANSFER_IN" />
-              <el-option label="提现" value="WITHDRAW" />
-            </el-select>
+            <ScSelect v-model="logSearchForm.bizType" clearable placeholder="业务类型" style="width: 200px">
+              <ScOption label="充值" value="RECHARGE" />
+              <ScOption label="支付" value="PAY" />
+              <ScOption label="退款" value="REFUND" />
+              <ScOption label="转出" value="TRANSFER_OUT" />
+              <ScOption label="转入" value="TRANSFER_IN" />
+              <ScOption label="提现" value="WITHDRAW" />
+            </ScSelect>
             <el-input v-model="logSearchForm.bizNo" clearable placeholder="业务单号" style="width: 220px" />
-            <el-button type="primary" @click="loadLogs">查询</el-button>
+            <ScButton type="primary" @click="loadLogs">查询</ScButton>
           </div>
         </div>
       </section>

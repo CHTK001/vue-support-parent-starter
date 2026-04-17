@@ -1,5 +1,5 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     width="960px"
     top="6vh"
@@ -7,7 +7,7 @@
     append-to-body
     class="job-page-guide-dialog"
     @close="$emit('update:modelValue', false)"
-  >
+   layout="simple">
     <template #header>
       <div v-if="guide" class="guide-dialog__header">
         <div class="guide-dialog__header-icon">
@@ -71,7 +71,7 @@
         </div>
       </section>
     </div>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">

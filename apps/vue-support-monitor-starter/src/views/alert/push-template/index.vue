@@ -2,13 +2,13 @@
   <div class="page-container system-container modern-bg">
     <div class="toolbar">
       <el-input v-model="search.keyword" placeholder="模板名称/通道" clearable style="width: 240px" />
-      <el-select v-model="search.channel" placeholder="通道" clearable style="width: 180px; margin-left: 12px">
-        <el-option v-for="item in channels" :key="item.value" :label="item.label" :value="item.value" />
-      </el-select>
+      <ScSelect v-model="search.channel" placeholder="通道" clearable style="width: 180px; margin-left: 12px">
+        <ScOption v-for="item in channels" :key="item.value" :label="item.label" :value="item.value" />
+      </ScSelect>
       <el-switch v-model="search.enabled" active-text="启用" inactive-text="停用" style="margin-left: 12px" />
-      <el-button type="primary" @click="handleSearch" style="margin-left: 12px">查询</el-button>
-      <el-button @click="handleReset">重置</el-button>
-      <el-button type="success" @click="openEdit()">新增模板</el-button>
+      <ScButton type="primary" @click="handleSearch" style="margin-left: 12px">查询</ScButton>
+      <ScButton @click="handleReset">重置</ScButton>
+      <ScButton type="success" @click="openEdit()">新增模板</ScButton>
     </div>
 
     <data-table
@@ -33,13 +33,13 @@
       "
     >
       <template #actions="{ row }">
-        <el-button type="primary" link @click="openEdit(row)">编辑</el-button>
+        <ScButton type="primary" link @click="openEdit(row)">编辑</ScButton>
         <el-divider direction="vertical" />
-        <el-button type="warning" link @click="handleTest(row)">测试发送</el-button>
+        <ScButton type="warning" link @click="handleTest(row)">测试发送</ScButton>
         <el-divider direction="vertical" />
         <el-popconfirm title="确认删除该模板？" @confirm="handleDelete(row)">
           <template #reference>
-            <el-button type="danger" link>删除</el-button>
+            <ScButton type="danger" link>删除</ScButton>
           </template>
         </el-popconfirm>
       </template>
@@ -51,9 +51,9 @@
           <el-input v-model="edit.form.monitorSysGenMessagePushTemplateName" placeholder="请输入模板名称" />
         </el-form-item>
         <el-form-item label="通道" prop="monitorSysGenMessagePushTemplateChannel">
-          <el-select v-model="edit.form.monitorSysGenMessagePushTemplateChannel" placeholder="请选择通道">
-            <el-option v-for="item in channels" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
+          <ScSelect v-model="edit.form.monitorSysGenMessagePushTemplateChannel" placeholder="请选择通道">
+            <ScOption v-for="item in channels" :key="item.value" :label="item.label" :value="item.value" />
+          </ScSelect>
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="edit.form.monitorSysGenMessagePushTemplateEnabled" />
@@ -81,8 +81,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="edit.visible = false">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
+        <ScButton @click="edit.visible = false">取消</ScButton>
+        <ScButton type="primary" @click="handleSave">保存</ScButton>
       </template>
     </sc-dialog>
   </div>

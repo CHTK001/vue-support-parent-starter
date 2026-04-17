@@ -14,8 +14,10 @@ import {
   reactive,
   ref,
   shallowRef,
+  useAttrs,
   watch,
 } from "vue";
+import { useRoute } from "vue-router";
 import {
   columnSettingGet,
   columnSettingReset,
@@ -188,7 +190,7 @@ const props = defineProps({
   galleryAspectRatio: { type: String, default: "1/1" },
   /**
    * 记忆功能ID
-   * 0 或空字符串：所有 ScTable 共享配置
+   * 0 或空字符串：回退到当前路由地址作为存储 key
    * 其他值：按 ID 独立存储配置
    * 用于记录上次访问的页码，刷新后恢复
    */
@@ -359,6 +361,33 @@ const emit = defineEmits([
   "cell-copy", // 单元格复制
 ]);
 
+const attrs = useAttrs();
+const route = useRoute();
+
+const isEmptyPersistId = (value) => {
+  return (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === 0 ||
+    value === "0"
+  );
+};
+
+const pickPersistId = (...candidates) => {
+  const matched = candidates.find((item) => !isEmptyPersistId(item));
+  if (!isEmptyPersistId(matched)) {
+    return String(matched).trim();
+  }
+  if (typeof route?.path === "string" && route.path) {
+    return route.path;
+  }
+  if (typeof window !== "undefined" && window.location.pathname) {
+    return window.location.pathname;
+  }
+  return "shared";
+};
+
 // 拖拽排序相关状态
 const dragSortPending = ref(false); // 是否有待保存的排序
 const dragChangeCount = ref(0); // 拖抽变化次数
@@ -376,7 +405,12 @@ const columnSettingRef = ref(null);
 
 // 组件缓存命名空间（组件ID优先，其次表名，否则 shared）
 const cacheNamespaceKey = computed(() => {
-  return props.tableId || props.tableName || "shared";
+  return pickPersistId(
+    attrs.id,
+    props.tableId,
+    props.tableName,
+    props.memoryId,
+  );
 });
 
 // 使用缓存管理 composable（修复内存泄漏）
@@ -599,24 +633,18 @@ const countDown = computed(() => {
   };
 });
 
+const resolvedPersistId = computed(() => {
+  return pickPersistId(attrs.id, props.tableId, props.memoryId);
+});
+
 // 配置存储key - 统一使用ID
 const storageKey = computed(() => {
-  const id = props.tableId || props.memoryId;
-  // 如果没有ID,使用共享key
-  if (!id || id === 0 || id === "0" || id === "") {
-    return "sc_table_config_shared";
-  }
-  return `sc_table_config_${id}`;
+  return `sc_table_config_${encodeURIComponent(resolvedPersistId.value)}`;
 });
 
 // 页码记忆存储key - 统一使用ID
 const memoryStorageKey = computed(() => {
-  const id = props.tableId || props.memoryId;
-  // 如果没有ID,使用共享key
-  if (!id || id === 0 || id === "0" || id === "") {
-    return "sc_table_memory_shared";
-  }
-  return `sc_table_memory_${id}`;
+  return `sc_table_memory_${encodeURIComponent(resolvedPersistId.value)}`;
 });
 
 // 计算高度
@@ -664,6 +692,18 @@ const tableContentStyle = computed(() => {
 
 // 从localStorage加载配置
 const loadConfigFromStorage = () => {
+  configState.border =
+    typeof props.border === "string" ? props.border === "true" : !!props.border;
+  configState.stripe =
+    typeof props.stripe === "string" ? props.stripe === "true" : !!props.stripe;
+  configState.size = props.size;
+  configState.countDownable = props.countDownable;
+  configState.draggable = props.draggable;
+  configState.crossHighlight = props.crossHighlight;
+  configState.cacheEnabled = false;
+  configState.cachePageCount = 3;
+  configState.pageMemoryEnabled = false;
+
   try {
     const savedConfig = localStorageProxy().getItem(storageKey.value);
     if (savedConfig) {
@@ -713,6 +753,7 @@ const loadConfigFromStorage = () => {
  * 从 localStorage 加载页码记忆
  */
 const loadPageMemory = () => {
+  currentPage.value = 1;
   if (!configState.pageMemoryEnabled) return;
   try {
     const memory = localStorageProxy().getItem(memoryStorageKey.value);
@@ -750,6 +791,11 @@ const savePageMemory = () => {
     }
   }
 };
+
+watch(resolvedPersistId, () => {
+  loadConfigFromStorage();
+  loadPageMemory();
+});
 
 // 监听属性变化
 watch(
@@ -1137,8 +1183,8 @@ const buildSortChangeDetail = (sort = {}) => {
 };
 
 const buildColumnConfigDetail = (columns = []) => {
-  const normalizedColumns = (columns || []).filter(
-    (column) => String(column?.prop || "").trim(),
+  const normalizedColumns = (columns || []).filter((column) =>
+    String(column?.prop || "").trim(),
   );
   return {
     columns: normalizedColumns,
@@ -2280,6 +2326,9 @@ defineExpose({
           @next-page="onNextPage"
           @update:current-page="onUpdateCurrentPage"
           @drag-sort-change="onDragSortChange"
+          @cell-dblclick="
+            (row, col, cell, evt) => emit('cell-dblclick', row, col, cell, evt)
+          "
         >
           <template #default="{ row, index }">
             <slot :row="row" :index="index" :default="row" />
@@ -2296,8 +2345,8 @@ defineExpose({
       <!-- 分页区域 - 瀑布流布局使用滚动分页，不显示分页按钮 -->
       <div
         v-if="
-          layout !== 'waterfall'
-            && (!hidePagination || !hideRefresh || !hideSetting)
+          layout !== 'waterfall' &&
+          (!hidePagination || !hideRefresh || !hideSetting)
         "
         class="sc-table-pagination-wrapper"
       >

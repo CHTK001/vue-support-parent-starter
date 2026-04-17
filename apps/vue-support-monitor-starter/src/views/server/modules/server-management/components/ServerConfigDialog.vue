@@ -23,11 +23,11 @@
           </div>
         </div>
         <div v-if="activeSection !== 'history'" class="header-right">
-          <el-button size="small" @click="handleReset">
+          <ScButton size="small" @click="handleReset">
             <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
             重置
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="danger"
             plain
@@ -35,7 +35,7 @@
           >
             <IconifyIconOnline icon="ri:toggle-line" class="mr-1" />
             一键关闭
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </template>
@@ -235,17 +235,17 @@
                         <template #label>
                           <div class="form-label-with-action">
                             <span>代理实例</span>
-                            <el-button
+                            <ScButton
                               link
                               type="primary"
                               :loading="loadingProxyServers"
                               @click.stop="loadProxyServerOptions"
                             >
                               刷新
-                            </el-button>
+                            </ScButton>
                           </div>
                         </template>
-                        <el-select
+                        <ScSelect
                           v-model="
                             settingData.monitorSysGenServerSettingProxyInstanceId
                           "
@@ -255,7 +255,7 @@
                           :loading="loadingProxyServers"
                           placeholder="优先选择 Guacamole 代理实例"
                         >
-                          <el-option
+                          <ScOption
                             v-for="proxyServer in proxyServerOptions"
                             :key="proxyServer.systemServerId"
                             :label="getProxyServerOptionLabel(proxyServer)"
@@ -293,8 +293,8 @@
                                 }}
                               </el-tag>
                             </div>
-                          </el-option>
-                        </el-select>
+                          </ScOption>
+                        </ScSelect>
                         <div class="field-helper-text">
                           保存时会同时提交代理实例 ID 和旧的 host/port
                           字段，后端按新字段优先、旧字段兼容回退。
@@ -436,15 +436,15 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">关闭</el-button>
-        <el-button
+        <ScButton @click="visible = false">关闭</ScButton>
+        <ScButton
           v-if="activeSection !== 'history'"
           type="primary"
           :loading="saving"
           @click="handleSave"
         >
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

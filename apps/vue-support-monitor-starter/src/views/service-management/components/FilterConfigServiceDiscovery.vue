@@ -48,18 +48,18 @@
         <div class="basic-config-row">
           <div class="config-item">
             <label>负载均衡策略</label>
-            <el-select
+            <ScSelect
               v-model="config.serviceDiscoveryBalance"
               placeholder="请选择负载均衡策略"
               style="width: 100%"
             >
-              <el-option
+              <ScOption
                 v-for="opt in balanceOptions"
                 :key="opt.value"
                 :label="opt.label"
                 :value="opt.value"
               />
-            </el-select>
+            </ScSelect>
           </div>
           <div class="config-item status-item">
             <label>启用状态</label>
@@ -120,20 +120,20 @@
         </div>
         <div class="config-field" style="max-width: 400px;">
           <label>Bean 名称</label>
-          <el-select
+          <ScSelect
             v-model="config.serviceDiscoveryBeanName"
             placeholder="选择或输入 Bean 名称"
             filterable
             allow-create
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="opt in springBeanOptions"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </el-select>
+          </ScSelect>
         </div>
         <div class="config-tips info">
           <div class="tip-icon">
@@ -158,10 +158,10 @@
             <h4>服务映射配置</h4>
             <p>管理服务名称与地址的映射关系</p>
           </div>
-          <el-button type="primary" size="small" @click="addMapping" class="add-btn">
+          <ScButton type="primary" size="small" @click="addMapping" class="add-btn">
             <IconifyIconOnline icon="ri:add-line" />
             新增映射
-          </el-button>
+          </ScButton>
         </div>
 
         <!-- 表头 -->
@@ -205,14 +205,14 @@
               />
             </div>
             <div class="col-action">
-              <el-button
+              <ScButton
                 type="danger"
                 size="small"
                 text
                 @click="mappings.splice(idx, 1)"
               >
                 <IconifyIconOnline icon="ri:delete-bin-line" />
-              </el-button>
+              </ScButton>
             </div>
           </div>
 
@@ -301,9 +301,9 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
-          >保存配置</el-button>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
+          >保存配置</ScButton>
       </div>
     </template>
   </sc-dialog>

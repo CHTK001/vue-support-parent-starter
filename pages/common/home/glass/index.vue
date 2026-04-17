@@ -1,4 +1,4 @@
-<script setup>
+>
 import "../modules/theme.scss";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
@@ -237,22 +237,22 @@ onUnmounted(() => {
             </div>
             
             <div class="header-actions" v-if="hasLayout">
-              <el-button
+              <ScButton
                 v-if="customizing.customizing"
                 type="success"
                 :icon="useRenderIcon('ep:check')"
                 round
                 class="glass-btn-primary"
                 @click="handleUpdate"
-              >Done</el-button>
-              <el-button
+              >Done</ScButton>
+              <ScButton
                 v-else
                 type="primary"
                 :icon="useRenderIcon('ep:edit')"
                 round
                 class="glass-btn"
                 @click="handeCustom"
-              >Customize</el-button>
+              >Customize</ScButton>
             </div>
           </div>
         </div>
@@ -281,9 +281,9 @@ onUnmounted(() => {
                 </div>
                 <div class="empty-title">Start Building Your Dashboard</div>
                 <div class="empty-desc">Click "Customize" to add widgets.</div>
-                <el-button type="primary" round @click="handeCustom" class="glass-btn mt-4">
+                <ScButton type="primary" round @click="handeCustom" class="glass-btn mt-4">
                   Start Now
-                </el-button>
+                </ScButton>
               </div>
               <CustomLayout
                 v-else
@@ -380,9 +380,9 @@ onUnmounted(() => {
              <div class="footer-settings">
                 <el-checkbox v-model="showHeaderInfo" class="glass-checkbox">Header Info</el-checkbox>
              </div>
-             <el-button size="small" @click="backDefault()" class="glass-btn-sm">
+             <ScButton size="small" @click="backDefault()" class="glass-btn-sm">
                 Reset
-             </el-button>
+             </ScButton>
           </div>
         </div>
       </transition>

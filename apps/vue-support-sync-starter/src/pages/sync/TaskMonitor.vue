@@ -1,6 +1,6 @@
 <template>
   <div class="monitor-container">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="header-actions">
           <div class="title-group">
@@ -8,89 +8,89 @@
             <el-tag v-if="taskId" type="info">任务 #{{ taskId }}</el-tag>
           </div>
           <div class="toolbar-actions">
-            <el-select
+            <ScSelect
               v-model="granularity"
               style="width: 120px"
               @change="loadDashboard"
             >
-              <el-option label="按小时" value="hour" />
-              <el-option label="按天" value="day" />
-            </el-select>
-            <el-button :loading="loading" @click="handleRefresh"
-              >刷新</el-button
+              <ScOption label="按小时" value="hour" />
+              <ScOption label="按天" value="day" />
+            </ScSelect>
+            <ScButton :loading="loading" @click="handleRefresh"
+              >刷新</ScButton
             >
-            <el-button @click="handleBack">返回</el-button>
+            <ScButton @click="handleBack">返回</ScButton>
           </div>
         </div>
       </template>
 
       <el-row :gutter="20">
         <el-col :span="6">
-          <el-card shadow="hover">
+          <ScCard shadow="hover">
             <el-statistic title="运行中任务" :value="summary.runningCount" />
-          </el-card>
+          </ScCard>
         </el-col>
         <el-col :span="6">
-          <el-card shadow="hover">
+          <ScCard shadow="hover">
             <el-statistic title="总执行次数" :value="summary.totalExecutions" />
-          </el-card>
+          </ScCard>
         </el-col>
         <el-col :span="6">
-          <el-card shadow="hover">
+          <ScCard shadow="hover">
             <el-statistic
               title="成功率"
               :value="summary.successRate"
               suffix="%"
               :precision="2"
             />
-          </el-card>
+          </ScCard>
         </el-col>
         <el-col :span="6">
-          <el-card shadow="hover">
+          <ScCard shadow="hover">
             <el-statistic title="活跃告警" :value="activeAlertCount" />
-          </el-card>
+          </ScCard>
         </el-col>
       </el-row>
 
       <el-row :gutter="20" style="margin-top: 20px">
         <el-col :span="12">
-          <el-card>
+          <ScCard>
             <template #header>
               <span>执行趋势</span>
             </template>
             <div ref="trendChartRef" style="height: 320px" />
-          </el-card>
+          </ScCard>
         </el-col>
         <el-col :span="12">
-          <el-card>
+          <ScCard>
             <template #header>
               <span>状态分布</span>
             </template>
             <div ref="statusChartRef" style="height: 320px" />
-          </el-card>
+          </ScCard>
         </el-col>
       </el-row>
 
       <el-row :gutter="20" style="margin-top: 20px">
         <el-col :span="12">
-          <el-card>
+          <ScCard>
             <template #header>
               <span>触发类型分布</span>
             </template>
             <div ref="triggerChartRef" style="height: 320px" />
-          </el-card>
+          </ScCard>
         </el-col>
         <el-col :span="12">
-          <el-card>
+          <ScCard>
             <template #header>
               <span>数据量与平均耗时</span>
             </template>
             <div ref="dataChartRef" style="height: 320px" />
-          </el-card>
+          </ScCard>
         </el-col>
       </el-row>
 
-      <el-card style="margin-top: 20px">
+      <ScCard style="margin-top: 20px">
         <template #header>
           <span>实时任务状态</span>
         </template>
@@ -127,9 +127,9 @@
             </template>
           </el-table-column>
         </el-table>
-      </el-card>
+      </ScCard>
 
-      <el-card style="margin-top: 20px">
+      <ScCard style="margin-top: 20px">
         <template #header>
           <span>告警时间线</span>
         </template>
@@ -150,20 +150,20 @@
                 </div>
                 <p>{{ alert.alertMessage }}</p>
               </div>
-              <el-button
+              <ScButton
                 v-if="alert.isResolved !== 1"
                 size="small"
                 @click="handleResolveAlert(alert.alertId)"
               >
                 确认
-              </el-button>
+              </ScButton>
               <el-tag v-else size="small" type="success">已确认</el-tag>
             </div>
           </el-timeline-item>
         </el-timeline>
         <el-empty v-if="alerts.length === 0" description="暂无告警" />
-      </el-card>
-    </el-card>
+      </ScCard>
+    </ScCard>
   </div>
 </template>
 

@@ -64,9 +64,9 @@
                 </span>
               </div>
             </div>
-            <el-button size="small" circle @click="handleVisitDevice(device)">
+            <ScButton size="small" circle @click="handleVisitDevice(device)">
               <IconifyIconOnline icon="ri:external-link-line" />
-            </el-button>
+            </ScButton>
           </div>
         </div>
         <el-empty v-else description="暂无在线设备" />
@@ -74,7 +74,7 @@
     </div>
 
     <template #footer>
-      <el-button @click="handleClose">关闭</el-button>
+      <ScButton @click="handleClose">关闭</ScButton>
     </template>
   </sc-dialog>
 </template>
