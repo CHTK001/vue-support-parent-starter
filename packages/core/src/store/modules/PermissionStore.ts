@@ -17,6 +17,73 @@ import {
   resolveRouteSourceMode,
 } from "../../router/route-mode";
 
+const resolveMenuId = (item: any): number | string | null => {
+  return (
+    item?.id ??
+    item?.sysMenuId ??
+    item?.sys_menu_id ??
+    item?.menuId ??
+    null
+  );
+};
+
+const resolveMenuParentId = (item: any): number | string | null => {
+  return (
+    item?.parentId ??
+    item?.sysMenuPid ??
+    item?.sys_menu_pid ??
+    item?.menuPid ??
+    null
+  );
+};
+
+const buildMenuHierarchy = (routes: any[] = []) => {
+  if (!Array.isArray(routes) || routes.length === 0) {
+    return [];
+  }
+
+  const hasNestedChildren = routes.some(
+    (item) => Array.isArray(item?.children) && item.children.length > 0,
+  );
+  const hasParentRefs = routes.some((item) => resolveMenuParentId(item) !== null);
+
+  if (hasNestedChildren || !hasParentRefs) {
+    return routes;
+  }
+
+  const nodeMap = new Map<any, any>();
+  const clonedRoutes = routes.map((item) => {
+    const cloned = { ...item, children: [] };
+    nodeMap.set(resolveMenuId(item), cloned);
+    return cloned;
+  });
+
+  const roots: any[] = [];
+
+  clonedRoutes.forEach((item) => {
+    const parentId = resolveMenuParentId(item);
+    if (parentId === null || !nodeMap.has(parentId)) {
+      roots.push(item);
+      return;
+    }
+
+    nodeMap.get(parentId)?.children?.push(item);
+  });
+
+  const cleanupChildren = (nodes: any[]) => {
+    nodes.forEach((node) => {
+      if (Array.isArray(node.children) && node.children.length > 0) {
+        cleanupChildren(node.children);
+        return;
+      }
+      delete node.children;
+    });
+  };
+
+  cleanupChildren(roots);
+  return roots;
+};
+
 export const usePermissionStore = defineStore({
   id: "pure-permission",
   state: () => ({
@@ -38,10 +105,11 @@ export const usePermissionStore = defineStore({
       const preservedStaticMenus = this.constantMenus.filter((item) =>
         isAlwaysAvailableStaticRoute(item),
       );
+      const normalizedRemoteMenus = buildMenuHierarchy(routes);
       const menuRoutes =
         sourceMode === "remote-only"
-          ? preservedStaticMenus.concat(routes)
-          : this.constantMenus.concat(routes);
+          ? preservedStaticMenus.concat(normalizedRemoteMenus)
+          : this.constantMenus.concat(normalizedRemoteMenus);
       this.wholeMenus = filterNoPermissionTree(
         filterTree(ascending(menuRoutes)),
       );

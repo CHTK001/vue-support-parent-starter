@@ -1,19 +1,21 @@
-﻿<template>
-  <div>
-    <h3 v-if="showTitle" class="my-8">{{ $t("buttons.password") }}</h3>
+<template>
+  <div class="password-pane">
+    <h3 v-if="showTitle" class="password-pane__title">
+      {{ $t("buttons.password") }}
+    </h3>
     <ScAlert
+      class="password-pane__alert"
       :title="$t('message.updatePassword')"
       type="warning"
       show-icon
       :closable="false"
-      style="margin-bottom: 15px"
     />
     <ScForm
       ref="form"
       :model="form"
       :rules="rules"
-      label-width="150px"
-      style="margin-top: 20px"
+      label-width="120px"
+      class="password-form"
     >
       <ScFormItem :label="$t('field.currentPassword')" prop="oldPassword">
         <ScInput
@@ -24,7 +26,9 @@
             $t('message.pleaseInput') + ' ' + $t('field.currentPassword')
           "
         />
-        <div class="el-form-item-msg">必须提供当前登录用户密码才能进行更改</div>
+        <div class="password-form__hint">
+          必须提供当前登录用户密码才能进行更改
+        </div>
       </ScFormItem>
       <ScFormItem :label="$t('field.newPassword')" prop="newPassword">
         <ScInput
@@ -35,8 +39,11 @@
             $t('message.pleaseInput') + ' ' + $t('field.newPassword')
           "
         />
-        <sc-password-strength v-model="form.newPassword" />
-        <div class="el-form-item-msg">
+        <sc-password-strength
+          v-model="form.newPassword"
+          class="password-form__strength"
+        />
+        <div class="password-form__hint">
           {{ $t("message.newPassword") }}
         </div>
       </ScFormItem>
@@ -53,7 +60,7 @@
           "
         />
       </ScFormItem>
-      <ScFormItem>
+      <ScFormItem class="password-form__actions">
         <ScButton type="primary" @click="save">
           {{ $t("buttons.update") }}
         </ScButton>
@@ -72,10 +79,6 @@ import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner, useUserStore } from "@repo/core";
 import { transformI18n } from "@repo/config";
 import { ScAlert } from "@repo/components/ScAlert";
-
-
-
-
 
 export default {
   components: {
@@ -120,8 +123,8 @@ export default {
           {
             validator: (rule, value, callback) => {
               const reg1 =
-                /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*.])[\da-zA-Z~!@#$%^&*.]{8,}$/; // 密码必须是 8 位以上，且必须包含字母、数字和特殊符号
-              const reg2 = /(123|234|345|456|567|678|789|012)/; // 不能有 3 个连续数字
+                /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*.])[\da-zA-Z~!@#$%^&*.]{8,}$/;
+              const reg2 = /(123|234|345|456|567|678|789|012)/;
               if (!reg1.test(value)) {
                 callback(
                   new Error("密码必须是8位以上、必须含有字母、数字、特殊符号"),
@@ -185,4 +188,49 @@ export default {
 };
 </script>
 
-<style></style>
+<style scoped lang="scss">
+.password-pane__title {
+  margin: 2rem 0;
+}
+
+.password-pane__alert {
+  margin-bottom: 16px;
+}
+
+.password-form {
+  margin-top: 20px;
+}
+
+:deep(.password-form .el-form-item) {
+  align-items: flex-start;
+}
+
+:deep(.password-form .el-form-item__label) {
+  justify-content: flex-end;
+  padding-right: 16px;
+  line-height: 40px;
+}
+
+:deep(.password-form .el-form-item__content) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.password-form__hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.password-form__strength {
+  width: 100%;
+}
+
+:deep(.password-form__actions .el-form-item__content) {
+  flex-direction: row;
+  gap: 12px;
+}
+</style>

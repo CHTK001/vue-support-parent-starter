@@ -2,6 +2,7 @@
 import { transformI18n } from "@repo/config";
 import { usePermissionStoreHook } from "@repo/core";
 import ScLayout from "@repo/components/ScLayout";
+import ScDialog from "@repo/components/ScDialog";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -18,6 +19,20 @@ type RailEntry = LeafMenuItem & {
   closable: boolean;
 };
 
+type RailMenuBlock =
+  | {
+      key: string;
+      kind: "heading";
+      level: number;
+      title: string;
+    }
+  | {
+      key: string;
+      kind: "icons";
+      items: LeafMenuItem[];
+      level: number;
+    };
+
 const UNIFIED_HOME_KEY = "__lay_xx_unified_home__";
 const SHORTCUT_STORAGE_KEY = "lay-xx-shortcut-keys";
 const ACTIVE_STORAGE_KEY = "lay-xx-active-key";
@@ -28,6 +43,7 @@ const permissionStore = usePermissionStoreHook();
 const shortcutKeys = ref<string[]>([]);
 const activeRailKey = ref<string>(UNIFIED_HOME_KEY);
 const pickerVisible = ref(false);
+const railMenuVisible = ref(false);
 
 const parseStorageList = (value: string | null) => {
   if (!value) return [];
@@ -97,6 +113,41 @@ const resolveTitle = (meta: Record<string, any> | undefined, path: string) => {
   return String(title || path).trim();
 };
 
+const getVisibleChildren = (item: any) => {
+  const children = Array.isArray(item?.children) ? item.children : [];
+  return children.filter(
+    (child: any) =>
+      child &&
+      child.meta?.showLink !== false &&
+      !child.meta?.routeComponentMissing,
+  );
+};
+
+const resolveLeafMenuItem = (
+  item: any,
+  parentPath = "",
+): LeafMenuItem | undefined => {
+  const path = resolveMenuRoutePath(item, parentPath);
+  const canDisplay =
+    item?.meta?.showLink !== false &&
+    !item?.meta?.routeComponentMissing &&
+    !!path &&
+    path !== "/login" &&
+    !path.startsWith("/error");
+
+  if (!canDisplay) {
+    return undefined;
+  }
+
+  return {
+    key: path,
+    path,
+    routeName: item?.name ? String(item.name) : undefined,
+    title: resolveTitle(item?.meta, path),
+    icon: String(item?.meta?.icon || item?.meta?.iconOnline || "ep:menu"),
+  };
+};
+
 const isNotFoundResolved = (resolved: ReturnType<typeof router.resolve>) => {
   return (
     !resolved.matched.length ||
@@ -156,38 +207,21 @@ const collectLeafMenus = (menus: any[]): LeafMenuItem[] => {
   const visit = (items: any[], parentPath = "") => {
     (items || []).forEach((item) => {
       if (!item) return;
-      const children = Array.isArray(item.children) ? item.children : [];
-      const visibleChildren = children.filter(
-        (child: any) =>
-          child &&
-          child.meta?.showLink !== false &&
-          !child.meta?.routeComponentMissing,
-      );
+      const visibleChildren = getVisibleChildren(item);
       const hasVisibleChildren = visibleChildren.length > 0;
-      const path = resolveMenuRoutePath(item, parentPath);
-      const canDisplay =
-        item.meta?.showLink !== false &&
-        !item.meta?.routeComponentMissing &&
-        !!path &&
-        path !== "/login" &&
-        !path.startsWith("/error");
 
       if (hasVisibleChildren) {
+        const path = resolveMenuRoutePath(item, parentPath);
         visit(visibleChildren, path || composeMenuPath(item.path, parentPath));
         return;
       }
 
-      if (!canDisplay) {
+      const menuItem = resolveLeafMenuItem(item, parentPath);
+      if (!menuItem) {
         return;
       }
 
-      result.push({
-        key: path,
-        path,
-        routeName: item.name ? String(item.name) : undefined,
-        title: resolveTitle(item.meta, path),
-        icon: String(item.meta?.icon || item.meta?.iconOnline || "ep:menu"),
-      });
+      result.push(menuItem);
     });
   };
 
@@ -196,8 +230,87 @@ const collectLeafMenus = (menus: any[]): LeafMenuItem[] => {
   return [...new Map(result.map((item) => [item.key, item])).values()];
 };
 
+const collectRailMenuBlocks = (
+  menus: any[],
+  parentPath = "",
+  level = 0,
+): RailMenuBlock[] => {
+  const blocks: RailMenuBlock[] = [];
+
+  (menus || []).forEach((item, index) => {
+    if (!item) return;
+
+    const visibleChildren = getVisibleChildren(item);
+    const path = resolveMenuRoutePath(item, parentPath);
+    const title = resolveTitle(
+      item?.meta,
+      path || normalizePath(item?.path) || `menu-${level}-${index}`,
+    );
+
+    if (!visibleChildren.length) {
+      const leafItem = resolveLeafMenuItem(item, parentPath);
+      if (!leafItem) return;
+
+      blocks.push({
+        key: `icons:${level}:${leafItem.key}`,
+        kind: "icons",
+        items: [leafItem],
+        level,
+      });
+      return;
+    }
+
+    const leafItems: LeafMenuItem[] = [];
+    const nestedParents: Array<{ item: any; parentPath: string }> = [];
+    const nextParentPath = path || composeMenuPath(item?.path, parentPath);
+
+    visibleChildren.forEach((child) => {
+      const childVisibleChildren = getVisibleChildren(child);
+      if (childVisibleChildren.length) {
+        nestedParents.push({ item: child, parentPath: nextParentPath });
+        return;
+      }
+
+      const leafItem = resolveLeafMenuItem(child, nextParentPath);
+      if (leafItem) {
+        leafItems.push(leafItem);
+      }
+    });
+
+    if (title) {
+      blocks.push({
+        key: `heading:${level}:${path || title}:${index}`,
+        kind: "heading",
+        level,
+        title,
+      });
+    }
+
+    if (leafItems.length) {
+      blocks.push({
+        key: `icons:${level}:${path || title}:${index}`,
+        kind: "icons",
+        items: leafItems,
+        level,
+      });
+    }
+
+    nestedParents.forEach(({ item: child, parentPath: childParentPath }) => {
+      blocks.push(
+        ...collectRailMenuBlocks([child], childParentPath, level + 1),
+      );
+    });
+  });
+
+  return blocks;
+};
+
 const leafMenus = computed(() =>
   collectLeafMenus(permissionStore.wholeMenus || []),
+);
+
+const railMenuBlocks = computed(() =>
+  collectRailMenuBlocks(permissionStore.wholeMenus || []),
 );
 
 const leafMenuMap = computed(
@@ -205,11 +318,7 @@ const leafMenuMap = computed(
 );
 
 const configuredHome = computed(() => {
-  return (
-    leafMenuMap.value.get("/") ||
-    leafMenuMap.value.get("/home") ||
-    null
-  );
+  return leafMenuMap.value.get("/") || leafMenuMap.value.get("/home") || null;
 });
 
 const hasConfiguredHome = computed(() => !!configuredHome.value);
@@ -277,13 +386,19 @@ const railTabs = computed(() =>
 
 const showUnifiedHome = computed(
   () =>
-    !hasConfiguredHome.value && String(activeRailKey.value) === UNIFIED_HOME_KEY,
+    !hasConfiguredHome.value &&
+    String(activeRailKey.value) === UNIFIED_HOME_KEY,
 );
 
-const safeNavigate = (target: Pick<LeafMenuItem, "path" | "title"> | string) => {
+const safeNavigate = (
+  target: Pick<LeafMenuItem, "path" | "title"> | string,
+) => {
   const menu =
     typeof target === "string"
-      ? ({ path: target, title: target } as Pick<LeafMenuItem, "path" | "title">)
+      ? ({ path: target, title: target } as Pick<
+          LeafMenuItem,
+          "path" | "title"
+        >)
       : target;
   const path = resolveNavigablePath(menu);
   if (!path || route.path === path) return;
@@ -373,6 +488,19 @@ const selectLeafShortcut = (item: LeafMenuItem) => {
   pickerVisible.value = false;
 };
 
+const selectRailMenuItem = (item: LeafMenuItem) => {
+  if (
+    !shortcutKeys.value.includes(item.key) &&
+    item.key !== fixedHomeEntry.value.key
+  ) {
+    shortcutKeys.value = [...shortcutKeys.value, item.key];
+  }
+  Promise.resolve().then(() => {
+    activeRailKey.value = item.key;
+  });
+  railMenuVisible.value = false;
+};
+
 const removeRailTab = (name: string | number) => {
   const key = String(name);
   if (key === fixedHomeEntry.value.key) return;
@@ -383,6 +511,7 @@ const removeRailTab = (name: string | number) => {
 <template>
   <section class="lay-xx-layout">
     <ScLayout
+      id="lay-xx-workspace"
       v-model="activeRailKey"
       :left-enabled="false"
       :rail-tabs="railTabs"
@@ -424,30 +553,74 @@ const removeRailTab = (name: string | number) => {
       </template>
 
       <template #rail-footer>
-        <button
-          type="button"
-          class="lay-xx-action"
-          :title="hasConfiguredHome ? '设置右侧菜单' : '添加统一主页入口'"
-          @click="openPicker"
+        <el-popover
+          v-model:visible="railMenuVisible"
+          trigger="click"
+          placement="left-end"
+          :width="320"
+          popper-class="lay-xx-rail-menu-popper"
         >
-          <component
-            :is="
-              useRenderIcon(
-                hasConfiguredHome ? 'ri:settings-4-line' : 'ri:add-line',
-              )
-            "
-          />
-        </button>
+          <template #reference>
+            <button
+              type="button"
+              class="lay-xx-action"
+              title="工作间菜单"
+              @click.stop
+            >
+              <component :is="useRenderIcon('ri:settings-4-line')" />
+            </button>
+          </template>
+
+          <div class="lay-xx-rail-menu">
+            <div class="lay-xx-rail-menu__title">工作间菜单</div>
+            <div class="lay-xx-rail-menu__content">
+              <template v-for="block in railMenuBlocks" :key="block.key">
+                <div
+                  v-if="block.kind === 'heading'"
+                  class="lay-xx-rail-menu__heading"
+                  :style="{ paddingLeft: `${block.level * 12}px` }"
+                >
+                  <span>{{ block.title }}</span>
+                </div>
+                <div
+                  v-else
+                  class="lay-xx-rail-menu__icons"
+                  :style="{ paddingLeft: `${block.level * 12}px` }"
+                >
+                  <el-tooltip
+                    v-for="item in block.items"
+                    :key="item.key"
+                    :content="item.title"
+                    placement="top"
+                  >
+                    <button
+                      type="button"
+                      class="lay-xx-rail-menu__icon-item"
+                      :class="{
+                        'is-active': String(activeRailKey) === String(item.key),
+                      }"
+                      :title="item.title"
+                      @click.stop="selectRailMenuItem(item)"
+                    >
+                      <component :is="useRenderIcon(item.icon || 'ep:menu')" />
+                    </button>
+                  </el-tooltip>
+                </div>
+              </template>
+            </div>
+          </div>
+        </el-popover>
       </template>
     </ScLayout>
 
-    <el-dialog
+    <ScDialog
       v-model="pickerVisible"
       width="760px"
       title="选择叶子节点入口"
       append-to-body
       destroy-on-close
       class="lay-xx-picker"
+      layout="simple"
     >
       <div class="lay-xx-picker-grid">
         <el-tooltip
@@ -466,7 +639,7 @@ const removeRailTab = (name: string | number) => {
           </button>
         </el-tooltip>
       </div>
-    </el-dialog>
+    </ScDialog>
   </section>
 </template>
 
@@ -574,6 +747,74 @@ const removeRailTab = (name: string | number) => {
   background: rgba(var(--el-color-primary-rgb), 0.15);
 }
 
+.lay-xx-rail-menu {
+  display: grid;
+  gap: 12px;
+}
+
+.lay-xx-rail-menu__title {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lay-xx-rail-menu__content {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.lay-xx-rail-menu__heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.lay-xx-rail-menu__heading::after {
+  flex: 1;
+  height: 1px;
+  margin-left: 10px;
+  background: rgba(148, 163, 184, 0.3);
+  content: "";
+}
+
+.lay-xx-rail-menu__icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lay-xx-rail-menu__icon-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.lay-xx-rail-menu__icon-item:hover,
+.lay-xx-rail-menu__icon-item.is-active {
+  border-color: rgba(var(--el-color-primary-rgb), 0.45);
+  background: rgba(var(--el-color-primary-rgb), 0.08);
+  color: var(--el-color-primary);
+}
+
 .lay-xx-picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -624,5 +865,26 @@ const removeRailTab = (name: string | number) => {
 :global(html.dark) .lay-xx-empty {
   color: #94a3b8;
   border-color: rgba(148, 163, 184, 0.38);
+}
+
+:global(html.dark) .lay-xx-rail-menu__title,
+:global(html.dark) .lay-xx-rail-menu__heading {
+  color: #cbd5e1;
+}
+
+:global(html.dark) .lay-xx-rail-menu__heading::after {
+  background: rgba(148, 163, 184, 0.24);
+}
+
+:global(html.dark) .lay-xx-rail-menu__icon-item {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.78);
+  color: #e2e8f0;
+}
+
+:global(html.dark) .lay-xx-rail-menu__icon-item:hover,
+:global(html.dark) .lay-xx-rail-menu__icon-item.is-active {
+  background: rgba(var(--el-color-primary-rgb), 0.18);
+  color: var(--el-color-primary-light-3);
 }
 </style>

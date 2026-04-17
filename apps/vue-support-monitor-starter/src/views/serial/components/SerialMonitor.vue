@@ -135,7 +135,7 @@
   </div>
 </template>
 
-<script setup>
+>
 import { indexedDBProxy, message } from "@repo/utils";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 

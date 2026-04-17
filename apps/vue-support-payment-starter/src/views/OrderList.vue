@@ -47,35 +47,35 @@
       </p>
     </div>
 
-    <el-card class="ops-panel">
+    <ScCard class="ops-panel">
       <template #header>
         <div class="panel__header">
           <div>
             <p class="panel__eyebrow">Order State Machine</p>
             <h3>订单管理</h3>
           </div>
-          <el-button type="primary" @click="openCreateDialog">创建订单</el-button>
+          <ScButton type="primary" @click="openCreateDialog">创建订单</ScButton>
         </div>
       </template>
 
       <div class="ops-toolbar">
         <el-form :inline="true" :model="searchForm" class="toolbar">
           <el-form-item label="商户">
-            <el-select v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </el-select>
+            <ScSelect v-model="searchForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+              <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="订单号">
             <el-input v-model="searchForm.orderNo" placeholder="请输入订单号" clearable />
           </el-form-item>
           <el-form-item label="状态">
-            <el-select v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
-              <el-option v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
-            </el-select>
+            <ScSelect v-model="searchForm.status" clearable placeholder="全部状态" style="width: 180px">
+              <ScOption v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
+            </ScSelect>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="handleSearch">查询</el-button>
-            <el-button @click="handleResetSearch">重置</el-button>
+            <ScButton type="primary" @click="handleSearch">查询</ScButton>
+            <ScButton @click="handleResetSearch">重置</ScButton>
           </el-form-item>
         </el-form>
 
@@ -120,18 +120,18 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="420" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openLogDrawer(row)">流转日志</el-button>
-            <el-button v-if="canRealPay(row.status)" link type="success" @click="handleRealPay(row)">真实支付</el-button>
-            <el-button v-if="canSync(row.status)" link type="warning" @click="handleSync(row)">同步状态</el-button>
-            <el-button v-if="canStartPay(row.status)" link type="primary" @click="handleStartPay(row)">发起支付</el-button>
-            <el-button v-if="canMarkPaid(row.status)" link type="success" @click="handleMarkPaid(row)">支付成功</el-button>
-            <el-button v-if="canMarkPaid(row.status)" link type="danger" @click="handleMarkPayFail(row)">支付失败</el-button>
-            <el-button v-if="canComplete(row.status)" link type="warning" @click="handleComplete(row)">完成</el-button>
-            <el-button v-if="canCancel(row.status)" link @click="handleCancel(row)">取消</el-button>
-            <el-button v-if="canRefund(row.status)" link type="warning" @click="handleRefund(row)">申请退款</el-button>
-            <el-button v-if="canRefundConfirm(row.status)" link type="success" @click="handleRefundSuccess(row)">退款成功</el-button>
-            <el-button v-if="canRefundConfirm(row.status)" link type="danger" @click="handleRefundFail(row)">退款失败</el-button>
-            <el-button v-if="canDelete(row.status)" link type="danger" @click="handleDelete(row)">删除</el-button>
+            <ScButton link type="primary" @click="openLogDrawer(row)">流转日志</ScButton>
+            <ScButton v-if="canRealPay(row.status)" link type="success" @click="handleRealPay(row)">真实支付</ScButton>
+            <ScButton v-if="canSync(row.status)" link type="warning" @click="handleSync(row)">同步状态</ScButton>
+            <ScButton v-if="canStartPay(row.status)" link type="primary" @click="handleStartPay(row)">发起支付</ScButton>
+            <ScButton v-if="canMarkPaid(row.status)" link type="success" @click="handleMarkPaid(row)">支付成功</ScButton>
+            <ScButton v-if="canMarkPaid(row.status)" link type="danger" @click="handleMarkPayFail(row)">支付失败</ScButton>
+            <ScButton v-if="canComplete(row.status)" link type="warning" @click="handleComplete(row)">完成</ScButton>
+            <ScButton v-if="canCancel(row.status)" link @click="handleCancel(row)">取消</ScButton>
+            <ScButton v-if="canRefund(row.status)" link type="warning" @click="handleRefund(row)">申请退款</ScButton>
+            <ScButton v-if="canRefundConfirm(row.status)" link type="success" @click="handleRefundSuccess(row)">退款成功</ScButton>
+            <ScButton v-if="canRefundConfirm(row.status)" link type="danger" @click="handleRefundFail(row)">退款失败</ScButton>
+            <ScButton v-if="canDelete(row.status)" link type="danger" @click="handleDelete(row)">删除</ScButton>
           </template>
         </el-table-column>
         </el-table>
@@ -147,25 +147,25 @@
         @current-change="loadOrders"
         @size-change="loadOrders"
       />
-    </el-card>
+    </ScCard>
 
-    <el-dialog v-model="createDialogVisible" title="创建订单" width="760px">
+    <ScDialog v-model="createDialogVisible" title="创建订单" width="760px" layout="simple">
       <el-form :model="createForm" label-width="110px">
         <div class="form-grid">
           <el-form-item label="商户" required>
-            <el-select v-model="createForm.merchantId" placeholder="请选择商户" @change="handleMerchantChange">
-              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </el-select>
+            <ScSelect v-model="createForm.merchantId" placeholder="请选择商户" @change="handleMerchantChange">
+              <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="支付方式" required>
-            <el-select v-model="createForm.channelId" placeholder="请选择支付方式">
-              <el-option
+            <ScSelect v-model="createForm.channelId" placeholder="请选择支付方式">
+              <ScOption
                 v-for="item in createChannelOptions"
                 :key="item.id"
                 :label="`${item.channelName} (${item.channelSubType})`"
                 :value="item.id"
               />
-            </el-select>
+            </ScSelect>
           </el-form-item>
           <el-form-item label="业务订单号">
             <el-input v-model="createForm.businessOrderNo" placeholder="可选，不填则系统自动生成" />
@@ -203,12 +203,12 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="submitCreate">创建</el-button>
+        <ScButton @click="createDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="creating" @click="submitCreate">创建</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="logDrawerVisible" size="520px" :title="currentOrder ? `${currentOrder.orderNo} - 流转日志` : '流转日志'">
+    <ScDrawer v-model="logDrawerVisible" size="520px" :title="currentOrder ? `${currentOrder.orderNo} - 流转日志` : '流转日志'" layout="simple">
       <el-timeline v-if="orderLogs.length">
         <el-timeline-item
           v-for="item in orderLogs"
@@ -225,9 +225,9 @@
         </el-timeline-item>
       </el-timeline>
       <el-empty v-else description="暂无状态流转记录" />
-    </el-drawer>
+    </ScDrawer>
 
-    <el-dialog v-model="launchDialogVisible" width="760px" :title="launchTitle">
+    <ScDialog v-model="launchDialogVisible" width="760px" :title="launchTitle" layout="simple">
       <div class="ops-split">
         <div class="ops-subpanel">
           <p class="ops-kicker">Launch Type</p>
@@ -270,13 +270,14 @@
         <pre class="ops-code">{{ currentLaunch.rawResponse }}</pre>
       </div>
       <template #footer>
-        <el-button @click="launchDialogVisible = false">关闭</el-button>
+        <ScButton @click="launchDialogVisible = false">关闭</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {

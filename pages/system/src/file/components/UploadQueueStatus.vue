@@ -51,14 +51,14 @@
                 <span class="file-name" :title="item.fileName">
                   {{ item.fileName }}
                 </span>
-                <el-button
+                <ScButton
                   size="small"
                   text
                   type="danger"
                   @click="$emit('cancel-task', item.fileId)"
                 >
                   <IconifyIconOnline icon="ri:close-line" />
-                </el-button>
+                </ScButton>
               </div>
               <div class="item-progress">
                 <el-progress
@@ -72,7 +72,7 @@
                 <span v-if="item.message" class="status-message">
                   {{ item.message }}
                 </span>
-                <el-button
+                <ScButton
                   v-if="item.status === 'completed'"
                   size="small"
                   text
@@ -84,29 +84,29 @@
                     class="mr-1"
                   />
                   同步
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
         </div>
 
         <div v-if="queueList.length" class="queue-actions">
-          <el-button size="small" @click="$emit('pause-all')">
+          <ScButton size="small" @click="$emit('pause-all')">
             <IconifyIconOnline icon="ri:pause-line" class="mr-1" />
             暂停全部
-          </el-button>
-          <el-button size="small" @click="$emit('resume-all')">
+          </ScButton>
+          <ScButton size="small" @click="$emit('resume-all')">
             <IconifyIconOnline icon="ri:play-line" class="mr-1" />
             继续全部
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="danger"
             @click="$emit('clear-completed')"
           >
             <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
             清除已完成
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>

@@ -21,18 +21,18 @@
           <span>{{ formatDuration(shareDuration) }}</span>
         </div>
         <div class="share-actions">
-          <el-button type="info" size="small" @click="showViewers = true">
+          <ScButton type="info" size="small" @click="showViewers = true">
             <el-icon><User /></el-icon>
             观看者 ({{ viewers.length }})
-          </el-button>
-          <el-button type="warning" size="small" @click="pauseShare">
+          </ScButton>
+          <ScButton type="warning" size="small" @click="pauseShare">
             <el-icon><VideoPause /></el-icon>
             {{ isPaused ? '恢复' : '暂停' }}
-          </el-button>
-          <el-button type="danger" size="small" @click="stopShare">
+          </ScButton>
+          <ScButton type="danger" size="small" @click="stopShare">
             <el-icon><VideoPlay /></el-icon>
             停止共享
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -49,9 +49,9 @@
           <div class="preview-overlay">
             <div class="preview-info">
               <span>预览窗口</span>
-              <el-button type="text" @click="togglePreview">
+              <ScButton type="text" @click="togglePreview">
                 <el-icon><{{ showPreview ? 'Hide' : 'View' }} /></el-icon>
-              </el-button>
+              </ScButton>
             </div>
           </div>
         </div>
@@ -60,9 +60,9 @@
         <div class="viewers-panel" v-if="showViewers">
           <div class="panel-header">
             <span>观看者列表</span>
-            <el-button type="text" @click="showViewers = false">
+            <ScButton type="text" @click="showViewers = false">
               <el-icon><Close /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
           <div class="viewers-list">
             <div
@@ -78,9 +78,9 @@
                 <span class="viewer-status">{{ viewer.status }}</span>
               </div>
               <div class="viewer-actions">
-                <el-button type="text" size="small" @click="kickViewer(viewer)">
+                <ScButton type="text" size="small" @click="kickViewer(viewer)">
                   <el-icon><Close /></el-icon>
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </div>
@@ -90,44 +90,44 @@
       <!-- 控制栏 -->
       <div class="control-bar">
         <div class="control-group">
-          <el-button
+          <ScButton
             :type="audioEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleAudio"
           >
             <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="warning"
             size="large"
             circle
             @click="pauseShare"
           >
             <el-icon><VideoPause v-if="!isPaused" /><VideoPlay v-else /></el-icon>
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="danger"
             size="large"
             circle
             @click="stopShare"
           >
             <el-icon><Close /></el-icon>
-          </el-button>
+          </ScButton>
         </div>
         
         <div class="additional-controls">
-          <el-button type="info" size="small" @click="showSettings = true">
+          <ScButton type="info" size="small" @click="showSettings = true">
             <el-icon><Setting /></el-icon>
             设置
-          </el-button>
+          </ScButton>
           
-          <el-button type="success" size="small" @click="showInvite = true">
+          <ScButton type="success" size="small" @click="showInvite = true">
             <el-icon><Share /></el-icon>
             邀请观看
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -135,7 +135,7 @@
     <!-- 主界面 -->
     <div class="main-interface" v-else>
       <!-- 开始共享 -->
-      <el-card class="start-share-card" shadow="hover">
+      <ScCard class="start-share-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>开始屏幕共享</span>
@@ -182,19 +182,19 @@
             <h4>共享设置</h4>
             <el-form :model="shareSettings" label-width="120px">
               <el-form-item label="共享质量">
-                <el-select v-model="shareSettings.quality" style="width: 100%">
-                  <el-option label="高清 (1080p)" value="high" />
-                  <el-option label="标清 (720p)" value="medium" />
-                  <el-option label="流畅 (480p)" value="low" />
-                </el-select>
+                <ScSelect v-model="shareSettings.quality" style="width: 100%">
+                  <ScOption label="高清 (1080p)" value="high" />
+                  <ScOption label="标清 (720p)" value="medium" />
+                  <ScOption label="流畅 (480p)" value="low" />
+                </ScSelect>
               </el-form-item>
               
               <el-form-item label="帧率">
-                <el-select v-model="shareSettings.frameRate" style="width: 100%">
-                  <el-option label="60 FPS" :value="60" />
-                  <el-option label="30 FPS" :value="30" />
-                  <el-option label="15 FPS" :value="15" />
-                </el-select>
+                <ScSelect v-model="shareSettings.frameRate" style="width: 100%">
+                  <ScOption label="60 FPS" :value="60" />
+                  <ScOption label="30 FPS" :value="30" />
+                  <ScOption label="15 FPS" :value="15" />
+                </ScSelect>
               </el-form-item>
               
               <el-form-item>
@@ -212,7 +212,7 @@
           </div>
           
           <div class="start-actions">
-            <el-button
+            <ScButton
               type="primary"
               size="large"
               :loading="starting"
@@ -220,13 +220,13 @@
             >
               <el-icon><VideoPlay /></el-icon>
               开始共享
-            </el-button>
+            </ScButton>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
       <!-- 加入观看 -->
-      <el-card class="join-watch-card" shadow="hover">
+      <ScCard class="join-watch-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>加入观看</span>
@@ -248,7 +248,7 @@
           </el-form-item>
           
           <el-form-item>
-            <el-button
+            <ScButton
               type="success"
               size="large"
               :disabled="!joinForm.shareId"
@@ -257,19 +257,19 @@
             >
               <el-icon><View /></el-icon>
               加入观看
-            </el-button>
+            </ScButton>
           </el-form-item>
         </el-form>
-      </el-card>
+      </ScCard>
 
       <!-- 活跃共享列表 -->
-      <el-card class="active-shares-card" shadow="hover">
+      <ScCard class="active-shares-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>活跃的屏幕共享</span>
-            <el-button type="text" @click="loadActiveShares">
+            <ScButton type="text" @click="loadActiveShares">
               <el-icon><Refresh /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
         </template>
         
@@ -291,17 +291,17 @@
           </el-table-column>
           <el-table-column label="操作" width="100">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 @click="quickJoinWatch(row)"
               >
                 观看
-              </el-button>
+              </ScButton>
             </template>
           </el-table-column>
         </el-table>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 观看者列表对话框 -->
@@ -322,13 +322,13 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button
+            <ScButton
               type="danger"
               size="small"
               @click="kickViewer(row)"
             >
               移除
-            </el-button>
+            </ScButton>
           </template>
         </el-table-column>
       </el-table>
@@ -340,35 +340,35 @@
         <el-form-item label="共享链接">
           <el-input v-model="shareLink" readonly>
             <template #append>
-              <el-button @click="copyShareLink">
+              <ScButton @click="copyShareLink">
                 <el-icon><CopyDocument /></el-icon>
-              </el-button>
+              </ScButton>
             </template>
           </el-input>
         </el-form-item>
         
         <el-form-item label="邀请用户">
-          <el-select
+          <ScSelect
             v-model="selectedInviteUsers"
             multiple
             placeholder="选择要邀请的用户"
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="user in availableUsers"
               :key="user.userId"
               :label="user.username"
               :value="user.userId"
             />
-          </el-select>
+          </ScSelect>
         </el-form-item>
       </div>
       
       <template #footer>
-        <el-button @click="showInvite = false">取消</el-button>
-        <el-button type="primary" @click="sendInvitations">
+        <ScButton @click="showInvite = false">取消</ScButton>
+        <ScButton type="primary" @click="sendInvitations">
           发送邀请
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
@@ -376,19 +376,19 @@
     <sc-dialog v-model="showSettings" title="共享设置" width="600px">
       <el-form :model="shareSettings" label-width="120px">
         <el-form-item label="共享质量">
-          <el-select v-model="shareSettings.quality" style="width: 100%">
-            <el-option label="高清 (1080p)" value="high" />
-            <el-option label="标清 (720p)" value="medium" />
-            <el-option label="流畅 (480p)" value="low" />
-          </el-select>
+          <ScSelect v-model="shareSettings.quality" style="width: 100%">
+            <ScOption label="高清 (1080p)" value="high" />
+            <ScOption label="标清 (720p)" value="medium" />
+            <ScOption label="流畅 (480p)" value="low" />
+          </ScSelect>
         </el-form-item>
         
         <el-form-item label="帧率">
-          <el-select v-model="shareSettings.frameRate" style="width: 100%">
-            <el-option label="60 FPS" :value="60" />
-            <el-option label="30 FPS" :value="30" />
-            <el-option label="15 FPS" :value="15" />
-          </el-select>
+          <ScSelect v-model="shareSettings.frameRate" style="width: 100%">
+            <ScOption label="60 FPS" :value="60" />
+            <ScOption label="30 FPS" :value="30" />
+            <ScOption label="15 FPS" :value="15" />
+          </ScSelect>
         </el-form-item>
         
         <el-form-item>
@@ -411,10 +411,10 @@
       </el-form>
       
       <template #footer>
-        <el-button @click="showSettings = false">取消</el-button>
-        <el-button type="primary" @click="applySettings">
+        <ScButton @click="showSettings = false">取消</ScButton>
+        <ScButton type="primary" @click="applySettings">
           应用设置
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

@@ -10,7 +10,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 import {
   Icon as IconifyIcon,
   addAPIProvider,

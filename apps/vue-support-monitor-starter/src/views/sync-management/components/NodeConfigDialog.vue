@@ -20,7 +20,7 @@
       class="node-config-form"
     >
       <!-- 基础信息 -->
-      <el-card shadow="never" class="config-section">
+      <ScCard shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
             <el-icon><InfoFilled /></el-icon>
@@ -56,10 +56,10 @@
             maxlength="500"
           />
         </el-form-item>
-      </el-card>
+      </ScCard>
 
       <!-- 参数配置 -->
-      <el-card v-if="parameters.length > 0" shadow="never" class="config-section">
+      <ScCard v-if="parameters.length > 0" shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
             <el-icon><Setting /></el-icon>
@@ -117,13 +117,13 @@
               :rows="5"
               :placeholder="param.placeholder || '请输入JSON格式数据'"
             />
-            <el-button
+            <ScButton
               size="small"
               class="format-btn"
               @click="formatJson(param.name)"
             >
               格式化JSON
-            </el-button>
+            </ScButton>
           </div>
 
           <!-- 数字输入 -->
@@ -147,7 +147,7 @@
           />
 
           <!-- 下拉选择 -->
-          <el-select
+          <ScSelect
             v-else-if="param.type === 'select'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请选择'"
@@ -155,16 +155,16 @@
             filterable
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="opt in param.options"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </el-select>
+          </ScSelect>
 
           <!-- 多选 -->
-          <el-select
+          <ScSelect
             v-else-if="param.type === 'multiselect'"
             v-model="formData.config[param.name]"
             :placeholder="param.placeholder || '请选择'"
@@ -175,13 +175,13 @@
             collapse-tags-tooltip
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="opt in param.options"
               :key="opt.value"
               :label="opt.label"
               :value="opt.value"
             />
-          </el-select>
+          </ScSelect>
 
           <!-- 日期选择 -->
           <el-date-picker
@@ -234,7 +234,7 @@
                 placeholder="值"
                 @change="updateKeyValueConfig(param.name)"
               />
-              <el-button
+              <ScButton
                 type="danger"
                 :icon="Delete"
                 circle
@@ -242,9 +242,9 @@
                 @click="removeKeyValueItem(param.name, index)"
               />
             </div>
-            <el-button type="primary" :icon="Plus" @click="addKeyValueItem(param.name)">
+            <ScButton type="primary" :icon="Plus" @click="addKeyValueItem(param.name)">
               添加
-            </el-button>
+            </ScButton>
           </div>
 
           <!-- 文件路径选择 -->
@@ -254,7 +254,7 @@
             :placeholder="param.placeholder || '请输入文件路径'"
           >
             <template #append>
-              <el-button :icon="FolderOpened" />
+              <ScButton :icon="FolderOpened" />
             </template>
           </el-input>
 
@@ -271,13 +271,13 @@
             {{ param.description }}
           </div>
         </el-form-item>
-      </el-card>
+      </ScCard>
 
       <!-- 无参数提示 -->
       <el-empty v-else description="该节点类型无需配置参数" :image-size="100" />
 
       <!-- 输出节点自动建表配置（仅数据库类型） -->
-      <el-card v-if="showColumnEditor" shadow="never" class="config-section">
+      <ScCard v-if="showColumnEditor" shadow="never" class="config-section">
         <template #header>
           <div class="section-header">
             <el-icon><Grid /></el-icon>
@@ -293,13 +293,13 @@
           :showAutoCreateSwitch="true"
           @import="handleImportColumns"
         />
-      </el-card>
+      </ScCard>
     </el-form>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="visible = false">取消</el-button>
-        <el-button
+        <ScButton @click="visible = false">取消</ScButton>
+        <ScButton
           v-if="canTest"
           type="info"
           :loading="testing"
@@ -307,11 +307,11 @@
         >
           <el-icon><Connection /></el-icon>
           测试连接
-        </el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">
+        </ScButton>
+        <ScButton type="primary" :loading="saving" @click="handleSave">
           <el-icon><Check /></el-icon>
           保存配置
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

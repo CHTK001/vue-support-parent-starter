@@ -2,9 +2,9 @@
   <SoftWorkspace title="操作记录">
     <template #actions>
       <el-tooltip content="刷新记录" placement="top">
-        <el-button circle @click="loadRecords">
+        <ScButton circle @click="loadRecords">
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </el-tooltip>
     </template>
 
@@ -25,15 +25,15 @@
       <el-table-column fixed="right" label="操作" width="120">
         <template #default="{ row }">
           <el-tooltip content="查看操作流" placement="top">
-            <el-button circle type="primary" @click="openStream(row)">
+            <ScButton circle type="primary" @click="openStream(row)">
               <IconifyIconOnline icon="ri:article-line" />
-            </el-button>
+            </ScButton>
           </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-drawer v-model="drawerVisible" title="操作流" size="46%">
+    <ScDrawer v-model="drawerVisible" title="操作流" size="46%" layout="simple">
       <div class="record-stream">
         <div class="record-stream__header">
           <div>
@@ -74,11 +74,12 @@
           </article>
         </div>
       </div>
-    </el-drawer>
+    </ScDrawer>
   </SoftWorkspace>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { SoftTopics } from "@repo/core";
 import {

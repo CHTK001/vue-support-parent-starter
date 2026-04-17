@@ -1,4 +1,4 @@
-﻿<script setup>
+﻿>
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
@@ -483,7 +483,7 @@ onMounted(() => {
               <el-button-group>
                 <ScButton type="primary" @click="resetSearch">重置搜索</ScButton>
                 <ScButton type="success" @click="refreshMemes">换一张</ScButton>
-              </el-button-group>
+               </el-button-group>
             </ScEmpty>
 
             <!-- 表情包网格 -->

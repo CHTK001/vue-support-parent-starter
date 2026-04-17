@@ -103,14 +103,14 @@
 
     <template #footer>
       <div class="server-project-script-dialog__footer">
-        <el-button @click="emit('update:modelValue', false)">取消</el-button>
-        <el-button
+        <ScButton @click="emit('update:modelValue', false)">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="saving"
           @click="emit('submit', cloneDraft())"
         >
           保存脚本
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </ScDialog>

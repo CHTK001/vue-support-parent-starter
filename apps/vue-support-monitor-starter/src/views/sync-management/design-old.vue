@@ -30,7 +30,7 @@
               <ScIcon><RefreshRight /></ScIcon>
             </ScButton>
           </ScTooltip>
-        </el-button-group>
+         </el-button-group>
         <ScDivider direction="vertical" />
         <ScTooltip content="自动布局">
           <ScButton @click="handleAutoLayout">

@@ -12,7 +12,7 @@
 
     <!-- 统计卡片 -->
     <div class="stats-grid">
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon room-icon">
             <el-icon><VideoCamera /></el-icon>
@@ -22,9 +22,9 @@
             <div class="stat-label">活跃房间</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon user-icon">
             <el-icon><User /></el-icon>
@@ -34,9 +34,9 @@
             <div class="stat-label">在线用户</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon total-icon">
             <el-icon><DataBoard /></el-icon>
@@ -46,9 +46,9 @@
             <div class="stat-label">总房间数</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
 
-      <el-card class="stat-card" shadow="hover">
+      <ScCard class="stat-card" shadow="hover">
         <div class="stat-content">
           <div class="stat-icon performance-icon">
             <el-icon><Monitor /></el-icon>
@@ -58,12 +58,12 @@
             <div class="stat-label">CPU使用率</div>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 功能导航 -->
     <div class="feature-grid">
-      <el-card 
+      <ScCard 
         v-for="feature in features" 
         :key="feature.key"
         class="feature-card" 
@@ -82,18 +82,18 @@
             <el-icon><ArrowRight /></el-icon>
           </div>
         </div>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 实时监控 -->
-    <el-card class="monitoring-card" shadow="hover">
+    <ScCard class="monitoring-card" shadow="hover">
       <template #header>
         <div class="card-header">
           <span>实时监控</span>
-          <el-button type="primary" size="small" @click="refreshMonitoring">
+          <ScButton type="primary" size="small" @click="refreshMonitoring">
             <el-icon><Refresh /></el-icon>
             刷新
-          </el-button>
+          </ScButton>
         </div>
       </template>
       
@@ -115,7 +115,7 @@
           <span class="monitoring-value">{{ formatTime(realtimeData.timestamp) }}</span>
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { emitter, router } from "@repo/core";
+import { getConfig } from "@repo/config";
 import { message } from "@repo/utils";
+import { computed } from "vue";
 
 defineOptions({
   name: "HelpFeedback",
@@ -13,6 +15,17 @@ defineProps({
   },
 });
 
+const feedbackReportRoute = computed(() =>
+  String(getConfig("BusinessEntry.feedbackReportRoute") || "").trim(),
+);
+
+const feedbackReportEnabled = computed(() => {
+  return (
+    getConfig("BusinessEntry.helpFeedback") !== false &&
+    !!feedbackReportRoute.value
+  );
+});
+
 const copyFeedbackAddress = async () => {
   try {
     await navigator.clipboard.writeText("support@example.local");
@@ -22,30 +35,56 @@ const copyFeedbackAddress = async () => {
   }
 };
 
-const supportActions = [
-  {
-    title: "查看消息中心",
-    desc: "快速确认系统消息、告警提醒与业务通知。",
-    icon: "ri:message-3-line",
-    onClick: () => emitter.emit("messageCenterOpen"),
-  },
-  {
-    title: "打开用户协议",
-    desc: "查看当前账号的数据使用边界与安全要求。",
-    icon: "ri:file-list-3-line",
-    onClick: () =>
-      router.push({
-        name: "AccountSettings",
-        query: { pane: "agreement" },
-      }),
-  },
-  {
-    title: "复制反馈入口",
-    desc: "当前先保留统一反馈邮箱，后续可继续接 sys_message 或工单流程。",
-    icon: "ri:customer-service-2-line",
-    onClick: copyFeedbackAddress,
-  },
-];
+const openFeedbackReport = async () => {
+  if (!feedbackReportRoute.value) {
+    message.warning("当前未配置反馈上报入口");
+    return;
+  }
+
+  try {
+    await router.push(feedbackReportRoute.value);
+  } catch {
+    message.error("打开反馈上报入口失败");
+  }
+};
+
+const supportActions = computed(() => {
+  const actions = [
+    {
+      title: "查看消息中心",
+      desc: "快速确认系统消息、告警提醒与业务通知。",
+      icon: "ri:message-3-line",
+      onClick: () => emitter.emit("messageCenterOpen"),
+    },
+    {
+      title: "打开用户协议",
+      desc: "查看当前账号的数据使用边界与安全要求。",
+      icon: "ri:file-list-3-line",
+      onClick: () =>
+        router.push({
+          name: "AccountSettings",
+          query: { pane: "agreement" },
+        }),
+    },
+    {
+      title: "复制反馈邮箱",
+      desc: "保留统一联系邮箱，便于补充说明或离线沟通。",
+      icon: "ri:mail-send-line",
+      onClick: copyFeedbackAddress,
+    },
+  ];
+
+  if (feedbackReportEnabled.value) {
+    actions.unshift({
+      title: "反馈上报",
+      desc: "进入业务反馈页，统一查看和处理反馈记录。",
+      icon: "ri:feedback-line",
+      onClick: openFeedbackReport,
+    });
+  }
+
+  return actions;
+});
 </script>
 
 <template>
@@ -72,7 +111,10 @@ const supportActions = [
           <div class="help-card__title">{{ item.title }}</div>
           <div class="help-card__desc">{{ item.desc }}</div>
         </div>
-        <IconifyIconOnline icon="ri:arrow-right-up-line" class="help-card__arrow" />
+        <IconifyIconOnline
+          icon="ri:arrow-right-up-line"
+          class="help-card__arrow"
+        />
       </button>
     </div>
   </div>
@@ -93,8 +135,16 @@ const supportActions = [
   padding: 24px 26px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 42%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.88));
+    radial-gradient(
+      circle at top left,
+      rgba(14, 165, 233, 0.12),
+      transparent 42%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.88)
+    );
   border: 1px solid rgba(148, 163, 184, 0.14);
   box-shadow:
     0 18px 40px rgba(15, 23, 42, 0.06),
@@ -133,7 +183,10 @@ const supportActions = [
   box-shadow:
     0 16px 32px rgba(15, 23, 42, 0.05),
     0 4px 10px rgba(15, 23, 42, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .help-card:hover {
@@ -190,7 +243,11 @@ const supportActions = [
 html.dark {
   .help-pane__hero {
     background:
-      radial-gradient(circle at top left, rgba(var(--el-color-primary-rgb), 0.2), transparent 46%),
+      radial-gradient(
+        circle at top left,
+        rgba(var(--el-color-primary-rgb), 0.2),
+        transparent 46%
+      ),
       linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92));
     border-color: rgba(148, 163, 184, 0.16);
     box-shadow:
@@ -224,5 +281,4 @@ html.dark {
     color: #94a3b8;
   }
 }
-
 </style>

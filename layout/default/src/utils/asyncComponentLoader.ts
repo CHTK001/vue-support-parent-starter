@@ -12,6 +12,63 @@ import {
 } from "vue";
 import { ElIcon, ElButton } from "element-plus";
 
+/**
+ * 空加载组件（不渲染任何占位，避免撑开布局）
+ */
+const EmptyLoadingComponent = {
+  name: "EmptyLoadingComponent",
+  render() {
+    return null;
+  },
+};
+
+/**
+ * 侧边栏骨架屏加载组件
+ */
+const SidebarSkeletonLoadingComponent = {
+  name: "SidebarSkeletonLoadingComponent",
+  render() {
+    const lineStyle = {
+      height: "12px",
+      borderRadius: "8px",
+      background:
+        "linear-gradient(90deg, rgba(148,163,184,0.12), rgba(148,163,184,0.22), rgba(148,163,184,0.12))",
+    } as const;
+
+    return h(
+      "div",
+      {
+        style: {
+          height: "100%",
+          minHeight: "360px",
+          padding: "12px 10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          overflow: "hidden",
+        },
+      },
+      [
+        h("div", {
+          style: {
+            ...lineStyle,
+            width: "78%",
+            height: "28px",
+          },
+        }),
+        ...Array.from({ length: 10 }).map((_, index) =>
+          h("div", {
+            key: index,
+            style: {
+              ...lineStyle,
+              width: index % 3 === 0 ? "86%" : index % 3 === 1 ? "72%" : "80%",
+            },
+          }),
+        ),
+      ],
+    );
+  },
+};
 
 /**
  * 默认加载组件（三个点动画）
@@ -219,6 +276,30 @@ export function createLayoutAsyncComponent(loader: AsyncComponentLoader) {
     delay: 100,
     timeout: 60000,
     suspensible: false,
+  });
+}
+
+/**
+ * 创建侧边栏组件专用的异步加载器（骨架屏）
+ */
+export function createSidebarAsyncComponent(loader: AsyncComponentLoader) {
+  return createAsyncComponent(loader, {
+    delay: 60,
+    timeout: 60000,
+    suspensible: false,
+    loadingComponent: SidebarSkeletonLoadingComponent,
+  });
+}
+
+/**
+ * 创建覆盖层组件专用的异步加载器（不显示 loading 占位）
+ */
+export function createOverlayAsyncComponent(loader: AsyncComponentLoader) {
+  return createAsyncComponent(loader, {
+    delay: 0,
+    timeout: 60000,
+    suspensible: false,
+    loadingComponent: EmptyLoadingComponent,
   });
 }
 

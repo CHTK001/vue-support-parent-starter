@@ -1722,8 +1722,8 @@
             @change="handleChange"
           />
           <div class="form-item-help">
-            <el-button size="small" type="primary" link @click="loadNodeClients"
-              >刷新客户端列表</el-button>
+            <ScButton size="small" type="primary" link @click="loadNodeClients"
+              >刷新客户端列表</ScButton>
           </div>
         </el-form-item>
 
@@ -1856,14 +1856,14 @@
             formData.monitorSysGenServerSettingFileManagementMode !== 'NONE'
           "
         >
-          <el-button
+          <ScButton
             type="primary"
             :loading="testingFileManagement"
             @click="testFileManagementConnection"
           >
             <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
             测试连接
-          </el-button>
+          </ScButton>
         </el-form-item>
       </div>
     </div>
@@ -2036,14 +2036,14 @@
 
       <!-- 测试连接 -->
       <el-form-item>
-        <el-button
+        <ScButton
           type="primary"
           @click="testPrometheusConnection"
           :loading="testingConnection"
         >
           <IconifyIconOnline icon="ri:wifi-line" class="mr-1" />
           测试连接
-        </el-button>
+        </ScButton>
         <span class="form-item-tip">测试Prometheus服务器连接是否正常</span>
       </el-form-item>
     </div>

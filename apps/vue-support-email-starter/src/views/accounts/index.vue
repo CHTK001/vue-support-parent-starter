@@ -3,16 +3,16 @@
     <div class="toolbar">
       <h2>账户管理</h2>
       <div class="toolbar-actions">
-        <el-button type="primary" @click="showAddDialog">
+        <ScButton type="primary" @click="showAddDialog">
           <el-icon><Plus /></el-icon>
           添加账户
-        </el-button>
+        </ScButton>
         <el-dropdown @command="handleExport">
-          <el-button>
+          <ScButton>
             <el-icon><Download /></el-icon>
             导出
             <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
+          </ScButton>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="json">
@@ -27,11 +27,11 @@
           </template>
         </el-dropdown>
         <el-dropdown @command="handleImport">
-          <el-button>
+          <ScButton>
             <el-icon><Upload /></el-icon>
             导入
             <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </el-button>
+          </ScButton>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="json">
@@ -74,32 +74,32 @@
       </el-table-column>
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="scope">
-          <el-button size="small" @click="testAccount(scope.row)">
+          <ScButton size="small" @click="testAccount(scope.row)">
             <el-icon><Connection /></el-icon>
             测试
-          </el-button>
-          <el-button size="small" @click="editAccount(scope.row)">
+          </ScButton>
+          <ScButton size="small" @click="editAccount(scope.row)">
             <el-icon><Edit /></el-icon>
             编辑
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="danger"
             @click="deleteAccount(scope.row)"
           >
             <el-icon><Delete /></el-icon>
             删除
-          </el-button>
+          </ScButton>
         </template>
       </el-table-column>
     </el-table>
 
     <!-- 添加/编辑账户对话框 -->
-    <el-dialog
+    <ScDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑账户' : '添加账户'"
       width="650px"
-    >
+     layout="simple">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-tabs v-model="activeTab">
           <el-tab-pane label="基本信息" name="basic">
@@ -127,10 +127,10 @@
 
           <el-tab-pane label="服务器配置" name="server">
             <el-form-item label="协议" prop="protocol">
-              <el-select v-model="form.protocol" placeholder="选择协议">
-                <el-option label="IMAP" value="imap" />
-                <el-option label="POP3" value="pop3" />
-              </el-select>
+              <ScSelect v-model="form.protocol" placeholder="选择协议">
+                <ScOption label="IMAP" value="imap" />
+                <ScOption label="POP3" value="pop3" />
+              </ScSelect>
             </el-form-item>
             <el-form-item label="SMTP主机" prop="smtpHost">
               <el-input
@@ -163,12 +163,12 @@
         </el-tabs>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveAccount">
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="saveAccount">
           保存
-        </el-button>
+        </ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
     <!-- 隐藏的文件输入 -->
     <input

@@ -179,7 +179,7 @@ const handleClose = () => {
 }
 </style>
 
-<script lang="ts">
+<script setup lang="ts">
 export default {
   name: "CoordinatePanel",
   components: {

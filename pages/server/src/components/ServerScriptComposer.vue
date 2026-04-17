@@ -10,21 +10,21 @@
           {{ spiLabel }}
         </span>
         <el-tooltip :content="aiTooltipText">
-          <el-button
+          <ScButton
             circle
             plain
             :disabled="!canGenerateAi"
             @click="emit('generate-ai')"
           >
             <IconifyIconOnline icon="ri:ai-generate-2" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
     </header>
 
     <div v-if="shortcuts.length" class="server-script-composer__toolbar">
       <span class="server-script-composer__toolbar-label">快捷片段</span>
-      <el-button
+      <ScButton
         v-for="item in shortcuts"
         :key="item.key"
         plain
@@ -32,7 +32,7 @@
         @click="applyShortcut(item)"
       >
         {{ item.label }}
-      </el-button>
+      </ScButton>
     </div>
 
     <ScAiTextarea

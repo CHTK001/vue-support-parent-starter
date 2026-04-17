@@ -11,16 +11,16 @@
           </p>
         </div>
         <div class="dashboard-toolbar__actions">
-          <el-button-group size="small">
-            <el-button
+          <ScButton-group size="small">
+            <ScButton
               v-for="item in rangePresets"
               :key="item.value"
               :type="activePreset === item.value ? 'primary' : 'default'"
               @click="applyPreset(item.value)"
             >
               {{ item.label }}
-            </el-button>
-          </el-button-group>
+            </ScButton>
+          <el-button-group>
           <el-date-picker
             v-model="dateRange"
             type="daterange"
@@ -30,21 +30,21 @@
             end-placeholder="结束日期"
             @change="handleRangeChange"
           />
-          <el-select
+          <ScSelect
             v-model="refreshIntervalMs"
             size="small"
             class="dashboard-toolbar__refresh-select"
             @change="handleRefreshIntervalChange"
           >
-            <el-option
+            <ScOption
               v-for="item in refreshIntervalOptions"
               :key="item.value"
               :label="item.label"
               :value="item.value"
             />
-          </el-select>
+          </ScSelect>
           <el-tooltip content="立即刷新">
-            <el-button circle type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard" />
+            <ScButton circle type="primary" :icon="RefreshRight" :loading="loading" @click="loadDashboard" />
           </el-tooltip>
         </div>
       </section>

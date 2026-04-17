@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     v-model="dialogVisible"
     destroy-on-close
     width="94vw"
     class="server-process-dialog"
     :title="host ? `${host.serverName} · 进程管理` : '进程管理'"
-  >
+   layout="simple">
     <template #header>
       <div class="server-process-dialog__header">
         <div>
@@ -72,9 +72,9 @@
           :model-value="autoRefresh"
           @update:model-value="emit('update:autoRefresh', Boolean($event))"
         />
-        <el-button circle :loading="loading" @click="emit('refresh')">
+        <ScButton circle :loading="loading" @click="emit('refresh')">
           <IconifyIconOnline icon="ri:refresh-line" />
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -129,9 +129,9 @@
               <span>{{ item.elapsed || "刚启动" }}</span>
             </div>
             <el-tooltip content="查看进程详情">
-              <el-button circle plain @click.stop="openDetail(item)">
+              <ScButton circle plain @click.stop="openDetail(item)">
                 <IconifyIconOnline icon="ri:article-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
           </div>
         </article>
@@ -175,7 +175,7 @@
                   aiEnabled ? 'AI 分析' : aiUnavailableReason || 'AI 能力未激活'
                 "
               >
-                <el-button
+                <ScButton
                   circle
                   plain
                   :disabled="!aiEnabled"
@@ -183,10 +183,10 @@
                   @click="emit('analyze-process', selectedProcess)"
                 >
                   <IconifyIconOnline icon="ri:ai-generate-2" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="结束进程">
-                <el-button
+                <ScButton
                   circle
                   type="warning"
                   plain
@@ -201,10 +201,10 @@
                   "
                 >
                   <IconifyIconOnline icon="ri:stop-circle-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="强制结束">
-                <el-button
+                <ScButton
                   circle
                   type="danger"
                   plain
@@ -217,12 +217,12 @@
                   "
                 >
                   <IconifyIconOnline icon="ri:close-circle-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
               <el-tooltip content="弹框查看详情">
-                <el-button circle plain @click="openDetail(selectedProcess)">
+                <ScButton circle plain @click="openDetail(selectedProcess)">
                   <IconifyIconOnline icon="ri:article-line" />
-                </el-button>
+                </ScButton>
               </el-tooltip>
             </div>
           </div>
@@ -321,7 +321,7 @@
       </div>
     </div>
 
-    <el-dialog
+    <ScDialog
       v-model="detailVisible"
       destroy-on-close
       width="960px"
@@ -332,7 +332,7 @@
           ? `${detailProcess.name || detailProcess.command || '未命名进程'} · 进程详情`
           : '进程详情'
       "
-    >
+     layout="simple">
       <template v-if="detailProcess">
         <div class="server-process-detail-dialog__hero">
           <div>
@@ -349,7 +349,7 @@
                 aiEnabled ? 'AI 分析' : aiUnavailableReason || 'AI 能力未激活'
               "
             >
-              <el-button
+              <ScButton
                 circle
                 plain
                 :disabled="!aiEnabled"
@@ -359,10 +359,10 @@
                 @click="emit('analyze-process', detailProcess)"
               >
                 <IconifyIconOnline icon="ri:ai-generate-2" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="结束进程">
-              <el-button
+              <ScButton
                 circle
                 type="warning"
                 plain
@@ -375,10 +375,10 @@
                 "
               >
                 <IconifyIconOnline icon="ri:stop-circle-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="强制结束">
-              <el-button
+              <ScButton
                 circle
                 type="danger"
                 plain
@@ -391,7 +391,7 @@
                 "
               >
                 <IconifyIconOnline icon="ri:close-circle-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
           </div>
         </div>
@@ -485,8 +485,8 @@
         </div>
       </template>
       <el-empty v-else description="未选择进程" />
-    </el-dialog>
-  </el-dialog>
+    </ScDialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">
@@ -649,12 +649,16 @@ watch(
 <style scoped lang="scss">
 .server-process-dialog :deep(.el-dialog) {
   max-width: 1460px;
-  border-radius: 28px;
+  border-radius: 32px;
   overflow: hidden;
+  box-shadow:
+    0 48px 96px rgba(15, 23, 42, 0.16),
+    0 24px 48px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .server-process-dialog :deep(.el-dialog__body) {
-  padding-top: 8px;
+  padding-top: 0;
 }
 
 .server-process-dialog__header,
@@ -737,15 +741,17 @@ watch(
   gap: 14px;
   margin-bottom: 16px;
   align-items: stretch;
-  padding: 15px 16px;
+  padding: 16px 18px;
   border-radius: 24px;
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
-  border: 1px solid rgba(148, 163, 184, 0.16);
+    radial-gradient(ellipse 80% 60% at 95% 5%, rgba(14, 165, 233, 0.1), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, rgba(245, 158, 11, 0.06), transparent 50%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96));
+  border: 1px solid rgba(148, 163, 184, 0.18);
   box-shadow:
-    0 16px 28px rgba(15, 23, 42, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    0 20px 40px rgba(15, 23, 42, 0.06),
+    0 8px 16px rgba(15, 23, 42, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .server-process-dialog__toolbar-actions {

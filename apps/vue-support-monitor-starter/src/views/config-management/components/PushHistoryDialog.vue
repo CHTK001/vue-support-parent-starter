@@ -24,35 +24,35 @@
             <IconifyIconOnline icon="ri:search-line" />
           </template>
         </el-input>
-        <el-select
+        <ScSelect
           v-model="queryParams.pushSuccess"
           placeholder="推送状态"
           clearable
           class="filter-select"
           @change="loadHistory"
         >
-          <el-option label="成功" :value="1" />
-          <el-option label="失败" :value="0" />
-        </el-select>
-        <el-button type="primary" @click="loadHistory">
+          <ScOption label="成功" :value="1" />
+          <ScOption label="失败" :value="0" />
+        </ScSelect>
+        <ScButton type="primary" @click="loadHistory">
           <IconifyIconOnline icon="ri:search-2-line" class="mr-1" />
           搜索
-        </el-button>
-        <el-button 
+        </ScButton>
+        <ScButton 
           :disabled="selectedHistories.length === 0" 
           @click="handleBatchRepush"
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           批量还原 ({{ selectedHistories.length }})
-        </el-button>
-        <el-button 
+        </ScButton>
+        <ScButton 
           type="danger"
           :disabled="selectedHistories.length === 0" 
           @click="handleBatchDelete"
         >
           <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
           批量删除
-        </el-button>
+        </ScButton>
       </div>
 
       <!-- 历史列表 -->
@@ -92,13 +92,13 @@
         <el-table-column label="操作人" prop="operator" width="80" />
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" plain @click="handleRepush(row)">
+            <ScButton size="small" type="primary" plain @click="handleRepush(row)">
               <IconifyIconOnline icon="ri:refresh-line" />
               还原
-            </el-button>
-            <el-button size="small" type="danger" plain @click="handleDelete(row)">
+            </ScButton>
+            <ScButton size="small" type="danger" plain @click="handleDelete(row)">
               <IconifyIconOnline icon="ri:delete-bin-line" />
-            </el-button>
+            </ScButton>
           </template>
         </el-table-column>
       </el-table>
@@ -119,7 +119,7 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">关闭</el-button>
+        <ScButton @click="visibleProxy = false">关闭</ScButton>
       </div>
     </template>
   </sc-dialog>

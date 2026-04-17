@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     :title="title"
     width="860px"
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"
-  >
+   layout="simple">
     <div class="server-alert-dialog">
       <p v-if="description" class="server-alert-dialog__desc">
         {{ description }}
@@ -276,16 +276,19 @@
 
     <template #footer>
       <div class="server-alert-dialog__footer">
-        <el-button @click="emit('update:modelValue', false)">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="emit('submit')"
-          >保存</el-button
+        <ScButton @click="emit('update:modelValue', false)">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="emit('submit')"
+          >保存</ScButton
         >
       </div>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">
+
+
+
 import { computed, ref, watch } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";

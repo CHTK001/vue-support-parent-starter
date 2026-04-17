@@ -1,51 +1,94 @@
 import { http, type ReturnResult } from "@repo/utils";
 
-export type Secret = {
-  sysSecretId: number;
-  sysSecretName: string;
-  sysSecretCode: string;
-  sysSecretGroup: string;
-};
+export interface SysSecret {
+  sysSecretId?: number;
+  sysSecretName?: string;
+  sysSecretVender?: number;
+  sysSecretFunction?: string;
+  sysSecretFunctionDefaultIds?: string;
+  sysSecretIcon?: string;
+  sysSecretGroup?: string;
+  sysSecretSort?: number;
+  sysSecretStatus?: 0 | 1;
+  sysSecretRemark?: string;
+  projectId?: number;
+  sysSecretAppId?: string;
+  sysSecretAppSecret?: string;
+  sysSecretAppEndpoint?: string;
+  createTime?: string;
+  updateTime?: string;
+  // 运行时扩展字段（前端计算）
+  source?: Array<{
+    label: boolean;
+    value: number;
+    name: string;
+    code: string;
+    icon: string;
+  }>;
+}
 
 /**
- * 删除组织机构
+ * 密钥分页列表
  */
-export const fetchDeleteSecret = (sysSecretId) => {
-  if (null == sysSecretId) {
-    return Promise.reject("参数不能为空");
-  }
-  const params = { sysSecretId: sysSecretId };
-  return http.request<ReturnResult<boolean>>("delete", "/v2/secret/delete", {
+export const fetchPageSecret = (params?: Record<string, unknown>) => {
+  return http.request<ReturnResult<SysSecret[]>>("get", "/v2/secret/page", {
     params,
   });
 };
 
 /**
- * 新增组织机构
+ * 新增密钥
  */
-export const fetchSaveSecret = (params) => {
-  return http.request<ReturnResult<Secret>>("post", "/v2/secret/save", {
+export const fetchSaveSecret = (params: Partial<SysSecret>) => {
+  return http.request<ReturnResult<object>>("post", "/v2/secret/save", {
     data: params,
   });
 };
 
 /**
- * 更新组织机构
+ * 更新密钥
  */
-export const fetchUpdateSecret = (params) => {
-  if (!params.sysSecretId) {
-    return;
-  }
+export const fetchUpdateSecret = (params: Partial<SysSecret>) => {
   return http.request<ReturnResult<boolean>>("put", "/v2/secret/update", {
     data: params,
   });
 };
 
 /**
- * 组织机构列表
+ * 删除密钥
  */
-export const fetchPageSecret = (params) => {
-  return http.request<ReturnResult<Secret[]>>("get", "/v2/secret/page", {
+export const fetchDeleteSecret = (params: { sysSecretId: number }) => {
+  if (params.sysSecretId == null) {
+    return Promise.reject("参数不能为空");
+  }
+  return http.request<ReturnResult<boolean>>("delete", "/v2/secret/delete", {
     params,
   });
+};
+
+/**
+ * 更新密钥默认值
+ */
+export const fetchUpdateSecretDefault = (params: {
+  sysSecretId: number;
+  sysSecretDefaultType: number;
+  sysSetDefault: 0 | 1;
+}) => {
+  return http.request<ReturnResult<boolean>>(
+    "put",
+    "/v2/secret/updateDefault",
+    {
+      data: params,
+    },
+  );
+};
+
+/**
+ * 获取密钥详情（供 AI/Device/短信/邮件等子模块获取 appKey 配置）
+ */
+export const fetchSecretInfo = (secretId: number) => {
+  return http.request<ReturnResult<SysSecret>>(
+    "get",
+    `/v2/secret/info/${secretId}`,
+  );
 };

@@ -48,7 +48,7 @@
             <IconifyIconOnline icon="ep:delete" />
             清空
           </ScButton>
-        </el-button-group>
+         </el-button-group>
       </div>
 
           <div class="css-beautify-tool__editor-container">
@@ -207,7 +207,7 @@
   </div>
 </template>
 
-<script setup>
+>
 import { ref, watch, onMounted, nextTick } from "vue";
 import { message } from "@repo/utils";
 import { useClipboard } from "@vueuse/core";

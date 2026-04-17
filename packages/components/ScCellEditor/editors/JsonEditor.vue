@@ -14,17 +14,17 @@
     </div>
 
     <div class="json-actions">
-      <el-button size="small" @click="formatJson">格式化</el-button>
-      <el-button size="small" @click="showExtractDialog = true">复制 JSON_EXTRACT 表达式</el-button>
+      <ScButton size="small" @click="formatJson">格式化</ScButton>
+      <ScButton size="small" @click="showExtractDialog = true">复制 JSON_EXTRACT 表达式</ScButton>
     </div>
 
     <!-- JSON_EXTRACT 表达式生成对话框 -->
-    <el-dialog
+    <ScDialog
       v-model="showExtractDialog"
       title="生成 JSON_EXTRACT 表达式"
       width="420px"
       append-to-body
-    >
+     layout="simple">
       <el-form label-width="80px">
         <el-form-item label="字段名">
           <el-input v-model="extractColumn" :placeholder="fieldName || 'column'" />
@@ -37,14 +37,14 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showExtractDialog = false">关闭</el-button>
-        <el-button type="primary" @click="copyExtractExpr">复制到剪贴板</el-button>
+        <ScButton @click="showExtractDialog = false">关闭</ScButton>
+        <ScButton type="primary" @click="copyExtractExpr">复制到剪贴板</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Warning } from '@element-plus/icons-vue'

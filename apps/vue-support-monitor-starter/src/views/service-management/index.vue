@@ -33,7 +33,7 @@
     </div>
 
     <!-- 筛选条件 -->
-    <el-card class="filter-card">
+    <ScCard class="filter-card">
       <div class="filter-content">
         <el-form :model="queryParams" inline>
           <el-form-item label="服务器名称">
@@ -45,57 +45,57 @@
             />
           </el-form-item>
           <el-form-item label="服务器类型">
-            <el-select
+            <ScSelect
               v-model="queryParams.serverType"
               placeholder="请选择服务器类型"
               clearable
               style="width: 200px"
             >
-              <el-option
+              <ScOption
                 v-for="type in serverTypes"
                 :key="getTypeValue(type)"
                 :label="getTypeLabel(type)"
                 :value="getTypeValue(type)"
               />
-            </el-select>
+            </ScSelect>
           </el-form-item>
           <el-form-item label="运行状态">
-            <el-select
+            <ScSelect
               v-model="queryParams.status"
               placeholder="请选择运行状态"
               clearable
               style="width: 200px"
             >
-              <el-option label="运行中" value="RUNNING" />
-              <el-option label="已停止" value="STOPPED" />
-              <el-option label="启动中" value="STARTING" />
-              <el-option label="停止中" value="STOPPING" />
-              <el-option label="异常" value="ERROR" />
-            </el-select>
+              <ScOption label="运行中" value="RUNNING" />
+              <ScOption label="已停止" value="STOPPED" />
+              <ScOption label="启动中" value="STARTING" />
+              <ScOption label="停止中" value="STOPPING" />
+              <ScOption label="异常" value="ERROR" />
+            </ScSelect>
           </el-form-item>
 
           <!-- 操作按钮组 -->
           <el-form-item class="action-buttons">
-            <el-button type="primary" @click="handleQuery">
+            <ScButton type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
               查询
-            </el-button>
-            <el-button @click="resetQuery">
+            </ScButton>
+            <ScButton @click="resetQuery">
               <IconifyIconOnline icon="ri:refresh-line" />
               重置
-            </el-button>
-            <el-button @click="refreshData">
+            </ScButton>
+            <ScButton @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" />
               刷新
-            </el-button>
-            <el-button type="primary" @click="showAddDialog = true">
+            </ScButton>
+            <ScButton type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ri:add-line" />
               新增服务器
-            </el-button>
+            </ScButton>
           </el-form-item>
         </el-form>
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 服务器列表 -->
     <div class="server-list">
@@ -109,8 +109,8 @@
       >
         <template #empty>
           <el-empty description="暂无服务器数据">
-            <el-button type="primary" @click="showAddDialog = true"
-              >新增服务器</el-button>
+            <ScButton type="primary" @click="showAddDialog = true"
+              >新增服务器</ScButton>
           </el-empty>
         </template>
 
@@ -202,7 +202,7 @@
 
               <!-- 操作按钮 -->
               <div class="card-actions">
-                <el-button
+                <ScButton
                   v-if="
                     server.systemServerStatus === 'STOPPED' ||
                     server.systemServerStatus === 'ERROR'
@@ -214,8 +214,8 @@
                 >
                   <IconifyIconOnline icon="ri:play-fill" />
                   启动
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-else-if="server.systemServerStatus === 'RUNNING'"
                   type="danger"
                   @click="stopServer(server.systemServerId)"
@@ -224,33 +224,33 @@
                 >
                   <IconifyIconOnline icon="ri:stop-fill" />
                   停止
-                </el-button>
-                <el-button v-else type="warning" disabled class="action-btn">
+                </ScButton>
+                <ScButton v-else type="warning" disabled class="action-btn">
                   {{ getStatusText(server.systemServerStatus) }}
-                </el-button>
+                </ScButton>
 
                 <div class="action-group">
                   <el-tooltip content="设置" placement="top">
-                    <el-button
+                    <ScButton
                       circle
                       @click="openServerConfig(server.systemServerId, server)"
                     >
                       <IconifyIconOnline icon="ri:settings-4-line" />
-                    </el-button>
+                    </ScButton>
                   </el-tooltip>
                   <el-tooltip content="日志" placement="top">
-                    <el-button
+                    <ScButton
                       circle
                       @click="openServerLog(server.systemServerId, server)"
                       :disabled="server.systemServerStatus !== 'RUNNING'"
                     >
                       <IconifyIconOnline icon="ri:file-list-3-line" />
-                    </el-button>
+                    </ScButton>
                   </el-tooltip>
                   <el-dropdown @command="handleServerAction" trigger="click">
-                    <el-button circle>
+                    <ScButton circle>
                       <IconifyIconOnline icon="ri:more-2-fill" />
-                    </el-button>
+                    </ScButton>
                     <template #dropdown>
                       <el-dropdown-menu>
                         <el-dropdown-item :command="{ type: 'edit', server }">

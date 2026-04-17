@@ -61,7 +61,7 @@
           </div>
         </ScFormItem>
 
-        <ScFormItem label="启用节日主题">
+        <ScFormItem v-if="festivalThemes.length > 0" label="启用节日主题">
           <ScSwitch
             v-model="themeConfig.EnableFestivalTheme"
             @change="handleFestivalToggle"
@@ -69,6 +69,9 @@
           <div class="form-item-tip">
             开启后，系统会在节日期间自动切换到对应的节日主题
           </div>
+        </ScFormItem>
+        <ScFormItem v-else label="节日主题">
+          <div class="form-item-tip">当前版本已裁撤节日登录主题入口。</div>
         </ScFormItem>
       </ScForm>
     </ScCard>
@@ -283,7 +286,6 @@ const getThemeIcon = (themeKey: string) => {
     random: "ri:shuffle-line",
     "new-year": "noto:party-popper",
     "spring-festival": "noto:firecracker",
-    "valentines-day": "noto:red-heart",
     "mid-autumn": "noto:full-moon",
     "national-day": "twemoji:flag-china",
     christmas: "noto:christmas-tree",
@@ -386,7 +388,8 @@ const handleFestivalToggle = (value: boolean) => {
 const loadConfig = () => {
   const stored = getThemeConfig();
   themeConfig.LoginTheme = stored.LoginTheme;
-  themeConfig.EnableFestivalTheme = stored.EnableFestivalTheme;
+  themeConfig.EnableFestivalTheme =
+    festivalThemes.length > 0 && stored.EnableFestivalTheme;
   themeConfig.DisabledThemes = getDisabledLoginThemes();
   ensureValidSelectedTheme();
   originalConfig.LoginTheme = themeConfig.LoginTheme;
@@ -401,7 +404,8 @@ const handleSave = () => {
     // 保存到本地存储
     saveThemeConfig({
       LoginTheme: themeConfig.LoginTheme,
-      EnableFestivalTheme: themeConfig.EnableFestivalTheme,
+      EnableFestivalTheme:
+        festivalThemes.length > 0 && themeConfig.EnableFestivalTheme,
       DisabledThemes: themeConfig.DisabledThemes,
     });
 
@@ -554,12 +558,6 @@ onMounted(() => {
   .preview-spring-festival {
     background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 50%, #ffa07a 100%);
     color: #ffd700;
-  }
-
-  // 情人节主题预览
-  .preview-valentines-day {
-    background: linear-gradient(135deg, #ff69b4 0%, #ff1493 50%, #c71585 100%);
-    color: #ffe4e1;
   }
 
   // 中秋主题预览

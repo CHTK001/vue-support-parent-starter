@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     width="1240px"
     destroy-on-close
     :title="dialogTitle"
     @update:model-value="emit('update:modelValue', $event)"
-  >
+   layout="simple">
     <div class="server-service-editor">
       <div class="server-service-editor__hero">
         <div>
@@ -47,7 +47,7 @@
         class="server-service-editor__templates"
       >
         <span class="server-service-editor__templates-label">快捷模板</span>
-        <el-button
+        <ScButton
           v-for="item in templateOptions"
           :key="item.key"
           plain
@@ -55,7 +55,7 @@
           @click="emit('apply-template', item.key)"
         >
           {{ item.label }}
-        </el-button>
+        </ScButton>
       </div>
 
       <el-tabs v-model="activeTab" class="server-service-editor__tabs">
@@ -300,7 +300,7 @@
                   {{ draft.latestAiProvider }}
                 </span>
                 <el-tooltip :content="publishTooltip">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     :disabled="!canPublishConfig"
@@ -308,10 +308,10 @@
                     @click="emit('publish-config', cloneDraft())"
                   >
                     <IconifyIconOnline icon="ri:upload-cloud-2-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip :content="aiGenerateTooltip">
-                  <el-button
+                  <ScButton
                     circle
                     plain
                     :disabled="!canGenerateAi"
@@ -319,7 +319,7 @@
                     @click="emit('generate-ai-draft', cloneDraft())"
                   >
                     <IconifyIconOnline icon="ri:ai-generate-2" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </header>
@@ -351,17 +351,17 @@
 
     <template #footer>
       <div class="server-service-editor__footer">
-        <el-button @click="emit('update:modelValue', false)">取消</el-button>
-        <el-button
+        <ScButton @click="emit('update:modelValue', false)">取消</ScButton>
+        <ScButton
           type="primary"
           :loading="saving"
           @click="emit('submit', cloneDraft())"
         >
           保存
-        </el-button>
+        </ScButton>
       </div>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">

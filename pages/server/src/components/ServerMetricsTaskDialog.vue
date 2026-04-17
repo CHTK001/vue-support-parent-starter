@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     destroy-on-close
     width="760px"
     title="指标采集任务"
     @update:model-value="emit('update:modelValue', $event)"
-  >
+   layout="simple">
     <div class="server-metrics-task-dialog">
       <header class="server-metrics-task-dialog__hero">
         <div>
@@ -148,17 +148,17 @@
 
     <template #footer>
       <div class="server-metrics-task-dialog__footer">
-        <el-button @click="emit('refresh-now')">
+        <ScButton @click="emit('refresh-now')">
           <IconifyIconOnline icon="ri:refresh-line" />
           <span>立即采集</span>
-        </el-button>
-        <el-button @click="emit('update:modelValue', false)">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submit">
+        </ScButton>
+        <ScButton @click="emit('update:modelValue', false)">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="submit">
           保存
-        </el-button>
+        </ScButton>
       </div>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">

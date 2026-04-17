@@ -12,7 +12,7 @@
     </template>
   </a-drawer>
 </template>
-<script lang="ts">
+<script setup lang="ts">
 import { drawerProps } from "ant-design-vue/es/drawer";
 import { initDefaultProps } from "ant-design-vue/es/_util/props-util";
 import { CustomSlotsType } from "ant-design-vue/es/_util/type";

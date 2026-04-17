@@ -241,18 +241,51 @@ function ascending(arr: any[]) {
  * - 普通 showLink=false 壳节点：直接提升 children
  * - 后端返回的分组目录（backstage + children）：保留层级，避免一级导航错乱
  */
-function filterTree(data: RouteComponent[] = []) {
+function resolveMenuPath(path: unknown, parentPath = "/"): string {
+  const rawPath = String(path || "").trim();
+  const normalizedParent =
+    parentPath && parentPath !== "/"
+      ? parentPath.replace(/\/+$/, "")
+      : "/";
+
+  if (!rawPath) {
+    return normalizedParent;
+  }
+
+  if (
+    /^(https?:)?\/\//i.test(rawPath) ||
+    rawPath.startsWith("mailto:") ||
+    rawPath.startsWith("tel:") ||
+    rawPath.startsWith("#")
+  ) {
+    return rawPath;
+  }
+
+  if (rawPath.startsWith("/")) {
+    return rawPath.replace(/\/+$/, "") || "/";
+  }
+
+  if (normalizedParent === "/") {
+    return `/${rawPath}`.replace(/\/+$/, "") || "/";
+  }
+
+  return `${normalizedParent}/${rawPath}`.replace(/\/+$/, "") || "/";
+}
+
+function filterTree(data: RouteComponent[] = [], parentPath = "/") {
   return cloneDeep(data).flatMap((item: any) => {
     if (!item) {
       return [];
     }
 
+    const currentPath = resolveMenuPath(item.path, parentPath);
     const nextItem = {
       ...item,
+      path: currentPath,
       meta: item.meta || {},
     };
     const filteredChildren = Array.isArray(nextItem.children)
-      ? filterTree(nextItem.children)
+      ? filterTree(nextItem.children, currentPath)
       : [];
 
     if (filteredChildren.length > 0) {

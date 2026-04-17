@@ -7,10 +7,10 @@
       </div>
       <div class="payment-surface__actions">
         <el-tooltip content="刷新">
-          <el-button circle :icon="RefreshRight" @click="refreshAll" />
+          <ScButton circle :icon="RefreshRight" @click="refreshAll" />
         </el-tooltip>
         <el-tooltip content="新增商户">
-          <el-button circle type="primary" :icon="Plus" @click="openMerchantDialog()" />
+          <ScButton circle type="primary" :icon="Plus" @click="openMerchantDialog()" />
         </el-tooltip>
       </div>
     </header>
@@ -37,14 +37,14 @@
       <div class="payment-toolbar__row">
         <div class="payment-toolbar__form">
           <el-input v-model="queryForm.merchantName" clearable placeholder="商户名称" style="width: 220px" @keyup.enter="handleSearch" />
-          <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <el-option label="待审核" :value="0" />
-            <el-option label="已激活" :value="1" />
-            <el-option label="已停用" :value="2" />
-            <el-option label="已注销" :value="3" />
-          </el-select>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+            <ScOption label="待审核" :value="0" />
+            <ScOption label="已激活" :value="1" />
+            <ScOption label="已停用" :value="2" />
+            <ScOption label="已注销" :value="3" />
+          </ScSelect>
+          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleReset">重置</ScButton>
         </div>
       </div>
     </section>
@@ -122,19 +122,19 @@
           <template #default="{ row }">
             <div class="payment-icon-actions">
               <el-tooltip content="编辑商户">
-                <el-button circle :icon="Edit" @click="openMerchantDialog(row)" />
+                <ScButton circle :icon="Edit" @click="openMerchantDialog(row)" />
               </el-tooltip>
               <el-tooltip content="支付方式">
-                <el-button circle :icon="CreditCard" @click="openChannelDrawer(row)" />
+                <ScButton circle :icon="CreditCard" @click="openChannelDrawer(row)" />
               </el-tooltip>
               <el-tooltip content="商户设置">
-                <el-button circle :icon="Setting" @click="openSettingDrawer(row)" />
+                <ScButton circle :icon="Setting" @click="openSettingDrawer(row)" />
               </el-tooltip>
               <el-tooltip :content="row.status === 1 ? '停用商户' : '激活商户'">
-                <el-button circle :type="row.status === 1 ? 'warning' : 'success'" :icon="row.status === 1 ? SwitchButton : CircleCheck" @click="toggleMerchantStatus(row)" />
+                <ScButton circle :type="row.status === 1 ? 'warning' : 'success'" :icon="row.status === 1 ? SwitchButton : CircleCheck" @click="toggleMerchantStatus(row)" />
               </el-tooltip>
               <el-tooltip content="删除商户">
-                <el-button circle type="danger" :icon="Delete" @click="removeMerchant(row)" />
+                <ScButton circle type="danger" :icon="Delete" @click="removeMerchant(row)" />
               </el-tooltip>
             </div>
           </template>
@@ -142,7 +142,7 @@
       </ScTable>
     </section>
 
-    <el-dialog v-model="merchantDialogVisible" :title="merchantForm.id ? '编辑商户' : '新增商户'" width="900px" destroy-on-close>
+    <ScDialog v-model="merchantDialogVisible" :title="merchantForm.id ? '编辑商户' : '新增商户'" width="900px" destroy-on-close layout="simple">
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -231,13 +231,13 @@
 
       <template #footer>
         <div class="payment-dialog-footer">
-          <el-button @click="merchantDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="merchantSaving" @click="submitMerchant">保存</el-button>
+          <ScButton @click="merchantDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="merchantSaving" @click="submitMerchant">保存</ScButton>
         </div>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="settingDrawerVisible" size="720px" :title="activeMerchant ? `${activeMerchant.merchantName} · 商户设置` : '商户设置'">
+    <ScDrawer v-model="settingDrawerVisible" size="720px" :title="activeMerchant ? `${activeMerchant.merchantName} · 商户设置` : '商户设置'" layout="simple">
       <template v-if="activeMerchant">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">
@@ -361,13 +361,13 @@
         </div>
 
         <div class="drawer-footer">
-          <el-button @click="settingDrawerVisible = false">取消</el-button>
-          <el-button type="primary" :loading="settingSaving" @click="saveMerchantSettings">保存设置</el-button>
+          <ScButton @click="settingDrawerVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="settingSaving" @click="saveMerchantSettings">保存设置</ScButton>
         </div>
       </template>
-    </el-drawer>
+    </ScDrawer>
 
-    <el-drawer v-model="channelDrawerVisible" size="920px" :title="activeMerchant ? `${activeMerchant.merchantName} · 支付方式` : '支付方式'">
+    <ScDrawer v-model="channelDrawerVisible" size="920px" :title="activeMerchant ? `${activeMerchant.merchantName} · 支付方式` : '支付方式'" layout="simple">
       <template v-if="activeMerchant">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">
@@ -397,7 +397,7 @@
               <div class="payment-card-actions">
                 <el-input v-model="channelKeyword" clearable placeholder="搜索支付方式名称 / 渠道类型" style="width: 220px" />
                 <el-tooltip content="新增支付方式">
-                  <el-button circle type="primary" :icon="Plus" @click="openChannelDialog()" />
+                  <ScButton circle type="primary" :icon="Plus" @click="openChannelDialog()" />
                 </el-tooltip>
               </div>
             </div>
@@ -491,10 +491,10 @@
                     </div>
                     <div class="payment-icon-actions">
                       <el-tooltip content="编辑支付方式">
-                        <el-button circle :icon="Edit" @click="openChannelDialog(row)" />
+                        <ScButton circle :icon="Edit" @click="openChannelDialog(row)" />
                       </el-tooltip>
                       <el-tooltip :content="isChannelEnabled(row) ? '禁用支付方式' : '启用支付方式'">
-                        <el-button
+                        <ScButton
                           circle
                           :type="isChannelEnabled(row) ? 'warning' : 'success'"
                           :icon="isChannelEnabled(row) ? SwitchButton : CircleCheck"
@@ -503,7 +503,7 @@
                         />
                       </el-tooltip>
                       <el-tooltip content="删除支付方式">
-                        <el-button circle type="danger" :icon="Delete" :disabled="isChannelDeleted(row)" @click="removeChannel(row)" />
+                        <ScButton circle type="danger" :icon="Delete" :disabled="isChannelDeleted(row)" @click="removeChannel(row)" />
                       </el-tooltip>
                     </div>
                   </footer>
@@ -513,9 +513,9 @@
           </section>
         </div>
       </template>
-    </el-drawer>
+    </ScDrawer>
 
-    <el-dialog v-model="channelDialogVisible" :title="channelForm.id ? '编辑支付方式' : '新增支付方式'" width="940px" destroy-on-close>
+    <ScDialog v-model="channelDialogVisible" :title="channelForm.id ? '编辑支付方式' : '新增支付方式'" width="940px" destroy-on-close layout="simple">
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -545,29 +545,29 @@
           <el-form label-width="112px">
             <div class="payment-form-grid">
               <el-form-item label="渠道类型" required>
-                <el-select v-model="channelForm.channelType" placeholder="请选择" @change="handleChannelTypeChange">
-                  <el-option v-for="item in catalogTypes" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+                <ScSelect v-model="channelForm.channelType" placeholder="请选择" @change="handleChannelTypeChange">
+                  <ScOption v-for="item in catalogTypes" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
               </el-form-item>
               <el-form-item label="子类型" required>
-                <el-select v-model="channelForm.channelSubType" placeholder="请选择">
-                  <el-option v-for="item in channelSubTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+                <ScSelect v-model="channelForm.channelSubType" placeholder="请选择">
+                  <ScOption v-for="item in channelSubTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </ScSelect>
               </el-form-item>
               <el-form-item label="显示名称" required>
                 <el-input v-model="channelForm.channelName" placeholder="例如：微信 JSAPI 正式" />
               </el-form-item>
               <el-form-item label="启用状态">
-                <el-select v-model="channelForm.status">
-                  <el-option label="禁用" :value="0" />
-                  <el-option label="启用" :value="1" />
-                </el-select>
+                <ScSelect v-model="channelForm.status">
+                  <ScOption label="禁用" :value="0" />
+                  <ScOption label="启用" :value="1" />
+                </ScSelect>
               </el-form-item>
               <el-form-item label="沙箱模式">
-                <el-select v-model="channelForm.sandboxMode">
-                  <el-option label="关闭" :value="0" />
-                  <el-option label="开启" :value="1" />
-                </el-select>
+                <ScSelect v-model="channelForm.sandboxMode">
+                  <ScOption label="关闭" :value="0" />
+                  <ScOption label="开启" :value="1" />
+                </ScSelect>
               </el-form-item>
               <el-form-item label="业务说明">
                 <div class="payment-soft-panel payment-subtle">前端只选择支付方式和业务场景；具体 SPI 由后端根据渠道类型和子类型自动匹配。</div>
@@ -746,15 +746,16 @@
 
       <template #footer>
         <div class="payment-dialog-footer">
-          <el-button @click="channelDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="channelSaving" @click="submitChannel">保存</el-button>
+          <ScButton @click="channelDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="channelSaving" @click="submitChannel">保存</ScButton>
         </div>
       </template>
-    </el-dialog>
+    </ScDialog>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CircleCheck, CreditCard, Delete, Edit, Plus, RefreshRight, Search, Setting, SwitchButton } from "@element-plus/icons-vue";

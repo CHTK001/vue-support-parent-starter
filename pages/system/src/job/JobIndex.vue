@@ -119,7 +119,7 @@
           </ScTableColumn>
           <ScTableColumn label="操作" width="280" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button-group size="small">
+              <ScButton-group size="small">
                 <ScButton
                   v-if="row.jobTriggerStatus === 0"
                   type="success"
@@ -148,7 +148,7 @@
                   <i class="ri-delete-bin-line"></i>
                   删除
                 </ScButton>
-              </el-button-group>
+              <el-button-group>
             </template>
           </ScTableColumn>
         </ScTable>

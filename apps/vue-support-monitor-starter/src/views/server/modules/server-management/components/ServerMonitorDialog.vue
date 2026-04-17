@@ -11,7 +11,7 @@
     <div class="monitor-container">
       <!-- 服务器基本信息 -->
       <div class="server-info-card">
-        <el-card>
+        <ScCard>
           <template #header>
             <div class="card-header">
               <span>服务器信息</span>
@@ -50,14 +50,14 @@
               {{ serverInfo.monitorSysGenServerDesc || '无' }}
             </el-descriptions-item>
           </el-descriptions>
-        </el-card>
+        </ScCard>
       </div>
 
       <!-- 实时指标 -->
       <div class="metrics-section">
         <el-row :gutter="16">
           <el-col :span="6">
-            <el-card class="metric-card">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon cpu">
                   <IconifyIconOnline icon="ri:cpu-line" />
@@ -74,11 +74,11 @@
                 :show-text="false"
                 :stroke-width="6"
               />
-            </el-card>
+            </ScCard>
           </el-col>
 
           <el-col :span="6">
-            <el-card class="metric-card">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon memory">
                   <IconifyIconOnline icon="ri:database-line" />
@@ -95,11 +95,11 @@
                 :show-text="false"
                 :stroke-width="6"
               />
-            </el-card>
+            </ScCard>
           </el-col>
 
           <el-col :span="6">
-            <el-card class="metric-card">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon disk">
                   <IconifyIconOnline icon="ri:hard-drive-line" />
@@ -116,11 +116,11 @@
                 :show-text="false"
                 :stroke-width="6"
               />
-            </el-card>
+            </ScCard>
           </el-col>
           
           <el-col :span="6">
-            <el-card class="metric-card">
+            <ScCard class="metric-card">
               <div class="metric-content">
                 <div class="metric-icon load">
                   <IconifyIconOnline icon="ri:speed-line" />
@@ -130,7 +130,7 @@
                   <div class="metric-label">负载平均值</div>
                 </div>
               </div>
-            </el-card>
+            </ScCard>
           </el-col>
         </el-row>
       </div>
@@ -179,24 +179,24 @@
 
       <!-- 操作按钮 -->
       <div class="actions-section">
-        <el-button
+        <ScButton
           type="primary"
           @click="handleCollectMetrics"
           :loading="collecting"
         >
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           手动收集
-        </el-button>
+        </ScButton>
         
-        <el-button @click="handleExportData">
+        <ScButton @click="handleExportData">
           <IconifyIconOnline icon="ri:download-line" class="mr-1" />
           导出数据
-        </el-button>
+        </ScButton>
         
-        <el-button @click="handleViewHistory">
+        <ScButton @click="handleViewHistory">
           <IconifyIconOnline icon="ri:history-line" class="mr-1" />
           历史记录
-        </el-button>
+        </ScButton>
         
         <el-switch
           v-model="autoRefresh"

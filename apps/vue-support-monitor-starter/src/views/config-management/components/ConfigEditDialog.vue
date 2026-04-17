@@ -42,7 +42,7 @@
       </el-form-item>
 
       <el-form-item label="环境" prop="monitorSysGenConfigEnv">
-        <el-select 
+        <ScSelect 
           v-model="form.monitorSysGenConfigEnv" 
           placeholder="选择环境"
           clearable
@@ -50,13 +50,13 @@
           allow-create
           style="width: 100%"
         >
-          <el-option 
+          <ScOption 
             v-for="env in envList" 
             :key="env" 
             :label="env" 
             :value="env" 
           />
-        </el-select>
+        </ScSelect>
       </el-form-item>
 
       <el-form-item label="应用" prop="monitorSysGenConfigApp">
@@ -83,11 +83,11 @@
 
     <template #footer>
       <div class="dlg-footer">
-        <el-button @click="visibleProxy = false">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <ScButton @click="visibleProxy = false">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSubmit">
           <IconifyIconOnline icon="ri:check-line" class="mr-1" v-if="!loading" />
           {{ loading ? '提交中...' : '确定' }}
-        </el-button>
+        </ScButton>
       </div>
     </template>
   </sc-dialog>

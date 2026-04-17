@@ -7,18 +7,18 @@
       <el-tab-pane label="通用设置" name="general">
         <el-form :model="generalSettings" label-width="150px">
           <el-form-item label="语言">
-            <el-select v-model="generalSettings.language">
-              <el-option label="简体中文" value="zh-CN" />
-              <el-option label="English" value="en-US" />
-            </el-select>
+            <ScSelect v-model="generalSettings.language">
+              <ScOption label="简体中文" value="zh-CN" />
+              <ScOption label="English" value="en-US" />
+            </ScSelect>
           </el-form-item>
 
           <el-form-item label="主题">
-            <el-select v-model="generalSettings.theme">
-              <el-option label="浅色" value="light" />
-              <el-option label="深色" value="dark" />
-              <el-option label="自动" value="auto" />
-            </el-select>
+            <ScSelect v-model="generalSettings.theme">
+              <ScOption label="浅色" value="light" />
+              <ScOption label="深色" value="dark" />
+              <ScOption label="自动" value="auto" />
+            </ScSelect>
           </el-form-item>
 
           <el-form-item label="每页显示邮件数">
@@ -54,21 +54,21 @@
       <el-tab-pane label="邮件设置" name="email">
         <el-form :model="emailSettings" label-width="150px">
           <el-form-item label="默认发件账户">
-            <el-select v-model="emailSettings.defaultAccount">
-              <el-option
+            <ScSelect v-model="emailSettings.defaultAccount">
+              <ScOption
                 v-for="account in accounts"
                 :key="account.id"
                 :label="account.displayName"
                 :value="account.id"
               />
-            </el-select>
+            </ScSelect>
           </el-form-item>
 
           <el-form-item label="发送后保存到">
-            <el-select v-model="emailSettings.sentFolder">
-              <el-option label="已发送" value="Sent" />
-              <el-option label="草稿箱" value="Drafts" />
-            </el-select>
+            <ScSelect v-model="emailSettings.sentFolder">
+              <ScOption label="已发送" value="Sent" />
+              <ScOption label="草稿箱" value="Drafts" />
+            </ScSelect>
           </el-form-item>
 
           <el-form-item label="自动保存草稿">
@@ -145,7 +145,7 @@
           </el-form-item>
 
           <el-form-item label="清除缓存">
-            <el-button @click="clearCache">清除所有缓存</el-button>
+            <ScButton @click="clearCache">清除所有缓存</ScButton>
           </el-form-item>
         </el-form>
       </el-tab-pane>
@@ -189,8 +189,8 @@
     </el-tabs>
 
     <div class="settings-footer">
-      <el-button @click="resetSettings">重置</el-button>
-      <el-button type="primary" @click="saveSettings">保存设置</el-button>
+      <ScButton @click="resetSettings">重置</ScButton>
+      <ScButton type="primary" @click="saveSettings">保存设置</ScButton>
     </div>
   </div>
 </template>

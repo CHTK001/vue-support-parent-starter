@@ -147,6 +147,18 @@ export function useNav() {
 
   function onPanel() {
     emitter.emit("openPanel");
+    if (
+      typeof window !== "undefined" &&
+      typeof window.requestAnimationFrame === "function"
+    ) {
+      window.requestAnimationFrame(() => {
+        emitter.emit("openPanel");
+      });
+      return;
+    }
+    setTimeout(() => {
+      emitter.emit("openPanel");
+    }, 16);
   }
 
   function toggleSideBar() {

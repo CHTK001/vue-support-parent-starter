@@ -241,7 +241,7 @@ const props = defineProps<{
         </ScTooltip>
 
         <ScTooltip
-          :content="'ScLayout 右侧快捷入口布局（无 lay-tag）'"
+          :content="'工作间导航（ScLayout 右侧快捷入口，无 lay-tag）'"
           placement="top"
           :append-to-body="true"
           :z-index="41000"
@@ -256,8 +256,8 @@ const props = defineProps<{
               <IconifyIconOnline icon="ri:layout-right-2-line" />
             </div>
             <div class="layout-mode-info">
-              <span class="layout-mode-name">Lay-XX</span>
-              <span class="layout-mode-desc">ScLayout 右侧快捷入口</span>
+              <span class="layout-mode-name">工作间</span>
+              <span class="layout-mode-desc">右侧快捷工作间导航</span>
             </div>
             <div v-if="layoutTheme.layout === 'lay-xx'" class="layout-mode-badge">
               <IconifyIconOnline icon="ri:check-line" />

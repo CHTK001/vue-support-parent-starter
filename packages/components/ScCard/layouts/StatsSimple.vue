@@ -272,6 +272,56 @@ $transition-base: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     @include theme-variant("info");
   }
 
+  html.dark &,
+  html[data-theme="dark"] & {
+    background: rgba(15, 23, 42, 0.84);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow:
+      0 12px 30px rgba(2, 6, 23, 0.28),
+      0 24px 48px rgba(2, 6, 23, 0.18);
+
+    .sc-card-stats-simple__bg {
+      background: linear-gradient(
+        145deg,
+        rgba(15, 23, 42, 0.96) 0%,
+        rgba(30, 41, 59, 0.86) 100%
+      );
+      opacity: 1;
+    }
+
+    .sc-card-stats-simple__value {
+      color: var(--el-text-color-primary);
+    }
+
+    .sc-card-stats-simple__label {
+      color: var(--el-text-color-secondary);
+      opacity: 1;
+    }
+
+    .sc-card-stats-simple__decorator {
+      opacity: 0.24;
+    }
+  }
+
+  html.dark &.theme--default,
+  html[data-theme="dark"] &.theme--default {
+    .sc-card-stats-simple__icon {
+      background: linear-gradient(
+        135deg,
+        var(--el-color-primary-light-5) 0%,
+        var(--el-color-primary) 100%
+      );
+    }
+
+    .sc-card-stats-simple__value {
+      color: var(--el-text-color-primary);
+    }
+
+    .sc-card-stats-simple__decorator {
+      color: var(--el-color-primary-light-3);
+    }
+  }
+
   // 响应式适配
   @media (max-width: 768px) {
     padding: 16px 20px;

@@ -69,6 +69,7 @@ export function useTheme() {
     layoutTheme,
     themeColors,
     dataThemeChange,
+    applyOverallStyleImmediately,
     setLayoutThemeColor,
     toggleClass,
   } = useDataThemeChange();
@@ -92,6 +93,7 @@ export function useTheme() {
     layoutTheme,
     themeColors,
     applyOverallStyle: dataThemeChange,
+    applyOverallStyleImmediately,
     setLayoutThemeColor,
     toggleClass,
     // 性能监控等扩展配置透出，避免各处单独依赖 themeStore

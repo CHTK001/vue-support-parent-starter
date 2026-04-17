@@ -19,6 +19,7 @@ import type {
   SoftPackage,
   SoftPackageCreateRequest,
   SoftPackageCreateResult,
+  SoftPackageVersionCreateRequest,
   SoftPackageDetail,
   SoftPackageVersionCopyInstallProfileRequest,
   SoftPackageVersion,
@@ -237,6 +238,16 @@ export const listSoftPackages = () =>
 export const createSoftPackage = (data: SoftPackageCreateRequest) =>
   softRequest<SoftPackageCreateResult>("post", packagesBase, { data });
 
+export const createSoftPackageVersion = (
+  packageId: number,
+  data: SoftPackageVersionCreateRequest,
+) =>
+  softRequest<SoftPackageCreateResult>(
+    "post",
+    `${packagesBase}/${packageId}/versions`,
+    { data },
+  );
+
 export const generateSoftPackageAiDraft = (data: SoftPackageAiDraftRequest) =>
   softRequest<SoftPackageAiDraftResponse>("post", `${packagesBase}/ai-draft`, {
     data,
@@ -427,6 +438,7 @@ export type {
   SoftPackageAiDraftResponse,
   SoftPackageCreateRequest,
   SoftPackageCreateResult,
+  SoftPackageVersionCreateRequest,
   SoftPackageDetail,
   SoftPackageVersionCopyInstallProfileRequest,
   SoftPackageVersionUpdateResult,

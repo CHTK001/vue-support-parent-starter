@@ -148,8 +148,7 @@ export function useSettings() {
     doubleNavExpandMode: $storage.configure?.doubleNavExpandMode ?? "auto",
     doubleNavAutoExpandAll: $storage.configure?.doubleNavAutoExpandAll ?? true,
     aiChatTheme: $storage.configure?.aiChatTheme ?? "default",
-    aiChatEnabled:
-      $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
+    aiChatEnabled: $storage.configure?.aiChatEnabled ?? false,
     aiChatPosition: $storage.configure?.aiChatPosition ?? "bottom-right",
     aiChatApiKey: $storage.configure?.aiChatApiKey ?? "",
     enableFestivalTheme:

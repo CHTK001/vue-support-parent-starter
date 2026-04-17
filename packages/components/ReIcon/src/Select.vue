@@ -237,14 +237,14 @@ watch(
               size="small"
               @current-change="onCurrentChange"
             />
-            <el-button
+            <ScButton
               class="justify-end mr-2 ml-2"
               type="danger"
               size="small"
               text
               bg
               @click="onClear"
-              >清空</el-button
+              >清空</ScButton
             >
           </div>
         </el-popover>

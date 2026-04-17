@@ -22,19 +22,19 @@
         </div>
         <div class="terminal-actions">
           <el-button-group>
-            <el-button size="small" @click="handleClear">
+            <ScButton size="small" @click="handleClear">
               <IconifyIconOnline icon="ri:delete-bin-line" class="mr-1" />
               清屏
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               @click="handleReconnect"
               :loading="connecting"
             >
               <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
               重连
-            </el-button>
-            <el-button size="small" @click="toggleFullscreen">
+            </ScButton>
+            <ScButton size="small" @click="toggleFullscreen">
               <IconifyIconOnline
                 :icon="
                   isFullscreen
@@ -44,8 +44,8 @@
                 class="mr-1"
               />
               {{ isFullscreen ? "退出全屏" : "全屏" }}
-            </el-button>
-          </el-button-group>
+            </ScButton>
+           </el-button-group>
         </div>
       </div>
     </template>
@@ -75,36 +75,36 @@
               >分辨率: {{ rdpConfig.width }}x{{ rdpConfig.height }}</span>
           </div>
           <div class="rdp-actions">
-            <el-button
+            <ScButton
               size="small"
               @click="handleClipboard('rdp')"
               :disabled="!isConnected"
             >
               <IconifyIconOnline icon="ep:document-copy" />
               剪贴板
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               @click="handleScreenshot('rdp')"
               :disabled="!isConnected"
             >
               <IconifyIconOnline icon="ep:camera" />
               截图
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               @click="handleScreenResize(1024, 768, 'rdp')"
               :disabled="!isConnected"
             >
               <IconifyIconOnline icon="ep:full-screen" />
               调整尺寸
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="danger"
               @click="handleDisconnect('rdp')"
               :disabled="!isConnected"
-              >断开连接</el-button>
+              >断开连接</ScButton>
           </div>
         </div>
       </div>
@@ -126,36 +126,36 @@
               >只读模式: {{ vncConfig.readOnly ? "是" : "否" }}</span>
           </div>
           <div class="vnc-actions">
-            <el-button
+            <ScButton
               size="small"
               @click="handleClipboard('vnc')"
               :disabled="!isConnected || vncConfig.readOnly"
             >
               <IconifyIconOnline icon="ep:document-copy" />
               剪贴板
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               @click="handleScreenshot('vnc')"
               :disabled="!isConnected"
             >
               <IconifyIconOnline icon="ep:camera" />
               截图
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               @click="handleScreenResize(1024, 768, 'vnc')"
               :disabled="!isConnected"
             >
               <IconifyIconOnline icon="ep:full-screen" />
               调整尺寸
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="danger"
               @click="handleDisconnect('vnc')"
               :disabled="!isConnected"
-              >断开连接</el-button>
+              >断开连接</ScButton>
           </div>
         </div>
       </div>
@@ -186,8 +186,8 @@
           <div class="connection-text">
             {{ connecting ? "正在连接..." : "连接已断开" }}
           </div>
-          <el-button v-if="!connecting" type="primary" @click="handleConnect"
-            >重新连接</el-button>
+          <ScButton v-if="!connecting" type="primary" @click="handleConnect"
+            >重新连接</ScButton>
         </div>
       </div>
     </div>
@@ -204,7 +204,7 @@
             }}</span>
         </div>
         <div class="footer-actions">
-          <el-button @click="visible = false">关闭</el-button>
+          <ScButton @click="visible = false">关闭</ScButton>
         </div>
       </div>
     </template>

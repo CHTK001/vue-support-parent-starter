@@ -23,25 +23,25 @@
             />
           </el-form-item>
           <el-form-item label="线程池类型">
-            <el-select v-model="config.poolType" style="width: 180px">
-              <el-option label="固定大小(Fixed)" value="FIXED">
+            <ScSelect v-model="config.poolType" style="width: 180px">
+              <ScOption label="固定大小(Fixed)" value="FIXED">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:group-line" /> 固定大小</span>
-              </el-option>
-              <el-option label="缓存型(Cached)" value="CACHED">
+              </ScOption>
+              <ScOption label="缓存型(Cached)" value="CACHED">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:stack-line" /> 缓存型</span>
-              </el-option>
-              <el-option label="动态(Dynamic)" value="DYNAMIC">
+              </ScOption>
+              <ScOption label="动态(Dynamic)" value="DYNAMIC">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:pulse-line" /> 动态调整</span>
-              </el-option>
-              <el-option label="工作窃取(WorkStealing)" value="WORK_STEALING">
+              </ScOption>
+              <ScOption label="工作窃取(WorkStealing)" value="WORK_STEALING">
                 <span class="option-item"
                   ><IconifyIconOnline icon="ri:git-branch-line" />
                   工作窃取</span>
-              </el-option>
-            </el-select>
+              </ScOption>
+            </ScSelect>
           </el-form-item>
         </div>
         <div class="pool-type-desc">
@@ -174,19 +174,19 @@
         </div>
         <div class="config-grid">
           <el-form-item label="分发策略">
-            <el-select v-model="config.dispatchStrategy" style="width: 180px">
-              <el-option label="轮询" value="ROUND_ROBIN" />
-              <el-option label="随机" value="RANDOM" />
-              <el-option label="最小负载" value="LEAST_LOAD" />
-            </el-select>
+            <ScSelect v-model="config.dispatchStrategy" style="width: 180px">
+              <ScOption label="轮询" value="ROUND_ROBIN" />
+              <ScOption label="随机" value="RANDOM" />
+              <ScOption label="最小负载" value="LEAST_LOAD" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="拒绝策略">
-            <el-select v-model="config.rejectionPolicy" style="width: 180px">
-              <el-option label="调用者执行" value="CALLER_RUNS" />
-              <el-option label="抛出异常" value="ABORT" />
-              <el-option label="直接丢弃" value="DISCARD" />
-              <el-option label="丢弃最旧" value="DISCARD_OLDEST" />
-            </el-select>
+            <ScSelect v-model="config.rejectionPolicy" style="width: 180px">
+              <ScOption label="调用者执行" value="CALLER_RUNS" />
+              <ScOption label="抛出异常" value="ABORT" />
+              <ScOption label="直接丢弃" value="DISCARD" />
+              <ScOption label="丢弃最旧" value="DISCARD_OLDEST" />
+            </ScSelect>
           </el-form-item>
         </div>
       </div>
@@ -229,9 +229,9 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
-          >保存配置（热重载）</el-button>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
+          >保存配置（热重载）</ScButton>
       </div>
     </template>
   </sc-dialog>

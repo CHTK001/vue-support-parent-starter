@@ -225,7 +225,7 @@
                 </div>
               </div>
               <div class="card-actions">
-                <el-button-group size="small">
+                <ScButton-group size="small">
                   <ScButton
                     title="API文档"
                     @click.stop="openNodeDocumentation(row)"

@@ -48,6 +48,7 @@ const {
   layoutTheme,
   themeColors,
   applyOverallStyle,
+  applyOverallStyleImmediately,
   setLayoutThemeColor,
   toggleClass,
   // 性能监控相关
@@ -135,7 +136,7 @@ const themeDisplayLabels: Record<string, string> = {
 const layoutDisplayLabels: Record<string, string> = {
   vertical: "纵向导航",
   horizontal: "顶部导航",
-  "lay-xx": "Lay-XX 布局",
+  "lay-xx": "工作间",
   mix: "混合布局",
   hover: "悬浮导航",
   mobile: "移动布局",
@@ -326,8 +327,7 @@ const settings = reactive({
     $storage.configure?.messageDropdownPosition ?? "top-right",
   // AI 助手设置
   aiChatTheme: $storage.configure.aiChatTheme ?? "default",
-  aiChatEnabled:
-    $storage.configure?.aiChatEnabled ?? getConfig().ShowAiChat ?? false,
+  aiChatEnabled: $storage.configure?.aiChatEnabled ?? false,
   aiChatPosition: $storage.configure?.aiChatPosition ?? "bottom-right",
   aiChatSkin: $storage.configure?.aiChatSkin ?? "robot",
   aiChatApiKey: decryptSensitive($storage.configure?.aiChatApiKey ?? ""),
@@ -590,18 +590,35 @@ const monochromeChange = (value: boolean): void => {
   storageConfigureChange("monochrome", value);
 };
 
+const runInThemeSwitchFrame = async (
+  fn: () => void,
+  clearDelay = 140,
+): Promise<void> => {
+  const htmlEl = document.documentElement;
+  htmlEl.classList.add("theme-switching");
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      fn();
+      resolve();
+    });
+  });
+  window.setTimeout(() => {
+    htmlEl.classList.remove("theme-switching");
+  }, clearDelay);
+};
+
 /**
  * 切换系统主题皮肤
  * @param themeKey 主题键值
  * @param showMessage 是否显示消息，默认为true
  */
-const switchSystemTheme = (
+const switchSystemTheme = async (
   themeKey: string,
   showMessage: boolean = true,
-): void => {
+): Promise<void> => {
   const currentTheme = $storage.configure?.systemTheme || "default";
   if (currentTheme === themeKey) {
-    return;
+    return Promise.resolve();
   }
 
   const previousThemeMeta = getLayoutTheme(currentTheme as any);
@@ -616,23 +633,32 @@ const switchSystemTheme = (
       storageConfigure[THEME_STYLE_MEMORY_KEY] ||
       getConfig().OverallStyle ||
       "light";
-    dataTheme.value = restoredStyle === "dark";
-    overallStyle.value = restoredStyle;
-    applyOverallStyle(restoredStyle);
+    await runInThemeSwitchFrame(() => {
+      dataTheme.value = restoredStyle === "dark";
+      overallStyle.value = restoredStyle;
+      applyOverallStyleImmediately(restoredStyle);
+    }, 120);
     delete storageConfigure[THEME_STYLE_MEMORY_KEY];
   }
 
-  themeStore.setTheme(themeKey as any);
-
-  if (targetTheme?.baseStyle) {
-    if (!previousThemeMeta?.baseStyle) {
-      storageConfigure[THEME_STYLE_MEMORY_KEY] =
-        overallStyle.value || getConfig().OverallStyle || "light";
+  await runInThemeSwitchFrame(() => {
+    if (targetTheme?.baseStyle) {
+      if (!previousThemeMeta?.baseStyle) {
+        storageConfigure[THEME_STYLE_MEMORY_KEY] =
+          overallStyle.value || getConfig().OverallStyle || "light";
+      }
+      dataTheme.value = targetTheme.baseStyle === "dark";
+      overallStyle.value = targetTheme.baseStyle;
     }
-    dataTheme.value = targetTheme.baseStyle === "dark";
-    overallStyle.value = targetTheme.baseStyle;
-    applyOverallStyle(targetTheme.baseStyle);
-  }
+
+    themeStore.setTheme(themeKey as any);
+
+    if (targetTheme?.baseStyle) {
+      applyOverallStyleImmediately(targetTheme.baseStyle);
+    } else {
+      applyOverallStyleImmediately(overallStyle.value);
+    }
+  });
 
   storageConfigure.systemTheme = themeKey;
   $storage.configure = storageConfigure;
@@ -2023,7 +2049,7 @@ const settingSectionProps = computed<
   },
   ai: {
     settings,
-    showAiChat: getConfig().ShowAiChat !== false,
+    showAiChat: true,
     aiChatEnabledChange,
     aiChatApiKeyChange,
     aiChatApiUrlChange,
@@ -2172,7 +2198,9 @@ const displayedSettingSections = computed(() => {
   );
 });
 
-const renderAllMatchingSections = computed(() => !!sectionSearch.value.trim());
+// 默认展示全部分区，避免仅展示当前分区导致“看起来缺项”。
+// 搜索时仍按关键词过滤 displayedSettingSections。
+const renderAllMatchingSections = computed(() => true);
 
 const renderedSettingSections = computed(() => {
   if (renderAllMatchingSections.value) {
@@ -2395,22 +2423,22 @@ onUnmounted(() => {
       </template>
       <template #footer>
         <div style="display: flex; gap: 8px; flex-wrap: wrap">
-          <el-button plain @click="clearLocalCache">
+          <ScButton plain @click="clearLocalCache">
             <IconifyIconOnline icon="ri:delete-bin-line" />
             清空缓存 · {{ cacheSizeLabel }}
-          </el-button>
-          <el-button plain @click="importConfig">
+          </ScButton>
+          <ScButton plain @click="importConfig">
             <IconifyIconOnline icon="ri:upload-2-line" />
             导入配置
-          </el-button>
-          <el-button plain @click="exportConfig">
+          </ScButton>
+          <ScButton plain @click="exportConfig">
             <IconifyIconOnline icon="ri:download-2-line" />
             导出配置
-          </el-button>
-          <el-button type="danger" plain @click="resetConfig">
+          </ScButton>
+          <ScButton type="danger" plain @click="resetConfig">
             <IconifyIconOnline icon="ri:refresh-line" />
             重置配置
-          </el-button>
+          </ScButton>
         </div>
       </template>
     </LayPanel>

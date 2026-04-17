@@ -17,14 +17,14 @@
         </div>
       </div>
       <div class="monitor-actions">
-        <el-button size="small" @click="refreshMetrics">
+        <ScButton size="small" @click="refreshMetrics">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
-        <el-button size="small" @click="$emit('close')">
+        </ScButton>
+        <ScButton size="small" @click="$emit('close')">
           <IconifyIconOnline icon="ri:close-line" class="mr-1" />
           关闭
-        </el-button>
+        </ScButton>
       </div>
     </div>
 

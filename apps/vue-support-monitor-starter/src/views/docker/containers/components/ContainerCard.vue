@@ -111,7 +111,7 @@
     <!-- 卡片底部操作栏 -->
     <template #footer>
       <div class="card-footer">
-        <el-button-group class="action-group">
+        <ScButton-group class="action-group">
           <ScButton
             size="small"
             type="success"
@@ -135,7 +135,7 @@
           >
             <IconifyIconOnline icon="ri:restart-line" />
           </ScButton>
-        </el-button-group>
+        <el-button-group>
 
         <ScDropdown trigger="click" @command="handleCommand">
           <ScButton size="small">

@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     :model-value="modelValue"
     width="980px"
     destroy-on-close
     :title="editingId ? '编辑服务器' : '新增服务器'"
     @update:model-value="emit('update:modelValue', $event)"
-  >
+   layout="simple">
     <div class="server-form-dialog">
       <div class="server-form-dialog__hero">
         <div
@@ -148,14 +148,14 @@
         </div>
 
         <div class="server-form-dialog__advanced-trigger">
-          <el-button text @click="advancedVisible = !advancedVisible">
+          <ScButton text @click="advancedVisible = !advancedVisible">
             <IconifyIconOnline
               :icon="
                 advancedVisible ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'
               "
             />
             <span>{{ advancedVisible ? "收起高级选项" : "展开高级选项" }}</span>
-          </el-button>
+          </ScButton>
         </div>
 
         <el-collapse-transition>
@@ -224,12 +224,12 @@
     </div>
 
     <template #footer>
-      <el-button @click="emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="emit('submit')">
+      <ScButton @click="emit('update:modelValue', false)">取消</ScButton>
+      <ScButton type="primary" :loading="saving" @click="emit('submit')">
         保存
-      </el-button>
+      </ScButton>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">

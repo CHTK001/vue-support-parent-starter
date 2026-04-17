@@ -1,11 +1,11 @@
 <template>
-  <el-dialog
+  <ScDialog
     v-model="dialogVisible"
     destroy-on-close
     width="920px"
     class="server-host-overview-dialog"
     :title="host ? `${host.serverName} · 服务器详情` : '服务器详情'"
-  >
+   layout="simple">
     <template v-if="host">
       <section class="server-host-overview-dialog__hero">
         <div>
@@ -144,7 +144,7 @@
                 class="server-host-overview-dialog__status-actions"
               >
                 <el-tooltip content="打开系统设置并配置 AI Provider">
-                  <el-button
+                  <ScButton
                     circle
                     size="small"
                     type="primary"
@@ -152,7 +152,7 @@
                     @click="openAiSettings"
                   >
                     <IconifyIconOnline icon="ri:settings-4-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </div>
@@ -190,7 +190,7 @@
         </article>
       </section>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <script setup lang="ts">
@@ -274,17 +274,33 @@ const openAiSettings = () => {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
-  padding: 20px 22px;
+  padding: 22px 24px;
   min-height: 112px;
   border-radius: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.2);
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+    radial-gradient(ellipse 80% 60% at 95% 5%, rgba(14, 165, 233, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, rgba(245, 158, 11, 0.08), transparent 50%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 26%),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96));
   box-shadow:
-    0 20px 36px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 24px 48px rgba(15, 23, 42, 0.08),
+    0 8px 16px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-host-overview-dialog__hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #14b8a6, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+  border-radius: 28px 28px 0 0;
 }
 
 .server-host-overview-dialog__hero h3 {

@@ -18,14 +18,14 @@
       </article>
     </div>
 
-    <el-card class="panel">
+    <ScCard class="panel">
       <template #header>
         <div class="panel__header">
           <div>
             <p class="panel__eyebrow">Merchant Ops</p>
             <h3>商户与支付方式</h3>
           </div>
-          <el-button type="primary" @click="openMerchantDialog()">新增商户</el-button>
+          <ScButton type="primary" @click="openMerchantDialog()">新增商户</ScButton>
         </div>
       </template>
 
@@ -34,13 +34,13 @@
           <el-input v-model="searchForm.merchantName" placeholder="请输入商户名称" clearable />
         </el-form-item>
         <el-form-item label="商户状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 180px">
-            <el-option v-for="(label, value) in MerchantStatusMap" :key="value" :label="label" :value="Number(value)" />
-          </el-select>
+          <ScSelect v-model="searchForm.status" placeholder="全部状态" clearable style="width: 180px">
+            <ScOption v-for="(label, value) in MerchantStatusMap" :key="value" :label="label" :value="Number(value)" />
+          </ScSelect>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
+          <ScButton type="primary" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleResetSearch">重置</ScButton>
         </el-form-item>
       </el-form>
 
@@ -73,13 +73,13 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="520" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openMerchantDialog(row)">编辑</el-button>
-            <el-button link type="primary" @click="openChannelDrawer(row)">支付方式</el-button>
-            <el-button link type="primary" @click="openPaymentConfigDialog(row)">支付规则</el-button>
-            <el-button link type="primary" @click="openWalletLimitDialog(row)">钱包限额</el-button>
-            <el-button v-if="row.status !== 1" link type="success" @click="handleActivate(row)">激活</el-button>
-            <el-button v-else link type="warning" @click="handleDeactivate(row)">停用</el-button>
-            <el-button link type="danger" @click="handleDeleteMerchant(row)">删除</el-button>
+            <ScButton link type="primary" @click="openMerchantDialog(row)">编辑</ScButton>
+            <ScButton link type="primary" @click="openChannelDrawer(row)">支付方式</ScButton>
+            <ScButton link type="primary" @click="openPaymentConfigDialog(row)">支付规则</ScButton>
+            <ScButton link type="primary" @click="openWalletLimitDialog(row)">钱包限额</ScButton>
+            <ScButton v-if="row.status !== 1" link type="success" @click="handleActivate(row)">激活</ScButton>
+            <ScButton v-else link type="warning" @click="handleDeactivate(row)">停用</ScButton>
+            <ScButton link type="danger" @click="handleDeleteMerchant(row)">删除</ScButton>
           </template>
         </el-table-column>
       </el-table>
@@ -94,9 +94,9 @@
         @current-change="loadMerchants"
         @size-change="loadMerchants"
       />
-    </el-card>
+    </ScCard>
 
-    <el-dialog v-model="merchantDialogVisible" :title="editingMerchant ? '编辑商户' : '新增商户'" width="760px">
+    <ScDialog v-model="merchantDialogVisible" :title="editingMerchant ? '编辑商户' : '新增商户'" width="760px" layout="simple">
       <el-form ref="merchantFormRef" :model="merchantForm" label-width="110px">
         <div class="form-grid">
           <el-form-item label="商户名称" required>
@@ -141,19 +141,19 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="merchantDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submittingMerchant" @click="submitMerchant">保存</el-button>
+        <ScButton @click="merchantDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submittingMerchant" @click="submitMerchant">保存</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="channelDrawerVisible" size="68%" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付方式` : '支付方式配置'">
+    <ScDrawer v-model="channelDrawerVisible" size="68%" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付方式` : '支付方式配置'" layout="simple">
       <template #header>
         <div class="drawer-header" v-if="selectedMerchant">
           <div>
             <p class="panel__eyebrow">Channel Setup</p>
             <h3>{{ selectedMerchant.merchantName }}</h3>
           </div>
-          <el-button type="primary" @click="openChannelDialog()">新增支付方式</el-button>
+          <ScButton type="primary" @click="openChannelDialog()">新增支付方式</ScButton>
         </div>
       </template>
 
@@ -209,17 +209,17 @@
         </el-table-column>
         <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openChannelDialog(row)">编辑</el-button>
-            <el-button link type="primary" @click="openGuideDrawerByChannel(row)">开通指引</el-button>
-            <el-button v-if="row.status !== 1 && isExecutableChannel(row.channelType, row.channelSubType)" link type="success" @click="handleEnableChannel(row)">启用</el-button>
-            <el-button v-if="row.status === 1" link type="warning" @click="handleDisableChannel(row)">禁用</el-button>
-            <el-button v-if="row.status !== 1" link type="danger" @click="handleDeleteChannel(row)">删除</el-button>
+            <ScButton link type="primary" @click="openChannelDialog(row)">编辑</ScButton>
+            <ScButton link type="primary" @click="openGuideDrawerByChannel(row)">开通指引</ScButton>
+            <ScButton v-if="row.status !== 1 && isExecutableChannel(row.channelType, row.channelSubType)" link type="success" @click="handleEnableChannel(row)">启用</ScButton>
+            <ScButton v-if="row.status === 1" link type="warning" @click="handleDisableChannel(row)">禁用</ScButton>
+            <ScButton v-if="row.status !== 1" link type="danger" @click="handleDeleteChannel(row)">删除</ScButton>
           </template>
         </el-table-column>
       </el-table>
-    </el-drawer>
+    </ScDrawer>
 
-    <el-dialog v-model="channelDialogVisible" :title="editingChannel ? '编辑支付方式' : '新增支付方式'" width="820px">
+    <ScDialog v-model="channelDialogVisible" :title="editingChannel ? '编辑支付方式' : '新增支付方式'" width="820px" layout="simple">
       <el-form :model="channelForm" label-width="120px">
         <div class="form-grid">
           <el-form-item class="span-2">
@@ -234,25 +234,25 @@
             <template #label>
               <FieldGuideLabel label="渠道类型" @open="openFieldGuide('channelType')" />
             </template>
-            <el-select v-model="channelForm.channelType" @change="handleChannelTypeChange">
-              <el-option label="微信支付" value="WECHAT" />
-              <el-option label="支付宝" value="ALIPAY" />
-              <el-option label="易支持" value="COMPOSITE" />
-              <el-option label="钱包" value="WALLET" />
-            </el-select>
+            <ScSelect v-model="channelForm.channelType" @change="handleChannelTypeChange">
+              <ScOption label="微信支付" value="WECHAT" />
+              <ScOption label="支付宝" value="ALIPAY" />
+              <ScOption label="易支持" value="COMPOSITE" />
+              <ScOption label="钱包" value="WALLET" />
+            </ScSelect>
           </el-form-item>
           <el-form-item required>
             <template #label>
               <FieldGuideLabel label="渠道子类型" @open="openFieldGuide('channelSubType')" />
             </template>
-            <el-select v-model="channelForm.channelSubType">
-              <el-option
+            <ScSelect v-model="channelForm.channelSubType">
+              <ScOption
                 v-for="item in availableSubTypes"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
               />
-            </el-select>
+            </ScSelect>
           </el-form-item>
           <el-form-item class="span-2">
             <el-alert
@@ -266,14 +266,14 @@
             <template #label>
               <FieldGuideLabel label="Provider SPI" @open="openFieldGuide('providerSpi')" />
             </template>
-            <el-select v-model="channelForm.providerSpi" clearable placeholder="默认使用后端全局配置">
-              <el-option
+            <ScSelect v-model="channelForm.providerSpi" clearable placeholder="默认使用后端全局配置">
+              <ScOption
                 v-for="item in providerOptions"
                 :key="item.extensionName"
                 :label="item.description ? `${item.extensionName} - ${item.description}` : item.extensionName"
                 :value="item.extensionName"
               />
-            </el-select>
+            </ScSelect>
           </el-form-item>
           <el-form-item>
             <template #label>
@@ -285,10 +285,10 @@
             <template #label>
               <FieldGuideLabel label="渠道状态" @open="openFieldGuide('status')" />
             </template>
-            <el-select v-model="channelForm.status">
-              <el-option label="禁用" :value="0" />
-              <el-option label="启用" :value="1" />
-            </el-select>
+            <ScSelect v-model="channelForm.status">
+              <ScOption label="禁用" :value="0" />
+              <ScOption label="启用" :value="1" />
+            </ScSelect>
           </el-form-item>
           <el-form-item v-if="usesThirdPartyCredentials">
             <template #label>
@@ -348,11 +348,11 @@
             <template #label>
               <FieldGuideLabel label="开通状态" @open="openFieldGuide('onboardingStatus')" />
             </template>
-            <el-select v-model="channelForm.onboardingStatus">
-              <el-option label="未开始" value="NOT_STARTED" />
-              <el-option label="开通中" value="IN_PROGRESS" />
-              <el-option label="已开通" value="COMPLETED" />
-            </el-select>
+            <ScSelect v-model="channelForm.onboardingStatus">
+              <ScOption label="未开始" value="NOT_STARTED" />
+              <ScOption label="开通中" value="IN_PROGRESS" />
+              <ScOption label="已开通" value="COMPLETED" />
+            </ScSelect>
           </el-form-item>
           <el-form-item class="span-2">
             <template #label>
@@ -369,15 +369,15 @@
         </div>
       </el-form>
       <div class="guide-actions">
-        <el-button text type="primary" @click="openGuideDrawerByForm">查看当前支付方式开通指引</el-button>
+        <ScButton text type="primary" @click="openGuideDrawerByForm">查看当前支付方式开通指引</ScButton>
       </div>
       <template #footer>
-        <el-button @click="channelDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submittingChannel" @click="submitChannel">保存</el-button>
+        <ScButton @click="channelDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submittingChannel" @click="submitChannel">保存</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-dialog v-model="paymentConfigDialogVisible" width="720px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付规则` : '支付规则'">
+    <ScDialog v-model="paymentConfigDialogVisible" width="720px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 支付规则` : '支付规则'" layout="simple">
       <el-form :model="paymentConfigForm" label-width="130px">
         <div class="form-grid">
           <el-form-item label="允许重复支付">
@@ -395,12 +395,12 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="paymentConfigDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingPaymentConfig" @click="submitPaymentConfig">保存</el-button>
+        <ScButton @click="paymentConfigDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="savingPaymentConfig" @click="submitPaymentConfig">保存</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-dialog v-model="fieldGuideDialogVisible" width="860px" destroy-on-close>
+    <ScDialog v-model="fieldGuideDialogVisible" width="860px" destroy-on-close layout="simple">
       <template #header>
         <div class="field-guide-dialog__header" v-if="currentFieldGuide">
           <div>
@@ -445,7 +445,7 @@
               <div class="field-guide-media-card__body">
                 <strong>{{ item.title }}</strong>
                 <p>{{ item.caption }}</p>
-                <el-button v-if="item.url" text type="primary" @click="openLink(item.url)">打开来源页面</el-button>
+                <ScButton v-if="item.url" text type="primary" @click="openLink(item.url)">打开来源页面</ScButton>
               </div>
             </article>
           </div>
@@ -454,18 +454,18 @@
         <div v-if="currentFieldGuide.links.length" class="field-guide-section">
           <p class="field-guide-section__label">相关入口</p>
           <div class="guide-links">
-            <el-button v-for="item in currentFieldGuide.links" :key="item.url" @click="openLink(item.url)">
+            <ScButton v-for="item in currentFieldGuide.links" :key="item.url" @click="openLink(item.url)">
               {{ item.label }}
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </template>
       <template #footer>
-        <el-button @click="fieldGuideDialogVisible = false">关闭</el-button>
+        <ScButton @click="fieldGuideDialogVisible = false">关闭</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-dialog v-model="walletLimitDialogVisible" width="840px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 钱包限额` : '钱包限额'">
+    <ScDialog v-model="walletLimitDialogVisible" width="840px" :title="selectedMerchant ? `${selectedMerchant.merchantName} - 钱包限额` : '钱包限额'" layout="simple">
       <el-form :model="walletLimitForm" label-width="130px">
         <div class="form-grid">
           <el-form-item label="单笔充值限额">
@@ -492,12 +492,12 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="walletLimitDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingWalletLimit" @click="submitWalletLimit">保存</el-button>
+        <ScButton @click="walletLimitDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="savingWalletLimit" @click="submitWalletLimit">保存</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'">
+    <ScDrawer v-model="guideDrawerVisible" size="560px" :title="currentGuide?.title || '开通指引'" layout="simple">
       <template v-if="currentGuide">
         <div class="guide-meta">
           <el-tag type="primary" effect="dark">{{ currentGuide.officialName || "官方平台" }}</el-tag>
@@ -529,16 +529,17 @@
           </ul>
         </div>
         <div class="guide-links">
-          <el-button v-if="currentGuide.officialUrl" type="primary" @click="openLink(currentGuide.officialUrl)">官方入口</el-button>
-          <el-button v-if="currentGuide.applyUrl" @click="openLink(currentGuide.applyUrl)">开通地址</el-button>
-          <el-button v-if="currentGuide.sandboxUrl" @click="openLink(currentGuide.sandboxUrl)">沙箱/辅助资料</el-button>
+          <ScButton v-if="currentGuide.officialUrl" type="primary" @click="openLink(currentGuide.officialUrl)">官方入口</ScButton>
+          <ScButton v-if="currentGuide.applyUrl" @click="openLink(currentGuide.applyUrl)">开通地址</ScButton>
+          <ScButton v-if="currentGuide.sandboxUrl" @click="openLink(currentGuide.sandboxUrl)">沙箱/辅助资料</ScButton>
         </div>
       </template>
-    </el-drawer>
+    </ScDrawer>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";

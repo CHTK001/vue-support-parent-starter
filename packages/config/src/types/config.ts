@@ -327,6 +327,12 @@ export interface PlatformConfigs {
   AiPerformanceDefaultTargetUrl?: string;
 
   // ===========================================
+  // 业务入口配置
+  // ===========================================
+  /** 业务入口配置 */
+  BusinessEntry?: BusinessEntryConfig;
+
+  // ===========================================
   // 页面行为配置
   // ===========================================
   /** 页面行为配置 */
@@ -467,6 +473,16 @@ export interface PerformanceConfig {
   prefetchRoutes?: boolean;
   /** 是否启用 */
   enable?: boolean;
+}
+
+/**
+ * 业务入口配置
+ */
+export interface BusinessEntryConfig {
+  /** 是否显示帮助与反馈入口 */
+  helpFeedback?: boolean;
+  /** 反馈上报业务路由 */
+  feedbackReportRoute?: string;
 }
 
 export type Effect = "light" | "dark";

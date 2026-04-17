@@ -170,6 +170,70 @@ export default defineComponent({
     }
   }
 
+  html.dark &.theme--default,
+  html[data-theme="dark"] &.theme--default {
+    background: linear-gradient(
+      145deg,
+      rgba(15, 23, 42, 0.94),
+      rgba(30, 41, 59, 0.9)
+    );
+    border-color: rgba(148, 163, 184, 0.26);
+    box-shadow:
+      0 12px 28px rgba(2, 6, 23, 0.28),
+      0 24px 48px rgba(2, 6, 23, 0.18),
+      inset 0 1px 0 rgba(148, 163, 184, 0.08);
+
+    .sc-card-stats__icon {
+      background: rgba(30, 41, 59, 0.88);
+      color: var(--el-color-primary-light-3);
+      border-color: rgba(148, 163, 184, 0.24);
+      box-shadow: 0 10px 24px rgba(2, 6, 23, 0.28);
+    }
+
+    .sc-card-stats__value {
+      color: var(--el-text-color-primary);
+    }
+
+    .sc-card-stats__label {
+      color: var(--el-text-color-secondary);
+    }
+
+    .sc-card-stats__pattern {
+      background: radial-gradient(
+        circle,
+        rgba(96, 165, 250, 0.18) 0%,
+        transparent 64%
+      );
+    }
+
+    .sc-card-stats__glow {
+      background: radial-gradient(
+        circle,
+        rgba(59, 130, 246, 0.14) 0%,
+        transparent 72%
+      );
+      opacity: 0.42;
+    }
+
+    .sc-card-stats__inner-border {
+      border-color: rgba(148, 163, 184, 0.16);
+    }
+  }
+
+  html.dark &.theme--default.is-hoverable:hover,
+  html[data-theme="dark"] &.theme--default.is-hoverable:hover {
+    border-color: rgba(96, 165, 250, 0.42);
+    box-shadow:
+      0 16px 36px rgba(2, 6, 23, 0.34),
+      0 28px 56px rgba(2, 6, 23, 0.24),
+      inset 0 1px 0 rgba(148, 163, 184, 0.12);
+
+    .sc-card-stats__icon {
+      border-color: rgba(96, 165, 250, 0.38);
+      box-shadow: 0 14px 28px rgba(2, 6, 23, 0.34);
+    }
+  }
+
   // 彩色主题 - 完全基于Element Plus变量构建
   @mixin theme-variant($type) {
     // 渐变背景：使用Element Plus官方色值变量

@@ -183,8 +183,6 @@
 </template>
 
 <script setup>
-import { import ScInput from @repo/components; } from "@repo/components/import ScInput from @repo/components;";
-
 import { ref, computed, onMounted } from "vue";
 import { message } from "@repo/utils";
 import { ScInput } from "@repo/components/ScInput"

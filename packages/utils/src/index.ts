@@ -52,3 +52,6 @@ export type {
 export * from "./session";
 export * from "./time/clock";
 export * from "./face";
+
+// 导出加密工具
+export { rsaEncrypt } from './crypto';

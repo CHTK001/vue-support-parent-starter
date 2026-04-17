@@ -130,7 +130,7 @@
                       </template>
                     </div>
                     <div class="more" @click.stop>
-                      <el-button-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
+                      <ScButton-group v-if="row?.sysProjectFunction" class="ml-[1px] z-[100]">
                         <ScButton v-if="row?.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
                         <ScDropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleDropdownCommand">
                           <ScButton :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
@@ -158,7 +158,7 @@
                             </ScDropdownMenu>
                           </template>
                         </ScDropdown>
-                      </el-button-group>
+                      <el-button-group>
                     </div>
                   </div>
                 </template>
@@ -173,7 +173,7 @@
   </div>
 </template>
 
-<script setup>
+>
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";

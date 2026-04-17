@@ -95,11 +95,16 @@
               </ScFormItem>
 
               <ScFormItem label="项目分组" prop="sysProjectGroup" class="form-item">
-                <ScInput v-model="formData.sysProjectGroup" placeholder="请输入项目分组" clearable maxlength="30" show-word-limit class="form-input">
-                  <template #prefix>
-                    <ScIcon><component :is="useRenderIcon('ri:folder-line')" /></ScIcon>
-                  </template>
-                </ScInput>
+                <div class="group-input-row">
+                  <ScInput v-model="formData.sysProjectGroup" placeholder="请输入项目分组" clearable maxlength="30" show-word-limit class="form-input">
+                    <template #prefix>
+                      <ScIcon><component :is="useRenderIcon('ri:folder-line')" /></ScIcon>
+                    </template>
+                  </ScInput>
+                  <el-tooltip :content="props.connectionId ? '浏览远程目录' : '需要先建立服务器连接'" placement="top">
+                    <ScButton :disabled="!props.connectionId" :icon="useRenderIcon('ri:folder-open-line')" @click="handleBrowse">浏览</ScButton>
+                  </el-tooltip>
+                </div>
               </ScFormItem>
             </div>
 
@@ -240,6 +245,12 @@
       </div>
     </template>
   </sc-dialog>
+
+  <DirectoryBrowserDialog
+    ref="dirBrowserRef"
+    :connection-id="props.connectionId ?? ''"
+    @select="handleDirSelect"
+  />
 </template>
 
 <script setup>
@@ -247,9 +258,20 @@ import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
 import { computed, nextTick, reactive, ref, watch } from "vue";
 import { fetchSaveProject, fetchUpdateProject } from "../../api/manage/project";
+import DirectoryBrowserDialog from "../../components/DirectoryBrowserDialog.vue";
+
+// Props
+const props = defineProps({
+  connectionId: { type: String, default: "" },
+});
 
 // 组件事件
 const emit = defineEmits(["success", "close"]);
+
+// 目录浏览
+const dirBrowserRef = ref();
+const handleBrowse = () => { dirBrowserRef.value?.open(); };
+const handleDirSelect = (path) => { formData.sysProjectGroup = path; };
 
 // 响应式数据
 const dialogVisible = ref(false);
@@ -868,6 +890,17 @@ defineExpose({
 
       .el-icon {
         font-size: 14px;
+      }
+    }
+
+    .group-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+
+      .form-input {
+        flex: 1;
       }
     }
   }

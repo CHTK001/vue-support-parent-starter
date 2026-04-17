@@ -3,24 +3,24 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
-        <el-button @click="handleBack">
+        <ScButton @click="handleBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
-        </el-button>
+        </ScButton>
         <span class="task-name">{{ taskData?.syncTaskName || "加载中..." }}</span>
         <el-tag v-if="taskData" :type="getStatusType(taskData.syncTaskStatus)">
           {{ getStatusText(taskData.syncTaskStatus) }}
         </el-tag>
       </div>
       <div class="toolbar-right">
-        <el-button type="primary" :loading="saving" @click="handleSave">
+        <ScButton type="primary" :loading="saving" @click="handleSave">
           <el-icon><DocumentChecked /></el-icon>
           保存
-        </el-button>
-        <el-button @click="handleValidate">
+        </ScButton>
+        <ScButton @click="handleValidate">
           <el-icon><CircleCheck /></el-icon>
           验证
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -121,9 +121,9 @@
         <template v-if="selectedSyncNode">
           <div class="panel-header">
             <span>节点配置</span>
-            <el-button text size="small" @click="selectedSyncNode = null">
+            <ScButton text size="small" @click="selectedSyncNode = null">
               <el-icon><Close /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
           <div class="panel-content">
             <el-form label-position="top" size="small">
@@ -174,31 +174,31 @@
                     v-else-if="param.type === 'boolean'"
                     v-model="nodeConfig[param.name]"
                   />
-                  <el-select
+                  <ScSelect
                     v-else-if="param.type === 'select'"
                     v-model="nodeConfig[param.name]"
                     :placeholder="param.placeholder"
                   >
-                    <el-option
+                    <ScOption
                       v-for="opt in param.options"
                       :key="opt.value"
                       :label="opt.label"
                       :value="opt.value"
                     />
-                  </el-select>
+                  </ScSelect>
                 </el-form-item>
               </template>
 
               <el-form-item>
-                <el-button type="primary" @click="handleSaveNodeConfig">
+                <ScButton type="primary" @click="handleSaveNodeConfig">
                   保存配置
-                </el-button>
-                <el-button 
+                </ScButton>
+                <ScButton 
                   v-if="selectedSyncNode.syncNodeType === 'INPUT' || selectedSyncNode.syncNodeType === 'OUTPUT'" 
                   @click="handleTestConnection"
                 >
                   测试连接
-                </el-button>
+                </ScButton>
               </el-form-item>
             </el-form>
           </div>

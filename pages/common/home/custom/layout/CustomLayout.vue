@@ -1,4 +1,4 @@
-<script setup>
+>
 import { defineAsyncComponent, reactive, ref, onMounted, onUnmounted } from "vue";
 import { GridLayout, GridItem } from "grid-layout-plus";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
@@ -88,8 +88,8 @@ const onDragOver = (e) => {
               </el-skeleton>
             </div>
             <div v-if="props.modelValue" class="customize-overlay" :class="{ 'is-local': item.type === 1 }">
-              <el-button-group class="close">
-                <el-button
+              <ScButton-group class="close">
+                <ScButton
                   v-if="item.type != 1"
                   type="primary"
                   plain
@@ -97,8 +97,8 @@ const onDragOver = (e) => {
                   :icon="!userLayoutObject.loadRemoteComponent(item.id) ? useRenderIcon('ri:eye-close-line') : useRenderIcon('ri:eye-line')"
                   @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
                 />
-                <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
-              </el-button-group>
+                <ScButton type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
+              <el-button-group>
               <label v-if="item.type !== 1">
                 <el-icon>
                   <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />

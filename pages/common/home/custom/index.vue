@@ -1,4 +1,4 @@
-<script setup>
+>
 import "../modules/theme.scss";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
@@ -111,20 +111,20 @@ onBeforeMount(async () => {
           <div
             v-if="hasLayout && themeStore.homeCustomizationEnabled"
           >
-            <el-button
+            <ScButton
               v-if="customizing.customizing"
               type="primary"
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-              >{{ $t("buttons.finish") }}</el-button>
-            <el-button
+              >{{ $t("buttons.finish") }}</ScButton>
+            <ScButton
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-              >{{ $t("buttons.custom") }}</el-button>
+              >{{ $t("buttons.custom") }}</ScButton>
           </div>
         </div>
       </div>
@@ -199,7 +199,7 @@ onBeforeMount(async () => {
                 <p>{{ item.description }}</p>
               </div>
               <div class="item-actions">
-                <el-button
+                <ScButton
                   type="primary"
                   :icon="useRenderIcon('ep:plus')"
                   size="small"
@@ -210,9 +210,9 @@ onBeforeMount(async () => {
           </div>
         </el-main>
         <el-footer style="height: 51px; background-color: var(--el-bg-color)">
-          <el-button size="small" @click="backDefault()">{{
+          <ScButton size="small" @click="backDefault()">{{
             $t("buttons.default")
-          }}</el-button>
+          }}</ScButton>
         </el-footer>
       </el-container>
     </div>

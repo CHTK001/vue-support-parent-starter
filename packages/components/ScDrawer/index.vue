@@ -2,7 +2,7 @@
   <component
     :is="currentComponent || ElDrawer"
     v-model="visible"
-    :title="title"
+    :title="layout === 'simple' ? undefined : title"
     :size="size"
     :direction="direction"
     :modal="modal"
@@ -10,25 +10,42 @@
     :lock-scroll="lockScroll"
     :close-on-click-modal="closeOnClickModal"
     :close-on-press-escape="closeOnPressEscape"
-    :show-close="showClose"
+    :show-close="layout === 'simple' ? false : showClose"
     :before-close="handleBeforeClose"
-    :with-header="withHeader"
+    :with-header="layout === 'simple' ? false : withHeader"
     :modal-class="inMainArea ? 'drawer-in-main-area ' + modalClass : modalClass"
     :z-index="zIndex"
     :destroy-on-close="destroyOnClose"
-    :class="['sc-drawer', `sc-drawer--${theme}`, customClass]"
+    :class="['sc-drawer', `sc-drawer--${theme}`, customClass, { 'sc-drawer--simple': layout === 'simple' }]"
     @open="handleOpen"
     @opened="handleOpened"
     @close="handleClose"
     @closed="handleClosed"
   >
+    <!-- 简单布局的右上角关闭按钮 -->
+    <template v-if="layout === 'simple' && showClose" #header>
+      <button type="button" class="sc-drawer__simple-close" @click="handleClose">
+        <IconifyIconOnline icon="ep:close" />
+      </button>
+    </template>
+
     <!-- 自定义头部插槽 -->
-    <template v-if="$slots.header" #header>
+    <template v-if="$slots.header && layout !== 'simple'" #header>
       <slot name="header" />
     </template>
 
     <!-- 默认内容插槽 -->
-    <slot />
+    <div class="sc-drawer__body-wrapper" :class="{ 'sc-drawer__body-wrapper--simple': layout === 'simple' }">
+      <button
+        v-if="layout === 'simple' && showClose"
+        type="button"
+        class="sc-drawer__body-close"
+        @click="handleClose"
+      >
+        <IconifyIconOnline icon="ep:close" />
+      </button>
+      <slot />
+    </div>
 
     <!-- 自定义底部插槽 -->
     <template v-if="$slots.footer || showFooter" #footer>
@@ -58,9 +75,13 @@ import { ElDrawer } from "element-plus";
 import { ScButton } from "../ScButton";
 import { useThemeComponent } from "../hooks/useThemeComponent";
 import { useDrawerMemory } from "./composables";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 /** 抽屉方向类型 */
 type DrawerDirection = "ltr" | "rtl" | "ttb" | "btt";
+
+/** 布局模式 */
+type DrawerLayout = "default" | "simple";
 
 const props = withDefaults(
   defineProps<{
@@ -124,6 +145,8 @@ const props = withDefaults(
      * 设置为 true 时，drawer 将只在 main-container 区域内显示
      */
     inMainArea?: boolean;
+    /** 布局模式：default(标准) / simple(简洁，无头部关闭按钮放右上角) */
+    layout?: DrawerLayout;
   }>(),
   {
     modelValue: false,
@@ -149,7 +172,8 @@ const props = withDefaults(
     loading: false,
     memoryId: 0,
     memoryEnabled: false,
-    inMainArea: false
+    inMainArea: false,
+    layout: "simple"
   }
 );
 
@@ -314,11 +338,73 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-/* 
+/*
  * 样式已统一迁移至 packages/assets/style/stitch/overrides.scss
  * 以保持全局风格一致 (Glassmorphism + Neon)
  */
 .sc-drawer {
   /* 保留一些非视觉的布局样式如果需要，目前留空让全局样式接管 */
+}
+
+// Simple 布局：无头部，关闭按钮在右上角
+.sc-drawer__body-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.sc-drawer__body-wrapper--simple {
+  padding-top: 40px;
+}
+
+.sc-drawer__body-close,
+.sc-drawer__simple-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--sc-drawer-close-bg, var(--el-color-white));
+  border: 1px solid var(--sc-drawer-close-border, var(--el-border-color));
+  border-radius: var(--sc-drawer-close-radius, 8px);
+  cursor: pointer;
+  color: var(--sc-drawer-close-color, var(--el-text-color-secondary));
+  transition: all 0.2s ease;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+
+  &:hover {
+    background: var(--sc-drawer-close-hover-bg, var(--el-color-danger-light-9));
+    border-color: var(--sc-drawer-close-hover-border, var(--el-color-danger-light-5));
+    color: var(--sc-drawer-close-hover-color, var(--el-color-danger));
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// 深色主题适配
+html.dark {
+  .sc-drawer__simple-close {
+    background: var(--sc-drawer-close-bg, var(--el-fill-color-dark));
+    border-color: var(--el-border-color);
+    color: var(--el-text-color-secondary);
+
+    &:hover {
+      background: var(--el-color-danger-light-9);
+      border-color: var(--el-color-danger-light-5);
+      color: var(--el-color-danger);
+    }
+  }
+}
+
+// 修复 simple 布局下 el-drawer 的 header 内部插槽
+:deep(.el-drawer__header) {
+  margin-bottom: 0;
+  padding: 0;
 }
 </style>

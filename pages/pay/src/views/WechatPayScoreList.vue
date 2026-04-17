@@ -18,45 +18,45 @@
       </article>
     </div>
 
-    <el-card class="panel">
+    <ScCard class="panel">
       <template #header>
         <div class="panel__header">
           <div>
             <p class="panel__eyebrow">Wechat Pay Score</p>
             <h3>微信支付分订单</h3>
           </div>
-          <el-button type="primary" @click="openCreateDialog">创建支付分订单</el-button>
+          <ScButton type="primary" @click="openCreateDialog">创建支付分订单</ScButton>
         </div>
       </template>
 
       <el-form :inline="true" :model="searchForm" class="toolbar">
         <el-form-item label="商户">
-          <el-select
+          <ScSelect
             v-model="searchForm.merchantId"
             clearable
             placeholder="全部商户"
             style="width: 220px"
             @change="handleSearchMerchantChange"
           >
-            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </el-select>
+            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+          </ScSelect>
         </el-form-item>
         <el-form-item label="渠道">
-          <el-select v-model="searchForm.channelId" clearable placeholder="全部渠道" style="width: 220px">
-            <el-option v-for="item in searchChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
-          </el-select>
+          <ScSelect v-model="searchForm.channelId" clearable placeholder="全部渠道" style="width: 220px">
+            <ScOption v-for="item in searchChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
+          </ScSelect>
         </el-form-item>
         <el-form-item label="OpenId">
           <el-input v-model="searchForm.openId" clearable placeholder="请输入 openId" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.state" clearable placeholder="全部状态" style="width: 180px">
-            <el-option v-for="(label, value) in WechatPayScoreStateMap" :key="value" :label="label" :value="value" />
-          </el-select>
+          <ScSelect v-model="searchForm.state" clearable placeholder="全部状态" style="width: 180px">
+            <ScOption v-for="(label, value) in WechatPayScoreStateMap" :key="value" :label="label" :value="value" />
+          </ScSelect>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleResetSearch">重置</el-button>
+          <ScButton type="primary" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleResetSearch">重置</ScButton>
         </el-form-item>
       </el-form>
 
@@ -80,10 +80,10 @@
         <el-table-column prop="updateTime" label="更新时间" width="180" />
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleSync(row)">同步</el-button>
-            <el-button v-if="canComplete(row.state)" link type="success" @click="openCompleteDialog(row)">完结</el-button>
-            <el-button v-if="canCancel(row.state)" link type="danger" @click="handleCancel(row)">取消</el-button>
-            <el-button link @click="showDetail(row)">详情</el-button>
+            <ScButton link type="primary" @click="handleSync(row)">同步</ScButton>
+            <ScButton v-if="canComplete(row.state)" link type="success" @click="openCompleteDialog(row)">完结</ScButton>
+            <ScButton v-if="canCancel(row.state)" link type="danger" @click="handleCancel(row)">取消</ScButton>
+            <ScButton link @click="showDetail(row)">详情</ScButton>
           </template>
         </el-table-column>
       </el-table>
@@ -98,20 +98,20 @@
         @current-change="loadPayScores"
         @size-change="handlePageSizeChange"
       />
-    </el-card>
+    </ScCard>
 
-    <el-dialog v-model="createDialogVisible" title="创建微信支付分订单" width="760px">
+    <ScDialog v-model="createDialogVisible" title="创建微信支付分订单" width="760px" layout="simple">
       <el-form :model="createForm" label-width="110px">
         <div class="form-grid">
           <el-form-item label="商户" required>
-            <el-select v-model="createForm.merchantId" placeholder="请选择商户" @change="handleCreateMerchantChange">
-              <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-            </el-select>
+            <ScSelect v-model="createForm.merchantId" placeholder="请选择商户" @change="handleCreateMerchantChange">
+              <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="微信渠道" required>
-            <el-select v-model="createForm.channelId" placeholder="请选择微信渠道">
-              <el-option v-for="item in createChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
-            </el-select>
+            <ScSelect v-model="createForm.channelId" placeholder="请选择微信渠道">
+              <ScOption v-for="item in createChannelOptions" :key="item.id" :label="item.channelName" :value="item.id" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="服务订单号">
             <el-input v-model="createForm.outOrderNo" placeholder="可选，不填则后端自动生成" />
@@ -158,12 +158,12 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitCreate">创建</el-button>
+        <ScButton @click="createDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitting" @click="submitCreate">创建</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-dialog v-model="completeDialogVisible" title="完结微信支付分订单" width="620px">
+    <ScDialog v-model="completeDialogVisible" title="完结微信支付分订单" width="620px" layout="simple">
       <el-form :model="completeForm" label-width="100px">
         <el-form-item label="服务订单号">
           <el-input :model-value="currentOrder?.outOrderNo || ''" disabled />
@@ -185,12 +185,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="completeDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitComplete">确认完结</el-button>
+        <ScButton @click="completeDialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="submitting" @click="submitComplete">确认完结</ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="detailVisible" size="540px" title="微信支付分详情">
+    <ScDrawer v-model="detailVisible" size="540px" title="微信支付分详情" layout="simple">
       <el-descriptions v-if="currentOrder" :column="1" border>
         <el-descriptions-item label="服务订单号">{{ currentOrder.outOrderNo }}</el-descriptions-item>
         <el-descriptions-item label="微信服务订单号">{{ currentOrder.serviceOrderNo || "-" }}</el-descriptions-item>
@@ -203,11 +203,12 @@
         <el-descriptions-item label="请求快照">{{ currentOrder.requestPayload || "-" }}</el-descriptions-item>
         <el-descriptions-item label="响应快照">{{ currentOrder.responsePayload || "-" }}</el-descriptions-item>
       </el-descriptions>
-    </el-drawer>
+    </ScDrawer>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {

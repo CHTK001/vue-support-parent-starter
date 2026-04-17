@@ -106,7 +106,7 @@ const formatCoordinate = (value: number): string => {
 }
 </style>
 
-<script lang="ts">
+<script setup lang="ts">
 export default {
   name: "CoordinatePanel",
 };

@@ -1,4 +1,4 @@
-<script setup>
+>
 import { debounce } from "@pureadmin/utils";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { message } from "@repo/utils";
@@ -42,16 +42,16 @@ const handleDelete = async (row) => {
         </el-form>
       </div>
       <div class="right-panel">
-        <el-button :icon="useRenderIcon('ep:search')" @click="debounce(loadData(), 0, 1000)" type="primary" />
-        <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
+        <ScButton :icon="useRenderIcon('ep:search')" @click="debounce(loadData(), 0, 1000)" type="primary" />
+        <ScButton :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
       </div>
     </el-header>
     <ScTable ref="tableRef" :url="fetchPageServiceModule" :params="env.params">
       <el-table-column type="index" label="序号" width="120px" />
       <el-table-column label="操作">
         <template #default="{ row }">
-          <el-button :icon="useRenderIcon('ep:edit-pen')" class="btn-text" @click="handleEdit(row, 'edit')"></el-button>
-          <el-button :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" @click="handleDelete(row)"></el-button>
+          <ScButton :icon="useRenderIcon('ep:edit-pen')" class="btn-text" @click="handleEdit(row, 'edit')"></ScButton>
+          <ScButton :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" @click="handleDelete(row)"></ScButton>
         </template>
       </el-table-column>
     </ScTable>

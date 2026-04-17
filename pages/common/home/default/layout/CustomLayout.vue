@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from "vue";
 import { GridLayout } from "grid-layout-plus";
 import {  useRenderIcon  } from "@repo/components/ReIcon";
@@ -92,7 +92,7 @@ const handleRemove = async (key) => {
               <!-- 操作按钮组 -->
               <div class="overlay-actions">
                 <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
-                  <el-button
+                  <ScButton
                     :type="userLayoutObject.loadRemoteComponent(item.id) ? 'primary' : 'info'"
                     circle
                     size="small"
@@ -101,12 +101,12 @@ const handleRemove = async (key) => {
                     <el-icon>
                       <component :is="useRenderIcon(userLayoutObject.loadRemoteComponent(item.id) ? 'ri:eye-line' : 'ri:eye-close-line')" />
                     </el-icon>
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="移除部件" placement="top">
-                  <el-button type="danger" circle size="small" @click="handleRemove(item.id)">
+                  <ScButton type="danger" circle size="small" @click="handleRemove(item.id)">
                     <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
               

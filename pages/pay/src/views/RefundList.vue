@@ -7,7 +7,7 @@
       </div>
       <div class="payment-surface__actions">
         <el-tooltip content="刷新">
-          <el-button circle :icon="RefreshRight" @click="reloadAll" />
+          <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
       </div>
     </header>
@@ -33,18 +33,18 @@
     <section class="payment-toolbar">
       <div class="payment-toolbar__row">
         <div class="payment-toolbar__form">
-          <el-select v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </el-select>
+          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+          </ScSelect>
           <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
           <el-input v-model="queryForm.refundNo" clearable placeholder="退款单号" style="width: 220px" @keyup.enter="handleSearch" />
-          <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <el-option label="处理中" value="PROCESSING" />
-            <el-option label="已退款" value="REFUNDED" />
-            <el-option label="失败" value="FAILED" />
-          </el-select>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+            <ScOption label="处理中" value="PROCESSING" />
+            <ScOption label="已退款" value="REFUNDED" />
+            <ScOption label="失败" value="FAILED" />
+          </ScSelect>
+          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleReset">重置</ScButton>
         </div>
       </div>
     </section>
@@ -110,13 +110,13 @@
           <template #default="{ row }">
             <div class="payment-icon-actions">
               <el-tooltip content="查看详情">
-                <el-button circle :icon="Document" @click="showDetail(row)" />
+                <ScButton circle :icon="Document" @click="showDetail(row)" />
               </el-tooltip>
               <el-tooltip v-if="row.status === 'PROCESSING'" content="标记成功">
-                <el-button circle type="success" :icon="CircleCheck" @click="handleMarkSuccess(row)" />
+                <ScButton circle type="success" :icon="CircleCheck" @click="handleMarkSuccess(row)" />
               </el-tooltip>
               <el-tooltip v-if="row.status === 'PROCESSING'" content="标记失败">
-                <el-button circle type="danger" :icon="CloseBold" @click="handleMarkFail(row)" />
+                <ScButton circle type="danger" :icon="CloseBold" @click="handleMarkFail(row)" />
               </el-tooltip>
             </div>
           </template>
@@ -124,7 +124,7 @@
       </ScTable>
     </section>
 
-    <el-drawer v-model="detailVisible" size="720px" :title="currentRefund ? `${currentRefund.refundNo} · 退款详情` : '退款详情'">
+    <ScDrawer v-model="detailVisible" size="720px" :title="currentRefund ? `${currentRefund.refundNo} · 退款详情` : '退款详情'" layout="simple">
       <template v-if="currentRefund">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">
@@ -200,11 +200,12 @@
           </section>
         </div>
       </template>
-    </el-drawer>
+    </ScDrawer>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CircleCheck, CloseBold, Document, RefreshRight, Search } from "@element-plus/icons-vue";

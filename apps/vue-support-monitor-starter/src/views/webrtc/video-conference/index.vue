@@ -20,14 +20,14 @@
           <span>{{ formatDuration(conferenceDuration) }}</span>
         </div>
         <div class="conference-actions">
-          <el-button type="info" size="small" @click="showParticipants = true">
+          <ScButton type="info" size="small" @click="showParticipants = true">
             <el-icon><User /></el-icon>
             参与者
-          </el-button>
-          <el-button type="info" size="small" @click="showChat = !showChat">
+          </ScButton>
+          <ScButton type="info" size="small" @click="showChat = !showChat">
             <el-icon><ChatDotRound /></el-icon>
             聊天
-          </el-button>
+          </ScButton>
         </div>
       </div>
 
@@ -83,9 +83,9 @@
       <div class="chat-sidebar" v-if="showChat">
         <div class="chat-header">
           <span>会议聊天</span>
-          <el-button type="text" @click="showChat = false">
+          <ScButton type="text" @click="showChat = false">
             <el-icon><Close /></el-icon>
-          </el-button>
+          </ScButton>
         </div>
         <div class="chat-messages" ref="chatMessagesRef">
           <div
@@ -108,9 +108,9 @@
             @keyup.enter="sendMessage"
           >
             <template #append>
-              <el-button @click="sendMessage">
+              <ScButton @click="sendMessage">
                 <el-icon><Promotion /></el-icon>
-              </el-button>
+              </ScButton>
             </template>
           </el-input>
         </div>
@@ -119,61 +119,61 @@
       <!-- 控制栏 -->
       <div class="control-bar">
         <div class="control-group">
-          <el-button
+          <ScButton
             :type="audioEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleAudio"
           >
             <el-icon><Microphone v-if="audioEnabled" /><MuteNotification v-else /></el-icon>
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="danger"
             size="large"
             circle
             @click="leaveConference"
           >
             <el-icon><PhoneFilled /></el-icon>
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             :type="videoEnabled ? 'primary' : 'danger'"
             size="large"
             circle
             @click="toggleVideo"
           >
             <el-icon><VideoCamera v-if="videoEnabled" /><VideoCameraFilled v-else /></el-icon>
-          </el-button>
+          </ScButton>
         </div>
         
         <div class="additional-controls">
-          <el-button
+          <ScButton
             :type="screenSharing ? 'success' : 'info'"
             size="small"
             @click="toggleScreenShare"
           >
             <el-icon><Monitor /></el-icon>
             {{ screenSharing ? '停止共享' : '屏幕共享' }}
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="info"
             size="small"
             @click="showSettings = true"
           >
             <el-icon><Setting /></el-icon>
             设置
-          </el-button>
+          </ScButton>
           
-          <el-button
+          <ScButton
             type="warning"
             size="small"
             @click="showInvite = true"
           >
             <el-icon><Plus /></el-icon>
             邀请
-          </el-button>
+          </ScButton>
         </div>
       </div>
     </div>
@@ -181,7 +181,7 @@
     <!-- 主界面 -->
     <div class="main-interface" v-else>
       <!-- 创建会议 -->
-      <el-card class="create-conference-card" shadow="hover">
+      <ScCard class="create-conference-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>创建会议</span>
@@ -221,7 +221,7 @@
           </el-form-item>
           
           <el-form-item>
-            <el-button
+            <ScButton
               type="primary"
               size="large"
               :loading="creating"
@@ -229,13 +229,13 @@
             >
               <el-icon><VideoCamera /></el-icon>
               创建会议
-            </el-button>
+            </ScButton>
           </el-form-item>
         </el-form>
-      </el-card>
+      </ScCard>
 
       <!-- 加入会议 -->
-      <el-card class="join-conference-card" shadow="hover">
+      <ScCard class="join-conference-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>加入会议</span>
@@ -257,7 +257,7 @@
           </el-form-item>
           
           <el-form-item>
-            <el-button
+            <ScButton
               type="success"
               size="large"
               :disabled="!joinForm.roomId"
@@ -266,19 +266,19 @@
             >
               <el-icon><Right /></el-icon>
               加入会议
-            </el-button>
+            </ScButton>
           </el-form-item>
         </el-form>
-      </el-card>
+      </ScCard>
 
       <!-- 会议列表 -->
-      <el-card class="conference-list-card" shadow="hover">
+      <ScCard class="conference-list-card" shadow="hover">
         <template #header>
           <div class="card-header">
             <span>进行中的会议</span>
-            <el-button type="text" @click="loadActiveConferences">
+            <ScButton type="text" @click="loadActiveConferences">
               <el-icon><Refresh /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
         </template>
         
@@ -297,17 +297,17 @@
           </el-table-column>
           <el-table-column label="操作" width="100">
             <template #default="{ row }">
-              <el-button
+              <ScButton
                 type="primary"
                 size="small"
                 @click="quickJoinConference(row)"
               >
                 加入
-              </el-button>
+              </ScButton>
             </template>
           </el-table-column>
         </el-table>
-      </el-card>
+      </ScCard>
     </div>
 
     <!-- 参与者列表对话框 -->
@@ -331,9 +331,9 @@
         <el-table-column label="操作" width="100" v-if="isHost">
           <template #default="{ row }">
             <el-dropdown @command="(command) => handleParticipantAction(command, row)">
-              <el-button type="primary" size="small">
+              <ScButton type="primary" size="small">
                 操作<el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </el-button>
+              </ScButton>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="mute">静音</el-dropdown-item>
@@ -352,35 +352,35 @@
         <el-form-item label="会议链接">
           <el-input v-model="inviteLink" readonly>
             <template #append>
-              <el-button @click="copyInviteLink">
+              <ScButton @click="copyInviteLink">
                 <el-icon><CopyDocument /></el-icon>
-              </el-button>
+              </ScButton>
             </template>
           </el-input>
         </el-form-item>
         
         <el-form-item label="邀请用户">
-          <el-select
+          <ScSelect
             v-model="selectedInviteUsers"
             multiple
             placeholder="选择要邀请的用户"
             style="width: 100%"
           >
-            <el-option
+            <ScOption
               v-for="user in availableUsers"
               :key="user.userId"
               :label="user.username"
               :value="user.userId"
             />
-          </el-select>
+          </ScSelect>
         </el-form-item>
       </div>
       
       <template #footer>
-        <el-button @click="showInvite = false">取消</el-button>
-        <el-button type="primary" @click="sendInvitations">
+        <ScButton @click="showInvite = false">取消</ScButton>
+        <ScButton type="primary" @click="sendInvitations">
           发送邀请
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

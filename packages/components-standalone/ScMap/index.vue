@@ -77,7 +77,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
 export default {
   name: "ScMap",
 };

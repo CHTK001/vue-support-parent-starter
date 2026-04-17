@@ -14,21 +14,21 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <!-- 返回上一层按钮 -->
-        <el-button size="small" @click="goBack" :disabled="!canGoBack" title="返回上一层">
+        <ScButton size="small" @click="goBack" :disabled="!canGoBack" title="返回上一层">
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
           返回上一层
-        </el-button>
+        </ScButton>
 
         <!-- 操作按钮 -->
-        <el-button size="small" @click="refreshList">
+        <ScButton size="small" @click="refreshList">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
-        </el-button>
+        </ScButton>
 
-        <el-button size="small" @click="createFolder">
+        <ScButton size="small" @click="createFolder">
           <IconifyIconOnline icon="ri:folder-add-line" class="mr-1" />
           新建文件夹
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
@@ -67,10 +67,10 @@
           <el-table-column label="操作" width="200" fixed="right">
             <template #default="{ row }">
               <el-dropdown @command="command => handleFileAction(command, row)">
-                <el-button size="small" text>
+                <ScButton size="small" text>
                   操作
                   <IconifyIconOnline icon="ri:arrow-down-s-line" />
-                </el-button>
+                </ScButton>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="download" v-if="!row.isDirectory">
@@ -140,8 +140,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createFolderVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmCreateFolder">确定</el-button>
+        <ScButton @click="createFolderVisible = false">取消</ScButton>
+        <ScButton type="primary" @click="confirmCreateFolder">确定</ScButton>
       </template>
     </sc-dialog>
 

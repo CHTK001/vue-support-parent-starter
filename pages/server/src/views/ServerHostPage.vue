@@ -39,6 +39,7 @@
             @open-install="openInstallDialog"
             @open-remote="openRemoteConsole"
             @open-processes="openProcessDialog"
+            @open-projects="openProjectManagement"
             @update:collapsed="sidebarCollapsed = $event"
             @update:filter="sidebarFilter = $event"
             @contextmenu="openHostContextMenu"
@@ -386,7 +387,7 @@
     <ServerProjectFrameDrawer
       v-model="projectDrawerVisible"
       :host-name="projectDrawerHostName"
-      :url="projectDrawerUrl"
+      :host="projectDrawerHost"
     />
 
     <ServerInstallWizardDialog
@@ -425,7 +426,8 @@ import {
 import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { taskCenterProvider } from "@layout/default";
-import { message } from "@repo/utils";
+import { message, rsaEncrypt } from "@repo/utils";
+import { fetchServerProjectPublicKey } from "../api/remote";
 import {
   analyzeServerHostProcess,
   analyzeServerHostMetricHistory,
@@ -445,6 +447,8 @@ import {
   getServerHostMetricsDetail,
   getServerHostMetricsTaskSettings,
   getServerHostRemoteGateway,
+  getServerHostGuacamole,
+  getServerHostRemoteConsoleConfig,
   getServerHostMetrics,
   getServerHostMetricsHistory,
   refreshServerHostPublicIp,
@@ -1220,7 +1224,7 @@ const resolvedHostRemoteGatewayUrl = computed(
 const aiEnabled = computed(() => Boolean(serverCapabilities.value?.aiEnabled));
 const projectDrawerVisible = ref(false);
 const projectDrawerHostName = ref("");
-const projectDrawerUrl = ref("");
+const projectDrawerHost = ref<ServerHost | null>(null);
 const serviceAutoDetectEnabled = computed(() =>
   Boolean(serverCapabilities.value?.serviceAutoDetectEnabled),
 );
@@ -4371,15 +4375,8 @@ const openProjectManagement = async (host?: ServerHost | null) => {
     await nextTick();
   }
   const target = host || selectedHost.value;
-  const route = router.resolve({
-    path: "/server/projects",
-    query: {
-      serverId: target?.serverId || "",
-      serverName: target?.serverName || "",
-    },
-  });
   projectDrawerHostName.value = target?.serverName || "";
-  projectDrawerUrl.value = route.href;
+  projectDrawerHost.value = target || null;
   projectDrawerVisible.value = true;
 };
 
@@ -4448,12 +4445,35 @@ const submit = async () => {
   saving.value = true;
   try {
     syncFormTags();
+
+    // 非 LOCAL 类型需要获取公钥并加密密码
+    let encryptedPassword = form.serverType === "LOCAL" ? "" : form.password;
+    if (form.serverType !== "LOCAL" && form.password) {
+      // 1. 获取公钥
+      let publicKey: string;
+      try {
+        const res = await fetchServerProjectPublicKey();
+        publicKey = res.data;
+      } catch {
+        message("获取公钥失败，请稍后重试", { type: "error" });
+        return;
+      }
+
+      // 2. RSA 加密密码
+      try {
+        encryptedPassword = await rsaEncrypt(form.password ?? "", publicKey);
+      } catch {
+        message("密码加密失败，请稍后重试", { type: "error" });
+        return;
+      }
+    }
+
     const payload: ServerHost = {
       ...form,
       serverCode: formServerCodePreview.value,
       host: form.serverType === "LOCAL" ? form.host || "127.0.0.1" : form.host,
       username: form.serverType === "LOCAL" ? "" : form.username,
-      password: form.serverType === "LOCAL" ? "" : form.password,
+      password: encryptedPassword,
       privateKey: form.serverType === "SSH" ? form.privateKey : "",
       tags: (form.tagsList || []).join(", "),
       metadataJson: form.metadataJson || "",
@@ -4832,10 +4852,7 @@ onUnmounted(() => {
   gap: 0;
   color: #0f172a;
   padding: 8px 0 2px;
-  height: calc(
-    100vh - var(--layout-navbar-height, 56px) - var(--layout-tag-height, 34px) -
-      32px
-  );
+  height: 100%;
   min-height: 520px;
   overflow: hidden;
   background:
@@ -5348,11 +5365,6 @@ onUnmounted(() => {
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
 }
 
-.server-layout__main-stage :deep(.server-basic-panel__realtime),
-.server-layout__main-stage :deep(.server-basic-panel__card),
-.server-layout__main-stage :deep(.server-service-panel) {
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
-}
 
 @media (max-width: 1100px) {
   .server-page {

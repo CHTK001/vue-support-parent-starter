@@ -10,7 +10,7 @@
   >
     <div class="three-col">
       <div class="left-col">
-        <el-card class="global-card" shadow="never">
+        <ScCard class="global-card" shadow="never">
           <template #header>
             <div class="card-header-row">
               <div class="card-header">
@@ -112,7 +112,7 @@
                       <IconifyIconOnline icon="ri:list-settings-line" />
                       参数设置
                     </label>
-                    <el-select
+                    <ScSelect
                       v-model="imageSettingSelection"
                       multiple
                       filterable
@@ -121,20 +121,20 @@
                       placeholder="选择或自定义参数"
                       class="config-select"
                     >
-                      <el-option
+                      <ScOption
                         v-for="opt in imageSettingOptions"
                         :key="opt.name"
                         :label="opt.describe || opt.name"
                         :value="opt.name"
                       />
-                    </el-select>
+                    </ScSelect>
                   </div>
                   <div class="config-item" v-if="global.openPlugin">
                     <label class="config-label">
                       <IconifyIconOnline icon="ri:puzzle-line" />
                       启用插件
                     </label>
-                    <el-select
+                    <ScSelect
                       v-model="imageFilterSelection"
                       multiple
                       filterable
@@ -143,13 +143,13 @@
                       placeholder="选择或自定义插件"
                       class="config-select"
                     >
-                      <el-option
+                      <ScOption
                         v-for="opt in imageFilterOptions"
                         :key="opt.name"
                         :label="opt.describe || opt.name"
                         :value="opt.name"
                       />
-                    </el-select>
+                    </ScSelect>
                   </div>
                 </div>
               </div>
@@ -239,29 +239,29 @@
               </div>
             </div>
           </el-scrollbar>
-        </el-card>
+        </ScCard>
       </div>
 
       <div class="middle-col">
-        <el-card class="installed-card" shadow="never">
+        <ScCard class="installed-card" shadow="never">
           <template #header>
             <div class="card-header-row">
               <div class="card-header">已安装的存储</div>
               <div class="header-actions">
-                <el-button type="primary" size="small" @click="onAddClick">
+                <ScButton type="primary" size="small" @click="onAddClick">
                   <IconifyIconOnline icon="ri:add-line" />
                   新增存储
-                </el-button>
-                <el-button size="small" @click="openFullPreview">
+                </ScButton>
+                <ScButton size="small" @click="openFullPreview">
                   <IconifyIconOnline icon="ri:eye-line" />
                   预览
-                </el-button>
+                </ScButton>
               </div>
             </div>
           </template>
           <div v-if="storages.length === 0" class="empty-tip">
             <el-empty description="尚未添加任何文件存储">
-              <el-button type="primary" @click="onAddClick">新增存储</el-button>
+              <ScButton type="primary" @click="onAddClick">新增存储</ScButton>
             </el-empty>
           </div>
           <el-scrollbar v-else class="installed-list thin-scrollbar">
@@ -319,41 +319,41 @@
               <!-- 操作按钮 -->
               <div class="storage-actions">
                 <el-tooltip content="预览文件" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     size="small"
                     @click.stop="previewStorage(idx)"
                   >
                     <IconifyIconOnline icon="ri:eye-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="测试连接" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     size="small"
                     @click.stop="testConnection(idx)"
                   >
                     <IconifyIconOnline icon="ri:wifi-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="删除存储" placement="top">
-                  <el-button
+                  <ScButton
                     circle
                     size="small"
                     type="danger"
                     @click.stop="removeStorage(idx)"
                   >
                     <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
               </div>
             </div>
           </el-scrollbar>
-        </el-card>
+        </ScCard>
       </div>
 
       <div class="right-col">
-        <el-card class="detail-card" shadow="never">
+        <ScCard class="detail-card" shadow="never">
           <template #header>
             <div class="card-header">存储配置</div>
           </template>
@@ -368,9 +368,9 @@
                 />
               </div>
               <div class="toolbar-right">
-                <el-button size="small" circle @click="fetchPreviewItems">
+                <ScButton size="small" circle @click="fetchPreviewItems">
                   <IconifyIconOnline icon="ri:refresh-line" />
-                </el-button>
+                </ScButton>
               </div>
             </div>
 
@@ -453,30 +453,30 @@
             <div class="preview-footer">
               <div class="page-info">共 {{ previewItems.length }} 项</div>
               <div class="page-controls">
-                <el-button-group size="small">
-                  <el-button @click="goPrevPage" :disabled="pager.page <= 1">
+                <ScButton-group size="small">
+                  <ScButton @click="goPrevPage" :disabled="pager.page <= 1">
                     <IconifyIconOnline icon="ri:arrow-left-s-line" />
-                  </el-button>
-                  <el-button disabled class="page-number">{{
+                  </ScButton>
+                  <ScButton disabled class="page-number">{{
                     pager.page
-                  }}</el-button>
-                  <el-button
+                  }}</ScButton>
+                  <ScButton
                     @click="goNextPage"
                     :disabled="previewItems.length < pager.limit"
                   >
                     <IconifyIconOnline icon="ri:arrow-right-s-line" />
-                  </el-button>
-                </el-button-group>
-                <el-select
+                  </ScButton>
+                <el-button-group>
+                <ScSelect
                   v-model="pager.limit"
                   size="small"
                   style="width: 80px; margin-left: 12px"
                   @change="onLimitChange"
                 >
-                  <el-option :value="20" label="20条" />
-                  <el-option :value="50" label="50条" />
-                  <el-option :value="100" label="100条" />
-                </el-select>
+                  <ScOption :value="20" label="20条" />
+                  <ScOption :value="50" label="50条" />
+                  <ScOption :value="100" label="100条" />
+                </ScSelect>
               </div>
             </div>
           </div>
@@ -614,15 +614,15 @@
             </el-form>
           </div>
           <el-empty v-else description="请选择左侧已安装的存储或新增一个" />
-        </el-card>
+        </ScCard>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
-          >保存</el-button>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
+          >保存</ScButton>
       </div>
     </template>
   </sc-dialog>

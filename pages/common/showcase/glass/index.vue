@@ -1,4 +1,4 @@
-<script setup>
+>
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import { ref, reactive } from "vue";
 import { ScSlider } from "@repo/components/ScSlider";
@@ -54,7 +54,7 @@ const cards = [
           <p class="page-subtitle">A modern, frosted glass interface design for next-gen applications.</p>
         </div>
         <div class="header-actions">
-           <el-button type="primary" class="glass-btn-primary" round icon="Download">Download Kit</el-button>
+           <ScButton type="primary" class="glass-btn-primary" round icon="Download">Download Kit</ScButton>
         </div>
       </div>
 
@@ -92,10 +92,10 @@ const cards = [
 
             <div class="form-group">
               <label>Select Option</label>
-              <el-select v-model="selectValue" placeholder="Select Option" class="glass-select" popper-class="glass-popper">
-                <el-option label="Glass Theme" value="glass" />
-                <el-option label="Minimal" value="minimal" />
-              </el-select>
+              <ScSelect v-model="selectValue" placeholder="Select Option" class="glass-select" popper-class="glass-popper">
+                <ScOption label="Glass Theme" value="glass" />
+                <ScOption label="Minimal" value="minimal" />
+              </ScSelect>
             </div>
 
             <div class="form-row">
@@ -115,8 +115,8 @@ const cards = [
             </div>
             
             <div class="form-actions">
-              <el-button class="glass-btn">Cancel</el-button>
-              <el-button type="primary" class="glass-btn-primary" :loading="loading" @click="startLoading">Submit</el-button>
+              <ScButton class="glass-btn">Cancel</ScButton>
+              <ScButton type="primary" class="glass-btn-primary" :loading="loading" @click="startLoading">Submit</ScButton>
             </div>
           </div>
         </div>
@@ -135,11 +135,11 @@ const cards = [
             <div class="divider"></div>
             
             <div class="button-group">
-               <el-button class="glass-btn">Default</el-button>
-               <el-button type="primary" class="glass-btn-primary">Primary</el-button>
-               <el-button type="success" class="glass-btn-success" circle :icon="useRenderIcon('ep:check')" />
-               <el-button type="danger" class="glass-btn-danger" circle :icon="useRenderIcon('ep:delete')" />
-               <el-button type="warning" class="glass-btn-warning" round>Warning</el-button>
+               <ScButton class="glass-btn">Default</ScButton>
+               <ScButton type="primary" class="glass-btn-primary">Primary</ScButton>
+               <ScButton type="success" class="glass-btn-success" circle :icon="useRenderIcon('ep:check')" />
+               <ScButton type="danger" class="glass-btn-danger" circle :icon="useRenderIcon('ep:delete')" />
+               <ScButton type="warning" class="glass-btn-warning" round>Warning</ScButton>
             </div>
 
              <div class="mt-4">
@@ -167,8 +167,8 @@ const cards = [
                 </el-table-column>
                 <el-table-column label="Operations" width="120">
                    <template #default>
-                      <el-button link type="primary" size="small">Edit</el-button>
-                      <el-button link type="danger" size="small">Delete</el-button>
+                      <ScButton link type="primary" size="small">Edit</ScButton>
+                      <ScButton link type="danger" size="small">Delete</ScButton>
                    </template>
                 </el-table-column>
              </el-table>

@@ -90,7 +90,7 @@
                 清除
               </ScButton>
             </ScTooltip>
-          </el-button-group>
+           </el-button-group>
         </div>
 
         <!-- 缩放 -->

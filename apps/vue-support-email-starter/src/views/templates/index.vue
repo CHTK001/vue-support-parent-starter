@@ -2,10 +2,10 @@
   <div class="template-management">
     <div class="toolbar">
       <h2>邮件模板</h2>
-      <el-button type="primary" @click="showAddDialog">
+      <ScButton type="primary" @click="showAddDialog">
         <el-icon><Plus /></el-icon>
         新建模板
-      </el-button>
+      </ScButton>
     </div>
 
     <el-table v-loading="loading" :data="templates" style="width: 100%">
@@ -25,32 +25,32 @@
       </el-table-column>
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="scope">
-          <el-button size="small" @click="previewTemplate(scope.row)">
+          <ScButton size="small" @click="previewTemplate(scope.row)">
             <el-icon><View /></el-icon>
             预览
-          </el-button>
-          <el-button size="small" @click="editTemplate(scope.row)">
+          </ScButton>
+          <ScButton size="small" @click="editTemplate(scope.row)">
             <el-icon><Edit /></el-icon>
             编辑
-          </el-button>
-          <el-button
+          </ScButton>
+          <ScButton
             size="small"
             type="danger"
             @click="deleteTemplate(scope.row)"
           >
             <el-icon><Delete /></el-icon>
             删除
-          </el-button>
+          </ScButton>
         </template>
       </el-table-column>
     </el-table>
 
     <!-- 添加/编辑模板对话框 -->
-    <el-dialog
+    <ScDialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑模板' : '新建模板'"
       width="700px"
-    >
+     layout="simple">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="模板名称" prop="name">
           <el-input v-model="form.name" placeholder="输入模板名称" />
@@ -95,15 +95,15 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveTemplate">
+        <ScButton @click="dialogVisible = false">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="saveTemplate">
           保存
-        </el-button>
+        </ScButton>
       </template>
-    </el-dialog>
+    </ScDialog>
 
     <!-- 预览对话框 -->
-    <el-dialog v-model="previewVisible" title="模板预览" width="700px">
+    <ScDialog v-model="previewVisible" title="模板预览" width="700px" layout="simple">
       <div class="preview-section">
         <h4>主题</h4>
         <p>{{ previewData.subject }}</p>
@@ -126,7 +126,7 @@
             <el-input v-model="testVariables[key]" size="small" />
           </el-form-item>
         </el-form>
-        <el-button size="small" @click="renderPreview">渲染</el-button>
+        <ScButton size="small" @click="renderPreview">渲染</ScButton>
 
         <div v-if="renderedContent" class="rendered-section">
           <h4>渲染结果</h4>
@@ -139,7 +139,7 @@
           <pre v-else class="text-preview">{{ renderedContent }}</pre>
         </div>
       </div>
-    </el-dialog>
+    </ScDialog>
   </div>
 </template>
 

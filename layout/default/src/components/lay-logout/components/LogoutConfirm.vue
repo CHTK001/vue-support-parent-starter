@@ -10,6 +10,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStoreHook } from '@/store/modules/user'
 import { useGlobal } from '@pureadmin/utils'
+import { ScDialog } from '@repo/components'
 
 interface LogoutConfirmProps {
   visible?: boolean
@@ -96,13 +97,14 @@ const handleKeydown = (e: KeyboardEvent) => {
 </script>
 
 <template>
-  <el-dialog
+  <ScDialog
     v-model="dialogVisible"
     :title="title"
     width="420px"
     :close-on-click-modal="false"
     :close-on-press-escape="true"
     class="logout-confirm-dialog"
+    layout="default"
     @keydown="handleKeydown"
   >
     <!-- 图标 + 消息 -->
@@ -147,7 +149,7 @@ const handleKeydown = (e: KeyboardEvent) => {
         </ScButton>
       </div>
     </template>
-  </el-dialog>
+  </ScDialog>
 </template>
 
 <style lang="scss" scoped>

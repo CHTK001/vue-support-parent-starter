@@ -7,15 +7,15 @@
         <el-breadcrumb-item>房间管理</el-breadcrumb-item>
       </el-breadcrumb>
       <div class="header-actions">
-        <el-button type="primary" @click="showCreateDialog = true">
+        <ScButton type="primary" @click="showCreateDialog = true">
           <el-icon><Plus /></el-icon>
           创建房间
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
     <!-- 搜索筛选 -->
-    <el-card class="search-card" shadow="never">
+    <ScCard class="search-card" shadow="never">
       <el-form :model="searchForm" inline>
         <el-form-item label="房间名称">
           <el-input
@@ -26,32 +26,32 @@
           />
         </el-form-item>
         <el-form-item label="房间类型">
-          <el-select v-model="searchForm.roomType" placeholder="请选择房间类型" clearable style="width: 150px">
-            <el-option label="视频通话" value="video_call" />
-            <el-option label="视频会议" value="video_conference" />
-          </el-select>
+          <ScSelect v-model="searchForm.roomType" placeholder="请选择房间类型" clearable style="width: 150px">
+            <ScOption label="视频通话" value="video_call" />
+            <ScOption label="视频会议" value="video_conference" />
+          </ScSelect>
         </el-form-item>
         <el-form-item label="房间状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px">
-            <el-option label="活跃" value="active" />
-            <el-option label="非活跃" value="inactive" />
-          </el-select>
+          <ScSelect v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 120px">
+            <ScOption label="活跃" value="active" />
+            <ScOption label="非活跃" value="inactive" />
+          </ScSelect>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">
+          <ScButton type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>
             搜索
-          </el-button>
-          <el-button @click="handleReset">
+          </ScButton>
+          <ScButton @click="handleReset">
             <el-icon><Refresh /></el-icon>
             重置
-          </el-button>
+          </ScButton>
         </el-form-item>
       </el-form>
-    </el-card>
+    </ScCard>
 
     <!-- 房间列表 -->
-    <el-card class="table-card" shadow="never">
+    <ScCard class="table-card" shadow="never">
       <el-table
         v-loading="loading"
         :data="roomList"
@@ -88,16 +88,16 @@
         <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="joinRoom(row)">
+            <ScButton type="primary" size="small" @click="joinRoom(row)">
               加入
-            </el-button>
-            <el-button type="info" size="small" @click="viewRoomDetail(row)">
+            </ScButton>
+            <ScButton type="info" size="small" @click="viewRoomDetail(row)">
               详情
-            </el-button>
+            </ScButton>
             <el-dropdown @command="(command) => handleCommand(command, row)">
-              <el-button type="primary" size="small">
+              <ScButton type="primary" size="small">
                 更多<el-icon class="el-icon--right"><arrow-down /></el-icon>
-              </el-button>
+              </ScButton>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="edit">编辑</el-dropdown-item>
@@ -122,7 +122,7 @@
           @current-change="handleCurrentChange"
         />
       </div>
-    </el-card>
+    </ScCard>
 
     <!-- 创建房间对话框 -->
     <sc-dialog
@@ -172,10 +172,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleCreateRoom" :loading="createLoading">
+        <ScButton @click="showCreateDialog = false">取消</ScButton>
+        <ScButton type="primary" @click="handleCreateRoom" :loading="createLoading">
           创建
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
 
@@ -199,10 +199,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showJoinDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleJoinRoom" :loading="joinLoading">
+        <ScButton @click="showJoinDialog = false">取消</ScButton>
+        <ScButton type="primary" @click="handleJoinRoom" :loading="joinLoading">
           加入
-        </el-button>
+        </ScButton>
       </template>
     </sc-dialog>
   </div>

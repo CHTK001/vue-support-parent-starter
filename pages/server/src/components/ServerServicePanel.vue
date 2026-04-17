@@ -25,12 +25,12 @@
           {{ issueCount }} 关注中
         </ScTag>
         <el-tooltip content="新增服务" placement="top">
-          <el-button circle plain aria-label="新增服务" @click="emit('create')">
+          <ScButton circle plain aria-label="新增服务" @click="emit('create')">
             <IconifyIconOnline icon="ri:add-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
         <el-tooltip v-if="canAutoDetect" content="自动检测服务" placement="top">
-          <el-button
+          <ScButton
             circle
             plain
             aria-label="自动检测服务"
@@ -38,7 +38,7 @@
             @click="emit('detect')"
           >
             <IconifyIconOnline icon="ri:radar-line" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
     </header>
@@ -150,32 +150,32 @@
 
           <div class="server-service-panel__actions">
             <el-tooltip content="查看启动日志">
-              <el-button circle plain @click.stop="emit('logs', item)">
+              <ScButton circle plain @click.stop="emit('logs', item)">
                 <IconifyIconOnline icon="ri:file-list-3-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="编辑服务配置">
-              <el-button circle plain @click.stop="emit('edit', item)">
+              <ScButton circle plain @click.stop="emit('edit', item)">
                 <IconifyIconOnline icon="ri:settings-4-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="查看详情">
-              <el-button circle plain @click.stop="emit('detail', item)">
+              <ScButton circle plain @click.stop="emit('detail', item)">
                 <IconifyIconOnline icon="ri:article-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="状态检查">
-              <el-button
+              <ScButton
                 circle
                 plain
                 :loading="isActionLoading(item, 'status')"
                 @click.stop="emit('action', item, 'status')"
               >
                 <IconifyIconOnline icon="ri:pulse-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip :content="isRunning(item) ? '停止服务' : '启动服务'">
-              <el-button
+              <ScButton
                 circle
                 plain
                 :type="isRunning(item) ? 'danger' : 'success'"
@@ -193,17 +193,17 @@
                       : 'ri:play-circle-line'
                   "
                 />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip content="重启服务">
-              <el-button
+              <ScButton
                 circle
                 plain
                 :loading="isActionLoading(item, 'restart')"
                 @click.stop="emit('action', item, 'restart')"
               >
                 <IconifyIconOnline icon="ri:restart-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip
               v-if="showAiFailure(item)"
@@ -213,7 +213,7 @@
                   : aiUnavailableReason || 'AI 能力未激活'
               "
             >
-              <el-button
+              <ScButton
                 circle
                 type="warning"
                 plain
@@ -222,26 +222,26 @@
                 @click.stop="emit('ai-fix', item)"
               >
                 <IconifyIconOnline icon="ri:magic-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip
               v-if="Boolean(item.registerScript?.trim())"
               content="注册服务"
             >
-              <el-button
+              <ScButton
                 circle
                 plain
                 :loading="isActionLoading(item, 'register')"
                 @click.stop="emit('action', item, 'register')"
               >
                 <IconifyIconOnline icon="ri:shield-check-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
             <el-tooltip
               v-if="Boolean(item.unregisterScript?.trim())"
               content="取消注册"
             >
-              <el-button
+              <ScButton
                 circle
                 plain
                 type="warning"
@@ -249,7 +249,7 @@
                 @click.stop="emit('action', item, 'unregister')"
               >
                 <IconifyIconOnline icon="ri:shield-cross-line" />
-              </el-button>
+              </ScButton>
             </el-tooltip>
           </div>
         </section>

@@ -7,16 +7,16 @@
       </div>
       <div class="payment-surface__actions">
         <el-tooltip content="刷新">
-          <el-button circle :icon="RefreshRight" @click="reloadAll" />
+          <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
         <el-tooltip content="充值订单">
-          <el-button circle :icon="WalletFilled" @click="openCreateDialog('RECHARGE')" />
+          <ScButton circle :icon="WalletFilled" @click="openCreateDialog('RECHARGE')" />
         </el-tooltip>
         <el-tooltip content="转账订单">
-          <el-button circle :icon="Switch" @click="openCreateDialog('TRANSFER')" />
+          <ScButton circle :icon="Switch" @click="openCreateDialog('TRANSFER')" />
         </el-tooltip>
         <el-tooltip content="提现订单">
-          <el-button circle type="primary" :icon="CreditCard" @click="openCreateDialog('WITHDRAW')" />
+          <ScButton circle type="primary" :icon="CreditCard" @click="openCreateDialog('WITHDRAW')" />
         </el-tooltip>
       </div>
     </header>
@@ -42,18 +42,18 @@
     <section class="payment-toolbar">
       <div class="payment-toolbar__row">
         <div class="payment-toolbar__form">
-          <el-select v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </el-select>
+          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+          </ScSelect>
           <el-input-number v-model="queryForm.userId" :min="1" :precision="0" placeholder="用户ID" />
-          <el-select v-model="queryForm.orderType" clearable placeholder="业务类型" style="width: 180px">
-            <el-option v-for="(label, value) in WalletOrderTypeMap" :key="value" :label="label" :value="value" />
-          </el-select>
-          <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <el-option v-for="(label, value) in WalletOrderStatusMap" :key="value" :label="label" :value="value" />
-          </el-select>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <ScSelect v-model="queryForm.orderType" clearable placeholder="业务类型" style="width: 180px">
+            <ScOption v-for="(label, value) in WalletOrderTypeMap" :key="value" :label="label" :value="value" />
+          </ScSelect>
+          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+            <ScOption v-for="(label, value) in WalletOrderStatusMap" :key="value" :label="label" :value="value" />
+          </ScSelect>
+          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleReset">重置</ScButton>
         </div>
       </div>
     </section>
@@ -120,28 +120,28 @@
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <div class="wallet-order-actions">
-              <el-button
+              <ScButton
                 v-if="row.status === 'PENDING' || row.status === 'PROCESSING'"
                 link
                 type="warning"
                 @click="handleSimulateNotify(row, 'PROCESSING')"
               >
                 模拟处理中
-              </el-button>
-              <el-button v-if="row.status !== 'SUCCESS'" link type="success" @click="handleSimulateNotify(row, 'SUCCESS')">
+              </ScButton>
+              <ScButton v-if="row.status !== 'SUCCESS'" link type="success" @click="handleSimulateNotify(row, 'SUCCESS')">
                 模拟成功
-              </el-button>
-              <el-button v-if="row.status !== 'FAILED'" link type="danger" @click="handleSimulateNotify(row, 'FAILED')">
+              </ScButton>
+              <ScButton v-if="row.status !== 'FAILED'" link type="danger" @click="handleSimulateNotify(row, 'FAILED')">
                 模拟失败
-              </el-button>
-              <el-button link type="primary" @click="showDetail(row)">详情</el-button>
+              </ScButton>
+              <ScButton link type="primary" @click="showDetail(row)">详情</ScButton>
             </div>
           </template>
         </el-table-column>
       </ScTable>
     </section>
 
-    <el-dialog v-model="createDialogVisible" :title="dialogTitle" width="920px" destroy-on-close>
+    <ScDialog v-model="createDialogVisible" :title="dialogTitle" width="920px" destroy-on-close layout="simple">
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -171,9 +171,9 @@
           <el-form label-width="112px">
             <div class="payment-form-grid">
               <el-form-item label="商户" required>
-                <el-select v-model="createForm.merchantId" placeholder="请选择商户">
-                  <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-                </el-select>
+                <ScSelect v-model="createForm.merchantId" placeholder="请选择商户">
+                  <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+                </ScSelect>
               </el-form-item>
               <el-form-item :label="numberFieldLabel">
                 <el-input v-model="createForm.orderNo" :placeholder="numberFieldPlaceholder" />
@@ -244,13 +244,13 @@
 
       <template #footer>
         <div class="payment-dialog-footer">
-          <el-button @click="createDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="submitting" @click="submitCreate">创建</el-button>
+          <ScButton @click="createDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="submitting" @click="submitCreate">创建</ScButton>
         </div>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="detailVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 钱包订单详情` : '钱包订单详情'">
+    <ScDrawer v-model="detailVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 钱包订单详情` : '钱包订单详情'" layout="simple">
       <template v-if="currentOrder">
         <div class="payment-dialog-shell">
           <div class="payment-status-strip">
@@ -342,11 +342,12 @@
           </section>
         </div>
       </template>
-    </el-drawer>
+    </ScDrawer>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { CreditCard, RefreshRight, Search, Switch, WalletFilled } from "@element-plus/icons-vue";

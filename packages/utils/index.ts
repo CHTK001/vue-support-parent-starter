@@ -37,6 +37,7 @@ export * from "./src/zipdownload";
 export * from "./src/globalPolyfills";
 export * from "./src/session";
 export * from "./src/page-behavior";
+export * from "./src/sc-param";
 export * from "./src/performance";
 export * from "./src/time/clock";
 export type * from "./src/face";

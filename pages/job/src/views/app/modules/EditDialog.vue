@@ -22,10 +22,10 @@
     </el-form>
 
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" :loading="submitting" @click="handleSubmit">
+      <ScButton @click="handleClose">取消</ScButton>
+      <ScButton type="primary" :loading="submitting" @click="handleSubmit">
         保存
-      </el-button>
+      </ScButton>
     </template>
   </sc-dialog>
 </template>

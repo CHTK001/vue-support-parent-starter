@@ -3,6 +3,7 @@ import { ScAvatar } from "@repo/components/ScAvatar";
 import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 
 import { getMine, useUserStore } from "@repo/core";
+import { getConfig } from "@repo/config";
 import { deviceDetection, useGlobal } from "@pureadmin/utils";
 import { computed, onBeforeMount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
@@ -64,40 +65,91 @@ interface GroupItem {
   component: any;
 }
 
-const groups: Group[] = [
-  {
-    name: t("buttons.base") || "基本信息",
-    panel: [
-      { key: "profile", label: t("buttons.profile") || "个人信息", icon: ProfileIcon, component: Profile },
-      { key: "AccountManagement", label: t("buttons.AccountManagement") || "账号管理", icon: AccountManagementIcon, component: AccountManagement },
-      { key: "bind", label: t("buttons.thirdparty") || "三方管理", icon: UnLock, component: ThirdParty },
-    ],
-  },
-  {
-    name: t("buttons.dataManage") || "数据管理",
-    panel: [
-      { key: "securityLog", label: t("buttons.securityLog") || "安全日志", icon: SecurityLogIcon, component: SecurityLog },
-    ],
-  },
-  {
-    name: t("buttons.security") || "安全管理",
-    panel: [
-      { key: "password", label: t("buttons.password") || "密码管理", icon: Lock, component: Password },
-      { key: "totp", label: t("buttons.totp") || "双因素认证", icon: Lock, component: Totp },
-    ],
-  },
-  {
-    name: t("buttons.support") || "服务支持",
-    panel: [
-      { key: "agreement", label: t("buttons.userAgreement") || "用户协议", icon: UnLock, component: UserAgreement },
-      { key: "helpFeedback", label: t("buttons.helpFeedback") || "帮助与反馈", icon: SecurityLogIcon, component: HelpFeedback },
-    ],
-  },
-];
+const showHelpFeedbackEntry = computed(
+  () => getConfig("BusinessEntry.helpFeedback") !== false,
+);
+
+const groups = computed<Group[]>(() => {
+  const supportPanel: GroupItem[] = [
+    {
+      key: "agreement",
+      label: t("buttons.userAgreement") || "用户协议",
+      icon: UnLock,
+      component: UserAgreement,
+    },
+  ];
+
+  if (showHelpFeedbackEntry.value) {
+    supportPanel.push({
+      key: "helpFeedback",
+      label: t("buttons.helpFeedback") || "帮助与反馈",
+      icon: SecurityLogIcon,
+      component: HelpFeedback,
+    });
+  }
+
+  return [
+    {
+      name: t("buttons.base") || "基本信息",
+      panel: [
+        {
+          key: "profile",
+          label: t("buttons.profile") || "个人信息",
+          icon: ProfileIcon,
+          component: Profile,
+        },
+        {
+          key: "AccountManagement",
+          label: t("buttons.AccountManagement") || "账号管理",
+          icon: AccountManagementIcon,
+          component: AccountManagement,
+        },
+        {
+          key: "bind",
+          label: t("buttons.thirdparty") || "三方管理",
+          icon: UnLock,
+          component: ThirdParty,
+        },
+      ],
+    },
+    {
+      name: t("buttons.dataManage") || "数据管理",
+      panel: [
+        {
+          key: "securityLog",
+          label: t("buttons.securityLog") || "安全日志",
+          icon: SecurityLogIcon,
+          component: SecurityLog,
+        },
+      ],
+    },
+    {
+      name: t("buttons.security") || "安全管理",
+      panel: [
+        {
+          key: "password",
+          label: t("buttons.password") || "密码管理",
+          icon: Lock,
+          component: Password,
+        },
+        {
+          key: "totp",
+          label: t("buttons.totp") || "双因素认证",
+          icon: Lock,
+          component: Totp,
+        },
+      ],
+    },
+    {
+      name: t("buttons.support") || "服务支持",
+      panel: supportPanel,
+    },
+  ].filter((group) => group.panel.length > 0);
+});
 
 const witchPane = ref("profile");
 const paneKeys = computed(() =>
-  groups.flatMap((group) => group.panel.map((item) => item.key)),
+  groups.value.flatMap((group) => group.panel.map((item) => item.key)),
 );
 
 const syncPaneFromRoute = () => {
@@ -130,7 +182,7 @@ const onUpdated = (data) => {
 };
 
 const findComponent = () => {
-  return groups
+  return groups.value
     .find((g) => g.panel.some((i) => i.key === witchPane.value))
     ?.panel.find((i) => i.key === witchPane.value)?.component;
 };
@@ -146,7 +198,11 @@ watch(
   <div class="account-page">
     <div class="account-layout">
       <!-- 左侧边栏 -->
-      <aside class="sidebar" v-if="isOpen" :width="isMobile ? '240px' : '260px'">
+      <aside
+        v-if="isOpen"
+        class="sidebar"
+        :width="isMobile ? '240px' : '260px'"
+      >
         <div class="sidebar-header">
           <button class="back-btn" @click="router.go(-1)">
             <IconifyIconOffline :icon="leftLine" />
@@ -157,7 +213,7 @@ watch(
         <div class="user-card">
           <div class="avatar-wrap">
             <ScAvatar :size="60" :src="userInfo.avatar" />
-            <span class="online-dot"></span>
+            <span class="online-dot" />
           </div>
           <div class="info">
             <h3 class="nickname">{{ userInfo.sysUserNickname }}</h3>

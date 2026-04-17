@@ -27,7 +27,7 @@
       accept="image/*"
       class="image-upload"
     >
-      <el-button size="small" type="primary">上传新图像</el-button>
+      <ScButton size="small" type="primary">上传新图像</ScButton>
       <template #tip>
         <div class="upload-tip">支持 JPG、PNG、GIF、WebP 格式</div>
       </template>
@@ -35,7 +35,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'

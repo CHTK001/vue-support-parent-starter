@@ -27,10 +27,10 @@
     <el-main>
       <div class="toolbar">
         <h2>草稿箱</h2>
-        <el-button type="primary" @click="refreshDrafts">
+        <ScButton type="primary" @click="refreshDrafts">
           <el-icon><Refresh /></el-icon>
           刷新
-        </el-button>
+        </ScButton>
       </div>
       <el-table
         v-loading="loading"
@@ -55,16 +55,16 @@
         </el-table-column>
         <el-table-column label="操作" width="150">
           <template #default="scope">
-            <el-button size="small" @click.stop="editDraft(scope.row)">
+            <ScButton size="small" @click.stop="editDraft(scope.row)">
               编辑
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="danger"
               @click.stop="deleteDraft(scope.row)"
             >
               删除
-            </el-button>
+            </ScButton>
           </template>
         </el-table-column>
       </el-table>

@@ -25,10 +25,10 @@
       </header>
 
       <div class="server-service-log-drawer__toolbar">
-        <el-button v-if="service?.serverServiceId" plain @click="$emit('refresh')">
+        <ScButton v-if="service?.serverServiceId" plain @click="$emit('refresh')">
           <IconifyIconOnline icon="ri:refresh-line" />
           <span>刷新日志</span>
-        </el-button>
+        </ScButton>
       </div>
 
       <div v-if="cards.length" class="server-service-log-drawer__list thin-scroller">

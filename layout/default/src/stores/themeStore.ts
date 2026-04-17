@@ -36,14 +36,14 @@ export const useThemeStore = defineStore("theme", () => {
 
   function markThemeSwitching(): void {
     const htmlEl = document.documentElement;
-    htmlEl.classList.add("theme-switching");
+    htmlEl.classList.add("theme-switching", "skin-switching");
 
     if (themeSwitchingClearTimer) {
       clearTimeout(themeSwitchingClearTimer);
     }
 
     themeSwitchingClearTimer = setTimeout(() => {
-      htmlEl.classList.remove("theme-switching");
+      htmlEl.classList.remove("theme-switching", "skin-switching");
       themeSwitchingClearTimer = null;
     }, 160);
   }
@@ -362,13 +362,30 @@ export const useThemeStore = defineStore("theme", () => {
    */
   function updateThemeClass(themeKey: ThemeKey): void {
     const htmlEl = document.documentElement;
+    const nextThemeClass = `theme-${themeKey}`;
+
+    // 只替换当前激活的 theme-* 类，避免每次切换都做整组 class 移除引发额外样式重算。
+    const activeThemeClasses = Array.from(htmlEl.classList).filter((cls) =>
+      cls.startsWith("theme-") && cls !== "theme-switching",
+    );
+
+    if (
+      activeThemeClasses.length === 1 &&
+      activeThemeClasses[0] === nextThemeClass
+    ) {
+      return;
+    }
+
+    if (activeThemeClasses.length === 1) {
+      htmlEl.classList.replace(activeThemeClasses[0], nextThemeClass);
+      return;
+    }
 
     // 移除所有主题类
     const themeClasses = [
       "theme-default",
       "theme-christmas",
       "theme-spring-festival",
-      "theme-valentines-day",
       "theme-mid-autumn",
       "theme-national-day",
       "theme-new-year",
@@ -380,7 +397,7 @@ export const useThemeStore = defineStore("theme", () => {
     themeClasses.forEach((cls) => htmlEl.classList.remove(cls));
 
     // 添加新主题类
-    htmlEl.classList.add(`theme-${themeKey}`);
+    htmlEl.classList.add(nextThemeClass);
   }
 
   /**

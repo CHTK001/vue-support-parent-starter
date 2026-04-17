@@ -932,7 +932,7 @@ onBeforeUnmount(() => {
             <!-- 登录按钮 -->
             <Motion :delay="250">
               <div class="login-button-wrapper">
-                <el-button
+                <ScButton
                   v-if="props.defaultSetting.OpenVerifyCode"
                   class="modern-login-button"
                   size="large"
@@ -942,8 +942,8 @@ onBeforeUnmount(() => {
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>登录中...</span>
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-else-if="props.defaultSetting.OpenVcode"
                   class="modern-login-button"
                   size="large"
@@ -953,8 +953,8 @@ onBeforeUnmount(() => {
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>验证中...</span>
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-else-if="props.defaultSetting.CheckTotpOpen"
                   class="modern-login-button"
                   size="large"
@@ -964,8 +964,8 @@ onBeforeUnmount(() => {
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>验证中...</span>
-                </el-button>
-                <el-button
+                </ScButton>
+                <ScButton
                   v-else
                   class="modern-login-button"
                   size="large"
@@ -975,7 +975,7 @@ onBeforeUnmount(() => {
                 >
                   <span v-if="!loading">{{ t("login.pureLogin") }}</span>
                   <span v-else>登录中...</span>
-                </el-button>
+                </ScButton>
               </div>
             </Motion>
           </el-form>

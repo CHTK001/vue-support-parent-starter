@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import "../modules/theme.scss";
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { getConfig } from "@repo/config";
@@ -399,21 +399,21 @@ onUnmounted(() => {
             </div>
           </div>
           <div v-if="hasLayout" class="header-actions">
-            <el-button
+            <ScButton
               v-if="customizing.customizing"
               type="primary"
               :icon="useRenderIcon('ep:check')"
               round
               @click="handleUpdate"
-              >{{ $t("buttons.finish") }}</el-button
+              >{{ $t("buttons.finish") }}</ScButton
             >
-            <el-button
+            <ScButton
               v-else
               type="primary"
               :icon="useRenderIcon('ep:edit')"
               round
               @click="handeCustom"
-              >{{ $t("buttons.custom") }}</el-button
+              >{{ $t("buttons.custom") }}</ScButton
             >
           </div>
         </div>
@@ -455,7 +455,7 @@ onUnmounted(() => {
               </div>
               <div class="empty-title">开始自定义您的仪表板</div>
               <div class="empty-desc">点击右上角「自定义」按钮添加部件</div>
-              <el-button
+              <ScButton
                 type="primary"
                 round
                 class="empty-action"
@@ -465,7 +465,7 @@ onUnmounted(() => {
                   <component :is="useRenderIcon('ep:plus')" />
                 </el-icon>
                 添加部件
-              </el-button>
+              </ScButton>
             </div>
             <div
               v-else-if="!widgetsReady"
@@ -560,9 +560,9 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="widget-card-action">
-            <el-button type="primary" circle size="small">
+            <ScButton type="primary" circle size="small">
               <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
-            </el-button>
+            </ScButton>
           </div>
         </div>
       </div>
@@ -574,12 +574,12 @@ onUnmounted(() => {
             >显示头部信息</el-checkbox
           >
         </div>
-        <el-button size="small" @click="backDefault()">
+        <ScButton size="small" @click="backDefault()">
           <el-icon class="mr-1"
             ><component :is="useRenderIcon('ep:refresh')"
           /></el-icon>
           {{ $t("buttons.default") }}
-        </el-button>
+        </ScButton>
       </div>
     </div>
   </div>

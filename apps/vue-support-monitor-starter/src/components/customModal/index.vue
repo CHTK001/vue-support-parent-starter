@@ -9,7 +9,7 @@
     </template>
   </a-modal>
 </template>
-<script lang="ts">
+<script setup lang="ts">
 import { modalProps } from "ant-design-vue/es/modal/Modal";
 import { initDefaultProps } from "ant-design-vue/es/_util/props-util";
 import { CustomSlotsType } from "ant-design-vue/es/_util/type";

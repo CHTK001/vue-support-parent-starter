@@ -1,12 +1,12 @@
 <template>
-  <el-dialog
+  <ScDialog
     v-model="visible"
     destroy-on-close
     :title="metricMeta.title"
     width="92%"
     class="server-metric-detail-dialog"
     @close="emit('update:modelValue', false)"
-  >
+   layout="simple">
     <header class="server-metric-detail-dialog__header">
       <div>
         <div class="server-metric-detail-dialog__title-row">
@@ -21,28 +21,28 @@
         <p>{{ host?.serverName || "服务器" }} · {{ metricMeta.description }}</p>
       </div>
       <div class="server-metric-detail-dialog__filters">
-        <el-select
+        <ScSelect
           v-model="historyRange"
           size="small"
           class="server-metric-detail-dialog__control server-metric-detail-dialog__control--select"
         >
-          <el-option
+          <ScOption
             v-for="option in rangeOptions"
             :key="option.value"
             :label="option.label"
             :value="option.value"
           />
-        </el-select>
-        <el-select
+        </ScSelect>
+        <ScSelect
           v-model="historyStateFilter"
           size="small"
           class="server-metric-detail-dialog__control server-metric-detail-dialog__control--select"
         >
-          <el-option label="全部状态" value="all" />
-          <el-option label="正常" value="normal" />
-          <el-option label="预警" value="warning" />
-          <el-option label="危险" value="danger" />
-        </el-select>
+          <ScOption label="全部状态" value="all" />
+          <ScOption label="正常" value="normal" />
+          <ScOption label="预警" value="warning" />
+          <ScOption label="危险" value="danger" />
+        </ScSelect>
         <el-date-picker
           v-model="historyDateRange"
           type="datetimerange"
@@ -61,7 +61,7 @@
               : aiUnavailableReason || 'AI 能力未激活'
           "
         >
-          <el-button
+          <ScButton
             circle
             plain
             :loading="currentAiAnalyzing"
@@ -69,7 +69,7 @@
             @click="emitAnalyzeHistory"
           >
             <IconifyIconOnline icon="ri:ai-generate-2" />
-          </el-button>
+          </ScButton>
         </el-tooltip>
       </div>
     </header>
@@ -398,10 +398,11 @@
         </ScCard>
       </div>
     </div>
-  </el-dialog>
+  </ScDialog>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">
+
 import { computed, ref, watch } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
@@ -1141,12 +1142,41 @@ function formatDateTime(
 
 <style scoped>
 .server-metric-detail-dialog :deep(.el-dialog) {
-  border-radius: 28px;
+  border-radius: 32px;
   overflow: hidden;
+  box-shadow:
+    0 48px 96px rgba(15, 23, 42, 0.16),
+    0 24px 48px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.98) 100%
+  );
 }
+
+/* 玻璃拟态效果 */
+.server-metric-detail-dialog :deep(.el-dialog)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
 .server-metric-detail-dialog :deep(.el-dialog__body) {
   padding-top: 0;
-  max-height: calc(98vh - 104px);
+  max-height: calc(96vh - 104px);
+  top: 2vh;
   overflow: auto;
 }
 .server-metric-detail-dialog__header,
@@ -1167,20 +1197,35 @@ function formatDateTime(
   justify-content: space-between;
 }
 .server-metric-detail-dialog__header {
+  position: relative;
   gap: 16px;
   align-items: flex-start;
   flex-wrap: wrap;
-  padding: 20px 22px;
-  min-height: 108px;
-  border-radius: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 24px 26px;
+  min-height: 112px;
+  border-radius: 32px 32px 0 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 24%),
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+    radial-gradient(ellipse 80% 60% at 95% 5%, rgba(14, 165, 233, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, rgba(245, 158, 11, 0.08), transparent 50%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 28%),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.15), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96));
   box-shadow:
-    0 20px 36px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 24px 56px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+
+.server-metric-detail-dialog__header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #14b8a6, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+  border-radius: 32px 32px 0 0;
 }
 .server-metric-detail-dialog__title-row {
   gap: 10px;
@@ -1221,24 +1266,51 @@ function formatDateTime(
 .server-metric-detail-dialog__chart-panel,
 .server-metric-detail-dialog__panel,
 .server-metric-detail-dialog__ai-panel {
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 76%, transparent);
-  border-radius: 26px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  border-radius: 28px;
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 22%),
+    radial-gradient(ellipse 80% 50% at 95% 5%, rgba(14, 165, 233, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, rgba(245, 158, 11, 0.08), transparent 50%),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 24%),
     radial-gradient(
       circle at top left,
-      color-mix(in srgb, var(--el-color-primary) 10%, transparent),
-      transparent 58%
+      color-mix(in srgb, var(--el-color-primary) 12%, transparent),
+      transparent 60%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--el-bg-color-overlay) 98%, white) 0%,
+      color-mix(in srgb, var(--el-bg-color-overlay) 99%, white) 0%,
       var(--el-bg-color-overlay) 100%
     );
   box-shadow:
-    0 20px 48px rgba(15, 23, 42, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    0 24px 56px rgba(15, 23, 42, 0.08),
+    0 8px 16px rgba(15, 23, 42, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
 }
+
+/* 玻璃拟态光泽效果 */
+.server-metric-detail-dialog__hero::after,
+.server-metric-detail-dialog__chart-panel::after,
+.server-metric-detail-dialog__panel::after,
+.server-metric-detail-dialog__ai-panel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
 .server-metric-detail-dialog__hero {
   gap: 16px;
   padding: 18px 20px;
@@ -1250,6 +1322,17 @@ function formatDateTime(
   gap: 6px;
   position: relative;
   z-index: 2;
+  padding: 16px 20px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(248, 250, 252, 0.85) 100%
+  );
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 .server-metric-detail-dialog__value-card small,
 .server-metric-detail-dialog__thresholds span,
@@ -1262,7 +1345,16 @@ function formatDateTime(
 .server-metric-detail-dialog__value-card strong {
   font-size: 32px;
   line-height: 1;
-  color: #0f172a;
+  background: linear-gradient(
+    135deg,
+    #0f172a 0%,
+    #1e293b 50%,
+    #334155 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.1));
 }
 .server-metric-detail-dialog__chips {
   flex-wrap: wrap;
@@ -1432,12 +1524,43 @@ function formatDateTime(
   gap: 14px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(148, 163, 184, 0.18);
-  transition: background 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
 }
+
+/* 列表项光泽效果 */
+.server-metric-detail-dialog__list-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.9) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 .server-metric-detail-dialog__list-item:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(148, 163, 184, 0.28);
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.1),
+    0 4px 8px rgba(15, 23, 42, 0.05);
+}
+
+.server-metric-detail-dialog__list-item:hover::before {
+  opacity: 1;
 }
 .server-metric-detail-dialog__list-info {
   flex: 1;

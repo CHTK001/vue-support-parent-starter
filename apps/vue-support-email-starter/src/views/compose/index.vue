@@ -4,14 +4,14 @@
       <h2>写邮件</h2>
       <el-form :model="form" label-width="80px" :rules="rules" ref="formRef">
         <el-form-item label="发件账户" prop="accountId">
-          <el-select v-model="form.accountId" placeholder="选择发件账户">
-            <el-option
+          <ScSelect v-model="form.accountId" placeholder="选择发件账户">
+            <ScOption
               v-for="account in accounts"
               :key="account.id"
               :label="account.displayName || account.emailAddress"
               :value="account.id"
             />
-          </el-select>
+          </ScSelect>
         </el-form-item>
         <el-form-item label="收件人" prop="to">
           <el-input
@@ -42,10 +42,10 @@
             :file-list="fileList"
             multiple
           >
-            <el-button>
+            <ScButton>
               <el-icon><Paperclip /></el-icon>
               选择文件
-            </el-button>
+            </ScButton>
             <template #tip>
               <div class="el-upload__tip">
                 支持多个文件，单个文件不超过 10MB
@@ -54,11 +54,11 @@
           </el-upload>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="sendEmail" :loading="sending">
+          <ScButton type="primary" @click="sendEmail" :loading="sending">
             发送
-          </el-button>
-          <el-button @click="saveDraft">保存草稿</el-button>
-          <el-button @click="cancel">取消</el-button>
+          </ScButton>
+          <ScButton @click="saveDraft">保存草稿</ScButton>
+          <ScButton @click="cancel">取消</ScButton>
         </el-form-item>
       </el-form>
     </el-main>

@@ -1,27 +1,27 @@
 <template>
   <div class="email-detail">
     <div class="detail-header">
-      <el-button @click="goBack" type="text">
+      <ScButton @click="goBack" type="text">
         <el-icon><ArrowLeft /></el-icon>
         返回
-      </el-button>
+      </ScButton>
       <div class="actions">
-        <el-button @click="reply">
+        <ScButton @click="reply">
           <el-icon><Back /></el-icon>
           回复
-        </el-button>
-        <el-button @click="forward">
+        </ScButton>
+        <ScButton @click="forward">
           <el-icon><Right /></el-icon>
           转发
-        </el-button>
-        <el-button type="danger" @click="deleteEmail">
+        </ScButton>
+        <ScButton type="danger" @click="deleteEmail">
           <el-icon><Delete /></el-icon>
           删除
-        </el-button>
+        </ScButton>
       </div>
     </div>
 
-    <el-card v-loading="loading" class="detail-card">
+    <ScCard v-loading="loading" class="detail-card">
       <template #header>
         <div class="card-header">
           <h2>{{ email.subject }}</h2>
@@ -68,7 +68,7 @@
           附件 ({{ attachments.length }})
         </h3>
         <div class="attachment-list">
-          <el-card
+          <ScCard
             v-for="(attachment, index) in attachments"
             :key="index"
             class="attachment-item"
@@ -83,14 +83,14 @@
                 </div>
               </div>
             </div>
-            <el-button size="small" @click="downloadAttachment(attachment)">
+            <ScButton size="small" @click="downloadAttachment(attachment)">
               <el-icon><Download /></el-icon>
               下载
-            </el-button>
-          </el-card>
+            </ScButton>
+          </ScCard>
         </div>
       </div>
-    </el-card>
+    </ScCard>
   </div>
 </template>
 

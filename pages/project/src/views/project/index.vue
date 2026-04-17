@@ -1,5 +1,5 @@
 <template>
-  <div class="project-workspace system-container modern-bg">
+  <div class="project-workspace system-container modern-bg" @contextmenu.prevent="handleContextMenu">
     <div class="modern-workspace">
       <div class="project-dashboard">
         <el-container class="dashboard-container">
@@ -125,7 +125,7 @@
                       </template>
                     </div>
                     <div class="more" @click.stop>
-                      <el-button-group
+                      <ScButton-group
                         v-if="row?.sysProjectFunction"
                         class="ml-[1px] z-[100]"
                       >
@@ -210,6 +210,7 @@
     </div>
     <SaveDialog
       ref="saveDialogRef"
+      :connection-id="currentConnectionId"
       class="modern-dialog"
       @success="handleRefresh"
     />
@@ -218,14 +219,16 @@
       class="modern-dialog"
       @success="handleRefresh"
     />
+    <ProjectContextMenu ref="contextMenuRef" @create="handleCreateFromContextMenu" />
   </div>
 </template>
 
-<script setup>
+>
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, message, stringSplitToNumber, useDefer } from "@repo/utils";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import ProjectContextMenu from "../../components/ProjectContextMenu.vue";
 import {
   fetchDeleteProject,
   fetchPageProject,
@@ -242,8 +245,10 @@ let dictItem = [];
 let functionList = [];
 let functionMap = {};
 const saveDialogRef = ref();
+const currentConnectionId = ref("");
 const tableRef = ref();
 const defaultSettingRef = ref();
+const contextMenuRef = ref();
 
 // 项目统计数据
 const projectStats = reactive({
@@ -730,6 +735,16 @@ const handleRefresh = async () => {
 
 const handleRowClick = async (data) => {
   handleSave("edit", data);
+};
+
+const handleContextMenu = (event: MouseEvent) => {
+  contextMenuRef.value?.open(event);
+};
+
+const handleCreateFromContextMenu = () => {
+  saveDialogRef.value?.handleDictItem(dictItem);
+  saveDialogRef.value?.handleFunction(functionList);
+  saveDialogRef.value?.handleOpen("add");
 };
 
 onMounted(async () => {

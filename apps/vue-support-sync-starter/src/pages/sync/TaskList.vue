@@ -1,10 +1,10 @@
 <template>
   <div class="task-list-container">
-    <el-card>
+    <ScCard>
       <template #header>
         <div class="header-actions">
           <h3>同步任务列表</h3>
-          <el-button type="primary" @click="handleCreate">创建任务</el-button>
+          <ScButton type="primary" @click="handleCreate">创建任务</ScButton>
         </div>
       </template>
 
@@ -17,19 +17,19 @@
           @clear="handleSearch"
           @keyup.enter="handleSearch"
         />
-        <el-select
+        <ScSelect
           v-model="query.taskStatus"
           placeholder="任务状态"
           clearable
           style="width: 150px; margin-right: 10px"
           @change="handleSearch"
         >
-          <el-option label="运行中" value="RUNNING" />
-          <el-option label="已停止" value="STOPPED" />
-          <el-option label="异常" value="ERROR" />
-        </el-select>
-        <el-button type="primary" @click="handleSearch">搜索</el-button>
-        <el-button @click="handleReset">重置</el-button>
+          <ScOption label="运行中" value="RUNNING" />
+          <ScOption label="已停止" value="STOPPED" />
+          <ScOption label="异常" value="ERROR" />
+        </ScSelect>
+        <ScButton type="primary" @click="handleSearch">搜索</ScButton>
+        <ScButton @click="handleReset">重置</ScButton>
         <el-radio-group v-model="viewMode" style="margin-left: 20px">
           <el-radio-button label="table">表格视图</el-radio-button>
           <el-radio-button label="card">卡片视图</el-radio-button>
@@ -74,39 +74,39 @@
         />
         <el-table-column label="操作" width="360" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="handleDesign(row)">设计</el-button>
-            <el-button
+            <ScButton size="small" @click="handleDesign(row)">设计</ScButton>
+            <ScButton
               size="small"
               :disabled="row.syncTaskStatus === 'RUNNING'"
               @click="handleEdit(row)"
             >
               编辑
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="success"
               :disabled="row.syncTaskStatus === 'RUNNING'"
               @click="handleStart(row)"
             >
               启动
-            </el-button>
-            <el-button
+            </ScButton>
+            <ScButton
               size="small"
               type="warning"
               :disabled="row.syncTaskStatus !== 'RUNNING'"
               @click="handleStop(row)"
             >
               停止
-            </el-button>
-            <el-button size="small" type="info" @click="handleLogs(row)">
+            </ScButton>
+            <ScButton size="small" type="info" @click="handleLogs(row)">
               日志
-            </el-button>
-            <el-button size="small" type="primary" @click="handleMonitor(row)">
+            </ScButton>
+            <ScButton size="small" type="primary" @click="handleMonitor(row)">
               监控
-            </el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">
+            </ScButton>
+            <ScButton size="small" type="danger" @click="handleDelete(row)">
               删除
-            </el-button>
+            </ScButton>
           </template>
         </el-table-column>
       </el-table>
@@ -145,7 +145,7 @@
         @size-change="handleSearch"
         @current-change="handleSearch"
       />
-    </el-card>
+    </ScCard>
 
     <TaskForm
       v-model="formVisible"

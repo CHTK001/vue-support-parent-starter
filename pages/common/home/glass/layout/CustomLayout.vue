@@ -1,7 +1,7 @@
-<script setup>
+<script setup lang="ts">
 import { defineAsyncComponent } from "vue";
 import { GridLayout } from "grid-layout-plus";
-import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { useRenderIcon } from "@repo/components/ReIcon";
 import { useLayoutLayoutStore } from "@repo/core";
 
 const loadingCollection = {};
@@ -20,7 +20,7 @@ const props = defineProps({
  */
 const getWidgetTitle = (key) => {
   const comp = userLayoutObject.getComponent(key);
-  return comp?.sysSfcChineseName || comp?.sysSfcName || '未命名部件';
+  return comp?.sysSfcChineseName || comp?.sysSfcName || "未命名部件";
 };
 
 /**
@@ -28,7 +28,7 @@ const getWidgetTitle = (key) => {
  * @param item 部件项
  */
 const getTypeLabel = (item) => {
-  return item.type === 1 ? '本地' : '远程';
+  return item.type === 1 ? "本地" : "远程";
 };
 
 /**
@@ -41,13 +41,13 @@ const handleRemove = async (key) => {
 </script>
 <template>
   <div class="customizing h-full">
-    <GridLayout 
-      class="!h-full grid-layout-container" 
-      :row-height="200" 
-      v-model:layout="userLayoutObject.layout" 
-      :is-draggable="props.modelValue" 
-      :is-resizable="props.modelValue" 
-      vertical-compact 
+    <GridLayout
+      class="!h-full grid-layout-container"
+      :row-height="200"
+      v-model:layout="userLayoutObject.layout"
+      :is-draggable="props.modelValue"
+      :is-resizable="props.modelValue"
+      vertical-compact
       use-css-transforms
     >
       <template #item="{ item }">
@@ -55,77 +55,150 @@ const handleRemove = async (key) => {
           <div class="widgets-item glass-panel">
             <!-- 部件内容 -->
             <div class="widget-content h-full">
-              <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
+              <el-skeleton
+                class="h-full"
+                :loading="userLayoutObject.isLoaded(item, loadingCollection)"
+                animated
+              >
                 <template #template>
                   <div class="!w-full !h-full" style="width: 100% !important">
-                    <div class="!h-full" v-if="(item.type == 1 && props.modelValue) || !props.modelValue || userLayoutObject.loadRemoteComponent(item.id)">
+                    <div
+                      class="!h-full"
+                      v-if="
+                        (item.type == 1 && props.modelValue) ||
+                        !props.modelValue ||
+                        userLayoutObject.loadRemoteComponent(item.id)
+                      "
+                    >
                       <keep-alive class="!h-full">
-                        <component 
-                          class="!h-full" 
-                          :is="userLayoutObject.loadComponent(item.id)" 
-                          :frameInfo="userLayoutObject.loadFrameInfo(item.id)" 
-                          :key="userLayoutObject.loadFrameInfo(item.id).key" 
-                          @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" 
+                        <component
+                          class="!h-full"
+                          :is="userLayoutObject.loadComponent(item.id)"
+                          :frameInfo="userLayoutObject.loadFrameInfo(item.id)"
+                          :key="userLayoutObject.loadFrameInfo(item.id).key"
+                          @loaded="
+                            () =>
+                              userLayoutObject.loaded(
+                                item.id,
+                                loadingCollection,
+                              )
+                          "
                         />
                       </keep-alive>
                     </div>
-                    <div v-else-if="props.modelValue" class="widget-placeholder">
+                    <div
+                      v-else-if="props.modelValue"
+                      class="widget-placeholder"
+                    >
                       <el-icon :size="48" class="placeholder-icon">
-                        <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
+                        <component
+                          :is="
+                            useRenderIcon(
+                              userLayoutObject.getComponent(item.id)
+                                .sysSfcIcon || 'ri:apps-line',
+                            )
+                          "
+                        />
                       </el-icon>
-                      <span class="placeholder-text">{{ getWidgetTitle(item.id) }}</span>
+                      <span class="placeholder-text">{{
+                        getWidgetTitle(item.id)
+                      }}</span>
                     </div>
                   </div>
                 </template>
               </el-skeleton>
             </div>
-            
+
             <!-- 编辑模式遮罩层 -->
             <div v-if="props.modelValue" class="customize-overlay">
               <!-- 操作按钮组 -->
               <div class="overlay-actions">
-                <el-tooltip content="预览/隐藏" placement="top" v-if="item.type != 1">
-                  <el-button
-                    :type="userLayoutObject.loadRemoteComponent(item.id) ? 'primary' : 'info'"
+                <el-tooltip
+                  content="预览/隐藏"
+                  placement="top"
+                  v-if="item.type != 1"
+                >
+                  <ScButton
+                    :type="
+                      userLayoutObject.loadRemoteComponent(item.id)
+                        ? 'primary'
+                        : 'info'
+                    "
                     circle
                     size="small"
                     class="glass-button"
-                    @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
+                    @click="
+                      userLayoutObject.loadRemoteComponent(
+                        item.id,
+                        !userLayoutObject.loadRemoteComponent(item.id),
+                      )
+                    "
                   >
                     <el-icon>
-                      <component :is="useRenderIcon(userLayoutObject.loadRemoteComponent(item.id) ? 'ri:eye-line' : 'ri:eye-close-line')" />
+                      <component
+                        :is="
+                          useRenderIcon(
+                            userLayoutObject.loadRemoteComponent(item.id)
+                              ? 'ri:eye-line'
+                              : 'ri:eye-close-line',
+                          )
+                        "
+                      />
                     </el-icon>
-                  </el-button>
+                  </ScButton>
                 </el-tooltip>
                 <el-tooltip content="移除部件" placement="top">
-                  <el-button type="danger" circle size="small" class="glass-button" @click="handleRemove(item.id)">
-                    <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
-                  </el-button>
+                  <ScButton
+                    type="danger"
+                    circle
+                    size="small"
+                    class="glass-button"
+                    @click="handleRemove(item.id)"
+                  >
+                    <el-icon
+                      ><component :is="useRenderIcon('ep:delete')"
+                    /></el-icon>
+                  </ScButton>
                 </el-tooltip>
               </div>
-              
+
               <!-- 拖拽区域 -->
               <div class="drag-area">
                 <div class="drag-icon">
                   <el-icon :size="28">
-                    <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon || 'ri:apps-line')" />
+                    <component
+                      :is="
+                        useRenderIcon(
+                          userLayoutObject.getComponent(item.id).sysSfcIcon ||
+                            'ri:apps-line',
+                        )
+                      "
+                    />
                   </el-icon>
                 </div>
                 <div class="drag-info">
                   <span class="drag-title">{{ getWidgetTitle(item.id) }}</span>
-                  <el-tag size="small" :type="item.type === 1 ? 'success' : 'primary'" class="drag-type glass-tag">
+                  <el-tag
+                    size="small"
+                    :type="item.type === 1 ? 'success' : 'primary'"
+                    class="drag-type glass-tag"
+                  >
                     {{ getTypeLabel(item) }}
                   </el-tag>
                 </div>
                 <div class="drag-hint">
-                  <el-icon :size="14"><component :is="useRenderIcon('ri:drag-move-2-line')" /></el-icon>
+                  <el-icon :size="14"
+                    ><component :is="useRenderIcon('ri:drag-move-2-line')"
+                  /></el-icon>
                   <span>拖拽移动</span>
                 </div>
               </div>
-              
+
               <!-- 调整大小提示 -->
               <div class="resize-hint">
-                <el-icon :size="12"><component :is="useRenderIcon('ri:expand-diagonal-line')" /></el-icon>
+                <el-icon :size="12"
+                  ><component :is="useRenderIcon('ri:expand-diagonal-line')"
+                /></el-icon>
               </div>
             </div>
           </div>
@@ -180,18 +253,24 @@ const handleRemove = async (key) => {
   height: 100%;
   border-radius: 20px;
   overflow: hidden;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
   will-change: transform;
-  
+
   // Glassmorphism Style
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
   &:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.25);
   }
@@ -212,11 +291,11 @@ const handleRemove = async (key) => {
   height: 100%;
   background: rgba(0, 0, 0, 0.05);
   gap: 12px;
-  
+
   .placeholder-icon {
     color: rgba(255, 255, 255, 0.6);
   }
-  
+
   .placeholder-text {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
@@ -256,12 +335,12 @@ const handleRemove = async (key) => {
   display: flex;
   gap: 8px;
   z-index: 11;
-  
+
   .glass-button {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.25);
       transform: scale(1.1);
@@ -283,14 +362,18 @@ const handleRemove = async (key) => {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.1)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   margin-bottom: 4px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .drag-info {
@@ -308,7 +391,7 @@ const handleRemove = async (key) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .drag-type {
@@ -361,12 +444,12 @@ const handleRemove = async (key) => {
   .drag-area {
     padding: 12px;
   }
-  
+
   .drag-icon {
     width: 44px;
     height: 44px;
   }
-  
+
   .drag-title {
     font-size: 13px;
   }

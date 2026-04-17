@@ -74,18 +74,18 @@
 
           <div class="server-form-grid">
             <el-form-item label="软件版本">
-              <el-select
+              <ScSelect
                 v-model="form.softPackageVersionId"
                 placeholder="选择版本"
                 style="width: 100%"
               >
-                <el-option
+                <ScOption
                   v-for="version in versions"
                   :key="version.softPackageVersionId"
                   :label="`${version.versionName} (${version.versionCode})`"
                   :value="version.softPackageVersionId"
                 />
-              </el-select>
+              </ScSelect>
             </el-form-item>
             <el-form-item label="实例名称">
               <ScInput v-model="form.installationName" />
@@ -185,24 +185,24 @@
     </section>
 
     <template #footer>
-      <el-button v-if="step > 0" @click="step -= 1">上一步</el-button>
-      <el-button @click="visible = false">取消</el-button>
-      <el-button
+      <ScButton v-if="step > 0" @click="step -= 1">上一步</ScButton>
+      <ScButton @click="visible = false">取消</ScButton>
+      <ScButton
         v-if="step === 0"
         type="primary"
         :disabled="!normalizedPackageId"
         @click="$emit('next-step')"
       >
         下一步
-      </el-button>
-      <el-button
+      </ScButton>
+      <ScButton
         v-else-if="step === 1"
         type="primary"
         :loading="submitting"
         @click="$emit('submit')"
       >
         提交安装
-      </el-button>
+      </ScButton>
     </template>
   </ScDialog>
 </template>

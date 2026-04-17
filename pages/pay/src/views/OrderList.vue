@@ -7,10 +7,10 @@
       </div>
       <div class="payment-surface__actions">
         <el-tooltip content="刷新">
-          <el-button circle :icon="RefreshRight" @click="reloadAll" />
+          <ScButton circle :icon="RefreshRight" @click="reloadAll" />
         </el-tooltip>
         <el-tooltip content="创建订单">
-          <el-button circle type="primary" :icon="Plus" @click="openCreateDialog" />
+          <ScButton circle type="primary" :icon="Plus" @click="openCreateDialog" />
         </el-tooltip>
       </div>
     </header>
@@ -36,15 +36,15 @@
     <section class="payment-toolbar">
       <div class="payment-toolbar__row">
         <div class="payment-toolbar__form">
-          <el-select v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
-            <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-          </el-select>
+          <ScSelect v-model="queryForm.merchantId" clearable placeholder="全部商户" style="width: 220px">
+            <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+          </ScSelect>
           <el-input v-model="queryForm.orderNo" clearable placeholder="订单号" style="width: 220px" @keyup.enter="handleSearch" />
-          <el-select v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
-            <el-option v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
-          </el-select>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <ScSelect v-model="queryForm.status" clearable placeholder="状态" style="width: 180px">
+            <ScOption v-for="(label, value) in OrderStatusMap" :key="value" :label="label" :value="value" />
+          </ScSelect>
+          <ScButton type="primary" :icon="Search" @click="handleSearch">查询</ScButton>
+          <ScButton @click="handleReset">重置</ScButton>
         </div>
       </div>
     </section>
@@ -91,11 +91,11 @@
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <div class="payment-icon-actions">
-              <el-tooltip content="流转日志"><el-button circle :icon="Document" @click="openLogDrawer(row)" /></el-tooltip>
-              <el-tooltip content="同步状态"><el-button circle :icon="RefreshRight" @click="handleSync(row)" /></el-tooltip>
-              <el-tooltip content="真实支付"><el-button circle type="success" :icon="Promotion" @click="handleRealPay(row)" /></el-tooltip>
+              <el-tooltip content="流转日志"><ScButton circle :icon="Document" @click="openLogDrawer(row)" /></el-tooltip>
+              <el-tooltip content="同步状态"><ScButton circle :icon="RefreshRight" @click="handleSync(row)" /></el-tooltip>
+              <el-tooltip content="真实支付"><ScButton circle type="success" :icon="Promotion" @click="handleRealPay(row)" /></el-tooltip>
               <el-dropdown @command="(command) => handleCommand(row, command)">
-                <el-button circle :icon="MoreFilled" />
+                <ScButton circle :icon="MoreFilled" />
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="startPay">发起支付</el-dropdown-item>
@@ -116,7 +116,7 @@
       </ScTable>
     </section>
 
-    <el-dialog v-model="createDialogVisible" title="创建订单" width="900px" destroy-on-close>
+    <ScDialog v-model="createDialogVisible" title="创建订单" width="900px" destroy-on-close layout="simple">
       <div class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -146,14 +146,14 @@
           <el-form label-width="110px">
             <div class="payment-form-grid">
               <el-form-item label="商户" required>
-                <el-select v-model="createForm.merchantId" placeholder="请选择商户" @change="handleMerchantChange">
-                  <el-option v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
-                </el-select>
+                <ScSelect v-model="createForm.merchantId" placeholder="请选择商户" @change="handleMerchantChange">
+                  <ScOption v-for="item in merchantOptions" :key="item.id" :label="item.merchantName" :value="item.id" />
+                </ScSelect>
               </el-form-item>
               <el-form-item label="支付方式" required>
-                <el-select v-model="createForm.channelId" placeholder="请选择支付方式">
-                  <el-option v-for="item in createChannelOptions" :key="item.id" :label="`${item.channelName} (${item.channelSubType})`" :value="item.id" />
-                </el-select>
+                <ScSelect v-model="createForm.channelId" placeholder="请选择支付方式">
+                  <ScOption v-for="item in createChannelOptions" :key="item.id" :label="`${item.channelName} (${item.channelSubType})`" :value="item.id" />
+                </ScSelect>
               </el-form-item>
               <el-form-item label="业务单号">
                 <el-input v-model="createForm.businessOrderNo" placeholder="可选，不填系统生成" />
@@ -201,13 +201,13 @@
       </div>
       <template #footer>
         <div class="payment-dialog-footer">
-          <el-button @click="createDialogVisible = false">取消</el-button>
-          <el-button type="primary" :loading="creating" @click="submitCreate">创建</el-button>
+          <ScButton @click="createDialogVisible = false">取消</ScButton>
+          <ScButton type="primary" :loading="creating" @click="submitCreate">创建</ScButton>
         </div>
       </template>
-    </el-dialog>
+    </ScDialog>
 
-    <el-drawer v-model="logDrawerVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 流转日志` : '流转日志'">
+    <ScDrawer v-model="logDrawerVisible" size="720px" :title="currentOrder ? `${currentOrder.orderNo} · 流转日志` : '流转日志'" layout="simple">
       <div v-if="currentOrder" class="payment-dialog-shell">
         <div class="payment-status-strip">
           <div class="payment-status-card">
@@ -256,11 +256,12 @@
           </ScTable>
         </section>
       </div>
-    </el-drawer>
+    </ScDrawer>
   </section>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { ScDrawer } from '@repo/components';
+
 import { computed, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { Document, MoreFilled, Plus, Promotion, RefreshRight, Search } from "@element-plus/icons-vue";

@@ -18,11 +18,11 @@
             <el-switch v-model="config.enabled" />
           </el-form-item>
           <el-form-item label="表达式类型">
-            <el-select v-model="config.type" style="width: 180px">
-              <el-option label="Java" value="java" />
-              <el-option label="Groovy" value="groovy" />
-              <el-option label="JavaScript" value="js" />
-            </el-select>
+            <ScSelect v-model="config.type" style="width: 180px">
+              <ScOption label="Java" value="java" />
+              <ScOption label="Groovy" value="groovy" />
+              <ScOption label="JavaScript" value="js" />
+            </ScSelect>
           </el-form-item>
           <el-form-item label="指纹(可选)">
             <el-input
@@ -62,17 +62,17 @@
           <IconifyIconOnline icon="ri:eye-line" />
           配置预览
         </h4>
-        <el-card class="config-preview thin-scrollbar">
+        <ScCard class="config-preview thin-scrollbar">
           <pre>{{ JSON.stringify(previewConfig, null, 2) }}</pre>
-        </el-card>
+        </ScCard>
       </div>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" :loading="loading" @click="handleSave"
-          >保存配置</el-button>
+        <ScButton @click="handleClose">取消</ScButton>
+        <ScButton type="primary" :loading="loading" @click="handleSave"
+          >保存配置</ScButton>
       </div>
     </template>
   </sc-dialog>

@@ -151,7 +151,7 @@
                   <IconifyIconOnline icon="ep:close" />
                   <span>关闭</span>
                 </ScButton>
-              </el-button-group>
+               </el-button-group>
             </div>
           </ScCol>
         </ScRow>
@@ -212,7 +212,7 @@
   </div>
 </template>
 
-<script setup>
+>
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import CodePreview from "./CodePreview.vue";
 import ScLoading from "@repo/components/ScLoading/index.vue";
