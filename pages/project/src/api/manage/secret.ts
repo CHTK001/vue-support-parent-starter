@@ -3,7 +3,7 @@ import { http, type ReturnResult } from "@repo/utils";
 export interface SysSecret {
   sysSecretId?: number;
   sysSecretName?: string;
-  sysSecretVender?: number;
+  sysSecretVender?: string | number;
   sysSecretFunction?: string;
   sysSecretFunctionDefaultIds?: string;
   sysSecretIcon?: string;
@@ -20,7 +20,7 @@ export interface SysSecret {
   // 运行时扩展字段（前端计算）
   source?: Array<{
     label: boolean;
-    value: number;
+    value: string | number;
     name: string;
     code: string;
     icon: string;
@@ -71,7 +71,8 @@ export const fetchDeleteSecret = (params: { sysSecretId: number }) => {
  */
 export const fetchUpdateSecretDefault = (params: {
   sysSecretId: number;
-  sysSecretDefaultType: number;
+  sysSecretDefaultType?: string | number;
+  sysProjectDefaultType?: string | number;
   sysSetDefault: 0 | 1;
 }) => {
   return http.request<ReturnResult<boolean>>(

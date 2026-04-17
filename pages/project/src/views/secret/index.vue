@@ -198,7 +198,7 @@
                             </el-dropdown-menu>
                           </template>
                         </el-dropdown>
-                      </el-button-group>
+                      </ScButton-group>
                     </div>
                   </div>
                 </template>
@@ -223,13 +223,17 @@
   </div>
 </template>
 
->
+<script setup>
 import { useRenderIcon } from "@repo/components/ReIcon";
-import { fetchListDictItem, router } from "@repo/core";
-import { deepCopy, message, stringSplitToNumber, useDefer } from "@repo/utils";
+import { router } from "@repo/core";
+import { deepCopy, message, useDefer } from "@repo/utils";
 import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import ProjectContextMenu from "../../components/ProjectContextMenu.vue";
 import { fetchDeleteSecret, fetchPageSecret, fetchUpdateSecretDefault } from "../../api/manage/secret";
+import {
+  getProjectVendorOptions,
+  getSecretFunctionOptions,
+} from "../../constants/project-fixed-dicts";
 import SaveDialog from "./save.vue";
 const DefaultSetting = defineAsyncComponent(
   () => import("./defaultSetting.vue"),
@@ -661,27 +665,36 @@ const handleEventCustom = async (row, item1) => {
   }
 };
 
+const splitValueList = (value) =>
+  String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const getFunctionMeta = (value) => functionMap[String(value)];
+
 const getDefaultValueArr = (row) => {
   const defaultValue = {};
-  const storeValues1 = stringSplitToNumber(row.sysSecretFunctionDefaultIds);
+  const storeValues1 = splitValueList(row.sysSecretFunctionDefaultIds);
   storeValues1.forEach((element) => {
     defaultValue[element] = true;
   });
-  const storeValues = stringSplitToNumber(row.sysSecretFunction);
+  const storeValues = splitValueList(row.sysSecretFunction);
   const rs = storeValues.map((item) => {
+    const meta = getFunctionMeta(item);
     return {
       label: !!defaultValue[item],
       value: item,
-      name: functionMap[item]?.sysDictItemName,
-      code: functionMap[item]?.sysDictItemCode,
-      icon: functionMap[item]?.sysDictItemIcon,
+      name: meta?.sysDictItemName,
+      code: meta?.sysDictItemCode,
+      icon: meta?.sysDictItemIcon,
     };
   });
   return rs.filter((it) => it.name);
 };
 
 const getLabel = (val) => {
-  return functionMap[val]?.sysDictItemName;
+  return getFunctionMeta(val)?.sysDictItemName;
 };
 
 const getFunctionLabel = (val) => {
@@ -708,17 +721,11 @@ const handleAfterLoadedData = (row, total) => {
   return row;
 };
 const handleAfterPropertieSet = async () => {
-  const res = await fetchListDictItem({
-    sysDictId: 1,
-  });
-  dictItem = res?.data;
-  const res1 = await fetchListDictItem({
-    sysDictId: 6,
-  });
-
-  functionList = res1?.data;
+  dictItem = getProjectVendorOptions();
+  functionList = getSecretFunctionOptions();
   functionList.forEach((item) => {
-    functionMap[item.sysDictItemId] = item;
+    functionMap[String(item.sysDictItemId)] = item;
+    functionMap[String(item.sysDictItemCode)] = item;
   });
 };
 

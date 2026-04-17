@@ -1,7 +1,6 @@
 ﻿<script>
 // @ts-nocheck
 import { ScEditor } from "@repo/components/ScEditor"
-import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 import {
@@ -82,11 +81,6 @@ export default defineComponent({
   },
   methods: {
     async initialize() {
-      fetchListDictItem({
-        sysDictId: 1,
-      }).then((res) => {
-        this.dictItem1 = res?.data;
-      });
       this.dictItem2 = this.category;
       this.dictItem3 = this.categoryKinds;
     },

@@ -1,5 +1,28 @@
 import { getConfig } from "@repo/config";
-import type { DockerResult, DockerInstallGuideView, DockerServerOption, DockerSyncScheduleUpdateRequest, DockerSyncScheduleView } from "../types";
+import type {
+  DockerContainerConfigUpdateRequest,
+  DockerContainerConfigUpdateResult,
+  DockerContainerExecRequest,
+  DockerContainerView,
+  DockerImageExportRequest,
+  DockerImageImportRequest,
+  DockerImagePullRequest,
+  DockerImageView,
+  DockerResult,
+  DockerInstallGuideView,
+  DockerInstallRequest,
+  DockerInstallTaskDetail,
+  DockerInstallTaskTicket,
+  DockerMount,
+  DockerNetwork,
+  DockerOperationTicket,
+  DockerRegistry,
+  DockerServerOption,
+  DockerSyncScheduleUpdateRequest,
+  DockerSyncResult,
+  DockerSyncRunRequest,
+  DockerSyncScheduleView,
+} from "../types";
 
 /**
  * Docker API 基础路径。
@@ -93,8 +116,181 @@ export const updateDockerSyncSchedule = (
   });
 
 /**
+ * 手动触发镜像/容器同步。
+ */
+export const runDockerSync = (
+  scope: "images" | "containers" | string,
+  data?: DockerSyncRunRequest,
+) =>
+  request<DockerSyncResult>("POST", `${dockerBase}/sync/run/${scope}`, { data });
+
+/**
  * 获取首次安装引导说明（用于安装弹框详细说明）。
  */
 export const getDockerInstallGuide = () =>
   request<DockerInstallGuideView>("GET", `${dockerBase}/install/guide/first-use`);
 
+/**
+ * 查询仓库列表。
+ */
+export const listDockerRegistries = (params?: {
+  keyword?: string;
+  enabled?: boolean;
+}) =>
+  request<DockerRegistry[]>("GET", `${dockerBase}/registries`, {
+    query: params,
+  });
+
+/**
+ * 新增仓库。
+ */
+export const createDockerRegistry = (data: DockerRegistry) =>
+  request<DockerRegistry>("POST", `${dockerBase}/registries`, { data });
+
+/**
+ * 更新仓库。
+ */
+export const updateDockerRegistry = (id: number, data: DockerRegistry) =>
+  request<DockerRegistry>("PUT", `${dockerBase}/registries/${id}`, { data });
+
+/**
+ * 删除仓库。
+ */
+export const deleteDockerRegistry = (id: number) =>
+  request<boolean>("DELETE", `${dockerBase}/registries/${id}`);
+
+/**
+ * 查询挂载列表。
+ */
+export const listDockerMounts = (params?: {
+  serverId?: number;
+  keyword?: string;
+  enabled?: boolean;
+}) =>
+  request<DockerMount[]>("GET", `${dockerBase}/mounts`, {
+    query: params,
+  });
+
+/**
+ * 新增挂载。
+ */
+export const createDockerMount = (data: DockerMount) =>
+  request<DockerMount>("POST", `${dockerBase}/mounts`, { data });
+
+/**
+ * 更新挂载。
+ */
+export const updateDockerMount = (id: number, data: DockerMount) =>
+  request<DockerMount>("PUT", `${dockerBase}/mounts/${id}`, { data });
+
+/**
+ * 删除挂载。
+ */
+export const deleteDockerMount = (id: number) =>
+  request<boolean>("DELETE", `${dockerBase}/mounts/${id}`);
+
+/**
+ * 查询网络列表。
+ */
+export const listDockerNetworks = (params?: {
+  serverId?: number;
+  keyword?: string;
+  enabled?: boolean;
+}) =>
+  request<DockerNetwork[]>("GET", `${dockerBase}/networks`, {
+    query: params,
+  });
+
+/**
+ * 新增网络。
+ */
+export const createDockerNetwork = (data: DockerNetwork) =>
+  request<DockerNetwork>("POST", `${dockerBase}/networks`, { data });
+
+/**
+ * 更新网络。
+ */
+export const updateDockerNetwork = (id: number, data: DockerNetwork) =>
+  request<DockerNetwork>("PUT", `${dockerBase}/networks/${id}`, { data });
+
+/**
+ * 删除网络。
+ */
+export const deleteDockerNetwork = (id: number) =>
+  request<boolean>("DELETE", `${dockerBase}/networks/${id}`);
+
+/**
+ * 创建安装任务（支持 Dockerfile）。
+ */
+export const createDockerInstallation = (data: DockerInstallRequest) =>
+  request<DockerInstallTaskTicket>("POST", `${dockerBase}/installations`, { data });
+
+/**
+ * 查询安装任务详情。
+ */
+export const getDockerInstallation = (taskId: string) =>
+  request<DockerInstallTaskDetail>("GET", `${dockerBase}/installations/${taskId}`);
+
+/**
+ * 查询容器列表。
+ */
+export const listDockerContainers = (params?: {
+  serverId?: number;
+  registryId?: number;
+  keyword?: string;
+}) =>
+  request<DockerContainerView[]>("GET", `${dockerBase}/containers`, {
+    query: params,
+  });
+
+/**
+ * 进入容器执行命令。
+ */
+export const execDockerContainer = (
+  containerId: string,
+  data: DockerContainerExecRequest,
+) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/exec`, { data });
+
+/**
+ * 更新容器配置。
+ */
+export const updateDockerContainerConfig = (
+  containerId: string,
+  data: DockerContainerConfigUpdateRequest,
+) =>
+  request<DockerContainerConfigUpdateResult>(
+    "PUT",
+    `${dockerBase}/containers/${containerId}/config`,
+    { data },
+  );
+
+/**
+ * 查询镜像列表。
+ */
+export const listDockerImages = (params?: {
+  serverId?: number;
+  registryId?: number;
+  keyword?: string;
+}) =>
+  request<DockerImageView[]>("GET", `${dockerBase}/images`, {
+    query: params,
+  });
+
+/**
+ * 拉取镜像。
+ */
+export const pullDockerImage = (data: DockerImagePullRequest) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/images/pull`, { data });
+
+/**
+ * 导入镜像。
+ */
+export const importDockerImage = (data: DockerImageImportRequest) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/images/import`, { data });
+
+/**
+ * 导出镜像。
+ */
+export const exportDockerImage = (data: DockerImageExportRequest) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/images/export`, { data });

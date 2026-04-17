@@ -298,7 +298,6 @@
 
 <script setup>
 import {  useRenderIcon  } from "@repo/components/ReIcon";
-import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, defineExpose, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
@@ -405,16 +404,6 @@ const handleUpdate = async (item) => {
   });
 };
 
-const manufacturers = shallowRef([]);
-
-const initialManufacturers = async () => {
-  fetchListDictItem({
-    sysDictId: 1,
-  }).then((res) => {
-    manufacturers.value = res?.data;
-  });
-};
-
 const handleClose = () => {
   env.visible = false;
 };
@@ -428,7 +417,6 @@ const handleOpen = async (item, mode) => {
     sysAiModuleType: item.sysAiModuleType,
   };
   env.mode = mode;
-  initialManufacturers();
 };
 
 defineExpose({

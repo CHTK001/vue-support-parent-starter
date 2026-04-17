@@ -1,7 +1,6 @@
 <script setup>
 import {  useRenderIcon  } from "@repo/components/ReIcon";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
-import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
 import { defineAsyncComponent, nextTick, onMounted, reactive, ref, watch } from "vue";
@@ -13,6 +12,7 @@ import {
   fetchSyncProjectForSms,
   fetchUpdateProjectForSms,
 } from "../../../api/manage/project-sms";
+import { getTemplateCategoryOptions } from "../../../constants/project-fixed-dicts";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SmsDialog = defineAsyncComponent(() => import("./sms.vue"));
 const SmsSelectDialog = defineAsyncComponent(() => import("./sms-select.vue"));
@@ -46,8 +46,7 @@ const handleSend = async (row) => {
   smsDialogRef.value.handleOpen(row);
 };
 const onCategory = async () => {
-  const { data } = await fetchListDictItem({ sysDictId: 2 });
-  categoryData.value = data;
+  categoryData.value = getTemplateCategoryOptions("sms");
 };
 
 const renderContent = (h, { node, data }) => {
