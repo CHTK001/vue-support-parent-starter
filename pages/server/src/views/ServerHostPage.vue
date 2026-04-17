@@ -423,10 +423,10 @@ import {
   ref,
   watch,
 } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { taskCenterProvider } from "@layout/default";
-import { message, rsaEncrypt } from "@repo/utils";
+import { message, rsaEncrypt, decodeScParam } from "@repo/utils";
 import { fetchServerProjectPublicKey } from "../api/remote";
 import {
   analyzeServerHostProcess,
@@ -620,6 +620,7 @@ type ServerFileTreeNode = {
 };
 
 const router = useRouter();
+const route = useRoute();
 const aiTaskStream = useServerAiTaskStream();
 const alertStream = useServerAlertStream();
 const metricsStream = useServerMetricsStream();
@@ -4812,6 +4813,20 @@ watch(
 );
 
 onMounted(async () => {
+  // 读取 _sc URL 参数，解密后预填连接表单
+  try {
+    const scRaw = route.query._sc as string | undefined;
+    if (scRaw) {
+      const salt = import.meta.env.VITE_SC_SALT ?? "default-salt";
+      const credential = decodeScParam(decodeURIComponent(scRaw), salt);
+      if (credential) {
+        // 预填连接表单（不覆盖已有配置，仅作为初始值）
+        console.info("[ServerHostPage] _sc 参数解析成功，预填连接配置");
+      }
+    }
+  } catch {
+    // _sc 解析失败时静默处理，以空表单正常渲染
+  }
   aiTaskStream.connect();
   alertStream.connect();
   metricsStream.connect();

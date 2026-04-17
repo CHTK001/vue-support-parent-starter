@@ -111,7 +111,7 @@
 import { computed, ref, watch } from 'vue';
 import { message } from '@repo/utils';
 import { ElNotification } from 'element-plus';
-import { getServerList } from '@/api/docker';
+import { getServerList } from '@/api/server';
 import {
   pushConfigToNodes,
   type ConfigPushRequest,

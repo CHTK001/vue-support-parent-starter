@@ -4,7 +4,7 @@ import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
-import { defineAsyncComponent, nextTick, onMounted, reactive, ref } from "vue";
+import { defineAsyncComponent, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import {
@@ -74,10 +74,17 @@ const route = useRoute();
 
 const onAfterProperieSet = () => {
   const query = route.query;
-  env.sysProjectId = query.sysProjectId;
-  env.sysProjectName = query.sysProjectName;
+  // 兼容新参数名 sysSecretId 和旧参数名 sysProjectId
+  env.sysProjectId = String(query.sysSecretId || query.sysProjectId || "");
+  env.sysProjectName = String(query.sysSecretName || query.sysProjectName || "");
   form.sysProjectId = env.sysProjectId;
 };
+
+// 监听路由参数变化（支持 _t 时间戳强制刷新）
+watch(
+  () => route.query,
+  () => { onAfterProperieSet(); },
+);
 
 const handleAllSend = async () => {
   emailSelectDialogRef.value.handleOpen(env);

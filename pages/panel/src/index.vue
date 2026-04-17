@@ -309,6 +309,8 @@ import {
   ElTooltip,
 } from "element-plus";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { useRoute } from "vue-router";
+import { decodeScParam } from "@repo/utils";
 import ScLayout from "@repo/components/ScLayout";
 import {
   JdbcCatalogTree,
@@ -2497,6 +2499,21 @@ const toggleAside = () => {
 };
 
 onMounted(async () => {
+  // 读取 _sc URL 参数，解析后存储供 SSH 连接使用
+  try {
+    const route = useRoute();
+    const scRaw = route.query._sc as string | undefined;
+    if (scRaw) {
+      const salt = import.meta.env.VITE_SC_SALT ?? "default-salt";
+      const credential = decodeScParam(decodeURIComponent(scRaw), salt);
+      if (credential) {
+        console.info("[Panel] _sc 参数解析成功，可用于 SSH 连接初始配置");
+        // credential 可在后续 openNginxWorkspace 等流程中使用
+      }
+    }
+  } catch {
+    // _sc 解析失败时静默处理
+  }
   await loadSources();
   loadConfig();
   document.addEventListener("mousedown", handleGlobalPointerDown);

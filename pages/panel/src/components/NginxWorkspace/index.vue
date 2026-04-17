@@ -57,13 +57,12 @@
 
           <!-- 项目管理 tab -->
           <template v-else-if="railTabValue === 'project'">
-            <NginxProjectPanel
-              :connection-id="props.connectionId"
-              :host="props.host"
-              :port="props.port"
-              :username="props.username"
-              :password="props.password"
-              :private-key="props.privateKey"
+            <ProjectIndex
+              :nginx-host="props.host"
+              :nginx-port="props.port"
+              :nginx-username="props.username"
+              :nginx-password="props.password"
+              :nginx-private-key="props.privateKey"
             />
           </template>
 
@@ -110,7 +109,7 @@ import NginxEditor from "./NginxEditor.vue";
 import NginxLogPanel from "./NginxLogPanel.vue";
 import NginxLocationDialog from "./NginxLocationDialog.vue";
 import NginxAddServerDialog from "./NginxAddServerDialog.vue";
-import NginxProjectPanel from "./NginxProjectPanel.vue";
+import ProjectIndex from "@pages/project/views/project/index.vue";
 import {
   fetchNginxServers,
   saveNginxServers,

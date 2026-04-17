@@ -5,9 +5,13 @@
     :class="{
       'is-left-enabled': leftEnabled,
       'is-left-collapsed': leftEnabled && localLeftCollapsed,
+      'is-layout-split': isSplitLayout,
+      'is-bottom-enabled': bottomEnabled,
+      'is-bottom-collapsed': bottomEnabled && localBottomCollapsed,
       'is-rail-enabled': railEnabled,
       'is-rail-collapsed': railEnabled && localRightCollapsed,
       'is-resizing': isResizing,
+      'is-bottom-resizing': isBottomResizing,
     }"
     :style="layoutStyle"
   >
@@ -38,9 +42,73 @@
       </button>
     </div>
 
-    <main class="sc-layout__main">
-      <slot />
+    <main
+      ref="mainRef"
+      class="sc-layout__main"
+      :class="{
+        'is-split': isSplitLayout,
+        'is-bottom-collapsed': localBottomCollapsed,
+      }"
+    >
+      <template v-if="isSplitLayout">
+        <section class="sc-layout__main-top">
+          <slot name="top">
+            <slot />
+          </slot>
+        </section>
+
+        <div
+          v-if="bottomEnabled && !localBottomCollapsed"
+          class="sc-layout__main-resizer"
+          :class="{ 'is-hovered': isBottomResizerHovered }"
+          @mouseenter="isBottomResizerHovered = true"
+          @mouseleave="isBottomResizerHovered = false"
+          @mousedown="startBottomResize"
+        >
+          <button
+            v-if="bottomCollapsible"
+            type="button"
+            class="sc-layout__main-collapse"
+            :class="{ 'is-visible': showBottomCollapseButton }"
+            title="折叠下方面板"
+            @click.stop="toggleBottomCollapse(true)"
+          >
+            v
+          </button>
+        </div>
+
+        <section
+          v-if="bottomEnabled && !localBottomCollapsed"
+          class="sc-layout__main-bottom"
+        >
+          <slot
+            name="bottom"
+            :collapsed="localBottomCollapsed"
+            :toggle-collapse="toggleBottomCollapse"
+          />
+        </section>
+      </template>
+      <slot v-else />
     </main>
+
+    <div
+      v-if="
+        isSplitLayout &&
+        bottomEnabled &&
+        bottomCollapsible &&
+        localBottomCollapsed
+      "
+      class="sc-layout__main-expand-hotspot"
+    >
+      <button
+        type="button"
+        class="sc-layout__main-expand"
+        title="展开下方面板"
+        @click.stop="toggleBottomCollapse(false)"
+      >
+        ^
+      </button>
+    </div>
 
     <aside v-if="railEnabled" class="sc-layout__rail">
       <div class="sc-layout__rail-body">
@@ -50,7 +118,7 @@
           :add-tab="addTab"
           :remove-tab="removeTab"
           :set-active-tab="setActiveTab"
-          :tabs="localRailTabs"
+          :tabs="displayRailTabs"
         >
           <nav
             class="sc-layout__rail-tabs"
@@ -60,7 +128,7 @@
             }"
           >
             <ElTooltip
-              v-for="tab in localRailTabs"
+              v-for="tab in displayRailTabs"
               :key="String(tab.name)"
               :content="tab.title || tab.label || String(tab.name)"
               placement="right"
@@ -101,7 +169,7 @@
           :add-tab="addTab"
           :remove-tab="removeTab"
           :set-active-tab="setActiveTab"
-          :tabs="localRailTabs"
+          :tabs="displayRailTabs"
         />
       </div>
       <button
@@ -140,17 +208,10 @@
 
 <script setup lang="ts">
 import { localStorageProxy } from "@repo/utils";
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  ref,
-  useAttrs,
-  useSlots,
-  watch,
-} from "vue";
+import { useRenderIcon } from "@repo/components/ReIcon";
+import { computed, nextTick, onBeforeUnmount, ref, useSlots, watch } from "vue";
 import { ElTooltip } from "element-plus";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 export interface ScLayoutRailTab {
   closable?: boolean;
@@ -160,8 +221,34 @@ export interface ScLayoutRailTab {
   title?: string;
 }
 
+export interface ScLayoutRouterMeta {
+  activePath?: string;
+  fullPath?: string;
+  icon?: any;
+  menuPath?: string;
+  realPath?: string;
+  routePath?: string;
+  showLink?: boolean;
+  title?: string;
+  [key: string]: any;
+}
+
+export interface ScLayoutRouterRecord {
+  children?: ScLayoutRouterRecord[];
+  meta?: ScLayoutRouterMeta;
+  name?: string | number | symbol;
+  path?: string;
+  redirect?: string;
+}
+
 const props = withDefaults(
   defineProps<{
+    /** 布局模式：默认左中右，或左中(上下)右 */
+    layout?: "left-main-right" | "left-main-split-right" | "default" | "router";
+    /** 是否启用持久化（默认 true） */
+    persist?: boolean;
+    /** 持久化 key，默认使用地址栏 pathname */
+    persistKey?: string;
     leftCollapsed?: boolean;
     leftCollapsedWidth?: number;
     leftEnabled?: boolean;
@@ -181,8 +268,27 @@ const props = withDefaults(
     showRightCollapseButton?: boolean;
     /** 默认加载的页面（rail tab name），不传则使用 railTabs 第一个 */
     defaultPage?: string | number;
+    /** 传入标准路由结构时自动转换为 rail 导航 */
+    router?: ScLayoutRouterRecord[];
+    /** split 模式下，下方面板是否启用 */
+    bottomEnabled?: boolean;
+    /** split 模式下，下方面板高度 */
+    bottomHeight?: number;
+    /** split 模式下，下方面板最小高度 */
+    bottomMinHeight?: number;
+    /** split 模式下，下方面板最大高度 */
+    bottomMaxHeight?: number;
+    /** split 模式下，上方面板最小高度 */
+    topMinHeight?: number;
+    /** split 模式下，下方面板折叠状态 */
+    bottomCollapsed?: boolean;
+    /** split 模式下，下方面板是否可折叠 */
+    bottomCollapsible?: boolean;
   }>(),
   {
+    layout: "left-main-right",
+    persist: true,
+    persistKey: "",
     leftCollapsed: false,
     leftCollapsedWidth: 72,
     leftEnabled: false,
@@ -201,6 +307,14 @@ const props = withDefaults(
     railWidth: 48,
     showRightCollapseButton: true,
     defaultPage: undefined,
+    router: () => [],
+    bottomEnabled: false,
+    bottomHeight: 260,
+    bottomMinHeight: 160,
+    bottomMaxHeight: 520,
+    topMinHeight: 220,
+    bottomCollapsed: false,
+    bottomCollapsible: true,
   },
 );
 
@@ -224,6 +338,24 @@ const emit = defineEmits<{
     },
   ): void;
   (
+    event: "bottom-resize",
+    payload: {
+      height: number;
+    },
+  ): void;
+  (
+    event: "bottom-resize-end",
+    payload: {
+      height: number;
+    },
+  ): void;
+  (
+    event: "bottom-resize-start",
+    payload: {
+      height: number;
+    },
+  ): void;
+  (
     event: "tab-add",
     payload: {
       tab: ScLayoutRailTab;
@@ -238,24 +370,273 @@ const emit = defineEmits<{
   ): void;
   (event: "update:leftCollapsed", value: boolean): void;
   (event: "update:modelValue", value: string | number): void;
+  (event: "update:bottomCollapsed", value: boolean): void;
   (event: "update:rightCollapsed", value: boolean): void;
   (event: "update:railTabs", tabs: ScLayoutRailTab[]): void;
 }>();
-
-const attrs = useAttrs();
 const route = useRoute();
+const vueRouter = useRouter();
 const containerRef = ref<HTMLElement>();
+const mainRef = ref<HTMLElement>();
 const localLeftWidth = ref(props.leftWidth);
 const localLeftCollapsed = ref(props.leftCollapsed);
 const localRightCollapsed = ref(props.rightCollapsed);
+const localBottomHeight = ref(props.bottomHeight);
+const localBottomCollapsed = ref(props.bottomCollapsed);
 const localRailTabs = ref<ScLayoutRailTab[]>([...props.railTabs]);
 const localRailValue = ref<string | number>(
   props.defaultPage !== undefined ? props.defaultPage : props.modelValue,
 );
 const isResizerHovered = ref(false);
 const isResizing = ref(false);
+const isBottomResizerHovered = ref(false);
+const isBottomResizing = ref(false);
 const isRestoringPersistedState = ref(false);
 const slots = useSlots();
+
+const layoutMode = computed(() => {
+  if (props.layout === "left-main-split-right") {
+    return "left-main-split-right" as const;
+  }
+  return "left-main-right" as const;
+});
+const isSplitLayout = computed(
+  () => layoutMode.value === "left-main-split-right",
+);
+const useRouterNavigation = computed(() => (props.router?.length || 0) > 0);
+
+type RouterLayoutTab = ScLayoutRailTab & {
+  matchPaths: string[];
+  routePath: string;
+};
+
+const normalizeRoutePath = (value: unknown) => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("#")) return raw;
+  return raw.replace(/\/+$/, "") || "/";
+};
+
+const isExternalRoutePath = (value: string) => {
+  return /^(https?:)?\/\//i.test(String(value || "").trim());
+};
+
+const composeRoutePath = (currentPath: unknown, parentPath = "/") => {
+  const rawPath = normalizeRoutePath(currentPath);
+  if (!rawPath) return "";
+  if (rawPath.startsWith("/") || isExternalRoutePath(rawPath)) {
+    return rawPath;
+  }
+
+  const normalizedParent = normalizeRoutePath(parentPath);
+  if (!normalizedParent || normalizedParent === "/") {
+    return normalizeRoutePath(`/${rawPath.replace(/^\/+/, "")}`);
+  }
+
+  return normalizeRoutePath(
+    `${normalizedParent.replace(/\/+$/, "")}/${rawPath.replace(/^\/+/, "")}`,
+  );
+};
+
+const resolveRouterNodePath = (
+  routeItem: ScLayoutRouterRecord,
+  parentPath = "/",
+) => {
+  const meta = routeItem?.meta || {};
+  const preferredPath = [
+    meta.fullPath,
+    meta.activePath,
+    meta.menuPath,
+    meta.realPath,
+    meta.routePath,
+    routeItem?.redirect,
+    routeItem?.path,
+  ]
+    .map((value) => normalizeRoutePath(value))
+    .find((value) => !!value && !isExternalRoutePath(value));
+
+  if (!preferredPath) return "";
+  return composeRoutePath(preferredPath, parentPath);
+};
+
+const resolveRouterNodeTitle = (
+  routeItem: ScLayoutRouterRecord,
+  path: string,
+) => {
+  const meta = routeItem?.meta || {};
+  const candidate =
+    meta.title ??
+    (typeof routeItem?.name === "string" || typeof routeItem?.name === "number"
+      ? routeItem.name
+      : undefined) ??
+    path;
+  return String(candidate || path).trim();
+};
+
+const resolveRouterNodeIcon = (icon: any) => {
+  if (!icon) return undefined;
+  if (typeof icon === "string") {
+    return useRenderIcon(icon);
+  }
+  return icon;
+};
+
+const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
+  const tabs = new Map<string, RouterLayoutTab>();
+  const aliases = new Map<string, string>();
+
+  const visit = (items: ScLayoutRouterRecord[], parentPath = "/") => {
+    (items || []).forEach((routeItem) => {
+      if (!routeItem) return;
+
+      const meta = routeItem.meta || {};
+      const currentPath = resolveRouterNodePath(routeItem, parentPath);
+      const activePath = composeRoutePath(meta.activePath, parentPath);
+      const children = Array.isArray(routeItem.children)
+        ? routeItem.children
+        : [];
+      const visibleChildren = children.filter(
+        (child) =>
+          child &&
+          child.meta?.showLink !== false &&
+          child.meta?.routeComponentMissing !== true,
+      );
+
+      if (
+        meta.showLink === false &&
+        currentPath &&
+        activePath &&
+        !isExternalRoutePath(activePath)
+      ) {
+        aliases.set(currentPath, activePath);
+      }
+
+      if (children.length) {
+        const nextParentPath =
+          currentPath || composeRoutePath(routeItem.path, parentPath);
+        visit(children, nextParentPath || parentPath);
+      }
+
+      if (visibleChildren.length) {
+        return;
+      }
+
+      if (meta.showLink === false || meta.routeComponentMissing === true) {
+        return;
+      }
+
+      if (
+        !currentPath ||
+        currentPath === "/login" ||
+        currentPath.startsWith("/error")
+      ) {
+        return;
+      }
+
+      const title = resolveRouterNodeTitle(routeItem, currentPath);
+      const icon = resolveRouterNodeIcon(meta.icon);
+      const matchPaths = [
+        currentPath,
+        composeRoutePath(routeItem.path, parentPath),
+        activePath,
+      ]
+        .map((value) => normalizeRoutePath(value))
+        .filter((value) => !!value && !isExternalRoutePath(value));
+
+      tabs.set(currentPath, {
+        icon,
+        label: title,
+        matchPaths: [...new Set(matchPaths)],
+        name: currentPath,
+        routePath: currentPath,
+        title,
+      });
+    });
+  };
+
+  visit(routes);
+
+  return {
+    aliases: Object.fromEntries(aliases.entries()),
+    tabs: [...tabs.values()],
+  };
+};
+
+const routerLayoutData = computed(() =>
+  useRouterNavigation.value
+    ? collectRouterLayoutData(props.router || [])
+    : {
+        aliases: {} as Record<string, string>,
+        tabs: [] as RouterLayoutTab[],
+      },
+);
+
+const routerRailTabs = computed(() => routerLayoutData.value.tabs);
+const routerPathAliases = computed(() => routerLayoutData.value.aliases);
+const routerRailTabMap = computed(
+  () =>
+    new Map(
+      routerRailTabs.value.map((tab) => [String(tab.name), tab] as const),
+    ),
+);
+
+const displayRailTabs = computed<ScLayoutRailTab[]>(() => {
+  if (!useRouterNavigation.value) {
+    return localRailTabs.value;
+  }
+  return routerRailTabs.value.length
+    ? routerRailTabs.value
+    : localRailTabs.value;
+});
+
+const resolveAliasedRoutePath = (path: string) => {
+  let current = normalizeRoutePath(path);
+  const visited = new Set<string>();
+
+  while (current && routerPathAliases.value[current] && !visited.has(current)) {
+    visited.add(current);
+    current = normalizeRoutePath(routerPathAliases.value[current]);
+  }
+
+  return current;
+};
+
+const findRouterTabByPath = (path: string) => {
+  const normalizedPath = resolveAliasedRoutePath(path);
+  if (!normalizedPath) return undefined;
+
+  const exact = routerRailTabs.value.find(
+    (item) => String(item.name) === normalizedPath,
+  );
+  if (exact) return exact;
+
+  return routerRailTabs.value.find((item) =>
+    item.matchPaths.some(
+      (candidate) =>
+        normalizedPath === candidate ||
+        (candidate !== "/" && normalizedPath.startsWith(`${candidate}/`)),
+    ),
+  );
+};
+
+const syncRouterActiveFromRoute = () => {
+  if (!useRouterNavigation.value) return;
+  const matchedTab = findRouterTabByPath(route.path);
+  const fallbackTab = displayRailTabs.value[0];
+  const nextValue = matchedTab?.name ?? fallbackTab?.name ?? "";
+  if (String(localRailValue.value) === String(nextValue)) return;
+  localRailValue.value = nextValue;
+  emit("update:modelValue", nextValue);
+};
+
+const navigateToRouterTab = (name: string | number) => {
+  if (!useRouterNavigation.value) return;
+  const targetTab = routerRailTabMap.value.get(String(name));
+  const targetPath = normalizeRoutePath(targetTab?.routePath);
+  if (!targetPath || isExternalRoutePath(targetPath)) return;
+  if (normalizeRoutePath(route.path) === targetPath) return;
+  vueRouter.push(targetPath).catch(() => undefined);
+};
 
 const isEmptyPersistId = (value: unknown) => {
   return (
@@ -278,8 +659,8 @@ const resolveRoutePersistId = () => {
 };
 
 const persistId = computed(() => {
-  if (!isEmptyPersistId(attrs.id)) {
-    return String(attrs.id).trim();
+  if (!isEmptyPersistId(props.persistKey)) {
+    return String(props.persistKey).trim();
   }
   return resolveRoutePersistId();
 });
@@ -310,6 +691,20 @@ watch(
 );
 
 watch(
+  () => props.bottomHeight,
+  (value) => {
+    localBottomHeight.value = value;
+  },
+);
+
+watch(
+  () => props.bottomCollapsed,
+  (value) => {
+    localBottomCollapsed.value = value;
+  },
+);
+
+watch(
   () => props.railTabs,
   (value) => {
     localRailTabs.value = [...value];
@@ -325,6 +720,7 @@ watch(
     if (value === localRailValue.value) return;
     localRailValue.value = value;
     ensureValidActiveTab();
+    navigateToRouterTab(localRailValue.value);
   },
 );
 
@@ -338,13 +734,40 @@ watch(localRightCollapsed, (value) => {
   savePersistedState();
 });
 
+watch(localBottomCollapsed, (value) => {
+  emit("update:bottomCollapsed", value);
+  savePersistedState();
+});
+
 watch(localLeftWidth, () => {
+  savePersistedState();
+});
+
+watch(localBottomHeight, () => {
   savePersistedState();
 });
 
 watch(localRailValue, () => {
   savePersistedState();
 });
+
+watch(
+  () => route.path,
+  () => {
+    syncRouterActiveFromRoute();
+  },
+);
+
+watch(
+  [useRouterNavigation, routerRailTabs],
+  () => {
+    nextTick(() => {
+      ensureValidActiveTab();
+      syncRouterActiveFromRoute();
+    });
+  },
+  { immediate: true },
+);
 
 const currentRailValue = computed({
   get() {
@@ -359,8 +782,18 @@ const currentRailValue = computed({
 const showCollapseButton = computed(
   () => leftEnabled.value && (isResizerHovered.value || isResizing.value),
 );
+const showBottomCollapseButton = computed(
+  () =>
+    bottomEnabled.value &&
+    !localBottomCollapsed.value &&
+    (isBottomResizerHovered.value || isBottomResizing.value),
+);
 
 const leftEnabled = computed(() => props.leftEnabled);
+const bottomCollapsible = computed(() => props.bottomCollapsible);
+const bottomEnabled = computed(
+  () => isSplitLayout.value && props.bottomEnabled,
+);
 const rightCollapsible = computed(
   () => props.railEnabled && props.rightCollapsible,
 );
@@ -380,10 +813,26 @@ const safeLeftMaxWidth = computed(() => {
   return Math.max(props.leftMinWidth, Math.min(declaredMax, maxByContainer));
 });
 
+const safeBottomMaxHeight = computed(() => {
+  const declaredMax = Math.max(props.bottomMinHeight, props.bottomMaxHeight);
+  if (!mainRef.value) {
+    return declaredMax;
+  }
+  const mainHeight = mainRef.value.getBoundingClientRect().height;
+  const maxByContainer = mainHeight - props.topMinHeight - 12;
+  return Math.max(props.bottomMinHeight, Math.min(declaredMax, maxByContainer));
+});
+
 const leftWidthResolved = computed(() => {
   if (!props.leftEnabled) return 0;
   if (localLeftCollapsed.value) return props.leftCollapsedWidth;
   return clampLeftWidth(localLeftWidth.value);
+});
+
+const bottomHeightResolved = computed(() => {
+  if (!bottomEnabled.value) return 0;
+  if (localBottomCollapsed.value) return 0;
+  return clampBottomHeight(localBottomHeight.value);
 });
 
 const layoutStyle = computed(() => {
@@ -396,11 +845,24 @@ const layoutStyle = computed(() => {
       ? `${localRightCollapsed.value ? 0 : props.railWidth}px`
       : "0px",
     "--sc-layout-resizer-track": props.leftEnabled ? "12px" : "0px",
+    "--sc-layout-top-min-height": `${props.topMinHeight}px`,
+    "--sc-layout-bottom-track": bottomEnabled.value
+      ? `${bottomHeightResolved.value}px`
+      : "0px",
+    "--sc-layout-bottom-resizer-track":
+      bottomEnabled.value && !localBottomCollapsed.value ? "12px" : "0px",
   };
 });
 
 const clampLeftWidth = (width: number) => {
   return Math.max(props.leftMinWidth, Math.min(safeLeftMaxWidth.value, width));
+};
+
+const clampBottomHeight = (height: number) => {
+  return Math.max(
+    props.bottomMinHeight,
+    Math.min(safeBottomMaxHeight.value, height),
+  );
 };
 
 const syncRailTabs = (tabs: ScLayoutRailTab[]) => {
@@ -409,21 +871,25 @@ const syncRailTabs = (tabs: ScLayoutRailTab[]) => {
 };
 
 const ensureValidActiveTab = () => {
-  // 固定 tab（workspace/metadata）始终有效，不需要重置
-  const fixedTabs = ["workspace", "metadata"];
-  if (fixedTabs.includes(String(localRailValue.value))) return;
+  const availableTabs = displayRailTabs.value;
+  if (!useRouterNavigation.value) {
+    // 固定 tab（workspace/metadata）始终有效，不需要重置
+    const fixedTabs = ["workspace", "metadata"];
+    if (fixedTabs.includes(String(localRailValue.value))) return;
+  }
 
-  const hasCurrent = localRailTabs.value.some(
+  const hasCurrent = availableTabs.some(
     (item) => String(item.name) === String(localRailValue.value),
   );
   if (hasCurrent) return;
   // 当前 active tab 已被移除，回退到第一个 tab
-  const next = localRailTabs.value[0];
+  const next = availableTabs[0];
   localRailValue.value = next?.name ?? "";
   emit("update:modelValue", localRailValue.value);
 };
 
 const loadPersistedState = () => {
+  if (!props.persist) return;
   isRestoringPersistedState.value = true;
 
   try {
@@ -448,6 +914,18 @@ const loadPersistedState = () => {
     }
 
     if (
+      typeof savedState.bottomHeight === "number" &&
+      Number.isFinite(savedState.bottomHeight)
+    ) {
+      localBottomHeight.value = clampBottomHeight(savedState.bottomHeight);
+    }
+
+    if (typeof savedState.bottomCollapsed === "boolean") {
+      localBottomCollapsed.value = savedState.bottomCollapsed;
+    }
+
+    if (
+      !useRouterNavigation.value &&
       savedState.activeTab !== undefined &&
       savedState.activeTab !== null &&
       savedState.activeTab !== ""
@@ -465,7 +943,7 @@ const loadPersistedState = () => {
 };
 
 const savePersistedState = () => {
-  if (isRestoringPersistedState.value) {
+  if (!props.persist || isRestoringPersistedState.value) {
     return;
   }
 
@@ -473,6 +951,8 @@ const savePersistedState = () => {
     leftWidth: localLeftWidth.value,
     leftCollapsed: localLeftCollapsed.value,
     rightCollapsed: localRightCollapsed.value,
+    bottomHeight: localBottomHeight.value,
+    bottomCollapsed: localBottomCollapsed.value,
     activeTab: localRailValue.value,
     timestamp: Date.now(),
   });
@@ -492,12 +972,39 @@ const toggleRightCollapse = (force?: boolean) => {
   localRightCollapsed.value = next;
 };
 
+const toggleBottomCollapse = (force?: boolean) => {
+  if (!bottomEnabled.value || !bottomCollapsible.value) return;
+  const next = typeof force === "boolean" ? force : !localBottomCollapsed.value;
+  localBottomCollapsed.value = next;
+  if (!next) {
+    localBottomHeight.value = clampBottomHeight(localBottomHeight.value);
+  }
+};
+
+const setLeftWidth = (width: number) => {
+  if (!props.leftEnabled) return;
+  localLeftWidth.value = clampLeftWidth(width);
+};
+
+const setBottomHeight = (height: number) => {
+  if (!bottomEnabled.value) return;
+  localBottomHeight.value = clampBottomHeight(height);
+};
+
 const stopResize = () => {
   if (!isResizing.value) return;
   isResizing.value = false;
   document.removeEventListener("mousemove", handleResizeMove);
   document.removeEventListener("mouseup", stopResize);
   emit("left-resize-end", { width: leftWidthResolved.value });
+};
+
+const stopBottomResize = () => {
+  if (!isBottomResizing.value) return;
+  isBottomResizing.value = false;
+  document.removeEventListener("mousemove", handleBottomResizeMove);
+  document.removeEventListener("mouseup", stopBottomResize);
+  emit("bottom-resize-end", { height: bottomHeightResolved.value });
 };
 
 const handleResizeMove = (event: MouseEvent) => {
@@ -508,6 +1015,21 @@ const handleResizeMove = (event: MouseEvent) => {
   const next = clampLeftWidth(event.clientX - rect.left);
   localLeftWidth.value = next;
   emit("left-resize", { width: next });
+};
+
+const handleBottomResizeMove = (event: MouseEvent) => {
+  if (
+    !isBottomResizing.value ||
+    !mainRef.value ||
+    !bottomEnabled.value ||
+    localBottomCollapsed.value
+  ) {
+    return;
+  }
+  const rect = mainRef.value.getBoundingClientRect();
+  const next = clampBottomHeight(rect.bottom - event.clientY);
+  localBottomHeight.value = next;
+  emit("bottom-resize", { height: next });
 };
 
 const startResize = (event: MouseEvent) => {
@@ -521,9 +1043,21 @@ const startResize = (event: MouseEvent) => {
   document.addEventListener("mouseup", stopResize);
 };
 
+const startBottomResize = (event: MouseEvent) => {
+  if (!bottomEnabled.value || localBottomCollapsed.value) {
+    return;
+  }
+  event.preventDefault();
+  isBottomResizing.value = true;
+  emit("bottom-resize-start", { height: bottomHeightResolved.value });
+  document.addEventListener("mousemove", handleBottomResizeMove);
+  document.addEventListener("mouseup", stopBottomResize);
+};
+
 const setActiveTab = (name: string | number) => {
   localRailValue.value = name;
   emit("update:modelValue", name);
+  navigateToRouterTab(name);
 };
 
 const addTab = (
@@ -533,6 +1067,7 @@ const addTab = (
     index?: number;
   } = {},
 ) => {
+  if (useRouterNavigation.value) return;
   const nextTabs = [...localRailTabs.value];
   const existedIndex = nextTabs.findIndex(
     (item) => String(item.name) === String(tab.name),
@@ -558,6 +1093,7 @@ const addTab = (
 };
 
 const removeTab = (name: string | number) => {
+  if (useRouterNavigation.value) return;
   const key = String(name);
   const index = localRailTabs.value.findIndex(
     (item) => String(item.name) === key,
@@ -578,15 +1114,17 @@ const removeTab = (name: string | number) => {
 };
 
 const clearTabs = () => {
+  if (useRouterNavigation.value) return;
   syncRailTabs([]);
   setActiveTab("");
 };
 
 const getTabs = () => {
-  return [...localRailTabs.value];
+  return [...displayRailTabs.value];
 };
 
 const handleRailTabRemove = (name: string | number) => {
+  if (useRouterNavigation.value) return;
   removeTab(name);
 };
 
@@ -598,16 +1136,30 @@ watch(
   { immediate: true },
 );
 
+watch(
+  () => props.persist,
+  (enabled) => {
+    if (enabled) {
+      loadPersistedState();
+    }
+  },
+);
+
 defineExpose({
   addTab,
   clearTabs,
+  collapseBottom: () => toggleBottomCollapse(true),
   collapseLeft: () => toggleLeftCollapse(true),
   collapseRight: () => toggleRightCollapse(true),
+  expandBottom: () => toggleBottomCollapse(false),
   expandLeft: () => toggleLeftCollapse(false),
   expandRight: () => toggleRightCollapse(false),
   getTabs,
   removeTab,
+  setBottomHeight,
+  setLeftWidth,
   setActiveTab,
+  toggleBottomCollapse,
   toggleLeftCollapse,
   toggleRightCollapse,
 });
@@ -616,6 +1168,7 @@ ensureValidActiveTab();
 
 onBeforeUnmount(() => {
   stopResize();
+  stopBottomResize();
 });
 </script>
 
@@ -657,7 +1210,15 @@ onBeforeUnmount(() => {
   min-width: 0;
   min-height: 0;
   height: 100%;
+}
+
+.sc-layout__left,
+.sc-layout__main {
   overflow: hidden;
+}
+
+.sc-layout__rail {
+  overflow: visible;
 }
 
 .sc-layout__left {
@@ -735,6 +1296,133 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 1;
   overflow: auto;
+}
+
+.sc-layout__main.is-split {
+  display: grid;
+  grid-template-rows:
+    minmax(var(--sc-layout-top-min-height, 220px), 1fr)
+    var(--sc-layout-bottom-resizer-track, 0px)
+    var(--sc-layout-bottom-track, 0px);
+  overflow: hidden;
+}
+
+.sc-layout__main-top,
+.sc-layout__main-bottom {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.sc-layout__main-top {
+  grid-row: 1;
+}
+
+.sc-layout__main-resizer {
+  grid-row: 2;
+  position: relative;
+  cursor: row-resize;
+}
+
+.sc-layout__main-resizer::before {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 1px;
+  background: rgba(15, 23, 42, 0.12);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.sc-layout__main-resizer::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.12);
+  content: "";
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease;
+}
+
+.sc-layout__main-resizer.is-hovered::after,
+.sc-layout.is-bottom-resizing .sc-layout__main-resizer::after {
+  opacity: 1;
+}
+
+.sc-layout__main-collapse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sc-layout__main-collapse.is-visible {
+  opacity: 1;
+}
+
+.sc-layout__main-collapse:hover {
+  border-color: rgba(15, 23, 42, 0.22);
+}
+
+.sc-layout__main-bottom {
+  grid-row: 3;
+}
+
+.sc-layout__main-expand-hotspot {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 64px;
+  height: 32px;
+  z-index: 40;
+  transform: translateX(-50%);
+}
+
+.sc-layout__main-expand {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #475569;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.sc-layout__main-expand-hotspot:hover .sc-layout__main-expand {
+  opacity: 1;
+}
+
+.sc-layout__main-expand:hover {
+  border-color: rgba(15, 23, 42, 0.24);
 }
 
 .sc-layout__rail {
@@ -934,7 +1622,9 @@ onBeforeUnmount(() => {
   transform: scale(1);
 }
 
-.sc-layout__rail-tabs.close-mode-hover .sc-layout__rail-tab:focus-visible .sc-layout__rail-close {
+.sc-layout__rail-tabs.close-mode-hover
+  .sc-layout__rail-tab:focus-visible
+  .sc-layout__rail-close {
   opacity: 1;
   pointer-events: auto;
   transform: scale(1);
@@ -956,6 +1646,15 @@ onBeforeUnmount(() => {
     0 16px 28px -20px rgba(var(--el-color-primary-rgb), 0.56);
   --sc-layout-rail-close-bg: rgba(251, 113, 133, 0.24);
   --sc-layout-rail-close-color: #ffe4ea;
+}
+
+:global(html.dark) .sc-layout__main-collapse,
+:global(html[data-theme="dark"]) .sc-layout__main-collapse,
+:global(html.dark) .sc-layout__main-expand,
+:global(html[data-theme="dark"]) .sc-layout__main-expand {
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.96);
+  color: #cbd5e1;
 }
 
 .sc-layout__rail-collapse,

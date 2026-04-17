@@ -433,7 +433,7 @@ const HIDDEN_INTERACTIVE_SELECTOR = [
   "textarea",
   "[role='button']",
   "[role='link']",
-  "[tabindex]",
+  "[tabindex]:not(table):not(tbody):not(tr):not(td):not(th)",
 ].join(", ");
 
 // 使用主题组件系统

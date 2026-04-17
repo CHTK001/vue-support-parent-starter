@@ -166,6 +166,7 @@ import {
   onMounted,
   reactive,
   shallowRef,
+  watch,
 } from "vue";
 import { useRoute } from "vue-router";
 import { fetchListProjectForAiModule } from "../../../api/manage/project-ai-module";
@@ -228,9 +229,10 @@ const onAfterProperieSet = () => {
   const _selectedModel = localStorageProxy().getItem("ai-chat-selected");
   form.model = _selectedModel;
   const query = route.query;
-  env.sysProjectId = query.sysProjectId;
+  // 兼容新参数名 sysSecretId 和旧参数名 sysProjectId
+  env.sysProjectId = (query.sysSecretId || query.sysProjectId) as string;
   env.showEdit = !useUserStoreHook().tenantId;
-  env.sysProjectName = query.sysProjectName;
+  env.sysProjectName = (query.sysSecretName || query.sysProjectName) as string;
   form.sysProjectId = env.sysProjectId;
   form.sysProjectName = env.sysProjectName;
 };
@@ -261,4 +263,10 @@ onMounted(async () => {
   onAfterProperieSet();
   initialModuleList();
 });
+
+// 监听路由参数变化（支持 _t 时间戳强制刷新）
+watch(
+  () => route.query,
+  () => { onAfterProperieSet(); },
+);
 </script>

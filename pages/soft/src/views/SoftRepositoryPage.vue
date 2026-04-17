@@ -9,17 +9,6 @@
         <ScButton circle>
           <IconifyIconOnline icon="ri:apps-2-line" />
         </ScButton>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item
-              v-for="preset in repositoryPresets"
-              :key="preset.key"
-              :command="preset.key"
-            >
-              {{ preset.label }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
       </el-dropdown>
       <el-tooltip content="刷新定义" placement="top">
         <ScButton circle @click="loadRepositories">
@@ -322,7 +311,7 @@
                   <ScSelect
                     v-model="source.sourceKind"
                     :options="sourceKindOptions"
-                    layout="dropdown"
+                    layout="icon"
                     width="100%"
                     dropdown-title="选择来源分类"
                     dropdown-placeholder="选择来源分类"
@@ -577,43 +566,6 @@ const repositoryPresets = [
       repositoryType: "LOCAL_DIR",
       localDirectory: "H:/workspace/2/tmp/soft-artifacts",
       syncConfig: "本地目录 + 远程索引 + RPM 仓库 + 镜像仓库 + 禁用源示例",
-      sourceConfigs: [
-        {
-          sourceName: "主索引仓库",
-          sourceType: "HTTP_JSON",
-          sourceUrl: "http://127.0.0.1:18901/soft-repo-main/index.json",
-          enabled: true,
-          sourceConfig: "主软件索引",
-        },
-        {
-          sourceName: "补充索引仓库",
-          sourceType: "HTTP_JSON",
-          sourceUrl: "http://127.0.0.1:18901/soft-repo-extra/index.json",
-          enabled: true,
-          sourceConfig: "额外软件与版本定义",
-        },
-        {
-          sourceName: "RPM 远程仓库",
-          sourceType: "RPM_REPO",
-          sourceUrl: "http://127.0.0.1:18901/soft-artifacts/rpm/",
-          enabled: true,
-          sourceConfig: "RPM 版本同步",
-        },
-        {
-          sourceName: "镜像安装目录",
-          sourceType: "MIRROR_REPO",
-          sourceUrl: "http://127.0.0.1:18901/soft-artifacts/mirror/",
-          enabled: true,
-          sourceConfig: "镜像安装包同步",
-        },
-        {
-          sourceName: "禁用镜像目录",
-          sourceType: "MIRROR_REPO",
-          sourceUrl: "http://127.0.0.1:18901/soft-artifacts/disabled/",
-          enabled: false,
-          sourceConfig: "停用源示例",
-        },
-      ],
     } satisfies Partial<SoftRepository>,
   },
   {
