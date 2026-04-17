@@ -2,8 +2,8 @@ import { createViteConfig } from "@repo/build-config";
 import type { Plugin } from "vite";
 import pkg from "./package.json";
 import { resolve } from "path";
+import { existsSync, readFileSync } from "fs";
 import { createRequire } from "module";
-import { readFileSync } from "fs";
 
 const root = resolve(__dirname, "../..");
 const require = createRequire(import.meta.url);
@@ -11,13 +11,31 @@ const elementPlusIconsImport = "@element-plus/icons-vue";
 const elementPlusIconsRuntimeFile = "static/js/element-plus-icons-runtime.js";
 const vueRuntimeFile = "static/js/vue-runtime.js";
 
+const resolveRuntimeFile = (request: string, fallbackRelativePath: string) => {
+  try {
+    return require.resolve(request);
+  } catch {
+    const fallback = resolve(root, fallbackRelativePath);
+    if (!existsSync(fallback)) {
+      throw new Error(`Missing runtime file: ${request} / ${fallback}`);
+    }
+    return fallback;
+  }
+};
+
 const vueRuntimeSource = readFileSync(
-  require.resolve("vue/dist/vue.runtime.esm-browser.prod.js"),
+  resolveRuntimeFile(
+    "vue/dist/vue.runtime.esm-browser.prod.js",
+    "node_modules/vue/dist/vue.runtime.esm-browser.prod.js",
+  ),
   "utf8",
 );
 
 const elementPlusIconsRuntimeSource = readFileSync(
-  require.resolve("@element-plus/icons-vue/dist/index.min.js"),
+  resolveRuntimeFile(
+    "@element-plus/icons-vue/dist/index.min.js",
+    "node_modules/@element-plus/icons-vue/dist/index.min.js",
+  ),
   "utf8",
 )
   .replaceAll('from"vue"', 'from"./vue-runtime.js"')
@@ -92,6 +110,12 @@ export default createViteConfig(import.meta.url, pkg)
   .plugins(bundleElementPlusIconsRuntime())
   .proxy("/monitor/api/v1/music", "http://127.0.0.1:19171", true, {
     rewrite: (path) => path.replace(/^\/monitor\/api/, ""),
+  })
+  .proxy("/monitor/api/soft", "http://127.0.0.1:18171", true, {
+    rewrite: (path) => path.replace(/^\/monitor\/api/, "/soft-test/api"),
+  })
+  .proxy("/monitor/api/server", "http://127.0.0.1:18171", true, {
+    rewrite: (path) => path.replace(/^\/monitor\/api/, "/soft-test/api"),
   })
   .proxyFromEnv(
     "/monitor/api",

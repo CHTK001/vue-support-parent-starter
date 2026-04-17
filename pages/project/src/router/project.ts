@@ -1,9 +1,13 @@
 import type { RouteConfigsTable } from "@repo/core";
 
+// 全新项目管理（含服务器信息）
 const loadProjectIndex = async () =>
   (await import("../views/project/index.vue")).default;
+
+// 密钥管理（原项目管理改造而来）
 const loadSecretIndex = async () =>
   (await import("../views/secret/index.vue")).default;
+
 const loadSmsTemplate = async () =>
   (await import("../views/template/sms/index.vue")).default;
 const loadEmailTemplate = async () =>
@@ -20,6 +24,7 @@ export default [
       rank: 5,
     },
     children: [
+      // 全新项目管理主页
       {
         path: "/project/manage",
         name: "ProjectManage",
@@ -28,12 +33,20 @@ export default [
           title: "项目管理",
         },
       },
+      // 密钥管理主页（原项目管理）
       {
-        path: "/project/secret",
-        name: "ProjectSecret",
+        path: "/secret/manage",
+        name: "SecretManage",
         component: loadSecretIndex,
         meta: {
           title: "密钥管理",
+        },
+      },
+      // 旧路由兼容重定向
+      {
+        path: "/project/secret",
+        redirect: "/secret/manage",
+        meta: {
           showLink: false,
         },
       },

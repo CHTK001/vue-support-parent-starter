@@ -1,39 +1,104 @@
 <template>
-  <ScContextMenu ref="menuRef" :menus="menus" />
+  <ScContextMenu ref="menuRef" :menus="currentMenus" />
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import ScContextMenu from "@repo/components/ScContextMenu/index.vue";
+import type { SysProject } from "../api/manage/project";
 
 type MenuTarget = {
-  open?: (event: MouseEvent, data: null, node?: unknown) => void;
+  open?: (event: MouseEvent, data: unknown, node?: unknown) => void;
 };
 
 const emit = defineEmits<{
   create: [];
+  secret: [];
+  "toggle-server": [project: SysProject];
+  copy: [project: SysProject];
+  "set-secret": [project: SysProject];
+  upload: [project: SysProject];
+  "view-log": [project: SysProject];
+  "view-config": [project: SysProject];
 }>();
 
 const menuRef = ref<MenuTarget | null>(null);
+const targetProject = ref<SysProject | undefined>();
 
-const MENU_WIDTH = 200;
-const MENU_HEIGHT = 60;
+const MENU_WIDTH = 220;
+const MENU_HEIGHT = 340;
 
-const menus = [
+/** 空白区域右键：只显示新建项目 + 密钥管理 */
+const blankMenus = computed(() => [
   {
     name: "新建项目",
     icon: "ri:add-circle-line",
     handle: () => emit("create"),
   },
-];
+  {
+    name: "密钥管理",
+    icon: "ri:shield-keyhole-line",
+    handle: () => emit("secret"),
+  },
+]);
 
-const open = (event: MouseEvent) => {
+/** 卡片右键：显示全部操作 */
+const cardMenus = computed(() => [
+  {
+    name: "新建项目",
+    icon: "ri:add-circle-line",
+    handle: () => emit("create"),
+  },
+  {
+    name: "复制项目",
+    icon: "ri:file-copy-line",
+    handle: () => { if (targetProject.value) emit("copy", targetProject.value); },
+  },
+  {
+    name: "设置密钥",
+    icon: "ri:key-2-line",
+    handle: () => { if (targetProject.value) emit("set-secret", targetProject.value); },
+  },
+  {
+    name: "上传",
+    icon: "ri:upload-cloud-line",
+    handle: () => { if (targetProject.value) emit("upload", targetProject.value); },
+  },
+  {
+    name: "查看日志",
+    icon: "ep:document",
+    handle: () => { if (targetProject.value) emit("view-log", targetProject.value); },
+  },
+  {
+    name: "查看配置",
+    icon: "ri:file-code-line",
+    handle: () => { if (targetProject.value) emit("view-config", targetProject.value); },
+  },
+  {
+    name: "密钥管理",
+    icon: "ri:shield-keyhole-line",
+    handle: () => emit("secret"),
+  },
+  {
+    name: targetProject.value?.serverEnabled === 1 ? "✓ 服务器信息" : "服务器信息",
+    icon: "ri:server-line",
+    handle: () => { if (targetProject.value) emit("toggle-server", targetProject.value); },
+  },
+]);
+
+const currentMenus = computed(() =>
+  targetProject.value ? cardMenus.value : blankMenus.value,
+);
+
+const open = (event: MouseEvent, project?: SysProject) => {
+  targetProject.value = project;
+
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const menuH = project ? MENU_HEIGHT : 100;
   const x = Math.min(event.clientX, vw - MENU_WIDTH - 8);
-  const y = Math.min(event.clientY, vh - MENU_HEIGHT - 8);
+  const y = Math.min(event.clientY, vh - menuH - 8);
 
-  // new MouseEvent 必须显式传 clientX/clientY，不能展开原始 event
   const syntheticEvent = new MouseEvent(event.type, {
     bubbles: event.bubbles,
     cancelable: event.cancelable,
@@ -41,10 +106,6 @@ const open = (event: MouseEvent) => {
     clientY: y,
     screenX: event.screenX,
     screenY: event.screenY,
-    ctrlKey: event.ctrlKey,
-    shiftKey: event.shiftKey,
-    altKey: event.altKey,
-    metaKey: event.metaKey,
     button: event.button,
     buttons: event.buttons,
   });
@@ -65,11 +126,7 @@ defineExpose({ open });
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(18px);
 }
-
-:deep(.rightMenu ul) {
-  padding: 8px;
-}
-
+:deep(.rightMenu ul) { padding: 8px; }
 :deep(.rightMenu ul li) {
   min-width: 196px;
   min-height: 38px;
@@ -78,7 +135,6 @@ defineExpose({ open });
   padding: 8px 12px;
   border-radius: 12px;
 }
-
 :deep(.rightMenu ul li:hover) {
   background: color-mix(in srgb, var(--el-color-primary) 10%, white);
 }

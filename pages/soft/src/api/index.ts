@@ -261,6 +261,9 @@ export const updateSoftPackage = (
   data: Partial<SoftPackage>,
 ) => softRequest<SoftPackage>("put", `${packagesBase}/${id}`, { data });
 
+export const deleteSoftPackage = (id: number) =>
+  softRequest<boolean>("delete", `${packagesBase}/${id}`);
+
 export const updateSoftPackageVersion = (
   packageId: number,
   versionId: number,

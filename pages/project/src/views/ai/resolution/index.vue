@@ -13,6 +13,7 @@ import {
   onMounted,
   reactive,
   shallowRef,
+  watch,
 } from "vue";
 import { useRoute } from "vue-router";
 import {
@@ -180,9 +181,10 @@ const loadConfig = async (row, sysAiModuleCode) => {
 };
 const onAfterProperieSet = () => {
   const query = route.query;
-  env.sysProjectId = query.sysProjectId;
+  // 兼容新参数名 sysSecretId 和旧参数名 sysProjectId
+  env.sysProjectId = (query.sysSecretId || query.sysProjectId) as string;
   env.category = query.category || props.category || "RESOLUTION";
-  env.sysProjectName = query.sysProjectName;
+  env.sysProjectName = (query.sysSecretName || query.sysProjectName) as string;
   form.sysAiModuleType = query.type || props.type || "RESOLUTION";
   form.sysProjectId = env.sysProjectId;
   form.sysProjectName = env.sysProjectName;
@@ -244,6 +246,12 @@ onMounted(async () => {
   initialModuleList();
   handleTrigger();
 });
+
+// 监听路由参数变化（支持 _t 时间戳强制刷新）
+watch(
+  () => route.query,
+  () => { onAfterProperieSet(); },
+);
 </script>
 <template>
   <div class="resolution-container h-full w-full overflow-hidden system-container modern-bg">

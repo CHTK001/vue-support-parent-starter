@@ -10,6 +10,7 @@ import {
   reactive,
   ref,
   shallowRef,
+  watch,
 } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
@@ -84,10 +85,17 @@ const route = useRoute();
 
 const onAfterProperieSet = () => {
   const query = route.query;
-  env.sysProjectId = query.sysProjectId;
-  env.sysProjectName = query.sysProjectName;
-  form.sysProjectId = query.sysProjectId;
+  // 兼容新参数名 sysSecretId 和旧参数名 sysProjectId
+  env.sysProjectId = String(query.sysSecretId || query.sysProjectId || "");
+  env.sysProjectName = String(query.sysSecretName || query.sysProjectName || "");
+  form.sysProjectId = env.sysProjectId;
 };
+
+// 监听路由参数变化（支持 _t 时间戳强制刷新）
+watch(
+  () => route.query,
+  () => { onAfterProperieSet(); },
+);
 
 const doUpdate = async ($event, row) => {
   fetchUpdateProjectForDevice(row).then((res) => {

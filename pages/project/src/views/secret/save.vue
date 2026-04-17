@@ -1,304 +1,1220 @@
-<script>
-import { fetchListDictItem } from "@repo/core";
-import { defineComponent } from "vue";
-import { fetchSaveSecret, fetchUpdateSecret } from "../../api/manage/secret";
+﻿<template>
+  <sc-dialog v-model="dialogVisible" top="10px" :title="dialogTitle" :width="dialogWidth" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" class="modern-dialog" @close="handleClose">
+    <div class="dialog-content">
+      <!-- 表单头部 -->
+      <div class="form-header" v-if="!isViewMode">
+        <div class="header-icon">
+          <ScIcon class="icon">
+            <component :is="useRenderIcon(getHeaderIcon())" />
+          </ScIcon>
+        </div>
+        <div class="header-content">
+          <h3 class="header-title">{{ getHeaderTitle() }}</h3>
+          <p class="header-subtitle">{{ getHeaderSubtitle() }}</p>
+        </div>
+      </div>
 
-import { debounce } from "@pureadmin/utils";
-import { clearObject } from "@repo/config";
-import { message } from "@repo/utils";
-import { useI18n } from "vue-i18n";
+      <!-- 查看模式信息卡片 -->
+      <div class="view-card" v-if="isViewMode">
+        <div class="card-header">
+          <div class="project-avatar">
+            <img v-if="formData.sysSecretIcon" :src="formData.sysSecretIcon" :alt="formData.sysSecretName" class="avatar-image" @error="handleImageError" />
+            <div v-else class="avatar-placeholder">
+              <ScIcon class="placeholder-icon">
+                <component :is="useRenderIcon('ri:apps-line')" />
+              </ScIcon>
+            </div>
+          </div>
+          <div class="project-info">
+            <h2 class="project-name">{{ formData.sysSecretName }}</h2>
+            <div class="project-meta">
+              <ScTag :type="formData.sysSecretStatus === 1 ? 'success' : 'danger'" class="status-tag">
+                {{ formData.sysSecretStatus === 1 ? "启用" : "禁用" }}
+              </ScTag>
+              <span class="meta-divider">•</span>
+              <span class="meta-text">{{ getVenderName(formData.sysSecretVender) }}</span>
+            </div>
+          </div>
+        </div>
 
-export default defineComponent({
-  props: {
-    sysSecretFunctions: {
-      type: Array,
-      default: () => [],
-    },
-  },
-  data() {
-    return {
-      form: {
-        sysSecretGroup: null,
-        sysSecretCode: null,
-        sysSecretEndpoint: null,
-        sysSecretAppId: null,
-        sysSecretAppSecret: null,
-        sysSecretSign: null,
-        sysSecretDictItemId: null,
-        sysSecretCdn: null,
-        sysSecretFunctions: [],
-        sysSecretFunction: null,
-        sysSecretRemark: null,
-      },
-      visible: false,
-      rules: {
-        sysSecretDictItemId: [
-          { required: true, message: "请选择厂家", trigger: "blur" },
-        ],
-        sysSecretGroup: [
-          { required: true, message: "请输入密钥分组", trigger: "blur" },
-        ],
-        sysSecretCode: [
-          {
-            required: true,
-            message: "请输入编码, 可自行唯一",
-            trigger: "blur",
-          },
-        ],
-      },
-      loading: false,
-      title: "",
-      mode: "save",
+        <div class="card-content">
+          <div class="info-grid">
+            <div class="info-item">
+              <label class="info-label">项目分组</label>
+              <div class="info-value">{{ formData.sysSecretGroup || "未分组" }}</div>
+            </div>
+            <div class="info-item">
+              <label class="info-label">排序值</label>
+              <div class="info-value">{{ formData.sysSecretSort || 0 }}</div>
+            </div>
+            <div class="info-item">
+              <label class="info-label">创建时间</label>
+              <div class="info-value">{{ formatDateTime(formData.createTime) }}</div>
+            </div>
+            <div class="info-item">
+              <label class="info-label">更新时间</label>
+              <div class="info-value">{{ formatDateTime(formData.updateTime) }}</div>
+            </div>
+          </div>
 
-      dictItem: [],
-      t: null,
-    };
-  },
-  mounted() {
-    const { t } = useI18n();
-    this.initialize();
-    this.t = t;
-  },
-  methods: {
-    async initialize() {
-      fetchListDictItem({
-        sysDictId: 1,
-      }).then((res) => {
-        this.dictItem = res?.data;
-      });
-    },
-    async close() {
-      this.visible = false;
-      this.loading = false;
-      clearObject(this.form);
-    },
-    setData(data) {
-      Object.assign(this.form, data);
-      if (data?.sysSecretFunction) {
-        this.form.sysSecretFunctions = data?.sysSecretFunction.split(",");
-      }
-      return this;
-    },
-    async open(mode = "save") {
-      this.visible = true;
-      this.mode = mode;
-      this.title = mode == "save" ? "保存" : "编辑";
-    },
-    debounce(fn, time, immediate) {
-      return debounce(fn, time, immediate);
-    },
-    submit() {
-      this.$refs.dialogForm.validate(async (valid) => {
-        if (valid) {
-          this.loading = true;
-          var res = {};
-          const newForm = {};
-          Object.assign(newForm, this.form);
-          newForm.sysSecretFunction = (this.form.sysSecretFunctions || []).join(
-            ",",
-          );
-          if (this.mode === "save") {
-            res = await fetchSaveSecret(newForm);
-          } else if (this.mode === "edit") {
-            res = await fetchUpdateSecret(newForm);
-          }
+          <div class="info-section" v-if="formData.sysSecretFunction">
+            <label class="section-label">项目功能</label>
+            <div class="function-tags">
+              <ScTag v-for="funcId in getFunctionIds(formData.sysSecretFunction)" :key="funcId" type="primary" class="function-tag">
+                {{ getFunctionName(funcId) }}
+              </ScTag>
+            </div>
+          </div>
 
-          if (res.code == "00000") {
-            this.$emit("success", newForm);
-            this.visible = false;
-          } else {
-            message(res.msg, { type: "error" });
-          }
-        }
-        this.loading = false;
-      });
-    },
-  },
-});
-</script>
-<template>
-  <div>
-    <sc-dialog
-      v-model="visible"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :destroy-on-close="true"
-      draggable
-      :title="title"
-      @close="close"
-    >
-      <ScForm
-        ref="dialogForm"
-        :model="form"
-        :rules="rules"
-        :disabled="mode == 'show'"
-        label-width="100px"
-      >
-        <ScRow>
-          <ScCol :span="12">
-            <ScFormItem label="密钥分组" prop="sysSecretGroup">
-              <ScInput
-                v-model="form.sysSecretGroup"
-                placeholder="请输入密钥分组"
-              />
+          <div class="info-section" v-if="formData.sysSecretRemark">
+            <label class="section-label">项目描述</label>
+            <div class="remark-content">{{ formData.sysSecretRemark }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 编辑表单 -->
+      <ScForm v-else ref="formRef" :model="formData" :rules="formRules" label-width="120px" class="modern-form" @submit.prevent>
+        <div class="form-grid">
+          <!-- 基本信息 -->
+          <div class="form-section">
+            <div class="section-title">
+              <ScIcon class="section-icon">
+                <component :is="useRenderIcon('ri:information-line')" />
+              </ScIcon>
+              <span>基本信息</span>
+            </div>
+
+            <div class="form-row">
+              <ScFormItem label="密钥名称" prop="sysSecretName" class="form-item">
+                <ScInput v-model="formData.sysSecretName" placeholder="请输入密钥名称" clearable maxlength="50" show-word-limit class="form-input">
+                  <template #prefix>
+                    <ScIcon><component :is="useRenderIcon('ri:apps-line')" /></ScIcon>
+                  </template>
+                </ScInput>
+              </ScFormItem>
+
+              <ScFormItem label="项目分组" prop="sysSecretGroup" class="form-item">
+                <div class="group-input-row">
+                  <ScInput v-model="formData.sysSecretGroup" placeholder="请输入项目分组" clearable maxlength="30" show-word-limit class="form-input">
+                    <template #prefix>
+                      <ScIcon><component :is="useRenderIcon('ri:folder-line')" /></ScIcon>
+                    </template>
+                  </ScInput>
+                  <el-tooltip :content="props.connectionId ? '浏览远程目录' : '需要先建立服务器连接'" placement="top">
+                    <ScButton :disabled="!props.connectionId" :icon="useRenderIcon('ri:folder-open-line')" @click="handleBrowse">浏览</ScButton>
+                  </el-tooltip>
+                </div>
+              </ScFormItem>
+            </div>
+
+            <div class="form-row">
+              <ScFormItem label="密钥厂商" prop="sysSecretVender" class="form-item">
+                <ScSelect v-model="formData.sysSecretVender" placeholder="请选择密钥厂商" clearable filterable class="form-select">
+                  <ScOption v-for="item in venderOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
+                    <div class="option-content">
+                      <span class="option-name">{{ item.sysDictItemName }}</span>
+                      <span class="option-code">{{ item.sysDictItemCode }}</span>
+                    </div>
+                  </ScOption>
+                </ScSelect>
+              </ScFormItem>
+
+              <ScFormItem label="密钥状态" prop="sysSecretStatus" class="form-item">
+                <ScRadioGroup v-model="formData.sysSecretStatus" class="status-radio">
+                  <ScRadio :label="1" class="status-option">
+                    <div class="radio-content">
+                      <ScIcon class="radio-icon success">
+                        <component :is="useRenderIcon('ri:checkbox-circle-line')" />
+                      </ScIcon>
+                      <span>启用</span>
+                    </div>
+                  </ScRadio>
+                  <ScRadio :label="0" class="status-option">
+                    <div class="radio-content">
+                      <ScIcon class="radio-icon danger">
+                        <component :is="useRenderIcon('ri:close-circle-line')" />
+                      </ScIcon>
+                      <span>禁用</span>
+                    </div>
+                  </ScRadio>
+                </ScRadioGroup>
+              </ScFormItem>
+            </div>
+
+            <ScFormItem label="排序值" prop="sysSecretSort" class="form-item full-width">
+              <ScInputNumber v-model="formData.sysSecretSort" :min="0" :max="9999" :step="1" placeholder="请输入排序值" class="form-number" />
+              <div class="form-tip">
+                <ScIcon><component :is="useRenderIcon('ri:information-line')" /></ScIcon>
+                数值越小排序越靠前，默认为0
+              </div>
             </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="密钥标识" prop="sysSecretCode">
-              <ScInput
-                v-model="form.sysSecretCode"
-                placeholder="请输入密码标识"
-              />
-            </ScFormItem>
-          </ScCol>
-          <ScCol :span="12">
-            <ScFormItem label="适用厂家" prop="sysSecretDictItemId">
-              <ScSelect
-                v-model="form.sysSecretDictItemId"
-                placeholder="请选择厂家"
-                filterable
-              >
-                <ScOption
-                  v-for="item in dictItem"
-                  :key="item.sysDictItemId"
-                  :label="item.sysDictItemName"
-                  :value="item.sysDictItemId"
-                />
+          </div>
+
+          <!-- 功能配置 -->
+          <div class="form-section">
+            <div class="section-title">
+              <ScIcon class="section-icon">
+                <component :is="useRenderIcon('ri:settings-3-line')" />
+              </ScIcon>
+              <span>功能配置</span>
+            </div>
+
+            <ScFormItem label="密钥功能" prop="sysSecretFunction" class="form-item full-width">
+              <ScSelect v-model="selectedFunctions" :max-collapse-tags="5" placeholder="请选择密钥功能" multiple collapse-tags collapse-tags-tooltip filterable class="form-select multiple">
+                <ScOption v-for="item in functionOptions" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId">
+                  <div class="option-content">
+                    <span class="option-name">{{ item.sysDictItemName }}</span>
+                    <span class="option-code">{{ item.sysDictItemCode }}</span>
+                  </div>
+                </ScOption>
               </ScSelect>
             </ScFormItem>
-          </ScCol>
+          </div>
 
-          <ScCol :span="12">
-            <ScFormItem label="同步功能" prop="sysSecretFunction">
-              <ScSelect
-                v-model="form.sysSecretFunctions"
-                placeholder="请选择支持同步功能"
-                filterable
-                multiple
-              >
-                <ScOption
-                  v-for="item in sysSecretFunctions"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </ScSelect>
-            </ScFormItem>
-          </ScCol>
+          <!-- 图标和描述 -->
+          <div class="form-section">
+            <div class="section-title">
+              <ScIcon class="section-icon">
+                <component :is="useRenderIcon('ri:image-line')" />
+              </ScIcon>
+              <span>图标和描述</span>
+            </div>
 
-          <ScCol :span="12">
-            <ScFormItem label="appId" prop="sysSecretAppId">
-              <ScInput
-                v-model="form.sysSecretAppId"
-                placeholder="请输入AppId"
-              />
+            <ScFormItem label="密钥图标" prop="sysSecretIcon" class="form-item full-width">
+              <div class="icon-upload">
+                <div class="icon-preview">
+                  <img v-if="formData.sysSecretIcon" :src="formData.sysSecretIcon" :alt="formData.sysSecretName" class="preview-image" @error="handleImageError" />
+                  <div v-else class="preview-placeholder">
+                    <ScIcon class="placeholder-icon">
+                      <component :is="useRenderIcon('ri:image-add-line')" />
+                    </ScIcon>
+                    <span class="placeholder-text">暂无图标</span>
+                  </div>
+                </div>
+                <div class="icon-actions">
+                  <ScInput v-model="formData.sysSecretIcon" placeholder="请输入图标URL地址" clearable class="icon-input">
+                    <template #prefix>
+                      <ScIcon><component :is="useRenderIcon('ri:link')" /></ScIcon>
+                    </template>
+                  </ScInput>
+                  <ScButton type="primary" :icon="useRenderIcon('ri:upload-line')" @click="handleUploadIcon" class="upload-btn"> 上传图标 </ScButton>
+                </div>
+              </div>
+              <div class="form-tip">
+                <ScIcon><component :is="useRenderIcon('ri:information-line')" /></ScIcon>
+                支持JPG、PNG格式，建议尺寸64x64像素
+              </div>
             </ScFormItem>
-          </ScCol>
 
-          <ScCol :span="12">
-            <ScFormItem label="appSecret" prop="sysSecretAppSecret">
-              <ScInput
-                v-model="form.sysSecretAppSecret"
-                placeholder="请输入appSecret"
-              />
+            <ScFormItem label="密钥描述" prop="sysSecretRemark" class="form-item full-width">
+              <ScInput v-model="formData.sysSecretRemark" type="textarea" placeholder="请输入项目描述信息..." :rows="4" maxlength="200" show-word-limit resize="none" class="form-textarea" />
             </ScFormItem>
-          </ScCol>
-
-          <ScCol :span="12">
-            <ScFormItem label="签名" prop="sysSecretSign">
-              <ScInput v-model="form.sysSecretSign" placeholder="请输入签名" />
-            </ScFormItem>
-          </ScCol>
-
-          <ScCol :span="12">
-            <ScFormItem label="endpoint" prop="sysSecretEndpoint">
-              <ScInput
-                v-model="form.sysSecretEndpoint"
-                placeholder="请输入endpoint"
-              />
-            </ScFormItem>
-          </ScCol>
-
-          <ScCol :span="12">
-            <ScFormItem label="cdn" prop="sysSecretCdn">
-              <ScInput v-model="form.sysSecretCdn" placeholder="请输入cdn" />
-            </ScFormItem>
-          </ScCol>
-
-          <ScCol :span="24">
-            <ScFormItem label="备注" prop="sysSecretRemark">
-              <ScInput
-                v-model="form.sysSecretRemark"
-                placeholder="请输入备注"
-                type="textarea"
-              />
-            </ScFormItem>
-          </ScCol>
-        </ScRow>
+          </div>
+        </div>
       </ScForm>
+    </div>
 
-      <template #footer>
-        <ScButton @click="visible = false">取 消</ScButton>
-        <ScButton
-          v-if="mode != 'show'"
-          type="primary"
-          :loading="loading"
-          @click="debounce(submit(), 1000, true)"
-          >保 存</ScButton>
-      </template>
-    </sc-dialog>
-  </div>
+    <!-- 对话框底部 -->
+    <template #footer>
+      <div class="dialog-footer">
+        <div class="footer-left">
+          <div class="operation-info" v-if="!isViewMode">
+            <ScIcon class="info-icon">
+              <component :is="useRenderIcon('ri:information-line')" />
+            </ScIcon>
+            <span class="info-text">{{ getOperationInfo() }}</span>
+          </div>
+        </div>
+        <div class="footer-right">
+          <ScButton @click="handleClose" class="cancel-btn">
+            {{ isViewMode ? "关闭" : "取消" }}
+          </ScButton>
+          <ScButton v-if="!isViewMode" type="primary" :loading="submitLoading" @click="handleSubmit" class="submit-btn">
+            <template #loading>
+              <div class="loading-content">
+                <ScIcon class="loading-icon">
+                  <component :is="useRenderIcon('ri:loader-line')" />
+                </ScIcon>
+                <span>{{ getSubmitLoadingText() }}</span>
+              </div>
+            </template>
+            {{ getSubmitText() }}
+          </ScButton>
+        </div>
+      </div>
+    </template>
+  </sc-dialog>
+
+  <DirectoryBrowserDialog
+    ref="dirBrowserRef"
+    :connection-id="props.connectionId ?? ''"
+    @select="handleDirSelect"
+  />
 </template>
 
-<style scoped lang="scss">
-:deep(.el-dialog) {
+<script setup>
+import {  useRenderIcon  } from "@repo/components/ReIcon";
+import { message } from "@repo/utils";
+import { computed, nextTick, reactive, ref, watch } from "vue";
+import { fetchSaveSecret, fetchUpdateSecret } from "../../api/manage/secret";
+import DirectoryBrowserDialog from "../../components/DirectoryBrowserDialog.vue";
+
+// Props
+const props = defineProps({
+  connectionId: { type: String, default: "" },
+});
+
+// 组件事件
+const emit = defineEmits(["success", "close"]);
+
+// 目录浏览
+const dirBrowserRef = ref();
+const handleBrowse = () => { dirBrowserRef.value?.open(); };
+const handleDirSelect = (path) => { formData.sysSecretGroup = path; };
+
+// 响应式数据
+const dialogVisible = ref(false);
+const submitLoading = ref(false);
+const formRef = ref();
+
+// 操作模式
+const operationMode = ref("add"); // add, edit, copy, view
+
+// 表单数据
+const formData = reactive({
+  sysSecretId: null,
+  sysSecretName: "",
+  sysSecretGroup: "",
+  sysSecretVender: null,
+  sysSecretFunction: "",
+  sysSecretIcon: "",
+  sysSecretRemark: "",
+  sysSecretStatus: 1,
+  sysSecretSort: 0,
+  createTime: "",
+  updateTime: "",
+});
+
+// 选中的功能列表
+const selectedFunctions = ref([]);
+
+// 选项数据
+const venderOptions = ref([]);
+const functionOptions = ref([]);
+
+// 表单验证规则
+const formRules = {
+  sysSecretName: [
+    { required: true, message: "请输入密钥名称", trigger: "blur" },
+    { min: 2, max: 50, message: "项目名称长度在2到50个字符", trigger: "blur" },
+  ],
+  sysSecretVender: [{ required: true, message: "请选择密钥厂商", trigger: "change" }],
+  sysSecretStatus: [{ required: true, message: "请选择密钥状态", trigger: "change" }],
+};
+
+// 计算属性
+const isViewMode = computed(() => operationMode.value === "view");
+
+const dialogTitle = computed(() => {
+  const titles = {
+    add: "新建密钥",
+    edit: "编辑密钥",
+    copy: "复制密钥",
+    view: "密钥详情",
+  };
+  return titles[operationMode.value] || "密钥管理";
+});
+
+const dialogWidth = computed(() => {
+  return isViewMode.value ? "800px" : "900px";
+});
+
+// 监听功能选择变化
+watch(
+  selectedFunctions,
+  (newVal) => {
+    formData.sysSecretFunction = newVal.join(",");
+  },
+  { deep: true }
+);
+
+// 方法
+const getHeaderIcon = () => {
+  const icons = {
+    add: "ri:add-circle-line",
+    edit: "ri:edit-circle-line",
+    copy: "ri:file-copy-line",
+  };
+  return icons[operationMode.value] || "ri:apps-line";
+};
+
+const getHeaderTitle = () => {
+  const titles = {
+    add: "创建新密钥",
+    edit: "编辑密钥信息",
+    copy: "复制密钥配置",
+  };
+  return titles[operationMode.value] || "密钥管理";
+};
+
+const getHeaderSubtitle = () => {
+  const subtitles = {
+    add: "填写项目基本信息和功能配置",
+    edit: "修改项目信息和配置参数",
+    copy: "基于现有项目创建新项目",
+  };
+  return subtitles[operationMode.value] || "";
+};
+
+const getOperationInfo = () => {
+  const infos = {
+    add: "请填写完整的项目信息",
+    edit: "修改后的信息将立即生效",
+    copy: "将创建一个新的项目副本",
+  };
+  return infos[operationMode.value] || "";
+};
+
+const getSubmitText = () => {
+  const texts = {
+    add: "创建项目",
+    edit: "保存修改",
+    copy: "创建副本",
+  };
+  return texts[operationMode.value] || "确定";
+};
+
+const getSubmitLoadingText = () => {
+  const texts = {
+    add: "创建中...",
+    edit: "保存中...",
+    copy: "复制中...",
+  };
+  return texts[operationMode.value] || "处理中...";
+};
+
+const getVenderName = (venderId) => {
+  const vender = venderOptions.value.find((item) => item.sysDictItemId === venderId);
+  return vender?.sysDictItemName || "未知厂商";
+};
+
+const getFunctionIds = (functionStr) => {
+  if (!functionStr) return [];
+  return functionStr
+    .split(",")
+    .map((id) => parseInt(id))
+    .filter((id) => !isNaN(id));
+};
+
+const getFunctionName = (functionId) => {
+  const func = functionOptions.value.find((item) => item.sysDictItemId === functionId);
+  return func?.sysDictItemName || "未知功能";
+};
+
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return "-";
+  const date = new Date(dateTime);
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+const handleImageError = (event) => {
+  event.target.style.display = "none";
+};
+
+const handleUploadIcon = () => {
+  message("图标上传功能开发中...", { type: "info" });
+};
+
+// 重置表单
+const resetForm = () => {
+  Object.assign(formData, {
+    sysSecretId: null,
+    sysSecretName: "",
+    sysSecretGroup: "",
+    sysSecretVender: null,
+    sysSecretFunction: "",
+    sysSecretIcon: "",
+    sysSecretRemark: "",
+    sysSecretStatus: 1,
+    sysSecretSort: 0,
+    createTime: "",
+    updateTime: "",
+  });
+  selectedFunctions.value = [];
+
+  if (formRef.value) {
+    formRef.value.clearValidate();
+  }
+};
+
+// 填充表单数据
+const fillFormData = (data) => {
+  Object.assign(formData, {
+    sysSecretId: data.sysSecretId || null,
+    sysSecretName: data.sysSecretName || "",
+    sysSecretGroup: data.sysSecretGroup || "",
+    sysSecretVender: data.sysSecretVender || null,
+    sysSecretFunction: data.sysSecretFunction || "",
+    sysSecretIcon: data.sysSecretIcon || "",
+    sysSecretRemark: data.sysSecretRemark || "",
+    sysSecretStatus: data.sysSecretStatus ?? 1,
+    sysSecretSort: data.sysSecretSort || 0,
+    createTime: data.createTime || "",
+    updateTime: data.updateTime || "",
+  });
+
+  // 设置功能选择
+  if (data.sysSecretFunction) {
+    selectedFunctions.value = getFunctionIds(data.sysSecretFunction);
+  } else {
+    selectedFunctions.value = [];
+  }
+};
+
+// 打开对话框
+const handleOpen = async (mode, data = null) => {
+  operationMode.value = mode;
+  resetForm();
+
+  if (data) {
+    if (mode === "copy") {
+      // 复制模式：清除ID和时间，修改名称
+      const copyData = { ...data };
+      delete copyData.sysSecretId;
+      delete copyData.createTime;
+      delete copyData.updateTime;
+      copyData.sysSecretName = `${data.sysSecretName}_副本`;
+      fillFormData(copyData);
+    } else {
+      // 编辑和查看模式：直接填充数据
+      fillFormData(data);
+    }
+  }
+
+  dialogVisible.value = true;
+
+  // 等待DOM更新后聚焦第一个输入框
+  await nextTick();
+  if (!isViewMode.value && formRef.value) {
+    const firstInput = formRef.value.$el.querySelector("input");
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }
+};
+
+// 关闭对话框
+const handleClose = () => {
+  dialogVisible.value = false;
+  emit("close");
+};
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return;
+
+  try {
+    const valid = await formRef.value.validate();
+    if (!valid) return;
+
+    submitLoading.value = true;
+
+    const submitData = {
+      ...formData,
+      sysSecretFunction: selectedFunctions.value.join(","),
+    };
+
+    let response;
+    if (operationMode.value === "edit") {
+      response = await fetchUpdateSecret(submitData);
+    } else {
+      // 新增和复制都使用新增接口
+      const { sysSecretId, createTime, updateTime, ...addData } = submitData;
+      response = await fetchSaveSecret(addData);
+    }
+
+    if (response?.code === "00000") {
+      const successMessages = {
+        add: "密钥创建成功",
+        edit: "密钥更新成功",
+        copy: "密钥复制成功",
+      };
+
+      message(successMessages[operationMode.value], { type: "success" });
+      emit("success");
+      handleClose();
+    } else {
+      throw new Error(response?.message || "操作失败");
+    }
+  } catch (error) {
+    console.error("提交失败:", error);
+    message(error.message || "操作失败", { type: "error" });
+  } finally {
+    submitLoading.value = false;
+  }
+};
+
+// 设置字典数据
+const handleDictItem = (data) => {
+  venderOptions.value = data || [];
+};
+
+const handleFunction = (data) => {
+  functionOptions.value = data || [];
+};
+
+// 暴露方法给父组件
+defineExpose({
+  handleOpen,
+  handleDictItem,
+  handleFunction,
+});
+</script>
+
+<style lang="scss" scoped>
+.modern-dialog {
+  :deep(.el-dialog) {
+    border-radius: 16px;
+    overflow: hidden;
+
+    .el-dialog__header {
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+      color: var(--el-text-color-primary);
+      padding: 10px 12px;
+      border-bottom: none;
+
+      .el-dialog__title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .el-dialog__headerbtn {
+        top: 20px;
+        right: 24px;
+
+        .el-dialog__close {
+          color: var(--el-text-color-primary);
+          font-size: 18px;
+
+          &:hover {
+            color: rgba(255, 255, 255, 0.8);
+          }
+        }
+      }
+    }
+
+    .el-dialog__body {
+      padding: 0;
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    .el-dialog__footer {
+      padding: 20px 24px;
+      background: var(--el-bg-color-page);
+      border-top: 1px solid var(--el-border-color-lighter);
+    }
+  }
+}
+
+.dialog-content {
+  padding: 16px;
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--el-color-primary-light-9);
   border-radius: 12px;
+  border-left: 4px solid var(--el-color-primary);
+
+  .header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--el-color-primary);
+
+    .icon {
+      font-size: 24px;
+      color: var(--el-text-color-primary);
+    }
+  }
+
+  .header-content {
+    .header-title {
+      margin: 0 0 4px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .header-subtitle {
+      margin: 0;
+      font-size: 14px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+.view-card {
+  background: var(--el-bg-color-overlay);
+  border-radius: 16px;
+  border: 1px solid var(--el-border-color-lighter);
   overflow: hidden;
 
-  .el-dialog__header {
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color-overlay) 100%
-    );
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    padding: 16px 20px;
-    margin: 0;
-  }
-
-  .el-dialog__body {
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
     padding: 24px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9), var(--el-color-primary-light-8));
+
+    .project-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--el-bg-color-overlay);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      .avatar-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .placeholder-icon {
+          font-size: 32px;
+          color: var(--el-text-color-placeholder);
+        }
+      }
+    }
+
+    .project-info {
+      flex: 1;
+
+      .project-name {
+        margin: 0 0 8px 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--el-text-color-primary);
+      }
+
+      .project-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .status-tag {
+          font-weight: 600;
+        }
+
+        .meta-divider {
+          color: var(--el-text-color-placeholder);
+        }
+
+        .meta-text {
+          font-size: 14px;
+          color: var(--el-text-color-secondary);
+        }
+      }
+    }
   }
 
-  .el-dialog__footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--el-border-color-lighter);
+  .card-content {
+    padding: 12px;
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 12px;
+
+      .info-item {
+        .info-label {
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--el-text-color-secondary);
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .info-value {
+          font-size: 14px;
+          color: var(--el-text-color-primary);
+          font-weight: 500;
+        }
+      }
+    }
+
+    .info-section {
+      margin-bottom: 12px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .section-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--el-text-color-secondary);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .function-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .function-tag {
+          font-size: 12px;
+          border-radius: 6px;
+        }
+      }
+
+      .remark-content {
+        padding: 16px;
+        background: var(--el-fill-color-light);
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--el-text-color-primary);
+      }
+    }
   }
 }
 
-.el-form {
-  padding: 0;
+.modern-form {
+  .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-section {
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+
+      .section-icon {
+        font-size: 18px;
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-item {
+    margin-bottom: 12px;
+
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+
+    :deep(.el-form-item__label) {
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .form-input,
+    .form-select,
+    .form-number,
+    .form-textarea {
+      width: 100%;
+
+      :deep(.el-input__wrapper),
+      :deep(.el-select__wrapper),
+      :deep(.el-textarea__inner) {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: var(--el-color-primary-light-7);
+        }
+
+        &.is-focus {
+          border-color: var(--el-color-primary);
+          box-shadow: 0 0 0 2px var(--el-color-primary-light-9);
+        }
+      }
+    }
+
+    .form-tip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
+
+      .el-icon {
+        font-size: 14px;
+      }
+    }
+
+    .group-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+
+      .form-input {
+        flex: 1;
+      }
+    }
+  }
+
+  .status-radio {
+    display: flex;
+    gap: 20px;
+
+    .status-option {
+      :deep(.el-radio__label) {
+        padding-left: 8px;
+      }
+
+      .radio-content {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .radio-icon {
+          font-size: 16px;
+
+          &.success {
+            color: var(--el-color-success);
+          }
+
+          &.danger {
+            color: var(--el-color-danger);
+          }
+        }
+      }
+    }
+  }
+
+  .option-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    .option-name {
+      font-weight: 500;
+    }
+
+    .option-code {
+      font-size: 12px;
+      color: var(--el-text-color-placeholder);
+      background: var(--el-fill-color-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  }
+
+  .icon-upload {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+
+    .icon-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      border: 2px dashed var(--el-border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--el-fill-color-light);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+      }
+
+      .preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .preview-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+
+        .placeholder-icon {
+          font-size: 24px;
+          color: var(--el-text-color-placeholder);
+        }
+
+        .placeholder-text {
+          font-size: 11px;
+          color: var(--el-text-color-placeholder);
+        }
+      }
+    }
+
+    .icon-actions {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .icon-input {
+        :deep(.el-input__wrapper) {
+          border-radius: 8px;
+        }
+      }
+
+      .upload-btn {
+        align-self: flex-start;
+        border-radius: 8px;
+      }
+    }
+  }
 }
 
-.el-form-item {
-  margin-bottom: 20px;
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .footer-left {
+    .operation-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .info-icon {
+        font-size: 16px;
+        color: var(--el-color-primary);
+      }
+
+      .info-text {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .footer-right {
+    display: flex;
+    gap: 12px;
+
+    .cancel-btn {
+      border-radius: 8px;
+      padding: 10px 20px;
+    }
+
+    .submit-btn {
+      border-radius: 8px;
+      padding: 10px 24px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
+      border: none;
+
+      .loading-content {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .loading-icon {
+          animation: rotate 1s linear infinite;
+        }
+      }
+
+      &:hover:not(.is-loading) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      }
+    }
+  }
 }
 
-:deep(.el-input__wrapper),
-:deep(.el-select__wrapper),
-:deep(.el-textarea__inner) {
-  border-radius: 8px;
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.el-row {
-  margin: 0;
+// 暗色主题适配
+:root[data-theme="dark"] {
+  .view-card {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color);
+
+    .card-header {
+      background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-color-primary-light-6));
+    }
+  }
+
+  .form-header {
+    background: var(--el-color-primary-light-8);
+  }
+
+  .icon-preview {
+    background: var(--el-fill-color);
+    border-color: var(--el-border-color);
+  }
+
+  .remark-content {
+    background: var(--el-fill-color);
+  }
 }
 
-.el-col {
-  padding: 0 10px;
-}
+// 响应式设计
+@media (max-width: 768px) {
+  .modern-dialog {
+    :deep(.el-dialog) {
+      width: 95% !important;
+      margin: 20px auto;
 
-:deep(.el-button) {
-  border-radius: 8px;
+      .el-dialog__body {
+        max-height: 60vh;
+      }
+    }
+  }
+
+  .dialog-content {
+    padding: 16px;
+  }
+
+  .form-header {
+    padding: 16px;
+
+    .header-icon {
+      width: 40px;
+      height: 40px;
+
+      .icon {
+        font-size: 20px;
+      }
+    }
+
+    .header-content {
+      .header-title {
+        font-size: 16px;
+      }
+
+      .header-subtitle {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .view-card {
+    .card-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 16px;
+
+      .project-avatar {
+        width: 56px;
+        height: 56px;
+      }
+
+      .project-info {
+        .project-name {
+          font-size: 20px;
+        }
+      }
+    }
+
+    .card-content {
+      padding: 16px;
+
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+  }
+
+  .modern-form {
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .icon-upload {
+      flex-direction: column;
+      align-items: center;
+
+      .icon-preview {
+        width: 100px;
+        height: 100px;
+      }
+
+      .icon-actions {
+        width: 100%;
+      }
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+
+    .footer-left {
+      order: 2;
+
+      .operation-info {
+        justify-content: center;
+      }
+    }
+
+    .footer-right {
+      order: 1;
+      justify-content: center;
+    }
+  }
 }
 </style>

@@ -59,8 +59,8 @@ const formSetting = reactive({});
 
 const handleOpenModuleManager = async () => {
   const moduleData = {
-    sysProjectId: route.query.sysProjectId,
-    sysProjectName: route.query.sysProjectName || "图像检测项目",
+    sysProjectId: (route.query.sysSecretId || route.query.sysProjectId) as string,
+    sysProjectName: (route.query.sysSecretName || route.query.sysProjectName || "图像检测项目") as string,
     sysAiModuleType: "FACE_DETECTION",
   };
   moduleDialogRef.value.handleOpen(moduleData, "edit");

@@ -16,8 +16,6 @@
 const routeMenuMap: Record<string, string> = {
   nodeList: "/node/list",
 
-  dockerList: "/docker/containers",
-  dockerSwarm: "/docker/swarm",
   sshList: "/ssh",
   commandList: "/ssh/command",
   commandLogList: "/ssh/command-log",
@@ -55,7 +53,6 @@ const routeMenuMap: Record<string, string> = {
   globalEnv: "/system/global-env",
   machine_node_info: "/system/assets/machine-list",
   machine_ssh_info: "/system/assets/ssh-list",
-  machine_docker_info: "/system/assets/docker-list",
   global_repository: "/system/assets/repository-list",
   script_library: "/system/assets/script-library",
   configWorkspaceEnv: "/script/env-list",
