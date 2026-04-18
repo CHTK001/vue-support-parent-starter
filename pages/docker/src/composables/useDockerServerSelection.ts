@@ -1,5 +1,5 @@
 import { computed, ref } from "vue";
-import { listServerHosts } from "@pages/server";
+import { listServerHosts } from "@pages/server/api";
 import { listDockerServerOptions } from "../api";
 import type { DockerServerOption } from "../types";
 
@@ -81,4 +81,3 @@ export function useDockerServerSelection() {
     loadServers,
   };
 }
-

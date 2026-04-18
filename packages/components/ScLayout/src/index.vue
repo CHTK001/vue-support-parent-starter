@@ -88,7 +88,13 @@
           />
         </section>
       </template>
-      <slot v-else />
+      <template v-else>
+        <component
+          :is="resolvedRouterDynamicComponent"
+          v-if="shouldUseRouterDynamicComponent && resolvedRouterDynamicComponent"
+        />
+        <slot v-else />
+      </template>
     </main>
 
     <div
@@ -139,6 +145,7 @@
                 class="sc-layout__rail-tab"
                 :class="{
                   'is-active': String(currentRailValue) === String(tab.name),
+                  'is-icon-large': resolveTabIconMode(tab) === 'large',
                 }"
                 @click="setActiveTab(tab.name)"
               >
@@ -209,13 +216,22 @@
 <script setup lang="ts">
 import { localStorageProxy } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon";
-import { computed, nextTick, onBeforeUnmount, ref, useSlots, watch } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onBeforeUnmount,
+  ref,
+  useSlots,
+  watch,
+} from "vue";
 import { ElTooltip } from "element-plus";
 import { useRoute, useRouter } from "vue-router";
 
 export interface ScLayoutRailTab {
   closable?: boolean;
   icon?: any;
+  iconMode?: "small" | "large";
   label?: string;
   name: string | number;
   title?: string;
@@ -225,6 +241,7 @@ export interface ScLayoutRouterMeta {
   activePath?: string;
   fullPath?: string;
   icon?: any;
+  iconMode?: "small" | "large";
   menuPath?: string;
   realPath?: string;
   routePath?: string;
@@ -235,6 +252,7 @@ export interface ScLayoutRouterMeta {
 
 export interface ScLayoutRouterRecord {
   children?: ScLayoutRouterRecord[];
+  component?: any;
   meta?: ScLayoutRouterMeta;
   name?: string | number | symbol;
   path?: string;
@@ -270,6 +288,10 @@ const props = withDefaults(
     defaultPage?: string | number;
     /** 传入标准路由结构时自动转换为 rail 导航 */
     router?: ScLayoutRouterRecord[];
+    /** 路由数据驱动模式：route=默认路由接管；component=动态组件接管 */
+    routerNavigationMode?: "route" | "component";
+    /** 右侧菜单图标尺寸：small=现有小图标；large=大图标 */
+    railIconMode?: "small" | "large";
     /** split 模式下，下方面板是否启用 */
     bottomEnabled?: boolean;
     /** split 模式下，下方面板高度 */
@@ -308,6 +330,8 @@ const props = withDefaults(
     showRightCollapseButton: true,
     defaultPage: undefined,
     router: () => [],
+    routerNavigationMode: "route",
+    railIconMode: "small",
     bottomEnabled: false,
     bottomHeight: 260,
     bottomMinHeight: 160,
@@ -403,11 +427,33 @@ const layoutMode = computed(() => {
 const isSplitLayout = computed(
   () => layoutMode.value === "left-main-split-right",
 );
-const useRouterNavigation = computed(() => (props.router?.length || 0) > 0);
+const useRouterTabs = computed(() => (props.router?.length || 0) > 0);
+const useRouterNavigation = computed(
+  () => useRouterTabs.value && props.routerNavigationMode === "route",
+);
 
 type RouterLayoutTab = ScLayoutRailTab & {
+  component?: any;
   matchPaths: string[];
   routePath: string;
+};
+
+const routeComponentCache = new WeakMap<Function, any>();
+
+const resolveRouteComponent = (candidate: any) => {
+  if (!candidate) {
+    return undefined;
+  }
+  if (typeof candidate !== "function") {
+    return candidate;
+  }
+  const cached = routeComponentCache.get(candidate);
+  if (cached) {
+    return cached;
+  }
+  const asyncComponent = defineAsyncComponent(candidate);
+  routeComponentCache.set(candidate, asyncComponent);
+  return asyncComponent;
 };
 
 const normalizeRoutePath = (value: unknown) => {
@@ -544,7 +590,9 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
         .filter((value) => !!value && !isExternalRoutePath(value));
 
       tabs.set(currentPath, {
+        component: resolveRouteComponent(routeItem.component),
         icon,
+        iconMode: meta.iconMode,
         label: title,
         matchPaths: [...new Set(matchPaths)],
         name: currentPath,
@@ -563,7 +611,7 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
 };
 
 const routerLayoutData = computed(() =>
-  useRouterNavigation.value
+  useRouterTabs.value
     ? collectRouterLayoutData(props.router || [])
     : {
         aliases: {} as Record<string, string>,
@@ -581,7 +629,7 @@ const routerRailTabMap = computed(
 );
 
 const displayRailTabs = computed<ScLayoutRailTab[]>(() => {
-  if (!useRouterNavigation.value) {
+  if (!useRouterTabs.value) {
     return localRailTabs.value;
   }
   return routerRailTabs.value.length
@@ -621,7 +669,7 @@ const findRouterTabByPath = (path: string) => {
 
 const syncRouterActiveFromRoute = () => {
   if (!useRouterNavigation.value) return;
-  const matchedTab = findRouterTabByPath(route.path);
+  const matchedTab = findRouterTabByPath(String(route?.path || ""));
   const fallbackTab = displayRailTabs.value[0];
   const nextValue = matchedTab?.name ?? fallbackTab?.name ?? "";
   if (String(localRailValue.value) === String(nextValue)) return;
@@ -634,8 +682,8 @@ const navigateToRouterTab = (name: string | number) => {
   const targetTab = routerRailTabMap.value.get(String(name));
   const targetPath = normalizeRoutePath(targetTab?.routePath);
   if (!targetPath || isExternalRoutePath(targetPath)) return;
-  if (normalizeRoutePath(route.path) === targetPath) return;
-  vueRouter.push(targetPath).catch(() => undefined);
+  if (normalizeRoutePath(route?.path) === targetPath) return;
+  vueRouter?.push?.(targetPath).catch(() => undefined);
 };
 
 const isEmptyPersistId = (value: unknown) => {
@@ -649,7 +697,7 @@ const isEmptyPersistId = (value: unknown) => {
 };
 
 const resolveRoutePersistId = () => {
-  if (typeof route?.path === "string" && route.path) {
+  if (typeof route?.path === "string" && route?.path) {
     return route.path;
   }
   if (typeof window !== "undefined" && window.location.pathname) {
@@ -752,18 +800,20 @@ watch(localRailValue, () => {
 });
 
 watch(
-  () => route.path,
+  () => String(route?.path || ""),
   () => {
     syncRouterActiveFromRoute();
   },
 );
 
 watch(
-  [useRouterNavigation, routerRailTabs],
+  [useRouterTabs, routerRailTabs, useRouterNavigation],
   () => {
     nextTick(() => {
       ensureValidActiveTab();
-      syncRouterActiveFromRoute();
+      if (useRouterNavigation.value) {
+        syncRouterActiveFromRoute();
+      }
     });
   },
   { immediate: true },
@@ -778,6 +828,25 @@ const currentRailValue = computed({
     emit("update:modelValue", value);
   },
 });
+
+const shouldUseRouterDynamicComponent = computed(
+  () =>
+    useRouterTabs.value &&
+    props.routerNavigationMode === "component" &&
+    props.layout === "router",
+);
+
+const resolvedRouterDynamicComponent = computed(() => {
+  if (!shouldUseRouterDynamicComponent.value) {
+    return undefined;
+  }
+  const currentTab = routerRailTabMap.value.get(String(currentRailValue.value));
+  return currentTab?.component;
+});
+
+const resolveTabIconMode = (tab?: ScLayoutRailTab) => {
+  return tab?.iconMode || props.railIconMode || "small";
+};
 
 const showCollapseButton = computed(
   () => leftEnabled.value && (isResizerHovered.value || isResizing.value),
@@ -1545,6 +1614,11 @@ onBeforeUnmount(() => {
   transform: translateX(-1px);
 }
 
+.sc-layout__rail-tab.is-icon-large {
+  width: 48px;
+  height: 48px;
+}
+
 .sc-layout__rail-tab.is-active {
   background: var(--sc-layout-rail-tab-active-bg);
   color: var(--sc-layout-rail-tab-active-color);
@@ -1578,6 +1652,12 @@ onBeforeUnmount(() => {
 
 .sc-layout__rail-tab.is-active .sc-layout__rail-icon-wrap {
   background: rgba(255, 255, 255, 0.65);
+}
+
+.sc-layout__rail-tab.is-icon-large .sc-layout__rail-icon-wrap {
+  width: 30px;
+  height: 30px;
+  font-size: 22px;
 }
 
 .sc-layout__rail-text {

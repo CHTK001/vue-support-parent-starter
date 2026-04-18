@@ -14,9 +14,27 @@ export interface DockerServerOption {
 }
 
 /**
+ * Docker 服务器能力视图。
+ */
+export interface DockerServerCapabilityView {
+  serverId: number;
+  serverName?: string;
+  host?: string;
+  serverEnabled?: boolean;
+  dockerConfigured?: boolean;
+  dockerInstalled?: boolean | null;
+  dockerConnectable?: boolean;
+  dockerVersion?: string;
+  runtimeType?: string;
+  probeLatencyMs?: number;
+  message?: string;
+}
+
+/**
  * Docker 同步任务配置请求。
  */
 export interface DockerSyncScheduleUpdateRequest {
+  syncMode?: "manual" | "scheduled" | "disabled" | string;
   enabled?: boolean;
   scheduleType?: string;
   scheduleTime?: string;
@@ -27,6 +45,7 @@ export interface DockerSyncScheduleUpdateRequest {
  * Docker 同步任务配置返回。
  */
 export interface DockerSyncScheduleView {
+  syncMode?: "manual" | "scheduled" | "disabled" | string;
   scope: "images" | "containers" | string;
   jobId?: number;
   jobNo?: string;
@@ -39,6 +58,70 @@ export interface DockerSyncScheduleView {
   nextTriggerAt?: number;
   description?: string;
   source?: string;
+}
+
+/**
+ * 服务器 Docker 连接配置。
+ */
+export interface DockerServerConnectionConfig {
+  serverDockerId?: number;
+  serverId: number;
+  connectionType?: "api" | "local" | "ssh" | string;
+  dockerHost?: string;
+  dockerPort?: number;
+  socketPath?: string;
+  username?: string;
+  password?: string;
+  privateKey?: string;
+  tlsEnabled?: boolean;
+  certPath?: string;
+  connectTimeoutMs?: number;
+  enabled?: boolean;
+  metadataJson?: string;
+}
+
+/**
+ * 服务器 Docker 连接探活结果。
+ */
+export interface DockerServerConnectionProbeView {
+  serverId: number;
+  connectionType?: string;
+  success: boolean;
+  latencyMs?: number;
+  dockerVersion?: string;
+  probeCommand?: string;
+  output?: string;
+  message?: string;
+}
+
+/**
+ * Docker 首页汇总信息。
+ */
+export interface DockerDashboardSummaryView {
+  serverCount?: number;
+  connectedServerCount?: number;
+  registryCount?: number;
+  imageCount?: number;
+  containerCount?: number;
+  mountCount?: number;
+  networkCount?: number;
+}
+
+/**
+ * Docker 全局检索结果项。
+ */
+export interface DockerSearchItemView {
+  type: "image" | "container" | string;
+  recordId: string;
+  title?: string;
+  subtitle?: string;
+  serverId?: number;
+  serverName?: string;
+  registryId?: number;
+  registryName?: string;
+  registryUrl?: string;
+  status?: string;
+  description?: string;
 }
 
 /**
@@ -136,6 +219,16 @@ export interface DockerInstallNetworkInput {
 }
 
 /**
+ * 安装端口映射输入。
+ */
+export interface DockerInstallPortMappingInput {
+  hostPort?: number;
+  containerPort?: number;
+  protocol?: string;
+  hostIp?: string;
+}
+
+/**
  * Docker 安装请求。
  */
 export interface DockerInstallRequest {
@@ -149,6 +242,7 @@ export interface DockerInstallRequest {
   buildContextPath?: string;
   containerName?: string;
   env?: Record<string, string>;
+  portMappings?: DockerInstallPortMappingInput[];
   mounts?: DockerInstallMountInput[];
   networks?: DockerInstallNetworkInput[];
   syncInputMounts?: boolean;
@@ -289,9 +383,45 @@ export interface DockerInstallTaskDetail {
   imageName?: string;
   imageTag?: string;
   useDockerfile?: boolean;
+  requestSnapshot?: DockerInstallRequest;
   steps: DockerInstallTaskStepView[];
   createdAt: number;
   updatedAt: number;
+}
+
+/**
+ * 通用任务步骤模型。
+ */
+export interface TaskDialogStep {
+  stepKey: string;
+  title: string;
+  status: string;
+  message: string;
+  updatedAt?: number;
+}
+
+/**
+ * 通用任务摘要项。
+ */
+export interface TaskDialogSummaryItem {
+  label: string;
+  value: string;
+}
+
+/**
+ * 通用任务弹框模型。
+ */
+export interface TaskDialogModel {
+  taskId: string;
+  status: string;
+  message?: string;
+  serverIds?: Array<number | string>;
+  imageName?: string;
+  imageTag?: string;
+  summaryItems?: TaskDialogSummaryItem[];
+  createdAt?: number;
+  updatedAt?: number;
+  steps?: TaskDialogStep[];
 }
 
 /**
@@ -308,18 +438,23 @@ export interface DockerSyncRunRequest {
 export interface DockerSyncServerResult {
   serverId: number;
   scope: string;
+  startedAt?: number;
+  finishedAt?: number;
+  durationMs?: number;
   discoveredCount: number;
   createdCount: number;
   updatedCount: number;
   deletedCount: number;
   failedCount: number;
   message: string;
+  errorDetail?: string;
 }
 
 /**
  * 同步汇总结果。
  */
 export interface DockerSyncResult {
+  startedAt?: number;
   scope: string;
   serverCount: number;
   deleteAbsent: boolean;
@@ -329,8 +464,26 @@ export interface DockerSyncResult {
   deletedCount: number;
   failedCount: number;
   message: string;
+  durationMs?: number;
   serverResults: DockerSyncServerResult[];
   finishedAt: number;
+}
+
+/**
+ * Docker 实时事件载荷。
+ */
+export interface DockerRealtimePayload {
+  eventId?: string;
+  taskId?: string;
+  scope?: string;
+  status?: string;
+  stepKey?: string;
+  stepOrder?: number;
+  progressPercent?: number;
+  message?: string;
+  line?: string;
+  finished?: boolean;
+  detail?: unknown;
 }
 
 export type DockerResult<T> = ReturnResult<T>;

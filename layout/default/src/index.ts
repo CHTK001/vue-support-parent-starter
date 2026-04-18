@@ -55,8 +55,17 @@ export {
   provideTaskCenter,
   taskCenterProvider,
   TaskCenterProviderKey,
+  tryUseTaskCenter,
   useTaskCenter,
 } from "./components/lay-task-center/provider";
+export {
+  provideMessageCenter,
+  messageCenterProvider,
+  MessageCenterProviderKey,
+  tryUseMessageCenter,
+  useMessageCenter,
+} from "./components/lay-message/provider";
+export { resolveRuntimeProviders } from "./runtime/resolveRuntimeProviders";
 
 // Types
 export type {
@@ -69,6 +78,11 @@ export type {
   GlobalStorage,
 } from "./types/theme";
 export type { LayoutEmitterEvents } from "./types/events";
+export type {
+  MessageCenterInput,
+  MessageCenterLevel,
+  MessageCenterProvider,
+} from "./components/lay-message/provider";
 export type {
   TaskCenterProvider,
   TaskCenterReference,
