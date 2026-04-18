@@ -179,6 +179,32 @@
           :tabs="displayRailTabs"
         />
       </div>
+      <div
+        v-else-if="showDefaultRouterFooter"
+        class="sc-layout__rail-footer sc-layout__rail-footer--router"
+      >
+        <button
+          v-for="group in routerRailGroups"
+          :key="String(group.name)"
+          type="button"
+          class="sc-layout__rail-tab sc-layout__rail-tab--footer"
+          :class="{
+            'is-active': String(activeRouterGroupName) === String(group.name),
+            'is-icon-large': resolveTabIconMode(group) === 'large',
+          }"
+          :title="group.title || group.label || String(group.name)"
+          @click="selectRouterGroup(group.name)"
+        >
+          <div class="sc-layout__rail-icon-wrap">
+            <span v-if="group.icon" class="sc-layout__rail-icon">
+              <component :is="group.icon" />
+            </span>
+            <span v-else class="sc-layout__rail-text">
+              {{ group.label || group.name }}
+            </span>
+          </div>
+        </button>
+      </div>
       <button
         v-if="
           rightCollapsible && showRightCollapseButton && !localRightCollapsed
@@ -434,8 +460,13 @@ const useRouterNavigation = computed(
 
 type RouterLayoutTab = ScLayoutRailTab & {
   component?: any;
+  groupName?: string | number;
   matchPaths: string[];
   routePath: string;
+};
+
+type RouterLayoutGroup = ScLayoutRailTab & {
+  tabs: RouterLayoutTab[];
 };
 
 const routeComponentCache = new WeakMap<Function, any>();
@@ -530,8 +561,13 @@ const resolveRouterNodeIcon = (icon: any) => {
 const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
   const tabs = new Map<string, RouterLayoutTab>();
   const aliases = new Map<string, string>();
+  const groups = new Map<string, RouterLayoutGroup>();
 
-  const visit = (items: ScLayoutRouterRecord[], parentPath = "/") => {
+  const visit = (
+    items: ScLayoutRouterRecord[],
+    parentPath = "/",
+    currentGroup?: RouterLayoutGroup,
+  ) => {
     (items || []).forEach((routeItem) => {
       if (!routeItem) return;
 
@@ -557,10 +593,23 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
         aliases.set(currentPath, activePath);
       }
 
+      let nextGroup = currentGroup;
+      if (!currentGroup && visibleChildren.length) {
+        nextGroup = {
+          icon: resolveRouterNodeIcon(meta.icon),
+          iconMode: meta.iconMode,
+          label: resolveRouterNodeTitle(routeItem, currentPath || String(routeItem.name || "")),
+          name: String(routeItem.name || currentPath || routeItem.path || ""),
+          tabs: [],
+          title: resolveRouterNodeTitle(routeItem, currentPath || String(routeItem.name || "")),
+        };
+        groups.set(String(nextGroup.name), nextGroup);
+      }
+
       if (children.length) {
         const nextParentPath =
           currentPath || composeRoutePath(routeItem.path, parentPath);
-        visit(children, nextParentPath || parentPath);
+        visit(children, nextParentPath || parentPath, nextGroup);
       }
 
       if (visibleChildren.length) {
@@ -589,8 +638,11 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
         .map((value) => normalizeRoutePath(value))
         .filter((value) => !!value && !isExternalRoutePath(value));
 
-      tabs.set(currentPath, {
+      const normalizedGroupName = nextGroup?.name ?? currentGroup?.name;
+      const tabRecord = {
         component: resolveRouteComponent(routeItem.component),
+        groupName:
+          normalizedGroupName !== undefined ? String(normalizedGroupName) : undefined,
         icon,
         iconMode: meta.iconMode,
         label: title,
@@ -598,7 +650,14 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
         name: currentPath,
         routePath: currentPath,
         title,
-      });
+      } satisfies RouterLayoutTab;
+
+      tabs.set(currentPath, tabRecord);
+      if (nextGroup) {
+        nextGroup.tabs.push(tabRecord);
+      } else if (currentGroup) {
+        currentGroup.tabs.push(tabRecord);
+      }
     });
   };
 
@@ -606,6 +665,7 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
 
   return {
     aliases: Object.fromEntries(aliases.entries()),
+    groups: [...groups.values()].filter((group) => group.tabs.length),
     tabs: [...tabs.values()],
   };
 };
@@ -615,10 +675,12 @@ const routerLayoutData = computed(() =>
     ? collectRouterLayoutData(props.router || [])
     : {
         aliases: {} as Record<string, string>,
+        groups: [] as RouterLayoutGroup[],
         tabs: [] as RouterLayoutTab[],
       },
 );
 
+const routerRailGroups = computed(() => routerLayoutData.value.groups);
 const routerRailTabs = computed(() => routerLayoutData.value.tabs);
 const routerPathAliases = computed(() => routerLayoutData.value.aliases);
 const routerRailTabMap = computed(
@@ -628,13 +690,25 @@ const routerRailTabMap = computed(
     ),
 );
 
+const activeRouterGroupName = computed(() => {
+  const tab = routerRailTabMap.value.get(String(localRailValue.value));
+  return (
+    tab?.groupName ||
+    String(routerRailGroups.value[0]?.name || "")
+  );
+});
+
 const displayRailTabs = computed<ScLayoutRailTab[]>(() => {
   if (!useRouterTabs.value) {
     return localRailTabs.value;
   }
-  return routerRailTabs.value.length
-    ? routerRailTabs.value
-    : localRailTabs.value;
+  const activeGroupTabs = routerRailGroups.value.find(
+    (group) => String(group.name) === String(activeRouterGroupName.value),
+  )?.tabs;
+  if (activeGroupTabs?.length) {
+    return activeGroupTabs;
+  }
+  return routerRailTabs.value.length ? routerRailTabs.value : localRailTabs.value;
 });
 
 const resolveAliasedRoutePath = (path: string) => {
@@ -684,6 +758,21 @@ const navigateToRouterTab = (name: string | number) => {
   if (!targetPath || isExternalRoutePath(targetPath)) return;
   if (normalizeRoutePath(route?.path) === targetPath) return;
   vueRouter?.push?.(targetPath).catch(() => undefined);
+};
+
+const selectRouterGroup = (name: string | number) => {
+  const targetGroup = routerRailGroups.value.find(
+    (group) => String(group.name) === String(name),
+  );
+  const targetTab = targetGroup?.tabs?.[0];
+  if (!targetTab) {
+    return;
+  }
+  if (String(localRailValue.value) !== String(targetTab.name)) {
+    localRailValue.value = targetTab.name;
+    emit("update:modelValue", targetTab.name);
+  }
+  navigateToRouterTab(targetTab.name);
 };
 
 const isEmptyPersistId = (value: unknown) => {
@@ -868,6 +957,9 @@ const rightCollapsible = computed(
 );
 const showRightCollapseButton = computed(() => props.showRightCollapseButton);
 const hasRailFooterSlot = computed(() => Boolean(slots["rail-footer"]));
+const showDefaultRouterFooter = computed(
+  () => useRouterTabs.value && !hasRailFooterSlot.value && routerRailGroups.value.length > 1,
+);
 
 const safeLeftMaxWidth = computed(() => {
   const declaredMax = Math.max(props.leftMinWidth, props.leftMaxWidth);
