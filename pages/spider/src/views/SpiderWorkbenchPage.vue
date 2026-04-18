@@ -1,397 +1,364 @@
 <template>
   <section class="spider-workbench-page">
     <ScLayout
-      v-model="activeTabId"
-      class="spider-workbench-layout"
+      v-model="activeRailTab"
+      class="spider-layout"
       :left-enabled="false"
-      :main-min-width="720"
+      :main-min-width="860"
       rail-close-button-mode="always"
       :rail-tabs="railTabs"
       @tab-remove="handleRemoveTab($event.name)"
     >
       <template #left>
-        <div class="spider-home-column">
-          <header class="spider-home-hero">
+        <aside class="overview-panel">
+          <header class="overview-header">
             <div>
-              <span class="spider-eyebrow">Spider / Mission Deck</span>
-              <h1>运行中的爬虫</h1>
-              <p>左列只盯运行卡片，右侧 Tab 负责高定制编排与执行模式。</p>
+              <small>Spider Dashboard</small>
+              <h1>任务总览</h1>
             </div>
-            <button type="button" class="spider-ghost-button" @click="refreshOverview">
-              刷新
-            </button>
+            <button type="button" @click="refreshOverview">刷新</button>
           </header>
-
-          <section class="spider-metric-grid">
-            <article class="spider-metric-card">
-              <small>运行中</small>
-              <strong>{{ runningCards.length }}</strong>
-              <span>当前活跃任务</span>
+          <div class="kpi-grid">
+            <article>
+              <small>任务总数</small>
+              <strong>{{ summary.taskTotal || 0 }}</strong>
             </article>
-            <article class="spider-metric-card">
+            <article>
               <small>定时绑定</small>
-              <strong>{{ scheduledCards.length }}</strong>
-              <span>job-starter</span>
+              <strong>{{ summary.timerCount || 0 }}</strong>
             </article>
-            <article class="spider-metric-card">
-              <small>AI 节点</small>
-              <strong>{{ aiEnabledCount }}</strong>
-              <span>ai-starter</span>
+            <article>
+              <small>采集总数</small>
+              <strong>{{ summary.totalCrawled || 0 }}</strong>
             </article>
-          </section>
-
-          <section class="spider-card-section">
-            <div class="spider-section-headline">
-              <div>
-                <h2>运行任务卡片</h2>
-                <p>保留真正需要持续观察的任务，而不是历史大表格。</p>
-              </div>
-              <span>{{ runningCards.length }} 张</span>
-            </div>
-            <div v-if="runningCards.length" class="spider-card-stack">
-              <article
-                v-for="card in runningCards"
-                :key="card.id"
-                class="spider-task-card"
-                :class="{ 'is-focused': activeTabId === card.id }"
-                @click="focusTab(card.id)"
-              >
-                <header class="spider-task-card__header">
-                  <div>
-                    <strong>{{ card.title }}</strong>
-                    <p>{{ card.description }}</p>
-                  </div>
-                  <span class="spider-state-pill" :class="`is-${card.runtimeState.toLowerCase()}`">
-                    {{ runtimeStateLabel(card.runtimeState) }}
-                  </span>
-                </header>
-                <div class="spider-task-card__meta">
-                  <span>{{ executionModeLabel(card.executionMode) }}</span>
-                  <span>{{ card.jobBinding ? "已绑定 Job" : "手动触发" }}</span>
-                  <span>{{ card.aiEnabled ? "AI 已接入" : "AI 关闭" }}</span>
-                </div>
-                <div class="spider-task-card__stats">
-                  <div>
-                    <small>最近执行</small>
-                    <strong>{{ card.lastRun }}</strong>
-                  </div>
-                  <div>
-                    <small>成功 / 失败</small>
-                    <strong>{{ card.successCount }} / {{ card.failCount }}</strong>
-                  </div>
-                </div>
-                <footer class="spider-task-card__actions">
-                  <button type="button" class="spider-text-button" @click.stop="focusTab(card.id)">
-                    打开编排
-                  </button>
-                  <button type="button" class="spider-text-button" @click.stop="previewLogs(card.id)">
-                    查看日志
-                  </button>
-                  <button type="button" class="spider-text-button" @click.stop="duplicateTab(card.id)">
-                    复制任务
-                  </button>
-                  <button type="button" class="spider-text-button" @click.stop="toggleRuntime(card.id)">
-                    {{ card.runtimeState === "RUNNING" ? "暂停" : "运行" }}
-                  </button>
-                </footer>
-              </article>
-            </div>
-            <div v-else class="spider-empty-card">
-              <strong>当前没有运行中的任务</strong>
-              <p>在右侧新增一个 Tab 并完成编排后，这里会自动生成卡片。</p>
-            </div>
-          </section>
-
-          <section class="spider-card-section">
-            <div class="spider-section-headline">
-              <div>
-                <h2>工作台草稿</h2>
-                <p>新建 Tab 先落到草稿区，再推送到运行卡片区。</p>
-              </div>
-              <span>{{ draftCards.length }} 张</span>
-            </div>
-            <div class="spider-draft-list">
-              <button
-                v-for="draft in draftCards"
-                :key="draft.id"
-                type="button"
-                class="spider-draft-card"
-                @click="focusTab(draft.id)"
-              >
-                <strong>{{ draft.title }}</strong>
-                <span>{{ executionModeLabel(draft.executionMode) }}</span>
-              </button>
-              <div v-if="!draftCards.length" class="spider-draft-empty">
-                暂无草稿，点击右侧底部按钮即可新增。
-              </div>
-            </div>
-          </section>
-        </div>
+            <article>
+              <small>URL 汇总</small>
+              <strong>{{ summary.totalUrlsCollected || 0 }}</strong>
+            </article>
+          </div>
+          <div class="running-card-list">
+            <header>
+              <h2>运行卡片</h2>
+              <span>{{ runningCards.length }} 项</span>
+            </header>
+            <button
+              v-for="card in runningCards"
+              :key="card.taskId"
+              type="button"
+              class="running-card"
+              @click="openTaskById(card.taskId)"
+            >
+              <strong>{{ card.taskName || `任务-${card.taskId}` }}</strong>
+              <span>{{ card.status }} · {{ card.executionType }}</span>
+              <small>成功 {{ card.successCount }} / 失败 {{ card.failureCount }}</small>
+            </button>
+            <div v-if="!runningCards.length" class="empty-box">暂无运行中的任务</div>
+          </div>
+        </aside>
       </template>
 
       <template #default>
-        <div v-if="activeTab" class="spider-main-stage">
-          <header class="spider-main-hero">
+        <div v-if="!activeWorkspace" class="home-board">
+          <h2>Spider 工作台</h2>
+          <p>从右侧「+」新建任务，或点击运行卡片进入已有任务。</p>
+        </div>
+
+        <div v-else class="workbench-main">
+          <header class="workspace-header">
             <div>
-              <span class="spider-eyebrow">Workbench / {{ activeTab.serial }}</span>
-              <h2>{{ activeTab.title }}</h2>
-              <p>开始与结束是硬约束，中间节点的输出只允许流向下一个节点输入。</p>
+              <small>Task #{{ activeWorkspace.taskId }}</small>
+              <h2>{{ activeWorkspace.task.taskName || `任务-${activeWorkspace.taskId}` }}</h2>
             </div>
-            <div class="spider-main-hero__actions">
-              <button type="button" class="spider-ghost-button" @click="saveActiveTab">
-                {{ activeTab.unsaved ? "保存草稿" : "已保存" }}
-              </button>
-              <button type="button" class="spider-primary-button" @click="launchActiveTab">
-                推到运行卡片
-              </button>
+            <div class="workspace-actions">
+              <button type="button" @click="saveActiveWorkspace">保存</button>
+              <button type="button" @click="handleRunActiveTask">运行</button>
+              <button type="button" @click="handlePauseActiveTask">暂停</button>
+              <button type="button" @click="handleResumeActiveTask">恢复</button>
+              <button type="button" @click="refreshActiveRuntime">刷新运行态</button>
             </div>
           </header>
 
-          <section class="spider-command-grid">
-            <article class="spider-command-card">
-              <small>任务代号</small>
-              <strong>{{ activeTab.taskCode }}</strong>
-              <span>{{ activeTab.jobBinding ? "Job 已同步" : "等待绑定" }}</span>
-            </article>
-            <article class="spider-command-card">
-              <small>执行模式</small>
-              <strong>{{ executionModeLabel(activeTab.executionMode) }}</strong>
-              <span>{{ executionModeHint(activeTab) }}</span>
-            </article>
-            <article class="spider-command-card">
-              <small>节点总数</small>
-              <strong>{{ activeTab.nodes.length }}</strong>
-              <span>固定包含开始 / 结束</span>
-            </article>
+          <section class="task-meta-grid">
+            <label>
+              <span>任务名称</span>
+              <input v-model="activeWorkspace.task.taskName" placeholder="请输入任务名" />
+            </label>
+            <label>
+              <span>入口 URL</span>
+              <input v-model="activeWorkspace.task.entryUrl" placeholder="https://example.com/list" />
+            </label>
+            <label class="full">
+              <span>任务说明</span>
+              <textarea v-model="activeWorkspace.task.description" rows="2" />
+            </label>
+            <label>
+              <span>执行类型</span>
+              <select v-model="activeWorkspace.task.executionType">
+                <option value="ONCE">ONCE</option>
+                <option value="REPEAT_N">REPEAT_N</option>
+                <option value="SCHEDULED">SCHEDULED</option>
+              </select>
+            </label>
+            <label>
+              <span>线程数</span>
+              <input
+                type="number"
+                min="1"
+                :value="activeWorkspace.policy.threadCount"
+                @input="updatePolicy('threadCount', Number(($event.target as HTMLInputElement).value || 1))"
+              />
+            </label>
+            <template v-if="activeWorkspace.task.executionType === 'REPEAT_N'">
+              <label>
+                <span>执行次数</span>
+                <input
+                  type="number"
+                  min="1"
+                  :value="activeWorkspace.policy.repeatTimes"
+                  @input="updatePolicy('repeatTimes', Number(($event.target as HTMLInputElement).value || 1))"
+                />
+              </label>
+              <label>
+                <span>间隔秒</span>
+                <input
+                  type="number"
+                  min="1"
+                  :value="activeWorkspace.policy.repeatInterval"
+                  @input="updatePolicy('repeatInterval', Number(($event.target as HTMLInputElement).value || 1))"
+                />
+              </label>
+            </template>
+            <template v-if="activeWorkspace.task.executionType === 'SCHEDULED'">
+              <label>
+                <span>Cron</span>
+                <input :value="activeWorkspace.policy.cron" @input="updatePolicy('cron', ($event.target as HTMLInputElement).value)" />
+              </label>
+              <label>
+                <span>Channel</span>
+                <input :value="activeWorkspace.policy.jobChannel" @input="updatePolicy('jobChannel', ($event.target as HTMLInputElement).value)" />
+              </label>
+            </template>
           </section>
 
-          <div class="spider-stage-grid">
-            <section class="spider-panel spider-panel--flow">
-              <div class="spider-panel__header">
-                <div>
-                  <small>Visual Flow</small>
-                  <h3>可视化编排</h3>
-                </div>
-                <div class="spider-flow-tools">
+          <section class="progress-strip">
+            <div class="progress-head">
+              <span>运行通道：{{ runtimeChannel }}</span>
+              <span v-if="runtimeError">{{ runtimeError }}</span>
+              <span>lay-task：{{ layTaskAvailable ? "可用" : "不可用（降级本地展示）" }}</span>
+            </div>
+            <div class="progress-track">
+              <i :style="{ width: `${progressPercent}%` }" />
+            </div>
+            <small>{{ progressText }}</small>
+          </section>
+
+          <div class="workbench-grid">
+            <section class="canvas-panel">
+              <div class="canvas-toolbar">
+                <div class="node-palette">
                   <button
-                    v-for="template in nodeTemplates"
-                    :key="template.kind"
+                    v-for="nodeType in nodePalette"
+                    :key="nodeType"
                     type="button"
-                    class="spider-node-template"
-                    @click="appendNode(template.kind)"
+                    @click="appendNode(nodeType)"
                   >
-                    <strong>{{ template.label }}</strong>
-                    <span>{{ template.summary }}</span>
+                    {{ nodeType }}
                   </button>
                 </div>
+                <button
+                  v-if="activeWorkspace.groupSuggestionVisible"
+                  type="button"
+                  class="accent"
+                  @click="applyAutoGroupSuggestion"
+                >
+                  建议创建登录分组
+                </button>
               </div>
 
-              <div class="spider-flow-board">
-                <template v-for="(node, index) in activeTab.nodes" :key="node.id">
-                  <button
-                    type="button"
-                    class="spider-flow-node"
-                    :class="[
-                      `is-${node.kind.toLowerCase()}`,
-                      { 'is-selected': activeNode?.id === node.id, 'is-fixed': node.fixed },
-                    ]"
-                    @click="selectNode(node.id)"
-                  >
-                    <span class="spider-flow-node__kind">{{ nodeKindLabel(node.kind) }}</span>
-                    <strong>{{ node.label }}</strong>
-                    <p>{{ node.summary }}</p>
-                    <div class="spider-flow-node__chips">
-                      <span>{{ node.inputLabel }}</span>
-                      <span>{{ node.outputLabel }}</span>
-                    </div>
-                    <div v-if="node.aiHints.length" class="spider-flow-node__ai">
-                      <small>AI</small>
-                      <span>{{ node.aiHints[0] }}</span>
-                    </div>
-                  </button>
-                  <div v-if="index < activeTab.nodes.length - 1" class="spider-flow-connector">
-                    <span>上游输出</span>
-                    <i />
-                    <span>下游输入</span>
-                  </div>
-                </template>
-              </div>
-
-              <div class="spider-flow-guard">
-                <article>
-                  <strong>开始 / 结束强约束</strong>
-                  <p>系统节点不可删除，新增节点默认插入结束节点前。</p>
-                </article>
-                <article>
-                  <strong>单向数据流</strong>
-                  <p>当前 UI 只允许上一节点输出传给下一节点输入。</p>
-                </article>
+              <div class="editor-shell">
+                <ScReteEditor
+                  ref="editorRef"
+                  v-model="activeWorkspace.editorData"
+                  :show-node-panel="false"
+                  :show-property-panel="false"
+                  :show-statusbar="true"
+                  :show-toolbar="true"
+                  :auto-arrange="true"
+                  :context-menu="true"
+                  :minimap="true"
+                  @data-changed="onEditorDataChanged"
+                  @node-selected="onEditorNodeSelected"
+                />
+                <div class="group-overlay">
+                  <SpiderFlowGroup
+                    v-for="group in activeWorkspace.flow.groups || []"
+                    :key="group.groupId"
+                    :group="group"
+                    :active="activeWorkspace.activeGroupId === group.groupId"
+                    @select="activeWorkspace.activeGroupId = $event"
+                    @move="moveGroup"
+                  />
+                </div>
               </div>
             </section>
 
-            <aside class="spider-side-stack">
-              <section class="spider-panel spider-panel--policy">
-                <div class="spider-panel__header">
-                  <div>
-                    <small>Execution Policy</small>
-                    <h3>任务执行模式</h3>
-                  </div>
-                </div>
-
-                <div class="spider-mode-grid">
-                  <button
-                    v-for="mode in executionModes"
-                    :key="mode.value"
-                    type="button"
-                    class="spider-mode-card"
-                    :class="{ 'is-active': activeTab.executionMode === mode.value }"
-                    @click="setExecutionMode(mode.value)"
-                  >
-                    <strong>{{ mode.label }}</strong>
-                    <p>{{ mode.description }}</p>
-                  </button>
-                </div>
-
-                <div class="spider-policy-form">
-                  <label class="spider-form-field">
-                    <span>任务名称</span>
-                    <input v-model.trim="activeTab.title" type="text" placeholder="例如：资讯入口雷达" />
+            <aside class="side-panel">
+              <section class="panel-block">
+                <header>
+                  <h3>节点属性</h3>
+                  <small>{{ selectedNodeType || "未选中节点" }}</small>
+                </header>
+                <div v-if="selectedNodeId && selectedNodeConfig" class="panel-form">
+                  <label>
+                    <span>节点标签</span>
+                    <input :value="selectedNodeLabel" @input="updateSelectedNodeLabel(($event.target as HTMLInputElement).value)" />
                   </label>
-                  <label class="spider-form-field">
-                    <span>入口 URL</span>
-                    <input v-model.trim="activeTab.entryUrl" type="text" placeholder="https://target.example.com/feed" />
+                  <label>
+                    <span>节点类型</span>
+                    <select :value="selectedNodeType" @change="updateSelectedNodeType(($event.target as HTMLSelectElement).value)">
+                      <option v-for="nodeType in nodePalette" :key="nodeType" :value="nodeType">{{ nodeType }}</option>
+                    </select>
                   </label>
-                  <label class="spider-form-field spider-form-field--full">
-                    <span>任务说明</span>
-                    <textarea v-model.trim="activeTab.description" rows="3"></textarea>
-                  </label>
+                  <NodeConditionPanel
+                    v-if="selectedNodeType === 'CONDITION'"
+                    :model-value="selectedNodeConfig"
+                    @update:model-value="updateSelectedNodeConfig"
+                  />
+                  <NodeErrorHandlerPanel
+                    v-else-if="selectedNodeType === 'ERROR_HANDLER'"
+                    :model-value="selectedNodeConfig"
+                    @update:model-value="updateSelectedNodeConfig"
+                  />
+                  <NodeDelayPanel
+                    v-else-if="selectedNodeType === 'DELAY'"
+                    :model-value="selectedNodeConfig"
+                    @update:model-value="updateSelectedNodeConfig"
+                  />
 
-                  <template v-if="activeTab.executionMode === 'ONCE'">
-                    <label class="spider-form-field">
-                      <span>触发方式</span>
-                      <input value="手动触发立即执行" disabled type="text" />
-                    </label>
-                    <label class="spider-form-field">
-                      <span>并发线程</span>
-                      <input v-model.number="activeTab.threadCount" min="1" type="number" />
-                    </label>
+                  <template v-else-if="selectedNodeType === 'DATA_EXTRACTOR'">
+                    <div class="extractor-head">
+                      <span>字段规则</span>
+                      <button type="button" @click="addExtractorField">新增字段</button>
+                    </div>
+                    <div class="extractor-field-list">
+                      <article
+                        v-for="(field, index) in extractorFields"
+                        :key="`field-${index}`"
+                        :class="{ active: activeWorkspace.extractorFocusIndex === index }"
+                        @click="activeWorkspace.extractorFocusIndex = index"
+                      >
+                        <label>
+                          <span>字段名</span>
+                          <input :value="field.name" @input="updateExtractorField(index, 'name', ($event.target as HTMLInputElement).value)" />
+                        </label>
+                        <label>
+                          <span>类型</span>
+                          <select :value="field.selectorType" @change="updateExtractorField(index, 'selectorType', ($event.target as HTMLSelectElement).value)">
+                            <option value="CSS">CSS</option>
+                            <option value="XPATH">XPATH</option>
+                            <option value="REGEX">REGEX</option>
+                            <option value="JSON_PATH">JSON_PATH</option>
+                            <option value="AI">AI</option>
+                          </select>
+                        </label>
+                        <label class="full">
+                          <span>选择器/描述</span>
+                          <input
+                            :value="field.selector || field.aiDescription"
+                            @input="updateExtractorSelector(index, field.selectorType, ($event.target as HTMLInputElement).value)"
+                          />
+                        </label>
+                        <div class="extractor-row-actions">
+                          <button type="button" @click.stop="openSelectorDialog(index)">可视化选取</button>
+                          <button type="button" @click.stop="removeExtractorField(index)">删除</button>
+                        </div>
+                      </article>
+                    </div>
+                    <div class="extractor-extra">
+                      <label>
+                        <span>历史 URL</span>
+                        <select v-model="activeWorkspace.aiTestUrl">
+                          <option value="">使用入口 URL</option>
+                          <option v-for="url in crawledUrlOptions" :key="url.value" :value="url.value">{{ url.label }}</option>
+                        </select>
+                      </label>
+                      <button type="button" @click="loadCrawledHistory">刷新历史 URL</button>
+                    </div>
+                    <div class="extractor-ai-test" v-if="activeExtractorField?.selectorType === 'AI'">
+                      <label>
+                        <span>AI 提取测试 URL</span>
+                        <input v-model="activeWorkspace.aiTestUrl" placeholder="https://example.com/detail" />
+                      </label>
+                      <button type="button" :disabled="activeWorkspace.aiTestLoading" @click="runAiSelectorTest">
+                        {{ activeWorkspace.aiTestLoading ? "测试中..." : "测试 AI 提取" }}
+                      </button>
+                      <ul>
+                        <li v-for="(item, index) in activeWorkspace.aiTestResult" :key="`ai-${index}`">{{ item }}</li>
+                        <li v-if="!activeWorkspace.aiTestResult.length">暂无结果</li>
+                      </ul>
+                    </div>
                   </template>
-
-                  <template v-else-if="activeTab.executionMode === 'REPEAT_N'">
-                    <label class="spider-form-field">
-                      <span>执行次数</span>
-                      <input v-model.number="activeTab.repeatTimes" min="1" type="number" />
-                    </label>
-                    <label class="spider-form-field">
-                      <span>间隔秒数</span>
-                      <input v-model.number="activeTab.repeatInterval" min="1" type="number" />
-                    </label>
-                  </template>
-
                   <template v-else>
-                    <label class="spider-form-field spider-form-field--full">
-                      <span>Cron</span>
-                      <input v-model.trim="activeTab.cron" type="text" placeholder="0 */15 * * * ?" />
-                    </label>
-                    <label class="spider-form-field spider-form-field--full">
-                      <span>Job 通道</span>
-                      <input v-model.trim="activeTab.jobBindingLabel" type="text" placeholder="job-starter / spider" />
+                    <label class="full">
+                      <span>节点配置(JSON)</span>
+                      <textarea
+                        rows="6"
+                        :value="formatJson(selectedNodeConfig)"
+                        @input="updateSelectedNodeConfigFromJson(($event.target as HTMLTextAreaElement).value)"
+                      />
                     </label>
                   </template>
                 </div>
+                <div v-else class="empty-box">请选择一个节点进行配置</div>
               </section>
 
-              <section class="spider-panel spider-panel--inspector">
-                <div class="spider-panel__header">
-                  <div>
-                    <small>Node Inspector</small>
-                    <h3>{{ activeNode?.label || "节点属性" }}</h3>
-                  </div>
-                  <button
-                    v-if="activeNode && !activeNode.fixed"
-                    type="button"
-                    class="spider-text-button spider-text-button--danger"
-                    @click="removeActiveNode"
-                  >
-                    删除节点
-                  </button>
-                </div>
-
-                <template v-if="activeNode">
-                  <div class="spider-inspector-shell">
-                    <div class="spider-chip-strip">
-                      <span>{{ nodeKindLabel(activeNode.kind) }}</span>
-                      <span>{{ activeNode.fixed ? "系统节点" : "可配置节点" }}</span>
-                      <span>{{ activeNode.aiCapable ? "AI 支持" : "AI 旁路" }}</span>
-                    </div>
-                    <label class="spider-form-field">
-                      <span>节点名称</span>
-                      <input v-model.trim="activeNode.label" type="text" />
-                    </label>
-                    <label class="spider-form-field spider-form-field--full">
-                      <span>节点说明</span>
-                      <textarea v-model.trim="activeNode.summary" rows="3"></textarea>
-                    </label>
-                    <label class="spider-form-field">
-                      <span>输入数据</span>
-                      <input v-model.trim="activeNode.inputLabel" type="text" />
-                    </label>
-                    <label class="spider-form-field">
-                      <span>输出数据</span>
-                      <input v-model.trim="activeNode.outputLabel" type="text" />
-                    </label>
-
-                    <div class="spider-ai-block" :class="{ 'is-disabled': !activeNode.aiCapable }">
-                      <div class="spider-ai-block__head">
-                        <strong>AI 助手</strong>
-                        <button
-                          type="button"
-                          class="spider-text-button"
-                          :disabled="!activeNode.aiCapable"
-                          @click="applyAiPreset"
-                        >
-                          注入建议
-                        </button>
-                      </div>
-                      <p>
-                        {{
-                          activeNode.aiCapable
-                            ? "下载器、解析器、过滤器、输出器都可直接接入 ai-starter。"
-                            : "开始和结束节点不直接调用 AI。"
-                        }}
-                      </p>
-                      <div class="spider-ai-hints">
-                        <span v-for="hint in activeNode.aiHints" :key="hint">{{ hint }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-                <div v-else class="spider-empty-card">
-                  <strong>先选择一个节点</strong>
-                  <p>右侧会根据节点类型切换参数与 AI 操作面板。</p>
-                </div>
+              <section class="panel-block">
+                <header>
+                  <h3>通知设置</h3>
+                </header>
+                <SpiderNotificationPanel
+                  :model-value="activeWorkspace.notificationConfig"
+                  @update:model-value="activeWorkspace.notificationConfig = $event"
+                />
               </section>
 
-              <section class="spider-panel spider-panel--runtime">
-                <div class="spider-panel__header">
-                  <div>
-                    <small>Runtime Journal</small>
-                    <h3>运行日志</h3>
-                  </div>
-                  <button type="button" class="spider-text-button" @click="appendLog('INFO', '手动刷新运行日志视图。')">
-                    刷新日志
-                  </button>
-                </div>
-                <div class="spider-runtime-list">
-                  <article v-for="entry in activeTab.logEntries" :key="entry.id" class="spider-runtime-item">
-                    <span class="spider-runtime-item__level" :class="`is-${entry.level.toLowerCase()}`">
-                      {{ entry.level }}
-                    </span>
-                    <div>
-                      <strong>{{ entry.message }}</strong>
-                      <p>{{ entry.time }}</p>
-                    </div>
+              <section class="panel-block">
+                <header>
+                  <h3>任务级 AI 大脑</h3>
+                </header>
+                <SpiderBrainConfigPanel
+                  :model-value="activeWorkspace.brainConfig"
+                  :providers="brainProviders"
+                  @update:model-value="activeWorkspace.brainConfig = $event"
+                  @test="testBrainConnection"
+                />
+              </section>
+
+              <section class="panel-block">
+                <header>
+                  <h3>运行日志</h3>
+                  <button type="button" @click="refreshActiveRuntime">刷新</button>
+                </header>
+                <div class="runtime-list">
+                  <article v-for="(item, index) in activeWorkspace.runtimeEvents" :key="`event-${index}`">
+                    <strong>{{ item.type }}</strong>
+                    <p>{{ item.message }}</p>
+                    <small>{{ item.time }}</small>
                   </article>
+                  <div v-if="!activeWorkspace.runtimeEvents.length" class="empty-box">暂无实时日志</div>
+                </div>
+              </section>
+
+              <section class="panel-block">
+                <header>
+                  <h3>钩子日志</h3>
+                </header>
+                <div class="runtime-list">
+                  <article v-for="(item, index) in activeWorkspace.hookLogs" :key="`hook-${index}`">
+                    <strong>{{ item.nodeId || item.nodeType || "hook" }}</strong>
+                    <p>{{ item.message }}</p>
+                  </article>
+                  <div v-if="!activeWorkspace.hookLogs.length" class="empty-box">暂无钩子触发记录</div>
                 </div>
               </section>
             </aside>
@@ -400,1143 +367,1517 @@
       </template>
 
       <template #rail-footer>
-        <button type="button" class="spider-rail-add" @click="handleAddTab">
-          +
-        </button>
+        <button type="button" class="rail-add" @click="openCreateDialog">+</button>
       </template>
     </ScLayout>
+
+    <div v-if="createDialogVisible" class="dialog-mask" @click.self="createDialogVisible = false">
+      <section class="dialog-card">
+        <header>
+          <h3>新建任务</h3>
+        </header>
+        <label>
+          <span>任务名称</span>
+          <input v-model="createForm.taskName" />
+        </label>
+        <label>
+          <span>入口 URL</span>
+          <input v-model="createForm.entryUrl" />
+        </label>
+        <label>
+          <span>执行类型</span>
+          <select v-model="createForm.executionType">
+            <option value="ONCE">ONCE</option>
+            <option value="REPEAT_N">REPEAT_N</option>
+            <option value="SCHEDULED">SCHEDULED</option>
+          </select>
+        </label>
+        <footer>
+          <button type="button" @click="createDialogVisible = false">取消</button>
+          <button type="button" @click="confirmCreateTask">创建</button>
+        </footer>
+      </section>
+    </div>
+
+    <div v-if="selectorDialog.visible" class="dialog-mask" @click.self="closeSelectorDialog">
+      <section class="selector-dialog">
+        <header>
+          <h3>可视化选择器</h3>
+          <button type="button" @click="closeSelectorDialog">关闭</button>
+        </header>
+        <iframe :srcdoc="selectorDialog.srcdoc" class="selector-frame" />
+        <footer>
+          <div>
+            <strong>候选选择器：</strong>
+            <code>{{ selectorDialog.candidateSelector || "请在预览区点击元素" }}</code>
+          </div>
+          <button type="button" :disabled="!selectorDialog.candidateSelector" @click="applySelectorCandidate">
+            确认应用
+          </button>
+        </footer>
+      </section>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import ScLayout from "@repo/components/ScLayout";
+import { ScReteEditor, type EditorData } from "@repo/components/ScReteEditor";
+import {
+  createTab,
+  createTask,
+  deleteTab,
+  getBrainConfig,
+  getCrawledUrls,
+  getDashboardSummary,
+  getFlow,
+  getNodeLogs,
+  getRecords,
+  getRunningCards,
+  getRuntime,
+  getTabs,
+  getTask,
+  pauseTask,
+  previewPage,
+  runTask,
+  saveFlow,
+  testAi,
+  testSelector,
+  updateTask,
+  type DashboardSummary,
+  type RunningCard,
+  type SpiderFlowDefinition,
+  type SpiderFlowEdge,
+  type SpiderFlowGroup,
+  type SpiderFlowNode,
+  type SpiderTask,
+  type WorkbenchTab,
+} from "../api/spider-platform";
+import { useSpiderRuntime } from "../composables/useSpiderRuntime";
+import SpiderFlowGroupView from "../components/SpiderFlowGroup.vue";
+import NodeConditionPanel from "../components/NodeConditionPanel.vue";
+import NodeErrorHandlerPanel from "../components/NodeErrorHandlerPanel.vue";
+import NodeDelayPanel from "../components/NodeDelayPanel.vue";
+import SpiderNotificationPanel from "../components/SpiderNotificationPanel.vue";
+import SpiderBrainConfigPanel from "../components/SpiderBrainConfigPanel.vue";
 
-type ExecutionMode = "ONCE" | "REPEAT_N" | "SCHEDULED";
-type RuntimeState = "RUNNING" | "PAUSED" | "IDLE" | "DRAFT";
-type NodeKind = "START" | "DOWNLOADER" | "PROCESSOR" | "FILTER" | "PIPELINE" | "END";
+type SpiderNodeType =
+  | "START"
+  | "DOWNLOADER"
+  | "URL_EXTRACTOR"
+  | "DATA_EXTRACTOR"
+  | "DETAIL_FETCH"
+  | "PROCESSOR"
+  | "FILTER"
+  | "HUMAN_INPUT"
+  | "PIPELINE"
+  | "END"
+  | "CONDITION"
+  | "ERROR_HANDLER"
+  | "DELAY"
+  | "MERGE"
+  | "TRANSFORMER";
 
-type RailTab = {
-  closable?: boolean;
-  label?: string;
-  name: string;
-  title?: string;
-};
+type WorkspaceEvent = { type: string; message: string; time: string };
 
-type SpiderFlowNodeDraft = {
-  aiCapable: boolean;
-  aiHints: string[];
-  fixed?: boolean;
-  id: string;
-  inputLabel: string;
-  kind: NodeKind;
-  label: string;
-  outputLabel: string;
-  summary: string;
-};
-
-type SpiderWorkbenchTab = {
-  aiEnabled: boolean;
-  cron: string;
-  description: string;
-  entryUrl: string;
-  executionMode: ExecutionMode;
-  failCount: number;
-  id: string;
-  jobBinding: boolean;
-  jobBindingLabel: string;
-  lastRun: string;
-  logEntries: SpiderWorkbenchLogEntry[];
-  nodes: SpiderFlowNodeDraft[];
-  repeatInterval: number;
-  repeatTimes: number;
-  runtimeState: RuntimeState;
+type Workspace = {
+  activeGroupId: string;
+  aiTestLoading: boolean;
+  aiTestResult: string[];
+  aiTestUrl: string;
+  brainConfig: Record<string, any>;
+  crawledUrls: any[];
+  editorData: EditorData;
+  extractorFocusIndex: number;
+  flow: SpiderFlowDefinition;
+  groupSuggestionVisible: boolean;
+  hookLogs: any[];
+  nodeConfigById: Record<string, any>;
+  nodeLogs: any[];
+  nodeTypeById: Record<string, SpiderNodeType>;
+  notificationConfig: Record<string, any>;
+  policy: Record<string, any>;
+  records: any[];
+  runtime: any;
+  runtimeEvents: WorkspaceEvent[];
   selectedNodeId: string;
-  serial: string;
-  successCount: number;
-  taskCode: string;
-  threadCount: number;
-  title: string;
-  unsaved: boolean;
+  task: SpiderTask;
+  taskId: number;
 };
 
-type SpiderWorkbenchLogEntry = {
-  id: string;
-  level: "INFO" | "WARN" | "ERROR";
-  message: string;
-  time: string;
-};
+const SpiderFlowGroup = SpiderFlowGroupView;
+const summary = reactive<DashboardSummary>({
+  latestTask: {},
+  taskTotal: 0,
+  timerCount: 0,
+  totalCrawled: 0,
+  totalUrlsCollected: 0,
+});
+const runningCards = ref<RunningCard[]>([]);
+const taskTabs = ref<WorkbenchTab[]>([]);
+const activeRailTab = ref<string | number>("home");
+const workspaceMap = reactive<Record<string, Workspace>>({});
+const brainProviders = ref<string[]>(["deepseek", "openai", "qwen", "zhipu", "ollama"]);
+const editorRef = ref<InstanceType<typeof ScReteEditor>>();
 
-const executionModes = [
-  { value: "ONCE" as ExecutionMode, label: "一次", description: "适合即时抓取和手动排障。" },
-  { value: "REPEAT_N" as ExecutionMode, label: "N 次", description: "定义固定次数与间隔，短期波次执行。" },
-  { value: "SCHEDULED" as ExecutionMode, label: "定时", description: "接入 job-starter，进入长期调度。" },
+const nodePalette: SpiderNodeType[] = [
+  "DOWNLOADER",
+  "URL_EXTRACTOR",
+  "DATA_EXTRACTOR",
+  "DETAIL_FETCH",
+  "PROCESSOR",
+  "FILTER",
+  "HUMAN_INPUT",
+  "PIPELINE",
+  "CONDITION",
+  "ERROR_HANDLER",
+  "DELAY",
+  "MERGE",
+  "TRANSFORMER",
 ];
 
-const nodeTemplates = [
-  { kind: "DOWNLOADER" as const, label: "智能下载器", summary: "HTTP / Playwright + AI 反爬建议" },
-  { kind: "PROCESSOR" as const, label: "解析器", summary: "字段映射、XPath / CSS 建议" },
-  { kind: "FILTER" as const, label: "过滤器", summary: "脏数据清洗与异常样本诊断" },
-  { kind: "PIPELINE" as const, label: "输出节点", summary: "落库、投递、归档与 DDL 建议" },
-];
-
-let tabSeed = 3;
-let nodeSeed = 20;
-
-const workbenchTabs = ref<SpiderWorkbenchTab[]>([
-  createSeedTab({
-    id: "spider-live-radar",
-    serial: "W-01",
-    title: "资讯入口雷达",
-    taskCode: "SPIDER-RADAR-01",
-    runtimeState: "RUNNING",
-    executionMode: "SCHEDULED",
-    jobBinding: true,
-    jobBindingLabel: "job-starter / spider.news",
-    description: "每 15 分钟回采资讯入口，AI 负责动态修正下载器与解析器。",
-    entryUrl: "https://news.example.com/feed",
-    lastRun: "2 分钟前",
-    successCount: 238,
-    failCount: 6,
-    cron: "0 */15 * * * ?",
-    threadCount: 4,
-    repeatTimes: 3,
-    repeatInterval: 90,
-    logEntries: [
-      createLog("INFO", "调度器已接管本任务，等待下一次 job-starter 触发。"),
-      createLog("INFO", "AI 解析器已更新 XPath 兜底规则。"),
-      createLog("WARN", "下载器最近一次遇到慢加载，已启用退让重试。"),
-    ],
-    nodes: [
-      createNode("START", { fixed: true, label: "开始", summary: "注入任务上下文与入口 URL。" }),
-      createNode("DOWNLOADER", { label: "动态下载器", summary: "Playwright + Header Hint，适配慢加载站点。" }),
-      createNode("PROCESSOR", { label: "AI 解析器", summary: "AI 协助生成 XPath、字段映射和回退规则。" }),
-      createNode("FILTER", { label: "质量过滤器", summary: "剔除重复内容、脏字段和异常样本。" }),
-      createNode("PIPELINE", { label: "结果输出", summary: "落库并回写抓取摘要。" }),
-      createNode("END", { fixed: true, label: "结束", summary: "汇总指标并等待下一次调度。" }),
-    ],
-  }),
-  createSeedTab({
-    id: "spider-draft-lab",
-    serial: "W-02",
-    title: "商品详情实验台",
-    taskCode: "SPIDER-LAB-02",
-    runtimeState: "DRAFT",
-    executionMode: "REPEAT_N",
-    jobBinding: false,
-    jobBindingLabel: "",
-    description: "先跑 5 次，观察结构稳定性，再决定是否转正式调度任务。",
-    entryUrl: "https://shop.example.com/detail/seed",
-    lastRun: "尚未执行",
-    successCount: 0,
-    failCount: 0,
-    cron: "",
-    threadCount: 2,
-    repeatTimes: 5,
-    repeatInterval: 45,
-    logEntries: [createLog("INFO", "草稿已创建，等待补充入口 URL 与中间节点。")],
-    nodes: [
-      createNode("START", { fixed: true, label: "开始", summary: "创建试验批次与抓取窗口。" }),
-      createNode("END", { fixed: true, label: "结束", summary: "汇总试验结果，判断是否转正。" }),
-    ],
-  }),
-]);
-
-const activeTabId = ref(workbenchTabs.value[0]?.id || "");
-
-const railTabs = computed<RailTab[]>(() =>
-  workbenchTabs.value.map((tab) => ({
-    name: tab.id,
-    label: `${tab.serial}${tab.unsaved ? "*" : ""}`,
-    title: `${tab.serial} · ${tab.title}${tab.unsaved ? " · 未保存" : ""}`,
-    closable: workbenchTabs.value.length > 1,
-  })),
-);
-
-const activeTab = computed(() =>
-  workbenchTabs.value.find((item) => item.id === activeTabId.value),
-);
-
-const activeNode = computed(() => {
-  if (!activeTab.value) return null;
-  return (
-    activeTab.value.nodes.find((item) => item.id === activeTab.value?.selectedNodeId) ||
-    activeTab.value.nodes[0] ||
-    null
-  );
+const createDialogVisible = ref(false);
+const createForm = reactive({
+  taskName: "新建爬虫任务",
+  entryUrl: "https://example.com",
+  executionType: "ONCE" as SpiderTask["executionType"],
 });
 
-const runningCards = computed(() =>
-  workbenchTabs.value.filter((item) => item.runtimeState !== "DRAFT"),
-);
+const selectorDialog = reactive({
+  candidateSelector: "",
+  fieldIndex: -1,
+  srcdoc: "",
+  visible: false,
+});
 
-const draftCards = computed(() =>
-  workbenchTabs.value.filter((item) => item.runtimeState === "DRAFT"),
-);
-
-const scheduledCards = computed(() =>
-  workbenchTabs.value.filter((item) => item.executionMode === "SCHEDULED" && item.jobBinding),
-);
-
-const aiEnabledCount = computed(() =>
-  workbenchTabs.value.reduce((count, tab) => count + tab.nodes.filter((node) => node.aiCapable).length, 0),
-);
-
-function createSeedTab(
-  payload: Omit<SpiderWorkbenchTab, "aiEnabled" | "selectedNodeId" | "unsaved">,
-): SpiderWorkbenchTab {
-  return {
-    ...payload,
-    aiEnabled: payload.nodes.some((node) => node.aiCapable),
-    selectedNodeId: payload.nodes[0]?.id || "",
-    unsaved: false,
-  };
-}
-
-function createLog(level: SpiderWorkbenchLogEntry["level"], message: string): SpiderWorkbenchLogEntry {
-  return {
-    id: `log-${nodeSeed++}`,
-    level,
-    message,
-    time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-  };
-}
-
-function createNode(kind: NodeKind, overrides: Partial<SpiderFlowNodeDraft> = {}): SpiderFlowNodeDraft {
-  const base = nodeBlueprint(kind);
-  return {
-    ...base,
-    ...overrides,
-    id: overrides.id || `${kind.toLowerCase()}-${nodeSeed++}`,
-  };
-}
-
-function nodeBlueprint(kind: NodeKind): SpiderFlowNodeDraft {
-  switch (kind) {
-    case "START":
-      return { id: "start", kind, label: "开始", summary: "注入任务上下文。", inputLabel: "无", outputLabel: "SeedContext", aiCapable: false, aiHints: [], fixed: true };
-    case "DOWNLOADER":
-      return { id: "downloader", kind, label: "下载器", summary: "取回 HTML、API 或动态渲染内容。", inputLabel: "SeedContext", outputLabel: "RawDocument", aiCapable: true, aiHints: ["请求头建议", "反爬诊断", "失败重试策略"] };
-    case "PROCESSOR":
-      return { id: "processor", kind, label: "解析器", summary: "字段提取、结构化映射和回退规则。", inputLabel: "RawDocument", outputLabel: "StructuredPayload", aiCapable: true, aiHints: ["XPath 生成", "CSS 兜底", "字段映射建议"] };
-    case "FILTER":
-      return { id: "filter", kind, label: "过滤器", summary: "去重、清洗和异常样本判断。", inputLabel: "StructuredPayload", outputLabel: "CleanPayload", aiCapable: true, aiHints: ["脏数据诊断", "去重规则建议", "异常字段修复"] };
-    case "PIPELINE":
-      return { id: "pipeline", kind, label: "输出节点", summary: "落库、推送或归档。", inputLabel: "CleanPayload", outputLabel: "PersistedResult", aiCapable: true, aiHints: ["字段类型推断", "DDL 建议", "输出一致性审查"] };
-    case "END":
-      return { id: "end", kind, label: "结束", summary: "回写指标，结束一次任务生命周期。", inputLabel: "PersistedResult", outputLabel: "RuntimeSnapshot", aiCapable: false, aiHints: [], fixed: true };
+const parseJson = (text: any, fallback: Record<string, any> = {}) => {
+  if (!text) return { ...fallback };
+  if (typeof text === "object") return { ...fallback, ...text };
+  try {
+    const parsed = JSON.parse(String(text));
+    return parsed && typeof parsed === "object" ? { ...fallback, ...parsed } : { ...fallback };
+  } catch {
+    return { ...fallback };
   }
+};
+
+const stringifyJson = (value: any) => JSON.stringify(value || {}, null, 2);
+
+const nowText = () => new Date().toLocaleString("zh-CN", { hour12: false });
+
+const railTabs = computed(() => [
+  { closable: false, label: "首页", name: "home", title: "Spider 首页" },
+  ...taskTabs.value.map((tab) => ({
+    closable: tab.closeable,
+    label: tab.title || `任务-${tab.taskId}`,
+    name: `task-${tab.id}`,
+    title: tab.title || `任务-${tab.taskId}`,
+  })),
+]);
+
+const activeTaskTab = computed(() =>
+  taskTabs.value.find((tab) => `task-${tab.id}` === String(activeRailTab.value)),
+);
+
+const activeWorkspace = computed(() => {
+  const taskId = activeTaskTab.value?.taskId;
+  if (!taskId) return null;
+  return workspaceMap[String(taskId)] || null;
+});
+
+const activeWorkspaceKey = computed(() => String(activeTaskTab.value?.taskId || ""));
+const selectedNodeId = computed(() => activeWorkspace.value?.selectedNodeId || "");
+const selectedNodeType = computed(() => {
+  if (!activeWorkspace.value || !selectedNodeId.value) return "";
+  return activeWorkspace.value.nodeTypeById[selectedNodeId.value] || "";
+});
+const selectedNodeConfig = computed(() => {
+  if (!activeWorkspace.value || !selectedNodeId.value) return null;
+  return activeWorkspace.value.nodeConfigById[selectedNodeId.value] || {};
+});
+const selectedNodeLabel = computed(() => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return "";
+  return ws.editorData.nodes.find((node) => node.id === selectedNodeId.value)?.label || "";
+});
+
+const extractorFields = computed(() => {
+  const config = selectedNodeConfig.value;
+  return Array.isArray(config?.fields) ? config.fields : [];
+});
+
+const activeExtractorField = computed(() => {
+  const ws = activeWorkspace.value;
+  if (!ws) return null;
+  const index = ws.extractorFocusIndex;
+  const fields = extractorFields.value;
+  return index >= 0 && index < fields.length ? fields[index] : null;
+});
+
+const crawledUrlOptions = computed(() => {
+  const ws = activeWorkspace.value;
+  if (!ws) return [];
+  return ws.crawledUrls.map((item: any) => {
+    const value = item.url || ws.task.entryUrl || "";
+    const label = item.url
+      ? item.url
+      : `记录 ${item.recordId || "-"} · 请求数 ${item.totalRequests || 0}`;
+    return { label, value };
+  });
+});
+
+const layTaskAvailable = computed(
+  () => Boolean((globalThis as any).layTaskProgress || (globalThis as any).layTask),
+);
+
+const runtimeProgress = computed(() => {
+  const ws = activeWorkspace.value;
+  if (!ws) return { done: 0, total: 0, percent: 0, text: "无运行数据" };
+  const done = Number(ws.runtime?.successCount || 0) + Number(ws.runtime?.failureCount || 0);
+  const latestRecord = ws.records[0];
+  const total = Number(latestRecord?.totalRequests || done || 0);
+  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : done > 0 ? 100 : 0;
+  return { done, total, percent, text: `${done}/${total || "?"}` };
+});
+
+const progressPercent = computed(() => runtimeProgress.value.percent);
+const progressText = computed(() => `进度 ${runtimeProgress.value.text}`);
+
+const runtimeChannel = ref("idle");
+const runtimeError = ref("");
+
+const runtimeBridge = useSpiderRuntime({
+  onEvent: (event) => {
+    const ws = activeWorkspace.value;
+    if (!ws) return;
+    runtimeChannel.value = event.channel;
+    const payload = event.data && typeof event.data === "object" ? event.data : { message: String(event.data || "") };
+    const message = payload.message || JSON.stringify(payload);
+    ws.runtimeEvents.unshift({
+      type: payload.status ? `${event.type}:${payload.status}` : event.type,
+      message,
+      time: nowText(),
+    });
+    ws.runtimeEvents = ws.runtimeEvents.slice(0, 80);
+    if (/hook|beforeDownload|afterDownload/i.test(message)) {
+      ws.hookLogs.unshift({
+        message,
+        nodeId: payload.nodeId || "",
+      });
+      ws.hookLogs = ws.hookLogs.slice(0, 50);
+    }
+  },
+  onSnapshot: (snapshot) => {
+    const ws = activeWorkspace.value;
+    if (!ws) return;
+    ws.runtime = snapshot || {};
+  },
+});
+
+const flowNodeTypeToEditorType = (nodeType: SpiderNodeType) => {
+  if (nodeType === "START") return "input";
+  if (nodeType === "END") return "output";
+  if (nodeType === "CONDITION") return "condition";
+  if (nodeType === "MERGE") return "merge";
+  if (nodeType === "DELAY") return "delay";
+  return "process";
+};
+
+const editorTypeToFlowNodeType = (editorType: string): SpiderNodeType => {
+  if (editorType === "input") return "START";
+  if (editorType === "output") return "END";
+  if (editorType === "condition") return "CONDITION";
+  if (editorType === "merge") return "MERGE";
+  if (editorType === "delay") return "DELAY";
+  return "PROCESSOR";
+};
+
+const parseEdgePorts = (edgeId?: string) => {
+  const text = String(edgeId || "");
+  const mark = "::";
+  if (!text.includes(mark)) return { sourceOutput: "output", targetInput: "input" };
+  const payload = text.slice(text.lastIndexOf(mark) + mark.length);
+  const [sourceOutput, targetInput] = payload.split("->");
+  return {
+    sourceOutput: sourceOutput || "output",
+    targetInput: targetInput || "input",
+  };
+};
+
+const buildEdgeId = (
+  sourceId: string,
+  sourceOutput: string,
+  targetId: string,
+  targetInput: string,
+) => `edge-${sourceId}-${targetId}::${sourceOutput}->${targetInput}`;
+
+const formatJson = (value: any) => stringifyJson(value);
+
+const ensureWorkspaceLoaded = async (taskId: number) => {
+  const key = String(taskId);
+  if (workspaceMap[key]) return;
+
+  const [task, flow] = await Promise.all([
+    getTask(taskId),
+    getFlow(taskId).catch(() => ({ nodes: [], edges: [], groups: [] } as SpiderFlowDefinition)),
+  ]);
+
+  const normalizedFlow: SpiderFlowDefinition = {
+    edges: [],
+    groups: [],
+    nodes: [],
+    ...(flow || {}),
+    edges: Array.isArray(flow?.edges) ? flow.edges : [],
+    groups: Array.isArray(flow?.groups) ? flow.groups : [],
+    nodes: Array.isArray(flow?.nodes) ? flow.nodes : [],
+  };
+
+  const editorData: EditorData = {
+    connections: normalizedFlow.edges.map((edge: SpiderFlowEdge) => ({
+      sourceId: edge.sourceNodeId,
+      targetId: edge.targetNodeId,
+      ...parseEdgePorts(edge.edgeId),
+    })),
+    nodes: normalizedFlow.nodes.map((node: SpiderFlowNode) => ({
+      controls: {},
+      id: node.nodeId,
+      label: node.label || node.nodeId,
+      position: {
+        x: Number(node.positionX ?? 120),
+        y: Number(node.positionY ?? 120),
+      },
+      type: flowNodeTypeToEditorType(node.nodeType as SpiderNodeType) as any,
+    })),
+  };
+
+  const nodeTypeById: Record<string, SpiderNodeType> = {};
+  const nodeConfigById: Record<string, any> = {};
+  normalizedFlow.nodes.forEach((node: SpiderFlowNode) => {
+    nodeTypeById[node.nodeId] = String(node.nodeType || "PROCESSOR") as SpiderNodeType;
+    nodeConfigById[node.nodeId] = node.config || {};
+  });
+
+  const policy = parseJson(task.executionPolicy, {
+    cron: "0 */30 * * * ?",
+    executionType: task.executionType || "ONCE",
+    jobChannel: "default",
+    repeatInterval: 60,
+    repeatTimes: 3,
+    threadCount: 1,
+  });
+  const notificationConfig = parseJson(policy.notification, {
+    channels: ["site"],
+    receivers: "",
+    triggers: ["onFailure"],
+  });
+  const brainConfig = parseJson(task.aiProfile, {
+    contextWindow: 8192,
+    enabled: true,
+    model: "deepseek-chat",
+    provider: "deepseek",
+    temperature: 0.7,
+  });
+
+  workspaceMap[key] = reactive({
+    activeGroupId: "",
+    aiTestLoading: false,
+    aiTestResult: [],
+    aiTestUrl: task.entryUrl || "",
+    brainConfig,
+    crawledUrls: [],
+    editorData,
+    extractorFocusIndex: 0,
+    flow: normalizedFlow,
+    groupSuggestionVisible: false,
+    hookLogs: [],
+    nodeConfigById,
+    nodeLogs: [],
+    nodeTypeById,
+    notificationConfig,
+    policy,
+    records: [],
+    runtime: {},
+    runtimeEvents: [],
+    selectedNodeId: normalizedFlow.nodes[0]?.nodeId || "",
+    task,
+    taskId,
+  } as Workspace);
+
+  detectGroupSuggestion(workspaceMap[key]);
+  await refreshWorkspaceRuntime(taskId);
 }
 
-function focusTab(id: string) {
-  activeTabId.value = id;
-}
+const loadTabsAndOverview = async () => {
+  const [summaryData, cards, tabs, brainConfig] = await Promise.all([
+    getDashboardSummary(),
+    getRunningCards(),
+    getTabs(),
+    getBrainConfig().catch(() => ({ providers: [] })),
+  ]);
+  Object.assign(summary, summaryData || {});
+  runningCards.value = Array.isArray(cards) ? cards : [];
+  taskTabs.value = (Array.isArray(tabs) ? tabs : []).filter((tab) => tab.tabType === "TASK");
+  const providerList = Array.isArray(brainConfig?.providers)
+    ? brainConfig.providers.map((row: any) => row?.name).filter(Boolean)
+    : [];
+  if (providerList.length) {
+    brainProviders.value = providerList;
+  }
+  if (!taskTabs.value.length) {
+    activeRailTab.value = "home";
+  } else if (
+    !taskTabs.value.find((tab) => `task-${tab.id}` === String(activeRailTab.value))
+  ) {
+    activeRailTab.value = `task-${taskTabs.value[0].id}`;
+  }
+};
 
-function handleAddTab() {
-  const id = `spider-draft-${tabSeed++}`;
-  const index = workbenchTabs.value.length + 1;
-  workbenchTabs.value.push(
-    createSeedTab({
-      id,
-      serial: `W-${String(index).padStart(2, "0")}`,
-      title: "新建高定爬虫",
-      taskCode: `SPIDER-DRAFT-${String(index).padStart(2, "0")}`,
-      runtimeState: "DRAFT",
-      executionMode: "ONCE",
-      jobBinding: false,
-      jobBindingLabel: "",
-      description: "从开始节点搭起，再决定是否接入 AI 和 Job。",
-      entryUrl: "",
-      lastRun: "尚未执行",
-      successCount: 0,
-      failCount: 0,
-      cron: "",
-      threadCount: 1,
-      repeatTimes: 3,
-      repeatInterval: 60,
-      logEntries: [createLog("INFO", "新工作台已创建，默认只保留开始和结束节点。")],
-      nodes: [
-        createNode("START", { fixed: true, label: "开始", summary: "定义任务入口与初始上下文。" }),
-        createNode("END", { fixed: true, label: "结束", summary: "接收最终结果并收口。" }),
+const refreshOverview = async () => {
+  await loadTabsAndOverview();
+};
+
+const openTaskById = async (taskId: number) => {
+  const target = taskTabs.value.find((tab) => Number(tab.taskId) === Number(taskId));
+  if (target) {
+    activeRailTab.value = `task-${target.id}`;
+    return;
+  }
+  const tab = await createTab({
+    closeable: true,
+    tabType: "TASK",
+    taskId,
+    title: `任务-${taskId}`,
+  });
+  await loadTabsAndOverview();
+  activeRailTab.value = `task-${tab.id}`;
+};
+
+const openCreateDialog = () => {
+  createDialogVisible.value = true;
+};
+
+const confirmCreateTask = async () => {
+  const result = await createTask();
+  const taskId = Number(result.taskId || 0);
+  if (!taskId) {
+    throw new Error("创建任务失败：未返回 taskId");
+  }
+
+  await updateTask(
+    taskId,
+    {
+      entryUrl: createForm.entryUrl,
+      executionType: createForm.executionType,
+      taskName: createForm.taskName,
+    } as SpiderTask,
+    result.flow,
+  );
+
+  const tab = await createTab({
+    closeable: true,
+    tabType: "TASK",
+    taskId,
+    title: createForm.taskName || `任务-${taskId}`,
+  });
+  createDialogVisible.value = false;
+  await loadTabsAndOverview();
+  activeRailTab.value = `task-${tab.id}`;
+};
+
+const handleRemoveTab = async (name: string | number) => {
+  const key = String(name);
+  const tab = taskTabs.value.find((item) => `task-${item.id}` === key);
+  if (!tab?.id) return;
+  await deleteTab(tab.id);
+  delete workspaceMap[String(tab.taskId)];
+  await loadTabsAndOverview();
+};
+
+const refreshWorkspaceRuntime = async (taskId: number) => {
+  const ws = workspaceMap[String(taskId)];
+  if (!ws) return;
+  const [runtime, records] = await Promise.all([
+    getRuntime(taskId).catch(() => ({})),
+    getRecords(taskId).catch(() => []),
+  ]);
+  ws.runtime = runtime || {};
+  ws.records = Array.isArray(records) ? records : [];
+  const latestRecord = ws.records[0];
+  if (latestRecord?.id) {
+    const nodeLogs = await getNodeLogs(taskId, Number(latestRecord.id)).catch(() => []);
+    ws.nodeLogs = Array.isArray(nodeLogs) ? nodeLogs : [];
+    const hookLogs = ws.nodeLogs
+      .filter((row: any) => /hook|beforeDownload|afterDownload/i.test(JSON.stringify(row || {})))
+      .map((row: any) => ({
+        message: row.errorMsg || row.outputSummary || row.inputSummary || "hook",
+        nodeId: row.nodeId,
+        nodeType: row.nodeType,
+      }));
+    ws.hookLogs = hookLogs;
+  }
+};
+
+const refreshActiveRuntime = async () => {
+  if (!activeWorkspace.value) return;
+  await refreshWorkspaceRuntime(activeWorkspace.value.taskId);
+};
+
+const onEditorDataChanged = (data: EditorData) => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  ws.editorData = JSON.parse(JSON.stringify(data));
+  syncNodeStateByEditor(ws);
+  detectGroupSuggestion(ws);
+};
+
+const onEditorNodeSelected = (node: any) => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  ws.selectedNodeId = node?.id || "";
+};
+
+const syncNodeStateByEditor = (ws: Workspace) => {
+  const validIds = new Set(ws.editorData.nodes.map((node) => node.id));
+  Object.keys(ws.nodeTypeById).forEach((id) => {
+    if (!validIds.has(id)) {
+      delete ws.nodeTypeById[id];
+      delete ws.nodeConfigById[id];
+    }
+  });
+  ws.editorData.nodes.forEach((node) => {
+    if (!ws.nodeTypeById[node.id]) {
+      ws.nodeTypeById[node.id] = editorTypeToFlowNodeType(node.type as string);
+    }
+    if (!ws.nodeConfigById[node.id]) {
+      ws.nodeConfigById[node.id] = {};
+    }
+  });
+};
+
+const detectGroupSuggestion = (ws: Workspace) => {
+  const humanIds = Object.entries(ws.nodeTypeById)
+    .filter(([, type]) => type === "HUMAN_INPUT")
+    .map(([id]) => id);
+  const hasLoginGroup = (ws.flow.groups || []).some((group) =>
+    (group.nodeIds || []).some((id) => humanIds.includes(id)),
+  );
+  ws.groupSuggestionVisible = humanIds.length > 0 && !hasLoginGroup;
+};
+
+const appendNode = async (nodeType: SpiderNodeType) => {
+  const ws = activeWorkspace.value;
+  const editor = editorRef.value;
+  if (!ws || !editor) return;
+  const editorType = flowNodeTypeToEditorType(nodeType);
+  const node = await editor.addNode(editorType as any, nodeType);
+  if (!node) return;
+  ws.nodeTypeById[node.id] = nodeType;
+  ws.nodeConfigById[node.id] = defaultNodeConfig(nodeType);
+  ws.selectedNodeId = node.id;
+  syncNodeStateByEditor(ws);
+  detectGroupSuggestion(ws);
+};
+
+const defaultNodeConfig = (nodeType: SpiderNodeType) => {
+  if (nodeType === "DATA_EXTRACTOR") {
+    return {
+      fields: [
+        {
+          aiDescription: "",
+          attribute: "text",
+          multi: false,
+          name: "title",
+          required: true,
+          selector: "",
+          selectorType: "CSS",
+        },
       ],
-    }),
-  );
-  activeTabId.value = id;
-}
-
-function handleRemoveTab(name: string | number) {
-  const id = String(name);
-  const index = workbenchTabs.value.findIndex((item) => item.id === id);
-  if (index < 0 || workbenchTabs.value.length === 1) return;
-  const tab = workbenchTabs.value[index];
-  if (tab?.unsaved && typeof window !== "undefined") {
-    const confirmed = window.confirm(`Tab「${tab.title}」仍有未保存修改，确认关闭吗？`);
-    if (!confirmed) return;
+    };
   }
-  workbenchTabs.value.splice(index, 1);
-  if (activeTabId.value === id) {
-    activeTabId.value = workbenchTabs.value[Math.max(0, index - 1)]?.id || workbenchTabs.value[0]?.id || "";
+  if (nodeType === "CONDITION") {
+    return { conditionType: "field_compare", field: "status", op: "eq", value: "" };
   }
-}
-
-function refreshOverview() {
-  workbenchTabs.value = [...workbenchTabs.value];
-}
-
-function toggleRuntime(id: string) {
-  const tab = workbenchTabs.value.find((item) => item.id === id);
-  if (!tab) return;
-  tab.runtimeState = tab.runtimeState === "RUNNING" ? "PAUSED" : "RUNNING";
-  tab.lastRun = "刚刚";
-  tab.unsaved = true;
-  appendLog(tab.runtimeState === "RUNNING" ? "INFO" : "WARN", `${tab.title} 已切换为 ${runtimeStateLabel(tab.runtimeState)}。`, tab);
-}
-
-function saveActiveTab() {
-  if (!activeTab.value) return;
-  activeTab.value.unsaved = false;
-  appendLog("INFO", "草稿已保存。");
-}
-
-function launchActiveTab() {
-  if (!activeTab.value) return;
-  activeTab.value.runtimeState = "RUNNING";
-  activeTab.value.lastRun = "刚刚";
-  activeTab.value.jobBinding = activeTab.value.executionMode === "SCHEDULED";
-  activeTab.value.aiEnabled = activeTab.value.nodes.some((node) => node.aiCapable);
-  activeTab.value.unsaved = false;
-  appendLog("INFO", "任务已推送到运行卡片区。");
-}
-
-function selectNode(id: string) {
-  if (!activeTab.value) return;
-  activeTab.value.selectedNodeId = id;
-}
-
-function appendNode(kind: Exclude<NodeKind, "START" | "END">) {
-  if (!activeTab.value) return;
-  const endIndex = activeTab.value.nodes.findIndex((item) => item.kind === "END");
-  const template = nodeTemplates.find((item) => item.kind === kind);
-  const node = createNode(kind, { label: template?.label || nodeKindLabel(kind), summary: template?.summary || "" });
-  activeTab.value.nodes.splice(Math.max(1, endIndex), 0, node);
-  activeTab.value.selectedNodeId = node.id;
-  activeTab.value.aiEnabled = activeTab.value.nodes.some((item) => item.aiCapable);
-  activeTab.value.unsaved = true;
-  appendLog("INFO", `已新增${nodeKindLabel(kind)}节点「${node.label}」。`);
-}
-
-function removeActiveNode() {
-  if (!activeTab.value || !activeNode.value || activeNode.value.fixed) return;
-  const removedLabel = activeNode.value.label;
-  activeTab.value.nodes = activeTab.value.nodes.filter((item) => item.id !== activeNode.value?.id);
-  activeTab.value.selectedNodeId = activeTab.value.nodes[0]?.id || "";
-  activeTab.value.aiEnabled = activeTab.value.nodes.some((item) => item.aiCapable);
-  activeTab.value.unsaved = true;
-  appendLog("WARN", `节点「${removedLabel}」已从编排中移除。`);
-}
-
-function setExecutionMode(mode: ExecutionMode) {
-  if (!activeTab.value) return;
-  activeTab.value.executionMode = mode;
-  activeTab.value.jobBinding = mode === "SCHEDULED";
-  if (mode !== "SCHEDULED") {
-    activeTab.value.cron = "";
-    activeTab.value.jobBindingLabel = "";
+  if (nodeType === "ERROR_HANDLER") {
+    return { maxRetries: 3, retryIntervalMs: 2000, strategy: "retry" };
   }
-  activeTab.value.unsaved = true;
-  appendLog("INFO", `执行模式已切换为${executionModeLabel(mode)}。`);
-}
+  if (nodeType === "DELAY") {
+    return { fixedDelayMs: 1000, maxDelayMs: 2000, minDelayMs: 300, mode: "fixed" };
+  }
+  if (nodeType === "HUMAN_INPUT") {
+    return {
+      inputFieldName: "userInput",
+      onTimeout: "fail",
+      promptText: "请输入人工确认信息",
+      timeoutSeconds: 300,
+      waitType: "text_input",
+    };
+  }
+  return {};
+};
 
-function applyAiPreset() {
-  if (!activeTab.value || !activeNode.value || !activeNode.value.aiCapable) return;
-  const presetMap: Record<NodeKind, string> = {
-    START: "",
-    DOWNLOADER: "AI 已补充 Header Hint、超时退让和动态渲染建议。",
-    PROCESSOR: "AI 已生成字段映射与 XPath / CSS 双轨方案。",
-    FILTER: "AI 已补充脏数据与重复样本诊断规则。",
-    PIPELINE: "AI 已补充字段类型推断与 DDL 草案。",
-    END: "",
+const applyAutoGroupSuggestion = () => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  const humanIds = Object.entries(ws.nodeTypeById)
+    .filter(([, type]) => type === "HUMAN_INPUT")
+    .map(([id]) => id);
+  if (!humanIds.length) return;
+
+  const related = new Set<string>(humanIds);
+  ws.editorData.connections.forEach((edge) => {
+    if (humanIds.includes(edge.sourceId) || humanIds.includes(edge.targetId)) {
+      related.add(edge.sourceId);
+      related.add(edge.targetId);
+    }
+  });
+
+  const group: SpiderFlowGroup = {
+    backgroundColor: "linear-gradient(160deg, rgba(228,165,45,.16), rgba(200,132,28,.1))",
+    groupId: `group-login-${Date.now()}`,
+    height: 220,
+    nodeIds: Array.from(related),
+    title: "登录子流程",
+    width: 520,
+    x: 80,
+    y: 80,
   };
-  activeNode.value.summary = presetMap[activeNode.value.kind] || activeNode.value.summary;
-  activeTab.value.unsaved = true;
-  appendLog("INFO", `AI 已注入 ${activeNode.value.label} 的节点建议。`);
-}
+  ws.flow.groups = [...(ws.flow.groups || []), group];
+  ws.groupSuggestionVisible = false;
+};
 
-function duplicateTab(id: string) {
-  const source = workbenchTabs.value.find((item) => item.id === id);
-  if (!source) return;
-  const index = workbenchTabs.value.length + 1;
-  const clonedId = `spider-duplicate-${tabSeed++}`;
-  const clonedNodes = source.nodes.map((node) =>
-    createNode(node.kind, {
-      ...node,
-      fixed: node.fixed,
-      aiHints: [...node.aiHints],
-      id: `${node.kind.toLowerCase()}-${nodeSeed++}`,
-    }),
-  );
-  workbenchTabs.value.push(
-    createSeedTab({
-      ...source,
-      id: clonedId,
-      serial: `W-${String(index).padStart(2, "0")}`,
-      title: `${source.title} 副本`,
-      taskCode: `${source.taskCode}-COPY`,
-      runtimeState: "DRAFT",
-      lastRun: "尚未执行",
-      successCount: 0,
-      failCount: 0,
-      logEntries: [createLog("INFO", `已从「${source.title}」复制出新草稿。`)],
-      nodes: clonedNodes,
-    }),
-  );
-  activeTabId.value = clonedId;
-}
+const moveGroup = ({ groupId, dx, dy }: { groupId: string; dx: number; dy: number }) => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  ws.flow.groups = (ws.flow.groups || []).map((group) => {
+    if (group.groupId !== groupId) return group;
+    const movedIds = new Set(group.nodeIds || []);
+    const nodes = ws.editorData.nodes.map((node) =>
+      movedIds.has(node.id)
+        ? { ...node, position: { x: node.position.x + dx, y: node.position.y + dy } }
+        : node,
+    );
+    ws.editorData = {
+      ...ws.editorData,
+      nodes,
+    };
+    return {
+      ...group,
+      x: Number(group.x || 0) + dx,
+      y: Number(group.y || 0) + dy,
+    };
+  });
+};
 
-function previewLogs(id: string) {
-  focusTab(id);
-  appendLog("INFO", "已从任务卡片跳转到运行日志面板。");
-}
+const updateSelectedNodeConfig = (value: Record<string, any>) => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  ws.nodeConfigById[selectedNodeId.value] = value || {};
+};
 
-function appendLog(
-  level: SpiderWorkbenchLogEntry["level"],
-  message: string,
-  tab: SpiderWorkbenchTab | null = activeTab.value || null,
-) {
-  if (!tab) return;
-  tab.logEntries = [createLog(level, message), ...tab.logEntries].slice(0, 8);
-}
+const updateSelectedNodeConfigFromJson = (text: string) => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  try {
+    ws.nodeConfigById[selectedNodeId.value] = JSON.parse(text || "{}");
+  } catch {
+    // ignore invalid json in editing
+  }
+};
 
-function runtimeStateLabel(state: RuntimeState) {
-  return { RUNNING: "运行中", PAUSED: "已暂停", IDLE: "待命", DRAFT: "草稿" }[state];
-}
+const updateSelectedNodeType = (value: string) => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  ws.nodeTypeById[selectedNodeId.value] = value as SpiderNodeType;
+  if (!ws.nodeConfigById[selectedNodeId.value]) {
+    ws.nodeConfigById[selectedNodeId.value] = defaultNodeConfig(value as SpiderNodeType);
+  }
+};
 
-function executionModeLabel(mode: ExecutionMode) {
-  return { ONCE: "一次", REPEAT_N: "N 次", SCHEDULED: "定时" }[mode];
-}
+const updateSelectedNodeLabel = (label: string) => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  ws.editorData = {
+    ...ws.editorData,
+    nodes: ws.editorData.nodes.map((node) =>
+      node.id === selectedNodeId.value ? { ...node, label } : node,
+    ),
+  };
+};
 
-function executionModeHint(tab: SpiderWorkbenchTab) {
-  if (tab.executionMode === "ONCE") return "手动触发，不创建调度任务。";
-  if (tab.executionMode === "REPEAT_N") return `${tab.repeatTimes} 次，每 ${tab.repeatInterval} 秒推进一轮。`;
-  return tab.cron ? `${tab.cron} · ${tab.jobBindingLabel || "待绑定 job-starter"}` : "需要填写 cron 并同步到 job-starter。";
-}
+const addExtractorField = () => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  const config = { ...(ws.nodeConfigById[selectedNodeId.value] || {}) };
+  const fields = Array.isArray(config.fields) ? [...config.fields] : [];
+  fields.push({
+    aiDescription: "",
+    attribute: "text",
+    multi: false,
+    name: `field_${fields.length + 1}`,
+    required: false,
+    selector: "",
+    selectorType: "CSS",
+  });
+  config.fields = fields;
+  ws.nodeConfigById[selectedNodeId.value] = config;
+  ws.extractorFocusIndex = fields.length - 1;
+};
 
-function nodeKindLabel(kind: NodeKind) {
-  return { START: "开始", DOWNLOADER: "下载器", PROCESSOR: "解析器", FILTER: "过滤器", PIPELINE: "输出", END: "结束" }[kind];
-}
+const removeExtractorField = (index: number) => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  const config = { ...(ws.nodeConfigById[selectedNodeId.value] || {}) };
+  const fields = Array.isArray(config.fields) ? [...config.fields] : [];
+  fields.splice(index, 1);
+  config.fields = fields;
+  ws.nodeConfigById[selectedNodeId.value] = config;
+  ws.extractorFocusIndex = Math.max(0, index - 1);
+};
+
+const updateExtractorField = (index: number, key: string, value: any) => {
+  const ws = activeWorkspace.value;
+  if (!ws || !selectedNodeId.value) return;
+  const config = { ...(ws.nodeConfigById[selectedNodeId.value] || {}) };
+  const fields = Array.isArray(config.fields) ? [...config.fields] : [];
+  if (!fields[index]) return;
+  fields[index] = { ...fields[index], [key]: value };
+  config.fields = fields;
+  ws.nodeConfigById[selectedNodeId.value] = config;
+};
+
+const updateExtractorSelector = (index: number, selectorType: string, value: string) => {
+  if (selectorType === "AI") {
+    updateExtractorField(index, "aiDescription", value);
+  } else {
+    updateExtractorField(index, "selector", value);
+  }
+};
+
+const loadCrawledHistory = async () => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  ws.crawledUrls = await getCrawledUrls(ws.taskId).catch(() => []);
+};
+
+const runAiSelectorTest = async () => {
+  const ws = activeWorkspace.value;
+  const field = activeExtractorField.value;
+  if (!ws || !field) return;
+  ws.aiTestLoading = true;
+  ws.aiTestResult = [];
+  try {
+    const url = ws.aiTestUrl || ws.task.entryUrl;
+    const selector = field.aiDescription || field.selector || "";
+    ws.aiTestResult = await testSelector(url, selector, "AI");
+  } finally {
+    ws.aiTestLoading = false;
+  }
+};
+
+const buildSelectorSrcDoc = (html: string, baseUrl: string) => {
+  const safeBase = baseUrl ? `<base href="${baseUrl.replaceAll('"', "&quot;")}">` : "";
+  const inject = `
+<script>
+(function () {
+  const getSelector = function (el) {
+    if (!el || el.nodeType !== 1) return "";
+    if (el.id) return "#" + el.id;
+    const parts = [];
+    let current = el;
+    while (current && current.nodeType === 1 && parts.length < 6) {
+      let part = current.tagName.toLowerCase();
+      if (current.classList && current.classList.length) {
+        part += "." + Array.from(current.classList).slice(0, 2).join(".");
+      } else if (current.parentElement) {
+        const same = Array.from(current.parentElement.children).filter(function (item) { return item.tagName === current.tagName; });
+        if (same.length > 1) part += ":nth-of-type(" + (same.indexOf(current) + 1) + ")";
+      }
+      parts.unshift(part);
+      current = current.parentElement;
+      if (part.indexOf("#") >= 0) break;
+    }
+    return parts.join(" > ");
+  };
+  document.addEventListener("click", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const target = event.target;
+    if (!target || !target.tagName) return;
+    window.parent.postMessage({
+      type: "spider-selector-pick",
+      selector: getSelector(target)
+    }, "*");
+  }, true);
+})();
+<\\/script>`;
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head([^>]*)>/i, `<head$1>${safeBase}${inject}`);
+  }
+  return `<html><head>${safeBase}${inject}</head><body>${html}</body></html>`;
+};
+
+const openSelectorDialog = async (fieldIndex: number) => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  selectorDialog.visible = true;
+  selectorDialog.fieldIndex = fieldIndex;
+  selectorDialog.candidateSelector = "";
+  const url = ws.aiTestUrl || ws.task.entryUrl;
+  const preview = await previewPage(url, "playwright").catch(() => ({}));
+  selectorDialog.srcdoc = buildSelectorSrcDoc(preview?.html || "", preview?.baseUrl || url);
+};
+
+const closeSelectorDialog = () => {
+  selectorDialog.visible = false;
+  selectorDialog.candidateSelector = "";
+  selectorDialog.fieldIndex = -1;
+  selectorDialog.srcdoc = "";
+};
+
+const applySelectorCandidate = () => {
+  const ws = activeWorkspace.value;
+  if (!ws || selectorDialog.fieldIndex < 0 || !selectorDialog.candidateSelector) return;
+  updateExtractorField(selectorDialog.fieldIndex, "selectorType", "CSS");
+  updateExtractorField(selectorDialog.fieldIndex, "selector", selectorDialog.candidateSelector);
+  closeSelectorDialog();
+};
+
+const onSelectorMessage = (event: MessageEvent) => {
+  const payload = event.data;
+  if (!payload || payload.type !== "spider-selector-pick") return;
+  selectorDialog.candidateSelector = payload.selector || "";
+};
+
+const updatePolicy = (key: string, value: any) => {
+  if (!activeWorkspace.value) return;
+  activeWorkspace.value.policy = {
+    ...activeWorkspace.value.policy,
+    [key]: value,
+  };
+};
+
+const toFlowPayload = (ws: Workspace): SpiderFlowDefinition => {
+  const nodes: SpiderFlowNode[] = ws.editorData.nodes.map((node) => ({
+    aiAssistantConfig: undefined,
+    config: ws.nodeConfigById[node.id] || {},
+    label: node.label,
+    nodeId: node.id,
+    nodeType: ws.nodeTypeById[node.id] || editorTypeToFlowNodeType(node.type as string),
+    positionX: Number(node.position.x || 0),
+    positionY: Number(node.position.y || 0),
+  }));
+  const edges: SpiderFlowEdge[] = ws.editorData.connections.map((edge) => ({
+    edgeId: buildEdgeId(edge.sourceId, edge.sourceOutput || "output", edge.targetId, edge.targetInput || "input"),
+    sourceNodeId: edge.sourceId,
+    targetNodeId: edge.targetId,
+  }));
+  return {
+    ...(ws.flow || {}),
+    edges,
+    groups: ws.flow.groups || [],
+    nodes,
+    taskId: ws.taskId,
+  };
+};
+
+const saveActiveWorkspace = async () => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  const flowPayload = toFlowPayload(ws);
+  ws.flow = flowPayload;
+  const policy = {
+    ...ws.policy,
+    executionType: ws.task.executionType,
+    notification: ws.notificationConfig,
+  };
+  ws.task.executionPolicy = stringifyJson(policy);
+  ws.task.aiProfile = stringifyJson(ws.brainConfig);
+  await updateTask(ws.taskId, ws.task, flowPayload);
+  await saveFlow(ws.taskId, flowPayload);
+  await refreshOverview();
+};
+
+const handleRunActiveTask = async () => {
+  if (!activeWorkspace.value) return;
+  await runTask(activeWorkspace.value.taskId);
+  await refreshActiveRuntime();
+};
+
+const handlePauseActiveTask = async () => {
+  if (!activeWorkspace.value) return;
+  await pauseTask(activeWorkspace.value.taskId);
+  await refreshActiveRuntime();
+};
+
+const handleResumeActiveTask = async () => {
+  if (!activeWorkspace.value) return;
+  await resumeTask(activeWorkspace.value.taskId);
+  await refreshActiveRuntime();
+};
+
+const testBrainConnection = async () => {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  const result = await testAi(ws.brainConfig.provider, ws.brainConfig.model, ws.brainConfig.apiKey);
+  ws.runtimeEvents.unshift({
+    message: result?.message || "测试完成",
+    time: nowText(),
+    type: "ai-test",
+  });
+};
+
+watch(
+  activeWorkspaceKey,
+  async (taskIdText) => {
+    runtimeBridge.stop();
+    runtimeError.value = "";
+    if (!taskIdText) return;
+    const taskId = Number(taskIdText);
+    if (!taskId) return;
+    await ensureWorkspaceLoaded(taskId);
+    runtimeBridge.start(taskId);
+    runtimeChannel.value = runtimeBridge.channel.value;
+    runtimeError.value = runtimeBridge.lastError.value;
+  },
+  { immediate: true },
+);
+
+watch(
+  () => runtimeBridge.channel.value,
+  (value) => {
+    runtimeChannel.value = value;
+  },
+);
+
+watch(
+  () => runtimeBridge.lastError.value,
+  (value) => {
+    runtimeError.value = value;
+  },
+);
+
+onMounted(async () => {
+  window.addEventListener("message", onSelectorMessage);
+  await loadTabsAndOverview();
+});
+
+onUnmounted(() => {
+  window.removeEventListener("message", onSelectorMessage);
+  runtimeBridge.stop();
+});
 </script>
 
 <style scoped lang="scss">
 .spider-workbench-page {
   min-height: 100%;
-  color: #1f2937;
+  color: #22303f;
 }
 
-.spider-workbench-layout {
-  min-height: calc(100vh - 110px);
+.spider-layout {
+  min-height: calc(100vh - 100px);
   background:
-    radial-gradient(circle at top left, rgb(12 148 136 / 10%), transparent 34%),
-    radial-gradient(circle at bottom right, rgb(184 88 58 / 12%), transparent 28%),
-    linear-gradient(180deg, #f7f1e6 0%, #f3ede1 100%);
+    radial-gradient(circle at 4% 2%, rgba(17, 158, 149, 0.15), transparent 26%),
+    radial-gradient(circle at 92% 96%, rgba(198, 123, 34, 0.18), transparent 20%),
+    linear-gradient(180deg, #f4ede2 0%, #efe8dc 100%);
 }
 
-:deep(.sc-layout__left) {
-  border-right: 1px solid rgb(148 163 184 / 18%);
-  background: linear-gradient(180deg, rgb(253 250 244 / 96%), rgb(247 241 230 / 92%));
-}
-
-:deep(.sc-layout__main) {
-  background: linear-gradient(180deg, rgb(255 251 245 / 92%), rgb(248 244 237 / 92%));
-}
-
-:deep(.sc-layout__rail) {
-  border-left: 1px solid rgb(15 118 110 / 10%);
-  background: linear-gradient(180deg, #16332f 0%, #102723 100%);
-}
-
-:deep(.sc-layout__rail-body) {
-  padding-top: 12px;
-}
-
-:deep(.sc-layout__rail-footer) {
-  border-top: 1px solid rgb(255 255 255 / 10%);
-}
-
-.spider-home-column,
-.spider-main-stage {
-  min-height: 100%;
-}
-
-.spider-home-column {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  padding: 28px 24px 32px;
-}
-
-.spider-main-stage {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 28px 28px 32px;
-}
-
-.spider-home-hero,
-.spider-main-hero,
-.spider-panel,
-.spider-metric-card,
-.spider-task-card,
-.spider-draft-card,
-.spider-command-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgb(148 163 184 / 18%);
-  border-radius: 24px;
-  background: rgb(255 252 247 / 82%);
-  box-shadow: 0 18px 36px rgb(15 23 42 / 8%);
-}
-
-.spider-home-hero,
-.spider-main-hero {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 24px 24px 22px;
-}
-
-.spider-home-hero::after,
-.spider-main-hero::after,
-.spider-panel::after,
-.spider-task-card::after,
-.spider-command-card::after {
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, rgb(12 148 136 / 12%), transparent 70%);
-  content: "";
-  pointer-events: none;
-}
-
-.spider-main-hero::before,
-.spider-home-hero::before {
-  position: absolute;
-  right: -18px;
-  bottom: -24px;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(184 88 58 / 14%), transparent 70%);
-  content: "";
-  pointer-events: none;
-}
-
-.spider-eyebrow,
-.spider-panel__header small,
-.spider-task-card small,
-.spider-command-card small {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #0f766e;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
-
-.spider-home-hero h1,
-.spider-main-hero h2 {
-  margin: 10px 0 12px;
-  color: #18212f;
-  font-size: clamp(28px, 3vw, 40px);
-  line-height: 1.05;
-}
-
-.spider-home-hero p,
-.spider-main-hero p,
-.spider-section-headline p,
-.spider-empty-card p,
-.spider-flow-guard p,
-.spider-mode-card p,
-.spider-ai-block p,
-.spider-runtime-item p {
-  margin: 0;
-  color: #536172;
-  line-height: 1.6;
-}
-
-.spider-main-hero__actions,
-.spider-home-hero > button {
-  z-index: 1;
-}
-
-.spider-primary-button,
-.spider-ghost-button,
-.spider-text-button,
-.spider-rail-add,
-.spider-mode-card,
-.spider-node-template,
-.spider-flow-node,
-.spider-draft-card {
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease,
-    color 180ms ease;
-}
-
-.spider-primary-button,
-.spider-ghost-button,
-.spider-text-button,
-.spider-rail-add {
-  border: 0;
-  cursor: pointer;
-}
-
-.spider-primary-button,
-.spider-ghost-button {
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 999px;
-  font-weight: 700;
-}
-
-.spider-primary-button {
-  background: linear-gradient(135deg, #115e59, #0f766e);
-  color: #f8fafc;
-  box-shadow: 0 16px 28px rgb(15 118 110 / 26%);
-}
-
-.spider-primary-button:hover,
-.spider-ghost-button:hover,
-.spider-mode-card:hover,
-.spider-node-template:hover,
-.spider-flow-node:hover,
-.spider-draft-card:hover,
-.spider-rail-add:hover {
-  transform: translateY(-2px);
-}
-
-.spider-ghost-button {
-  border: 1px solid rgb(15 118 110 / 18%);
-  background: rgb(255 255 255 / 72%);
-  color: #134e4a;
-}
-
-.spider-text-button {
-  padding: 0;
-  background: transparent;
-  color: #0f766e;
-  font-weight: 700;
-}
-
-.spider-text-button--danger {
-  color: #b45309;
-}
-
-.spider-metric-grid,
-.spider-command-grid,
-.spider-mode-grid {
+.overview-panel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  padding: 18px;
 }
 
-.spider-metric-card,
-.spider-command-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px 18px 16px;
-}
-
-.spider-metric-card strong,
-.spider-command-card strong {
-  color: #18212f;
-  font-size: 28px;
-  line-height: 1;
-}
-
-.spider-metric-card span,
-.spider-command-card span,
-.spider-task-card__meta span,
-.spider-flow-node__chips span,
-.spider-chip-strip span,
-.spider-ai-hints span {
-  color: #607083;
-  font-size: 12px;
-}
-
-.spider-card-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.spider-section-headline,
-.spider-panel__header,
-.spider-task-card__header,
-.spider-task-card__stats,
-.spider-task-card__actions,
-.spider-ai-block__head,
-.spider-runtime-item {
+.overview-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
-.spider-section-headline h2,
-.spider-panel__header h3 {
+.overview-header h1 {
   margin: 6px 0 0;
-  color: #18212f;
-  font-size: 20px;
+  font-size: 22px;
 }
 
-.spider-section-headline span {
-  color: #7c6655;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.spider-card-stack,
-.spider-draft-list,
-.spider-side-stack,
-.spider-runtime-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.spider-task-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-  cursor: pointer;
-}
-
-.spider-task-card.is-focused {
-  border-color: rgb(15 118 110 / 35%);
-  box-shadow: 0 20px 36px rgb(15 118 110 / 14%);
-}
-
-.spider-task-card__header strong {
-  display: block;
-  margin-bottom: 6px;
-  color: #18212f;
-  font-size: 17px;
-}
-
-.spider-task-card__header p {
-  margin: 0;
-  color: #5b6977;
-  line-height: 1.5;
-}
-
-.spider-state-pill {
-  flex-shrink: 0;
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.spider-state-pill.is-running {
-  background: rgb(12 148 136 / 12%);
+.overview-header small {
   color: #0f766e;
+  letter-spacing: 0.08em;
 }
 
-.spider-state-pill.is-paused,
-.spider-runtime-item__level.is-warn {
-  background: rgb(217 119 6 / 12%);
-  color: #b45309;
-}
-
-.spider-state-pill.is-idle {
-  background: rgb(51 65 85 / 12%);
-  color: #475569;
-}
-
-.spider-state-pill.is-draft {
-  background: rgb(99 102 241 / 10%);
-  color: #5b21b6;
-}
-
-.spider-task-card__meta,
-.spider-task-card__stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.spider-task-card__stats div {
-  padding: 12px;
-  border-radius: 16px;
-  background: rgb(248 250 252 / 86%);
-}
-
-.spider-task-card__stats strong {
-  display: block;
-  margin-top: 4px;
-  color: #18212f;
-  font-size: 18px;
-}
-
-.spider-draft-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px dashed rgb(15 118 110 / 24%);
-  border-radius: 18px;
-  background: rgb(255 255 255 / 68%);
-  color: #1f2937;
+.overview-header button,
+.workspace-actions button,
+.canvas-toolbar button,
+.panel-block > header button,
+.dialog-card footer button {
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #115e59;
+  color: #fff;
   cursor: pointer;
 }
 
-.spider-draft-card strong {
-  font-size: 15px;
-}
-
-.spider-draft-empty,
-.spider-empty-card {
-  padding: 18px;
-  border: 1px dashed rgb(148 163 184 / 35%);
-  border-radius: 20px;
-  background: rgb(255 255 255 / 56%);
-}
-
-.spider-empty-card strong {
-  display: block;
-  margin-bottom: 8px;
-  color: #18212f;
-}
-
-.spider-stage-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.spider-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 22px;
-}
-
-.spider-flow-tools {
+.kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.spider-node-template {
-  display: flex;
-  flex-direction: column;
+.kpi-grid article {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.kpi-grid strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+}
+
+.running-card-list {
+  display: grid;
   gap: 8px;
+}
+
+.running-card-list header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.running-card {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+}
+
+.running-card strong {
+  display: block;
+}
+
+.home-board {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.workbench-main {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
   padding: 14px;
-  border: 1px solid rgb(15 118 110 / 16%);
-  border-radius: 18px;
-  background: rgb(243 250 249 / 88%);
-  text-align: left;
-  cursor: pointer;
+  background: rgba(255, 255, 255, 0.74);
 }
 
-.spider-node-template strong,
-.spider-flow-node strong,
-.spider-runtime-item strong {
-  color: #18212f;
+.workspace-header h2 {
+  margin: 4px 0 0;
 }
 
-.spider-node-template span,
-.spider-flow-node p,
-.spider-runtime-item p {
-  color: #607083;
-  font-size: 12px;
-}
-
-.spider-flow-board {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.spider-flow-node {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  border: 1px solid rgb(148 163 184 / 20%);
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgb(255 255 255 / 84%), rgb(247 250 252 / 80%));
-  text-align: left;
-  cursor: pointer;
-}
-
-.spider-flow-node.is-selected {
-  border-color: rgb(15 118 110 / 34%);
-  box-shadow: 0 16px 30px rgb(15 118 110 / 12%);
-}
-
-.spider-flow-node.is-fixed {
-  background: linear-gradient(180deg, rgb(242 242 240 / 92%), rgb(234 234 229 / 92%));
-}
-
-.spider-flow-node.is-downloader {
-  border-left: 4px solid #0f766e;
-}
-
-.spider-flow-node.is-processor {
-  border-left: 4px solid #2563eb;
-}
-
-.spider-flow-node.is-filter {
-  border-left: 4px solid #b45309;
-}
-
-.spider-flow-node.is-pipeline {
-  border-left: 4px solid #7c3aed;
-}
-
-.spider-flow-node__kind {
-  color: #0f766e;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.spider-flow-node__chips,
-.spider-chip-strip,
-.spider-ai-hints {
+.workspace-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.spider-flow-node__chips span,
-.spider-chip-strip span,
-.spider-ai-hints span {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgb(15 118 110 / 8%);
-}
-
-.spider-flow-node__ai {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #115e59;
-}
-
-.spider-flow-node__ai small {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgb(15 118 110 / 12%);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.spider-flow-connector {
+.task-meta-grid {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  align-items: center;
-  padding: 0 14px;
-  color: #687789;
-  font-size: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.74);
 }
 
-.spider-flow-connector i {
-  height: 1px;
-  background: linear-gradient(90deg, rgb(15 118 110 / 10%), rgb(15 118 110 / 45%), rgb(15 118 110 / 10%));
-}
-
-.spider-flow-guard {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.spider-flow-guard article {
-  padding: 16px;
-  border-radius: 18px;
-  background: rgb(248 250 252 / 72%);
-}
-
-.spider-flow-guard strong {
-  display: block;
-  margin-bottom: 6px;
-  color: #18212f;
-}
-
-.spider-mode-grid {
-  gap: 12px;
-}
-
-.spider-mode-card {
-  padding: 16px;
-  border: 1px solid rgb(148 163 184 / 22%);
-  border-radius: 18px;
-  background: rgb(255 255 255 / 70%);
-  text-align: left;
-  cursor: pointer;
-}
-
-.spider-mode-card.is-active {
-  border-color: rgb(15 118 110 / 34%);
-  background: linear-gradient(180deg, rgb(240 253 250 / 96%), rgb(230 247 244 / 92%));
-  box-shadow: 0 14px 30px rgb(15 118 110 / 12%);
-}
-
-.spider-mode-card strong {
-  display: block;
-  margin-bottom: 8px;
-  color: #18212f;
-}
-
-.spider-policy-form,
-.spider-inspector-shell {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.spider-form-field {
+.task-meta-grid label {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.task-meta-grid label.full {
+  grid-column: 1 / -1;
+}
+
+.task-meta-grid span,
+.panel-form span {
+  font-size: 12px;
+  color: #516071;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+.task-meta-grid input,
+.task-meta-grid select,
+.task-meta-grid textarea,
+.panel-form input,
+.panel-form select,
+.panel-form textarea,
+.extractor-extra select,
+.extractor-extra input,
+.dialog-card input,
+.dialog-card select {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.progress-strip {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
   gap: 8px;
 }
 
-.spider-form-field--full {
-  grid-column: 1 / -1;
-}
-
-.spider-form-field span {
+.progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
   color: #516071;
-  font-size: 13px;
-  font-weight: 700;
 }
 
-.spider-form-field input,
-.spider-form-field textarea {
+.progress-track {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid rgb(148 163 184 / 24%);
+  height: 10px;
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(135deg, #0f766e, #1a8f86);
+  transition: width 0.2s ease;
+}
+
+.workbench-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(380px, 0.9fr);
+  gap: 12px;
+}
+
+.canvas-panel,
+.side-panel .panel-block {
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 16px;
-  background: rgb(255 255 255 / 80%);
-  color: #18212f;
-  font: inherit;
-  outline: none;
+  background: rgba(255, 255, 255, 0.78);
 }
 
-.spider-form-field input:focus,
-.spider-form-field textarea:focus {
-  border-color: rgb(15 118 110 / 34%);
-  box-shadow: 0 0 0 4px rgb(15 118 110 / 10%);
+.canvas-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 10px;
 }
 
-.spider-form-field textarea {
-  min-height: 94px;
-  resize: vertical;
+.node-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.spider-ai-block {
+.node-palette button {
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #0f766e;
+}
+
+.canvas-toolbar button.accent {
+  background: #8a5a0e;
+}
+
+.editor-shell {
+  position: relative;
+  min-height: 560px;
+}
+
+.group-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.group-overlay :deep(.spider-flow-group) {
+  pointer-events: auto;
+}
+
+.side-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.panel-block {
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.panel-block > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.panel-form {
+  display: grid;
+  gap: 10px;
+}
+
+.panel-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.panel-form label.full {
   grid-column: 1 / -1;
-  padding: 16px;
-  border: 1px solid rgb(15 118 110 / 16%);
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgb(236 253 245 / 86%), rgb(240 249 255 / 84%));
 }
 
-.spider-ai-block.is-disabled {
-  opacity: 0.72;
+.extractor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.spider-runtime-list {
-  max-height: 320px;
+.extractor-field-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
   overflow: auto;
 }
 
-.spider-runtime-item {
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: rgb(248 250 252 / 78%);
+.extractor-field-list article {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.spider-runtime-item__level {
-  flex-shrink: 0;
-  min-width: 54px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  color: #0f766e;
-  font-size: 11px;
-  font-weight: 800;
-  text-align: center;
-  letter-spacing: 0.12em;
-  background: rgb(15 118 110 / 10%);
+.extractor-field-list article.active {
+  border-color: rgba(15, 118, 110, 0.46);
+  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.18);
 }
 
-.spider-runtime-item__level.is-error {
-  background: rgb(220 38 38 / 12%);
-  color: #b91c1c;
+.extractor-field-list article label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.spider-rail-add {
+.extractor-field-list article label.full {
+  grid-column: 1 / -1;
+}
+
+.extractor-row-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.extractor-row-actions button {
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: #fff;
+  color: #334155;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.extractor-extra,
+.extractor-ai-test {
+  display: grid;
+  gap: 8px;
+}
+
+.extractor-ai-test ul {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.runtime-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.runtime-list article {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.runtime-list p {
+  margin: 0;
+  color: #536172;
+}
+
+.runtime-list small {
+  color: #64748b;
+}
+
+.rail-add {
   width: 100%;
-  min-height: 52px;
+  min-height: 46px;
+  border: 0;
   background: transparent;
-  color: #d1fae5;
+  color: #dcfce7;
   font-size: 28px;
-  font-weight: 300;
+  cursor: pointer;
 }
 
-@media (width <= 1440px) {
-  .spider-stage-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
+}
 
-  .spider-flow-tools,
-  .spider-metric-grid,
-  .spider-command-grid,
-  .spider-mode-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.dialog-card {
+  width: min(460px, 94vw);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.dialog-card label {
+  display: grid;
+  gap: 6px;
+}
+
+.dialog-card span {
+  font-size: 12px;
+  color: #516071;
+}
+
+.dialog-card footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.selector-dialog {
+  width: min(1200px, 96vw);
+  height: min(820px, 94vh);
+  border-radius: 14px;
+  background: #fff;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  padding: 10px;
+}
+
+.selector-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.selector-dialog > header button {
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #334155;
+  color: #fff;
+}
+
+.selector-frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+}
+
+.selector-dialog footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.selector-dialog code {
+  max-width: 680px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selector-dialog footer button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #0f766e;
+  color: #fff;
+}
+
+.empty-box {
+  border: 1px dashed rgba(148, 163, 184, 0.45);
+  border-radius: 10px;
+  padding: 12px;
+  color: #64748b;
+}
+
+@media (max-width: 1280px) {
+  .workbench-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (width <= 960px) {
-  .spider-home-hero,
-  .spider-main-hero,
-  .spider-panel__header,
-  .spider-task-card__header,
-  .spider-task-card__actions,
-  .spider-runtime-item {
-    flex-direction: column;
+@media (max-width: 860px) {
+  .workspace-header,
+  .task-meta-grid {
+    grid-template-columns: 1fr;
   }
 
-  .spider-main-stage,
-  .spider-home-column {
-    padding: 20px 18px 24px;
+  .task-meta-grid {
+    grid-template-columns: 1fr;
   }
 
-  .spider-policy-form,
-  .spider-inspector-shell,
-  .spider-task-card__meta,
-  .spider-task-card__stats,
-  .spider-flow-guard,
-  .spider-flow-tools,
-  .spider-metric-grid,
-  .spider-command-grid,
-  .spider-mode-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .kpi-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

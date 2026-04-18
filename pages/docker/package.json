@@ -43,6 +43,8 @@
     }
   },
   "dependencies": {
+    "@repo/components": "workspace:^",
+    "@repo/core": "workspace:^",
     "@layout/default": "workspace:^",
     "@pages/server": "workspace:^",
     "@repo/config": "workspace:^",
@@ -59,4 +61,3 @@
     "vite": "catalog:"
   }
 }
-

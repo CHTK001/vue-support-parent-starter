@@ -141,6 +141,16 @@ export const ServerTopics = {
   },
 } as const;
 
+export const DockerTopics = {
+  MODULE: "DOCKER",
+  EVENTS: {
+    INSTALL_PROGRESS: "docker.install.progress",
+    INSTALL_LOG: "docker.install.log",
+    INSTALL_RESULT: "docker.install.result",
+    SYNC_RESULT: "docker.sync.result",
+  },
+} as const;
+
 /**
  * 远程连接模块主题 (remote)
  * 用于远程服务器连接 (SSH/RDP/VNC)
@@ -241,6 +251,7 @@ export const SocketTopics = {
   monitor: MonitorTopics,
   soft: SoftTopics,
   server: ServerTopics,
+  docker: DockerTopics,
   remote: RemoteTopics,
   video: VideoTopics,
 } as const;

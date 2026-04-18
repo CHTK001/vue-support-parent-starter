@@ -233,3 +233,6 @@ export const provideTaskCenter = () => {
 
 export const useTaskCenter = () =>
   inject(TaskCenterProviderKey, taskCenterProvider);
+
+export const tryUseTaskCenter = () =>
+  inject<TaskCenterProvider | null>(TaskCenterProviderKey, null);

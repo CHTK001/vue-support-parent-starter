@@ -1,199 +1,324 @@
-/**
- * Spider Platform API — 对接所有后端接口
- * 旧 api/index.ts 保留，此文件为新版统一 API 层
- */
-
-import { request } from '@/utils/request'
-
-// ── 类型定义 ──────────────────────────────────────────────────────────────────
+import { http } from "@repo/utils";
 
 export interface ReturnResult<T = any> {
-  code: string
-  data: T
-  msg: string
-  timestamp: number
+  code: string | number;
+  data: T;
+  msg?: string;
+  message?: string;
+  timestamp?: number;
+}
+
+type SpiderRequestOptions = {
+  url: string;
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  params?: Record<string, any>;
+  data?: any;
+  headers?: Record<string, string>;
+};
+
+const toErrorMessage = (error: unknown) => {
+  if (error && typeof error === "object") {
+    const row = error as Record<string, any>;
+    return row.msg || row.message || "请求失败";
+  }
+  return "请求失败";
+};
+
+export async function spiderRequest<T = any>(
+  options: SpiderRequestOptions,
+): Promise<T> {
+  try {
+    const response = await http.request<ReturnResult<T>>(
+      options.method.toLowerCase() as any,
+      options.url,
+      {
+        params: options.params,
+        data: options.data,
+        headers: options.headers,
+      },
+    );
+    const code = String(response?.code ?? "");
+    if (code !== "200") {
+      throw new Error(response?.msg || response?.message || `请求失败: ${code}`);
+    }
+    return response?.data as T;
+  } catch (error) {
+    throw new Error(toErrorMessage(error));
+  }
 }
 
 export interface SpiderTask {
-  id?: number
-  taskCode?: string
-  taskName: string
-  entryUrl: string
-  description?: string
-  tags?: string
-  authType?: string
-  executionType: 'ONCE' | 'REPEAT_N' | 'SCHEDULED'
-  executionPolicy?: string
-  aiProfile?: string
-  credentialRef?: string
-  status?: string
-  version?: number
+  id?: number;
+  taskCode?: string;
+  taskName: string;
+  entryUrl: string;
+  description?: string;
+  tags?: string;
+  authType?: string;
+  executionType: "ONCE" | "REPEAT_N" | "SCHEDULED";
+  executionPolicy?: string;
+  aiProfile?: string;
+  credentialRef?: string;
+  status?: string;
+  version?: number;
 }
 
 export interface SpiderFlowNode {
-  nodeId: string
-  nodeType: string
-  label?: string
-  config?: Record<string, any>
-  aiAssistantConfig?: Record<string, any>
-  positionX?: number
-  positionY?: number
+  nodeId: string;
+  nodeType: string;
+  label?: string;
+  config?: Record<string, any>;
+  aiAssistantConfig?: Record<string, any>;
+  positionX?: number;
+  positionY?: number;
 }
 
 export interface SpiderFlowEdge {
-  edgeId: string
-  sourceNodeId: string
-  targetNodeId: string
+  edgeId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+}
+
+export interface SpiderFlowGroup {
+  groupId: string;
+  title?: string;
+  nodeIds?: string[];
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
 }
 
 export interface SpiderFlowDefinition {
-  id?: number
-  taskId?: number
-  nodes: SpiderFlowNode[]
-  edges: SpiderFlowEdge[]
-  groups?: any[]
-  version?: number
+  id?: number;
+  taskId?: number;
+  nodes: SpiderFlowNode[];
+  edges: SpiderFlowEdge[];
+  groups?: SpiderFlowGroup[];
+  version?: number;
 }
 
 export interface DashboardSummary {
-  timerCount: number
-  taskTotal: number
-  latestTask: any
-  totalCrawled: number
-  totalUrlsCollected: number
+  timerCount: number;
+  taskTotal: number;
+  latestTask: any;
+  totalCrawled: number;
+  totalUrlsCollected: number;
 }
 
 export interface RunningCard {
-  taskId: number
-  taskName: string
-  status: string
-  executionType: string
-  lastExecuteTime: string
-  jobBound: boolean
-  aiEnabled: boolean
-  successCount: number
-  failureCount: number
+  taskId: number;
+  taskName: string;
+  status: string;
+  executionType: string;
+  lastExecuteTime: string;
+  jobBound: boolean;
+  aiEnabled: boolean;
+  successCount: number;
+  failureCount: number;
 }
 
 export interface WorkbenchTab {
-  id?: number
-  tabType: 'HOME' | 'TASK'
-  taskId?: number
-  title: string
-  closeable: boolean
-  sortOrder?: number
+  id?: number;
+  tabType: "HOME" | "TASK";
+  taskId?: number;
+  title: string;
+  closeable: boolean;
+  sortOrder?: number;
 }
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
+export interface CreateTaskResult {
+  taskId: number;
+  flow: SpiderFlowDefinition;
+}
 
 export const getDashboardSummary = () =>
-  request<ReturnResult<DashboardSummary>>({ url: '/v1/spider/dashboard/summary', method: 'GET' })
+  spiderRequest<DashboardSummary>({
+    url: "/v1/spider/dashboard/summary",
+    method: "GET",
+  });
 
 export const getRunningCards = () =>
-  request<ReturnResult<RunningCard[]>>({ url: '/v1/spider/dashboard/running-cards', method: 'GET' })
-
-// ── Task ──────────────────────────────────────────────────────────────────────
+  spiderRequest<RunningCard[]>({
+    url: "/v1/spider/dashboard/running-cards",
+    method: "GET",
+  });
 
 export const createTask = () =>
-  request<ReturnResult<any>>({ url: '/v1/spider/tasks', method: 'POST' })
+  spiderRequest<CreateTaskResult>({ url: "/v1/spider/tasks", method: "POST" });
 
 export const getTask = (taskId: number) =>
-  request<ReturnResult<SpiderTask>>({ url: `/v1/spider/tasks/${taskId}`, method: 'GET' })
+  spiderRequest<SpiderTask>({ url: `/v1/spider/tasks/${taskId}`, method: "GET" });
 
-export const updateTask = (taskId: number, task: SpiderTask, flow?: SpiderFlowDefinition) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}`, method: 'PUT', data: { task, flow } })
+export const updateTask = (
+  taskId: number,
+  task: SpiderTask,
+  flow?: SpiderFlowDefinition,
+) =>
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}`,
+    method: "PUT",
+    data: { task, flow },
+  });
 
 export const deleteTask = (taskId: number) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}`, method: 'DELETE' })
-
-// ── Flow ──────────────────────────────────────────────────────────────────────
+  spiderRequest<any>({ url: `/v1/spider/tasks/${taskId}`, method: "DELETE" });
 
 export const getFlow = (taskId: number) =>
-  request<ReturnResult<SpiderFlowDefinition>>({ url: `/v1/spider/tasks/${taskId}/flow`, method: 'GET' })
+  spiderRequest<SpiderFlowDefinition>({
+    url: `/v1/spider/tasks/${taskId}/flow`,
+    method: "GET",
+  });
 
 export const saveFlow = (taskId: number, flow: SpiderFlowDefinition) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/flow`, method: 'PUT', data: flow })
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/flow`,
+    method: "PUT",
+    data: flow,
+  });
 
 export const validateFlow = (taskId: number, flow: SpiderFlowDefinition) =>
-  request<ReturnResult<{ valid: boolean; errors: any[] }>>({
-    url: `/v1/spider/tasks/${taskId}/flow/validate`, method: 'POST', data: flow
-  })
-
-// ── Runtime ───────────────────────────────────────────────────────────────────
+  spiderRequest<{ valid: boolean; errors: any[] }>({
+    url: `/v1/spider/tasks/${taskId}/flow/validate`,
+    method: "POST",
+    data: flow,
+  });
 
 export const runTask = (taskId: number) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/run`, method: 'POST' })
+  spiderRequest<any>({ url: `/v1/spider/tasks/${taskId}/run`, method: "POST" });
 
 export const pauseTask = (taskId: number) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/pause`, method: 'POST' })
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/pause`,
+    method: "POST",
+  });
 
 export const resumeTask = (taskId: number) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/resume`, method: 'POST' })
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/resume`,
+    method: "POST",
+  });
 
 export const getRuntime = (taskId: number) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/runtime`, method: 'GET' })
+  spiderRequest<any>({ url: `/v1/spider/tasks/${taskId}/runtime`, method: "GET" });
 
 export const getRecords = (taskId: number) =>
-  request<ReturnResult<any[]>>({ url: `/v1/spider/tasks/${taskId}/records`, method: 'GET' })
+  spiderRequest<any[]>({
+    url: `/v1/spider/tasks/${taskId}/records`,
+    method: "GET",
+  });
 
 export const getNodeLogs = (taskId: number, recordId: number) =>
-  request<ReturnResult<any[]>>({ url: `/v1/spider/tasks/${taskId}/records/${recordId}/nodes`, method: 'GET' })
+  spiderRequest<any[]>({
+    url: `/v1/spider/tasks/${taskId}/records/${recordId}/nodes`,
+    method: "GET",
+  });
 
 export const getNodeLog = (taskId: number, recordId: number, nodeId: string) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/records/${recordId}/nodes/${nodeId}`, method: 'GET' })
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/records/${recordId}/nodes/${nodeId}`,
+    method: "GET",
+  });
 
 export const submitHumanInput = (taskId: number, nodeId: string, value: string) =>
-  request<ReturnResult<any>>({
-    url: `/v1/spider/tasks/${taskId}/nodes/${nodeId}/input`, method: 'POST', data: { value }
-  })
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/nodes/${nodeId}/input`,
+    method: "POST",
+    data: { value },
+  });
 
 export const getCrawledUrls = (taskId: number) =>
-  request<ReturnResult<any[]>>({ url: `/v1/spider/tasks/${taskId}/crawled-urls`, method: 'GET' })
+  spiderRequest<any[]>({
+    url: `/v1/spider/tasks/${taskId}/crawled-urls`,
+    method: "GET",
+  });
 
 export const getRuntimeStream = (taskId: number): EventSource =>
-  new EventSource(`/v1/spider/tasks/${taskId}/runtime/stream`)
-
-// ── AI ────────────────────────────────────────────────────────────────────────
+  new EventSource(`/v1/spider/tasks/${taskId}/runtime/stream`);
 
 export const getAiStatus = () =>
-  request<ReturnResult<{ available: boolean }>>({ url: '/v1/spider/ai/status', method: 'GET' })
+  spiderRequest<{ available: boolean }>({ url: "/v1/spider/ai/status", method: "GET" });
 
-export const reviewTask = (taskId: number, recentLogs?: string[], failSamples?: string[]) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/ai/review`, method: 'POST', data: { recentLogs, failSamples } })
+export const reviewTask = (
+  taskId: number,
+  recentLogs?: string[],
+  failSamples?: string[],
+) =>
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/ai/review`,
+    method: "POST",
+    data: { recentLogs, failSamples },
+  });
 
 export const suggestNode = (taskId: number, nodeId: string, nodeType?: string) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/nodes/${nodeId}/ai/suggest`, method: 'POST', params: { nodeType } })
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/nodes/${nodeId}/ai/suggest`,
+    method: "POST",
+    params: { nodeType },
+  });
 
-export const applyNodeSuggestion = (taskId: number, nodeId: string, suggestion: any) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/tasks/${taskId}/nodes/${nodeId}/ai/apply`, method: 'POST', data: suggestion })
+export const applyNodeSuggestion = (
+  taskId: number,
+  nodeId: string,
+  suggestion: any,
+) =>
+  spiderRequest<any>({
+    url: `/v1/spider/tasks/${taskId}/nodes/${nodeId}/ai/apply`,
+    method: "POST",
+    data: suggestion,
+  });
 
 export const getBrainConfig = () =>
-  request<ReturnResult<any>>({ url: '/v1/spider/ai/brain-config', method: 'GET' })
+  spiderRequest<any>({ url: "/v1/spider/ai/brain-config", method: "GET" });
 
 export const testAi = (provider: string, model: string, apiKey?: string) =>
-  request<ReturnResult<any>>({ url: '/v1/spider/ai/test', method: 'POST', data: { provider, model, apiKey } })
-
-// ── Workbench Tabs ────────────────────────────────────────────────────────────
+  spiderRequest<any>({
+    url: "/v1/spider/ai/test",
+    method: "POST",
+    data: { provider, model, apiKey },
+  });
 
 export const getTabs = () =>
-  request<ReturnResult<WorkbenchTab[]>>({ url: '/v1/spider/workbench/tabs', method: 'GET' })
+  spiderRequest<WorkbenchTab[]>({ url: "/v1/spider/workbench/tabs", method: "GET" });
 
 export const createTab = (tab: WorkbenchTab) =>
-  request<ReturnResult<WorkbenchTab>>({ url: '/v1/spider/workbench/tabs', method: 'POST', data: tab })
+  spiderRequest<WorkbenchTab>({
+    url: "/v1/spider/workbench/tabs",
+    method: "POST",
+    data: tab,
+  });
 
 export const updateTab = (tabId: number, tab: WorkbenchTab) =>
-  request<ReturnResult<WorkbenchTab>>({ url: `/v1/spider/workbench/tabs/${tabId}`, method: 'PUT', data: tab })
+  spiderRequest<WorkbenchTab>({
+    url: `/v1/spider/workbench/tabs/${tabId}`,
+    method: "PUT",
+    data: tab,
+  });
 
 export const deleteTab = (tabId: number) =>
-  request<ReturnResult<any>>({ url: `/v1/spider/workbench/tabs/${tabId}`, method: 'DELETE' })
-
-// ── Tools ─────────────────────────────────────────────────────────────────────
+  spiderRequest<any>({
+    url: `/v1/spider/workbench/tabs/${tabId}`,
+    method: "DELETE",
+  });
 
 export const previewPage = (url: string, downloaderType?: string) =>
-  request<ReturnResult<any>>({ url: '/v1/spider/preview', method: 'POST', data: { url, downloaderType } })
+  spiderRequest<any>({
+    url: "/v1/spider/preview",
+    method: "POST",
+    data: { url, downloaderType },
+  });
 
-export const testSelector = (url: string, selector: string, selectorType?: string) =>
-  request<ReturnResult<string[]>>({ url: '/v1/spider/test-selector', method: 'POST', data: { url, selector, selectorType } })
+export const testSelector = (
+  url: string,
+  selector: string,
+  selectorType?: string,
+) =>
+  spiderRequest<string[]>({
+    url: "/v1/spider/test-selector",
+    method: "POST",
+    data: { url, selector, selectorType },
+  });
 
 export const getCapabilities = () =>
-  request<ReturnResult<any>>({ url: '/v1/spider/capabilities', method: 'GET' })
+  spiderRequest<any>({ url: "/v1/spider/capabilities", method: "GET" });

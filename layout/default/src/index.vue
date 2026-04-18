@@ -62,6 +62,7 @@ import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
 import { provideTaskCenter } from "./components/lay-task-center/provider";
+import { provideMessageCenter } from "./components/lay-message/provider";
 
 // 导入设计 token（全局 CSS 变量 --dt-xxxx，必须在 script 中引入才能全局生效）
 import "./styles/design-tokens.scss";
@@ -307,6 +308,7 @@ provide(
   })),
 );
 provideTaskCenter();
+provideMessageCenter();
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();

@@ -1,5 +1,4 @@
 {
-  "extends": "@repo/tsconfig/vue-library.json",
+  "extends": "../../packages/tsconfig/base.json",
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }
-

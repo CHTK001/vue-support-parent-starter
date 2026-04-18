@@ -4,6 +4,7 @@ import type {
   DockerContainerConfigUpdateResult,
   DockerContainerExecRequest,
   DockerContainerView,
+  DockerDashboardSummaryView,
   DockerImageExportRequest,
   DockerImageImportRequest,
   DockerImagePullRequest,
@@ -17,6 +18,10 @@ import type {
   DockerNetwork,
   DockerOperationTicket,
   DockerRegistry,
+  DockerServerCapabilityView,
+  DockerSearchItemView,
+  DockerServerConnectionConfig,
+  DockerServerConnectionProbeView,
   DockerServerOption,
   DockerSyncScheduleUpdateRequest,
   DockerSyncResult,
@@ -97,6 +102,72 @@ export const listDockerServerOptions = (params?: {
   request<DockerServerOption[]>("GET", `${dockerBase}/servers/options`, {
     query: params,
   });
+
+/**
+ * 查询 Docker 服务器能力（安装/可连通/版本/运行时类型）。
+ */
+export const listDockerServerCapabilities = (params?: {
+  serverId?: number;
+  keyword?: string;
+  enabled?: boolean;
+}) =>
+  request<DockerServerCapabilityView[]>("GET", `${dockerBase}/servers/capabilities`, {
+    query: params,
+  });
+
+/**
+ * 查询 Docker 首页汇总指标。
+ */
+export const getDockerDashboardSummary = () =>
+  request<DockerDashboardSummaryView>("GET", `${dockerBase}/dashboard/summary`);
+
+/**
+ * 查询 Docker 全局检索结果。
+ */
+export const searchDockerDashboard = (params: { keyword: string; limit?: number }) =>
+  request<DockerSearchItemView[]>("GET", `${dockerBase}/dashboard/search`, {
+    query: params,
+  });
+
+/**
+ * 查询 Docker 服务器连接配置列表。
+ */
+export const listDockerServerConnections = (params?: {
+  keyword?: string;
+  enabled?: boolean;
+}) =>
+  request<DockerServerConnectionConfig[]>("GET", `${dockerBase}/server-connections`, {
+    query: params,
+  });
+
+/**
+ * 查询单个服务器 Docker 连接配置。
+ */
+export const getDockerServerConnection = (serverId: number) =>
+  request<DockerServerConnectionConfig>("GET", `${dockerBase}/server-connections/${serverId}`);
+
+/**
+ * 保存单个服务器 Docker 连接配置。
+ */
+export const saveDockerServerConnection = (
+  serverId: number,
+  data: DockerServerConnectionConfig,
+) =>
+  request<DockerServerConnectionConfig>("PUT", `${dockerBase}/server-connections/${serverId}`, {
+    data,
+  });
+
+/**
+ * 删除单个服务器 Docker 连接配置。
+ */
+export const deleteDockerServerConnection = (serverId: number) =>
+  request<boolean>("DELETE", `${dockerBase}/server-connections/${serverId}`);
+
+/**
+ * 探活单个服务器 Docker 连接配置。
+ */
+export const probeDockerServerConnection = (serverId: number) =>
+  request<DockerServerConnectionProbeView>("POST", `${dockerBase}/server-connections/${serverId}/probe`);
 
 /**
  * 查询 Docker 同步任务调度配置。

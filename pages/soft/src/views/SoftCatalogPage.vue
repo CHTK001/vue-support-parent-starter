@@ -19,6 +19,10 @@
                 <p>主区固定展示软件目录，右侧图标与底部操作负责打开主工作区工作台。</p>
               </div>
               <div class="soft-hero__actions">
+                <ScButton type="primary" @click="openCreatePackageWizard">
+                  <IconifyIconOnline icon="ri:add-line" />
+                  添加软件
+                </ScButton>
                 <el-tooltip content="刷新软件目录" placement="top">
                   <ScButton circle :loading="loading" @click="loadHomeData">
                     <IconifyIconOnline icon="ri:refresh-line" />
@@ -1150,6 +1154,13 @@
       @next-step="goInstallVersionStep"
       @submit="submitInstallFromCatalog"
     />
+
+    <ScTaskMessageDialog
+      v-model:visible="installTaskDialogVisible"
+      title="软件安装任务"
+      :task="installTaskDialogModel"
+      @refresh="refreshInstallTaskDialog"
+    />
   </section>
 </template>
 
@@ -1159,7 +1170,10 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { FormInstance, FormRules } from "element-plus";
 import { Grid, House, Setting } from "@element-plus/icons-vue";
+import { resolveRuntimeProviders } from "@layout/default";
 import ScLayout from "@repo/components/ScLayout";
+import ScTaskMessageDialog from "@repo/components/ScTaskMessageDialog";
+import type { TaskDialogModel } from "@repo/components/ScTaskMessageDialog/types";
 import ServerInstallWizardDialog from "../../../server/src/components/ServerInstallWizardDialog.vue";
 import type {
   GuideScope,
@@ -1289,6 +1303,8 @@ const installGuide = ref<SoftPackageGuide | null>(null);
 const installGuideLoading = ref(false);
 const installSubmitting = ref(false);
 const installTask = ref<ServerInstallTask | null>(null);
+const installTaskDialogVisible = ref(false);
+const installTaskDialogModel = ref<TaskDialogModel | null>(null);
 const detailInstallPackageId = ref<number | null>(null);
 const detailInstallHostId = ref<number | null>(null);
 const packageSearchVisible = ref(false);
@@ -1302,6 +1318,13 @@ const createCurrentVersions = ref<SoftPackageVersion[]>([]);
 const editingVersionId = ref<number | null>(null);
 const sourceDialogMode = ref<"create" | "edit">("create");
 const editingSourceId = ref<number | null>(null);
+// 统一 provider 解析：lay-xx -> @repo/core -> 本地兜底。
+const runtimeProviders = resolveRuntimeProviders({
+  module: "soft.catalog.install",
+  socketName: "soft-install",
+});
+const runtimeMessage = runtimeProviders.message.provider;
+const runtimeTask = runtimeProviders.task.provider;
 
 const packages = ref<SoftPackage[]>([]);
 const repositories = ref<SoftRepository[]>([]);
@@ -3230,14 +3253,66 @@ const submitInstallFromCatalog = async () => {
       configOptions: { ...installConfigOptions },
     });
     const ticket = result.data;
+    const taskId = String(ticket.operationId || `soft-install-${Date.now()}`);
     installTask.value = {
       operationId: ticket.operationId,
       installationId: ticket.installationId,
       status: ticket.operationStatus,
       message: `安装任务已提交到 ${installHost.value.serverName}`,
     };
+    runtimeTask.updateTask(taskId, {
+      requestId: ticket.operationId,
+      title: `软件安装 · ${installSelectedPackage.value.packageName || installSelectedPackage.value.packageCode || "未命名软件"}`,
+      description: `服务器 ${installHost.value.serverName}`,
+      status:
+        ticket.operationStatus === "FAILED" || ticket.operationStatus === "CANCELLED"
+          ? "error"
+          : ticket.operationStatus === "SUCCESS"
+            ? "success"
+            : "running",
+      progress: ticket.operationStatus === "SUCCESS" ? 100 : 10,
+      source: "system",
+      mode: "stream",
+      message: `安装任务已提交到 ${installHost.value.serverName}`,
+      stageLabel: "等待执行",
+    });
+    installTaskDialogModel.value = {
+      taskId,
+      status: installTask.value.status || "RUNNING",
+      message: installTask.value.message,
+      serverIds: [installHost.value.serverId || "-"],
+      summaryItems: [
+        {
+          label: "软件包",
+          value:
+            installSelectedPackage.value.packageName ||
+            installSelectedPackage.value.packageCode ||
+            "-",
+        },
+        {
+          label: "版本",
+          value: installSelectedVersionLabel.value || "-",
+        },
+        {
+          label: "安装实例ID",
+          value: ticket.installationId ? String(ticket.installationId) : "-",
+        },
+      ],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      steps: [
+        {
+          stepKey: "SUBMIT",
+          title: "安装任务提交",
+          status: "SUCCESS",
+          message: `任务已提交，operationId=${taskId}`,
+          updatedAt: Date.now(),
+        },
+      ],
+    };
+    installTaskDialogVisible.value = true;
     installStep.value = 2;
-    ElMessage.success("安装任务已提交");
+    runtimeMessage.success("安装任务已提交");
     installVisible.value = false;
     if (
       packageId &&
@@ -3252,6 +3327,16 @@ const submitInstallFromCatalog = async () => {
   } finally {
     installSubmitting.value = false;
   }
+};
+
+const refreshInstallTaskDialog = () => {
+  if (!installTaskDialogModel.value) {
+    return;
+  }
+  installTaskDialogModel.value = {
+    ...installTaskDialogModel.value,
+    updatedAt: Date.now(),
+  };
 };
 
 watch(
