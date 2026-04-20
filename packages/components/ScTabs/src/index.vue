@@ -79,87 +79,99 @@ export interface ScTabsRailItem {
 const props = defineProps({
   modelValue: {
     type: [String, Number],
-    default: ""
+    default: "",
   },
   type: {
     type: String as PropType<"card" | "border-card" | "">,
-    default: ""
+    default: "",
   },
   closable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   addable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   editable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   tabPosition: {
     type: String as PropType<"top" | "right" | "bottom" | "left">,
-    default: "top"
+    default: "top",
   },
   stretch: {
     type: Boolean,
-    default: false
+    default: false,
   },
   beforeLeave: {
-    type: Function as PropType<(newTabName: string | number, oldTabName: string | number) => boolean | Promise<boolean>>,
-    default: undefined
+    type: Function as PropType<
+      (
+        newTabName: string | number,
+        oldTabName: string | number,
+      ) => boolean | Promise<boolean>
+    >,
+    default: undefined,
   },
   lazy: {
     type: Boolean,
-    default: false
+    default: false,
   },
   tabClass: {
     type: String,
-    default: ""
+    default: "",
   },
   tabStyle: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   popperClass: {
     type: String,
-    default: ""
+    default: "",
   },
   navPrevIcon: {
     type: [String, Object],
-    default: ""
+    default: "",
   },
   navNextIcon: {
     type: [String, Object],
-    default: ""
+    default: "",
   },
   editIcon: {
     type: [String, Object],
-    default: ""
+    default: "",
   },
   closeIcon: {
     type: [String, Object],
-    default: ""
+    default: "",
   },
   layout: {
     type: String as PropType<"default" | "rail">,
-    default: "default"
+    default: "default",
   },
   railItems: {
     type: Array as PropType<ScTabsRailItem[]>,
-    default: () => []
+    default: () => [],
   },
   railRound: {
     type: Boolean,
-    default: false
+    default: false,
   },
   railCloseButtonMode: {
     type: String as PropType<"always" | "hover">,
-    default: "hover"
-  }
+    default: "hover",
+  },
 });
 
-const emit = defineEmits(["update:modelValue", "tab-click", "tab-change", "edit", "tab-remove", "tab-add"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "tab-click",
+  "tab-change",
+  "edit",
+  "tab-remove",
+  "tab-add",
+]);
 
 const currentValue = computed({
   get() {
@@ -167,7 +179,7 @@ const currentValue = computed({
   },
   set(value) {
     emit("update:modelValue", value);
-  }
+  },
 });
 
 const { currentComponent } = useThemeComponent("ElTabs");
@@ -179,7 +191,7 @@ const tabsClass = computed(() => {
   return [
     "sc-tabs--layout-rail",
     { "is-round": props.railRound },
-    `close-mode-${props.railCloseButtonMode}`
+    `close-mode-${props.railCloseButtonMode}`,
   ];
 });
 
@@ -279,7 +291,9 @@ const handleTabAdd = () => {
   opacity: 0;
   pointer-events: none;
   transform: scale(0.92);
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
 }
 
 .sc-tabs--layout-rail.close-mode-hover

@@ -33,7 +33,7 @@
     </div>
 
     <!-- 筛选条件 -->
-    <ScCard class="filter-card">
+    <div class="filter-card">
       <div class="filter-content">
         <el-form :model="queryParams" inline>
           <el-form-item label="服务器名称">
@@ -76,26 +76,23 @@
 
           <!-- 操作按钮组 -->
           <el-form-item class="action-buttons">
-            <ScButton type="primary" @click="handleQuery">
+            <ScButton circle type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
-              查询
             </ScButton>
-            <ScButton @click="resetQuery">
+            <ScButton circle @click="resetQuery">
               <IconifyIconOnline icon="ri:refresh-line" />
-              重置
+            </ScButton>
+            <ScButton circle type="primary" @click="showAddDialog = true">
+              <IconifyIconOnline icon="ri:add-line" />
             </ScButton>
             <ScButton @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" />
-              刷新
-            </ScButton>
-            <ScButton type="primary" @click="showAddDialog = true">
-              <IconifyIconOnline icon="ri:add-line" />
-              新增服务器
+              刷新数据
             </ScButton>
           </el-form-item>
         </el-form>
       </div>
-    </ScCard>
+    </div>
 
     <!-- 服务器列表 -->
     <div class="server-list">
@@ -827,14 +824,17 @@ onMounted(() => {
 .filter-card {
   margin-bottom: 24px;
   border-radius: 12px;
+  padding: 16px;
   border: none;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 
   .filter-content {
     padding: 8px 0;
-
+    padding-top: 20px;
     .el-form {
       .action-buttons {
+        position: absolute;
+        right: 0;
         margin-left: 16px;
         padding-left: 16px;
         border-left: 1px solid #e4e7ed;

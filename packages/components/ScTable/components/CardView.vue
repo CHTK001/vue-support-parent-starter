@@ -6,13 +6,16 @@
       'is-empty': !currentDataList || currentDataList.length === 0,
       'h-full': height === 'full',
       'is-draggable': draggable,
-      'has-border': border
+      'has-border': border,
     }"
     :style="containerStyle"
     @scroll="handleScroll"
   >
     <!-- 顶部加载状态 -->
-    <div v-if="isScrollPagination && loadingPrev && hasMorePrevData" class="loading-more">
+    <div
+      v-if="isScrollPagination && loadingPrev && hasMorePrevData"
+      class="loading-more"
+    >
       <ScIcon class="is-loading">
         <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -25,7 +28,11 @@
     </div>
 
     <!-- 向上滚动提示 -->
-    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip" @click="loadPrevPage">
+    <div
+      v-if="isScrollPagination && !loadingPrev && hasMorePrevData"
+      class="scroll-tip"
+      @click="loadPrevPage"
+    >
       <span>向上滚动加载更多</span>
     </div>
 
@@ -46,9 +53,9 @@
           {
             'is-selected': isSelected(row),
             'is-dragging': draggingIndex === index,
-            'has-border': border
+            'has-border': border,
           },
-          `theme--${theme}`
+          `theme--${theme}`,
         ]"
         :data-index="index"
         @contextmenu="handleContextMenu($event, row)"
@@ -67,8 +74,15 @@
         </div>
 
         <!-- 选择框 -->
-        <div v-if="selectable" class="card-checkbox" @click.stop="toggleSelection(row)">
-          <ScCheckbox :model-value="isSelected(row)" @change="toggleSelection(row)" />
+        <div
+          v-if="selectable"
+          class="card-checkbox"
+          @click.stop="toggleSelection(row)"
+        >
+          <ScCheckbox
+            :model-value="isSelected(row)"
+            @change="toggleSelection(row)"
+          />
         </div>
 
         <!-- 卡片内容 -->
@@ -88,12 +102,19 @@
     </div>
 
     <!-- 向下滚动提示 -->
-    <div v-if="isScrollPagination && !loadingNext && hasMoreNextData" class="scroll-tip flex justify-center items-center py-2 text-[var(--el-text-color-regular)] text-sm" @click="loadNextPage">
+    <div
+      v-if="isScrollPagination && !loadingNext && hasMoreNextData"
+      class="scroll-tip flex justify-center items-center py-2 text-[var(--el-text-color-regular)] text-sm"
+      @click="loadNextPage"
+    >
       <span>向下滚动加载更多</span>
     </div>
 
     <!-- 底部加载状态 -->
-    <div v-if="isScrollPagination && loadingNext && hasMoreNextData" class="loading-more flex justify-center items-center py-4">
+    <div
+      v-if="isScrollPagination && loadingNext && hasMoreNextData"
+      class="loading-more flex justify-center items-center py-4"
+    >
       <ScIcon class="is-loading mr-2">
         <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
           <path
@@ -107,21 +128,40 @@
 
     <!-- 没有更多数据提示 -->
     <div
-      v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0"
+      v-if="
+        isScrollPagination &&
+        !loadingNext &&
+        !hasMoreNextData &&
+        currentDataList.length > 0
+      "
       class="no-more flex justify-center items-center py-2 text-[var(--el-text-color-placeholder)] text-sm"
     >
       <span>没有更多数据了</span>
     </div>
 
     <!-- 引入右键菜单组件 -->
-    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
+    <ContextMenu
+      ref="contextMenuRef"
+      :menu-items="menuItems"
+      :row-data="currentRowData"
+      :class-name="config.contextmenuClass"
+      @menu-action="handleMenuAction"
+    />
   </div>
 </template>
 
 <script setup>
 import { ScCard } from "@repo/components/ScCard";
 import { debounce } from "lodash-es";
-import { computed, nextTick, onMounted, onUnmounted, ref, useSlots, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  useSlots,
+  watch,
+} from "vue";
 import Sortable from "sortablejs";
 import { getLogger } from "@repo/utils";
 import ContextMenu from "../plugins/ContextMenu.vue";
@@ -133,27 +173,27 @@ const logger = getLogger("[ScTable][CardView]");
 const props = defineProps({
   tableData: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   userColumn: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   colSize: {
     type: Number,
-    default: 1
+    default: 1,
   },
   rowSize: {
     type: Number,
-    default: 1
+    default: 1,
   },
   config: {
     type: Object,
-    required: true
+    required: true,
   },
   center: {
     type: Boolean,
-    default: false
+    default: false,
   },
   contextmenu: Function,
   rowKey: String,
@@ -163,79 +203,89 @@ const props = defineProps({
   emptyText: String,
   pageSize: {
     type: Number,
-    default: 10
+    default: 10,
   },
   paginationType: {
     type: String,
-    default: "current"
+    default: "current",
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   total: {
     type: Number,
-    default: 0
+    default: 0,
   },
   currentPage: {
     type: Number,
-    default: 1
+    default: 1,
   },
   cardGap: {
     type: Number,
-    default: 16
+    default: 16,
   },
   // 新增layout属性，支持card和default两种布局模式
   layout: {
     type: String,
     default: "card",
-    validator: val => ["card", "default"].includes(val)
+    validator: (val) => ["card", "default"].includes(val),
   },
   // 卡片主题
   theme: {
     type: String,
-    default: "default"
+    default: "default",
   },
   // 是否显示序号
   showIndex: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否可选择
   selectable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否可拖拽排序
   draggable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 布局模式: grid | flex
   layoutMode: {
     type: String,
     default: "grid",
-    validator: val => ["grid", "flex"].includes(val)
+    validator: (val) => ["grid", "flex"].includes(val),
   },
   // 卡片最小宽度 (flex模式下有效)
   cardMinWidth: {
     type: Number,
-    default: 280
+    default: 280,
   },
   // 拖拽行标识字段
   dragRowKey: {
     type: String,
-    default: "id"
+    default: "id",
   },
   // 是否显示边框
   border: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
 // 定义emits
-const emit = defineEmits(["row-click", "selection-change", "load-more", "layout-updated", "next-page", "prev-page", "update:currentPage", "col-click", "drag-sort-change"]);
+const emit = defineEmits([
+  "row-click",
+  "selection-change",
+  "load-more",
+  "layout-updated",
+  "next-page",
+  "prev-page",
+  "update:currentPage",
+  "col-click",
+  "drag-sort-change",
+]);
 
 // 响应式数据
 const currentDataList = ref([]);
@@ -261,9 +311,9 @@ const currentRowData = ref({});
 // 监听currentPage
 watch(
   () => props.currentPage,
-  newVal => {
+  (newVal) => {
     internalCurrentPage.value = newVal;
-  }
+  },
 );
 
 // 计算容器样式
@@ -272,7 +322,7 @@ const containerStyle = computed(() => {
     width: "100%",
     padding: "16px",
     overflowY: "auto",
-    position: "relative"
+    position: "relative",
   };
 
   // 处理高度设置
@@ -302,7 +352,7 @@ const gridStyle = computed(() => {
       flexWrap: "wrap",
       gap: `${props.cardGap}px`,
       justifyContent: props.center ? "center" : "flex-start",
-      alignItems: "stretch"
+      alignItems: "stretch",
     };
   }
   // Grid 布局：固定列数
@@ -310,7 +360,7 @@ const gridStyle = computed(() => {
     display: "grid",
     gridTemplateColumns: `repeat(${props.colSize}, 1fr)`,
     gap: `${props.cardGap}px`,
-    justifyItems: props.center ? "center" : "stretch"
+    justifyItems: props.center ? "center" : "stretch",
   };
 });
 
@@ -320,7 +370,7 @@ const cardItemStyle = computed(() => {
     return {
       flex: `1 1 ${props.cardMinWidth}px`,
       maxWidth: `calc(${100 / Math.min(props.colSize, 4)}% - ${props.cardGap}px)`,
-      minWidth: `${props.cardMinWidth}px`
+      minWidth: `${props.cardMinWidth}px`,
     };
   }
   return {};
@@ -340,11 +390,19 @@ const hasMorePrevData = computed(() => {
 // 监听tableData变化
 watch(
   () => props.tableData,
-  newVal => {
-    if (isScrollPagination.value && currentDataList.value.length > 0 && newVal.length > 0) {
+  (newVal) => {
+    if (
+      isScrollPagination.value &&
+      currentDataList.value.length > 0 &&
+      newVal.length > 0
+    ) {
       // 滚动分页模式下，追加新数据而不是替换
-      const existingIds = new Set(currentDataList.value.map(item => (props.rowKey ? item[props.rowKey] : JSON.stringify(item))));
-      const newItems = newVal.filter(item => {
+      const existingIds = new Set(
+        currentDataList.value.map((item) =>
+          props.rowKey ? item[props.rowKey] : JSON.stringify(item),
+        ),
+      );
+      const newItems = newVal.filter((item) => {
         const itemId = props.rowKey ? item[props.rowKey] : JSON.stringify(item);
         return !existingIds.has(itemId);
       });
@@ -362,7 +420,7 @@ watch(
       canLoadMore.value = true;
     });
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听高度变化
@@ -372,7 +430,7 @@ watch(
     nextTick(() => {
       updateContainerStyles();
     });
-  }
+  },
 );
 
 // 监听colSize和rowSize变化
@@ -383,17 +441,17 @@ watch(
       // 更新布局
       emit("layout-updated", {
         colSize: props.colSize,
-        rowSize: props.rowSize
+        rowSize: props.rowSize,
       });
     });
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 监听 draggable 变化
 watch(
   () => props.draggable,
-  newVal => {
+  (newVal) => {
     if (newVal) {
       nextTick(() => {
         initDragSort();
@@ -401,7 +459,7 @@ watch(
     } else {
       destroyDragSort();
     }
-  }
+  },
 );
 
 // 监听 tableData 变化，重新初始化拖拽
@@ -414,7 +472,7 @@ watch(
       });
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 初始化拖拽排序
@@ -432,13 +490,18 @@ const initDragSort = () => {
       ghostClass: "sortable-ghost",
       chosenClass: "sortable-chosen",
       dragClass: "sortable-drag",
-      onStart: evt => {
+      onStart: (evt) => {
         draggingIndex.value = evt.oldIndex;
       },
-      onEnd: evt => {
+      onEnd: (evt) => {
         draggingIndex.value = -1;
         const { oldIndex, newIndex } = evt;
-        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return;
+        if (
+          oldIndex === undefined ||
+          newIndex === undefined ||
+          oldIndex === newIndex
+        )
+          return;
 
         // 创建新数组以避免直接修改原数组
         const newOrder = [...props.tableData];
@@ -450,9 +513,9 @@ const initDragSort = () => {
           oldIndex,
           newIndex,
           newOrder,
-          movedItem
+          movedItem,
         });
-      }
+      },
     });
   });
 };
@@ -501,7 +564,10 @@ const handleScroll = debounce(() => {
   lastScrollTop.value = scrollTop;
 
   // 检查是否滚动到底部
-  if (direction === "down" && scrollHeight - scrollTop - clientHeight < scrollThreshold) {
+  if (
+    direction === "down" &&
+    scrollHeight - scrollTop - clientHeight < scrollThreshold
+  ) {
     loadNextPage();
   }
 
@@ -572,7 +638,8 @@ const loadPrevPage = () => {
         // 计算新的滚动位置以保持相对位置
         const newContentHeight = cardContainer.value.scrollHeight;
         const heightDifference = newContentHeight - contentHeight;
-        cardContainer.value.scrollTop = heightDifference + cardContainer.value.scrollTop;
+        cardContainer.value.scrollTop =
+          heightDifference + cardContainer.value.scrollTop;
       }
     });
   }, 500);
@@ -612,15 +679,20 @@ const computedPageSize = computed(() => {
 });
 
 const firstColumn = computed(() => {
-  return props.userColumn.find(col => !col.hide && col.prop !== "selection");
+  return props.userColumn.find((col) => !col.hide && col.prop !== "selection");
 });
 
 const displayColumns = computed(() => {
-  return props.userColumn.filter(col => !col.hide && col.prop !== "selection" && col.prop !== firstColumn.value?.prop);
+  return props.userColumn.filter(
+    (col) =>
+      !col.hide &&
+      col.prop !== "selection" &&
+      col.prop !== firstColumn.value?.prop,
+  );
 });
 
 const hasSelectionColumn = computed(() => {
-  return props.userColumn.some(col => col.prop === "selection");
+  return props.userColumn.some((col) => col.prop === "selection");
 });
 
 const hasActionSlot = computed(() => {
@@ -628,12 +700,14 @@ const hasActionSlot = computed(() => {
 });
 
 // 方法
-const onRowClick = row => {
+const onRowClick = (row) => {
   emit("row-click", row);
 };
 
-const toggleSelection = row => {
-  const index = selectedRows.value.findIndex(item => (props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row));
+const toggleSelection = (row) => {
+  const index = selectedRows.value.findIndex((item) =>
+    props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row,
+  );
 
   if (index === -1) {
     selectedRows.value.push(row);
@@ -646,13 +720,15 @@ const toggleSelection = row => {
   emit("selection-change", selectedRows.value);
 };
 
-const isSelected = row => {
-  return selectedRows.value.some(item => (props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row));
+const isSelected = (row) => {
+  return selectedRows.value.some((item) =>
+    props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row,
+  );
 };
 
 const clearSelection = () => {
   selectedRows.value = [];
-  props.tableData.forEach(row => {
+  props.tableData.forEach((row) => {
     row.isSelected = false;
   });
   emit("selection-change", []);
@@ -665,7 +741,9 @@ const toggleRowSelection = (row, selected) => {
       row.isSelected = true;
     }
   } else {
-    const index = selectedRows.value.findIndex(item => (props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row));
+    const index = selectedRows.value.findIndex((item) =>
+      props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row,
+    );
     if (index !== -1) {
       selectedRows.value.splice(index, 1);
       row.isSelected = false;
@@ -679,7 +757,7 @@ const toggleAllSelection = () => {
     clearSelection();
   } else {
     selectedRows.value = [...props.tableData];
-    props.tableData.forEach(row => {
+    props.tableData.forEach((row) => {
       row.isSelected = true;
     });
     emit("selection-change", selectedRows.value);
@@ -711,7 +789,7 @@ defineExpose({
   toggleAllSelection,
   getSelectionRows,
   doLayout,
-  resetScrollState
+  resetScrollState,
 });
 
 // 处理右键菜单
@@ -732,7 +810,7 @@ const handleContextMenu = (event, row) => {
 };
 
 // 处理菜单动作
-const handleMenuAction = action => {
+const handleMenuAction = (action) => {
   // 如果需要，可以在这里处理菜单动作
   logger.info("菜单动作: {}", action);
 };
@@ -809,8 +887,13 @@ const handleMenuAction = action => {
     &.is-selected {
       .card-inner {
         border-color: var(--stitch-lay-primary);
-        box-shadow: 0 4px 16px color-mix(in srgb, var(--stitch-lay-primary), transparent 80%);
-        background: linear-gradient(180deg, color-mix(in srgb, var(--stitch-lay-primary), transparent 95%) 0%, var(--stitch-lay-bg-panel) 100%);
+        box-shadow: 0 4px 16px
+          color-mix(in srgb, var(--stitch-lay-primary), transparent 80%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--stitch-lay-primary), transparent 95%) 0%,
+          var(--stitch-lay-bg-panel) 100%
+        );
       }
     }
 
@@ -827,11 +910,19 @@ const handleMenuAction = action => {
         .card-inner {
           border-color: var(--el-color-#{$type});
           box-shadow: 0 0 0 2px var(--el-color-#{$type}-light-7);
-          background: linear-gradient(135deg, var(--el-color-#{$type}-light-9) 0%, var(--el-bg-color) 100%);
+          background: linear-gradient(
+            135deg,
+            var(--el-color-#{$type}-light-9) 0%,
+            var(--el-bg-color) 100%
+          );
         }
 
         .card-index-badge {
-          background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-3));
+          background: linear-gradient(
+            135deg,
+            var(--el-color-#{$type}),
+            var(--el-color-#{$type}-light-3)
+          );
         }
       }
     }
@@ -870,7 +961,11 @@ const handleMenuAction = action => {
     min-width: 28px;
     height: 28px;
     padding: 0 8px;
-    background: linear-gradient(135deg, var(--stitch-lay-primary-light), var(--stitch-lay-primary));
+    background: linear-gradient(
+      135deg,
+      var(--stitch-lay-primary-light),
+      var(--stitch-lay-primary)
+    );
     color: #fff;
     font-size: 12px;
     font-weight: 600;
@@ -879,7 +974,8 @@ const handleMenuAction = action => {
     align-items: center;
     justify-content: center;
     z-index: 20;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--stitch-lay-primary), transparent 60%);
+    box-shadow: 0 2px 8px
+      color-mix(in srgb, var(--stitch-lay-primary), transparent 60%);
   }
 
   // 拖拽手柄
@@ -940,10 +1036,6 @@ const handleMenuAction = action => {
     overflow: hidden;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-
-    &.card-default {
-      padding: 16px;
-    }
   }
 
   .card-item {
@@ -964,7 +1056,11 @@ const handleMenuAction = action => {
       transform: translateX(-50%);
       width: 0;
       height: 3px;
-      background: linear-gradient(90deg, var(--el-color-primary-light-3), var(--el-color-primary));
+      background: linear-gradient(
+        90deg,
+        var(--el-color-primary-light-3),
+        var(--el-color-primary)
+      );
       border-radius: 3px 3px 0 0;
       transition: width 0.3s ease;
     }
@@ -982,7 +1078,11 @@ const handleMenuAction = action => {
     &.is-selected {
       border-color: var(--el-color-primary);
       box-shadow: 0 4px 16px var(--el-color-primary-light-7);
-      background: linear-gradient(180deg, var(--el-color-primary-light-9) 0%, var(--el-bg-color) 100%);
+      background: linear-gradient(
+        180deg,
+        var(--el-color-primary-light-9) 0%,
+        var(--el-bg-color) 100%
+      );
 
       &::after {
         width: 60%;
@@ -1046,7 +1146,11 @@ const handleMenuAction = action => {
   .loading-more {
     margin: 16px 0;
     padding: 12px 0;
-    background: linear-gradient(135deg, var(--stitch-lay-primary-alpha), color-mix(in srgb, var(--stitch-lay-primary), transparent 90%));
+    background: linear-gradient(
+      135deg,
+      var(--stitch-lay-primary-alpha),
+      color-mix(in srgb, var(--stitch-lay-primary), transparent 90%)
+    );
     border-radius: 10px;
     color: var(--stitch-lay-primary);
     font-size: 13px;
