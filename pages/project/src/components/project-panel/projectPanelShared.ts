@@ -104,6 +104,8 @@ export const formatSize = (size?: number) => {
 };
 
 const trimText = (value?: string) => String(value || "").trim();
+const isCustomProjectType = (project: RemoteProject) =>
+  normalizeProjectType(project.projectType) === "custom";
 
 export const hasStartScript = (project: RemoteProject) =>
   Boolean(trimText(project.startScript));
@@ -119,13 +121,23 @@ export const hasCustomLifecycleScript = (project: RemoteProject) =>
   );
 
 export const hasRequiredLifecycleScripts = (project: RemoteProject) => {
+  if (!isCustomProjectType(project)) {
+    return true;
+  }
   return hasStartScript(project);
 };
 
 export const resolveLifecycleModeLabel = (project: RemoteProject) =>
-  hasRequiredLifecycleScripts(project) ? "脚本控制" : "脚本未就绪";
+  isCustomProjectType(project)
+    ? hasRequiredLifecycleScripts(project)
+      ? "脚本控制"
+      : "脚本未就绪"
+    : "内置策略";
 
 export const resolveLifecycleHint = (project: RemoteProject) => {
+  if (!isCustomProjectType(project)) {
+    return "按项目类型执行内置启动/停止/重启策略";
+  }
   if (!hasStartScript(project)) {
     return "需配置启动脚本";
   }
@@ -139,6 +151,9 @@ export const resolveLifecycleHint = (project: RemoteProject) => {
 };
 
 export const resolveStartCommandPreview = (project: RemoteProject) => {
+  if (!isCustomProjectType(project)) {
+    return "系统按项目类型自动生成启动命令";
+  }
   const custom = trimText(project.startScript);
   if (custom) {
     return custom;
@@ -231,6 +246,15 @@ export const buildProjectTypeScriptTemplates = (project: RemoteProject) => {
   const libDirectory = normalizePath(project.libDirectory) || joinPath(rootDirectory, "lib");
   const jvmArgs = normalizePath(project.jvmArgs);
   const pidFile = buildPidFile(rootDirectory);
+  const statusScript = [
+    `for pid in $(pgrep -f -- "${mainArtifact}" 2>/dev/null); do`,
+    `  cmd=$(ps -p "$pid" -o args= 2>/dev/null)`,
+    `  echo "$cmd" | grep -E "pgrep -f --|grep -F --|grep -E --" >/dev/null && continue`,
+    `  echo running`,
+    `  exit 0`,
+    `done`,
+    `echo stopped`,
+  ].join("\n");
 
   if (normalizedType === "springboot") {
     const jvmPart = jvmArgs ? `${jvmArgs} ` : "";
@@ -246,7 +270,6 @@ export const buildProjectTypeScriptTemplates = (project: RemoteProject) => {
       `pkill -f "${mainArtifact}" 2>/dev/null || true`,
     ].join("\n");
     const restartScript = `${stopScript}\nsleep 2\n${startScript}`;
-    const statusScript = `if pgrep -f "${mainArtifact}" >/dev/null; then echo running; else echo stopped; fi`;
     return {
       startScript,
       stopScript,
@@ -269,7 +292,6 @@ export const buildProjectTypeScriptTemplates = (project: RemoteProject) => {
       `pkill -f "${mainArtifact}" 2>/dev/null || true`,
     ].join("\n");
     const restartScript = `${stopScript}\nsleep 2\n${startScript}`;
-    const statusScript = `if pgrep -f "${mainArtifact}" >/dev/null; then echo running; else echo stopped; fi`;
     return {
       startScript,
       stopScript,

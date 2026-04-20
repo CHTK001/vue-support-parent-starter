@@ -14,20 +14,22 @@
       <header class="project-hero">
         <div class="project-hero__glow project-hero__glow--1"></div>
         <div class="project-hero__glow project-hero__glow--2"></div>
-        
+
         <div class="project-hero__content">
           <div class="project-hero__main">
             <div class="project-hero__badge">
               <ElIcon :size="14"><Folder /></ElIcon>
               Project Blueprint
             </div>
-            <h2 class="project-hero__title">{{ editing ? "调整项目档案" : "新建项目档案" }}</h2>
+            <h2 class="project-hero__title">
+              {{ editing ? "调整项目档案" : "新建项目档案" }}
+            </h2>
             <p class="project-hero__desc">
               把部署入口、目录约定、运行脚本和巡检命令在一个画布内收口。
               表单采用无滚动的紧凑编排，适合连续录入多台服务。
             </p>
           </div>
-          
+
           <div class="project-hero__chips">
             <div class="project-chip">
               <ElIcon :size="14"><Grid /></ElIcon>
@@ -69,16 +71,16 @@
                   <span>名称、类型与用途说明</span>
                 </div>
               </div>
-              
+
               <div class="project-form project-form--2">
-                <el-form-item label="项目名称" required>
+                <el-form-item label="项目名称" required label-width="100px">
                   <el-input
                     v-model="project.projectName"
                     placeholder="gateway-service"
                     :prefix-icon="Edit"
                   />
                 </el-form-item>
-                <el-form-item label="项目类型" required>
+                <el-form-item label="项目类型" required label-width="100px">
                   <ScSelect v-model="project.projectType">
                     <ElOption
                       v-for="item in projectTypes"
@@ -88,7 +90,11 @@
                     />
                   </ScSelect>
                 </el-form-item>
-                <el-form-item class="project-form__full" label="项目描述">
+                <el-form-item
+                  class="project-form__full"
+                  label="项目描述"
+                  label-width="100px"
+                >
                   <el-input
                     v-model="project.description"
                     type="textarea"
@@ -110,9 +116,9 @@
                   <span>部署、配置、依赖与日志目录</span>
                 </div>
               </div>
-              
+
               <div class="project-form project-form--1">
-                <el-form-item label="根目录" required>
+                <el-form-item label="根目录" required label-width="120px">
                   <el-input
                     v-model="project.rootDirectory"
                     type="textarea"
@@ -120,7 +126,7 @@
                     placeholder="/opt/apps/gateway"
                   />
                 </el-form-item>
-                <el-form-item label="依赖目录">
+                <el-form-item label="依赖目录" label-width="120px">
                   <el-input
                     v-model="project.libDirectory"
                     type="textarea"
@@ -128,7 +134,7 @@
                     placeholder="/opt/apps/gateway/lib"
                   />
                 </el-form-item>
-                <el-form-item label="配置目录">
+                <el-form-item label="配置目录" label-width="120px">
                   <el-input
                     v-model="project.configDirectory"
                     type="textarea"
@@ -136,7 +142,7 @@
                     placeholder="/opt/apps/gateway/conf"
                   />
                 </el-form-item>
-                <el-form-item label="日志目录（可空）">
+                <el-form-item label="日志目录" label-width="120px">
                   <el-input
                     v-model="project.logDirectory"
                     type="textarea"
@@ -144,7 +150,7 @@
                     placeholder="/opt/apps/gateway/logs"
                   />
                 </el-form-item>
-                <el-form-item label="启动日志文件（可空）">
+                <el-form-item label="启动日志文件" label-width="120px">
                   <el-input
                     v-model="project.startupLogFile"
                     type="textarea"
@@ -157,7 +163,8 @@
                     isSpringBootProjectType(project.projectType) ||
                     project.projectType === 'tomcat'
                   "
-                  label="主包入口（可空）"
+                  label="主包入口"
+                  label-width="120px"
                 >
                   <el-input
                     v-model="project.mainArtifact"
@@ -190,7 +197,9 @@
                 </div>
                 <div class="project-card__title">
                   <strong>JVM 参数编排</strong>
-                  <span>按行维护参数键和值，可直接调整单个参数，无需整段重写</span>
+                  <span
+                    >按行维护参数键和值，可直接调整单个参数，无需整段重写</span
+                  >
                 </div>
               </div>
               <div class="project-java-badge">
@@ -198,7 +207,7 @@
                 {{ javaVersionHint }}
               </div>
             </div>
-            
+
             <div class="jvm-list">
               <TransitionGroup name="jvm-row">
                 <div
@@ -224,7 +233,7 @@
                         :value="item.key"
                       />
                     </ScSelect>
-                    
+
                     <ScSelect
                       v-if="resolveJvmValueMode(row.key) === 'select'"
                       v-model="row.value"
@@ -262,14 +271,15 @@
                 </div>
               </TransitionGroup>
             </div>
-            
+
             <div class="jvm-actions">
               <ScButton plain type="primary" @click="addJvmRow">
                 <ElIcon><Plus /></ElIcon>
                 新增参数行
               </ScButton>
               <p class="jvm-actions__hint">
-                已覆盖内存、GC（含 ZGC）、容器感知、诊断、编码与时区。保存后将自动拼接为
+                已覆盖内存、GC（含
+                ZGC）、容器感知、诊断、编码与时区。保存后将自动拼接为
                 <code>jvmArgs</code> 字符串。
               </p>
             </div>
@@ -297,27 +307,27 @@
                 <span>常用参数快速配置 + 自定义参数扩展（会注入启动命令）</span>
               </div>
             </div>
-            
+
             <div class="project-form project-form--2">
-              <el-form-item label="运行环境">
+              <el-form-item label="运行环境" label-width="100px">
                 <el-input v-model="springProfilesActive" placeholder="prod" />
               </el-form-item>
-              <el-form-item label="应用名">
+              <el-form-item label="应用名" label-width="100px">
                 <el-input
                   v-model="springApplicationName"
                   placeholder="gateway-service"
                 />
               </el-form-item>
-              <el-form-item label="服务端口">
+              <el-form-item label="服务端口" label-width="100px">
                 <el-input v-model="springServerPort" placeholder="8080" />
               </el-form-item>
-              <el-form-item label="配置地址">
+              <el-form-item label="配置地址" label-width="100px">
                 <el-input
                   v-model="springConfigLocation"
                   placeholder="file:/opt/apps/gateway/config/"
                 />
               </el-form-item>
-              
+
               <!-- Switch Cards -->
               <div class="spring-switches">
                 <div
@@ -334,7 +344,7 @@
                   </div>
                   <ScSwitch v-model="springLoggingDebug" @click.stop />
                 </div>
-                
+
                 <div
                   class="spring-switch-card"
                   :class="{ 'spring-switch-card--active': springLazyInitialization }"
@@ -349,7 +359,7 @@
                   </div>
                   <ScSwitch v-model="springLazyInitialization" @click.stop />
                 </div>
-                
+
                 <div
                   class="spring-switch-card"
                   :class="{ 'spring-switch-card--active': springAnsiEnabled }"
@@ -365,8 +375,8 @@
                   <ScSwitch v-model="springAnsiEnabled" @click.stop />
                 </div>
               </div>
-              
-              <el-form-item label="Actuator 暴露端点">
+
+              <el-form-item label="Actuator 暴露端点" label-width="140px">
                 <el-input
                   v-model="springManagementExposure"
                   placeholder="health,info,prometheus"
@@ -375,6 +385,7 @@
               <el-form-item
                 class="project-form__full"
                 label="自定义参数（每行一个）"
+                label-width="160px"
               >
                 <el-input
                   v-model="springCustomArgsText"
@@ -392,7 +403,7 @@
         </ScTabPane>
 
         <!-- Script Tab -->
-        <ScTabPane name="script">
+        <ScTabPane v-if="isCustomProjectType" name="script">
           <template #label>
             <span class="project-tab-label">
               <span class="project-tab-icon project-tab-icon--purple">
@@ -419,7 +430,7 @@
                   </span>
                 </div>
               </div>
-              
+
               <ScButton
                 v-if="!isCustomProjectType"
                 plain
@@ -430,7 +441,7 @@
                 按类型模板生成
               </ScButton>
             </div>
-            
+
             <div v-if="!isCustomProjectType" class="script-hint">
               <ElIcon :size="14"><InfoFilled /></ElIcon>
               {{
@@ -439,7 +450,7 @@
                   : "SpringBoot：将使用 mainArtifact + configDirectory + jvmArgs 生成脚本"
               }}
             </div>
-            
+
             <div class="script-grid">
               <div class="script-card">
                 <div class="script-card__header">
@@ -457,7 +468,7 @@
                   placeholder="./bin/start.sh 或完整命令"
                 />
               </div>
-              
+
               <div class="script-card">
                 <div class="script-card__header">
                   <div class="script-card__icon script-card__icon--red">
@@ -473,7 +484,7 @@
                   placeholder="./bin/stop.sh 或 kill 命令"
                 />
               </div>
-              
+
               <div class="script-card">
                 <div class="script-card__header">
                   <div class="script-card__icon script-card__icon--amber">
@@ -514,19 +525,25 @@
                 <span>状态探针与运行说明</span>
               </div>
             </div>
-            
+
             <div class="inspect-content">
-              <el-form-item label="状态检查脚本">
-                <el-input
-                  v-model="project.statusScript"
-                  type="textarea"
-                  :rows="4"
-                  placeholder="pgrep -f gateway.jar 或 curl 健康检查"
-                />
-              </el-form-item>
-              <div class="inspect-hint">
-                <ElIcon :size="14"><WarningFilled /></ElIcon>
-                状态脚本将用于服务健康检查，支持 Shell、curl 或自定义命令
+              <template v-if="isCustomProjectType">
+                <el-form-item label="状态检查脚本">
+                  <el-input
+                    v-model="project.statusScript"
+                    type="textarea"
+                    :rows="4"
+                    placeholder="pgrep -f gateway.jar 或 curl 健康检查"
+                  />
+                </el-form-item>
+                <div class="inspect-hint">
+                  <ElIcon :size="14"><WarningFilled /></ElIcon>
+                  状态脚本将用于服务健康检查，支持 Shell、curl 或自定义命令
+                </div>
+              </template>
+              <div v-else class="inspect-hint">
+                <ElIcon :size="14"><InfoFilled /></ElIcon>
+                非自定义项目由系统内置策略自动探测状态，不开放脚本编辑。
               </div>
             </div>
           </section>
@@ -1044,6 +1061,111 @@ const jvmArgCatalog: JvmArgCatalogItem[] = [
     tip: "优先使用 IPv4 网络栈",
     valueMode: "text",
   },
+  {
+    key: "-XX:+UseSerialGC",
+    tip: "启用串行垃圾回收器（适用于单核CPU或小内存应用）",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:+UseParallelGC",
+    tip: "启用并行垃圾回收器（JDK 8 默认）",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:ParallelGCThreads",
+    tip: "并行GC线程数",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:ConcGCThreads",
+    tip: "并发GC线程数（G1/ZGC）",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:+AlwaysPreTouch",
+    tip: "JVM启动时立即分配所有内存页，避免运行时分配开销",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:+UseStringDeduplication",
+    tip: "启用字符串去重（G1 GC特有，减少内存占用）",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:StringDeduplicationAgeThreshold",
+    tip: "字符串去重年龄阈值（默认3）",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:+PrintGC",
+    tip: "打印GC基本信息",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:+PrintGCDetails",
+    tip: "打印详细的GC信息",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:+PrintGCTimeStamps",
+    tip: "打印GC时间戳",
+    valueMode: "none",
+  },
+  {
+    key: "-Xloggc",
+    tip: "GC日志输出文件路径",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:GCLogFileSize",
+    tip: "GC日志文件大小限制",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:NumberOfGCLogFiles",
+    tip: "GC日志文件数量",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:+UseGCLogFileRotation",
+    tip: "启用GC日志文件轮转",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:+FlightRecorder",
+    tip: "启用Java Flight Recorder（JFR）",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:StartFlightRecording",
+    tip: "启动时自动开始JFR记录",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:+PreserveFramePointer",
+    tip: "保留帧指针，便于性能分析工具使用",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:+UseBiasedLocking",
+    tip: "启用偏向锁（JDK 15+ 默认禁用）",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:BiasedLockingStartupDelay",
+    tip: "偏向锁启动延迟（毫秒）",
+    valueMode: "text",
+  },
+  {
+    key: "-XX:+UseLargePages",
+    tip: "启用大页面支持（需操作系统配置）",
+    valueMode: "none",
+  },
+  {
+    key: "-XX:LargePageSizeInBytes",
+    tip: "大页面大小（如 2m, 4m）",
+    valueMode: "text",
+  },
 ];
 
 const jvmRows = ref<JvmArgRow[]>([]);
@@ -1495,7 +1617,7 @@ const removeJvmRow = (index: number) => {
   white-space: nowrap;
 }
 
-/* JVM Section */
+/* JVM Section - 改为 Flex 布局 */
 .jvm-list {
   display: flex;
   flex-direction: column;
@@ -1503,10 +1625,9 @@ const removeJvmRow = (index: number) => {
 }
 
 .jvm-item {
-  display: grid;
-  grid-template-columns: 32px 1fr auto;
-  grid-template-rows: auto auto;
-  gap: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 14px 16px;
   border-radius: 12px;
   background: #f8fafc;
@@ -1520,7 +1641,6 @@ const removeJvmRow = (index: number) => {
 }
 
 .jvm-item__index {
-  grid-row: 1 / 3;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1531,17 +1651,24 @@ const removeJvmRow = (index: number) => {
   color: #64748b;
   font-size: 12px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .jvm-item__fields {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  display: flex;
+  flex: 1;
   gap: 10px;
+  min-width: 0;
 }
 
-.jvm-item__key,
+.jvm-item__key {
+  flex: 1.4;
+  min-width: 0;
+}
+
 .jvm-item__value {
-  min-width: 200px;
+  flex: 1;
+  min-width: 0;
 }
 
 .jvm-item__switch {
@@ -1549,26 +1676,26 @@ const removeJvmRow = (index: number) => {
   align-items: center;
   gap: 6px;
   padding: 0 14px;
-  height: 100%;
-  min-height: 36px;
+  height: 36px;
   border-radius: 8px;
   border: 1px dashed #cbd5e1;
   background: #f8fafc;
   color: #94a3b8;
   font-size: 12px;
+  flex-shrink: 0;
 }
 
 .jvm-item__tip {
-  grid-column: 2;
+  flex: 1;
   margin: 0;
   font-size: 12px;
   color: #94a3b8;
   line-height: 1.4;
+  min-width: 0;
 }
 
 .jvm-item__delete {
-  grid-row: 1 / 3;
-  align-self: center;
+  flex-shrink: 0;
 }
 
 .jvm-actions {
@@ -1866,8 +1993,20 @@ const removeJvmRow = (index: number) => {
     grid-template-columns: 1fr;
   }
 
+  .jvm-item {
+    flex-wrap: wrap;
+  }
+
   .jvm-item__fields {
-    grid-template-columns: 1fr;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .jvm-item__tip {
+    flex: none;
+    width: 100%;
+    order: 3;
+    padding-left: 40px;
   }
 }
 
@@ -1887,6 +2026,19 @@ const removeJvmRow = (index: number) => {
   .project-card__header--between {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .jvm-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jvm-item__fields {
+    flex-direction: column;
+  }
+
+  .jvm-item__tip {
+    padding-left: 0;
   }
 }
 </style>

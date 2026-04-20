@@ -524,7 +524,7 @@ import {
   setRedisValue,
   type PanelRedisInfoView,
   type PanelRedisValueView,
-} from "../api/redis";
+} from "../../api/redis";
 
 const props = defineProps<{ connectionId: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();

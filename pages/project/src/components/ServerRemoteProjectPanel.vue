@@ -599,7 +599,7 @@ const saveProject = async () => {
     return;
   }
   if (!hasRequiredLifecycleScripts(projectForm.value)) {
-    ElMessage.warning("请至少配置启动脚本后再保存");
+    ElMessage.warning("自定义项目请至少配置启动脚本后再保存");
     return;
   }
   projectSaving.value = true;
