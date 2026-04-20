@@ -9,7 +9,7 @@
 ///
 
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { socket } from "@repo/core";
+import { getGlobalSocketService, socket, type SocketTemplate } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
 
@@ -58,7 +58,8 @@ export function useServerFileUpload() {
   // Socket.IO连接状态
   const isConnected = ref(false);
   const connectionStatus = ref("DISCONNECTED");
-  const socketClient = ref<any>(null);
+  const socketClient = ref<SocketTemplate | any>(null);
+  const ownsSocketClient = ref(false);
 
   // 任务进度数据
   const taskProgresses = ref<Map<number, TaskProgress>>(new Map());
@@ -202,12 +203,20 @@ export function useServerFileUpload() {
     try {
       connectionStatus.value = "CONNECTING";
 
-      const config = getConfig();
-      socketClient.value = socket(
-        splitToArray(config.SocketUrl),
-        "/socket.io",
-        {},
-      );
+      const globalSocket = getGlobalSocketService();
+      if (globalSocket) {
+        globalSocket.connect();
+        socketClient.value = globalSocket;
+        ownsSocketClient.value = false;
+      } else {
+        const config = getConfig();
+        socketClient.value = socket(
+          splitToArray(config.SocketUrl),
+          "/socket.io",
+          {},
+        );
+        ownsSocketClient.value = true;
+      }
 
       // 监听连接事件
       socketClient.value.on("connect", () => {
@@ -251,8 +260,11 @@ export function useServerFileUpload() {
       socketClient.value.off("server_file_upload_queue");
       socketClient.value.off("server_file_upload_statistics");
 
-      socketClient.value.close();
+      if (ownsSocketClient.value) {
+        socketClient.value.close();
+      }
       socketClient.value = null;
+      ownsSocketClient.value = false;
     }
 
     isConnected.value = false;

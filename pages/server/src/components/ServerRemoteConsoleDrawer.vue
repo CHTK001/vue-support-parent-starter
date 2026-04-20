@@ -3,7 +3,7 @@
     v-model="visible"
     size="min(84vw, 1280px)"
     destroy-on-close
-    append-to-body="true"
+    append-to-body
     class="server-remote-console"
     :class="{ 'is-fullscreen': fullscreen }"
     :title="hostName ? `${hostName} · 远程控制` : '远程控制'"

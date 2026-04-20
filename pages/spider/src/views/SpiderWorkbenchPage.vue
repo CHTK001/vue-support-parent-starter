@@ -422,6 +422,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { tryUseTaskCenter } from "@layout/default";
 import ScLayout from "@repo/components/ScLayout";
 import { ScReteEditor, type EditorData } from "@repo/components/ScReteEditor";
 import {
@@ -507,6 +508,7 @@ type Workspace = {
 };
 
 const SpiderFlowGroup = SpiderFlowGroupView;
+const taskCenter = tryUseTaskCenter();
 const summary = reactive<DashboardSummary>({
   latestTask: {},
   taskTotal: 0,
@@ -647,6 +649,31 @@ const progressText = computed(() => `进度 ${runtimeProgress.value.text}`);
 const runtimeChannel = ref("idle");
 const runtimeError = ref("");
 
+const mapTaskCenterStatus = (status?: string) => {
+  if (status === "FAILED") return "error";
+  if (status === "WAITING_INPUT") return "warning";
+  if (status === "FINISHED") return "success";
+  if (status === "RUNNING" || status === "PAUSED") return "running";
+  return "pending";
+};
+
+const syncTaskCenter = (ws: Workspace | undefined, patch: Record<string, any> = {}) => {
+  if (!ws || !taskCenter) return;
+  const runtimeStatus = String(ws.runtime?.status || ws.task.status || "");
+  taskCenter.updateTask(ws.taskId, {
+    title: ws.task.taskName || `Spider 任务 #${ws.taskId}`,
+    description: ws.task.entryUrl || "未配置入口 URL",
+    mode: "progress",
+    progress: runtimeProgress.value.percent,
+    status: mapTaskCenterStatus(runtimeStatus),
+    stageLabel: runtimeChannel.value,
+    showPercent: true,
+    retainHistory: true,
+    source: "system",
+    ...patch,
+  });
+};
+
 const runtimeBridge = useSpiderRuntime({
   onEvent: (event) => {
     const ws = activeWorkspace.value;
@@ -667,11 +694,17 @@ const runtimeBridge = useSpiderRuntime({
       });
       ws.hookLogs = ws.hookLogs.slice(0, 50);
     }
+    syncTaskCenter(ws, {
+      message,
+      mode: "stream",
+      status: mapTaskCenterStatus(String(payload.status || ws.runtime?.status || ws.task.status || "")),
+    });
   },
   onSnapshot: (snapshot) => {
     const ws = activeWorkspace.value;
     if (!ws) return;
     ws.runtime = snapshot || {};
+    syncTaskCenter(ws);
   },
 });
 
@@ -916,6 +949,7 @@ const refreshWorkspaceRuntime = async (taskId: number) => {
       }));
     ws.hookLogs = hookLogs;
   }
+  syncTaskCenter(ws);
 };
 
 const refreshActiveRuntime = async () => {
@@ -1300,6 +1334,12 @@ const saveActiveWorkspace = async () => {
 
 const handleRunActiveTask = async () => {
   if (!activeWorkspace.value) return;
+  syncTaskCenter(activeWorkspace.value, {
+    message: "任务已提交运行",
+    mode: "stream",
+    reopenOverlay: true,
+    status: "running",
+  });
   await runTask(activeWorkspace.value.taskId);
   await refreshActiveRuntime();
 };
@@ -1308,12 +1348,22 @@ const handlePauseActiveTask = async () => {
   if (!activeWorkspace.value) return;
   await pauseTask(activeWorkspace.value.taskId);
   await refreshActiveRuntime();
+  syncTaskCenter(activeWorkspace.value, {
+    message: "任务已暂停",
+    mode: "stream",
+    status: "running",
+  });
 };
 
 const handleResumeActiveTask = async () => {
   if (!activeWorkspace.value) return;
   await resumeTask(activeWorkspace.value.taskId);
   await refreshActiveRuntime();
+  syncTaskCenter(activeWorkspace.value, {
+    message: "任务已恢复",
+    mode: "stream",
+    status: "running",
+  });
 };
 
 const testBrainConnection = async () => {
@@ -1336,9 +1386,11 @@ watch(
     const taskId = Number(taskIdText);
     if (!taskId) return;
     await ensureWorkspaceLoaded(taskId);
+    await refreshWorkspaceRuntime(taskId);
     runtimeBridge.start(taskId);
     runtimeChannel.value = runtimeBridge.channel.value;
     runtimeError.value = runtimeBridge.lastError.value;
+    syncTaskCenter(workspaceMap[String(taskId)]);
   },
   { immediate: true },
 );

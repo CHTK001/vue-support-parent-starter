@@ -130,6 +130,8 @@
           <ElIcon><Plus /></ElIcon> 添加响应头
         </div>
       </div>
+
+      <NginxLocationSecurityFields :location="form" />
     </div>
 
     <template #footer>
@@ -154,6 +156,7 @@ import {
 } from 'element-plus'
 import { reactive, watch } from 'vue'
 import type { NginxLocationBlock } from '../../api/nginx'
+import NginxLocationSecurityFields from './NginxLocationSecurityFields.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -183,6 +186,11 @@ const form = reactive({
   index: 'index.html',
   returnCode: '301',
   returnUrl: '',
+  allowList: [] as string[],
+  denyList: [] as string[],
+  limitReqZone: '',
+  limitReqBurst: '',
+  limitReqNoDelay: false,
   addHeaderList: [] as string[],
   rawDirectives: '',
 })
@@ -204,6 +212,11 @@ const resetForm = () => {
     index: 'index.html',
     returnCode: '301',
     returnUrl: '',
+    allowList: [],
+    denyList: [],
+    limitReqZone: '',
+    limitReqBurst: '',
+    limitReqNoDelay: false,
     addHeaderList: [],
     rawDirectives: '',
   })
@@ -240,6 +253,11 @@ const handleSubmit = () => {
   } else {
     loc.rawDirectives = form.rawDirectives
   }
+  loc.allowList = [...form.allowList]
+  loc.denyList = [...form.denyList]
+  loc.limitReqZone = form.limitReqZone
+  loc.limitReqBurst = form.limitReqBurst
+  loc.limitReqNoDelay = form.limitReqNoDelay
   loc.addHeader = [...form.addHeaderList]
   emit('submit', loc)
 }

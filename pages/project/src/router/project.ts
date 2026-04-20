@@ -35,17 +35,24 @@ export default [
       },
       // 密钥管理主页（原项目管理）
       {
-        path: "/secret/manage",
+        path: "/project/secret/manage",
         name: "SecretManage",
         component: loadSecretIndex,
         meta: {
           title: "密钥管理",
         },
       },
+      {
+        path: "/secret/manage",
+        redirect: "/project/secret/manage",
+        meta: {
+          showLink: false,
+        },
+      },
       // 旧路由兼容重定向
       {
         path: "/project/secret",
-        redirect: "/secret/manage",
+        redirect: "/project/secret/manage",
         meta: {
           showLink: false,
         },

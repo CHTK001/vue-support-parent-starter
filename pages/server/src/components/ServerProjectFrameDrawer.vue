@@ -33,8 +33,12 @@
 import { Loading } from "@element-plus/icons-vue";
 import { ElButton, ElEmpty, ElIcon } from "element-plus";
 import { computed, ref } from "vue";
-import { connectServerProject, createServerProjectApi, disconnectServerProject, type RemoteApi } from "../api/remote";
-import { ServerRemoteProjectPanel } from "..";
+import {
+  ServerRemoteProjectPanel,
+  createProjectRemoteApi,
+  resolveProjectRemoteTarget,
+  type RemoteApi,
+} from "@pages/project";
 import type { ServerHost } from "../api";
 
 const props = defineProps<{
@@ -55,7 +59,15 @@ const visible = computed({
 const connecting = ref(false);
 const connectError = ref("");
 const projectApi = ref<RemoteApi | null>(null);
-let connectionId = "";
+
+const parseSysProjectId = (value: unknown): number | null => {
+  const text = String(value ?? "").trim();
+  if (!text || text.includes("<")) {
+    return null;
+  }
+  const id = Number(text);
+  return Number.isInteger(id) && id > 0 ? id : null;
+};
 
 const onOpen = async () => {
   if (!props.host) return;
@@ -63,17 +75,20 @@ const onOpen = async () => {
   connectError.value = "";
   projectApi.value = null;
   try {
-    const res = await connectServerProject({
-      serverType: props.host.serverType || "SSH",
-      host: props.host.host || "",
-      port: props.host.port ?? 22,
-      username: props.host.username || "root",
-      password: props.host.password,
-      privateKey: props.host.privateKey,
-      osType: props.host.osType,
-    });
-    connectionId = res?.data ?? "";
-    projectApi.value = createServerProjectApi(connectionId);
+    const host = String(props.host.host || "").trim();
+    if (!host) {
+      throw new Error("主机地址为空");
+    }
+    const port = Number(props.host.port ?? 22);
+    const endpoint = port > 0 ? `ssh://${host}:${port}` : `ssh://${host}`;
+    const res = await resolveProjectRemoteTarget(endpoint);
+    const sysProjectId = parseSysProjectId(res?.data);
+    if (!sysProjectId) {
+      throw new Error(
+        "远程项目映射异常：未返回有效项目ID，请检查 /v2/project/remote/resolve 接口或代理配置",
+      );
+    }
+    projectApi.value = createProjectRemoteApi(sysProjectId);
   } catch (e: any) {
     connectError.value = "连接失败: " + (e?.message ?? "未知错误");
   } finally {
@@ -82,10 +97,6 @@ const onOpen = async () => {
 };
 
 const onClose = () => {
-  if (connectionId) {
-    disconnectServerProject(connectionId).catch(() => {});
-    connectionId = "";
-  }
   projectApi.value = null;
   connectError.value = "";
 };
@@ -97,6 +108,7 @@ const onClose = () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .server-project-drawer__loading,

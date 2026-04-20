@@ -9,13 +9,20 @@
     <!-- 拖拽遮罩 -->
     <div v-if="isDragOver" class="rfm__drag-mask">
       <div class="rfm__drag-hint">
-        <span class="rfm__drag-icon">📂</span>
+        <span class="rfm__drag-icon">
+          <IconifyIconOnline icon="ri:folder-upload-line" />
+        </span>
         <p>松开以上传到 {{ currentPath }}</p>
       </div>
     </div>
 
     <!-- 左侧文件树 -->
     <aside class="rfm__sidebar">
+      <header class="rfm__sidebar-head">
+        <p class="rfm__sidebar-kicker">Remote File Hub</p>
+        <h4>服务器文件管理</h4>
+        <p>当前路径 {{ currentPath }}</p>
+      </header>
       <!-- 面包屑 -->
       <div class="rfm__breadcrumb">
         <button
@@ -26,6 +33,25 @@
           @click="navigateTo(seg.path)"
         >{{ seg.label }}</button>
       </div>
+
+      <div class="rfm__sidebar-summary">
+        <el-tag effect="plain" round size="small">目录 {{ directoryCount }}</el-tag>
+        <el-tag effect="plain" round size="small">文件 {{ fileCount }}</el-tag>
+        <el-tag v-if="listKeyword.trim()" effect="plain" round size="small">
+          命中 {{ displayEntries.length }}
+        </el-tag>
+      </div>
+
+      <el-input
+        v-model="listKeyword"
+        clearable
+        size="small"
+        placeholder="快速过滤文件名/路径"
+      >
+        <template #prefix>
+          <IconifyIconOnline icon="ri:search-line" />
+        </template>
+      </el-input>
 
       <!-- 工具栏 -->
       <div class="rfm__sidebar-toolbar">
@@ -59,7 +85,7 @@
       <!-- 文件列表 -->
       <div v-loading="listLoading" class="rfm__file-list thin-scroller">
         <div
-          v-for="entry in entries"
+          v-for="entry in displayEntries"
           :key="entry.path"
           class="rfm__file-item"
           :class="{
@@ -68,7 +94,9 @@
           }"
           @click="onEntryClick(entry)"
         >
-          <span class="rfm__file-icon">{{ fileIcon(entry) }}</span>
+          <span class="rfm__file-icon">
+            <IconifyIconOnline :icon="fileIcon(entry)" />
+          </span>
           <div class="rfm__file-meta">
             <template v-if="renamingPath === entry.path">
               <el-input
@@ -103,7 +131,11 @@
             </el-tooltip>
           </div>
         </div>
-        <el-empty v-if="!listLoading && !entries.length" description="目录为空" :image-size="60" />
+        <el-empty
+          v-if="!listLoading && !displayEntries.length"
+          :description="entries.length ? '没有匹配到文件' : '目录为空'"
+          :image-size="60"
+        />
       </div>
 
       <!-- 上传进度 -->
@@ -126,11 +158,27 @@
           </div>
           <div class="rfm__content-actions">
             <el-tag v-if="contentDirty" effect="plain" type="warning" size="small" round>已修改</el-tag>
-            <ScButton v-if="contentDirty" size="small" plain @click="resetContent">还原</ScButton>
-            <ScButton v-if="contentDirty" size="small" type="primary" :loading="saving" @click="saveContent">保存</ScButton>
-            <ScButton size="small" plain @click="downloadEntry(activeEntry)">
-              <el-icon><Download /></el-icon> 下载
-            </ScButton>
+            <el-tooltip v-if="contentDirty" content="还原修改" placement="top">
+              <ScButton circle size="small" plain @click="resetContent">
+                <el-icon><Refresh /></el-icon>
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip v-if="contentDirty" content="保存内容" placement="top">
+              <ScButton
+                circle
+                size="small"
+                type="primary"
+                :loading="saving"
+                @click="saveContent"
+              >
+                <el-icon><Check /></el-icon>
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip content="下载文件" placement="top">
+              <ScButton circle size="small" plain @click="downloadEntry(activeEntry)">
+                <el-icon><Download /></el-icon>
+              </ScButton>
+            </el-tooltip>
           </div>
         </div>
 
@@ -163,8 +211,11 @@
         </div>
       </template>
       <div v-else class="rfm__empty-state">
-        <span class="rfm__empty-icon">📄</span>
-        <p>点击左侧文件查看内容</p>
+        <span class="rfm__empty-icon">
+          <IconifyIconOnline icon="ri:file-search-line" />
+        </span>
+        <h4>从左侧选择一个文件</h4>
+        <p>支持文本编辑、图片预览、下载与重命名。</p>
       </div>
     </main>
 
@@ -220,6 +271,7 @@
 import { ref, computed, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  Check,
   Refresh,
   ArrowUp,
   FolderAdd,
@@ -273,6 +325,7 @@ const uploadOptions = ref<RemoteUploadOptions>({
 
 const renamingPath = ref("");
 const renameValue = ref("");
+const listKeyword = ref("");
 
 // 面包屑
 const breadcrumbs = computed(() => {
@@ -284,6 +337,25 @@ const breadcrumbs = computed(() => {
     crumbs.push({ label: p, path: acc });
   }
   return crumbs;
+});
+
+const fileCount = computed(
+  () => entries.value.filter((item) => item.file).length,
+);
+
+const directoryCount = computed(
+  () => entries.value.filter((item) => item.directory).length,
+);
+
+const displayEntries = computed(() => {
+  const keyword = listKeyword.value.trim().toLowerCase();
+  if (!keyword) {
+    return entries.value;
+  }
+  return entries.value.filter((item) => {
+    const source = `${item.name || ""} ${item.path || ""}`.toLowerCase();
+    return source.includes(keyword);
+  });
 });
 
 // 加载文件列表
@@ -384,15 +456,15 @@ const isText = (entry: RemoteFileEntry) => {
 };
 
 const fileIcon = (entry: RemoteFileEntry) => {
-  if (entry.directory) return "📁";
+  if (entry.directory) return "ri:folder-2-line";
   const ext = entry.extension?.toLowerCase();
-  if (isImage(entry)) return "🖼️";
-  if (["js", "ts", "jsx", "tsx"].includes(ext || "")) return "📜";
-  if (["vue", "html", "htm"].includes(ext || "")) return "🌐";
-  if (["json", "xml", "yaml", "yml"].includes(ext || "")) return "📋";
-  if (["py", "java", "go", "rs", "c", "cpp"].includes(ext || "")) return "💻";
-  if (["zip", "tar", "gz", "rar", "7z"].includes(ext || "")) return "📦";
-  return "📄";
+  if (isImage(entry)) return "ri:image-line";
+  if (["js", "ts", "jsx", "tsx"].includes(ext || "")) return "ri:code-s-slash-line";
+  if (["vue", "html", "htm"].includes(ext || "")) return "ri:layout-5-line";
+  if (["json", "xml", "yaml", "yml"].includes(ext || "")) return "ri:file-list-3-line";
+  if (["py", "java", "go", "rs", "c", "cpp"].includes(ext || "")) return "ri:terminal-box-line";
+  if (["zip", "tar", "gz", "rar", "7z"].includes(ext || "")) return "ri:file-zip-line";
+  return "ri:file-text-line";
 };
 
 // 格式化
@@ -522,16 +594,26 @@ watch(() => props.rootPath, (val) => {
 
 <style scoped lang="scss">
 .rfm {
+  --rfm-border: rgba(148, 163, 184, 0.18);
+  --rfm-strong: #0f172a;
+  --rfm-muted: #64748b;
+  --rfm-accent: #0ea5e9;
   position: relative;
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 16px;
   height: 100%;
   min-height: 600px;
-  padding: 16px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96));
-  border: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 18px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.08), transparent 32%),
+    linear-gradient(145deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96));
+  border: 1px solid var(--rfm-border);
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
 .rfm--drag-over {
@@ -558,19 +640,49 @@ watch(() => props.rootPath, (val) => {
 
 .rfm__drag-icon {
   font-size: 48px;
+  line-height: 1;
   display: block;
   margin-bottom: 12px;
 }
 
 .rfm__sidebar {
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto auto auto 1fr auto;
   gap: 12px;
-  padding: 16px;
+  padding: 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 28%),
+    rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--rfm-border);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.rfm__sidebar-head {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.rfm__sidebar-kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.rfm__sidebar-head h4 {
+  margin: 0;
+  color: var(--rfm-strong);
+}
+
+.rfm__sidebar-head p {
+  margin: 0;
+  color: var(--rfm-muted);
+  font-size: 12px;
 }
 
 .rfm__breadcrumb {
@@ -579,6 +691,12 @@ watch(() => props.rootPath, (val) => {
   gap: 4px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.rfm__sidebar-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .rfm__breadcrumb-seg {
@@ -613,6 +731,10 @@ watch(() => props.rootPath, (val) => {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  padding: 6px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(248, 250, 252, 0.86);
 }
 
 .rfm__file-list {
@@ -627,7 +749,7 @@ watch(() => props.rootPath, (val) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border-radius: 14px;
   background: rgba(248, 250, 252, 0.8);
   border: 1px solid rgba(148, 163, 184, 0.12);
@@ -648,7 +770,9 @@ watch(() => props.rootPath, (val) => {
 }
 
 .rfm__file-icon {
-  font-size: 20px;
+  font-size: 18px;
+  color: #0369a1;
+  line-height: 1;
   flex-shrink: 0;
 }
 
@@ -675,7 +799,7 @@ watch(() => props.rootPath, (val) => {
 .rfm__file-actions {
   display: flex;
   gap: 4px;
-  opacity: 0;
+  opacity: 0.25;
   transition: opacity 0.2s;
 
   .rfm__file-item:hover & {
@@ -708,9 +832,11 @@ watch(() => props.rootPath, (val) => {
   gap: 12px;
   padding: 20px;
   border-radius: 20px;
-  background: #0f172a;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 28%),
+    linear-gradient(150deg, #0f172a 0%, #111827 40%, #020617 100%);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.32);
 }
 
 .rfm__content-header {
@@ -820,11 +946,23 @@ watch(() => props.rootPath, (val) => {
   padding: 60px 20px;
 }
 
+.rfm__empty-state h4 {
+  margin: 0;
+  color: #e2e8f0;
+}
+
+.rfm__empty-state p {
+  margin: 8px 0 0;
+  color: #94a3b8;
+}
+
 .rfm__empty-icon {
   font-size: 64px;
+  line-height: 1;
   display: block;
   margin-bottom: 16px;
-  opacity: 0.5;
+  color: #0369a1;
+  opacity: 0.4;
 }
 
 .rfm__hidden-input {

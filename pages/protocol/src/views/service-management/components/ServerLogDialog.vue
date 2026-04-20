@@ -145,8 +145,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import {
+  getSystemServerFilterLogs,
   getServerLogSseUrl,
   type LogEntry,
+  type SystemServerFilterLogRecord,
   type SystemServer,
 } from "@/api/system-server";
 
@@ -228,6 +230,7 @@ const filteredLogs = computed(() => {
 // 连接 SSE
 const connectSSE = () => {
   if (!props.serverId) return;
+  if (props.server?.systemServerStatus !== "RUNNING") return;
 
   // 关闭现有连接
   disconnectSSE();
@@ -268,7 +271,11 @@ const connectSSE = () => {
 
     // 自动重连
     setTimeout(() => {
-      if (props.visible && props.serverId) {
+      if (
+        props.visible &&
+        props.serverId &&
+        props.server?.systemServerStatus === "RUNNING"
+      ) {
         console.log("尝试重新连接...");
         connectSSE();
       }
@@ -294,6 +301,47 @@ const reconnect = () => {
 // 清空日志
 const clearLogs = () => {
   logs.value = [];
+};
+
+const toLevel = (status?: string): LogEntry["level"] => {
+  const value = (status || "").toUpperCase();
+  if (value.includes("ERROR") || value.includes("FAIL")) return "ERROR";
+  if (value.includes("WARN")) return "WARN";
+  if (value.includes("DEBUG")) return "DEBUG";
+  return "INFO";
+};
+
+const mapHistoryToLogEntry = (
+  record: SystemServerFilterLogRecord,
+): LogEntry => {
+  const process = record.processStatus || "UNKNOWN";
+  const extra = [record.clientIp, record.clientGeo].filter(Boolean).join(" ");
+  return {
+    timestamp:
+      record.storeTime || record.accessTime || new Date().toISOString(),
+    level: toLevel(process),
+    logger: record.filterType || "SYSTEM",
+    message: extra ? `${process} ${extra}` : process,
+    filterName: record.filterType || undefined,
+  };
+};
+
+const loadHistoryLogs = async () => {
+  if (!props.serverId) return;
+  try {
+    const response = await getSystemServerFilterLogs({
+      serverId: props.serverId,
+      current: 1,
+      size: 200,
+    });
+    const records = response?.data?.records || [];
+    logs.value = records.map(mapHistoryToLogEntry).reverse();
+    if (autoScroll.value) {
+      scrollToBottom();
+    }
+  } catch (error) {
+    console.error("加载历史日志失败:", error);
+  }
 };
 
 // 导出日志
@@ -375,9 +423,14 @@ const handleClose = () => {
 // 监听对话框显示状态
 watch(
   () => props.visible,
-  (newVal) => {
+  async (newVal) => {
     if (newVal && props.serverId) {
-      connectSSE();
+      await loadHistoryLogs();
+      if (props.server?.systemServerStatus === "RUNNING") {
+        connectSSE();
+      } else {
+        disconnectSSE();
+      }
     } else {
       disconnectSSE();
     }

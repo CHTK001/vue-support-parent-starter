@@ -41,21 +41,106 @@
     </el-tooltip>
 
     <template v-else>
-      <div class="server-host-card__icon" :class="`is-${normalizeOs(entry.host.osType) || 'default'}`">
-        <IconifyIconOnline :icon="osIcon(entry.host.osType)" />
-        <span class="server-host-card__dot" :class="metricDotClass(entry.snapshot, entry.host.enabled !== false)" />
+      <div class="server-host-card__main">
+        <div
+          class="server-host-card__icon"
+          :class="`is-${normalizeOs(entry.host.osType) || 'default'}`"
+        >
+          <IconifyIconOnline :icon="osIcon(entry.host.osType)" />
+          <span
+            class="server-host-card__dot"
+            :class="
+              metricDotClass(entry.snapshot, entry.host.enabled !== false)
+            "
+          />
+        </div>
+
+        <div class="server-host-card__content">
+          <div class="server-host-card__content-top">
+            <div class="server-host-card__identity">
+              <div class="server-host-card__name">
+                {{ entry.host.serverName || "未命名服务器" }}
+              </div>
+              <div class="server-host-card__address-text">
+                {{ hostAddress(entry.host) }}
+              </div>
+              <div class="server-host-card__meta">
+                {{ osLabel(entry.host.osType) }} /
+                {{ archLabel(entry.host.architecture) }} /
+                {{ serverTypeLabel(entry.host.serverType) }}
+              </div>
+            </div>
+            <span class="server-host-card__latency">
+              {{ formatLatency(entry.snapshot?.latencyMs) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="server-host-card__toolbar" @click.stop>
+          <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
+            <ScButton
+              circle
+              plain
+              size="small"
+              @click="emit('open-soft', entry.host)"
+            >
+              <IconifyIconOnline icon="ri:apps-2-line" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="进程管理" placement="top">
+            <ScButton
+              circle
+              plain
+              size="small"
+              @click="emit('open-processes', entry.host)"
+            >
+              <IconifyIconOnline icon="ri:stack-line" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="文件管理" placement="top">
+            <ScButton
+              circle
+              plain
+              size="small"
+              @click="emit('open-files', entry.host)"
+            >
+              <IconifyIconOnline icon="ri:folder-5-line" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip v-if="canOpenRemote" content="远程控制" placement="top">
+            <ScButton
+              circle
+              plain
+              size="small"
+              @click="emit('open-remote', entry.host)"
+            >
+              <IconifyIconOnline icon="ri:remote-control-line" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="编辑服务器" placement="top">
+            <ScButton
+              circle
+              plain
+              size="small"
+              @click="emit('edit', entry.host)"
+            >
+              <IconifyIconOnline icon="ri:edit-line" />
+            </ScButton>
+          </el-tooltip>
+        </div>
       </div>
     </template>
   </ScCard>
 </template>
 
 <script setup lang="ts">
-
 import { computed } from "vue";
+import ScButton from "@repo/components/ScButton/index.vue";
 import ScCard from "@repo/components/ScCard/index.vue";
 import type { ServerHost } from "../api";
 import type { ServerHostListEntry } from "./server-types";
 import {
+  archLabel,
   formatLatency,
   hostAddress,
   hostAvatarIcon,
@@ -91,12 +176,13 @@ const emit = defineEmits<{
   "open-install": [host: ServerHost];
   "open-remote": [host: ServerHost];
   "open-processes": [host: ServerHost];
+  "open-files": [host: ServerHost];
   "open-projects": [host: ServerHost];
   contextmenu: [event: MouseEvent, entry: ServerHostListEntry];
 }>();
 
-const canOpenRemote = computed(
-  () => Boolean(props.entry.remoteConfig?.enabled),
+const canOpenRemote = computed(() =>
+  Boolean(props.entry.remoteConfig?.enabled),
 );
 </script>
 
@@ -138,7 +224,11 @@ const canOpenRemote = computed(
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 34%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22),
+    transparent 34%
+  );
 }
 
 .server-host-card:hover {
@@ -263,7 +353,7 @@ const canOpenRemote = computed(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
+  min-width: 40px;
   height: 40px;
   border-radius: 12px;
   font-size: 18px;
@@ -272,7 +362,9 @@ const canOpenRemote = computed(
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.28),
     0 8px 16px rgba(15, 23, 42, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .server-host-card:hover .server-host-card__icon {
@@ -352,6 +444,10 @@ const canOpenRemote = computed(
   min-width: 0;
 }
 
+.server-host-card__identity {
+  min-width: 0;
+}
+
 .server-host-card__content-top {
   display: flex;
   align-items: center;
@@ -403,58 +499,6 @@ const canOpenRemote = computed(
   text-overflow: ellipsis;
 }
 
-.server-host-card__quickstrip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.server-host-card__quick {
-  display: grid;
-  gap: 2px;
-  padding: 8px 9px;
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(241, 245, 249, 0.9));
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 64%, transparent);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    0 10px 18px rgba(15, 23, 42, 0.04);
-}
-
-.server-host-card__quick small {
-  color: var(--el-text-color-secondary);
-  font-size: 10px;
-  line-height: 1;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.server-host-card__quick strong {
-  color: var(--el-text-color-primary);
-  font-size: 13px;
-  line-height: 1.1;
-}
-
-.server-host-card__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.server-host-card__summary-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--el-color-primary) 8%, white);
-  color: color-mix(in srgb, var(--el-color-primary) 72%, #0f172a);
-  font-size: 11px;
-  font-weight: 600;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, transparent);
-}
-
 .server-host-card__toolbar {
   position: absolute;
   top: 50%;
@@ -469,8 +513,11 @@ const canOpenRemote = computed(
     transform 0.18s ease;
   padding: 7px;
   border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(248, 250, 252, 0.92)
+  );
   backdrop-filter: blur(16px);
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
   border: 1px solid rgba(148, 163, 184, 0.14);

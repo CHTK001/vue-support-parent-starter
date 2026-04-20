@@ -58,9 +58,10 @@
 
         <ElDivider direction="vertical" />
 
-        <ElTooltip content="软件安装向导">
-          <ElButton circle @click="showInstallWizard = true">
+        <ElTooltip v-if="showInstallButton" content="安装 Nginx">
+          <ElButton type="primary" plain @click="showSpiInstallDialog = true">
             <ElIcon><Download /></ElIcon>
+            安装 Nginx
           </ElButton>
         </ElTooltip>
       </div>
@@ -122,7 +123,46 @@
           </div>
         </div>
 
-        <!-- 第二行：Top IP 表 + 最近请求 -->
+        <!-- 第二行：按天/周/月统计 -->
+        <div class="period-row">
+          <div class="period-card">
+            <div class="period-card__head">
+              <span>近 24 小时</span>
+              <small>Day</small>
+            </div>
+            <strong>{{ formatNum(stats.dailyRequests) }}</strong>
+            <div class="period-card__meta">
+              <span>请求数</span>
+              <span>{{ stats.dailyUniqueIps }} 个独立 IP</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-card__head">
+              <span>近 7 天</span>
+              <small>Week</small>
+            </div>
+            <strong>{{ formatNum(stats.weeklyRequests) }}</strong>
+            <div class="period-card__meta">
+              <span>请求数</span>
+              <span>{{ stats.weeklyUniqueIps }} 个独立 IP</span>
+            </div>
+          </div>
+          <div class="period-card">
+            <div class="period-card__head">
+              <span>近 30 天</span>
+              <small>Month</small>
+            </div>
+            <strong>{{ formatNum(stats.monthlyRequests) }}</strong>
+            <div class="period-card__meta">
+              <span>请求数</span>
+              <span>{{ stats.monthlyUniqueIps }} 个独立 IP</span>
+            </div>
+          </div>
+        </div>
+
+        <NginxSiteTrafficPanel :connection-id="props.connectionId" />
+
+        <!-- 第三行：Top IP 表 + 最近请求 -->
         <div class="dash-row">
           <!-- Top IP 访问排行 -->
           <div class="dash-card dash-card--half">
@@ -204,7 +244,7 @@
                 最近访问记录
               </span>
               <ElTag v-if="stats.stubStatusAvailable" type="success" size="small">stub_status ✓</ElTag>
-              <ElTag v-else type="info" size="small">stub_status 未配置</ElTag>
+              <ElTag v-else type="warning" size="small">log / netstat 回退</ElTag>
             </div>
             <ElScrollbar class="dash-card__scroll">
               <div v-if="!stats.recentRequests?.length" class="dash-card__empty">
@@ -224,7 +264,7 @@
           </div>
         </div>
 
-        <!-- 第三行：stub_status 详情 + 配置状态 -->
+        <!-- 第四行：连接详情 + 配置状态 -->
         <div class="dash-row">
           <div class="dash-card dash-card--third">
             <div class="dash-card__header">
@@ -295,7 +335,7 @@
           </div>
         </div>
 
-        <!-- 第四行：服务状态（原面板 tab 内容） -->
+        <!-- 第五行：服务状态（原面板 tab 内容） -->
         <div class="dash-row dash-row--full">
           <div class="dash-card">
             <div v-if="statusLoading" class="dash-card__empty">
@@ -334,7 +374,16 @@
   </div>
 
   <!-- 安装向导 -->
-  <NginxInstallWizard v-model="showInstallWizard" :connection-id="connectionId" />
+  <NginxSpiInstallDialog
+    v-model="showSpiInstallDialog"
+    :connection-id="props.connectionId"
+    :host="props.host || ''"
+    :port="props.port || 22"
+    :username="props.username || 'root'"
+    :password="props.password"
+    :private-key="props.privateKey"
+    @installed="onSpiInstalled"
+  />
 </template>
 
 <script setup lang="ts">
@@ -380,9 +429,17 @@ import {
   type NginxDashboardStats,
   type NginxStatusResult,
 } from "../../api/nginx";
-import NginxInstallWizard from "./NginxInstallWizard.vue";
+import NginxSiteTrafficPanel from "./NginxSiteTrafficPanel.vue";
+import NginxSpiInstallDialog from "./NginxSpiInstallDialog.vue";
 
-const props = defineProps<{ connectionId: string }>();
+const props = defineProps<{
+  connectionId: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  privateKey?: string;
+}>();
 
 const stats = ref<NginxDashboardStats | null>(null);
 const loading = ref(false);
@@ -392,7 +449,7 @@ const refreshInterval = ref(5000);
 const reloading = ref(false);
 const restarting = ref(false);
 const stopping = ref(false);
-const showInstallWizard = ref(false);
+const showSpiInstallDialog = ref(false);
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 
 // ─── 计算属性 ──────────────────────────────────────────────────────────────────
@@ -407,6 +464,13 @@ const topIpList = computed(() => {
     percent: total > 0 ? (count / total) * 100 : 0,
   }));
 });
+
+const nginxBinaryDetected = computed(() => {
+  const versionText = [stats.value?.version, nginxStatus.value?.version].filter(Boolean).join(" ");
+  return /nginx\/|nginx version/i.test(versionText);
+});
+
+const showInstallButton = computed(() => Boolean(stats.value || nginxStatus.value) && !nginxBinaryDetected.value);
 
 // ─── 数据加载 ──────────────────────────────────────────────────────────────────
 
@@ -449,7 +513,7 @@ const doReload = async () => {
   try {
     await reloadNginx(props.connectionId);
     ElMessage.success("Reload 成功");
-    await load();
+    await Promise.all([load(), loadStatus()]);
   } catch (e: any) {
     ElMessage.error("Reload 失败: " + (e?.message ?? ""));
   } finally {
@@ -462,7 +526,7 @@ const doRestart = async () => {
   try {
     await restartNginx(props.connectionId);
     ElMessage.success("重启成功");
-    await load();
+    await Promise.all([load(), loadStatus()]);
   } catch (e: any) {
     ElMessage.error("重启失败: " + (e?.message ?? ""));
   } finally {
@@ -478,7 +542,7 @@ const doStop = async () => {
     stopping.value = true;
     await stopNginx(props.connectionId);
     ElMessage.success("已停止");
-    await load();
+    await Promise.all([load(), loadStatus()]);
   } catch { /* 取消 */ } finally {
     stopping.value = false;
   }
@@ -511,7 +575,6 @@ const getLogClass = (line: string) => {
   return "";
 };
 
-onMounted(load);
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer);
 });
@@ -540,6 +603,11 @@ const loadStatus = async () => {
 
 // 初始化时同时加载状态
 onMounted(() => { load(); loadStatus(); });
+
+const onSpiInstalled = async () => {
+  showSpiInstallDialog.value = false;
+  await Promise.all([load(), loadStatus()]);
+};
 </script>
 
 <style scoped lang="scss">
@@ -624,6 +692,59 @@ onMounted(() => { load(); loadStatus(); });
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 12px;
+}
+
+.period-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.period-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.08), transparent 55%),
+    linear-gradient(180deg, #ffffff, #f8fafc);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+}
+
+.period-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.period-card__head small {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.period-card strong {
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.period-card__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #64748b;
+  font-size: 12px;
 }
 
 .metric-card {
@@ -913,6 +1034,7 @@ onMounted(() => { load(); loadStatus(); });
 
 @media (max-width: 1200px) {
   .metric-row { grid-template-columns: repeat(3, 1fr); }
+  .period-row { grid-template-columns: 1fr; }
   .dash-row { grid-template-columns: 1fr; }
   .dash-row:last-child { grid-template-columns: 1fr; }
 }

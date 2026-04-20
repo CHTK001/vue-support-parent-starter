@@ -38,6 +38,13 @@ export interface NginxLocationBlock {
   // 重定向
   returnCode?: string;
   returnUrl?: string;
+  // 访问控制
+  allowList?: string[];
+  denyList?: string[];
+  // 限流
+  limitReqZone?: string;
+  limitReqBurst?: string;
+  limitReqNoDelay?: boolean;
   // 通用
   addHeader?: string[];
   // 自定义
@@ -53,6 +60,7 @@ export interface NginxServerBlock {
   index?: string;
   sslCertificate?: string;
   sslCertificateKey?: string;
+  accessLog?: string;
   locations?: NginxLocationBlock[];
   configPath?: string;
 }
@@ -85,11 +93,99 @@ export interface NginxDashboardStats {
   analyzedLines: number;
   uniqueIps: number;
   requestsPerMinute: number;
+  dailyRequests: number;
+  dailyUniqueIps: number;
+  weeklyRequests: number;
+  weeklyUniqueIps: number;
+  monthlyRequests: number;
+  monthlyUniqueIps: number;
   // 服务状态
   version: string;
   pid: string;
   running: boolean;
   configOk: boolean;
+}
+
+export interface NginxSiteIpTraffic {
+  ip: string;
+  requests: number;
+  percent: number;
+}
+
+export interface NginxSiteTraffic {
+  siteKey: string;
+  siteName: string;
+  logPath: string;
+  requests: number;
+  uniqueIps: number;
+  qps: number;
+  tps: number;
+  topIps: NginxSiteIpTraffic[];
+}
+
+export interface NginxTrafficPoint {
+  label: string;
+  requests: number;
+}
+
+export interface NginxTrafficTrend {
+  siteKey: string;
+  siteName: string;
+  ip: string;
+  granularity: "minute" | "hour" | "day" | string;
+  points: NginxTrafficPoint[];
+}
+
+export interface SoftPackageSummary {
+  softPackageId?: number;
+  packageCode?: string;
+  packageName?: string;
+}
+
+export interface SoftPackageVersionSummary {
+  softPackageVersionId?: number;
+  versionCode?: string;
+  versionName?: string;
+}
+
+export interface SoftPackageDetail {
+  package: SoftPackageSummary;
+  versions: SoftPackageVersionSummary[];
+}
+
+export interface SoftTargetPayload {
+  softTargetId?: number;
+  targetName: string;
+  targetCode: string;
+  targetType: "LOCAL" | "SSH" | "WINRM";
+  osType?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  privateKey?: string;
+  baseDirectory?: string;
+  enabled?: boolean;
+  description?: string;
+  metadataJson?: string;
+}
+
+export interface SoftInstallRequest {
+  softPackageId: number;
+  softPackageVersionId: number;
+  softTargetId: number;
+  installationName?: string;
+  installPath?: string;
+  serviceName?: string;
+  installOptions?: Record<string, any>;
+  serviceOptions?: Record<string, any>;
+  configOptions?: Record<string, any>;
+}
+
+export interface SoftOperationTicket {
+  operationId: number;
+  installationId?: number;
+  operationStatus?: string;
 }
 
 // ─── 连接管理 ──────────────────────────────────────────────────────────────────
@@ -184,6 +280,39 @@ export const fetchNginxDashboard = (
     headers: silent ? { "x-remote-animation": "false" } : undefined,
   });
 
+export const fetchNginxSiteTraffic = (connectionId: string, topN = 10) =>
+  http.request<ReturnResult<NginxSiteTraffic[]>>("get", `${BASE(connectionId)}/traffic/sites`, {
+    params: { topN },
+  });
+
+export const fetchNginxTrafficTrend = (
+  connectionId: string,
+  siteKey: string,
+  ip: string,
+  granularity: "minute" | "hour" | "day" = "minute",
+) =>
+  http.request<ReturnResult<NginxTrafficTrend>>("get", `${BASE(connectionId)}/traffic/trend`, {
+    params: { siteKey, ip, granularity },
+  });
+
+export const listSoftPackages = () =>
+  http.request<ReturnResult<SoftPackageSummary[]>>("get", "/soft/packages");
+
+export const getSoftPackageDetail = (packageId: number) =>
+  http.request<ReturnResult<SoftPackageDetail>>("get", `/soft/packages/${packageId}`);
+
+export const listSoftTargets = () =>
+  http.request<ReturnResult<SoftTargetPayload[]>>("get", "/soft/targets");
+
+export const createSoftTarget = (payload: SoftTargetPayload) =>
+  http.request<ReturnResult<SoftTargetPayload>>("post", "/soft/targets", { data: payload });
+
+export const updateSoftTarget = (targetId: number, payload: SoftTargetPayload) =>
+  http.request<ReturnResult<SoftTargetPayload>>("put", `/soft/targets/${targetId}`, { data: payload });
+
+export const installSoftPackage = (payload: SoftInstallRequest) =>
+  http.request<ReturnResult<SoftOperationTicket>>("post", "/soft/installations", { data: payload });
+
 // ─── 兼容旧接口 ────────────────────────────────────────────────────────────────
 
 export const listNginxSites = (connectionId: string) =>
@@ -196,7 +325,7 @@ export const executeNginxScript = (connectionId: string, script: string) =>
     data: { script },
   });
 
-// ─── 项目管理 API 工厂（basePath 指向 /v1/server/project/{connectionId}） ─────────
+// ─── 项目管理 API 工厂（basePath 指向 /v2/project/{sysProjectId}/remote） ─────────
 
-export const createPanelProjectApi = (connectionId: string) =>
-  createRemoteApi(`/v1/server/project/${connectionId}`);
+export const createPanelProjectApi = (sysProjectId: string | number) =>
+  createRemoteApi(`/v2/project/${sysProjectId}/remote`);

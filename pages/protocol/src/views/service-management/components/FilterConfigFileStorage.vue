@@ -114,20 +114,15 @@
                     </label>
                     <ScSelect
                       v-model="imageSettingSelection"
+                      :options="imageSettingSelectOptions"
+                      layout="select"
                       multiple
                       filterable
                       allow-create
                       default-first-option
                       placeholder="选择或自定义参数"
                       class="config-select"
-                    >
-                      <ScOption
-                        v-for="opt in imageSettingOptions"
-                        :key="opt.name"
-                        :label="opt.describe || opt.name"
-                        :value="opt.name"
-                      />
-                    </ScSelect>
+                    />
                   </div>
                   <div class="config-item" v-if="global.openPlugin">
                     <label class="config-label">
@@ -136,20 +131,15 @@
                     </label>
                     <ScSelect
                       v-model="imageFilterSelection"
+                      :options="imageFilterSelectOptions"
+                      layout="select"
                       multiple
                       filterable
                       allow-create
                       default-first-option
                       placeholder="选择或自定义插件"
                       class="config-select"
-                    >
-                      <ScOption
-                        v-for="opt in imageFilterOptions"
-                        :key="opt.name"
-                        :label="opt.describe || opt.name"
-                        :value="opt.name"
-                      />
-                    </ScSelect>
+                    />
                   </div>
                 </div>
               </div>
@@ -252,7 +242,11 @@
                   <IconifyIconOnline icon="ri:add-line" />
                   新增存储
                 </ScButton>
-                <ScButton size="small" @click="openFullPreview">
+                <ScButton
+                  v-if="isServerRunning"
+                  size="small"
+                  @click="openFullPreview"
+                >
                   <IconifyIconOnline icon="ri:eye-line" />
                   预览
                 </ScButton>
@@ -304,10 +298,7 @@
               <!-- 路径信息 -->
               <div class="storage-path">
                 <IconifyIconOnline icon="ri:folder-line" class="path-icon" />
-                <span
-                  v-if="s.fileStorageType === 'FILESYSTEM'"
-                  class="path-text"
-                >
+                <span v-if="isLocalStorageType(s.fileStorageType)" class="path-text">
                   {{ s.fileStorageEndpoint || "未配置路径" }}
                 </span>
                 <span v-else class="path-text">
@@ -318,7 +309,11 @@
 
               <!-- 操作按钮 -->
               <div class="storage-actions">
-                <el-tooltip content="预览文件" placement="top">
+                <el-tooltip
+                  v-if="isServerRunning"
+                  content="预览文件"
+                  placement="top"
+                >
                   <ScButton
                     circle
                     size="small"
@@ -429,10 +424,13 @@
               <div v-else class="file-image-view">
                 <div v-for="it in previewItems" :key="it.id" class="image-item">
                   <el-image
-                    :src="it.url"
+                    :src="getPreviewImageUrl(it)"
                     fit="cover"
                     lazy
-                    :preview-src-list="[it.url]"
+                    :preview-src-list="
+                      isImagePreviewItem(it) ? previewImageUrlList : []
+                    "
+                    :initial-index="getImagePreviewIndex(it)"
                   >
                     <template #error>
                       <div class="image-error">
@@ -466,7 +464,7 @@
                   >
                     <IconifyIconOnline icon="ri:arrow-right-s-line" />
                   </ScButton>
-                <el-button-group>
+                </ScButton-group>
                 <ScSelect
                   v-model="pager.limit"
                   size="small"
@@ -502,18 +500,18 @@
               class="storage-form"
             >
               <!-- 根据存储类型显示不同的配置项 -->
-              <template v-if="currentStorage.fileStorageType === 'FILESYSTEM'">
+              <template v-if="isLocalStorageType(currentStorage.fileStorageType)">
                 <el-form-item label="根路径" prop="fileStorageEndpoint">
-                  <div class="dir-picker">
-                    <DirectorySelector
-                      v-model="currentStorage.fileStorageEndpoint"
-                    />
-                  </div>
-                </el-form-item>
-                <el-form-item label="基础路径" prop="fileStorageBasePath">
                   <el-input
-                    v-model="currentStorage.fileStorageBasePath"
-                    placeholder="相对于根路径的基础路径，如: /uploads"
+                    v-model="currentStorage.fileStorageEndpoint"
+                    placeholder="请输入服务器本地根路径，如: H:\\data\\storage"
+                  />
+                </el-form-item>
+
+                <el-form-item label="存储桶" prop="fileStorageBucket">
+                  <el-input
+                    v-model="currentStorage.fileStorageBucket"
+                    placeholder="存储桶名称"
                   />
                 </el-form-item>
               </template>
@@ -524,18 +522,6 @@
                     v-model="currentStorage.fileStorageEndpoint"
                     placeholder="https://endpoint"
                   />
-                  <div class="form-tip">
-                    <IconifyIconOnline icon="ri:information-line" />
-                    <span v-if="currentStorage.fileStorageType === 'S3'"
-                      >AWS S3 端点，如: https://s3.amazonaws.com</span>
-                    <span v-else-if="currentStorage.fileStorageType === 'MINIO'"
-                      >MinIO 服务端点，如: http://localhost:9000</span>
-                    <span
-                      v-else-if="currentStorage.fileStorageType === 'ALIYUN'"
-                      >阿里云 OSS 端点，如:
-                      https://oss-cn-hangzhou.aliyuncs.com</span>
-                    <span v-else>对象存储服务端点地址</span>
-                  </div>
                 </el-form-item>
 
                 <el-form-item label="存储桶" prop="fileStorageBucket">
@@ -543,10 +529,6 @@
                     v-model="currentStorage.fileStorageBucket"
                     placeholder="存储桶名称"
                   />
-                  <div class="form-tip">
-                    <IconifyIconOnline icon="ri:information-line" />
-                    存储桶名称，用于组织和管理文件
-                  </div>
                 </el-form-item>
 
                 <el-form-item label="访问密钥" prop="fileStorageAccessKey">
@@ -577,14 +559,6 @@
                     v-model="currentStorage.fileStorageRegion"
                     placeholder="区域代码，如: us-east-1"
                   />
-                  <div class="form-tip">
-                    <IconifyIconOnline icon="ri:information-line" />
-                    <span v-if="currentStorage.fileStorageType === 'S3'"
-                      >AWS 区域，如: us-east-1, eu-west-1</span>
-                    <span
-                      v-else-if="currentStorage.fileStorageType === 'ALIYUN'"
-                      >阿里云区域，如: oss-cn-hangzhou, oss-cn-beijing</span>
-                  </div>
                 </el-form-item>
 
                 <el-form-item label="基础路径" prop="fileStorageBasePath">
@@ -592,10 +566,6 @@
                     v-model="currentStorage.fileStorageBasePath"
                     placeholder="存储桶内的基础路径，如: /app/uploads"
                   />
-                  <div class="form-tip">
-                    <IconifyIconOnline icon="ri:information-line" />
-                    在存储桶内的基础路径前缀，用于文件分类管理
-                  </div>
                 </el-form-item>
               </template>
 
@@ -606,10 +576,6 @@
                   active-text="启用"
                   inactive-text="禁用"
                 />
-                <div class="form-tip">
-                  <IconifyIconOnline icon="ri:information-line" />
-                  禁用后该存储配置将不会被使用
-                </div>
               </el-form-item>
             </el-form>
           </div>
@@ -631,12 +597,7 @@
 <script setup lang="ts">
 import { fileStorageList } from "@/api/file-manager/file-storage";
 import { fetchOptionObjectsList } from "@/api/spi";
-import {
-  getSystemDirectories,
-  getSystemDrives,
-  type DirectoryInfo,
-  type DriveInfo,
-} from "@/api/system-info";
+import type { SystemServer } from "@/api/system-server";
 import {
   deleteFileStorageById,
   deleteFileStorageConfig,
@@ -648,7 +609,6 @@ import {
   updateServletFilterConfig,
   type FileStorageConfig,
 } from "@/api/system-server-setting";
-import { SystemDirectorySelector as DirectorySelector } from "@pages/system";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import { message } from "@repo/utils";
 import { ElMessageBox,
@@ -661,6 +621,7 @@ interface Props {
   visible: boolean;
   serverId: number;
   filterSettingId?: number;
+  server?: SystemServer;
 }
 const props = defineProps<Props>();
 const emit = defineEmits<{ "update:visible": [boolean]; success: [] }>();
@@ -679,6 +640,47 @@ type SpiOption = {
   label?: string;
 };
 const typeOptions = ref<SpiOption[]>([]);
+const SPI_FILE_STORAGE_TYPES = [
+  "fileStorage",
+  "com.chua.common.support.storage.oss.FileStorage",
+  "FileStorage",
+];
+const SPI_IMAGE_SETTING_TYPES = [
+  "com.chua.common.support.network.protocol.storage.image.ImageSettingProcessor",
+  "ImageSettingProcessor",
+  "imageSettingProcessor",
+];
+const SPI_IMAGE_FILTER_TYPES = [
+  "com.chua.common.support.image.filter.ImageFilter",
+  "ImageFilter",
+  "fileStoragePlugin",
+];
+const DEFAULT_IMAGE_SETTING_OPTIONS = [
+  "url",
+  "format",
+  "rotate",
+  "thumbnail",
+  "quality",
+  "gray",
+  "charset",
+  "can",
+  "limit",
+];
+
+function normalizeStorageType(type?: string): string {
+  const normalized = String(type || "")
+    .trim()
+    .toUpperCase();
+  return normalized === "LOCAL" ? "FILESYSTEM" : normalized;
+}
+
+function isLocalStorageType(type?: string): boolean {
+  return normalizeStorageType(type) === "FILESYSTEM";
+}
+
+const isServerRunning = computed(
+  () => String(props.server?.systemServerStatus || "").toUpperCase() === "RUNNING"
+);
 
 // 全局设置默认值
 const global = ref({
@@ -728,8 +730,47 @@ const imageSettingOptions = ref<SpiOption[]>([]);
 const imageFilterOptions = ref<SpiOption[]>([]);
 const imageSettingSelection = ref<string[]>([]);
 const imageFilterSelection = ref<string[]>([]);
+const suppressSelectionSync = ref(false);
+const imageSettingSelectOptions = computed(() =>
+  imageSettingOptions.value.map((opt) => ({
+    label: opt.describe || opt.label || opt.name,
+    value: opt.name,
+  }))
+);
+const imageFilterSelectOptions = computed(() =>
+  imageFilterOptions.value.map((opt) => ({
+    label: opt.describe || opt.label || opt.name,
+    value: opt.name,
+  }))
+);
+
+function parseSelectionList(value?: string): string[] {
+  return String(value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function injectSelectedOptions(target: SpiOption[], selected: string[]) {
+  const existing = new Set(target.map((it) => it.name));
+  for (const name of selected) {
+    if (!existing.has(name)) {
+      target.push({ name, describe: name });
+      existing.add(name);
+    }
+  }
+}
+
+function syncSelectionsFromGlobal() {
+  imageSettingSelection.value = parseSelectionList(global.value.settingsStr);
+  imageFilterSelection.value = parseSelectionList(global.value.pluginsStr);
+  injectSelectedOptions(imageSettingOptions.value, imageSettingSelection.value);
+  injectSelectedOptions(imageFilterOptions.value, imageFilterSelection.value);
+}
+
 // 处理选中变化
 function applySelectionsToGlobal() {
+  if (suppressSelectionSync.value) return;
   if (global.value.openSetting) {
     global.value.settingsStr = imageSettingSelection.value.join(",");
   }
@@ -739,9 +780,26 @@ function applySelectionsToGlobal() {
 }
 
 watch(
-  [imageSettingSelection, imageFilterSelection, () => global.value.openPlugin],
+  [
+    imageSettingSelection,
+    imageFilterSelection,
+    () => global.value.openSetting,
+    () => global.value.openPlugin,
+  ],
   () => {
     applySelectionsToGlobal();
+  }
+);
+
+watch(
+  [() => global.value.openSetting, () => global.value.openPlugin],
+  async ([openSetting, openPlugin], [prevOpenSetting, prevOpenPlugin]) => {
+    if (!visibleInner.value) return;
+    const activateSetting = openSetting && !prevOpenSetting;
+    const activatePlugin = openPlugin && !prevOpenPlugin;
+    if (activateSetting || activatePlugin) {
+      await loadOptionalProviderOptions();
+    }
   }
 );
 
@@ -763,10 +821,13 @@ function formRules(s: FileStorageConfig): FormRules {
   };
 
   // 根据存储类型设置不同的验证规则
-  if (s.fileStorageType === "FILESYSTEM") {
+  if (isLocalStorageType(s.fileStorageType)) {
     // 文件系统类型只需要根路径
     common.fileStorageEndpoint = [
       { required: true, message: "请选择根目录", trigger: "blur" },
+    ];
+     common.fileStorageBucket = [
+      { required: true, message: "请输入存储桶名称", trigger: "blur" },
     ];
   } else {
     // 对象存储类型需要端点、存储桶、访问密钥等
@@ -791,7 +852,7 @@ const getIcon = (type) => {
   if (!type) {
     return "ri:file-line";
   }
-  if (type === "FILESYSTEM") {
+  if (isLocalStorageType(type)) {
     return "ri:computer-line";
   }
 
@@ -851,13 +912,17 @@ function selectStorage(idx: number) {
 }
 
 function newStorage(): FileStorageConfig {
+  const preferredType =
+    typeOptions.value.length > 0
+      ? normalizeStorageType(typeOptions.value[0].name || typeOptions.value[0].value)
+      : "FILESYSTEM";
   return {
     fileStorageServerId: props.serverId,
     fileStorageEnabled: true,
-    fileStorageType: "FILESYSTEM",
+    fileStorageType: preferredType,
     fileStorageBasePath: "",
     fileStorageEndpoint: "",
-    fileStorageBucket: "",
+    fileStorageBucket: "local",
     fileStorageAccessKey: "",
     fileStorageSecretKey: "",
     fileStorageRegion: "",
@@ -870,6 +935,83 @@ const rightPreview = ref({
   mode: "list" as "list" | "card" | "image",
 });
 const previewItems = ref<any[]>([]);
+const IMAGE_EXTENSIONS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "bmp",
+  "webp",
+  "svg",
+  "avif",
+]);
+const currentPreviewStorage = computed(() =>
+  selectedIndex.value != null ? storages.value[selectedIndex.value] : storages.value[0]
+);
+const previewImageItems = computed(() =>
+  (previewItems.value || []).filter((it) => isImagePreviewItem(it))
+);
+const previewImageUrlList = computed(() =>
+  previewImageItems.value
+    .map((it) => getPreviewImageUrl(it))
+    .filter((url) => !!url)
+);
+
+function isImagePreviewItem(it: any): boolean {
+  const ext = String(it?.ext || "")
+    .trim()
+    .toLowerCase();
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
+function normalizePath(path?: string): string {
+  const normalized = String(path || "").replace(/\\+/g, "/");
+  if (!normalized) return "/";
+  return normalized.startsWith("/") ? normalized : `/${normalized}`;
+}
+
+function joinPath(parent?: string, name?: string): string {
+  const p = normalizePath(parent).replace(/\/+$/, "");
+  const n = String(name || "").trim().replace(/^\/+/, "");
+  if (!n) return p || "/";
+  return `${p || ""}/${n}` || "/";
+}
+
+function getServerAccessBaseUrl(): string {
+  const rawHost = String(props.server?.systemServerHost || "127.0.0.1").trim();
+  const host = !rawHost || rawHost === "0.0.0.0" ? "127.0.0.1" : rawHost;
+  const port = Number(props.server?.systemServerPort || 0);
+  if (!port) return "";
+  return `http://${host}:${port}`;
+}
+
+function getPreviewImageUrl(it: any): string {
+  const directUrl = String(it?.url || "").trim();
+  if (directUrl) return directUrl;
+
+  const s = currentPreviewStorage.value;
+  if (!s) return "";
+
+  const base = getServerAccessBaseUrl();
+  if (!base) return "";
+
+  const bucket = String(s.fileStorageBucket || "")
+    .trim()
+    .replace(/^\/+/, "");
+  if (!bucket) return "";
+
+  const filePath = String(it?.filePath || it?.parentPath || s.fileStorageBasePath || "/");
+  const fullPath = joinPath(filePath, it?.name).replace(/^\/+/, "");
+  const urlPath = `${bucket}/${fullPath}`.replace(/\/+/g, "/");
+  return `${base}/${urlPath}`;
+}
+
+function getImagePreviewIndex(it: any): number {
+  const targetUrl = getPreviewImageUrl(it);
+  if (!targetUrl) return 0;
+  const idx = previewImageUrlList.value.findIndex((url) => url === targetUrl);
+  return idx >= 0 ? idx : 0;
+}
 
 // 预览模式选项
 const previewModeOptions = [
@@ -1032,12 +1174,14 @@ function goNextPage() {
 }
 
 function previewStorage(idx: number) {
+  if (!isServerRunning.value) return;
   selectedIndex.value = idx;
   rightPreview.value.visible = true;
   fetchPreviewItems();
 }
 
 async function openFullPreview() {
+  if (!isServerRunning.value) return;
   if (storages.value.length === 0) {
     ElMessageBox.alert("请先添加一个文件存储配置", "提示");
     return;
@@ -1118,6 +1262,7 @@ async function fetchPreviewItems() {
       size: it.size || it.fileSize || it.length || "",
       modified: it.modified || it.lastModified || it.updateTime || "",
       ext: it.ext || it.suffix || "",
+      filePath: it.filePath || it.parentPath || basePath || "/",
       url: it.url || it.previewUrl || it.downloadUrl || "",
     }));
     previewItems.value = mapped;
@@ -1189,40 +1334,46 @@ async function loadGlobal() {
   if (!props.filterSettingId) return;
   const res = await getServletFilterConfig(props.filterSettingId);
   if (res.success && res.data) {
-    const cfg = res.data as any;
-    global.value.openDownload = cfg.openDownload == "true";
-    global.value.openPreview = cfg.openPreview == "true";
-    global.value.openPlugin = cfg.openPlugin == "true";
-    global.value.openSetting = cfg.openSetting == "true";
-    global.value.openRange = cfg.openRange == "true";
-    global.value.openWatermark = cfg.openWatermark == "true";
-    global.value.openWebjars = cfg.openWebjars == "true";
-    global.value.openRemoteFile = cfg.openRemoteFile == "true";
-    // 处理 plugins：可能是数组、"[XXX]" 字符串或逗号分隔字符串
-    const pluginsStr = parseArrayOrString(cfg.plugins) || cfg.pluginsStr || "";
-    // 解析 plugins 中是否包含 format，设置 openFormat 开关
-    const pluginsArr = pluginsStr
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    global.value.openFormat = pluginsArr.includes("format");
-    // 从 pluginsStr 中移除 format，因为它由独立开关控制
-    global.value.pluginsStr = pluginsArr
-      .filter((s) => s !== "format")
-      .join(",");
-    global.value.downloadUserAgentStr = Array.isArray(cfg.downloadUserAgent)
-      ? cfg.downloadUserAgent.join(",")
-      : cfg.downloadUserAgentStr || "";
-    // 处理 settings：可能是数组、"[GRAY,OTHER]" 字符串或逗号分隔字符串
-    global.value.settingsStr =
-      parseArrayOrString(cfg.settings) || cfg.settingsStr || "";
-    global.value.watermark = cfg.watermark || "";
-    global.value.watermarkColor = cfg.watermarkColor || "";
-    global.value.watermarkX = Number(cfg.watermarkX ?? 0);
-    global.value.watermarkY = Number(cfg.watermarkY ?? 0);
-    global.value.formatCacheTimeMinutes = Number(
-      cfg.formatCacheTimeMinutes ?? 1440
-    );
+    suppressSelectionSync.value = true;
+    try {
+      const cfg = res.data as any;
+      global.value.openDownload = cfg.openDownload == "true";
+      global.value.openPreview = cfg.openPreview == "true";
+      global.value.openPlugin = cfg.openPlugin == "true";
+      global.value.openSetting = cfg.openSetting == "true";
+      global.value.openRange = cfg.openRange == "true";
+      global.value.openWatermark = cfg.openWatermark == "true";
+      global.value.openWebjars = cfg.openWebjars == "true";
+      global.value.openRemoteFile = cfg.openRemoteFile == "true";
+      // 处理 plugins：可能是数组、"[XXX]" 字符串或逗号分隔字符串
+      const pluginsStr = parseArrayOrString(cfg.plugins) || cfg.pluginsStr || "";
+      // 解析 plugins 中是否包含 format，设置 openFormat 开关
+      const pluginsArr = pluginsStr
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      global.value.openFormat = pluginsArr.includes("format");
+      // 从 pluginsStr 中移除 format，因为它由独立开关控制
+      global.value.pluginsStr = pluginsArr
+        .filter((s) => s !== "format")
+        .join(",");
+      global.value.downloadUserAgentStr = Array.isArray(cfg.downloadUserAgent)
+        ? cfg.downloadUserAgent.join(",")
+        : cfg.downloadUserAgentStr || "";
+      // 处理 settings：可能是数组、"[GRAY,OTHER]" 字符串或逗号分隔字符串
+      global.value.settingsStr =
+        parseArrayOrString(cfg.settings) || cfg.settingsStr || "";
+      global.value.watermark = cfg.watermark || "";
+      global.value.watermarkColor = cfg.watermarkColor || "";
+      global.value.watermarkX = Number(cfg.watermarkX ?? 0);
+      global.value.watermarkY = Number(cfg.watermarkY ?? 0);
+      global.value.formatCacheTimeMinutes = Number(
+        cfg.formatCacheTimeMinutes ?? 1440
+      );
+      syncSelectionsFromGlobal();
+    } finally {
+      suppressSelectionSync.value = false;
+    }
   }
 }
 
@@ -1281,7 +1432,17 @@ async function loadConfigItems() {
               typeof o === "string" ? o : (o?.value ?? o?.label)
             )
             .filter(Boolean);
-          if (opts.length > 0) typeOptions.value = Array.from(new Set(opts));
+          if (opts.length > 0) {
+            const unique = Array.from(
+              new Set(opts.map((v: string) => normalizeStorageType(v)))
+            );
+            typeOptions.value = unique.map((name) => ({
+              name,
+              value: name,
+              label: name,
+              describe: name,
+            }));
+          }
         }
         if (String(name).toLowerCase() === "settings") {
           const defaults = Array.isArray(it.defaultValue)
@@ -1301,24 +1462,30 @@ async function loadConfigItems() {
 // 通过 SPI 获取 com.chua.common.support.oss.FileStorage 的类型选项
 async function loadTypeOptionsFromSpi() {
   try {
-    const res = await fetchOptionObjectsList({ type: "fileStorage" });
-    if (res?.success) {
-      const list = (res.data || [])
-        .map((it: any) => {
-          if (typeof it === "string") return { name: it } as SpiOption;
-          return {
-            name: it?.name ?? it?.value ?? it?.label,
-            value: it?.name,
-            icon: getIcon(it?.name),
-            describe: it?.describe ?? it?.label,
-          } as SpiOption;
-        })
-        .filter((it: SpiOption) => !!it.name);
-      if (list.length > 0) {
-        const seen = new Set<string>();
-        typeOptions.value = list.filter((it) =>
-          seen.has(it.name) ? false : (seen.add(it.name), true)
-        );
+    for (const spiType of SPI_FILE_STORAGE_TYPES) {
+      const res = await fetchOptionObjectsList({ type: spiType });
+      if (res?.success) {
+        const list = (res.data || [])
+          .map((it: any) => {
+            const rawName =
+              typeof it === "string" ? it : (it?.name ?? it?.value ?? it?.label);
+            const name = normalizeStorageType(rawName);
+            return {
+              name,
+              value: name,
+              icon: getIcon(name),
+              describe: it?.describe ?? it?.label ?? name,
+              label: it?.label ?? name,
+            } as SpiOption;
+          })
+          .filter((it: SpiOption) => !!it.name);
+        if (list.length > 0) {
+          const seen = new Set<string>();
+          typeOptions.value = list.filter((it) =>
+            seen.has(it.name) ? false : (seen.add(it.name), true)
+          );
+          return;
+        }
       }
     }
   } catch {}
@@ -1326,60 +1493,57 @@ async function loadTypeOptionsFromSpi() {
 
 async function loadOptionalProviderOptions() {
   try {
-    const [settingRes, filterRes] = await Promise.all([
-      fetchOptionObjectsList({ type: "ImageSettingProcessor" }),
-      fetchOptionObjectsList({ type: "fileStoragePlugin" }),
+    const loadSpiOptions = async (types: string[]) => {
+      for (const spiType of types) {
+        const res = await fetchOptionObjectsList({ type: spiType });
+        if (!res?.success) continue;
+        const raw = res.data || [];
+        const list = raw
+          .map((it: any) =>
+            typeof it === "string"
+              ? { name: it }
+              : {
+                  name: it?.name ?? it?.value ?? it?.label,
+                  describe: it?.describe ?? it?.label,
+                }
+          )
+          .filter((it: any) => !!it.name);
+        if (list.length > 0) {
+          const seen = new Set<string>();
+          return list.filter((it: any) =>
+            seen.has(it.name) ? false : (seen.add(it.name), true)
+          );
+        }
+      }
+      return [];
+    };
+
+    const [settingList, filterList] = await Promise.all([
+      loadSpiOptions(SPI_IMAGE_SETTING_TYPES),
+      loadSpiOptions(SPI_IMAGE_FILTER_TYPES),
     ]);
-    if (settingRes?.success) {
-      const raw = settingRes.data || [];
-      const list = raw
-        .map((it: any) =>
-          typeof it === "string"
-            ? { name: it }
-            : {
-                name: it?.name ?? it?.value ?? it?.label,
-                describe: it?.describe ?? it?.label,
-              }
-        )
-        .filter((it: any) => !!it.name);
-      const seen = new Set<string>();
-      imageSettingOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true)
-      );
+
+    if (settingList.length > 0) {
+      imageSettingOptions.value = settingList;
+    } else {
+      imageSettingOptions.value = DEFAULT_IMAGE_SETTING_OPTIONS.map((name) => ({
+        name,
+        describe: name,
+      }));
     }
-    if (filterRes?.success) {
-      const raw = filterRes.data || [];
-      const list = raw
-        .map((it: any) =>
-          typeof it === "string"
-            ? { name: it }
-            : {
-                name: it?.name ?? it?.value ?? it?.label,
-                describe: it?.describe ?? it?.label,
-              }
-        )
-        .filter((it: any) => !!it.name);
-      const seen = new Set<string>();
-      imageFilterOptions.value = list.filter((it: any) =>
-        seen.has(it.name) ? false : (seen.add(it.name), true)
-      );
+    if (filterList.length > 0) {
+      imageFilterOptions.value = filterList;
+    } else {
+      imageFilterOptions.value = [];
     }
-    if (global.value.settingsStr)
-      imageSettingSelection.value = global.value.settingsStr
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    if (global.value.pluginsStr)
-      imageFilterSelection.value = global.value.pluginsStr
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+    syncSelectionsFromGlobal();
   } catch {}
 }
 
-function onAddClick() {
+async function onAddClick() {
   // 关闭预览模式，显示配置表单
   rightPreview.value.visible = false;
+  await loadTypeOptionsFromSpi();
   addStorage();
   nextTick(() => {
     selectedIndex.value = storages.value.length - 1;
@@ -1387,7 +1551,20 @@ function onAddClick() {
 }
 
 function toPayload(s: any) {
-  return { ...s, fileStorageServerId: props.serverId } as FileStorageConfig;
+  const normalizedType = normalizeStorageType(s?.fileStorageType);
+  const payload: FileStorageConfig = {
+    ...s,
+    fileStorageServerId: props.serverId,
+    fileStorageType: normalizedType,
+  };
+  if (isLocalStorageType(normalizedType)) {
+    payload.fileStorageBucket =
+      String(payload.fileStorageBucket || "").trim() || "local";
+    payload.fileStorageAccessKey = "local";
+    payload.fileStorageSecretKey = "local";
+    payload.fileStorageRegion = "";
+  }
+  return payload;
 }
 
 async function handleSave() {
@@ -1399,18 +1576,31 @@ async function handleSave() {
   // 简单校验所有存储项必要字段
   for (let i = 0; i < storages.value.length; i++) {
     const s = storages.value[i];
+    s.fileStorageType = normalizeStorageType(s.fileStorageType);
     if (!s.fileStorageType) {
       message.error(`存储 #${i + 1} 未选择类型`);
       return;
     }
-    if (s.fileStorageType === "LOCAL") {
-      if (!s.fileStorageBasePath) {
+    if (isLocalStorageType(s.fileStorageType)) {
+      if (!s.fileStorageEndpoint) {
         message.error(`存储 #${i + 1} 请填写根路径`);
         return;
       }
     } else {
       if (!s.fileStorageEndpoint) {
-        message.error(`存储 #${i + 1} 请完整填写 Endpoint/Bucket`);
+        message.error(`存储 #${i + 1} 请填写 Endpoint`);
+        return;
+      }
+      if (!s.fileStorageBucket) {
+        message.error(`存储 #${i + 1} 请填写 Bucket`);
+        return;
+      }
+      if (!s.fileStorageAccessKey) {
+        message.error(`存储 #${i + 1} 请填写 AccessKeyId`);
+        return;
+      }
+      if (!s.fileStorageSecretKey) {
+        message.error(`存储 #${i + 1} 请填写 SecretKey`);
         return;
       }
     }
@@ -1470,79 +1660,14 @@ const currentStorage = computed(() =>
   selectedIndex.value != null ? storages.value[selectedIndex.value] : null
 );
 
-// 本地目录选择（仅 LOCAL 类型使用）
-const dirSelection = ref<string | undefined>(undefined);
-const dirOptions = ref<any[]>([]);
-const dirProps = {
-  value: "path",
-  label: "name",
-  children: "children",
-  emitPath: false,
-  checkStrictly: true,
-  lazy: true,
-  async lazyLoad(node: any, resolve: (nodes: any[]) => void) {
-    try {
-      if (node.level === 0) {
-        const res = await getSystemDrives();
-        const list = (res.data || []).map((d: DriveInfo) => ({
-          path: d.path,
-          name: d.name,
-          leaf: false,
-        }));
-        resolve(list);
-      } else {
-        const res = await getSystemDirectories(node.data.path, false);
-        const list = (res.data || []).map((d: DirectoryInfo) => ({
-          path: d.path,
-          name: d.name,
-          leaf: false,
-        }));
-        resolve(list);
-      }
-    } catch {
-      resolve([]);
-    }
-  },
-};
-
-async function ensureDrivesLoaded() {
-  if (dirOptions.value.length > 0) return;
-  try {
-    const res = await getSystemDrives();
-    dirOptions.value = (res.data || []).map((d: DriveInfo) => ({
-      path: d.path,
-      name: d.name,
-    }));
-  } catch {
-    dirOptions.value = [];
-  }
-}
-
-function onDirChange(val: string) {
-  if (currentStorage.value) currentStorage.value.fileStorageEndpoint = val;
-}
-
-watch(
-  () => currentStorage.value?.fileStorageType,
-  (t) => {
-    if (t !== "FILESYSTEM") {
-      dirSelection.value = undefined;
-    } else if (currentStorage.value?.fileStorageEndpoint) {
-      dirSelection.value = currentStorage.value
-        .fileStorageEndpoint as unknown as string;
-    }
-  }
-);
-
 // 统一加载
 async function loadData() {
   loading.value = true;
   try {
+    await loadGlobal();
     await Promise.all([
-      loadGlobal(),
       loadConfigItems(),
       loadTypeOptionsFromSpi(),
-      loadOptionalProviderOptions(),
       (async () => {
         try {
           const res = await getFileStorageConfig(props.serverId);
@@ -1557,6 +1682,7 @@ async function loadData() {
         }
       })(),
     ]);
+    await loadOptionalProviderOptions();
     selectedIndex.value = storages.value.length > 0 ? 0 : null;
     if (rightPreview.value.visible) {
       await fetchPreviewItems();

@@ -58,7 +58,10 @@
             </span>
             <div>
               <strong>{{ row.connectionName }}</strong>
-              <span>{{ row.host }}:{{ row.port }} / {{ row.databaseName || "-" }}</span>
+              <span
+                >{{ row.host }}:{{ row.port }} /
+                {{ row.databaseName || "-" }}</span
+              >
             </div>
           </div>
           <button
@@ -72,8 +75,12 @@
         </div>
 
         <div class="source-card__strip">
-          <ScTag class="source-card__type" size="small" effect="plain">{{ row.jdbcDialectType || row.sourceType }}</ScTag>
-          <span class="source-card__updated">{{ formatTime(row.updatedAt) }}</span>
+          <ScTag class="source-card__type" size="small" effect="plain">{{
+            row.sourceType
+          }}</ScTag>
+          <span class="source-card__updated">{{
+            formatTime(row.updatedAt)
+          }}</span>
         </div>
 
         <dl class="source-card__facts">
@@ -95,10 +102,28 @@
           {{ row.note || "未填写备注" }}
         </p>
 
+        <div class="source-card__meta-strip">
+          <el-tag type="primary" size="small" v-if="row.environment">{{
+            parseEnvironement(row.environment)
+          }}</el-tag>
+          <span v-if="row.owner">Owner {{ row.owner }}</span>
+          <span v-if="row.detectedVersion">{{ row.detectedVersion }}</span>
+          <span v-if="row.lastLatencyMs">最近 {{ row.lastLatencyMs }} ms</span>
+        </div>
+
         <div class="source-card__footer">
           <ElButton
             class="source-card__open"
-            :disabled="row.sourceType !== 'JDBC' && row.sourceType !== 'REDIS' && row.sourceType !== 'MONGODB' && row.sourceType !== 'ZOOKEEPER' && row.sourceType !== 'PROMETHEUS' && row.sourceType !== 'INFLUXDB2' && row.sourceType !== 'INFLUXDB3' && row.sourceType !== 'NGINX'"
+            :disabled="
+              row.sourceType !== 'JDBC' &&
+              row.sourceType !== 'REDIS' &&
+              row.sourceType !== 'MONGODB' &&
+              row.sourceType !== 'ZOOKEEPER' &&
+              row.sourceType !== 'PROMETHEUS' &&
+              row.sourceType !== 'INFLUXDB2' &&
+              row.sourceType !== 'INFLUXDB3' &&
+              row.sourceType !== 'NGINX'
+            "
             type="primary"
             @click.stop="$emit('open-source', row)"
           >
@@ -107,10 +132,14 @@
           </ElButton>
           <div class="source-card__actions">
             <ElButton text @click.stop="openEditDialog(row)">
-              <ElIcon><EditPen /></ElIcon>编辑
+              <ElIcon><EditPen /></ElIcon>
             </ElButton>
-            <ElButton text type="danger" @click.stop="$emit('delete-source', row.sourceId)">
-              <ElIcon><Delete /></ElIcon>删除
+            <ElButton
+              text
+              type="danger"
+              @click.stop="$emit('delete-source', row.sourceId)"
+            >
+              <ElIcon><Delete /></ElIcon>
             </ElButton>
           </div>
         </div>
@@ -138,7 +167,9 @@
             <ElSelect
               :model-value="modelValue.sourceType"
               placeholder="选择数据源类型"
-              @update:model-value="handleSourceTypeChange(String($event || 'JDBC'))"
+              @update:model-value="
+                handleSourceTypeChange(String($event || 'JDBC'))
+              "
             >
               <ElOption
                 v-for="option in sourceTypeOptions"
@@ -163,7 +194,9 @@
               :gap="10"
               :options="jdbcDialectOptions"
               layout="icon"
-              @update:model-value="handleJdbcDialectChange(String($event || 'MYSQL'))"
+              @update:model-value="
+                handleJdbcDialectChange(String($event || 'MYSQL'))
+              "
             />
             <small
               class="field__error"
@@ -244,7 +277,9 @@
               v-if="modelValue.jdbcDialectType === 'CUSTOM'"
               :model-value="modelValue.driverClassName"
               placeholder="例如：com.example.jdbc.Driver"
-              @update:model-value="updateField('driverClassName', String($event || ''))"
+              @update:model-value="
+                updateField('driverClassName', String($event || ''))
+              "
             />
             <!-- 其他类型：下拉 + 可自定义输入 -->
             <ElSelect
@@ -254,7 +289,9 @@
               default-first-option
               filterable
               placeholder="选择或输入 JDBC Driver"
-              @update:model-value="updateField('driverClassName', String($event || ''))"
+              @update:model-value="
+                updateField('driverClassName', String($event || ''))
+              "
             >
               <ElOption
                 v-for="option in driverClassOptions"
@@ -293,7 +330,11 @@
                   clearable
                 >
                   <template #append>
-                    <ElButton :loading="downloadingDriver" @click="handleDownloadDriver">下载</ElButton>
+                    <ElButton
+                      :loading="downloadingDriver"
+                      @click="handleDownloadDriver"
+                      >下载</ElButton
+                    >
                   </template>
                 </ElInput>
               </div>
@@ -342,10 +383,20 @@
           </label>
 
           <label class="field">
-            <span class="field__label">{{ modelValue.sourceType === 'INFLUXDB2' || modelValue.sourceType === 'INFLUXDB3' ? 'Token' : '密码' }}</span>
+            <span class="field__label">{{
+              modelValue.sourceType === "INFLUXDB2" ||
+              modelValue.sourceType === "INFLUXDB3"
+                ? "Token"
+                : "密码"
+            }}</span>
             <ElInput
               :model-value="modelValue.password"
-              :placeholder="modelValue.sourceType === 'INFLUXDB2' || modelValue.sourceType === 'INFLUXDB3' ? '请输入 InfluxDB Token' : '请输入连接密码'"
+              :placeholder="
+                modelValue.sourceType === 'INFLUXDB2' ||
+                modelValue.sourceType === 'INFLUXDB3'
+                  ? '请输入 InfluxDB Token'
+                  : '请输入连接密码'
+              "
               show-password
               type="password"
               @update:model-value="updateField('password', $event)"
@@ -363,6 +414,209 @@
               @update:model-value="updateField('note', $event)"
             />
           </label>
+
+          <section class="advanced-panel field field--full">
+            <div class="advanced-panel__head">
+              <strong>高级配置</strong>
+              <span>按数据源类型补充元信息、网络超时和专属连接参数。</span>
+            </div>
+
+            <div class="advanced-panel__grid">
+              <label class="field">
+                <span class="field__label">环境</span>
+                <ElSelect
+                  :model-value="modelValue.environment"
+                  @update:model-value="
+                    updateField('environment', String($event || 'dev'))
+                  "
+                >
+                  <ElOption label="开发" value="dev" />
+                  <ElOption label="测试" value="test" />
+                  <ElOption label="预发" value="stage" />
+                  <ElOption label="生产" value="prod" />
+                </ElSelect>
+              </label>
+
+              <label class="field">
+                <span class="field__label">负责人</span>
+                <ElInput
+                  :model-value="modelValue.owner"
+                  placeholder="例如：data-platform"
+                  @update:model-value="
+                    updateField('owner', String($event || ''))
+                  "
+                />
+              </label>
+
+              <label class="field">
+                <span class="field__label">连接超时(ms)</span>
+                <ElInputNumber
+                  :controls="false"
+                  :min="0"
+                  :model-value="modelValue.connectTimeoutMillis"
+                  @update:model-value="
+                    updateNumberField('connectTimeoutMillis', $event)
+                  "
+                />
+              </label>
+
+              <label class="field">
+                <span class="field__label">读写超时(ms)</span>
+                <ElInputNumber
+                  :controls="false"
+                  :min="0"
+                  :model-value="modelValue.socketTimeoutMillis"
+                  @update:model-value="
+                    updateNumberField('socketTimeoutMillis', $event)
+                  "
+                />
+              </label>
+
+              <label class="field">
+                <span class="field__label">字符集</span>
+                <ElInput
+                  :model-value="modelValue.charset"
+                  placeholder="utf8mb4"
+                  @update:model-value="
+                    updateField('charset', String($event || ''))
+                  "
+                />
+              </label>
+
+              <label class="field field__switch">
+                <span class="field__label">只读模式</span>
+                <ElSwitch
+                  :model-value="modelValue.readOnly"
+                  @update:model-value="updateField('readOnly', Boolean($event))"
+                />
+              </label>
+
+              <label class="field field__switch">
+                <span class="field__label">启用 SSL</span>
+                <ElSwitch
+                  :model-value="modelValue.sslEnabled"
+                  @update:model-value="
+                    updateField('sslEnabled', Boolean($event))
+                  "
+                />
+              </label>
+
+              <label
+                v-if="modelValue.sourceType === 'JDBC'"
+                class="field field--full"
+              >
+                <span class="field__label">JDBC 额外参数</span>
+                <ElInput
+                  :model-value="String(modelValue.attributes.extraParams || '')"
+                  placeholder="例如：serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+                  @update:model-value="updateAttribute('extraParams', $event)"
+                />
+              </label>
+
+              <label v-if="modelValue.sourceType === 'REDIS'" class="field">
+                <span class="field__label">默认 DB</span>
+                <ElInputNumber
+                  :controls="false"
+                  :min="0"
+                  :model-value="Number(modelValue.attributes.dbIndex || 0)"
+                  @update:model-value="updateAttributeNumber('dbIndex', $event)"
+                />
+              </label>
+
+              <label
+                v-if="modelValue.sourceType === 'REDIS'"
+                class="field field__switch"
+              >
+                <span class="field__label">Cluster 模式</span>
+                <ElSwitch
+                  :model-value="Boolean(modelValue.attributes.clusterMode)"
+                  @update:model-value="
+                    updateAttributeBoolean('clusterMode', $event)
+                  "
+                />
+              </label>
+
+              <label
+                v-if="modelValue.sourceType === 'REDIS'"
+                class="field field--full"
+              >
+                <span class="field__label">Sentinel 节点</span>
+                <ElInput
+                  :model-value="
+                    String(modelValue.attributes.sentinelNodes || '')
+                  "
+                  placeholder="host1:26379,host2:26379"
+                  @update:model-value="updateAttribute('sentinelNodes', $event)"
+                />
+              </label>
+
+              <label v-if="modelValue.sourceType === 'MONGODB'" class="field">
+                <span class="field__label">认证库</span>
+                <ElInput
+                  :model-value="
+                    String(
+                      modelValue.attributes.authDatabase ||
+                        modelValue.databaseName ||
+                        '',
+                    )
+                  "
+                  placeholder="admin"
+                  @update:model-value="updateAttribute('authDatabase', $event)"
+                />
+              </label>
+
+              <label v-if="modelValue.sourceType === 'MONGODB'" class="field">
+                <span class="field__label">副本集</span>
+                <ElInput
+                  :model-value="String(modelValue.attributes.replicaSet || '')"
+                  placeholder="rs0"
+                  @update:model-value="updateAttribute('replicaSet', $event)"
+                />
+              </label>
+
+              <label
+                v-if="modelValue.sourceType === 'MONGODB'"
+                class="field field--full"
+              >
+                <span class="field__label">连接串</span>
+                <ElInput
+                  :model-value="
+                    String(modelValue.attributes.connectionUri || '')
+                  "
+                  placeholder="mongodb://user:pass@host:27017/admin?replicaSet=rs0"
+                  @update:model-value="updateAttribute('connectionUri', $event)"
+                />
+              </label>
+
+              <label v-if="modelValue.sourceType === 'ZOOKEEPER'" class="field">
+                <span class="field__label">Session Timeout(ms)</span>
+                <ElInputNumber
+                  :controls="false"
+                  :min="1000"
+                  :model-value="
+                    Number(modelValue.attributes.sessionTimeoutMillis || 30000)
+                  "
+                  @update:model-value="
+                    updateAttributeNumber('sessionTimeoutMillis', $event)
+                  "
+                />
+              </label>
+
+              <label
+                v-if="modelValue.sourceType === 'NGINX'"
+                class="field field--full"
+              >
+                <span class="field__label">SSH 私钥</span>
+                <ElInput
+                  :autosize="{ minRows: 4, maxRows: 8 }"
+                  :model-value="String(modelValue.attributes.privateKey || '')"
+                  placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                  type="textarea"
+                  @update:model-value="updateAttribute('privateKey', $event)"
+                />
+              </label>
+            </div>
+          </section>
         </div>
 
         <div class="dialog-footer">
@@ -372,6 +626,9 @@
           </span>
           <div class="dialog-footer__actions">
             <ElButton @click="dialogVisible = false">取消</ElButton>
+            <ElButton :loading="testingConnection" plain @click="handleTest">
+              测试连接
+            </ElButton>
             <ElButton :loading="submitting" type="primary" @click="handleSave">
               保存数据源
             </ElButton>
@@ -406,16 +663,23 @@ import {
   ElInputNumber,
   ElOption,
   ElSelect,
+  ElSwitch,
   ElUpload,
 } from "element-plus";
 import { computed, reactive, ref } from "vue";
-import type { JdbcConnectionForm, PanelSavedSource } from "../panel";
+import type {
+  JdbcConnectionForm,
+  PanelSavedSource,
+  PanelSourceType,
+} from "../panel";
+import { iterate } from "localforage";
 
 const props = defineProps<{
   cachedCount: number;
   modelValue: JdbcConnectionForm;
   sources: PanelSavedSource[];
   submitting: boolean;
+  testingConnection: boolean;
   uploadingDriver: boolean;
 }>();
 
@@ -425,6 +689,7 @@ const emit = defineEmits<{
   (e: "open-source", source: PanelSavedSource): void;
   (e: "reset-form"): void;
   (e: "save-source"): void;
+  (e: "test-source"): void;
   (e: "toggle-favorite", sourceId: string): void;
   (e: "upload-driver", file: File): void;
   (e: "update:modelValue", value: JdbcConnectionForm): void;
@@ -514,6 +779,20 @@ const jdbcDialectOptions = [
   },
 ] as const;
 
+const parseEnvironement = (it) => {
+  if (it === "dev") {
+    return "开发";
+  }
+
+  if (it === "test") {
+    return "测试";
+  }
+
+  if (it === "prod") {
+    return "生产";
+  }
+};
+
 const sourceList = computed(() =>
   (Array.isArray(props.sources) ? props.sources : []).filter(
     (source): source is PanelSavedSource => {
@@ -529,15 +808,17 @@ const sourceList = computed(() =>
         source.host,
         source.databaseName,
         source.username,
+        source.environment,
+        source.owner,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(term));
-    }
-  )
+    },
+  ),
 );
 
 const favoriteCount = computed(
-  () => sourceList.value.filter((source) => source.favorite).length
+  () => sourceList.value.filter((source) => source.favorite).length,
 );
 
 const isJdbcSource = computed(() => props.modelValue.sourceType === "JDBC");
@@ -545,17 +826,19 @@ const isJdbcSource = computed(() => props.modelValue.sourceType === "JDBC");
 const currentDialectPreset = computed(
   () =>
     jdbcDialectOptions.find(
-      option => option.value === props.modelValue.jdbcDialectType
-    ) || jdbcDialectOptions[0]
+      (option) => option.value === props.modelValue.jdbcDialectType,
+    ) || jdbcDialectOptions[0],
 );
 
 const databaseLabel = computed(() => {
   const t = props.modelValue.sourceType as string;
-  if (t === "REDIS") return "DB Index";
-  if (t === "MONGODB") return "认证数据库";
-  if (t === "ZOOKEEPER") return "会话超时(ms)";
+  if (t === "REDIS") return "默认库";
+  if (t === "MONGODB") return "默认数据库";
+  if (t === "ZOOKEEPER") return "初始路径";
+  if (t === "PROMETHEUS") return "默认命名空间";
   if (t === "INFLUXDB2") return "Bucket";
   if (t === "INFLUXDB3") return "默认数据库";
+  if (t === "NGINX") return "站点标签";
   if (props.modelValue.jdbcDialectType === "ORACLE") return "服务名 / SID";
   return "数据库";
 });
@@ -563,11 +846,14 @@ const databaseLabel = computed(() => {
 const databasePlaceholder = computed(() => {
   const t = props.modelValue.sourceType as string;
   if (t === "REDIS") return "例如：0";
-  if (t === "MONGODB") return "例如：admin";
-  if (t === "ZOOKEEPER") return "例如：30000";
+  if (t === "MONGODB") return "例如：admin / app";
+  if (t === "ZOOKEEPER") return "例如：/";
+  if (t === "PROMETHEUS") return "可选";
   if (t === "INFLUXDB2") return "例如：my-bucket";
   if (t === "INFLUXDB3") return "例如：my-database";
-  if (props.modelValue.jdbcDialectType === "ORACLE") return "例如：xe / orcl / service_name";
+  if (t === "NGINX") return "例如：prod-web-01";
+  if (props.modelValue.jdbcDialectType === "ORACLE")
+    return "例如：xe / orcl / service_name";
   return "例如：mysql / analytics";
 });
 
@@ -576,6 +862,8 @@ const protocolLabel = computed(() => {
   if (t === "REDIS") return "连接地址";
   if (t === "MONGODB") return "连接字符串（可选）";
   if (t === "INFLUXDB2") return "Org（组织）";
+  if (t === "INFLUXDB3") return "协议";
+  if (t === "PROMETHEUS") return "协议";
   if (t === "NGINX") return "认证方式";
   return "JDBC URL";
 });
@@ -583,12 +871,17 @@ const protocolLabel = computed(() => {
 const protocolPlaceholder = computed(() => {
   const t = props.modelValue.sourceType as string;
   if (t === "REDIS") return "redis://127.0.0.1:6379/0";
-  if (t === "MONGODB") return "mongodb://host:27017（可留空，按上方配置自动拼装）";
+  if (t === "MONGODB")
+    return "mongodb://host:27017（可留空，按上方配置自动拼装）";
   if (t === "INFLUXDB2") return "例如：my-org";
+  if (t === "INFLUXDB3") return "http 或 https";
+  if (t === "PROMETHEUS") return "http 或 https";
   if (t === "NGINX") return "password 或 privateKey（留空使用密码认证）";
   return "可留空，后端会按数据库类型自动拼装 JDBC URL";
 });
-const isUsernameRequired = computed(() => props.modelValue.sourceType === "JDBC");
+const isUsernameRequired = computed(
+  () => props.modelValue.sourceType === "JDBC",
+);
 
 const usernameLabel = computed(() => {
   const t = props.modelValue.sourceType as string;
@@ -618,7 +911,7 @@ const driverClassOptions = computed(() => {
 
   // 如果当前填写的驱动不在列表里，加入
   const currentValue = String(props.modelValue.driverClassName || "").trim();
-  if (currentValue && !options.some(o => o.value === currentValue)) {
+  if (currentValue && !options.some((o) => o.value === currentValue)) {
     options.unshift({ label: `自定义 · ${currentValue}`, value: currentValue });
   }
 
@@ -633,9 +926,33 @@ const sourceAvatarIcon = (type?: string) => {
   return Coin;
 };
 
+const updateAttribute = (key: string, value: unknown) => {
+  emit("update:modelValue", {
+    ...props.modelValue,
+    attributes: {
+      ...(props.modelValue.attributes || {}),
+      [key]: value,
+    },
+  });
+};
+
+const updateAttributeNumber = (
+  key: string,
+  value: number | null | undefined,
+) => {
+  updateAttribute(key, Number(value || 0));
+};
+
+const updateAttributeBoolean = (
+  key: string,
+  value: string | number | boolean,
+) => {
+  updateAttribute(key, Boolean(value));
+};
+
 const updateField = <K extends keyof JdbcConnectionForm>(
   key: K,
-  value: JdbcConnectionForm[K]
+  value: JdbcConnectionForm[K],
 ) => {
   if (key in fieldErrors) {
     fieldErrors[String(key)] = "";
@@ -646,107 +963,73 @@ const updateField = <K extends keyof JdbcConnectionForm>(
   });
 };
 
+const SOURCE_TYPE_DEFAULTS: Record<
+  PanelSourceType,
+  Partial<JdbcConnectionForm>
+> = {
+  JDBC: { port: 3306, driverClassName: "" },
+  REDIS: { port: 6379, driverClassName: "" },
+  MONGODB: { port: 27017, driverClassName: "" },
+  ZOOKEEPER: { port: 2181, driverClassName: "" },
+  PROMETHEUS: { port: 9090, driverClassName: "" },
+  INFLUXDB2: { port: 8086, driverClassName: "" },
+  INFLUXDB3: { port: 8086, driverClassName: "" },
+  NGINX: { port: 22, driverClassName: "" },
+};
+
 const handleSourceTypeChange = (value: string) => {
-  const nextSourceType = value === "REDIS" ? "REDIS" : value === "MONGODB" ? "MONGODB" : "JDBC";
+  const nextSourceType = (sourceTypeOptions.find((item) => item.value === value)
+    ?.value || "JDBC") as PanelSourceType;
+  const defaults =
+    SOURCE_TYPE_DEFAULTS[nextSourceType] || SOURCE_TYPE_DEFAULTS.JDBC;
   fieldErrors.sourceType = "";
-  if (nextSourceType === "REDIS") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: nextSourceType,
-      port: 6379,
-      driverClassName: "",
-    });
-    return;
-  }
-  if (nextSourceType === "MONGODB") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: nextSourceType,
-      port: 27017,
-      driverClassName: "",
-    });
-    return;
-  }
-  if (value === "ZOOKEEPER") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: "ZOOKEEPER" as any,
-      port: 2181,
-      driverClassName: "",
-    });
-    return;
-  }
-  if (value === "PROMETHEUS") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: "PROMETHEUS" as any,
-      port: 9090,
-      driverClassName: "",
-    });
-    return;
-  }
-  if (value === "INFLUXDB2") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: "INFLUXDB2" as any,
-      port: 8086,
-      driverClassName: "",
-    });
-    return;
-  }
-  if (value === "INFLUXDB3") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: "INFLUXDB3" as any,
-      port: 8086,
-      driverClassName: "",
-    });
-    return;
-  }
-  if (value === "NGINX") {
-    emit("update:modelValue", {
-      ...props.modelValue,
-      sourceType: "NGINX" as any,
-      port: 22,
-      driverClassName: "",
-    });
-    return;
-  }
-  // 切回 JDBC：端口重置为当前方言默认值
   emit("update:modelValue", {
     ...props.modelValue,
-    sourceType: "JDBC",
-    jdbcDialectType: props.modelValue.jdbcDialectType || currentDialectPreset.value.value,
-    driverClassName: props.modelValue.driverClassName || currentDialectPreset.value.driverClassName,
-    port: currentDialectPreset.value.defaultPort,
+    ...defaults,
+    sourceType: nextSourceType,
+    port:
+      nextSourceType === "JDBC"
+        ? currentDialectPreset.value.defaultPort
+        : Number(defaults.port || props.modelValue.port),
+    jdbcDialectType:
+      nextSourceType === "JDBC"
+        ? props.modelValue.jdbcDialectType || currentDialectPreset.value.value
+        : props.modelValue.jdbcDialectType,
+    driverClassName:
+      nextSourceType === "JDBC"
+        ? props.modelValue.driverClassName ||
+          currentDialectPreset.value.driverClassName
+        : "",
   });
 };
 
 const handleJdbcDialectChange = (value: string) => {
   const nextPreset =
-    jdbcDialectOptions.find(option => option.value === value) || jdbcDialectOptions[0];
+    jdbcDialectOptions.find((option) => option.value === value) ||
+    jdbcDialectOptions[0];
   const previousPreset = currentDialectPreset.value;
   fieldErrors.jdbcDialectType = "";
-  const isCustom = nextPreset.value === 'CUSTOM';
+  const isCustom = nextPreset.value === "CUSTOM";
   emit("update:modelValue", {
     ...props.modelValue,
     jdbcDialectType: nextPreset.value,
     // 自定义类型：清空驱动类让用户手动填；其他类型：切换时自动填对应驱动
     driverClassName: isCustom
-      ? ''
-      : (!props.modelValue.driverClassName || props.modelValue.driverClassName === previousPreset.driverClassName
-          ? nextPreset.driverClassName
-          : props.modelValue.driverClassName),
+      ? ""
+      : !props.modelValue.driverClassName ||
+          props.modelValue.driverClassName === previousPreset.driverClassName
+        ? nextPreset.driverClassName
+        : props.modelValue.driverClassName,
     // 端口始终跟随方言默认值（自定义类型保留当前值）
     port: isCustom
-      ? (props.modelValue.port || nextPreset.defaultPort)
+      ? props.modelValue.port || nextPreset.defaultPort
       : nextPreset.defaultPort,
   });
 };
 
 const updateNumberField = (
   key: keyof JdbcConnectionForm,
-  value: number | null | undefined
+  value: number | null | undefined,
 ) => {
   if (key in fieldErrors) {
     fieldErrors[String(key)] = "";
@@ -758,19 +1041,22 @@ const updateNumberField = (
 };
 
 const validateForm = () => {
-  fieldErrors.sourceType = props.modelValue.sourceType ? "" : "请选择数据源类型";
+  fieldErrors.sourceType = props.modelValue.sourceType
+    ? ""
+    : "请选择数据源类型";
   fieldErrors.jdbcDialectType =
     !isJdbcSource.value || String(props.modelValue.jdbcDialectType || "").trim()
       ? ""
       : "请选择数据库类型";
-  fieldErrors.connectionName = String(props.modelValue.connectionName || "").trim()
+  fieldErrors.connectionName = String(
+    props.modelValue.connectionName || "",
+  ).trim()
     ? ""
     : "请输入数据源名称";
   fieldErrors.host = String(props.modelValue.host || "").trim()
     ? ""
     : "请输入主机地址";
-  fieldErrors.port =
-    Number(props.modelValue.port) > 0 ? "" : "请输入有效端口";
+  fieldErrors.port = Number(props.modelValue.port) > 0 ? "" : "请输入有效端口";
   fieldErrors.driverClassName =
     !isJdbcSource.value || String(props.modelValue.driverClassName || "").trim()
       ? ""
@@ -801,6 +1087,13 @@ const handleSave = () => {
   dialogVisible.value = false;
 };
 
+const handleTest = () => {
+  if (!validateForm()) {
+    return;
+  }
+  emit("test-source");
+};
+
 const handleBeforeDriverUpload = (file: File) => {
   emit("upload-driver", file);
   return false;
@@ -808,7 +1101,7 @@ const handleBeforeDriverUpload = (file: File) => {
 
 const handleDownloadDriver = async () => {
   const url = driverDownloadUrl.value.trim();
-  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+  if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) {
     return;
   }
   downloadingDriver.value = true;
@@ -816,10 +1109,12 @@ const handleDownloadDriver = async () => {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
-    const fileName = url.split('/').pop()?.split('?')[0] || 'driver.jar';
-    const file = new File([blob], fileName, { type: 'application/java-archive' });
+    const fileName = url.split("/").pop()?.split("?")[0] || "driver.jar";
+    const file = new File([blob], fileName, {
+      type: "application/java-archive",
+    });
     emit("upload-driver", file);
-    driverDownloadUrl.value = '';
+    driverDownloadUrl.value = "";
   } catch (e: any) {
     // 静默失败，让父组件处理
   } finally {
@@ -964,7 +1259,11 @@ const clearDriverJar = () => {
       rgba(59, 130, 246, 0.14),
       transparent 34%
     ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(244, 248, 251, 0.96));
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.99),
+      rgba(244, 248, 251, 0.96)
+    );
   box-shadow: 0 16px 34px rgba(15, 37, 52, 0.08);
   transition:
     transform 0.18s ease,
@@ -1111,6 +1410,20 @@ const clearDriverJar = () => {
   line-height: 1.6;
 }
 
+.source-card__meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-card__meta-strip span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(15, 76, 129, 0.08);
+  color: #456577;
+  font-size: 11px;
+}
+
 .source-card__footer {
   margin-top: auto;
   flex-direction: column;
@@ -1216,9 +1529,47 @@ const clearDriverJar = () => {
   padding: 12px 14px;
 }
 
+.field__switch {
+  grid-template-rows: auto auto 0;
+}
+
+.field__switch :deep(.el-switch) {
+  margin-top: 10px;
+}
+
 .field__upload {
   display: grid;
   gap: 10px;
+}
+
+.advanced-panel {
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(125, 142, 154, 0.12);
+  border-radius: 20px;
+  background: rgba(247, 250, 252, 0.88);
+}
+
+.advanced-panel__head {
+  display: grid;
+  gap: 4px;
+}
+
+.advanced-panel__head strong {
+  color: #102534;
+  font-size: 13px;
+}
+
+.advanced-panel__head span {
+  color: #688194;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.advanced-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .field__upload-meta {
@@ -1281,6 +1632,10 @@ const clearDriverJar = () => {
   }
 
   .dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .advanced-panel__grid {
     grid-template-columns: 1fr;
   }
 }

@@ -6,36 +6,59 @@
       :cached-count="cachedConnections.length"
       :sources="savedSources"
       :submitting="submitting"
+      :testing-connection="testingConnection"
       :uploading-driver="uploadingDriver"
       @delete-source="handleDeleteSource"
       @edit-source="handleEditSource"
       @open-source="handleOpenSource"
       @reset-form="resetForm"
       @save-source="handleSaveSource"
+      @test-source="handleTestSource"
       @toggle-favorite="handleToggleFavorite"
       @upload-driver="handleUploadDriver"
       @update:model-value="handleFormUpdate"
     />
 
+    <div v-else-if="viewMode === 'booting'" class="workspace-booting">
+      <ElIcon class="is-loading workspace-booting__icon"><Loading /></ElIcon>
+      <span>{{ bootingHint }}</span>
+    </div>
+
     <!-- Nginx 工作区 -->
     <div v-else-if="viewMode === 'nginx'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "Nginx" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
+        <NginxProjectPanel
+          v-if="nginxConnectionId && nginxProjectStandalone"
+          :connection-id="nginxConnectionId"
+          :host="workspaceSource?.host || ''"
+          :port="workspaceSource?.port || 22"
+          :username="workspaceSource?.username || 'root'"
+          :password="workspaceSource?.password"
+          :private-key="getStringAttribute(workspaceSource?.attributes, 'privateKey')"
+        />
         <NginxWorkspace
-          v-if="nginxConnectionId"
+          v-else-if="nginxConnectionId"
           :connection-id="nginxConnectionId"
           :host="workspaceSource?.host"
           :port="workspaceSource?.port"
           :username="workspaceSource?.username || 'root'"
           :password="workspaceSource?.password"
+          :initial-tab="initialNginxTab"
           @close="handleBackHome"
         />
         <ElEmpty v-else description="SSH 连接中..." />
@@ -46,11 +69,17 @@
     <div v-else-if="viewMode === 'redis'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "Redis" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
@@ -67,15 +96,25 @@
     <div v-else-if="viewMode === 'mongo'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "MongoDB" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
-        <MongoWorkspace v-if="mongoConnectionId" :connection-id="mongoConnectionId" @close="handleBackHome" />
+        <MongoWorkspace
+          v-if="mongoConnectionId"
+          :connection-id="mongoConnectionId"
+          @close="handleBackHome"
+        />
         <ElEmpty v-else description="MongoDB 连接中..." />
       </div>
     </div>
@@ -84,15 +123,25 @@
     <div v-else-if="viewMode === 'zookeeper'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "ZooKeeper" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
-        <ZookeeperWorkspace v-if="zookeeperConnectionId" :connection-id="zookeeperConnectionId" @close="handleBackHome" />
+        <ZookeeperWorkspace
+          v-if="zookeeperConnectionId"
+          :connection-id="zookeeperConnectionId"
+          @close="handleBackHome"
+        />
         <ElEmpty v-else description="ZooKeeper 连接中..." />
       </div>
     </div>
@@ -101,15 +150,25 @@
     <div v-else-if="viewMode === 'prometheus'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "Prometheus" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
-        <PrometheusWorkspace v-if="prometheusConnectionId" :connection-id="prometheusConnectionId" @close="handleBackHome" />
+        <PrometheusWorkspace
+          v-if="prometheusConnectionId"
+          :connection-id="prometheusConnectionId"
+          @close="handleBackHome"
+        />
         <ElEmpty v-else description="Prometheus 连接中..." />
       </div>
     </div>
@@ -118,15 +177,25 @@
     <div v-else-if="viewMode === 'influx'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "InfluxDB" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
-        <InfluxWorkspace v-if="influxConnectionId" :connection-id="influxConnectionId" @close="handleBackHome" />
+        <InfluxWorkspace
+          v-if="influxConnectionId"
+          :connection-id="influxConnectionId"
+          @close="handleBackHome"
+        />
         <ElEmpty v-else description="InfluxDB 连接中..." />
       </div>
     </div>
@@ -135,15 +204,25 @@
     <div v-else-if="viewMode === 'influxv3'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "InfluxDB 3" }}</strong>
-          <span>{{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}</span>
+          <span
+            >{{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}</span
+          >
         </div>
       </header>
       <div class="redis-mode__body">
-        <InfluxV3Workspace v-if="influxV3ConnectionId" :connection-id="influxV3ConnectionId" @close="handleBackHome" />
+        <InfluxV3Workspace
+          v-if="influxV3ConnectionId"
+          :connection-id="influxV3ConnectionId"
+          @close="handleBackHome"
+        />
         <ElEmpty v-else description="InfluxDB 3 连接中..." />
       </div>
     </div>
@@ -160,8 +239,12 @@
               @click="toggleAside"
             />
           </ElTooltip>
-          <ElButton plain size="small" @click="handleBackHome">返回数据源</ElButton>
-          <ElButton plain size="small" @click="handleLoadCatalog">刷新对象</ElButton>
+          <ElButton plain size="small" @click="handleBackHome"
+            >返回数据源</ElButton
+          >
+          <ElButton plain size="small" @click="handleLoadCatalog"
+            >刷新对象</ElButton
+          >
 
           <ElPopover placement="bottom" trigger="click" width="220">
             <template #reference>
@@ -188,9 +271,13 @@
         </div>
 
         <div class="workspace-bar__meta">
-          <strong>{{ workspaceSource?.connectionName || "未命名数据源" }}</strong>
+          <strong>{{
+            workspaceSource?.connectionName || "未命名数据源"
+          }}</strong>
           <span>
-            {{ workspaceSource?.host || "-" }}:{{ workspaceSource?.port || "-" }}
+            {{ workspaceSource?.host || "-" }}:{{
+              workspaceSource?.port || "-"
+            }}
             / {{ workspaceSource?.databaseName || "-" }}
           </span>
         </div>
@@ -207,26 +294,31 @@
         @update:left-collapsed="asideCollapsed = $event"
       >
         <template #left>
-            <JdbcCatalogTree
-              :active-node-id="activeNode?.nodeId || ''"
-              :catalog-tree="explorerTree"
-              :collapsed="asideCollapsed"
-              :expanded-keys="treeExpandedKeys"
-              :multiple-expand="treeMultiExpand"
-              :search-keyword="searchKeyword"
-              :source-name="workspaceSource?.connectionName || ''"
-              @collapse-table="handleCollapseTable"
-              @collapse-node="handleCollapseNode"
-              @context-action="handleContextAction"
-              @expand-node="handleExpandNode"
-              @expand-table="handleExpandTable"
-              @inject-sql="(node) => { injectSql(`select * from ${fullTableName(node)};`); activeInspectorTabId = 'workspace' }"
-              @open-table="handleOpenTable"
-              @refresh="handleLoadCatalog"
-              @search="handleSearch"
-              @toggle-collapse="toggleAside"
-              @update:search-keyword="searchKeyword = $event"
-            />
+          <JdbcCatalogTree
+            :active-node-id="activeNode?.nodeId || ''"
+            :catalog-tree="explorerTree"
+            :collapsed="asideCollapsed"
+            :expanded-keys="treeExpandedKeys"
+            :multiple-expand="treeMultiExpand"
+            :search-keyword="searchKeyword"
+            :source-name="workspaceSource?.connectionName || ''"
+            @collapse-table="handleCollapseTable"
+            @collapse-node="handleCollapseNode"
+            @context-action="handleContextAction"
+            @expand-node="handleExpandNode"
+            @expand-table="handleExpandTable"
+            @inject-sql="
+              (node) => {
+                injectSql(`select * from ${fullTableName(node)};`);
+                activeInspectorTabId = 'workspace';
+              }
+            "
+            @open-table="handleOpenTable"
+            @refresh="handleLoadCatalog"
+            @search="handleSearch"
+            @toggle-collapse="toggleAside"
+            @update:search-keyword="searchKeyword = $event"
+          />
         </template>
 
         <template #default>
@@ -289,7 +381,9 @@
         />
         <div class="note-popover__actions">
           <ElButton size="small" @click="closeNoteEditor">取消</ElButton>
-          <ElButton size="small" type="primary" @click="submitNoteEditor">保存</ElButton>
+          <ElButton size="small" type="primary" @click="submitNoteEditor"
+            >保存</ElButton
+          >
         </div>
       </div>
     </teleport>
@@ -297,9 +391,10 @@
 </template>
 
 <script setup lang="ts">
-import { Expand, Fold } from "@element-plus/icons-vue";
+import { Expand, Fold, Loading } from "@element-plus/icons-vue";
 import {
   ElButton,
+  ElIcon,
   ElInput,
   ElInputNumber,
   ElMessage,
@@ -308,7 +403,14 @@ import {
   ElSwitch,
   ElTooltip,
 } from "element-plus";
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
 import { useRoute } from "vue-router";
 import { decodeScParam } from "@repo/utils";
 import ScLayout from "@repo/components/ScLayout";
@@ -324,6 +426,7 @@ import {
   InfluxWorkspace,
   InfluxV3Workspace,
 } from "./components";
+import NginxProjectPanel from "./components/NginxWorkspace/NginxProjectPanel.vue";
 import {
   DEFAULT_JDBC_CONNECTION,
   PANEL_SOURCE_STORAGE_KEY,
@@ -359,6 +462,7 @@ import {
   savePanelRemark,
   savePanelDatasource,
   saveJdbcTableData,
+  testPanelDatasource,
   searchJdbcCatalogTree,
   updateJdbcAccount,
   uploadPanelDatasourceDriver,
@@ -394,11 +498,36 @@ import {
   type PanelTableFilterJoin,
   type PanelTableDataView,
 } from "./api";
-import { decryptWorkspaceTicket, encryptWorkspaceTicket } from "./utils/workspaceTicket";
+import {
+  decryptWorkspaceTicket,
+  encryptWorkspaceTicket,
+} from "./utils/workspaceTicket";
 
-type ViewMode = "hub" | "redis" | "nginx" | "mongo" | "zookeeper" | "prometheus" | "influx" | "influxv3" | "workspace";
-type InspectorTabType = "account" | "database-document" | "table" | "table-edit";
-type InspectorViewMode = "account" | "data" | "ddl" | "database-document" | "ai" | "indexes" | "columns";
+type ViewMode =
+  | "hub"
+  | "booting"
+  | "redis"
+  | "nginx"
+  | "mongo"
+  | "zookeeper"
+  | "prometheus"
+  | "influx"
+  | "influxv3"
+  | "workspace";
+type NginxRailTab = "dashboard" | "editor" | "project" | "log";
+type InspectorTabType =
+  | "account"
+  | "database-document"
+  | "table"
+  | "table-edit";
+type InspectorViewMode =
+  | "account"
+  | "data"
+  | "ddl"
+  | "database-document"
+  | "ai"
+  | "indexes"
+  | "columns";
 type CommentMode = "comment" | "mixed" | "native";
 type PaginationMode = "full" | "pagination";
 type SortOrder = "" | "asc" | "desc";
@@ -434,10 +563,24 @@ interface InspectorTableTab {
   viewMode: InspectorViewMode;
 }
 
-type TableArtifacts = Pick<InspectorTableTab, "aiContent" | "ddlText" | "documentContent" | "structure">;
+type TableArtifacts = Pick<
+  InspectorTableTab,
+  "aiContent" | "ddlText" | "documentContent" | "structure"
+>;
 
 const PANEL_CONFIG_STORAGE_KEY = "panel:workspace-config:v1";
-const INITIAL_WORKSPACE_TICKET = new URL(window.location.href).searchParams.get("ticket");
+const INITIAL_QUERY = new URL(window.location.href).searchParams;
+const INITIAL_WORKSPACE_TICKET = INITIAL_QUERY.get("ticket");
+const parseInitialNginxTab = (value: string | null): NginxRailTab =>
+  value === "editor" || value === "project" || value === "log"
+    ? value
+    : "dashboard";
+const isTruthyQueryFlag = (value: string | null) =>
+  ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
+const initialNginxTab = parseInitialNginxTab(INITIAL_QUERY.get("nginxTab"));
+const nginxProjectStandalone = isTruthyQueryFlag(
+  INITIAL_QUERY.get("nginxProjectStandalone"),
+);
 
 type NoteEditorState = {
   node: JdbcCatalogNode | null;
@@ -449,7 +592,8 @@ type NoteEditorState = {
 };
 
 const jdbcForm = reactive<JdbcConnectionForm>({ ...DEFAULT_JDBC_CONNECTION });
-const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "workspace" : "hub");
+const viewMode = ref<ViewMode>(INITIAL_WORKSPACE_TICKET ? "booting" : "hub");
+const bootingHint = ref("正在恢复工作区...");
 const savedSources = ref<PanelSavedSource[]>([]);
 const cachedConnections = ref<PanelConnectionDescriptor[]>([]);
 const workspaceSource = ref<PanelSavedSource | null>(null);
@@ -468,6 +612,7 @@ const capabilities = ref<PanelCapabilitySummary | null>(null);
 const datasourceMetadata = ref<JdbcConnectionMetadata | null>(null);
 const queryResult = ref<JdbcQueryResult | null>(null);
 const sqlResultPageNum = ref(1);
+const testingConnection = ref(false);
 const redisConnectionId = ref("");
 const nginxConnectionId = ref("");
 const mongoConnectionId = ref("");
@@ -475,6 +620,16 @@ const zookeeperConnectionId = ref("");
 const prometheusConnectionId = ref("");
 const influxConnectionId = ref("");
 const influxV3ConnectionId = ref("");
+const resetWorkspaceConnectionRefs = () => {
+  activeConnectionId.value = "";
+  redisConnectionId.value = "";
+  nginxConnectionId.value = "";
+  mongoConnectionId.value = "";
+  zookeeperConnectionId.value = "";
+  prometheusConnectionId.value = "";
+  influxConnectionId.value = "";
+  influxV3ConnectionId.value = "";
+};
 const sqlText = ref("select 1 as ping;");
 const sqlExplainContent = ref("");
 const sqlExplainRows = ref<Record<string, any>[]>([]);
@@ -501,8 +656,11 @@ const noteEditor = reactive<NoteEditorState>({
 const tableArtifactRequests = new Map<string, Promise<TableArtifacts>>();
 const tableDataRefreshTimers = new Map<string, number>();
 
-const currentInspectorTab = computed(() =>
-  inspectorTabs.value.find(tab => tab.tabId === activeInspectorTabId.value) || null,
+const currentInspectorTab = computed(
+  () =>
+    inspectorTabs.value.find(
+      (tab) => tab.tabId === activeInspectorTabId.value,
+    ) || null,
 );
 
 const activePath = computed(() => {
@@ -512,11 +670,7 @@ const activePath = computed(() => {
   }
 
   if (node.nodeType === "field") {
-    return [
-      node.catalogName,
-      node.tableName,
-      node.columnName || node.nodeName,
-    ]
+    return [node.catalogName, node.tableName, node.columnName || node.nodeName]
       .filter(Boolean)
       .join(".");
   }
@@ -528,7 +682,10 @@ const activePath = computed(() => {
 
 const buildFieldNoteKey = (node: JdbcCatalogNode, columnName: string) =>
   [
-    activeConnectionId.value || workspaceSource.value?.sourceId || workspaceSource.value?.connectionName || "workspace",
+    activeConnectionId.value ||
+      workspaceSource.value?.sourceId ||
+      workspaceSource.value?.connectionName ||
+      "workspace",
     node.catalogName || "catalog",
     node.tableName || node.nodeName,
     columnName,
@@ -536,7 +693,10 @@ const buildFieldNoteKey = (node: JdbcCatalogNode, columnName: string) =>
 
 const buildObjectNoteKey = (node: JdbcCatalogNode) =>
   [
-    activeConnectionId.value || workspaceSource.value?.sourceId || workspaceSource.value?.connectionName || "workspace",
+    activeConnectionId.value ||
+      workspaceSource.value?.sourceId ||
+      workspaceSource.value?.connectionName ||
+      "workspace",
     node.nodeType,
     node.catalogName || "catalog",
     node.schemaName || "schema",
@@ -551,8 +711,9 @@ const buildFieldNodes = (tableNode: JdbcCatalogNode) => {
 
   return structure.columns.map((column, index) => {
     const fieldName = String(column.name || `field_${index + 1}`);
-    const fieldNote = fieldNotes.value[buildFieldNoteKey(tableNode, fieldName)]
-      || String(column.comment || "");
+    const fieldNote =
+      fieldNotes.value[buildFieldNoteKey(tableNode, fieldName)] ||
+      String(column.comment || "");
     return {
       nodeId: `${tableNode.nodeId}::field::${fieldName}`,
       parentId: tableNode.nodeId,
@@ -574,13 +735,16 @@ const buildFieldNodes = (tableNode: JdbcCatalogNode) => {
 };
 
 const explorerTree = computed<JdbcCatalogNode[]>(() =>
-  catalogTree.value.map(catalog => ({
+  catalogTree.value.map((catalog) => ({
     ...catalog,
     nodeType: "catalog",
     nodeName: catalog.catalogName || catalog.nodeName,
-    description: objectNotes.value[buildObjectNoteKey(catalog)] || catalog.description || "数据库",
-    children: (catalog.children || []).flatMap(schema =>
-      (schema.children || []).map(table => ({
+    description:
+      objectNotes.value[buildObjectNoteKey(catalog)] ||
+      catalog.description ||
+      "数据库",
+    children: (catalog.children || []).flatMap((schema) =>
+      (schema.children || []).map((table) => ({
         ...table,
         parentId: catalog.nodeId,
         nodeType: "table",
@@ -598,23 +762,28 @@ const explorerTree = computed<JdbcCatalogNode[]>(() =>
 );
 
 const treeExpandedKeys = computed(() => {
-  return [expandedCatalogNodeId.value, expandedTableNodeId.value]
-    .filter(Boolean) as string[];
+  return [expandedCatalogNodeId.value, expandedTableNodeId.value].filter(
+    Boolean,
+  ) as string[];
 });
 
 const workspaceCatalogs = computed(() =>
   explorerTree.value
-    .map(item => item.catalogName || item.nodeName)
-    .filter((item): item is string => Boolean(item))
+    .map((item) => item.catalogName || item.nodeName)
+    .filter((item): item is string => Boolean(item)),
 );
 
 const sqlSuggestions = computed(() => {
   const tokens = new Set<string>();
 
-  explorerTree.value.forEach(catalog => {
-    (catalog.children || []).forEach(table => {
+  explorerTree.value.forEach((catalog) => {
+    (catalog.children || []).forEach((table) => {
       tokens.add(String(table.tableName || table.nodeName));
-      const fullName = [table.catalogName, table.schemaName, table.tableName || table.nodeName]
+      const fullName = [
+        table.catalogName,
+        table.schemaName,
+        table.tableName || table.nodeName,
+      ]
         .filter(Boolean)
         .join(".");
       if (fullName) {
@@ -623,8 +792,8 @@ const sqlSuggestions = computed(() => {
     });
   });
 
-  Object.values(tableStructureCache.value).forEach(structure => {
-    structure.columns.forEach(column => {
+  Object.values(tableStructureCache.value).forEach((structure) => {
+    structure.columns.forEach((column) => {
       if (column.name) {
         tokens.add(String(column.name));
       }
@@ -643,16 +812,159 @@ const handleFormUpdate = (value: JdbcConnectionForm) => {
 };
 
 const normalizeTree = (nodes: JdbcCatalogNode[]) =>
-  nodes.map(node => ({
+  nodes.map((node) => ({
     ...node,
     children: normalizeTree(node.children || []),
   }));
 
-const mapDatasourceViewToSource = (item: PanelDatasourceView): PanelSavedSource => ({
+const normalizeAttributes = (value?: Record<string, any> | null) =>
+  value && typeof value === "object" ? { ...value } : {};
+
+const getStringAttribute = (
+  attributes: Record<string, any> | undefined,
+  key: string,
+  fallback?: string,
+) => {
+  const value = attributes?.[key];
+  return value === undefined || value === null || value === ""
+    ? fallback
+    : String(value);
+};
+
+const getNumberAttribute = (
+  attributes: Record<string, any> | undefined,
+  key: string,
+  fallback = 0,
+) => {
+  const value = Number(attributes?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+};
+
+const resolvePayloadDatabaseName = (
+  source: PanelSavedSource | JdbcConnectionForm,
+) => {
+  const attributes = normalizeAttributes(source.attributes);
+  if (source.sourceType === "REDIS") {
+    return String(
+      getNumberAttribute(
+        attributes,
+        "dbIndex",
+        Number(source.databaseName) || 0,
+      ),
+    );
+  }
+  if (source.sourceType === "MONGODB") {
+    return (
+      getStringAttribute(
+        attributes,
+        "authDatabase",
+        source.databaseName || "",
+      ) || ""
+    );
+  }
+  return source.databaseName || "";
+};
+
+const buildJdbcProtocol = (source: PanelSavedSource | JdbcConnectionForm) => {
+  if ((source.protocol || "").trim().startsWith("jdbc:")) {
+    return source.protocol.trim();
+  }
+  const dialect = String(source.jdbcDialectType || "MYSQL").toUpperCase();
+  const host = String(source.host || "").trim();
+  const port = Number(source.port || 0);
+  const database = String(source.databaseName || "").trim();
+  if (!host || port <= 0) {
+    return String(source.protocol || "").trim();
+  }
+
+  const attributes = normalizeAttributes(source.attributes);
+  const queryParams = new URLSearchParams();
+  if (source.sslEnabled) {
+    queryParams.set(dialect === "POSTGRESQL" ? "ssl" : "useSSL", "true");
+  }
+  if (source.connectTimeoutMillis > 0) {
+    queryParams.set(
+      dialect === "POSTGRESQL" ? "connectTimeout" : "connectTimeout",
+      String(source.connectTimeoutMillis),
+    );
+  }
+  if (source.socketTimeoutMillis > 0) {
+    queryParams.set("socketTimeout", String(source.socketTimeoutMillis));
+  }
+  if ((source.charset || "").trim()) {
+    queryParams.set("characterEncoding", String(source.charset).trim());
+  }
+  const extraParams = String(attributes.extraParams || "").trim();
+  if (extraParams) {
+    for (const part of extraParams.split(/[&;\n]/)) {
+      const segment = part.trim();
+      if (!segment) {
+        continue;
+      }
+      const [name, rawValue] = segment.split("=", 2);
+      if (name) {
+        queryParams.set(name.trim(), (rawValue || "").trim());
+      }
+    }
+  }
+
+  const querySuffix = queryParams.toString();
+  const withQuery = (base: string) =>
+    querySuffix ? `${base}?${querySuffix}` : base;
+  const withSemicolon = (base: string) =>
+    querySuffix
+      ? `${base};${querySuffix
+          .split("&")
+          .map((segment) => segment.replace("=", "="))
+          .join(";")}`
+      : base;
+
+  switch (dialect) {
+    case "ORACLE":
+      return database
+        ? `jdbc:oracle:thin:@//${host}:${port}/${database}`
+        : `jdbc:oracle:thin:@${host}:${port}`;
+    case "POSTGRESQL":
+      return withQuery(
+        `jdbc:postgresql://${host}:${port}${database ? `/${database}` : ""}`,
+      );
+    case "SQLSERVER":
+      return withSemicolon(
+        `jdbc:sqlserver://${host}:${port}${database ? `;databaseName=${database}` : ""}`,
+      );
+    case "CLICKHOUSE":
+      return withQuery(
+        `jdbc:clickhouse://${host}:${port}${database ? `/${database}` : ""}`,
+      );
+    case "MARIADB":
+      return withQuery(
+        `jdbc:mariadb://${host}:${port}${database ? `/${database}` : ""}`,
+      );
+    default:
+      return withQuery(
+        `jdbc:mysql://${host}:${port}${database ? `/${database}` : ""}`,
+      );
+  }
+};
+
+const buildJdbcConnectionAttributes = (
+  source: PanelSavedSource | JdbcConnectionForm,
+) => ({
+  ...normalizeAttributes(source.attributes),
+  panelDialectType: source.jdbcDialectType || "MYSQL",
+  panelDriverClassName: source.driverClassName || "",
+  panelDriverJarName: source.driverJarName || "",
+  panelDriverJarPath: source.driverJarPath || "",
+});
+
+const mapDatasourceViewToSource = (
+  item: PanelDatasourceView,
+): PanelSavedSource => ({
   sourceId: item.panelSourceId,
   connectionId: item.panelConnectionId || "",
   sourceType: item.panelSourceType || "JDBC",
-  jdbcDialectType: item.panelDialectType || "MYSQL",
+  jdbcDialectType:
+    item.panelDialectType || (item.panelSourceType === "JDBC" ? "MYSQL" : ""),
   connectionName: item.panelConnectionName || "",
   host: item.panelHost || "",
   port: Number(item.panelPort || 0),
@@ -663,26 +975,59 @@ const mapDatasourceViewToSource = (item: PanelDatasourceView): PanelSavedSource 
   driverJarName: item.panelDriverJarName || "",
   driverJarPath: item.panelDriverJarPath || "",
   protocol: item.panelProtocol || "",
+  environment: item.panelEnvironment || "dev",
+  owner: item.panelOwner || "",
+  readOnly: Boolean(item.panelReadOnly),
+  sslEnabled: Boolean(item.panelSslEnabled),
+  connectTimeoutMillis: Number(item.panelConnectTimeoutMillis || 5000),
+  socketTimeoutMillis: Number(item.panelSocketTimeoutMillis || 10000),
+  charset: item.panelCharset || "utf8mb4",
+  lastLatencyMs: item.panelLastLatencyMs,
+  lastConnectedAt: item.panelLastConnectedAt || "",
+  detectedVersion: item.panelDetectedVersion || "",
+  attributes: normalizeAttributes(item.panelAttributes),
   note: item.panelNote || "",
   favorite: Boolean(item.panelFavorite),
   updatedAt: item.panelUpdatedAt,
 });
 
-const mapSourceToDatasourcePayload = (source: PanelSavedSource | JdbcConnectionForm): PanelDatasourcePayload => ({
+const mapSourceToDatasourcePayload = (
+  source: PanelSavedSource | JdbcConnectionForm,
+): PanelDatasourcePayload => ({
   panelSourceId: source.sourceId || undefined,
   panelConnectionId: source.connectionId || undefined,
   panelSourceType: source.sourceType,
   panelConnectionName: source.connectionName,
   panelHost: source.host,
   panelPort: Number(source.port || 0),
-  panelDatabaseName: source.databaseName || "",
+  panelDatabaseName: resolvePayloadDatabaseName(source),
   panelUsername: source.username,
   panelPassword: source.password,
-  panelProtocol: source.protocol || "",
-  panelDialectType: source.jdbcDialectType || "MYSQL",
-  panelDriverClassName: source.driverClassName || "",
-  panelDriverJarName: source.driverJarName || "",
-  panelDriverJarPath: source.driverJarPath || "",
+  panelProtocol:
+    source.sourceType === "JDBC"
+      ? buildJdbcProtocol(source)
+      : source.protocol || "",
+  panelDialectType:
+    source.sourceType === "JDBC"
+      ? source.jdbcDialectType || "MYSQL"
+      : undefined,
+  panelDriverClassName:
+    source.sourceType === "JDBC" ? source.driverClassName || "" : undefined,
+  panelDriverJarName:
+    source.sourceType === "JDBC" ? source.driverJarName || "" : undefined,
+  panelDriverJarPath:
+    source.sourceType === "JDBC" ? source.driverJarPath || "" : undefined,
+  panelEnvironment: source.environment || "",
+  panelOwner: source.owner || "",
+  panelReadOnly: Boolean(source.readOnly),
+  panelSslEnabled: Boolean(source.sslEnabled),
+  panelConnectTimeoutMillis: Number(source.connectTimeoutMillis || 0),
+  panelSocketTimeoutMillis: Number(source.socketTimeoutMillis || 0),
+  panelCharset: source.charset || "",
+  panelLastLatencyMs: source.lastLatencyMs,
+  panelLastConnectedAt: source.lastConnectedAt || undefined,
+  panelDetectedVersion: source.detectedVersion || undefined,
+  panelAttributes: normalizeAttributes(source.attributes),
   panelNote: source.note || "",
   panelFavorite: Boolean(source.favorite),
   panelUpdatedAt: source.updatedAt || undefined,
@@ -704,17 +1049,26 @@ const validateJdbcFormBeforeSave = (form: JdbcConnectionForm) => {
   if (form.sourceType === "JDBC" && !String(form.username || "").trim()) {
     return "JDBC 数据源必须填写用户名";
   }
-  if (form.sourceType === "JDBC" && !String(form.jdbcDialectType || "").trim()) {
+  if (
+    form.sourceType === "JDBC" &&
+    !String(form.jdbcDialectType || "").trim()
+  ) {
     return "请选择数据库类型";
   }
-  if (form.sourceType === "JDBC" && !String(form.driverClassName || "").trim()) {
+  if (
+    form.sourceType === "JDBC" &&
+    !String(form.driverClassName || "").trim()
+  ) {
     return "请选择 JDBC 驱动类";
   }
   return "";
 };
 
 const persistSources = () => {
-  localStorage.setItem(PANEL_SOURCE_STORAGE_KEY, JSON.stringify(savedSources.value));
+  localStorage.setItem(
+    PANEL_SOURCE_STORAGE_KEY,
+    JSON.stringify(savedSources.value),
+  );
 };
 
 const persistConfig = () => {
@@ -744,7 +1098,8 @@ const loadConfig = () => {
   try {
     const raw = localStorage.getItem(PANEL_CONFIG_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    previewLimit.value = Number(parsed.previewLimit) > 0 ? Number(parsed.previewLimit) : 1000;
+    previewLimit.value =
+      Number(parsed.previewLimit) > 0 ? Number(parsed.previewLimit) : 1000;
     treeMultiExpand.value = Boolean(parsed.treeMultiExpand);
   } catch {
     previewLimit.value = 1000;
@@ -769,16 +1124,22 @@ const handleSaveSource = async () => {
   }
   submitting.value = true;
   try {
-    const response = await savePanelDatasource(mapSourceToDatasourcePayload({
-      ...jdbcForm,
-      sourceId: jdbcForm.sourceId || "",
-      updatedAt: jdbcForm.updatedAt || "",
-    }));
-    const next = response?.data ? mapDatasourceViewToSource(response.data) : null;
+    const response = await savePanelDatasource(
+      mapSourceToDatasourcePayload({
+        ...jdbcForm,
+        sourceId: jdbcForm.sourceId || "",
+        updatedAt: jdbcForm.updatedAt || "",
+      }),
+    );
+    const next = response?.data
+      ? mapDatasourceViewToSource(response.data)
+      : null;
     if (!next) {
       return;
     }
-    const index = savedSources.value.findIndex(item => item.sourceId === next.sourceId);
+    const index = savedSources.value.findIndex(
+      (item) => item.sourceId === next.sourceId,
+    );
     if (index >= 0) {
       savedSources.value[index] = next;
     } else {
@@ -794,15 +1155,61 @@ const handleSaveSource = async () => {
   }
 };
 
+const handleTestSource = async () => {
+  const validationMessage = validateJdbcFormBeforeSave(jdbcForm);
+  if (validationMessage) {
+    ElMessage.warning(validationMessage);
+    return;
+  }
+  testingConnection.value = true;
+  try {
+    const response = await testPanelDatasource(
+      mapSourceToDatasourcePayload({
+        ...jdbcForm,
+        sourceId: jdbcForm.sourceId || "",
+        updatedAt: jdbcForm.updatedAt || "",
+      }),
+    );
+    const result = response?.data;
+    if (!result?.panelSuccess) {
+      throw new Error(result?.panelMessage || "测试连接失败");
+    }
+    Object.assign(jdbcForm, {
+      lastLatencyMs: result.panelLatencyMs,
+      lastConnectedAt: new Date().toISOString(),
+      detectedVersion: result.panelDetectedVersion || jdbcForm.detectedVersion,
+    });
+    ElMessage.success(
+      [
+        result.panelMessage || "连接成功",
+        result.panelLatencyMs ? `${result.panelLatencyMs}ms` : "",
+        result.panelDetectedVersion || "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    );
+  } catch (error: any) {
+    errorMessage.value = error?.message || "测试连接失败";
+    ElMessage.error(errorMessage.value);
+  } finally {
+    testingConnection.value = false;
+  }
+};
+
 const handleEditSource = (source: PanelSavedSource) => {
-  Object.assign(jdbcForm, { ...source });
+  Object.assign(jdbcForm, {
+    ...source,
+    attributes: normalizeAttributes(source.attributes),
+  });
 };
 
 const handleDeleteSource = async (sourceId: string) => {
   submitting.value = true;
   try {
     await deletePanelDatasource(sourceId);
-    savedSources.value = savedSources.value.filter(item => item.sourceId !== sourceId);
+    savedSources.value = savedSources.value.filter(
+      (item) => item.sourceId !== sourceId,
+    );
     persistSources();
     if (jdbcForm.sourceId === sourceId) {
       resetForm();
@@ -816,7 +1223,9 @@ const handleDeleteSource = async (sourceId: string) => {
 };
 
 const handleToggleFavorite = async (sourceId: string) => {
-  const current = savedSources.value.find(source => source.sourceId === sourceId);
+  const current = savedSources.value.find(
+    (source) => source.sourceId === sourceId,
+  );
   if (!current) {
     return;
   }
@@ -826,9 +1235,13 @@ const handleToggleFavorite = async (sourceId: string) => {
     updatedAt: new Date().toISOString(),
   };
   try {
-    const response = await savePanelDatasource(mapSourceToDatasourcePayload(next));
-    const saved = response?.data ? mapDatasourceViewToSource(response.data) : next;
-    savedSources.value = savedSources.value.map(source =>
+    const response = await savePanelDatasource(
+      mapSourceToDatasourcePayload(next),
+    );
+    const saved = response?.data
+      ? mapDatasourceViewToSource(response.data)
+      : next;
+    savedSources.value = savedSources.value.map((source) =>
       source.sourceId === sourceId ? saved : source,
     );
     persistSources();
@@ -885,6 +1298,22 @@ const handleOpenSource = async (source: PanelSavedSource) => {
   await openSourceInWorkspace(source);
 };
 
+const normalizeSourceType = (sourceType?: string) => {
+  const raw = String(sourceType || "")
+    .trim()
+    .toUpperCase();
+  if (raw === "NGINX" || raw === "NGINX_HTTP" || raw === "NGINX_WORKSPACE") {
+    return "NGINX";
+  }
+  if (raw === "REDIS") return "REDIS";
+  if (raw === "MONGODB" || raw === "MONGO") return "MONGODB";
+  if (raw === "ZOOKEEPER" || raw === "ZK") return "ZOOKEEPER";
+  if (raw === "PROMETHEUS") return "PROMETHEUS";
+  if (raw === "INFLUXDB2" || raw === "INFLUX") return "INFLUXDB2";
+  if (raw === "INFLUXDB3" || raw === "INFLUX_V3") return "INFLUXDB3";
+  return "JDBC";
+};
+
 const openRedisWorkspace = async (source: PanelSavedSource) => {
   workspaceSource.value = source;
   viewMode.value = "redis";
@@ -894,11 +1323,16 @@ const openRedisWorkspace = async (source: PanelSavedSource) => {
       source.host,
       source.port,
       source.password || "",
-      Number(source.databaseName) || 0,
+      getNumberAttribute(
+        source.attributes,
+        "dbIndex",
+        Number(source.databaseName) || 0,
+      ),
     );
     redisConnectionId.value = res?.data || "";
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || "Redis 连接失败";
+    const msg =
+      error?.response?.data?.msg || error?.message || "Redis 连接失败";
     ElMessage.error(`连接失败：${msg}`);
     viewMode.value = "hub";
   } finally {
@@ -906,9 +1340,14 @@ const openRedisWorkspace = async (source: PanelSavedSource) => {
   }
 };
 
-const openNginxWorkspace = async (source: PanelSavedSource) => {
+const openNginxWorkspace = async (
+  source: PanelSavedSource,
+  options?: { deferView?: boolean },
+) => {
   workspaceSource.value = source;
-  viewMode.value = "nginx";
+  if (!options?.deferView) {
+    viewMode.value = "nginx";
+  }
   submitting.value = true;
   try {
     const res = await openNginxConnection(
@@ -916,8 +1355,10 @@ const openNginxWorkspace = async (source: PanelSavedSource) => {
       source.port,
       source.username || "root",
       source.password || undefined,
+      getStringAttribute(source.attributes, "privateKey"),
     );
     nginxConnectionId.value = res?.data || "";
+    viewMode.value = "nginx";
   } catch (error: any) {
     const msg = error?.response?.data?.msg || error?.message || "SSH 连接失败";
     ElMessage.error(`连接失败：${msg}`);
@@ -937,11 +1378,16 @@ const openMongoWorkspace = async (source: PanelSavedSource) => {
       source.port,
       source.username || undefined,
       source.password || undefined,
-      source.databaseName || undefined,
+      getStringAttribute(
+        source.attributes,
+        "authDatabase",
+        source.databaseName || undefined,
+      ),
     );
     mongoConnectionId.value = res?.data || "";
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || "MongoDB 连接失败";
+    const msg =
+      error?.response?.data?.msg || error?.message || "MongoDB 连接失败";
     ElMessage.error(`连接失败：${msg}`);
     viewMode.value = "hub";
   } finally {
@@ -954,10 +1400,15 @@ const openZookeeperWorkspace = async (source: PanelSavedSource) => {
   viewMode.value = "zookeeper";
   submitting.value = true;
   try {
-    const res = await openZookeeperConnection(source.host, source.port);
+    const res = await openZookeeperConnection(
+      source.host,
+      source.port,
+      getNumberAttribute(source.attributes, "sessionTimeoutMillis", 30000),
+    );
     zookeeperConnectionId.value = res?.data || "";
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || "ZooKeeper 连接失败";
+    const msg =
+      error?.response?.data?.msg || error?.message || "ZooKeeper 连接失败";
     ElMessage.error(`连接失败：${msg}`);
     viewMode.value = "hub";
   } finally {
@@ -978,7 +1429,8 @@ const openPrometheusWorkspace = async (source: PanelSavedSource) => {
     );
     prometheusConnectionId.value = res?.data || "";
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || "Prometheus 连接失败";
+    const msg =
+      error?.response?.data?.msg || error?.message || "Prometheus 连接失败";
     ElMessage.error(`连接失败：${msg}`);
     viewMode.value = "hub";
   } finally {
@@ -1000,7 +1452,8 @@ const openInfluxWorkspace = async (source: PanelSavedSource) => {
     );
     influxConnectionId.value = res?.data || "";
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || "InfluxDB 连接失败";
+    const msg =
+      error?.response?.data?.msg || error?.message || "InfluxDB 连接失败";
     ElMessage.error(`连接失败：${msg}`);
     viewMode.value = "hub";
   } finally {
@@ -1021,7 +1474,8 @@ const openInfluxV3Workspace = async (source: PanelSavedSource) => {
     );
     influxV3ConnectionId.value = res?.data || "";
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || "InfluxDB 3 连接失败";
+    const msg =
+      error?.response?.data?.msg || error?.message || "InfluxDB 3 连接失败";
     ElMessage.error(`连接失败：${msg}`);
     viewMode.value = "hub";
   } finally {
@@ -1072,7 +1526,9 @@ const loadWorkspaceMetadata = async () => {
   }
 
   try {
-    const response = await fetchJdbcConnectionMetadata(activeConnectionId.value);
+    const response = await fetchJdbcConnectionMetadata(
+      activeConnectionId.value,
+    );
     datasourceMetadata.value = response?.data || null;
   } catch {
     datasourceMetadata.value = {
@@ -1087,7 +1543,7 @@ const applyPanelRemarks = (remarks: PanelRemarkView[]) => {
   const nextFieldNotes: Record<string, string> = {};
   const nextObjectNotes: Record<string, string> = {};
 
-  remarks.forEach(item => {
+  remarks.forEach((item) => {
     const nodeType = item.panelNodeType;
     if (nodeType === "catalog") {
       const key = [
@@ -1120,43 +1576,54 @@ const loadWorkspaceRemarks = async () => {
 const bootstrapWorkspace = async (source: PanelSavedSource) => {
   // 进入工作区时设置页面标题为数据源名称
   document.title = source.connectionName || source.host || "Panel Workspace";
+  viewMode.value = "booting";
+  bootingHint.value = "正在恢复工作区...";
+  resetWorkspaceConnectionRefs();
+  const sourceType = normalizeSourceType(source.sourceType);
   // Redis 数据源走 Redis 工作区
-  if (source.sourceType === "REDIS") {
+  if (sourceType === "REDIS") {
+    bootingHint.value = "正在连接 Redis 工作区...";
     await openRedisWorkspace(source);
     return;
   }
   // Nginx 数据源走 Nginx 工作区
-  if ((source.sourceType as string) === "NGINX") {
-    await openNginxWorkspace(source);
+  if (sourceType === "NGINX") {
+    bootingHint.value = "正在连接 Nginx 工作区...";
+    await openNginxWorkspace(source, { deferView: true });
     return;
   }
   // MongoDB 数据源走 Mongo 工作区
-  if ((source.sourceType as string) === "MONGODB") {
+  if (sourceType === "MONGODB") {
+    bootingHint.value = "正在连接 MongoDB 工作区...";
     await openMongoWorkspace(source);
     return;
   }
   // ZooKeeper 数据源走 ZooKeeper 工作区
-  if ((source.sourceType as string) === "ZOOKEEPER") {
+  if (sourceType === "ZOOKEEPER") {
+    bootingHint.value = "正在连接 ZooKeeper 工作区...";
     await openZookeeperWorkspace(source);
     return;
   }
   // Prometheus 数据源走 Prometheus 工作区
-  if ((source.sourceType as string) === "PROMETHEUS") {
+  if (sourceType === "PROMETHEUS") {
+    bootingHint.value = "正在连接 Prometheus 工作区...";
     await openPrometheusWorkspace(source);
     return;
   }
   // InfluxDB 2.x 数据源走 Influx 工作区
-  if ((source.sourceType as string) === "INFLUXDB2") {
+  if (sourceType === "INFLUXDB2") {
+    bootingHint.value = "正在连接 InfluxDB 工作区...";
     await openInfluxWorkspace(source);
     return;
   }
   // InfluxDB 3.x 数据源走 InfluxV3 工作区
-  if ((source.sourceType as string) === "INFLUXDB3") {
+  if (sourceType === "INFLUXDB3") {
+    bootingHint.value = "正在连接 InfluxDB 3 工作区...";
     await openInfluxV3Workspace(source);
     return;
   }
+  bootingHint.value = "正在连接 JDBC 工作区...";
   workspaceSource.value = source;
-  viewMode.value = "workspace";
   resetWorkspaceState();
   submitting.value = true;
   try {
@@ -1164,12 +1631,8 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
       ...source,
       connectionType: "JDBC",
       enabled: true,
-      attributes: {
-        panelDialectType: source.jdbcDialectType || "MYSQL",
-        panelDriverClassName: source.driverClassName || "",
-        panelDriverJarName: source.driverJarName || "",
-        panelDriverJarPath: source.driverJarPath || "",
-      },
+      protocol: buildJdbcProtocol(source),
+      attributes: buildJdbcConnectionAttributes(source),
     });
     activeConnectionId.value = response?.data?.connectionId || "";
     await Promise.all([
@@ -1179,8 +1642,10 @@ const bootstrapWorkspace = async (source: PanelSavedSource) => {
       loadWorkspaceRemarks(),
       handleLoadCatalog(),
     ]);
+    viewMode.value = "workspace";
   } catch (error: any) {
     errorMessage.value = error?.message || "打开工作台失败";
+    viewMode.value = "hub";
   } finally {
     submitting.value = false;
   }
@@ -1258,6 +1723,8 @@ const handleBackHome = async () => {
   resetWorkspaceState();
   const url = new URL(window.location.href);
   url.searchParams.delete("ticket");
+  url.searchParams.delete("nginxTab");
+  url.searchParams.delete("nginxProjectStandalone");
   window.history.replaceState({}, "", url.toString());
   await loadCachedConnections();
 };
@@ -1282,7 +1749,10 @@ const handleSearch = async () => {
     await handleLoadCatalog();
     return;
   }
-  const response = await searchJdbcCatalogTree(activeConnectionId.value, searchKeyword.value);
+  const response = await searchJdbcCatalogTree(
+    activeConnectionId.value,
+    searchKeyword.value,
+  );
   catalogTree.value = normalizeTree(response?.data || []);
 };
 
@@ -1316,10 +1786,11 @@ const buildTableDdl = (structure: JdbcTableStructure | null) => {
     return "";
   }
 
-  const tableName = [structure.catalogName, structure.schemaName, structure.tableName]
-    .filter(Boolean)
-    .join(".") || structure.tableName;
-  const columns = structure.columns.map(column => {
+  const tableName =
+    [structure.catalogName, structure.schemaName, structure.tableName]
+      .filter(Boolean)
+      .join(".") || structure.tableName;
+  const columns = structure.columns.map((column) => {
     const parts = [`  ${column.name} ${column.type || "varchar(255)"}`];
     if (column.comment) {
       parts.push(`comment '${String(column.comment).replace(/'/g, "''")}'`);
@@ -1346,8 +1817,18 @@ const fetchTableArtifacts = async (node: JdbcCatalogNode) => {
 
   const request = (async () => {
     const [structureResponse, aiResponse] = await Promise.all([
-      fetchJdbcTableStructure(activeConnectionId.value, tableName, catalogName, schemaName),
-      explainJdbcStructure(activeConnectionId.value, tableName, catalogName, schemaName),
+      fetchJdbcTableStructure(
+        activeConnectionId.value,
+        tableName,
+        catalogName,
+        schemaName,
+      ),
+      explainJdbcStructure(
+        activeConnectionId.value,
+        tableName,
+        catalogName,
+        schemaName,
+      ),
     ]);
 
     const structure = structureResponse?.data || null;
@@ -1422,13 +1903,16 @@ const fetchJdbcDatabaseDocumentTab = async (node: JdbcCatalogNode) => {
   if (!activeConnectionId.value) {
     return null;
   }
-  const response = await fetchJdbcDatabaseDocument(activeConnectionId.value, node.catalogName || undefined);
+  const response = await fetchJdbcDatabaseDocument(
+    activeConnectionId.value,
+    node.catalogName || undefined,
+  );
   return response?.data || null;
 };
 
 const upsertInspectorTab = (tab: InspectorTableTab) => {
   inspectorTabs.value = [
-    ...inspectorTabs.value.filter(item => item.tabId !== tab.tabId),
+    ...inspectorTabs.value.filter((item) => item.tabId !== tab.tabId),
     tab,
   ];
 };
@@ -1437,7 +1921,7 @@ const updateInspectorTab = (
   tabId: string,
   updater: (tab: InspectorTableTab) => InspectorTableTab,
 ) => {
-  inspectorTabs.value = inspectorTabs.value.map(tab =>
+  inspectorTabs.value = inspectorTabs.value.map((tab) =>
     tab.tabId === tabId ? updater(tab) : tab,
   );
 };
@@ -1449,10 +1933,8 @@ const syncInspectorTabArtifacts = async (
   const tabId = buildTableTabId(node, tabType);
   try {
     const artifacts = await fetchTableArtifacts(node);
-    inspectorTabs.value = inspectorTabs.value.map(tab =>
-      tab.tabId === tabId
-        ? { ...tab, ...artifacts }
-        : tab,
+    inspectorTabs.value = inspectorTabs.value.map((tab) =>
+      tab.tabId === tabId ? { ...tab, ...artifacts } : tab,
     );
   } catch (error: any) {
     if (activeNode.value?.nodeId === node.nodeId) {
@@ -1473,7 +1955,7 @@ const ensureInspectorTab = async (
   waitForArtifacts = false,
 ) => {
   const tabId = buildTableTabId(node, tabType);
-  const existing = inspectorTabs.value.find(item => item.tabId === tabId);
+  const existing = inspectorTabs.value.find((item) => item.tabId === tabId);
   const cachedStructure = tableStructureCache.value[node.nodeId] || null;
   if (tabType === "account") {
     const nextTab: InspectorTableTab = {
@@ -1552,18 +2034,17 @@ const ensureInspectorTab = async (
     activeNode.value = node;
     return nextTab;
   }
-  const needsHydration = !cachedStructure
-    || !existing
-    || !existing.aiContent;
+  const needsHydration = !cachedStructure || !existing || !existing.aiContent;
   const baseArtifacts = {
     aiContent: existing?.aiContent || "",
     ddlText: existing?.ddlText || buildTableDdl(cachedStructure),
     documentContent: existing?.documentContent || "",
     structure: cachedStructure,
   };
-  const artifacts = waitForArtifacts && needsHydration
-    ? await fetchTableArtifacts(node)
-    : baseArtifacts;
+  const artifacts =
+    waitForArtifacts && needsHydration
+      ? await fetchTableArtifacts(node)
+      : baseArtifacts;
 
   const nextTab: InspectorTableTab = {
     ...createInspectorTabDefaults(),
@@ -1647,7 +2128,10 @@ const handleCollapseTable = (node: JdbcCatalogNode) => {
 };
 
 const handleCollapseNode = (node: JdbcCatalogNode) => {
-  if (node.nodeType === "catalog" && expandedCatalogNodeId.value === node.nodeId) {
+  if (
+    node.nodeType === "catalog" &&
+    expandedCatalogNodeId.value === node.nodeId
+  ) {
     expandedCatalogNodeId.value = "";
     expandedTableNodeId.value = "";
   }
@@ -1655,7 +2139,7 @@ const handleCollapseNode = (node: JdbcCatalogNode) => {
 
 const handleActivateInspectorTab = (tabId: string) => {
   activeInspectorTabId.value = tabId;
-  const tab = inspectorTabs.value.find(item => item.tabId === tabId);
+  const tab = inspectorTabs.value.find((item) => item.tabId === tabId);
   if (tab?.node) {
     activeNode.value = tab.node;
   }
@@ -1663,40 +2147,61 @@ const handleActivateInspectorTab = (tabId: string) => {
 
 const handleTableTabSettingChange = async (
   tabId: string,
-  patch: Partial<Pick<InspectorTableTab, "columnOrder" | "dataCommentMode" | "filterJoin" | "filterKeyword" | "filters" | "frozenColumns" | "hiddenColumns" | "loadTotal" | "paginationMode" | "pageNum" | "pageSize" | "railShape" | "showSequence" | "sortField" | "sortOrder" | "tableCommentMode" | "viewMode">>,
+  patch: Partial<
+    Pick<
+      InspectorTableTab,
+      | "columnOrder"
+      | "dataCommentMode"
+      | "filterJoin"
+      | "filterKeyword"
+      | "filters"
+      | "frozenColumns"
+      | "hiddenColumns"
+      | "loadTotal"
+      | "paginationMode"
+      | "pageNum"
+      | "pageSize"
+      | "railShape"
+      | "showSequence"
+      | "sortField"
+      | "sortOrder"
+      | "tableCommentMode"
+      | "viewMode"
+    >
+  >,
 ) => {
-  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  const currentTab = inspectorTabs.value.find((item) => item.tabId === tabId);
   if (!currentTab) {
     return;
   }
   const nextPaginationMode = patch.paginationMode ?? currentTab.paginationMode;
-  const nextPageNum = nextPaginationMode === "full"
-    ? 1
-    : (patch.pageNum ?? currentTab.pageNum);
-  const nextPageSize = nextPaginationMode === "full"
-    ? Math.max(previewLimit.value, patch.pageSize ?? currentTab.pageSize)
-    : (patch.pageSize ?? currentTab.pageSize);
+  const nextPageNum =
+    nextPaginationMode === "full" ? 1 : (patch.pageNum ?? currentTab.pageNum);
+  const nextPageSize =
+    nextPaginationMode === "full"
+      ? Math.max(previewLimit.value, patch.pageSize ?? currentTab.pageSize)
+      : (patch.pageSize ?? currentTab.pageSize);
   const nextPatch = {
     ...patch,
     pageNum: nextPageNum,
     pageSize: nextPageSize,
   };
-  updateInspectorTab(tabId, tab => ({ ...tab, ...nextPatch }));
+  updateInspectorTab(tabId, (tab) => ({ ...tab, ...nextPatch }));
   if (currentTab.tabType !== "table") {
     return;
   }
   const nextViewMode = nextPatch.viewMode ?? currentTab.viewMode;
-  const filterChanged = "filterKeyword" in patch
-    || "filterJoin" in patch
-    || "filters" in patch;
-  const shouldRefreshData = nextViewMode === "data"
-    && (filterChanged
-      || "loadTotal" in patch
-      || "pageNum" in patch
-      || "pageSize" in patch
-      || "paginationMode" in patch
-      || "sortField" in patch
-      || "sortOrder" in patch);
+  const filterChanged =
+    "filterKeyword" in patch || "filterJoin" in patch || "filters" in patch;
+  const shouldRefreshData =
+    nextViewMode === "data" &&
+    (filterChanged ||
+      "loadTotal" in patch ||
+      "pageNum" in patch ||
+      "pageSize" in patch ||
+      "paginationMode" in patch ||
+      "sortField" in patch ||
+      "sortOrder" in patch);
   if (!shouldRefreshData) {
     return;
   }
@@ -1709,24 +2214,27 @@ const handleTableTabSettingChange = async (
         nextPageSize,
         nextLoadTotal,
       );
-      updateInspectorTab(tabId, tab => ({ ...tab, dataResult }));
+      updateInspectorTab(tabId, (tab) => ({ ...tab, dataResult }));
     } catch (error: any) {
       errorMessage.value = error?.message || "读取表数据失败";
     }
   };
   clearTableDataRefreshTimer(tabId);
   if (filterChanged) {
-    tableDataRefreshTimers.set(tabId, window.setTimeout(() => {
-      clearTableDataRefreshTimer(tabId);
-      void refreshTableData();
-    }, 250));
+    tableDataRefreshTimers.set(
+      tabId,
+      window.setTimeout(() => {
+        clearTableDataRefreshTimer(tabId);
+        void refreshTableData();
+      }, 250),
+    );
     return;
   }
   await refreshTableData();
 };
 
 const handleRefreshTableData = async (tabId: string) => {
-  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  const currentTab = inspectorTabs.value.find((item) => item.tabId === tabId);
   if (!currentTab || currentTab.tabType !== "table") {
     return;
   }
@@ -1738,7 +2246,7 @@ const handleRefreshTableData = async (tabId: string) => {
       currentTab.pageSize,
       currentTab.loadTotal,
     );
-    updateInspectorTab(tabId, tab => ({ ...tab, dataResult }));
+    updateInspectorTab(tabId, (tab) => ({ ...tab, dataResult }));
   } catch (error: any) {
     errorMessage.value = error?.message || "刷新表数据失败";
   }
@@ -1762,9 +2270,9 @@ const refreshTableStructureForNode = async (node: JdbcCatalogNode) => {
     ...tableStructureCache.value,
     [node.nodeId]: structure,
   };
-  inspectorTabs.value = inspectorTabs.value.map(tab =>
-    tab.node.nodeId === node.nodeId
-      && (tab.tabType === "table" || tab.tabType === "table-edit")
+  inspectorTabs.value = inspectorTabs.value.map((tab) =>
+    tab.node.nodeId === node.nodeId &&
+    (tab.tabType === "table" || tab.tabType === "table-edit")
       ? { ...tab, ddlText: buildTableDdl(structure), structure }
       : tab,
   );
@@ -1773,14 +2281,21 @@ const refreshTableStructureForNode = async (node: JdbcCatalogNode) => {
 
 const refreshOpenTableTabsByNode = async (node: JdbcCatalogNode) => {
   const tableTabs = inspectorTabs.value.filter(
-    tab => tab.node.nodeId === node.nodeId && tab.tabType === "table",
+    (tab) => tab.node.nodeId === node.nodeId && tab.tabType === "table",
   );
-  await Promise.all(tableTabs.map(tab => handleRefreshTableData(tab.tabId)));
+  await Promise.all(tableTabs.map((tab) => handleRefreshTableData(tab.tabId)));
 };
 
-const handleSaveTableData = async (tabId: string, updates: PanelTableRowUpdate[]) => {
-  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
-  if (!currentTab || currentTab.tabType !== "table" || !activeConnectionId.value) {
+const handleSaveTableData = async (
+  tabId: string,
+  updates: PanelTableRowUpdate[],
+) => {
+  const currentTab = inspectorTabs.value.find((item) => item.tabId === tabId);
+  if (
+    !currentTab ||
+    currentTab.tabType !== "table" ||
+    !activeConnectionId.value
+  ) {
     return;
   }
   if (!updates.length) {
@@ -1810,7 +2325,7 @@ const handleSaveTableDesign = async (tabId: string, sql: string) => {
   if (!activeConnectionId.value) {
     return;
   }
-  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  const currentTab = inspectorTabs.value.find((item) => item.tabId === tabId);
   if (!currentTab || currentTab.tabType !== "table-edit") {
     return;
   }
@@ -1848,10 +2363,16 @@ const handleSaveTableDesign = async (tabId: string, sql: string) => {
 };
 
 const handleOpenAccountManager = async (node: JdbcCatalogNode) => {
-  const accountTab = await ensureInspectorTab(node, "account", "account", true, false);
+  const accountTab = await ensureInspectorTab(
+    node,
+    "account",
+    "account",
+    true,
+    false,
+  );
   try {
     const accounts = await fetchJdbcAccountTab(node);
-    updateInspectorTab(accountTab.tabId, tab => ({ ...tab, accounts }));
+    updateInspectorTab(accountTab.tabId, (tab) => ({ ...tab, accounts }));
     activeInspectorTabId.value = accountTab.tabId;
   } catch (error: any) {
     errorMessage.value = error?.message || "读取账号管理失败";
@@ -1859,15 +2380,18 @@ const handleOpenAccountManager = async (node: JdbcCatalogNode) => {
 };
 
 const reloadAccountTab = async (tabId: string) => {
-  const currentTab = inspectorTabs.value.find(item => item.tabId === tabId);
+  const currentTab = inspectorTabs.value.find((item) => item.tabId === tabId);
   if (!currentTab || currentTab.tabType !== "account") {
     return;
   }
   const accounts = await fetchJdbcAccountTab(currentTab.node);
-  updateInspectorTab(tabId, tab => ({ ...tab, accounts }));
+  updateInspectorTab(tabId, (tab) => ({ ...tab, accounts }));
 };
 
-const handleCreateAccount = async (tabId: string, request: PanelJdbcAccountSaveRequest) => {
+const handleCreateAccount = async (
+  tabId: string,
+  request: PanelJdbcAccountSaveRequest,
+) => {
   if (!activeConnectionId.value) {
     return;
   }
@@ -1884,7 +2408,10 @@ const handleCreateAccount = async (tabId: string, request: PanelJdbcAccountSaveR
   }
 };
 
-const handleUpdateAccount = async (tabId: string, request: PanelJdbcAccountSaveRequest) => {
+const handleUpdateAccount = async (
+  tabId: string,
+  request: PanelJdbcAccountSaveRequest,
+) => {
   if (!activeConnectionId.value) {
     return;
   }
@@ -1901,7 +2428,11 @@ const handleUpdateAccount = async (tabId: string, request: PanelJdbcAccountSaveR
   }
 };
 
-const handleDeleteAccount = async (tabId: string, accountName: string, host?: string) => {
+const handleDeleteAccount = async (
+  tabId: string,
+  accountName: string,
+  host?: string,
+) => {
   if (!activeConnectionId.value) {
     return;
   }
@@ -1932,7 +2463,10 @@ const handleDeleteAccount = async (tabId: string, accountName: string, host?: st
   }
 };
 
-const handleGrantAccount = async (tabId: string, request: PanelJdbcPrivilegeRequest) => {
+const handleGrantAccount = async (
+  tabId: string,
+  request: PanelJdbcPrivilegeRequest,
+) => {
   if (!activeConnectionId.value) {
     return;
   }
@@ -1949,7 +2483,10 @@ const handleGrantAccount = async (tabId: string, request: PanelJdbcPrivilegeRequ
   }
 };
 
-const handleRevokeAccount = async (tabId: string, request: PanelJdbcPrivilegeRequest) => {
+const handleRevokeAccount = async (
+  tabId: string,
+  request: PanelJdbcPrivilegeRequest,
+) => {
   if (!activeConnectionId.value) {
     return;
   }
@@ -1976,7 +2513,10 @@ const handleOpenDatabaseDocument = async (node: JdbcCatalogNode) => {
   );
   try {
     const databaseDocument = await fetchJdbcDatabaseDocumentTab(node);
-    updateInspectorTab(documentTab.tabId, tab => ({ ...tab, databaseDocument }));
+    updateInspectorTab(documentTab.tabId, (tab) => ({
+      ...tab,
+      databaseDocument,
+    }));
     activeInspectorTabId.value = documentTab.tabId;
   } catch (error: any) {
     errorMessage.value = error?.message || "读取数据库文档失败";
@@ -1984,7 +2524,9 @@ const handleOpenDatabaseDocument = async (node: JdbcCatalogNode) => {
 };
 
 const handleCloseInspectorTab = (tabId: string) => {
-  inspectorTabs.value = inspectorTabs.value.filter(item => item.tabId !== tabId);
+  inspectorTabs.value = inspectorTabs.value.filter(
+    (item) => item.tabId !== tabId,
+  );
   if (activeInspectorTabId.value === tabId) {
     activeInspectorTabId.value = "workspace";
   }
@@ -2077,7 +2619,10 @@ const handleExplainSql = async () => {
   submitting.value = true;
   errorMessage.value = "";
   try {
-    const response = await explainJdbcExecution(activeConnectionId.value, currentSql);
+    const response = await explainJdbcExecution(
+      activeConnectionId.value,
+      currentSql,
+    );
     const explainResult = response?.data || null;
     queryResult.value = explainResult;
     sqlExplainRows.value = explainResult?.rows || [];
@@ -2100,8 +2645,8 @@ const handleGenerateSql = async (prompt: string) => {
     const response = await generateJdbcSql(activeConnectionId.value, {
       prompt,
       tableNames: explorerTree.value
-        .flatMap(catalog => catalog.children || [])
-        .map(table => String(table.tableName || table.nodeName))
+        .flatMap((catalog) => catalog.children || [])
+        .map((table) => String(table.tableName || table.nodeName))
         .slice(0, 50),
     });
     sqlText.value = response?.data || "";
@@ -2118,15 +2663,22 @@ const handleFieldNote = (node: JdbcCatalogNode) => {
     } as JdbcCatalogNode,
     node.columnName || node.nodeName,
   );
-  return fieldNotes.value[key] || node.attributes?.fieldComment || node.description || "";
+  return (
+    fieldNotes.value[key] ||
+    node.attributes?.fieldComment ||
+    node.description ||
+    ""
+  );
 };
 
 const handleObjectNote = (node: JdbcCatalogNode) => {
   const key = buildObjectNoteKey(node);
-  return objectNotes.value[key]
-    || tableStructureCache.value[node.nodeId]?.tableComment
-    || node.description
-    || "";
+  return (
+    objectNotes.value[key] ||
+    tableStructureCache.value[node.nodeId]?.tableComment ||
+    node.description ||
+    ""
+  );
 };
 
 const closeNoteEditor = () => {
@@ -2142,7 +2694,8 @@ const openNoteEditor = (
 ) => {
   noteEditor.node = node;
   noteEditor.targetType = targetType;
-  noteEditor.value = targetType === "field" ? handleFieldNote(node) : handleObjectNote(node);
+  noteEditor.value =
+    targetType === "field" ? handleFieldNote(node) : handleObjectNote(node);
   noteEditor.x = Math.max(16, Math.min(window.innerWidth - 320, position.x));
   noteEditor.y = Math.max(16, Math.min(window.innerHeight - 220, position.y));
   noteEditor.visible = true;
@@ -2178,11 +2731,12 @@ const submitNoteEditor = async () => {
       return;
     }
 
-    const tableNode = noteEditor.targetType === "field"
-      ? explorerTree.value
-        .flatMap(catalog => catalog.children || [])
-        .find(table => table.nodeId === panelNode.parentId)
-      : panelNode;
+    const tableNode =
+      noteEditor.targetType === "field"
+        ? explorerTree.value
+            .flatMap((catalog) => catalog.children || [])
+            .find((table) => table.nodeId === panelNode.parentId)
+        : panelNode;
     if (!tableNode) {
       throw new Error("未找到所属数据表");
     }
@@ -2195,7 +2749,10 @@ const submitNoteEditor = async () => {
         panelColumnName: panelNode.columnName || panelNode.nodeName,
         panelCommentContent: remarkContent,
       });
-      const noteKey = buildFieldNoteKey(tableNode, panelNode.columnName || panelNode.nodeName);
+      const noteKey = buildFieldNoteKey(
+        tableNode,
+        panelNode.columnName || panelNode.nodeName,
+      );
       fieldNotes.value = {
         ...fieldNotes.value,
         [noteKey]: remarkContent,
@@ -2261,9 +2818,11 @@ const buildDefaultBackupTableName = (node: JdbcCatalogNode) =>
 
 const removeTableTabsByNode = (node: JdbcCatalogNode) => {
   const removedTabIds = inspectorTabs.value
-    .filter(tab => tab.node.nodeId === node.nodeId)
-    .map(tab => tab.tabId);
-  inspectorTabs.value = inspectorTabs.value.filter(tab => tab.node.nodeId !== node.nodeId);
+    .filter((tab) => tab.node.nodeId === node.nodeId)
+    .map((tab) => tab.tabId);
+  inspectorTabs.value = inspectorTabs.value.filter(
+    (tab) => tab.node.nodeId !== node.nodeId,
+  );
   if (removedTabIds.includes(activeInspectorTabId.value)) {
     activeInspectorTabId.value = "workspace";
   }
@@ -2295,7 +2854,9 @@ const executeTableNodeAction = async (
       removeTableTabsByNode(node);
     }
     if (panelActionType === "clear" || panelActionType === "truncate") {
-      const targetTab = inspectorTabs.value.find(tab => tab.node.nodeId === node.nodeId && tab.tabType === "table");
+      const targetTab = inspectorTabs.value.find(
+        (tab) => tab.node.nodeId === node.nodeId && tab.tabType === "table",
+      );
       if (targetTab) {
         await handleRefreshTableData(targetTab.tabId);
       }
@@ -2391,12 +2952,18 @@ const handleContextAction = async ({
   }
 
   if (action === "edit-note" && node) {
-    openNoteEditor(node, node.nodeType === "catalog" ? "catalog" : "table", position);
+    openNoteEditor(
+      node,
+      node.nodeType === "catalog" ? "catalog" : "table",
+      position,
+    );
     return;
   }
 
   if (action === "copy-name" && node) {
-    await navigator.clipboard.writeText(node.columnName || fullTableName(node) || node.nodeName);
+    await navigator.clipboard.writeText(
+      node.columnName || fullTableName(node) || node.nodeName,
+    );
     return;
   }
 
@@ -2418,7 +2985,13 @@ const handleContextAction = async ({
   }
 
   if (action === "design-table") {
-    const tab = await ensureInspectorTab(node, "table-edit", "columns", true, false);
+    const tab = await ensureInspectorTab(
+      node,
+      "table-edit",
+      "columns",
+      true,
+      false,
+    );
     activeInspectorTabId.value = tab.tabId;
     return;
   }
@@ -2522,8 +3095,12 @@ onMounted(async () => {
   if (!ticket) {
     return;
   }
+  viewMode.value = "booting";
+  bootingHint.value = "正在解析工作区 ticket...";
   try {
-    const payload = await decryptWorkspaceTicket<{ source: PanelSavedSource }>(ticket);
+    const payload = await decryptWorkspaceTicket<{ source: PanelSavedSource }>(
+      ticket,
+    );
     if (payload?.source) {
       await bootstrapWorkspace(payload.source);
     }
@@ -2570,6 +3147,20 @@ onBeforeUnmount(() => {
   border: none;
   background: rgba(255, 255, 255, 0.96);
   margin: 0;
+}
+
+.workspace-booting {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  height: calc(100vh - 32px);
+  color: #4f6778;
+  font-size: 14px;
+}
+
+.workspace-booting__icon {
+  font-size: 24px;
+  color: #4f8fcb;
 }
 
 .workspace-bar {

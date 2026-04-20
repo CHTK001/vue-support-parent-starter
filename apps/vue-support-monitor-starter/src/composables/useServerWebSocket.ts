@@ -1,5 +1,11 @@
 import { ref } from "vue";
-import { socket, MonitorTopics, parseSocketMessage } from "@repo/core";
+import {
+  getGlobalSocketService,
+  MonitorTopics,
+  parseSocketMessage,
+  socket,
+  type SocketTemplate,
+} from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
 import type { ServerWebSocketMessage } from "@/api/server";
@@ -23,7 +29,8 @@ export interface WebSocketState {
  * 服务器 WebSocket 管理 Composable
  */
 export function useServerWebSocket() {
-  const stompClient = ref<any>(null);
+  const stompClient = ref<SocketTemplate | any>(null);
+  const ownsSocketClient = ref(false);
   const state = ref<WebSocketState>({
     connected: false,
     connecting: false,
@@ -36,11 +43,36 @@ export function useServerWebSocket() {
   // 统计未处理的消息类型
   const unhandledMessageTypes = new Set<string>();
 
+  const serverTopics = [
+    "gen/server", // SSH 消息的主要通道
+    MonitorTopics.SERVER.STATUS,
+    MonitorTopics.SERVER.METRICS,
+    MonitorTopics.SERVER.ALERT,
+    MonitorTopics.SERVER.TERMINAL,
+    MonitorTopics.SERVER.SSH_CONNECT,
+    MonitorTopics.SERVER.SSH_DISCONNECT,
+    MonitorTopics.SERVER.CONNECTION_STATUS,
+    MonitorTopics.SERVER.HEALTH,
+  ];
+
+  const resolveSocketClient = (): SocketTemplate | any => {
+    const globalSocket = getGlobalSocketService();
+    if (globalSocket) {
+      globalSocket.connect();
+      ownsSocketClient.value = false;
+      return globalSocket;
+    }
+
+    const config = getConfig();
+    ownsSocketClient.value = true;
+    return socket(splitToArray(config.SocketUrl), undefined, {});
+  };
+
   /**
    * 初始化 WebSocket 连接
    */
   const connect = async (): Promise<boolean> => {
-    if (stompClient.value && stompClient.value.connected) {
+    if (stompClient.value && state.value.connected) {
       return true;
     }
 
@@ -52,8 +84,7 @@ export function useServerWebSocket() {
       state.value.connecting = true;
       state.value.error = null;
 
-      const config = getConfig();
-      stompClient.value = socket(splitToArray(config.SocketUrl), undefined, {});
+      stompClient.value = resolveSocketClient();
 
       // 连接成功
       state.value.connected = true;
@@ -87,19 +118,6 @@ export function useServerWebSocket() {
    */
   const subscribeToServerTopic = () => {
     if (!stompClient.value) return;
-
-    // 订阅所有服务器相关主题
-    const serverTopics = [
-      "gen/server", // SSH 消息的主要通道
-      MonitorTopics.SERVER.STATUS,
-      MonitorTopics.SERVER.METRICS,
-      MonitorTopics.SERVER.ALERT,
-      MonitorTopics.SERVER.TERMINAL,
-      MonitorTopics.SERVER.SSH_CONNECT,
-      MonitorTopics.SERVER.SSH_DISCONNECT,
-      MonitorTopics.SERVER.CONNECTION_STATUS,
-      MonitorTopics.SERVER.HEALTH,
-    ];
 
     serverTopics.forEach((topic) => {
       stompClient.value.on(topic, (rawMessage: any) => {
@@ -222,16 +240,23 @@ export function useServerWebSocket() {
   const disconnect = () => {
     if (stompClient.value) {
       try {
-        // Socket.IO 客户端使用 close() 方法断开连接
-        if (typeof stompClient.value.close === "function") {
-          stompClient.value.close();
-        } else if (typeof stompClient.value.disconnect === "function") {
-          stompClient.value.disconnect();
+        serverTopics.forEach((topic) => {
+          stompClient.value?.off?.(topic);
+        });
+
+        if (ownsSocketClient.value) {
+          // 仅关闭本 composable 自建连接，避免误关全局 provider socket
+          if (typeof stompClient.value.close === "function") {
+            stompClient.value.close();
+          } else if (typeof stompClient.value.disconnect === "function") {
+            stompClient.value.disconnect();
+          }
         }
       } catch (error) {
         console.error("断开 WebSocket 连接失败:", error);
       }
       stompClient.value = null;
+      ownsSocketClient.value = false;
     }
 
     state.value.connected = false;

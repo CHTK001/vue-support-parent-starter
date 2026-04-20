@@ -1,4 +1,5 @@
 import { http, type ReturnResult } from "@repo/utils";
+import type { PanelSourceType } from "../panel";
 
 export interface PanelConnectionDefinition {
   connectionId?: string;
@@ -33,7 +34,7 @@ export interface PanelConnectionDescriptor {
 export interface PanelDatasourcePayload {
   panelSourceId?: string;
   panelConnectionId?: string;
-  panelSourceType: "JDBC" | "REDIS";
+  panelSourceType: PanelSourceType;
   panelConnectionName: string;
   panelHost: string;
   panelPort: number;
@@ -47,6 +48,17 @@ export interface PanelDatasourcePayload {
   panelDriverJarPath?: string;
   panelNote?: string;
   panelFavorite?: boolean;
+  panelEnvironment?: string;
+  panelOwner?: string;
+  panelReadOnly?: boolean;
+  panelSslEnabled?: boolean;
+  panelConnectTimeoutMillis?: number;
+  panelSocketTimeoutMillis?: number;
+  panelCharset?: string;
+  panelLastLatencyMs?: number;
+  panelLastConnectedAt?: string;
+  panelDetectedVersion?: string;
+  panelAttributes?: Record<string, any>;
   panelUpdatedAt?: string;
 }
 
@@ -60,6 +72,15 @@ export interface PanelDriverUploadView {
   panelDriverClassName?: string;
   panelDriverJarName?: string;
   panelDriverJarPath?: string;
+}
+
+export interface PanelDatasourceTestView {
+  panelSuccess: boolean;
+  panelLatencyMs?: number;
+  panelMessage?: string;
+  panelDetectedVersion?: string;
+  panelResolvedProtocol?: string;
+  panelDetails?: Record<string, any>;
 }
 
 export interface JdbcCatalogNode {
@@ -290,6 +311,13 @@ export const savePanelDatasource = (data: PanelDatasourcePayload) =>
   http.request<ReturnResult<PanelDatasourceView>>(
     "post",
     "/v1/panel/source",
+    { data },
+  );
+
+export const testPanelDatasource = (data: PanelDatasourcePayload) =>
+  http.request<ReturnResult<PanelDatasourceTestView>>(
+    "post",
+    "/v1/panel/source/test",
     { data },
   );
 

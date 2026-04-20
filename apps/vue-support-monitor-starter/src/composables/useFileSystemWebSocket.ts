@@ -1,5 +1,5 @@
 import { ref, reactive, onUnmounted } from "vue";
-import { socket } from "@repo/core";
+import { getGlobalSocketService, socket, type SocketTemplate } from "@repo/core";
 import { getConfig } from "@repo/config";
 import type {
   FileSystemRealtimeStatus,
@@ -67,7 +67,8 @@ export function useFileSystemWebSocket() {
   });
 
   // Socket实例
-  const socketClient = ref<any>(null);
+  const socketClient = ref<SocketTemplate | any>(null);
+  const ownsSocketClient = ref(false);
 
   // 实时状态数据
   const realtimeStatus = reactive<FileSystemRealtimeStatus>({
@@ -168,11 +169,26 @@ export function useFileSystemWebSocket() {
       const config = getConfig();
       const socketUrls = config.SocketUrl?.split(",") || [];
 
-      socketClient.value = socket(socketUrls, "/socket.io", {
-        transports: ["websocket", "polling"],
-        timeout: 10000,
-        forceNew: true,
-      });
+      const globalSocket = getGlobalSocketService();
+      if (globalSocket) {
+        globalSocket.connect();
+        socketClient.value = globalSocket;
+        ownsSocketClient.value = false;
+      } else {
+        socketClient.value = socket(
+          socketUrls,
+          "/socket.io",
+          {},
+          {
+            transports: ["websocket", "polling"],
+            autoConnect: true,
+            reconnection: true,
+            reconnectionAttempts: 3,
+            reconnectionDelay: 1000,
+          },
+        );
+        ownsSocketClient.value = true;
+      }
 
       // 连接成功
       socketClient.value.on("connect", () => {
@@ -223,8 +239,12 @@ export function useFileSystemWebSocket() {
    */
   const disconnect = () => {
     if (socketClient.value) {
-      socketClient.value.disconnect();
+      socketClient.value.off("filesystem");
+      if (ownsSocketClient.value) {
+        socketClient.value.disconnect();
+      }
       socketClient.value = null;
+      ownsSocketClient.value = false;
     }
     state.value.connected = false;
     state.value.connecting = false;

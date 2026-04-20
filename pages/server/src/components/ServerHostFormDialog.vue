@@ -217,6 +217,67 @@
               <el-form-item label="描述" class="server-form-dialog__span-2">
                 <ScInput v-model="descriptionModel" type="textarea" :rows="3" />
               </el-form-item>
+
+              <el-form-item label="Docker 能力">
+                <ScSwitch
+                  v-model="dockerEnabledModel"
+                  active-text="已启用"
+                  inactive-text="未启用"
+                />
+              </el-form-item>
+
+              <el-form-item v-if="dockerEnabledModel" label="Docker 接入类型">
+                <ScSelect
+                  v-model="dockerConnectionTypeModel"
+                  :options="dockerConnectionTypeOptions"
+                />
+              </el-form-item>
+
+              <el-form-item
+                v-if="dockerEnabledModel && dockerConnectionTypeModel === 'API'"
+                label="Docker API 端口"
+              >
+                <ScInput
+                  v-model="dockerApiPortModel"
+                  type="number"
+                  layout="stepper"
+                  :min="1"
+                  :max="65535"
+                  :step="1"
+                />
+              </el-form-item>
+
+              <el-form-item
+                v-if="dockerEnabledModel && dockerConnectionTypeModel === 'API'"
+                label="Docker API 账号"
+              >
+                <ScInput v-model="dockerApiUsernameModel" placeholder="可留空" />
+              </el-form-item>
+
+              <el-form-item
+                v-if="dockerEnabledModel && dockerConnectionTypeModel === 'API'"
+                label="Docker API 密码"
+              >
+                <ScInput
+                  v-model="dockerApiPasswordModel"
+                  type="password"
+                  passwd-strong="none"
+                  placeholder="可留空"
+                />
+              </el-form-item>
+
+              <el-form-item
+                v-if="dockerEnabledModel"
+                label="Docker 连接延迟(ms)"
+              >
+                <ScInput
+                  v-model="dockerLatencyModel"
+                  type="number"
+                  layout="stepper"
+                  :min="0"
+                  :step="10"
+                />
+              </el-form-item>
             </div>
           </div>
         </el-collapse-transition>
@@ -236,6 +297,7 @@
 import { computed, ref } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 import type { ServerHost } from "../api";
 import type { SelectOption } from "./server-types";
@@ -266,6 +328,29 @@ const updateForm = (patch: Partial<ServerHost>) => {
   emit("update:form", {
     ...props.form,
     ...patch,
+  });
+};
+
+const parseMetadataJson = () => {
+  try {
+    const parsed = JSON.parse(String(props.form.metadataJson || "{}"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const patchDockerMetadata = (patch: Record<string, unknown>) => {
+  const metadata = parseMetadataJson() as Record<string, unknown>;
+  const docker = {
+    ...((metadata.docker as Record<string, unknown> | undefined) || {}),
+    ...patch,
+  };
+  updateForm({
+    metadataJson: JSON.stringify({
+      ...metadata,
+      docker,
+    }),
   });
 };
 
@@ -380,6 +465,56 @@ const descriptionModel = computed({
   get: () => props.form.description || "",
   set: (value: string) => {
     updateForm({ description: value });
+  },
+});
+
+const dockerConnectionTypeOptions: SelectOption[] = [
+  { label: "API", value: "API" },
+  { label: "本机", value: "LOCAL" },
+  { label: "SSH", value: "SSH" },
+  { label: "WINRM", value: "WINRM" },
+];
+
+const dockerEnabledModel = computed({
+  get: () => Boolean((parseMetadataJson() as Record<string, any>).docker?.enabled),
+  set: (value: boolean) => {
+    patchDockerMetadata({ enabled: value });
+  },
+});
+
+const dockerConnectionTypeModel = computed({
+  get: () =>
+    String((parseMetadataJson() as Record<string, any>).docker?.connectionType || "LOCAL"),
+  set: (value: string | number) => {
+    patchDockerMetadata({ connectionType: String(value || "LOCAL") });
+  },
+});
+
+const dockerApiPortModel = computed({
+  get: () => Number((parseMetadataJson() as Record<string, any>).docker?.apiPort || 2375) || 2375,
+  set: (value: string | number) => {
+    patchDockerMetadata({ apiPort: Number(value || 2375) || 2375 });
+  },
+});
+
+const dockerApiUsernameModel = computed({
+  get: () => String((parseMetadataJson() as Record<string, any>).docker?.apiUsername || ""),
+  set: (value: string) => {
+    patchDockerMetadata({ apiUsername: value });
+  },
+});
+
+const dockerApiPasswordModel = computed({
+  get: () => String((parseMetadataJson() as Record<string, any>).docker?.apiPassword || ""),
+  set: (value: string) => {
+    patchDockerMetadata({ apiPassword: value });
+  },
+});
+
+const dockerLatencyModel = computed({
+  get: () => Number((parseMetadataJson() as Record<string, any>).docker?.latencyMs || 0) || 0,
+  set: (value: string | number) => {
+    patchDockerMetadata({ latencyMs: Number(value || 0) || 0 });
   },
 });
 

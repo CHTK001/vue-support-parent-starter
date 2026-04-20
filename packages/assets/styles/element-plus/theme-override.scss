@@ -83,7 +83,9 @@ body {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
 }
-
+.el-form-item {
+  align-items: center;
+}
 /* 3. 输入框 Input */
 .el-input__wrapper,
 .el-select__wrapper,
@@ -97,7 +99,9 @@ body {
 .el-tag {
   border-radius: var(--app-control-radius);
 }
-
+ .el-select__wrapper{
+    min-width: 120px;
+  }
 .el-input__wrapper,
 .el-select__wrapper,
 .el-date-editor.el-input__wrapper,

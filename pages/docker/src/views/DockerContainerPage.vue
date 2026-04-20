@@ -4,33 +4,29 @@
       <div>
         <small>DOCKER / CONTAINERS</small>
         <h1>容器管理</h1>
-        <p>必须先选择服务器，再查看该服务器的容器卡片，并可执行进入容器或更新运行配置。</p>
+        <p>服务器模式筛选下沉到服务器工作区，组件模式保留聚合筛选。</p>
       </div>
-      <el-button :loading="loading" @click="loadContainers">刷新</el-button>
+      <div class="hero-actions">
+        <el-tooltip content="刷新容器列表" placement="top">
+          <el-button circle :loading="loading" @click="loadContainers">
+            <IconifyIconOnline icon="ri:refresh-line" />
+          </el-button>
+        </el-tooltip>
+      </div>
     </header>
 
-    <article class="panel-card">
+    <article v-if="displayMode !== 'server'" class="panel-card">
       <header class="panel-card__header">
         <div>
           <strong>筛选条件</strong>
-          <p>支持服务器、仓库和关键字筛选。</p>
+          <p>容器模式会自动去重并统计覆盖服务器数量。</p>
         </div>
+        <el-radio-group v-model="displayMode" size="small" @change="handleDisplayModeChange">
+          <el-radio-button label="server" value="server">服务器模式</el-radio-button>
+          <el-radio-button label="component" value="component">容器模式</el-radio-button>
+        </el-radio-group>
       </header>
       <div class="toolbar-grid">
-        <el-select
-          v-model="selectedServerId"
-          filterable
-          clearable
-          placeholder="请选择服务器"
-          @change="handleFilterChange"
-        >
-          <el-option
-            v-for="item in mergedOptions"
-            :key="item.serverId"
-            :label="`${item.serverName} (${item.host || '-'})`"
-            :value="item.serverId"
-          />
-        </el-select>
         <el-select
           v-model="selectedRegistryId"
           clearable
@@ -54,43 +50,122 @@
       </div>
     </article>
 
-    <div v-if="selectedServerId" class="card-grid">
-      <article v-for="item in containers" :key="item.containerId" class="resource-card">
+    <section v-if="displayMode === 'server'" class="workspace-grid">
+      <aside class="server-column">
+        <article class="server-mode-filter">
+          <small>展示模式</small>
+          <el-radio-group v-model="displayMode" size="small" @change="handleDisplayModeChange">
+            <el-radio-button label="server" value="server">服务器模式</el-radio-button>
+            <el-radio-button label="component" value="component">容器模式</el-radio-button>
+          </el-radio-group>
+        </article>
+        <button
+          v-for="item in mergedOptions"
+          :key="item.serverId"
+          type="button"
+          class="server-card"
+          :class="{ 'is-active': selectedServerId === item.serverId }"
+          @click="selectServer(item.serverId)"
+        >
+          <strong>{{ item.serverName }}</strong>
+          <span>{{ item.host || "-" }}</span>
+          <small>{{ serverFilterHint(item.serverId) }}</small>
+        </button>
+      </aside>
+
+      <div class="workspace-body">
+        <article class="workspace-filter">
+          <el-select
+            v-model="selectedRegistryId"
+            clearable
+            filterable
+            placeholder="按仓库筛选"
+            @change="handleFilterChange"
+          >
+            <el-option
+              v-for="item in registries"
+              :key="item.dockerRegistryId"
+              :label="item.registryName"
+              :value="item.dockerRegistryId"
+            />
+          </el-select>
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索容器名、镜像名、容器ID"
+            @keyup.enter="handleFilterChange"
+          />
+        </article>
+        <div v-if="selectedServerId" class="card-grid">
+          <article v-for="item in containers" :key="item.containerId" class="resource-card">
+            <header class="resource-card__header">
+              <div>
+                <strong>{{ item.containerName || item.containerId }}</strong>
+                <p>{{ item.imageName || "-" }}:{{ item.imageTag || "-" }}</p>
+              </div>
+              <el-tag size="small" effect="light">{{ item.status || "-" }}</el-tag>
+            </header>
+
+            <div class="resource-card__meta">
+              <span>容器ID：{{ item.containerId }}</span>
+              <span>端口：{{ item.ports || "-" }}</span>
+              <span>仓库：{{ registryName(item.registryId) }}</span>
+              <span>创建时间：{{ formatTime(item.createdAt) }}</span>
+            </div>
+
+            <div v-if="item.labels && Object.keys(item.labels).length" class="label-row">
+              <el-tag
+                v-for="(value, key) in item.labels"
+                :key="`${item.containerId}-${key}`"
+                size="small"
+                effect="plain"
+              >
+                {{ key }}={{ value }}
+              </el-tag>
+            </div>
+
+            <div class="resource-card__actions">
+              <el-tooltip content="进入容器" placement="top">
+                <el-button circle @click="openExecDialog(item)">
+                  <IconifyIconOnline icon="ri:terminal-box-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="更新配置" placement="top">
+                <el-button circle type="primary" @click="openUpdateDialog(item)">
+                  <IconifyIconOnline icon="ri:settings-3-line" />
+                </el-button>
+              </el-tooltip>
+            </div>
+          </article>
+          <el-empty v-if="!containers.length && !loading" description="当前服务器没有容器" />
+        </div>
+        <el-empty v-else description="请选择一台服务器" />
+      </div>
+    </section>
+
+    <div v-else class="card-grid">
+      <article v-for="item in componentCards" :key="item.key" class="resource-card">
         <header class="resource-card__header">
           <div>
-            <strong>{{ item.containerName || item.containerId }}</strong>
+            <strong>{{ item.containerName || item.containerId || "-" }}</strong>
             <p>{{ item.imageName || "-" }}:{{ item.imageTag || "-" }}</p>
           </div>
-          <el-tag size="small" effect="light">{{ item.status || "-" }}</el-tag>
+          <div class="status-tags">
+            <el-tag size="small" effect="light">{{ item.status || "-" }}</el-tag>
+            <el-tag size="small" effect="light" type="success">
+              {{ item.serverCount }} 台服务器
+            </el-tag>
+          </div>
         </header>
-
         <div class="resource-card__meta">
           <span>容器ID：{{ item.containerId }}</span>
           <span>端口：{{ item.ports || "-" }}</span>
           <span>仓库：{{ registryName(item.registryId) }}</span>
-          <span>创建时间：{{ formatTime(item.createdAt) }}</span>
-        </div>
-
-        <div v-if="item.labels && Object.keys(item.labels).length" class="label-row">
-          <el-tag
-            v-for="(value, key) in item.labels"
-            :key="`${item.containerId}-${key}`"
-            size="small"
-            effect="plain"
-          >
-            {{ key }}={{ value }}
-          </el-tag>
-        </div>
-
-        <div class="resource-card__actions">
-          <el-button @click="openExecDialog(item)">进入容器</el-button>
-          <el-button type="primary" @click="openUpdateDialog(item)">更新配置</el-button>
+          <span>服务器：{{ item.serverNames.join(" / ") || "-" }}</span>
         </div>
       </article>
-
-      <el-empty v-if="!containers.length && !loading" description="当前筛选条件下没有容器" />
+      <el-empty v-if="!componentCards.length && !loading" description="当前筛选条件下没有容器" />
     </div>
-    <el-empty v-else description="先选择一台服务器" />
 
     <el-dialog v-model="execDialogVisible" title="进入容器" width="560px">
       <el-form label-width="100px">
@@ -157,7 +232,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import {
@@ -173,12 +248,15 @@ import type {
 } from "../types";
 import { useDockerServerSelection } from "../composables/useDockerServerSelection";
 
+type DisplayMode = "server" | "component";
+
 const route = useRoute();
 const router = useRouter();
 
 const loading = ref(false);
 const executing = ref(false);
 const updating = ref(false);
+const displayMode = ref<DisplayMode>("server");
 const selectedServerId = ref<number>();
 const selectedRegistryId = ref<number>();
 const keyword = ref("");
@@ -201,13 +279,104 @@ const updateForm = ref({
   portMappingsText: "",
 });
 
+type ServerFilterState = {
+  selectedRegistryId?: number;
+  keyword: string;
+};
+
 const { mergedOptions, loadServers } = useDockerServerSelection();
+const serverFilters = ref<Record<number, ServerFilterState>>({});
+
+const serverNameMap = computed(() => {
+  const map = new Map<number, string>();
+  mergedOptions.value.forEach((item) => {
+    map.set(Number(item.serverId), item.serverName || String(item.serverId));
+  });
+  return map;
+});
+
+const componentCards = computed(() => {
+  const map = new Map<
+    string,
+    DockerContainerView & { serverIds: Set<number> }
+  >();
+  containers.value.forEach((item) => {
+    const key = String(
+      item.containerName || `${item.imageName || ""}:${item.imageTag || ""}` || item.containerId,
+    ).toLowerCase();
+    const current = map.get(key);
+    if (!current) {
+      map.set(key, {
+        ...item,
+        serverIds: new Set([Number(item.serverId || 0)]),
+      });
+      return;
+    }
+    current.serverIds.add(Number(item.serverId || 0));
+  });
+  return Array.from(map.entries()).map(([key, item]) => {
+    const serverIds = Array.from(item.serverIds).filter((id) => id > 0);
+    return {
+      key,
+      ...item,
+      serverCount: serverIds.length,
+      serverNames: serverIds.map((id) => serverNameMap.value.get(id) || String(id)),
+    };
+  });
+});
+
+const ensureServerFilter = (serverId?: number) => {
+  if (!serverId) {
+    return {
+      selectedRegistryId: selectedRegistryId.value,
+      keyword: keyword.value,
+    } satisfies ServerFilterState;
+  }
+  if (!serverFilters.value[serverId]) {
+    serverFilters.value[serverId] = {
+      selectedRegistryId: undefined,
+      keyword: "",
+    };
+  }
+  return serverFilters.value[serverId];
+};
+
+const persistCurrentServerFilter = () => {
+  if (displayMode.value !== "server" || !selectedServerId.value) {
+    return;
+  }
+  serverFilters.value[selectedServerId.value] = {
+    selectedRegistryId: selectedRegistryId.value,
+    keyword: keyword.value,
+  };
+};
+
+const applyServerFilter = (serverId?: number) => {
+  if (!serverId) {
+    return;
+  }
+  const state = ensureServerFilter(serverId);
+  selectedRegistryId.value = state.selectedRegistryId;
+  keyword.value = state.keyword;
+};
+
+const serverFilterHint = (serverId: number) => {
+  const state = serverFilters.value[serverId];
+  if (!state) {
+    return "默认筛选";
+  }
+  const count = (state.selectedRegistryId ? 1 : 0) + (state.keyword?.trim() ? 1 : 0);
+  return count ? `已设 ${count} 项筛选` : "默认筛选";
+};
 
 const registryName = (registryId?: number) => {
   if (!registryId) {
     return "未匹配仓库";
   }
-  return registries.value.find((item) => item.dockerRegistryId === registryId)?.registryName || "未匹配仓库";
+  return (
+    registries.value.find((item) => item.dockerRegistryId === registryId)?.registryName ||
+    "未匹配仓库"
+  );
 };
 
 const formatTime = (value?: number) => {
@@ -221,7 +390,10 @@ const syncRouteQuery = async () => {
   await router.replace({
     path: "/docker/containers",
     query: {
-      ...(selectedServerId.value ? { serverId: String(selectedServerId.value) } : {}),
+      mode: displayMode.value,
+      ...(displayMode.value === "server" && selectedServerId.value
+        ? { serverId: String(selectedServerId.value) }
+        : {}),
       ...(selectedRegistryId.value ? { registryId: String(selectedRegistryId.value) } : {}),
       ...(keyword.value.trim() ? { keyword: keyword.value.trim() } : {}),
     },
@@ -229,14 +401,14 @@ const syncRouteQuery = async () => {
 };
 
 const loadContainers = async () => {
-  if (!selectedServerId.value) {
+  if (displayMode.value === "server" && !selectedServerId.value) {
     containers.value = [];
     return;
   }
   loading.value = true;
   try {
     const result = await listDockerContainers({
-      serverId: selectedServerId.value,
+      serverId: displayMode.value === "server" ? selectedServerId.value : undefined,
       registryId: selectedRegistryId.value,
       keyword: keyword.value.trim() || undefined,
     });
@@ -249,8 +421,23 @@ const loadContainers = async () => {
 };
 
 const handleFilterChange = async () => {
+  persistCurrentServerFilter();
   await syncRouteQuery();
   await loadContainers();
+};
+
+const handleDisplayModeChange = async () => {
+  if (displayMode.value === "server" && !selectedServerId.value) {
+    selectedServerId.value = mergedOptions.value[0]?.serverId;
+  }
+  await handleFilterChange();
+};
+
+const selectServer = async (serverId: number) => {
+  persistCurrentServerFilter();
+  selectedServerId.value = serverId;
+  applyServerFilter(serverId);
+  await handleFilterChange();
 };
 
 const openExecDialog = (item: DockerContainerView) => {
@@ -279,8 +466,8 @@ const splitCommand = (input: string) => {
   return matches.map((item) => item.replace(/^['"]|['"]$/g, ""));
 };
 
-const parseKeyValueText = (input: string) => {
-  return input
+const parseKeyValueText = (input: string) =>
+  input
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
@@ -291,7 +478,6 @@ const parseKeyValueText = (input: string) => {
       }
       return acc;
     }, {});
-};
 
 const parseLineList = (input: string) =>
   input
@@ -352,10 +538,27 @@ const submitUpdate = async () => {
 };
 
 onMounted(async () => {
-  await Promise.all([loadServers(), listDockerRegistries().then((res) => { registries.value = res.data || []; })]);
-  selectedServerId.value = route.query.serverId ? Number(route.query.serverId) : undefined;
-  selectedRegistryId.value = route.query.registryId ? Number(route.query.registryId) : undefined;
-  keyword.value = route.query.keyword ? String(route.query.keyword) : "";
+  await Promise.all([
+    loadServers(),
+    listDockerRegistries().then((res) => {
+      registries.value = res.data || [];
+    }),
+  ]);
+  displayMode.value = route.query.mode === "component" ? "component" : "server";
+  selectedServerId.value =
+    displayMode.value === "server" && route.query.serverId
+      ? Number(route.query.serverId)
+      : mergedOptions.value[0]?.serverId;
+  if (displayMode.value === "server" && selectedServerId.value) {
+    serverFilters.value[selectedServerId.value] = {
+      selectedRegistryId: route.query.registryId ? Number(route.query.registryId) : undefined,
+      keyword: route.query.keyword ? String(route.query.keyword) : "",
+    };
+    applyServerFilter(selectedServerId.value);
+  } else {
+    selectedRegistryId.value = route.query.registryId ? Number(route.query.registryId) : undefined;
+    keyword.value = route.query.keyword ? String(route.query.keyword) : "";
+  }
   await loadContainers();
 });
 </script>
@@ -368,7 +571,8 @@ onMounted(async () => {
 
 .page-hero,
 .panel-card,
-.resource-card {
+.resource-card,
+.server-column {
   padding: 18px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 22px;
@@ -379,7 +583,8 @@ onMounted(async () => {
 .page-hero,
 .panel-card__header,
 .resource-card__header,
-.resource-card__actions {
+.resource-card__actions,
+.hero-actions {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -394,10 +599,67 @@ onMounted(async () => {
 }
 
 .toolbar-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.workspace-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.server-column {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.server-mode-filter {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.server-mode-filter small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.server-card {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: #fff;
+  cursor: pointer;
+}
+
+.server-card small {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.server-card.is-active {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(239, 246, 255, 0.72);
+}
+
+.workspace-body,
 .card-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workspace-filter {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -408,14 +670,23 @@ onMounted(async () => {
   font-size: 13px;
 }
 
-.label-row {
+.label-row,
+.status-tags {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
+@media (max-width: 1080px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .toolbar-grid,
+  .workspace-filter,
+  .workspace-body,
   .card-grid {
     grid-template-columns: 1fr;
   }

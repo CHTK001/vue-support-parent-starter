@@ -391,7 +391,7 @@ const props = withDefaults(
     title: "",
     type: "default",
     width: "50%",
-    top: "15vh",
+    top: "2vh",
     modal: true,
     appendToBody: true,
     lockScroll: true,
