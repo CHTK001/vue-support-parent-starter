@@ -31,6 +31,7 @@
     }
   },
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@repo/utils": "workspace:^",
     "unbuild": "catalog:",
     "vue": "catalog:"

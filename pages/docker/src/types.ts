@@ -66,7 +66,7 @@ export interface DockerSyncScheduleView {
 export interface DockerServerConnectionConfig {
   serverDockerId?: number;
   serverId: number;
-  connectionType?: "api" | "local" | "ssh" | string;
+  connectionType?: "api" | "local" | "ssh" | "winrm" | string;
   dockerHost?: string;
   dockerPort?: number;
   socketPath?: string;

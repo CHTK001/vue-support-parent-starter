@@ -222,6 +222,7 @@
                       <label>try_files</label>
                       <input v-model="loc.tryFiles" class="form-input" placeholder="$uri $uri/ =404" />
                     </div>
+                    <NginxLocationSecurityFields :location="loc" />
                   </div>
                 </div>
                 <div class="location-add-btn" @click="emit('add-location', activeServerIndex)">
@@ -274,15 +275,23 @@
                 </div>
                 <div class="form-row">
                   <label class="form-label">Keepalive 超时 (s)</label>
-                  <input v-model="nginxForm.keepalive_timeout" class="form-input" type="number" placeholder="65" />
+                  <NginxUnitInput
+                    v-model="nginxForm.keepalive_timeout"
+                    :units="timeUnits"
+                    default-unit="s"
+                    placeholder="65"
+                    :min="1"
+                  />
                 </div>
                 <div class="form-row">
                   <label class="form-label">客户端最大请求体</label>
-                  <input v-model="nginxForm.client_max_body_size" class="form-input" placeholder="1m" />
-                </div>
-                <div class="form-row">
-                  <label class="form-label">服务器名称哈希桶</label>
-                  <input v-model="nginxForm.server_names_hash_bucket_size" class="form-input" type="number" placeholder="64" />
+                  <NginxUnitInput
+                    v-model="nginxForm.client_max_body_size"
+                    :units="sizeUnits"
+                    default-unit="m"
+                    placeholder="1"
+                    :min="1"
+                  />
                 </div>
               </div>
               <div class="form-hint">表单只覆盖已识别的指令，其他配置保持不变</div>
@@ -395,6 +404,8 @@ import {
   type NginxServerBlock,
 } from '../../api/nginx'
 import { IconifyIconOnline } from '@repo/components'
+import NginxLocationSecurityFields from './NginxLocationSecurityFields.vue'
+import NginxUnitInput from './NginxUnitInput.vue'
 
 const props = defineProps<{
   connectionId: string
@@ -497,10 +508,32 @@ const nginxForm = reactive({
   error_log_level: 'warn',
   access_log: '/var/log/nginx/access.log',
   gzip: false,
-  keepalive_timeout: '65',
+  keepalive_timeout: '65s',
   client_max_body_size: '1m',
   server_names_hash_bucket_size: '64',
 })
+
+const timeUnits = [
+  { label: '秒 (s)', value: 's' },
+  { label: '毫秒 (ms)', value: 'ms' },
+  { label: '分钟 (m)', value: 'm' },
+]
+
+const sizeUnits = [
+  { label: 'KB (k)', value: 'k' },
+  { label: 'MB (m)', value: 'm' },
+  { label: 'GB (g)', value: 'g' },
+]
+
+const normalizeNginxUnitValue = (value: string | null | undefined, defaultUnit: string) => {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  const match = raw.match(/^(-?\d+(?:\.\d+)?)([a-zA-Z]+)?$/)
+  if (!match) return raw
+  const number = match[1]
+  const unit = (match[2] || defaultUnit).toLowerCase()
+  return `${number}${unit}`
+}
 
 // ─── 配置加载 ─────────────────────────────────────────────────────────────────
 const loadConfig = async (path: string) => {
@@ -570,9 +603,9 @@ const parseConfigToForm = () => {
   const gz = get('gzip')
   if (gz) nginxForm.gzip = gz === 'on'
   const kt = get('keepalive_timeout')
-  if (kt) nginxForm.keepalive_timeout = kt
+  if (kt) nginxForm.keepalive_timeout = normalizeNginxUnitValue(kt, 's')
   const cmbs = get('client_max_body_size')
-  if (cmbs) nginxForm.client_max_body_size = cmbs
+  if (cmbs) nginxForm.client_max_body_size = normalizeNginxUnitValue(cmbs, 'm')
   const snhbs = get('server_names_hash_bucket_size')
   if (snhbs) nginxForm.server_names_hash_bucket_size = snhbs
 }
@@ -591,8 +624,8 @@ const applyFormToConfig = () => {
   else c = c.replace(/(http\s*\{[\s\S]*?)(^\s*\})/m, `$1    error_log ${nginxForm.error_log_path} ${nginxForm.error_log_level};\n$2`)
   replace('access_log', nginxForm.access_log)
   replace('gzip', nginxForm.gzip ? 'on' : 'off')
-  replace('keepalive_timeout', nginxForm.keepalive_timeout)
-  replace('client_max_body_size', nginxForm.client_max_body_size)
+  replace('keepalive_timeout', nginxForm.keepalive_timeout || '65s')
+  replace('client_max_body_size', nginxForm.client_max_body_size || '1m')
   replace('server_names_hash_bucket_size', nginxForm.server_names_hash_bucket_size)
   configContent.value = c
   ElMessage.success('表单已应用到配置')

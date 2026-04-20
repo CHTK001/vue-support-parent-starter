@@ -1,158 +1,322 @@
 <template>
   <section class="docker-home-shell">
-    <header class="docker-hero">
+    <header class="docker-home-hero">
       <div>
-        <small>DOCKER / HOME</small>
+        <small>DOCKER / WORKSPACE</small>
         <h1>Docker 工作台</h1>
-        <p>主区展示服务器、仓库、镜像和容器汇总，左侧保持全局检索结果，方便快速定位资源。</p>
+        <p>检索、统计和资源管理都收敛在一个主视图里，右侧切换工作区。</p>
       </div>
-      <div class="docker-hero__actions">
-        <el-button :loading="loadingSummary" @click="loadSummary">刷新概览</el-button>
+      <div class="docker-home-hero__actions">
+        <el-input
+          class="docker-search-trigger__input"
+          readonly
+          placeholder="点击输入框打开全局检索"
+          @click="openSearchDialog"
+          @focus="openSearchDialog"
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ri:search-line" />
+          </template>
+        </el-input>
+        <el-tooltip content="刷新统计数据" placement="top">
+          <ScButton circle plain :loading="loadingSummary" @click="loadSummary">
+            <IconifyIconOnline icon="ri:refresh-line" />
+          </ScButton>
+        </el-tooltip>
       </div>
     </header>
 
-    <ScLayout
-      v-model="activeRailTab"
-      class="docker-home-layout"
-      left-enabled
-      :left-width="360"
-      :left-min-width="280"
-      :rail-width="52"
-      :rail-tabs="railTabs"
-    >
-      <template #left>
-        <section class="search-panel">
-          <header class="search-panel__header">
+    <div class="docker-home-grid">
+      <section class="docker-stage">
+        <article class="docker-workspace-panel">
+          <header class="docker-workspace-panel__header">
             <div>
-              <strong>全局检索</strong>
-              <p>支持检索容器、镜像，并尽量识别所属仓库。</p>
+              <small>{{ activeWorkspaceMeta.eyebrow }}</small>
+              <strong>{{ activeWorkspaceMeta.title }}</strong>
+              <p>{{ activeWorkspaceMeta.subtitle }}</p>
             </div>
-            <el-button link type="primary" @click="searchKeyword = ''">清空</el-button>
-          </header>
-
-          <div class="search-panel__bar">
-            <el-input
-              v-model="searchKeyword"
-              clearable
-              placeholder="搜索容器、镜像、镜像ID"
-              @keyup.enter="runSearch"
-            />
-            <el-button type="primary" :loading="searching" @click="runSearch">检索</el-button>
-          </div>
-
-          <div class="search-panel__results">
-            <template v-if="searchResults.length">
-              <article
-                v-for="item in searchResults"
-                :key="`${item.type}-${item.recordId}`"
-                class="search-result-card"
-                @click="openSearchResult(item)"
+            <el-tooltip content="切回统计页" placement="top">
+              <ScButton
+                circle
+                type="primary"
+                plain
+                :disabled="activeWorkspace === 'stats'"
+                @click="openWorkspace('stats')"
               >
-                <header>
-                  <el-tag size="small" effect="light">
-                    {{ item.type === "container" ? "容器" : "镜像" }}
-                  </el-tag>
-                  <span>{{ item.status || "-" }}</span>
-                </header>
-                <strong>{{ item.title || "-" }}</strong>
-                <p>{{ item.subtitle || item.description || "-" }}</p>
-                <div class="search-result-card__meta">
-                  <span>服务器：{{ item.serverName || item.serverId || "-" }}</span>
-                  <span>仓库：{{ item.registryName || "未匹配仓库" }}</span>
-                </div>
-              </article>
-            </template>
-            <el-empty v-else description="暂无检索结果" />
-          </div>
-        </section>
-      </template>
-
-      <template #default>
-        <section class="dashboard-stage">
-          <div class="summary-grid">
-            <article v-for="card in summaryCards" :key="card.label" class="summary-card">
-              <small>{{ card.label }}</small>
-              <strong>{{ card.value }}</strong>
-              <p>{{ card.description }}</p>
-            </article>
-          </div>
-
-          <section class="dashboard-panel">
-            <header class="dashboard-panel__header">
-              <div>
-                <strong>当前状态</strong>
-                <p>已接入服务器与同步数据概览。</p>
+                <IconifyIconOnline icon="ri:dashboard-line" />
+              </ScButton>
+            </el-tooltip>
+          </header>
+          <div class="docker-workspace-panel__body">
+            <section v-if="activeWorkspace === 'stats'" class="docker-overview-panel">
+              <div class="docker-overview-kpi">
+                <article class="docker-kpi-card">
+                  <small>服务器</small>
+                  <strong>{{ summary.serverCount || 0 }}</strong>
+                  <span>已纳管节点</span>
+                </article>
+                <article class="docker-kpi-card">
+                  <small>可连接</small>
+                  <strong>{{ summary.connectedServerCount || 0 }}</strong>
+                  <span>在线 Docker 主机</span>
+                </article>
               </div>
+              <div class="docker-stat-grid">
+                <button
+                  v-for="card in summaryCards"
+                  :key="card.key"
+                  type="button"
+                  class="docker-stat-card"
+                  @click="openWorkspace(card.key)"
+                >
+                  <span class="docker-stat-card__icon">
+                    <IconifyIconOnline :icon="card.icon" />
+                  </span>
+                  <small>{{ card.label }}</small>
+                  <strong>{{ card.value }}</strong>
+                  <span>{{ card.description }}</span>
+                </button>
+              </div>
+            </section>
+            <component v-else :is="activeWorkspaceMeta.component" />
+          </div>
+        </article>
+      </section>
+
+      <aside class="docker-tabs-rail">
+        <ScTabs
+          v-model="activeWorkspace"
+          tab-position="right"
+          class="docker-tabs-rail__tabs"
+        >
+          <ScTabPane
+            v-for="tab in workspaceTabs"
+            :key="tab.name"
+            :label="tab.title"
+            :name="tab.name"
+          >
+            <article class="docker-tabs-rail__summary">
+              <strong>{{ tab.title }}</strong>
+              <span>{{ tab.count }}</span>
+              <p>{{ tab.description }}</p>
+            </article>
+          </ScTabPane>
+        </ScTabs>
+      </aside>
+    </div>
+
+    <ScDialog
+      v-model="searchDialogVisible"
+      title="Docker 全局检索"
+      width="860px"
+      layout="simple"
+    >
+      <section class="docker-search-dialog">
+        <div class="docker-search-dialog__bar">
+          <el-input
+            ref="searchInputRef"
+            v-model="searchKeyword"
+            clearable
+            placeholder="检索容器名、镜像名、镜像ID"
+            @keyup.enter="runSearch"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+          </el-input>
+          <el-tooltip content="开始检索" placement="top">
+            <ScButton circle type="primary" :loading="searching" @click="runSearch">
+              <IconifyIconOnline icon="ri:search-line" />
+            </ScButton>
+          </el-tooltip>
+        </div>
+        <div v-if="searchResults.length" class="docker-search-dialog__summary">
+          <el-tag size="small" effect="plain" round>
+            结果 {{ searchResults.length }}
+          </el-tag>
+          <el-tag size="small" effect="plain" round>
+            容器 {{ containerResultCount }}
+          </el-tag>
+          <el-tag size="small" effect="plain" round>
+            镜像 {{ imageResultCount }}
+          </el-tag>
+        </div>
+        <div class="docker-search-dialog__results">
+          <article
+            v-for="item in searchResults"
+            :key="`${item.type}-${item.recordId}`"
+            class="docker-search-card"
+            @click="openSearchResult(item)"
+          >
+            <header>
+              <span class="docker-search-card__type">
+                {{ item.type === "container" ? "容器" : "镜像" }}
+              </span>
+              <small>{{ item.status || "等待同步" }}</small>
             </header>
-            <div class="state-grid">
-              <article class="state-card">
-                <span>已配置连接</span>
-                <strong>{{ summary.connectedServerCount || 0 }} / {{ summary.serverCount || 0 }}</strong>
-                <p>优先配置 `server_docker` 后再同步镜像和容器数据。</p>
-              </article>
-              <article class="state-card">
-                <span>同步数据量</span>
-                <strong>{{ (summary.imageCount || 0) + (summary.containerCount || 0) }}</strong>
-                <p>镜像与容器数据已经落库，可供检索与后续页面直接使用。</p>
-              </article>
-            </div>
-          </section>
-        </section>
-      </template>
-    </ScLayout>
+            <strong>{{ item.title || "-" }}</strong>
+            <p>{{ item.subtitle || item.description || "-" }}</p>
+          </article>
+          <el-empty
+            v-if="!searchResults.length && !searching"
+            description="输入关键字后开始检索"
+          />
+        </div>
+      </section>
+    </ScDialog>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
-import ScLayout from "@repo/components/ScLayout";
+import { computed, nextTick, ref } from "vue";
+import ScButton from "@repo/components/ScButton/index.vue";
+import { ScTabs, ScTabPane } from "@repo/components/ScTabs";
 import { message } from "@repo/utils";
 import { getDockerDashboardSummary, searchDockerDashboard } from "../api";
 import type { DockerDashboardSummaryView, DockerSearchItemView } from "../types";
+import DockerContainerPage from "./DockerContainerPage.vue";
+import DockerImagePage from "./DockerImagePage.vue";
+import DockerMountPage from "./DockerMountPage.vue";
+import DockerNetworkPage from "./DockerNetworkPage.vue";
+import DockerRegistryPage from "./DockerRegistryPage.vue";
 
-const router = useRouter();
-const activeRailTab = ref("search");
+type DockerWorkspaceKey =
+  | "stats"
+  | "registries"
+  | "images"
+  | "containers"
+  | "mounts"
+  | "networks";
+
+const activeWorkspace = ref<DockerWorkspaceKey>("stats");
 const loadingSummary = ref(false);
 const searching = ref(false);
+const searchDialogVisible = ref(false);
 const searchKeyword = ref("");
 const summary = ref<DockerDashboardSummaryView>({});
 const searchResults = ref<DockerSearchItemView[]>([]);
+const searchInputRef = ref<any>();
 
-const railTabs = [{ name: "search", label: "检索", title: "全局检索" }];
+const workspaceRegistry = {
+  stats: {
+    title: "统计总览",
+    subtitle: "所有核心统计和工作区跳转都集中在这里。",
+    eyebrow: "OVERVIEW",
+    component: null,
+  },
+  registries: {
+    title: "仓库管理",
+    subtitle: "仓库卡片和软件列表一致，维护基础配置即可。",
+    eyebrow: "REGISTRY",
+    component: DockerRegistryPage,
+  },
+  images: {
+    title: "镜像管理",
+    subtitle: "按当前模式查看镜像数据和服务器覆盖关系。",
+    eyebrow: "IMAGES",
+    component: DockerImagePage,
+  },
+  containers: {
+    title: "容器管理",
+    subtitle: "支持服务器模式与组件模式统一展示。",
+    eyebrow: "CONTAINERS",
+    component: DockerContainerPage,
+  },
+  mounts: {
+    title: "映射管理",
+    subtitle: "聚焦挂载映射关系，按模式切换查看。",
+    eyebrow: "MOUNTS",
+    component: DockerMountPage,
+  },
+  networks: {
+    title: "网络管理",
+    subtitle: "网络定义和关联关系统一在这里管理。",
+    eyebrow: "NETWORKS",
+    component: DockerNetworkPage,
+  },
+} as const;
 
-const summaryCards = computed(() => [
-  {
-    label: "服务器",
-    value: summary.value.serverCount || 0,
-    description: "来自 @pages/server 的可用服务器数量",
-  },
-  {
-    label: "仓库",
-    value: summary.value.registryCount || 0,
-    description: "仅记录型 Docker 仓库配置",
-  },
-  {
-    label: "镜像",
-    value: summary.value.imageCount || 0,
-    description: "已同步入库的镜像数量",
-  },
-  {
-    label: "容器",
-    value: summary.value.containerCount || 0,
-    description: "已同步入库的容器数量",
-  },
-  {
-    label: "挂载",
-    value: summary.value.mountCount || 0,
-    description: "服务器挂载映射定义数量",
-  },
-  {
-    label: "网络",
-    value: summary.value.networkCount || 0,
-    description: "服务器网络映射定义数量",
-  },
-]);
+const activeWorkspaceMeta = computed(
+  () => workspaceRegistry[activeWorkspace.value] || workspaceRegistry.stats,
+);
+
+const summaryCards = computed(
+  () =>
+    [
+      {
+        key: "registries",
+        label: "仓库",
+        value: summary.value.registryCount || 0,
+        description: "仓库来源",
+        icon: "ri:database-2-line",
+      },
+      {
+        key: "images",
+        label: "镜像",
+        value: summary.value.imageCount || 0,
+        description: "镜像资产",
+        icon: "ri:image-2-line",
+      },
+      {
+        key: "containers",
+        label: "容器",
+        value: summary.value.containerCount || 0,
+        description: "运行实例",
+        icon: "ri:box-3-line",
+      },
+      {
+        key: "mounts",
+        label: "映射",
+        value: summary.value.mountCount || 0,
+        description: "挂载模板",
+        icon: "ri:folder-transfer-line",
+      },
+      {
+        key: "networks",
+        label: "网络",
+        value: summary.value.networkCount || 0,
+        description: "网络定义",
+        icon: "ri:node-tree",
+      },
+    ] as Array<{
+      key: Exclude<DockerWorkspaceKey, "stats">;
+      label: string;
+      value: number;
+      description: string;
+      icon: string;
+    }>,
+);
+
+const containerResultCount = computed(
+  () => searchResults.value.filter((item) => item.type === "container").length,
+);
+
+const imageResultCount = computed(
+  () => searchResults.value.filter((item) => item.type !== "container").length,
+);
+
+const workspaceTabs = computed(() => {
+  const total =
+    (summary.value.registryCount || 0) +
+    (summary.value.imageCount || 0) +
+    (summary.value.containerCount || 0) +
+    (summary.value.mountCount || 0) +
+    (summary.value.networkCount || 0);
+  return [
+    ...summaryCards.value.map((item) => ({
+      name: item.key as DockerWorkspaceKey,
+      title: item.label,
+      count: item.value,
+      description: item.description,
+    })),
+    {
+      name: "stats" as DockerWorkspaceKey,
+      title: "统计页",
+      count: total,
+      description: "核心指标 + 快速跳转",
+    },
+  ];
+});
 
 const loadSummary = async () => {
   loadingSummary.value = true;
@@ -160,10 +324,19 @@ const loadSummary = async () => {
     const result = await getDockerDashboardSummary();
     summary.value = result.data || {};
   } catch (error: any) {
-    message(error?.message || error?.msg || "加载工作台汇总失败", { type: "error" });
+    message(error?.message || error?.msg || "加载工作台汇总失败", {
+      type: "error",
+    });
   } finally {
     loadingSummary.value = false;
   }
+};
+
+const openSearchDialog = () => {
+  searchDialogVisible.value = true;
+  nextTick(() => {
+    searchInputRef.value?.focus?.();
+  });
 };
 
 const runSearch = async () => {
@@ -179,7 +352,9 @@ const runSearch = async () => {
     });
     searchResults.value = result.data || [];
     if (!searchResults.value.length) {
-      message("没有匹配结果，可从安装向导直接开始部署", { type: "info" });
+      message("没有匹配结果，请切换标签继续查看。", {
+        type: "info",
+      });
     }
   } catch (error: any) {
     message(error?.message || error?.msg || "全局检索失败", { type: "error" });
@@ -188,185 +363,285 @@ const runSearch = async () => {
   }
 };
 
-const openSearchResult = async (item: DockerSearchItemView) => {
-  if (item.type === "container") {
-    await router.push({
-      path: "/docker/containers",
-      query: {
-        ...(item.serverId ? { serverId: String(item.serverId) } : {}),
-        ...(item.recordId ? { keyword: item.recordId } : {}),
-      },
-    });
-    return;
-  }
-  await router.push({
-    path: "/docker/images",
-    query: {
-      ...(item.serverId ? { serverId: String(item.serverId) } : {}),
-      ...(item.registryId ? { registryId: String(item.registryId) } : {}),
-      ...(item.recordId ? { keyword: item.recordId } : {}),
-    },
-  });
+const openWorkspace = (key: DockerWorkspaceKey) => {
+  activeWorkspace.value = key;
 };
 
-onMounted(async () => {
-  await loadSummary();
-});
+const openSearchResult = (item: DockerSearchItemView) => {
+  if (item.type === "container") {
+    openWorkspace("containers");
+  } else {
+    openWorkspace("images");
+  }
+  searchDialogVisible.value = false;
+};
+
+loadSummary();
 </script>
 
 <style scoped lang="scss">
 .docker-home-shell {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
-.docker-hero,
-.summary-card,
-.dashboard-panel,
-.search-panel,
-.state-card {
+.docker-home-hero,
+.docker-workspace-panel,
+.docker-tabs-rail {
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(241, 245, 249, 0.88));
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.06);
 }
 
-.docker-hero,
-.dashboard-panel,
-.search-panel {
+.docker-home-hero {
   padding: 18px;
-}
-
-.docker-hero {
   display: flex;
   justify-content: space-between;
-  gap: 14px;
   align-items: flex-start;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.docker-hero small,
-.search-panel__header p,
-.dashboard-panel__header p,
-.summary-card p,
-.state-card p {
-  color: #64748b;
-}
-
-.docker-hero h1,
-.search-panel__header strong,
-.dashboard-panel__header strong {
-  margin: 0;
-  color: #0f172a;
-}
-
-.docker-home-layout {
-  min-height: calc(100vh - 240px);
-}
-
-.search-panel {
-  display: grid;
-  gap: 14px;
-  height: 100%;
-}
-
-.search-panel__header,
-.search-panel__bar {
+.docker-home-hero__actions {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 }
 
-.search-panel__bar {
-  align-items: stretch;
+.docker-search-trigger__input {
+  width: 320px;
 }
 
-.search-panel__results {
-  display: grid;
-  gap: 10px;
-  align-content: start;
-}
-
-.search-result-card {
-  padding: 14px;
-  border-radius: 18px;
-  background: rgba(248, 250, 252, 0.88);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+.docker-search-trigger__input :deep(.el-input__wrapper) {
   cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
 }
 
-.search-result-card:hover {
-  transform: translateY(-1px);
-  border-color: rgba(14, 165, 233, 0.28);
-  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.08);
+.docker-home-hero small {
+  color: #64748b;
+  letter-spacing: 0.16em;
+  font-size: 11px;
 }
 
-.search-result-card header,
-.search-result-card__meta {
+.docker-home-hero h1 {
+  margin: 8px 0 0;
+  color: #0f172a;
+}
+
+.docker-home-hero p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.docker-home-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.docker-stage {
+  display: grid;
+  gap: 14px;
+}
+
+.docker-workspace-panel {
+  padding: 14px;
+}
+
+.docker-workspace-panel__header {
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.docker-workspace-panel__header small {
+  color: #64748b;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.docker-workspace-panel__header strong {
+  color: #0f172a;
+}
+
+.docker-workspace-panel__header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.docker-workspace-panel__body {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.docker-overview-panel {
+  padding: 12px;
+  display: grid;
+  gap: 14px;
+}
+
+.docker-overview-kpi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.docker-kpi-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
+}
+
+.docker-kpi-card small,
+.docker-stat-card small {
+  color: #64748b;
+}
+
+.docker-kpi-card strong,
+.docker-stat-card strong {
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.docker-kpi-card span,
+.docker-stat-card span {
   color: #64748b;
   font-size: 12px;
 }
 
-.search-result-card strong {
-  display: block;
-  margin-top: 8px;
+.docker-stat-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.docker-stat-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+}
+
+.docker-stat-card:hover {
+  border-color: rgba(59, 130, 246, 0.36);
+  background: rgba(239, 246, 255, 0.72);
+}
+
+.docker-stat-card__icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  color: #0369a1;
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.docker-tabs-rail {
+  padding: 12px;
+}
+
+.docker-tabs-rail__summary {
+  display: grid;
+  gap: 8px;
+  padding: 6px;
+}
+
+.docker-tabs-rail__summary strong {
   color: #0f172a;
 }
 
-.search-result-card p {
-  margin: 6px 0 0;
-  color: #475569;
-  line-height: 1.7;
+.docker-tabs-rail__summary span {
+  color: #2563eb;
+  font-size: 28px;
+  font-weight: 700;
 }
 
-.dashboard-stage {
-  display: grid;
-  gap: 16px;
-}
-
-.summary-grid,
-.state-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.summary-card,
-.state-card {
-  padding: 18px;
-}
-
-.summary-card small,
-.state-card span {
+.docker-tabs-rail__summary p {
+  margin: 0;
   color: #64748b;
+  line-height: 1.65;
 }
 
-.summary-card strong,
-.state-card strong {
-  display: block;
-  margin-top: 10px;
-  font-size: 30px;
-  color: #0f172a;
+.docker-search-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.docker-search-dialog__bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.docker-search-dialog__summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.docker-search-dialog__results {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.docker-search-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  cursor: pointer;
+}
+
+.docker-search-card:hover {
+  border-color: rgba(59, 130, 246, 0.36);
+  background: rgba(239, 246, 255, 0.72);
+}
+
+.docker-search-card__type {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.1);
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 1280px) {
+  .docker-home-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 960px) {
-  .summary-grid,
-  .state-grid {
-    grid-template-columns: 1fr;
+  .docker-stat-grid,
+  .docker-overview-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  :deep(.docker-home-layout.sc-layout) {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto auto auto;
+  .docker-home-hero,
+  .docker-search-dialog__bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .docker-search-trigger__input {
+    width: 100%;
   }
 }
 </style>

@@ -1,6 +1,9 @@
 import type { RouteRecordRaw } from "vue-router";
 import { RouterView } from "vue-router";
 
+const loadProjectManagePage = async () =>
+  (await import("@pages/project")).ProjectIndex;
+
 const routes = [
   {
     path: "/",
@@ -18,7 +21,7 @@ const routes = [
         component: RouterView,
         redirect: "/server/list",
         meta: {
-          title: "服务器管理",
+          title: "真实测试服务器管理",
           icon: "mdi:server-network-outline",
           rank: 6,
         },
@@ -60,8 +63,7 @@ const routes = [
           {
             path: "/server/projects",
             name: "ServerProjectManagement",
-            component: async () =>
-              import("./views/ServerProjectManagementPage.vue"),
+            component: loadProjectManagePage,
             meta: {
               title: "项目管理",
               showLink: false,

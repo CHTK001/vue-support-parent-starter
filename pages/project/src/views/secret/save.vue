@@ -101,8 +101,8 @@
                       <ScIcon><component :is="useRenderIcon('ri:folder-line')" /></ScIcon>
                     </template>
                   </ScInput>
-                  <el-tooltip :content="props.connectionId ? '浏览远程目录' : '需要先建立服务器连接'" placement="top">
-                    <ScButton :disabled="!props.connectionId" :icon="useRenderIcon('ri:folder-open-line')" @click="handleBrowse">浏览</ScButton>
+                  <el-tooltip :content="props.sysProjectId ? '浏览远程目录' : '需要先选择项目'" placement="top">
+                    <ScButton :disabled="!props.sysProjectId" :icon="useRenderIcon('ri:folder-open-line')" @click="handleBrowse">浏览</ScButton>
                   </el-tooltip>
                 </div>
               </ScFormItem>
@@ -248,7 +248,7 @@
 
   <DirectoryBrowserDialog
     ref="dirBrowserRef"
-    :connection-id="props.connectionId ?? ''"
+    :sys-project-id="props.sysProjectId ?? ''"
     @select="handleDirSelect"
   />
 </template>
@@ -262,7 +262,7 @@ import DirectoryBrowserDialog from "../../components/DirectoryBrowserDialog.vue"
 
 // Props
 const props = defineProps({
-  connectionId: { type: String, default: "" },
+  sysProjectId: { type: String, default: "" },
 });
 
 // 组件事件

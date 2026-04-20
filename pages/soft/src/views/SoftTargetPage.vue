@@ -1,7 +1,7 @@
 <template>
   <SoftWorkspace
-    title="目标管理"
-    subtitle="管理本机与远程执行目标，供安装、运维与脚本执行复用。"
+    title="真实测试服务器管理"
+    subtitle="管理本机与远程测试服务器目标，供安装、运维与脚本执行复用。"
     :metrics="metrics"
   >
     <template #actions>

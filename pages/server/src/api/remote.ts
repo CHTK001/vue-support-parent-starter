@@ -5,11 +5,8 @@
  * 生成一套文件管理 + 项目管理的 API 函数。
  *
  * 使用示例：
- *   // panel 里（Nginx SSH 连接）
- *   const api = createRemoteApi(`/v1/panel/nginx/${connectionId}`)
- *
- *   // server 里（服务器管理）
- *   const api = createRemoteApi(`/server/hosts/${serverId}`)
+ *   // 项目远程管理（推荐）
+ *   const api = createRemoteApi(`/v2/project/${sysProjectId}/remote`)
  */
 
 import { http } from "@repo/utils";
@@ -72,6 +69,9 @@ export interface RemoteUploadResult {
 
 export type ProjectType =
   | "springboot"
+  | "springboot_resource_split"
+  | "springboot_resource_isolation"
+  | "springboot_resource_separation"
   | "tomcat"
   | "nodejs"
   | "python"
@@ -82,7 +82,7 @@ export type ProjectType =
 export interface RemoteProject {
   projectId?: string;
   projectName: string;
-  projectType: ProjectType;
+  projectType: ProjectType | string;
   /** 项目根目录 */
   rootDirectory: string;
   /** 依赖目录（如 lib/） */
@@ -143,13 +143,17 @@ export interface RemoteDeployOptions {
   startAfterDeploy?: boolean;
   /** 部署前备份 */
   backupBefore?: boolean;
+  /** 部署前执行配置目录核对 */
+  configCheckBeforeDeploy?: boolean;
+  /** 部署前执行依赖目录核对 */
+  dependencyCheckBeforeDeploy?: boolean;
 }
 
 // ─── API 工厂 ──────────────────────────────────────────────────────────────────
 
 /**
  * 创建通用远程 API 实例。
- * @param basePath 只需 path 部分，如 "/v1/panel/nginx/xxx" 或 "/server/hosts/1"
+ * @param basePath 只需 path 部分，如 "/v2/project/1/remote"
  */
 export function createRemoteApi(basePath: string) {
   const p = (sub: string) => `${basePath}${sub}`;
@@ -170,7 +174,7 @@ export function createRemoteApi(basePath: string) {
     http.request<ReturnResult<RemoteFileOperationResult>>(
       "put",
       p("/files/content"),
-      { data: { path, content } }
+      { data: { path, content } },
     );
 
   const downloadFile = (path: string): string =>
@@ -179,10 +183,7 @@ export function createRemoteApi(basePath: string) {
   /**
    * 上传文件（支持规则：清空/备份/自动解压）
    */
-  const uploadFile = (
-    file: File,
-    options?: RemoteUploadOptions
-  ) => {
+  const uploadFile = (file: File, options?: RemoteUploadOptions) => {
     const formData = new FormData();
     formData.append("file", file);
     if (options?.directory) formData.append("directory", options.directory);
@@ -196,7 +197,7 @@ export function createRemoteApi(basePath: string) {
     return http.request<ReturnResult<RemoteUploadResult>>(
       "post",
       p("/files/upload"),
-      { data: formData }
+      { data: formData },
     );
   };
 
@@ -204,21 +205,21 @@ export function createRemoteApi(basePath: string) {
     http.request<ReturnResult<RemoteFileOperationResult>>(
       "post",
       p("/files/directories"),
-      { params: { path } }
+      { params: { path } },
     );
 
   const renameFile = (path: string, targetPath: string) =>
     http.request<ReturnResult<RemoteFileOperationResult>>(
       "put",
       p("/files/rename"),
-      { data: { path, targetPath } }
+      { data: { path, targetPath } },
     );
 
   const deleteFile = (path: string, recursive = false) =>
     http.request<ReturnResult<RemoteFileOperationResult>>(
       "delete",
       p("/files"),
-      { params: { path, recursive } }
+      { params: { path, recursive } },
     );
 
   // ── 项目管理 ────────────────────────────────────────────────────────────────
@@ -229,7 +230,7 @@ export function createRemoteApi(basePath: string) {
   const getProject = (projectId: string) =>
     http.request<ReturnResult<RemoteProject>>(
       "get",
-      p(`/projects/${projectId}`)
+      p(`/projects/${projectId}`),
     );
 
   const createProject = (project: RemoteProject) =>
@@ -241,64 +242,68 @@ export function createRemoteApi(basePath: string) {
     http.request<ReturnResult<RemoteProject>>(
       "put",
       p(`/projects/${projectId}`),
-      { data: project }
+      { data: project },
     );
 
   const deleteProject = (projectId: string) =>
-    http.request<ReturnResult<void>>(
-      "delete",
-      p(`/projects/${projectId}`)
-    );
+    http.request<ReturnResult<void>>("delete", p(`/projects/${projectId}`));
 
   const startProject = (projectId: string) =>
     http.request<ReturnResult<RemoteProjectOperationResult>>(
       "post",
-      p(`/projects/${projectId}/start`)
+      p(`/projects/${projectId}/start`),
     );
 
   const stopProject = (projectId: string) =>
     http.request<ReturnResult<RemoteProjectOperationResult>>(
       "post",
-      p(`/projects/${projectId}/stop`)
+      p(`/projects/${projectId}/stop`),
     );
 
   const restartProject = (projectId: string) =>
     http.request<ReturnResult<RemoteProjectOperationResult>>(
       "post",
-      p(`/projects/${projectId}/restart`)
+      p(`/projects/${projectId}/restart`),
     );
 
   const getProjectStatus = (projectId: string) =>
     http.request<ReturnResult<RemoteProjectOperationResult>>(
       "get",
-      p(`/projects/${projectId}/status`)
+      p(`/projects/${projectId}/status`),
     );
 
   const getProjectLogs = (projectId: string, lines = 100) =>
     http.request<ReturnResult<string>>(
       "get",
       p(`/projects/${projectId}/logs`),
-      { params: { lines } }
+      { params: { lines } },
+    );
+
+  const getProjectDeployLogs = (projectId: string, lines = 200) =>
+    http.request<ReturnResult<string>>(
+      "get",
+      p(`/projects/${projectId}/deploy-logs`),
+      { params: { lines } },
     );
 
   const backupProject = (projectId: string, note?: string) =>
     http.request<ReturnResult<RemoteProjectOperationResult>>(
       "post",
       p(`/projects/${projectId}/backup`),
-      { data: { note } }
+      { data: { note } },
     );
 
   const rollbackProject = (projectId: string, backupId: string) =>
     http.request<ReturnResult<RemoteProjectOperationResult>>(
       "post",
       p(`/projects/${projectId}/rollback`),
-      { data: { backupId } }
+      { data: { backupId } },
     );
 
   const listProjectBackups = (projectId: string) =>
     http.request<ReturnResult<RemoteProjectBackup[]>>(
       "get",
-      p(`/projects/${projectId}/backups`)
+      p(`/projects/${projectId}/backups`),
     );
 
   /**
@@ -307,22 +312,38 @@ export function createRemoteApi(basePath: string) {
   const deployProject = (
     projectId: string,
     file: File,
-    options?: RemoteDeployOptions
+    options?: RemoteDeployOptions,
   ) => {
     const formData = new FormData();
     formData.append("file", file);
     // 后端用 @RequestParam，通过 URL 参数传递选项
     const params: Record<string, string> = {};
-    if (options?.stopBeforeDeploy !== undefined) params.stopBefore = String(options.stopBeforeDeploy);
-    if (options?.startAfterDeploy !== undefined) params.startAfter = String(options.startAfterDeploy);
-    if (options?.backupBefore !== undefined) params.backupBefore = String(options.backupBefore);
-    if (options?.uploadOptions?.clearBefore !== undefined) params.clearBefore = String(options.uploadOptions.clearBefore);
-    if (options?.uploadOptions?.autoExtract !== undefined) params.autoExtract = String(options.uploadOptions.autoExtract);
-    if (options?.uploadOptions?.deleteArchiveAfterExtract !== undefined) params.deleteArchive = String(options.uploadOptions.deleteArchiveAfterExtract);
+    if (options?.stopBeforeDeploy !== undefined)
+      params.stopBefore = String(options.stopBeforeDeploy);
+    if (options?.startAfterDeploy !== undefined)
+      params.startAfter = String(options.startAfterDeploy);
+    if (options?.backupBefore !== undefined)
+      params.backupBefore = String(options.backupBefore);
+    if (options?.configCheckBeforeDeploy !== undefined) {
+      params.configCheckBefore = String(options.configCheckBeforeDeploy);
+    }
+    if (options?.dependencyCheckBeforeDeploy !== undefined) {
+      params.dependencyCheckBefore = String(
+        options.dependencyCheckBeforeDeploy,
+      );
+    }
+    if (options?.uploadOptions?.clearBefore !== undefined)
+      params.clearBefore = String(options.uploadOptions.clearBefore);
+    if (options?.uploadOptions?.autoExtract !== undefined)
+      params.autoExtract = String(options.uploadOptions.autoExtract);
+    if (options?.uploadOptions?.deleteArchiveAfterExtract !== undefined)
+      params.deleteArchive = String(
+        options.uploadOptions.deleteArchiveAfterExtract,
+      );
     return http.request<ReturnResult<RemoteProjectOperationResult>>(
       "post",
       p(`/projects/${projectId}/deploy`),
-      { data: formData, params }
+      { data: formData, params },
     );
   };
 
@@ -348,6 +369,7 @@ export function createRemoteApi(basePath: string) {
     restartProject,
     getProjectStatus,
     getProjectLogs,
+    getProjectDeployLogs,
     backupProject,
     rollbackProject,
     listProjectBackups,
@@ -358,44 +380,24 @@ export function createRemoteApi(basePath: string) {
 /** API 实例类型，方便组件 props 类型声明 */
 export type RemoteApi = ReturnType<typeof createRemoteApi>;
 
-// ─── 项目管理连接工厂 ──────────────────────────────────────────────────────────
-
-export interface ServerProjectConnectRequest {
-  /** SSH / WINRM / LOCAL */
-  serverType?: string;
-  host?: string;
-  port?: number;
-  username?: string;
-  /** 密码（明文或加密，由调用方约定） */
-  password?: string;
-  privateKey?: string;
-  osType?: string;
-}
+// ─── 项目远程部署工厂（基于 sysProjectId） ───────────────────────────────────────
 
 /**
- * 建立项目管理连接，返回 connectionId。
- * 后端不持久化账号信息，TTL 30min。
+ * 根据 endpoint 反查项目ID（匹配 sys_project_endpoint）。
  */
-export const connectServerProject = (req: ServerProjectConnectRequest) =>
-  http.request<ReturnResult<string>>("post", "/v1/server/project/connect", {
-    data: req,
+export const resolveProjectRemoteTarget = (endpoint: string) =>
+  http.request<ReturnResult<number>>("get", "/v2/project/remote/resolve", {
+    params: { endpoint },
   });
 
-export const disconnectServerProject = (connectionId: string) =>
-  http.request<ReturnResult<void>>("delete", `/v1/server/project/${connectionId}/disconnect`);
-
 /**
- * 获取服务器项目连接的 RSA 公钥
- * @returns PEM 格式公钥字符串
+ * 获取远程部署加密公钥（无可用公钥时调用方可回退明文）。
  */
 export const fetchServerProjectPublicKey = () =>
-  http.request<ReturnResult<string>>("get", "/v1/server/project/public-key");
+  http.request<ReturnResult<string>>("get", "/v2/project/remote/public-key");
 
 /**
- * 建立连接后创建 RemoteApi 实例。
- * 使用示例：
- *   const { data: cid } = await connectServerProject({ serverType: 'SSH', host, port, username, password })
- *   const api = createServerProjectApi(cid)
+ * 创建项目远程管理 API。
  */
-export const createServerProjectApi = (connectionId: string) =>
-  createRemoteApi(`/v1/server/project/${connectionId}`);
+export const createProjectRemoteApi = (sysProjectId: string | number) =>
+  createRemoteApi(`/v2/project/${sysProjectId}/remote`);

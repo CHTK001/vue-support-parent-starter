@@ -246,6 +246,7 @@
       v-if="activeFilterComponent"
       v-model:visible="showFilterDialog"
       :server-id="props.serverId as number"
+      :server="props.server"
       :filter-setting="currentFilterSetting"
       :filter-setting-id="currentFilterSetting?.systemServerSettingId as number"
       @success="handleConfigSuccess"
@@ -310,6 +311,10 @@ const FILTER_COMPONENT_MAP: Record<string, any> = {
   viewservlet: FilterConfigViewServlet,
 };
 
+const isFirewallType = (type?: string) => {
+  return (type || "").toUpperCase().includes("FIREWALL");
+};
+
 // Props
 interface Props {
   visible: boolean;
@@ -351,22 +356,100 @@ const dialogVisible = computed({
   set: (value) => emit("update:visible", value),
 });
 
+const normalizeInstalledFilters = (
+  raw: unknown,
+): SystemServerSetting[] => {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .filter(
+      (item): item is SystemServerSetting =>
+        !!item &&
+        typeof item === "object" &&
+        (item as SystemServerSetting).systemServerSettingId != null,
+    )
+    .map((item) => ({
+      ...item,
+      systemServerSettingEnabled: !!item.systemServerSettingEnabled,
+    }));
+};
+
+const extractInstalledFiltersPayload = (raw: unknown): unknown[] => {
+  if (Array.isArray(raw)) {
+    return raw;
+  }
+  if (!raw || typeof raw !== "object") {
+    return [];
+  }
+
+  const payload = raw as Record<string, unknown>;
+  if (Array.isArray(payload.records)) {
+    return payload.records;
+  }
+  if (Array.isArray(payload.list)) {
+    return payload.list;
+  }
+  return [];
+};
+
+const resolveServerTypeCandidates = (rawServerType?: string): string[] => {
+  const upper = (rawServerType || "").trim().toUpperCase();
+  if (!upper) {
+    return [];
+  }
+  if (upper === "HTTPD") {
+    return ["HTTP"];
+  }
+  if (
+    upper === "HTTP-PROXY" ||
+    upper === "HTTP-PROXY-SERVER" ||
+    upper === "HTTPPROXY" ||
+    upper === "PROXY-HTTP"
+  ) {
+    return ["HTTP-PROXY"];
+  }
+  if (upper === "NETTY-HTTP-PROXY") {
+    return ["NETTY-HTTP-PROXY", "HTTP-PROXY"];
+  }
+  if (upper === "SOCK5" || upper === "SOCKS" || upper === "SOCKS5-PROXY") {
+    return ["SOCKS5"];
+  }
+  if (upper === "NETTY-SOCKS5") {
+    return ["NETTY-SOCKS5", "SOCKS5"];
+  }
+  return [upper];
+};
+
 // 加载可用的ServletFilter
 const loadAvailableFilters = async () => {
   availableLoading.value = true;
   try {
-    const response = await getAvailableServletFilterObjects();
+    const response = await getAvailableServletFilterObjects(
+      props.serverId ?? undefined,
+    );
     if (response.success) {
+      const typeCandidates = resolveServerTypeCandidates(
+        props.server?.systemServerType,
+      );
       availableFilters.value = response.data.filter((item) => {
+        if (isFirewallType(item.name)) {
+          return false;
+        }
         if (!item.supportedTypes) {
           return true;
         }
         if (item.supportedTypes.length === 0) {
           return true;
         }
-
-        return item.supportedTypes.includes(
-          props.server?.systemServerType?.toLocaleUpperCase(),
+        const supportedTypes = item.supportedTypes
+          .filter((it): it is string => !!it)
+          .map((it) => it.toUpperCase());
+        if (!supportedTypes.length || !typeCandidates.length) {
+          return true;
+        }
+        return typeCandidates.some((candidate) =>
+          supportedTypes.includes(candidate),
         );
       });
     } else {
@@ -387,7 +470,16 @@ const loadInstalledFilters = async () => {
   try {
     const response = await getSystemServerSettingByServerId(props.serverId);
     if (response.success) {
-      installedFilters.value = response.data;
+      const rawItems = extractInstalledFiltersPayload(response.data);
+      const normalized = normalizeInstalledFilters(rawItems);
+      if (rawItems.length > 0 && normalized.length === 0) {
+        message("已安装过滤器数据异常，请检查后端字段映射", {
+          type: "warning",
+        });
+      }
+      installedFilters.value = normalized.filter(
+        (item) => !isFirewallType(item.systemServerSettingType),
+      );
     } else {
       message(response.msg || "加载已安装Filter失败", { type: "error" });
     }
@@ -493,6 +585,7 @@ const toggleFilterStatus = async (filter: SystemServerSetting) => {
 // 拖拽结束处理
 const handleDragEnd = () => {
   // 更新排序顺序
+  installedFilters.value = normalizeInstalledFilters(installedFilters.value);
   installedFilters.value.forEach((filter, index) => {
     filter.systemServerSettingSortOrder = index + 1;
   });
@@ -504,7 +597,8 @@ const saveOrder = async () => {
 
   saveLoading.value = true;
   try {
-    const settingOrders = installedFilters.value.map((filter, index) => ({
+    const filters = normalizeInstalledFilters(installedFilters.value);
+    const settingOrders = filters.map((filter, index) => ({
       id: filter.systemServerSettingId!,
       sortOrder: index + 1,
     }));

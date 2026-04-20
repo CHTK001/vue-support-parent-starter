@@ -1,9 +1,9 @@
 ﻿<template>
   <div class="server-page">
     <div class="server-page__backdrop" aria-hidden="true">
-      <span class="server-page__orb server-page__orb--cyan"></span>
-      <span class="server-page__orb server-page__orb--amber"></span>
-      <span class="server-page__mesh"></span>
+      <span class="server-page__orb server-page__orb--cyan" />
+      <span class="server-page__orb server-page__orb--amber" />
+      <span class="server-page__mesh" />
     </div>
 
     <section class="server-page__stage">
@@ -39,6 +39,7 @@
             @open-install="openInstallDialog"
             @open-remote="openRemoteConsole"
             @open-processes="openProcessDialog"
+            @open-files="openFileDrawer"
             @open-projects="openProjectManagement"
             @update:collapsed="sidebarCollapsed = $event"
             @update:filter="sidebarFilter = $event"
@@ -76,9 +77,13 @@
             :ai-status-text="serverCapabilities?.aiStatusText"
             :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
             :ai-unavailable-code="serverCapabilities?.aiUnavailableCode"
-            :ai-provider-resolved-from="serverCapabilities?.aiProviderResolvedFrom"
+            :ai-provider-resolved-from="
+              serverCapabilities?.aiProviderResolvedFrom
+            "
             :alert-settings="selectedHostAlertSettings"
-            :alert-settings-enabled="selectedHostAlertSettings?.enabled !== false"
+            :alert-settings-enabled="
+              selectedHostAlertSettings?.enabled !== false
+            "
             :alert-message-enabled="
               selectedHostAlertSettings?.messageEnabled === true
             "
@@ -90,7 +95,7 @@
             :software-summary="selectedHostSoftSummary"
             :services="selectedHostServerServices"
             :service-action-loading-key="serverServiceActionLoadingKey"
-            @open-files="openFileDrawer()"
+            @open-files="openFileDrawer(selectedHost || undefined)"
             @open-metrics-task="openMetricsTaskDialog"
             @open-alert-settings="
               selectedHost && openHostAlertSettings(selectedHost)
@@ -147,7 +152,7 @@
 
     <ServerFileDrawer
       v-model="fileDrawerVisible"
-      :host="selectedHost"
+      :host="fileDrawerHost"
       :loading="fileLoading"
       :display-current-path="fileDisplayCurrentPath"
       :live-status="fileLiveStatus"
@@ -313,6 +318,8 @@
       :history="selectedMetricHistory"
       :detail="selectedMetricDetail"
       :alert-settings="selectedHostAlertSettings"
+      :initial-range-minutes="serverViewSettings.metricHistoryMinutes"
+      :x-axis-limit="serverViewSettings.metricDetailXAxisLimit"
       :ai-enabled="aiEnabled"
       :ai-analyzing-key="metricHistoryAiAnalyzingKey"
       :ai-advice-map="metricHistoryAiMap"
@@ -324,6 +331,7 @@
     <ServerMetricsTaskDialog
       v-model="metricsTaskVisible"
       :form="metricsTaskSettings"
+      :ui-settings="serverViewSettings"
       :saving="metricsTaskSaving"
       @submit="submitMetricsTaskSettings"
       @refresh-now="refreshMetricsTaskNow"
@@ -352,6 +360,10 @@
       :refreshed-at="processRefreshedAt"
       :stream-connected="processStream.connected.value"
       :stream-last-event-at="processStream.lastEventAt.value"
+      :view-mode="processViewMode"
+      :sort-key="processSortKey"
+      :terminate-selection-mode="processTerminateSelectionMode"
+      :selected-process-ids="processSelectedPids"
       :ai-enabled="aiEnabled"
       :ai-unavailable-reason="serverCapabilities?.aiUnavailableReason"
       :ai-analyzing="processAiAnalyzing"
@@ -359,10 +371,15 @@
       :action-loading-key="processActionLoadingKey"
       @update:keyword="processKeyword = $event"
       @update:auto-refresh="processAutoRefresh = $event"
+      @update:view-mode="processViewMode = $event"
+      @update:sort-key="processSortKey = $event"
+      @update:terminate-selection-mode="processTerminateSelectionMode = $event"
+      @update:selected-process-ids="processSelectedPids = $event"
       @refresh="loadHostProcesses()"
       @select-process="selectProcessItem"
       @analyze-process="analyzeProcessItem"
       @terminate-process="terminateProcessItem"
+      @batch-terminate="terminateBatchProcessItems"
     />
 
     <ServerSoftOverviewDrawer
@@ -426,7 +443,12 @@ import {
 import { useRouter, useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { taskCenterProvider } from "@layout/default";
-import { message, rsaEncrypt, decodeScParam } from "@repo/utils";
+import {
+  message,
+  rsaEncrypt,
+  decodeScParam,
+  syncLocalStorageProxy,
+} from "@repo/utils";
 import { fetchServerProjectPublicKey } from "../api/remote";
 import {
   analyzeServerHostProcess,
@@ -618,6 +640,22 @@ type ServerFileTreeNode = {
   leaf: boolean;
   extension?: string;
 };
+type ServerViewSettings = {
+  processQueryLimit: number;
+  serviceReturnLimit: number;
+  metricHistoryLimit: number;
+  metricHistoryMinutes: number;
+  metricDetailXAxisLimit: number;
+};
+
+const SERVER_VIEW_SETTINGS_KEY = "server-host-view-settings";
+const defaultServerViewSettings = (): ServerViewSettings => ({
+  processQueryLimit: 120,
+  serviceReturnLimit: 10,
+  metricHistoryLimit: 240,
+  metricHistoryMinutes: 120,
+  metricDetailXAxisLimit: 48,
+});
 
 const router = useRouter();
 const route = useRoute();
@@ -667,6 +705,7 @@ const editingId = ref<number | null>(null);
 const selectedId = ref<number | null>(null);
 const softDrawerHostId = ref<number | null>(null);
 const installHostId = ref<number | null>(null);
+const fileDrawerHostId = ref<number | null>(null);
 const installPackageId = ref<number | null>(null);
 const softEnabled = ref(false);
 const installGuideLoading = ref(false);
@@ -698,6 +737,7 @@ const hostContextMenuRef = ref<{
   open: (event: MouseEvent, entry: ServerHostListEntry) => void;
 } | null>(null);
 const handledAiTaskStateKeys = new Set<string>();
+const handledSoftOperationTaskStates = new Set<string>();
 
 const serverCapabilities = ref<ServerCapabilityView | null>(null);
 const alertEventMap = ref<Record<number, ServerAlertEvent>>({});
@@ -807,11 +847,34 @@ const processKeyword = ref("");
 const processAutoRefresh = ref(true);
 const processRefreshedAt = ref<number | null>(null);
 const processActionLoadingKey = ref("");
+const processViewMode = ref<"card" | "table">("table");
+const processSortKey = ref<"cpu" | "memory" | "pid" | "name" | "elapsed">(
+  "cpu",
+);
+const processTerminateSelectionMode = ref(false);
 const processSelectedPid = ref<number | null>(null);
+const processSelectedPids = ref<number[]>([]);
 const serverProcesses = ref<ServerProcessView[]>([]);
 const selectedProcessAiAdvice = ref<ServerProcessAiAdvice | null>(null);
+const serverViewSettings = reactive<ServerViewSettings>(
+  defaultServerViewSettings(),
+);
 let processRefreshTimer: ReturnType<typeof setInterval> | null = null;
 let processSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+const loadServerViewSettings = () => {
+  const raw =
+    syncLocalStorageProxy().getItem<Partial<ServerViewSettings>>(
+      SERVER_VIEW_SETTINGS_KEY,
+    ) || {};
+  Object.assign(serverViewSettings, defaultServerViewSettings(), raw);
+};
+
+const persistServerViewSettings = () => {
+  syncLocalStorageProxy().setItem(SERVER_VIEW_SETTINGS_KEY, {
+    ...serverViewSettings,
+  });
+};
 
 const normalizeProcessKeyword = (value?: string | null) =>
   String(value || "")
@@ -1130,6 +1193,11 @@ const selectedHost = computed(
   () =>
     hostItems.value.find((item) => item.serverId === selectedId.value) || null,
 );
+const fileDrawerHost = computed(
+  () =>
+    hostItems.value.find((item) => item.serverId === fileDrawerHostId.value) ||
+    null,
+);
 const softDrawerHost = computed(
   () =>
     hostItems.value.find((item) => item.serverId === softDrawerHostId.value) ||
@@ -1145,7 +1213,9 @@ const selectedSnapshot = computed(() =>
 );
 const selectedMetricHistory = computed(() =>
   selectedHost.value?.serverId
-    ? serverMetricsHistoryMap.value[selectedHost.value.serverId] || []
+    ? (serverMetricsHistoryMap.value[selectedHost.value.serverId] || []).slice(
+        -Math.max(Number(serverViewSettings.metricHistoryLimit || 0), 1),
+      )
     : [],
 );
 const selectedMetricDetail = computed(() =>
@@ -1172,11 +1242,11 @@ const fileDirty = computed(
     fileDraftContent.value !== fileOriginalContent.value,
 );
 const fileDisplayCurrentPath = computed(() =>
-  toRelativeFilePath(fileCurrentPath.value, selectedHost.value),
+  toRelativeFilePath(fileCurrentPath.value, fileDrawerHost.value),
 );
 const fileDisplayPreviewPath = computed(() =>
   filePreviewPath.value
-    ? toRelativeFilePath(filePreviewPath.value, selectedHost.value)
+    ? toRelativeFilePath(filePreviewPath.value, fileDrawerHost.value)
     : "",
 );
 const fileEditorReadonly = computed(
@@ -1191,7 +1261,7 @@ const fileEditorMode = computed(() =>
 const fileDrawerEntries = computed<ServerFileEntryCard[]>(() =>
   fileEntries.value.map((entry) => ({
     ...entry,
-    relativePath: toRelativeFilePath(entry.path, selectedHost.value),
+    relativePath: toRelativeFilePath(entry.path, fileDrawerHost.value),
     icon: fileEntryIcon(entry),
   })),
 );
@@ -1201,7 +1271,10 @@ const selectedHostSoftSummary = computed(() =>
     : { targets: 0, installations: 0, services: 0 },
 );
 const selectedHostServerServices = computed(() =>
-  getHostServerServices(selectedHost.value),
+  getHostServerServices(selectedHost.value).slice(
+    0,
+    Math.max(Number(serverViewSettings.serviceReturnLimit || 0), 1),
+  ),
 );
 const canOpenRemoteConsole = computed(() =>
   Boolean(selectedRemoteGateway.value?.enabled),
@@ -1307,6 +1380,60 @@ const softOperationLabel = (value?: string | null) =>
                   : value === "CONFIG_WRITE"
                     ? "写入配置"
                     : value || "操作";
+const resolveSoftOperationTaskRequestId = (operationId?: number | null) =>
+  operationId ? `soft-operation:${operationId}` : "";
+
+const resolveSoftOperationTaskStatus = (status?: string | null) => {
+  const normalized = normalizeText(status).toUpperCase();
+  if (normalized === "SUCCESS") {
+    return "success" as const;
+  }
+  if (normalized === "FAILED" || normalized === "CANCELLED") {
+    return "error" as const;
+  }
+  return "running" as const;
+};
+
+const syncTaskCenterFromSoftOperations = (
+  operations: ServerSoftOperation[] = [],
+) => {
+  operations.forEach((item) => {
+    const operationId = Number(item.softOperationLogId || 0);
+    if (!operationId) {
+      return;
+    }
+    const requestId = resolveSoftOperationTaskRequestId(operationId);
+    const taskStatus = resolveSoftOperationTaskStatus(item.operationStatus);
+    const title = `软件${softOperationLabel(item.operationType)} · 安装实例 #${
+      item.softInstallationId || "-"
+    }`;
+    const detailMessage =
+      item.detailMessage || item.operationMessage || "任务处理中";
+    const messageStateKey = `${operationId}:${item.operationStatus || "RUNNING"}:${
+      item.operationStage || "-"
+    }:${detailMessage}`;
+    if (!handledSoftOperationTaskStates.has(messageStateKey)) {
+      taskCenterProvider.appendMessage(requestId, detailMessage);
+      handledSoftOperationTaskStates.add(messageStateKey);
+    }
+    taskCenterProvider.updateTask(requestId, {
+      title,
+      requestId,
+      mode: "stream",
+      source: "system",
+      progress:
+        typeof item.progressPercent === "number"
+          ? item.progressPercent
+          : taskStatus === "success" || taskStatus === "error"
+            ? 100
+            : 20,
+      stageLabel: item.operationStage || undefined,
+      status: taskStatus,
+      message: detailMessage,
+      description: item.operationType || "SOFT_OPERATION",
+    });
+  });
+};
 const hostDefaultPath = (host?: ServerHost | null) => {
   if (host?.baseDirectory) {
     return host.baseDirectory;
@@ -1417,12 +1544,12 @@ const toTreeFileEntry = (node: ServerFileTreeNode): ServerFileEntry => ({
   extension: node.extension,
 });
 const canNavigateParentDirectory = computed(() => {
-  if (!selectedHost.value || !fileCurrentPath.value) {
+  if (!fileDrawerHost.value || !fileCurrentPath.value) {
     return false;
   }
-  const windows = normalizeOs(selectedHost.value.osType) === "windows";
+  const windows = normalizeOs(fileDrawerHost.value.osType) === "windows";
   const root = normalizeDirectoryPath(
-    hostDefaultPath(selectedHost.value),
+    hostDefaultPath(fileDrawerHost.value),
     windows,
   );
   const current = normalizeDirectoryPath(fileCurrentPath.value, windows);
@@ -1823,6 +1950,22 @@ const installSelectedVersionLabel = computed(() => {
     : "未选择版本";
 });
 
+const shouldHideInstallGuideField = (field?: SoftGuideField | null) => {
+  const key = String(field?.fieldKey || "").toLowerCase();
+  return (
+    key === "installpath" ||
+    key === "installdir" ||
+    key === "installationpath" ||
+    key === "install_dir" ||
+    key === "install_path"
+  );
+};
+
+const filterInstallGuideFields = (fields?: SoftGuideField[] | null) =>
+  (Array.isArray(fields) ? fields : []).filter(
+    (item) => !shouldHideInstallGuideField(item),
+  );
+
 const installGuideSections = computed<GuideSection[]>(() => {
   const guide = installGuide.value;
   if (!guide) {
@@ -1834,21 +1977,21 @@ const installGuideSections = computed<GuideSection[]>(() => {
       title: "基础安装",
       hint: "安装阶段参数会映射到脚本和配置模板。",
       scope: "install",
-      fields: guide.installFields || [],
+      fields: filterInstallGuideFields(guide.installFields),
     },
     {
       key: "service",
       title: "服务引导",
       hint: "服务注册、启动和状态检查相关参数。",
       scope: "service",
-      fields: guide.serviceFields || [],
+      fields: filterInstallGuideFields(guide.serviceFields),
     },
     {
       key: "config",
       title: "配置初始化",
       hint: "配置模板与初始化变量。",
       scope: "config",
-      fields: guide.configFields || [],
+      fields: filterInstallGuideFields(guide.configFields),
     },
   ].filter((section) => section.fields.length);
 });
@@ -2095,6 +2238,16 @@ const submitInstallFromServer = async () => {
     return;
   }
   installSubmitting.value = true;
+  const requestId = `server-soft-install-${toNumericId(installHost.value?.serverId)}-${Date.now()}`;
+  const task = taskCenterProvider.addTask({
+    requestId,
+    title: `软件安装 · ${installSelectedPackage.value?.packageName || "未命名软件"}`,
+    mode: "stream",
+    status: "running",
+    progress: 20,
+    message: "正在提交安装任务",
+  });
+  task.open();
   try {
     const softTargetId = await ensureSoftTargetForHost(installHost.value);
     const packageId =
@@ -2108,7 +2261,25 @@ const submitInstallFromServer = async () => {
       serviceOptions: { ...installServiceOptions },
       configOptions: { ...installConfigOptions },
     });
+    if (result.success === false) {
+      throw new Error(result.message || result.msg || "安装任务提交失败");
+    }
     const ticket = result.data;
+    if (!ticket?.operationId) {
+      throw new Error("安装任务提交失败：后端未返回 operationId");
+    }
+    const operationRequestId = resolveSoftOperationTaskRequestId(
+      Number(ticket.operationId),
+    );
+    task.update({
+      requestId: operationRequestId,
+      title: `软件安装 · ${installSelectedPackage.value?.packageName || "未命名软件"}`,
+      mode: "stream",
+      status: resolveSoftOperationTaskStatus(ticket.operationStatus),
+      progress: 15,
+      message: ticket.message || "安装任务已受理，等待执行",
+      source: "system",
+    });
     installTask.value = {
       operationId: ticket.operationId,
       installationId: ticket.installationId,
@@ -2116,7 +2287,7 @@ const submitInstallFromServer = async () => {
       message: `安装任务已提交到 ${installHost.value.serverName}`,
     };
     installStep.value = 2;
-    message("安装任务已提交，正在跳转到实例详情", { type: "success" });
+    message("安装任务已提交，等待后端执行结果", { type: "success" });
     installVisible.value = false;
     await loadSoftState();
     if (packageId && ticket.installationId) {
@@ -2124,6 +2295,14 @@ const submitInstallFromServer = async () => {
         `/soft/detail/${packageId}?installationId=${ticket.installationId}`,
       );
     }
+  } catch (error: any) {
+    task.error({
+      progress: 100,
+      message: error?.message || error?.msg || "安装任务提交失败",
+    });
+    message(error?.message || error?.msg || "安装任务提交失败", {
+      type: "error",
+    });
   } finally {
     installSubmitting.value = false;
   }
@@ -2304,7 +2483,9 @@ const softDrawerServiceCards = computed<ServerSoftServiceCard[]>(() =>
       primaryChip: item.softInstallationId
         ? `安装实例 #${item.softInstallationId}`
         : "独立服务器服务",
-      secondaryChip: item.softPackageId ? `软件 #${item.softPackageId}` : undefined,
+      secondaryChip: item.softPackageId
+        ? `软件 #${item.softPackageId}`
+        : undefined,
       running,
       canRegister: hasServerServiceRegisterScript(item),
       canUnregister: hasServerServiceUnregisterScript(item),
@@ -2332,7 +2513,9 @@ const serviceLogCards = computed<ServerServiceLogCard[]>(() =>
   serviceLogs.value.map((item) => ({
     item,
     title:
-      serverServiceActionLabelMap[toServiceActionLabelKey(item.operationType)] ||
+      serverServiceActionLabelMap[
+        toServiceActionLabelKey(item.operationType)
+      ] ||
       item.operationType ||
       "操作",
     createTime: item.createTime || "-",
@@ -2470,6 +2653,7 @@ const runServerServiceAction = async (
     progress: 25,
     message: `正在执行${serverServiceActionLabelMap[action]}`,
   });
+  task.open();
   try {
     const result = await serverServiceActionExecutor[action](
       service.serverServiceId,
@@ -3059,6 +3243,7 @@ const generateServiceAiDraft = async (draft?: ServerService) => {
     progress: 20,
     message: "正在提交 AI 服务草稿任务",
   });
+  task.open();
   try {
     const result = await generateServerServiceAiDraft(next.serverServiceId);
     const ticket = result.data as ServerAiTaskTicket | undefined;
@@ -3224,7 +3409,7 @@ const loadHostMetricsDetail = async (
 
 const loadHostMetricsHistory = async (
   host?: ServerHost | null,
-  minutes = 120,
+  minutes = serverViewSettings.metricHistoryMinutes,
   force = false,
 ) => {
   const serverId = toNumericId(host?.serverId);
@@ -3274,7 +3459,11 @@ const openMetricDetail = async (metric: MetricDetailKey) => {
   metricDetailVisible.value = true;
   await Promise.all([
     loadHostMetricsDetail(selectedHost.value, true),
-    loadHostMetricsHistory(selectedHost.value, 120, true),
+    loadHostMetricsHistory(
+      selectedHost.value,
+      serverViewSettings.metricHistoryMinutes,
+      true,
+    ),
   ]);
 };
 
@@ -3296,7 +3485,9 @@ const analyzeMetricHistory = async (payload: {
     return;
   }
   const metricType =
-    payload.metricKey === "diskIo" ? "DISK_IO" : payload.metricKey.toUpperCase();
+    payload.metricKey === "diskIo"
+      ? "DISK_IO"
+      : payload.metricKey.toUpperCase();
   const filterKey = buildMetricHistoryAiFilterKey(selectedHost.value.serverId, {
     metricKey: metricType,
     minutes: payload.minutes,
@@ -3313,6 +3504,7 @@ const analyzeMetricHistory = async (payload: {
     progress: 20,
     message: `正在分析${metricType}历史趋势`,
   });
+  task.open();
   metricHistoryAiAnalyzingKey.value = filterKey;
   try {
     const result = await analyzeServerHostMetricHistory(
@@ -3370,17 +3562,26 @@ const openMetricsTaskDialog = async () => {
 };
 
 const submitMetricsTaskSettings = async (
-  value: Partial<ServerMetricsTaskSettings> = {},
+  value: {
+    taskSettings?: Partial<ServerMetricsTaskSettings>;
+    uiSettings?: Partial<ServerViewSettings>;
+  } = {},
 ) => {
   metricsTaskSaving.value = true;
   try {
+    Object.assign(serverViewSettings, value.uiSettings || {});
+    persistServerViewSettings();
+    const taskValue = value.taskSettings || {};
     const payload = {
-      inheritGlobal: value.inheritGlobal,
-      enabled: Boolean(value.enabled),
-      refreshIntervalMs: Math.max(Number(value.refreshIntervalMs || 0), 1000),
-      timeoutMs: Math.max(Number(value.timeoutMs || 0), 1000),
-      cacheEnabled: Boolean(value.cacheEnabled),
-      cacheTtlSeconds: Math.max(Number(value.cacheTtlSeconds || 0), 60),
+      inheritGlobal: taskValue.inheritGlobal,
+      enabled: Boolean(taskValue.enabled),
+      refreshIntervalMs: Math.max(
+        Number(taskValue.refreshIntervalMs || 0),
+        1000,
+      ),
+      timeoutMs: Math.max(Number(taskValue.timeoutMs || 0), 1000),
+      cacheEnabled: Boolean(taskValue.cacheEnabled),
+      cacheTtlSeconds: Math.max(Number(taskValue.cacheTtlSeconds || 0), 60),
     };
     const serverId = toNumericId(selectedHost.value?.serverId);
     const result = serverId
@@ -3391,6 +3592,16 @@ const submitMetricsTaskSettings = async (
       type: "success",
     });
     metricsTaskVisible.value = false;
+    if (selectedHost.value?.serverId) {
+      await Promise.all([
+        loadHostMetricsHistory(
+          selectedHost.value,
+          serverViewSettings.metricHistoryMinutes,
+          true,
+        ),
+        loadHostProcesses({ preserveSelection: true }),
+      ]);
+    }
   } catch (error) {
     console.error(error);
     message("指标采集任务更新失败", { type: "error" });
@@ -3409,6 +3620,7 @@ const refreshMetricsTaskNow = async () => {
     progress: 30,
     message: "正在手工触发指标采集",
   });
+  task.open();
   try {
     await refreshServerHostMetrics();
     await Promise.all([
@@ -3417,7 +3629,11 @@ const refreshMetricsTaskNow = async () => {
         ? loadHostMetricsDetail(selectedHost.value, true)
         : Promise.resolve(),
       selectedHost.value
-        ? loadHostMetricsHistory(selectedHost.value, 120, true)
+        ? loadHostMetricsHistory(
+            selectedHost.value,
+            serverViewSettings.metricHistoryMinutes,
+            true,
+          )
         : Promise.resolve(),
     ]);
     task.success({
@@ -3450,6 +3666,7 @@ const analyzeSelectedHostStability = async () => {
     progress: 20,
     message: "正在提交服务器稳定性分析",
   });
+  task.open();
   try {
     const result = await analyzeServerHostStability(
       selectedHost.value.serverId,
@@ -3571,6 +3788,7 @@ const analyzeAlertHistory = async (payload: {
     progress: 20,
     message: "正在分析历史告警",
   });
+  task.open();
   alertHistoryAiAnalyzingKey.value = filterKey;
   try {
     const result = await analyzeServerHostAlertHistory(serverId, {
@@ -3629,14 +3847,48 @@ const loadSoftState = async () => {
       return;
     }
     const [targetResult, installationResult, operationResult] =
-      await Promise.all([
+      await Promise.allSettled([
         listSoftBindingTargets(),
         listServerSoftInstallations(),
         listServerSoftOperations(),
       ]);
-    softTargets.value = targetResult.data || [];
-    softInstallations.value = installationResult.data || [];
-    softOperations.value = operationResult.data || [];
+
+    const hasAnySuccess =
+      targetResult.status === "fulfilled" ||
+      installationResult.status === "fulfilled" ||
+      operationResult.status === "fulfilled";
+    if (!hasAnySuccess) {
+      softEnabled.value = false;
+      softTargets.value = [];
+      softInstallations.value = [];
+      softOperations.value = [];
+      softInstallationDetailMap.value = {};
+      softPackageDetailMap.value = {};
+      console.warn("[ServerHostPage] soft 模块状态接口均不可用，已降级关闭软模块视图");
+      return;
+    }
+
+    softTargets.value =
+      targetResult.status === "fulfilled" ? targetResult.value.data || [] : [];
+    softInstallations.value =
+      installationResult.status === "fulfilled"
+        ? installationResult.value.data || []
+        : [];
+    softOperations.value =
+      operationResult.status === "fulfilled"
+        ? operationResult.value.data || []
+        : [];
+    syncTaskCenterFromSoftOperations(softOperations.value);
+
+    if (targetResult.status === "rejected") {
+      console.warn("[ServerHostPage] 加载软目标失败，已降级为空列表");
+    }
+    if (installationResult.status === "rejected") {
+      console.warn("[ServerHostPage] 加载软安装实例失败，已降级为空列表");
+    }
+    if (operationResult.status === "rejected") {
+      console.warn("[ServerHostPage] 加载软操作记录失败，已降级为空列表");
+    }
   } catch (error) {
     console.error(error);
     softEnabled.value = false;
@@ -3650,29 +3902,26 @@ const loadSoftState = async () => {
   }
 };
 
-const loadFiles = async (path?: string) => {
-  if (!selectedHost.value?.serverId) {
+const loadFiles = async (path?: string, host = fileDrawerHost.value) => {
+  if (!host?.serverId) {
     fileEntries.value = [];
     return;
   }
   fileLoading.value = true;
   try {
     const nextPath = resolveFilePathWithinRoot(
-      path || fileCurrentPath.value || hostDefaultPath(selectedHost.value),
-      selectedHost.value,
+      path || fileCurrentPath.value || hostDefaultPath(host),
+      host,
     );
-    const result = await listServerFiles(selectedHost.value.serverId, nextPath);
+    const result = await listServerFiles(host.serverId, nextPath);
     fileCurrentPath.value = nextPath;
-    fileEntries.value = sanitizeFileEntries(
-      result.data || [],
-      selectedHost.value,
-    );
+    fileEntries.value = sanitizeFileEntries(result.data || [], host);
   } finally {
     fileLoading.value = false;
   }
 };
 
-const reloadFileTree = async (host = selectedHost.value) => {
+const reloadFileTree = async (host = fileDrawerHost.value) => {
   if (!host?.serverId) {
     fileTreeData.value = [];
     return;
@@ -3693,7 +3942,8 @@ const loadFileTreeChildren = async (
   node: { data?: ServerFileTreeNode },
   resolve: (data: ServerFileTreeNode[]) => void,
 ) => {
-  if (!selectedHost.value?.serverId) {
+  const host = fileDrawerHost.value;
+  if (!host?.serverId) {
     resolve([]);
     return;
   }
@@ -3702,25 +3952,22 @@ const loadFileTreeChildren = async (
     resolve([]);
     return;
   }
-  const result = await listServerFiles(
-    selectedHost.value.serverId,
-    nodeData.path,
-  );
-  const children = sanitizeFileEntries(result.data || [], selectedHost.value)
+  const result = await listServerFiles(host.serverId, nodeData.path);
+  const children = sanitizeFileEntries(result.data || [], host)
     .sort((left, right) => {
       if (left.directory !== right.directory) {
         return left.directory ? -1 : 1;
       }
       return String(left.name || "").localeCompare(String(right.name || ""));
     })
-    .map((entry) => buildFileTreeNode(entry, selectedHost.value));
+    .map((entry) => buildFileTreeNode(entry, host));
   resolve(children);
 };
 
 const stopFileWatch = async () => {
-  if (selectedHost.value?.serverId && fileWatchTicket.value?.watchId) {
+  if (fileDrawerHost.value?.serverId && fileWatchTicket.value?.watchId) {
     await stopServerFileWatch(
-      selectedHost.value.serverId,
+      fileDrawerHost.value.serverId,
       fileWatchTicket.value.watchId,
     ).catch(() => false);
   }
@@ -3732,13 +3979,13 @@ const stopFileWatch = async () => {
 };
 
 const previewFile = async (entry: ServerFileEntry) => {
-  if (!selectedHost.value?.serverId || !isTextPreviewable(entry)) {
+  if (!fileDrawerHost.value?.serverId || !isTextPreviewable(entry)) {
     return;
   }
   fileContentLoading.value = true;
   try {
     const result = await readServerFileContent(
-      selectedHost.value.serverId,
+      fileDrawerHost.value.serverId,
       entry.path,
       1024 * 256,
     );
@@ -3770,12 +4017,11 @@ const handleFileTreeSelect = async (node: ServerFileTreeNode) => {
     await loadFiles(node.path);
     return;
   }
-  if (selectedHost.value) {
-    const windows = normalizeOs(selectedHost.value.osType) === "windows";
+  if (fileDrawerHost.value) {
+    const windows = normalizeOs(fileDrawerHost.value.osType) === "windows";
     const separatorPattern = windows ? /\\[^\\]+$/ : /\/[^/]+$/;
     const parentPath = normalizeDirectoryPath(
-      node.path.replace(separatorPattern, "") ||
-        hostDefaultPath(selectedHost.value),
+      node.path.replace(separatorPattern, "") || hostDefaultPath(fileDrawerHost.value),
       windows,
     );
     await loadFiles(parentPath);
@@ -3797,12 +4043,12 @@ const enterFileEntry = async (entry: ServerFileEntry) => {
 };
 
 const openParentDirectory = async () => {
-  if (!fileCurrentPath.value || !selectedHost.value) {
+  if (!fileCurrentPath.value || !fileDrawerHost.value) {
     return;
   }
-  const windows = normalizeOs(selectedHost.value.osType) === "windows";
+  const windows = normalizeOs(fileDrawerHost.value.osType) === "windows";
   const root = normalizeDirectoryPath(
-    hostDefaultPath(selectedHost.value),
+    hostDefaultPath(fileDrawerHost.value),
     windows,
   );
   const normalized = normalizeDirectoryPath(fileCurrentPath.value, windows);
@@ -3825,7 +4071,7 @@ const openParentDirectory = async () => {
 };
 
 const toggleFileWatch = async (nextValue = !fileWatchEnabled.value) => {
-  if (!selectedHost.value?.serverId || !filePreviewPath.value) {
+  if (!fileDrawerHost.value?.serverId || !filePreviewPath.value) {
     return;
   }
   if (!nextValue) {
@@ -3833,7 +4079,7 @@ const toggleFileWatch = async (nextValue = !fileWatchEnabled.value) => {
     return;
   }
   const result = await startServerFileWatch(
-    selectedHost.value.serverId,
+    fileDrawerHost.value.serverId,
     filePreviewPath.value,
   );
   fileWatchTicket.value = result.data || null;
@@ -3854,14 +4100,14 @@ const triggerUpload = () => {
 const handleUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement | null;
   const file = input?.files?.[0];
-  if (!selectedHost.value?.serverId || !file) {
+  if (!fileDrawerHost.value?.serverId || !file) {
     return;
   }
   try {
     await uploadServerFile(
-      selectedHost.value.serverId,
+      fileDrawerHost.value.serverId,
       file,
-      fileCurrentPath.value || hostDefaultPath(selectedHost.value),
+      fileCurrentPath.value || hostDefaultPath(fileDrawerHost.value),
     );
     message(`已上传 ${file.name}`, { type: "success" });
     await loadFiles();
@@ -3872,7 +4118,7 @@ const handleUpload = async (event: Event) => {
 };
 
 const createFolder = async () => {
-  if (!selectedHost.value?.serverId) {
+  if (!fileDrawerHost.value?.serverId) {
     return;
   }
   const result = await ElMessageBox.prompt("输入目录名", "新建目录", {
@@ -3882,14 +4128,14 @@ const createFolder = async () => {
     return;
   }
   const nextPath = `${fileCurrentPath.value.replace(/[\\/]+$/, "")}/${result.value.trim()}`;
-  await createServerDirectory(selectedHost.value.serverId, nextPath);
+  await createServerDirectory(fileDrawerHost.value.serverId, nextPath);
   message("目录已创建", { type: "success" });
   await loadFiles();
   await reloadFileTree();
 };
 
 const renameEntry = async (entry: ServerFileEntry) => {
-  if (!selectedHost.value?.serverId) {
+  if (!fileDrawerHost.value?.serverId) {
     return;
   }
   const result = await ElMessageBox.prompt("输入新的名称", "重命名", {
@@ -3899,7 +4145,7 @@ const renameEntry = async (entry: ServerFileEntry) => {
     return;
   }
   const parent = entry.path.replace(/[\\/][^\\/]+$/, "");
-  await renameServerFile(selectedHost.value.serverId, {
+  await renameServerFile(fileDrawerHost.value.serverId, {
     path: entry.path,
     targetPath: `${parent}/${result.value.trim()}`,
   });
@@ -3909,14 +4155,14 @@ const renameEntry = async (entry: ServerFileEntry) => {
 };
 
 const removeEntry = async (entry: ServerFileEntry) => {
-  if (!selectedHost.value?.serverId) {
+  if (!fileDrawerHost.value?.serverId) {
     return;
   }
   await ElMessageBox.confirm(`确认删除 ${entry.name}？`, "删除文件", {
     type: "warning",
   });
   await deleteServerFile(
-    selectedHost.value.serverId,
+    fileDrawerHost.value.serverId,
     entry.path,
     entry.directory,
   );
@@ -3931,11 +4177,11 @@ const removeEntry = async (entry: ServerFileEntry) => {
 };
 
 const downloadEntry = async (entry: ServerFileEntry) => {
-  if (!selectedHost.value?.serverId || entry.directory) {
+  if (!fileDrawerHost.value?.serverId || entry.directory) {
     return;
   }
   const blob = await downloadServerFile(
-    selectedHost.value.serverId,
+    fileDrawerHost.value.serverId,
     entry.path,
   );
   const href = URL.createObjectURL(blob);
@@ -3951,8 +4197,9 @@ const resetFileDraft = () => {
 };
 
 const saveFileDraft = async () => {
+  const host = fileDrawerHost.value || selectedHost.value;
   if (
-    !selectedHost.value?.serverId ||
+    !host?.serverId ||
     !filePreviewPath.value ||
     !fileDirty.value
   ) {
@@ -3964,7 +4211,7 @@ const saveFileDraft = async () => {
   }
   fileSaving.value = true;
   try {
-    await writeServerFileContent(selectedHost.value.serverId, {
+    await writeServerFileContent(host.serverId, {
       path: filePreviewPath.value,
       content: fileDraftContent.value,
     });
@@ -3980,9 +4227,10 @@ const saveFileDraft = async () => {
     fileLiveStatus.value = "内容已同步";
     message("文件已同步", { type: "success" });
     await loadFiles(
-      fileCurrentPath.value || hostDefaultPath(selectedHost.value),
+      fileCurrentPath.value || hostDefaultPath(host),
+      host,
     );
-    await reloadFileTree();
+    await reloadFileTree(host);
   } finally {
     fileSaving.value = false;
   }
@@ -4033,7 +4281,9 @@ const refreshSelectedHostPublicIp = async () => {
   const result = await refreshServerHostPublicIp(selectedHost.value.serverId);
   if (result?.data) {
     hosts.value = hosts.value.map((item) =>
-      item.serverId === result.data.serverId ? { ...item, ...result.data } : item,
+      item.serverId === result.data.serverId
+        ? { ...item, ...result.data }
+        : item,
     );
   }
   await loadHostMetricsDetail(selectedHost.value, true);
@@ -4175,11 +4425,19 @@ const applyProcessRows = (
 ) => {
   const previousPid =
     options?.preserveSelection === false ? null : processSelectedPid.value;
+  const previousSelectedPids =
+    options?.preserveSelection === false ? [] : [...processSelectedPids.value];
   serverProcesses.value = rows;
   processRefreshedAt.value = options?.refreshedAt || Date.now();
   const nextProcess =
     rows.find((item) => item.pid === previousPid) || rows[0] || null;
   processSelectedPid.value = nextProcess?.pid || null;
+  const nextPidSet = new Set(
+    rows.map((item) => Number(item.pid || 0)).filter(Boolean),
+  );
+  processSelectedPids.value = previousSelectedPids.filter((pid) =>
+    nextPidSet.has(pid),
+  );
   if (!nextProcess || nextProcess.pid !== previousPid) {
     selectedProcessAiAdvice.value = null;
   }
@@ -4201,6 +4459,45 @@ const selectProcessItem = (process: ServerProcessView | null) => {
     selectedProcessAiAdvice.value = null;
   }
   processSelectedPid.value = nextPid;
+  if (
+    processTerminateSelectionMode.value &&
+    nextPid &&
+    !processSelectedPids.value.includes(nextPid)
+  ) {
+    processSelectedPids.value = [...processSelectedPids.value, nextPid];
+  }
+};
+
+const collectProcessCascade = (items: ServerProcessView[] = []) => {
+  const processMap = new Map<number, ServerProcessView>();
+  const childrenMap = new Map<number, number[]>();
+  serverProcesses.value.forEach((item) => {
+    const pid = Number(item.pid || 0);
+    const parentPid = Number(item.parentPid || 0);
+    if (pid <= 0) {
+      return;
+    }
+    processMap.set(pid, item);
+    if (parentPid > 0) {
+      childrenMap.set(parentPid, [...(childrenMap.get(parentPid) || []), pid]);
+    }
+  });
+  const result = new Map<number, ServerProcessView>();
+  const queue = items
+    .map((item) => Number(item.pid || 0))
+    .filter((item) => item > 0);
+  while (queue.length) {
+    const pid = queue.shift() || 0;
+    if (!pid || result.has(pid)) {
+      continue;
+    }
+    const current = processMap.get(pid);
+    if (current) {
+      result.set(pid, current);
+    }
+    (childrenMap.get(pid) || []).forEach((childPid) => queue.push(childPid));
+  }
+  return [...result.values()];
 };
 
 const loadHostProcesses = async (options?: {
@@ -4220,7 +4517,7 @@ const loadHostProcesses = async (options?: {
   try {
     const result = await listServerHostProcesses(host.serverId, {
       keyword: processKeyword.value || undefined,
-      limit: 120,
+      limit: Math.max(Number(serverViewSettings.processQueryLimit || 0), 1),
     });
     applyProcessRows(result.data || [], {
       preserveSelection: options?.preserveSelection,
@@ -4262,6 +4559,7 @@ const analyzeProcessItem = async (process: ServerProcessView) => {
     progress: 20,
     message: "开始分析目标进程",
   });
+  task.open();
   try {
     const result = await analyzeServerHostProcess(
       selectedHost.value.serverId,
@@ -4312,6 +4610,7 @@ const terminateProcessItem = async (payload: {
     progress: 25,
     message: `正在${actionLabel}目标进程`,
   });
+  task.open();
   try {
     const result = await terminateServerHostProcess(
       host.serverId,
@@ -4342,18 +4641,87 @@ const terminateProcessItem = async (payload: {
   }
 };
 
+const terminateBatchProcessItems = async (payload: {
+  processes: ServerProcessView[];
+  force: boolean;
+}) => {
+  const host = selectedHost.value;
+  const targets = collectProcessCascade(payload.processes || []);
+  if (!host?.serverId || !targets.length) {
+    return;
+  }
+  const actionLabel = payload.force ? "强制结束" : "结束";
+  await ElMessageBox.confirm(
+    `确认${actionLabel} ${targets.length} 个进程？`,
+    `${actionLabel}进程`,
+    { type: "warning" },
+  );
+  let successCount = 0;
+  for (const item of targets) {
+    const pid = Number(item.pid || 0);
+    if (!pid) {
+      continue;
+    }
+    processActionLoadingKey.value = `${payload.force ? "force" : "terminate"}:${pid}`;
+    try {
+      const result = await terminateServerHostProcess(
+        host.serverId,
+        pid,
+        payload.force,
+      );
+      if (result.data?.success !== false) {
+        successCount += 1;
+      }
+    } catch (error: unknown) {
+      const errorMessage =
+        (error as { message?: string; msg?: string } | null)?.message ||
+        (error as { message?: string; msg?: string } | null)?.msg ||
+        `${actionLabel}进程失败`;
+      message(errorMessage, { type: "error" });
+    }
+  }
+  processActionLoadingKey.value = "";
+  processSelectedPids.value = [];
+  processTerminateSelectionMode.value = false;
+  await loadHostProcesses({ preserveSelection: true });
+  message(`${actionLabel}完成，成功 ${successCount} / ${targets.length}`, {
+    type: successCount > 0 ? "success" : "warning",
+  });
+};
+
 const openFileDrawer = async (host?: ServerHost | null) => {
-  const targetHost = host || selectedHost.value;
+  let targetHost =
+    host ||
+    selectedHost.value ||
+    hostItems.value.find((item) => Number(item.serverId || 0) > 0) ||
+    null;
   if (!targetHost?.serverId) {
+    message("当前没有可用服务器，无法打开文件管理", { type: "warning" });
     return;
   }
   if (targetHost.serverId !== selectedHost.value?.serverId) {
     selectHost(targetHost.serverId);
     await nextTick();
+    targetHost =
+      hosts.value.find((item) => item.serverId === targetHost?.serverId) ||
+      targetHost;
   }
+  fileDrawerHostId.value = targetHost.serverId;
   fileDrawerVisible.value = true;
-  await loadFiles(fileCurrentPath.value || hostDefaultPath(targetHost));
-  await reloadFileTree(targetHost);
+  filePreview.value = null;
+  filePreviewPath.value = "";
+  fileDraftContent.value = "";
+  fileOriginalContent.value = "";
+  fileCurrentPath.value = hostDefaultPath(targetHost);
+  try {
+    await loadFiles(hostDefaultPath(targetHost), targetHost);
+    await reloadFileTree(targetHost);
+  } catch (error) {
+    console.error(error);
+    message("文件列表加载失败，请检查服务器文件能力与路径权限", {
+      type: "error",
+    });
+  }
 };
 const openDashboard = async (host?: ServerHost | null) => {
   if (host?.serverId) {
@@ -4447,25 +4815,26 @@ const submit = async () => {
   try {
     syncFormTags();
 
-    // 非 LOCAL 类型需要获取公钥并加密密码
+    // 非 LOCAL 类型优先使用公钥加密；若后端未提供公钥则回退明文。
     let encryptedPassword = form.serverType === "LOCAL" ? "" : form.password;
     if (form.serverType !== "LOCAL" && form.password) {
-      // 1. 获取公钥
-      let publicKey: string;
+      let publicKey = "";
       try {
         const res = await fetchServerProjectPublicKey();
-        publicKey = res.data;
+        publicKey = String(res?.data || "").trim();
       } catch {
-        message("获取公钥失败，请稍后重试", { type: "error" });
-        return;
+        publicKey = "";
       }
-
-      // 2. RSA 加密密码
-      try {
-        encryptedPassword = await rsaEncrypt(form.password ?? "", publicKey);
-      } catch {
-        message("密码加密失败，请稍后重试", { type: "error" });
-        return;
+      if (publicKey.includes("BEGIN PUBLIC KEY")) {
+        try {
+          encryptedPassword = await rsaEncrypt(form.password ?? "", publicKey);
+        } catch {
+          message("密码加密失败，请稍后重试", { type: "error" });
+          return;
+        }
+      } else {
+        encryptedPassword = form.password ?? "";
+        message("未获取到公钥，已回退明文提交密码", { type: "warning" });
       }
     }
 
@@ -4533,6 +4902,10 @@ watch(
     fileTreeData.value = [];
     await hydrateSoftInsights(selectedHost.value);
     await loadHostMetricsDetail(selectedHost.value);
+    await loadHostMetricsHistory(
+      selectedHost.value,
+      serverViewSettings.metricHistoryMinutes,
+    );
     await loadSelectedRemoteGateway(selectedHost.value);
     await loadHostAlertSettings(selectedHost.value);
     await loadAlerts(selectedHost.value?.serverId);
@@ -4562,6 +4935,8 @@ watch(
     stopProcessRefreshLoop();
     processKeyword.value = "";
     processSelectedPid.value = null;
+    processSelectedPids.value = [];
+    processTerminateSelectionMode.value = false;
     processRefreshedAt.value = null;
     processActionLoadingKey.value = "";
     processAiAnalyzing.value = false;
@@ -4573,6 +4948,16 @@ watch(
   () => processAutoRefresh.value,
   () => {
     syncProcessRefreshLoop();
+  },
+);
+watch(
+  () => serverViewSettings.metricHistoryMinutes,
+  async (minutes, previous) => {
+    if (minutes === previous || !selectedHost.value?.serverId) {
+      return;
+    }
+    persistServerViewSettings();
+    await loadHostMetricsHistory(selectedHost.value, minutes, true);
   },
 );
 watch(
@@ -4702,14 +5087,17 @@ watch(
 watch(
   () => fileDrawerVisible.value,
   async (visible) => {
-    if (visible && selectedHost.value) {
+    const drawerHost = fileDrawerHost.value || selectedHost.value;
+    if (visible && drawerHost) {
       await loadFiles(
-        fileCurrentPath.value || hostDefaultPath(selectedHost.value),
+        fileCurrentPath.value || hostDefaultPath(drawerHost),
+        drawerHost,
       );
-      await reloadFileTree(selectedHost.value);
+      await reloadFileTree(drawerHost);
       return;
     }
     await stopFileWatch();
+    fileDrawerHostId.value = null;
     fileOriginalContent.value = "";
   },
 );
@@ -4813,6 +5201,7 @@ watch(
 );
 
 onMounted(async () => {
+  loadServerViewSettings();
   // 读取 _sc URL 参数，解密后预填连接表单
   try {
     const scRaw = route.query._sc as string | undefined;
@@ -4904,7 +5293,11 @@ onUnmounted(() => {
   height: 320px;
   left: -60px;
   top: -72px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.22), transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgba(14, 165, 233, 0.22),
+    transparent 68%
+  );
 }
 
 .server-page__orb--amber {
@@ -4912,7 +5305,11 @@ onUnmounted(() => {
   height: 260px;
   right: -50px;
   top: 18px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.18), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(245, 158, 11, 0.18),
+    transparent 70%
+  );
 }
 
 .server-page__mesh {
@@ -4929,8 +5326,11 @@ onUnmounted(() => {
   min-height: 0;
   border-radius: 36px;
   padding: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.4));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.62),
+    rgba(255, 255, 255, 0.4)
+  );
   border: 1px solid rgba(255, 255, 255, 0.56);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
@@ -4956,8 +5356,11 @@ onUnmounted(() => {
   height: 100%;
   border-radius: 30px;
   padding: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(248, 250, 252, 0.24));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.52),
+    rgba(248, 250, 252, 0.24)
+  );
   border: 1px solid rgba(255, 255, 255, 0.58);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.84),
@@ -4971,7 +5374,11 @@ onUnmounted(() => {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 26%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.18),
+    transparent 26%
+  );
 }
 
 .server-layout__sidebar-stage :deep(.server-sidebar),
@@ -5374,12 +5781,15 @@ onUnmounted(() => {
 
 .server-layout__main-stage :deep(.server-basic-panel__hero) {
   background:
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 32%),
+    radial-gradient(
+      circle at top right,
+      rgba(245, 158, 11, 0.1),
+      transparent 32%
+    ),
     linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(244, 247, 250, 0.9));
   border: 1px solid rgba(148, 163, 184, 0.14);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
 }
-
 
 @media (max-width: 1100px) {
   .server-page {

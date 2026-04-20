@@ -24,7 +24,7 @@
   >
     <!-- 简单布局的右上角关闭按钮 -->
     <template v-if="layout === 'simple' && showClose" #header>
-      <button type="button" class="sc-drawer__simple-close" @click="handleClose">
+      <button type="button" class="sc-drawer__simple-close" @click="close">
         <IconifyIconOnline icon="ep:close" />
       </button>
     </template>
@@ -40,7 +40,7 @@
         v-if="layout === 'simple' && showClose"
         type="button"
         class="sc-drawer__body-close"
-        @click="handleClose"
+        @click="close"
       >
         <IconifyIconOnline icon="ep:close" />
       </button>
@@ -162,7 +162,7 @@ const props = withDefaults(
     withHeader: true,
     modalClass: "",
     zIndex: 2000,
-    destroyOnClose: false,
+    destroyOnClose: true,
     customClass: "",
     showFooter: false,
     showCancelButton: true,

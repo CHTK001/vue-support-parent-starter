@@ -102,6 +102,65 @@
         </p>
       </el-form>
 
+      <section class="server-metrics-task-dialog__preferences">
+        <div class="server-metrics-task-dialog__preferences-head">
+          <div>
+            <strong>显示与查询配置</strong>
+            <p>控制进程返回数量、服务展示数量、默认历史范围和图表横轴上限。</p>
+          </div>
+          <span class="server-metrics-task-dialog__chip">
+            本地偏好
+          </span>
+        </div>
+        <div class="server-metrics-task-dialog__grid">
+          <el-form-item label="进程返回数量">
+            <ScInput
+              v-model="uiDraft.processQueryLimit"
+              type="number"
+              layout="stepper"
+              :min="20"
+              :step="10"
+            />
+          </el-form-item>
+          <el-form-item label="服务返回数量">
+            <ScInput
+              v-model="uiDraft.serviceReturnLimit"
+              type="number"
+              layout="stepper"
+              :min="1"
+              :step="1"
+            />
+          </el-form-item>
+          <el-form-item label="历史缓存上限">
+            <ScInput
+              v-model="uiDraft.metricHistoryLimit"
+              type="number"
+              layout="stepper"
+              :min="60"
+              :step="10"
+            />
+          </el-form-item>
+          <el-form-item label="默认历史范围(分钟)">
+            <ScInput
+              v-model="uiDraft.metricHistoryMinutes"
+              type="number"
+              layout="stepper"
+              :min="15"
+              :step="15"
+            />
+          </el-form-item>
+          <el-form-item label="详情 X 轴上限">
+            <ScInput
+              v-model="uiDraft.metricDetailXAxisLimit"
+              type="number"
+              layout="stepper"
+              :min="12"
+              :step="6"
+            />
+          </el-form-item>
+        </div>
+      </section>
+
       <div class="server-metrics-task-dialog__timeline">
         <article class="server-metrics-task-dialog__card">
           <small>最近执行</small>
@@ -169,21 +228,36 @@ import type {
   ServerMetricsTaskSettingsRequest,
 } from "../api";
 
+type ServerViewSettings = {
+  processQueryLimit: number;
+  serviceReturnLimit: number;
+  metricHistoryLimit: number;
+  metricHistoryMinutes: number;
+  metricDetailXAxisLimit: number;
+};
+
+type ServerMetricsTaskDialogSubmitPayload = {
+  taskSettings: ServerMetricsTaskSettingsRequest;
+  uiSettings: ServerViewSettings;
+};
+
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
     saving?: boolean;
     form?: ServerMetricsTaskSettings | null;
+    uiSettings?: Partial<ServerViewSettings> | null;
   }>(),
   {
     saving: false,
     form: null,
+    uiSettings: null,
   },
 );
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  submit: [value: ServerMetricsTaskSettingsRequest];
+  submit: [value: ServerMetricsTaskDialogSubmitPayload];
   "refresh-now": [];
 }>();
 
@@ -209,6 +283,13 @@ const draft = reactive<ServerMetricsTaskSettings>({
   jobLastTriggerAt: undefined,
   jobNextTriggerAt: undefined,
   manualTriggerSupported: true,
+});
+const uiDraft = reactive<ServerViewSettings>({
+  processQueryLimit: 120,
+  serviceReturnLimit: 10,
+  metricHistoryLimit: 240,
+  metricHistoryMinutes: 120,
+  metricDetailXAxisLimit: 48,
 });
 
 const syncDraft = () => {
@@ -239,22 +320,42 @@ const syncDraft = () => {
     },
     props.form || {},
   );
+  Object.assign(
+    uiDraft,
+    {
+      processQueryLimit: 120,
+      serviceReturnLimit: 10,
+      metricHistoryLimit: 240,
+      metricHistoryMinutes: 120,
+      metricDetailXAxisLimit: 48,
+    },
+    props.uiSettings || {},
+  );
 };
 
 watch(
-  () => [props.form, props.modelValue],
+  () => [props.form, props.modelValue, props.uiSettings],
   () => syncDraft(),
   { immediate: true, deep: true },
 );
 
 const submit = () => {
   emit("submit", {
-    inheritGlobal: Boolean(draft.serverId) ? Boolean(draft.inheritGlobal) : undefined,
-    enabled: Boolean(draft.enabled),
-    refreshIntervalMs: Math.max(Number(draft.refreshIntervalMs || 0), 1000),
-    timeoutMs: Math.max(Number(draft.timeoutMs || 0), 1000),
-    cacheEnabled: Boolean(draft.cacheEnabled),
-    cacheTtlSeconds: Math.max(Number(draft.cacheTtlSeconds || 0), 60),
+    taskSettings: {
+      inheritGlobal: Boolean(draft.serverId) ? Boolean(draft.inheritGlobal) : undefined,
+      enabled: Boolean(draft.enabled),
+      refreshIntervalMs: Math.max(Number(draft.refreshIntervalMs || 0), 1000),
+      timeoutMs: Math.max(Number(draft.timeoutMs || 0), 1000),
+      cacheEnabled: Boolean(draft.cacheEnabled),
+      cacheTtlSeconds: Math.max(Number(draft.cacheTtlSeconds || 0), 60),
+    },
+    uiSettings: {
+      processQueryLimit: Math.max(Number(uiDraft.processQueryLimit || 0), 20),
+      serviceReturnLimit: Math.max(Number(uiDraft.serviceReturnLimit || 0), 1),
+      metricHistoryLimit: Math.max(Number(uiDraft.metricHistoryLimit || 0), 60),
+      metricHistoryMinutes: Math.max(Number(uiDraft.metricHistoryMinutes || 0), 15),
+      metricDetailXAxisLimit: Math.max(Number(uiDraft.metricDetailXAxisLimit || 0), 12),
+    },
   });
 };
 
@@ -312,6 +413,33 @@ const formatTime = (value?: number | null) =>
   padding: 0 12px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--el-fill-color-light) 88%, white);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.server-metrics-task-dialog__preferences {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 72%, transparent);
+  background: color-mix(in srgb, var(--el-bg-color-page) 90%, white);
+}
+
+.server-metrics-task-dialog__preferences-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.server-metrics-task-dialog__preferences-head strong {
+  display: block;
+  font-size: 15px;
+}
+
+.server-metrics-task-dialog__preferences-head p {
+  margin: 4px 0 0;
   color: var(--el-text-color-secondary);
   font-size: 12px;
 }

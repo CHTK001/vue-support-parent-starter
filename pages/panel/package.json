@@ -25,6 +25,7 @@
     }
   },
   "dependencies": {
+    "@pages/project": "workspace:^",
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
     "docx": "^9.6.1",

@@ -3,6 +3,7 @@
     v-model="visible"
     size="1220px"
     destroy-on-close
+    append-to-body
     :title="host ? `${host.serverName} · 文件管理` : '文件管理'"
     layout="simple"
   >
@@ -38,31 +39,44 @@
               <el-radio-button label="list" value="list">列表</el-radio-button>
               <el-radio-button label="tree" value="tree">树状</el-radio-button>
             </el-radio-group>
-            <ScButton
+            <el-tooltip
               v-if="canNavigateParentDirectory"
-              circle
-              @click="$emit('open-parent-directory')"
+              content="返回上级目录"
+              placement="top"
             >
-              <IconifyIconOnline icon="ri:arrow-up-line" />
-            </ScButton>
-            <ScButton circle @click="$emit('refresh')">
-              <IconifyIconOnline icon="ri:refresh-line" />
-            </ScButton>
-            <ScButton circle @click="$emit('create-folder')">
-              <IconifyIconOnline icon="ri:folder-add-line" />
-            </ScButton>
-            <ScButton circle @click="$emit('trigger-upload')">
-              <IconifyIconOnline icon="ri:upload-2-line" />
-            </ScButton>
-            <ScButton
-              circle
-              :type="watchEnabled ? 'danger' : 'success'"
-              @click="$emit('toggle-watch')"
-            >
-              <IconifyIconOnline
-                :icon="watchEnabled ? 'ri:stop-circle-line' : 'ri:radar-line'"
-              />
-            </ScButton>
+              <ScButton
+                circle
+                @click="$emit('open-parent-directory')"
+              >
+                <IconifyIconOnline icon="ri:arrow-up-line" />
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip content="刷新目录" placement="top">
+              <ScButton circle @click="$emit('refresh')">
+                <IconifyIconOnline icon="ri:refresh-line" />
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip content="新建目录" placement="top">
+              <ScButton circle @click="$emit('create-folder')">
+                <IconifyIconOnline icon="ri:folder-add-line" />
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip content="上传文件" placement="top">
+              <ScButton circle @click="$emit('trigger-upload')">
+                <IconifyIconOnline icon="ri:upload-2-line" />
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip :content="watchEnabled ? '停止追尾' : '开启追尾'" placement="top">
+              <ScButton
+                circle
+                :type="watchEnabled ? 'danger' : 'success'"
+                @click="$emit('toggle-watch')"
+              >
+                <IconifyIconOnline
+                  :icon="watchEnabled ? 'ri:stop-circle-line' : 'ri:radar-line'"
+                />
+              </ScButton>
+            </el-tooltip>
           </div>
         </div>
 
@@ -99,6 +113,12 @@
                       {{ formatFileSize(entry.size) }} ·
                       {{ formatFileTime(entry.lastModified) }}
                     </p>
+                    <div class="server-file-item__meta-grid">
+                      <span>{{ entry.directory ? "目录" : "文件" }}</span>
+                      <span>{{ formatFilePermissions(entry) }}</span>
+                      <span>{{ formatFileOwner(entry) }}</span>
+                      <span>{{ formatFileGroup(entry) }}</span>
+                    </div>
                   </div>
                 </div>
                 <div class="server-action-row">
@@ -149,6 +169,12 @@
                     {{ formatFileSize(entry.size) }} ·
                     {{ formatFileTime(entry.lastModified) }}
                   </small>
+                  <div class="server-file-item__meta-grid">
+                    <span>{{ entry.directory ? "目录" : "文件" }}</span>
+                    <span>{{ formatFilePermissions(entry) }}</span>
+                    <span>{{ formatFileOwner(entry) }}</span>
+                    <span>{{ formatFileGroup(entry) }}</span>
+                  </div>
                 </div>
               </button>
               <el-empty
@@ -182,18 +208,22 @@
                 >
                   {{ preview?.language || "text" }}
                 </el-tag>
-                <ScButton v-if="dirty" size="small" plain @click="$emit('reset-draft')">
-                  还原
-                </ScButton>
-                <ScButton
-                  v-if="dirty"
-                  size="small"
-                  type="primary"
-                  :loading="saving"
-                  @click="$emit('save-draft')"
-                >
-                  同步
-                </ScButton>
+                <el-tooltip v-if="dirty" content="还原修改" placement="top">
+                  <ScButton circle size="small" plain @click="$emit('reset-draft')">
+                    <IconifyIconOnline icon="ri:refresh-line" />
+                  </ScButton>
+                </el-tooltip>
+                <el-tooltip v-if="dirty" content="同步到服务器" placement="top">
+                  <ScButton
+                    circle
+                    size="small"
+                    type="primary"
+                    :loading="saving"
+                    @click="$emit('save-draft')"
+                  >
+                    <IconifyIconOnline icon="ri:save-line" />
+                  </ScButton>
+                </el-tooltip>
               </div>
             </div>
             <div
@@ -201,11 +231,11 @@
               v-loading="contentLoading"
               class="server-file-preview__editor"
             >
-              <ScCodeEditor
+              <el-input
+                type="textarea"
                 :model-value="draftContent"
-                :read-only="editorReadonly"
-                :height="'420px'"
-                :mode="editorMode"
+                :readonly="editorReadonly"
+                :autosize="{ minRows: 18, maxRows: 24 }"
                 @update:model-value="updateDraftContent"
               />
             </div>
@@ -220,8 +250,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
-import ScDrawer from "@repo/components/ScDrawer";
+import { ScDrawer } from "@repo/components/ScDrawer";
 import type { ServerFileContent, ServerHost } from "../api";
 import type { FileViewMode, ServerFileEntryCard } from "./server-types";
 
@@ -295,6 +324,33 @@ const formatFileSize = (value?: number | null) => {
 };
 
 const formatFileTime = (value?: string | null) => value || "未知时间";
+
+const formatFilePermissions = (entry?: ServerFileEntryCard | null) => {
+  const candidate = String(
+    (entry as Record<string, unknown> | undefined)?.permissions ||
+      (entry as Record<string, unknown> | undefined)?.permission ||
+      "",
+  ).trim();
+  return candidate || "权限 --/--/--";
+};
+
+const formatFileOwner = (entry?: ServerFileEntryCard | null) => {
+  const candidate = String(
+    (entry as Record<string, unknown> | undefined)?.owner ||
+      (entry as Record<string, unknown> | undefined)?.username ||
+      "",
+  ).trim();
+  return `所有者 ${candidate || "--"}`;
+};
+
+const formatFileGroup = (entry?: ServerFileEntryCard | null) => {
+  const candidate = String(
+    (entry as Record<string, unknown> | undefined)?.group ||
+      (entry as Record<string, unknown> | undefined)?.groupName ||
+      "",
+  ).trim();
+  return `分组 ${candidate || "--"}`;
+};
 </script>
 
 <style scoped lang="scss">
@@ -507,6 +563,25 @@ const formatFileTime = (value?: string | null) => value || "未知时间";
   margin: 4px 0 0;
   color: #64748b;
   font-size: 11px;
+}
+
+.server-file-item__meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.server-file-item__meta-grid span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #64748b;
+  font-size: 11px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .server-file-item__main strong {

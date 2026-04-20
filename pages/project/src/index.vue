@@ -31,7 +31,7 @@
           </div>
         </router-link>
 
-        <router-link to="/project/secret" class="nav-card secret-card">
+        <router-link to="/project/secret/manage" class="nav-card secret-card">
           <div class="card-glow"></div>
           <div class="card-icon">
             <IconifyIconOnline icon="ri:key-2-line" />

@@ -138,6 +138,8 @@ export interface SoftPackageCreateRequest {
   installScript?: string;
   initScript?: string;
   startScript?: string;
+  restartScript?: string;
+  statusScript?: string;
   stopScript?: string;
   uninstallScript?: string;
   serviceRegisterScript?: string;
@@ -428,6 +430,7 @@ export interface SoftInstallRequest {
   softPackageId: number;
   softPackageVersionId: number;
   softTargetId: number;
+  registryId?: number;
   installationName?: string;
   installPath?: string;
   serviceName?: string;

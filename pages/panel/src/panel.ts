@@ -11,10 +11,33 @@ export interface PanelSection {
   title: string;
 }
 
+export type PanelSourceType =
+  | "JDBC"
+  | "REDIS"
+  | "MONGODB"
+  | "ZOOKEEPER"
+  | "PROMETHEUS"
+  | "INFLUXDB2"
+  | "INFLUXDB3"
+  | "NGINX";
+
+export interface PanelDatasourceAttributes {
+  authDatabase?: string;
+  clusterMode?: boolean;
+  connectionUri?: string;
+  dbIndex?: number;
+  extraParams?: string;
+  privateKey?: string;
+  replicaSet?: string;
+  sentinelNodes?: string;
+  sessionTimeoutMillis?: number;
+  [key: string]: unknown;
+}
+
 export interface JdbcConnectionForm {
   sourceId?: string;
   connectionId: string;
-  sourceType: "JDBC" | "REDIS";
+  sourceType: PanelSourceType;
   jdbcDialectType: string;
   connectionName: string;
   host: string;
@@ -26,6 +49,17 @@ export interface JdbcConnectionForm {
   driverJarName: string;
   driverJarPath: string;
   protocol: string;
+  environment: string;
+  owner: string;
+  readOnly: boolean;
+  sslEnabled: boolean;
+  connectTimeoutMillis: number;
+  socketTimeoutMillis: number;
+  charset: string;
+  lastLatencyMs?: number;
+  lastConnectedAt?: string;
+  detectedVersion?: string;
+  attributes: PanelDatasourceAttributes;
   note?: string;
   favorite?: boolean;
   updatedAt?: string;
@@ -108,6 +142,17 @@ export const DEFAULT_JDBC_CONNECTION: JdbcConnectionForm = {
   driverJarName: "",
   driverJarPath: "",
   protocol: "",
+  environment: "dev",
+  owner: "",
+  readOnly: false,
+  sslEnabled: false,
+  connectTimeoutMillis: 5000,
+  socketTimeoutMillis: 10000,
+  charset: "utf8mb4",
+  lastLatencyMs: undefined,
+  lastConnectedAt: "",
+  detectedVersion: "",
+  attributes: {},
   note: "",
   favorite: false,
   updatedAt: "",

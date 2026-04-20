@@ -81,7 +81,7 @@
         <header class="panel-card__header">
           <div>
             <strong>连接表单</strong>
-            <p>支持 `api / local / ssh` 三种连接方式。</p>
+            <p>支持 `api / local / ssh / winrm` 连接方式。</p>
           </div>
           <div class="header-actions">
             <el-button :disabled="!selectedServerId" :loading="probing" @click="probeConnection">
@@ -99,6 +99,7 @@
               <el-option label="API" value="api" />
               <el-option label="Local" value="local" />
               <el-option label="SSH" value="ssh" />
+              <el-option label="WinRM" value="winrm" />
             </el-select>
           </el-form-item>
           <el-form-item label="Docker Host">

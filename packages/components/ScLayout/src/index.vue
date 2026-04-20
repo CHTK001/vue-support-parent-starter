@@ -1642,6 +1642,12 @@ onBeforeUnmount(() => {
   contain: paint;
 }
 
+.sc-layout__rail-footer--router {
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+}
+
 .sc-layout__rail-tabs {
   width: 100%;
   height: 100%;

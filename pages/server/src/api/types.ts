@@ -406,6 +406,7 @@ export interface ServerMetricsDetail {
   publicIp?: string;
   actualOsName?: string;
   actualKernel?: string;
+  gccVersion?: string;
   collectTimestamp?: number;
   diskPartitions?: ServerDiskPartitionView[];
   networkInterfaces?: ServerNetworkInterfaceView[];

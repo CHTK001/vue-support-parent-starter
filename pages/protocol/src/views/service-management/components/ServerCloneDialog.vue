@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <div v-if="sourceServer" class="clone-info">
-      <ScAlert
+      <el-alert
         :title="`正在克隆服务器: ${sourceServer.systemServerName}`"
         type="info"
         :closable="false"
@@ -42,7 +42,7 @@
       </ScFormItem>
 
       <ScFormItem label="克隆说明">
-        <ScAlert
+        <el-alert
           title="克隆将复制源服务器的所有配置，包括ServletFilter设置"
           type="warning"
           :closable="false"

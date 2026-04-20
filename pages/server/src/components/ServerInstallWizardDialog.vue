@@ -1,224 +1,185 @@
 <template>
   <ScDialog
     v-model="visible"
-    width="1120px"
+    width="min(1480px, 96vw)"
     destroy-on-close
     hide-header
     :title="host ? `安装软件到 ${host.serverName}` : '安装软件'"
+    layout="simple"
   >
     <section class="server-install-shell">
       <header class="server-install-shell__hero">
         <div>
-          <p class="server-install-shell__eyebrow">Install Wizard</p>
-          <h3>按服务器能力过滤软件，再进入版本与引导参数</h3>
+          <p class="server-install-shell__eyebrow">Install Workspace</p>
+          <h3>左侧软件列表，中间版本，右侧安装脚本</h3>
           <p class="server-install-shell__hint">
-            安装流保持三步，尽量把关键信息前置，避免进入第二步后才发现选错目标。
+            点击软件卡片自动加载版本，再点击版本即可在右侧查看安装脚本与服务脚本。
           </p>
         </div>
-        <div class="server-chip-group">
-          <el-tag class="server-inline-tag" effect="plain" round size="small">
-            {{ host?.serverName || "-" }}
-          </el-tag>
-          <el-tag class="server-inline-tag" effect="plain" round size="small">
-            {{ hostAddress(host) }}
-          </el-tag>
-          <el-tag class="server-inline-tag" effect="plain" round size="small">
-            {{ osLabel(host?.osType) }} / {{ archLabel(host?.architecture) }}
-          </el-tag>
-        </div>
-      </header>
-
-      <el-steps :active="step" simple class="install-steps">
-        <el-step title="选择软件" />
-        <el-step title="选择版本与引导配置" />
-        <el-step title="提交与日志" />
-      </el-steps>
-
-      <section v-if="step === 0" class="install-step">
-        <article class="server-detail-card">
-          <header>
-            <h3>选择软件</h3>
-            <p>这里只展示当前服务器可安装的软件，列表已经按系统和架构过滤。</p>
-          </header>
-          <ScSelect
-            v-model="packageId"
-            :options="packageOptions"
-            layout="list"
-            width="100%"
-            list-height="320px"
-            list-placeholder="搜索软件名称、编码或分类"
-            list-empty-text="当前服务器没有匹配的软件"
-          >
-            <template #content="{ option }">
-              <div class="server-install-option">
-                <strong>{{ option.label }}</strong>
-                <span>
-                  {{ option.packageCode }} ·
-                  {{ option.packageCategory || "未分类" }}
-                </span>
-                <small>
-                  {{ option.description || "可直接进入版本与引导配置。" }}
-                </small>
-              </div>
-            </template>
-          </ScSelect>
-        </article>
-      </section>
-
-      <section v-else-if="step === 1" class="install-step">
-        <article class="server-detail-card">
-          <header>
-            <h3>选择版本</h3>
-            <p>默认选最新版本，可切换并补充安装引导参数。</p>
-          </header>
-
-          <div class="server-form-grid">
-            <el-form-item label="软件版本">
-              <ScSelect
-                v-model="form.softPackageVersionId"
-                placeholder="选择版本"
-                style="width: 100%"
-              >
-                <ScOption
-                  v-for="version in versions"
-                  :key="version.softPackageVersionId"
-                  :label="`${version.versionName} (${version.versionCode})`"
-                  :value="version.softPackageVersionId"
-                />
-              </ScSelect>
-            </el-form-item>
-            <el-form-item label="实例名称">
-              <ScInput v-model="form.installationName" />
-            </el-form-item>
-            <el-form-item label="安装路径">
-              <ScInput v-model="form.installPath" />
-            </el-form-item>
-            <el-form-item label="服务名称">
-              <ScInput v-model="form.serviceName" />
-            </el-form-item>
-          </div>
-        </article>
-
-        <div v-if="guideLoading" class="server-install-loading">
-          <el-skeleton :rows="10" animated />
-        </div>
-        <template v-else>
-          <article
-            v-for="section in guideSections"
-            :key="section.key"
-            class="server-detail-card"
-          >
-            <header>
-              <h3>{{ section.title }}</h3>
-              <p>{{ section.hint }}</p>
-            </header>
-
-            <div class="server-form-grid">
-              <el-form-item
-                v-for="field in section.fields"
-                :key="`${section.key}-${field.fieldKey}`"
-                :label="field.fieldLabel || field.fieldKey"
-                :class="{ 'server-form-grid__span-2': isTextareaField(field) }"
-              >
-                <el-switch
-                  v-if="isBooleanField(field)"
-                  :model-value="Boolean(modelFor(section.scope)[field.fieldKey])"
-                  @change="modelFor(section.scope)[field.fieldKey] = Boolean($event)"
-                />
-                <ScInput
-                  v-else-if="isNumberField(field)"
-                  v-model="modelFor(section.scope)[field.fieldKey]"
-                  type="number"
-                  layout="stepper"
-                  :min="numberValidation(field.validation, 'min')"
-                  :max="numberValidation(field.validation, 'max')"
-                />
-                <ScInput
-                  v-else-if="isTextareaField(field)"
-                  v-model="modelFor(section.scope)[field.fieldKey]"
-                  type="textarea"
-                  :rows="4"
-                />
-                <ScInput
-                  v-else
-                  v-model="modelFor(section.scope)[field.fieldKey]"
-                  :type="isPasswordField(field) ? 'password' : 'text'"
-                  passwd-strong="none"
-                />
-                <small class="server-install-field__hint">
-                  {{ field.fieldDescription || "按当前软件画像动态生成" }}
-                </small>
-              </el-form-item>
-            </div>
-          </article>
-        </template>
-      </section>
-
-      <section v-else class="install-step">
-        <article class="server-detail-card">
-          <header>
-            <h3>提交安装</h3>
-            <p>安装提交后会直接跳转到对应软件实例详情页继续查看日志和控制。</p>
-          </header>
-
+        <div class="server-install-shell__hero-right">
           <div class="server-chip-group">
             <el-tag class="server-inline-tag" effect="plain" round size="small">
               {{ host?.serverName || "-" }}
             </el-tag>
             <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ selectedPackageName || "-" }}
+              {{ hostAddress(host) }}
             </el-tag>
             <el-tag class="server-inline-tag" effect="plain" round size="small">
-              {{ selectedVersionLabel }}
+              {{ osLabel(host?.osType) }} / {{ archLabel(host?.architecture) }}
+            </el-tag>
+            <el-tag class="server-inline-tag" effect="plain" round size="small">
+              {{ selectedVersionLabel || "未选择版本" }}
             </el-tag>
           </div>
+          <ScButton
+            type="primary"
+            size="large"
+            :disabled="!canSubmitInstall"
+            :loading="submitting"
+            @click="$emit('submit')"
+          >
+            安装
+          </ScButton>
+        </div>
+      </header>
 
-          <el-alert
-            v-if="task"
-            :title="task.message || '安装任务已提交'"
-            type="success"
-            :closable="false"
-          />
-          <el-empty v-else description="确认无误后提交安装。" />
+      <section class="install-three-col">
+        <article class="server-detail-card install-panel">
+          <header class="install-panel__header">
+            <h3>软件列表</h3>
+            <p>包含图片、名称与核心描述，点击后加载右侧版本。</p>
+          </header>
+          <div class="install-card-list thin-scroller">
+            <button
+              v-for="option in normalizedPackageOptions"
+              :key="option.value"
+              type="button"
+              class="install-software-card"
+              :class="{ 'is-active': option.value === normalizedPackageId }"
+              @click="selectPackage(option.value)"
+            >
+              <div class="install-software-card__media">
+                <img
+                  v-if="option.iconUrl"
+                  :src="option.iconUrl"
+                  :alt="option.label"
+                />
+                <span v-else>{{ option.label.slice(0, 1) }}</span>
+              </div>
+              <div class="install-software-card__body">
+                <strong>{{ option.label }}</strong>
+                <p>
+                  {{ option.packageCode || "未配置编码" }} ·
+                  {{ option.packageCategory || "未分类" }}
+                </p>
+                <small>{{
+                  option.description || "点击后查看版本与安装脚本。"
+                }}</small>
+              </div>
+            </button>
+            <el-empty
+              v-if="!normalizedPackageOptions.length"
+              description="当前服务器没有可安装的软件"
+            />
+          </div>
         </article>
+
+        <article class="server-detail-card install-panel">
+          <header class="install-panel__header">
+            <h3>版本列表</h3>
+            <p>点击版本后，右侧会显示对应安装脚本。</p>
+          </header>
+          <div class="install-version-list thin-scroller">
+            <div v-if="!normalizedPackageId" class="install-empty-tip">
+              先在左侧选择软件
+            </div>
+            <template v-else>
+              <button
+                v-for="version in versions"
+                :key="version.softPackageVersionId"
+                type="button"
+                class="install-version-card"
+                :class="{
+                  'is-active':
+                    toNumeric(version.softPackageVersionId) ===
+                    toNumeric(form.softPackageVersionId),
+                }"
+                @click="selectVersion(version.softPackageVersionId)"
+              >
+                <strong>{{ version.versionName || version.versionCode }}</strong>
+                <p>{{ version.versionCode || "-" }}</p>
+                <small>
+                  {{ version.osType || "通用" }} / {{ version.architecture || "通用" }}
+                </small>
+              </button>
+              <el-empty
+                v-if="!versions.length"
+                description="当前软件暂无可安装版本"
+              />
+            </template>
+          </div>
+        </article>
+
+        <article class="server-detail-card install-panel">
+          <header class="install-panel__header">
+            <h3>安装脚本</h3>
+            <p>展示当前版本核心脚本，提交前可快速核对。</p>
+          </header>
+          <div class="install-script-list thin-scroller">
+            <div v-if="!selectedVersion" class="install-empty-tip">
+              选择版本后查看脚本
+            </div>
+            <template v-else>
+              <article
+                v-for="item in scriptBlocks"
+                :key="item.key"
+                class="install-script-card"
+              >
+                <h4>{{ item.label }}</h4>
+                <pre>{{ item.content }}</pre>
+              </article>
+              <el-empty
+                v-if="!scriptBlocks.length"
+                description="该版本未提供脚本"
+              />
+            </template>
+          </div>
+        </article>
+      </section>
+
+      <section v-if="task" class="install-task-result">
+        <el-alert
+          :title="task.message || '安装任务已提交'"
+          type="success"
+          :closable="false"
+        />
       </section>
     </section>
 
     <template #footer>
-      <ScButton v-if="step > 0" @click="step -= 1">上一步</ScButton>
-      <ScButton @click="visible = false">取消</ScButton>
-      <ScButton
-        v-if="step === 0"
-        type="primary"
-        :disabled="!normalizedPackageId"
-        @click="$emit('next-step')"
-      >
-        下一步
-      </ScButton>
-      <ScButton
-        v-else-if="step === 1"
-        type="primary"
-        :loading="submitting"
-        @click="$emit('submit')"
-      >
-        提交安装
-      </ScButton>
+      <ScButton @click="visible = false">关闭</ScButton>
     </template>
   </ScDialog>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import ScSelect from "@repo/components/ScSelect/index.vue";
-import ScInput from "@repo/components/ScInput/index.vue";
 import type { ServerHost } from "../api";
 import type { GuideScope, GuideSection, ServerInstallTask } from "./server-types";
 import type {
-  SoftGuideField,
   SoftInstallRequest,
   SoftPackageVersion,
 } from "../../../soft/src/api";
 import { archLabel, hostAddress, osLabel } from "../utils/serverHost";
+
+interface InstallPackageOption {
+  label: string;
+  value: number;
+  packageCode?: string;
+  packageCategory?: string;
+  description?: string;
+  iconUrl?: string;
+}
 
 const props = defineProps<{
   modelValue: boolean;
@@ -250,77 +211,88 @@ const visible = computed({
   set: (value: boolean) => emit("update:modelValue", value),
 });
 
-const step = computed({
-  get: () => props.step,
-  set: (value: number) => emit("update:step", value),
-});
-
-const packageId = computed({
-  get: () => props.packageId,
-  set: (value: number | null) => emit("update:packageId", value),
-});
-
-const normalizedPackageId = computed(() => {
-  const numeric = Number(props.packageId);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
-});
-
-const modelFor = (scope: GuideScope) => props.installModels[scope] || {};
-
-const isTextareaField = (field: SoftGuideField) =>
-  ["textarea", "code", "json", "script"].includes(
-    String(field.componentType || "").toLowerCase(),
-  );
-
-const isNumberField = (field: SoftGuideField) =>
-  ["number", "port", "integer"].includes(
-    String(field.componentType || "").toLowerCase(),
-  );
-
-const isBooleanField = (field: SoftGuideField) =>
-  ["switch", "boolean", "checkbox"].includes(
-    String(field.componentType || "").toLowerCase(),
-  );
-
-const isPasswordField = (field: SoftGuideField) =>
-  ["password", "secret"].includes(
-    String(field.componentType || "").toLowerCase(),
-  ) ||
-  ["password", "token", "secret"].some((item) =>
-    String(field.fieldKey || "")
-      .toLowerCase()
-      .includes(item),
-  );
-
-const numberValidation = (
-  validation: Record<string, unknown> | undefined,
-  key: "min" | "max",
-) => {
-  const value = validation?.[key];
-  if (typeof value === "number") {
-    return value;
-  }
+const toNumeric = (value: unknown) => {
   const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : undefined;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+};
+
+const normalizedPackageId = computed(() => toNumeric(props.packageId));
+
+const normalizedPackageOptions = computed<InstallPackageOption[]>(() =>
+  (props.packageOptions || [])
+    .map((item) => {
+      const value = toNumeric(item.value);
+      if (!value) {
+        return null;
+      }
+      return {
+        label: String(item.label || ""),
+        value,
+        packageCode: String(item.packageCode || ""),
+        packageCategory: String(item.packageCategory || ""),
+        description: String(item.description || ""),
+        iconUrl: String(item.iconUrl || ""),
+      };
+    })
+    .filter((item): item is InstallPackageOption => Boolean(item)),
+);
+
+const selectedVersion = computed(
+  () =>
+    (props.versions || []).find(
+      (item) => toNumeric(item.softPackageVersionId) === toNumeric(props.form.softPackageVersionId),
+    ) || null,
+);
+
+const scriptBlocks = computed(() => {
+  const version = selectedVersion.value;
+  if (!version) {
+    return [];
+  }
+  const candidates: Array<{ key: string; label: string; content?: string }> = [
+    { key: "install", label: "安装脚本", content: version.installScript || "" },
+    { key: "uninstall", label: "卸载脚本", content: version.uninstallScript || "" },
+    { key: "start", label: "启动脚本", content: version.startScript || "" },
+    { key: "stop", label: "停止脚本", content: version.stopScript || "" },
+    { key: "restart", label: "重启脚本", content: version.restartScript || "" },
+    { key: "status", label: "状态脚本", content: version.statusScript || "" },
+    { key: "service-register", label: "服务注册脚本", content: version.serviceRegisterScript || "" },
+    { key: "service-unregister", label: "服务卸载脚本", content: version.serviceUnregisterScript || "" },
+  ];
+  return candidates.filter((item) => Boolean(String(item.content || "").trim()));
+});
+
+const canSubmitInstall = computed(
+  () => normalizedPackageId.value > 0 && toNumeric(props.form.softPackageVersionId) > 0,
+);
+
+const selectPackage = (value: number) => {
+  emit("update:packageId", value);
+  emit("next-step");
+};
+
+const selectVersion = (value?: number) => {
+  props.form.softPackageVersionId = toNumeric(value);
 };
 </script>
 
 <style scoped lang="scss">
 .server-install-shell {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .server-install-shell__hero {
   display: grid;
   gap: 12px;
-  padding: 20px 22px;
-  border-radius: 28px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px 20px;
+  border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   background:
     radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 32%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
 }
 
 .server-install-shell__eyebrow {
@@ -332,74 +304,180 @@ const numberValidation = (
   color: #0284c7;
 }
 
-.server-install-shell__hero h3,
-.server-detail-card h3 {
+.server-install-shell__hero h3 {
   margin: 0;
   color: #0f172a;
 }
 
-.server-install-shell__hint,
-.server-detail-card header p {
+.server-install-shell__hint {
   margin: 6px 0 0;
   color: #64748b;
   font-size: 12px;
   line-height: 1.7;
 }
 
-.install-steps {
-  border-radius: 22px;
-  overflow: hidden;
-}
-
-.install-step {
+.server-install-shell__hero-right {
   display: grid;
-  gap: 16px;
+  align-content: space-between;
+  justify-items: end;
+  gap: 10px;
 }
 
-.server-detail-card {
-  padding: 18px;
+.install-three-col {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1.15fr 0.9fr 1.25fr;
+}
+
+.install-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 520px;
+  padding: 14px;
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.84);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.88);
 }
 
-.server-form-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.server-form-grid__span-2 {
-  grid-column: 1 / -1;
-}
-
-.server-install-option {
-  display: grid;
-  gap: 4px;
-}
-
-.server-install-option strong {
+.install-panel__header h3 {
+  margin: 0;
   color: #0f172a;
 }
 
-.server-install-option span,
-.server-install-option small,
-.server-install-field__hint {
+.install-panel__header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.install-card-list,
+.install-version-list,
+.install-script-list {
+  margin-top: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.install-software-card,
+.install-version-card {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.install-software-card + .install-software-card,
+.install-version-card + .install-version-card {
+  margin-top: 8px;
+}
+
+.install-software-card.is-active,
+.install-version-card.is-active {
+  border-color: rgba(14, 165, 233, 0.48);
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.14);
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.92), rgba(255, 255, 255, 0.98));
+}
+
+.install-software-card {
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+}
+
+.install-software-card__media {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.08);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.install-software-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.install-software-card__body {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.install-software-card__body strong,
+.install-version-card strong {
+  color: #0f172a;
+}
+
+.install-software-card__body p,
+.install-version-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+}
+
+.install-software-card__body small,
+.install-version-card small {
   color: #64748b;
   line-height: 1.6;
 }
 
-.server-install-loading {
-  padding: 16px 18px;
-  border-radius: 22px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(255, 255, 255, 0.84);
+.install-script-card {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.8);
+  padding: 10px;
+}
+
+.install-script-card + .install-script-card {
+  margin-top: 8px;
+}
+
+.install-script-card h4 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.install-script-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #0f172a;
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.install-empty-tip {
+  border: 1px dashed rgba(148, 163, 184, 0.34);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.6);
+  color: #64748b;
+  font-size: 12px;
+  padding: 12px;
+}
+
+.install-task-result {
+  margin-top: 2px;
 }
 
 .server-chip-group {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .server-inline-tag {
@@ -409,13 +487,25 @@ const numberValidation = (
   font-weight: 500;
 }
 
-@media (max-width: 900px) {
-  .server-form-grid {
+@media (max-width: 1220px) {
+  .install-three-col {
     grid-template-columns: 1fr;
   }
 
-  .server-form-grid__span-2 {
-    grid-column: auto;
+  .install-panel {
+    min-height: 340px;
+  }
+
+  .server-install-shell__hero {
+    grid-template-columns: 1fr;
+  }
+
+  .server-install-shell__hero-right {
+    justify-items: start;
+  }
+
+  .server-chip-group {
+    justify-content: flex-start;
   }
 }
 </style>

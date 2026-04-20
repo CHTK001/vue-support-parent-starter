@@ -352,10 +352,6 @@
                           <label class="form-label">客户端最大请求体</label>
                           <input v-model="nginxForm.client_max_body_size" class="form-input" placeholder="1m" />
                         </div>
-                        <div class="form-row">
-                          <label class="form-label">服务器名称哈希桶</label>
-                          <input v-model="nginxForm.server_names_hash_bucket_size" class="form-input" type="number" placeholder="64" />
-                        </div>
                       </div>
                       <div class="form-hint">
                         表单只覆盖已识别的指令，其他配置保持不变

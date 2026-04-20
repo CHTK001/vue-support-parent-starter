@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { createServerProjectApi } from "@pages/server";
+import { createProjectRemoteApi } from "../api/manage/remote";
 
 interface TreeNode {
   label: string;
@@ -69,7 +69,7 @@ interface ElTreeNode {
 }
 
 const props = defineProps<{
-  connectionId: string;
+  sysProjectId: string;
 }>();
 
 const emit = defineEmits<{
@@ -93,7 +93,10 @@ const loadNode = async (
   const path = node.level === 0 ? undefined : node.data.path;
 
   try {
-    const api = createServerProjectApi(props.connectionId);
+    if (!props.sysProjectId) {
+      throw new Error("缺少项目ID");
+    }
+    const api = createProjectRemoteApi(props.sysProjectId);
     const res = await api.listFiles(path);
     const entries = res.data ?? [];
 

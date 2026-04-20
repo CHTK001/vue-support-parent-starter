@@ -19,7 +19,7 @@
       </div>
       <div v-else class="server-sidebar__header-actions">
         <el-tooltip content="添加服务器" placement="top">
-          <ScButton circle  @click="emit('create')">
+          <ScButton circle @click="emit('create')">
             <IconifyIconOnline icon="ri:add-line" />
           </ScButton>
         </el-tooltip>
@@ -82,6 +82,7 @@
           @open-install="emit('open-install', $event)"
           @open-remote="emit('open-remote', $event)"
           @open-processes="emit('open-processes', $event)"
+          @open-files="emit('open-files', $event)"
           @open-projects="emit('open-projects', $event)"
           @contextmenu="emit('contextmenu', $event, entry)"
         />
@@ -129,6 +130,7 @@ const emit = defineEmits<{
   "open-install": [host: ServerHost];
   "open-remote": [host: ServerHost];
   "open-processes": [host: ServerHost];
+  "open-files": [host: ServerHost];
   "open-projects": [host: ServerHost];
   "toggle-aggregate-mode": [];
   "toggle-aggregate-host": [host: ServerHost];
@@ -146,9 +148,21 @@ const emit = defineEmits<{
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.12), transparent 26%),
-    radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 250, 0.96));
+    radial-gradient(
+      circle at top left,
+      rgba(14, 165, 233, 0.12),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(245, 158, 11, 0.08),
+      transparent 24%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(244, 247, 250, 0.96)
+    );
   border: 1px solid rgba(148, 163, 184, 0.14);
   box-shadow:
     0 22px 40px rgba(15, 23, 42, 0.08),
@@ -223,8 +237,11 @@ const emit = defineEmits<{
   margin-top: 14px;
   padding: 10px;
   border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.86));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.84),
+    rgba(248, 250, 252, 0.86)
+  );
   border: 1px solid rgba(148, 163, 184, 0.12);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
@@ -260,7 +277,11 @@ const emit = defineEmits<{
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 34%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22),
+    transparent 34%
+  );
 }
 
 .server-sidebar__aggregate-chip {

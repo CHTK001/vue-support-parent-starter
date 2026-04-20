@@ -4,37 +4,48 @@
       <div>
         <small>DOCKER / IMAGES</small>
         <h1>镜像管理</h1>
-        <p>先选择服务器，再查看该服务器的镜像卡片，并支持拉取、导入、导出等核心能力。</p>
+        <p>服务器模式筛选跟随服务器区域，组件模式保留聚合筛选视角。</p>
       </div>
       <div class="hero-actions">
-        <el-button @click="openPullDialog">拉取镜像</el-button>
-        <el-button type="primary" @click="openImportDialog">导入镜像</el-button>
+        <el-tooltip content="刷新镜像列表" placement="top">
+          <el-button circle :loading="loading" @click="loadImages">
+            <IconifyIconOnline icon="ri:refresh-line" />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="拉取镜像" placement="top">
+          <el-button
+            circle
+            :disabled="displayMode !== 'server'"
+            @click="openPullDialog"
+          >
+            <IconifyIconOnline icon="ri:download-cloud-2-line" />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="导入镜像包" placement="top">
+          <el-button
+            circle
+            type="primary"
+            :disabled="displayMode !== 'server'"
+            @click="openImportDialog"
+          >
+            <IconifyIconOnline icon="ri:inbox-archive-line" />
+          </el-button>
+        </el-tooltip>
       </div>
     </header>
 
-    <article class="panel-card">
+    <article v-if="displayMode !== 'server'" class="panel-card">
       <header class="panel-card__header">
         <div>
           <strong>筛选条件</strong>
-          <p>支持服务器、仓库和关键字筛选。</p>
+          <p>镜像模式会按镜像名和标签去重，附带服务器覆盖数量。</p>
         </div>
-        <el-button :loading="loading" @click="loadImages">刷新</el-button>
+        <el-radio-group v-model="displayMode" size="small" @change="handleDisplayModeChange">
+          <el-radio-button label="server" value="server">服务器模式</el-radio-button>
+          <el-radio-button label="component" value="component">镜像模式</el-radio-button>
+        </el-radio-group>
       </header>
       <div class="toolbar-grid">
-        <el-select
-          v-model="selectedServerId"
-          filterable
-          clearable
-          placeholder="请选择服务器"
-          @change="handleFilterChange"
-        >
-          <el-option
-            v-for="item in mergedOptions"
-            :key="item.serverId"
-            :label="`${item.serverName} (${item.host || '-'})`"
-            :value="item.serverId"
-          />
-        </el-select>
         <el-select
           v-model="selectedRegistryId"
           clearable
@@ -58,32 +69,112 @@
       </div>
     </article>
 
-    <div v-if="selectedServerId" class="card-grid">
-      <article v-for="item in images" :key="item.imageId" class="resource-card">
+    <section v-if="displayMode === 'server'" class="workspace-grid">
+      <aside class="server-column">
+        <article class="server-mode-filter">
+          <small>展示模式</small>
+          <el-radio-group v-model="displayMode" size="small" @change="handleDisplayModeChange">
+            <el-radio-button label="server" value="server">服务器模式</el-radio-button>
+            <el-radio-button label="component" value="component">镜像模式</el-radio-button>
+          </el-radio-group>
+        </article>
+        <button
+          v-for="item in mergedOptions"
+          :key="item.serverId"
+          type="button"
+          class="server-card"
+          :class="{ 'is-active': selectedServerId === item.serverId }"
+          @click="selectServer(item.serverId)"
+        >
+          <strong>{{ item.serverName }}</strong>
+          <span>{{ item.host || "-" }}</span>
+          <small>{{ serverFilterHint(item.serverId) }}</small>
+        </button>
+      </aside>
+
+      <div class="workspace-body">
+        <article class="workspace-filter">
+          <el-select
+            v-model="selectedRegistryId"
+            clearable
+            filterable
+            placeholder="按仓库筛选"
+            @change="handleFilterChange"
+          >
+            <el-option
+              v-for="item in registries"
+              :key="item.dockerRegistryId"
+              :label="item.registryName"
+              :value="item.dockerRegistryId"
+            />
+          </el-select>
+          <el-input
+            v-model="keyword"
+            clearable
+            placeholder="搜索镜像名、标签、镜像ID"
+            @keyup.enter="handleFilterChange"
+          />
+        </article>
+        <div v-if="selectedServerId" class="card-grid">
+          <article v-for="item in images" :key="item.imageId" class="resource-card">
+            <header class="resource-card__header">
+              <div>
+                <strong>{{ item.imageName || item.imageId }}</strong>
+                <p>{{ item.imageTag || "latest" }}</p>
+              </div>
+              <el-tag size="small" effect="light">{{ item.status || "-" }}</el-tag>
+            </header>
+
+            <div class="resource-card__meta">
+              <span>镜像ID：{{ item.imageId }}</span>
+              <span>大小：{{ formatSize(item.sizeBytes) }}</span>
+              <span>仓库：{{ registryName(item.registryId) }}</span>
+              <span>创建时间：{{ formatTime(item.createdAt) }}</span>
+            </div>
+
+            <div class="resource-card__actions">
+              <el-tooltip content="导出镜像" placement="top">
+                <el-button circle @click="openExportDialog(item)">
+                  <IconifyIconOnline icon="ri:download-2-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="进入安装向导" placement="top">
+                <el-button circle type="primary" @click="goInstall(item)">
+                  <IconifyIconOnline icon="ri:rocket-line" />
+                </el-button>
+              </el-tooltip>
+            </div>
+          </article>
+
+          <el-empty v-if="!images.length && !loading" description="当前服务器没有镜像" />
+        </div>
+        <el-empty v-else description="先选择一台服务器" />
+      </div>
+    </section>
+
+    <div v-else class="card-grid">
+      <article v-for="item in componentCards" :key="item.key" class="resource-card">
         <header class="resource-card__header">
           <div>
             <strong>{{ item.imageName || item.imageId }}</strong>
             <p>{{ item.imageTag || "latest" }}</p>
           </div>
-          <el-tag size="small" effect="light">{{ item.status || "-" }}</el-tag>
+          <div class="status-tags">
+            <el-tag size="small" effect="light">{{ item.status || "-" }}</el-tag>
+            <el-tag size="small" effect="light" type="success">
+              {{ item.serverCount }} 台服务器
+            </el-tag>
+          </div>
         </header>
-
         <div class="resource-card__meta">
           <span>镜像ID：{{ item.imageId }}</span>
           <span>大小：{{ formatSize(item.sizeBytes) }}</span>
           <span>仓库：{{ registryName(item.registryId) }}</span>
-          <span>创建时间：{{ formatTime(item.createdAt) }}</span>
-        </div>
-
-        <div class="resource-card__actions">
-          <el-button @click="openExportDialog(item)">导出</el-button>
-          <el-button type="primary" @click="goInstall(item)">去安装</el-button>
+          <span>服务器：{{ item.serverNames.join(" / ") || "-" }}</span>
         </div>
       </article>
-
-      <el-empty v-if="!images.length && !loading" description="当前筛选条件下没有镜像" />
+      <el-empty v-if="!componentCards.length && !loading" description="当前筛选条件下没有镜像" />
     </div>
-    <el-empty v-else description="先选择一台服务器" />
 
     <el-dialog v-model="pullDialogVisible" title="拉取镜像" width="560px">
       <el-form label-width="100px">
@@ -148,12 +239,15 @@ import {
 import type { DockerImageView, DockerRegistry } from "../types";
 import { useDockerServerSelection } from "../composables/useDockerServerSelection";
 
+type DisplayMode = "server" | "component";
+
 const route = useRoute();
 const router = useRouter();
 
 const loading = ref(false);
 const pulling = ref(false);
 const importing = ref(false);
+const displayMode = ref<DisplayMode>("server");
 const selectedServerId = ref<number>();
 const selectedRegistryId = ref<number>();
 const keyword = ref("");
@@ -174,17 +268,100 @@ const importForm = ref({
   imageTag: "latest",
 });
 
+type ServerFilterState = {
+  selectedRegistryId?: number;
+  keyword: string;
+};
+
 const { mergedOptions, loadServers } = useDockerServerSelection();
+const serverFilters = ref<Record<number, ServerFilterState>>({});
+
+const serverNameMap = computed(() => {
+  const map = new Map<number, string>();
+  mergedOptions.value.forEach((item) => {
+    map.set(Number(item.serverId), item.serverName || String(item.serverId));
+  });
+  return map;
+});
+
+const componentCards = computed(() => {
+  const map = new Map<string, DockerImageView & { serverIds: Set<number> }>();
+  images.value.forEach((item) => {
+    const key = `${item.imageName || item.imageId}:${item.imageTag || "latest"}`.toLowerCase();
+    const current = map.get(key);
+    if (!current) {
+      map.set(key, { ...item, serverIds: new Set([Number(item.serverId || 0)]) });
+      return;
+    }
+    current.serverIds.add(Number(item.serverId || 0));
+  });
+  return Array.from(map.entries()).map(([key, item]) => {
+    const serverIds = Array.from(item.serverIds).filter((id) => id > 0);
+    return {
+      key,
+      ...item,
+      serverCount: serverIds.length,
+      serverNames: serverIds.map((id) => serverNameMap.value.get(id) || String(id)),
+    };
+  });
+});
 
 const currentServerLabel = computed(
   () => mergedOptions.value.find((item) => item.serverId === selectedServerId.value)?.serverName || "-",
 );
 
+const ensureServerFilter = (serverId?: number) => {
+  if (!serverId) {
+    return {
+      selectedRegistryId: selectedRegistryId.value,
+      keyword: keyword.value,
+    } satisfies ServerFilterState;
+  }
+  if (!serverFilters.value[serverId]) {
+    serverFilters.value[serverId] = {
+      selectedRegistryId: undefined,
+      keyword: "",
+    };
+  }
+  return serverFilters.value[serverId];
+};
+
+const persistCurrentServerFilter = () => {
+  if (displayMode.value !== "server" || !selectedServerId.value) {
+    return;
+  }
+  serverFilters.value[selectedServerId.value] = {
+    selectedRegistryId: selectedRegistryId.value,
+    keyword: keyword.value,
+  };
+};
+
+const applyServerFilter = (serverId?: number) => {
+  if (!serverId) {
+    return;
+  }
+  const state = ensureServerFilter(serverId);
+  selectedRegistryId.value = state.selectedRegistryId;
+  keyword.value = state.keyword;
+};
+
+const serverFilterHint = (serverId: number) => {
+  const state = serverFilters.value[serverId];
+  if (!state) {
+    return "默认筛选";
+  }
+  const count = (state.selectedRegistryId ? 1 : 0) + (state.keyword?.trim() ? 1 : 0);
+  return count ? `已设 ${count} 项筛选` : "默认筛选";
+};
+
 const registryName = (registryId?: number) => {
   if (!registryId) {
     return "未匹配仓库";
   }
-  return registries.value.find((item) => item.dockerRegistryId === registryId)?.registryName || "未匹配仓库";
+  return (
+    registries.value.find((item) => item.dockerRegistryId === registryId)?.registryName ||
+    "未匹配仓库"
+  );
 };
 
 const formatTime = (value?: number) => {
@@ -212,7 +389,10 @@ const syncRouteQuery = async () => {
   await router.replace({
     path: "/docker/images",
     query: {
-      ...(selectedServerId.value ? { serverId: String(selectedServerId.value) } : {}),
+      mode: displayMode.value,
+      ...(displayMode.value === "server" && selectedServerId.value
+        ? { serverId: String(selectedServerId.value) }
+        : {}),
       ...(selectedRegistryId.value ? { registryId: String(selectedRegistryId.value) } : {}),
       ...(keyword.value.trim() ? { keyword: keyword.value.trim() } : {}),
     },
@@ -220,14 +400,14 @@ const syncRouteQuery = async () => {
 };
 
 const loadImages = async () => {
-  if (!selectedServerId.value) {
+  if (displayMode.value === "server" && !selectedServerId.value) {
     images.value = [];
     return;
   }
   loading.value = true;
   try {
     const result = await listDockerImages({
-      serverId: selectedServerId.value,
+      serverId: displayMode.value === "server" ? selectedServerId.value : undefined,
       registryId: selectedRegistryId.value,
       keyword: keyword.value.trim() || undefined,
     });
@@ -240,8 +420,23 @@ const loadImages = async () => {
 };
 
 const handleFilterChange = async () => {
+  persistCurrentServerFilter();
   await syncRouteQuery();
   await loadImages();
+};
+
+const handleDisplayModeChange = async () => {
+  if (displayMode.value === "server" && !selectedServerId.value) {
+    selectedServerId.value = mergedOptions.value[0]?.serverId;
+  }
+  await handleFilterChange();
+};
+
+const selectServer = async (serverId: number) => {
+  persistCurrentServerFilter();
+  selectedServerId.value = serverId;
+  applyServerFilter(serverId);
+  await handleFilterChange();
 };
 
 const openPullDialog = () => {
@@ -338,7 +533,7 @@ const openExportDialog = async (item: DockerImageView) => {
       type: result.data.status === "SUCCESS" ? "success" : "warning",
     });
   } catch {
-    // 用户取消不提示
+    // ignore
   }
 };
 
@@ -355,10 +550,27 @@ const goInstall = async (item: DockerImageView) => {
 };
 
 onMounted(async () => {
-  await Promise.all([loadServers(), listDockerRegistries().then((res) => { registries.value = res.data || []; })]);
-  selectedServerId.value = route.query.serverId ? Number(route.query.serverId) : undefined;
-  selectedRegistryId.value = route.query.registryId ? Number(route.query.registryId) : undefined;
-  keyword.value = route.query.keyword ? String(route.query.keyword) : "";
+  await Promise.all([
+    loadServers(),
+    listDockerRegistries().then((res) => {
+      registries.value = res.data || [];
+    }),
+  ]);
+  displayMode.value = route.query.mode === "component" ? "component" : "server";
+  selectedServerId.value =
+    displayMode.value === "server" && route.query.serverId
+      ? Number(route.query.serverId)
+      : mergedOptions.value[0]?.serverId;
+  if (displayMode.value === "server" && selectedServerId.value) {
+    serverFilters.value[selectedServerId.value] = {
+      selectedRegistryId: route.query.registryId ? Number(route.query.registryId) : undefined,
+      keyword: route.query.keyword ? String(route.query.keyword) : "",
+    };
+    applyServerFilter(selectedServerId.value);
+  } else {
+    selectedRegistryId.value = route.query.registryId ? Number(route.query.registryId) : undefined;
+    keyword.value = route.query.keyword ? String(route.query.keyword) : "";
+  }
   await loadImages();
 });
 </script>
@@ -371,7 +583,8 @@ onMounted(async () => {
 
 .page-hero,
 .panel-card,
-.resource-card {
+.resource-card,
+.server-column {
   padding: 18px;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 22px;
@@ -398,10 +611,67 @@ onMounted(async () => {
 }
 
 .toolbar-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.workspace-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.server-column {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.server-mode-filter {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.server-mode-filter small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.server-card {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: #fff;
+  cursor: pointer;
+}
+
+.server-card small {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.server-card.is-active {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(239, 246, 255, 0.72);
+}
+
+.workspace-body,
 .card-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workspace-filter {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -412,8 +682,22 @@ onMounted(async () => {
   font-size: 13px;
 }
 
+.status-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1080px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .toolbar-grid,
+  .workspace-filter,
+  .workspace-body,
   .card-grid {
     grid-template-columns: 1fr;
   }

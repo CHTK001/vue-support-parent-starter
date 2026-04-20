@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { socket } from "@repo/core";
+import { getGlobalSocketService, socket, type SocketTemplate } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { splitToArray } from "@repo/utils";
 
@@ -20,12 +20,26 @@ export type SystemDataMessage = {
 export type TopicHandler = (message: SystemDataMessage) => void;
 
 export function useSystemDataWebSocket() {
-  const client = ref<any>(null);
+  const client = ref<SocketTemplate | any>(null);
+  const ownsClient = ref(false);
   const state = ref<SystemDataWebSocketState>({
     connected: false,
     connecting: false,
     error: null,
   });
+
+  const resolveSocketClient = (): SocketTemplate | any => {
+    const globalSocket = getGlobalSocketService();
+    if (globalSocket) {
+      globalSocket.connect();
+      ownsClient.value = false;
+      return globalSocket;
+    }
+
+    const config = getConfig();
+    ownsClient.value = true;
+    return socket(splitToArray(config.SocketUrl), undefined, {});
+  };
 
   const connect = async (): Promise<boolean> => {
     if (client.value) {
@@ -35,8 +49,7 @@ export function useSystemDataWebSocket() {
     try {
       state.value.connecting = true;
       state.value.error = null;
-      const config = getConfig();
-      client.value = socket(splitToArray(config.SocketUrl), undefined, {});
+      client.value = resolveSocketClient();
       state.value.connected = true;
       state.value.connecting = false;
       return true;
@@ -54,11 +67,14 @@ export function useSystemDataWebSocket() {
   const disconnect = () => {
     if (!client.value) return;
     try {
-      if (typeof client.value.close === "function") client.value.close();
-      else if (typeof client.value.disconnect === "function")
-        client.value.disconnect();
+      if (ownsClient.value) {
+        if (typeof client.value.close === "function") client.value.close();
+        else if (typeof client.value.disconnect === "function")
+          client.value.disconnect();
+      }
     } catch (_) {}
     client.value = null;
+    ownsClient.value = false;
     state.value.connected = false;
     state.value.connecting = false;
     state.value.error = null;

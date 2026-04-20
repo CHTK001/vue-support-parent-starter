@@ -902,10 +902,23 @@ onUnmounted(() => {
 .task-center-panel.is-open {
   transform: translateZ(0);
 }
+.task-center-panel-header {
+  position: relative;
+  padding-right: 42px;
+}
+.task-center-panel-header .task-center-icon-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
 .task-center-panel-header h3 {
   margin: 6px 0 4px;
   font-size: 20px;
   color: var(--task-center-title);
+}
+.task-center-panel-header p {
+  margin: 0;
+  line-height: 1.5;
 }
 .task-center-eyebrow {
   font-size: 11px;

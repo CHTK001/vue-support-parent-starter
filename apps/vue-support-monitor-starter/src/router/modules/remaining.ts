@@ -48,7 +48,7 @@ export default [
     path: "/service/file-storage/preview/:serverId",
     name: "fileStoragePreviewFull",
     component: () =>
-      import("@/views/service-management/file-storage/PreviewFull.vue"),
+      import("@pages/protocol/views/service-management/file-storage/PreviewFull.vue"),
     meta: {
       title: "文件存储预览",
       showLink: false,

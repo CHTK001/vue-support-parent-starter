@@ -1,12 +1,5 @@
 <template>
   <div class="project-panel">
-    <div class="project-panel__toolbar">
-      <span class="project-panel__title">
-        <ElIcon><FolderOpened /></ElIcon>
-        项目管理
-      </span>
-      <span class="project-panel__sub">通过 SSH 管理远程服务器上的应用项目</span>
-    </div>
     <div class="project-panel__body">
       <div v-if="connecting" class="project-panel__loading">
         <ElIcon class="is-loading"><Loading /></ElIcon>
@@ -23,10 +16,15 @@
 </template>
 
 <script setup lang="ts">
-import { FolderOpened, Loading } from '@element-plus/icons-vue'
+import { Loading } from '@element-plus/icons-vue'
 import { ElButton, ElEmpty, ElIcon } from 'element-plus'
 import { onMounted, onUnmounted, ref } from 'vue'
-import { connectServerProject, createServerProjectApi, disconnectServerProject, type RemoteApi } from '@pages/server'
+import {
+  ServerRemoteProjectPanel,
+  createProjectRemoteApi,
+  resolveProjectRemoteTarget,
+  type RemoteApi,
+} from '@pages/project'
 
 const props = defineProps<{
   connectionId: string   // Nginx SSH connectionId（用于获取连接信息）
@@ -40,22 +38,39 @@ const props = defineProps<{
 const connecting = ref(false)
 const connectError = ref('')
 const projectApi = ref<RemoteApi | null>(null)
-let projectConnectionId = ''
+
+const parseSysProjectId = (value: unknown): number | null => {
+  const text = String(value ?? '').trim()
+  if (!text || text.includes('<')) {
+    return null
+  }
+  const id = Number(text)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
+const buildEndpoint = () => {
+  const host = String(props.host || '').trim()
+  if (!host) {
+    return ''
+  }
+  const port = Number(props.port || 0)
+  return port > 0 ? `ssh://${host}:${port}` : `ssh://${host}`
+}
 
 const doConnect = async () => {
   connecting.value = true
   connectError.value = ''
   try {
-    const res = await connectServerProject({
-      serverType: 'SSH',
-      host: props.host,
-      port: props.port,
-      username: props.username,
-      password: props.password,
-      privateKey: props.privateKey,
-    })
-    projectConnectionId = res?.data ?? ''
-    projectApi.value = createServerProjectApi(projectConnectionId)
+    const endpoint = buildEndpoint()
+    if (!endpoint) {
+      throw new Error('缺少主机地址')
+    }
+    const res = await resolveProjectRemoteTarget(endpoint)
+    const sysProjectId = parseSysProjectId(res?.data)
+    if (!sysProjectId) {
+      throw new Error('远程项目映射异常：未返回有效项目ID，请检查 /v2/project/remote/resolve 接口或代理配置')
+    }
+    projectApi.value = createProjectRemoteApi(sysProjectId)
   } catch (e: any) {
     connectError.value = '连接失败: ' + (e?.message ?? '')
   } finally {
@@ -66,54 +81,20 @@ const doConnect = async () => {
 onMounted(doConnect)
 
 onUnmounted(() => {
-  if (projectConnectionId) {
-    disconnectServerProject(projectConnectionId).catch(() => {})
-  }
+  projectApi.value = null
 })
 </script>
 
 <style scoped lang="scss">
 .project-panel {
-  display: flex;
-  flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: #f1f5f9;
-}
-
-.project-panel__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-  backdrop-filter: blur(8px);
-  flex-shrink: 0;
-}
-
-.project-panel__title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
-
-  .el-icon {
-    font-size: 18px;
-    color: #6366f1;
-  }
-}
-
-.project-panel__sub {
-  font-size: 13px;
-  color: #94a3b8;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 22%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
 }
 
 .project-panel__body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  height: 100%;
 }
 </style>

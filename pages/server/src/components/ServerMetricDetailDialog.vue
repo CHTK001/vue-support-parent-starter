@@ -445,6 +445,8 @@ const props = withDefaults(
     aiAnalyzingKey?: string;
     aiAdviceMap?: Record<string, ServerAiTaskPayload>;
     aiUnavailableReason?: string;
+    initialRangeMinutes?: number;
+    xAxisLimit?: number;
   }>(),
   {
     metricKey: null,
@@ -457,6 +459,8 @@ const props = withDefaults(
     aiAnalyzingKey: "",
     aiAdviceMap: () => ({}),
     aiUnavailableReason: "",
+    initialRangeMinutes: 30,
+    xAxisLimit: 48,
   },
 );
 
@@ -481,13 +485,22 @@ const rangeOptions: Array<{ label: string; value: RangeValue }> = [
   { label: "2 小时", value: 120 },
 ];
 
-const historyRange = ref<RangeValue>(30);
+const historyRange = ref<RangeValue>(Math.max(Number(props.initialRangeMinutes || 0), 15));
 const historyStateFilter = ref<HistoryStateFilter>("all");
 const historyDateRange = ref<[string, string] | []>([]);
 
 watch(historyRange, (value) => {
   emit("change-history-range", value);
 });
+watch(
+  () => props.initialRangeMinutes,
+  (value) => {
+    const next = Math.max(Number(value || 0), 15);
+    if (next !== historyRange.value) {
+      historyRange.value = next;
+    }
+  },
+);
 
 const visible = computed({
   get: () => props.modelValue,
@@ -544,6 +557,9 @@ const filteredHistory = computed(() => {
 
 const recentHistory = computed(() =>
   filteredHistory.value.slice().reverse().slice(0, 8),
+);
+const chartHistory = computed(() =>
+  filteredHistory.value.slice(-Math.max(Number(props.xAxisLimit || 0), 12)),
 );
 
 const currentAiFilterKey = computed(() =>
@@ -787,7 +803,7 @@ const metricMeta = computed(() => {
 
 // 图表时间范围文本
 const chartTimeRange = computed(() => {
-  const data = filteredHistory.value;
+  const data = chartHistory.value;
   if (data.length === 0) return "范围: 无数据";
   const minTime = formatDateTime(data[0].collectTimestamp, {
     includeDate: true,
@@ -801,7 +817,7 @@ const chartTimeRange = computed(() => {
 });
 
 const chartTimestamps = computed(() =>
-  filteredHistory.value.map((item) => Number(item.collectTimestamp || 0)),
+  chartHistory.value.map((item) => Number(item.collectTimestamp || 0)),
 );
 
 const chartLabels = computed(() => {
@@ -839,7 +855,7 @@ const chartLabels = computed(() => {
 });
 
 const chartOption = computed(() => {
-  const data = filteredHistory.value;
+  const data = chartHistory.value;
   const labels = chartLabels.value;
   const totalSeriesData = data.map((item) => {
     if (props.metricKey === "memory")

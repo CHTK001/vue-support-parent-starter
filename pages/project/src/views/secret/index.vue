@@ -210,7 +210,7 @@
     </div>
     <SaveDialog
       ref="saveDialogRef"
-      :connection-id="currentConnectionId"
+      :sys-project-id="currentSysProjectId"
       class="modern-dialog"
       @success="handleRefresh"
     />
@@ -223,7 +223,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useRenderIcon } from "@repo/components/ReIcon";
 import { router } from "@repo/core";
 import { deepCopy, message, useDefer } from "@repo/utils";
@@ -245,7 +245,7 @@ let dictItem = [];
 let functionList = [];
 let functionMap = {};
 const saveDialogRef = ref();
-const currentConnectionId = ref("");
+const currentSysProjectId = ref("");
 const tableRef = ref();
 const defaultSettingRef = ref();
 const contextMenuRef = ref();

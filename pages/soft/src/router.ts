@@ -36,25 +36,11 @@ const routes = [
             },
           },
           {
-            path: "/soft/repositories",
-            name: "SoftRepositories",
-            component: async () => {
-              const { SoftRepositoryPage } = await import("./index");
-              return SoftRepositoryPage;
-            },
-            meta: {
-              title: "仓库管理",
-              icon: "mdi:database-sync-outline",
-              showLink: false,
-              activePath: "/soft/catalog",
-            },
-          },
-          {
             path: "/soft/targets",
             name: "SoftTargets",
             redirect: "/server/list",
             meta: {
-              title: "服务器管理",
+              title: "真实测试服务器管理",
               icon: "mdi:server-network",
               showLink: false,
             },

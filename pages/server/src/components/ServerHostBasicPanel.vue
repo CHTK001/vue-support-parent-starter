@@ -48,49 +48,83 @@
           <div class="server-basic-panel__action-row">
             <span class="server-basic-panel__action-label">基础能力</span>
             <div class="server-basic-panel__actions">
-              <el-dropdown trigger="click" @command="handleLoginRecordCommand">
-                <el-tooltip content="登录记录" placement="top">
-                  <ScButton circle>
-                    <IconifyIconOnline icon="ri:history-line" />
-                  </ScButton>
-                </el-tooltip>
-                <template #dropdown>
-                  <el-dropdown-menu class="server-basic-panel__login-dropdown">
+              <el-tooltip
+                effect="light"
+                placement="bottom-start"
+                trigger="click"
+                popper-class="server-basic-panel__login-tooltip-popper"
+                @show="loadLoginRecords()"
+              >
+                <template #content>
+                  <div class="server-basic-panel__login-dropdown">
                     <div class="server-basic-panel__login-dropdown-header">
                       <span>最近登录记录</span>
-                      <ScButton link type="primary" size="small" @click="loadLoginRecords">
+                      <ScButton
+                        link
+                        type="primary"
+                        size="small"
+                        @click.stop="loadLoginRecords(true)"
+                      >
                         <IconifyIconOnline icon="ri:refresh-line" />
                       </ScButton>
                     </div>
-                    <el-dropdown-item v-if="loginRecords.length === 0" disabled>
-                      <span class="server-basic-panel__login-empty">暂无登录记录</span>
-                    </el-dropdown-item>
-                    <el-dropdown-item
+
+                    <div
+                      v-if="loginRecordsUnavailable"
+                      class="server-basic-panel__login-empty"
+                    >
+                      登录记录接口暂不可用
+                    </div>
+                    <div
+                      v-else-if="loginRecords.length === 0"
+                      class="server-basic-panel__login-empty"
+                    >
+                      暂无登录记录
+                    </div>
+
+                    <article
                       v-for="record in loginRecords"
-                      :key="record.id"
-                      :command="record.id"
+                      :key="
+                        record.id || `${record.username}-${record.loginTime}`
+                      "
                       class="server-basic-panel__login-item"
                     >
                       <div class="server-basic-panel__login-item-content">
                         <div class="server-basic-panel__login-item-row">
-                          <span class="server-basic-panel__login-user">{{ record.username }}</span>
-                          <span class="server-basic-panel__login-status" :class="`is-${record.status?.toLowerCase()}`">
-                            {{ record.status === 'SUCCESS' ? '成功' : '失败' }}
+                          <span class="server-basic-panel__login-user">{{
+                            record.username || "-"
+                          }}</span>
+                          <span
+                            class="server-basic-panel__login-status"
+                            :class="`is-${String(record.status || '').toLowerCase()}`"
+                          >
+                            {{ record.status === "SUCCESS" ? "成功" : "失败" }}
                           </span>
                         </div>
                         <div class="server-basic-panel__login-item-row">
-                          <span class="server-basic-panel__login-ip">{{ record.loginIp || '-' }}</span>
-                          <span class="server-basic-panel__login-time">{{ formatLoginTime(record.loginTime) }}</span>
+                          <span class="server-basic-panel__login-ip">{{
+                            record.loginIp || "-"
+                          }}</span>
+                          <span class="server-basic-panel__login-time">{{
+                            formatLoginTime(record.loginTime)
+                          }}</span>
                         </div>
-                        <div class="server-basic-panel__login-item-row server-basic-panel__login-server">
+                        <div
+                          class="server-basic-panel__login-item-row server-basic-panel__login-server"
+                        >
                           <IconifyIconOnline icon="ri:server-line" />
-                          <span>{{ record.serverName || record.host }}</span>
+                          <span>{{
+                            record.serverName || record.host || "-"
+                          }}</span>
                         </div>
                       </div>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                    </article>
+                  </div>
                 </template>
-              </el-dropdown>
+                <ScButton circle>
+                  <IconifyIconOnline icon="ri:history-line" />
+                </ScButton>
+              </el-tooltip>
               <el-tooltip content="进程管理" placement="top">
                 <ScButton circle @click="emit('open-processes')">
                   <IconifyIconOnline icon="ri:stack-line" />
@@ -101,9 +135,9 @@
                   <IconifyIconOnline icon="ri:folder-5-line" />
                 </ScButton>
               </el-tooltip>
-              <el-tooltip content="采集任务" placement="top">
+              <el-tooltip content="采集与显示配置" placement="top">
                 <ScButton circle @click="emit('open-metrics-task')">
-                  <IconifyIconOnline icon="ri:timer-flash-line" />
+                  <IconifyIconOnline icon="ri:settings-4-line" />
                 </ScButton>
               </el-tooltip>
               <el-tooltip content="预警设置" placement="top">
@@ -121,12 +155,7 @@
                 content="远程控制"
                 placement="top"
               >
-                <ScButton
-                  circle
-                  type="info"
-                  plain
-                  @click="emit('open-remote')"
-                >
+                <ScButton circle type="info" plain @click="emit('open-remote')">
                   <IconifyIconOnline icon="ri:remote-control-line" />
                 </ScButton>
               </el-tooltip>
@@ -166,17 +195,11 @@
           >
             <span class="server-basic-panel__action-label">软件能力</span>
             <div class="server-basic-panel__actions">
-              <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
-                <ScButton
-                  circle
-                  type="primary"
-                  plain
-                  @click="emit('open-soft')"
-                >
-                  <IconifyIconOnline icon="ri:apps-2-line" />
-                </ScButton>
-              </el-tooltip>
-              <el-tooltip v-if="softEnabled" content="安装软件" placement="top">
+              <el-tooltip
+                v-if="softEnabled"
+                content="软件安装向导"
+                placement="top"
+              >
                 <ScButton
                   circle
                   type="success"
@@ -202,10 +225,11 @@
               }}
             </p>
           </div>
-          <el-radio-group v-model="metricChartMode" size="small">
-            <el-radio-button value="split">分图</el-radio-button>
-            <el-radio-button value="combined">合图</el-radio-button>
-          </el-radio-group>
+          <ScSwitch
+            v-model="metricChartCombined"
+            active-icon="ri:line-chart-line"
+            inactive-icon="ri:dashboard-line"
+          />
         </header>
 
         <div
@@ -217,7 +241,6 @@
             :key="item.key"
             class="server-basic-panel__metric-card"
             :class="item.toneClass"
-            :style="metricProgressStyle(item.progress)"
             @click="emit('open-metric-detail', item.key)"
           >
             <div class="server-basic-panel__metric-top">
@@ -228,18 +251,18 @@
               <strong>{{ item.value }}</strong>
               <span>{{ item.total }}</span>
             </div>
-            <ScEcharts :option="item.option" height="56px" />
           </article>
         </div>
         <div v-else class="server-basic-panel__realtime-combined">
-          <div class="server-basic-panel__realtime-summary">
+          <div
+            class="server-basic-panel__realtime-summary server-basic-panel__realtime-summary--combined"
+          >
             <button
               v-for="item in metricCards"
               :key="item.key"
               type="button"
               class="server-basic-panel__realtime-mini"
               :class="item.toneClass"
-              :style="metricProgressStyle(item.progress)"
               @click="emit('open-metric-detail', item.key)"
             >
               <div class="server-basic-panel__realtime-mini-head">
@@ -250,20 +273,7 @@
                 <strong>{{ item.value }}</strong>
                 <span>{{ item.total }}</span>
               </div>
-              <ScEcharts :option="item.option" height="42px" />
             </button>
-          </div>
-          <div class="server-basic-panel__realtime-chart">
-            <div class="server-basic-panel__realtime-chart-head">
-              <div>
-                <strong>综合趋势</strong>
-                <span>CPU / 内存 / 磁盘 / 网络吞吐</span>
-              </div>
-              <span class="server-basic-panel__chip">
-                {{ snapshot?.collectTimestamp ? "实时采样中" : "等待采样" }}
-              </span>
-            </div>
-            <ScEcharts :option="chartOption" height="248px" />
           </div>
         </div>
       </article>
@@ -273,17 +283,18 @@
           class="server-basic-panel__card server-basic-panel__card--basic"
         >
           <header class="server-basic-panel__card-header">
-            <h3>基础信息</h3>
-            <div class="server-basic-panel__tag-group">
-              <ScTag size="small" effect="plain" round>
-                {{
-                  alertSettingsEnabled === false
-                    ? "预警关闭"
-                    : snapshot?.online
-                      ? "在线"
-                      : "离线"
-                }}
+            <div class="server-basic-panel__card-title">
+              <h3>基础信息</h3>
+              <ScTag
+                size="small"
+                effect="plain"
+                round
+                :type="snapshot?.online ? 'success' : 'info'"
+              >
+                {{ snapshot?.online ? "在线" : "离线" }}
               </ScTag>
+            </div>
+            <div class="server-basic-panel__tag-group">
               <el-tooltip content="查看基础信息详情" placement="top">
                 <ScButton circle plain @click.stop="emit('open-basic-detail')">
                   <IconifyIconOnline icon="ri:information-line" />
@@ -313,9 +324,7 @@
               </div>
               <div>
                 <dt>实际系统</dt>
-                <dd>
-                  {{ runtimeDetail?.actualOsName || osLabel(host.osType) }}
-                </dd>
+                <dd>{{ runtimeActualOsName }}</dd>
               </div>
               <div>
                 <dt>系统架构</dt>
@@ -331,57 +340,37 @@
               </div>
               <div>
                 <dt>主机名称</dt>
-                <dd>{{ runtimeDetail?.hostName || "-" }}</dd>
+                <dd>{{ runtimeHostName }}</dd>
               </div>
               <div>
                 <dt>全局 AI</dt>
                 <dd>
-                  <ScTag
-                    size="small"
-                    effect="plain"
-                    round
-                    :type="aiEnabled ? 'success' : 'info'"
-                  >
-                    {{ aiEnabled ? "已启用" : "未启用" }}
-                  </ScTag>
-                  <span
-                    v-if="
-                      aiStatusText ||
-                      aiUnavailableReason ||
-                      aiProvider ||
-                      aiDefaultProvider ||
-                      aiProviderCount
-                    "
-                    class="server-basic-panel__inline-meta"
-                  >
-                    {{
+                  <el-tooltip
+                    :content="
                       aiEnabled
                         ? [
                             aiProvider || aiDefaultProvider || aiStatusText,
                             aiProviderCount
                               ? `${aiProviderCount} 个 Provider`
-                              : "",
+                              : '',
                           ]
                             .filter(Boolean)
-                            .join(" · ") || "已激活"
+                            .join(' · ') || '已启用'
                         : aiUnavailableReason ||
                           aiStatusText ||
-                          "未检测到全局 AI"
-                    }}
-                  </span>
-                  <div
-                    v-if="aiDiagnosticItems.length"
-                    class="server-basic-panel__diagnostic-grid"
+                          '未检测到全局 AI'
+                    "
+                    placement="top"
                   >
-                    <span
-                      v-for="item in aiDiagnosticItems"
-                      :key="item.label"
-                      class="server-basic-panel__diagnostic-chip"
-                      :class="item.toneClass"
+                    <ScTag
+                      size="small"
+                      effect="plain"
+                      round
+                      :type="aiEnabled ? 'success' : 'info'"
                     >
-                      {{ item.label }} · {{ item.value }}
-                    </span>
-                  </div>
+                      {{ aiEnabled ? "已启用" : "未启用" }}
+                    </ScTag>
+                  </el-tooltip>
                 </dd>
               </div>
               <div>
@@ -398,12 +387,56 @@
                 </dd>
               </div>
               <div>
+                <dt>Docker 能力</dt>
+                <dd>
+                  <ScTag
+                    size="small"
+                    effect="plain"
+                    round
+                    :type="dockerCapability.enabled ? 'success' : 'info'"
+                  >
+                    {{
+                      dockerCapability.enabled
+                        ? `已启用 · ${dockerCapability.connectionType}`
+                        : "未启用"
+                    }}
+                  </ScTag>
+                  <div
+                    v-if="dockerCapability.enabled"
+                    class="server-basic-panel__diagnostic-grid"
+                  >
+                    <span
+                      v-if="dockerCapability.apiPort"
+                      class="server-basic-panel__diagnostic-chip is-primary"
+                    >
+                      API 端口 · {{ dockerCapability.apiPort }}
+                    </span>
+                    <span
+                      v-if="dockerCapability.username"
+                      class="server-basic-panel__diagnostic-chip is-muted"
+                    >
+                      账号 · {{ dockerCapability.username }}
+                    </span>
+                    <span
+                      v-if="dockerCapability.latency"
+                      class="server-basic-panel__diagnostic-chip is-success"
+                    >
+                      延迟 · {{ dockerCapability.latency }} ms
+                    </span>
+                  </div>
+                </dd>
+              </div>
+              <div>
                 <dt>公网地址</dt>
-                <dd>{{ host.publicIp || runtimeDetail?.publicIp || "-" }}</dd>
+                <dd>{{ runtimePublicIp }}</dd>
+              </div>
+              <div>
+                <dt>GCC 版本</dt>
+                <dd>{{ runtimeGccVersion }}</dd>
               </div>
               <div>
                 <dt>内核 / 版本</dt>
-                <dd>{{ runtimeDetail?.actualKernel || "-" }}</dd>
+                <dd>{{ runtimeKernelVersion }}</dd>
               </div>
               <div
                 v-if="!aiEnabled && aiUnavailableReason"
@@ -780,11 +813,10 @@
 </template>
 
 <script setup lang="ts">
-
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
-import ScEcharts from "@repo/components/ScEcharts/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import ServerServicePanel from "./ServerServicePanel.vue";
 import type {
@@ -802,8 +834,6 @@ import { listServerLoginRecords } from "../api";
 import type { HostSoftSummary } from "./server-types";
 import {
   archLabel,
-  buildMetricChartOption,
-  buildMetricSparkOption,
   formatByteSize,
   formatLatency,
   formatMetricPercent,
@@ -930,17 +960,93 @@ const emit = defineEmits<{
 }>();
 
 const metricChartMode = ref<MetricChartMode>("split");
+const metricChartCombined = computed({
+  get: () => metricChartMode.value === "combined",
+  set: (value: boolean) => {
+    metricChartMode.value = value ? "combined" : "split";
+  },
+});
 
 const loginRecords = ref<ServerLoginRecord[]>([]);
+const loginRecordsUnavailable = ref(false);
 
-const loadLoginRecords = async () => {
+const runtimeHostName = computed(
+  () =>
+    String(
+      props.runtimeDetail?.hostName ||
+        props.host?.serverName ||
+        props.host?.host ||
+        "",
+    ).trim() || "-",
+);
+
+const runtimeActualOsName = computed(
+  () =>
+    String(props.runtimeDetail?.actualOsName || "").trim() ||
+    osLabel(props.host?.osType),
+);
+
+const runtimePublicIp = computed(
+  () =>
+    String(
+      props.host?.publicIp || props.runtimeDetail?.publicIp || "",
+    ).trim() || "-",
+);
+
+const runtimeKernelVersion = computed(
+  () =>
+    String(
+      props.runtimeDetail?.actualKernel ||
+        props.runtimeDetail?.actualOsName ||
+        "",
+    ).trim() ||
+    `${osLabel(props.host?.osType)} / ${archLabel(props.host?.architecture)}`,
+);
+
+const runtimeGccVersion = computed(
+  () => String(props.runtimeDetail?.gccVersion || "").trim() || "-",
+);
+
+const dockerCapability = computed(() => {
   try {
-    const result = await listServerLoginRecords({ topN: 10 });
-    if (result.data) {
-      loginRecords.value = result.data;
-    }
+    const metadata = JSON.parse(
+      String(props.host?.metadataJson || "{}"),
+    ) as Record<string, any>;
+    const docker = metadata?.docker || {};
+    return {
+      enabled: Boolean(docker.enabled),
+      connectionType: String(docker.connectionType || "LOCAL"),
+      apiPort: String(docker.apiPort || ""),
+      username: String(docker.apiUsername || docker.username || ""),
+      latency: String(docker.latencyMs || docker.latency || ""),
+    };
+  } catch {
+    return {
+      enabled: false,
+      connectionType: "LOCAL",
+      apiPort: "",
+      username: "",
+      latency: "",
+    };
+  }
+});
+
+const loadLoginRecords = async (force = false) => {
+  if (!force && loginRecordsUnavailable.value) {
+    return;
+  }
+  try {
+    const serverId = Number(props.host?.serverId || 0) || undefined;
+    const result = await listServerLoginRecords({
+      serverId,
+      topN: 10,
+    });
+    loginRecords.value = result.data || [];
+    loginRecordsUnavailable.value = false;
   } catch (e) {
-    console.error("加载登录记录失败", e);
+    loginRecords.value = [];
+    loginRecordsUnavailable.value = true;
+    console.warn("[ServerHostBasicPanel] 登录记录接口不可用，已降级为空列表");
   }
 };
 
@@ -955,20 +1061,17 @@ const formatLoginTime = (time?: string) => {
   });
 };
 
-const handleLoginRecordCommand = (command: number) => {
-  const record = loginRecords.value.find((r) => r.id === command);
-  if (record) {
-    // 可以添加点击登录记录后的处理逻辑
-  }
-};
+watch(
+  () => props.host?.serverId,
+  () => {
+    loginRecords.value = [];
+    loginRecordsUnavailable.value = false;
+  },
+);
 
 const openAiSettings = () => {
   emitter.emit("openPanel");
 };
-
-onMounted(() => {
-  loadLoginRecords();
-});
 
 const alertScrollRef = ref<HTMLElement | null>(null);
 const alertListRef = ref<HTMLElement | null>(null);
@@ -1075,9 +1178,7 @@ const aiDiagnosticItems = computed(() =>
   ].filter((item) => item.value),
 );
 
-const resetAlertScrollPosition = async (
-  behavior: ScrollBehavior = "auto",
-) => {
+const resetAlertScrollPosition = async (behavior: ScrollBehavior = "auto") => {
   await nextTick();
   alertScrollRef.value?.scrollTo({
     top: 0,
@@ -1128,11 +1229,11 @@ const metricLabel = (value?: string | null) =>
         ? "磁盘"
         : value === "DISK_IO"
           ? "磁盘IO"
-        : value === "IO"
-          ? "网络"
-          : value === "LATENCY"
-            ? "延迟"
-            : value || "指标";
+          : value === "IO"
+            ? "网络"
+            : value === "LATENCY"
+              ? "延迟"
+              : value || "指标";
 
 const formatAlertMetricValue = (
   item?: ServerAlertEvent | null,
@@ -1150,8 +1251,6 @@ const formatAlertMetricValue = (
   }
   return formatMetricPercent(numeric);
 };
-
-const chartOption = computed(() => buildMetricChartOption(props.history));
 
 const usageToneClass = (value?: number | null, warning = 75, danger = 90) => {
   const numeric = Number(value ?? 0);
@@ -1176,6 +1275,10 @@ const metricCards = computed(() => {
   const ioDanger = Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024);
   const diskIoWarning = 80 * 1024 * 1024;
   const diskIoDanger = 160 * 1024 * 1024;
+  const diskIoTotal = resolveDiskIoTotal(snapshot);
+  const hasDiskIo =
+    diskIoTotal > 0 ||
+    (props.history || []).some((item) => resolveDiskIoTotal(item) > 0);
   return [
     {
       key: "cpu",
@@ -1189,10 +1292,6 @@ const metricCards = computed(() => {
         Number(settings.cpuWarningPercent || 75),
         cpuDanger,
       ),
-      option: buildMetricSparkOption(props.history, "cpu", {
-        warning: Number(settings.cpuWarningPercent || 75),
-        danger: cpuDanger,
-      }),
     },
     {
       key: "memory",
@@ -1206,10 +1305,6 @@ const metricCards = computed(() => {
         Number(settings.memoryWarningPercent || 75),
         memoryDanger,
       ),
-      option: buildMetricSparkOption(props.history, "memory", {
-        warning: Number(settings.memoryWarningPercent || 75),
-        danger: memoryDanger,
-      }),
     },
     {
       key: "disk",
@@ -1223,10 +1318,6 @@ const metricCards = computed(() => {
         Number(settings.diskWarningPercent || 80),
         diskDanger,
       ),
-      option: buildMetricSparkOption(props.history, "disk", {
-        warning: Number(settings.diskWarningPercent || 80),
-        danger: diskDanger,
-      }),
     },
     {
       key: "io",
@@ -1242,35 +1333,21 @@ const metricCards = computed(() => {
         Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
         ioDanger,
       ),
-      option: buildMetricSparkOption(props.history, "io", {
-        warning: Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
-        danger: ioDanger,
-      }),
     },
     {
       key: "diskIo",
       label: "磁盘 IO",
-      subLabel: `读 ${formatThroughput(snapshot?.diskReadBytesPerSecond)}`,
-      value: formatThroughput(resolveDiskIoTotal(snapshot)),
-      total: `写 ${formatThroughput(snapshot?.diskWriteBytesPerSecond)}`,
-      progress: clampProgress(
-        resolveIoProgress(resolveDiskIoTotal(snapshot), diskIoDanger),
-      ),
-      toneClass: usageToneClass(
-        resolveDiskIoTotal(snapshot),
-        diskIoWarning,
-        diskIoDanger,
-      ),
-      option: buildMetricSparkOption(props.history, "diskIo", {
-        warning: diskIoWarning,
-        danger: diskIoDanger,
-      }),
+      subLabel: hasDiskIo
+        ? `读 ${formatThroughput(snapshot?.diskReadBytesPerSecond)}`
+        : "读 等待采集",
+      value: hasDiskIo ? formatThroughput(diskIoTotal) : "未采集",
+      total: hasDiskIo
+        ? `写 ${formatThroughput(snapshot?.diskWriteBytesPerSecond)}`
+        : "写 等待采集",
+      progress: clampProgress(resolveIoProgress(diskIoTotal, diskIoDanger)),
+      toneClass: usageToneClass(diskIoTotal, diskIoWarning, diskIoDanger),
     },
   ];
-});
-
-const metricProgressStyle = (progress?: number | null) => ({
-  "--metric-progress": `${clampProgress(progress)}%`,
 });
 
 function clampProgress(value?: number | null) {
@@ -1359,7 +1436,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   min-height: 200px;
   padding: 18px 20px;
   border-radius: 30px;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.22));
+  border: 1px solid
+    color-mix(in srgb, var(--el-color-primary) 16%, rgba(148, 163, 184, 0.22));
   background:
     radial-gradient(
       ellipse 80% 60% at 90% 10%,
@@ -1418,8 +1496,12 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 @keyframes heroShine {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .server-basic-panel__hero::after {
@@ -1551,8 +1633,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   flex-wrap: wrap;
   padding: 12px 14px;
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(241, 245, 249, 0.65));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(241, 245, 249, 0.65)
+  );
   border: 1px solid rgba(148, 163, 184, 0.14);
   box-shadow:
     inset 0 2px 4px rgba(255, 255, 255, 0.8),
@@ -1571,7 +1656,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(241, 245, 249, 0.9)
+  );
   color: #334155;
   font-size: 12px;
   font-weight: 700;
@@ -1603,8 +1692,16 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__actions :deep(.el-button) {
   width: 36px;
   height: 36px;
-  border-color: color-mix(in srgb, var(--el-color-primary) 12%, rgba(148, 163, 184, 0.24));
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(241, 245, 249, 0.92));
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 12%,
+    rgba(148, 163, 184, 0.24)
+  );
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.99),
+    rgba(241, 245, 249, 0.92)
+  );
   box-shadow:
     0 12px 24px rgba(15, 23, 42, 0.07),
     0 4px 8px rgba(15, 23, 42, 0.04),
@@ -1618,7 +1715,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__actions :deep(.el-button:hover) {
   transform: translateY(-2px) scale(1.08);
-  border-color: color-mix(in srgb, var(--el-color-primary) 30%, rgba(148, 163, 184, 0.24));
+  border-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 30%,
+    rgba(148, 163, 184, 0.24)
+  );
   box-shadow:
     0 20px 40px rgba(15, 23, 42, 0.1),
     0 8px 16px rgba(15, 23, 42, 0.06),
@@ -1628,7 +1729,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__realtime,
 .server-basic-panel__card {
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.22));
+  border: 1px solid
+    color-mix(in srgb, var(--el-color-primary) 10%, rgba(148, 163, 184, 0.22));
   background:
     radial-gradient(
       ellipse 80% 50% at 95% 5%,
@@ -1673,6 +1775,12 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   gap: 12px;
 }
 
+.server-basic-panel__card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .server-basic-panel__realtime-header h3,
 .server-basic-panel__card-header h3 {
   margin: 0;
@@ -1699,7 +1807,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1707,12 +1815,16 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   position: relative;
   display: grid;
   gap: 8px;
-  min-height: 124px;
+  min-height: 92px;
   padding: 14px;
   border-radius: 24px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.95));
-  border: 1px solid color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.99),
+    rgba(248, 250, 252, 0.95)
+  );
+  border: 1px solid
+    color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
   cursor: pointer;
   transition:
     transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -1727,60 +1839,6 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   backdrop-filter: blur(20px);
 }
 
-/* 玻璃拟态效果 - 增强版 */
-.server-basic-panel__metric-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.4) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* 渐变边框效果 */
-.server-basic-panel__metric-card::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.8),
-    rgba(148, 163, 184, 0.3),
-    rgba(255, 255, 255, 0.5)
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* 进度填充效果 */
-.server-basic-panel__metric-card::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: clamp(18px, calc(var(--metric-progress, 0%) * 0.74), 92px);
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    color-mix(in srgb, currentColor 20%, transparent) 100%
-  );
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 0;
-}
-
 .server-basic-panel__metric-card > *,
 .server-basic-panel__realtime-mini > * {
   position: relative;
@@ -1789,11 +1847,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__metric-card:hover {
   transform: translateY(-4px) scale(1.02);
-  border-color: color-mix(
-    in srgb,
-    currentColor 28%,
-    rgba(148, 163, 184, 0.2)
-  );
+  border-color: color-mix(in srgb, currentColor 28%, rgba(148, 163, 184, 0.2));
   box-shadow:
     0 24px 48px rgba(15, 23, 42, 0.12),
     0 12px 24px rgba(15, 23, 42, 0.08),
@@ -1803,7 +1857,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 /* 卡片微光动画 */
 @keyframes metric-card-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 24px 48px rgba(15, 23, 42, 0.12),
       0 12px 24px rgba(15, 23, 42, 0.08),
@@ -1835,6 +1890,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .server-basic-panel__metric-top small,
@@ -1850,16 +1907,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-main strong {
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
   letter-spacing: -0.03em;
   font-weight: 700;
-  background: linear-gradient(
-    135deg,
-    #1e293b 0%,
-    #334155 40%,
-    #475569 100%
-  );
+  background: linear-gradient(135deg, #1e293b 0%, #334155 40%, #475569 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1883,65 +1935,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   line-height: 1;
   letter-spacing: -0.03em;
   font-weight: 700;
-  background: linear-gradient(
-    135deg,
-    #0f172a 0%,
-    #1e293b 50%,
-    #334155 100%
-  );
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.5));
-}
-
-/* 卡片底部进度条渐变 */
-.server-basic-panel__metric-card::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: clamp(18px, calc(var(--metric-progress, 0%) * 0.74), 92px);
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    color-mix(in srgb, currentColor 20%, transparent) 100%
-  );
-  opacity: 0.95;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* 彩色光晕效果 */
-.server-basic-panel__metric-card.is-success::before {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(34, 197, 94, 0.25) 100%
-  );
-}
-
-.server-basic-panel__metric-card.is-warning::before {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(245, 158, 11, 0.3) 100%
-  );
-}
-
-.server-basic-panel__metric-card.is-danger::before {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(239, 68, 68, 0.35) 100%
-  );
-}
-
-.server-basic-panel__metric-card.is-idle::before {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(148, 163, 184, 0.2) 100%
-  );
 }
 
 .server-basic-panel__realtime-chart {
@@ -1951,7 +1949,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   padding: 16px 16px 12px;
   border-radius: 26px;
   background:
-    radial-gradient(circle at 90% 10%, rgba(245, 158, 11, 0.1), transparent 30%),
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(245, 158, 11, 0.1),
+      transparent 30%
+    ),
     linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.95));
   border: 1px solid rgba(148, 163, 184, 0.14);
   box-shadow:
@@ -1980,9 +1982,13 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   padding: 14px;
   appearance: none;
   border-radius: 22px;
-  border: 1px solid color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.95));
+  border: 1px solid
+    color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.99),
+    rgba(248, 250, 252, 0.95)
+  );
   text-align: left;
   cursor: pointer;
   transition:
@@ -1999,11 +2005,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 
 .server-basic-panel__realtime-mini:hover {
   transform: translateY(-3px) scale(1.02);
-  border-color: color-mix(
-    in srgb,
-    currentColor 26%,
-    rgba(148, 163, 184, 0.2)
-  );
+  border-color: color-mix(in srgb, currentColor 26%, rgba(148, 163, 184, 0.2));
   box-shadow:
     0 20px 40px rgba(15, 23, 42, 0.1),
     0 8px 16px rgba(15, 23, 42, 0.06),
@@ -2028,6 +2030,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .server-basic-panel__realtime-mini-head small,
@@ -2038,7 +2042,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__realtime-mini-main strong {
-  font-size: 23px;
+  font-size: 20px;
   line-height: 1;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -2046,6 +2050,12 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.server-basic-panel__login-dropdown--overlay {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 120px;
 }
 
 .server-basic-panel__realtime-chart-head {
@@ -2137,8 +2147,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__info-grid > div {
   padding: 14px 16px;
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(248, 250, 252, 0.88)
+  );
   border: 1px solid rgba(148, 163, 184, 0.12);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
@@ -2675,6 +2688,74 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   color: var(--el-text-color-secondary);
 }
 
+.server-basic-panel__realtime-summary--combined {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.server-basic-panel__metric-card,
+.server-basic-panel__realtime-mini {
+  color: #64748b;
+  border-color: rgba(148, 163, 184, 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.99),
+    rgba(248, 250, 252, 0.95)
+  );
+}
+
+.server-basic-panel__metric-card.is-success,
+.server-basic-panel__realtime-mini.is-success {
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.24);
+  background: linear-gradient(
+    180deg,
+    rgba(240, 253, 244, 0.92),
+    rgba(236, 253, 245, 0.84)
+  );
+}
+
+.server-basic-panel__metric-card.is-warning,
+.server-basic-panel__realtime-mini.is-warning {
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.28);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 251, 235, 0.94),
+    rgba(254, 243, 199, 0.82)
+  );
+}
+
+.server-basic-panel__metric-card.is-danger,
+.server-basic-panel__realtime-mini.is-danger {
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.26);
+  background: linear-gradient(
+    180deg,
+    rgba(254, 242, 242, 0.94),
+    rgba(254, 226, 226, 0.82)
+  );
+}
+
+.server-basic-panel__metric-card.is-idle,
+.server-basic-panel__realtime-mini.is-idle {
+  color: #64748b;
+  border-color: rgba(148, 163, 184, 0.22);
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.96),
+    rgba(241, 245, 249, 0.88)
+  );
+}
+
+:global(.server-basic-panel__login-tooltip-popper) {
+  padding: 0 !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12) !important;
+  min-width: 320px;
+  max-width: 360px;
+}
+
 @media (max-width: 1240px) {
   .server-basic-panel__realtime-combined {
     grid-template-columns: 1fr;
@@ -2727,6 +2808,5 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   .server-basic-panel__content {
     display: grid;
   }
-
 }
 </style>

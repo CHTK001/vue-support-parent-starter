@@ -55,9 +55,9 @@
     <main class="fs-right">
       <div class="toolbar">
         <el-radio-group v-model="mode" size="small">
-          <el-radio-button label="list">列表</el-radio-button>
-          <el-radio-button label="card">卡片</el-radio-button>
-          <el-radio-button label="image">大图</el-radio-button>
+          <el-radio-button value="list">列表</el-radio-button>
+          <el-radio-button value="card">卡片</el-radio-button>
+          <el-radio-button value="image">大图</el-radio-button>
         </el-radio-group>
         <ScButton size="small" @click="fetchPreviewItems">
           <IconifyIconOnline icon="ri:refresh-line" />
@@ -65,14 +65,15 @@
         </ScButton>
         <!-- 面包屑与上级 -->
         <div class="crumbs">
-          <ScButton size="small" @click="goUp" :disabled="!canGoUp"
-            >上级</ScButton>
+          <ScButton size="small" :disabled="!canGoUp" @click="goUp"
+            >上级</ScButton
+          >
           <el-breadcrumb separator="/" class="bc">
             <el-breadcrumb-item
               v-for="(c, i) in crumbs"
               :key="i"
-              @click="onCrumbClick(i)"
               class="bc-item"
+              @click="onCrumbClick(i)"
             >
               {{ c.name || "/" }}
             </el-breadcrumb-item>
@@ -118,16 +119,15 @@
           </ScSelect>
           <span>条</span>
           <span class="gap" />
+          <ScButton size="small" :disabled="pager.page <= 1" @click="goPrevPage"
+            >上一页</ScButton
+          >
           <ScButton
             size="small"
-            @click="goPrevPage"
-            :disabled="pager.page <= 1"
-            >上一页</ScButton>
-          <ScButton
-            size="small"
-            @click="goNextPage"
             :disabled="previewItems.length < pager.limit"
-            >下一页</ScButton>
+            @click="goNextPage"
+            >下一页</ScButton
+          >
         </div>
       </div>
 
@@ -228,7 +228,8 @@
                       <div class="img-error">
                         <span>加载失败</span>
                         <ScButton size="small" @click.stop="retryImage(it)"
-                          >重试</ScButton>
+                          >重试</ScButton
+                        >
                       </div>
                     </template>
                   </el-image>
@@ -282,7 +283,8 @@
                     <div class="img-error">
                       <span>加载失败</span>
                       <ScButton size="small" @click.stop="retryImage(it)"
-                        >重试</ScButton>
+                        >重试</ScButton
+                      >
                     </div>
                   </template>
                 </el-image>
@@ -331,8 +333,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { inject, ref, onMounted, computed, watch } from "vue";
+import { routeLocationKey, routerKey } from "vue-router";
 import { message } from "@repo/utils";
 import { api as viewerApi } from "v-viewer";
 import "viewerjs/dist/viewer.css";
@@ -367,7 +369,7 @@ const iconModules = import.meta.glob("@/assets/images/*.{png,webp,svg}", {
 // 创建文件图标管理器
 const iconManager = createFileIconManager(
   iconModules,
-  iconModules["/src/assets/images/unknown.png"] || ""
+  iconModules["/src/assets/images/unknown.png"] || "",
 );
 
 const serverInfo = ref<SystemServer | any>({});
@@ -375,8 +377,14 @@ const serverInfo = ref<SystemServer | any>({});
 // 整个服务的设置数据（预览页可使用）
 const serverSettings = ref<SystemServerSetting[]>([]);
 
-const route = useRoute();
-const router = useRouter();
+const route = inject(routeLocationKey, {
+  params: {},
+  query: {},
+} as Record<string, any>);
+const router = inject(
+  routerKey,
+  null as { replace?: (payload: any) => void } | null,
+);
 const serverId = Number(route.params.serverId);
 
 // 从 URL query 获取初始状态
@@ -401,7 +409,9 @@ function updateUrlQuery() {
   if (mode.value && mode.value !== "list") {
     query.mode = mode.value;
   }
-  router.replace({ query });
+  if (router?.replace) {
+    router.replace({ query });
+  }
 }
 
 const crumbs = computed(() => {
@@ -507,7 +517,9 @@ async function onDrop(e: DragEvent) {
 
     // 检查文件大小
     if (file.size > maxSize) {
-      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, { type: "warning" });
+      message(`文件 ${file.name} 超过10MB限制，请使用分片上传`, {
+        type: "warning",
+      });
       continue;
     }
 
@@ -540,7 +552,9 @@ async function onDrop(e: DragEvent) {
     } catch (err: any) {
       uploadItem.progress = 100;
       uploadItem.status = "exception";
-      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, { type: "error" });
+      message(`${file.name} 上传失败: ${err?.message || "未知错误"}`, {
+        type: "error",
+      });
     }
 
     // 3秒后移除上传项
@@ -912,7 +926,7 @@ async function fetchPreviewItems() {
       s,
       currentPath.value,
       pager.value.limit,
-      pager.value.marker || ""
+      pager.value.marker || "",
     );
     const now = Date.now();
     const cached = listCache.get(key);
@@ -929,7 +943,7 @@ async function fetchPreviewItems() {
     params.append("endpoint", s.fileStorageEndpoint || "");
     params.append(
       "basePath",
-      currentPath.value || s.fileStorageBasePath || "/"
+      currentPath.value || s.fileStorageBasePath || "/",
     );
     // 通过 limit 控制后端返回条数
     params.append("limit", String(pager.value.limit));
@@ -997,12 +1011,11 @@ watch(
   () => {
     updateUrlQuery();
   },
-  { flush: "post" }
+  { flush: "post" },
 );
 </script>
 
 <style scoped lang="scss">
-
 .modern-bg {
   position: relative;
   overflow: hidden;
@@ -1035,7 +1048,6 @@ watch(
     z-index: 1;
   }
 }
-
 
 .fs-full {
   display: grid;
@@ -1761,7 +1773,6 @@ watch(
   }
 }
 
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
@@ -1770,5 +1781,4 @@ watch(
     padding: 12px 16px;
   }
 }
-
 </style>

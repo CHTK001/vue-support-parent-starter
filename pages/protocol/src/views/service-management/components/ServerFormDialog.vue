@@ -45,16 +45,27 @@
                     placeholder="请选择服务类型"
                     style="width: 100%"
                   >
-                    <ScOption
-                      v-for="item in serverTypes"
-                      :key="item.name"
-                      :label="
-                        item.describe
-                          ? item.describe + '(' + item.name + ')'
-                          : item.name
-                      "
-                      :value="item.name"
-                    />
+                    <el-option-group
+                      v-for="group in groupedServerTypes"
+                      :key="group.key"
+                      :label="group.label"
+                    >
+                      <ScOption
+                        v-for="item in group.options"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      >
+                        <div class="server-type-option">
+                          <span class="server-type-option__title">{{
+                            item.label
+                          }}</span>
+                          <span class="server-type-option__subtitle">{{
+                            item.subtitle
+                          }}</span>
+                        </div>
+                      </ScOption>
+                    </el-option-group>
                   </ScSelect>
                 </ScFormItem>
 
@@ -203,7 +214,7 @@ import {
 interface Props {
   visible: boolean;
   serverData?: SystemServer | null;
-  serverTypes: any[];
+  serverTypes: RawServerType[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -232,10 +243,145 @@ const dialogVisible = computed({
 
 const isEdit = computed(() => !!props.serverData?.systemServerId);
 
+interface RawServerType {
+  name?: string;
+  value?: string;
+  label?: string;
+  describe?: string;
+  describeType?: string;
+}
+
+interface ServerTypeOption {
+  value: string;
+  label: string;
+  sourceType: string;
+  subtitle: string;
+}
+
+interface ServerTypeGroup {
+  key: string;
+  label: string;
+  options: ServerTypeOption[];
+}
+
+const normalizeServerTypeValue = (value?: string): string => {
+  const upper = (value || "").trim().toUpperCase();
+  if (!upper) return "";
+  if (upper === "HTTPD") return "HTTP";
+  if (
+    upper === "HTTP-PROXY-SERVER" ||
+    upper === "HTTPPROXY" ||
+    upper === "HTTPPROXY-SERVER" ||
+    upper === "PROXY-HTTP"
+  ) {
+    return "HTTP-PROXY";
+  }
+  if (upper === "SOCK5" || upper === "SOCKS" || upper === "SOCKS5-PROXY") {
+    return "SOCKS5";
+  }
+  return upper;
+};
+
+const resolveServerTypeSource = (
+  item: RawServerType | string,
+  normalizedValue: string,
+): string => {
+  const itemAny = item as Record<string, unknown>;
+  const source =
+    typeof item === "string"
+      ? ""
+      : (item.describeType || itemAny.describe_type || "").toString();
+  if (source && source !== "default") {
+    return source;
+  }
+  if (normalizedValue.startsWith("NETTY-")) {
+    return "utils-netty";
+  }
+  return "utils-common";
+};
+
+const buildSourceSubtitle = (sourceType: string): string => {
+  if (!sourceType || sourceType === "utils-common") {
+    return "实现来源：默认（utils-common）";
+  }
+  if (sourceType.startsWith("utils-")) {
+    return `实现来源：${sourceType.replace("utils-", "")}（${sourceType}）`;
+  }
+  return `实现来源：${sourceType}`;
+};
+
+const groupedServerTypes = computed<ServerTypeGroup[]>(() => {
+  const list = Array.isArray(props.serverTypes) ? props.serverTypes : [];
+  const optionMap = new Map<string, ServerTypeOption>();
+
+  for (const raw of list) {
+    const value =
+      typeof raw === "string" ? raw : raw.name || raw.value || raw.label || "";
+    const normalizedValue = normalizeServerTypeValue(value);
+    if (!normalizedValue) {
+      continue;
+    }
+    const sourceType = resolveServerTypeSource(raw, normalizedValue);
+    const labelSource =
+      typeof raw === "string"
+        ? raw
+        : raw.describe || raw.label || raw.name || raw.value || normalizedValue;
+    const label =
+      typeof raw === "string"
+        ? normalizedValue
+        : raw.describe
+          ? `${raw.describe}(${normalizedValue})`
+          : `${labelSource}(${normalizedValue})`;
+    optionMap.set(normalizedValue, {
+      value: normalizedValue,
+      label,
+      sourceType,
+      subtitle: buildSourceSubtitle(sourceType),
+    });
+  }
+
+  const groups = new Map<string, ServerTypeGroup>();
+  for (const option of optionMap.values()) {
+    const sourceType = option.sourceType || "utils-common";
+    const groupKey = sourceType;
+    const groupLabel =
+      sourceType === "utils-common"
+        ? "默认"
+        : sourceType.startsWith("utils-")
+          ? sourceType.replace("utils-", "")
+          : sourceType;
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, {
+        key: groupKey,
+        label: groupLabel,
+        options: [],
+      });
+    }
+    groups.get(groupKey)!.options.push(option);
+  }
+
+  const sorted = Array.from(groups.values()).sort((a, b) => {
+    if (a.key === "utils-common") return -1;
+    if (b.key === "utils-common") return 1;
+    return a.label.localeCompare(b.label);
+  });
+  for (const group of sorted) {
+    group.options.sort((a, b) => a.value.localeCompare(b.value));
+  }
+  return sorted;
+});
+
+const resolveDefaultServerType = (): string => {
+  const options = groupedServerTypes.value.flatMap((item) => item.options);
+  if (!options.length) return "";
+  const preferred = options.find((item) => item.value === "HTTP");
+  return preferred?.value || options[0].value;
+};
+
 // 表单数据
 const formData = reactive<SystemServer>({
   systemServerName: "",
-  systemServerType: "",
+  systemServerType: resolveDefaultServerType(),
   systemServerContextPath: "",
   systemServerPort: 8080,
   systemServerHost: "0.0.0.0",
@@ -279,7 +425,7 @@ const resetForm = () => {
   Object.assign(formData, {
     systemServerId: undefined,
     systemServerName: "",
-    systemServerType: "",
+    systemServerType: resolveDefaultServerType(),
     systemServerPort: 8080,
     systemServerMaxConnections: undefined,
     systemServerTimeout: undefined,
@@ -306,6 +452,16 @@ watch(
       });
     } else {
       resetForm();
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.serverTypes,
+  () => {
+    if (!isEdit.value && !formData.systemServerType) {
+      formData.systemServerType = resolveDefaultServerType();
     }
   },
   { immediate: true },
@@ -473,6 +629,23 @@ const handleSubmit = async () => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
+}
+
+.server-type-option {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  gap: 2px;
+
+  &__title {
+    color: var(--el-text-color-primary);
+    font-weight: 500;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
 }
 
 /* 开关包装 */

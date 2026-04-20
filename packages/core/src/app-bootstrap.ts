@@ -476,7 +476,8 @@ export async function createStandardApp(
     setup,
   } = options;
   const useCustomRouter = Boolean(customRouter && customRouter !== false);
-  const useHomeRouter = !useCustomRouter && Boolean(homeComponent);
+  const useHomeRouter =
+    !useCustomRouter && customRouter !== false && Boolean(homeComponent);
   const useBuiltinRouter =
     !useCustomRouter && !useHomeRouter && customRouter !== false;
   const routerEnabled = useCustomRouter || useHomeRouter || useBuiltinRouter;

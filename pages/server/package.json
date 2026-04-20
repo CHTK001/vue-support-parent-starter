@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@layout/default": "workspace:^",
+    "@pages/project": "workspace:^",
     "@repo/components": "workspace:^",
     "@repo/core": "workspace:^",
     "@repo/config": "workspace:^",

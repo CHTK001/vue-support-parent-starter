@@ -62,6 +62,10 @@
               <dd>{{ runtimeDetail?.actualKernel || "-" }}</dd>
             </div>
             <div>
+              <dt>GCC 版本</dt>
+              <dd>{{ runtimeDetail?.gccVersion || "-" }}</dd>
+            </div>
+            <div>
               <dt>主机名称</dt>
               <dd>{{ runtimeDetail?.hostName || "-" }}</dd>
             </div>
