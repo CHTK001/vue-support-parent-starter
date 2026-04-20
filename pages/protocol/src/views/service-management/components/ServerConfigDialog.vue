@@ -296,6 +296,7 @@ import FilterConfigDynamicExpression from "./FilterConfigDynamicExpression.vue";
 import FilterConfigEnhancedProxy from "./FilterConfigEnhancedProxy.vue";
 import FilterConfigProxyResponse from "./FilterConfigProxyResponse.vue";
 import FilterConfigViewServlet from "./FilterConfigViewServlet.vue";
+import FilterConfigAgent from "./FilterConfigAgent.vue";
 import { SystemServer } from "@/api/system-server";
 
 /**
@@ -313,6 +314,7 @@ const FILTER_COMPONENT_MAP: Record<string, any> = {
   enhancedproxy: FilterConfigEnhancedProxy,
   proxyresponse: FilterConfigProxyResponse,
   viewservlet: FilterConfigViewServlet,
+  agent: FilterConfigAgent,
 };
 
 const isFirewallType = (type?: string) => {
