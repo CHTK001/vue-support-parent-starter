@@ -411,8 +411,7 @@ import {
   reactive,
   ref,
 } from "vue";
-import { useRoute } from "vue-router";
-import { decodeScParam } from "@repo/utils";
+import { decodeScParam, type ServerCredential } from "@repo/utils";
 import ScLayout from "@repo/components/ScLayout";
 import {
   JdbcCatalogTree,
@@ -569,17 +568,37 @@ type TableArtifacts = Pick<
 >;
 
 const PANEL_CONFIG_STORAGE_KEY = "panel:workspace-config:v1";
-const INITIAL_QUERY = new URL(window.location.href).searchParams;
-const INITIAL_WORKSPACE_TICKET = INITIAL_QUERY.get("ticket");
+const parseInitialQuery = () => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hash = window.location.hash || "";
+  const queryMarkIndex = hash.indexOf("?");
+  if (queryMarkIndex >= 0) {
+    const hashQuery = hash.slice(queryMarkIndex + 1);
+    const hashParams = new URLSearchParams(hashQuery);
+    hashParams.forEach((value, key) => {
+      if (!searchParams.has(key)) {
+        searchParams.set(key, value);
+      }
+    });
+  }
+  return searchParams;
+};
+const INITIAL_QUERY = parseInitialQuery();
+const getInitialQueryValue = (key: string) => INITIAL_QUERY.get(key);
+const INITIAL_WORKSPACE_TICKET = getInitialQueryValue("ticket");
 const parseInitialNginxTab = (value: string | null): NginxRailTab =>
   value === "editor" || value === "project" || value === "log"
     ? value
     : "dashboard";
 const isTruthyQueryFlag = (value: string | null) =>
   ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
-const initialNginxTab = parseInitialNginxTab(INITIAL_QUERY.get("nginxTab"));
-const nginxProjectStandalone = isTruthyQueryFlag(
-  INITIAL_QUERY.get("nginxProjectStandalone"),
+const initialScRaw = getInitialQueryValue("_sc");
+const nginxProjectStandalone =
+  isTruthyQueryFlag(getInitialQueryValue("nginxProjectStandalone")) ||
+  Boolean(initialScRaw);
+const initialNginxTab = parseInitialNginxTab(
+  getInitialQueryValue("nginxTab") ||
+    (nginxProjectStandalone ? "project" : null),
 );
 
 type NoteEditorState = {
@@ -1284,6 +1303,20 @@ const openSourceInWorkspace = async (source: PanelSavedSource) => {
   const ticket = await encryptWorkspaceTicket({ source });
   const url = new URL(window.location.href);
   url.searchParams.set("ticket", ticket);
+  const sourceType = String(source.sourceType || "")
+    .trim()
+    .toUpperCase();
+  const isNginxSource =
+    sourceType === "NGINX" ||
+    sourceType === "NGINX_HTTP" ||
+    sourceType === "NGINX_WORKSPACE";
+  if (isNginxSource) {
+    url.searchParams.set("nginxProjectStandalone", "1");
+    url.searchParams.set("nginxTab", "project");
+  } else {
+    url.searchParams.delete("nginxProjectStandalone");
+    url.searchParams.delete("nginxTab");
+  }
   const child = window.open("", "_blank");
   if (child) {
     child.opener = null;
@@ -1725,6 +1758,7 @@ const handleBackHome = async () => {
   url.searchParams.delete("ticket");
   url.searchParams.delete("nginxTab");
   url.searchParams.delete("nginxProjectStandalone");
+  url.searchParams.delete("_sc");
   window.history.replaceState({}, "", url.toString());
   await loadCachedConnections();
 };
@@ -3071,42 +3105,72 @@ const toggleAside = () => {
   asideCollapsed.value = !asideCollapsed.value;
 };
 
-onMounted(async () => {
-  // 读取 _sc URL 参数，解析后存储供 SSH 连接使用
-  try {
-    const route = useRoute();
-    const scRaw = route.query._sc as string | undefined;
-    if (scRaw) {
-      const salt = import.meta.env.VITE_SC_SALT ?? "default-salt";
-      const credential = decodeScParam(decodeURIComponent(scRaw), salt);
-      if (credential) {
-        console.info("[Panel] _sc 参数解析成功，可用于 SSH 连接初始配置");
-        // credential 可在后续 openNginxWorkspace 等流程中使用
-      }
-    }
-  } catch {
-    // _sc 解析失败时静默处理
+const decodeScCredential = (scRaw: string | null): ServerCredential | null => {
+  if (!scRaw) {
+    return null;
   }
+  try {
+    const salt = import.meta.env.VITE_SC_SALT ?? "default-salt";
+    return decodeScParam(decodeURIComponent(scRaw), salt);
+  } catch {
+    return null;
+  }
+};
+
+const buildNginxSourceFromSc = (credential: ServerCredential): PanelSavedSource => {
+  const host = String(credential.host || "").trim();
+  const port = Number(credential.port || 22);
+  const username = String(credential.username || "root").trim() || "root";
+  const privateKey = String(credential.privateKey || "").trim();
+  const connectionName = host ? `Nginx@${host}` : "Nginx";
+  return {
+    ...DEFAULT_JDBC_CONNECTION,
+    sourceId: `sc-nginx-${host || "host"}-${port || 22}`,
+    sourceType: "NGINX",
+    connectionName,
+    host,
+    port: Number.isFinite(port) && port > 0 ? port : 22,
+    username,
+    password: credential.password || "",
+    attributes: {
+      ...DEFAULT_JDBC_CONNECTION.attributes,
+      privateKey: privateKey || undefined,
+      serverType: credential.serverType,
+      connectTimeout: credential.connectTimeout,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+onMounted(async () => {
+  const scCredential = decodeScCredential(initialScRaw);
   await loadSources();
   loadConfig();
   document.addEventListener("mousedown", handleGlobalPointerDown);
   await loadCachedConnections();
   const ticket = INITIAL_WORKSPACE_TICKET;
-  if (!ticket) {
+  if (ticket) {
+    viewMode.value = "booting";
+    bootingHint.value = "正在解析工作区 ticket...";
+    try {
+      const payload = await decryptWorkspaceTicket<{ source: PanelSavedSource }>(
+        ticket,
+      );
+      if (payload?.source) {
+        await bootstrapWorkspace(payload.source);
+      }
+    } catch (error: any) {
+      errorMessage.value = error?.message || "ticket 解密失败";
+      viewMode.value = "hub";
+    }
     return;
   }
-  viewMode.value = "booting";
-  bootingHint.value = "正在解析工作区 ticket...";
-  try {
-    const payload = await decryptWorkspaceTicket<{ source: PanelSavedSource }>(
-      ticket,
-    );
-    if (payload?.source) {
-      await bootstrapWorkspace(payload.source);
-    }
-  } catch (error: any) {
-    errorMessage.value = error?.message || "ticket 解密失败";
-    viewMode.value = "hub";
+
+  if (scCredential?.serverType === "SSH") {
+    console.info("[Panel] 检测到 _sc 参数，自动进入 Nginx 项目管理模式");
+    viewMode.value = "booting";
+    bootingHint.value = "正在根据地址栏服务器信息打开项目管理...";
+    await bootstrapWorkspace(buildNginxSourceFromSc(scCredential));
   }
 });
 

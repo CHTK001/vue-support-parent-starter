@@ -10,43 +10,72 @@
     layout="simple"
   >
     <div class="project-designer">
-      <header class="project-designer__hero">
-        <div class="project-designer__copy">
-          <p class="project-designer__eyebrow">Project Blueprint</p>
-          <h2>{{ editing ? "调整项目档案" : "新建项目档案" }}</h2>
-          <p>
-            把部署入口、目录约定、运行脚本和巡检命令在一个画布内收口。
-            表单采用无滚动的紧凑编排，适合连续录入多台服务。
-          </p>
-        </div>
-
-        <div class="project-designer__chips">
-          <span>{{ projectTypeLabel(project.projectType) }}</span>
-          <span>{{ project.rootDirectory || "待填写根目录" }}</span>
-          <span>{{ project.projectName || "未命名项目" }}</span>
+      <!-- Hero Banner -->
+      <header class="project-hero">
+        <div class="project-hero__glow project-hero__glow--1"></div>
+        <div class="project-hero__glow project-hero__glow--2"></div>
+        
+        <div class="project-hero__content">
+          <div class="project-hero__main">
+            <div class="project-hero__badge">
+              <ElIcon :size="14"><Folder /></ElIcon>
+              Project Blueprint
+            </div>
+            <h2 class="project-hero__title">{{ editing ? "调整项目档案" : "新建项目档案" }}</h2>
+            <p class="project-hero__desc">
+              把部署入口、目录约定、运行脚本和巡检命令在一个画布内收口。
+              表单采用无滚动的紧凑编排，适合连续录入多台服务。
+            </p>
+          </div>
+          
+          <div class="project-hero__chips">
+            <div class="project-chip">
+              <ElIcon :size="14"><Grid /></ElIcon>
+              <span>{{ projectTypeLabel(project.projectType) }}</span>
+            </div>
+            <div class="project-chip">
+              <ElIcon :size="14"><FolderOpened /></ElIcon>
+              <span>{{ project.rootDirectory || "待填写根目录" }}</span>
+            </div>
+            <div class="project-chip project-chip--primary">
+              <ElIcon :size="14"><Document /></ElIcon>
+              <span>{{ project.projectName || "未命名项目" }}</span>
+            </div>
+          </div>
         </div>
       </header>
 
+      <!-- Tabs Navigation -->
       <ScTabs v-model="editorTab" class="project-tabs">
         <ScTabPane name="basic">
           <template #label>
             <span class="project-tab-label">
-              <ElIcon><Document /></ElIcon>
+              <span class="project-tab-icon">
+                <ElIcon :size="16"><Document /></ElIcon>
+              </span>
               基础信息
             </span>
           </template>
 
-          <div class="project-designer__grid">
-            <section class="project-section">
-              <div class="project-section__head">
-                <strong>项目身份</strong>
-                <span>名称、类型与用途说明</span>
+          <div class="project-grid project-grid--2">
+            <!-- Identity Section -->
+            <section class="project-card">
+              <div class="project-card__header">
+                <div class="project-card__icon project-card__icon--blue">
+                  <ElIcon :size="18"><User /></ElIcon>
+                </div>
+                <div class="project-card__title">
+                  <strong>项目身份</strong>
+                  <span>名称、类型与用途说明</span>
+                </div>
               </div>
-              <div class="project-form-grid project-form-grid--2">
+              
+              <div class="project-form project-form--2">
                 <el-form-item label="项目名称" required>
                   <el-input
                     v-model="project.projectName"
                     placeholder="gateway-service"
+                    :prefix-icon="Edit"
                   />
                 </el-form-item>
                 <el-form-item label="项目类型" required>
@@ -59,7 +88,7 @@
                     />
                   </ScSelect>
                 </el-form-item>
-                <el-form-item class="project-form-grid__full" label="项目描述">
+                <el-form-item class="project-form__full" label="项目描述">
                   <el-input
                     v-model="project.description"
                     type="textarea"
@@ -70,12 +99,19 @@
               </div>
             </section>
 
-            <section class="project-section">
-              <div class="project-section__head">
-                <strong>目录规划</strong>
-                <span>部署、配置、依赖与日志目录</span>
+            <!-- Directory Section -->
+            <section class="project-card">
+              <div class="project-card__header">
+                <div class="project-card__icon project-card__icon--emerald">
+                  <ElIcon :size="18"><Folder /></ElIcon>
+                </div>
+                <div class="project-card__title">
+                  <strong>目录规划</strong>
+                  <span>部署、配置、依赖与日志目录</span>
+                </div>
               </div>
-              <div class="project-form-grid project-form-grid--1">
+              
+              <div class="project-form project-form--1">
                 <el-form-item label="根目录" required>
                   <el-input
                     v-model="project.rootDirectory"
@@ -135,67 +171,87 @@
           </div>
         </ScTabPane>
 
+        <!-- JVM Tab -->
         <ScTabPane v-if="isJavaProject" name="jvm">
           <template #label>
             <span class="project-tab-label">
-              <ElIcon><Cpu /></ElIcon>
+              <span class="project-tab-icon project-tab-icon--amber">
+                <ElIcon :size="16"><Cpu /></ElIcon>
+              </span>
               JVM 参数
             </span>
           </template>
 
-          <section class="project-section project-section--wide">
-            <div class="jvm-compact-head">
-              <div>
-                <strong>JVM 参数编排（紧凑头）</strong>
-                <p>按行维护参数键和值，可直接调整单个参数，无需整段重写。</p>
+          <section class="project-card project-card--wide">
+            <div class="project-card__header project-card__header--between">
+              <div class="project-card__header-left">
+                <div class="project-card__icon project-card__icon--amber">
+                  <ElIcon :size="18"><Cpu /></ElIcon>
+                </div>
+                <div class="project-card__title">
+                  <strong>JVM 参数编排</strong>
+                  <span>按行维护参数键和值，可直接调整单个参数，无需整段重写</span>
+                </div>
               </div>
-              <span class="jvm-compact-head__version">{{
-                javaVersionHint
-              }}</span>
+              <div class="project-java-badge">
+                <ElIcon :size="12"><InfoFilled /></ElIcon>
+                {{ javaVersionHint }}
+              </div>
             </div>
-            <div class="jvm-rows">
-              <div
-                v-for="(row, index) in jvmRows"
-                :key="`jvm-${index}`"
-                class="jvm-row"
-              >
-                <div class="jvm-row__main">
-                  <ScSelect
-                    v-model="row.key"
-                    filterable
-                    allow-create
-                    default-first-option
-                    placeholder="参数键，如 -Xmx / -XX:+UseZGC / -XX:+ZGenerational"
-                    @change="handleJvmKeyChange(row)"
-                  >
-                    <ElOption
-                      v-for="item in jvmArgCatalog"
-                      :key="item.key"
-                      :label="item.key"
-                      :value="item.key"
+            
+            <div class="jvm-list">
+              <TransitionGroup name="jvm-row">
+                <div
+                  v-for="(row, index) in jvmRows"
+                  :key="`jvm-${index}`"
+                  class="jvm-item"
+                >
+                  <div class="jvm-item__index">{{ index + 1 }}</div>
+                  <div class="jvm-item__fields">
+                    <ScSelect
+                      v-model="row.key"
+                      filterable
+                      allow-create
+                      default-first-option
+                      placeholder="参数键，如 -Xmx / -XX:+UseZGC"
+                      class="jvm-item__key"
+                      @change="handleJvmKeyChange(row)"
+                    >
+                      <ElOption
+                        v-for="item in jvmArgCatalog"
+                        :key="item.key"
+                        :label="item.key"
+                        :value="item.key"
+                      />
+                    </ScSelect>
+                    
+                    <ScSelect
+                      v-if="resolveJvmValueMode(row.key) === 'select'"
+                      v-model="row.value"
+                      placeholder="请选择参数值"
+                      class="jvm-item__value"
+                    >
+                      <ElOption
+                        v-for="option in resolveJvmSelectOptions(row.key)"
+                        :key="`${row.key}-${option}`"
+                        :label="option"
+                        :value="option"
+                      />
+                    </ScSelect>
+                    <el-input
+                      v-else-if="resolveJvmValueMode(row.key) === 'text'"
+                      v-model="row.value"
+                      placeholder="参数值"
+                      class="jvm-item__value"
                     />
-                  </ScSelect>
-                  <ScSelect
-                    v-if="resolveJvmValueMode(row.key) === 'select'"
-                    v-model="row.value"
-                    placeholder="请选择参数值"
-                  >
-                    <ElOption
-                      v-for="option in resolveJvmSelectOptions(row.key)"
-                      :key="`${row.key}-${option}`"
-                      :label="option"
-                      :value="option"
-                    />
-                  </ScSelect>
-                  <el-input
-                    v-else-if="resolveJvmValueMode(row.key) === 'text'"
-                    v-model="row.value"
-                    placeholder="参数值"
-                  />
-                  <div v-else class="jvm-row__switch-placeholder">
-                    开关参数，无需输入值
+                    <div v-else class="jvm-item__switch">
+                      <ElIcon :size="14"><Check /></ElIcon>
+                      开关参数
+                    </div>
                   </div>
+                  <p class="jvm-item__tip">{{ resolveJvmTip(row.key) }}</p>
                   <ScButton
+                    class="jvm-item__delete"
                     circle
                     plain
                     type="danger"
@@ -204,35 +260,45 @@
                     <ElIcon><Delete /></ElIcon>
                   </ScButton>
                 </div>
-                <p class="jvm-row__tip">{{ resolveJvmTip(row.key) }}</p>
-              </div>
+              </TransitionGroup>
             </div>
-            <ScButton plain type="primary" @click="addJvmRow">
-              <ElIcon><Plus /></ElIcon>
-              新增参数行
-            </ScButton>
-            <div class="project-form-grid__hint project-form-grid__hint--muted">
-              已覆盖内存、GC（含
-              ZGC）、容器感知、诊断、编码与时区。保存后将自动拼接为
-              <code>jvmArgs</code> 字符串。
+            
+            <div class="jvm-actions">
+              <ScButton plain type="primary" @click="addJvmRow">
+                <ElIcon><Plus /></ElIcon>
+                新增参数行
+              </ScButton>
+              <p class="jvm-actions__hint">
+                已覆盖内存、GC（含 ZGC）、容器感知、诊断、编码与时区。保存后将自动拼接为
+                <code>jvmArgs</code> 字符串。
+              </p>
             </div>
           </section>
         </ScTabPane>
 
+        <!-- Spring Tab -->
         <ScTabPane v-if="isSpringProject" name="spring">
           <template #label>
             <span class="project-tab-label">
-              <ElIcon><Operation /></ElIcon>
+              <span class="project-tab-icon project-tab-icon--green">
+                <ElIcon :size="16"><Operation /></ElIcon>
+              </span>
               Spring 参数
             </span>
           </template>
 
-          <section class="project-section project-section--wide">
-            <div class="project-section__head">
-              <strong>Spring 参数配置</strong>
-              <span>常用参数快速配置 + 自定义参数扩展（会注入启动命令）</span>
+          <section class="project-card project-card--wide">
+            <div class="project-card__header">
+              <div class="project-card__icon project-card__icon--green">
+                <ElIcon :size="18"><Operation /></ElIcon>
+              </div>
+              <div class="project-card__title">
+                <strong>Spring 参数配置</strong>
+                <span>常用参数快速配置 + 自定义参数扩展（会注入启动命令）</span>
+              </div>
             </div>
-            <div class="project-form-grid project-form-grid--2">
+            
+            <div class="project-form project-form--2">
               <el-form-item label="运行环境">
                 <el-input v-model="springProfilesActive" placeholder="prod" />
               </el-form-item>
@@ -251,24 +317,55 @@
                   placeholder="file:/opt/apps/gateway/config/"
                 />
               </el-form-item>
-              <el-form-item label="日志级别">
-                <div class="spring-switch-row">
-                  <ScSwitch v-model="springLoggingDebug" />
-                  <span>{{ springLoggingDebug ? "DEBUG" : "INFO" }}</span>
+              
+              <!-- Switch Cards -->
+              <div class="spring-switches">
+                <div
+                  class="spring-switch-card"
+                  :class="{ 'spring-switch-card--active': springLoggingDebug }"
+                  @click="springLoggingDebug = !springLoggingDebug"
+                >
+                  <div class="spring-switch-card__icon">
+                    <ElIcon :size="18"><View /></ElIcon>
+                  </div>
+                  <div class="spring-switch-card__content">
+                    <span class="spring-switch-card__label">日志级别</span>
+                    <span class="spring-switch-card__value">{{ springLoggingDebug ? "DEBUG" : "INFO" }}</span>
+                  </div>
+                  <ScSwitch v-model="springLoggingDebug" @click.stop />
                 </div>
-              </el-form-item>
-              <el-form-item label="延迟初始化">
-                <div class="spring-switch-row">
-                  <ScSwitch v-model="springLazyInitialization" />
-                  <span>{{ springLazyInitialization ? "true" : "false" }}</span>
+                
+                <div
+                  class="spring-switch-card"
+                  :class="{ 'spring-switch-card--active': springLazyInitialization }"
+                  @click="springLazyInitialization = !springLazyInitialization"
+                >
+                  <div class="spring-switch-card__icon">
+                    <ElIcon :size="18"><Timer /></ElIcon>
+                  </div>
+                  <div class="spring-switch-card__content">
+                    <span class="spring-switch-card__label">延迟初始化</span>
+                    <span class="spring-switch-card__value">{{ springLazyInitialization ? "true" : "false" }}</span>
+                  </div>
+                  <ScSwitch v-model="springLazyInitialization" @click.stop />
                 </div>
-              </el-form-item>
-              <el-form-item label="ANSI 彩色日志">
-                <div class="spring-switch-row">
-                  <ScSwitch v-model="springAnsiEnabled" />
-                  <span>{{ springAnsiEnabled ? "always" : "never" }}</span>
+                
+                <div
+                  class="spring-switch-card"
+                  :class="{ 'spring-switch-card--active': springAnsiEnabled }"
+                  @click="springAnsiEnabled = !springAnsiEnabled"
+                >
+                  <div class="spring-switch-card__icon">
+                    <ElIcon :size="18"><Brush /></ElIcon>
+                  </div>
+                  <div class="spring-switch-card__content">
+                    <span class="spring-switch-card__label">ANSI 彩色日志</span>
+                    <span class="spring-switch-card__value">{{ springAnsiEnabled ? "always" : "never" }}</span>
+                  </div>
+                  <ScSwitch v-model="springAnsiEnabled" @click.stop />
                 </div>
-              </el-form-item>
+              </div>
+              
               <el-form-item label="Actuator 暴露端点">
                 <el-input
                   v-model="springManagementExposure"
@@ -276,7 +373,7 @@
                 />
               </el-form-item>
               <el-form-item
-                class="project-form-grid__full"
+                class="project-form__full"
                 label="自定义参数（每行一个）"
               >
                 <el-input
@@ -286,47 +383,72 @@
                   placeholder="--logging.level.root=INFO&#10;--management.endpoints.web.exposure.include=*"
                 />
               </el-form-item>
-              <div class="project-form-grid__full project-form-grid__hint">
-                当前汇总参数：<code>{{ project.springArgs || "(空)" }}</code>
+              <div class="project-form__full spring-summary">
+                <span class="spring-summary__label">当前汇总参数</span>
+                <code class="spring-summary__code">{{ project.springArgs || "(空)" }}</code>
               </div>
             </div>
           </section>
         </ScTabPane>
 
+        <!-- Script Tab -->
         <ScTabPane name="script">
           <template #label>
             <span class="project-tab-label">
-              <ElIcon><Operation /></ElIcon>
+              <span class="project-tab-icon project-tab-icon--purple">
+                <ElIcon :size="16"><Operation /></ElIcon>
+              </span>
               运行脚本
             </span>
           </template>
 
-          <section class="project-section project-section--wide">
-            <div class="project-section__head">
-              <strong>运行脚本</strong>
-              <span>
-                {{
-                  isCustomProjectType
-                    ? "自定义类型：脚本完全手填"
-                    : "模板类型：支持按项目类型自动生成脚本，可继续手工调整"
-                }}
-              </span>
-            </div>
-            <div v-if="!isCustomProjectType" class="project-script-actions">
-              <ScButton plain type="primary" @click="regenerateScriptsByType">
-                <ElIcon><Operation /></ElIcon>
-                按类型模板生成脚本
+          <section class="project-card project-card--wide">
+            <div class="project-card__header project-card__header--between">
+              <div class="project-card__header-left">
+                <div class="project-card__icon project-card__icon--purple">
+                  <ElIcon :size="18"><Operation /></ElIcon>
+                </div>
+                <div class="project-card__title">
+                  <strong>运行脚本</strong>
+                  <span>
+                    {{
+                      isCustomProjectType
+                        ? "自定义类型：脚本完全手填"
+                        : "模板类型：支持按项目类型自动生成脚本"
+                    }}
+                  </span>
+                </div>
+              </div>
+              
+              <ScButton
+                v-if="!isCustomProjectType"
+                plain
+                type="primary"
+                @click="regenerateScriptsByType"
+              >
+                <ElIcon><Refresh /></ElIcon>
+                按类型模板生成
               </ScButton>
-              <p class="project-script-actions__hint">
-                {{
-                  isSpringBootResourceSplitType(project.projectType)
-                    ? "资源分离 SpringBoot：将使用 mainArtifact + libDirectory + configDirectory 生成脚本"
-                    : "SpringBoot：将使用 mainArtifact + configDirectory + jvmArgs 生成脚本"
-                }}
-              </p>
             </div>
-            <div class="project-form-grid project-form-grid--scripts">
-              <el-form-item label="启动脚本" required>
+            
+            <div v-if="!isCustomProjectType" class="script-hint">
+              <ElIcon :size="14"><InfoFilled /></ElIcon>
+              {{
+                isSpringBootResourceSplitType(project.projectType)
+                  ? "资源分离 SpringBoot：将使用 mainArtifact + libDirectory + configDirectory 生成脚本"
+                  : "SpringBoot：将使用 mainArtifact + configDirectory + jvmArgs 生成脚本"
+              }}
+            </div>
+            
+            <div class="script-grid">
+              <div class="script-card">
+                <div class="script-card__header">
+                  <div class="script-card__icon script-card__icon--green">
+                    <ElIcon :size="16"><VideoPlay /></ElIcon>
+                  </div>
+                  <span class="script-card__label">启动脚本</span>
+                  <span class="script-card__required">*</span>
+                </div>
                 <ScriptInlineEditorField
                   v-model="project.startScript"
                   v-model:language="startScriptLanguage"
@@ -334,8 +456,15 @@
                   :language-options="scriptLanguageOptions"
                   placeholder="./bin/start.sh 或完整命令"
                 />
-              </el-form-item>
-              <el-form-item label="停止脚本">
+              </div>
+              
+              <div class="script-card">
+                <div class="script-card__header">
+                  <div class="script-card__icon script-card__icon--red">
+                    <ElIcon :size="16"><VideoPause /></ElIcon>
+                  </div>
+                  <span class="script-card__label">停止脚本</span>
+                </div>
                 <ScriptInlineEditorField
                   v-model="project.stopScript"
                   v-model:language="stopScriptLanguage"
@@ -343,8 +472,15 @@
                   :language-options="scriptLanguageOptions"
                   placeholder="./bin/stop.sh 或 kill 命令"
                 />
-              </el-form-item>
-              <el-form-item label="重启脚本">
+              </div>
+              
+              <div class="script-card">
+                <div class="script-card__header">
+                  <div class="script-card__icon script-card__icon--amber">
+                    <ElIcon :size="16"><Refresh /></ElIcon>
+                  </div>
+                  <span class="script-card__label">重启脚本</span>
+                </div>
                 <ScriptInlineEditorField
                   v-model="project.restartScript"
                   v-model:language="restartScriptLanguage"
@@ -352,36 +488,46 @@
                   :language-options="scriptLanguageOptions"
                   placeholder="./bin/restart.sh"
                 />
-              </el-form-item>
+              </div>
             </div>
           </section>
         </ScTabPane>
 
+        <!-- Inspect Tab -->
         <ScTabPane name="inspect">
           <template #label>
             <span class="project-tab-label">
-              <ElIcon><Monitor /></ElIcon>
+              <span class="project-tab-icon project-tab-icon--cyan">
+                <ElIcon :size="16"><Monitor /></ElIcon>
+              </span>
               巡检与日志
             </span>
           </template>
 
-          <section class="project-section project-section--wide">
-            <div class="project-section__head">
-              <strong>巡检与可观测</strong>
-              <span>状态探针与运行说明</span>
+          <section class="project-card project-card--wide">
+            <div class="project-card__header">
+              <div class="project-card__icon project-card__icon--cyan">
+                <ElIcon :size="18"><Monitor /></ElIcon>
+              </div>
+              <div class="project-card__title">
+                <strong>巡检与可观测</strong>
+                <span>状态探针与运行说明</span>
+              </div>
             </div>
-            <div class="project-form-grid project-form-grid--2">
-              <el-form-item
-                class="project-form-grid__full"
-                label="状态检查脚本"
-              >
+            
+            <div class="inspect-content">
+              <el-form-item label="状态检查脚本">
                 <el-input
                   v-model="project.statusScript"
                   type="textarea"
-                  :rows="3"
+                  :rows="4"
                   placeholder="pgrep -f gateway.jar 或 curl 健康检查"
                 />
               </el-form-item>
+              <div class="inspect-hint">
+                <ElIcon :size="14"><WarningFilled /></ElIcon>
+                状态脚本将用于服务健康检查，支持 Shell、curl 或自定义命令
+              </div>
             </div>
           </section>
         </ScTabPane>
@@ -389,25 +535,42 @@
     </div>
 
     <template #footer>
-      <ScButton @click="visible = false">取消</ScButton>
-      <ScButton type="primary" :loading="saving" @click="$emit('submit')"
-        >保存项目</ScButton
-      >
+      <div class="dialog-footer">
+        <ScButton @click="visible = false">取消</ScButton>
+        <ScButton type="primary" :loading="saving" @click="$emit('submit')">
+          <ElIcon v-if="!saving"><Check /></ElIcon>
+          保存项目
+        </ScButton>
+      </div>
     </template>
   </ScDialog>
 </template>
 
 <script setup lang="ts">
 import {
+  Brush,
+  Check,
   Cpu,
   Delete,
   Document,
+  Edit,
+  Folder,
+  FolderOpened,
+  Grid,
+  InfoFilled,
   Monitor,
   Operation,
   Plus,
+  Refresh,
+  Timer,
+  User,
+  VideoPause,
+  VideoPlay,
+  View,
+  WarningFilled,
 } from "@element-plus/icons-vue";
 import { ElMessage, ElOption } from "element-plus";
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, TransitionGroup } from "vue";
 import ScSelect from "@repo/components/ScSelect/src/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import type { RemoteProject } from "../../api/manage/remote";
@@ -1021,34 +1184,135 @@ const removeJvmRow = (index: number) => {
 
 <style scoped lang="scss">
 .project-designer {
-  display: grid;
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
+/* Hero Section */
+.project-hero {
+  position: relative;
+  padding: 28px 32px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.project-hero__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.project-hero__glow--1 {
+  top: -40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.project-hero__glow--2 {
+  bottom: -60px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.project-hero__content {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.project-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.project-hero__title {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.project-hero__desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #64748b;
+  max-width: 560px;
+}
+
+.project-hero__chips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.project-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.project-chip--primary {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+/* Tabs */
 .project-tabs {
   :deep(.el-tabs__header) {
-    margin: 0 0 14px;
+    margin: 0 0 16px;
   }
 
   :deep(.el-tabs__nav-wrap::after) {
-    background: rgba(148, 163, 184, 0.14);
+    background: #e2e8f0;
+    height: 1px;
   }
 
   :deep(.el-tabs__item) {
-    height: 44px;
-    padding: 0 18px;
+    height: 48px;
+    padding: 0 20px;
     color: #64748b;
-    font-weight: 600;
+    font-weight: 500;
   }
 
   :deep(.el-tabs__item.is-active) {
-    color: #1d4ed8;
+    color: #1e40af;
   }
 
   :deep(.el-tabs__active-bar) {
-    background: linear-gradient(90deg, #2563eb, #0ea5e9);
-    height: 3px;
-    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    height: 2px;
+    border-radius: 2px;
   }
 }
 
@@ -1058,174 +1322,507 @@ const removeJvmRow = (index: number) => {
   gap: 8px;
 }
 
-.project-designer__hero {
+.project-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.project-tab-icon--amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.project-tab-icon--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.project-tab-icon--purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.project-tab-icon--cyan {
+  background: #cffafe;
+  color: #0891b2;
+}
+
+:deep(.el-tabs__item.is-active) .project-tab-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+}
+
+/* Grid Layout */
+.project-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
-  gap: 18px;
-  padding: 20px 22px;
-  border-radius: 28px;
-  background:
-    radial-gradient(
-      circle at top left,
-      rgba(59, 130, 246, 0.16),
-      transparent 26%
-    ),
-    radial-gradient(
-      circle at bottom right,
-      rgba(14, 165, 233, 0.14),
-      transparent 22%
-    ),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.9));
-  border: 1px solid rgba(147, 197, 253, 0.34);
-  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.08);
-}
-
-.project-designer__copy {
-  h2 {
-    margin: 0 0 10px;
-    font-size: 28px;
-    color: #0f172a;
-  }
-
-  p:last-child {
-    margin: 0;
-    color: #475569;
-    line-height: 1.8;
-    font-size: 14px;
-  }
-}
-
-.project-designer__eyebrow {
-  margin: 0 0 10px;
-  font-size: 11px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: #2563eb;
-}
-
-.project-designer__chips {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-
-  span {
-    padding: 12px 14px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.84);
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    color: #1e3a8a;
-    font-size: 13px;
-    font-weight: 600;
-    word-break: break-word;
-  }
-}
-
-.project-designer__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-.project-section {
-  display: grid;
-  gap: 14px;
-  padding: 18px 18px 8px;
-  border-radius: 24px;
-  background: rgba(248, 250, 252, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.88);
+.project-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.project-section--wide {
+/* Card Component */
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  transition: box-shadow 0.2s;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.project-card--wide {
   grid-column: 1 / -1;
 }
 
-.project-section__head {
+.project-card__header {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.project-card__header--between {
   justify-content: space-between;
-  gap: 14px;
   flex-wrap: wrap;
+}
+
+.project-card__header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.project-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.project-card__icon--blue {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #2563eb;
+}
+
+.project-card__icon--emerald {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+}
+
+.project-card__icon--amber {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+}
+
+.project-card__icon--green {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  color: #16a34a;
+}
+
+.project-card__icon--purple {
+  background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+  color: #9333ea;
+}
+
+.project-card__icon--cyan {
+  background: linear-gradient(135deg, #cffafe, #a5f3fc);
+  color: #0891b2;
+}
+
+.project-card__title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 
   strong {
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 600;
     color: #0f172a;
   }
 
   span {
     font-size: 12px;
-    color: #64748b;
+    color: #94a3b8;
   }
 }
 
-.project-form-grid {
+/* Form Layout */
+.project-form {
   display: grid;
-  gap: 14px 16px;
-  align-items: start;
+  gap: 14px;
 }
 
-.project-form-grid__hint {
-  margin-top: -2px;
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.6;
+.project-form--2 {
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.project-form-grid__hint--muted {
-  color: #94a3b8;
-}
-
-.project-form-grid--2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.project-form-grid--1 {
+.project-form--1 {
   grid-template-columns: 1fr;
 }
 
-.project-form-grid--scripts {
-  grid-template-columns: 1fr;
-}
-
-.project-script-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.project-script-actions__hint {
-  margin: 0;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.project-form-grid__full {
+.project-form__full {
   grid-column: 1 / -1;
 }
 
+/* Java Version Badge */
+.project-java-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* JVM Section */
+.jvm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jvm-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 8px 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.jvm-item:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.jvm-item__index {
+  grid-row: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.jvm-item__fields {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 10px;
+}
+
+.jvm-item__key,
+.jvm-item__value {
+  min-width: 200px;
+}
+
+.jvm-item__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 100%;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.jvm-item__tip {
+  grid-column: 2;
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.jvm-item__delete {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.jvm-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.jvm-actions__hint {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.6;
+
+  code {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #475569;
+    font-family: ui-monospace, monospace;
+  }
+}
+
+/* JVM Row Animation */
+.jvm-row-enter-active,
+.jvm-row-leave-active {
+  transition: all 0.3s ease;
+}
+
+.jvm-row-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.jvm-row-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+/* Spring Switches */
+.spring-switches {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.spring-switch-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.spring-switch-card:hover {
+  border-color: #cbd5e1;
+}
+
+.spring-switch-card--active {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-color: #93c5fd;
+}
+
+.spring-switch-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.spring-switch-card--active .spring-switch-card__icon {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.spring-switch-card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spring-switch-card__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.spring-switch-card__value {
+  font-size: 12px;
+  color: #94a3b8;
+  font-family: ui-monospace, monospace;
+}
+
+.spring-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.spring-summary__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.spring-summary__code {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  color: #475569;
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+/* Script Section */
+.script-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+}
+
+.script-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.script-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.script-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.script-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.script-card__icon--green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.script-card__icon--red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.script-card__icon--amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.script-card__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.script-card__required {
+  color: #ef4444;
+  font-size: 14px;
+}
+
+/* Inspect Section */
+.inspect-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inspect-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 13px;
+}
+
+/* Dialog Footer */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Form Item Overrides */
 :deep(.project-editor-dialog .el-dialog) {
-  border-radius: 28px;
+  border-radius: 20px;
   overflow: hidden;
 }
 
 :deep(.project-editor-dialog .el-dialog__body) {
-  padding-top: 10px;
+  padding: 16px 24px;
 }
 
 :deep(.project-editor-dialog .el-form-item) {
   margin-bottom: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-content: start;
 }
 
 :deep(.project-editor-dialog .el-form-item__label) {
   width: auto !important;
   padding: 0;
   margin: 0;
-  min-height: 20px;
   color: #475569;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -1238,101 +1835,58 @@ const removeJvmRow = (index: number) => {
 :deep(.project-editor-dialog .el-textarea__inner),
 :deep(.project-editor-dialog .sc-select),
 :deep(.project-editor-dialog .el-select__wrapper) {
-  border-radius: 16px;
+  border-radius: 10px;
 }
 
-.jvm-compact-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-
-  strong {
-    display: block;
-    font-size: 16px;
-    color: #0f172a;
-  }
-
-  p {
-    margin: 8px 0 0;
-    font-size: 12px;
-    color: #64748b;
-    line-height: 1.7;
-  }
+:deep(.project-editor-dialog .el-input__wrapper:focus-within),
+:deep(.project-editor-dialog .el-textarea__inner:focus) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-.jvm-compact-head__version {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.26);
-  background: rgba(248, 250, 252, 0.92);
-  color: #64748b;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.jvm-rows {
-  display: grid;
-  gap: 12px;
-}
-
-.jvm-row {
-  display: grid;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.jvm-row__main {
-  display: grid;
-  grid-template-columns: minmax(220px, 1.3fr) minmax(220px, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.jvm-row__switch-placeholder {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px dashed rgba(148, 163, 184, 0.7);
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.jvm-row__tip {
-  margin: 0;
-  color: #9ca3af;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.spring-switch-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 32px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-@media (max-width: 980px) {
-  .project-designer__hero,
-  .project-designer__grid,
-  .project-form-grid--2,
-  .project-form-grid--scripts {
+/* Responsive */
+@media (max-width: 1100px) {
+  .project-hero__content {
     grid-template-columns: 1fr;
   }
 
-  .jvm-compact-head,
-  .jvm-row__main {
+  .project-hero__chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .project-grid--2 {
     grid-template-columns: 1fr;
+  }
+
+  .spring-switches {
+    grid-template-columns: 1fr;
+  }
+
+  .script-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jvm-item__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .project-hero {
+    padding: 20px;
+  }
+
+  .project-hero__title {
+    font-size: 22px;
+  }
+
+  .project-form--2 {
+    grid-template-columns: 1fr;
+  }
+
+  .project-card__header--between {
+    flex-direction: column;
+    gap: 12px;
   }
 }
 </style>

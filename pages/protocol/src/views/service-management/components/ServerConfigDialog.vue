@@ -13,7 +13,7 @@
         <div class="panel-header">
           <div class="panel-title">
             <div class="title-icon available-icon">
-              <IconifyIconOnline icon="ri:apps-2-line" />
+              <el-icon :size="22"><Grid /></el-icon>
             </div>
             <div class="title-text">
               <h3>可用组件</h3>
@@ -21,23 +21,22 @@
             </div>
           </div>
           <div class="panel-actions">
-            <ScTag type="info" size="small" effect="plain" round>
+            <el-tag type="info" size="small" effect="plain" round>
               {{ availableFilters.length }} 个可用
-            </ScTag>
-            <ScTooltip content="刷新列表" placement="top">
-              <ScButton
+            </el-tag>
+            <el-tooltip content="刷新列表" placement="top">
+              <el-button
                 type="primary"
-                size="small"
                 circle
                 @click="refreshAvailableFilters"
               >
-                <IconifyIconOnline icon="ri:refresh-line" />
-              </ScButton>
-            </ScTooltip>
+                <el-icon><Refresh /></el-icon>
+              </el-button>
+            </el-tooltip>
           </div>
         </div>
 
-        <ScScrollbar v-loading="availableLoading" class="panel-content">
+        <el-scrollbar v-loading="availableLoading" class="panel-content">
           <div class="filter-list">
             <div
               v-for="(filter, index) in availableFilters"
@@ -59,25 +58,24 @@
                 </div>
               </div>
               <div class="card-action">
-                <ScButton
+                <el-button
                   type="primary"
-                  size="small"
                   :loading="installLoading[filter.type]"
                   @click="installFilter(filter)"
                 >
-                  <IconifyIconOnline icon="ri:add-line" />
+                  <el-icon class="btn-icon"><Plus /></el-icon>
                   安装
-                </ScButton>
+                </el-button>
               </div>
             </div>
           </div>
 
-          <ScEmpty
+          <el-empty
             v-if="!availableLoading && availableFilters.length === 0"
             description="暂无可用的组件"
             :image-size="80"
           />
-        </ScScrollbar>
+        </el-scrollbar>
       </div>
 
       <!-- 右侧：已安装的 Filter -->
@@ -85,7 +83,7 @@
         <div class="panel-header">
           <div class="panel-title">
             <div class="title-icon installed-icon">
-              <IconifyIconOnline icon="ri:stack-line" />
+              <el-icon :size="22"><Files /></el-icon>
             </div>
             <div class="title-text">
               <h3>已安装</h3>
@@ -93,27 +91,26 @@
             </div>
           </div>
           <div class="panel-actions">
-            <ScTag type="success" size="small" effect="plain" round>
+            <el-tag type="success" size="small" effect="plain" round>
               {{ installedFilters.length }} 个已装
-            </ScTag>
-            <ScTooltip content="刷新列表" placement="top">
-              <ScButton size="small" circle @click="refreshInstalledFilters">
-                <IconifyIconOnline icon="ri:refresh-line" />
-              </ScButton>
-            </ScTooltip>
-            <ScButton
-              type="success"
-              size="small"
+            </el-tag>
+            <el-tooltip content="刷新列表" placement="top">
+              <el-button  circle @click="refreshInstalledFilters">
+                <el-icon><Refresh /></el-icon>
+              </el-button>
+            </el-tooltip>
+            <el-button
+              circle
+              type="primary"
               :loading="saveLoading"
               @click="saveOrder"
+              :icon="Check"
             >
-              <IconifyIconOnline icon="ri:save-line" />
-              保存排序
-            </ScButton>
+            </el-button>
           </div>
         </div>
 
-        <ScScrollbar v-loading="installedLoading" class="panel-content">
+        <el-scrollbar v-loading="installedLoading" class="panel-content">
           <draggable
             v-model="installedFilters"
             item-key="systemServerSettingId"
@@ -128,7 +125,7 @@
                 @dblclick="openConfigDialog(filter)"
               >
                 <div class="drag-handle">
-                  <IconifyIconOnline icon="ri:drag-move-2-fill" />
+                  <el-icon :size="18"><Rank /></el-icon>
                 </div>
                 <div class="card-status">
                   <span
@@ -146,7 +143,7 @@
                     >
                       {{ filter.systemServerSettingName }}
                     </span>
-                    <ScTag
+                    <el-tag
                       :type="
                         filter.systemServerSettingEnabled ? 'success' : 'info'
                       "
@@ -156,7 +153,7 @@
                       {{
                         filter.systemServerSettingEnabled ? "已启用" : "已禁用"
                       }}
-                    </ScTag>
+                    </el-tag>
                   </div>
                   <div class="card-meta">
                     <span class="meta-type">{{
@@ -171,72 +168,66 @@
                   </div>
                 </div>
                 <div class="card-actions">
-                  <ScTooltip
+                  <el-tooltip
                     :content="
                       filter.systemServerSettingEnabled ? '禁用' : '启用'
                     "
                     placement="top"
                   >
-                    <ScButton
+                    <el-button
                       :type="
                         filter.systemServerSettingEnabled
                           ? 'warning'
                           : 'success'
                       "
-                      size="small"
                       circle
                       :loading="toggleLoading[filter.systemServerSettingId]"
                       @click="toggleFilterStatus(filter)"
                     >
-                      <IconifyIconOnline
-                        :icon="
-                          filter.systemServerSettingEnabled
-                            ? 'ri:pause-fill'
-                            : 'ri:play-fill'
-                        "
-                      />
-                    </ScButton>
-                  </ScTooltip>
-                  <ScTooltip content="配置" placement="top">
-                    <ScButton
-                      size="small"
+                      <el-icon>
+                        <VideoPause v-if="filter.systemServerSettingEnabled" />
+                        <VideoPlay v-else />
+                      </el-icon>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="配置" placement="top">
+                    <el-button
                       circle
                       @click="openConfigDialog(filter)"
                     >
-                      <IconifyIconOnline icon="ri:settings-3-line" />
-                    </ScButton>
-                  </ScTooltip>
-                  <ScTooltip content="卸载" placement="top">
-                    <ScButton
+                      <el-icon><Setting /></el-icon>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip content="卸载" placement="top">
+                    <el-button
                       type="danger"
-                      size="small"
                       circle
                       :loading="uninstallLoading[filter.systemServerSettingId]"
                       @click="uninstallFilter(filter)"
                     >
-                      <IconifyIconOnline icon="ri:delete-bin-line" />
-                    </ScButton>
-                  </ScTooltip>
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
             </template>
           </draggable>
 
-          <ScEmpty
+          <el-empty
             v-if="!installedLoading && installedFilters.length === 0"
             description="暂无已安装的组件"
             :image-size="80"
           >
-            <ScButton
+            <el-button
               type="primary"
               size="small"
               @click="refreshAvailableFilters"
             >
-              <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
+              <el-icon class="btn-icon"><ArrowLeft /></el-icon>
               从左侧选择安装
-            </ScButton>
-          </ScEmpty>
-        </ScScrollbar>
+            </el-button>
+          </el-empty>
+        </el-scrollbar>
       </div>
     </div>
 
@@ -254,10 +245,10 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton @click="handleClose">
-          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
+        <el-button @click="handleClose">
+          <el-icon class="btn-icon"><Close /></el-icon>
           关闭
-        </ScButton>
+        </el-button>
       </div>
     </template>
   </sc-dialog>
@@ -267,7 +258,20 @@
 import { ref, shallowRef, computed, onMounted, watch } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { InfoFilled } from "@element-plus/icons-vue";
+import {
+  Grid,
+  Refresh,
+  Plus,
+  Files,
+  Check,
+  Rank,
+  VideoPause,
+  VideoPlay,
+  Setting,
+  Delete,
+  ArrowLeft,
+  Close,
+} from "@element-plus/icons-vue";
 import draggable from "vuedraggable";
 import {
   getAvailableServletFilterObjects,
@@ -693,61 +697,66 @@ watch(
 <style lang="scss" scoped>
 // 对话框样式
 :deep(.el-dialog) {
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 
   .el-dialog__header {
-    padding: 20px 24px;
+    padding: 24px 28px;
     margin: 0;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary-light-9) 0%,
-      var(--el-bg-color) 100%
-    );
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-bottom: 1px solid #f1f5f9;
 
     .el-dialog__title {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.025em;
     }
   }
 
   .el-dialog__body {
-    padding: 20px;
-    background: var(--el-fill-color-lighter);
+    padding: 24px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   }
 
   .el-dialog__footer {
-    padding: 16px 24px;
-    background: var(--el-bg-color);
-    border-top: 1px solid var(--el-border-color-lighter);
+    padding: 20px 28px;
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
   }
 }
 
 .config-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  height: 580px;
+  gap: 24px;
+  height: 600px;
 }
 
 // 面板通用样式
 .panel {
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  background: var(--el-bg-color);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+              0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 
+                0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  }
 }
 
 .available-panel {
-  border: 1px solid var(--el-border-color-light);
+  border: 1px solid #e2e8f0;
 }
 
 .installed-panel {
-  border: 1px solid var(--el-color-success-light-5);
+  border: 1px solid #bbf7d0;
 }
 
 // 面板头部
@@ -755,72 +764,61 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .available-panel .panel-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-primary-light-9) 0%,
-    var(--el-bg-color) 100%
-  );
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
 }
 
 .installed-panel .panel-header {
-  background: linear-gradient(
-    135deg,
-    var(--el-color-success-light-9) 0%,
-    var(--el-bg-color) 100%
-  );
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 
   .title-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    font-size: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: #ffffff;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
 
     &.available-icon {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary) 0%,
-        var(--el-color-primary-light-3) 100%
-      );
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
     }
 
     &.installed-icon {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-success) 0%,
-        var(--el-color-success-light-3) 100%
-      );
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
+      background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
     }
   }
 
   .title-text {
     h3 {
-      margin: 0 0 2px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+      margin: 0 0 4px 0;
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.025em;
     }
 
     .subtitle {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
     }
   }
 }
@@ -828,35 +826,35 @@ watch(
 .panel-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 // 面板内容
 .panel-content {
   flex: 1;
-  padding: 16px;
+  padding: 20px;
 }
 
 .filter-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 // 卡片样式
 .filter-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 10px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  transition: all 0.25s ease;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -866,23 +864,20 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      var(--el-color-primary-light-3) 100%
-    );
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   }
 
   &:hover {
-    border-color: var(--el-color-primary-light-5);
-    background: var(--el-color-primary-light-9);
+    border-color: #93c5fd;
+    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
   }
 }
 
@@ -892,18 +887,18 @@ watch(
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     cursor: move;
-    color: var(--el-text-color-placeholder);
-    font-size: 16px;
-    border-radius: 6px;
+    color: #94a3b8;
+    border-radius: 8px;
     flex-shrink: 0;
     transition: all 0.2s ease;
+    background: #f8fafc;
 
     &:hover {
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
+      color: #3b82f6;
+      background: #eff6ff;
     }
   }
 
@@ -912,35 +907,48 @@ watch(
 
     .status-dot {
       display: block;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
+      transition: all 0.3s ease;
 
       &.active {
-        background: var(--el-color-success);
-        box-shadow: 0 0 8px var(--el-color-success-light-3);
+        background: linear-gradient(135deg, #22c55e 0%, #4ade80 100%);
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+        animation: pulse-green 2s infinite;
       }
 
       &.inactive {
-        background: var(--el-text-color-placeholder);
+        background: #cbd5e1;
       }
     }
   }
 
   &:hover {
-    border-color: var(--el-color-success-light-5);
-    background: var(--el-color-success-light-9);
+    border-color: #86efac;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
   }
 
   &.is-disabled {
-    opacity: 0.6;
-    background: var(--el-fill-color-light);
+    opacity: 0.55;
+    background: #f8fafc;
     border-style: dashed;
+    border-color: #cbd5e1;
 
     &:hover {
       transform: none;
       box-shadow: none;
+      background: #f8fafc;
     }
+  }
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.7);
   }
 }
 
@@ -951,54 +959,58 @@ watch(
   .card-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 10px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
 
     .card-name {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
-      color: var(--el-text-color-primary);
+      color: #1e293b;
+      letter-spacing: -0.01em;
 
       &.clickable {
         cursor: pointer;
-        color: var(--el-color-primary);
-        transition: color 0.2s ease;
+        color: #3b82f6;
+        transition: all 0.2s ease;
 
         &:hover {
-          color: var(--el-color-primary-light-3);
+          color: #2563eb;
           text-decoration: underline;
+          text-underline-offset: 3px;
         }
       }
     }
 
     .card-type {
       font-size: 11px;
-      color: var(--el-text-color-secondary);
-      background: var(--el-fill-color);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-family: "SF Mono", "Monaco", "Consolas", monospace;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-weight: 500;
     }
   }
 
   .card-meta {
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 
     .meta-type {
       font-size: 11px;
-      color: var(--el-text-color-secondary);
-      background: var(--el-fill-color);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-family: "SF Mono", "Monaco", "Consolas", monospace;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-weight: 500;
     }
   }
 
   .card-desc {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    line-height: 1.5;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.6;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -1010,13 +1022,49 @@ watch(
 .card-action,
 .card-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+}
+
+:deep(.el-tag) {
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 0 12px;
+  height: 26px;
+  line-height: 24px;
+}
+
+:deep(.el-empty) {
+  padding: 40px 0;
+
+  .el-empty__description {
+    color: #64748b;
+    font-weight: 500;
+  }
+}
+
+:deep(.el-scrollbar) {
+  .el-scrollbar__bar {
+    &.is-vertical {
+      width: 6px;
+      right: 4px;
+    }
+
+    .el-scrollbar__thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+
+      &:hover {
+        background: #94a3b8;
+      }
+    }
+  }
 }
 
 // 响应式
@@ -1027,16 +1075,39 @@ watch(
   }
 
   .panel {
-    height: 380px;
+    height: 400px;
   }
 }
 
-// 响应式设计
 @media (max-width: 768px) {
-  .page-header {
+  .panel-header {
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .panel-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .filter-card {
+    flex-wrap: wrap;
+
+    .card-body {
+      width: 100%;
+      order: 2;
+    }
+
+    .card-action,
+    .card-actions {
+      order: 3;
+      width: 100%;
+      justify-content: flex-end;
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
+      margin-top: 12px;
+    }
   }
 }
 </style>
