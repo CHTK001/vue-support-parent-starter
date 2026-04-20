@@ -15,7 +15,7 @@
     }"
     :style="layoutStyle"
   >
-    <aside v-if="leftEnabled" class="sc-layout__left">
+    <aside v-if="leftEnabled" class="sc-layout__left el-card">
       <slot
         name="left"
         :collapsed="localLeftCollapsed"
@@ -31,15 +31,19 @@
       @mouseleave="isResizerHovered = false"
       @mousedown="startResize"
     >
-      <button
+      <el-button
         type="button"
+        circle
+        size="small"
         class="sc-layout__collapse"
         :class="{ 'is-visible': showCollapseButton }"
         :title="localLeftCollapsed ? '展开左侧面板' : '折叠左侧面板'"
         @click.stop="toggleLeftCollapse()"
       >
-        {{ localLeftCollapsed ? ">" : "<" }}
-      </button>
+        <span class="el-icon">
+          {{ localLeftCollapsed ? "→" : "←" }}
+        </span>
+      </el-button>
     </div>
 
     <main
@@ -65,16 +69,18 @@
           @mouseleave="isBottomResizerHovered = false"
           @mousedown="startBottomResize"
         >
-          <button
+          <el-button
             v-if="bottomCollapsible"
             type="button"
+            circle
+            size="small"
             class="sc-layout__main-collapse"
             :class="{ 'is-visible': showBottomCollapseButton }"
             title="折叠下方面板"
             @click.stop="toggleBottomCollapse(true)"
           >
-            v
-          </button>
+            ↓
+          </el-button>
         </div>
 
         <section
@@ -91,7 +97,9 @@
       <template v-else>
         <component
           :is="resolvedRouterDynamicComponent"
-          v-if="shouldUseRouterDynamicComponent && resolvedRouterDynamicComponent"
+          v-if="
+            shouldUseRouterDynamicComponent && resolvedRouterDynamicComponent
+          "
         />
         <slot v-else />
       </template>
@@ -106,14 +114,16 @@
       "
       class="sc-layout__main-expand-hotspot"
     >
-      <button
+      <el-button
         type="button"
+        circle
+        size="small"
         class="sc-layout__main-expand"
         title="展开下方面板"
         @click.stop="toggleBottomCollapse(false)"
       >
-        ^
-      </button>
+        ↑
+      </el-button>
     </div>
 
     <aside v-if="railEnabled" class="sc-layout__rail">
@@ -205,17 +215,19 @@
           </div>
         </button>
       </div>
-      <button
+      <el-button
         v-if="
           rightCollapsible && showRightCollapseButton && !localRightCollapsed
         "
         type="button"
+        circle
+        size="small"
         class="sc-layout__rail-collapse"
         title="折叠右侧面板"
         @click.stop="toggleRightCollapse(true)"
       >
-        >
-      </button>
+        →
+      </el-button>
     </aside>
 
     <div
@@ -227,14 +239,16 @@
       "
       class="sc-layout__rail-expand-hotspot"
     >
-      <button
+      <el-button
         type="button"
+        circle
+        size="small"
         class="sc-layout__rail-expand"
         title="展开右侧面板"
         @click.stop="toggleRightCollapse(false)"
       >
-        &lt;
-      </button>
+        ←
+      </el-button>
     </div>
   </section>
 </template>
@@ -287,11 +301,8 @@ export interface ScLayoutRouterRecord {
 
 const props = withDefaults(
   defineProps<{
-    /** 布局模式：默认左中右，或左中(上下)右 */
     layout?: "left-main-right" | "left-main-split-right" | "default" | "router";
-    /** 是否启用持久化（默认 true） */
     persist?: boolean;
-    /** 持久化 key，默认使用地址栏 pathname */
     persistKey?: string;
     leftCollapsed?: boolean;
     leftCollapsedWidth?: number;
@@ -310,27 +321,16 @@ const props = withDefaults(
     railTabs?: ScLayoutRailTab[];
     railWidth?: number;
     showRightCollapseButton?: boolean;
-    /** 默认加载的页面（rail tab name），不传则使用 railTabs 第一个 */
     defaultPage?: string | number;
-    /** 传入标准路由结构时自动转换为 rail 导航 */
     router?: ScLayoutRouterRecord[];
-    /** 路由数据驱动模式：route=默认路由接管；component=动态组件接管 */
     routerNavigationMode?: "route" | "component";
-    /** 右侧菜单图标尺寸：small=现有小图标；large=大图标 */
     railIconMode?: "small" | "large";
-    /** split 模式下，下方面板是否启用 */
     bottomEnabled?: boolean;
-    /** split 模式下，下方面板高度 */
     bottomHeight?: number;
-    /** split 模式下，下方面板最小高度 */
     bottomMinHeight?: number;
-    /** split 模式下，下方面板最大高度 */
     bottomMaxHeight?: number;
-    /** split 模式下，上方面板最小高度 */
     topMinHeight?: number;
-    /** split 模式下，下方面板折叠状态 */
     bottomCollapsed?: boolean;
-    /** split 模式下，下方面板是否可折叠 */
     bottomCollapsible?: boolean;
   }>(),
   {
@@ -598,10 +598,16 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
         nextGroup = {
           icon: resolveRouterNodeIcon(meta.icon),
           iconMode: meta.iconMode,
-          label: resolveRouterNodeTitle(routeItem, currentPath || String(routeItem.name || "")),
+          label: resolveRouterNodeTitle(
+            routeItem,
+            currentPath || String(routeItem.name || ""),
+          ),
           name: String(routeItem.name || currentPath || routeItem.path || ""),
           tabs: [],
-          title: resolveRouterNodeTitle(routeItem, currentPath || String(routeItem.name || "")),
+          title: resolveRouterNodeTitle(
+            routeItem,
+            currentPath || String(routeItem.name || ""),
+          ),
         };
         groups.set(String(nextGroup.name), nextGroup);
       }
@@ -642,7 +648,9 @@ const collectRouterLayoutData = (routes: ScLayoutRouterRecord[] = []) => {
       const tabRecord = {
         component: resolveRouteComponent(routeItem.component),
         groupName:
-          normalizedGroupName !== undefined ? String(normalizedGroupName) : undefined,
+          normalizedGroupName !== undefined
+            ? String(normalizedGroupName)
+            : undefined,
         icon,
         iconMode: meta.iconMode,
         label: title,
@@ -692,10 +700,7 @@ const routerRailTabMap = computed(
 
 const activeRouterGroupName = computed(() => {
   const tab = routerRailTabMap.value.get(String(localRailValue.value));
-  return (
-    tab?.groupName ||
-    String(routerRailGroups.value[0]?.name || "")
-  );
+  return tab?.groupName || String(routerRailGroups.value[0]?.name || "");
 });
 
 const displayRailTabs = computed<ScLayoutRailTab[]>(() => {
@@ -708,7 +713,9 @@ const displayRailTabs = computed<ScLayoutRailTab[]>(() => {
   if (activeGroupTabs?.length) {
     return activeGroupTabs;
   }
-  return routerRailTabs.value.length ? routerRailTabs.value : localRailTabs.value;
+  return routerRailTabs.value.length
+    ? routerRailTabs.value
+    : localRailTabs.value;
 });
 
 const resolveAliasedRoutePath = (path: string) => {
@@ -845,7 +852,6 @@ watch(
   () => props.railTabs,
   (value) => {
     localRailTabs.value = [...value];
-    // 用 nextTick 延迟，确保 props.modelValue 已经同步更新后再校验
     nextTick(() => ensureValidActiveTab());
   },
   { deep: true },
@@ -958,7 +964,10 @@ const rightCollapsible = computed(
 const showRightCollapseButton = computed(() => props.showRightCollapseButton);
 const hasRailFooterSlot = computed(() => Boolean(slots["rail-footer"]));
 const showDefaultRouterFooter = computed(
-  () => useRouterTabs.value && !hasRailFooterSlot.value && routerRailGroups.value.length > 1,
+  () =>
+    useRouterTabs.value &&
+    !hasRailFooterSlot.value &&
+    routerRailGroups.value.length > 1,
 );
 
 const safeLeftMaxWidth = computed(() => {
@@ -1034,7 +1043,6 @@ const syncRailTabs = (tabs: ScLayoutRailTab[]) => {
 const ensureValidActiveTab = () => {
   const availableTabs = displayRailTabs.value;
   if (!useRouterNavigation.value) {
-    // 固定 tab（workspace/metadata）始终有效，不需要重置
     const fixedTabs = ["workspace", "metadata"];
     if (fixedTabs.includes(String(localRailValue.value))) return;
   }
@@ -1043,7 +1051,6 @@ const ensureValidActiveTab = () => {
     (item) => String(item.name) === String(localRailValue.value),
   );
   if (hasCurrent) return;
-  // 当前 active tab 已被移除，回退到第一个 tab
   const next = availableTabs[0];
   localRailValue.value = next?.name ?? "";
   emit("update:modelValue", localRailValue.value);
@@ -1054,7 +1061,7 @@ const loadPersistedState = () => {
   isRestoringPersistedState.value = true;
 
   try {
-    const savedState = localStorageProxy().getItem(storageKey.value);
+    const savedState = localStorageProxy().getItem(storageKey.value) as any;
     if (!savedState || typeof savedState !== "object") {
       return;
     }
@@ -1334,21 +1341,27 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+:root {
+  --el-border-radius-base: 8px;
+  --el-border-color-light: #e4e7ed;
+  --el-bg-color-page: #f5f7fa;
+  --el-box-shadow-light: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 .sc-layout {
-  --sc-layout-rail-bg: rgba(255, 255, 255, 0.9);
-  --sc-layout-rail-bg-strong: rgba(255, 255, 255, 0.96);
-  --sc-layout-rail-border: rgba(15, 23, 42, 0.1);
-  --sc-layout-rail-shadow: 0 10px 28px -22px rgba(15, 23, 42, 0.22);
-  --sc-layout-rail-tab-color: #5f7686;
-  --sc-layout-rail-tab-color-hover: #334155;
-  --sc-layout-rail-tab-bg-hover: rgba(var(--el-color-primary-rgb), 0.1);
-  --sc-layout-rail-tab-active-bg: rgba(var(--el-color-primary-rgb), 0.16);
+  --sc-layout-rail-bg: #ffffff;
+  --sc-layout-rail-bg-strong: #ffffff;
+  --sc-layout-rail-border: var(--el-border-color-light);
+  --sc-layout-rail-shadow: var(--el-box-shadow-light);
+  --sc-layout-rail-tab-color: var(--el-text-color-regular);
+  --sc-layout-rail-tab-color-hover: var(--el-text-color-primary);
+  --sc-layout-rail-tab-bg-hover: var(--el-fill-color-light);
+  --sc-layout-rail-tab-active-bg: var(--el-color-primary-light-9);
   --sc-layout-rail-tab-active-color: var(--el-color-primary);
-  --sc-layout-rail-tab-active-shadow:
-    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.2),
-    0 14px 24px -18px rgba(var(--el-color-primary-rgb), 0.5);
-  --sc-layout-rail-close-bg: rgba(244, 63, 94, 0.1);
-  --sc-layout-rail-close-color: #be123c;
+  --sc-layout-rail-tab-active-shadow: 0 2px 8px
+    rgba(var(--el-color-primary-rgb), 0.2);
+  --sc-layout-rail-close-bg: var(--el-color-danger-light-8);
+  --sc-layout-rail-close-color: var(--el-color-danger);
 
   position: relative;
   isolation: isolate;
@@ -1363,6 +1376,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  background: var(--el-bg-color-page);
 }
 
 .sc-layout__left,
@@ -1384,6 +1398,9 @@ onBeforeUnmount(() => {
 
 .sc-layout__left {
   grid-column: 1;
+  border: none;
+  border-radius: 0;
+  background: var(--el-bg-color);
 }
 
 .sc-layout__resizer {
@@ -1391,6 +1408,12 @@ onBeforeUnmount(() => {
   position: relative;
   height: 100%;
   cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
 }
 
 .sc-layout__resizer::before {
@@ -1399,7 +1422,7 @@ onBeforeUnmount(() => {
   bottom: 8px;
   left: 50%;
   width: 1px;
-  background: rgba(15, 23, 42, 0.12);
+  background: var(--el-border-color-light);
   content: "";
   transform: translateX(-50%);
 }
@@ -1411,7 +1434,7 @@ onBeforeUnmount(() => {
   width: 4px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.12);
+  background: var(--el-border-color-light);
   content: "";
   opacity: 0;
   transform: translate(-50%, -50%);
@@ -1428,28 +1451,13 @@ onBeforeUnmount(() => {
   top: 50%;
   left: 50%;
   z-index: 1;
-  width: 20px;
-  height: 20px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
   opacity: 0;
   transform: translate(-50%, -50%);
-  transition:
-    opacity 0.2s ease,
-    border-color 0.2s ease;
-}
+  transition: opacity 0.2s ease;
 
-.sc-layout__collapse.is-visible {
-  opacity: 1;
-}
-
-.sc-layout__collapse:hover {
-  border-color: rgba(15, 23, 42, 0.22);
+  &.is-visible {
+    opacity: 1;
+  }
 }
 
 .sc-layout__main {
@@ -1457,6 +1465,10 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 1;
   overflow: auto;
+  background: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  margin: 8px;
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .sc-layout__main.is-split {
@@ -1473,6 +1485,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   min-width: 0;
   overflow: auto;
+  padding: 16px;
 }
 
 .sc-layout__main-top {
@@ -1483,6 +1496,12 @@ onBeforeUnmount(() => {
   grid-row: 2;
   position: relative;
   cursor: row-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
 }
 
 .sc-layout__main-resizer::before {
@@ -1491,7 +1510,7 @@ onBeforeUnmount(() => {
   right: 8px;
   top: 50%;
   height: 1px;
-  background: rgba(15, 23, 42, 0.12);
+  background: var(--el-border-color-light);
   content: "";
   transform: translateY(-50%);
 }
@@ -1503,7 +1522,7 @@ onBeforeUnmount(() => {
   width: 28px;
   height: 4px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.12);
+  background: var(--el-border-color-light);
   content: "";
   opacity: 0;
   transform: translate(-50%, -50%);
@@ -1520,32 +1539,18 @@ onBeforeUnmount(() => {
   top: 50%;
   left: 50%;
   z-index: 1;
-  width: 20px;
-  height: 20px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
   opacity: 0;
   transform: translate(-50%, -50%);
-  transition:
-    opacity 0.2s ease,
-    border-color 0.2s ease;
-}
+  transition: opacity 0.2s ease;
 
-.sc-layout__main-collapse.is-visible {
-  opacity: 1;
-}
-
-.sc-layout__main-collapse:hover {
-  border-color: rgba(15, 23, 42, 0.22);
+  &.is-visible {
+    opacity: 1;
+  }
 }
 
 .sc-layout__main-bottom {
   grid-row: 3;
+  border-top: 1px solid var(--el-border-color-light);
 }
 
 .sc-layout__main-expand-hotspot {
@@ -1562,28 +1567,13 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 50%;
   bottom: 8px;
-  width: 22px;
-  height: 22px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #475569;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
   opacity: 0;
   transform: translateX(-50%);
-  transition:
-    opacity 0.2s ease,
-    border-color 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .sc-layout__main-expand-hotspot:hover .sc-layout__main-expand {
   opacity: 1;
-}
-
-.sc-layout__main-expand:hover {
-  border-color: rgba(15, 23, 42, 0.24);
 }
 
 .sc-layout__rail {
@@ -1591,20 +1581,12 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 8;
   display: flex;
-  border-radius: 14px;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
   border-left: 1px solid var(--sc-layout-rail-border);
-  background: linear-gradient(
-    180deg,
-    var(--sc-layout-rail-bg-strong),
-    var(--sc-layout-rail-bg)
-  );
-  box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.65),
-    var(--sc-layout-rail-shadow);
-  backdrop-filter: blur(10px);
+  background: var(--sc-layout-rail-bg);
+  box-shadow: var(--sc-layout-rail-shadow);
   box-sizing: border-box;
   contain: layout paint;
   will-change: opacity;
@@ -1676,56 +1658,31 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: 13px;
+  border-radius: var(--el-border-radius-base);
   background: transparent;
   color: var(--sc-layout-rail-tab-color);
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
+  transition: all 0.2s ease-in-out;
 
-.sc-layout__rail-tab::before {
-  position: absolute;
-  left: 2px;
-  width: 3px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(var(--el-color-primary-rgb), 0.75);
-  content: "";
-  opacity: 0;
-  transform: scaleY(0.5);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
+  &:hover {
+    background: var(--sc-layout-rail-tab-bg-hover);
+    color: var(--sc-layout-rail-tab-color-hover);
+  }
+
+  &.is-active {
+    background: var(--sc-layout-rail-tab-active-bg);
+    color: var(--sc-layout-rail-tab-active-color);
+    box-shadow: var(--sc-layout-rail-tab-active-shadow);
+  }
 }
 
 .sc-layout__rail-tabs.is-round .sc-layout__rail-tab {
   border-radius: 999px;
 }
 
-.sc-layout__rail-tab:hover {
-  background: var(--sc-layout-rail-tab-bg-hover);
-  color: var(--sc-layout-rail-tab-color-hover);
-  transform: translateX(-1px);
-}
-
 .sc-layout__rail-tab.is-icon-large {
   width: 48px;
   height: 48px;
-}
-
-.sc-layout__rail-tab.is-active {
-  background: var(--sc-layout-rail-tab-active-bg);
-  color: var(--sc-layout-rail-tab-active-color);
-  box-shadow: var(--sc-layout-rail-tab-active-shadow);
-}
-
-.sc-layout__rail-tab.is-active::before {
-  opacity: 1;
-  transform: scaleY(1);
 }
 
 .sc-layout__rail-icon,
@@ -1740,16 +1697,7 @@ onBeforeUnmount(() => {
 }
 
 .sc-layout__rail-icon-wrap {
-  border-radius: 10px;
-  transition: background-color 0.2s ease;
-}
-
-.sc-layout__rail-tab:hover .sc-layout__rail-icon-wrap {
-  background: rgba(255, 255, 255, 0.42);
-}
-
-.sc-layout__rail-tab.is-active .sc-layout__rail-icon-wrap {
-  background: rgba(255, 255, 255, 0.65);
+  border-radius: var(--el-border-radius-base);
 }
 
 .sc-layout__rail-tab.is-icon-large .sc-layout__rail-icon-wrap {
@@ -1787,9 +1735,7 @@ onBeforeUnmount(() => {
   opacity: 0;
   pointer-events: none;
   transform: scale(0.8);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+  transition: all 0.18s ease;
 }
 
 .sc-layout__rail-tabs.close-mode-hover
@@ -1800,69 +1746,18 @@ onBeforeUnmount(() => {
   transform: scale(1);
 }
 
-.sc-layout__rail-tabs.close-mode-hover
-  .sc-layout__rail-tab:focus-visible
-  .sc-layout__rail-close {
-  opacity: 1;
-  pointer-events: auto;
-  transform: scale(1);
-}
-
-:global(html.dark) .sc-layout,
-:global(html[data-theme="dark"]) .sc-layout {
-  --sc-layout-rail-bg: rgba(15, 23, 42, 0.86);
-  --sc-layout-rail-bg-strong: rgba(15, 23, 42, 0.94);
-  --sc-layout-rail-border: rgba(148, 163, 184, 0.22);
-  --sc-layout-rail-shadow: 0 14px 32px -24px rgba(2, 6, 23, 0.62);
-  --sc-layout-rail-tab-color: #a3b8cf;
-  --sc-layout-rail-tab-color-hover: #dbeafe;
-  --sc-layout-rail-tab-bg-hover: rgba(var(--el-color-primary-rgb), 0.2);
-  --sc-layout-rail-tab-active-bg: rgba(var(--el-color-primary-rgb), 0.3);
-  --sc-layout-rail-tab-active-color: var(--el-color-primary-light-3);
-  --sc-layout-rail-tab-active-shadow:
-    0 0 0 1px rgba(var(--el-color-primary-rgb), 0.32),
-    0 16px 28px -20px rgba(var(--el-color-primary-rgb), 0.56);
-  --sc-layout-rail-close-bg: rgba(251, 113, 133, 0.24);
-  --sc-layout-rail-close-color: #ffe4ea;
-}
-
-:global(html.dark) .sc-layout__main-collapse,
-:global(html[data-theme="dark"]) .sc-layout__main-collapse,
-:global(html.dark) .sc-layout__main-expand,
-:global(html[data-theme="dark"]) .sc-layout__main-expand {
-  border-color: rgba(148, 163, 184, 0.3);
-  background: rgba(15, 23, 42, 0.96);
-  color: #cbd5e1;
-}
-
 .sc-layout__rail-collapse,
 .sc-layout__rail-expand {
   position: absolute;
   top: 50%;
   z-index: 60;
-  width: 22px;
-  height: 22px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #475569;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
   will-change: opacity;
-  transition:
-    opacity 0.2s ease,
-    border-color 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .sc-layout__rail-collapse {
   left: 12px;
   transform: translate(-50%, -50%);
-}
-
-.sc-layout__rail-collapse:hover,
-.sc-layout__rail-expand:hover {
-  border-color: rgba(15, 23, 42, 0.24);
 }
 
 .sc-layout__rail-expand-hotspot {
@@ -1883,5 +1778,40 @@ onBeforeUnmount(() => {
 
 .sc-layout__rail-expand-hotspot:hover .sc-layout__rail-expand {
   opacity: 1;
+}
+
+/* 深色模式 */
+:global(html.dark) .sc-layout,
+:global(html[data-theme="dark"]) .sc-layout {
+  color-scheme: dark;
+  --sc-layout-rail-bg: var(--el-bg-color);
+  --sc-layout-rail-bg-strong: var(--el-bg-color);
+  --sc-layout-rail-border: var(--el-border-color-dark);
+  --sc-layout-rail-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  --sc-layout-rail-tab-color: var(--el-text-color-regular-dark);
+  --sc-layout-rail-tab-color-hover: var(--el-text-color-primary-dark);
+  --sc-layout-rail-tab-bg-hover: var(--el-fill-color-dark);
+  --sc-layout-rail-tab-active-bg: var(--el-color-primary-dark-2);
+  --sc-layout-rail-tab-active-color: var(--el-color-primary-light-3);
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .sc-layout {
+    grid-template-columns:
+      var(--sc-layout-left-track, 0px)
+      var(--sc-layout-resizer-track, 0px)
+      1fr
+      var(--sc-layout-rail-track, 0px);
+  }
+
+  .sc-layout__main {
+    margin: 4px;
+  }
+
+  .sc-layout__main-top,
+  .sc-layout__main-bottom {
+    padding: 12px;
+  }
 }
 </style>

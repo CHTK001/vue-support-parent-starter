@@ -8,7 +8,7 @@
     @close="handleClose"
     draggable
   >
-    <div class="service-discovery-container">
+    <div class="service-discovery-container thin-scroller">
       <!-- 发现模式选择 -->
       <div class="mode-selection">
         <div class="mode-label">选择服务发现模式</div>
