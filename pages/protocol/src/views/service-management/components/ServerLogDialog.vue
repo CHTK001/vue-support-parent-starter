@@ -2,7 +2,7 @@
   <sc-dialog
     v-model="dialogVisible"
     :title="dialogTitle"
-    width="900px"
+    width="960px"
     class="server-log-dialog"
     destroy-on-close
     @close="handleClose"
@@ -14,77 +14,65 @@
           v-model="filterLevel"
           placeholder="日志级别"
           clearable
-          style="width: 120px"
+          class="level-select"
           @change="handleFilterChange"
         >
           <ScOption label="全部" value="" />
           <ScOption label="DEBUG" value="DEBUG">
-            <ScTag type="info" size="small">DEBUG</ScTag>
+            <div class="level-option">
+              <span class="level-dot level-debug"></span>
+              <span>DEBUG</span>
+            </div>
           </ScOption>
           <ScOption label="INFO" value="INFO">
-            <ScTag type="success" size="small">INFO</ScTag>
+            <div class="level-option">
+              <span class="level-dot level-info"></span>
+              <span>INFO</span>
+            </div>
           </ScOption>
           <ScOption label="WARN" value="WARN">
-            <ScTag type="warning" size="small">WARN</ScTag>
+            <div class="level-option">
+              <span class="level-dot level-warn"></span>
+              <span>WARN</span>
+            </div>
           </ScOption>
           <ScOption label="ERROR" value="ERROR">
-            <ScTag type="danger" size="small">ERROR</ScTag>
+            <div class="level-option">
+              <span class="level-dot level-error"></span>
+              <span>ERROR</span>
+            </div>
           </ScOption>
         </ScSelect>
 
         <ScInput
           v-model="searchKeyword"
-          placeholder="搜索日志内容"
+          placeholder="搜索日志内容..."
           clearable
-          style="width: 200px"
+          class="search-input"
           @input="handleSearchChange"
         >
           <template #prefix>
-            <IconifyIconOnline icon="ri:search-line" />
+            <el-icon><Search /></el-icon>
           </template>
         </ScInput>
 
-        <ScSwitch
-          v-model="autoScroll"
-          active-text="自动滚动"
-          inactive-text=""
-          style="margin-left: 12px"
-        />
+        <div class="auto-scroll-toggle">
+          <ScSwitch
+            v-model="autoScroll"
+            inline-prompt
+            active-text="自动滚动"
+            inactive-text="手动"
+          />
+        </div>
       </div>
 
       <div class="toolbar-right">
-        <ScTag
-          :type="connectionStatus === 'connected' ? 'success' : 'danger'"
-          size="small"
-        >
-          <IconifyIconOnline
-            :icon="
-              connectionStatus === 'connected'
-                ? 'ri:wifi-line'
-                : 'ri:wifi-off-line'
-            "
-          />
-          {{ connectionStatus === "connected" ? "已连接" : "未连接" }}
-        </ScTag>
-
-        <ScButton
-          type="primary"
-          size="small"
-          :loading="isReconnecting"
-          @click="reconnect"
-        >
-          <IconifyIconOnline icon="ri:refresh-line" />
-          重连
+        <ScButton class="action-btn" circle @click="clearLogs">
+          <el-icon><Delete /></el-icon>
         </ScButton>
 
-        <ScButton type="warning" size="small" @click="clearLogs">
-          <IconifyIconOnline icon="ri:delete-bin-line" />
-          清空
-        </ScButton>
-
-        <ScButton type="info" size="small" @click="downloadLogs">
-          <IconifyIconOnline icon="ri:download-line" />
-          导出
+        <ScButton type="primary" circle class="action-btn" @click="downloadLogs">
+          <el-icon><Download /></el-icon>
         </ScButton>
       </div>
     </div>
@@ -92,9 +80,11 @@
     <!-- 日志显示区域 -->
     <div ref="logContainer" class="log-container">
       <div v-if="filteredLogs.length === 0" class="log-empty">
-        <IconifyIconOnline icon="ri:file-list-3-line" class="empty-icon" />
-        <p>暂无日志数据</p>
-        <p class="sub-text">等待服务器推送日志...</p>
+        <div class="empty-icon-wrapper">
+          <el-icon class="empty-icon"><Document /></el-icon>
+        </div>
+        <p class="empty-title">暂无日志数据</p>
+        <p class="empty-subtitle">等待服务器推送日志...</p>
       </div>
 
       <div
@@ -104,18 +94,18 @@
         :class="'level-' + log.level.toLowerCase()"
       >
         <span class="log-time">{{ formatTime(log.timestamp) }}</span>
-        <ScTag
-          :type="getLevelTagType(log.level)"
-          size="small"
-          class="log-level"
+        <span
+          class="log-level-badge"
+          :class="'badge-' + log.level.toLowerCase()"
         >
           {{ log.level }}
-        </ScTag>
+        </span>
         <span v-if="log.filterName" class="log-filter">
-          [{{ log.filterName }}]
+          {{ log.filterName }}
         </span>
         <span v-if="log.requestMethod && log.requestPath" class="log-request">
-          {{ log.requestMethod }} {{ log.requestPath }}
+          <span class="request-method">{{ log.requestMethod }}</span>
+          <span class="request-path">{{ log.requestPath }}</span>
         </span>
         <span class="log-message">{{ log.message }}</span>
       </div>
@@ -123,27 +113,50 @@
 
     <!-- 统计信息 -->
     <div class="log-stats">
-      <span>
-        总计: <strong>{{ logs.length }}</strong> 条
-      </span>
-      <span class="stat-item">
-        <ScTag type="info" size="small">DEBUG</ScTag> {{ logStats.debug }}
-      </span>
-      <span class="stat-item">
-        <ScTag type="success" size="small">INFO</ScTag> {{ logStats.info }}
-      </span>
-      <span class="stat-item">
-        <ScTag type="warning" size="small">WARN</ScTag> {{ logStats.warn }}
-      </span>
-      <span class="stat-item">
-        <ScTag type="danger" size="small">ERROR</ScTag> {{ logStats.error }}
-      </span>
+      <div class="stats-total">
+        <el-icon><Tickets /></el-icon>
+        <span>总计</span>
+        <strong>{{ logs.length }}</strong>
+        <span>条</span>
+      </div>
+
+      <div class="stats-divider"></div>
+
+      <div class="stats-group">
+        <div class="stat-item stat-debug">
+          <span class="stat-dot"></span>
+          <span class="stat-label">DEBUG</span>
+          <span class="stat-value">{{ logStats.debug }}</span>
+        </div>
+        <div class="stat-item stat-info">
+          <span class="stat-dot"></span>
+          <span class="stat-label">INFO</span>
+          <span class="stat-value">{{ logStats.info }}</span>
+        </div>
+        <div class="stat-item stat-warn">
+          <span class="stat-dot"></span>
+          <span class="stat-label">WARN</span>
+          <span class="stat-value">{{ logStats.warn }}</span>
+        </div>
+        <div class="stat-item stat-error">
+          <span class="stat-dot"></span>
+          <span class="stat-label">ERROR</span>
+          <span class="stat-value">{{ logStats.error }}</span>
+        </div>
+      </div>
     </div>
   </sc-dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
+import {
+  Search,
+  Delete,
+  Download,
+  Document,
+  Tickets,
+} from "@element-plus/icons-vue";
 import {
   getSystemServerFilterLogs,
   getServerLogSseUrl,
@@ -190,9 +203,7 @@ const searchKeyword = ref("");
 const autoScroll = ref(true);
 const logContainer = ref<HTMLElement | null>(null);
 
-// SSE 连接状态
-const connectionStatus = ref<"connected" | "disconnected">("disconnected");
-const isReconnecting = ref(false);
+// SSE 连接
 let eventSource: EventSource | null = null;
 
 // 日志统计
@@ -226,77 +237,6 @@ const filteredLogs = computed(() => {
     return true;
   });
 });
-
-// 连接 SSE
-const connectSSE = () => {
-  if (!props.serverId) return;
-  if (props.server?.systemServerStatus !== "RUNNING") return;
-
-  // 关闭现有连接
-  disconnectSSE();
-
-  const sseUrl = getServerLogSseUrl(props.serverId);
-  console.log("连接 SSE:", sseUrl);
-
-  eventSource = new EventSource(sseUrl);
-
-  eventSource.onopen = () => {
-    console.log("SSE 连接已建立");
-    connectionStatus.value = "connected";
-    isReconnecting.value = false;
-  };
-
-  eventSource.onmessage = (event) => {
-    try {
-      const logEntry = JSON.parse(event.data) as LogEntry;
-      logs.value.push(logEntry);
-
-      // 限制日志数量，防止内存溢出
-      if (logs.value.length > 1000) {
-        logs.value = logs.value.slice(-500);
-      }
-
-      // 自动滚动到底部
-      if (autoScroll.value) {
-        scrollToBottom();
-      }
-    } catch (e) {
-      console.error("解析日志数据失败:", e);
-    }
-  };
-
-  eventSource.onerror = (error) => {
-    console.error("SSE 连接错误:", error);
-    connectionStatus.value = "disconnected";
-
-    // 自动重连
-    setTimeout(() => {
-      if (
-        props.visible &&
-        props.serverId &&
-        props.server?.systemServerStatus === "RUNNING"
-      ) {
-        console.log("尝试重新连接...");
-        connectSSE();
-      }
-    }, 3000);
-  };
-};
-
-// 断开 SSE
-const disconnectSSE = () => {
-  if (eventSource) {
-    eventSource.close();
-    eventSource = null;
-  }
-  connectionStatus.value = "disconnected";
-};
-
-// 重新连接
-const reconnect = () => {
-  isReconnecting.value = true;
-  connectSSE();
-};
 
 // 清空日志
 const clearLogs = () => {
@@ -386,22 +326,6 @@ const formatTime = (timestamp: string) => {
   }
 };
 
-// 获取日志级别标签类型
-const getLevelTagType = (level: string) => {
-  switch (level.toUpperCase()) {
-    case "DEBUG":
-      return "info";
-    case "INFO":
-      return "success";
-    case "WARN":
-      return "warning";
-    case "ERROR":
-      return "danger";
-    default:
-      return "info";
-  }
-};
-
 // 处理过滤变化
 const handleFilterChange = () => {
   scrollToBottom();
@@ -414,39 +338,33 @@ const handleSearchChange = () => {
 
 // 关闭对话框
 const handleClose = () => {
-  disconnectSSE();
   logs.value = [];
   filterLevel.value = "";
   searchKeyword.value = "";
 };
-
-// 监听对话框显示状态
-watch(
-  () => props.visible,
-  async (newVal) => {
-    if (newVal && props.serverId) {
-      await loadHistoryLogs();
-      if (props.server?.systemServerStatus === "RUNNING") {
-        connectSSE();
-      } else {
-        disconnectSSE();
-      }
-    } else {
-      disconnectSSE();
-    }
-  },
-);
-
-// 组件卸载时断开连接
-onUnmounted(() => {
-  disconnectSSE();
-});
 </script>
 
 <style lang="scss" scoped>
 .server-log-dialog {
+  :deep(.el-dialog) {
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-right: 0;
+
+    .el-dialog__title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+  }
+
   :deep(.el-dialog__body) {
-    padding: 16px 20px;
+    padding: 20px 24px;
   }
 }
 
@@ -454,33 +372,120 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding: 12px 16px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 
   .toolbar-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
   }
 
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+  }
+
+  .level-select {
+    width: 130px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  .search-input {
+    width: 220px;
+
+    :deep(.el-input__wrapper) {
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+  }
+
+  .auto-scroll-toggle {
+    :deep(.el-switch) {
+      --el-switch-on-color: #10b981;
+    }
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.level-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.level-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  &.level-debug {
+    background: #94a3b8;
+  }
+
+  &.level-info {
+    background: #10b981;
+  }
+
+  &.level-warn {
+    background: #f59e0b;
+  }
+
+  &.level-error {
+    background: #ef4444;
   }
 }
 
 .log-container {
-  height: 450px;
+  height: 480px;
   overflow-y: auto;
-  background: #1e1e1e;
-  border-radius: 12px;
-  padding: 12px;
-  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 16px;
+  padding: 16px;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Consolas", monospace;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 1.7;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
 
   .log-empty {
     display: flex;
@@ -488,74 +493,148 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #6b7280;
+
+    .empty-icon-wrapper {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
 
     .empty-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
+      font-size: 36px;
+      color: rgba(255, 255, 255, 0.3);
     }
 
-    p {
-      margin: 4px 0;
+    .empty-title {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.6);
     }
 
-    .sub-text {
-      font-size: 12px;
-      color: #9ca3af;
+    .empty-subtitle {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.35);
     }
   }
 
   .log-item {
-    padding: 6px 8px;
-    border-radius: 4px;
-    margin-bottom: 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    transition: background 0.2s ease;
+    gap: 10px;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     &.level-debug {
-      color: #9ca3af;
+      border-left-color: #94a3b8;
+
+      .log-message {
+        color: #cbd5e1;
+      }
     }
 
     &.level-info {
-      color: #10b981;
+      border-left-color: #10b981;
+
+      .log-message {
+        color: #6ee7b7;
+      }
     }
 
     &.level-warn {
-      color: #f59e0b;
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.06);
+
+      .log-message {
+        color: #fcd34d;
+      }
     }
 
     &.level-error {
-      color: #ef4444;
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.08);
+
+      .log-message {
+        color: #fca5a5;
+      }
     }
 
     .log-time {
-      color: #6b7280;
+      color: #64748b;
       flex-shrink: 0;
       font-size: 11px;
+      font-weight: 500;
+      padding: 2px 0;
     }
 
-    .log-level {
+    .log-level-badge {
       flex-shrink: 0;
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      &.badge-debug {
+        background: rgba(148, 163, 184, 0.2);
+        color: #94a3b8;
+      }
+
+      &.badge-info {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+      }
+
+      &.badge-warn {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+      }
+
+      &.badge-error {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
     }
 
     .log-filter {
-      color: #8b5cf6;
+      color: #a78bfa;
       flex-shrink: 0;
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 11px;
+      padding: 2px 8px;
+      background: rgba(167, 139, 250, 0.15);
+      border-radius: 6px;
     }
 
     .log-request {
-      color: #3b82f6;
+      display: flex;
+      gap: 6px;
       flex-shrink: 0;
+
+      .request-method {
+        color: #60a5fa;
+        font-weight: 700;
+        font-size: 11px;
+      }
+
+      .request-path {
+        color: #93c5fd;
+        font-size: 11px;
+      }
     }
 
     .log-message {
@@ -568,32 +647,209 @@ onUnmounted(() => {
 .log-stats {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #64748b;
+  gap: 20px;
+  margin-top: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 
-  strong {
-    color: #1e293b;
-    font-weight: 600;
+  .stats-total {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #64748b;
+
+    .el-icon {
+      font-size: 16px;
+      color: #3b82f6;
+    }
+
+    strong {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 2px;
+    }
+  }
+
+  .stats-divider {
+    width: 1px;
+    height: 24px;
+    background: #e2e8f0;
+  }
+
+  .stats-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
   }
 
   .stat-item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 14px;
+      font-weight: 700;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    &.stat-debug {
+      .stat-dot {
+        background: #94a3b8;
+      }
+      .stat-label {
+        color: #64748b;
+      }
+      .stat-value {
+        color: #475569;
+      }
+    }
+
+    &.stat-info {
+      .stat-dot {
+        background: #10b981;
+      }
+      .stat-label {
+        color: #059669;
+      }
+      .stat-value {
+        color: #047857;
+      }
+    }
+
+    &.stat-warn {
+      .stat-dot {
+        background: #f59e0b;
+      }
+      .stat-label {
+        color: #d97706;
+      }
+      .stat-value {
+        color: #b45309;
+      }
+    }
+
+    &.stat-error {
+      .stat-dot {
+        background: #ef4444;
+      }
+      .stat-label {
+        color: #dc2626;
+      }
+      .stat-value {
+        color: #b91c1c;
+      }
+    }
   }
 }
 
 // 响应式设计
 @media (max-width: 768px) {
-  .page-header {
+  .server-log-dialog {
+    :deep(.el-dialog) {
+      width: 95% !important;
+      margin: 16px auto;
+    }
+  }
+
+  .log-toolbar {
     flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 16px;
+    padding: 14px 16px;
+
+    .toolbar-left {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 12px;
+
+      .level-select,
+      .search-input {
+        flex: 1;
+        min-width: 120px;
+      }
+    }
+
+    .toolbar-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  .log-container {
+    height: 360px;
+    padding: 12px;
+
+    .log-item {
+      flex-wrap: wrap;
+      padding: 8px 10px;
+      gap: 6px;
+
+      .log-time {
+        order: 1;
+      }
+
+      .log-level-badge {
+        order: 2;
+      }
+
+      .log-message {
+        order: 5;
+        width: 100%;
+        margin-top: 4px;
+      }
+    }
+  }
+
+  .log-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+
+    .stats-divider {
+      display: none;
+    }
+
+    .stats-group {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: calc(50% - 5px);
+      justify-content: center;
+    }
   }
 }
 </style>

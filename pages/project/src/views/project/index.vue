@@ -158,7 +158,14 @@ const handleCardClick = async (project: SysProject) => {
     if (res.code === "00000" && res.data) {
       const salt = import.meta.env.VITE_SC_SALT ?? "default-salt";
       const sc = encodeScParam(res.data as any, salt);
-      router.push({ path: "/server/list", query: { _sc: encodeURIComponent(sc) } });
+      router.push({
+        path: "/server/list",
+        query: {
+          _sc: encodeURIComponent(sc),
+          nginxProjectStandalone: "1",
+          nginxTab: "project",
+        },
+      });
     }
   } else {
     saveDialogRef.value?.open("edit", project, nginxDefaults());

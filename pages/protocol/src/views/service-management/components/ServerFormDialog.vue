@@ -2,39 +2,55 @@
   <sc-dialog
     v-model="dialogVisible"
     :title="isEdit ? '编辑服务' : '新增服务'"
-    width="900px"
+    width="960px"
     :close-on-click-modal="false"
+    class="server-dialog"
     @close="handleClose"
   >
-    <div class="form-container">
+    <div class="dialog-body">
+      <!-- 顶部标题区域 -->
+      <div class="dialog-header-banner">
+        <div class="banner-icon" :class="{ 'is-edit': isEdit }">
+          <IconifyIconOnline :icon="isEdit ? 'ri:edit-2-line' : 'ri:add-circle-line'" />
+        </div>
+        <div class="banner-content">
+          <h3 class="banner-title">{{ isEdit ? '编辑服务配置' : '创建新服务' }}</h3>
+          <p class="banner-desc">{{ isEdit ? '修改服务的基本信息和高级配置' : '配置服务的基本信息以启动新服务' }}</p>
+        </div>
+      </div>
+
       <ScForm
         ref="formRef"
         :model="formData"
         :rules="formRules"
         label-width="100px"
-        label-position="right"
+        label-position="top"
         class="server-form"
       >
-        <ScRow :gutter="24">
+        <ScRow :gutter="32">
           <!-- 左列：基本信息 -->
-          <ScCol :span="12">
+          <ScCol :xs="24" :sm="24" :md="12" :lg="12">
             <div class="form-section">
               <div class="section-header">
-                <IconifyIconOnline
-                  icon="ri:information-line"
-                  class="section-icon"
-                />
-                <span class="section-title">基本信息</span>
+                <div class="section-icon primary">
+                  <IconifyIconOnline icon="ri:information-line" />
+                </div>
+                <div class="section-meta">
+                  <span class="section-title">基本信息</span>
+                  <span class="section-subtitle">服务的核心配置项</span>
+                </div>
               </div>
+
               <div class="section-content">
                 <ScFormItem label="服务名称" prop="systemServerName">
                   <ScInput
                     v-model="formData.systemServerName"
                     placeholder="请输入服务名称"
                     clearable
+                    class="custom-input"
                   >
                     <template #prefix>
-                      <IconifyIconOnline icon="ri:server-line" />
+                      <IconifyIconOnline icon="ri:server-line" class="input-icon" />
                     </template>
                   </ScInput>
                 </ScFormItem>
@@ -43,7 +59,7 @@
                   <ScSelect
                     v-model="formData.systemServerType"
                     placeholder="请选择服务类型"
-                    style="width: 100%"
+                    class="custom-select"
                   >
                     <el-option-group
                       v-for="group in groupedServerTypes"
@@ -56,13 +72,9 @@
                         :label="item.label"
                         :value="item.value"
                       >
-                        <div class="server-type-option">
-                          <span class="server-type-option__title">{{
-                            item.label
-                          }}</span>
-                          <span class="server-type-option__subtitle">{{
-                            item.subtitle
-                          }}</span>
+                        <div class="type-option">
+                          <span class="type-option-label">{{ item.label }}</span>
+                          <span class="type-option-desc">{{ item.subtitle }}</span>
                         </div>
                       </ScOption>
                     </el-option-group>
@@ -72,40 +84,45 @@
                 <ScFormItem label="服务主机">
                   <ScInput
                     v-model="formData.systemServerHost"
-                    placeholder="请输入服务主机"
+                    placeholder="请输入服务主机地址"
                     clearable
+                    class="custom-input"
                   >
                     <template #prefix>
-                      <IconifyIconOnline icon="ri:global-line" />
+                      <IconifyIconOnline icon="ri:global-line" class="input-icon" />
                     </template>
                   </ScInput>
                 </ScFormItem>
 
                 <ScFormItem label="服务端口" prop="systemServerPort">
-                  <ScInputNumber
-                    v-model="formData.systemServerPort"
-                    :min="1"
-                    :max="65535"
-                    placeholder="端口号"
-                    style="width: 100%"
-                  />
-                  <div
-                    v-if="portCheckMessage"
-                    :class="portCheckClass"
-                    class="port-check-message"
-                  >
-                    {{ portCheckMessage }}
+                  <div class="port-input-wrapper">
+                    <ScInputNumber
+                      v-model="formData.systemServerPort"
+                      :min="1"
+                      :max="65535"
+                      placeholder="端口号 (1-65535)"
+                      class="custom-input-number"
+                      controls-position="right"
+                    />
+                    <transition name="fade">
+                      <div v-if="portCheckMessage" class="port-status" :class="portCheckClass">
+                        <IconifyIconOnline
+                          :icon="portCheckClass === 'port-available' ? 'ri:checkbox-circle-line' : portCheckClass === 'port-unavailable' ? 'ri:close-circle-line' : 'ri:error-warning-line'"
+                        />
+                        <span>{{ portCheckMessage }}</span>
+                      </div>
+                    </transition>
                   </div>
                 </ScFormItem>
 
                 <ScFormItem label="上下文路径" prop="systemServerContextPath">
                   <ScInput
                     v-model="formData.systemServerContextPath"
-                    placeholder="如: /api"
-                    style="width: 100%"
+                    placeholder="例如: /api"
+                    class="custom-input"
                   >
                     <template #prefix>
-                      <IconifyIconOnline icon="ri:link" />
+                      <IconifyIconOnline icon="ri:link" class="input-icon" />
                     </template>
                   </ScInput>
                 </ScFormItem>
@@ -114,28 +131,32 @@
           </ScCol>
 
           <!-- 右列：高级配置 -->
-          <ScCol :span="12">
+          <ScCol :xs="24" :sm="24" :md="12" :lg="12">
             <div class="form-section">
               <div class="section-header">
-                <IconifyIconOnline
-                  icon="ri:settings-3-line"
-                  class="section-icon advanced"
-                />
-                <span class="section-title">高级配置</span>
+                <div class="section-icon success">
+                  <IconifyIconOnline icon="ri:settings-3-line" />
+                </div>
+                <div class="section-meta">
+                  <span class="section-title">高级配置</span>
+                  <span class="section-subtitle">可选的性能与行为设置</span>
+                </div>
               </div>
+
               <div class="section-content">
-                <ScFormItem
-                  label="最大连接数"
-                  prop="systemServerMaxConnections"
-                >
+                <ScFormItem label="最大连接数" prop="systemServerMaxConnections">
                   <ScInputNumber
                     v-model="formData.systemServerMaxConnections"
                     :min="1"
                     :max="10000"
-                    placeholder="不填则无限制"
-                    style="width: 100%"
+                    placeholder="留空表示不限制"
+                    class="custom-input-number"
+                    controls-position="right"
                   />
-                  <div class="form-tip">最大并发连接数限制</div>
+                  <div class="form-helper">
+                    <IconifyIconOnline icon="ri:information-line" />
+                    <span>服务允许的最大并发连接数</span>
+                  </div>
                 </ScFormItem>
 
                 <ScFormItem label="超时时间" prop="systemServerTimeout">
@@ -143,21 +164,34 @@
                     v-model="formData.systemServerTimeout"
                     :min="1"
                     :max="3600"
-                    placeholder="秒"
-                    style="width: 100%"
+                    placeholder="单位：秒"
+                    class="custom-input-number"
+                    controls-position="right"
                   />
-                  <div class="form-tip">连接超时时间（秒）</div>
+                  <div class="form-helper">
+                    <IconifyIconOnline icon="ri:timer-line" />
+                    <span>连接超时时间，范围 1-3600 秒</span>
+                  </div>
                 </ScFormItem>
 
                 <ScFormItem label="自动启动">
-                  <div class="switch-wrapper">
+                  <div class="switch-card">
+                    <div class="switch-card-content">
+                      <div class="switch-card-icon">
+                        <IconifyIconOnline icon="ri:play-circle-line" />
+                      </div>
+                      <div class="switch-card-text">
+                        <span class="switch-card-title">系统启动时自动运行</span>
+                        <span class="switch-card-desc">开启后，系统启动时将自动启动此服务</span>
+                      </div>
+                    </div>
                     <ScSwitch
                       v-model="formData.systemServerAutoStart"
                       inline-prompt
                       active-text="开"
                       inactive-text="关"
+                      class="custom-switch"
                     />
-                    <span class="switch-label">系统启动时自动启动服务</span>
                   </div>
                 </ScFormItem>
 
@@ -166,7 +200,9 @@
                     v-model="formData.systemServerDescription"
                     type="textarea"
                     :rows="4"
-                    placeholder="请输入服务描述信息"
+                    placeholder="请输入服务描述信息，便于后续管理和维护..."
+                    class="custom-textarea"
+                    resize="none"
                   />
                 </ScFormItem>
               </div>
@@ -178,21 +214,18 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <ScButton class="cancel-btn" @click="handleClose">
-          <IconifyIconOnline icon="ri:close-line" class="mr-1" />
-          取消
+        <ScButton class="btn-cancel" @click="handleClose">
+          <IconifyIconOnline icon="ri:close-line" />
+          <span>取消</span>
         </ScButton>
         <ScButton
           type="primary"
           :loading="loading"
-          class="submit-btn"
+          class="btn-submit"
           @click="handleSubmit"
         >
-          <IconifyIconOnline
-            :icon="isEdit ? 'ri:save-line' : 'ri:add-line'"
-            class="mr-1"
-          />
-          {{ isEdit ? "保存" : "创建" }}
+          <IconifyIconOnline :icon="isEdit ? 'ri:save-line' : 'ri:add-line'" />
+          <span>{{ isEdit ? '保存修改' : '创建服务' }}</span>
         </ScButton>
       </div>
     </template>
@@ -531,200 +564,475 @@ const handleSubmit = async () => {
 </script>
 
 <style lang="scss" scoped>
-/* 表单容器 */
-.form-container {
-  .server-form {
-    :deep(.el-form-item) {
-      margin-bottom: 16px;
+// 设计令牌
+$primary-color: #409eff;
+$success-color: #67c23a;
+$warning-color: #e6a23c;
+$danger-color: #f56c6c;
+$text-primary: #303133;
+$text-regular: #606266;
+$text-secondary: #909399;
+$text-placeholder: #a8abb2;
+$border-color: #dcdfe6;
+$border-color-light: #e4e7ed;
+$border-color-lighter: #ebeef5;
+$fill-color: #f5f7fa;
+$fill-color-light: #fafafa;
+$bg-color: #ffffff;
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
+// 对话框样式
+.server-dialog {
+  :deep(.el-dialog) {
+    border-radius: $radius-lg;
+    overflow: hidden;
+  }
 
-    :deep(.el-form-item__label) {
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-    }
+  :deep(.el-dialog__header) {
+    padding: 20px 24px;
+    margin: 0;
+    border-bottom: 1px solid $border-color-lighter;
+    background: $fill-color-light;
+  }
 
-    :deep(.el-input__wrapper),
-    :deep(.el-select .el-input__wrapper) {
-      border-radius: 8px;
-      transition: all 0.3s ease;
+  :deep(.el-dialog__title) {
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+  }
 
-      &:hover {
-        box-shadow: 0 0 0 1px var(--el-color-primary-light-5) inset;
-      }
-    }
+  :deep(.el-dialog__body) {
+    padding: 0;
+  }
 
-    :deep(.el-input-number) {
-      width: 100%;
-    }
-
-    :deep(.el-switch) {
-      --el-switch-on-color: var(--el-color-primary);
-    }
-
-    :deep(.el-textarea__inner) {
-      border-radius: 8px;
-    }
+  :deep(.el-dialog__footer) {
+    padding: 16px 24px;
+    border-top: 1px solid $border-color-lighter;
+    background: $fill-color-light;
   }
 }
 
-/* 表单分区 */
+// 对话框主体
+.dialog-body {
+  padding: 24px;
+  background: $bg-color;
+}
+
+// 顶部横幅
+.dialog-header-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
+  border-radius: $radius-md;
+  border: 1px solid rgba($primary-color, 0.1);
+
+  .banner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: $radius-md;
+    background: linear-gradient(135deg, $primary-color 0%, #66b1ff 100%);
+    color: #fff;
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+
+    &.is-edit {
+      background: linear-gradient(135deg, $success-color 0%, #85ce61 100%);
+      box-shadow: 0 4px 12px rgba($success-color, 0.3);
+    }
+  }
+
+  .banner-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .banner-title {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .banner-desc {
+    margin: 0;
+    font-size: 13px;
+    color: $text-secondary;
+  }
+}
+
+// 表单样式
+.server-form {
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+    padding-bottom: 8px;
+    line-height: 1;
+  }
+
+  :deep(.el-form-item__error) {
+    padding-top: 4px;
+    font-size: 12px;
+  }
+}
+
+// 表单分区
 .form-section {
-  background: linear-gradient(
-    135deg,
-    var(--el-fill-color-lighter) 0%,
-    var(--el-bg-color) 100%
-  );
-  border-radius: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  padding: 16px;
+  background: $bg-color;
+  border-radius: $radius-md;
+  border: 1px solid $border-color-lighter;
+  padding: 20px;
   height: 100%;
-  transition: all 0.3s ease;
+  transition: $transition;
 
   &:hover {
-    border-color: var(--el-color-primary-light-7);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    border-color: $border-color-light;
+    box-shadow: $shadow-sm;
   }
 
   .section-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border-color-lighter;
+  }
 
-    .section-icon {
-      font-size: 18px;
-      color: var(--el-color-primary);
-      padding: 8px;
-      background: var(--el-color-primary-light-9);
-      border-radius: 8px;
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-sm;
+    font-size: 20px;
+    flex-shrink: 0;
 
-      &.advanced {
-        color: var(--el-color-success);
-        background: var(--el-color-success-light-9);
-      }
+    &.primary {
+      background: rgba($primary-color, 0.1);
+      color: $primary-color;
     }
 
-    .section-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+    &.success {
+      background: rgba($success-color, 0.1);
+      color: $success-color;
     }
+  }
+
+  .section-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+    color: $text-secondary;
   }
 
   .section-content {
     display: flex;
     flex-direction: column;
-    gap: 4px;
   }
 }
 
-/* 表单提示 */
-.form-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
+// 自定义输入框
+.custom-input,
+.custom-select,
+.custom-textarea {
+  width: 100%;
+
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner) {
+    border-radius: $radius-sm;
+    box-shadow: 0 0 0 1px $border-color inset;
+    transition: $transition;
+
+    &:hover {
+      box-shadow: 0 0 0 1px $primary-color inset;
+    }
+
+    &:focus,
+    &.is-focus {
+      box-shadow: 0 0 0 1px $primary-color inset, 0 0 0 3px rgba($primary-color, 0.1);
+    }
+  }
+
+  .input-icon {
+    color: $text-placeholder;
+    font-size: 16px;
+  }
 }
 
-.server-type-option {
+.custom-input-number {
+  width: 100%;
+
+  :deep(.el-input__wrapper) {
+    border-radius: $radius-sm;
+    box-shadow: 0 0 0 1px $border-color inset;
+    transition: $transition;
+
+    &:hover {
+      box-shadow: 0 0 0 1px $primary-color inset;
+    }
+  }
+
+  :deep(.el-input-number__decrease),
+  :deep(.el-input-number__increase) {
+    border-radius: 0 $radius-sm $radius-sm 0;
+  }
+}
+
+// 端口输入区
+.port-input-wrapper {
   display: flex;
   flex-direction: column;
-  line-height: 1.3;
-  gap: 2px;
+  gap: 8px;
+}
 
-  &__title {
-    color: var(--el-text-color-primary);
-    font-weight: 500;
+.port-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: $radius-sm;
+  font-size: 12px;
+  font-weight: 500;
+
+  &.port-available {
+    background: rgba($success-color, 0.1);
+    color: $success-color;
   }
 
-  &__subtitle {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  &.port-unavailable {
+    background: rgba($danger-color, 0.1);
+    color: $danger-color;
+  }
+
+  &.port-error {
+    background: rgba($warning-color, 0.1);
+    color: $warning-color;
   }
 }
 
-/* 开关包装 */
-.switch-wrapper {
+// 表单辅助文字
+.form-helper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: $text-secondary;
+}
 
-  .switch-label {
-    font-size: 13px;
-    color: var(--el-text-color-regular);
+// 类型选项
+.type-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+
+  .type-option-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-primary;
+  }
+
+  .type-option-desc {
+    font-size: 12px;
+    color: $text-secondary;
   }
 }
 
-/* 底部按钮 */
+// 开关卡片
+.switch-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: $fill-color;
+  border-radius: $radius-sm;
+  border: 1px solid $border-color-lighter;
+  transition: $transition;
+
+  &:hover {
+    border-color: $border-color-light;
+    background: $fill-color-light;
+  }
+
+  .switch-card-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .switch-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: $radius-sm;
+    background: rgba($primary-color, 0.1);
+    color: $primary-color;
+    font-size: 18px;
+  }
+
+  .switch-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .switch-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-primary;
+  }
+
+  .switch-card-desc {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+}
+
+.custom-switch {
+  --el-switch-on-color: #{$primary-color};
+}
+
+// 底部按钮
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
 
-  .cancel-btn {
-    border-radius: 8px;
-    min-width: 88px;
-    transition: all 0.3s ease;
+.btn-cancel,
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: $radius-sm;
+  font-size: 14px;
+  font-weight: 500;
+  transition: $transition;
+}
 
-    &:hover {
-      background: var(--el-fill-color);
-      transform: translateY(-1px);
-    }
-  }
+.btn-cancel {
+  background: $bg-color;
+  border: 1px solid $border-color;
+  color: $text-regular;
 
-  .submit-btn {
-    border-radius: 8px;
-    min-width: 100px;
-    background: linear-gradient(
-      135deg,
-      var(--el-color-primary) 0%,
-      var(--el-color-primary-light-3) 100%
-    );
-    border: none;
-    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.35);
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.45);
-    }
+  &:hover {
+    background: $fill-color;
+    border-color: $border-color-light;
+    color: $text-primary;
   }
 }
 
-/* 端口检查消息 */
-.port-check-message {
-  font-size: 12px;
-  margin-top: 4px;
-  padding: 4px 8px;
-  border-radius: 4px;
+.btn-submit {
+  background: linear-gradient(135deg, $primary-color 0%, #66b1ff 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba($primary-color, 0.25);
 
-  &.port-available {
-    color: #67c23a;
-    background: rgba(103, 194, 58, 0.1);
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba($primary-color, 0.35);
   }
 
-  &.port-unavailable {
-    color: #f56c6c;
-    background: rgba(245, 108, 108, 0.1);
+  &:active {
+    transform: translateY(0);
   }
+}
 
-  &.port-error {
-    color: #e6a23c;
-    background: rgba(230, 162, 60, 0.1);
-  }
+// 过渡动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 // 响应式设计
 @media (max-width: 768px) {
-  .page-header {
+  .dialog-body {
+    padding: 16px;
+  }
+
+  .dialog-header-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    margin-bottom: 20px;
+
+    .banner-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 22px;
+    }
+  }
+
+  .form-section {
+    padding: 16px;
+    margin-bottom: 16px;
+
+    .section-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 10px;
+    }
+  }
+
+  .switch-card {
     flex-direction: column;
     gap: 12px;
-    padding: 12px 16px;
+    text-align: center;
+
+    .switch-card-content {
+      flex-direction: column;
+    }
+  }
+
+  .dialog-footer {
+    flex-direction: column-reverse;
+
+    .btn-cancel,
+    .btn-submit {
+      width: 100%;
+      justify-content: center;
+    }
   }
 }
 </style>

@@ -29,14 +29,3 @@
 | SOFT-07 | nginx 面板安装弹窗改造 | `NginxSpiInstallDialog` 接入严格结果校验 | 已完成 |
 | SOFT-08 | 异常安装场景验证 | 失败响应不再误报“安装成功” | 已完成 |
 | SOFT-09 | 编译检查执行 | 执行 `vue-tsc` 并确认本次改动无新增阻断 | 已完成（仓库历史类型错误仍存在） |
-
-## 代码变更文件
-
-- `H:\\workspace\\2\\vue-support-parent-starter\\pages\\server\\src\\views\\ServerHostPage.vue`
-- `H:\\workspace\\2\\vue-support-parent-starter\\pages\\soft\\src\\views\\SoftCatalogPage.vue`
-- `H:\\workspace\\2\\vue-support-parent-starter\\pages\\panel\\src\\components\\NginxWorkspace\\NginxSpiInstallDialog.vue`
-
-## 备注
-
-- 已执行：`pnpm -C H:\\workspace\\2\\vue-support-parent-starter\\test\\vue-support-soft-test-starter exec vue-tsc --noEmit -p tsconfig.json`。  
-- `vue-tsc` 未全量通过，存在仓库既有历史类型错误（与本轮改动无直接关联）。
