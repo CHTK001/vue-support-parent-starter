@@ -7,7 +7,7 @@ export { default as JdbcExplainFlow } from "./JdbcExplainFlow.vue";
 export { default as PanelDataSourceHub } from "./PanelDataSourceHub.vue";
 export { default as PanelContextMenu } from "./PanelContextMenu.vue";
 export { default as PanelHero } from "./PanelHero.vue";
-export { default as RedisWorkspace } from "./RedisWorkspace.vue";
+export { default as RedisWorkspace } from "./RedisWorkspace/RedisWorkspace.vue";
 export { default as MongoWorkspace } from "./MongoWorkspace.vue";
 export { default as ZookeeperWorkspace } from "./ZookeeperWorkspace.vue";
 export { default as PrometheusWorkspace } from "./PrometheusWorkspace.vue";
