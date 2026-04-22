@@ -2,6 +2,7 @@ import { inject, provide, type ComputedRef, type InjectionKey } from "vue";
 import {
   appendTaskCenterMessage,
   closeTaskCenterPanel,
+  configureTaskCenter,
   dismissTaskCenterTask,
   failTaskCenterTask,
   finishTaskCenterTask,
@@ -15,6 +16,7 @@ import {
 import type {
   TaskCenterMessageInput,
   TaskCenterTask,
+  TaskCenterTriggerHandler,
   TaskCenterTaskInput,
 } from "./types";
 
@@ -39,6 +41,11 @@ export interface TaskCenterTaskHandle {
 export interface TaskCenterProvider {
   readonly state: ReturnType<typeof useTaskCenterState>;
   readonly selectedTask: ComputedRef<TaskCenterTask | null>;
+  configure(payload: {
+    maxVisible?: number;
+    maxHistory?: number;
+    onTrigger?: TaskCenterTriggerHandler;
+  }): void;
   addTask(input: TaskCenterTaskInput): TaskCenterTaskHandle;
   getTask(ref: TaskCenterReference): TaskCenterTask | null;
   getTaskId(ref: TaskCenterReference): string | null;
@@ -209,6 +216,7 @@ const createTaskHandle = (taskId: string): TaskCenterTaskHandle => ({
 export const taskCenterProvider: TaskCenterProvider = {
   state: taskCenterState,
   selectedTask: taskCenterState.selectedTask,
+  configure: configureTaskCenter,
   addTask(input) {
     const taskId = upsertTaskCenterTask(input);
     return createTaskHandle(taskId);

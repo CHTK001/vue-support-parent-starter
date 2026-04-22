@@ -7,6 +7,7 @@
       :rail-close-button-mode="closeButtonMode"
       :rail-items="items"
       :rail-round="round"
+      :rail-size="railSize"
       :tab-position="tabPosition"
       @tab-remove="handleTabRemove"
     />
@@ -22,10 +23,12 @@ const props = withDefaults(defineProps<{
   closeButtonMode?: "always" | "hover";
   items: ScTabsRailItem[];
   modelValue: string | number;
+  railSize?: "compact" | "normal" | "large";
   round?: boolean;
   tabPosition?: "top" | "right" | "bottom" | "left";
 }>(), {
   closeButtonMode: "hover",
+  railSize: "normal",
   round: false,
   tabPosition: "left",
 });

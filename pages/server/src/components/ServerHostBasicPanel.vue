@@ -543,24 +543,15 @@
               </p>
             </div>
             <div class="server-basic-panel__tag-group">
-              <el-tooltip
-                :content="
-                  aiEnabled
-                    ? 'AI 稳定性分析'
-                    : aiUnavailableReason || 'AI 能力未激活'
-                "
-                placement="top"
-              >
-                <ScButton
-                  circle
-                  plain
-                  :disabled="!aiEnabled"
-                  :loading="analyzingStability"
-                  @click="emit('analyze-stability')"
-                >
-                  <IconifyIconOnline icon="ri:ai-generate-2" />
-                </ScButton>
-              </el-tooltip>
+              <ServerAiActionButton
+                tooltip="AI 稳定性分析"
+                :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
+                :loading="analyzingStability"
+                scene="server-host-stability"
+                system-prompt="你是服务器稳定性分析助手，需要基于监控与告警上下文给出中文诊断。"
+                :prompt="buildStabilityPrompt"
+                :method="aiEnabled ? () => emit('analyze-stability') : undefined"
+              />
               <span
                 class="server-basic-panel__lay-tag"
                 :class="alertStatusClass"
@@ -818,6 +809,7 @@ import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
+import ServerAiActionButton from "./ServerAiActionButton.vue";
 import ServerServicePanel from "./ServerServicePanel.vue";
 import type {
   ServerAlertEvent,
@@ -931,6 +923,21 @@ const props = withDefaults(
     serviceActionLoadingKey: "",
   },
 );
+
+const buildStabilityPrompt = computed(() => {
+  if (!props.host) {
+    return "请基于当前服务器的实时状态、最新告警和运行上下文，输出稳定性风险结论与处理建议。";
+  }
+  return [
+    `服务器名称：${props.host.serverName || "-"}`,
+    `服务器地址：${hostAddress(props.host)}`,
+    `操作系统：${osLabel(props.host.osType)}`,
+    `在线状态：${props.snapshot?.online ? "在线" : "离线"}`,
+    `延迟：${formatLatency(props.snapshot?.latencyMs)}`,
+    `最新告警数量：${props.latestAlerts?.length || 0}`,
+    "请结合当前时间判断服务器稳定性风险，并给出优先级明确的处理建议。",
+  ].join("\n");
+});
 
 const emit = defineEmits<{
   edit: [];

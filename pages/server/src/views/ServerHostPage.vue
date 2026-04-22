@@ -442,7 +442,8 @@ import {
 } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
-import { taskCenterProvider } from "@layout/default";
+import { resolveRuntimeProviders } from "@layout/default";
+import { useUserStoreHook } from "@repo/core";
 import {
   message,
   rsaEncrypt,
@@ -659,12 +660,55 @@ const defaultServerViewSettings = (): ServerViewSettings => ({
 
 const router = useRouter();
 const route = useRoute();
+const userStore = useUserStoreHook();
+const runtimeProviders = resolveRuntimeProviders({
+  module: "server-host-page",
+  log: false,
+});
+const runtimeTask = runtimeProviders.task.provider;
 const aiTaskStream = useServerAiTaskStream();
 const alertStream = useServerAlertStream();
 const metricsStream = useServerMetricsStream();
 const fileLogStream = useServerFileLogStream();
 const processStream = useServerProcessStream();
 const serviceStream = useServerServiceStream();
+
+const resolveTaskOperator = () =>
+  userStore.username ||
+  userStore.nickname ||
+  String(userStore.sysUserId || "server-page");
+
+const createTaskPersistContext = (
+  bizType: string,
+  options: {
+    bizId?: string | number | null;
+    traceId?: string | null;
+    persistKey?: string | null;
+  } = {},
+) => {
+  const bizId =
+    options.bizId === null || options.bizId === undefined || options.bizId === ""
+      ? undefined
+      : options.bizId;
+  const traceId =
+    options.traceId === null ||
+    options.traceId === undefined ||
+    options.traceId === ""
+      ? undefined
+      : String(options.traceId);
+  const persistKey = options.persistKey
+    ? String(options.persistKey)
+    : `${bizType}:${bizId ?? traceId ?? "unknown"}`;
+
+  return {
+    bizType,
+    bizId,
+    operator: resolveTaskOperator(),
+    traceId,
+    persistKey,
+  };
+};
+
 const {
   serviceLogsVisible,
   serviceLogLoading,
@@ -1413,10 +1457,15 @@ const syncTaskCenterFromSoftOperations = (
       item.operationStage || "-"
     }:${detailMessage}`;
     if (!handledSoftOperationTaskStates.has(messageStateKey)) {
-      taskCenterProvider.appendMessage(requestId, detailMessage);
+      runtimeTask.appendMessage(requestId, detailMessage);
       handledSoftOperationTaskStates.add(messageStateKey);
     }
-    taskCenterProvider.updateTask(requestId, {
+    runtimeTask.updateTask(requestId, {
+      ...createTaskPersistContext("server-soft-install", {
+        bizId: item.softInstallationId || operationId,
+        traceId: requestId,
+        persistKey: `server-soft-install:${item.softInstallationId || operationId}`,
+      }),
       title,
       requestId,
       mode: "stream",
@@ -2239,7 +2288,14 @@ const submitInstallFromServer = async () => {
   }
   installSubmitting.value = true;
   const requestId = `server-soft-install-${toNumericId(installHost.value?.serverId)}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-soft-install", {
+      bizId: toNumericId(installHost.value?.serverId),
+      traceId: requestId,
+      persistKey: `server-soft-install:${
+        toNumericId(installHost.value?.serverId) || "unknown"
+      }:${toNumericId(installSelectedPackage.value?.softPackageId) || "unknown"}`,
+    }),
     requestId,
     title: `软件安装 · ${installSelectedPackage.value?.packageName || "未命名软件"}`,
     mode: "stream",
@@ -2272,6 +2328,7 @@ const submitInstallFromServer = async () => {
       Number(ticket.operationId),
     );
     task.update({
+      traceId: operationRequestId,
       requestId: operationRequestId,
       title: `软件安装 · ${installSelectedPackage.value?.packageName || "未命名软件"}`,
       mode: "stream",
@@ -2643,7 +2700,12 @@ const runServerServiceAction = async (
   const actionKey = resolveServerServiceActionKey(service, action);
   serverServiceActionLoadingKey.value = actionKey;
   const requestId = `server-service-${action}-${service.serverServiceId}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-service-action", {
+      bizId: service.serverServiceId,
+      traceId: requestId,
+      persistKey: `server-service-action:${service.serverServiceId}:${action}`,
+    }),
     requestId,
     title: `${serverServiceActionLabelMap[action]} · ${
       service.serviceName || service.serverServiceId
@@ -2670,7 +2732,12 @@ const runServerServiceAction = async (
         ? `：${payload.message}`
         : "";
     if (payload.taskId) {
-      taskCenterProvider.addTask({
+      runtimeTask.addTask({
+        ...createTaskPersistContext("server-service-ai-diagnosis", {
+          bizId: service.serverServiceId,
+          traceId: String(payload.taskId),
+          persistKey: `server-service-ai-diagnosis:${service.serverServiceId}`,
+        }),
         requestId: payload.taskId,
         title: `AI 故障诊断 · ${service.serviceName || service.serverServiceId}`,
         mode: "stream",
@@ -3026,11 +3093,55 @@ const resolveAiTaskTitle = (payload: ServerAiTaskPayload) => {
   return "AI 任务";
 };
 
+const resolveAiTaskPersistContext = (payload: ServerAiTaskPayload) => {
+  if (payload.taskType === "GENERATE_DRAFT") {
+    return createTaskPersistContext("server-service-ai-draft", {
+      bizId: payload.serverServiceId,
+      traceId: payload.taskId,
+      persistKey: `server-service-ai-draft:${payload.serverServiceId || "unknown"}`,
+    });
+  }
+  if (payload.taskType === "ANALYZE_HOST_STABILITY") {
+    return createTaskPersistContext("server-host-stability", {
+      bizId: payload.serverId,
+      traceId: payload.taskId,
+      persistKey: `server-host-stability:${payload.serverId || "unknown"}`,
+    });
+  }
+  if (payload.taskType === "DIAGNOSE_FAILURE") {
+    return createTaskPersistContext("server-service-ai-diagnosis", {
+      bizId: payload.serverServiceId,
+      traceId: payload.taskId,
+      persistKey: `server-service-ai-diagnosis:${payload.serverServiceId || "unknown"}`,
+    });
+  }
+  if (payload.taskType === "ANALYZE_METRIC_HISTORY") {
+    return createTaskPersistContext("server-metric-history-ai", {
+      bizId: payload.serverId,
+      traceId: payload.taskId,
+      persistKey: `server-metric-history-ai:${payload.serverId || "unknown"}:${payload.metricType || "metric"}`,
+    });
+  }
+  if (payload.taskType === "ANALYZE_ALERT_HISTORY") {
+    return createTaskPersistContext("server-alert-history-ai", {
+      bizId: payload.serverId,
+      traceId: payload.taskId,
+      persistKey: `server-alert-history-ai:${payload.serverId || "unknown"}:${payload.metricType || "alert"}`,
+    });
+  }
+  return createTaskPersistContext("server-ai-task", {
+    bizId: payload.serverId || payload.serverServiceId,
+    traceId: payload.taskId,
+    persistKey: `server-ai-task:${payload.taskType || "unknown"}:${payload.taskId || "unknown"}`,
+  });
+};
+
 const syncAiTaskCenterStatus = (payload: ServerAiTaskPayload) => {
   if (!payload.taskId) {
     return;
   }
   const title = resolveAiTaskTitle(payload);
+  const persist = resolveAiTaskPersistContext(payload);
   const taskMessage =
     payload.message ||
     (payload.status === "COMPLETED"
@@ -3039,7 +3150,8 @@ const syncAiTaskCenterStatus = (payload: ServerAiTaskPayload) => {
         ? "AI 任务执行失败"
         : "AI 任务执行中");
   if (payload.status === "COMPLETED") {
-    taskCenterProvider.finishTask(payload.taskId, {
+    runtimeTask.finishTask(payload.taskId, {
+      ...persist,
       title,
       progress: 100,
       message: taskMessage,
@@ -3047,14 +3159,16 @@ const syncAiTaskCenterStatus = (payload: ServerAiTaskPayload) => {
     return;
   }
   if (payload.status === "FAILED") {
-    taskCenterProvider.failTask(payload.taskId, {
+    runtimeTask.failTask(payload.taskId, {
+      ...persist,
       title,
       progress: 100,
       message: taskMessage,
     });
     return;
   }
-  taskCenterProvider.updateTask(payload.taskId, {
+  runtimeTask.updateTask(payload.taskId, {
+    ...persist,
     title,
     mode: "stream",
     status: "running",
@@ -3235,7 +3349,12 @@ const generateServiceAiDraft = async (draft?: ServerService) => {
   }
   serviceEditorGenerating.value = true;
   const requestId = `server-service-ai-draft-${next.serverServiceId}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-service-ai-draft", {
+      bizId: next.serverServiceId,
+      traceId: requestId,
+      persistKey: `server-service-ai-draft:${next.serverServiceId}`,
+    }),
     requestId,
     title: `AI 服务草稿 · ${next.serviceName || next.serverServiceId}`,
     mode: "stream",
@@ -3249,6 +3368,7 @@ const generateServiceAiDraft = async (draft?: ServerService) => {
     const ticket = result.data as ServerAiTaskTicket | undefined;
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
       task.update({
+        traceId: String(ticket.taskId),
         requestId: ticket.taskId,
         title: `AI 服务草稿 · ${next.serviceName || next.serverServiceId}`,
       });
@@ -3496,7 +3616,12 @@ const analyzeMetricHistory = async (payload: {
     stateFilter: payload.stateFilter,
   });
   const requestId = `server-metric-history-ai-${selectedHost.value.serverId}-${metricType}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-metric-history-ai", {
+      bizId: selectedHost.value.serverId,
+      traceId: requestId,
+      persistKey: `server-metric-history-ai:${selectedHost.value.serverId}:${metricType}`,
+    }),
     requestId,
     title: `指标历史 AI 分析 · ${selectedHost.value.serverName || selectedHost.value.serverId} · ${metricType}`,
     mode: "stream",
@@ -3520,6 +3645,7 @@ const analyzeMetricHistory = async (payload: {
     const ticket = result.data || {};
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
       task.update({
+        traceId: String(ticket.taskId),
         requestId: ticket.taskId,
         title: `指标历史 AI 分析 · ${selectedHost.value.serverName || selectedHost.value.serverId} · ${metricType}`,
       });
@@ -3612,7 +3738,12 @@ const submitMetricsTaskSettings = async (
 
 const refreshMetricsTaskNow = async () => {
   const requestId = `server-metrics-refresh-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-metrics-refresh", {
+      bizId: toNumericId(selectedHost.value?.serverId),
+      traceId: requestId,
+      persistKey: `server-metrics-refresh:${toNumericId(selectedHost.value?.serverId) || "global"}`,
+    }),
     requestId,
     title: "指标采集任务",
     mode: "stream",
@@ -3656,7 +3787,12 @@ const analyzeSelectedHostStability = async () => {
   }
   hostStabilityAnalyzingId.value = selectedHost.value.serverId;
   const requestId = `server-host-stability-${selectedHost.value.serverId}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-host-stability", {
+      bizId: selectedHost.value.serverId,
+      traceId: requestId,
+      persistKey: `server-host-stability:${selectedHost.value.serverId}`,
+    }),
     requestId,
     title: `预警中心 AI 分析 · ${
       selectedHost.value.serverName || selectedHost.value.serverId
@@ -3674,6 +3810,7 @@ const analyzeSelectedHostStability = async () => {
     const ticket = result.data || {};
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
       task.update({
+        traceId: String(ticket.taskId),
         requestId: ticket.taskId,
         title: `预警中心 AI 分析 · ${
           selectedHost.value.serverName || selectedHost.value.serverId
@@ -3780,7 +3917,12 @@ const analyzeAlertHistory = async (payload: {
   }
   const filterKey = buildAlertHistoryAiFilterKey(serverId, payload);
   const requestId = `server-alert-history-ai-${serverId}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-alert-history-ai", {
+      bizId: serverId,
+      traceId: requestId,
+      persistKey: `server-alert-history-ai:${serverId}:${payload.metricType || "alert"}`,
+    }),
     requestId,
     title: `告警历史 AI 分析 · ${selectedHost.value?.serverName || serverId}`,
     mode: "stream",
@@ -3801,6 +3943,7 @@ const analyzeAlertHistory = async (payload: {
     const ticket = result.data || {};
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
       task.update({
+        traceId: String(ticket.taskId),
         requestId: ticket.taskId,
         title: `告警历史 AI 分析 · ${selectedHost.value?.serverName || serverId}`,
       });
@@ -4551,7 +4694,12 @@ const analyzeProcessItem = async (process: ServerProcessView) => {
   }
   processAiAnalyzing.value = true;
   const requestId = `server-process-ai-${selectedHost.value.serverId}-${process.pid}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-process-ai", {
+      bizId: process.pid,
+      traceId: requestId,
+      persistKey: `server-process-ai:${selectedHost.value.serverId}:${process.pid}`,
+    }),
     requestId,
     title: `进程分析 · ${process.name || process.pid}`,
     mode: "stream",
@@ -4602,7 +4750,14 @@ const terminateProcessItem = async (payload: {
   );
   processActionLoadingKey.value = `${payload.force ? "force" : "terminate"}:${process.pid}`;
   const requestId = `server-process-stop-${host.serverId}-${process.pid}-${Date.now()}`;
-  const task = taskCenterProvider.addTask({
+  const task = runtimeTask.addTask({
+    ...createTaskPersistContext("server-process-stop", {
+      bizId: process.pid,
+      traceId: requestId,
+      persistKey: `server-process-stop:${host.serverId}:${process.pid}:${
+        payload.force ? "force" : "soft"
+      }`,
+    }),
     requestId,
     title: `${actionLabel}进程 · ${process.name || process.pid}`,
     mode: "stream",

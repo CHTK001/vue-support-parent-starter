@@ -277,14 +277,57 @@ export interface LogEntry {
 
 export interface SystemServerFilterLogRecord {
   id?: number;
+  systemServerLogId?: number;
   serverId?: number;
   filterType?: string;
+  ruleCategory?: string;
+  actionStatus?: "PASS" | "DENY" | string;
   processStatus?: string;
+  method?: string;
+  path?: string;
+  host?: string;
+  referer?: string;
+  requestId?: string;
   clientIp?: string;
   clientGeo?: string;
+  userAgent?: string;
+  decisionReason?: string;
+  statusCode?: number;
   accessTime?: string;
   durationMs?: number;
   storeTime?: string;
+}
+
+export interface FirewallEventRecord {
+  serverKey?: string;
+  serverId?: number;
+  requestId?: string;
+  clientIp?: string;
+  clientGeo?: string;
+  method?: string;
+  path?: string;
+  host?: string;
+  referer?: string;
+  action?: string;
+  reason?: string;
+  statusCode?: number;
+  durationMs?: number;
+  eventTime?: string;
+}
+
+export interface FirewallMetricsRecord {
+  serverKey?: string;
+  serverId?: number;
+  total: number;
+  allowed: number;
+  denied: number;
+  rateLimited: number;
+  redirected: number;
+  proxied: number;
+  whitelistHit: number;
+  blacklistHit: number;
+  windowStart?: string;
+  windowEnd?: string;
 }
 
 /**
@@ -337,9 +380,39 @@ export function getSystemServerFilterLogs(params: {
   filterType?: string;
   processStatus?: string;
   clientIp?: string;
+  /** 与后端 @DateTimeFormat pattern 一致: yyyy-MM-dd HH:mm:ss */
+  startTime?: string;
+  endTime?: string;
 }) {
   return request<{ records: SystemServerFilterLogRecord[]; total: number }>({
     url: "/service/systemserver-log/page",
+    method: "get",
+    params,
+  });
+}
+
+export function getFirewallEvents(params: {
+  serverId: number;
+  clientIp?: string;
+  action?: string;
+  startTime?: string;
+  endTime?: string;
+  limit?: number;
+}) {
+  return request<FirewallEventRecord[]>({
+    url: "/service/systemserver-log/firewall/events",
+    method: "get",
+    params,
+  });
+}
+
+export function getFirewallMetrics(params: {
+  serverId: number;
+  startTime?: string;
+  endTime?: string;
+}) {
+  return request<FirewallMetricsRecord>({
+    url: "/service/systemserver-log/firewall/metrics",
     method: "get",
     params,
   });

@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, reactive } from "vue";
 import ScLayout from "@repo/components/ScLayout";
 import JobConsoleEditorDialog from "./components/JobConsoleEditorDialog.vue";
 import JobConsoleSidebar from "./components/JobConsoleSidebar.vue";
@@ -142,10 +142,13 @@ const railTabs = [
   { name: "settings", label: "设置", title: "接口设置" },
 ];
 
-const state = useJobConsole({
-  defaultApiRoot: props.defaultApiRoot,
-  storageKey: props.storageKey,
-});
+/** composable 返回的普通对象内含 ref/computed，需 reactive 才能在模板里正确拆包传给子组件 */
+const state = reactive(
+  useJobConsole({
+    defaultApiRoot: props.defaultApiRoot,
+    storageKey: props.storageKey,
+  }),
+);
 
 onMounted(state.loadNamespaces);
 </script>

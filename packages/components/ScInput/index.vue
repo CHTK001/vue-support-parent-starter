@@ -1,5 +1,13 @@
 <template>
-  <div class="sc-input" :class="[theme ? `sc-input--theme-${theme}` : '']">
+  <div
+    class="sc-input"
+    :class="[
+      theme ? `sc-input--theme-${theme}` : '',
+      layout ? `layout-${layout}` : '',
+      controlVariant ? `variant-${controlVariant}` : '',
+      controlLayout ? `control-layout-${controlLayout}` : ''
+    ]"
+  >
     <component
       :is="componentMap[type]"
       v-bind="$attrs"
@@ -207,6 +215,24 @@ interface Props {
    * - tech: 科技风格（无图标，霓虹边框）
    */
   theme?: "default" | "tech";
+  /**
+   * 控件视觉变体
+   * - default: 默认输入框
+   * - card: 卡片输入框（与 ScSwitch compact-card 高度体系一致）
+   */
+  controlVariant?: "default" | "card";
+  /**
+   * 布局命名空间
+   * - default: 默认
+   * - card: 卡片样式命名空间（用于隔离样式）
+   */
+  layout?: "default" | "card";
+  /**
+   * 控件布局语义（推荐）
+   * - default: 默认
+   * - card: 卡片
+   */
+  controlLayout?: "default" | "card";
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -223,6 +249,9 @@ const props = withDefaults(defineProps<Props>(), {
   fetchParams: () => ({}),
   params: () => ({}),
   theme: "default",
+  controlVariant: "default",
+  layout: "default",
+  controlLayout: "default",
 });
 
 const emit = defineEmits([
@@ -623,6 +652,38 @@ defineExpose({
           background: rgba(0, 246, 255, 0.1);
         }
       }
+    }
+  }
+
+  &.layout-card,
+  &.variant-card,
+  &.control-layout-card,
+  &--variant-card {
+    :deep(.el-input__wrapper),
+    :deep(.el-select__wrapper) {
+      min-height: 44px;
+      border-width: 2px;
+      border-style: solid;
+      border-color: #c7ceff;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #fff, #f8faff);
+      box-shadow: none;
+      padding-inline: 12px;
+    }
+
+    :deep(.el-input__wrapper:hover),
+    :deep(.el-select__wrapper:hover) {
+      border-color: #98a7ff;
+    }
+
+    :deep(.el-input__wrapper.is-focus),
+    :deep(.el-select__wrapper.is-focused) {
+      border-color: #6f79ff;
+      box-shadow: 0 0 0 2px rgba(111, 121, 255, 0.12);
+    }
+
+    :deep(.el-input__prefix-inner) {
+      margin-right: 6px;
     }
   }
 }

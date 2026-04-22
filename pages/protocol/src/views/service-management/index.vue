@@ -1,5 +1,5 @@
 <template>
-  <div class="service-management-container system-container modern-bg">
+  <div class="service-management-container system-container">
     <!-- 统计卡片 -->
     <div class="statistics-cards">
       <ScCard
@@ -33,9 +33,9 @@
     </div>
 
     <!-- 筛选条件 -->
-    <div class="filter-card">
-      <div class="filter-content">
-        <el-form :model="queryParams" inline>
+    <div class="filter-wrapper">
+      <div class="filter-card">
+        <el-form :model="queryParams" inline class="filter-form">
           <el-form-item label="服务器名称">
             <el-input
               v-model="queryParams.serverName"
@@ -74,7 +74,6 @@
             </ScSelect>
           </el-form-item>
 
-          <!-- 操作按钮组 -->
           <el-form-item class="action-buttons">
             <ScButton circle type="primary" @click="handleQuery">
               <IconifyIconOnline icon="ri:search-line" />
@@ -85,7 +84,7 @@
             <ScButton circle type="primary" @click="showAddDialog = true">
               <IconifyIconOnline icon="ri:add-line" />
             </ScButton>
-            <ScButton @click="refreshData">
+            <ScButton type="primary" plain @click="refreshData">
               <IconifyIconOnline icon="ri:refresh-line" />
               刷新数据
             </ScButton>
@@ -106,9 +105,7 @@
       >
         <template #empty>
           <el-empty description="暂无服务器数据">
-            <ScButton type="primary" @click="showAddDialog = true"
-              >新增服务器</ScButton
-            >
+            <ScButton type="primary" @click="showAddDialog = true">新增服务器</ScButton>
           </el-empty>
         </template>
 
@@ -117,12 +114,8 @@
             class="server-card"
             :class="getServerCardClass(server.systemServerStatus)"
           >
-            <!-- 顶部状态条 -->
             <div class="status-bar" />
-
-            <!-- 卡片主体 -->
             <div class="card-content">
-              <!-- 头部：图标 + 名称 + 状态 -->
               <div class="card-header">
                 <div class="server-icon">
                   <component :is="getProtocolIcon(server.systemServerType)" />
@@ -135,7 +128,7 @@
                   :type="getStatusTagType(server.systemServerStatus)"
                   size="small"
                   class="status-tag"
-                  effect="dark"
+                  effect="light"
                 >
                   <IconifyIconOnline
                     :icon="
@@ -149,16 +142,13 @@
                 </el-tag>
               </div>
 
-              <!-- 核心信息区 -->
               <div class="server-stats">
                 <div class="stat-item primary" @click="handleOpen(server)">
                   <div class="stat-icon">
                     <IconifyIconOnline icon="ri:global-line" />
                   </div>
                   <div class="stat-info">
-                    <span class="stat-value">{{
-                      server.systemServerPort
-                    }}</span>
+                    <span class="stat-value">{{ server.systemServerPort }}</span>
                     <span class="stat-label">端口</span>
                   </div>
                 </div>
@@ -167,9 +157,7 @@
                     <IconifyIconOnline icon="ri:filter-3-line" />
                   </div>
                   <div class="stat-info">
-                    <span class="stat-value">{{
-                      server.filterCount || 0
-                    }}</span>
+                    <span class="stat-value">{{ server.filterCount || 0 }}</span>
                     <span class="stat-label">过滤器</span>
                   </div>
                 </div>
@@ -178,15 +166,12 @@
                     <IconifyIconOnline icon="ri:link" />
                   </div>
                   <div class="stat-info">
-                    <span class="stat-value">{{
-                      server.systemServerMaxConnections || "∞"
-                    }}</span>
+                    <span class="stat-value">{{ server.systemServerMaxConnections || "∞" }}</span>
                     <span class="stat-label">连接数</span>
                   </div>
                 </div>
               </div>
 
-              <!-- 详细信息 -->
               <div class="server-details">
                 <div class="detail-item">
                   <IconifyIconOnline icon="ri:folder-line" />
@@ -198,13 +183,9 @@
                 </div>
               </div>
 
-              <!-- 操作按钮 -->
               <div class="card-actions">
                 <ScButton
-                  v-if="
-                    server.systemServerStatus === 'STOPPED' ||
-                    server.systemServerStatus === 'ERROR'
-                  "
+                  v-if="server.systemServerStatus === 'STOPPED' || server.systemServerStatus === 'ERROR'"
                   type="success"
                   :loading="actionLoading[server.systemServerId]"
                   class="action-btn"
@@ -228,19 +209,18 @@
                 </ScButton>
 
                 <div class="action-group">
+                  <el-tooltip content="防火墙" placement="top">
+                    <ScButton circle @click="openFirewallConfig(server)">
+                      <IconifyIconOnline icon="ri:shield-line" />
+                    </ScButton>
+                  </el-tooltip>
                   <el-tooltip content="设置" placement="top">
-                    <ScButton
-                      circle
-                      @click="openServerConfig(server.systemServerId, server)"
-                    >
+                    <ScButton circle @click="openServerConfig(server.systemServerId, server)">
                       <IconifyIconOnline icon="ri:settings-4-line" />
                     </ScButton>
                   </el-tooltip>
                   <el-tooltip content="日志" placement="top">
-                    <ScButton
-                      circle
-                      @click="openServerLog(server.systemServerId, server)"
-                    >
+                    <ScButton circle @click="openServerLog(server.systemServerId, server)">
                       <IconifyIconOnline icon="ri:file-list-3-line" />
                     </ScButton>
                   </el-tooltip>
@@ -262,14 +242,8 @@
                         >
                           <IconifyIconOnline icon="ri:restart-line" /> 重启
                         </el-dropdown-item>
-                        <el-dropdown-item
-                          :command="`delete-${server.systemServerId}`"
-                          divided
-                        >
-                          <IconifyIconOnline
-                            icon="ri:delete-bin-line"
-                            style="color: #ef4444"
-                          />
+                        <el-dropdown-item :command="`delete-${server.systemServerId}`" divided>
+                          <IconifyIconOnline icon="ri:delete-bin-line" style="color: #ef4444" />
                           <span style="color: #ef4444">删除</span>
                         </el-dropdown-item>
                       </el-dropdown-menu>
@@ -282,39 +256,40 @@
         </template>
       </ScTable>
     </div>
-    <!-- 新增/编辑对话框 -->
+
     <ServerFormDialog
       v-model:visible="showAddDialog"
       :server-data="currentServer"
       :server-types="serverTypes"
       @success="handleFormSuccess"
     />
-
-    <!-- 克隆对话框 -->
     <ServerCloneDialog
       v-model:visible="showCloneDialog"
       :source-server="currentServer"
       @success="handleCloneSuccess"
     />
-
-    <!-- 服务器配置对话框 -->
     <ServerConfigDialog
       v-model:visible="showConfigDialog"
       :server="currentServer"
       :server-id="currentServerId"
       @success="handleConfigSuccess"
     />
-
-    <!-- 服务器日志对话框 -->
     <ServerLogDialog
       v-model:visible="showLogDialog"
       :server="currentServer"
       :server-id="currentServerId"
     />
+    <FirewallManagementDialog
+      v-model:visible="showFirewallDialog"
+      :server-id="currentFirewallServerId"
+      :filter-setting-id="currentFirewallSettingId"
+      @success="handleFirewallSuccess"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+// 原脚本完全不变，直接保留
 import {
   deleteSystemServer,
   getAvailableServerTypes,
@@ -330,24 +305,25 @@ import { getProtocolIcon } from "@/components/protocol-icons";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { onMounted, reactive, ref } from "vue";
+import {
+  getSystemServerSettingByServerId,
+  installServletFilter,
+  type SystemServerSetting,
+} from "@/api/system-server-setting";
 import ServerCloneDialog from "./components/ServerCloneDialog.vue";
+import FirewallManagementDialog from "./components/FirewallManagementDialog.vue";
 import ServerConfigDialog from "./components/ServerConfigDialog.vue";
 import ServerFormDialog from "./components/ServerFormDialog.vue";
 import ServerLogDialog from "./components/ServerLogDialog.vue";
 
-// 页面标题
-defineOptions({
-  name: "ServiceManagement",
-});
+defineOptions({ name: "ServiceManagement" });
 
-// 服务器类型接口
 interface ServerType {
   name?: string;
   value?: string;
   label?: string;
 }
 
-// 响应式数据
 const loading = ref(false);
 const serverTable = ref<any>(null);
 const serverTypes = ref<Array<string | ServerType>>([]);
@@ -359,59 +335,32 @@ const statistics = ref<SystemServerStatistics>({
 });
 const actionLoading = ref<Record<number, boolean>>({});
 
-/**
- * 获取运行中服务器占比
- */
 const getRunningRate = () => {
   if (statistics.value.total === 0) return 0;
   return Math.round((statistics.value.running / statistics.value.total) * 100);
 };
 
-/**
- * 获取服务器类型的值
- * 兼容字符串和对象格式
- */
 const getTypeValue = (type: string | ServerType): string => {
-  if (typeof type === "string") {
-    return type;
-  }
+  if (typeof type === "string") return type;
   return type.value || type.name || "";
 };
 
-/**
- * 获取服务器类型的标签
- * 兼容字符串和对象格式
- */
 const getTypeLabel = (type: string | ServerType): string => {
-  if (typeof type === "string") {
-    return type;
-  }
+  if (typeof type === "string") return type;
   return type.label || type.name || type.value || "";
 };
 
-// 表格列配置
 const columns = [
-  {
-    label: "服务器名称",
-    prop: "systemServerName",
-  },
-  {
-    label: "服务器类型",
-    prop: "systemServerType",
-  },
-  {
-    label: "运行状态",
-    prop: "systemServerStatus",
-  },
+  { label: "服务器名称", prop: "systemServerName" },
+  { label: "服务器类型", prop: "systemServerType" },
+  { label: "运行状态", prop: "systemServerStatus" },
 ];
 
-// 处理分页变化
 const handlePaginationChange = (pagination: any) => {
   queryParams.current = pagination.currentPage;
   queryParams.size = pagination.pageSize;
 };
 
-// 查询参数
 const queryParams = reactive({
   current: 1,
   size: 20,
@@ -420,111 +369,71 @@ const queryParams = reactive({
   status: "",
 });
 
-// 对话框状态
 const showAddDialog = ref(false);
 const showCloneDialog = ref(false);
 const showConfigDialog = ref(false);
 const showLogDialog = ref(false);
+const showFirewallDialog = ref(false);
 const currentServer = ref<SystemServer | null>(null);
 const currentServerId = ref<number | null>(null);
+const currentFirewallServerId = ref<number>(0);
+const currentFirewallSettingId = ref<number>(0);
 
-// 获取服务器状态样式类
 const getServerCardClass = (status: string) => {
   switch (status) {
-    case "RUNNING":
-      return "server-running";
-    case "STOPPED":
-      return "server-stopped";
-    case "STARTING":
-    case "STOPPING":
-      return "server-transitioning";
-    case "ERROR":
-      return "server-error";
-    default:
-      return "";
+    case "RUNNING": return "server-running";
+    case "STOPPED": return "server-stopped";
+    case "STARTING": case "STOPPING": return "server-transitioning";
+    case "ERROR": return "server-error";
+    default: return "";
   }
 };
 
-// 获取状态标签类型
 const getStatusTagType = (status: string) => {
   switch (status) {
-    case "RUNNING":
-      return "success";
-    case "STOPPED":
-      return "info";
-    case "STARTING":
-    case "STOPPING":
-      return "warning";
-    case "ERROR":
-      return "danger";
-    default:
-      return "info";
+    case "RUNNING": return "success";
+    case "STOPPED": return "info";
+    case "STARTING": case "STOPPING": return "warning";
+    case "ERROR": return "danger";
+    default: return "info";
   }
 };
 
-// 获取状态文本
 const getStatusText = (status: string) => {
   switch (status) {
-    case "RUNNING":
-      return "运行中";
-    case "STOPPED":
-      return "已停止";
-    case "STARTING":
-      return "启动中";
-    case "STOPPING":
-      return "停止中";
-    case "ERROR":
-      return "异常";
-    default:
-      return "未知";
+    case "RUNNING": return "运行中";
+    case "STOPPED": return "已停止";
+    case "STARTING": return "启动中";
+    case "STOPPING": return "停止中";
+    case "ERROR": return "异常";
+    default: return "未知";
   }
 };
 
-// 打开服务
 const handleOpen = async (server) => {
-  // 0.0.0.0 表示监听所有网卡，实际访问时使用 localhost
-  const host =
-    server.systemServerHost === "0.0.0.0"
-      ? "localhost"
-      : server.systemServerHost || "localhost";
-  window.open(
-    `http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`,
-  );
+  const host = server.systemServerHost === "0.0.0.0" ? "localhost" : server.systemServerHost || "localhost";
+  window.open(`http://${host}:${server.systemServerPort}${server.systemServerContextPath || ""}`);
 };
 
-// 加载服务器类型
 const loadServerTypes = async () => {
   try {
-    const response = await getAvailableServerTypes();
-    const { code, data, msg } = response;
-    if (code === "00000") {
-      serverTypes.value = data;
-    }
-  } catch (error) {
-    console.error("加载服务器类型失败:", error);
-  }
+    const res = await getAvailableServerTypes();
+    if (res.code === "00000") serverTypes.value = res.data;
+  } catch (e) { console.error(e); }
 };
 
-// 加载统计信息
 const loadStatistics = async () => {
   try {
-    const response = await getSystemServerStatistics();
-    const { code, data, msg } = response;
-    if (code === "00000") {
-      statistics.value = data;
-    }
-  } catch (error) {
-    console.error("加载统计信息失败:", error);
-  }
+    const res = await getSystemServerStatistics();
+    if (res.code === "00000") statistics.value = res.data;
+  } catch (e) { console.error(e); }
 };
 
-// 查询
 const handleQuery = () => {
   queryParams.current = 1;
   serverTable.value?.reload(queryParams);
 };
 
-// 重置查询
 const resetQuery = () => {
   queryParams.serverName = "";
   queryParams.serverType = "";
@@ -532,280 +441,346 @@ const resetQuery = () => {
   handleQuery();
 };
 
-// 刷新数据
 const refreshData = () => {
   loadStatistics();
-  serverTable.value?.reload(); // 调用 ScTable 的重新加载数据方法
+  serverTable.value?.reload();
 };
 
-// 启动服务器
 const startServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
-    const response = await startSystemServer(serverId);
-    const { code, data, msg } = response;
-    if (code === "00000") {
-      message("服务器启动成功", { type: "success" });
-      refreshData();
-    } else {
-      message(msg || "启动失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("启动服务器失败:", error);
-    message("启动失败", { type: "error" });
-  } finally {
-    actionLoading.value[serverId] = false;
-  }
+    const res = await startSystemServer(serverId);
+    if (res.code === "00000") message("启动成功", { type: "success" });
+    else message(res.msg || "启动失败", { type: "error" });
+    refreshData();
+  } catch (e) { message("启动失败", { type: "error" });
+  } finally { actionLoading.value[serverId] = false; }
 };
 
-// 停止服务器
 const stopServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
-    const response = await stopSystemServer(serverId);
-    const { code, data, msg } = response;
-    if (code === "00000") {
-      message("服务器停止成功", { type: "success" });
-      refreshData();
-    } else {
-      message(msg || "停止失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("停止服务器失败:", error);
-    message("停止失败", { type: "error" });
-  } finally {
-    actionLoading.value[serverId] = false;
-  }
+    const res = await stopSystemServer(serverId);
+    if (res.code === "00000") message("停止成功", { type: "success" });
+    else message(res.msg || "停止失败", { type: "error" });
+    refreshData();
+  } catch (e) { message("停止失败", { type: "error" });
+  } finally { actionLoading.value[serverId] = false; }
 };
 
-// 重启服务器
 const restartServer = async (serverId: number) => {
   actionLoading.value[serverId] = true;
   try {
-    const response = await restartSystemServer(serverId);
-    if (response.code === "00000") {
-      message("服务器重启成功", { type: "success" });
-      refreshData();
-    } else {
-      message(response.msg || "重启失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("重启服务器失败:", error);
-    message("重启失败", { type: "error" });
-  } finally {
-    actionLoading.value[serverId] = false;
-  }
+    const res = await restartSystemServer(serverId);
+    if (res.code === "00000") message("重启成功", { type: "success" });
+    else message(res.msg || "重启失败", { type: "error" });
+    refreshData();
+  } catch (e) { message("重启失败", { type: "error" });
+  } finally { actionLoading.value[serverId] = false; }
 };
 
-// 处理服务器操作
 const handleServerAction = (command: any) => {
-  // 处理对象形式的命令（编辑和克隆操作）
-  if (typeof command === "object" && command !== null) {
+  if (typeof command === "object" && command) {
     const { type, server } = command;
-    switch (type) {
-      case "edit":
-        currentServer.value = { ...server };
-        showAddDialog.value = true;
-        break;
-      case "clone":
-        currentServer.value = { ...server };
-        showCloneDialog.value = true;
-        break;
-    }
+    if (type === "edit") { currentServer.value = { ...server }; showAddDialog.value = true; }
+    if (type === "clone") { currentServer.value = { ...server }; showCloneDialog.value = true; }
     return;
   }
-
-  // 处理字符串形式的命令（重启和删除操作）
-  const [action, serverIdStr] = command.split("-");
-  const serverId = parseInt(serverIdStr);
-  switch (action) {
-    case "restart":
-      restartServer(serverId);
-      break;
-    case "delete":
-      handleDeleteServer(serverId);
-      break;
-  }
+  const [action, id] = command.split("-");
+  const serverId = parseInt(id);
+  if (action === "restart") restartServer(serverId);
+  if (action === "delete") handleDeleteServer(serverId);
 };
 
-// 删除服务器
 const handleDeleteServer = async (serverId: number) => {
   try {
-    await ElMessageBox.confirm(
-      "确定要删除这个服务器配置吗？删除后无法恢复。",
-      "确认删除",
-      {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      },
-    );
-
-    const response = await deleteSystemServer(serverId);
-    if (response.code === "00000") {
-      message("删除成功", { type: "success" });
-      refreshData();
-    } else {
-      message(response.msg || "删除失败", { type: "error" });
-    }
-  } catch (error) {
-    if (error !== "cancel") {
-      console.error("删除服务器失败:", error);
-      message("删除失败", { type: "error" });
-    }
-  }
+    await ElMessageBox.confirm("确定删除？删除后无法恢复", "确认删除", { type: "warning" });
+    const res = await deleteSystemServer(serverId);
+    if (res.code === "00000") message("删除成功", { type: "success" });
+    else message(res.msg || "删除失败", { type: "error" });
+    refreshData();
+  } catch (e) { if (e !== "cancel") message("删除失败", { type: "error" }); }
 };
 
-// 打开服务器配置
-const openServerConfig = (serverId: number, server: SystemServer) => {
-  currentServerId.value = serverId;
+const openServerConfig = (id: number, server: SystemServer) => {
+  currentServerId.value = id;
   currentServer.value = server;
   showConfigDialog.value = true;
 };
 
-// 打开服务器日志
-const openServerLog = (serverId: number, server: SystemServer) => {
-  currentServerId.value = serverId;
+const openServerLog = (id: number, server: SystemServer) => {
+  currentServerId.value = id;
   currentServer.value = server;
   showLogDialog.value = true;
 };
 
-// 表单成功回调
-const handleFormSuccess = () => {
-  showAddDialog.value = false;
-  currentServer.value = null;
-  refreshData();
+const resolveFirewallSetting = (settings: SystemServerSetting[]) => {
+  return settings.find(i => (i.systemServerSettingType || "").toUpperCase().includes("FIREWALL"));
 };
 
-// 克隆成功回调
-const handleCloneSuccess = () => {
-  showCloneDialog.value = false;
-  currentServer.value = null;
-  refreshData();
+const openFirewallConfig = async (server: SystemServer) => {
+  const serverId = Number(server?.systemServerId);
+  if (!serverId) return message("无效服务器", { type: "error" });
+  try {
+    let res = await getSystemServerSettingByServerId(serverId);
+    let settings = res.data?.records || res.data || [];
+    let fw = resolveFirewallSetting(settings);
+    if (!fw) {
+      await installServletFilter(serverId, "firewall");
+      res = await getSystemServerSettingByServerId(serverId);
+      settings = res.data?.records || res.data || [];
+      fw = resolveFirewallSetting(settings);
+    }
+    if (!fw?.systemServerSettingId) return message("未找到防火墙配置", { type: "error" });
+    currentFirewallServerId.value = serverId;
+    currentFirewallSettingId.value = Number(fw.systemServerSettingId);
+    showFirewallDialog.value = true;
+  } catch (e) { message("打开防火墙失败", { type: "error" }); }
 };
 
-// 配置成功回调
-const handleConfigSuccess = () => {
-  showConfigDialog.value = false;
-  currentServerId.value = null;
-  currentServer.value = null;
-  refreshData();
-};
+const handleFormSuccess = () => { showAddDialog.value = false; currentServer.value = null; refreshData(); };
+const handleCloneSuccess = () => { showCloneDialog.value = false; currentServer.value = null; refreshData(); };
+const handleConfigSuccess = () => { showConfigDialog.value = false; currentServerId.value = null; currentServer.value = null; refreshData(); };
+const handleFirewallSuccess = () => { showFirewallDialog.value = false; currentFirewallServerId.value = 0; currentFirewallSettingId.value = 0; refreshData(); };
 
-// 初始化
-onMounted(() => {
-  loadServerTypes();
-  loadStatistics();
-});
+onMounted(() => { loadServerTypes(); loadStatistics(); });
 </script>
 
 <style lang="scss" scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 32px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  }
-}
-
-.modern-bg {
-  position: relative;
-  overflow: hidden;
-
-  // 渐变背景
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background:
-      radial-gradient(
-        circle at 20% 30%,
-        rgba(99, 102, 241, 0.08) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 70%,
-        rgba(168, 85, 247, 0.06) 0%,
-        transparent 50%
-      );
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  > * {
-    position: relative;
-    z-index: 1;
-  }
-}
-
 .service-management-container {
   padding: 24px;
   height: 100%;
-  background: var(--el-bg-color-overlay);
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  background: #f5f7fa;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .header-left {
-    h2 {
-      margin: 0 0 8px 0;
-      color: var(--el-text-color-primary);
-      font-size: 24px;
-      font-weight: 600;
-    }
-
-    p {
-      margin: 0;
-      color: #606266;
-      font-size: 14px;
-    }
-  }
-
-  .header-right {
-    display: flex;
-    gap: 12px;
-  }
-}
-
-// 统计卡片
 .statistics-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 16px;
   flex-shrink: 0;
 
-  :deep(.stat-card-item) {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-height: 100px;
+  :deep(.sc-card) {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 
     &:hover {
-      transform: translateY(-4px);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+.filter-wrapper {
+  width: 100%;
+}
+
+.filter-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  .filter-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-left: auto;
+  }
+}
+
+.server-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.server-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .status-bar {
+    height: 3px;
+    background: #e5e7eb;
+  }
+
+  &.server-running .status-bar {
+    background: linear-gradient(90deg, #00b42a, #00d772);
+  }
+
+  &.server-stopped .status-bar {
+    background: #909399;
+  }
+
+  &.server-transitioning .status-bar {
+    background: #ff7d00;
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+
+  &.server-error .status-bar {
+    background: #f53f3f;
+  }
+
+  .card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .server-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #409eff;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .server-meta {
+      flex: 1;
+      min-width: 0;
+
+      .server-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #303133;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .server-type {
+        font-size: 12px;
+        color: #909399;
+      }
+    }
+
+    .status-tag {
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
   }
 
-  :deep(.sc-card-stats) {
-    height: 100%;
+  .server-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 8px;
+      cursor: default;
+
+      &.primary {
+        cursor: pointer;
+
+        &:hover {
+          background: #ecf5ff;
+        }
+      }
+
+      .stat-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: #409eff;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 6px;
+      }
+
+      .stat-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #303133;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #909399;
+      }
+    }
   }
+
+  .server-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .detail-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #606266;
+      background: #f5f7fa;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+  }
+
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .action-btn {
+      flex: 1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .action-group {
+      display: flex;
+      gap: 6px;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 @media (max-width: 1200px) {
@@ -815,338 +790,8 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .statistics-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
-// 筛选卡片
-.filter-card {
-  margin-bottom: 24px;
-  border-radius: 12px;
-  padding: 16px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-
-  .filter-content {
-    padding: 8px 0;
-    padding-top: 20px;
-    .el-form {
-      .action-buttons {
-        position: absolute;
-        right: 0;
-        margin-left: 16px;
-        padding-left: 16px;
-        border-left: 1px solid #e4e7ed;
-
-        .el-button {
-          margin-left: 8px;
-          border-radius: 8px;
-          font-weight: 500;
-
-          &:first-child {
-            margin-left: 0;
-          }
-        }
-      }
-    }
-  }
-}
-
-// 服务器列表
-.server-list {
-  flex: 1;
-
-  .server-card {
-    background: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    transition: all 0.25s ease;
-    position: relative;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    // 顶部状态条
-    .status-bar {
-      height: 3px;
-      background: linear-gradient(90deg, #e5e7eb, #f1f5f9);
-      transition: all 0.3s ease;
-    }
-
-    &.server-running .status-bar {
-      background: linear-gradient(90deg, #10b981, #34d399);
-    }
-
-    &.server-stopped .status-bar {
-      background: linear-gradient(90deg, #94a3b8, #cbd5e1);
-    }
-
-    &.server-transitioning .status-bar {
-      background: linear-gradient(90deg, #f59e0b, #fbbf24);
-      animation: pulse 2s infinite;
-    }
-
-    &.server-error .status-bar {
-      background: linear-gradient(90deg, #ef4444, #f87171);
-    }
-
-    // 卡片主体
-    .card-content {
-      padding: 12px;
-    }
-
-    // 头部
-    .card-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-
-      .server-icon {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: #fff;
-        font-size: 16px;
-        flex-shrink: 0;
-        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
-      }
-
-      .server-meta {
-        flex: 1;
-        min-width: 0;
-
-        .server-name {
-          margin: 0 0 2px;
-          font-size: 13px;
-          font-weight: 600;
-          color: #1e293b;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .server-type {
-          font-size: 11px;
-          color: #64748b;
-          font-weight: 500;
-        }
-      }
-
-      .status-tag {
-        flex-shrink: 0;
-        border-radius: 12px;
-        padding: 2px 8px;
-        font-size: 10px;
-        font-weight: 600;
-
-        .status-icon {
-          margin-right: 2px;
-          font-size: 10px;
-        }
-      }
-    }
-
-    // 统计信息区 - 改为紧凑的网格布局
-    .server-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-      margin-bottom: 10px;
-
-      .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 8px 4px;
-        background: #f8fafc;
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        cursor: default;
-
-        &:hover {
-          background: #f1f5f9;
-        }
-
-        &.primary {
-          cursor: pointer;
-
-          &:hover {
-            background: #eff6ff;
-
-            .stat-icon {
-              background: #2563eb;
-            }
-
-            .stat-value {
-              color: #2563eb;
-            }
-          }
-        }
-
-        .stat-icon {
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #3b82f6;
-          color: #fff;
-          border-radius: 6px;
-          font-size: 12px;
-          flex-shrink: 0;
-          margin-bottom: 4px;
-          transition: all 0.2s ease;
-        }
-
-        .stat-info {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-
-          .stat-value {
-            font-size: 14px;
-            font-weight: 700;
-            color: #1e293b;
-            line-height: 1.2;
-            transition: color 0.2s ease;
-          }
-
-          .stat-label {
-            font-size: 10px;
-            color: #94a3b8;
-            font-weight: 500;
-          }
-        }
-      }
-    }
-
-    // 详细信息
-    .server-details {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px dashed #e5e7eb;
-
-      .detail-item {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 11px;
-        color: #64748b;
-        background: #f8fafc;
-        padding: 4px 6px;
-        border-radius: 4px;
-
-        .iconify-icon {
-          font-size: 12px;
-          color: #94a3b8;
-        }
-      }
-    }
-
-    // 操作按钮
-    .card-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      .action-btn {
-        flex: 1;
-        height: 28px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 11px;
-        padding: 0 8px;
-
-        .iconify-icon {
-          margin-right: 4px;
-          font-size: 12px;
-        }
-      }
-
-      .action-group {
-        display: flex;
-        gap: 4px;
-
-        .el-button.is-circle {
-          width: 28px;
-          height: 28px;
-          border: 1px solid #e5e7eb;
-          background: #fff;
-          color: #64748b;
-
-          &:hover:not(:disabled) {
-            border-color: #3b82f6;
-            color: #3b82f6;
-            background: #eff6ff;
-          }
-
-          &:disabled {
-            opacity: 0.5;
-          }
-
-          .iconify-icon {
-            font-size: 12px;
-          }
-        }
-      }
-    }
-  }
-}
-
-// 分页
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 24px;
-}
-
-// 动画
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-// 响应式
-@media (max-width: 1200px) {
-  .server-list {
-    .server-card {
-      .server-stats {
-        flex-wrap: wrap;
-
-        .stat-item {
-          min-width: calc(50% - 6px);
-        }
-      }
-    }
-  }
-}
-
-@media (max-width: 768px) {
   .service-management-container {
     padding: 16px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
   }
 
   .statistics-cards {
@@ -1154,67 +799,25 @@ onMounted(() => {
   }
 
   .filter-card {
-    .filter-content {
-      .el-form {
-        .el-form-item {
-          margin-bottom: 16px;
+    .filter-form {
+      flex-direction: column;
+      align-items: stretch;
+    }
 
-          &.action-buttons {
-            margin-left: 0;
-            padding-left: 0;
-            border-left: none;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-
-            .el-button {
-              margin: 0;
-              width: 100%;
-            }
-          }
-        }
-      }
+    .action-buttons {
+      margin-left: 0;
+      justify-content: center;
     }
   }
 
-  .server-list {
-    .server-card {
-      .card-content {
-        padding: 16px;
-      }
+  .server-card {
+    .server-stats {
+      grid-template-columns: 1fr;
+    }
 
-      .card-header {
-        flex-wrap: wrap;
-
-        .status-tag {
-          margin-top: 8px;
-          width: 100%;
-          text-align: center;
-          justify-content: center;
-        }
-      }
-
-      .server-stats {
-        flex-direction: column;
-
-        .stat-item {
-          min-width: 100%;
-        }
-      }
-
-      .card-actions {
-        flex-wrap: wrap;
-
-        .action-btn {
-          flex: 1 1 100%;
-          margin-bottom: 8px;
-        }
-
-        .action-group {
-          flex: 1 1 100%;
-          justify-content: center;
-        }
-      }
+    .card-actions {
+      flex-direction: column;
+      align-items: stretch;
     }
   }
 }

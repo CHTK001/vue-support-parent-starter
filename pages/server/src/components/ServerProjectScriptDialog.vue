@@ -33,6 +33,7 @@
         :provider-label="executionProvider"
         task-title="AI 项目配置模板"
         :context="configTemplateAiContext"
+        :task-persist="configTemplateTaskPersist"
         :build-prompt="buildConfigTemplatePrompt"
         placeholder="这里维护项目配置模板、环境变量模板或部署说明。"
       />
@@ -48,6 +49,7 @@
           :ai-enabled="aiEnabled"
           :ai-unavailable-reason="aiUnavailableReason"
           :ai-context="scriptAiContext"
+          :task-persist="createScriptTaskPersist('detect')"
           :language="scriptLanguage"
         />
         <ServerScriptComposer
@@ -60,6 +62,7 @@
           :ai-enabled="aiEnabled"
           :ai-unavailable-reason="aiUnavailableReason"
           :ai-context="scriptAiContext"
+          :task-persist="createScriptTaskPersist('status')"
           :language="scriptLanguage"
         />
         <ServerScriptComposer
@@ -72,6 +75,7 @@
           :ai-enabled="aiEnabled"
           :ai-unavailable-reason="aiUnavailableReason"
           :ai-context="scriptAiContext"
+          :task-persist="createScriptTaskPersist('start')"
           :language="scriptLanguage"
         />
         <ServerScriptComposer
@@ -84,6 +88,7 @@
           :ai-enabled="aiEnabled"
           :ai-unavailable-reason="aiUnavailableReason"
           :ai-context="scriptAiContext"
+          :task-persist="createScriptTaskPersist('stop')"
           :language="scriptLanguage"
         />
         <ServerScriptComposer
@@ -96,6 +101,7 @@
           :ai-enabled="aiEnabled"
           :ai-unavailable-reason="aiUnavailableReason"
           :ai-context="scriptAiContext"
+          :task-persist="createScriptTaskPersist('restart')"
           :language="scriptLanguage"
         />
       </div>
@@ -121,6 +127,7 @@ import { computed, reactive, watch } from "vue";
 import ScAiTextarea, {
   type ScAiTextareaPayload,
 } from "@repo/components/ScAiTextarea";
+import type { TaskCenterPersistContext } from "@layout/default";
 import type { ServerService } from "../api";
 import ServerScriptComposer, {
   type ServerScriptShortcut,
@@ -247,6 +254,30 @@ const configTemplateAiContext = computed(() => ({
   ...scriptAiContext.value,
   configTemplate: draft.configTemplate,
 }));
+
+const configTemplateTaskPersist = computed<TaskCenterPersistContext>(() => ({
+  bizType: "server-project-config-template-ai",
+  bizId: draft.serverServiceId,
+  traceId: draft.serverServiceId
+    ? `server-project-config-template-ai-${draft.serverServiceId}`
+    : undefined,
+  persistKey: draft.serverServiceId
+    ? `server-project-config-template-ai:${draft.serverServiceId}`
+    : "server-project-config-template-ai:new",
+}));
+
+const createScriptTaskPersist = (
+  scriptType: string,
+): TaskCenterPersistContext => ({
+  bizType: `server-project-script-ai-${scriptType}`,
+  bizId: draft.serverServiceId,
+  traceId: draft.serverServiceId
+    ? `server-project-script-ai-${scriptType}-${draft.serverServiceId}`
+    : undefined,
+  persistKey: draft.serverServiceId
+    ? `server-project-script-ai:${scriptType}:${draft.serverServiceId}`
+    : `server-project-script-ai:${scriptType}:new`,
+});
 
 const buildConfigTemplatePrompt = (payload: ScAiTextareaPayload) =>
   [

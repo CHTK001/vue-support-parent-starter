@@ -196,6 +196,8 @@ export interface StorageConfig {
   aiChatModel?: string;
   /** AI 运行模式：webllm / chrome / vendor */
   aiChatMode?: string;
+  /** 浏览器/当前环境 AI 能力探测结果 */
+  browserAiSupported?: boolean;
   /** 显示新菜单标识 */
   forceNewMenu?: boolean;
   /** 菜单动画开关 */

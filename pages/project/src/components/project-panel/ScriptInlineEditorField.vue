@@ -23,7 +23,7 @@
       destroy-on-close
       layout="simple"
     >
-      <div class="script-inline-editor__toolbar">
+      <div v-if="showLanguageToolbar" class="script-inline-editor__toolbar">
         <span>脚本语言</span>
         <ScSelect v-model="draftLanguage" style="width: 220px">
           <ElOption
@@ -75,6 +75,7 @@ const props = defineProps<{
   languageOptions?: ScriptLanguageOption[];
   emptyText?: string;
   dialogTitle?: string;
+  showLanguageToolbar?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -108,6 +109,7 @@ const tooltipContent = computed(() => {
 const resolvedDialogTitle = computed(
   () => props.dialogTitle || `${props.label}编辑`,
 );
+const showLanguageToolbar = computed(() => props.showLanguageToolbar !== false);
 
 watch(
   () => props.language,

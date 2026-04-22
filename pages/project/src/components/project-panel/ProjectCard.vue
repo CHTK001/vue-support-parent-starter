@@ -12,42 +12,61 @@
     <div v-if="dragOver" class="project-card__drop-mask">
       释放文件后按全局上传设置升级当前项目
     </div>
+    <div v-if="isBusy" class="project-card__loading-mask">
+      <span class="project-card__loading-spinner" />
+      <div class="project-card__loading-copy">
+        <strong>{{ busyActionLabel }}</strong>
+        <span>请等待当前操作完成，避免重复点击</span>
+      </div>
+    </div>
     <div class="project-card__top-tools" @click.stop>
       <div class="project-card__group project-card__group--controls">
-        <el-tooltip v-if="!isRunning" :content="startActionTooltip" placement="top">
+        <el-tooltip
+          v-if="!isRunning && !isStaticProject"
+          :content="startActionTooltip"
+          placement="top"
+        >
           <ScButton
             circle
             size="small"
             type="success"
             plain
             :loading="loadingState?.start"
-            :disabled="startDisabled"
+            :disabled="isBusy || startDisabled"
             @click.stop="$emit('start', project)"
           >
             <IconifyIconOnline icon="ep:video-play" />
           </ScButton>
         </el-tooltip>
-        <el-tooltip v-else :content="stopActionTooltip" placement="top">
+        <el-tooltip
+          v-else-if="!isStaticProject"
+          :content="stopActionTooltip"
+          placement="top"
+        >
           <ScButton
             circle
             size="small"
             type="danger"
             plain
             :loading="loadingState?.stop"
-            :disabled="stopDisabled"
+            :disabled="isBusy || stopDisabled"
             @click.stop="$emit('stop', project)"
           >
             <IconifyIconOnline icon="ep:video-pause" />
           </ScButton>
         </el-tooltip>
-        <el-tooltip :content="restartActionTooltip" placement="top">
+        <el-tooltip
+          v-if="!isStaticProject"
+          :content="restartActionTooltip"
+          placement="top"
+        >
           <ScButton
             circle
             size="small"
             type="warning"
             plain
             :loading="loadingState?.restart"
-            :disabled="restartDisabled"
+            :disabled="isBusy || restartDisabled"
             @click.stop="$emit('restart', project)"
           >
             <IconifyIconOnline icon="ep:refresh-right" />
@@ -65,6 +84,7 @@
             circle
             size="small"
             plain
+            :disabled="isBusy"
             @click.stop="$emit('download-main', project)"
           >
             <IconifyIconOnline icon="ep:download" />
@@ -75,6 +95,7 @@
             circle
             size="small"
             plain
+            :disabled="isBusy"
             @click.stop="$emit('logs', project)"
           >
             <IconifyIconOnline icon="ep:document" />
@@ -87,6 +108,7 @@
             type="primary"
             plain
             :loading="loadingState?.deploy || loadingState?.batchDeploy"
+            :disabled="isBusy"
             @click.stop="$emit('deploy', project)"
           >
             <IconifyIconOnline icon="ep:upload" />
@@ -97,6 +119,7 @@
             circle
             size="small"
             plain
+            :disabled="isBusy"
             @click.stop="$emit('backup', project)"
           >
             <IconifyIconOnline icon="ep:box" />
@@ -107,6 +130,7 @@
             circle
             size="small"
             plain
+            :disabled="isBusy"
             @click.stop="$emit('rollback', project)"
           >
             <IconifyIconOnline icon="ep:back" />
@@ -117,6 +141,7 @@
             circle
             size="small"
             plain
+            :disabled="isBusy"
             @click.stop="$emit('edit', project)"
           >
             <IconifyIconOnline icon="ep:edit" />
@@ -128,6 +153,7 @@
             size="small"
             type="danger"
             plain
+            :disabled="isBusy"
             @click.stop="$emit('delete', project)"
           >
             <IconifyIconOnline icon="ep:delete" />
@@ -193,6 +219,13 @@
               <div class="project-card__tooltip-item">
                 <span>启动方式</span>
                 <strong>{{ lifecycleModeLabel }}</strong>
+              </div>
+              <div
+                v-if="project.healthCheckUrl"
+                class="project-card__tooltip-item"
+              >
+                <span>健康地址</span>
+                <strong>{{ project.healthCheckUrl }}</strong>
               </div>
               <div class="project-card__tooltip-item">
                 <span>脚本策略说明</span>
@@ -263,6 +296,8 @@ import {
   hasRequiredLifecycleScripts,
   isSpringBootProjectType,
   isSpringBootResourceSplitType,
+  isStaticProjectType,
+  isTomcatProjectType,
   normalizeProjectType,
   projectTypeLabel,
   resolveLifecycleModeLabel,
@@ -300,15 +335,26 @@ const runtimeStatus = computed(() =>
     .trim()
     .toLowerCase(),
 );
+const isStaticProject = computed(() =>
+  isStaticProjectType(props.project.projectType),
+);
+const isTomcatProject = computed(() =>
+  isTomcatProjectType(props.project.projectType),
+);
 const isRunning = computed(() => runtimeStatus.value === "running");
-const hasLogConfig = computed(() => Boolean(props.project.projectId));
+const hasLogConfig = computed(
+  () => !isStaticProject.value && Boolean(props.project.projectId),
+);
 const mainArtifact = computed(() => String(props.project.mainArtifact || "").trim());
 const isJarArtifact = computed(() => /\.jar$/i.test(mainArtifact.value));
 const canDownloadMainArtifact = computed(
-  () => isSpringBootProjectType(props.project.projectType) && isJarArtifact.value,
+  () =>
+    !isTomcatProject.value &&
+    isSpringBootProjectType(props.project.projectType) &&
+    isJarArtifact.value,
 );
 const hasLifecycleScripts = computed(() =>
-  hasRequiredLifecycleScripts(props.project),
+  isStaticProject.value ? false : hasRequiredLifecycleScripts(props.project),
 );
 const lifecycleModeLabel = computed(() =>
   resolveLifecycleModeLabel(props.project),
@@ -321,20 +367,47 @@ const isResourceSplitProject = computed(() =>
   isSpringBootResourceSplitType(props.project.projectType),
 );
 const loadingStateValue = computed(() => props.loadingState || {});
+const isBusy = computed(() =>
+  Object.values(loadingStateValue.value).some(Boolean),
+);
+const busyActionLabel = computed(() => {
+  if (loadingStateValue.value.deploy || loadingStateValue.value.batchDeploy) {
+    return "部署处理中";
+  }
+  if (loadingStateValue.value.restart) {
+    return "重启处理中";
+  }
+  if (loadingStateValue.value.stop) {
+    return "停止处理中";
+  }
+  if (loadingStateValue.value.start) {
+    return "启动处理中";
+  }
+  if (loadingStateValue.value.backup) {
+    return "备份处理中";
+  }
+  if (loadingStateValue.value.rollback) {
+    return "回滚处理中";
+  }
+  return "处理中";
+});
 const startDisabled = computed(
   () =>
+    isStaticProject.value ||
     !hasLifecycleScripts.value ||
     isRunning.value ||
     Boolean(loadingStateValue.value.stop || loadingStateValue.value.restart),
 );
 const stopDisabled = computed(
   () =>
+    isStaticProject.value ||
     !hasLifecycleScripts.value ||
     !isRunning.value ||
     Boolean(loadingStateValue.value.start || loadingStateValue.value.restart),
 );
 const restartDisabled = computed(
   () =>
+    isStaticProject.value ||
     !hasLifecycleScripts.value ||
     Boolean(loadingStateValue.value.start || loadingStateValue.value.stop),
 );
@@ -360,14 +433,76 @@ const downloadActionTooltip = computed(() =>
 );
 
 const onDragOver = (event: DragEvent) => {
-  if (!event.dataTransfer?.files?.length) return;
+  if (
+    isBusy.value ||
+    !event.dataTransfer?.files?.length ||
+    (!isSpringBootProjectType(props.project.projectType) &&
+      !isTomcatProject.value &&
+      !isStaticProject.value)
+  ) {
+    return;
+  }
+  const file = event.dataTransfer.files[0];
+  const lowerName = file?.name?.toLowerCase() || "";
+  const isArchive =
+    lowerName.endsWith(".zip") ||
+    lowerName.endsWith(".tar.gz") ||
+    lowerName.endsWith(".tgz");
+  const isSingleSpringBoot =
+    isSpringBootProjectType(props.project.projectType) &&
+    !isSpringBootResourceSplitType(props.project.projectType);
+  const isStaticArchive = isStaticProject.value && isArchive;
+  const isTomcatPackage =
+    isTomcatProject.value &&
+    (lowerName.endsWith(".war") || lowerName.endsWith(".ear"));
+  if (isTomcatProject.value && !isTomcatPackage) {
+    return;
+  }
+  if (isSingleSpringBoot && !lowerName.endsWith(".jar")) {
+    return;
+  }
+  if (
+    !isSingleSpringBoot &&
+    !isStaticArchive &&
+    !isSpringBootResourceSplitType(props.project.projectType)
+  ) {
+    return;
+  }
+  if (
+    isSpringBootResourceSplitType(props.project.projectType) &&
+    !lowerName.includes(".")
+  ) {
+    return;
+  }
   dragOver.value = true;
 };
 
 const onDrop = (event: DragEvent) => {
   dragOver.value = false;
+  if (isBusy.value) return;
   const file = event.dataTransfer?.files?.[0];
-  if (!file) return;
+  if (
+    !file ||
+    (!isSpringBootProjectType(props.project.projectType) &&
+      !isTomcatProject.value &&
+      !isStaticProject.value) ||
+    (isTomcatProject.value &&
+      !(
+        file.name.toLowerCase().endsWith(".war") ||
+        file.name.toLowerCase().endsWith(".ear")
+      )) ||
+    (isStaticProject.value &&
+      !(
+        file.name.toLowerCase().endsWith(".zip") ||
+        file.name.toLowerCase().endsWith(".tar.gz") ||
+        file.name.toLowerCase().endsWith(".tgz")
+      )) ||
+    (!isStaticProject.value &&
+      !isSpringBootResourceSplitType(props.project.projectType) &&
+      !file.name.toLowerCase().endsWith(".jar"))
+  ) {
+    return;
+  }
   emit("deploy-drop", props.project, file);
 };
 
@@ -453,6 +588,44 @@ const projectIcon = computed(() => {
   font-weight: 700;
   text-align: center;
   padding: 14px;
+}
+
+.project-card__loading-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(8px);
+}
+
+.project-card__loading-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(59, 130, 246, 0.16);
+  border-top-color: #2563eb;
+  animation: project-card-spin 0.9s linear infinite;
+}
+
+.project-card__loading-copy {
+  display: grid;
+  gap: 4px;
+
+  strong {
+    color: #0f172a;
+    font-size: 14px;
+  }
+
+  span {
+    color: #475569;
+    font-size: 12px;
+  }
 }
 
 .project-card__head {
@@ -699,6 +872,12 @@ const projectIcon = computed(() => {
     pointer-events: auto;
     justify-content: flex-start;
     max-width: none;
+  }
+}
+
+@keyframes project-card-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

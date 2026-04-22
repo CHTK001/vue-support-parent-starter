@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useGlobal } from "@pureadmin/utils";
 import { emitter, MonitorTopics, useConfigStore } from "@repo/core";
+import { useOverlayStack } from "../lay-overlay-stack/provider";
 import {
   appendTaskCenterMessage,
   clearTaskCenterHistory,
@@ -10,27 +11,23 @@ import {
   dismissTaskCenterTask,
   finishTaskCenterTask,
   openTaskCenterPanel,
+  registerTaskCenterTriggerHandler,
   removeTaskCenterTask,
   selectTaskCenterTask,
+  unregisterTaskCenterTriggerHandler,
   upsertTaskCenterTask,
   useTaskCenterState,
 } from "./service";
 import type {
   TaskCenterMode,
-  TaskCenterPosition,
   TaskCenterTaskInput,
+  TaskCenterTriggerHandler,
 } from "./types";
+import type { OverlayStackTone } from "../lay-overlay-stack/types";
 
-const POSITIONS: TaskCenterPosition[] = [
-  "top-left",
-  "top-center",
-  "top-right",
-  "left-center",
-  "right-center",
-  "bottom-left",
-  "bottom-center",
-  "bottom-right",
-];
+const props = defineProps<{
+  onTrigger?: TaskCenterTriggerHandler;
+}>();
 
 const statusLabelMap = {
   pending: "等待中",
@@ -60,30 +57,17 @@ const summary = computed(() => ({
   error: historyTasks.value.filter((item) => item.status === "error").length,
 }));
 
-const overlayTasksByPosition = computed(() =>
-  POSITIONS.reduce<Record<TaskCenterPosition, typeof sortedTasks.value>>(
-    (acc, position) => {
-      acc[position] = sortedTasks.value
-        .filter((item) => item.overlayVisible && item.position === position)
-        .slice(0, state.maxVisible);
-      return acc;
-    },
-    {
-      "top-left": [],
-      "top-center": [],
-      "top-right": [],
-      "left-center": [],
-      "right-center": [],
-      "bottom-left": [],
-      "bottom-center": [],
-      "bottom-right": [],
-    },
-  ),
-);
-
-const hasOverlayTasks = computed(() =>
-  Object.values(overlayTasksByPosition.value).some((tasks) => tasks.length > 0),
-);
+const statusToneMap: Record<
+  NonNullable<(typeof sortedTasks.value)[number]["status"]>,
+  OverlayStackTone
+> = {
+  pending: "default",
+  running: "info",
+  success: "success",
+  error: "error",
+  warning: "warning",
+};
+const overlayStack = useOverlayStack();
 
 const formatTime = (value?: number) =>
   value
@@ -307,8 +291,73 @@ const handleTaskCenterMessage = (payload: {
 
 let cleanupSocketListeners: (() => void) | undefined;
 
+const syncTaskCenterOverlays = () => {
+  const visibleTasks = showTaskCenter.value
+    ? sortedTasks.value.filter((item) => item.overlayVisible)
+    : [];
+
+  visibleTasks.forEach((task) => {
+    overlayStack.upsert({
+      id: task.id,
+      source: "task-center",
+      title: task.title,
+      description: task.description,
+      icon: task.icon || "mdi:lightning-bolt-outline",
+      tone: statusToneMap[task.status],
+      position: task.position,
+      timestamp: task.updatedAt,
+      createdAt: task.createdAt,
+      latestMessage: task.latestMessage,
+      summary:
+        task.mode === "stream" && task.messages.length > 0
+          ? `${task.messages.length} 条消息 · ${task.latestMessage || "等待执行"}`
+          : `${statusLabelMap[task.status]} · ${getStepLabel(task)}`,
+      messages: task.messages
+        .slice(-Math.min(task.maxLogs, 6))
+        .map((message) => ({
+          id: message.id,
+          content: message.content,
+          level: message.level,
+          timestamp: message.timestamp,
+        })),
+      progress: task.progress,
+      progressLabel: getStepLabel(task),
+      progressSecondary: formatElapsed(task.startedAt, task.endedAt),
+      showPercent: task.showPercent,
+      closeable: task.closeable,
+      autoClose: task.autoClose,
+      autoCloseDelay: task.autoCloseDelay,
+      onOpen: () => openTask(task.id),
+      onClose: () => dismissTaskCenterTask(task.id),
+    });
+  });
+
+  overlayStack.removeBySource(
+    "task-center",
+    visibleTasks.map((task) => task.id),
+  );
+};
+
+watch([showTaskCenter, sortedTasks], syncTaskCenterOverlays, {
+  immediate: true,
+  deep: true,
+});
+
+watch(
+  () => props.onTrigger,
+  (onTrigger, previous) => {
+    if (previous) {
+      unregisterTaskCenterTriggerHandler(previous);
+    }
+    if (onTrigger) {
+      registerTaskCenterTriggerHandler(onTrigger);
+    }
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
-  configureTaskCenter({ maxVisible: 4, maxHistory: 80 });
+  configureTaskCenter({ maxVisible: 5, maxHistory: 80 });
   emitter.on("showTaskCenterChange", handleTaskCenterChange);
   emitter.on("taskCenterPush", handleTaskCenterPush);
   emitter.on("taskCenterMessage", handleTaskCenterMessage);
@@ -319,6 +368,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (props.onTrigger) {
+    unregisterTaskCenterTriggerHandler(props.onTrigger);
+  }
+  overlayStack.clear("task-center");
   emitter.off("showTaskCenterChange", handleTaskCenterChange);
   emitter.off("taskCenterPush", handleTaskCenterPush);
   emitter.off("taskCenterMessage", handleTaskCenterMessage);
@@ -336,85 +389,6 @@ onUnmounted(() => {
       class="task-center-backdrop"
       @click="closeTaskCenterPanel"
     />
-
-    <div v-if="showTaskCenter && hasOverlayTasks" class="task-center-overlay-root">
-      <div
-        v-for="position in POSITIONS"
-        :key="position"
-        class="task-center-stack"
-        :class="`is-${position}`"
-      >
-        <TransitionGroup name="task-center-item">
-          <article
-            v-for="task in overlayTasksByPosition[position]"
-            :key="task.id"
-            class="task-center-card"
-            :class="`is-${task.status}`"
-            role="button"
-            tabindex="0"
-            @click="openTask(task.id)"
-            @keydown.enter="openTask(task.id)"
-            @keydown.space.prevent="openTask(task.id)"
-          >
-            <div class="task-center-card-top">
-              <span class="task-center-card-title">
-                <IconifyIconOnline
-                  :icon="task.icon || 'mdi:lightning-bolt-outline'"
-                />
-                {{ task.title }}
-              </span>
-              <button
-                v-if="task.closeable"
-                class="task-center-icon-btn"
-                type="button"
-                @click.stop="dismissTaskCenterTask(task.id)"
-              >
-                <IconifyIconOnline icon="ri:close-line" />
-              </button>
-            </div>
-            <div class="task-center-card-meta">
-              <span>{{ statusLabelMap[task.status] }}</span>
-              <span>{{ formatTime(task.updatedAt) }}</span>
-            </div>
-            <div class="task-center-progress">
-              <div class="task-center-progress-track">
-                <div
-                  class="task-center-progress-fill"
-                  :class="{
-                    'is-indeterminate':
-                      task.progress === null && task.status === 'running',
-                  }"
-                  :style="{ width: getProgressWidth(task) }"
-                />
-              </div>
-              <span v-if="task.showPercent">{{
-                task.progress === null ? "--" : `${task.progress}%`
-              }}</span>
-            </div>
-            <div class="task-center-card-meta">
-              <span>{{ getStepLabel(task) }}</span>
-              <span>{{ formatElapsed(task.startedAt, task.endedAt) }}</span>
-            </div>
-            <div
-              v-if="task.mode === 'stream' && task.messages.length > 0"
-              class="task-center-log-list"
-            >
-              <div
-                v-for="message in task.messages.slice(-3)"
-                :key="message.id"
-                class="task-center-log-row"
-              >
-                <span
-                  class="task-center-log-dot"
-                  :class="`is-${message.level}`"
-                />
-                <span>{{ message.content }}</span>
-              </div>
-            </div>
-          </article>
-        </TransitionGroup>
-      </div>
-    </div>
 
     <aside v-if="showTaskCenter && state.panelVisible" class="task-center-panel is-open">
       <div class="task-center-panel-header">
@@ -806,8 +780,12 @@ onUnmounted(() => {
   border-radius: inherit;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--task-accent) 85%, white 15%),
-    var(--task-accent)
+    color-mix(
+      in srgb,
+      var(--overlay-accent, var(--task-accent)) 85%,
+      white 15%
+    ),
+    var(--overlay-accent, var(--task-accent))
   );
 }
 .task-center-progress-fill.is-indeterminate {
@@ -840,6 +818,9 @@ onUnmounted(() => {
   background: var(--task-center-tab-active-bg);
   color: var(--task-center-tab-active-color);
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+}
+.task-center-overlay-meta {
+  margin-top: 0;
 }
 .task-center-log-list {
   display: flex;

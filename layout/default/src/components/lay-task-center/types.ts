@@ -20,6 +20,24 @@ export type TaskCenterPosition =
 export type TaskCenterMessageLevel = "info" | "success" | "warning" | "error";
 
 export type TaskCenterSource = "manual" | "socket" | "system";
+export type TaskCenterTriggerType =
+  | "add"
+  | "update"
+  | "message"
+  | "success"
+  | "error"
+  | "dismiss"
+  | "remove"
+  | "clear-history"
+  | "clear";
+
+export interface TaskCenterPersistContext {
+  bizType?: string;
+  bizId?: string | number;
+  operator?: string;
+  traceId?: string;
+  persistKey?: string;
+}
 
 export interface TaskCenterMessageInput {
   content: string;
@@ -36,6 +54,11 @@ export interface TaskCenterMessage extends TaskCenterMessageInput {
 export interface TaskCenterTaskInput {
   id?: string;
   requestId?: string | number;
+  bizType?: string;
+  bizId?: string | number;
+  operator?: string;
+  traceId?: string;
+  persistKey?: string;
   title?: string;
   description?: string;
   icon?: string;
@@ -85,6 +108,23 @@ export interface TaskCenterTask extends TaskCenterTaskInput {
   endedAt?: number;
   latestMessage?: string;
 }
+
+export interface TaskCenterTriggerPayload {
+  type: TaskCenterTriggerType;
+  timestamp: number;
+  eventId: string;
+  taskId?: string;
+  requestId?: string | number;
+  persist: TaskCenterPersistContext;
+  task: TaskCenterTask | null;
+  previousTask?: TaskCenterTask | null;
+  tasks?: TaskCenterTask[];
+  patch?: Partial<TaskCenterTaskInput>;
+}
+
+export type TaskCenterTriggerHandler = (
+  payload: TaskCenterTriggerPayload,
+) => void;
 
 export interface TaskCenterState {
   panelVisible: boolean;

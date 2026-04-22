@@ -20,9 +20,12 @@
 
     <!-- 信息区域 -->
     <div class="sc-card-stats-simple__info">
-      <!-- 数值 -->
+      <!-- 数值：数字自动动画，非数字直接显示 -->
       <div class="sc-card-stats-simple__value">
-        <slot name="value">{{ value }}</slot>
+        <slot name="value">
+          <span v-if="isNumberValue">{{ displayValue }}</span>
+          <span v-else>{{ value }}</span>
+        </slot>
       </div>
       <!-- 标签 -->
       <div class="sc-card-stats-simple__label">
@@ -36,13 +39,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from "vue";
+import { defineComponent, PropType, ref, watch, onMounted, computed } from "vue";
 
 /**
  * 现代极简统计卡片 - 2025全新设计版
  * 玻璃拟物+轻量扁平化，适配Element Plus生态
  * @author CH
- * @version 2.0.0
+ * @version 2.1.0
  * @since 2025-12-23
  */
 export default defineComponent({
@@ -70,89 +73,122 @@ export default defineComponent({
       type: Boolean,
       default: true,
     },
-    // 新增：激活状态（选中高亮）
     active: {
       type: Boolean,
       default: false,
     },
   },
+  setup(props) {
+    // 数字动画相关
+    const displayValue = ref(0);
+    const ANIMATION_DURATION = 800;
+
+    // 判断是否为有效数字
+    const isNumberValue = computed(() => {
+      const val = props.value;
+      return val !== "" && !isNaN(Number(val));
+    });
+
+    // 数字滚动动画
+    const startNumberAnimation = () => {
+      if (!isNumberValue.value) return;
+
+      const target = Number(props.value);
+      const start = 0;
+      const startTime = performance.now();
+
+      const animate = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        
+        displayValue.value = Math.floor(start + (target - start) * easeProgress);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    };
+
+    // 挂载 & 值变化时执行动画
+    onMounted(() => {
+      startNumberAnimation();
+    });
+
+    watch(
+      () => props.value,
+      () => {
+        startNumberAnimation();
+      }
+    );
+
+    return {
+      displayValue,
+      isNumberValue,
+    };
+  },
 });
 </script>
 
 <style lang="scss" scoped>
-// 引入Element Plus变量（全局引入可注释）
-// @use 'element-plus/theme-chalk/src/common/var.scss' as *;
-
 // 全局样式变量（统一控制）
-$card-radius: 20px;
-$card-padding: 20px 24px;
-$icon-size: 44px;
-$transition-base: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+$card-radius: 18px;
+$card-padding: 22px 24px;
+$icon-size: 46px;
+$transition-base: all 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
 
 .sc-card-stats-simple {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   padding: $card-padding;
   border-radius: $card-radius;
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  // 核心：现代玻璃拟物效果
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  // 极简边框（低饱和度）
-  border: 1px solid rgba(230, 230, 230, 0.6);
-  // 轻量阴影（分层感）
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 8px 16px rgba(0, 0, 0, 0.03);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(235, 238, 245, 0.7);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   transition: $transition-base;
-  // 卡片间距
-  margin: 0 6px;
-  flex: 1; // 自适应宽度（多卡片均分）
-  min-width: 180px; // 最小宽度限制
+  margin: 0 8px;
+  flex: 1;
+  min-width: 190px;
 
   // 激活状态（选中）
   &.is-active {
-    border-color: rgba(var(--el-color-primary-rgb), 0.3);
-    box-shadow:
-      0 4px 12px rgba(var(--el-color-primary-rgb), 0.08),
-      0 8px 24px rgba(0, 0, 0, 0.05);
+    border-color: rgba(var(--el-color-primary-rgb), 0.25);
+    box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.08);
     transform: translateY(-2px);
   }
 
   // 悬停效果
   &.is-hoverable:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow:
-      0 6px 18px rgba(0, 0, 0, 0.06),
-      0 10px 30px rgba(0, 0, 0, 0.04);
-    border-color: rgba(var(--el-color-primary-rgb), 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+    border-color: rgba(var(--el-color-primary-rgb), 0.18);
   }
 
-  // 背景渐变装饰（低饱和度）
+  // 背景渐变装饰
   &__bg {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(248, 249, 250, 0.8) 100%
-    );
+    background: linear-gradient(145deg, #ffffff, #f9fafb);
     z-index: 0;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 
-  // 图标区域（核心视觉）
+  // 图标区域
   &__icon {
     width: $icon-size;
     height: $icon-size;
-    border-radius: 16px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -162,27 +198,25 @@ $transition-base: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
     transition: $transition-base;
-    // 图标轻量阴影
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 
     &:hover {
-      transform: scale(1.08) rotate(1deg);
+      transform: scale(1.06);
       box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
     }
 
-    // 图标高光点（增加精致感）
+    // 图标高光点
     &-dot {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 8px;
-      height: 8px;
+      top: 9px;
+      right: 9px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.7);
       z-index: 1;
     }
 
-    // 确保图标层级
     :deep(*) {
       position: relative;
       z-index: 2;
@@ -197,28 +231,25 @@ $transition-base: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1;
   }
 
-  // 数值样式（极简醒目）
+  // 数值样式
   &__value {
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 700;
     line-height: 1.1;
-    letter-spacing: -0.4px;
-    color: #1a1a1a;
-    // 数值呼吸效果（可选）
+    color: #1d2129;
     transition: color 0.3s ease;
   }
 
-  // 标签样式（轻量）
+  // 标签样式
   &__label {
     font-size: 13px;
-    color: #666;
+    color: #6e7685;
     font-weight: 400;
-    letter-spacing: 0.1px;
-    margin-top: 3px;
-    opacity: 0.9;
+    margin-top: 4px;
+    opacity: 0.95;
   }
 
-  // 右侧装饰线（增加层次感）
+  // 右侧装饰线
   &__decorator {
     width: 2px;
     height: 40px;
@@ -228,14 +259,10 @@ $transition-base: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     background: currentColor;
   }
 
-  // 主题变体（现代渐变+低饱和度）
+  // 主题混合
   @mixin theme-variant($type) {
     .sc-card-stats-simple__icon {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-#{$type}) 0%,
-        var(--el-color-#{$type}-light-5) 100%
-      );
+      background: linear-gradient(135deg, var(--el-color-#{$type}), var(--el-color-#{$type}-light-5));
       color: #fff;
     }
     .sc-card-stats-simple__value {
@@ -245,97 +272,59 @@ $transition-base: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
       color: var(--el-color-#{$type});
     }
     &:hover .sc-card-stats-simple__decorator {
-      opacity: 0.3;
+      opacity: 0.28;
     }
   }
 
-  // 主题色定义
   &.theme--default {
     @include theme-variant("primary");
     .sc-card-stats-simple__value {
-      color: #1a1a1a;
+      color: #1d2129;
     }
   }
-  &.theme--primary {
-    @include theme-variant("primary");
-  }
-  &.theme--success {
-    @include theme-variant("success");
-  }
-  &.theme--warning {
-    @include theme-variant("warning");
-  }
-  &.theme--danger {
-    @include theme-variant("danger");
-  }
-  &.theme--info {
-    @include theme-variant("info");
-  }
+  &.theme--primary { @include theme-variant("primary"); }
+  &.theme--success { @include theme-variant("success"); }
+  &.theme--warning { @include theme-variant("warning"); }
+  &.theme--danger { @include theme-variant("danger"); }
+  &.theme--info { @include theme-variant("info"); }
 
+  // 深色模式
   html.dark &,
   html[data-theme="dark"] & {
-    background: rgba(15, 23, 42, 0.84);
-    border-color: rgba(148, 163, 184, 0.18);
-    box-shadow:
-      0 12px 30px rgba(2, 6, 23, 0.28),
-      0 24px 48px rgba(2, 6, 23, 0.18);
+    background: rgba(18, 24, 36, 0.88);
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow: 0 8px 24px rgba(2, 6, 23, 0.25);
 
     .sc-card-stats-simple__bg {
-      background: linear-gradient(
-        145deg,
-        rgba(15, 23, 42, 0.96) 0%,
-        rgba(30, 41, 59, 0.86) 100%
-      );
+      background: linear-gradient(145deg, #121824, #1e293b);
       opacity: 1;
     }
-
     .sc-card-stats-simple__value {
       color: var(--el-text-color-primary);
     }
-
     .sc-card-stats-simple__label {
       color: var(--el-text-color-secondary);
       opacity: 1;
     }
-
     .sc-card-stats-simple__decorator {
-      opacity: 0.24;
+      opacity: 0.22;
     }
   }
 
-  html.dark &.theme--default,
-  html[data-theme="dark"] &.theme--default {
-    .sc-card-stats-simple__icon {
-      background: linear-gradient(
-        135deg,
-        var(--el-color-primary-light-5) 0%,
-        var(--el-color-primary) 100%
-      );
-    }
-
-    .sc-card-stats-simple__value {
-      color: var(--el-text-color-primary);
-    }
-
-    .sc-card-stats-simple__decorator {
-      color: var(--el-color-primary-light-3);
-    }
-  }
-
-  // 响应式适配
+  // 响应式
   @media (max-width: 768px) {
-    padding: 16px 20px;
-    gap: 12px;
-    min-width: 140px;
+    padding: 18px 20px;
+    gap: 14px;
+    min-width: 150px;
+    margin: 0 4px;
 
     .sc-card-stats-simple__icon {
-      width: 38px;
-      height: 38px;
+      width: 40px;
+      height: 40px;
       font-size: 20px;
     }
-
     .sc-card-stats-simple__value {
-      font-size: 22px;
+      font-size: 24px;
     }
   }
 }

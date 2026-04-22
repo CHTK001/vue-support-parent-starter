@@ -85,6 +85,7 @@ import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { useGlobal } from "@pureadmin/utils";
 import { taskCenterProvider } from "@layout/default";
+import type { TaskCenterPersistContext } from "@layout/default";
 import { getConfig } from "@repo/config";
 import { aesDecrypt } from "@repo/utils";
 import { IconifyIconOnline } from "../ReIcon";
@@ -133,6 +134,7 @@ interface Props {
   clearInstructionOnSuccess?: boolean;
   aiTooltip?: string;
   taskTitle?: string;
+  taskPersist?: TaskCenterPersistContext;
   templates?: ScAiTextareaTemplate[];
   url?: (payload: ScAiTextareaPayload) => Promise<unknown>;
   requestParser?: (response: unknown) => string;
@@ -172,6 +174,7 @@ const props = withDefaults(defineProps<Props>(), {
   clearInstructionOnSuccess: false,
   aiTooltip: "",
   taskTitle: "AI 内容生成",
+  taskPersist: () => ({}),
   templates: () => [],
   url: undefined,
   requestParser: undefined,
@@ -600,6 +603,11 @@ const runAi = async (mode: GenerateMode) => {
   lastError.value = "";
   const localRequestId = createTaskRequestId();
   const task = taskCenterProvider.addTask({
+    ...props.taskPersist,
+    traceId: props.taskPersist?.traceId || localRequestId,
+    persistKey:
+      props.taskPersist?.persistKey ||
+      `sc-ai-textarea:${props.taskTitle || "ai-content"}`,
     requestId: localRequestId,
     title:
       props.taskTitle || (mode === "append" ? "AI 追加内容" : "AI 生成内容"),
@@ -622,6 +630,7 @@ const runAi = async (mode: GenerateMode) => {
       String(responseTaskMeta.requestId) !== String(localRequestId)
     ) {
       task.update({
+        traceId: String(responseTaskMeta.requestId),
         requestId: responseTaskMeta.requestId,
         title:
           props.taskTitle ||

@@ -3,7 +3,7 @@
     :is="actualComponent"
     v-bind="$attrs"
     :size="size"
-    :type="type"
+    :type="normalizedType"
     :theme="type"
     :plain="plain"
     :text="text"
@@ -55,6 +55,7 @@ const emit = defineEmits<{
 const { currentComponent } = useThemeComponent("ElButton");
 
 const actualComponent = computed(() => currentComponent.value || ElButton);
+const normalizedType = computed(() => (props.type === "default" ? "" : props.type));
 
 const handleClick = (event: MouseEvent) => {
   emit("click", event);

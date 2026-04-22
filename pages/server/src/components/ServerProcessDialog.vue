@@ -238,20 +238,15 @@
                     <IconifyIconOnline icon="ri:article-line" />
                   </ScButton>
                 </el-tooltip>
-                <el-tooltip
-                  :content="isJavaProcess(item) ? 'JVM / Java 分析' : 'AI 进程分析'"
-                >
-                  <ScButton
-                    circle
-                    plain
-                    :disabled="!aiEnabled"
-                    @click.stop="emit('analyze-process', item)"
-                  >
-                    <IconifyIconOnline
-                      :icon="isJavaProcess(item) ? 'ri:java-line' : 'ri:ai-generate-2'"
-                    />
-                  </ScButton>
-                </el-tooltip>
+                <ServerAiActionButton
+                  :icon="isJavaProcess(item) ? 'ri:java-line' : 'ri:ai-generate-2'"
+                  :tooltip="isJavaProcess(item) ? 'JVM / Java 分析' : 'AI 进程分析'"
+                  :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
+                  scene="server-process-ai"
+                  system-prompt="你是服务器进程分析助手，需要输出中文风险诊断和处理建议。"
+                  :prompt="buildProcessAiPrompt(item)"
+                  :method="aiEnabled ? () => emit('analyze-process', item) : undefined"
+                />
               </div>
             </div>
           </article>
@@ -351,16 +346,15 @@
                 <ScButton circle plain @click.stop="openDetail(row)">
                   <IconifyIconOnline icon="ri:article-line" />
                 </ScButton>
-                <ScButton
-                  circle
-                  plain
-                  :disabled="!aiEnabled"
-                  @click.stop="emit('analyze-process', row)"
-                >
-                  <IconifyIconOnline
-                    :icon="isJavaProcess(row) ? 'ri:java-line' : 'ri:ai-generate-2'"
-                  />
-                </ScButton>
+                <ServerAiActionButton
+                  :icon="isJavaProcess(row) ? 'ri:java-line' : 'ri:ai-generate-2'"
+                  :tooltip="isJavaProcess(row) ? 'JVM / Java 分析' : 'AI 进程分析'"
+                  :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
+                  scene="server-process-ai"
+                  system-prompt="你是服务器进程分析助手，需要输出中文风险诊断和处理建议。"
+                  :prompt="buildProcessAiPrompt(row)"
+                  :method="aiEnabled ? () => emit('analyze-process', row) : undefined"
+                />
               </div>
             </template>
           </el-table-column>
@@ -396,21 +390,17 @@
               </div>
             </div>
             <div class="server-process-dialog__detail-actions">
-              <el-tooltip
-                :content="
-                  aiEnabled ? 'AI 分析' : aiUnavailableReason || 'AI 能力未激活'
+              <ServerAiActionButton
+                tooltip="AI 分析"
+                :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
+                :loading="aiAnalyzing"
+                scene="server-process-ai"
+                system-prompt="你是服务器进程分析助手，需要输出中文风险诊断和处理建议。"
+                :prompt="buildProcessAiPrompt(selectedProcess)"
+                :method="
+                  aiEnabled ? () => emit('analyze-process', selectedProcess) : undefined
                 "
-              >
-                <ScButton
-                  circle
-                  plain
-                  :disabled="!aiEnabled"
-                  :loading="aiAnalyzing"
-                  @click="emit('analyze-process', selectedProcess)"
-                >
-                  <IconifyIconOnline icon="ri:ai-generate-2" />
-                </ScButton>
-              </el-tooltip>
+              />
               <el-tooltip content="结束进程">
                 <ScButton
                   circle
@@ -619,23 +609,17 @@
             </p>
           </div>
           <div class="server-process-detail-dialog__actions">
-            <el-tooltip
-              :content="
-                aiEnabled ? 'AI 分析' : aiUnavailableReason || 'AI 能力未激活'
+            <ServerAiActionButton
+              tooltip="AI 分析"
+              :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
+              :loading="aiAnalyzing && detailProcess.pid === selectedProcess?.pid"
+              scene="server-process-ai"
+              system-prompt="你是服务器进程分析助手，需要输出中文风险诊断和处理建议。"
+              :prompt="buildProcessAiPrompt(detailProcess)"
+              :method="
+                aiEnabled ? () => emit('analyze-process', detailProcess) : undefined
               "
-            >
-              <ScButton
-                circle
-                plain
-                :disabled="!aiEnabled"
-                :loading="
-                  aiAnalyzing && detailProcess.pid === selectedProcess?.pid
-                "
-                @click="emit('analyze-process', detailProcess)"
-              >
-                <IconifyIconOnline icon="ri:ai-generate-2" />
-              </ScButton>
-            </el-tooltip>
+            />
             <el-tooltip content="结束进程">
               <ScButton
                 circle
@@ -769,6 +753,7 @@ import { computed, ref, watch } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScButton from "@repo/components/ScButton/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
+import ServerAiActionButton from "./ServerAiActionButton.vue";
 import type {
   ServerHost,
   ServerProcessAiAdvice,
@@ -865,6 +850,20 @@ const openDetail = (process?: ServerProcessView | null) => {
   detailPid.value = Number(process?.pid || 0) || null;
   detailVisible.value = Boolean(process);
 };
+
+const buildProcessAiPrompt = (process?: ServerProcessView | null) =>
+  [
+    `服务器：${props.host?.serverName || props.host?.host || "-"}`,
+    `进程名称：${process?.name || process?.command || "-"}`,
+    `PID：${process?.pid || "-"}`,
+    `用户：${process?.user || "-"}`,
+    `CPU：${formatPercent(process?.cpuPercent)}`,
+    `内存：${formatPercent(process?.memoryPercent)}`,
+    `内存占用：${formatBytes(process?.memoryBytes)}`,
+    `启动时间：${formatStartTime(process?.startTime)}`,
+    `命令行：${process?.commandLine || process?.command || "-"}`,
+    "请判断该进程是否存在风险、是否异常占用资源，以及优先处理建议。",
+  ].join("\n");
 
 const highRiskCount = computed(
   () =>
