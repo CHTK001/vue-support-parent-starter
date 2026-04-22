@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="dialogVisible"
     :title="isEdit ? '编辑服务' : '新增服务'"
@@ -205,6 +205,11 @@
                     resize="none"
                   />
                 </ScFormItem>
+
+                <FtpServerConfigSection
+                  v-if="isFtpType"
+                  v-model="ftpConfig"
+                />
               </div>
             </div>
           </ScCol>
@@ -242,6 +247,9 @@ import {
   checkPortAvailable,
   type SystemServer,
 } from "@/api/system-server";
+import FtpServerConfigSection, {
+  type FtpConfigForm,
+} from "./FtpServerConfigSection.vue";
 
 // Props
 interface Props {
@@ -411,6 +419,21 @@ const resolveDefaultServerType = (): string => {
   return preferred?.value || options[0].value;
 };
 
+const createDefaultFtpConfig = (): FtpConfigForm => ({
+  homeDirectory: "./ftp-home",
+  enableAnonymous: false,
+  anonymousHomeDirectory: "./ftp-home",
+  anonymousWriteEnabled: false,
+  accounts: [
+    {
+      username: "admin",
+      password: "admin",
+      permission: "readWrite" as const,
+      homeDirectory: "",
+    },
+  ],
+});
+
 // 表单数据
 const formData = reactive<SystemServer>({
   systemServerName: "",
@@ -422,7 +445,13 @@ const formData = reactive<SystemServer>({
   systemServerTimeout: undefined,
   systemServerAutoStart: false,
   systemServerDescription: "",
+  systemServerConfig: "",
 });
+
+const ftpConfig = reactive(createDefaultFtpConfig());
+const isFtpType = computed(
+  () => normalizeServerTypeValue(formData.systemServerType) === "FTP",
+);
 
 // 表单验证规则
 const formRules: FormRules = {
@@ -464,8 +493,35 @@ const resetForm = () => {
     systemServerTimeout: undefined,
     systemServerAutoStart: false,
     systemServerDescription: "",
+    systemServerConfig: "",
   });
+  Object.assign(ftpConfig, createDefaultFtpConfig());
   formRef.value?.clearValidate();
+};
+
+const parseServerConfig = (raw?: string) => {
+  if (!raw) {
+    return;
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, any>;
+    ftpConfig.homeDirectory = parsed.homeDirectory || "./ftp-home";
+    ftpConfig.enableAnonymous = !!parsed.enableAnonymous;
+    ftpConfig.anonymousHomeDirectory =
+      parsed.anonymousHomeDirectory || ftpConfig.homeDirectory;
+    ftpConfig.anonymousWriteEnabled = !!parsed.anonymousWriteEnabled;
+    if (Array.isArray(parsed.accounts) && parsed.accounts.length) {
+      ftpConfig.accounts = parsed.accounts.map((item: Record<string, any>) => ({
+        username: String(item.username || ""),
+        password: String(item.password || ""),
+        permission:
+          item.permission === "readWrite" ? "readWrite" : "readOnly",
+        homeDirectory: String(item.homeDirectory || ""),
+      }));
+    }
+  } catch (error) {
+    console.warn("解析FTP配置失败", error);
+  }
 };
 
 // 监听服务器数据变化
@@ -482,7 +538,16 @@ watch(
         systemServerTimeout: newData.systemServerTimeout,
         systemServerAutoStart: newData.systemServerAutoStart || false,
         systemServerDescription: newData.systemServerDescription || "",
+        systemServerConfig: newData.systemServerConfig || "",
       });
+      if (
+        normalizeServerTypeValue(newData.systemServerType) === "FTP" &&
+        newData.systemServerConfig
+      ) {
+        parseServerConfig(newData.systemServerConfig);
+      } else {
+        Object.assign(ftpConfig, createDefaultFtpConfig());
+      }
     } else {
       resetForm();
     }
@@ -495,6 +560,20 @@ watch(
   () => {
     if (!isEdit.value && !formData.systemServerType) {
       formData.systemServerType = resolveDefaultServerType();
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => formData.systemServerType,
+  (type) => {
+    if (normalizeServerTypeValue(type) !== "FTP") {
+      formData.systemServerConfig = "";
+      return;
+    }
+    if (!formData.systemServerConfig) {
+      formData.systemServerConfig = JSON.stringify(createDefaultFtpConfig());
     }
   },
   { immediate: true },
@@ -544,6 +623,29 @@ const handleSubmit = async () => {
     if (!valid) return;
 
     loading.value = true;
+    if (isFtpType.value) {
+      const accounts = ftpConfig.accounts
+        .filter((item) => item.username.trim())
+        .map((item) => ({
+          username: item.username.trim(),
+          password: item.password,
+          permission: item.permission,
+          homeDirectory: item.homeDirectory?.trim() || undefined,
+          enabled: true,
+        }));
+      formData.systemServerConfig = JSON.stringify({
+        homeDirectory: ftpConfig.homeDirectory?.trim() || "./ftp-home",
+        enableAnonymous: ftpConfig.enableAnonymous,
+        anonymousHomeDirectory:
+          ftpConfig.anonymousHomeDirectory?.trim() ||
+          ftpConfig.homeDirectory?.trim() ||
+          "./ftp-home",
+        anonymousWriteEnabled: ftpConfig.anonymousWriteEnabled,
+        accounts,
+      });
+    } else {
+      formData.systemServerConfig = "";
+    }
 
     const apiCall = isEdit.value ? updateSystemServer : addSystemServer;
     const response = await apiCall(formData);

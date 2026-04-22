@@ -8,178 +8,229 @@
     draggable
   >
     <div class="firewall-config-container thin-scrollbar">
-      <div class="config-section">
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:shield-line" />
-          基础配置
-        </h4>
-        <div class="config-grid">
-          <ScFormItem label="启用防火墙">
-            <ScSwitch v-model="config.enabled" />
-          </ScFormItem>
-          <ScFormItem label="存储规则">
-            <ScSwitch v-model="config.storageEnabled" />
-          </ScFormItem>
-          <ScFormItem label="存储类型">
-            <ScInput v-model="config.storageType" placeholder="protocol-firewall-storage" />
-          </ScFormItem>
-          <ScFormItem label="规则缓存秒数">
-            <ScInputNumber v-model="config.ruleCacheSeconds" :min="0" :max="3600" />
-          </ScFormItem>
-          <ScFormItem label="限流器类型">
-            <ScSelect v-model="config.limiterType">
-              <ScOption label="令牌桶" value="token" />
-              <ScOption label="滑动窗口" value="sliding" />
-              <ScOption label="Guava" value="guava" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="默认QPS">
-            <ScInputNumber
-              v-model="config.defaultRatePerSecond"
-              :min="1"
-              :max="100000"
-            />
-          </ScFormItem>
-          <ScFormItem label="限流维度">
-            <ScSelect v-model="config.rateDimension">
-              <ScOption label="IP" value="IP" />
-              <ScOption label="IP + PATH" value="IP_PATH" />
-              <ScOption label="全局" value="GLOBAL" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="临时黑名单秒数">
-            <ScInputNumber
-              v-model="config.tempBlacklistSeconds"
-              :min="0"
-              :max="86400"
-            />
-          </ScFormItem>
-          <ScFormItem label="转发模式">
-            <ScSelect v-model="config.forwardMode">
-              <ScOption label="写入属性" value="ATTRIBUTE" />
-              <ScOption label="直接重定向" value="REDIRECT" />
-            </ScSelect>
-          </ScFormItem>
-          <ScFormItem label="记录事件">
-            <ScSwitch v-model="config.logEnabled" />
-          </ScFormItem>
-          <ScFormItem label="统计指标">
-            <ScSwitch v-model="config.metricsEnabled" />
-          </ScFormItem>
-        </div>
-      </div>
+      <ScTabs v-model="activeTab" type="border-card" class="firewall-tabs">
+        <ScTabPane name="basic">
+          <template #label>
+            <span class="tab-label">
+              <span>基础配置</span>
+              <IconifyIconOnline icon="ri:shield-line" />
+            </span>
+          </template>
+          <div class="config-section">
+            <h4 class="section-title">
+              <IconifyIconOnline icon="ri:shield-line" />
+              基础配置
+            </h4>
+            <div class="config-grid">
+              <ScFormItem label="启用防火墙">
+                <ScSwitch v-model="config.enabled" />
+              </ScFormItem>
+              <ScFormItem label="存储规则">
+                <ScSwitch v-model="config.storageEnabled" />
+              </ScFormItem>
+              <ScFormItem label="存储类型">
+                <ScInput v-model="config.storageType" placeholder="protocol-firewall-storage" />
+              </ScFormItem>
+              <ScFormItem label="规则缓存秒数">
+                <ScInputNumber v-model="config.ruleCacheSeconds" :min="0" :max="3600" />
+              </ScFormItem>
+              <ScFormItem label="记录事件">
+                <ScSwitch v-model="config.logEnabled" />
+              </ScFormItem>
+              <ScFormItem label="统计指标">
+                <ScSwitch v-model="config.metricsEnabled" />
+              </ScFormItem>
+            </div>
+          </div>
+        </ScTabPane>
 
-      <div class="config-section">
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:user-settings-line" />
-          黑白名单
-        </h4>
-        <div class="list-block">
-          <div class="list-title">白名单 IP/CIDR</div>
-          <div class="tags">
-            <ScTag
-              v-for="item in config.whitelistIps"
-              :key="`w-${item}`"
-              type="success"
-              closable
-              @close="removeWhitelist(item)"
-            >
-              {{ item }}
-            </ScTag>
+        <ScTabPane name="whitelist">
+          <template #label>
+            <span class="tab-label">
+              <span>白名单</span>
+              <IconifyIconOnline icon="ri:user-follow-line" />
+            </span>
+          </template>
+          <div class="config-section">
+            <h4 class="section-title">
+              <IconifyIconOnline icon="ri:shield-check-line" />
+              白名单
+            </h4>
+            <div class="list-block">
+              <div class="list-title">白名单 IP/CIDR</div>
+              <div class="tags">
+                <ScTag
+                  v-for="item in config.whitelistIps"
+                  :key="`w-${item}`"
+                  type="success"
+                  closable
+                  @close="removeWhitelist(item)"
+                >
+                  {{ item }}
+                </ScTag>
+              </div>
+              <div class="inline-add">
+                <ScInput
+                  v-model="whitelistInput"
+                  placeholder="如: 127.0.0.1 或 10.0.0.0/8"
+                  @keyup.enter="addWhitelist"
+                />
+                <ScButton type="success" @click="addWhitelist">添加</ScButton>
+              </div>
+            </div>
           </div>
-          <div class="inline-add">
-            <ScInput
-              v-model="whitelistInput"
-              placeholder="如: 127.0.0.1 或 10.0.0.0/8"
-              @keyup.enter="addWhitelist"
-            />
-            <ScButton type="success" @click="addWhitelist">添加</ScButton>
-          </div>
-        </div>
+        </ScTabPane>
 
-        <div class="list-block">
-          <div class="list-title">黑名单 IP/CIDR</div>
-          <div class="tags">
-            <ScTag
-              v-for="item in config.blacklistIps"
-              :key="`b-${item}`"
-              type="danger"
-              closable
-              @close="removeBlacklist(item)"
-            >
-              {{ item }}
-            </ScTag>
+        <ScTabPane name="blacklist">
+          <template #label>
+            <span class="tab-label">
+              <span>黑名单</span>
+              <IconifyIconOnline icon="ri:forbid-2-line" />
+            </span>
+          </template>
+          <div class="config-section">
+            <h4 class="section-title">
+              <IconifyIconOnline icon="ri:forbid-2-line" />
+              黑名单
+            </h4>
+            <div class="config-grid">
+              <ScFormItem label="临时黑名单秒数（限流命中后）">
+                <ScInputNumber v-model="config.tempBlacklistSeconds" :min="0" :max="86400" />
+              </ScFormItem>
+            </div>
+            <div class="list-block">
+              <div class="list-title">黑名单 IP/CIDR</div>
+              <div class="tags">
+                <ScTag
+                  v-for="item in config.blacklistIps"
+                  :key="`b-${item}`"
+                  type="danger"
+                  closable
+                  @close="removeBlacklist(item)"
+                >
+                  {{ item }}
+                </ScTag>
+              </div>
+              <div class="inline-add">
+                <ScInput
+                  v-model="blacklistInput"
+                  placeholder="如: 192.168.1.100 或 172.16.0.0/16"
+                  @keyup.enter="addBlacklist"
+                />
+                <ScButton type="danger" @click="addBlacklist">添加</ScButton>
+              </div>
+            </div>
           </div>
-          <div class="inline-add">
-            <ScInput
-              v-model="blacklistInput"
-              placeholder="如: 192.168.1.100 或 172.16.0.0/16"
-              @keyup.enter="addBlacklist"
-            />
-            <ScButton type="danger" @click="addBlacklist">添加</ScButton>
-          </div>
-        </div>
-      </div>
+        </ScTabPane>
 
-      <div class="config-section">
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:speed-up-line" />
-          路径限流
-        </h4>
-        <div class="rule-list thin-scrollbar">
-          <div v-for="(row, idx) in config.pathRateLimits" :key="`rate-${idx}`" class="rule-row">
-            <ScInput v-model="row.path" placeholder="/api/login" />
-            <ScInputNumber v-model="row.qps" :min="1" :max="100000" />
-            <ScButton type="danger" circle @click="config.pathRateLimits.splice(idx, 1)">
-              <IconifyIconOnline icon="ri:delete-bin-line" />
+        <ScTabPane name="ratelimit">
+          <template #label>
+            <span class="tab-label">
+              <span>限流</span>
+              <IconifyIconOnline icon="ri:speed-up-line" />
+            </span>
+          </template>
+          <div class="config-section">
+            <h4 class="section-title">
+              <IconifyIconOnline icon="ri:settings-3-line" />
+              默认限流
+            </h4>
+            <div class="config-grid">
+              <ScFormItem label="限流器类型">
+                <ScSelect v-model="config.limiterType">
+                  <ScOption label="令牌桶" value="token" />
+                  <ScOption label="滑动窗口" value="sliding" />
+                  <ScOption label="Guava" value="guava" />
+                </ScSelect>
+              </ScFormItem>
+              <ScFormItem label="默认 QPS">
+                <ScInputNumber v-model="config.defaultRatePerSecond" :min="1" :max="100000" />
+              </ScFormItem>
+              <ScFormItem label="限流维度">
+                <ScSelect v-model="config.rateDimension">
+                  <ScOption label="IP" value="IP" />
+                  <ScOption label="IP + PATH" value="IP_PATH" />
+                  <ScOption label="全局" value="GLOBAL" />
+                </ScSelect>
+              </ScFormItem>
+            </div>
+            <h4 class="section-title section-title--sub">
+              <IconifyIconOnline icon="ri:speed-up-line" />
+              路径限流
+            </h4>
+            <div class="rule-list thin-scrollbar">
+              <div v-for="(row, idx) in config.pathRateLimits" :key="`rate-${idx}`" class="rule-row">
+                <ScInput v-model="row.path" placeholder="/api/login" />
+                <ScInputNumber v-model="row.qps" :min="1" :max="100000" />
+                <ScButton type="danger" circle @click="config.pathRateLimits.splice(idx, 1)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </ScButton>
+              </div>
+            </div>
+            <ScButton type="primary" @click="config.pathRateLimits.push({ path: '', qps: 100 })">
+              <IconifyIconOnline icon="ri:add-line" />
+              新增限流规则
             </ScButton>
           </div>
-        </div>
-        <ScButton type="primary" @click="config.pathRateLimits.push({ path: '', qps: 100 })">
-          <IconifyIconOnline icon="ri:add-line" />
-          新增限流规则
-        </ScButton>
-      </div>
+        </ScTabPane>
 
-      <div class="config-section">
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:route-line" />
-          重定向规则
-        </h4>
-        <div class="rule-list thin-scrollbar">
-          <div v-for="(row, idx) in config.redirectMappings" :key="`redirect-${idx}`" class="rule-row">
-            <ScInput v-model="row.path" placeholder="/old-path" />
-            <ScInput v-model="row.target" placeholder="https://example.com/new-path" />
-            <ScButton type="danger" circle @click="config.redirectMappings.splice(idx, 1)">
-              <IconifyIconOnline icon="ri:delete-bin-line" />
+        <ScTabPane name="forward">
+          <template #label>
+            <span class="tab-label">
+              <span>转发</span>
+              <IconifyIconOnline icon="ri:route-line" />
+            </span>
+          </template>
+          <div class="config-section">
+            <h4 class="section-title">
+              <IconifyIconOnline icon="ri:git-branch-line" />
+              转发模式
+            </h4>
+            <div class="config-grid">
+              <ScFormItem label="转发模式">
+                <ScSelect v-model="config.forwardMode">
+                  <ScOption label="写入属性" value="ATTRIBUTE" />
+                  <ScOption label="直接重定向" value="REDIRECT" />
+                </ScSelect>
+              </ScFormItem>
+            </div>
+            <h4 class="section-title section-title--sub">
+              <IconifyIconOnline icon="ri:route-line" />
+              重定向规则
+            </h4>
+            <div class="rule-list thin-scrollbar">
+              <div v-for="(row, idx) in config.redirectMappings" :key="`redirect-${idx}`" class="rule-row">
+                <ScInput v-model="row.path" placeholder="/old-path" />
+                <ScInput v-model="row.target" placeholder="https://example.com/new-path" />
+                <ScButton type="danger" circle @click="config.redirectMappings.splice(idx, 1)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </ScButton>
+              </div>
+            </div>
+            <ScButton type="primary" @click="config.redirectMappings.push({ path: '', target: '' })">
+              <IconifyIconOnline icon="ri:add-line" />
+              新增重定向规则
+            </ScButton>
+            <h4 class="section-title section-title--sub">
+              <IconifyIconOnline icon="ri:git-merge-line" />
+              透传代理规则
+            </h4>
+            <div class="rule-list thin-scrollbar">
+              <div v-for="(row, idx) in config.proxyPassMappings" :key="`proxy-${idx}`" class="rule-row">
+                <ScInput v-model="row.path" placeholder="/service-a" />
+                <ScInput v-model="row.target" placeholder="http://upstream-host:8080" />
+                <ScButton type="danger" circle @click="config.proxyPassMappings.splice(idx, 1)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </ScButton>
+              </div>
+            </div>
+            <ScButton type="primary" @click="config.proxyPassMappings.push({ path: '', target: '' })">
+              <IconifyIconOnline icon="ri:add-line" />
+              新增透传规则
             </ScButton>
           </div>
-        </div>
-        <ScButton type="primary" @click="config.redirectMappings.push({ path: '', target: '' })">
-          <IconifyIconOnline icon="ri:add-line" />
-          新增重定向规则
-        </ScButton>
-      </div>
-
-      <div class="config-section">
-        <h4 class="section-title">
-          <IconifyIconOnline icon="ri:git-merge-line" />
-          透传代理规则
-        </h4>
-        <div class="rule-list thin-scrollbar">
-          <div v-for="(row, idx) in config.proxyPassMappings" :key="`proxy-${idx}`" class="rule-row">
-            <ScInput v-model="row.path" placeholder="/service-a" />
-            <ScInput v-model="row.target" placeholder="http://upstream-host:8080" />
-            <ScButton type="danger" circle @click="config.proxyPassMappings.splice(idx, 1)">
-              <IconifyIconOnline icon="ri:delete-bin-line" />
-            </ScButton>
-          </div>
-        </div>
-        <ScButton type="primary" @click="config.proxyPassMappings.push({ path: '', target: '' })">
-          <IconifyIconOnline icon="ri:add-line" />
-          新增透传规则
-        </ScButton>
-      </div>
+        </ScTabPane>
+      </ScTabs>
     </div>
 
     <template #footer>
@@ -205,6 +256,7 @@ interface Props {
   visible: boolean;
   serverId: number;
   filterSettingId: number;
+  initialTab?: "basic" | "access" | "whitelist" | "blacklist" | "ratelimit" | "forward";
 }
 
 interface PathRateLimitRow {
@@ -225,6 +277,7 @@ const emit = defineEmits<{
 
 const visibleInner = ref(false);
 const loading = ref(false);
+const activeTab = ref("basic");
 const whitelistInput = ref("");
 const blacklistInput = ref("");
 
@@ -252,6 +305,8 @@ watch(
   async (v) => {
     visibleInner.value = v;
     if (v) {
+      const tab = props.initialTab || "basic";
+      activeTab.value = tab === "access" ? "whitelist" : tab;
       await loadData();
     }
   },
@@ -488,15 +543,38 @@ function handleClose() {
 .firewall-config-container {
   max-height: 70vh;
   overflow-y: auto;
-  padding: 4px;
+  padding: 6px;
+}
+
+.firewall-tabs {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(130, 161, 196, 0.28);
+  box-shadow: 0 8px 18px rgba(29, 67, 110, 0.06);
+}
+
+.firewall-tabs :deep(.el-tabs__header) {
+  background: linear-gradient(180deg, #f9fcff 0%, #eef5ff 100%);
+}
+
+.firewall-tabs :deep(.el-tabs__item) {
+  font-weight: 600;
+}
+
+.firewall-tabs :deep(.el-tabs__item.is-active) {
+  color: #1457a8;
+}
+
+.firewall-tabs :deep(.el-tabs__content) {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .config-section {
   margin-bottom: 18px;
-  padding: 18px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  padding: 18px 18px 16px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f4f8fd 100%);
+  border: 1px solid rgba(123, 154, 187, 0.3);
 }
 
 .section-title {
@@ -505,12 +583,33 @@ function handleClose() {
   gap: 8px;
   margin: 0 0 14px;
   font-size: 14px;
+  color: #24496f;
+}
+
+.section-title--sub {
+  margin-top: 16px;
 }
 
 .config-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 16px;
+}
+
+:deep(.config-grid .el-form-item__label) {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+:deep(.config-grid .el-form-item__content) {
+  justify-content: flex-start;
+}
+
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
 }
 
 .list-block {
@@ -521,18 +620,19 @@ function handleClose() {
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 13px;
+  color: #2a4f72;
 }
 
 .tags {
   min-height: 34px;
   padding: 8px;
-  border: 1px dashed #d1d5db;
+  border: 1px dashed rgba(136, 161, 188, 0.65);
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 10px;
-  background: #fff;
+  background: #fcfdff;
 }
 
 .inline-add {
@@ -551,6 +651,10 @@ function handleClose() {
   grid-template-columns: 1fr 1fr auto;
   gap: 8px;
   margin-bottom: 8px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(131, 160, 191, 0.22);
+  background: #fff;
 }
 
 .dialog-footer {

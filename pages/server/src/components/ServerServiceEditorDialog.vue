@@ -127,6 +127,7 @@
                   :provider-label="executionProvider"
                   task-title="AI 服务配置模板"
                   :context="configTemplateAiContext"
+                  :task-persist="configTemplateTaskPersist"
                   :build-prompt="buildConfigTemplatePrompt"
                   placeholder="在这里维护服务模板配置，保存后可一键推送到服务器。"
                 />
@@ -148,6 +149,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('init')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -162,6 +164,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('install')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -176,6 +179,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('detect')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -190,6 +194,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('status')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -204,6 +209,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('start')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -218,6 +224,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('stop')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -232,6 +239,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('restart')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -246,6 +254,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('uninstall')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -265,6 +274,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('register')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -279,6 +289,7 @@
               :ai-unavailable-reason="aiUnavailableReason"
               :ai-tooltip="aiGenerateTooltip"
               :ai-context="serviceScriptAiContext"
+              :task-persist="createScriptTaskPersist('unregister')"
               :language="scriptLanguage"
               @generate-ai="emit('generate-ai-draft', cloneDraft())"
             />
@@ -369,6 +380,7 @@ import { computed, reactive, ref, watch } from "vue";
 import ScAiTextarea, {
   type ScAiTextareaPayload,
 } from "@repo/components/ScAiTextarea";
+import type { TaskCenterPersistContext } from "@layout/default";
 import ScInput from "@repo/components/ScInput/index.vue";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 import type { ServerHost, ServerService } from "../api";
@@ -574,6 +586,30 @@ const configTemplateAiContext = computed(() => ({
   ...serviceScriptAiContext.value,
   configTemplate: draft.configTemplate,
 }));
+
+const configTemplateTaskPersist = computed<TaskCenterPersistContext>(() => ({
+  bizType: "server-service-config-template-ai",
+  bizId: draft.serverServiceId,
+  traceId: draft.serverServiceId
+    ? `server-service-config-template-ai-${draft.serverServiceId}`
+    : undefined,
+  persistKey: draft.serverServiceId
+    ? `server-service-config-template-ai:${draft.serverServiceId}`
+    : "server-service-config-template-ai:new",
+}));
+
+const createScriptTaskPersist = (
+  scriptType: string,
+): TaskCenterPersistContext => ({
+  bizType: `server-service-script-ai-${scriptType}`,
+  bizId: draft.serverServiceId,
+  traceId: draft.serverServiceId
+    ? `server-service-script-ai-${scriptType}-${draft.serverServiceId}`
+    : undefined,
+  persistKey: draft.serverServiceId
+    ? `server-service-script-ai:${scriptType}:${draft.serverServiceId}`
+    : `server-service-script-ai:${scriptType}:new`,
+});
 
 const normalizedServiceTypeOptions = computed(() =>
   props.serviceTypeOptions.map((item) => {

@@ -1,10 +1,22 @@
 import { computed, reactive } from "vue";
+import {
+  clearOverlayStack,
+  configureOverlayStack,
+  removeOverlayStackItemsBySource,
+  upsertOverlayStackItem,
+} from "../lay-overlay-stack/service";
+import type { OverlayStackTone } from "../lay-overlay-stack/types";
+import { ensureStandaloneOverlayHost } from "../../runtime/ensureStandaloneOverlayHost";
 import type {
   TaskCenterMessage,
   TaskCenterMessageInput,
+  TaskCenterPersistContext,
   TaskCenterState,
   TaskCenterStatus,
   TaskCenterTask,
+  TaskCenterTriggerHandler,
+  TaskCenterTriggerPayload,
+  TaskCenterTriggerType,
   TaskCenterTaskInput,
 } from "./types";
 
@@ -13,10 +25,25 @@ const DEFAULT_POSITION = "bottom-right" as const;
 const DEFAULT_MODE = "progress" as const;
 const DEFAULT_AUTO_CLOSE_DELAY = 8000;
 const DEFAULT_MAX_LOGS = 40;
-const DEFAULT_MAX_VISIBLE = 4;
+const DEFAULT_MAX_VISIBLE = 5;
 const DEFAULT_MAX_HISTORY = 80;
+const TASK_CENTER_OVERLAY_SOURCE = "task-center";
 
-const taskTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const statusLabelMap = {
+  pending: "等待中",
+  running: "进行中",
+  success: "已完成",
+  error: "失败",
+  warning: "警告",
+} as const;
+
+const statusToneMap: Record<TaskCenterStatus, OverlayStackTone> = {
+  pending: "default",
+  running: "info",
+  success: "success",
+  error: "error",
+  warning: "warning",
+};
 
 const state = reactive<TaskCenterState>({
   panelVisible: false,
@@ -25,6 +52,90 @@ const state = reactive<TaskCenterState>({
   maxHistory: DEFAULT_MAX_HISTORY,
   tasks: [],
 });
+
+const hooks = reactive<{
+  onTriggers: Set<TaskCenterTriggerHandler>;
+}>({
+  onTriggers: new Set(),
+});
+
+const formatElapsed = (startedAt: number, endedAt?: number) => {
+  const diff = Math.max(0, (endedAt ?? Date.now()) - startedAt);
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  if (hours > 0) return `${hours}h ${String(minutes % 60).padStart(2, "0")}m`;
+  if (minutes > 0) {
+    return `${minutes}m ${String(seconds % 60).padStart(2, "0")}s`;
+  }
+  return `${seconds}s`;
+};
+
+const getStepLabel = (task: TaskCenterTask) => {
+  if (task.stageLabel) return task.stageLabel;
+  if (
+    typeof task.current === "number" &&
+    typeof task.total === "number" &&
+    task.total > 0
+  ) {
+    return `${task.current}/${task.total}`;
+  }
+  return task.latestMessage || "等待执行";
+};
+
+const syncTaskCenterOverlays = () => {
+  const visibleTasks = [...state.tasks]
+    .sort((left, right) => right.updatedAt - left.updatedAt)
+    .filter((item) => item.overlayVisible);
+
+  if (visibleTasks.length > 0) {
+    ensureStandaloneOverlayHost();
+  }
+
+  visibleTasks.forEach((task) => {
+    upsertOverlayStackItem({
+      id: task.id,
+      source: TASK_CENTER_OVERLAY_SOURCE,
+      title: task.title,
+      description: task.description,
+      icon: task.icon || "mdi:lightning-bolt-outline",
+      tone: statusToneMap[task.status],
+      position: task.position,
+      timestamp: task.updatedAt,
+      createdAt: task.createdAt,
+      latestMessage: task.latestMessage,
+      summary:
+        task.mode === "stream" && task.messages.length > 0
+          ? `${task.messages.length} 条消息 · ${task.latestMessage || "等待执行"}`
+          : `${statusLabelMap[task.status]} · ${getStepLabel(task)}`,
+      messages: task.messages
+        .slice(-Math.min(task.maxLogs, 6))
+        .map((message) => ({
+          id: message.id,
+          content: message.content,
+          level: message.level,
+          timestamp: message.timestamp,
+        })),
+      progress: task.progress,
+      progressLabel: getStepLabel(task),
+      progressSecondary: formatElapsed(task.startedAt, task.endedAt),
+      showPercent: task.showPercent,
+      closeable: task.closeable,
+      autoClose: task.autoClose,
+      autoCloseDelay: task.autoCloseDelay,
+      onOpen: () => {
+        state.selectedTaskId = task.id;
+        state.panelVisible = true;
+      },
+      onClose: () => dismissTaskCenterTask(task.id),
+    });
+  });
+
+  removeOverlayStackItemsBySource(
+    TASK_CENTER_OVERLAY_SOURCE,
+    visibleTasks.map((task) => task.id),
+  );
+};
 
 const clampProgress = (
   progress?: number | null,
@@ -53,6 +164,9 @@ const createId = () =>
 
 const createMessageId = () =>
   `task-log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createTriggerEventId = () =>
+  `task-event-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 const normalizeRequestId = (requestId?: string | number) => {
   if (requestId === null || requestId === undefined || requestId === "") {
@@ -141,17 +255,91 @@ const appendMessages = (
   return next.slice(next.length - maxLogs);
 };
 
-const clearTaskTimer = (taskId: string) => {
-  const timer = taskTimers.get(taskId);
-  if (!timer) {
-    return;
-  }
-  clearTimeout(timer);
-  taskTimers.delete(taskId);
+const cloneTaskSnapshot = (task?: TaskCenterTask | null) =>
+  task ? (JSON.parse(JSON.stringify(task)) as TaskCenterTask) : null;
+
+const resolvePersistContext = (
+  input?: Partial<TaskCenterTaskInput> | null,
+  existing?: TaskCenterTask | null,
+): TaskCenterPersistContext => {
+  const meta = input?.meta && typeof input.meta === "object" ? input.meta : {};
+  const fallbackMeta =
+    existing?.meta && typeof existing.meta === "object" ? existing.meta : {};
+
+  return {
+    bizType:
+      input?.bizType ??
+      existing?.bizType ??
+      (meta.bizType as string | undefined) ??
+      (fallbackMeta.bizType as string | undefined),
+    bizId:
+      input?.bizId ??
+      existing?.bizId ??
+      (meta.bizId as string | number | undefined) ??
+      (fallbackMeta.bizId as string | number | undefined),
+    operator:
+      input?.operator ??
+      existing?.operator ??
+      (meta.operator as string | undefined) ??
+      (fallbackMeta.operator as string | undefined),
+    traceId:
+      input?.traceId ??
+      existing?.traceId ??
+      (meta.traceId as string | undefined) ??
+      (fallbackMeta.traceId as string | undefined),
+    persistKey:
+      input?.persistKey ??
+      existing?.persistKey ??
+      (meta.persistKey as string | undefined) ??
+      (fallbackMeta.persistKey as string | undefined),
+  };
+};
+
+const notifyTaskTrigger = ({
+  type,
+  task,
+  previousTask,
+  tasks,
+  patch,
+}: {
+  type: TaskCenterTriggerType;
+  task?: TaskCenterTask | null;
+  previousTask?: TaskCenterTask | null;
+  tasks?: TaskCenterTask[];
+  patch?: Partial<TaskCenterTaskInput>;
+}) => {
+  const payload: TaskCenterTriggerPayload = {
+    type,
+    timestamp: Date.now(),
+    eventId: createTriggerEventId(),
+    taskId: task?.id ?? previousTask?.id,
+    requestId: task?.requestId ?? previousTask?.requestId,
+    persist: resolvePersistContext(task ?? patch ?? null, previousTask),
+    task: cloneTaskSnapshot(task),
+    previousTask: cloneTaskSnapshot(previousTask),
+    tasks: tasks?.map((item) => cloneTaskSnapshot(item)!).filter(Boolean),
+    patch,
+  };
+  hooks.onTriggers.forEach((handler) => handler(payload));
+};
+
+export const registerTaskCenterTriggerHandler = (
+  handler: TaskCenterTriggerHandler,
+) => {
+  hooks.onTriggers.add(handler);
+};
+
+export const unregisterTaskCenterTriggerHandler = (
+  handler: TaskCenterTriggerHandler,
+) => {
+  hooks.onTriggers.delete(handler);
+};
+
+export const clearTaskCenterTriggerHandlers = () => {
+  hooks.onTriggers.clear();
 };
 
 const removeTaskById = (taskId: string) => {
-  clearTaskTimer(taskId);
   const index = state.tasks.findIndex((task) => task.id === taskId);
   if (index === -1) {
     return;
@@ -172,24 +360,6 @@ const dismissTaskOverlayInternal = (
   }
   task.overlayVisible = false;
   task.overlayDismissed = dismissed;
-};
-
-const scheduleAutoClose = (task: TaskCenterTask) => {
-  clearTaskTimer(task.id);
-  if (!task.autoClose || ACTIVE_STATUSES.has(task.status)) {
-    return;
-  }
-
-  taskTimers.set(
-    task.id,
-    setTimeout(() => {
-      if (task.retainHistory) {
-        dismissTaskOverlayInternal(task.id, false);
-      } else {
-        removeTaskById(task.id);
-      }
-    }, task.autoCloseDelay),
-  );
 };
 
 const trimHistory = () => {
@@ -227,9 +397,13 @@ const resolveStatus = (
   return "pending" as const;
 };
 
-export const upsertTaskCenterTask = (input: TaskCenterTaskInput) => {
+export const upsertTaskCenterTask = (
+  input: TaskCenterTaskInput,
+  triggerType?: TaskCenterTriggerType,
+) => {
   const now = Date.now();
   const existing = findTask(input);
+  const previousTask = cloneTaskSnapshot(existing);
   const normalizedRequestId = normalizeRequestId(input.requestId);
   const taskId =
     input.id ??
@@ -246,6 +420,7 @@ export const upsertTaskCenterTask = (input: TaskCenterTaskInput) => {
   const nextTask: TaskCenterTask = {
     id: taskId,
     requestId: input.requestId ?? existing?.requestId,
+    ...resolvePersistContext(input, existing),
     title: input.title ?? existing?.title ?? "未命名任务",
     description: input.description ?? existing?.description,
     icon: input.icon ?? existing?.icon,
@@ -267,7 +442,7 @@ export const upsertTaskCenterTask = (input: TaskCenterTaskInput) => {
     position: input.position ?? existing?.position ?? DEFAULT_POSITION,
     closeable: input.closeable ?? existing?.closeable ?? true,
     showPercent: input.showPercent ?? existing?.showPercent ?? true,
-    autoClose: input.autoClose ?? existing?.autoClose ?? true,
+    autoClose: input.autoClose ?? existing?.autoClose ?? false,
     autoCloseDelay:
       input.autoCloseDelay ??
       existing?.autoCloseDelay ??
@@ -308,13 +483,14 @@ export const upsertTaskCenterTask = (input: TaskCenterTaskInput) => {
     state.selectedTaskId = taskId;
   }
 
-  if (!ACTIVE_STATUSES.has(status)) {
-    scheduleAutoClose(existing ?? nextTask);
-  } else {
-    clearTaskTimer(taskId);
-  }
-
   trimHistory();
+  syncTaskCenterOverlays();
+  notifyTaskTrigger({
+    type: triggerType ?? (previousTask ? "update" : "add"),
+    task: existing ?? nextTask,
+    previousTask,
+    patch: input,
+  });
   return taskId;
 };
 
@@ -347,56 +523,91 @@ export const appendTaskCenterMessage = (
   message: string | TaskCenterMessageInput,
 ) => {
   const task = state.tasks.find((item) => item.id === taskId);
-  return upsertTaskCenterTask({
+  const nextTaskId = upsertTaskCenterTask(
+    {
     id: taskId,
     title: task?.title,
     mode: task?.mode ?? "stream",
     messages: [message],
     reopenOverlay: ACTIVE_STATUSES.has(task?.status ?? "pending"),
-  });
+    },
+    "message",
+  );
+  return nextTaskId;
 };
 
 export const finishTaskCenterTask = (
   taskId: string,
   patch: Omit<TaskCenterTaskInput, "id" | "status"> = {},
-) =>
-  upsertTaskCenterTask({
+) => {
+  const previousTask = getTaskCenterTask(taskId);
+  const nextTaskId = upsertTaskCenterTask({
     ...patch,
     id: taskId,
     status: "success",
     progress: patch.progress ?? 100,
-  });
+  }, "success");
+  return nextTaskId;
+};
 
 export const failTaskCenterTask = (
   taskId: string,
   patch: Omit<TaskCenterTaskInput, "id" | "status"> = {},
-) =>
-  upsertTaskCenterTask({
+) => {
+  const previousTask = getTaskCenterTask(taskId);
+  const nextTaskId = upsertTaskCenterTask({
     ...patch,
     id: taskId,
     status: "error",
     reopenOverlay: true,
-  });
+  }, "error");
+  return nextTaskId;
+};
 
 export const removeTaskCenterTask = (taskId: string) => {
+  const task = getTaskCenterTask(taskId);
   removeTaskById(taskId);
+  syncTaskCenterOverlays();
+  notifyTaskTrigger({
+    type: "remove",
+    task: null,
+    previousTask: task,
+  });
 };
 
 export const dismissTaskCenterTask = (taskId: string) => {
-  clearTaskTimer(taskId);
+  const previousTask = getTaskCenterTask(taskId);
   dismissTaskOverlayInternal(taskId);
+  syncTaskCenterOverlays();
+  notifyTaskTrigger({
+    type: "dismiss",
+    task: getTaskCenterTask(taskId),
+    previousTask,
+  });
 };
 
 export const clearTaskCenterHistory = () => {
-  [...state.tasks]
+  const removedTasks = [...state.tasks]
     .filter((task) => !ACTIVE_STATUSES.has(task.status))
-    .forEach((task) => removeTaskById(task.id));
+  removedTasks.forEach((task) => removeTaskById(task.id));
+  syncTaskCenterOverlays();
+  notifyTaskTrigger({
+    type: "clear-history",
+    task: null,
+    tasks: removedTasks,
+  });
 };
 
 export const clearTaskCenter = () => {
-  [...state.tasks].forEach((task) => clearTaskTimer(task.id));
+  const tasks = [...state.tasks];
   state.tasks = [];
   state.selectedTaskId = null;
+  clearOverlayStack(TASK_CENTER_OVERLAY_SOURCE);
+  notifyTaskTrigger({
+    type: "clear",
+    task: null,
+    tasks,
+  });
 };
 
 export const openTaskCenterPanel = () => {
@@ -416,14 +627,22 @@ export const selectTaskCenterTask = (taskId: string | null) => {
 };
 
 export const configureTaskCenter = (
-  payload: Partial<Pick<TaskCenterState, "maxVisible" | "maxHistory">>,
+  payload: Partial<
+    Pick<TaskCenterState, "maxVisible" | "maxHistory"> & {
+      onTrigger: TaskCenterTriggerHandler;
+    }
+  >,
 ) => {
   if (typeof payload.maxVisible === "number" && payload.maxVisible > 0) {
     state.maxVisible = Math.round(payload.maxVisible);
+    configureOverlayStack({ maxVisible: state.maxVisible });
   }
   if (typeof payload.maxHistory === "number" && payload.maxHistory > 0) {
     state.maxHistory = Math.round(payload.maxHistory);
     trimHistory();
+  }
+  if (typeof payload.onTrigger === "function") {
+    registerTaskCenterTriggerHandler(payload.onTrigger);
   }
 };
 

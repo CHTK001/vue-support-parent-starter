@@ -133,23 +133,20 @@
                 start-placeholder="开始时间"
                 end-placeholder="结束时间"
               />
-              <el-tooltip
-                :content="
-                  aiEnabled
-                    ? '基于当前筛选历史告警做 AI 分析'
+              <ServerAiActionButton
+                tooltip="基于当前筛选历史告警做 AI 分析"
+                :disabled-tooltip="
+                  !filteredHistory.length
+                    ? '当前筛选条件下没有可分析告警'
                     : aiUnavailableReason || 'AI 能力未激活'
                 "
-              >
-                <ScButton
-                  circle
-                  plain
-                  :loading="currentAiAnalyzing"
-                  :disabled="!aiEnabled || !filteredHistory.length"
-                  @click="emitAnalyzeHistory"
-                >
-                  <IconifyIconOnline icon='ri:ai-generate-2' />
-                </ScButton>
-              </el-tooltip>
+                :loading="currentAiAnalyzing"
+                :disabled="!filteredHistory.length"
+                scene="server-alert-history-ai"
+                system-prompt="你是服务器告警分析助手，需要从历史告警中总结风险模式并给出建议。"
+                :prompt="historyAiPrompt"
+                :method="aiEnabled ? () => emitAnalyzeHistory() : undefined"
+              />
             </div>
           </header>
           <section
@@ -211,7 +208,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ServerAiActionButton from "./ServerAiActionButton.vue";
 import type { ServerAiTaskPayload, ServerAlertEvent } from "../api";
 import { buildAlertHistoryAiFilterKey } from "../utils/historyAi";
 import {
@@ -271,6 +268,16 @@ const currentAiAdvice = computed(
 
 const currentAiAnalyzing = computed(
   () => props.aiAnalyzingKey === currentAiFilterKey.value,
+);
+
+const historyAiPrompt = computed(() =>
+  [
+    `服务器：${props.alert?.serverCode || props.alert?.serverId || "-"}`,
+    `当前指标过滤：${historyMetricType.value || "全部指标"}`,
+    `当前级别过滤：${historySeverity.value || "全部级别"}`,
+    `历史样本数：${filteredHistory.value.length}`,
+    "请分析历史告警的主要模式、风险聚集点和建议处理顺序。",
+  ].join("\n"),
 );
 
 watch(

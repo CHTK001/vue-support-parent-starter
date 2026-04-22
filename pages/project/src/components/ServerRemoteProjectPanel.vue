@@ -195,18 +195,22 @@
       :deploying="deploying"
       :drag-over="deployDragOver"
       :options="deployOptions"
+      :target-directory="deployTargetDirectory"
+      :upload-targets="deployUploadTargets"
       :progress="deployProgress"
       :project="deployingProject"
       :status="deployStatus"
       @deploy="doDeploy"
       @file-change="handleDeployFileChange"
       @update:drag-over="deployDragOver = $event"
+      @update:target-directory="deployTargetDirectory = $event"
     />
 
     <ProjectLogsDrawer
       v-model="showLogsDrawer"
       :auto-scroll="autoScroll"
       :content="logsContent"
+      :loading="logsLoading"
       :log-type="logsType"
       :project="logsProject"
       @clear="clearLogs"
@@ -301,16 +305,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { IconifyIconOnline } from "@repo/components";
 import { syncLocalStorageProxy } from "@repo/utils";
+import {
+  closeNamedSocketService,
+  createNamedSocketService,
+  useUserStoreHook,
+  type SocketTemplate,
+} from "@repo/core";
 import type {
   RemoteApi,
   RemoteDeployOptions,
   RemoteProject,
   RemoteProjectBackup,
 } from "../api/manage/remote";
+import { tryUseOverlayStack } from "../../../../layout/default/src/components/lay-overlay-stack/provider";
 import ProjectCard from "./project-panel/ProjectCard.vue";
 import ProjectDeployDialog from "./project-panel/ProjectDeployDialog.vue";
 import ProjectEditorDialog from "./project-panel/ProjectEditorDialog.vue";
@@ -325,6 +336,7 @@ import {
   isSpringBootProjectType,
   isSpringBootResourceSplitType,
   isStaticProjectType,
+  isTomcatProjectType,
   projectTypeLabel,
   validateProjectTypeRequiredFields,
 } from "./project-panel/projectPanelShared";
@@ -376,10 +388,22 @@ const applyProjectDeployDefaults = (
   if (isStaticProjectType(project?.projectType)) {
     return {
       ...options,
+      stopBeforeDeploy: false,
+      startAfterDeploy: false,
       uploadOptions: {
         ...options.uploadOptions,
         clearBefore: true,
         autoExtract: true,
+      },
+    };
+  }
+  if (isTomcatProjectType(project?.projectType)) {
+    return {
+      ...options,
+      uploadOptions: {
+        ...options.uploadOptions,
+        autoExtract: false,
+        deleteArchiveAfterExtract: false,
       },
     };
   }
@@ -403,6 +427,13 @@ const applyProjectDeployDefaults = (
 const globalDeployOptions = ref<RemoteDeployOptions>(
   createDefaultDeployOptions(),
 );
+const overlayStack = tryUseOverlayStack();
+const userStore = useUserStoreHook();
+const PROJECT_OVERLAY_SOURCE = "project-remote-panel";
+const PROJECT_UPLOAD_SOCKET_NAME = "project-remote-upload-progress";
+const FILE_UPLOAD_PROGRESS_TOPIC = "service:file:upload:progress";
+let projectUploadSocket: SocketTemplate | null = null;
+const activeUploadOverlayIds = reactive(new Set<string>());
 
 const persistGlobalDeployOptions = () => {
   globalDeployOptions.value = normalizeDeployOptions(globalDeployOptions.value);
@@ -420,6 +451,172 @@ const loadGlobalDeployOptions = () => {
       GLOBAL_DEPLOY_OPTIONS_STORAGE_KEY,
     ) || {};
   globalDeployOptions.value = normalizeDeployOptions(cache);
+};
+
+const createOverlayMessage = (
+  content: string,
+  level: "info" | "success" | "warning" | "error" = "info",
+) => ({
+  id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  content,
+  level,
+  timestamp: Date.now(),
+});
+
+const buildOverlayId = (action: string, projectId: string) =>
+  `${PROJECT_OVERLAY_SOURCE}:${action}:${projectId}`;
+
+const upsertProjectOverlay = ({
+  action,
+  project,
+  title,
+  description,
+  tone = "info",
+  progress = 0,
+  latestMessage,
+  progressLabel,
+  progressSecondary,
+  autoClose = false,
+}: {
+  action: string;
+  project: RemoteProject;
+  title: string;
+  description?: string;
+  tone?: "default" | "info" | "success" | "warning" | "error";
+  progress?: number | null;
+  latestMessage?: string;
+  progressLabel?: string;
+  progressSecondary?: string;
+  autoClose?: boolean;
+}) => {
+  const projectId = String(project.projectId || "");
+  if (!projectId) {
+    return "";
+  }
+  const itemId = buildOverlayId(action, projectId);
+  overlayStack?.upsert({
+    id: itemId,
+    source: PROJECT_OVERLAY_SOURCE,
+    title,
+    description: description || project.projectName,
+    tone,
+    progress,
+    latestMessage,
+    progressLabel,
+    progressSecondary,
+    icon: action === "deploy" ? "ep:upload-filled" : "ep:loading",
+    autoClose,
+    autoCloseDelay: 3000,
+    closeable: true,
+    timestamp: Date.now(),
+    createdAt: Date.now(),
+    messages: latestMessage ? [createOverlayMessage(latestMessage)] : [],
+  });
+  return itemId;
+};
+
+const updateProjectOverlay = (
+  itemId: string,
+  patch: Partial<{
+    title: string;
+    description: string;
+    tone: "default" | "info" | "success" | "warning" | "error";
+    progress: number | null;
+    latestMessage: string;
+    progressLabel: string;
+    progressSecondary: string;
+    autoClose: boolean;
+    icon: string;
+  }>,
+) => {
+  const existing = overlayStack?.get(itemId);
+  if (!existing) {
+    return;
+  }
+  overlayStack?.upsert({
+    ...existing,
+    ...patch,
+    autoCloseDelay: patch.autoClose ? 3000 : existing.autoCloseDelay,
+    timestamp: Date.now(),
+    messages: patch.latestMessage
+      ? [
+          ...(existing.messages || []),
+          createOverlayMessage(
+            patch.latestMessage,
+            patch.tone === "success"
+              ? "success"
+              : patch.tone === "error"
+                ? "error"
+                : patch.tone === "warning"
+                  ? "warning"
+                  : "info",
+          ),
+        ].slice(-6)
+      : existing.messages,
+  });
+};
+
+const finishProjectOverlay = (
+  itemId: string,
+  message: string,
+  tone: "success" | "warning" | "error" = "success",
+) => {
+  updateProjectOverlay(itemId, {
+    tone,
+    progress: tone === "error" ? 100 : 100,
+    latestMessage: message,
+    autoClose: tone !== "error",
+    icon:
+      tone === "success"
+        ? "ep:success-filled"
+        : tone === "warning"
+          ? "ep:warning-filled"
+          : "ep:circle-close-filled",
+  });
+};
+
+const ensureProjectUploadSocket = () => {
+  if (projectUploadSocket) {
+    return projectUploadSocket;
+  }
+  projectUploadSocket = createNamedSocketService(PROJECT_UPLOAD_SOCKET_NAME);
+  const handler = (payload: unknown) => {
+    const data = payload as Record<string, any>;
+    const progress = Number(data.progress ?? 0);
+    const status = String(data.status || "uploading");
+    activeUploadOverlayIds.forEach((overlayId) => {
+      updateProjectOverlay(overlayId, {
+        progress: Number.isFinite(progress) ? progress : 0,
+        progressLabel:
+          status === "completed"
+            ? "上传完成"
+            : status === "merging"
+              ? "文件合并中"
+              : "文件上传中",
+        progressSecondary:
+          typeof data.currentChunk === "number" && typeof data.totalChunks === "number"
+            ? `${data.currentChunk}/${data.totalChunks}`
+            : "",
+        latestMessage:
+          status === "completed"
+            ? `上传完成：${data.fileName || "部署包"}`
+            : status === "error"
+              ? data.message || "上传失败"
+              : `进度 ${Number.isFinite(progress) ? progress : 0}%`,
+        tone: status === "error" ? "error" : "info",
+      });
+      if (status === "completed" || status === "error") {
+        activeUploadOverlayIds.delete(overlayId);
+      }
+    });
+  };
+  const userId = String(userStore.sysUserId || "0");
+  projectUploadSocket.on(`${FILE_UPLOAD_PROGRESS_TOPIC}@${userId}`, handler);
+  if (userId !== "0") {
+    projectUploadSocket.on(`${FILE_UPLOAD_PROGRESS_TOPIC}@0`, handler);
+  }
+  projectUploadSocket.connect();
+  return projectUploadSocket;
 };
 
 const projects = ref<RemoteProject[]>([]);
@@ -647,54 +844,106 @@ const confirmDeleteProject = async (project: RemoteProject) => {
   }
 };
 
+const runProjectActionWithOverlay = async <T>({
+  action,
+  project,
+  loadingKey,
+  title,
+  initialMessage,
+  execute,
+  successMessage,
+  appendLogLabel,
+  runtimeStatus,
+}: {
+  action: string;
+  project: RemoteProject;
+  loadingKey: string;
+  title: string;
+  initialMessage: string;
+  execute: () => Promise<T>;
+  successMessage: (result: T) => string;
+  appendLogLabel: string;
+  runtimeStatus?: (result: T) => RemoteProject["runtimeStatus"] | undefined;
+}) => {
+  const id = String(project.projectId || "");
+  const overlayId = upsertProjectOverlay({
+    action,
+    project,
+    title,
+    latestMessage: initialMessage,
+    progress: 20,
+    progressLabel: "执行中",
+  });
+  setLoading(id, loadingKey, true);
+  try {
+    const result = await execute();
+    const message = successMessage(result);
+    finishProjectOverlay(overlayId, message, "success");
+    ElMessage.success(message);
+    appendOperationLog(project, appendLogLabel, message);
+    const nextRuntimeStatus = runtimeStatus?.(result);
+    if (nextRuntimeStatus) {
+      updateProjectRuntimeState(id, nextRuntimeStatus, message);
+    }
+    return result;
+  } catch (err: any) {
+    const message = err?.message || `${title}失败`;
+    finishProjectOverlay(overlayId, message, "error");
+    ElMessage.error(message);
+    throw err;
+  } finally {
+    setLoading(id, loadingKey, false);
+  }
+};
+
 const doStart = async (project: RemoteProject) => {
   if (!hasStartScript(project)) {
     ElMessage.warning("缺少启动脚本，无法启动");
     return;
   }
-  const id = project.projectId!;
-  setLoading(id, "start", true);
   try {
-    const res = await props.api.startProject(id);
-    const message = res.data?.message || "启动成功";
-    ElMessage.success(message);
-    appendOperationLog(project, "启动", message);
-    updateProjectRuntimeState(
-      id,
-      (res.data?.runtimeStatus as RemoteProject["runtimeStatus"]) || "running",
-      message,
-    );
+    const res = await runProjectActionWithOverlay({
+      action: "start",
+      project,
+      loadingKey: "start",
+      title: "启动项目",
+      initialMessage: "正在发送启动命令…",
+      execute: () => props.api.startProject(String(project.projectId || "")),
+      successMessage: (result) => result.data?.message || "启动成功",
+      appendLogLabel: "启动",
+      runtimeStatus: (result) =>
+        (result.data?.runtimeStatus as RemoteProject["runtimeStatus"]) ||
+        "running",
+    });
     // 后端状态可能有延迟，异步刷新避免成功提示后按钮状态抖动。
     setTimeout(() => {
       void loadProjects();
     }, 1500);
   } catch (err: any) {
-    ElMessage.error(err.message || "启动失败");
-  } finally {
-    setLoading(id, "start", false);
+    // handled in overlay helper
   }
 };
 
 const doStop = async (project: RemoteProject) => {
-  const id = project.projectId!;
-  setLoading(id, "stop", true);
   try {
-    const res = await props.api.stopProject(id);
-    const message = res.data?.message || "停止成功";
-    ElMessage.success(message);
-    appendOperationLog(project, "停止", message);
-    updateProjectRuntimeState(
-      id,
-      (res.data?.runtimeStatus as RemoteProject["runtimeStatus"]) || "stopped",
-      message,
-    );
+    await runProjectActionWithOverlay({
+      action: "stop",
+      project,
+      loadingKey: "stop",
+      title: "停止项目",
+      initialMessage: "正在停止服务…",
+      execute: () => props.api.stopProject(String(project.projectId || "")),
+      successMessage: (result) => result.data?.message || "停止成功",
+      appendLogLabel: "停止",
+      runtimeStatus: (result) =>
+        (result.data?.runtimeStatus as RemoteProject["runtimeStatus"]) ||
+        "stopped",
+    });
     setTimeout(() => {
       void loadProjects();
     }, 1500);
   } catch (err: any) {
-    ElMessage.error(err.message || "停止失败");
-  } finally {
-    setLoading(id, "stop", false);
+    // handled in overlay helper
   }
 };
 
@@ -703,35 +952,42 @@ const doRestart = async (project: RemoteProject) => {
     ElMessage.warning("缺少启动脚本，无法重启");
     return;
   }
-  const id = project.projectId!;
-  setLoading(id, "restart", true);
   try {
-    const res = await props.api.restartProject(id);
-    const message = res.data?.message || "重启成功";
-    ElMessage.success(message);
-    appendOperationLog(project, "重启", message);
-    updateProjectRuntimeState(
-      id,
-      (res.data?.runtimeStatus as RemoteProject["runtimeStatus"]) || "running",
-      message,
-    );
+    await runProjectActionWithOverlay({
+      action: "restart",
+      project,
+      loadingKey: "restart",
+      title: "重启项目",
+      initialMessage: "正在重启服务…",
+      execute: () => props.api.restartProject(String(project.projectId || "")),
+      successMessage: (result) => result.data?.message || "重启成功",
+      appendLogLabel: "重启",
+      runtimeStatus: (result) =>
+        (result.data?.runtimeStatus as RemoteProject["runtimeStatus"]) ||
+        "running",
+    });
     setTimeout(() => {
       void loadProjects();
     }, 1500);
   } catch (err: any) {
-    ElMessage.error(err.message || "重启失败");
-  } finally {
-    setLoading(id, "restart", false);
+    // handled in overlay helper
   }
 };
 
 const doBackup = async (project: RemoteProject) => {
   try {
-    const res = await props.api.backupProject(project.projectId!);
-    ElMessage.success(res.data?.message || "备份成功");
-    appendOperationLog(project, "备份", res.data?.message || "备份成功");
+    await runProjectActionWithOverlay({
+      action: "backup",
+      project,
+      loadingKey: "backup",
+      title: "创建备份",
+      initialMessage: "正在生成备份…",
+      execute: () => props.api.backupProject(String(project.projectId || "")),
+      successMessage: (result) => result.data?.message || "备份成功",
+      appendLogLabel: "备份",
+    });
   } catch (err: any) {
-    ElMessage.error(err.message || "备份失败");
+    // handled in overlay helper
   }
 };
 
@@ -801,16 +1057,21 @@ const doRollback = async (backup: RemoteProjectBackup) => {
         type: "warning",
       },
     );
-    const res = await props.api.rollbackProject(
-      rollbackProject.value!.projectId!,
-      backup.backupId!,
-    );
-    ElMessage.success(res.data?.message || "回滚成功");
-    appendOperationLog(
-      rollbackProject.value,
-      "回滚",
-      res.data?.message || "回滚成功",
-    );
+    const project = rollbackProject.value!;
+    await runProjectActionWithOverlay({
+      action: "rollback",
+      project,
+      loadingKey: "rollback",
+      title: "回滚项目",
+      initialMessage: `正在回滚到 ${backup.backupTime} …`,
+      execute: () =>
+        props.api.rollbackProject(
+          String(project.projectId || ""),
+          String(backup.backupId || ""),
+        ),
+      successMessage: (result) => result.data?.message || "回滚成功",
+      appendLogLabel: "回滚",
+    });
     showRollbackDialog.value = false;
     await loadProjects();
   } catch {
@@ -823,9 +1084,13 @@ const logsProject = ref<RemoteProject | null>(null);
 const logsContent = ref("");
 const logsType = ref<"runtime" | "deploy" | "operation">("runtime");
 const autoScroll = ref(true);
+const logsLoading = ref(false);
+let logsRequestSerial = 0;
 let logTimer: ReturnType<typeof setInterval> | null = null;
 
 const openLogs = (project: RemoteProject) => {
+  logsRequestSerial += 1;
+  logsLoading.value = false;
   logsProject.value = project;
   logsType.value = "runtime";
   logsContent.value = "";
@@ -836,24 +1101,37 @@ const fetchLogs = async () => {
   if (!logsProject.value?.projectId) {
     return;
   }
+  const currentSerial = ++logsRequestSerial;
+  const projectId = logsProject.value.projectId;
+  const currentType = logsType.value;
+  logsLoading.value = true;
   if (logsType.value === "operation") {
-    logsContent.value = formatOperationLogs(logsProject.value.projectId);
+    logsContent.value = formatOperationLogs(projectId);
+    logsLoading.value = false;
     return;
   }
   try {
     const res =
-      logsType.value === "deploy"
-        ? await props.api.getProjectDeployLogs(logsProject.value.projectId, 300)
-        : await props.api.getProjectLogs(logsProject.value.projectId, 200);
-    if (res.data) {
+      currentType === "deploy"
+        ? await props.api.getProjectDeployLogs(projectId, 300)
+        : await props.api.getProjectLogs(projectId, 200);
+    if (currentSerial !== logsRequestSerial) {
+      return;
+    }
+    if (res.data !== undefined) {
       logsContent.value = res.data;
     }
   } catch {
     // ignore polling errors
+  } finally {
+    if (currentSerial === logsRequestSerial) {
+      logsLoading.value = false;
+    }
   }
 };
 
 const startLogPolling = () => {
+  stopLogPolling();
   fetchLogs();
   logTimer = setInterval(fetchLogs, 3000);
 };
@@ -863,6 +1141,7 @@ const stopLogPolling = () => {
     clearInterval(logTimer);
     logTimer = null;
   }
+  logsLoading.value = false;
 };
 
 const clearLogs = () => {
@@ -875,6 +1154,7 @@ const clearLogs = () => {
 };
 
 const handleLogsTypeChange = (value: "runtime" | "deploy" | "operation") => {
+  logsRequestSerial += 1;
   logsType.value = value;
   void fetchLogs();
 };
@@ -970,16 +1250,69 @@ const showDeployDialog = ref(false);
 const deployingProject = ref<RemoteProject | null>(null);
 const deployFile = ref<File | null>(null);
 const deployDragOver = ref(false);
+const deployTargetDirectory = ref("");
 const deploying = ref(false);
 const deployProgress = ref(0);
 const deployStatus = ref<"" | "success" | "exception">("");
 const deployOptions = ref<RemoteDeployOptions>(createDefaultDeployOptions());
+const deployUploadTargets = computed(() => {
+  const project = deployingProject.value;
+  if (!project || !isSpringBootResourceSplitType(project.projectType)) {
+    return [];
+  }
+  const targets = [
+    {
+      key: "root",
+      label: "根目录",
+      directory: String(project.rootDirectory || "").trim(),
+    },
+    {
+      key: "config",
+      label: "配置目录",
+      directory: String(project.configDirectory || "").trim(),
+    },
+    {
+      key: "lib",
+      label: "依赖目录",
+      directory: String(project.libDirectory || "").trim(),
+    },
+    {
+      key: "logs",
+      label: "日志目录",
+      directory: String(project.logDirectory || "").trim(),
+    },
+  ].filter((item) => item.directory);
+  return targets;
+});
+
+const isArchiveFileName = (name?: string) => {
+  const lower = String(name || "").toLowerCase();
+  return (
+    lower.endsWith(".zip") ||
+    lower.endsWith(".tar.gz") ||
+    lower.endsWith(".tgz")
+  );
+};
+
+const isResourceSplitDirectUpload = (
+  project: RemoteProject,
+  targetDirectory: string,
+) =>
+  isSpringBootResourceSplitType(project.projectType) &&
+  Boolean(targetDirectory) &&
+  targetDirectory !== String(project.rootDirectory || "").trim();
+
+const isTomcatPackage = (name?: string) => {
+  const lower = String(name || "").toLowerCase();
+  return lower.endsWith(".war") || lower.endsWith(".ear");
+};
 
 const openDeploy = (project: RemoteProject) => {
   deployingProject.value = project;
   deployFile.value = null;
   deployProgress.value = 0;
   deployStatus.value = "";
+  deployTargetDirectory.value = String(project.rootDirectory || "").trim();
   deployOptions.value = applyProjectDeployDefaults(
     project,
     globalDeployOptions.value,
@@ -988,7 +1321,75 @@ const openDeploy = (project: RemoteProject) => {
 };
 
 const handleDeployFileChange = (file: File | null) => {
+  if (
+    file &&
+    isTomcatProjectType(deployingProject.value?.projectType) &&
+    !isTomcatPackage(file.name)
+  ) {
+    ElMessage.warning("Tomcat 项目仅支持上传 .war / .ear 部署包");
+    deployFile.value = null;
+    return;
+  }
+  if (
+    file &&
+    isStaticProjectType(deployingProject.value?.projectType) &&
+    !isArchiveFileName(file.name)
+  ) {
+    ElMessage.warning("静态站点仅支持上传 zip / tar.gz / tgz 压缩包");
+    deployFile.value = null;
+    return;
+  }
   deployFile.value = file;
+};
+
+const uploadProjectAssetToDirectory = async (
+  project: RemoteProject,
+  file: File,
+  targetDirectory: string,
+  loadingKey = "deploy",
+) => {
+  const projectId = String(project.projectId || "");
+  if (!projectId || !targetDirectory) {
+    return {
+      success: false,
+      message: "上传目录缺失",
+    };
+  }
+  const overlayId = upsertProjectOverlay({
+    action: `${loadingKey}-directory`,
+    project,
+    title: "目录上传",
+    latestMessage: `正在上传到 ${targetDirectory}`,
+    progress: 10,
+    progressLabel: "上传中",
+  });
+  activeUploadOverlayIds.add(overlayId);
+  ensureProjectUploadSocket();
+  setLoading(projectId, loadingKey, true);
+  try {
+    const res = await props.api.uploadFile(file, {
+      directory: targetDirectory,
+      clearBefore: isStaticProjectType(project.projectType),
+      autoExtract: isArchiveFileName(file.name),
+      deleteArchiveAfterExtract: isArchiveFileName(file.name),
+    });
+    const message = res.data?.message || "上传成功";
+    finishProjectOverlay(overlayId, message, "success");
+    appendOperationLog(project, "目录上传", `${message} -> ${targetDirectory}`);
+    return {
+      success: res.data?.success !== false,
+      message,
+    };
+  } catch (error: any) {
+    finishProjectOverlay(overlayId, error?.message || "上传失败", "error");
+    return {
+      success: false,
+      message: error?.message || "上传失败",
+    };
+  } finally {
+    activeUploadOverlayIds.delete(overlayId);
+    setLoading(projectId, loadingKey, false);
+  }
 };
 
 const doDeploy = async () => {
@@ -996,17 +1397,78 @@ const doDeploy = async () => {
     return;
   }
   const currentProject = deployingProject.value;
+  if (isStaticProjectType(currentProject.projectType)) {
+    deploying.value = true;
+    try {
+      const result = await uploadProjectAssetToDirectory(
+        currentProject,
+        deployFile.value,
+        deployTargetDirectory.value || String(currentProject.rootDirectory || "").trim(),
+      );
+      if (result.success) {
+        ElMessage.success(result.message);
+        showDeployDialog.value = false;
+        await loadProjects();
+      } else {
+        ElMessage.error(result.message);
+      }
+    } finally {
+      deploying.value = false;
+    }
+    return;
+  }
+  if (
+    isResourceSplitDirectUpload(
+      currentProject,
+      deployTargetDirectory.value,
+    )
+  ) {
+    deploying.value = true;
+    try {
+      const result = await uploadProjectAssetToDirectory(
+        currentProject,
+        deployFile.value,
+        deployTargetDirectory.value,
+      );
+      if (result.success) {
+        ElMessage.success(result.message);
+        showDeployDialog.value = false;
+        await loadProjects();
+      } else {
+        ElMessage.error(result.message);
+      }
+    } finally {
+      deploying.value = false;
+    }
+    return;
+  }
   const deployPayloadOptions = applyProjectDeployDefaults(
     currentProject,
     deployOptions.value,
   );
+  deployPayloadOptions.targetDirectory = deployTargetDirectory.value;
   globalDeployOptions.value = normalizeDeployOptions(deployOptions.value);
   persistGlobalDeployOptions();
   deploying.value = true;
   deployProgress.value = 10;
   deployStatus.value = "";
+  const overlayId = upsertProjectOverlay({
+    action: "deploy",
+    project: currentProject,
+    title: "部署升级",
+    latestMessage: "正在准备部署包…",
+    progress: 8,
+    progressLabel: "准备上传",
+  });
+  activeUploadOverlayIds.add(overlayId);
+  ensureProjectUploadSocket();
   try {
     deployProgress.value = 40;
+    updateProjectOverlay(overlayId, {
+      progress: 28,
+      latestMessage: `正在上传 ${deployFile.value.name}`,
+      progressLabel: "上传中",
+    });
     const res = await props.api.deployProject(
       currentProject.projectId,
       deployFile.value,
@@ -1014,12 +1476,10 @@ const doDeploy = async () => {
     );
     deployProgress.value = 100;
     deployStatus.value = "success";
-    ElMessage.success(res.data?.message || "部署成功");
-    appendOperationLog(
-      currentProject,
-      "升级部署",
-      res.data?.message || "部署成功",
-    );
+    const message = res.data?.message || "部署成功";
+    finishProjectOverlay(overlayId, message, "success");
+    ElMessage.success(message);
+    appendOperationLog(currentProject, "升级部署", message);
     setTimeout(async () => {
       showDeployDialog.value = false;
       await loadProjects();
@@ -1027,8 +1487,10 @@ const doDeploy = async () => {
   } catch (err: any) {
     deployProgress.value = 100;
     deployStatus.value = "exception";
+    finishProjectOverlay(overlayId, err.message || "部署失败", "error");
     ElMessage.error(err.message || "部署失败");
   } finally {
+    activeUploadOverlayIds.delete(overlayId);
     deploying.value = false;
   }
 };
@@ -1046,27 +1508,64 @@ const deployProjectWithGlobalOptions = async (
     };
   }
   setLoading(projectId, loadingKey, true);
+  const overlayId = upsertProjectOverlay({
+    action: loadingKey,
+    project,
+    title: "部署升级",
+    latestMessage: `正在上传 ${file.name}`,
+    progress: 8,
+    progressLabel: "上传中",
+  });
+  activeUploadOverlayIds.add(overlayId);
+  ensureProjectUploadSocket();
   try {
     const res = await props.api.deployProject(
       projectId,
       file,
       applyProjectDeployDefaults(project, globalDeployOptions.value),
     );
+    finishProjectOverlay(
+      overlayId,
+      res.data?.message || "部署成功",
+      res.data?.success === false ? "warning" : "success",
+    );
     return {
       success: res.data?.success !== false,
       message: res.data?.message || "部署成功",
     };
   } catch (error: any) {
+    finishProjectOverlay(overlayId, error?.message || "部署失败", "error");
     return {
       success: false,
       message: error?.message || "部署失败",
     };
   } finally {
+    activeUploadOverlayIds.delete(overlayId);
     setLoading(projectId, loadingKey, false);
   }
 };
 
 const handleCardDeployDrop = async (project: RemoteProject, file: File) => {
+  if (isSpringBootResourceSplitType(project.projectType)) {
+    openDeploy(project);
+    deployFile.value = file;
+    return;
+  }
+  if (isStaticProjectType(project.projectType)) {
+    const result = await uploadProjectAssetToDirectory(
+      project,
+      file,
+      String(project.rootDirectory || "").trim(),
+      "deploy",
+    );
+    if (result.success) {
+      ElMessage.success(`${project.projectName}：${result.message}`);
+      await loadProjects();
+    } else {
+      ElMessage.error(`${project.projectName}：${result.message}`);
+    }
+    return;
+  }
   try {
     await ElMessageBox.confirm(
       `确认使用全局设置将 ${file.name} 部署到「${project.projectName}」？`,
@@ -1145,8 +1644,21 @@ loadGlobalDeployOptions();
 deployOptions.value = normalizeDeployOptions(globalDeployOptions.value);
 loadProjects();
 
+onMounted(() => {
+  overlayStack?.configure({
+    width: 420,
+    maxVisible: 6,
+  });
+});
+
 onUnmounted(() => {
   stopLogPolling();
+  activeUploadOverlayIds.clear();
+  if (projectUploadSocket) {
+    closeNamedSocketService(PROJECT_UPLOAD_SOCKET_NAME);
+    projectUploadSocket = null;
+  }
+  overlayStack?.removeBySource(PROJECT_OVERLAY_SOURCE);
 });
 </script>
 

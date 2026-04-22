@@ -90,6 +90,7 @@
                     />
                   </ScSelect>
                 </el-form-item>
+                <p class="project-type-desc">{{ projectTypeDescription }}</p>
                 <el-form-item
                   class="project-form__full"
                   label="项目描述"
@@ -118,44 +119,95 @@
               </div>
 
               <div class="project-form project-form--1">
-                <el-form-item label="根目录" required label-width="120px">
-                  <el-input
+                <el-form-item
+                  v-if="!isTomcatProjectType(project.projectType)"
+                  label="根目录"
+                  required
+                  label-width="120px"
+                >
+                  <ScriptInlineEditorField
                     v-model="project.rootDirectory"
-                    type="textarea"
-                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    label="根目录"
                     placeholder="/opt/apps/gateway"
+                    empty-text="点击填写根目录"
+                    :show-language-toolbar="false"
                   />
                 </el-form-item>
-                <el-form-item label="依赖目录" label-width="120px">
-                  <el-input
+                <el-form-item
+                  v-if="
+                    !isStaticProjectType(project.projectType) &&
+                    !isTomcatProjectType(project.projectType)
+                  "
+                  label="依赖目录"
+                  label-width="120px"
+                >
+                  <ScriptInlineEditorField
                     v-model="project.libDirectory"
-                    type="textarea"
-                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    label="依赖目录"
                     placeholder="/opt/apps/gateway/lib"
+                    empty-text="点击填写依赖目录"
+                    :show-language-toolbar="false"
                   />
                 </el-form-item>
-                <el-form-item label="配置目录" label-width="120px">
-                  <el-input
+                <el-form-item
+                  v-if="
+                    !isStaticProjectType(project.projectType) &&
+                    !isTomcatProjectType(project.projectType)
+                  "
+                  label="配置目录"
+                  label-width="120px"
+                >
+                  <ScriptInlineEditorField
                     v-model="project.configDirectory"
-                    type="textarea"
-                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    label="配置目录"
                     placeholder="/opt/apps/gateway/conf"
+                    empty-text="点击填写配置目录"
+                    :show-language-toolbar="false"
                   />
                 </el-form-item>
-                <el-form-item label="日志目录" label-width="120px">
-                  <el-input
+                <el-form-item
+                  v-if="isTomcatProjectType(project.projectType)"
+                  label="Tomcat 位置"
+                  label-width="120px"
+                >
+                  <ScriptInlineEditorField
+                    v-model="project.tomcatHome"
+                    label="Tomcat 位置"
+                    placeholder="/opt/tomcat"
+                    empty-text="点击填写 Tomcat 位置"
+                    :show-language-toolbar="false"
+                  />
+                </el-form-item>
+                <el-form-item
+                  v-if="
+                    !isStaticProjectType(project.projectType) &&
+                    !isTomcatProjectType(project.projectType)
+                  "
+                  label="日志目录"
+                  label-width="120px"
+                >
+                  <ScriptInlineEditorField
                     v-model="project.logDirectory"
-                    type="textarea"
-                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    label="日志目录"
                     placeholder="/opt/apps/gateway/logs"
+                    empty-text="点击填写日志目录"
+                    :show-language-toolbar="false"
                   />
                 </el-form-item>
-                <el-form-item label="启动日志文件" label-width="120px">
-                  <el-input
+                <el-form-item
+                  v-if="
+                    !isStaticProjectType(project.projectType) &&
+                    !isTomcatProjectType(project.projectType)
+                  "
+                  label="启动日志文件"
+                  label-width="120px"
+                >
+                  <ScriptInlineEditorField
                     v-model="project.startupLogFile"
-                    type="textarea"
-                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    label="启动日志文件"
                     placeholder="/opt/apps/gateway/logs/console.log"
+                    empty-text="点击填写启动日志文件"
+                    :show-language-toolbar="false"
                   />
                 </el-form-item>
                 <el-form-item
@@ -166,11 +218,12 @@
                   label="主包入口"
                   label-width="120px"
                 >
-                  <el-input
+                  <ScriptInlineEditorField
                     v-model="project.mainArtifact"
-                    type="textarea"
-                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    label="主包入口"
                     placeholder="gateway.jar / app.war"
+                    empty-text="点击填写主包入口"
+                    :show-language-toolbar="false"
                   />
                 </el-form-item>
               </div>
@@ -382,6 +435,12 @@
                   placeholder="health,info,prometheus"
                 />
               </el-form-item>
+              <el-form-item label="健康地址" label-width="140px">
+                <el-input
+                  v-model="project.healthCheckUrl"
+                  placeholder="http://127.0.0.1:8080/actuator/health"
+                />
+              </el-form-item>
               <el-form-item
                 class="project-form__full"
                 label="自定义参数（每行一个）"
@@ -397,108 +456,6 @@
               <div class="project-form__full spring-summary">
                 <span class="spring-summary__label">当前汇总参数</span>
                 <code class="spring-summary__code">{{ project.springArgs || "(空)" }}</code>
-              </div>
-            </div>
-          </section>
-        </ScTabPane>
-
-        <!-- Script Tab -->
-        <ScTabPane v-if="isCustomProjectType" name="script">
-          <template #label>
-            <span class="project-tab-label">
-              <span class="project-tab-icon project-tab-icon--purple">
-                <ElIcon :size="16"><Operation /></ElIcon>
-              </span>
-              运行脚本
-            </span>
-          </template>
-
-          <section class="project-card project-card--wide">
-            <div class="project-card__header project-card__header--between">
-              <div class="project-card__header-left">
-                <div class="project-card__icon project-card__icon--purple">
-                  <ElIcon :size="18"><Operation /></ElIcon>
-                </div>
-                <div class="project-card__title">
-                  <strong>运行脚本</strong>
-                  <span>
-                    {{
-                      isCustomProjectType
-                        ? "自定义类型：脚本完全手填"
-                        : "模板类型：支持按项目类型自动生成脚本"
-                    }}
-                  </span>
-                </div>
-              </div>
-
-              <ScButton
-                v-if="!isCustomProjectType"
-                plain
-                type="primary"
-                @click="regenerateScriptsByType"
-              >
-                <ElIcon><Refresh /></ElIcon>
-                按类型模板生成
-              </ScButton>
-            </div>
-
-            <div v-if="!isCustomProjectType" class="script-hint">
-              <ElIcon :size="14"><InfoFilled /></ElIcon>
-              {{
-                isSpringBootResourceSplitType(project.projectType)
-                  ? "资源分离 SpringBoot：将使用 mainArtifact + libDirectory + configDirectory 生成脚本"
-                  : "SpringBoot：将使用 mainArtifact + configDirectory + jvmArgs 生成脚本"
-              }}
-            </div>
-
-            <div class="script-grid">
-              <div class="script-card">
-                <div class="script-card__header">
-                  <div class="script-card__icon script-card__icon--green">
-                    <ElIcon :size="16"><VideoPlay /></ElIcon>
-                  </div>
-                  <span class="script-card__label">启动脚本</span>
-                  <span class="script-card__required">*</span>
-                </div>
-                <ScriptInlineEditorField
-                  v-model="project.startScript"
-                  v-model:language="startScriptLanguage"
-                  label="启动脚本"
-                  :language-options="scriptLanguageOptions"
-                  placeholder="./bin/start.sh 或完整命令"
-                />
-              </div>
-
-              <div class="script-card">
-                <div class="script-card__header">
-                  <div class="script-card__icon script-card__icon--red">
-                    <ElIcon :size="16"><VideoPause /></ElIcon>
-                  </div>
-                  <span class="script-card__label">停止脚本</span>
-                </div>
-                <ScriptInlineEditorField
-                  v-model="project.stopScript"
-                  v-model:language="stopScriptLanguage"
-                  label="停止脚本"
-                  :language-options="scriptLanguageOptions"
-                  placeholder="./bin/stop.sh 或 kill 命令"
-                />
-              </div>
-
-              <div class="script-card">
-                <div class="script-card__header">
-                  <div class="script-card__icon script-card__icon--amber">
-                    <ElIcon :size="16"><Refresh /></ElIcon>
-                  </div>
-                  <span class="script-card__label">重启脚本</span>
-                </div>
-                <ScriptInlineEditorField
-                  v-model="project.restartScript"
-                  v-model:language="restartScriptLanguage"
-                  label="重启脚本"
-                  :language-options="scriptLanguageOptions"
-                  placeholder="./bin/restart.sh"
-                />
               </div>
             </div>
           </section>
@@ -527,23 +484,9 @@
             </div>
 
             <div class="inspect-content">
-              <template v-if="isCustomProjectType">
-                <el-form-item label="状态检查脚本">
-                  <el-input
-                    v-model="project.statusScript"
-                    type="textarea"
-                    :rows="4"
-                    placeholder="pgrep -f gateway.jar 或 curl 健康检查"
-                  />
-                </el-form-item>
-                <div class="inspect-hint">
-                  <ElIcon :size="14"><WarningFilled /></ElIcon>
-                  状态脚本将用于服务健康检查，支持 Shell、curl 或自定义命令
-                </div>
-              </template>
-              <div v-else class="inspect-hint">
+              <div class="inspect-hint">
                 <ElIcon :size="14"><InfoFilled /></ElIcon>
-                非自定义项目由系统内置策略自动探测状态，不开放脚本编辑。
+                当前项目由系统内置策略自动探测状态，不开放脚本编辑。
               </div>
             </div>
           </section>
@@ -586,7 +529,7 @@ import {
   View,
   WarningFilled,
 } from "@element-plus/icons-vue";
-import { ElMessage, ElOption } from "element-plus";
+import { ElOption } from "element-plus";
 import { computed, ref, watch, TransitionGroup } from "vue";
 import ScSelect from "@repo/components/ScSelect/src/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
@@ -596,9 +539,12 @@ import {
   buildProjectTypeScriptTemplates,
   isSpringBootProjectType,
   isSpringBootResourceSplitType,
+  isStaticProjectType,
+  isTomcatProjectType,
   normalizeProjectType,
   projectTypeLabel,
   projectTypes,
+  resolveProjectDirectoryPlan,
 } from "./projectPanelShared";
 import ScriptInlineEditorField from "./ScriptInlineEditorField.vue";
 
@@ -620,8 +566,12 @@ const visible = computed({
 });
 
 const editorTab = ref("basic");
-const isCustomProjectType = computed(
-  () => normalizeProjectType(props.project.projectType) === "custom",
+const projectTypeDescription = computed(() =>
+  isTomcatProjectType(props.project.projectType)
+    ? "Tomcat 类型固定使用后台内置启停脚本，仅支持 war/ear 部署包。"
+    : isSpringBootResourceSplitType(props.project.projectType)
+      ? "资源分离项目支持目录规划与目录级上传，保存时继续使用内置策略。"
+      : "当前项目使用系统内置启停策略，不开放脚本编辑。",
 );
 const isSpringProject = computed(() =>
   isSpringBootProjectType(props.project.projectType),
@@ -634,17 +584,6 @@ const isJavaProject = computed(() => {
     normalized === "java"
   );
 });
-
-const scriptLanguageOptions = [
-  { label: "Shell / Bash", value: "shell" },
-  { label: "PowerShell", value: "powershell" },
-  { label: "Batch / CMD", value: "bat" },
-  { label: "Python", value: "python" },
-  { label: "Node.js", value: "javascript" },
-];
-const startScriptLanguage = ref("shell");
-const stopScriptLanguage = ref("shell");
-const restartScriptLanguage = ref("shell");
 
 const javaVersionHint = computed(() =>
   normalizeProjectType(props.project.projectType) === "tomcat"
@@ -837,23 +776,59 @@ const maybeGenerateScriptsFromType = () => {
   applyTemplatesToProject(false);
 };
 
-const regenerateScriptsByType = () => {
-  applyProjectTypeDefaults(props.project);
-  const updated = applyTemplatesToProject(true);
-  if (!updated) {
-    ElMessage.warning("当前项目类型不支持模板脚本自动生成，请改为手动填写");
+const syncDirectoryPlanningFromRoot = (
+  nextRoot?: string,
+  previousRoot?: string,
+) => {
+  if (!String(nextRoot || "").trim()) {
     return;
   }
-  ElMessage.success("已按项目类型生成脚本模板，可继续手动调整");
+  const nextPlan = resolveProjectDirectoryPlan(props.project, nextRoot);
+  const previousPlan = resolveProjectDirectoryPlan(props.project, previousRoot);
+  (
+    [
+      "configDirectory",
+      "libDirectory",
+      "logDirectory",
+      "startupLogFile",
+    ] as const
+  ).forEach((key) => {
+    const currentValue = String(props.project[key] || "").trim();
+    if (!currentValue || currentValue === previousPlan[key]) {
+      props.project[key] = nextPlan[key];
+    }
+  });
 };
 
 watch(
   () => props.project.projectType,
-  () => {
+  (nextType, previousType) => {
     applyProjectTypeDefaults(props.project);
+    if (nextType !== previousType) {
+      syncDirectoryPlanningFromRoot(
+        props.project.rootDirectory,
+        props.project.rootDirectory,
+      );
+    }
     applyTemplatesToProject(true);
   },
   { immediate: true },
+);
+
+watch(
+  () => props.project.rootDirectory,
+  (nextRoot, previousRoot) => {
+    syncDirectoryPlanningFromRoot(nextRoot, previousRoot);
+  },
+);
+
+watch(
+  () => props.project.tomcatHome,
+  () => {
+    if (isTomcatProjectType(props.project.projectType)) {
+      applyProjectTypeDefaults(props.project);
+    }
+  },
 );
 
 watch(
@@ -887,6 +862,9 @@ watch(
     syncingSpringArgs = true;
     props.project.springArgs = buildSpringArgsFromForm();
     syncingSpringArgs = false;
+    if (!String(props.project.healthCheckUrl || "").trim()) {
+      props.project.healthCheckUrl = `http://127.0.0.1:${springServerPort.value || "8080"}/actuator/health`;
+    }
   },
   { deep: true },
 );
@@ -1603,6 +1581,14 @@ const removeJvmRow = (index: number) => {
   grid-column: 1 / -1;
 }
 
+.project-type-desc {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #64748b;
+}
+
 /* Java Version Badge */
 .project-java-badge {
   display: inline-flex;
@@ -2042,3 +2028,6 @@ const removeJvmRow = (index: number) => {
   }
 }
 </style>
+
+
+

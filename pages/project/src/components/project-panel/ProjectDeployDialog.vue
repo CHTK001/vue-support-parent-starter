@@ -23,18 +23,38 @@
       <template v-else>
         <IconifyIconOnline icon="ep:upload" class="deploy-drop__icon" />
         <p>拖拽或点击上传部署包</p>
-        <p class="deploy-drop__hint">支持 .jar .war .zip .tar.gz</p>
+        <p class="deploy-drop__hint">{{ deployHint }}</p>
       </template>
     </div>
 
-    <input ref="fileInputRef" class="deploy-hidden-input" type="file" @change="onFileChange" />
+    <input
+      ref="fileInputRef"
+      class="deploy-hidden-input"
+      type="file"
+      :accept="fileAccept"
+      @change="onFileChange"
+    />
+
+    <div v-if="uploadTargets.length" class="deploy-targets">
+      <button
+        v-for="target in uploadTargets"
+        :key="target.key"
+        class="deploy-target-card"
+        :class="{ 'is-active': target.directory === targetDirectory }"
+        type="button"
+        @click="$emit('update:targetDirectory', target.directory)"
+      >
+        <strong>{{ target.label }}</strong>
+        <span>{{ target.directory }}</span>
+      </button>
+    </div>
 
     <div class="deploy-options">
-      <div class="deploy-option">
+      <div v-if="!isStaticProject" class="deploy-option">
         <span>部署前停止服务</span>
         <el-switch v-model="options.stopBeforeDeploy" />
       </div>
-      <div class="deploy-option">
+      <div v-if="!isStaticProject" class="deploy-option">
         <span>部署后自动启动</span>
         <el-switch v-model="options.startAfterDeploy" />
       </div>
@@ -85,13 +105,26 @@ import type {
   RemoteDeployOptions,
   RemoteProject,
 } from "../../api/manage/remote";
-import { formatSize } from "./projectPanelShared";
+import {
+  formatSize,
+  isSpringBootResourceSplitType,
+  isStaticProjectType,
+  isTomcatProjectType,
+} from "./projectPanelShared";
+
+type UploadTarget = {
+  key: string;
+  label: string;
+  directory: string;
+};
 
 const props = defineProps<{
   modelValue: boolean;
   project: RemoteProject | null;
   deployFile: File | null;
   dragOver: boolean;
+  targetDirectory?: string;
+  uploadTargets?: UploadTarget[];
   deploying: boolean;
   progress: number;
   status: "" | "success" | "exception";
@@ -102,12 +135,39 @@ const emit = defineEmits<{
   (e: "deploy"): void;
   (e: "file-change", file: File | null): void;
   (e: "update:dragOver", value: boolean): void;
+  (e: "update:targetDirectory", value: string): void;
   (e: "update:modelValue", value: boolean): void;
 }>();
 
 const visible = computed({
   get: () => props.modelValue,
   set: value => emit("update:modelValue", value),
+});
+const uploadTargets = computed(() => props.uploadTargets || []);
+const targetDirectory = computed(() => props.targetDirectory || "");
+const deployHint = computed(() =>
+  isTomcatProjectType(props.project?.projectType)
+    ? "仅支持 .war、.ear 部署包"
+    : isStaticProjectType(props.project?.projectType)
+      ? "仅支持 zip、tar.gz、tgz 压缩包并解压到目录"
+      : uploadTargets.value.length
+    ? "支持单文件或 zip、tar.gz 等压缩包，可切换目标目录上传"
+    : "仅支持 .jar 部署包",
+);
+const isStaticProject = computed(() =>
+  isStaticProjectType(props.project?.projectType),
+);
+const fileAccept = computed(() => {
+  if (isTomcatProjectType(props.project?.projectType)) {
+    return ".war,.ear";
+  }
+  if (isStaticProjectType(props.project?.projectType)) {
+    return ".zip,.tar.gz,.tgz";
+  }
+  if (isSpringBootResourceSplitType(props.project?.projectType)) {
+    return ".jar,.war,.zip,.tar.gz,.tgz";
+  }
+  return ".jar";
 });
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -175,6 +235,41 @@ const onDrop = (event: DragEvent) => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 12px;
   margin-top: 18px;
+}
+
+.deploy-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.deploy-target-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(248, 250, 252, 0.92);
+  text-align: left;
+  transition: all 0.2s ease;
+
+  strong {
+    color: #0f172a;
+    font-size: 13px;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  &.is-active {
+    border-color: rgba(59, 130, 246, 0.28);
+    background: rgba(239, 246, 255, 0.9);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
+  }
 }
 
 .deploy-option {

@@ -45,6 +45,7 @@
       :task-title="`AI 脚本生成 · ${title}`"
       :language="language"
       :context="aiContext"
+      :task-persist="taskPersist"
       :build-prompt="buildPrompt"
       :system-prompt="systemPrompt"
       @update:model-value="emit('update:modelValue', $event)"
@@ -57,6 +58,7 @@ import { computed } from "vue";
 import ScAiTextarea, {
   type ScAiTextareaPayload,
 } from "@repo/components/ScAiTextarea";
+import type { TaskCenterPersistContext } from "@layout/default";
 
 export interface ServerScriptShortcut {
   key: string;
@@ -80,6 +82,7 @@ const props = withDefaults(
     aiTooltip?: string;
     aiContext?: Record<string, unknown>;
     language?: string;
+    taskPersist?: TaskCenterPersistContext;
   }>(),
   {
     modelValue: "",
@@ -94,6 +97,7 @@ const props = withDefaults(
     aiTooltip: "",
     aiContext: () => ({}),
     language: "shell",
+    taskPersist: () => ({}),
   },
 );
 

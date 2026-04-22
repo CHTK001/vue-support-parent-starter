@@ -6,7 +6,7 @@ import {
   type SocketTemplate,
 } from "@repo/core";
 import { message } from "@repo/utils";
-import { inject } from "vue";
+import { getCurrentInstance, inject } from "vue";
 import {
   taskCenterProvider,
   tryUseTaskCenter,
@@ -16,6 +16,7 @@ import {
   tryUseMessageCenter,
   type MessageCenterProvider,
 } from "../components/lay-message/provider";
+import { ensureStandaloneOverlayHost } from "./ensureStandaloneOverlayHost";
 
 export type RuntimeProviderSource =
   | "lay-xx"
@@ -35,6 +36,7 @@ export interface RuntimeProviderResolverOptions {
   log?: boolean;
   socketName?: string;
   createSocketIfMissing?: boolean;
+  ensureStandaloneOverlayHost?: boolean;
 }
 
 export interface RuntimeProviders {
@@ -94,6 +96,7 @@ const createFallbackMessageProvider = (): MessageCenterProvider => ({
 export const resolveRuntimeProviders = (
   options: RuntimeProviderResolverOptions = {},
 ): RuntimeProviders => {
+  const currentInstance = getCurrentInstance();
   const socketName = options.socketName || "runtime-fallback";
 
   const injectedSocket = inject<SocketTemplate | null>(SocketTemplateKey, null);
@@ -128,6 +131,10 @@ export const resolveRuntimeProviders = (
   const injectedTask = tryUseTaskCenter();
   const taskProvider = injectedTask || taskCenterProvider;
   const taskSource: RuntimeProviderSource = injectedTask ? "lay-xx" : "fallback";
+
+  if (!injectedTask && options.ensureStandaloneOverlayHost !== false) {
+    ensureStandaloneOverlayHost(currentInstance?.appContext || null);
+  }
 
   const runtimeLog: RuntimeProviderLog = {
     module: options.module,

@@ -3,6 +3,7 @@
  * 供布局右上角组件读取，显示文件名、进度、速度
  */
 import { reactive } from "vue";
+import { taskCenterProvider } from "../../lay-task-center/provider";
 
 export interface WebLlmDownloadState {
   /** 是否正在下载 */
@@ -16,6 +17,8 @@ export interface WebLlmDownloadState {
   /** 原始进度文本 */
   text: string;
 }
+
+export const WEB_LLM_DOWNLOAD_TASK_ID = "webllm-model-download";
 
 export const webLlmDownloadState = reactive<WebLlmDownloadState>({
   downloading: false,
@@ -63,10 +66,43 @@ export function updateWebLlmProgress(progressObj: {
   webLlmDownloadState.progress = Math.round(rawProgress * 100);
   webLlmDownloadState.speed = speed;
   webLlmDownloadState.text = rawText;
+
+  taskCenterProvider.updateTask(WEB_LLM_DOWNLOAD_TASK_ID, {
+    title: "AI 模型下载",
+    description: fileName || "正在准备浏览器本地模型资源",
+    icon: "ri:download-cloud-line",
+    source: "system",
+    mode: "stream",
+    status: rawProgress >= 1 ? "success" : "running",
+    progress: Math.round(rawProgress * 100),
+    message: rawText || "正在下载模型资源",
+    stageLabel: speed ? `下载速度 ${speed}` : "下载中",
+    position: "top-right",
+    autoClose: rawProgress >= 1,
+    autoCloseDelay: 4000,
+    showPercent: true,
+  });
 }
 
 /** 重置下载状态（加载完成后调用） */
 export function resetWebLlmDownloadState() {
+  const activeTask = taskCenterProvider.getTask(WEB_LLM_DOWNLOAD_TASK_ID);
+  if (activeTask && (activeTask.status === "pending" || activeTask.status === "running")) {
+    taskCenterProvider.finishTask(WEB_LLM_DOWNLOAD_TASK_ID, {
+      title: "AI 模型下载",
+      description: activeTask.description,
+      icon: "ri:download-cloud-line",
+      source: "system",
+      mode: "stream",
+      message: "模型已就绪",
+      stageLabel: "下载完成",
+      progress: 100,
+      position: "top-right",
+      autoClose: true,
+      autoCloseDelay: 4000,
+      showPercent: true,
+    });
+  }
   webLlmDownloadState.downloading = false;
   webLlmDownloadState.fileName = "";
   webLlmDownloadState.progress = 0;

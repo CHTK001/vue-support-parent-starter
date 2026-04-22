@@ -1,5 +1,13 @@
 <template>
-  <div class="card-selector-container">
+  <div
+    class="card-selector-container"
+    :class="[
+      `layout-${layout}`,
+      `variant-${controlVariant}`,
+      `control-layout-${controlLayout}`,
+      `card-selector-container--variant-${controlVariant}`
+    ]"
+  >
     <!-- 头部插槽 -->
     <div v-if="$slots.header" class="sc-select__header">
       <slot name="header" :options="selectListOptions" :selected="selectValue" />
@@ -498,6 +506,22 @@ const props = defineProps({
     default: "default",
     validator: (value: string) => {
       return ["default", "primary", "success", "warning", "danger", "info"].includes(value);
+    }
+  },
+  // 原生 select 控件视觉变体（仅 layout=select 生效）
+  controlVariant: {
+    type: String,
+    default: "default",
+    validator: (value: string) => {
+      return ["default", "card"].includes(value);
+    }
+  },
+  // 控件布局语义（推荐）
+  controlLayout: {
+    type: String,
+    default: "default",
+    validator: (value: string) => {
+      return ["default", "card"].includes(value);
     }
   },
   // 下拉方向
@@ -1174,6 +1198,73 @@ const treeSelectValue = computed<TreeSelectValue>({
     .icon-selector-flex {
       justify-content: space-between;
     }
+  }
+}
+
+.card-selector-container--variant-card {
+  :deep(.selector-native-select .el-select__wrapper),
+  :deep(.selector-native-select .el-input__wrapper) {
+    min-height: 44px;
+    border: 2px solid #c7ceff;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fff, #f8faff);
+    box-shadow: none;
+    padding-inline: 12px;
+  }
+
+  :deep(.selector-native-select .el-select__wrapper:hover),
+  :deep(.selector-native-select .el-input__wrapper:hover) {
+    border-color: #98a7ff;
+  }
+
+  :deep(.selector-native-select .el-select__wrapper.is-focused),
+  :deep(.selector-native-select .el-input__wrapper.is-focus) {
+    border-color: #6f79ff;
+    box-shadow: 0 0 0 2px rgba(111, 121, 255, 0.12);
+  }
+}
+
+.card-selector-container.control-layout-card {
+  :deep(.selector-native-select .el-select__wrapper),
+  :deep(.selector-native-select .el-input__wrapper) {
+    min-height: 48px;
+    height: 48px;
+    border: 2px solid #c7ceff;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #fff, #f8faff);
+    box-shadow: none;
+    padding-inline: 12px;
+  }
+
+  :deep(.selector-native-select .el-select__selection) {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  :deep(.selector-native-select .el-select__wrapper:hover),
+  :deep(.selector-native-select .el-input__wrapper:hover) {
+    border-color: #98a7ff;
+  }
+
+  :deep(.selector-native-select .el-select__wrapper.is-focused),
+  :deep(.selector-native-select .el-input__wrapper.is-focus) {
+    border-color: #6f79ff;
+    box-shadow: 0 0 0 2px rgba(111, 121, 255, 0.12);
+  }
+}
+
+.card-selector-container.layout-select.variant-card {
+  :deep(.selector-native-select .el-select__wrapper),
+  :deep(.selector-native-select .el-input__wrapper) {
+    min-height: 44px;
+  }
+}
+
+.card-selector-container.layout-select.control-layout-card {
+  :deep(.selector-native-select .el-select__wrapper),
+  :deep(.selector-native-select .el-input__wrapper) {
+    min-height: 48px;
+    height: 48px;
   }
 }
 

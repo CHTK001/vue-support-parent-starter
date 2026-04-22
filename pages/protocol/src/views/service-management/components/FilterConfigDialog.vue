@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="visibleInner"
     :title="`配置 - ${filterSetting?.systemServerSettingName || '通用'}`"
@@ -56,7 +56,13 @@
         </div>
 
         <ScScrollbar v-loading="loading" class="config-scrollbar">
-          <div class="config-list">
+          <FilterConfigFtpAccessControl
+            v-if="isFtpAccessControl"
+            ref="ftpAccessControlRef"
+            :items="rawItems"
+          />
+
+          <div v-else class="config-list">
             <div v-for="(row, idx) in rows" :key="row._key" class="config-item">
               <div class="item-index">{{ idx + 1 }}</div>
               <div class="item-content">
@@ -105,7 +111,7 @@
         </ScScrollbar>
 
         <!-- 添加按钮 -->
-        <div v-if="rows.length > 0" class="add-row-btn">
+        <div v-if="!isFtpAccessControl && rows.length > 0" class="add-row-btn">
           <ScButton type="primary" link @click="addRow">
             <IconifyIconOnline icon="ri:add-circle-line" />
             新增一行
@@ -137,8 +143,10 @@ import {
   getSystemServerSettingItemBySettingId,
   type SystemServerSettingItem,
 } from "@/api/system-server-setting-item";
+import ScAlert from "@repo/components/ScAlert";
 import { message } from "@repo/utils";
 import { computed, ref, watch } from "vue";
+import FilterConfigFtpAccessControl from "./FilterConfigFtpAccessControl.vue";
 
 interface Props {
   visible?: boolean;
@@ -163,6 +171,17 @@ const settingId = computed(
 
 type KvRow = { _key: string; id?: number; name: string; value: string };
 const rows = ref<KvRow[]>([]);
+const rawItems = ref<SystemServerSettingItem[]>([]);
+
+const ftpAccessControlRef = ref<{
+  toItems: () => SystemServerSettingItem[];
+}>();
+
+const isFtpAccessControl = computed(() => {
+  const t = props.filterSetting?.systemServerSettingType || "";
+  // 兼容两种命名：后端 SPI key 为 ftpAccessControl；历史/部分页面使用 FTPACCESSCONTROL
+  return t.toUpperCase() === "FTPACCESSCONTROL" || t.toLowerCase() === "ftpaccesscontrol";
+});
 
 watch(
   () => props.visible,
@@ -182,6 +201,7 @@ async function loadData() {
   try {
     const res = await getSystemServerSettingItemBySettingId(settingId.value);
     if (res.success && Array.isArray(res.data)) {
+      rawItems.value = res.data;
       rows.value = res.data.map((it: SystemServerSettingItem) => ({
         _key: `${it.systemServerSettingItemId}-${it.systemServerSettingItemName}`,
         id: it.systemServerSettingItemId,
@@ -211,14 +231,26 @@ function removeRow(idx: number) {
 
 async function handleSave() {
   if (!settingId.value) return;
-  const items: SystemServerSettingItem[] = rows.value
-    .filter((r) => r.name.trim().length > 0)
-    .map((r) => ({
-      systemServerSettingItemId: r.id,
-      systemServerSettingItemSettingId: settingId.value!,
-      systemServerSettingItemName: r.name.trim(),
-      systemServerSettingItemValue: r.value ?? "",
-    }));
+  const items: SystemServerSettingItem[] = isFtpAccessControl.value
+    ? (ftpAccessControlRef.value?.toItems?.() || []).map((it) => {
+        const existing = rawItems.value.find(
+          (x) => x.systemServerSettingItemName === it.systemServerSettingItemName,
+        );
+        return {
+          systemServerSettingItemId: existing?.systemServerSettingItemId,
+          systemServerSettingItemSettingId: settingId.value!,
+          systemServerSettingItemName: it.systemServerSettingItemName,
+          systemServerSettingItemValue: it.systemServerSettingItemValue || "",
+        } as SystemServerSettingItem;
+      })
+    : rows.value
+        .filter((r) => r.name.trim().length > 0)
+        .map((r) => ({
+          systemServerSettingItemId: r.id,
+          systemServerSettingItemSettingId: settingId.value!,
+          systemServerSettingItemName: r.name.trim(),
+          systemServerSettingItemValue: r.value ?? "",
+        }));
 
   saving.value = true;
   try {

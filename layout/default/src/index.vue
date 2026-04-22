@@ -61,7 +61,16 @@ import LayContent from "./components/lay-content/index.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
+import LayOverlayStack from "./components/lay-overlay-stack/index.vue";
+import { provideOverlayStack } from "./components/lay-overlay-stack/provider";
 import { provideTaskCenter } from "./components/lay-task-center/provider";
+import { provideAiSupport } from "./components/lay-ai/provider";
+import {
+  configureTaskCenter,
+  registerTaskCenterTriggerHandler,
+  unregisterTaskCenterTriggerHandler,
+} from "./components/lay-task-center/service";
+import { persistTaskCenterTrigger } from "./components/lay-task-center/persistence";
 import { provideMessageCenter } from "./components/lay-message/provider";
 
 // 导入设计 token（全局 CSS 变量 --dt-xxxx，必须在 script 中引入才能全局生效）
@@ -307,8 +316,12 @@ provide(
     model: $storage?.configure?.aiChatModel,
   })),
 );
+provideOverlayStack();
 provideTaskCenter();
+provideAiSupport();
 provideMessageCenter();
+configureTaskCenter({ maxVisible: 5, maxHistory: 80 });
+registerTaskCenterTriggerHandler(persistTaskCenterTrigger);
 
 const { initStorage } = useLayout();
 const { applyOverallStyle } = useTheme();
@@ -570,6 +583,7 @@ onUnmounted(() => {
   layoutMounted.value = false;
   document.removeEventListener("visibilitychange", handleVisibilityChange);
   emitter.off("aiChatThemeChange", handleAiChatThemeChange);
+  unregisterTaskCenterTriggerHandler(persistTaskCenterTrigger);
   stopSession();
 });
 
@@ -813,6 +827,8 @@ const LayHeader = defineComponent({
       <!-- 热点工具热力图覆盖层（仅开发/测试环境生效，由配置控制） -->
       <HeatmapOverlay v-if="deferredOverlayReady && showHeatmapOverlay" />
     </div>
+
+    <LayOverlayStack v-if="deferredOverlayReady" />
 
     <!-- 节日特效层（根据主题动态渲染） -->
     <FestivalLayer

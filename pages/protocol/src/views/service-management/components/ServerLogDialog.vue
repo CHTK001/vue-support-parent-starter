@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <sc-dialog
     v-model="dialogVisible"
     :title="dialogTitle"
@@ -64,9 +64,20 @@
             inactive-text="手动"
           />
         </div>
+        <div class="auto-scroll-toggle">
+          <ScSwitch
+            v-model="autoRefresh"
+            inline-prompt
+            active-text="定时刷新"
+            inactive-text="关闭"
+          />
+        </div>
       </div>
 
       <div class="toolbar-right">
+        <ScButton class="action-btn" circle @click="loadHistoryLogs">
+          <el-icon><Refresh /></el-icon>
+        </ScButton>
         <ScButton class="action-btn" circle @click="clearLogs">
           <el-icon><Delete /></el-icon>
         </ScButton>
@@ -152,6 +163,7 @@
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import {
   Search,
+  Refresh,
   Delete,
   Download,
   Document,
@@ -201,10 +213,12 @@ const logs = ref<LogEntry[]>([]);
 const filterLevel = ref("");
 const searchKeyword = ref("");
 const autoScroll = ref(true);
+const autoRefresh = ref(true);
 const logContainer = ref<HTMLElement | null>(null);
 
 // SSE 连接
 let eventSource: EventSource | null = null;
+let refreshTimer: number | null = null;
 
 // 日志统计
 const logStats = computed(() => {
@@ -284,6 +298,23 @@ const loadHistoryLogs = async () => {
   }
 };
 
+const stopRefreshTimer = () => {
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+};
+
+const startRefreshTimer = () => {
+  stopRefreshTimer();
+  if (!autoRefresh.value || !dialogVisible.value) {
+    return;
+  }
+  refreshTimer = window.setInterval(() => {
+    loadHistoryLogs();
+  }, 5000);
+};
+
 // 导出日志
 const downloadLogs = () => {
   const content = logs.value
@@ -338,10 +369,32 @@ const handleSearchChange = () => {
 
 // 关闭对话框
 const handleClose = () => {
+  stopRefreshTimer();
   logs.value = [];
   filterLevel.value = "";
   searchKeyword.value = "";
 };
+
+watch(
+  () => dialogVisible.value,
+  async (value) => {
+    if (!value) {
+      stopRefreshTimer();
+      return;
+    }
+    await loadHistoryLogs();
+    startRefreshTimer();
+  },
+  { immediate: true },
+);
+
+watch(autoRefresh, () => {
+  startRefreshTimer();
+});
+
+onUnmounted(() => {
+  stopRefreshTimer();
+});
 </script>
 
 <style lang="scss" scoped>

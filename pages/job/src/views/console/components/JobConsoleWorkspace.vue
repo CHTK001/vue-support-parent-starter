@@ -36,7 +36,7 @@
       </div>
 
       <div v-if="selectedTask" class="job-focus__meta">
-        <article v-for="item in focusMeta" :key="item.label" class="job-focus__meta-card">
+        <article v-for="(item, idx) in safeFocusMeta" :key="`${item.label}-${idx}`" class="job-focus__meta-card">
           <small>{{ item.label }}</small>
           <strong>{{ item.value }}</strong>
         </article>
@@ -65,7 +65,7 @@
       </div>
     </section>
 
-    <section v-if="activeRailTab === 'overview'" class="job-panel-grid">
+    <section v-if="currentRail === 'overview'" class="job-panel-grid">
       <article class="spring-card job-panel">
         <div class="spring-panel-header">
           <div>
@@ -74,7 +74,7 @@
           </div>
         </div>
         <div v-if="selectedTask" class="job-overview-list">
-          <div v-for="item in overviewItems" :key="item.label" class="job-overview-list__item">
+          <div v-for="(item, idx) in safeOverviewItems" :key="`${item.label}-${idx}`" class="job-overview-list__item">
             <small>{{ item.label }}</small>
             <strong>{{ item.value }}</strong>
           </div>
@@ -96,10 +96,10 @@
         </div>
         <div class="job-log-feed">
           <div v-if="loadingLogs" class="spring-empty-state">正在加载日志...</div>
-          <div v-else-if="!previewLogs.length" class="spring-empty-state">
+          <div v-else-if="!safePreviewLogs.length" class="spring-empty-state">
             {{ selectedTask ? "当前任务暂无日志。" : "请选择任务后查看日志。" }}
           </div>
-          <article v-for="log in previewLogs" v-else :key="log.jobLogNo || String(log.jobLogId)" class="job-log-card">
+          <article v-for="log in safePreviewLogs" v-else :key="log.jobLogNo || String(log.jobLogId)" class="job-log-card">
             <div class="job-log-card__head">
               <div class="spring-table-title">
                 <span class="spring-title-strong">{{ log.jobLogNo || `LOG-${log.jobLogId || "-"}` }}</span>
@@ -125,7 +125,7 @@
           </div>
         </div>
         <div class="job-overview-list">
-          <div v-for="item in settingSummaryItems" :key="item.label" class="job-overview-list__item">
+          <div v-for="(item, idx) in safeSettingSummaryItems" :key="`${item.label}-${idx}`" class="job-overview-list__item">
             <small>{{ item.label }}</small>
             <strong>{{ item.value }}</strong>
           </div>
@@ -133,7 +133,7 @@
       </article>
     </section>
 
-    <section v-else-if="activeRailTab === 'detail'" class="spring-card job-panel">
+    <section v-else-if="currentRail === 'detail'" class="spring-card job-panel">
       <div class="spring-panel-header">
         <div>
           <h2>任务详情</h2>
@@ -141,7 +141,7 @@
         </div>
       </div>
       <div v-if="selectedTask" class="job-detail-grid">
-        <div v-for="item in detailItems" :key="item.label" class="job-detail-item">
+        <div v-for="(item, idx) in safeDetailItems" :key="`${item.label}-${idx}`" class="job-detail-item">
           <small>{{ item.label }}</small>
           <strong>{{ item.value }}</strong>
         </div>
@@ -149,7 +149,7 @@
       <div v-else class="spring-empty-state">请选择左侧任务查看详情。</div>
     </section>
 
-    <section v-else-if="activeRailTab === 'logs'" class="spring-card job-panel">
+    <section v-else-if="currentRail === 'logs'" class="spring-card job-panel">
       <div class="spring-panel-header">
         <div>
           <h2>最近日志</h2>
@@ -161,10 +161,10 @@
       </div>
       <div class="job-log-feed">
         <div v-if="loadingLogs" class="spring-empty-state">正在加载日志...</div>
-        <div v-else-if="!logs.length" class="spring-empty-state">
+        <div v-else-if="!safeLogs.length" class="spring-empty-state">
           {{ selectedTask ? "当前任务暂无日志。" : "请选择任务后查看日志。" }}
         </div>
-        <article v-for="log in logs" v-else :key="log.jobLogNo || String(log.jobLogId)" class="job-log-card">
+        <article v-for="log in safeLogs" v-else :key="log.jobLogNo || String(log.jobLogId)" class="job-log-card">
           <div class="job-log-card__head">
             <div class="spring-table-title">
               <span class="spring-title-strong">{{ log.jobLogNo || `LOG-${log.jobLogId || "-"}` }}</span>
@@ -216,28 +216,70 @@
 </template>
 
 <script setup lang="ts">
+import { computed, toValue } from "vue";
 import type { ConsoleMetricItem, LogRecord, RailTabName, Task } from "../types";
 
-defineProps<{
-  activeRailTab: RailTabName;
-  detailItems: ConsoleMetricItem[];
-  failureCount: number;
-  filteredTaskCount: number;
-  focusMeta: ConsoleMetricItem[];
-  loadingLogs: boolean;
-  logs: LogRecord[];
-  overviewItems: ConsoleMetricItem[];
-  previewLogs: LogRecord[];
-  remoteCount: number;
-  runningCount: number;
-  selectedStatusClass: string;
-  selectedStatusText: string;
-  selectedTask: Task | null;
-  selectedTaskDescription: string;
-  selectedTaskTitle: string;
-  settingSummaryItems: ConsoleMetricItem[];
-  settings: { apiRoot: string; authHeaderName: string; authHeaderValue: string };
-}>();
+const props = withDefaults(
+  defineProps<{
+    activeRailTab: RailTabName;
+    detailItems: ConsoleMetricItem[];
+    failureCount: number;
+    filteredTaskCount: number;
+    focusMeta: ConsoleMetricItem[];
+    loadingLogs: boolean;
+    logs: LogRecord[];
+    overviewItems: ConsoleMetricItem[];
+    previewLogs: LogRecord[];
+    remoteCount: number;
+    runningCount: number;
+    selectedStatusClass: string;
+    selectedStatusText: string;
+    selectedTask: Task | null;
+    selectedTaskDescription: string;
+    selectedTaskTitle: string;
+    settingSummaryItems: ConsoleMetricItem[];
+    settings: { apiRoot: string; authHeaderName: string; authHeaderValue: string };
+  }>(),
+  {
+    focusMeta: () => [],
+    detailItems: () => [],
+    overviewItems: () => [],
+    settingSummaryItems: () => [],
+    logs: () => [],
+    previewLogs: () => [],
+  },
+);
+
+/** 递归拆包 Ref，直到得到数组（兼容嵌套 Ref / 误传结构） */
+function coerceArray<T>(items: unknown): T[] {
+  let cur: unknown = items;
+  for (let depth = 0; depth < 10; depth++) {
+    if (cur == null) return [];
+    if (Array.isArray(cur)) return cur as T[];
+    const next = toValue(cur as object);
+    if (next === cur) return [];
+    cur = next;
+  }
+  return [];
+}
+
+function filterMetricItems(items: unknown): ConsoleMetricItem[] {
+  return coerceArray<ConsoleMetricItem>(items).filter(
+    (item): item is ConsoleMetricItem =>
+      item != null && typeof item.label === "string",
+  );
+}
+
+/** 兼容父组件误传 Ref（未用 reactive 包裹 composable 返回对象时） */
+const currentRail = computed(() => toValue(props.activeRailTab) as RailTabName);
+
+const safeFocusMeta = computed(() => filterMetricItems(props.focusMeta));
+const safeOverviewItems = computed(() => filterMetricItems(props.overviewItems));
+const safeDetailItems = computed(() => filterMetricItems(props.detailItems));
+const safeSettingSummaryItems = computed(() => filterMetricItems(props.settingSummaryItems));
+
+const safePreviewLogs = computed(() => coerceArray<LogRecord>(props.previewLogs));
+const safeLogs = computed(() => coerceArray<LogRecord>(props.logs));
 
 defineEmits<{
   (event: "edit-task"): void;

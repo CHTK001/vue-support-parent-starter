@@ -48,6 +48,9 @@ export const isSpringBootProjectType = (type?: string) => {
   );
 };
 
+export const isTomcatProjectType = (type?: string) =>
+  normalizeProjectType(type) === "tomcat";
+
 export const isSpringBootResourceSplitType = (type?: string) =>
   normalizeProjectType(type) === "springboot_resource_isolation";
 
@@ -55,14 +58,10 @@ export const isStaticProjectType = (type?: string) =>
   normalizeProjectType(type) === "static";
 
 export const projectTypes: { label: string; value: ProjectType }[] = [
-  { label: "Spring Boot", value: "springboot" },
-  { label: "资源分离 Spring Boot", value: "springboot_resource_isolation" },
+  { label: "Spring 单体", value: "springboot" },
+  { label: "Spring 资源分离", value: "springboot_resource_isolation" },
   { label: "Tomcat", value: "tomcat" },
-  { label: "Node.js", value: "nodejs" },
-  { label: "Python", value: "python" },
   { label: "静态站点", value: "static" },
-  { label: "Docker", value: "docker" },
-  { label: "自定义", value: "custom" },
 ];
 
 export const projectTypeLabel = (type?: string) =>
@@ -135,6 +134,12 @@ export const resolveLifecycleModeLabel = (project: RemoteProject) =>
     : "内置策略";
 
 export const resolveLifecycleHint = (project: RemoteProject) => {
+  if (isStaticProjectType(project.projectType)) {
+    return "静态站点仅支持将压缩包解压到目标目录，不提供启停与运行日志";
+  }
+  if (isTomcatProjectType(project.projectType)) {
+    return "Tomcat 项目使用后台固定 startup/shutdown 脚本，并按整个 Tomcat 目录备份";
+  }
   if (!isCustomProjectType(project)) {
     return "按项目类型执行内置启动/停止/重启策略";
   }
@@ -151,6 +156,12 @@ export const resolveLifecycleHint = (project: RemoteProject) => {
 };
 
 export const resolveStartCommandPreview = (project: RemoteProject) => {
+  if (isStaticProjectType(project.projectType)) {
+    return "静态站点无常驻启动命令";
+  }
+  if (isTomcatProjectType(project.projectType)) {
+    return "系统按 Tomcat 目录调用 startup.sh / shutdown.sh";
+  }
   if (!isCustomProjectType(project)) {
     return "系统按项目类型自动生成启动命令";
   }
@@ -167,6 +178,7 @@ export const buildDefaultProject = (): RemoteProject => ({
   rootDirectory: "",
   libDirectory: "",
   configDirectory: "",
+  tomcatHome: "",
   logDirectory: "",
   startupLogFile: "",
   startScript: "",
@@ -176,6 +188,7 @@ export const buildDefaultProject = (): RemoteProject => ({
   mainArtifact: "",
   jvmArgs: "",
   springArgs: "",
+  healthCheckUrl: "",
   description: "",
 });
 
@@ -204,6 +217,57 @@ const ensureTrailingSlash = (value: string) => {
 
 const buildPidFile = (rootDirectory: string) => joinPath(rootDirectory, ".app.pid");
 
+export type ProjectDirectoryPlan = {
+  configDirectory: string;
+  libDirectory: string;
+  logDirectory: string;
+  startupLogFile: string;
+};
+
+const resolveSpringPort = (springArgs?: string) => {
+  const matched = String(springArgs || "").match(/--server\.port(?:=|\s+)(\d+)/);
+  return matched?.[1] || "8080";
+};
+
+export const resolveDefaultHealthCheckUrl = (project: RemoteProject) => {
+  const normalizedType = normalizeProjectType(project.projectType);
+  if (!isSpringBootProjectType(normalizedType)) {
+    return "";
+  }
+  const port = resolveSpringPort(project.springArgs);
+  return `http://127.0.0.1:${port}/actuator/health`;
+};
+
+export const resolveProjectDirectoryPlan = (
+  project: Pick<
+    RemoteProject,
+    "projectType" | "rootDirectory" | "logDirectory" | "startupLogFile"
+  >,
+  rootDirectoryOverride?: string,
+): ProjectDirectoryPlan => {
+  const rootDirectory =
+    normalizePath(rootDirectoryOverride) || normalizePath(project.rootDirectory);
+  if (!rootDirectory) {
+    return {
+      configDirectory: "",
+      libDirectory: "",
+      logDirectory: "",
+      startupLogFile: "",
+    };
+  }
+  const logDirectory =
+    normalizePath(project.logDirectory) || joinPath(rootDirectory, "logs");
+  return {
+    configDirectory: joinPath(rootDirectory, "config"),
+    libDirectory: isSpringBootResourceSplitType(project.projectType)
+      ? joinPath(rootDirectory, "lib")
+      : "",
+    logDirectory,
+    startupLogFile:
+      normalizePath(project.startupLogFile) || joinPath(logDirectory, "console.log"),
+  };
+};
+
 const buildSpringArgsSegment = (
   project: RemoteProject,
   defaultConfigDirectory: string,
@@ -220,18 +284,57 @@ const buildSpringArgsSegment = (
 export const applyProjectTypeDefaults = (project: RemoteProject) => {
   const normalizedType = normalizeProjectType(project.projectType);
   const rootDirectory = normalizePath(project.rootDirectory);
+  if (isStaticProjectType(normalizedType)) {
+    project.libDirectory = "";
+    project.configDirectory = "";
+    project.mainArtifact = "";
+    project.jvmArgs = "";
+    project.springArgs = "";
+    project.healthCheckUrl = "";
+    project.tomcatHome = "";
+    project.startupLogFile = "";
+    project.logDirectory = "";
+  }
   if (!rootDirectory) {
+    if (isTomcatProjectType(normalizedType)) {
+      const tomcatHome = normalizePath(project.tomcatHome);
+      if (tomcatHome) {
+        project.rootDirectory = joinPath(tomcatHome, "webapps");
+        project.logDirectory = joinPath(tomcatHome, "logs");
+      }
+    }
     return;
   }
+  const directoryPlan = resolveProjectDirectoryPlan(project, rootDirectory);
   if (isSpringBootProjectType(normalizedType)) {
     if (!normalizePath(project.configDirectory)) {
-      project.configDirectory = joinPath(rootDirectory, "config");
+      project.configDirectory = directoryPlan.configDirectory;
+    }
+    if (!normalizePath(project.healthCheckUrl)) {
+      project.healthCheckUrl = resolveDefaultHealthCheckUrl(project);
     }
     if (isSpringBootResourceSplitType(normalizedType)) {
       if (!normalizePath(project.libDirectory)) {
-        project.libDirectory = joinPath(rootDirectory, "lib");
+        project.libDirectory = directoryPlan.libDirectory;
       }
     }
+  }
+  if (isTomcatProjectType(normalizedType)) {
+    const tomcatHome = normalizePath(project.tomcatHome);
+    if (tomcatHome) {
+      project.rootDirectory = joinPath(tomcatHome, "webapps");
+      project.logDirectory = joinPath(tomcatHome, "logs");
+      project.startupLogFile = joinPath(tomcatHome, "logs/catalina.out");
+      project.configDirectory = "";
+      project.libDirectory = "";
+      project.healthCheckUrl = "";
+    }
+  }
+  if (!normalizePath(project.logDirectory)) {
+    project.logDirectory = directoryPlan.logDirectory;
+  }
+  if (!normalizePath(project.startupLogFile)) {
+    project.startupLogFile = directoryPlan.startupLogFile;
   }
 };
 
@@ -300,6 +403,37 @@ export const buildProjectTypeScriptTemplates = (project: RemoteProject) => {
     };
   }
 
+  if (normalizedType === "tomcat") {
+    const tomcatHome = normalizePath(project.tomcatHome) || "/opt/tomcat";
+    const deployDirectory = normalizePath(project.rootDirectory) || joinPath(tomcatHome, "webapps");
+    const artifact = normalizePath(project.mainArtifact) || "ROOT.war";
+    const startupLog = normalizePath(project.startupLogFile) || joinPath(tomcatHome, "logs/catalina.out");
+    const statusScript = [
+      `for pid in $(pgrep -f -- "${tomcatHome}" 2>/dev/null); do`,
+      `  echo running`,
+      `  exit 0`,
+      `done`,
+      `echo stopped`,
+    ].join("\n");
+    return {
+      startScript: [
+        `cd "${tomcatHome}/bin"`,
+        `./startup.sh`,
+      ].join("\n"),
+      stopScript: [
+        `cd "${tomcatHome}/bin"`,
+        `./shutdown.sh`,
+      ].join("\n"),
+      restartScript: [
+        `cd "${tomcatHome}/bin"`,
+        `./shutdown.sh || true`,
+        `sleep 2`,
+        `./startup.sh`,
+      ].join("\n"),
+      statusScript,
+    };
+  }
+
   return null;
 };
 
@@ -307,6 +441,14 @@ export const validateProjectTypeRequiredFields = (project: RemoteProject) => {
   const normalizedType = normalizeProjectType(project.projectType);
   const misses: string[] = [];
   if (!isSpringBootProjectType(normalizedType)) {
+    if (isTomcatProjectType(normalizedType)) {
+      if (!normalizePath(project.tomcatHome)) {
+        misses.push("Tomcat 位置");
+      }
+      if (!normalizePath(project.rootDirectory)) {
+        misses.push("部署目录");
+      }
+    }
     return misses;
   }
   if (isSpringBootResourceSplitType(normalizedType)) {

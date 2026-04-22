@@ -73,11 +73,7 @@ export type ProjectType =
   | "springboot_resource_isolation"
   | "springboot_resource_separation"
   | "tomcat"
-  | "nodejs"
-  | "python"
   | "static"
-  | "docker"
-  | "custom";
 
 export interface RemoteProject {
   projectId?: string;
@@ -89,6 +85,8 @@ export interface RemoteProject {
   libDirectory?: string;
   /** 配置目录（如 conf/） */
   configDirectory?: string;
+  /** Tomcat 安装目录 */
+  tomcatHome?: string;
   /** 日志目录 */
   logDirectory?: string;
   /** 启动日志文件（优先用于“查看日志”） */
@@ -109,6 +107,8 @@ export interface RemoteProject {
   jvmArgs?: string;
   /** Spring 启动参数（如 --spring.profiles.active=prod --server.port=8080） */
   springArgs?: string;
+  /** 健康检查地址（Spring 单体/资源分离默认 actuator health） */
+  healthCheckUrl?: string;
   /** 运行状态 */
   runtimeStatus?: "running" | "stopped" | "unknown" | "error";
   /** 进程 PID */
@@ -143,6 +143,8 @@ export interface RemoteProjectOperationResult {
 export interface RemoteDeployOptions {
   /** 上传规则 */
   uploadOptions?: RemoteUploadOptions;
+  /** 定向上传目录（前端本地态，资源分离卡片选择时使用） */
+  targetDirectory?: string;
   /** 部署前停止服务 */
   stopBeforeDeploy?: boolean;
   /** 部署后启动服务 */

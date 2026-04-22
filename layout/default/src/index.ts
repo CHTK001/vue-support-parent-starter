@@ -38,19 +38,38 @@ export {
   appendTaskCenterMessage,
   clearTaskCenter,
   clearTaskCenterHistory,
+  clearTaskCenterTriggerHandlers,
   closeTaskCenterPanel,
   configureTaskCenter,
   dismissTaskCenterTask,
   failTaskCenterTask,
   finishTaskCenterTask,
   openTaskCenterPanel,
+  registerTaskCenterTriggerHandler,
   removeTaskCenterTask,
   selectTaskCenterTask,
   toggleTaskCenterPanel,
+  unregisterTaskCenterTriggerHandler,
   updateTaskCenterTask,
   upsertTaskCenterTask,
   useTaskCenterState,
 } from "./components/lay-task-center/service";
+export {
+  appendTaskCenterPersistRecord,
+  clearTaskCenterPersistRecords,
+  persistTaskCenterTrigger,
+  useTaskCenterPersistState,
+} from "./components/lay-task-center/persistence";
+export {
+  clearOverlayStack,
+  configureOverlayStack,
+  getOverlayStackItem,
+  removeOverlayStackItem,
+  removeOverlayStackItemsBySource,
+  resetOverlayStack,
+  upsertOverlayStackItem,
+  useOverlayStackState,
+} from "./components/lay-overlay-stack/service";
 export {
   provideTaskCenter,
   taskCenterProvider,
@@ -58,6 +77,18 @@ export {
   tryUseTaskCenter,
   useTaskCenter,
 } from "./components/lay-task-center/provider";
+export {
+  overlayStackProvider,
+  OverlayStackProviderKey,
+  provideOverlayStack,
+  tryUseOverlayStack,
+  useOverlayStack,
+} from "./components/lay-overlay-stack/provider";
+export {
+  AiSupportProviderKey,
+  provideAiSupport,
+  useAiSupport,
+} from "./components/lay-ai/provider";
 export {
   provideMessageCenter,
   messageCenterProvider,
@@ -79,10 +110,27 @@ export type {
 } from "./types/theme";
 export type { LayoutEmitterEvents } from "./types/events";
 export type {
+  AiSupportProvider,
+  AiSupportResult,
+  AiSupportSource,
+} from "./components/lay-ai/provider";
+export type {
   MessageCenterInput,
   MessageCenterLevel,
   MessageCenterProvider,
 } from "./components/lay-message/provider";
+export type {
+  OverlayStackClosePayload,
+  OverlayStackCloseReason,
+  OverlayStackConfig,
+  OverlayStackItem,
+  OverlayStackMessage,
+  OverlayStackMessageLevel,
+  OverlayStackPosition,
+  OverlayStackState,
+  OverlayStackTone,
+  ResolvedOverlayStackItem,
+} from "./components/lay-overlay-stack/types";
 export type {
   TaskCenterProvider,
   TaskCenterReference,
@@ -92,14 +140,19 @@ export type {
   TaskCenterMessage,
   TaskCenterMessageInput,
   TaskCenterMode,
+  TaskCenterPersistContext,
   TaskCenterPosition,
   TaskCenterSource,
   TaskCenterState,
   TaskCenterStatus,
+  TaskCenterTriggerHandler,
+  TaskCenterTriggerPayload,
+  TaskCenterTriggerType,
   TaskCenterTask,
   TaskCenterTaskInput,
 } from "./components/lay-task-center/types";
 
 // Components
+export { default as LayOverlayStack } from "./components/lay-overlay-stack/index.vue";
 export { Account, LaySidebarTopCollapse };
 export default LayoutDefault;

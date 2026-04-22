@@ -8,7 +8,7 @@
     :closable="closable"
     :addable="addable"
     :editable="editable"
-    :tab-position="tabPosition"
+    :tab-position="tabPositionResolved"
     :stretch="stretch"
     :before-leave="beforeLeave"
     :lazy="lazy"
@@ -25,33 +25,17 @@
     @tab-remove="handleTabRemove"
     @tab-add="handleTabAdd"
   >
-    <template v-if="isRailLayout" #default>
-      <ElTabPane
-        v-for="item in railItems"
-        :key="String(item.name)"
-        :name="item.name"
-      >
-        <template #label>
-          <span
-            class="sc-tabs__rail-label"
-            :title="item.title || item.label || String(item.name)"
-          >
-            <ElIcon v-if="item.icon">
-              <component :is="item.icon" />
-            </ElIcon>
-            <span v-else>{{ item.label }}</span>
-            <span
-              v-if="item.closable"
-              class="sc-tabs__rail-close"
-              @click.stop="handleTabRemove(item.name)"
-            >
-              ×
-            </span>
-          </span>
-        </template>
-      </ElTabPane>
+    <template v-if="isRailLayout && $slots.default" #default>
+      <slot />
     </template>
-    <template v-else-if="$slots.default" #default>
+    <template v-else-if="isRailLayout && railItems.length" #default>
+      <ScTabsRailSlot
+        :rail-items="railItems"
+        :rail-closable="railClosable"
+        @tab-remove="handleTabRemove"
+      />
+    </template>
+    <template v-else-if="!isRailLayout && $slots.default" #default>
       <slot />
     </template>
   </component>
@@ -63,18 +47,14 @@
  * 封装 Element Plus Tabs
  * 支持根据 data-skin 切换主题化组件样式
  */
-import { computed } from "vue";
+import { computed, useSlots } from "vue";
 import type { PropType } from "vue";
-import { ElIcon, ElTabPane, ElTabs } from "element-plus";
+import { ElTabs } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
+import ScTabsRailSlot from "../components/ScTabsRailSlot.vue";
+import type { ScTabsRailItem } from "../types";
 
-export interface ScTabsRailItem {
-  closable?: boolean;
-  icon?: any;
-  label?: string;
-  name: string | number;
-  title?: string;
-}
+export type { ScTabsRailItem };
 
 const props = defineProps({
   modelValue: {
@@ -97,9 +77,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** 未传时：default 布局为 top；rail 布局默认为 right */
   tabPosition: {
-    type: String as PropType<"top" | "right" | "bottom" | "left">,
-    default: "top",
+    type: String as PropType<"top" | "right" | "bottom" | "left" | undefined>,
+    default: undefined,
   },
   stretch: {
     type: Boolean,
@@ -162,6 +143,15 @@ const props = defineProps({
     type: String as PropType<"always" | "hover">,
     default: "hover",
   },
+  railClosable: {
+    type: Boolean,
+    default: false,
+  },
+  /** rail 下图标与格尺寸：compact | normal | large */
+  railSize: {
+    type: String as PropType<"compact" | "normal" | "large">,
+    default: "normal",
+  },
 });
 
 const emit = defineEmits([
@@ -183,14 +173,31 @@ const currentValue = computed({
 });
 
 const { currentComponent } = useThemeComponent("ElTabs");
+const slots = useSlots();
 
 const isRailLayout = computed(() => props.layout === "rail");
+const railClosable = computed(() => props.railClosable);
+
+const tabPositionResolved = computed((): "top" | "right" | "bottom" | "left" => {
+  const p = props.tabPosition;
+  if (isRailLayout.value) return p ?? "right";
+  return p ?? "top";
+});
+
+/** 仅 railItems、无默认插槽时隐藏内容区（如 ScTabsRailLayout 仅作侧栏导航） */
+const isRailItemsOnly = computed(
+  () => isRailLayout.value && !slots.default && props.railItems.length > 0,
+);
 
 const tabsClass = computed(() => {
   if (!isRailLayout.value) return [];
   return [
     "sc-tabs--layout-rail",
-    { "is-round": props.railRound },
+    `sc-tabs--rail-size-${props.railSize}`,
+    {
+      "is-round": props.railRound,
+      "sc-tabs--rail-items-only": isRailItemsOnly.value,
+    },
     `close-mode-${props.railCloseButtonMode}`,
   ];
 });
@@ -217,97 +224,6 @@ const handleTabAdd = () => {
 </script>
 
 <style scoped lang="scss">
-.sc-tabs--layout-rail {
-  height: 100%;
-}
-
-.sc-tabs--layout-rail :deep(.el-tabs) {
-  height: 100%;
-}
-
-.sc-tabs--layout-rail :deep(.el-tabs__header) {
-  margin: 0;
-  height: 100%;
-}
-
-.sc-tabs--layout-rail :deep(.el-tabs__nav-wrap),
-.sc-tabs--layout-rail :deep(.el-tabs__nav-scroll),
-.sc-tabs--layout-rail :deep(.el-tabs__nav),
-.sc-tabs--layout-rail :deep(.el-tabs__content) {
-  height: 100%;
-}
-
-.sc-tabs--layout-rail :deep(.el-tabs__content),
-.sc-tabs--layout-rail :deep(.el-tabs__nav-wrap::after),
-.sc-tabs--layout-rail :deep(.el-tabs__active-bar) {
-  display: none;
-}
-
-.sc-tabs--layout-rail :deep(.el-tabs__item) {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border-radius: 12px;
-  color: #5f7686;
-}
-
-.sc-tabs--layout-rail.is-round :deep(.el-tabs__item) {
-  border-radius: 999px;
-}
-
-.sc-tabs--layout-rail :deep(.el-tabs__item.is-active) {
-  background: rgba(37, 99, 235, 0.14);
-  color: #1252aa;
-}
-
-.sc-tabs__rail-label {
-  position: relative;
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-}
-
-.sc-tabs__rail-close {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  display: inline-flex;
-  width: 16px;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #fef2f2;
-  color: #b42318;
-  font-size: 11px;
-  line-height: 1;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-}
-
-.sc-tabs--layout-rail.close-mode-hover .sc-tabs__rail-close {
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(0.92);
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.sc-tabs--layout-rail.close-mode-hover
-  :deep(.el-tabs__item:hover)
-  .sc-tabs__rail-close,
-.sc-tabs--layout-rail.close-mode-hover
-  :deep(.el-tabs__item.is-active)
-  .sc-tabs__rail-close {
-  opacity: 1;
-  pointer-events: auto;
-  transform: scale(1);
-}
-
-.sc-tabs__rail-close:hover {
-  background: #fee2e2;
-}
+@import "./styles/sc-tabs-rail.scss";
+@import "./styles/sc-tabs-default.scss";
 </style>

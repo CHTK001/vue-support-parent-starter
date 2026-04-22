@@ -54,23 +54,20 @@
           class="server-metric-detail-dialog__control server-metric-detail-dialog__control--date"
           @change="handleHistoryDateRangeChange"
         />
-        <el-tooltip
-          :content="
-            aiEnabled
-              ? '基于当前筛选历史做 AI 分析'
+        <ServerAiActionButton
+          tooltip="基于当前筛选历史做 AI 分析"
+          :disabled-tooltip="
+            !filteredHistory.length
+              ? '当前筛选条件下没有可分析样本'
               : aiUnavailableReason || 'AI 能力未激活'
           "
-        >
-          <ScButton
-            circle
-            plain
-            :loading="currentAiAnalyzing"
-            :disabled="!aiEnabled || !filteredHistory.length"
-            @click="emitAnalyzeHistory"
-          >
-            <IconifyIconOnline icon="ri:ai-generate-2" />
-          </ScButton>
-        </el-tooltip>
+          :loading="currentAiAnalyzing"
+          :disabled="!filteredHistory.length"
+          scene="server-metric-history-ai"
+          system-prompt="你是服务器监控趋势分析助手，需要结合样本趋势输出中文结论。"
+          :prompt="metricAiPrompt"
+          :method="aiEnabled ? () => emitAnalyzeHistory() : undefined"
+        />
       </div>
     </header>
 
@@ -406,7 +403,7 @@
 import { computed, ref, watch } from "vue";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
+import ServerAiActionButton from "./ServerAiActionButton.vue";
 import type {
   ServerAiTaskPayload,
   ServerAlertSettings,
@@ -508,6 +505,21 @@ const visible = computed({
 });
 
 const hostOsFallback = computed(() => osLabel(props.host?.osType));
+const metricAiPrompt = computed(() => {
+  const [startTime, endTime] = historyDateRange.value;
+  return [
+    `服务器：${props.host?.serverName || props.host?.host || "服务器"}`,
+    `指标：${metricMeta.value.title}`,
+    `筛选范围：最近 ${historyRange.value} 分钟`,
+    `状态过滤：${historyStateFilter.value}`,
+    `样本数：${filteredHistory.value.length}`,
+    startTime ? `开始时间：${formatDateTime(Number(startTime))}` : "",
+    endTime ? `结束时间：${formatDateTime(Number(endTime))}` : "",
+    "请分析趋势变化、异常拐点、风险级别，并给出排查建议。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+});
 
 const resolveStateFilter = (value?: number | null): HistoryStateFilter => {
   const numeric = Number(value || 0);
