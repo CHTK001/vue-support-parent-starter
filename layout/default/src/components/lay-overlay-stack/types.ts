@@ -19,6 +19,7 @@ import type {
 export interface OverlayStackItem extends BaseOverlayStackItem {
   onOpen?: (item: ResolvedOverlayStackItem) => void;
   onClose?: (payload: OverlayStackClosePayload) => void;
+  onMinimize?: (item: ResolvedOverlayStackItem) => void;
   onToggleDetails?: (payload: {
     item: ResolvedOverlayStackItem;
     collapsed: boolean;

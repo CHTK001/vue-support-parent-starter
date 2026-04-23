@@ -102,6 +102,38 @@ const resolveModuleRoutes = (module: any): RouteRecordRaw[] => {
   return Array.isArray(routes) ? routes : [routes];
 };
 
+const isRemainingLikeRoute = (route?: RouteRecordRaw): boolean => {
+  return Boolean(route?.meta?.remaining);
+};
+
+const splitRouteByRemainingFlag = (
+  route: RouteRecordRaw,
+): RouteRecordRaw | null => {
+  if (!route) {
+    return null;
+  }
+
+  if (isRemainingLikeRoute(route)) {
+    appendRouteRecord(remainingRouter, route);
+    return null;
+  }
+
+  if (!Array.isArray(route.children) || route.children.length === 0) {
+    return route;
+  }
+
+  const keptChildren: RouteRecordRaw[] = [];
+  route.children.forEach((child) => {
+    const normalizedChild = splitRouteByRemainingFlag(child as RouteRecordRaw);
+    if (normalizedChild) {
+      keptChildren.push(normalizedChild);
+    }
+  });
+
+  route.children = keptChildren;
+  return route;
+};
+
 /**
  * 确保路由具有图标，若无则设置默认图标
  * @param route - 路由配置对象
@@ -332,9 +364,12 @@ const _createAutoRouter = () => {
 const appendNormalRoutes = (modules: Record<string, any>) => {
   Object.values(modules).forEach((module) => {
     resolveModuleRoutes(module).forEach((route) => {
-      appendRouteRecord(routes, route);
-      if (route.name) {
-        routerNameMapping.add(String(route.name).toLowerCase());
+      const normalRoute = splitRouteByRemainingFlag(route);
+      if (normalRoute) {
+        appendRouteRecord(routes, normalRoute);
+      }
+      if (normalRoute?.name) {
+        routerNameMapping.add(String(normalRoute.name).toLowerCase());
       }
     });
   });
@@ -346,9 +381,12 @@ const appendLazyNormalRoutes = async (
   for (const loader of Object.values(modules)) {
     const module = await loader();
     resolveModuleRoutes(module).forEach((route) => {
-      appendRouteRecord(routes, route);
-      if (route.name) {
-        routerNameMapping.add(String(route.name).toLowerCase());
+      const normalRoute = splitRouteByRemainingFlag(route);
+      if (normalRoute) {
+        appendRouteRecord(routes, normalRoute);
+      }
+      if (normalRoute?.name) {
+        routerNameMapping.add(String(normalRoute.name).toLowerCase());
       }
     });
   }

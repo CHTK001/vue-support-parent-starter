@@ -469,10 +469,8 @@ const descriptionModel = computed({
 });
 
 const dockerConnectionTypeOptions: SelectOption[] = [
+  { label: "本机(自动判定)", value: "LOCAL" },
   { label: "API", value: "API" },
-  { label: "本机", value: "LOCAL" },
-  { label: "SSH", value: "SSH" },
-  { label: "WINRM", value: "WINRM" },
 ];
 
 const dockerEnabledModel = computed({

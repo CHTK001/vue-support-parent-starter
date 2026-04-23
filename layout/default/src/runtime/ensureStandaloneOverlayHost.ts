@@ -7,15 +7,18 @@ import {
   type AppContext,
 } from "vue";
 import LayOverlayStack from "../components/lay-overlay-stack/index.vue";
-
-const STANDALONE_OVERLAY_HOST_ID = "sc-standalone-overlay-host";
+import {
+  STANDALONE_OVERLAY_HOST_ID,
+  disposeStandaloneOverlayHost,
+  getOverlayStackHostCount,
+} from "./standaloneOverlayHostRegistry";
 
 let mounted = false;
 
 const StandaloneOverlayHost = defineComponent({
   name: "StandaloneOverlayHost",
   setup() {
-    return () => h(LayOverlayStack);
+    return () => h(LayOverlayStack, { standalone: true });
   },
 });
 
@@ -34,7 +37,7 @@ const resolveContainer = () => {
 };
 
 export const ensureStandaloneOverlayHost = (appContext?: AppContext | null) => {
-  if (mounted) {
+  if (mounted || getOverlayStackHostCount() > 0) {
     return;
   }
   const container = resolveContainer();
@@ -51,14 +54,6 @@ export const ensureStandaloneOverlayHost = (appContext?: AppContext | null) => {
 };
 
 export const resetStandaloneOverlayHostForTest = () => {
-  if (typeof document === "undefined") {
-    mounted = false;
-    return;
-  }
-  const container = document.getElementById(STANDALONE_OVERLAY_HOST_ID);
-  if (container) {
-    render(null, container);
-    container.remove();
-  }
+  disposeStandaloneOverlayHost();
   mounted = false;
 };

@@ -106,7 +106,11 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { type SystemServerFilterLogRecord, getSystemServerFilterLogs } from "@/api/system-server";
+import {
+  getFirewallEvents,
+  type FirewallEventRecord,
+  type SystemServerFilterLogRecord,
+} from "@/api/system-server";
 import FilterConfigFirewallInline from "./FilterConfigFirewallInline.vue";
 import FirewallAllLogsPanel from "./FirewallAllLogsPanel.vue";
 import FirewallBlacklistLogPanel from "./FirewallBlacklistLogPanel.vue";
@@ -175,18 +179,51 @@ const setActiveRail = (name: RailName) => {
   activeRail.value = name;
 };
 
+const toLogRow = (event: FirewallEventRecord, index: number): SystemServerFilterLogRecord => {
+  const action = (event.action || "").toUpperCase();
+  const blocked = action === "DENY" || action === "RATE_LIMIT";
+  const host = (event.host || "").trim();
+  const path = (event.path || "").trim();
+  const displayPath = /^https?:\/\//i.test(path)
+    ? path
+    : host
+      ? `https://${host}${path.startsWith("/") ? path : `/${path || ""}`}`
+      : path;
+
+  return {
+    id: index + 1,
+    serverId: event.serverId,
+    filterType: "firewall",
+    ruleCategory: action || "ALLOW",
+    actionStatus: blocked ? "DENY" : "PASS",
+    processStatus: event.reason || action || "ALLOW",
+    method: event.method || "",
+    path: displayPath || path,
+    host,
+    referer: event.referer || "",
+    requestId: event.requestId || "",
+    clientIp: event.clientIp || "",
+    clientGeo: event.clientGeo || "",
+    userAgent: event.userAgent || "",
+    decisionReason: event.reason || "",
+    statusCode: event.statusCode,
+    accessTime: event.eventTime,
+    durationMs: event.durationMs,
+    storeTime: event.eventTime,
+  };
+};
+
 const loadLogs = async () => {
   if (!props.serverId) {
     logRows.value = [];
     return;
   }
   try {
-    const response = await getSystemServerFilterLogs({
+    const response = await getFirewallEvents({
       serverId: props.serverId,
-      current: 1,
-      size: 5000,
+      limit: 5000,
     });
-    logRows.value = response?.data?.records || [];
+    logRows.value = (response?.data || []).map(toLogRow);
   } catch (error) {
     console.error("加载防火墙日志失败:", error);
     logRows.value = [];

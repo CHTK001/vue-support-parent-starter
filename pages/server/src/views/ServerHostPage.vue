@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="server-page">
     <div class="server-page__backdrop" aria-hidden="true">
       <span class="server-page__orb server-page__orb--cyan" />
@@ -101,10 +101,12 @@
               selectedHost && openHostAlertSettings(selectedHost)
             "
             @open-install="selectedHost && openInstallDialog(selectedHost)"
+            @open-docker="selectedHost && openDockerWorkbench(selectedHost)"
             @open-soft="selectedHost && openSoftDrawer(selectedHost)"
             @open-dashboard="selectedHost && openDashboard(selectedHost)"
             @open-projects="selectedHost && openProjectManagement(selectedHost)"
             @open-processes="selectedHost && openProcessDialog(selectedHost)"
+            @open-port-search="selectedHost && openPortSearchDialog(selectedHost)"
             @open-remote="openRemoteConsole()"
             @open-basic-detail="selectedHost && openHostOverview(selectedHost)"
             @refresh-public-ip="selectedHost && refreshSelectedHostPublicIp()"
@@ -362,6 +364,7 @@
       :stream-last-event-at="processStream.lastEventAt.value"
       :view-mode="processViewMode"
       :sort-key="processSortKey"
+      :sort-order="processSortOrder"
       :terminate-selection-mode="processTerminateSelectionMode"
       :selected-process-ids="processSelectedPids"
       :ai-enabled="aiEnabled"
@@ -373,14 +376,76 @@
       @update:auto-refresh="processAutoRefresh = $event"
       @update:view-mode="processViewMode = $event"
       @update:sort-key="processSortKey = $event"
+      @update:sort-order="processSortOrder = $event"
       @update:terminate-selection-mode="processTerminateSelectionMode = $event"
       @update:selected-process-ids="processSelectedPids = $event"
+      @sort-change="handleProcessSortChange"
       @refresh="loadHostProcesses()"
       @select-process="selectProcessItem"
       @analyze-process="analyzeProcessItem"
       @terminate-process="terminateProcessItem"
       @batch-terminate="terminateBatchProcessItems"
     />
+
+    <el-dialog
+      v-model="portSearchVisible"
+      width="760px"
+      title="端口搜索"
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <div class="flex gap-2 mb-3">
+        <ScInput
+          v-model="portKeyword"
+          placeholder="输入端口号（例如 80 / 443 / 3306）"
+          clearable
+          @keyup.enter="runPortSearch"
+        >
+          <template #prefix>
+            <IconifyIconOnline icon="ri:search-line" />
+          </template>
+        </ScInput>
+        <ScButton type="primary" :loading="portSearchLoading" @click="runPortSearch">
+          搜索
+        </ScButton>
+      </div>
+      <el-table :data="portSearchResults" v-loading="portSearchLoading" height="360">
+        <el-table-column prop="port" label="端口" width="90" />
+        <el-table-column prop="protocol" label="协议" width="100" />
+        <el-table-column prop="state" label="状态" width="120" />
+        <el-table-column prop="processName" label="进程" min-width="160" />
+        <el-table-column prop="serviceName" label="服务" min-width="160" />
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ row }">
+            <el-tooltip content="关闭" placement="top">
+              <ScButton
+                circle
+                size="small"
+                type="danger"
+                plain
+                :loading="portActionLoadingKey === `close:${row.port}`"
+                @click="closeSearchedPort(row)"
+              >
+                <IconifyIconOnline icon="ep:close" />
+              </ScButton>
+            </el-tooltip>
+            <el-tooltip content="强制管理" placement="top">
+              <ScButton
+                circle
+                size="small"
+                type="warning"
+                plain
+                class="ml-2"
+                :loading="portActionLoadingKey === `force:${row.port}`"
+                @click="forceManageSearchedPort(row)"
+              >
+                <IconifyIconOnline icon="ri:shield-star-line" />
+              </ScButton>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
 
     <ServerSoftOverviewDrawer
       v-model="softDrawerVisible"
@@ -464,6 +529,7 @@ import {
   deleteServerFile,
   detectServerHostServices,
   downloadServerFile,
+  forceManageServerPort,
   getServerAlertSettings,
   getServerCapabilities,
   getServerHostAlertSettings,
@@ -492,11 +558,13 @@ import {
   registerServerService,
   renameServerFile,
   restartServerService,
+  searchServerPort,
   startServerService,
   startServerFileWatch,
   stopServerService,
   stopServerFileWatch,
   terminateServerHostProcess,
+  closeServerPort,
   unregisterServerService,
   updateServerAlertSettings,
   updateServerHost,
@@ -523,6 +591,7 @@ import {
   type ServerMetricsSnapshot,
   type ServerMetricsTaskSettings,
   type ServerProcessAiAdvice,
+  type ServerPortSearchResult,
   type ServerProcessView,
   type ServerRemoteConsoleConfig,
   type ServerRemoteGatewaySettings,
@@ -534,13 +603,12 @@ import {
   type ServerSoftOperation,
 } from "../api";
 import {
-  createSoftTarget,
   getSoftInstallationDetail,
   getSoftPackageDetail,
   getSoftVersionGuide,
   installSoftPackage,
   listSoftPackages,
-  updateSoftTarget,
+  registerSoftTargetHost,
   type SoftGuideField,
   type SoftInstallationDetail,
   type SoftInstallRequest,
@@ -651,9 +719,9 @@ type ServerViewSettings = {
 
 const SERVER_VIEW_SETTINGS_KEY = "server-host-view-settings";
 const defaultServerViewSettings = (): ServerViewSettings => ({
-  processQueryLimit: 120,
+  processQueryLimit: 50,
   serviceReturnLimit: 10,
-  metricHistoryLimit: 240,
+  metricHistoryLimit: 500,
   metricHistoryMinutes: 120,
   metricDetailXAxisLimit: 48,
 });
@@ -709,6 +777,31 @@ const createTaskPersistContext = (
   };
 };
 
+type RuntimeTaskHandle = ReturnType<typeof runtimeTask.addTask>;
+type RuntimeTaskPatch = Parameters<typeof runtimeTask.updateTask>[1];
+
+const handoffTaskToRemote = (
+  placeholderTask: RuntimeTaskHandle,
+  remoteTaskId?: string | number | null,
+  patch: RuntimeTaskPatch = {},
+) => {
+  const normalizedRemoteTaskId = String(remoteTaskId || "").trim();
+  if (!normalizedRemoteTaskId) {
+    return placeholderTask.taskId;
+  }
+  runtimeTask.updateTask(normalizedRemoteTaskId, {
+    ...patch,
+    requestId: normalizedRemoteTaskId,
+    traceId: patch.traceId || normalizedRemoteTaskId,
+  });
+  const resolvedTaskId =
+    runtimeTask.getTaskId(normalizedRemoteTaskId) || normalizedRemoteTaskId;
+  if (resolvedTaskId !== placeholderTask.taskId) {
+    runtimeTask.removeTask(placeholderTask.taskId);
+  }
+  return resolvedTaskId;
+};
+
 const {
   serviceLogsVisible,
   serviceLogLoading,
@@ -734,6 +827,11 @@ const serviceDetailVisible = ref(false);
 const processDialogVisible = ref(false);
 const processLoading = ref(false);
 const processAiAnalyzing = ref(false);
+const portSearchVisible = ref(false);
+const portSearchLoading = ref(false);
+const portKeyword = ref("");
+const portActionLoadingKey = ref("");
+const portSearchResults = ref<ServerPortSearchResult[]>([]);
 const dialogVisible = ref(false);
 const fileDrawerVisible = ref(false);
 const softDrawerVisible = ref(false);
@@ -891,10 +989,11 @@ const processKeyword = ref("");
 const processAutoRefresh = ref(true);
 const processRefreshedAt = ref<number | null>(null);
 const processActionLoadingKey = ref("");
-const processViewMode = ref<"card" | "table">("table");
+const processViewMode = ref<"card" | "list" | "tree">("list");
 const processSortKey = ref<"cpu" | "memory" | "pid" | "name" | "elapsed">(
   "cpu",
 );
+const processSortOrder = ref<"asc" | "desc">("desc");
 const processTerminateSelectionMode = ref(false);
 const processSelectedPid = ref<number | null>(null);
 const processSelectedPids = ref<number[]>([]);
@@ -1364,7 +1463,7 @@ const selectedHostAlerts = computed(() =>
         Number(left.serverAlertEventId || 0)
       );
     })
-    .slice(0, 8),
+    .slice(0, 100),
 );
 const selectedHostAiAnalysis = computed(() =>
   selectedHost.value?.serverId
@@ -1795,7 +1894,43 @@ const mergeAlertEvents = (items: ServerAlertEvent[] = []) => {
     }
     next[item.serverAlertEventId] = item;
   });
-  alertEventMap.value = next;
+  const grouped = Object.values(next).reduce<Record<number, ServerAlertEvent[]>>(
+    (result, item) => {
+      const serverId = Number(item.serverId || 0);
+      if (!serverId) {
+        return result;
+      }
+      if (!result[serverId]) {
+        result[serverId] = [];
+      }
+      result[serverId].push(item);
+      return result;
+    },
+    {},
+  );
+  const trimmed: Record<number, ServerAlertEvent> = {};
+  Object.values(grouped).forEach((group) => {
+    group
+      .sort((left, right) => {
+        const leftTime = new Date(left.createTime || 0).getTime() || 0;
+        const rightTime = new Date(right.createTime || 0).getTime() || 0;
+        if (leftTime !== rightTime) {
+          return rightTime - leftTime;
+        }
+        return (
+          Number(right.serverAlertEventId || 0) -
+          Number(left.serverAlertEventId || 0)
+        );
+      })
+      .slice(0, 100)
+      .forEach((item) => {
+        if (!item?.serverAlertEventId) {
+          return;
+        }
+        trimmed[item.serverAlertEventId] = item;
+      });
+  });
+  alertEventMap.value = trimmed;
 };
 const normalizeHostList = (value: unknown): ServerHost[] => {
   if (Array.isArray(value)) return value as ServerHost[];
@@ -2170,22 +2305,15 @@ const buildSoftTargetPayload = (host: ServerHost): SoftTarget => ({
 
 const ensureSoftTargetForHost = async (host: ServerHost) => {
   const existing = findSoftTargetForHost(host);
-  const payload = buildSoftTargetPayload(host);
   if (existing?.softTargetId) {
-    const result = await updateSoftTarget(existing.softTargetId, {
-      ...payload,
-      softTargetId: existing.softTargetId,
-    });
-    const saved = result.data;
-    softTargets.value = softTargets.value.map((item) =>
-      item.softTargetId === saved.softTargetId
-        ? (saved as unknown as ServerSoftBindingTarget)
-        : item,
-    );
-    return saved.softTargetId!;
+    return existing.softTargetId;
   }
-  const result = await createSoftTarget(payload);
-  const saved = result.data;
+  const payload = buildSoftTargetPayload(host);
+  const result = await registerSoftTargetHost(payload);
+  const saved = result.data?.target as unknown as ServerSoftBindingTarget;
+  if (!saved?.softTargetId) {
+    throw new Error("登记软件目标失败");
+  }
   softTargets.value = [
     saved as unknown as ServerSoftBindingTarget,
     ...softTargets.value,
@@ -3367,13 +3495,20 @@ const generateServiceAiDraft = async (draft?: ServerService) => {
     const result = await generateServerServiceAiDraft(next.serverServiceId);
     const ticket = result.data as ServerAiTaskTicket | undefined;
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
-      task.update({
+      handoffTaskToRemote(task, ticket.taskId, {
+        ...createTaskPersistContext("server-service-ai-draft", {
+          bizId: next.serverServiceId,
+          traceId: String(ticket.taskId),
+          persistKey: `server-service-ai-draft:${next.serverServiceId}`,
+        }),
         traceId: String(ticket.taskId),
-        requestId: ticket.taskId,
         title: `AI 服务草稿 · ${next.serviceName || next.serverServiceId}`,
+        mode: "stream",
+        status: "running",
+        progress: 45,
+        message: ticket.message || "AI 草稿任务已进入后台执行",
       });
-    }
-    if (ticket?.taskId) {
+    } else if (ticket?.taskId) {
       task.progress(45, {
         message: ticket.message || "AI 草稿任务已进入后台执行",
       });
@@ -3452,7 +3587,7 @@ const applyMetricSnapshots = (snapshots: ServerMetricsSnapshot[] = []) => {
     nextMetrics[item.serverId] = item;
     const currentHistory = nextHistory[item.serverId] || [];
     nextHistory[item.serverId] = [
-      ...currentHistory.slice(-19),
+      ...currentHistory.slice(-499),
       {
         ...item,
         collectTimestamp: normalizeMetricTimestamp(
@@ -3629,7 +3764,6 @@ const analyzeMetricHistory = async (payload: {
     progress: 20,
     message: `正在分析${metricType}历史趋势`,
   });
-  task.open();
   metricHistoryAiAnalyzingKey.value = filterKey;
   try {
     const result = await analyzeServerHostMetricHistory(
@@ -3644,13 +3778,20 @@ const analyzeMetricHistory = async (payload: {
     );
     const ticket = result.data || {};
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
-      task.update({
+      handoffTaskToRemote(task, ticket.taskId, {
+        ...createTaskPersistContext("server-metric-history-ai", {
+          bizId: selectedHost.value.serverId,
+          traceId: String(ticket.taskId),
+          persistKey: `server-metric-history-ai:${selectedHost.value.serverId}:${metricType}`,
+        }),
         traceId: String(ticket.taskId),
-        requestId: ticket.taskId,
         title: `指标历史 AI 分析 · ${selectedHost.value.serverName || selectedHost.value.serverId} · ${metricType}`,
+        mode: "stream",
+        status: "running",
+        progress: 45,
+        message: ticket.message || "指标历史 AI 分析已进入后台执行",
       });
-    }
-    if (ticket?.taskId) {
+    } else if (ticket?.taskId) {
       task.progress(45, {
         message: ticket.message || "指标历史 AI 分析已进入后台执行",
       });
@@ -3802,22 +3943,28 @@ const analyzeSelectedHostStability = async () => {
     progress: 20,
     message: "正在提交服务器稳定性分析",
   });
-  task.open();
   try {
     const result = await analyzeServerHostStability(
       selectedHost.value.serverId,
     );
     const ticket = result.data || {};
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
-      task.update({
+      handoffTaskToRemote(task, ticket.taskId, {
+        ...createTaskPersistContext("server-host-stability", {
+          bizId: selectedHost.value.serverId,
+          traceId: String(ticket.taskId),
+          persistKey: `server-host-stability:${selectedHost.value.serverId}`,
+        }),
         traceId: String(ticket.taskId),
-        requestId: ticket.taskId,
         title: `预警中心 AI 分析 · ${
           selectedHost.value.serverName || selectedHost.value.serverId
         }`,
+        mode: "stream",
+        status: "running",
+        progress: 45,
+        message: ticket.message || "稳定性分析任务已进入后台执行",
       });
-    }
-    if (ticket?.taskId) {
+    } else if (ticket?.taskId) {
       task.progress(45, {
         message: ticket.message || "稳定性分析任务已进入后台执行",
       });
@@ -3930,7 +4077,6 @@ const analyzeAlertHistory = async (payload: {
     progress: 20,
     message: "正在分析历史告警",
   });
-  task.open();
   alertHistoryAiAnalyzingKey.value = filterKey;
   try {
     const result = await analyzeServerHostAlertHistory(serverId, {
@@ -3942,13 +4088,20 @@ const analyzeAlertHistory = async (payload: {
     });
     const ticket = result.data || {};
     if (ticket?.taskId && String(ticket.taskId) !== String(requestId)) {
-      task.update({
+      handoffTaskToRemote(task, ticket.taskId, {
+        ...createTaskPersistContext("server-alert-history-ai", {
+          bizId: serverId,
+          traceId: String(ticket.taskId),
+          persistKey: `server-alert-history-ai:${serverId}:${payload.metricType || "alert"}`,
+        }),
         traceId: String(ticket.taskId),
-        requestId: ticket.taskId,
         title: `告警历史 AI 分析 · ${selectedHost.value?.serverName || serverId}`,
+        mode: "stream",
+        status: "running",
+        progress: 45,
+        message: ticket.message || "告警历史 AI 分析已进入后台执行",
       });
-    }
-    if (ticket?.taskId) {
+    } else if (ticket?.taskId) {
       task.progress(45, {
         message: ticket.message || "告警历史 AI 分析已进入后台执行",
       });
@@ -4660,7 +4813,12 @@ const loadHostProcesses = async (options?: {
   try {
     const result = await listServerHostProcesses(host.serverId, {
       keyword: processKeyword.value || undefined,
-      limit: Math.max(Number(serverViewSettings.processQueryLimit || 0), 1),
+      limit: Math.min(
+        Math.max(Number(serverViewSettings.processQueryLimit || 0), 1),
+        120,
+      ),
+      sortKey: processSortKey.value,
+      sortOrder: processSortOrder.value,
     });
     applyProcessRows(result.data || [], {
       preserveSelection: options?.preserveSelection,
@@ -4671,6 +4829,15 @@ const loadHostProcesses = async (options?: {
       processLoading.value = false;
     }
   }
+};
+
+const handleProcessSortChange = (payload: {
+  sortKey: "cpu" | "memory" | "pid" | "name" | "elapsed";
+  sortOrder: "asc" | "desc";
+}) => {
+  processSortKey.value = payload.sortKey;
+  processSortOrder.value = payload.sortOrder;
+  void loadHostProcesses({ preserveSelection: true });
 };
 
 const openProcessDialog = async (host?: ServerHost | null) => {
@@ -4686,6 +4853,74 @@ const openProcessDialog = async (host?: ServerHost | null) => {
   selectedProcessAiAdvice.value = null;
   await loadHostProcesses({ preserveSelection: false });
   syncProcessRefreshLoop();
+};
+
+const openPortSearchDialog = async (host?: ServerHost | null) => {
+  const targetHost = host || selectedHost.value;
+  if (!targetHost?.serverId) {
+    return;
+  }
+  if (targetHost.serverId !== selectedHost.value?.serverId) {
+    selectHost(targetHost.serverId);
+    await nextTick();
+  }
+  portSearchVisible.value = true;
+  portKeyword.value = "";
+  portSearchResults.value = [];
+  portActionLoadingKey.value = "";
+};
+
+const runPortSearch = async () => {
+  const host = selectedHost.value;
+  if (!host?.serverId) {
+    message.warning("请先选择服务器");
+    return;
+  }
+  const port = Number(String(portKeyword.value || "").trim());
+  if (!Number.isFinite(port) || port <= 0) {
+    message.warning("请输入合法端口号");
+    return;
+  }
+  try {
+    portSearchLoading.value = true;
+    const result = await searchServerPort(host.serverId, port);
+    portSearchResults.value = result.data || [];
+    if (!portSearchResults.value.length) {
+      message.info("未搜索到结果");
+    }
+  } finally {
+    portSearchLoading.value = false;
+  }
+};
+
+const closeSearchedPort = async (row: ServerPortSearchResult) => {
+  const host = selectedHost.value;
+  const port = Number(row?.port || 0);
+  if (!host?.serverId || !port) {
+    return;
+  }
+  portActionLoadingKey.value = `close:${port}`;
+  try {
+    await closeServerPort(host.serverId, port);
+    message.success(`已受理关闭端口 ${port}`);
+  } finally {
+    portActionLoadingKey.value = "";
+  }
+};
+
+const forceManageSearchedPort = async (row: ServerPortSearchResult) => {
+  const host = selectedHost.value;
+  const port = Number(row?.port || 0);
+  if (!host?.serverId || !port) {
+    return;
+  }
+  portActionLoadingKey.value = `force:${port}`;
+  try {
+    await forceManageServerPort(host.serverId, port);
+    message.success(`已受理强制管理端口 ${port}`);
+  } finally {
+    portActionLoadingKey.value = "";
+  }
 };
 
 const analyzeProcessItem = async (process: ServerProcessView) => {
@@ -4707,7 +4942,6 @@ const analyzeProcessItem = async (process: ServerProcessView) => {
     progress: 20,
     message: "开始分析目标进程",
   });
-  task.open();
   try {
     const result = await analyzeServerHostProcess(
       selectedHost.value.serverId,
@@ -4891,6 +5125,37 @@ const openDashboard = async (host?: ServerHost | null) => {
       serverName: target?.serverName || "",
     },
   });
+};
+
+const openDockerWorkbench = async (host?: ServerHost | null) => {
+  if (host?.serverId) {
+    selectHost(host.serverId);
+    await nextTick();
+  }
+  const target = host || selectedHost.value;
+  if (!target?.serverId) {
+    message("当前没有可用服务器，无法打开 Docker 管理页", {
+      type: "warning",
+    });
+    return;
+  }
+  try {
+    const dockerRoute = router.resolve({
+      path: "/docker",
+      query: {
+        serverId: String(target.serverId || ""),
+        tab: "overview",
+      },
+    });
+    const popup = window.open(dockerRoute.href, "_blank", "noopener,noreferrer");
+    if (!popup) {
+      message("浏览器拦截了新窗口，请允许弹窗后重试", { type: "warning" });
+    }
+  } catch (error: any) {
+    message(error?.message || "打开 Docker 页面失败", {
+      type: "error",
+    });
+  }
 };
 
 const openProjectManagement = async (host?: ServerHost | null) => {
@@ -5143,6 +5408,13 @@ watch(
     const payloadKeyword = normalizeProcessKeyword(payload.keyword);
     const currentKeyword = normalizeProcessKeyword(processKeyword.value);
     if (payloadKeyword !== currentKeyword) {
+      return;
+    }
+    // 当用户启用自定义排序时，避免被流式默认顺序覆盖，改由自动刷新轮询请求后端排序结果。
+    if (
+      processSortKey.value !== "cpu" ||
+      processSortOrder.value !== "desc"
+    ) {
       return;
     }
     applyProcessRows(payload.processes || [], {

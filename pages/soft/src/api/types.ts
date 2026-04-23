@@ -285,6 +285,27 @@ export interface SoftTarget {
   metadataJson?: string;
 }
 
+export interface SoftTargetRegisterRequest {
+  targetName?: string;
+  targetType?: "LOCAL" | "SSH" | "WINRM" | string;
+  osType?: string;
+  architecture?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  privateKey?: string;
+  baseDirectory?: string;
+  description?: string;
+  metadataJson?: string;
+}
+
+export interface SoftTargetRegisterView {
+  softTargetId: number;
+  targetCode?: string;
+  target: SoftTarget;
+}
+
 export interface SoftInstallation {
   softInstallationId?: number;
   softPackageId?: number;

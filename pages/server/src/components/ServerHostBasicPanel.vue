@@ -130,6 +130,11 @@
                   <IconifyIconOnline icon="ri:stack-line" />
                 </ScButton>
               </el-tooltip>
+              <el-tooltip content="端口搜索" placement="top">
+                <ScButton circle @click="emit('open-port-search')">
+                  <IconifyIconOnline icon="ri:plug-2-line" />
+                </ScButton>
+              </el-tooltip>
               <el-tooltip content="文件管理" placement="top">
                 <ScButton circle @click="emit('open-files')">
                   <IconifyIconOnline icon="ri:folder-5-line" />
@@ -209,6 +214,16 @@
                   <IconifyIconOnline icon="ri:download-cloud-2-line" />
                 </ScButton>
               </el-tooltip>
+              <el-tooltip content="Docker 管理" placement="top">
+                <ScButton
+                  circle
+                  type="primary"
+                  plain
+                  @click="emit('open-docker')"
+                >
+                  <IconifyIconOnline icon="mdi:docker" />
+                </ScButton>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -241,7 +256,7 @@
             :key="item.key"
             class="server-basic-panel__metric-card"
             :class="item.toneClass"
-            @click="emit('open-metric-detail', item.key)"
+            @click="openMetricDetail(item.key)"
           >
             <div class="server-basic-panel__metric-top">
               <small>{{ item.label }}</small>
@@ -258,12 +273,12 @@
             class="server-basic-panel__realtime-summary server-basic-panel__realtime-summary--combined"
           >
             <button
-              v-for="item in metricCards"
+              v-for="item in metricCombinedCards"
               :key="item.key"
               type="button"
               class="server-basic-panel__realtime-mini"
               :class="item.toneClass"
-              @click="emit('open-metric-detail', item.key)"
+              @click="openMetricDetail(item.key)"
             >
               <div class="server-basic-panel__realtime-mini-head">
                 <small>{{ item.label }}</small>
@@ -274,6 +289,13 @@
                 <span>{{ item.total }}</span>
               </div>
             </button>
+          </div>
+          <div class="server-basic-panel__realtime-chart">
+            <div class="server-basic-panel__realtime-chart-head">
+              <strong>实时趋势</strong>
+              <span>最近 500 条</span>
+            </div>
+            <ScEcharts :option="realtimeCombinedOption" height="220px" />
           </div>
         </div>
       </article>
@@ -308,7 +330,10 @@
             </div>
           </header>
 
-          <div class="server-basic-panel__content-scroll">
+          <div
+            class="server-basic-panel__content-scroll"
+            :class="{ 'is-collapsed': !basicInfoExpanded }"
+          >
             <dl class="server-basic-panel__info-grid">
               <div>
                 <dt>接入类型</dt>
@@ -520,6 +545,15 @@
               <button
                 type="button"
                 class="server-basic-panel__ops-card"
+                @click.stop="emit('open-port-search')"
+              >
+                <small>端口搜索</small>
+                <strong>{{ host.port || "-" }}</strong>
+                <span>输入端口号快速检索占用与管理入口</span>
+              </button>
+              <button
+                type="button"
+                class="server-basic-panel__ops-card"
                 @click.stop="emit('open-files')"
               >
                 <small>文件管理</small>
@@ -527,6 +561,15 @@
                 <span>打开文件管理器查看树状与文本编辑</span>
               </button>
             </section>
+          </div>
+          <div class="server-basic-panel__collapse-actions">
+            <ScButton
+              size="small"
+              plain
+              @click="basicInfoExpanded = !basicInfoExpanded"
+            >
+              {{ basicInfoExpanded ? "收起" : "展开" }}基础信息
+            </ScButton>
           </div>
         </article>
 
@@ -714,65 +757,160 @@
 
             <section
               v-if="orderedAlerts.length"
-              ref="alertListRef"
-              class="server-basic-panel__alert-list thin-scroller overflow-y-auto"
+              class="server-basic-panel__alert-chart-wrap"
             >
               <header class="server-basic-panel__alert-list-header">
                 <div>
-                  <strong>最新预警</strong>
-                  <span>按最新触发时间倒序展示</span>
+                  <strong>最新预警实时图表</strong>
+                  <span>按时间轴展示最近 100 条预警</span>
                 </div>
                 <span class="server-basic-panel__lay-tag is-muted">
-                  共 {{ orderedAlerts.length }} 条
+                  共 {{ orderedAlerts.length }} 条（缓存上限 100）
                 </span>
               </header>
-              <article
-                v-for="item in orderedAlerts"
-                :key="
-                  item.serverAlertEventId ||
-                  `${item.metricType}-${item.createTime}`
-                "
-                class="server-basic-panel__alert-item"
-                :class="`is-${String(item.severity || '').toLowerCase()}`"
-                role="button"
-                tabindex="0"
-                @click="emit('open-alert-detail', item)"
-                @keydown.enter.prevent="emit('open-alert-detail', item)"
-              >
-                <div class="server-basic-panel__alert-top">
-                  <strong>{{ metricLabel(item.metricType) }}</strong>
-                  <span
-                    class="server-basic-panel__lay-tag"
-                    :class="severityClass(item.severity)"
-                  >
-                    {{ severityLabel(item.severity) }}
-                  </span>
-                </div>
-                <p>{{ item.alertMessage || "已触发实时预警" }}</p>
-                <div class="server-basic-panel__alert-metrics">
-                  <span
-                    class="server-basic-panel__alert-pill"
-                    :class="severityClass(item.severity)"
-                  >
-                    当前 {{ formatAlertMetricValue(item, item.metricValue) }}
-                  </span>
-                  <span class="server-basic-panel__alert-pill">
-                    预警
-                    {{ formatAlertMetricValue(item, item.warningThreshold) }}
-                  </span>
-                  <span class="server-basic-panel__alert-pill">
-                    危险
-                    {{ formatAlertMetricValue(item, item.dangerThreshold) }}
-                  </span>
-                </div>
-                <small>{{ item.createTime || "刚刚" }}</small>
-              </article>
+              <ScEcharts
+                class="server-basic-panel__alert-chart"
+                :option="alertTrendOption"
+                height="260px"
+              />
             </section>
             <div v-else class="server-basic-panel__alert-empty">
               <strong>当前没有触发中的预警</strong>
               <span
                 >服务器阈值正常时，这里会保持干净；命中阈值后会立即更新。</span
               >
+            </div>
+          </div>
+        </article>
+
+        <article class="server-basic-panel__card server-basic-panel__card--memory">
+          <header
+            class="server-basic-panel__card-header server-basic-panel__card-header--stack"
+          >
+            <div>
+              <h3>内存</h3>
+              <p class="server-basic-panel__card-desc">
+                Cache / 已用 / 剩余 / 总量总览。
+              </p>
+            </div>
+          </header>
+          <div class="server-basic-panel__memory-overview">
+            <ScEcharts :option="memoryUsageOption" height="220px" />
+            <div class="server-basic-panel__memory-grid">
+              <div class="server-basic-panel__memory-item">
+                <small>Cache</small>
+                <strong>{{ memoryCacheText }}</strong>
+              </div>
+              <div class="server-basic-panel__memory-item">
+                <small>已用</small>
+                <strong>{{ formatByteSize(memoryUsedBytes) }}</strong>
+              </div>
+              <div class="server-basic-panel__memory-item">
+                <small>剩余</small>
+                <strong>{{ formatByteSize(memoryFreeBytes) }}</strong>
+              </div>
+              <div class="server-basic-panel__memory-item">
+                <small>总量</small>
+                <strong>{{ formatByteSize(memoryTotalBytes) }}</strong>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="server-basic-panel__card server-basic-panel__card--disk">
+          <header
+            class="server-basic-panel__card-header server-basic-panel__card-header--stack"
+          >
+            <div>
+              <h3>磁盘</h3>
+              <p class="server-basic-panel__card-desc">
+                分区占用状态（Windows 风格）。
+              </p>
+            </div>
+            <div class="server-basic-panel__tag-group">
+              <span class="server-basic-panel__lay-tag is-muted">
+                {{ diskPartitions.length }} 个分区
+              </span>
+            </div>
+          </header>
+
+          <div class="server-basic-panel__disk-partitions">
+            <div class="server-basic-panel__disk-overview">
+              <ScEcharts :option="diskUsageTotalOption" height="240px" />
+              <div class="server-basic-panel__disk-overview-text">
+                <span>总量：{{ formatByteSize(diskTotalBytes) }}</span>
+                <span>已用：{{ formatByteSize(diskUsedBytes) }}</span>
+                <span>可用：{{ formatByteSize(diskFreeBytes) }}</span>
+                <span>使用率：{{ formatMetricPercent(diskUsagePercent) }}</span>
+              </div>
+            </div>
+            <div class="server-basic-panel__partitions-list-container thin-scroller">
+              <div class="server-basic-panel__partitions-list">
+                <article
+                  v-for="(partition, index) in visibleDiskPartitions"
+                  :key="
+                    partition.name ||
+                    partition.mountPoint ||
+                    partition.label ||
+                    String(index)
+                  "
+                  class="server-basic-panel__partition-item"
+                >
+                  <div class="server-basic-panel__partition-header">
+                    <div class="server-basic-panel__partition-info">
+                      <IconifyIconOnline
+                        icon="ri:hard-drive-line"
+                        class="server-basic-panel__partition-icon"
+                      />
+                      <span class="server-basic-panel__partition-name">
+                        {{ partition.name || partition.mountPoint || "-" }}
+                      </span>
+                      <ScTag
+                        size="small"
+                        effect="plain"
+                        class="server-basic-panel__partition-type"
+                      >
+                        {{ partition.fileSystem || "-" }}
+                      </ScTag>
+                    </div>
+                    <span
+                      class="server-basic-panel__partition-usage"
+                      :class="partitionUsageClass(partition.usagePercent)"
+                    >
+                      {{ formatMetricPercent(partition.usagePercent) }}
+                    </span>
+                  </div>
+                  <div class="server-basic-panel__partition-progress">
+                    <el-progress
+                      :percentage="partitionPercent(partition)"
+                      :show-text="false"
+                      :color="partitionProgressColor(partition.usagePercent)"
+                    />
+                    <div class="server-basic-panel__partition-progress-meta">
+                      <span>{{ formatByteSize(partition.usedBytes) }}</span>
+                      <span>{{ formatByteSize(partition.totalBytes) }}</span>
+                    </div>
+                  </div>
+                  <div class="server-basic-panel__partition-details">
+                    <span>已用: {{ formatByteSize(partition.usedBytes) }}</span>
+                    <span>可用: {{ formatByteSize(partition.freeBytes) }}</span>
+                    <span>总计: {{ formatByteSize(partition.totalBytes) }}</span>
+                  </div>
+                </article>
+                <el-empty
+                  v-if="!diskPartitions.length"
+                  description="暂无磁盘分区数据"
+                  :image-size="56"
+                />
+              </div>
+            </div>
+            <div
+              v-if="diskPartitions.length > diskCollapsedLimit"
+              class="server-basic-panel__collapse-actions"
+            >
+              <ScButton text type="primary" @click="diskExpanded = !diskExpanded">
+                {{ diskExpanded ? "收起" : "展开" }}磁盘分区
+              </ScButton>
             </div>
           </div>
         </article>
@@ -807,12 +945,14 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
+import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import ScTag from "@repo/components/ScTag/src/index.vue";
 import ServerAiActionButton from "./ServerAiActionButton.vue";
 import ServerServicePanel from "./ServerServicePanel.vue";
 import type {
   ServerAlertEvent,
+  ServerDiskPartitionView,
   ServerAlertSettings,
   ServerAiTaskPayload,
   ServerHost,
@@ -943,11 +1083,13 @@ const emit = defineEmits<{
   edit: [];
   "toggle-enabled": [];
   "open-soft": [];
+  "open-docker": [];
   "open-install": [];
   "open-dashboard": [];
   "open-projects": [];
   "open-remote": [];
   "open-processes": [];
+  "open-port-search": [];
   "open-files": [];
   "open-metrics-task": [];
   "open-alert-settings": [];
@@ -966,7 +1108,22 @@ const emit = defineEmits<{
   "analyze-stability": [];
 }>();
 
+const openMetricDetail = (key: string) => {
+  if (
+    key === "cpu" ||
+    key === "memory" ||
+    key === "disk" ||
+    key === "io" ||
+    key === "diskIo"
+  ) {
+    emit("open-metric-detail", key);
+  }
+};
+
 const metricChartMode = ref<MetricChartMode>("split");
+const basicInfoExpanded = ref(false);
+const diskExpanded = ref(false);
+const diskCollapsedLimit = 5;
 const metricChartCombined = computed({
   get: () => metricChartMode.value === "combined",
   set: (value: boolean) => {
@@ -1022,7 +1179,10 @@ const dockerCapability = computed(() => {
     const docker = metadata?.docker || {};
     return {
       enabled: Boolean(docker.enabled),
-      connectionType: String(docker.connectionType || "LOCAL"),
+      connectionType:
+        String(docker.connectionType || "LOCAL").toUpperCase() === "LOCAL"
+          ? "AUTO"
+          : String(docker.connectionType || "LOCAL"),
       apiPort: String(docker.apiPort || ""),
       username: String(docker.apiUsername || docker.username || ""),
       latency: String(docker.latencyMs || docker.latency || ""),
@@ -1139,6 +1299,348 @@ const latestWarningCount = computed(
   () =>
     orderedAlerts.value.filter((item) => item.severity === "WARNING").length,
 );
+
+const diskPartitions = computed<ServerDiskPartitionView[]>(() =>
+  [...(props.runtimeDetail?.diskPartitions || [])]
+    .filter((item) => item && (item.name || item.mountPoint || item.totalBytes))
+    .sort(
+      (left, right) =>
+        Number(right.usagePercent || 0) - Number(left.usagePercent || 0),
+    ),
+);
+
+const partitionUsageClass = (value?: number | null) => {
+  const numeric = Number(value ?? 0);
+  if (!Number.isFinite(numeric)) {
+    return "usage-normal";
+  }
+  if (numeric >= 90) {
+    return "usage-critical";
+  }
+  if (numeric >= 75) {
+    return "usage-warning";
+  }
+  return "usage-normal";
+};
+
+const partitionPercent = (partition?: ServerDiskPartitionView | null) => {
+  const explicit = Number(partition?.usagePercent ?? 0);
+  if (Number.isFinite(explicit) && explicit > 0) {
+    return Math.max(0, Math.min(100, explicit));
+  }
+  const used = Number(partition?.usedBytes ?? 0);
+  const total = Number(partition?.totalBytes ?? 0);
+  if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, (used / total) * 100));
+};
+
+const partitionProgressColor = (value?: number | null) => {
+  const numeric = Number(value ?? 0);
+  if (Number.isFinite(numeric) && numeric >= 90) {
+    return "#ef4444";
+  }
+  if (Number.isFinite(numeric) && numeric >= 75) {
+    return "#f59e0b";
+  }
+  return "#10b981";
+};
+
+const memoryTotalBytes = computed(() => Number(props.snapshot?.memoryTotalBytes || 0));
+const memoryUsedBytes = computed(() => Number(props.snapshot?.memoryUsedBytes || 0));
+const memoryCacheBytes = computed(() => {
+  const detail = (props.runtimeDetail || {}) as Record<string, unknown>;
+  const candidates = [
+    detail.memoryCacheBytes,
+    detail.memoryCachedBytes,
+    detail.cacheBytes,
+    detail.cachedBytes,
+  ];
+  for (const item of candidates) {
+    const numeric = Number(item || 0);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric;
+    }
+  }
+  return 0;
+});
+const memoryFreeBytes = computed(() =>
+  Math.max(memoryTotalBytes.value - memoryUsedBytes.value, 0),
+);
+const memoryCacheText = computed(() =>
+  memoryCacheBytes.value > 0 ? formatByteSize(memoryCacheBytes.value) : "--",
+);
+
+const memoryUsageOption = computed(() => {
+  const total = memoryTotalBytes.value;
+  const used = Math.max(memoryUsedBytes.value, 0);
+  const cache = Math.max(Math.min(memoryCacheBytes.value, used), 0);
+  const pureUsed = Math.max(used - cache, 0);
+  const free = Math.max(total - used, 0);
+  const usedPercent = total > 0 ? Math.min((used / total) * 100, 100) : 0;
+  return {
+    title: {
+      text: formatMetricPercent(usedPercent),
+      subtext: "内存总使用率",
+      left: "center",
+      top: "36%",
+      textStyle: {
+        fontSize: 26,
+        fontWeight: 700,
+        color: "#1e293b",
+      },
+      subtextStyle: {
+        fontSize: 12,
+        color: "#64748b",
+      },
+    },
+    tooltip: {
+      trigger: "item",
+      formatter: (params: { name?: string; value?: number }) =>
+        `${params.name}: ${formatByteSize(params.value)}`,
+    },
+    legend: {
+      bottom: 2,
+      left: "center",
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: {
+        color: "#64748b",
+        fontSize: 11,
+      },
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["58%", "78%"],
+        center: ["50%", "48%"],
+        label: { show: false },
+        data: [
+          { name: "已用", value: pureUsed, itemStyle: { color: "#ef4444" } },
+          { name: "Cache", value: cache, itemStyle: { color: "#f59e0b" } },
+          { name: "剩余", value: free, itemStyle: { color: "#10b981" } },
+        ],
+      },
+    ],
+  };
+});
+
+const diskUsageTotalOption = computed(() => {
+  const total = diskTotalBytes.value;
+  const used = diskUsedBytes.value;
+  const free = diskFreeBytes.value;
+  return {
+    title: {
+      text: formatMetricPercent(diskUsagePercent.value),
+      subtext: "磁盘总使用率",
+      left: "center",
+      top: "36%",
+      textStyle: {
+        fontSize: 28,
+        fontWeight: 700,
+        color: "#1e293b",
+      },
+      subtextStyle: {
+        fontSize: 12,
+        color: "#64748b",
+      },
+    },
+    tooltip: {
+      trigger: "item",
+      formatter: (params: { name?: string; value?: number }) =>
+        `${params.name}: ${formatByteSize(params.value)}`,
+    },
+    legend: {
+      bottom: 4,
+      left: "center",
+      itemWidth: 10,
+      itemHeight: 10,
+      textStyle: {
+        color: "#64748b",
+        fontSize: 11,
+      },
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["58%", "78%"],
+        center: ["50%", "48%"],
+        avoidLabelOverlap: true,
+        label: {
+          show: true,
+          formatter: (params: { name?: string; value?: number }) =>
+            `${params.name}\n${formatByteSize(params.value)}`,
+          color: "#475569",
+          fontSize: 11,
+        },
+        labelLine: {
+          length: 10,
+          length2: 8,
+        },
+        data: [
+          {
+            name: "已用",
+            value: used,
+            itemStyle: { color: "#f59e0b" },
+          },
+          {
+            name: "可用",
+            value: free,
+            itemStyle: { color: "#10b981" },
+          },
+        ],
+      },
+    ],
+  };
+});
+
+const diskTotalBytes = computed(() => {
+  const totalFromSnapshot = Number(props.snapshot?.diskTotalBytes || 0);
+  const totalFromPartitions = diskPartitions.value.reduce(
+    (sum, item) => sum + Number(item.totalBytes || 0),
+    0,
+  );
+  return totalFromSnapshot > 0 ? totalFromSnapshot : totalFromPartitions;
+});
+
+const diskUsedBytes = computed(() => {
+  const usedFromSnapshot = Number(props.snapshot?.diskUsedBytes || 0);
+  const usedFromPartitions = diskPartitions.value.reduce(
+    (sum, item) => sum + Number(item.usedBytes || 0),
+    0,
+  );
+  return usedFromSnapshot > 0 ? usedFromSnapshot : usedFromPartitions;
+});
+
+const diskFreeBytes = computed(() =>
+  Math.max(diskTotalBytes.value - diskUsedBytes.value, 0),
+);
+
+const diskUsagePercent = computed(() =>
+  diskTotalBytes.value > 0
+    ? Math.min((diskUsedBytes.value / diskTotalBytes.value) * 100, 100)
+    : 0,
+);
+
+const visibleDiskPartitions = computed(() =>
+  diskExpanded.value
+    ? diskPartitions.value
+    : diskPartitions.value.slice(0, diskCollapsedLimit),
+);
+
+const alertTrendAlerts = computed(() =>
+  orderedAlerts.value
+    .slice(0, 100)
+    .reverse(),
+);
+
+const alertTrendOption = computed(() => {
+  const rows = alertTrendAlerts.value;
+  const metricSeriesConfig: Array<{
+    key: string;
+    label: string;
+    color: string;
+  }> = [
+    { key: "CPU", label: "CPU", color: "#3b82f6" },
+    { key: "MEMORY", label: "内存", color: "#14b8a6" },
+    { key: "DISK", label: "磁盘", color: "#6366f1" },
+    { key: "IO", label: "网络", color: "#f59e0b" },
+    { key: "DISK_IO", label: "磁盘IO", color: "#a855f7" },
+    { key: "LATENCY", label: "延迟", color: "#ef4444" },
+  ];
+  const xAxisData = rows.map(
+    (item) =>
+      item.createTime ||
+      String(item.serverAlertEventId || rows.indexOf(item) + 1),
+  );
+  const buildContinuousSeriesData = (metricKey: string) => {
+    const firstValue = rows.find(
+      (item) => String(item.metricType || "").toUpperCase() === metricKey,
+    )?.severity;
+    let lastValue: number | null =
+      firstValue === "DANGER" ? 2 : firstValue === "WARNING" ? 1 : null;
+    return rows.map((item) => {
+      if (String(item.metricType || "").toUpperCase() === metricKey) {
+        lastValue = item.severity === "DANGER" ? 2 : 1;
+        return lastValue;
+      }
+      return lastValue;
+    });
+  };
+  const series = metricSeriesConfig.map((config) => ({
+    name: config.label,
+    type: "line",
+    smooth: true,
+    connectNulls: true,
+    symbol: "circle",
+    symbolSize: 6,
+    lineStyle: { width: 2, color: config.color },
+    itemStyle: { color: config.color },
+    data: buildContinuousSeriesData(config.key),
+  }));
+  return {
+    grid: {
+      left: 16,
+      right: 16,
+      top: 34,
+      bottom: 34,
+      containLabel: true,
+    },
+    tooltip: {
+      trigger: "axis",
+      confine: true,
+      formatter: (params: Array<{ dataIndex: number }>) => {
+        const index = Number(params?.[0]?.dataIndex || 0);
+        const item = rows[index];
+        if (!item) {
+          return "暂无数据";
+        }
+        return [
+          `${item.createTime || "刚刚"}`,
+          `${metricLabel(item.metricType)} · ${severityLabel(item.severity)}`,
+          item.alertMessage || "已触发实时预警",
+          `当前值: ${formatAlertMetricValue(item, item.metricValue)}`,
+        ].join("<br/>");
+      },
+    },
+    legend: {
+      top: 2,
+      icon: "circle",
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: {
+        color: "#64748b",
+        fontSize: 11,
+      },
+    },
+    xAxis: {
+      type: "category",
+      boundaryGap: false,
+      data: xAxisData,
+      axisLabel: {
+        color: "#64748b",
+        fontSize: 11,
+        formatter: (value: string) => String(value || "").slice(5, 16),
+      },
+    },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: 2.5,
+      interval: 1,
+      axisLabel: {
+        color: "#64748b",
+        formatter: (value: number) =>
+          value >= 2 ? "危险" : value >= 1 ? "预警" : "正常",
+      },
+      splitLine: {
+        lineStyle: { color: "rgba(148, 163, 184, 0.2)" },
+      },
+    },
+    series,
+  };
+});
 
 const aiDiagnosticItems = computed(() =>
   [
@@ -1282,7 +1784,12 @@ const metricCards = computed(() => {
   const ioDanger = Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024);
   const diskIoWarning = 80 * 1024 * 1024;
   const diskIoDanger = 160 * 1024 * 1024;
-  const diskIoTotal = resolveDiskIoTotal(snapshot);
+  const ioRead = Math.max(0, Number(snapshot?.ioReadBytesPerSecond || 0));
+  const ioWrite = Math.max(0, Number(snapshot?.ioWriteBytesPerSecond || 0));
+  const diskRead = Math.max(0, Number(snapshot?.diskReadBytesPerSecond || 0));
+  const diskWrite = Math.max(0, Number(snapshot?.diskWriteBytesPerSecond || 0));
+  const ioTotal = ioRead + ioWrite;
+  const diskIoTotal = diskRead + diskWrite;
   const hasDiskIo =
     diskIoTotal > 0 ||
     (props.history || []).some((item) => resolveDiskIoTotal(item) > 0);
@@ -1329,14 +1836,12 @@ const metricCards = computed(() => {
     {
       key: "io",
       label: "网络 IO",
-      subLabel: `入 ${formatThroughput(snapshot?.ioReadBytesPerSecond)}`,
-      value: formatThroughput(resolveIoTotal(snapshot)),
-      total: `出 ${formatThroughput(snapshot?.ioWriteBytesPerSecond)}`,
-      progress: clampProgress(
-        resolveIoProgress(resolveIoTotal(snapshot), ioDanger),
-      ),
+      subLabel: `入 ${formatThroughput(ioRead)}`,
+      value: formatThroughput(ioTotal),
+      total: `出 ${formatThroughput(ioWrite)}`,
+      progress: clampProgress(resolveIoProgress(ioTotal, ioDanger)),
       toneClass: usageToneClass(
-        resolveIoTotal(snapshot),
+        ioTotal,
         Number(settings.ioWarningBytesPerSecond || 50 * 1024 * 1024),
         ioDanger,
       ),
@@ -1345,16 +1850,129 @@ const metricCards = computed(() => {
       key: "diskIo",
       label: "磁盘 IO",
       subLabel: hasDiskIo
-        ? `读 ${formatThroughput(snapshot?.diskReadBytesPerSecond)}`
+        ? `读 ${formatThroughput(diskRead)}`
         : "读 等待采集",
       value: hasDiskIo ? formatThroughput(diskIoTotal) : "未采集",
       total: hasDiskIo
-        ? `写 ${formatThroughput(snapshot?.diskWriteBytesPerSecond)}`
+        ? `写 ${formatThroughput(diskWrite)}`
         : "写 等待采集",
       progress: clampProgress(resolveIoProgress(diskIoTotal, diskIoDanger)),
       toneClass: usageToneClass(diskIoTotal, diskIoWarning, diskIoDanger),
     },
   ];
+});
+
+const metricCombinedCards = computed(() =>
+  metricCards.value
+    .filter((item) => item.key !== "disk")
+    .slice(0, 4),
+);
+
+const realtimeHistoryRows = computed(() =>
+  [...(props.history || [])]
+    .sort(
+      (left, right) =>
+        Number(left.collectTimestamp || 0) - Number(right.collectTimestamp || 0),
+    )
+    .slice(-500),
+);
+
+const realtimeCombinedOption = computed(() => {
+  const rows = realtimeHistoryRows.value;
+  const settings = props.alertSettings || {};
+  const ioDanger = Number(settings.ioDangerBytesPerSecond || 120 * 1024 * 1024);
+  const diskIoDanger = 160 * 1024 * 1024;
+  const xAxisData = rows.map((item, index) => {
+    const timestamp = Number(item.collectTimestamp || 0);
+    if (timestamp > 0) {
+      const date = new Date(timestamp);
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${hh}:${mm}:${ss}`;
+    }
+    return String(index + 1);
+  });
+  return {
+    grid: {
+      left: 16,
+      right: 16,
+      top: 28,
+      bottom: 24,
+      containLabel: true,
+    },
+    tooltip: {
+      trigger: "axis",
+      confine: true,
+    },
+    legend: {
+      top: 2,
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: {
+        color: "#64748b",
+        fontSize: 11,
+      },
+    },
+    xAxis: {
+      type: "category",
+      boundaryGap: false,
+      data: xAxisData,
+      axisLabel: {
+        color: "#64748b",
+        fontSize: 11,
+        interval: "auto",
+      },
+    },
+    yAxis: {
+      type: "value",
+      min: 0,
+      max: 100,
+      axisLabel: {
+        color: "#64748b",
+        formatter: "{value}%",
+      },
+      splitLine: {
+        lineStyle: {
+          color: "rgba(148, 163, 184, 0.18)",
+        },
+      },
+    },
+    series: [
+      {
+        name: "CPU",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: rows.map((item) => clampProgress(item.cpuUsage)),
+      },
+      {
+        name: "内存",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: rows.map((item) => clampProgress(item.memoryUsage)),
+      },
+      {
+        name: "网络IO",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: rows.map((item) =>
+          clampProgress(resolveIoProgress(resolveIoTotal(item), ioDanger)),
+        ),
+      },
+      {
+        name: "磁盘IO",
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        data: rows.map((item) =>
+          clampProgress(resolveIoProgress(resolveDiskIoTotal(item), diskIoDanger)),
+        ),
+      },
+    ],
+  };
 });
 
 function clampProgress(value?: number | null) {
@@ -2084,32 +2702,27 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__content {
-  display: grid;
-  grid-template-columns: minmax(320px, 0.84fr) minmax(0, 1.16fr);
-  grid-template-areas:
-    "basic alert"
-    "basic service";
-  gap: 16px;
-  align-items: start;
+  column-count: 2;
+  column-gap: 16px;
   min-height: fit-content;
   flex: 1 1 auto;
   overflow: visible;
 }
 
 .server-basic-panel__card {
-  display: flex;
+  display: inline-flex;
+  width: 100%;
   flex-direction: column;
   min-height: 0;
+  margin: 0 0 16px;
   padding: 20px;
   border-radius: 28px;
   overflow: visible;
-  align-self: start;
+  break-inside: avoid;
 }
 
 .server-basic-panel__card--basic {
-  grid-area: basic;
   overflow: visible;
-  align-self: start;
 }
 
 .server-basic-panel__card--basic .server-basic-panel__content-scroll {
@@ -2118,17 +2731,219 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   padding-right: 0;
 }
 
+.server-basic-panel__card--basic .server-basic-panel__content-scroll.is-collapsed {
+  max-height: 420px;
+  overflow: hidden;
+  position: relative;
+}
+
+.server-basic-panel__card--basic .server-basic-panel__content-scroll.is-collapsed::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, rgba(248, 250, 252, 0), rgba(248, 250, 252, 0.98));
+  pointer-events: none;
+}
+
+.server-basic-panel__collapse-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
 .server-basic-panel__card--service {
-  grid-area: service;
   min-width: 0;
   min-height: 474px;
 }
 
+.server-basic-panel__card--disk {
+  min-width: 0;
+  min-height: 760px;
+}
+
 .server-basic-panel__card--alert,
 .server-basic-panel__card--alert-detail {
-  grid-area: alert;
   min-width: 0;
   min-height: 474px;
+}
+
+.server-basic-panel__card--memory {
+  min-width: 0;
+}
+
+.server-basic-panel__disk-partitions {
+  margin-top: 8px;
+  display: grid;
+  gap: 12px;
+}
+
+.server-basic-panel__disk-overview {
+  padding: 8px 6px 0;
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(248, 250, 252, 0.86)
+  );
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.server-basic-panel__disk-overview-text {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  padding: 4px 10px 10px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.server-basic-panel__memory-overview {
+  display: grid;
+  gap: 12px;
+}
+
+.server-basic-panel__memory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.server-basic-panel__memory-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+  display: grid;
+  gap: 4px;
+}
+
+.server-basic-panel__memory-item small {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.server-basic-panel__memory-item strong {
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+}
+
+.server-basic-panel__partitions-list-container {
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.server-basic-panel__partitions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.server-basic-panel__partition-item {
+  padding: 12px;
+  background-color: var(--el-fill-color-extra-light);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s ease;
+}
+
+.server-basic-panel__partition-item:hover {
+  border-color: var(--el-color-primary-light-7);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.server-basic-panel__partition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.server-basic-panel__partition-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.server-basic-panel__partition-icon {
+  color: var(--el-color-primary);
+  font-size: 14px;
+}
+
+.server-basic-panel__partition-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-basic-panel__partition-type {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.server-basic-panel__partition-usage {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.server-basic-panel__partition-usage.usage-normal {
+  color: var(--el-color-success);
+  background-color: var(--el-color-success-light-9);
+}
+
+.server-basic-panel__partition-usage.usage-warning {
+  color: var(--el-color-warning);
+  background-color: var(--el-color-warning-light-9);
+}
+
+.server-basic-panel__partition-usage.usage-critical {
+  color: var(--el-color-danger);
+  background-color: var(--el-color-danger-light-9);
+}
+
+.server-basic-panel__partition-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--el-text-color-regular);
+}
+
+.server-basic-panel__partition-progress {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.server-basic-panel__partition-progress :deep(.el-progress-bar__outer) {
+  height: 12px !important;
+}
+
+.server-basic-panel__partition-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.server-basic-panel__partition-details span {
+  flex: 1;
+  text-align: center;
+}
+
+.server-basic-panel__partition-details span:not(:last-child) {
+  border-right: 1px solid var(--el-border-color-lighter);
 }
 
 .server-basic-panel__content-scroll {
@@ -2696,7 +3511,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__realtime-summary--combined {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
 .server-basic-panel__metric-card,
@@ -2773,14 +3589,7 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   }
 
   .server-basic-panel__content {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      "basic alert"
-      "service service";
-  }
-
-  .server-basic-panel__card--service {
-    grid-column: auto;
+    column-count: 2;
   }
 }
 
@@ -2800,10 +3609,6 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   .server-basic-panel__metric-grid,
   .server-basic-panel__content {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "basic"
-      "alert"
-      "service";
   }
 
   .server-basic-panel__hero,
@@ -2814,6 +3619,11 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   .server-basic-panel__metric-grid,
   .server-basic-panel__content {
     display: grid;
+  }
+
+  .server-basic-panel__content {
+    display: block;
+    column-count: 1;
   }
 }
 </style>

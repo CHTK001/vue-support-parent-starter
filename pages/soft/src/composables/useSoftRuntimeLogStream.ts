@@ -1,4 +1,4 @@
-import { computed, onUnmounted, ref } from "vue";
+import { computed, getCurrentScope, onScopeDispose, ref } from "vue";
 import { SoftTopics } from "@repo/core";
 import type { SoftRealtimeEnvelope, SoftRealtimePayload } from "../api";
 import { useSoftSocketService } from "./useSoftSocketService";
@@ -72,6 +72,9 @@ export function useSoftRuntimeLogStream() {
         state.value.error = null;
         state.value.lastEventAt = Date.now();
         latest.value = envelope.data;
+        if (envelope.data.line) {
+          lines.value = [...lines.value, envelope.data.line];
+        }
       },
     );
 
@@ -79,7 +82,9 @@ export function useSoftRuntimeLogStream() {
     state.value.connecting = false;
   };
 
-  onUnmounted(disconnect);
+  if (getCurrentScope()) {
+    onScopeDispose(disconnect);
+  }
 
   return {
     state: computed(() => state.value),

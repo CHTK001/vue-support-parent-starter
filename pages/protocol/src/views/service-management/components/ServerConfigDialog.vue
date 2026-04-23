@@ -295,6 +295,7 @@ import FilterConfigRequestFingerprint from "./FilterConfigRequestFingerprint.vue
 import FilterConfigDynamicExpression from "./FilterConfigDynamicExpression.vue";
 import FilterConfigEnhancedProxy from "./FilterConfigEnhancedProxy.vue";
 import FilterConfigProxyResponse from "./FilterConfigProxyResponse.vue";
+import FilterConfigSocks5Forward from "./FilterConfigSocks5Forward.vue";
 import FilterConfigViewServlet from "./FilterConfigViewServlet.vue";
 import FilterConfigAgent from "./FilterConfigAgent.vue";
 import { SystemServer } from "@/api/system-server";
@@ -313,6 +314,7 @@ const FILTER_COMPONENT_MAP: Record<string, any> = {
   dynamicexpression: FilterConfigDynamicExpression,
   enhancedproxy: FilterConfigEnhancedProxy,
   proxyresponse: FilterConfigProxyResponse,
+  socks5forward: FilterConfigSocks5Forward,
   viewservlet: FilterConfigViewServlet,
   agent: FilterConfigAgent,
 };

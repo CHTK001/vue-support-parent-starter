@@ -79,21 +79,10 @@
           size="small"
           @update:model-value="emit('update:viewMode', toViewMode($event))"
         >
-          <el-radio-button value="table">树形</el-radio-button>
+          <el-radio-button value="list">列表</el-radio-button>
+          <el-radio-button value="tree">树形</el-radio-button>
           <el-radio-button value="card">卡片</el-radio-button>
         </el-radio-group>
-        <el-select
-          class="server-process-dialog__sorter"
-          :model-value="sortKey"
-          size="small"
-          @update:model-value="emit('update:sortKey', toSortKey($event))"
-        >
-          <el-option label="按 CPU 排序" value="cpu" />
-          <el-option label="按内存排序" value="memory" />
-          <el-option label="按 PID 排序" value="pid" />
-          <el-option label="按名称排序" value="name" />
-          <el-option label="按运行时长排序" value="elapsed" />
-        </el-select>
         <div class="server-process-dialog__toolbar-actions">
           <template v-if="terminateSelectionMode">
             <ScTag size="small" effect="plain" round class="server-process-dialog__chip">
@@ -142,7 +131,10 @@
       </div>
     </div>
 
-    <div class="server-process-dialog__stage">
+    <div
+      class="server-process-dialog__stage"
+      :class="{ 'server-process-dialog__stage--detail': showInlineDetail }"
+    >
       <div v-loading="loading" class="server-process-dialog__list thin-scroller">
         <template v-if="viewMode === 'card'">
           <article
@@ -160,9 +152,9 @@
                 toPercent(item.cpuPercent) >= 80 ||
                 toPercent(item.memoryPercent) >= 30,
             }"
-            @click="emit('select-process', item)"
+            @click="handleSelectProcess(item)"
             @dblclick="openDetail(item)"
-            @keydown.enter.prevent="emit('select-process', item)"
+            @keydown.enter.prevent="handleSelectProcess(item)"
           >
             <div class="server-process-dialog__item-top">
               <div class="server-process-dialog__item-head-main">
@@ -257,18 +249,20 @@
         </template>
 
         <el-table
-          v-else
-          :data="tableProcesses"
+          v-else-if="viewMode === 'tree'"
+          :data="treeProcesses"
           height="620"
           class="server-process-dialog__table"
           row-key="pid"
           default-expand-all
           :tree-props="{ children: 'children' }"
-          @row-click="emit('select-process', $event)"
+          :row-class-name="processRowClassName"
+          @row-click="handleSelectProcess"
           @selection-change="handleSelectionChange"
+          @sort-change="handleTableSortChange"
         >
           <el-table-column v-if="terminateSelectionMode" type="selection" width="52" />
-          <el-table-column label="进程" min-width="300">
+          <el-table-column prop="name" label="进程" min-width="300" sortable="custom">
             <template #default="{ row }">
               <div class="server-process-dialog__table-main">
                 <div class="server-process-dialog__table-headline">
@@ -299,13 +293,13 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="pid" label="PID" width="90" sortable />
-          <el-table-column label="CPU" width="110">
+          <el-table-column prop="pid" label="PID" width="90" sortable="custom" />
+          <el-table-column prop="cpuPercent" label="CPU" width="110" sortable="custom">
             <template #default="{ row }">
               {{ formatPercent(row.cpuPercent) }}
             </template>
           </el-table-column>
-          <el-table-column label="内存" width="120">
+          <el-table-column prop="memoryPercent" label="内存" width="120" sortable="custom">
             <template #default="{ row }">
               {{ formatPercent(row.memoryPercent) }}
             </template>
@@ -315,13 +309,14 @@
               {{ formatBytes(row.memoryBytes) }}
             </template>
           </el-table-column>
+          <el-table-column prop="handleCount" label="句柄数" width="100" />
           <el-table-column prop="user" label="用户" min-width="100" />
           <el-table-column label="启动时间" min-width="170">
             <template #default="{ row }">
               {{ formatStartTime(row.startTime) }}
             </template>
           </el-table-column>
-          <el-table-column label="运行时长" min-width="120">
+          <el-table-column prop="elapsed" label="运行时长" min-width="120" sortable="custom">
             <template #default="{ row }">
               {{ formatElapsed(row.elapsed) }}
             </template>
@@ -359,9 +354,111 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <el-table
+          v-else
+          :data="listProcesses"
+          height="620"
+          class="server-process-dialog__table server-process-dialog__table--list"
+          row-key="pid"
+          :row-class-name="processRowClassName"
+          @row-click="handleSelectProcess"
+          @selection-change="handleSelectionChange"
+          @sort-change="handleTableSortChange"
+        >
+          <el-table-column v-if="terminateSelectionMode" type="selection" width="52" />
+          <el-table-column prop="name" label="Name" min-width="280" sortable="custom">
+            <template #default="{ row }">
+              <div class="server-process-dialog__taskmgr-main">
+                <div class="server-process-dialog__taskmgr-name">
+                  <el-tooltip
+                    :content="row.name || row.command || '未命名进程'"
+                    placement="top"
+                  >
+                    <strong>{{ shortProcessName(row) }}</strong>
+                  </el-tooltip>
+                  <span class="server-process-dialog__taskmgr-meta">
+                    PID {{ row.pid || "--" }}
+                    <template v-if="row.user"> · {{ row.user }}</template>
+                  </span>
+                </div>
+                <el-tooltip
+                  :content="row.description || row.commandLine || row.command || '-'"
+                  placement="top"
+                >
+                  <span class="server-process-dialog__taskmgr-desc">
+                    {{ row.description || row.commandLine || row.command || "-" }}
+                  </span>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="pid" label="PID" width="90" sortable="custom" />
+          <el-table-column prop="cpuPercent" label="CPU" width="90" sortable="custom">
+            <template #default="{ row }">
+              {{ formatPercent(row.cpuPercent) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="I/O total rate" width="140">
+            <template #default="{ row }">
+              {{ formatBytesPerSecond(row.ioBytesPerSecond) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="Private bytes" width="130">
+            <template #default="{ row }">
+              {{ formatBytes(row.memoryBytes) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="handleCount" label="Handles" width="96" />
+          <el-table-column prop="memoryPercent" label="内存%" width="100" sortable="custom">
+            <template #default="{ row }">
+              {{ formatPercent(row.memoryPercent) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="user" label="User name" min-width="140" />
+          <el-table-column label="Description" min-width="220">
+            <template #default="{ row }">
+              <span class="server-process-dialog__taskmgr-desc-cell">
+                {{ row.description || "-" }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="124" fixed="right">
+            <template #default="{ row }">
+              <div class="server-process-dialog__table-actions">
+                <ScButton
+                  circle
+                  plain
+                  type="warning"
+                  :loading="actionLoadingKey === `terminate:${row.pid}`"
+                  @click.stop="
+                    emit('terminate-process', {
+                      process: row,
+                      force: false,
+                    })
+                  "
+                >
+                  <IconifyIconOnline icon="ri:stop-circle-line" />
+                </ScButton>
+                <ScButton circle plain @click.stop="openDetail(row)">
+                  <IconifyIconOnline icon="ri:article-line" />
+                </ScButton>
+                <ServerAiActionButton
+                  :icon="isJavaProcess(row) ? 'ri:java-line' : 'ri:ai-generate-2'"
+                  :tooltip="isJavaProcess(row) ? 'JVM / Java 分析' : 'AI 进程分析'"
+                  :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
+                  scene="server-process-ai"
+                  system-prompt="你是服务器进程分析助手，需要输出中文风险诊断和处理建议。"
+                  :prompt="buildProcessAiPrompt(row)"
+                  :method="aiEnabled ? () => emit('analyze-process', row) : undefined"
+                />
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
 
-      <div class="server-process-dialog__detail thin-scroller">
+      <div v-if="showInlineDetail" class="server-process-dialog__detail thin-scroller">
         <template v-if="selectedProcess">
           <div class="server-process-dialog__detail-hero">
             <div>
@@ -390,6 +487,9 @@
               </div>
             </div>
             <div class="server-process-dialog__detail-actions">
+              <ScButton plain size="small" @click="closeInlineDetail">
+                关闭右侧
+              </ScButton>
               <ServerAiActionButton
                 tooltip="AI 分析"
                 :disabled-tooltip="aiUnavailableReason || 'AI 能力未激活'"
@@ -776,8 +876,9 @@ const props = withDefaults(
     refreshedAt?: number | null;
     streamConnected?: boolean;
     streamLastEventAt?: number | null;
-    viewMode?: "card" | "table";
+    viewMode?: "card" | "list" | "tree";
     sortKey?: "cpu" | "memory" | "pid" | "name" | "elapsed";
+    sortOrder?: "asc" | "desc";
     terminateSelectionMode?: boolean;
     selectedProcessIds?: number[];
     aiEnabled?: boolean;
@@ -796,8 +897,9 @@ const props = withDefaults(
     refreshedAt: null,
     streamConnected: false,
     streamLastEventAt: null,
-    viewMode: "table",
+    viewMode: "list",
     sortKey: "cpu",
+    sortOrder: "desc",
     terminateSelectionMode: false,
     selectedProcessIds: () => [],
     aiEnabled: false,
@@ -812,10 +914,17 @@ const emit = defineEmits<{
   "update:modelValue": [value: boolean];
   "update:keyword": [value: string];
   "update:autoRefresh": [value: boolean];
-  "update:viewMode": [value: "card" | "table"];
+  "update:viewMode": [value: "card" | "list" | "tree"];
   "update:sortKey": [value: "cpu" | "memory" | "pid" | "name" | "elapsed"];
+  "update:sortOrder": [value: "asc" | "desc"];
   "update:terminateSelectionMode": [value: boolean];
   "update:selectedProcessIds": [value: number[]];
+  "sort-change": [
+    payload: {
+      sortKey: "cpu" | "memory" | "pid" | "name" | "elapsed";
+      sortOrder: "asc" | "desc";
+    },
+  ];
   refresh: [];
   "select-process": [process: ServerProcessView];
   "analyze-process": [process: ServerProcessView];
@@ -834,6 +943,7 @@ const dialogVisible = computed({
 const detailVisible = ref(false);
 const highLoadVisible = ref(false);
 const detailPid = ref<number | null>(null);
+const inlineDetailVisible = ref(false);
 
 const detailProcess = computed(() => {
   if (detailPid.value === null) {
@@ -846,9 +956,22 @@ const detailProcess = computed(() => {
   );
 });
 
+const showInlineDetail = computed(
+  () => inlineDetailVisible.value && Boolean(props.selectedProcess),
+);
+
 const openDetail = (process?: ServerProcessView | null) => {
   detailPid.value = Number(process?.pid || 0) || null;
   detailVisible.value = Boolean(process);
+};
+
+const handleSelectProcess = (process: ServerProcessView) => {
+  emit("select-process", process);
+  inlineDetailVisible.value = true;
+};
+
+const closeInlineDetail = () => {
+  inlineDetailVisible.value = false;
 };
 
 const buildProcessAiPrompt = (process?: ServerProcessView | null) =>
@@ -873,8 +996,12 @@ const highRiskCount = computed(
     ).length,
 );
 
-const toViewMode = (value: unknown): "card" | "table" =>
-  value === "table" ? "table" : "card";
+const toViewMode = (value: unknown): "card" | "list" | "tree" => {
+  if (value === "card" || value === "tree") {
+    return value;
+  }
+  return "list";
+};
 
 const toSortKey = (
   value: unknown,
@@ -899,30 +1026,8 @@ const selectedProcessIdsSet = computed(
     ),
 );
 
-const displayedProcesses = computed(() => {
-  const rows = [...(props.processes || [])];
-  const sortKey = toSortKey(props.sortKey);
-  rows.sort((left, right) => {
-    if (sortKey === "name") {
-      return String(left.name || left.command || "").localeCompare(
-        String(right.name || right.command || ""),
-        "zh-CN",
-      );
-    }
-    if (sortKey === "pid") {
-      return Number(right.pid || 0) - Number(left.pid || 0);
-    }
-    if (sortKey === "elapsed") {
-      return String(right.elapsed || "").localeCompare(String(left.elapsed || ""));
-    }
-    if (sortKey === "memory") {
-      return toPercent(right.memoryPercent) - toPercent(left.memoryPercent);
-    }
-    return toPercent(right.cpuPercent) - toPercent(left.cpuPercent);
-  });
-  return rows;
-});
-const tableProcesses = computed<ProcessTreeNode[]>(() => {
+const displayedProcesses = computed(() => [...(props.processes || [])]);
+const treeProcesses = computed<ProcessTreeNode[]>(() => {
   const source = displayedProcesses.value;
   const nodeMap = new Map<number, ProcessTreeNode>();
   const roots: ProcessTreeNode[] = [];
@@ -947,6 +1052,8 @@ const tableProcesses = computed<ProcessTreeNode[]>(() => {
   });
   return roots;
 });
+
+const listProcesses = computed(() => displayedProcesses.value);
 const highLoadProcesses = computed(() =>
   displayedProcesses.value.filter(
     (item) =>
@@ -973,6 +1080,26 @@ const handleSelectionChange = (rows: ServerProcessView[]) => {
   );
 };
 
+const processRowClassName = ({ row }: { row: ServerProcessView }) => {
+  const cpu = toPercent(row.cpuPercent);
+  const mem = toPercent(row.memoryPercent);
+  if (cpu >= 80 || mem >= 30) {
+    return "row-danger";
+  }
+  if (cpu >= 40 || mem >= 15) {
+    return "row-warning";
+  }
+  return "row-ok";
+};
+
+const formatBytesPerSecond = (value?: number | null) => {
+  const v = Number(value || 0);
+  if (!Number.isFinite(v) || v <= 0) {
+    return "-";
+  }
+  return `${formatBytes(v)}/s`;
+};
+
 const toggleProcessSelection = (
   process: ServerProcessView,
   checked: boolean,
@@ -988,6 +1115,30 @@ const toggleProcessSelection = (
     next.delete(pid);
   }
   emit("update:selectedProcessIds", [...next]);
+};
+
+const handleTableSortChange = (payload: {
+  prop?: string;
+  order?: "ascending" | "descending" | null;
+}) => {
+  const sortKey = toSortKey(
+    payload.prop === "cpuPercent"
+      ? "cpu"
+      : payload.prop === "memoryPercent"
+        ? "memory"
+        : payload.prop === "pid"
+          ? "pid"
+          : payload.prop === "name"
+            ? "name"
+            : payload.prop === "elapsed"
+              ? "elapsed"
+              : props.sortKey,
+  );
+  const sortOrder: "asc" | "desc" =
+    payload.order === "ascending" ? "asc" : "desc";
+  emit("update:sortKey", sortKey);
+  emit("update:sortOrder", sortOrder);
+  emit("sort-change", { sortKey, sortOrder });
 };
 
 const sortLabel = computed(() => {
@@ -1073,6 +1224,9 @@ const formatElapsed = (value?: string | null) => value || "刚启动";
 watch(
   () => props.selectedProcess?.pid,
   (value) => {
+    if (!value) {
+      inlineDetailVisible.value = false;
+    }
     if (!detailVisible.value || !value) {
       return;
     }
@@ -1089,6 +1243,7 @@ watch(
     detailVisible.value = false;
     highLoadVisible.value = false;
     detailPid.value = null;
+    inlineDetailVisible.value = false;
   },
 );
 
@@ -1241,10 +1396,14 @@ watch(
 
 .server-process-dialog__stage {
   display: grid;
-  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
+  grid-template-columns: 1fr;
   gap: 18px;
   min-height: 620px;
   align-items: stretch;
+}
+
+.server-process-dialog__stage--detail {
+  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
 }
 
 .server-process-dialog__list,
@@ -1284,6 +1443,48 @@ watch(
 .server-process-dialog__table :deep(.el-table) {
   border-radius: 20px;
   overflow: hidden;
+}
+
+.server-process-dialog__table--list :deep(.el-table__row.row-ok) {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.server-process-dialog__table--list :deep(.el-table__row.row-warning) {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.server-process-dialog__table--list :deep(.el-table__row.row-danger) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.server-process-dialog__taskmgr-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.server-process-dialog__taskmgr-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.server-process-dialog__taskmgr-meta {
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.server-process-dialog__taskmgr-desc,
+.server-process-dialog__taskmgr-desc-cell {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .server-process-dialog__table-main {

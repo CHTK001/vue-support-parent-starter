@@ -112,6 +112,10 @@ function hasRoutePath(
   });
 }
 
+function isRemainingLikeRoute(route?: RouteRecordRaw): boolean {
+  return Boolean(route?.meta?.remaining);
+}
+
 function resolveAsyncRouteComponent(route: RouteRecordRaw, modulesRoutesKeys: string[]) {
   if (!route.meta) {
     //@ts-ignore
@@ -472,6 +476,17 @@ function addDynamicRoute(
   }
 
   if (hasRegisteredRoutePath(route.path)) {
+    return;
+  }
+
+  if (isRemainingLikeRoute(route)) {
+    const rootRoutes = router.options.routes as RouteRecordRaw[];
+    if (!hasRoutePath(rootRoutes, route.path)) {
+      rootRoutes.push(route);
+    }
+    if (!route?.name || !router.hasRoute(route.name)) {
+      router.addRoute(route);
+    }
     return;
   }
 

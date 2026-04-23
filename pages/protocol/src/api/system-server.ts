@@ -50,6 +50,106 @@ export interface SystemServerStatistics {
   error: number;
 }
 
+export interface ServerProcessDescriptor {
+  port?: number;
+  pid?: number;
+  parentPid?: number;
+  name?: string;
+  command?: string;
+  commandLine?: string;
+  user?: string;
+  state?: string;
+  startTime?: string;
+  alive?: boolean;
+  currentProcess?: boolean;
+  provider?: string;
+}
+
+export interface ServerProcessTerminateResult {
+  port?: number;
+  success?: boolean;
+  force?: boolean;
+  provider?: string;
+  message?: string;
+  terminatedCount?: number;
+  skippedCount?: number;
+  fallbackApplied?: boolean;
+  processes?: ServerProcessDescriptor[];
+}
+
+export interface ServerBoardInfo {
+  manufacturer?: string;
+  model?: string;
+  product?: string;
+  version?: string;
+  serialNumber?: string;
+}
+
+export interface ServerCpuInfo {
+  manufacturer?: string;
+  model?: string;
+  architecture?: string;
+  physicalCores?: number;
+  logicalCores?: number;
+  sockets?: number;
+  maxClockMhz?: number;
+}
+
+export interface ServerMemoryInfo {
+  totalBytes?: number;
+  availableBytes?: number;
+  usedBytes?: number;
+  slotCount?: number;
+}
+
+export interface ServerSystemInfo {
+  provider?: string;
+  hostName?: string;
+  osName?: string;
+  osVersion?: string;
+  kernelVersion?: string;
+  architecture?: string;
+  manufacturer?: string;
+  model?: string;
+  serialNumber?: string;
+  biosVersion?: string;
+  publicIp?: string;
+  board?: ServerBoardInfo;
+  cpu?: ServerCpuInfo;
+  memory?: ServerMemoryInfo;
+}
+
+export interface ServerServiceDescriptor {
+  provider?: string;
+  name?: string;
+  displayName?: string;
+  status?: string;
+  startMode?: string;
+  pid?: number;
+  description?: string;
+}
+
+export interface ServerPackageInstallRequest {
+  packageManager?: string;
+  packageName?: string;
+  packageId?: string;
+  version?: string;
+  packageFile?: string;
+  force?: boolean;
+  nonInteractive?: boolean;
+  extraArgs?: string[];
+}
+
+export interface ServerPackageInstallResult {
+  provider?: string;
+  packageManager?: string;
+  packageName?: string;
+  success?: boolean;
+  exitCode?: number;
+  message?: string;
+  output?: string;
+}
+
 /**
  * 克隆服务器参数
  */
@@ -139,6 +239,75 @@ export function restartSystemServer(id: number) {
   return request({
     url: `/system/server/${id}/restart`,
     method: "post",
+  });
+}
+
+/**
+ * 结束服务端口对应进程
+ */
+export function terminateSystemServer(id: number, force = true) {
+  return request<ServerProcessTerminateResult>({
+    url: `/system/server/${id}/terminate`,
+    method: "post",
+    params: { force },
+  });
+}
+
+export function getLocalSystemInfo() {
+  return request<ServerSystemInfo>({
+    url: "/system/server/system-info",
+    method: "get",
+  });
+}
+
+export function getLocalServices(params?: { keyword?: string; limit?: number }) {
+  return request<ServerServiceDescriptor[]>({
+    url: "/system/server/services",
+    method: "get",
+    params,
+  });
+}
+
+export function getLocalProcesses(params?: {
+  keyword?: string;
+  limit?: number;
+  sortKey?: "pid" | "name" | "startTime";
+  sortOrder?: "asc" | "desc";
+}) {
+  return request<ServerProcessDescriptor[]>({
+    url: "/system/server/processes",
+    method: "get",
+    params,
+  });
+}
+
+export function findLocalProcessByPort(port: number) {
+  return request<{
+    port?: number;
+    success?: boolean;
+    provider?: string;
+    message?: string;
+    processes?: ServerProcessDescriptor[];
+  }>({
+    url: "/system/server/processes/by-port",
+    method: "get",
+    params: { port },
+  });
+}
+
+export function terminateLocalProcessByPid(pid: number, force = true) {
+  return request<ServerProcessTerminateResult>({
+    url: `/system/server/processes/${pid}/terminate`,
+    method: "post",
+    params: { force },
+  });
+}
+
+export function installLocalPackage(data: ServerPackageInstallRequest) {
+  return request<ServerPackageInstallResult>({
+    url: "/system/server/software/install",
+    method: "post",
+    data,
   });
 }
 
@@ -308,6 +477,7 @@ export interface FirewallEventRecord {
   path?: string;
   host?: string;
   referer?: string;
+  userAgent?: string;
   action?: string;
   reason?: string;
   statusCode?: number;
@@ -328,6 +498,20 @@ export interface FirewallMetricsRecord {
   blacklistHit: number;
   windowStart?: string;
   windowEnd?: string;
+  geoStats?: Record<string, number>;
+  osStats?: Record<string, number>;
+  browserStats?: Record<string, number>;
+  statusStats?: Record<string, number>;
+  refererDomainStats?: Record<string, number>;
+  refererPageStats?: Record<string, number>;
+  hostStats?: Record<string, number>;
+  pathStats?: Record<string, number>;
+  timeline?: Array<{
+    label: string;
+    total: number;
+    blocked: number;
+    qps: number;
+  }>;
 }
 
 /**

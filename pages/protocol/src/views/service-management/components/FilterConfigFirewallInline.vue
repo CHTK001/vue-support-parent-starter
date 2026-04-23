@@ -25,8 +25,15 @@
         白名单
       </h4>
       <div class="list-block">
-        <div class="list-title">白名单 IP/CIDR</div>
+        <div class="list-title">
+          <span>白名单 IP/CIDR</span>
+          <div class="list-actions">
+            <span class="list-count">{{ config.whitelistIps.length }}</span>
+            <ScButton text type="success" @click="clearWhitelist">清空</ScButton>
+          </div>
+        </div>
         <div class="tags">
+          <div v-if="!config.whitelistIps.length" class="tags-empty">暂无白名单，支持逗号或换行批量粘贴。</div>
           <ScTag
             v-for="item in config.whitelistIps"
             :key="`w-${item}`"
@@ -59,8 +66,15 @@
         </ScFormItem>
       </div>
       <div class="list-block">
-        <div class="list-title">黑名单 IP/CIDR</div>
+        <div class="list-title">
+          <span>黑名单 IP/CIDR</span>
+          <div class="list-actions">
+            <span class="list-count">{{ config.blacklistIps.length }}</span>
+            <ScButton text type="danger" @click="clearBlacklist">清空</ScButton>
+          </div>
+        </div>
         <div class="tags">
+          <div v-if="!config.blacklistIps.length" class="tags-empty">暂无黑名单，支持逗号或换行批量粘贴。</div>
           <ScTag
             v-for="item in config.blacklistIps"
             :key="`b-${item}`"
@@ -111,6 +125,7 @@
         路径限流
       </h4>
       <div class="rule-list thin-scrollbar">
+        <div v-if="!config.pathRateLimits.length" class="rule-empty">暂无限流规则。</div>
         <div v-for="(row, idx) in config.pathRateLimits" :key="`rate-${idx}`" class="rule-row">
           <ScInput v-model="row.path" placeholder="/api/login" />
           <ScInputNumber v-model="row.qps" :min="1" :max="100000" />
@@ -143,6 +158,7 @@
         重定向规则
       </h4>
       <div class="rule-list thin-scrollbar">
+        <div v-if="!config.redirectMappings.length" class="rule-empty">暂无重定向规则。</div>
         <div v-for="(row, idx) in config.redirectMappings" :key="`redirect-${idx}`" class="rule-row">
           <ScInput v-model="row.path" placeholder="/old-path" />
           <ScInput v-model="row.target" placeholder="https://example.com/new-path" />
@@ -161,6 +177,7 @@
         透传代理规则
       </h4>
       <div class="rule-list thin-scrollbar">
+        <div v-if="!config.proxyPassMappings.length" class="rule-empty">暂无透传代理规则。</div>
         <div v-for="(row, idx) in config.proxyPassMappings" :key="`proxy-${idx}`" class="rule-row">
           <ScInput v-model="row.path" placeholder="/service-a" />
           <ScInput v-model="row.target" placeholder="http://upstream-host:8080" />
@@ -179,6 +196,7 @@
     </div>
 
     <div class="action-row">
+      <ScButton @click="loadData">重置本页</ScButton>
       <ScButton type="primary" :loading="loading" @click="handleSave">保存当前配置</ScButton>
     </div>
   </div>
@@ -246,17 +264,55 @@ function toBoolean(raw: unknown, fallback: boolean): boolean {
 }
 function toStringArray(raw: unknown): string[] {
   if (!raw) return [];
-  if (Array.isArray(raw)) return raw.map((item) => String(item ?? "").trim()).filter(Boolean);
-  if (typeof raw === "string") return raw.split(/[,\n\r]/).map((item) => item.trim()).filter(Boolean);
+  if (Array.isArray(raw)) return raw.flatMap((item) => toStringArray(item));
+  if (typeof raw === "string") {
+    const text = raw.trim();
+    if (!text) return [];
+    if (text.startsWith("[") && text.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(text);
+        return toStringArray(parsed);
+      } catch {
+        const body = text.slice(1, -1).trim();
+        if (!body) return [];
+        return body
+          .split(/[,\n\r]/)
+          .map((item) => item.trim().replace(/^"+|"+$/g, ""))
+          .filter((item) => !!item && item !== "[]");
+      }
+    }
+    return text
+      .split(/[,\n\r]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
   return [];
 }
 function toRateRows(raw: unknown): PathRateLimitRow[] {
+  if (typeof raw === "string") {
+    const text = raw.trim();
+    if (!text) return [];
+    try {
+      return toRateRows(JSON.parse(text));
+    } catch {
+      return [];
+    }
+  }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
   return Object.entries(raw as Record<string, unknown>)
     .map(([path, qps]) => ({ path: String(path ?? "").trim(), qps: toNumber(qps, 0) }))
     .filter((row) => !!row.path && row.qps > 0);
 }
 function toMappingRows(raw: unknown): MappingRow[] {
+  if (typeof raw === "string") {
+    const text = raw.trim();
+    if (!text) return [];
+    try {
+      return toMappingRows(JSON.parse(text));
+    } catch {
+      return [];
+    }
+  }
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
   return Object.entries(raw as Record<string, unknown>)
     .map(([path, target]) => ({ path: String(path ?? "").trim(), target: String(target ?? "").trim() }))
@@ -286,13 +342,25 @@ async function loadData() {
 }
 
 function addWhitelist() {
-  const value = whitelistInput.value.trim();
-  if (value && !config.whitelistIps.includes(value)) config.whitelistIps.push(value);
+  const values = parseNetworkEntries(whitelistInput.value);
+  if (!values.length) return;
+  const invalid = values.filter((item) => !isValidNetworkEntry(item));
+  if (invalid.length) {
+    message(`白名单格式不合法: ${invalid.join(", ")}`, { type: "error" });
+    return;
+  }
+  config.whitelistIps = dedupeStrings([...config.whitelistIps, ...values]);
   whitelistInput.value = "";
 }
 function addBlacklist() {
-  const value = blacklistInput.value.trim();
-  if (value && !config.blacklistIps.includes(value)) config.blacklistIps.push(value);
+  const values = parseNetworkEntries(blacklistInput.value);
+  if (!values.length) return;
+  const invalid = values.filter((item) => !isValidNetworkEntry(item));
+  if (invalid.length) {
+    message(`黑名单格式不合法: ${invalid.join(", ")}`, { type: "error" });
+    return;
+  }
+  config.blacklistIps = dedupeStrings([...config.blacklistIps, ...values]);
   blacklistInput.value = "";
 }
 function removeWhitelist(value: string) {
@@ -300,6 +368,12 @@ function removeWhitelist(value: string) {
 }
 function removeBlacklist(value: string) {
   config.blacklistIps = config.blacklistIps.filter((item) => item !== value);
+}
+function clearWhitelist() {
+  config.whitelistIps = [];
+}
+function clearBlacklist() {
+  config.blacklistIps = [];
 }
 function rowsToRateMap(rows: PathRateLimitRow[]): Record<string, number> {
   return rows.reduce((acc, row) => {
@@ -316,7 +390,57 @@ function rowsToMappingMap(rows: MappingRow[]): Record<string, string> {
     return acc;
   }, {} as Record<string, string>);
 }
+function parseNetworkEntries(raw: string): string[] {
+  return raw
+    .split(/[,\n\r]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+function dedupeStrings(values: string[]): string[] {
+  return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
+}
+function isValidIpv4(input: string): boolean {
+  const parts = input.split(".");
+  if (parts.length !== 4) return false;
+  return parts.every((part) => /^\d+$/.test(part) && Number(part) >= 0 && Number(part) <= 255);
+}
+function isValidNetworkEntry(input: string): boolean {
+  const text = input.trim();
+  if (!text) return false;
+  if (!text.includes("/")) return isValidIpv4(text);
+  const [ip, prefix] = text.split("/");
+  return isValidIpv4(ip) && /^\d+$/.test(prefix) && Number(prefix) >= 0 && Number(prefix) <= 32;
+}
+function validateBeforeSave(): boolean {
+  const invalidWhitelist = config.whitelistIps.filter((item) => !isValidNetworkEntry(item));
+  if (invalidWhitelist.length) {
+    message(`白名单格式不合法: ${invalidWhitelist.join(", ")}`, { type: "error" });
+    return false;
+  }
+  const invalidBlacklist = config.blacklistIps.filter((item) => !isValidNetworkEntry(item));
+  if (invalidBlacklist.length) {
+    message(`黑名单格式不合法: ${invalidBlacklist.join(", ")}`, { type: "error" });
+    return false;
+  }
+  const invalidRate = config.pathRateLimits.find((row) => !row.path.trim() || Number(row.qps) <= 0);
+  if (invalidRate) {
+    message("路径限流规则需要同时填写路径和大于 0 的 QPS。", { type: "error" });
+    return false;
+  }
+  const invalidRedirect = config.redirectMappings.find((row) => !row.path.trim() || !row.target.trim());
+  if (invalidRedirect) {
+    message("重定向规则需要同时填写路径和目标地址。", { type: "error" });
+    return false;
+  }
+  const invalidProxy = config.proxyPassMappings.find((row) => !row.path.trim() || !row.target.trim());
+  if (invalidProxy) {
+    message("透传代理规则需要同时填写路径和目标地址。", { type: "error" });
+    return false;
+  }
+  return true;
+}
 async function handleSave() {
+  if (!validateBeforeSave()) return;
   loading.value = true;
   try {
     const res = await saveServletFilterConfig(props.filterSettingId, {
@@ -398,10 +522,31 @@ async function handleSave() {
   margin-bottom: 14px;
 }
 .list-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 13px;
   color: #2a5780;
+}
+.list-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.list-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(90, 130, 192, 0.12);
+  color: #35618d;
+  font-size: 12px;
 }
 .tags {
   min-height: 34px;
@@ -414,6 +559,11 @@ async function handleSave() {
   margin-bottom: 10px;
   background: #fcfdff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+.tags-empty,
+.rule-empty {
+  color: #7f92a6;
+  font-size: 12px;
 }
 .inline-add {
   display: flex;
@@ -445,5 +595,19 @@ async function handleSave() {
   min-width: 148px;
   border-radius: 10px;
   font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .config-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inline-add,
+  .rule-row,
+  .action-row {
+    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

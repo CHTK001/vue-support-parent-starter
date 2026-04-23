@@ -1,4 +1,4 @@
-import { computed, onUnmounted, ref } from "vue";
+import { computed, getCurrentScope, onScopeDispose, ref } from "vue";
 import { SoftTopics } from "@repo/core";
 import type { SoftRealtimeEnvelope, SoftRealtimePayload } from "../api";
 import { useSoftSocketService } from "./useSoftSocketService";
@@ -88,7 +88,9 @@ export function useSoftOperationStream() {
     state.value.connecting = false;
   };
 
-  onUnmounted(disconnect);
+  if (getCurrentScope()) {
+    onScopeDispose(disconnect);
+  }
 
   return {
     state: computed(() => state.value),

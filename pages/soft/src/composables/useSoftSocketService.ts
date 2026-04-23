@@ -1,10 +1,11 @@
-import { computed, onUnmounted, ref } from "vue";
+import { computed, getCurrentScope, onScopeDispose, ref } from "vue";
 import { getConfig } from "@repo/config";
 import {
   closeNamedSocketService,
   createNamedSocketService,
   getGlobalSocketConfig,
   getNamedSocketService,
+  useSocketService,
   type SocketTemplate,
   type WsMessage,
 } from "@repo/core";
@@ -53,8 +54,7 @@ const resolveSoftSocketConfig = () => {
 
   const baseUrl =
     resolveOrigin(config.BaseUrl) ||
-    resolveOrigin(config.Request?.baseURL) ||
-    (typeof window !== "undefined" ? window.location.origin : null);
+    resolveOrigin(config.Request?.baseURL);
 
   return {
     protocol:
@@ -75,6 +75,14 @@ export function useSoftSocketService() {
   const subscriptions: Array<() => void> = [];
 
   const getService = (): SocketTemplate | null => {
+    const globalService = useSocketService();
+    if (globalService) {
+      state.value.usingGlobal = true;
+      state.value.connected = globalService.isConnected;
+      state.value.error = null;
+      return globalService;
+    }
+
     const existing = getNamedSocketService(SOFT_SOCKET_NAME);
     if (existing) {
       state.value.usingGlobal = false;
@@ -139,13 +147,15 @@ export function useSoftSocketService() {
     }
   };
 
-  onUnmounted(() => {
-    clearSubscriptions();
-    const named = getNamedSocketService(SOFT_SOCKET_NAME);
-    if (named && !named.isConnected) {
-      closeNamedSocketService(SOFT_SOCKET_NAME);
-    }
-  });
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      clearSubscriptions();
+      const named = getNamedSocketService(SOFT_SOCKET_NAME);
+      if (named && !named.isConnected) {
+        closeNamedSocketService(SOFT_SOCKET_NAME);
+      }
+    });
+  }
 
   return {
     state: computed(() => state.value),

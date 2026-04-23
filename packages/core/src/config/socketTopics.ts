@@ -148,6 +148,8 @@ export const DockerTopics = {
     INSTALL_LOG: "docker.install.log",
     INSTALL_RESULT: "docker.install.result",
     SYNC_RESULT: "docker.sync.result",
+    OPERATION_PROGRESS: "docker.operation.progress",
+    OPERATION_RESULT: "docker.operation.result",
   },
 } as const;
 
