@@ -4,12 +4,14 @@
     class="table-container"
     :class="[
       `theme--${theme}`,
+      resolvedSkin ? `skin--${resolvedSkin}` : '',
       {
         'cross-highlight-enabled': config.crossHighlight && config.border,
         'is-draggable': draggable,
         'has-horizontal-overflow': hasHorizontalOverflow,
       },
     ]"
+    :data-skin="resolvedSkin || undefined"
     :style="tableContainerStyle"
     @contextmenu.prevent="handleTableContextMenu"
   >
@@ -187,6 +189,7 @@ import {
   reactive,
   defineComponent,
   h,
+  useAttrs,
 } from "vue";
 import { ElTable, ElTableColumn } from "element-plus";
 import Sortable from "sortablejs";
@@ -306,6 +309,7 @@ const props = defineProps({
   columnMeta: { type: Array, default: () => [] },
   tableId: { type: String, default: "" },
 });
+const attrs = useAttrs();
 
 const emit = defineEmits([
   "row-click",
@@ -476,6 +480,24 @@ const tableContainerStyle = computed(() => ({
   ...crossHighlightCssVars.value,
   "--sc-table-header-offset": `${tableHeaderOffset.value}px`,
 }));
+
+const resolvedSkin = computed(() => {
+  const attrSkin = attrs["data-skin"];
+  if (typeof attrSkin === "string" && attrSkin.trim()) {
+    return attrSkin.trim().toLowerCase();
+  }
+  if (typeof document !== "undefined") {
+    const htmlSkin = document.documentElement?.getAttribute("data-skin");
+    if (htmlSkin) {
+      return htmlSkin.trim().toLowerCase();
+    }
+    const bodySkin = document.body?.getAttribute("data-skin");
+    if (bodySkin) {
+      return bodySkin.trim().toLowerCase();
+    }
+  }
+  return "";
+});
 
 const onRowClick = (row, column, event) => {
   emit("row-click", row, column, event);
@@ -1181,6 +1203,61 @@ defineExpose({
 
     :deep(.el-table__empty-text) {
       color: var(--el-text-color-secondary);
+    }
+  }
+
+  &[data-skin="tech"],
+  &.skin--tech,
+  &[data-skin="cyber"],
+  &.skin--cyber {
+    --sc-tech-line: rgba(48, 226, 217, 0.28);
+    --sc-tech-line-strong: rgba(67, 243, 238, 0.62);
+    --sc-tech-bg: linear-gradient(180deg, rgba(8, 20, 34, 0.92), rgba(5, 14, 24, 0.96));
+    --sc-tech-header: linear-gradient(180deg, rgba(10, 30, 48, 0.96), rgba(9, 24, 38, 0.96));
+    --sc-tech-hover: rgba(66, 245, 230, 0.09);
+    --sc-tech-stripe: rgba(255, 255, 255, 0.02);
+    --sc-tech-text: #d9f7ff;
+    --sc-tech-sub: rgba(168, 221, 235, 0.78);
+    --sc-tech-glow: 0 0 0 1px rgba(66, 245, 230, 0.1) inset, 0 0 24px rgba(66, 245, 230, 0.08);
+
+    :deep(.el-table) {
+      color: var(--sc-tech-text);
+      background: transparent;
+      box-shadow: var(--sc-tech-glow);
+
+      &::before,
+      .el-table__inner-wrapper::before,
+      .el-table__border-left-patch {
+        background: var(--sc-tech-line) !important;
+      }
+
+      th.el-table__cell {
+        color: var(--sc-tech-sub);
+        background: var(--sc-tech-header) !important;
+        border-bottom-color: var(--sc-tech-line) !important;
+      }
+
+      td.el-table__cell {
+        color: var(--sc-tech-text);
+        background: rgba(8, 18, 30, 0.88);
+        border-bottom-color: var(--sc-tech-line) !important;
+      }
+
+      .el-table__row--striped td.el-table__cell {
+        background: rgba(255, 255, 255, 0.025);
+      }
+
+      .el-table__body tr:hover > td.el-table__cell {
+        background: var(--sc-tech-hover) !important;
+      }
+
+      &.el-table--border .el-table__cell {
+        border-right-color: var(--sc-tech-line) !important;
+      }
+    }
+
+    :deep(.el-pagination) {
+      color: var(--sc-tech-sub);
     }
   }
 }

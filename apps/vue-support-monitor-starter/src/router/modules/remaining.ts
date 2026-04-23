@@ -20,7 +20,7 @@ export default [
     meta: {
       icon: "ri:dashboard-3-line",
       title: "节点监控大屏",
-      showLink: false,
+      showLink: false,n
     },
   },
   {

@@ -324,10 +324,12 @@ const syncTaskCenterOverlays = () => {
       progressLabel: getStepLabel(task),
       progressSecondary: formatElapsed(task.startedAt, task.endedAt),
       showPercent: task.showPercent,
+      minimizeable: true,
       closeable: task.closeable,
       autoClose: task.autoClose,
       autoCloseDelay: task.autoCloseDelay,
       onOpen: () => openTask(task.id),
+      onMinimize: () => dismissTaskCenterTask(task.id),
       onClose: () => dismissTaskCenterTask(task.id),
     });
   });

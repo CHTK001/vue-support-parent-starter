@@ -46,6 +46,7 @@ export interface OverlayStackItem {
   progressLabel?: string;
   progressSecondary?: string;
   showPercent?: boolean;
+  minimizeable?: boolean;
   closeable?: boolean;
   autoClose?: boolean;
   autoCloseDelay?: number;
@@ -60,6 +61,7 @@ export interface ResolvedOverlayStackItem extends OverlayStackItem {
   messages: OverlayStackMessage[];
   progress: number | null;
   showPercent: boolean;
+  minimizeable: boolean;
   closeable: boolean;
   autoClose: boolean;
   autoCloseDelay: number;

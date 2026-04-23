@@ -301,11 +301,20 @@ export interface ServerProcessView {
   name?: string;
   command?: string;
   commandLine?: string;
+  /**
+   * 进程描述（Windows 常见：文件描述 / 产品名等；Linux 可为空）
+   */
+  description?: string;
   user?: string;
   state?: string;
   cpuPercent?: number;
   memoryPercent?: number;
+  /**
+   * I/O 总速率（bytes/s），可由采集端合并读写得到；无则不展示
+   */
+  ioBytesPerSecond?: number;
   memoryBytes?: number;
+  handleCount?: number;
   threadCount?: number;
   elapsed?: string;
   startTime?: string;
@@ -331,6 +340,17 @@ export interface ServerProcessAiAdvice {
   suggestion?: string;
   provider?: string;
   model?: string;
+}
+
+export interface ServerPortSearchResult {
+  serverId?: number;
+  port?: number;
+  protocol?: string;
+  state?: string;
+  pid?: number | null;
+  processName?: string;
+  serviceName?: string;
+  message?: string;
 }
 
 export interface ServerProcessRealtimePayload {

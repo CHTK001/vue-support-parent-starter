@@ -2,9 +2,12 @@ import { getConfig } from "@repo/config";
 import type {
   DockerContainerConfigUpdateRequest,
   DockerContainerConfigUpdateResult,
+  DockerContainerTemplate,
   DockerContainerExecRequest,
   DockerContainerView,
   DockerDashboardSummaryView,
+  DockerHostRegisterRequest,
+  DockerHostRegisterView,
   DockerImageExportRequest,
   DockerImageImportRequest,
   DockerImagePullRequest,
@@ -147,6 +150,14 @@ export const getDockerServerConnection = (serverId: number) =>
   request<DockerServerConnectionConfig>("GET", `${dockerBase}/server-connections/${serverId}`);
 
 /**
+ * 根据解密后的 ticket 主机信息登记 Docker 主机配置。
+ */
+export const registerDockerHost = (data: DockerHostRegisterRequest) =>
+  request<DockerHostRegisterView>("POST", `${dockerBase}/server-connections/register-host`, {
+    data,
+  });
+
+/**
  * 保存单个服务器 Docker 连接配置。
  */
 export const saveDockerServerConnection = (
@@ -231,6 +242,37 @@ export const deleteDockerRegistry = (id: number) =>
   request<boolean>("DELETE", `${dockerBase}/registries/${id}`);
 
 /**
+ * 查询容器启动模板列表。
+ */
+export const listDockerContainerTemplates = (params?: {
+  serverId?: number;
+  registryId?: number;
+  keyword?: string;
+  enabled?: boolean;
+}) =>
+  request<DockerContainerTemplate[]>("GET", `${dockerBase}/container-templates`, {
+    query: params,
+  });
+
+/**
+ * 新增容器启动模板。
+ */
+export const createDockerContainerTemplate = (data: DockerContainerTemplate) =>
+  request<DockerContainerTemplate>("POST", `${dockerBase}/container-templates`, { data });
+
+/**
+ * 更新容器启动模板。
+ */
+export const updateDockerContainerTemplate = (id: number, data: DockerContainerTemplate) =>
+  request<DockerContainerTemplate>("PUT", `${dockerBase}/container-templates/${id}`, { data });
+
+/**
+ * 删除容器启动模板。
+ */
+export const deleteDockerContainerTemplate = (id: number) =>
+  request<boolean>("DELETE", `${dockerBase}/container-templates/${id}`);
+
+/**
  * 查询挂载列表。
  */
 export const listDockerMounts = (params?: {
@@ -247,18 +289,6 @@ export const listDockerMounts = (params?: {
  */
 export const createDockerMount = (data: DockerMount) =>
   request<DockerMount>("POST", `${dockerBase}/mounts`, { data });
-
-/**
- * 更新挂载。
- */
-export const updateDockerMount = (id: number, data: DockerMount) =>
-  request<DockerMount>("PUT", `${dockerBase}/mounts/${id}`, { data });
-
-/**
- * 删除挂载。
- */
-export const deleteDockerMount = (id: number) =>
-  request<boolean>("DELETE", `${dockerBase}/mounts/${id}`);
 
 /**
  * 查询网络列表。
@@ -279,18 +309,6 @@ export const createDockerNetwork = (data: DockerNetwork) =>
   request<DockerNetwork>("POST", `${dockerBase}/networks`, { data });
 
 /**
- * 更新网络。
- */
-export const updateDockerNetwork = (id: number, data: DockerNetwork) =>
-  request<DockerNetwork>("PUT", `${dockerBase}/networks/${id}`, { data });
-
-/**
- * 删除网络。
- */
-export const deleteDockerNetwork = (id: number) =>
-  request<boolean>("DELETE", `${dockerBase}/networks/${id}`);
-
-/**
  * 创建安装任务（支持 Dockerfile）。
  */
 export const createDockerInstallation = (data: DockerInstallRequest) =>
@@ -307,6 +325,7 @@ export const getDockerInstallation = (taskId: string) =>
  */
 export const listDockerContainers = (params?: {
   serverId?: number;
+  serverDockerId?: number;
   registryId?: number;
   keyword?: string;
 }) =>
@@ -322,6 +341,20 @@ export const execDockerContainer = (
   data: DockerContainerExecRequest,
 ) =>
   request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/exec`, { data });
+
+export const startDockerContainer = (containerId: string) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/start`);
+
+export const stopDockerContainer = (containerId: string) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/stop`);
+
+export const restartDockerContainer = (containerId: string) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/restart`);
+
+export const deleteDockerContainer = (containerId: string, force = true) =>
+  request<DockerOperationTicket>("DELETE", `${dockerBase}/containers/${containerId}`, {
+    query: { force },
+  });
 
 /**
  * 更新容器配置。
@@ -341,6 +374,7 @@ export const updateDockerContainerConfig = (
  */
 export const listDockerImages = (params?: {
   serverId?: number;
+  serverDockerId?: number;
   registryId?: number;
   keyword?: string;
 }) =>
@@ -365,3 +399,12 @@ export const importDockerImage = (data: DockerImageImportRequest) =>
  */
 export const exportDockerImage = (data: DockerImageExportRequest) =>
   request<DockerOperationTicket>("POST", `${dockerBase}/images/export`, { data });
+
+export const deleteDockerImage = (imageId: string, params: {
+  serverId?: number;
+  serverDockerId?: number;
+  force?: boolean;
+}) =>
+  request<DockerOperationTicket>("DELETE", `${dockerBase}/images/${imageId}`, {
+    query: params,
+  });

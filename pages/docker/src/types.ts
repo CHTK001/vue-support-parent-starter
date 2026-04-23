@@ -66,6 +66,15 @@ export interface DockerSyncScheduleView {
 export interface DockerServerConnectionConfig {
   serverDockerId?: number;
   serverId: number;
+  serverHostCode?: string;
+  serverName?: string;
+  serverType?: string;
+  serverOsType?: string;
+  serverHost?: string;
+  serverPort?: number;
+  serverUsername?: string;
+  serverPassword?: string;
+  serverPrivateKey?: string;
   connectionType?: "api" | "local" | "ssh" | "winrm" | string;
   dockerHost?: string;
   dockerPort?: number;
@@ -164,10 +173,32 @@ export interface DockerRegistry {
 }
 
 /**
+ * Docker 容器启动模板。
+ */
+export interface DockerContainerTemplate {
+  dockerContainerTemplateId?: number;
+  serverId: number;
+  registryId?: number;
+  templateName: string;
+  boundContainerId?: string;
+  containerName?: string;
+  imageName?: string;
+  imageTag?: string;
+  envJson?: string;
+  portMappingsJson?: string;
+  volumeBindingsJson?: string;
+  networkName?: string;
+  commandLine?: string;
+  cpuLimit?: string;
+  memoryLimit?: string;
+  enabled?: boolean;
+  metadataJson?: string;
+}
+
+/**
  * Docker 挂载对象。
  */
 export interface DockerMount {
-  dockerMountId?: number;
   serverId: number;
   mountName?: string;
   hostPath: string;
@@ -183,7 +214,6 @@ export interface DockerMount {
  * Docker 网络对象。
  */
 export interface DockerNetwork {
-  dockerNetworkId?: number;
   serverId: number;
   networkName: string;
   driver?: string;
@@ -200,6 +230,7 @@ export interface DockerNetwork {
  * 安装挂载输入。
  */
 export interface DockerInstallMountInput {
+  /** 历史兼容字段，实时模型下不再使用 */
   mountId?: number;
   hostPath?: string;
   containerPath?: string;
@@ -211,6 +242,7 @@ export interface DockerInstallMountInput {
  * 安装网络输入。
  */
 export interface DockerInstallNetworkInput {
+  /** 历史兼容字段，实时模型下不再使用 */
   networkId?: number;
   networkName?: string;
   driver?: string;
@@ -265,6 +297,7 @@ export interface DockerInstallTaskTicket {
 export interface DockerContainerView {
   containerId: string;
   serverId?: number;
+  serverDockerId?: number;
   containerName?: string;
   imageName?: string;
   imageTag?: string;
@@ -312,6 +345,7 @@ export interface DockerContainerConfigUpdateResult {
 export interface DockerImageView {
   imageId: string;
   serverId?: number;
+  serverDockerId?: number;
   registryId?: number;
   imageName?: string;
   imageTag?: string;
@@ -325,6 +359,7 @@ export interface DockerImageView {
  */
 export interface DockerImagePullRequest {
   serverId: number;
+  serverDockerId?: number;
   registryId?: number;
   imageName: string;
   imageTag?: string;
@@ -335,6 +370,7 @@ export interface DockerImagePullRequest {
  */
 export interface DockerImageImportRequest {
   serverId: number;
+  serverDockerId?: number;
   archivePath: string;
   imageName?: string;
   imageTag?: string;
@@ -345,8 +381,31 @@ export interface DockerImageImportRequest {
  */
 export interface DockerImageExportRequest {
   serverId: number;
+  serverDockerId?: number;
   imageId: string;
   outputPath: string;
+}
+
+export interface DockerHostRegisterRequest {
+  serverId?: number;
+  serverName?: string;
+  serverType?: string;
+  osType?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  privateKey?: string;
+  metadataJson?: string;
+  issuedAt?: number;
+}
+
+export interface DockerHostRegisterView {
+  serverDockerId: number;
+  serverId?: number;
+  serverHostCode?: string;
+  connection?: DockerServerConnectionConfig | null;
+  capability?: DockerServerConnectionProbeView | null;
 }
 
 /**
@@ -419,6 +478,10 @@ export interface TaskDialogModel {
   imageName?: string;
   imageTag?: string;
   summaryItems?: TaskDialogSummaryItem[];
+  errorSummary?: string;
+  logs?: string[];
+  retryable?: boolean;
+  retryLabel?: string;
   createdAt?: number;
   updatedAt?: number;
   steps?: TaskDialogStep[];
@@ -484,6 +547,17 @@ export interface DockerRealtimePayload {
   line?: string;
   finished?: boolean;
   detail?: unknown;
+}
+
+/**
+ * Docker 实时事件外层包装。
+ */
+export interface DockerRealtimeEnvelope {
+  module?: string;
+  event?: string;
+  dataId?: string | number;
+  data?: DockerRealtimePayload | null;
+  timestamp?: number;
 }
 
 export type DockerResult<T> = ReturnResult<T>;

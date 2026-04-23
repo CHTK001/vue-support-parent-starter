@@ -19,6 +19,7 @@ import type {
   ServerHostSummary,
   ServerProcessAiAdvice,
   ServerProcessCommandResult,
+  ServerPortSearchResult,
   ServerProcessView,
   ServerRemoteConsoleConfig,
   ServerRemoteGatewaySettings,
@@ -300,6 +301,8 @@ export const listServerHostProcesses = (
   params?: {
     keyword?: string;
     limit?: number;
+    sortKey?: "cpu" | "memory" | "pid" | "name" | "elapsed";
+    sortOrder?: "asc" | "desc";
   },
 ) =>
   request<ServerProcessView[]>("GET", `${hostsBase}/${id}/processes`, {
@@ -327,6 +330,21 @@ export const analyzeServerHostProcess = (id: number, pid: number) =>
     "POST",
     `${hostsBase}/${id}/processes/${pid}/ai-analyze`,
   );
+
+export const searchServerPort = (serverId: number, port: number) =>
+  request<ServerPortSearchResult[]>("GET", "/v1/gen/server/port/search", {
+    query: { serverId, port },
+  });
+
+export const closeServerPort = (serverId: number, port: number) =>
+  request<boolean>("POST", "/v1/gen/server/port/close", {
+    query: { serverId, port },
+  });
+
+export const forceManageServerPort = (serverId: number, port: number) =>
+  request<boolean>("POST", "/v1/gen/server/port/force-manage", {
+    query: { serverId, port },
+  });
 
 export const getServerHostAlertSettings = (id: number) =>
   request<ServerAlertSettings>("GET", `${hostsBase}/${id}/alert-settings`);

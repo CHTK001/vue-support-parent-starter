@@ -13,6 +13,7 @@ const {
   mockThemeStoreState,
   mockThemeSectionComponents,
   mockMessage,
+  mockFormatSize,
   mockHttpRequest,
   mockStorageLocalApi,
 } = vi.hoisted(() => {
@@ -150,6 +151,7 @@ const {
     error: vi.fn(),
     warning: vi.fn(),
   };
+  const mockFormatSize = vi.fn((value: number) => `${value} B`);
 
   const mockHttpRequest = vi.fn();
 
@@ -175,6 +177,7 @@ const {
     mockThemeStoreState,
     mockThemeSectionComponents,
     mockMessage,
+    mockFormatSize,
     mockHttpRequest,
     mockStorageLocalApi,
   };
@@ -220,6 +223,7 @@ vi.mock("@pureadmin/utils", () => {
 vi.mock("@repo/utils", () => ({
   aesEncrypt: (val: string) => val,
   aesDecrypt: (val: string) => val,
+  formatSize: mockFormatSize,
   withInstall: (comp: any) => comp,
   http: {
     request: mockHttpRequest,
@@ -248,6 +252,14 @@ const indexedDBMock = {
   deleteDatabase: vi.fn(),
 };
 vi.stubGlobal("indexedDB", indexedDBMock);
+vi.stubGlobal(
+  "IntersectionObserver",
+  class MockIntersectionObserver {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  },
+);
 
 // Mock hooks
 vi.mock("../../../../hooks/useNav", () => ({
@@ -366,6 +378,7 @@ const stubs = {
   },
   ScSwitch: { template: '<div class="sc-switch"></div>' },
   ScRibbon: { template: "<div></div>" },
+  ScButton: { template: '<button class="sc-button"><slot /></button>' },
   LayThemeSwitcher: { template: "<div></div>" },
   ElButton: { template: '<button class="el-button"><slot /></button>' },
   ElInput: { template: '<input class="el-input" />' },

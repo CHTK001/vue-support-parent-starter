@@ -37,16 +37,16 @@
             v-if="draft.serverId"
             label="继承全局策略"
           >
-            <el-switch v-model="draft.inheritGlobal" />
+            <ScSwitch v-model="draft.inheritGlobal" />
           </el-form-item>
           <el-form-item label="启用采集">
-            <el-switch
+            <ScSwitch
               v-model="draft.enabled"
               :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
             />
           </el-form-item>
           <el-form-item label="缓存快照">
-            <el-switch
+            <ScSwitch
               v-model="draft.cacheEnabled"
               :disabled="draft.inheritGlobal === true && Boolean(draft.serverId)"
             />
@@ -223,6 +223,7 @@
 <script setup lang="ts">
 import { reactive, watch } from "vue";
 import ScInput from "@repo/components/ScInput/index.vue";
+import ScSwitch from "@repo/components/ScSwitch/index.vue";
 import type {
   ServerMetricsTaskSettings,
   ServerMetricsTaskSettingsRequest,

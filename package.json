@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.11.0",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
     "dev:iconify": "node ./scripts/iconify-run.mjs",
     "lint": "turbo lint",

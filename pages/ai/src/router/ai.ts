@@ -4,14 +4,12 @@ import { getConfig } from "@repo/config";
 const showAiChat = getConfig("ShowAiChat") ?? false;
 
 const loadAiHomePage = async () => (await import("../index.vue")).default;
-const loadLlmNewIndex = async () =>
-  (await import("../views/ai/llm-new/index.vue")).default;
-const loadVincentIndex = async () =>
-  (await import("../views/ai/generation/index.vue")).default;
-const loadImageDetectIndex = async () =>
-  (await import("../views/ai/image/detect/index.vue")).default;
-const loadVideoIndex = async () =>
-  (await import("../views/ai/video/index.vue")).default;
+const loadSettingsIndex = async () =>
+  (await import("../views/ai/settings/index.vue")).default;
+const loadChatIndex = async () => (await import("../views/ai/chat/index.vue")).default;
+const loadImageIndex = async () => (await import("../views/ai/image/index.vue")).default;
+const loadVideoIndex = async () => (await import("../views/ai/video/index.vue")).default;
+const loadFaceIndex = async () => (await import("../views/ai/face/index.vue")).default;
 const loadColorizationIndex = async () =>
   (await import("../views/ai/colorization/index.vue")).default;
 const loadResolutionIndex = async () =>
@@ -39,141 +37,94 @@ export default [
         },
       },
       {
-        path: "/ai/llm",
-        name: "ProjectAiLlm",
-        component: loadLlmNewIndex,
+        path: "/ai/settings",
+        name: "AiSettings",
         meta: {
-          title: "大语言模型",
+          title: "模型设置",
         },
+        component: loadSettingsIndex,
       },
       {
-        path: "/ai/llm/web",
-        name: "ProjectAiLlmWeb",
-        component: loadLlmNewIndex,
+        path: "/ai/chat",
+        name: "AiChat",
         meta: {
-          title: "大语言模型",
-          showLink: false,
+          title: "聊天",
         },
+        component: loadChatIndex,
       },
       {
-        path: "/ai/vincent",
-        name: "ProjectAiVincent",
-        component: loadVincentIndex,
+        path: "/ai/image",
+        name: "AiImage",
         meta: {
           title: "图像生成",
         },
-      },
-      {
-        path: "/ai/vincent/web",
-        name: "ProjectAiVincentWeb",
-        component: loadVincentIndex,
-        meta: {
-          title: "图像生成",
-          showLink: false,
-        },
-      },
-      {
-        path: "/ai/face/detect",
-        name: "ProjectAiImageDetection",
-        component: loadImageDetectIndex,
-        meta: {
-          title: "人脸检测",
-          showLink: false,
-        },
-      },
-      {
-        path: "/ai/face/detect/web",
-        name: "ProjectAiImageDetectionWeb",
-        component: loadImageDetectIndex,
-        meta: {
-          title: "人脸检测",
-          showLink: false,
-        },
+        component: loadImageIndex,
       },
       {
         path: "/ai/video",
-        name: "ProjectAiVideo",
-        component: loadVideoIndex,
+        name: "AiVideo",
         meta: {
           title: "视频生成",
         },
+        component: loadVideoIndex,
       },
       {
-        path: "/ai/video/web",
-        name: "ProjectAiVideoWeb",
-        component: loadVideoIndex,
+        path: "/ai/face",
+        name: "AiFace",
         meta: {
-          title: "视频生成",
-          showLink: false,
+          title: "人脸检测",
         },
+        component: loadFaceIndex,
       },
       {
         path: "/ai/colorization",
-        name: "ProjectAiColorization",
-        component: loadColorizationIndex,
+        name: "AiColorization",
         meta: {
           title: "图像上色",
         },
-      },
-      {
-        path: "/ai/colorization/web",
-        name: "ProjectAiColorizationWeb",
         component: loadColorizationIndex,
-        meta: {
-          title: "图像上色",
-          showLink: false,
-        },
       },
       {
         path: "/ai/resolution",
-        name: "ProjectAiResolution",
-        component: loadResolutionIndex,
+        name: "AiResolution",
         meta: {
           title: "图像分辨率增强",
         },
-      },
-      {
-        path: "/ai/resolution/web",
-        name: "ProjectAiResolutionWeb",
         component: loadResolutionIndex,
-        meta: {
-          title: "图像分辨率增强",
-          showLink: false,
-        },
       },
     ],
   },
   {
     path: "/project/llm",
-    redirect: "/ai/llm/web",
+    redirect: "/ai/chat",
   },
   {
     path: "/project/generation",
-    redirect: "/ai/vincent/web",
+    redirect: "/ai/image",
   },
   {
     path: "/project/ai/llm",
-    redirect: "/ai/llm",
+    redirect: "/ai/chat",
   },
   {
     path: "/project/ai/llm/web",
-    redirect: "/ai/llm/web",
+    redirect: "/ai/chat",
   },
   {
     path: "/project/ai/vincent",
-    redirect: "/ai/vincent",
+    redirect: "/ai/image",
   },
   {
     path: "/project/ai/vincent/web",
-    redirect: "/ai/vincent/web",
+    redirect: "/ai/image",
   },
   {
     path: "/project/ai/face/detect",
-    redirect: "/ai/face/detect",
+    redirect: "/ai/face",
   },
   {
     path: "/project/ai/face/detect/web",
-    redirect: "/ai/face/detect/web",
+    redirect: "/ai/face",
   },
   {
     path: "/project/ai/video",
@@ -181,7 +132,7 @@ export default [
   },
   {
     path: "/project/ai/video/web",
-    redirect: "/ai/video/web",
+    redirect: "/ai/video",
   },
   {
     path: "/project/ai/colorization",
@@ -189,7 +140,7 @@ export default [
   },
   {
     path: "/project/ai/colorization/web",
-    redirect: "/ai/colorization/web",
+    redirect: "/ai/colorization",
   },
   {
     path: "/project/ai/resolution",
@@ -197,6 +148,42 @@ export default [
   },
   {
     path: "/project/ai/resolution/web",
-    redirect: "/ai/resolution/web",
+    redirect: "/ai/resolution",
+  },
+  {
+    path: "/ai/llm",
+    redirect: "/ai/chat",
+  },
+  {
+    path: "/ai/llm/web",
+    redirect: "/ai/chat",
+  },
+  {
+    path: "/ai/vincent",
+    redirect: "/ai/image",
+  },
+  {
+    path: "/ai/vincent/web",
+    redirect: "/ai/image",
+  },
+  {
+    path: "/ai/face/detect",
+    redirect: "/ai/face",
+  },
+  {
+    path: "/ai/face/detect/web",
+    redirect: "/ai/face",
+  },
+  {
+    path: "/ai/video/web",
+    redirect: "/ai/video",
+  },
+  {
+    path: "/ai/colorization/web",
+    redirect: "/ai/colorization",
+  },
+  {
+    path: "/ai/resolution/web",
+    redirect: "/ai/resolution",
   },
 ] satisfies Array<RouteConfigsTable>;

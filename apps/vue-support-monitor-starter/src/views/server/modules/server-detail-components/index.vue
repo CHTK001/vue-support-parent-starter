@@ -37,6 +37,10 @@
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </ScButton>
+        <ScButton type="primary" plain size="small" @click="openPortSearch">
+          <IconifyIconOnline icon="ri:plug-2-line" class="mr-1" />
+          添加端口
+        </ScButton>
         <ScButton
           type="primary"
           :loading="loading"
@@ -117,6 +121,78 @@
       :server-id="serverId"
       @managed="handleComponentsManaged"
     />
+
+    <!-- 添加端口：搜索与管理 -->
+    <sc-dialog
+      v-model="portDialogVisible"
+      title="端口搜索"
+      width="760px"
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <div class="port-search">
+        <div class="port-search__bar">
+          <ScInput
+            v-model="portKeyword"
+            placeholder="输入端口号（例如 80 / 443 / 3306）"
+            clearable
+            @keyup.enter="runPortSearch"
+          >
+            <template #prefix>
+              <IconifyIconOnline icon="ri:search-line" />
+            </template>
+          </ScInput>
+          <ScButton type="primary" :loading="portLoading" @click="runPortSearch">
+            搜索
+          </ScButton>
+        </div>
+
+        <div class="port-search__result">
+          <ScEmpty
+            v-if="!portLoading && portResults.length === 0"
+            description="暂无搜索结果"
+          />
+          <ScTable v-else :data="portResults" style="width: 100%">
+            <ScTableColumn prop="port" label="端口" width="100" />
+            <ScTableColumn prop="protocol" label="协议" width="90" />
+            <ScTableColumn prop="state" label="状态" width="120" />
+            <ScTableColumn prop="processName" label="进程" min-width="160" />
+            <ScTableColumn prop="serviceName" label="服务" min-width="160" />
+            <ScTableColumn label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <ScTooltip content="关闭" placement="top">
+                  <ScButton
+                    circle
+                    size="small"
+                    type="danger"
+                    plain
+                    @click="closePort(row)"
+                  >
+                    <IconifyIconOnline icon="ep:close" />
+                  </ScButton>
+                </ScTooltip>
+                <ScTooltip content="强制管理" placement="top">
+                  <ScButton
+                    circle
+                    size="small"
+                    type="warning"
+                    plain
+                    class="ml-2"
+                    @click="forceManagePort(row)"
+                  >
+                    <IconifyIconOnline icon="ri:shield-star-line" />
+                  </ScButton>
+                </ScTooltip>
+              </template>
+            </ScTableColumn>
+          </ScTable>
+        </div>
+      </div>
+
+      <template #footer>
+        <ScButton @click="portDialogVisible = false">关闭</ScButton>
+      </template>
+    </sc-dialog>
   </div>
 </template>
 
@@ -127,6 +203,10 @@ import {
   getEnabledServerDetailComponents,
   getServerInfo,
   initDefaultComponentsForServerDetail,
+  closeServerPort,
+  forceManageServerPort,
+  searchServerPort,
+  type ServerPortSearchResult,
   type ServerComponent,
   type ServerDisplayData,
 } from "@/api/server";
@@ -156,6 +236,12 @@ const editMode = ref(false);
 const serverInfo = ref<ServerDisplayData & any>();
 const components = ref<ServerComponent[]>([]);
 const layout = ref<any[]>([]);
+
+// 端口搜索
+const portDialogVisible = ref(false);
+const portKeyword = ref("");
+const portLoading = ref(false);
+const portResults = ref<ServerPortSearchResult[]>([]);
 
 // 引用
 const componentEditDialogRef = ref();
@@ -217,6 +303,55 @@ const getStatusText = (status?: string) => {
     ERROR: "错误",
   };
   return textMap[status || ""] || "未知";
+};
+
+const openPortSearch = () => {
+  portDialogVisible.value = true;
+  portKeyword.value = "";
+  portResults.value = [];
+};
+
+const runPortSearch = async () => {
+  const port = Number(String(portKeyword.value || "").trim());
+  if (!Number.isFinite(port) || port <= 0) {
+    message.warning("请输入合法端口号");
+    return;
+  }
+  try {
+    portLoading.value = true;
+    const res = await searchServerPort(props.serverId, port);
+    portResults.value = res?.data || [];
+    if (!portResults.value.length) {
+      message.info("未搜索到结果");
+    }
+  } catch (e: any) {
+    console.error(e);
+    portResults.value = [];
+    message.error(e?.msg || e?.message || "端口搜索失败");
+  } finally {
+    portLoading.value = false;
+  }
+};
+
+const closePort = async (row: ServerPortSearchResult) => {
+  try {
+    await closeServerPort(props.serverId, row.port);
+    portResults.value = portResults.value.filter((item) => item.port !== row.port);
+    message.success("已受理关闭端口");
+  } catch (e: any) {
+    console.error(e);
+    message.error(e?.msg || e?.message || "关闭失败");
+  }
+};
+
+const forceManagePort = async (row: ServerPortSearchResult) => {
+  try {
+    await forceManageServerPort(props.serverId, row.port);
+    message.success("已受理强制管理");
+  } catch (e: any) {
+    console.error(e);
+    message.error(e?.msg || e?.message || "操作失败");
+  }
 };
 
 /**

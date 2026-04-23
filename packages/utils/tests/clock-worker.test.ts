@@ -69,7 +69,7 @@ describe("shared clock worker", () => {
 
   it("falls back to a timer when Worker is unavailable", () => {
     vi.useFakeTimers();
-    vi.unstubAllGlobals();
+    vi.stubGlobal("Worker", undefined);
     __resetClockRuntimeForTests();
 
     const ticks: number[] = [];

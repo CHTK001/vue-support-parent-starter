@@ -1069,7 +1069,6 @@ import {
 import {
   createSoftRepositorySource,
   createSoftPackageVersion,
-  createSoftTarget,
   createSoftPackage,
   deleteSoftPackage,
   deleteSoftRepositorySource,
@@ -1083,6 +1082,7 @@ import {
   listSoftRepositories,
   searchSoftRepositoryPackages,
   listSoftTargets,
+  registerSoftTargetHost,
   updateSoftPackage,
   updateSoftRepositorySource,
   updateSoftPackageVersion,
@@ -3815,8 +3815,8 @@ const ensureSoftTargetForHost = async (host: ServerHost) => {
     return existing.softTargetId;
   }
   const payload = buildSoftTargetPayload(host);
-  const result = await createSoftTarget(payload);
-  const saved = result.data;
+  const result = await registerSoftTargetHost(payload);
+  const saved = result.data?.target;
   if (!saved?.softTargetId) {
     throw new Error("创建软目标失败");
   }

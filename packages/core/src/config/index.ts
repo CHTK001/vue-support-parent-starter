@@ -17,6 +17,7 @@ export {
   type SocketTemplateListenOptions,
   type SocketMessage,
   type SocketTemplate,
+  type WsMessage,
 } from "./socketTemplate";
 
 // Socket 工具函数

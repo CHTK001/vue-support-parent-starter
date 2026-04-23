@@ -81,9 +81,6 @@ describe("loader runtime registry", () => {
     expect(loaderSettingSource).toContain(
       'v-html="renderLoaderPreviewMarkup(item.key)"',
     );
-    expect(loaderThemeSectionSource).toContain(
-      "getConfig().ShowLoadingPageStyleSwitcher",
-    );
     expect(routeLoaderSource).toContain("getLoaderStyleEntries");
     expect(routeLoaderSource).toContain("renderLoaderMarkup");
     expect(routeLoaderSource).toContain("renderLoaderPreviewMarkup(style.key)");

@@ -16,7 +16,7 @@ export default {
     height: { type: String, default: "100%" },
     width: { type: String, default: "100%" },
     nodata: { type: Boolean, default: false },
-    option: { type: Object, default: () => {} }
+    option: { type: Object, default: () => ({}) }
   },
   setup() {
     const isDark = ref(false);
@@ -54,7 +54,8 @@ export default {
     return {
       isActivat: false,
       myChart: null,
-      resizeHandler: null
+      resizeHandler: null,
+      resizeObserver: null
     };
   },
   computed: {
@@ -110,6 +111,10 @@ export default {
     if (this.resizeHandler) {
       window.removeEventListener("resize", this.resizeHandler);
     }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     // 销毁 echarts 实例
     if (this.myChart) {
       this.myChart.dispose();
@@ -124,6 +129,27 @@ export default {
       // 保存引用以便清理
       this.resizeHandler = () => myChart.resize();
       window.addEventListener("resize", this.resizeHandler);
+
+      // 容器初次渲染可能是 0x0（例如在 Dialog / Grid / Loading 里），需要监听尺寸变化并触发 resize
+      if (typeof ResizeObserver !== "undefined") {
+        this.resizeObserver = new ResizeObserver(() => {
+          try {
+            unwarp(this.myChart)?.resize();
+          } catch (e) {
+            // ignore
+          }
+        });
+        this.resizeObserver.observe(this.$refs.scEcharts);
+      }
+
+      // 再补一次延迟 resize，兜底解决初次布局未完成导致的空白
+      setTimeout(() => {
+        try {
+          unwarp(this.myChart)?.resize();
+        } catch (e) {
+          // ignore
+        }
+      }, 60);
     },
     getGlobalColors() {
       const style = getComputedStyle(document.documentElement);

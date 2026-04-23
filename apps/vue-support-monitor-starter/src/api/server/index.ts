@@ -73,6 +73,20 @@ export interface ServerInfo {
 }
 
 /**
+ * 端口搜索结果（服务器详情-端口管理）
+ */
+export interface ServerPortSearchResult {
+  serverId: number;
+  port: number;
+  protocol?: string;
+  state?: string;
+  pid?: number | null;
+  processName?: string;
+  serviceName?: string;
+  message?: string;
+}
+
+/**
  * 服务器分页查询参数
  */
 export interface ServerPageParams {
@@ -437,6 +451,41 @@ export function getServerInfo(id: string) {
   return http.request<ReturnResult<ServerInfo>>("get", "v1/gen/server/info", {
     params: { id },
   });
+}
+
+/**
+ * 搜索端口（服务器详情-添加端口）
+ */
+export function searchServerPort(serverId: number, port: number) {
+  return http.request<ReturnResult<ServerPortSearchResult[]>>(
+    "get",
+    "v1/gen/server/port/search",
+    {
+      params: { serverId, port },
+    },
+  );
+}
+
+/**
+ * 关闭端口（结果项操作）
+ */
+export function closeServerPort(serverId: number, port: number) {
+  return http.request<ReturnResult<boolean>>("post", "v1/gen/server/port/close", {
+    params: { serverId, port },
+  });
+}
+
+/**
+ * 强制管理端口（结果项操作）
+ */
+export function forceManageServerPort(serverId: number, port: number) {
+  return http.request<ReturnResult<boolean>>(
+    "post",
+    "v1/gen/server/port/force-manage",
+    {
+      params: { serverId, port },
+    },
+  );
 }
 
 /**

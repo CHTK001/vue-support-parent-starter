@@ -287,6 +287,15 @@ function topRows(map: Map<string, number>, limit = 6): RankRow[] {
   }));
 }
 
+function recordToMap(raw?: Record<string, number>): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const [key, value] of Object.entries(raw || {})) {
+    if (!key) continue;
+    map.set(key, Number(value || 0));
+  }
+  return map;
+}
+
 function buildDonut(rows: RankRow[], colors: string[]): string {
   if (!rows.length) return "conic-gradient(#404040 0deg 360deg)";
   const total = rows.reduce((sum, row) => sum + row.count, 0) || 1;
@@ -358,6 +367,14 @@ const summaryCards = computed<SummaryCard[]>(() => {
 });
 
 const timelineBuckets = computed(() => {
+  if (metrics.value?.timeline?.length) {
+    return metrics.value.timeline.map((item, index) => ({
+      label: item.label || String(index + 1),
+      total: Number(item.total || 0),
+      blocked: Number(item.blocked || 0),
+      qps: Number(item.qps || 0),
+    }));
+  }
   const bucketSize = 10 * 60 * 1000;
   const sorted = rows.value
     .map((row) => ({ row, time: parseTime(row) }))
@@ -409,6 +426,9 @@ const accessPeak = computed(() => formatCompact(Math.max(0, ...timelineBuckets.v
 const blockedPeak = computed(() => formatCompact(Math.max(0, ...timelineBuckets.value.map((bucket) => bucket.blocked))));
 
 const geoTop = computed(() => {
+  if (metrics.value?.geoStats && Object.keys(metrics.value.geoStats).length) {
+    return topRows(recordToMap(metrics.value.geoStats), 6);
+  }
   const counts = new Map<string, number>();
   for (const row of rows.value) {
     const raw = (row.clientGeo || "").trim();
@@ -419,6 +439,13 @@ const geoTop = computed(() => {
 });
 
 const clientRows = computed(() => {
+  if ((metrics.value?.osStats && Object.keys(metrics.value.osStats).length)
+    || (metrics.value?.browserStats && Object.keys(metrics.value.browserStats).length)) {
+    return [
+      ...topRows(recordToMap(metrics.value.osStats), 5),
+      ...topRows(recordToMap(metrics.value.browserStats), 5),
+    ].slice(0, 10);
+  }
   const counts = new Map<string, number>();
   for (const row of rows.value) {
     counts.set(parseOs(row.userAgent || ""), (counts.get(parseOs(row.userAgent || "")) || 0) + 1);
@@ -430,9 +457,17 @@ const clientRows = computed(() => {
   return [...topRows(counts, 5), ...topRows(browserCounts, 5)].slice(0, 10);
 });
 
-const statusRows = computed(() => topRows(statusCounts.value, 8));
+const statusRows = computed(() => {
+  if (metrics.value?.statusStats && Object.keys(metrics.value.statusStats).length) {
+    return topRows(recordToMap(metrics.value.statusStats), 8);
+  }
+  return topRows(statusCounts.value, 8);
+});
 
 const refererDomainRows = computed(() => {
+  if (metrics.value?.refererDomainStats && Object.keys(metrics.value.refererDomainStats).length) {
+    return topRows(recordToMap(metrics.value.refererDomainStats), 5);
+  }
   const counts = new Map<string, number>();
   for (const row of rows.value) {
     const referer = (row.referer || "").trim();
@@ -444,6 +479,9 @@ const refererDomainRows = computed(() => {
 });
 
 const refererPageRows = computed(() => {
+  if (metrics.value?.refererPageStats && Object.keys(metrics.value.refererPageStats).length) {
+    return topRows(recordToMap(metrics.value.refererPageStats), 5);
+  }
   const counts = new Map<string, number>();
   for (const row of rows.value) {
     const referer = (row.referer || "").trim();
@@ -454,6 +492,9 @@ const refererPageRows = computed(() => {
 });
 
 const hostRows = computed(() => {
+  if (metrics.value?.hostStats && Object.keys(metrics.value.hostStats).length) {
+    return topRows(recordToMap(metrics.value.hostStats), 5);
+  }
   const counts = new Map<string, number>();
   for (const row of rows.value) {
     const host = buildHost(row);
@@ -463,6 +504,9 @@ const hostRows = computed(() => {
 });
 
 const pathRows = computed(() => {
+  if (metrics.value?.pathStats && Object.keys(metrics.value.pathStats).length) {
+    return topRows(recordToMap(metrics.value.pathStats), 5);
+  }
   const counts = new Map<string, number>();
   for (const row of rows.value) {
     const value = buildUrl(row);

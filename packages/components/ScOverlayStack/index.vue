@@ -61,6 +61,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   open: [item: ResolvedOverlayStackItem];
   close: [payload: OverlayStackClosePayload];
+  minimize: [item: ResolvedOverlayStackItem];
   toggleDetails: [payload: { item: ResolvedOverlayStackItem; collapsed: boolean }];
 }>();
 
@@ -88,6 +89,7 @@ const normalizedItems = computed<ResolvedOverlayStackItem[]>(() =>
         ? Math.max(0, Math.min(100, Math.round(item.progress)))
         : null,
     showPercent: item.showPercent ?? true,
+    minimizeable: item.minimizeable ?? false,
     closeable: item.closeable ?? props.closeable,
     autoClose: item.autoClose ?? props.autoClose,
     autoCloseDelay: item.autoCloseDelay ?? props.autoCloseDelay,
@@ -313,7 +315,9 @@ const toggleDetails = (item: ResolvedOverlayStackItem) => {
                   v-if="item.icon"
                   :icon="item.icon"
                 />
-                {{ item.title }}
+                <span class="overlay-stack-card-title-text">
+                  {{ item.title }}
+                </span>
               </span>
               <div class="overlay-stack-card-actions">
                 <button
@@ -329,6 +333,14 @@ const toggleDetails = (item: ResolvedOverlayStackItem) => {
                         : 'ri:arrow-up-s-line'
                     "
                   />
+                </button>
+                <button
+                  v-if="item.minimizeable"
+                  class="overlay-stack-icon-btn"
+                  type="button"
+                  @click.stop="emit('minimize', item)"
+                >
+                  <IconifyIconOnline icon="ri:subtract-line" />
                 </button>
                 <button
                   v-if="item.closeable"
@@ -550,9 +562,21 @@ const toggleDetails = (item: ResolvedOverlayStackItem) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--overlay-stack-card-title);
+}
+
+.overlay-stack-card-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay-stack-card-actions {
+  flex-shrink: 0;
 }
 
 .overlay-stack-card-body,

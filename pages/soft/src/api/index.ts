@@ -34,6 +34,8 @@ import type {
   SoftRealtimeEnvelope,
   SoftRealtimePayload,
   SoftTarget,
+  SoftTargetRegisterRequest,
+  SoftTargetRegisterView,
 } from "./types";
 
 declare global {
@@ -326,6 +328,9 @@ export const listSoftTargets = () =>
 export const createSoftTarget = (data: SoftTarget) =>
   softRequest<SoftTarget>("post", targetsBase, { data });
 
+export const registerSoftTargetHost = (data: SoftTargetRegisterRequest) =>
+  softRequest<SoftTargetRegisterView>("post", `${targetsBase}/register-host`, { data });
+
 export const updateSoftTarget = (id: number, data: SoftTarget) =>
   softRequest<SoftTarget>("put", `${targetsBase}/${id}`, { data });
 
@@ -458,4 +463,6 @@ export type {
   SoftRealtimeEnvelope,
   SoftRealtimePayload,
   SoftTarget,
+  SoftTargetRegisterRequest,
+  SoftTargetRegisterView,
 } from "./types";

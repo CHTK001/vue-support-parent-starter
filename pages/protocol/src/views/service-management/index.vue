@@ -242,6 +242,10 @@
                         >
                           <IconifyIconOnline icon="ri:restart-line" /> 重启
                         </el-dropdown-item>
+                        <el-dropdown-item :command="`terminate-${server.systemServerId}`">
+                          <IconifyIconOnline icon="ri:close-circle-line" style="color: #f59e0b" />
+                          <span style="color: #f59e0b">关闭进程</span>
+                        </el-dropdown-item>
                         <el-dropdown-item :command="`delete-${server.systemServerId}`" divided>
                           <IconifyIconOnline icon="ri:delete-bin-line" style="color: #ef4444" />
                           <span style="color: #ef4444">删除</span>
@@ -298,6 +302,7 @@ import {
   restartSystemServer,
   startSystemServer,
   stopSystemServer,
+  terminateSystemServer,
   type SystemServer,
   type SystemServerStatistics,
 } from "@/api/system-server";
@@ -479,6 +484,23 @@ const restartServer = async (serverId: number) => {
   } finally { actionLoading.value[serverId] = false; }
 };
 
+const terminateServer = async (serverId: number) => {
+  actionLoading.value[serverId] = true;
+  try {
+    await ElMessageBox.confirm(
+      "关闭进程会按端口查找对应进程并终止；如果端口属于当前协议管理进程，会自动回退为停止当前服务实例。是否继续？",
+      "确认关闭进程",
+      { type: "warning" },
+    );
+    const res = await terminateSystemServer(serverId, true);
+    if (res.code === "00000") message(res.data?.message || "关闭进程成功", { type: "success" });
+    else message(res.msg || res.data?.message || "关闭进程失败", { type: "error" });
+    refreshData();
+  } catch (e) {
+    if (e !== "cancel") message("关闭进程失败", { type: "error" });
+  } finally { actionLoading.value[serverId] = false; }
+};
+
 const handleServerAction = (command: any) => {
   if (typeof command === "object" && command) {
     const { type, server } = command;
@@ -489,6 +511,7 @@ const handleServerAction = (command: any) => {
   const [action, id] = command.split("-");
   const serverId = parseInt(id);
   if (action === "restart") restartServer(serverId);
+  if (action === "terminate") terminateServer(serverId);
   if (action === "delete") handleDeleteServer(serverId);
 };
 

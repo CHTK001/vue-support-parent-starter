@@ -120,6 +120,7 @@ const syncTaskCenterOverlays = () => {
       progressLabel: getStepLabel(task),
       progressSecondary: formatElapsed(task.startedAt, task.endedAt),
       showPercent: task.showPercent,
+      minimizeable: true,
       closeable: task.closeable,
       autoClose: task.autoClose,
       autoCloseDelay: task.autoCloseDelay,
@@ -127,6 +128,7 @@ const syncTaskCenterOverlays = () => {
         state.selectedTaskId = task.id;
         state.panelVisible = true;
       },
+      onMinimize: () => dismissTaskCenterTask(task.id),
       onClose: () => dismissTaskCenterTask(task.id),
     });
   });
