@@ -201,6 +201,58 @@
           </ul>
         </div>
       </div>
+
+      <div class="runtime-lab runtime-lab--selector">
+        <div class="runtime-lab__form">
+          <label>
+            <span>URL 解析模式</span>
+            <select v-model="urlParseForm.spiderParseMode">
+              <option value="AUTO_LINKS">AUTO_LINKS</option>
+              <option value="CSS">CSS</option>
+              <option value="XPATH">XPATH</option>
+              <option value="REGEX">REGEX</option>
+            </select>
+          </label>
+          <label>
+            <span>URL 解析选择器</span>
+            <input v-model="urlParseForm.spiderSelector" type="text" placeholder="a[href]" />
+          </label>
+          <div class="runtime-lab__actions">
+            <button type="button" @click="handleUrlParseTest">测试 URL 解析</button>
+          </div>
+        </div>
+
+        <div class="runtime-lab__result" v-if="urlParseResult">
+          <strong>URL 解析结果</strong>
+          <ul>
+            <li v-for="(item, index) in urlParseResult.spiderUrls" :key="`${index}-${item}`">
+              {{ item }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="runtime-lab runtime-lab--selector">
+        <div class="runtime-lab__form">
+          <label class="is-full">
+            <span>字段配置 JSON</span>
+            <textarea v-model="dataParseFieldJson" rows="8" />
+          </label>
+          <div class="runtime-lab__actions">
+            <button type="button" class="is-secondary" @click="handleApplyDataParseFields">应用字段配置</button>
+            <button type="button" @click="handleDataParseTest">测试数据解析</button>
+          </div>
+        </div>
+
+        <div class="runtime-lab__result" v-if="dataParseResult">
+          <strong>数据解析结果</strong>
+          <ul>
+            <li v-for="(item, key) in dataParseResult.spiderValues" :key="key">
+              {{ key }} = {{ item }}
+            </li>
+          </ul>
+        </div>
+      </div>
     </article>
   </section>
 </template>
@@ -216,15 +268,20 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   spiderNodeRequirements as nodeRequirements,
+  testSpiderDataParse,
   testSpiderPageAccess,
   testSpiderSelector,
+  testSpiderUrlParse,
 } from "../../../api/spider";
 import type {
-  SpiderExecutionDetailView,
+  SpiderDataParseTestRequest,
+  SpiderDataParseTestView,
   SpiderPageAccessRequest,
   SpiderPageAccessView,
   SpiderSelectorTestRequest,
   SpiderSelectorTestView,
+  SpiderUrlParseTestRequest,
+  SpiderUrlParseTestView,
 } from "../../../types/orchestration";
 
 const router = useRouter();
@@ -248,8 +305,45 @@ const selectorForm = ref<SpiderSelectorTestRequest>({
   spiderSelectorType: "CSS",
   spiderAttribute: "href",
 });
+const urlParseForm = ref<SpiderUrlParseTestRequest>({
+  spiderHtml: "",
+  spiderBaseUrl: activeFlow.value.nodes[0]?.config?.entryUrl as string,
+  spiderParseMode: "AUTO_LINKS",
+  spiderSelector: "",
+});
+const dataParseForm = ref<SpiderDataParseTestRequest>({
+  spiderHtml: "",
+  spiderBaseUrl: activeFlow.value.nodes[0]?.config?.entryUrl as string,
+  spiderFields: [
+    {
+      spiderFieldName: "title",
+      spiderSelectorType: "CSS",
+      spiderSelector: "title",
+    },
+  ],
+});
 const pageAccessResult = ref<SpiderPageAccessView | null>(null);
 const selectorResult = ref<SpiderSelectorTestView | null>(null);
+const urlParseResult = ref<SpiderUrlParseTestView | null>(null);
+const dataParseResult = ref<SpiderDataParseTestView | null>(null);
+const dataParseFieldJson = ref(
+  JSON.stringify(
+    [
+      {
+        spiderFieldName: "title",
+        spiderSelectorType: "CSS",
+        spiderSelector: "title",
+      },
+      {
+        spiderFieldName: "repoUrl",
+        spiderSelectorType: "REGEX",
+        spiderSelector: "https://gitee\\\\.com/[\\\\w\\\\-]+/[\\\\w\\\\-]+",
+      },
+    ],
+    null,
+    2,
+  ),
+);
 
 const settings = [
   {
@@ -304,6 +398,8 @@ const loadActiveExampleIntoLab = () => {
   const entryUrl = String(activeFlow.value.nodes[0]?.config?.entryUrl || "");
   pageAccessForm.value.spiderUrl = entryUrl;
   selectorForm.value.spiderBaseUrl = entryUrl;
+  urlParseForm.value.spiderBaseUrl = entryUrl;
+  dataParseForm.value.spiderBaseUrl = entryUrl;
 };
 
 const handlePageAccessTest = async () => {
@@ -314,11 +410,32 @@ const handleFillSelectorHtml = () => {
   if (pageAccessResult.value?.spiderHtml) {
     selectorForm.value.spiderHtml = pageAccessResult.value.spiderHtml;
     selectorForm.value.spiderBaseUrl = pageAccessResult.value.spiderUrl;
+    urlParseForm.value.spiderHtml = pageAccessResult.value.spiderHtml;
+    urlParseForm.value.spiderBaseUrl = pageAccessResult.value.spiderUrl;
+    dataParseForm.value.spiderHtml = pageAccessResult.value.spiderHtml;
+    dataParseForm.value.spiderBaseUrl = pageAccessResult.value.spiderUrl;
   }
 };
 
 const handleSelectorTest = async () => {
   selectorResult.value = await testSpiderSelector(selectorForm.value);
+};
+
+const handleUrlParseTest = async () => {
+  urlParseResult.value = await testSpiderUrlParse(urlParseForm.value);
+};
+
+const handleApplyDataParseFields = () => {
+  try {
+    const parsed = JSON.parse(dataParseFieldJson.value);
+    dataParseForm.value.spiderFields = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    dataParseForm.value.spiderFields = [];
+  }
+};
+
+const handleDataParseTest = async () => {
+  dataParseResult.value = await testSpiderDataParse(dataParseForm.value);
 };
 </script>
 
