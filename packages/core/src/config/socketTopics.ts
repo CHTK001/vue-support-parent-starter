@@ -150,6 +150,13 @@ export const DockerTopics = {
     SYNC_RESULT: "docker.sync.result",
     OPERATION_PROGRESS: "docker.operation.progress",
     OPERATION_RESULT: "docker.operation.result",
+    CONTAINER_LOG: "docker.container.log",
+    TERMINAL_CONNECT: "docker.terminal.connect",
+    TERMINAL_INPUT: "docker.terminal.input",
+    TERMINAL_OUTPUT: "docker.terminal.output",
+    TERMINAL_STATUS: "docker.terminal.status",
+    TERMINAL_RESIZE: "docker.terminal.resize",
+    TERMINAL_DISCONNECT: "docker.terminal.disconnect",
   },
 } as const;
 

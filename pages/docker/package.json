@@ -49,10 +49,14 @@
     "@pages/server": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/utils": "workspace:^",
+    "@xterm/addon-unicode11": "catalog:",
     "element-plus": "catalog:",
     "unbuild": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "xterm": "catalog:",
+    "xterm-addon-fit": "catalog:",
+    "xterm-addon-web-links": "catalog:"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:^",

@@ -1,17 +1,20 @@
 <template>
-  <TaskWorkbench
-    eyebrow="AI Colorization"
-    title="图像上色工作台"
-    description="输入原图地址或上色目标说明，提交最小图像上色任务。"
+  <AiTaskStudio
+    title="Colorization"
+    description="围绕老照片上色、插画上色等场景重建图像上色页。"
+    icon="🎨"
     module-type="COLORIZATION"
     task-type="COLORIZATION"
-    primary-label="上色目标"
-    primary-placeholder="例如：为老照片恢复柔和肤色与暖色环境"
-    secondary-label="风格偏好"
-    secondary-placeholder="例如：写实、复古、低饱和"
+    :prompt-items="promptItems"
   />
 </template>
 
 <script setup lang="ts">
-import TaskWorkbench from "../components/TaskWorkbench.vue";
+import AiTaskStudio from "../rebuilt/AiTaskStudio.vue";
+
+const promptItems = [
+  { key: "photo", label: "老照片上色", description: "为老照片做自然上色，保留年代感和人物肤色层次。" },
+  { key: "comic", label: "漫画上色", description: "为线稿插画填充清晰明快的配色。" },
+  { key: "cinema", label: "电影感调色", description: "做低饱和电影感上色，强调氛围和对比。" },
+];
 </script>

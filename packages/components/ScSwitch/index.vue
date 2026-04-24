@@ -2,8 +2,10 @@
   <div
     class="sc-switch"
     :class="{
-      'sc-switch--full-height': ['visual-card', 'card', 'modern'].includes(layout)
+      'sc-switch--full-height': ['visual-card', 'card', 'modern'].includes(layout),
+      ['skin--' + resolvedSkin]: !!resolvedSkin,
     }"
+    :data-skin="resolvedSkin || undefined"
   >
     <!-- 视觉卡片布局 -->
     <VisualCardLayout
@@ -88,6 +90,20 @@
       @change="handleChange"
     />
 
+    <!-- 图标选择布局 -->
+    <IconLayout
+      v-else-if="layout === 'icon'"
+      v-model="currentValue"
+      :disabled="disabled"
+      :loading="loading"
+      :size="size"
+      :active-value="activeValue"
+      :inactive-value="inactiveValue"
+      :active-icon="activeIcon"
+      :inactive-icon="inactiveIcon"
+      @change="handleChange"
+    />
+
     <!-- 紧凑卡片布局 -->
     <CompactCardLayout
       v-else-if="layout === 'compact-card'"
@@ -146,13 +162,14 @@
  * @version 2.1.0
  * @since 2.1.0 新增 compact-card 紧凑卡片布局
  */
-import { computed } from "vue";
+import { computed, useAttrs } from "vue";
 import type { PropType } from "vue";
 import { ElSwitch } from "element-plus";
 import CardLayout from "./components/CardLayout.vue";
 import SliderLayout from "./components/SliderLayout.vue";
 import ModernLayout from "./components/ModernLayout.vue";
 import VisualCardLayout from "./components/VisualCardLayout.vue";
+import IconLayout from "./components/IconLayout.vue";
 import CompactCardLayout from "./components/CompactCardLayout.vue";
 import Rect8Layout, {
   type Rect8Option,
@@ -161,6 +178,15 @@ import { getThemeConfig, type IotSwitchTheme } from "./themes";
 import { useThemeComponent } from "../hooks/useThemeComponent";
 
 const props = defineProps({
+  /**
+   * 主题皮肤
+   * - auto: 自动跟随全局 data-skin
+   * - tech: 科技风
+   */
+  skin: {
+    type: String,
+    default: "auto"
+  },
   /**
    * 绑定值
    */
@@ -189,13 +215,14 @@ const props = defineProps({
    * - slider: 滑块布局
    * - modern: 现代布局
    * - visual-card: 视觉效果卡片布局
+   * - icon: 图标按钮布局
    * - compact-card: 紧凑卡片布局（图标+标签+开关）
    * - rect-8: 8 方位矩形点选布局（方向/位置选择）
    */
   layout: {
     type: String,
     default: "default",
-    validator: (val: string) => ["default", "card", "slider", "modern", "visual-card", "compact-card", "rect-8"].includes(val)
+    validator: (val: string) => ["default", "card", "slider", "modern", "visual-card", "icon", "compact-card", "rect-8"].includes(val)
   },
   /**
    * 物联网主题
@@ -340,6 +367,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue", "change"]);
+const attrs = useAttrs();
 
 // 使用主题组件系统 V2.0
 const { currentComponent: currentSwitchComponent } = useThemeComponent("ElSwitch");
@@ -361,6 +389,27 @@ const rect8Value = computed<string>({
   set(val) {
     emit("update:modelValue", val);
   }
+});
+
+const normalizeSkin = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const resolvedSkin = computed(() => {
+  const propSkin = normalizeSkin(props.skin);
+  if (propSkin && propSkin !== "auto") return propSkin;
+
+  const attrSkin = normalizeSkin(attrs["data-skin"]);
+  if (attrSkin && attrSkin !== "auto") return attrSkin;
+
+  if (typeof document !== "undefined") {
+    const htmlSkin = normalizeSkin(document.documentElement?.getAttribute("data-skin"));
+    if (htmlSkin && htmlSkin !== "auto") return htmlSkin;
+
+    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+    if (bodySkin && bodySkin !== "auto") return bodySkin;
+  }
+
+  return "";
 });
 
 // 主题配置
@@ -404,5 +453,31 @@ const handleChange = (val: boolean | string | number) => {
     height: 100%;
     display: block;
   }
+}
+
+.sc-switch[data-skin="tech"],
+.sc-switch.skin--tech {
+  --sc-switch-tech-border: rgba(66, 245, 230, 0.34);
+  --sc-switch-tech-glow: rgba(66, 245, 230, 0.18);
+}
+
+.sc-switch[data-skin="tech"] :deep(.sc-switch-icon),
+.sc-switch.skin--tech :deep(.sc-switch-icon) {
+  border-color: var(--sc-switch-tech-border) !important;
+  color: #9ff7ff;
+  background: linear-gradient(180deg, rgba(8, 24, 38, 0.95), rgba(6, 16, 28, 0.92));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 0 18px var(--sc-switch-tech-glow);
+}
+
+.sc-switch[data-skin="tech"] :deep(.sc-switch-icon.is-active),
+.sc-switch.skin--tech :deep(.sc-switch-icon.is-active) {
+  border-color: var(--sc-switch-tech-border) !important;
+  color: #e8fdff;
+  background: linear-gradient(180deg, rgba(11, 36, 54, 0.98), rgba(8, 24, 38, 0.95));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 0 24px rgba(66, 245, 230, 0.28);
 }
 </style>

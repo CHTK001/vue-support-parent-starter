@@ -27,17 +27,22 @@ defineOptions({
   inheritAttrs: false,
 });
 
-// 几何变体类型 (对应 scifiGeome + 形状名称)
+// 几何变体类型 (对应 scifiGeomeA1-B5)
 type GeometryVariant =
-  | "Parallelogram"
-  | "Rectangle"
-  | "Trapezoid"
-  | "Triangle"
-  | "Hexagon";
+  | "A1"
+  | "A2"
+  | "A3"
+  | "A4"
+  | "A5"
+  | "B1"
+  | "B2"
+  | "B3"
+  | "B4"
+  | "B5";
 
 const props = withDefaults(
   defineProps<{
-    /** 几何变体: Parallelogram(平行四边形), Rectangle(矩形), Trapezoid(梯形), Triangle(三角形), Hexagon(六边形) */
+    /** 几何变体 */
     variant?: GeometryVariant;
     /** 宽度 */
     width?: string | number;
@@ -55,7 +60,7 @@ const props = withDefaults(
     className?: string;
   }>(),
   {
-    variant: "Rectangle",
+    variant: "A1",
     width: "100%",
     height: "auto",
     glow: true,
@@ -67,13 +72,8 @@ const props = withDefaults(
 );
 
 // 根据 variant 动态选择组件
-// 注意: Hexagon 的组件名是 scifiGeomHexagon (少一个 e)
 const geometryComponent = computed(() => {
-  const name =
-    props.variant === "Hexagon"
-      ? "scifiGeomHexagon"
-      : `scifiGeome${props.variant}`;
-  return resolveComponent(name);
+  return resolveComponent(`scifiGeome${props.variant}`);
 });
 </script>
 

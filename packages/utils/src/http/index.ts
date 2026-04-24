@@ -605,9 +605,10 @@ class PureHttp {
           body: options.body,
           signal: controller.signal,
           onopen: async (response) => {
+            const contentType = response.headers.get("content-type") || "";
             if (
               response.ok &&
-              response.headers.get("content-type")?.includes("text/event-stream")
+              (!contentType || contentType.includes("text/event-stream"))
             ) {
               options.onopen?.(response);
             } else {

@@ -4,8 +4,8 @@ import { getConfig } from "@repo/config";
 const showAiChat = getConfig("ShowAiChat") ?? false;
 
 const loadAiHomePage = async () => (await import("../index.vue")).default;
-const loadSettingsIndex = async () =>
-  (await import("../views/ai/settings/index.vue")).default;
+const loadManufacturerIndex = async () =>
+  (await import("../views/ai/manufacturer/index.vue")).default;
 const loadChatIndex = async () => (await import("../views/ai/chat/index.vue")).default;
 const loadImageIndex = async () => (await import("../views/ai/image/index.vue")).default;
 const loadVideoIndex = async () => (await import("../views/ai/video/index.vue")).default;
@@ -37,12 +37,12 @@ export default [
         },
       },
       {
-        path: "/ai/settings",
-        name: "AiSettings",
+        path: "/ai/manufacturer",
+        name: "AiManufacturer",
         meta: {
-          title: "模型设置",
+          title: "厂家管理",
         },
-        component: loadSettingsIndex,
+        component: loadManufacturerIndex,
       },
       {
         path: "/ai/chat",
@@ -93,6 +93,10 @@ export default [
         component: loadResolutionIndex,
       },
     ],
+  },
+  {
+    path: "/ai/settings",
+    redirect: "/ai/manufacturer",
   },
   {
     path: "/project/llm",

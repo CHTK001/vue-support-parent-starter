@@ -1,17 +1,20 @@
 <template>
-  <TaskWorkbench
-    eyebrow="AI Image"
-    title="生图工作台"
-    description="输入描述词，提交最小图像生成任务。"
+  <AiTaskStudio
+    title="Image Studio"
+    description="基于 EditorSender 与 BubbleList 的新生图工作台。"
+    icon="🖼"
     module-type="IMAGE"
     task-type="IMAGE"
-    primary-label="提示词"
-    primary-placeholder="例如：一间晨雾中的玻璃温室，电影级光影"
-    secondary-label="补充说明"
-    secondary-placeholder="例如：风格、尺寸、构图要求"
+    :prompt-items="promptItems"
   />
 </template>
 
 <script setup lang="ts">
-import TaskWorkbench from "../components/TaskWorkbench.vue";
+import AiTaskStudio from "../rebuilt/AiTaskStudio.vue";
+
+const promptItems = [
+  { key: "poster", label: "电商海报", description: "设计一张高质感电商海报，主体突出，背景简洁。" },
+  { key: "portrait", label: "人物写真", description: "生成人物写真，电影感光影，细节清晰，肤质自然。" },
+  { key: "concept", label: "概念场景", description: "生成未来感概念场景，层次丰富，构图大胆。" },
+];
 </script>

@@ -16,7 +16,9 @@
     :scroll-into-view-options="scrollIntoViewOptions"
     :size="size"
     :disabled="disabled"
-    :class="`sc-form--${theme}`"
+    class="sc-form-root"
+    :class="[`sc-form--${theme}`, resolvedSkin ? `skin--${resolvedSkin}` : '']"
+    :data-skin="resolvedSkin || undefined"
     @validate="handleValidate"
   >
     <template v-if="$slots.default" #default>
@@ -31,7 +33,7 @@
  * 封装 Element Plus Form
  * 支持根据 data-skin 切换主题化组件样式
  */
-import { computed, ref } from "vue";
+import { computed, ref, useAttrs } from "vue";
 import type { PropType } from "vue";
 import { ElForm } from "element-plus";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
@@ -97,14 +99,50 @@ const props = defineProps({
   theme: {
     type: String as PropType<"default" | "primary" | "success" | "warning" | "danger" | "info" | "tech">,
     default: "default"
+  },
+  skin: {
+    type: String,
+    default: "auto"
   }
 });
+const attrs = useAttrs();
 
 const emit = defineEmits(["validate"]);
 
 const formRef = ref();
 
 const { currentComponent } = useThemeComponent("ElForm");
+
+const normalizeSkin = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const resolvedSkin = computed(() => {
+  const propSkin = normalizeSkin(props.skin);
+  if (propSkin && propSkin !== "auto") {
+    return propSkin;
+  }
+
+  const attrSkin = normalizeSkin(attrs["data-skin"]);
+  if (attrSkin && attrSkin !== "auto") {
+    return attrSkin;
+  }
+
+  if (typeof document !== "undefined") {
+    const htmlSkin = normalizeSkin(
+      document.documentElement?.getAttribute("data-skin"),
+    );
+    if (htmlSkin && htmlSkin !== "auto") {
+      return htmlSkin;
+    }
+
+    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+    if (bodySkin && bodySkin !== "auto") {
+      return bodySkin;
+    }
+  }
+
+  return "";
+});
 
 const handleValidate = (prop: string, isValid: boolean, message: string) => {
   emit("validate", prop, isValid, message);
@@ -140,3 +178,85 @@ defineExpose({
   formRef
 });
 </script>
+
+<style scoped lang="scss">
+.sc-form-root[data-skin="tech"],
+.sc-form-root.skin--tech,
+.sc-form-root[data-skin="cyber"],
+.sc-form-root.skin--cyber {
+  --sc-form-tech-line: rgba(66, 245, 230, 0.18);
+  --sc-form-tech-line-strong: rgba(67, 243, 238, 0.52);
+  --sc-form-tech-text: #eafcff;
+  --sc-form-tech-muted: rgba(192, 225, 242, 0.84);
+  color: var(--sc-form-tech-text);
+  font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
+}
+
+.sc-form-root[data-skin="tech"] :deep(.el-form-item__label),
+.sc-form-root.skin--tech :deep(.el-form-item__label),
+.sc-form-root[data-skin="cyber"] :deep(.el-form-item__label),
+.sc-form-root.skin--cyber :deep(.el-form-item__label) {
+  color: var(--sc-form-tech-muted);
+  letter-spacing: 0.04em;
+}
+
+.sc-form-root[data-skin="tech"] :deep(.el-form-item__error),
+.sc-form-root.skin--tech :deep(.el-form-item__error),
+.sc-form-root[data-skin="cyber"] :deep(.el-form-item__error),
+.sc-form-root.skin--cyber :deep(.el-form-item__error) {
+  color: #ffb7a0;
+}
+
+.sc-form-root[data-skin="tech"] :deep(.el-input__wrapper),
+.sc-form-root.skin--tech :deep(.el-input__wrapper),
+.sc-form-root[data-skin="tech"] :deep(.el-textarea__inner),
+.sc-form-root.skin--tech :deep(.el-textarea__inner),
+.sc-form-root[data-skin="tech"] :deep(.el-select__wrapper),
+.sc-form-root.skin--tech :deep(.el-select__wrapper),
+.sc-form-root[data-skin="cyber"] :deep(.el-input__wrapper),
+.sc-form-root.skin--cyber :deep(.el-input__wrapper),
+.sc-form-root[data-skin="cyber"] :deep(.el-textarea__inner),
+.sc-form-root.skin--cyber :deep(.el-textarea__inner),
+.sc-form-root[data-skin="cyber"] :deep(.el-select__wrapper),
+.sc-form-root.skin--cyber :deep(.el-select__wrapper) {
+  border-color: var(--sc-form-tech-line);
+  color: var(--sc-form-tech-text);
+  background: rgba(4, 13, 21, 0.68);
+  box-shadow: 0 0 0 1px rgba(66, 245, 230, 0.08) inset;
+}
+
+.sc-form-root[data-skin="tech"] :deep(.el-input__inner),
+.sc-form-root.skin--tech :deep(.el-input__inner),
+.sc-form-root[data-skin="tech"] :deep(.el-textarea__inner),
+.sc-form-root.skin--tech :deep(.el-textarea__inner),
+.sc-form-root[data-skin="cyber"] :deep(.el-input__inner),
+.sc-form-root.skin--cyber :deep(.el-input__inner),
+.sc-form-root[data-skin="cyber"] :deep(.el-textarea__inner),
+.sc-form-root.skin--cyber :deep(.el-textarea__inner) {
+  color: var(--sc-form-tech-text);
+}
+
+.sc-form-root[data-skin="tech"] :deep(.el-input__wrapper.is-focus),
+.sc-form-root.skin--tech :deep(.el-input__wrapper.is-focus),
+.sc-form-root[data-skin="tech"] :deep(.el-select__wrapper.is-focused),
+.sc-form-root.skin--tech :deep(.el-select__wrapper.is-focused),
+.sc-form-root[data-skin="cyber"] :deep(.el-input__wrapper.is-focus),
+.sc-form-root.skin--cyber :deep(.el-input__wrapper.is-focus),
+.sc-form-root[data-skin="cyber"] :deep(.el-select__wrapper.is-focused),
+.sc-form-root.skin--cyber :deep(.el-select__wrapper.is-focused) {
+  box-shadow:
+    0 0 0 1px rgba(66, 245, 230, 0.22) inset,
+    0 0 12px rgba(66, 245, 230, 0.14);
+}
+
+.sc-form-root[data-skin="tech"] :deep(.el-checkbox__label),
+.sc-form-root.skin--tech :deep(.el-checkbox__label),
+.sc-form-root[data-skin="tech"] :deep(.el-radio__label),
+.sc-form-root.skin--tech :deep(.el-radio__label),
+.sc-form-root[data-skin="cyber"] :deep(.el-checkbox__label),
+.sc-form-root.skin--cyber :deep(.el-checkbox__label),
+.sc-form-root[data-skin="cyber"] :deep(.el-radio__label),
+.sc-form-root.skin--cyber :deep(.el-radio__label) {
+  color: var(--sc-form-tech-text);
+}
+</style>

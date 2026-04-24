@@ -273,6 +273,7 @@ export interface DockerInstallRequest {
   dockerfilePath?: string;
   buildContextPath?: string;
   containerName?: string;
+  commandLine?: string;
   env?: Record<string, string>;
   portMappings?: DockerInstallPortMappingInput[];
   mounts?: DockerInstallMountInput[];

@@ -1,8 +1,6 @@
 import {
   SocketTemplateKey,
-  createNamedSocketService,
-  getGlobalSocketConfig,
-  getGlobalSocketService,
+  resolveManagedSocketService,
   type SocketTemplate,
 } from "@repo/core";
 import { message } from "@repo/utils";
@@ -100,27 +98,25 @@ export const resolveRuntimeProviders = (
   const socketName = options.socketName || "runtime-fallback";
 
   const injectedSocket = inject<SocketTemplate | null>(SocketTemplateKey, null);
-  const globalSocket = getGlobalSocketService();
-  let socketProvider = injectedSocket || globalSocket;
-  let socketSource: RuntimeProviderSource = injectedSocket
-    ? "lay-xx"
-    : globalSocket
-      ? "@repo/core"
-      : "fallback";
-
-  // 没有可用 socket 时，尝试使用 @repo/core 创建命名实例兜底。
-  if (!socketProvider && options.createSocketIfMissing !== false) {
-    const config = getGlobalSocketConfig();
-    if (config.urls.length) {
-      socketProvider = createNamedSocketService(socketName, {
-        protocol: config.protocol,
-        urls: config.urls,
-        context: config.context,
+  const resolvedSocket = options.createSocketIfMissing === false
+    ? {
+        service: injectedSocket,
+        source: injectedSocket ? "provider" : "missing",
+      }
+    : resolveManagedSocketService({
+        name: socketName,
+        preferredSocket: injectedSocket,
         autoConnect: false,
       });
-      socketSource = "@repo/core-named";
-    }
-  }
+  const socketProvider = resolvedSocket.service;
+  const socketSource: RuntimeProviderSource =
+    resolvedSocket.source === "provider"
+      ? "lay-xx"
+      : resolvedSocket.source === "global"
+        ? "@repo/core"
+        : resolvedSocket.source === "named" || resolvedSocket.source === "created"
+          ? "@repo/core-named"
+          : "fallback";
 
   const injectedMessage = tryUseMessageCenter();
   const messageProvider = injectedMessage || createFallbackMessageProvider();

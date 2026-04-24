@@ -16,7 +16,7 @@
     :modal-class="inMainArea ? 'drawer-in-main-area ' + modalClass : modalClass"
     :z-index="zIndex"
     :destroy-on-close="destroyOnClose"
-    :class="['sc-drawer', `sc-drawer--${theme}`, customClass, { 'sc-drawer--simple': layout === 'simple' }]"
+    :class="['sc-drawer', customClass, { 'sc-drawer--simple': layout === 'simple' }]"
     @open="handleOpen"
     @opened="handleOpened"
     @close="handleClose"
@@ -113,12 +113,10 @@ const props = withDefaults(
     modalClass?: string;
     /** z-index 层级 */
     zIndex?: number;
-    /** 关闭时销毁子元素 */
+    /** 关闭时销毁子元素（默认 true） */
     destroyOnClose?: boolean;
     /** 自定义类名 */
     customClass?: string;
-    /** 主题 */
-    theme?: "default" | "primary" | "success" | "warning" | "danger" | "info" | "tech";
     /** 是否显示底部 */
     showFooter?: boolean;
     /** 是否显示取消按钮 */
@@ -365,25 +363,51 @@ defineExpose({
   height: 32px;
   padding: 0;
   background: var(--sc-drawer-close-bg, var(--el-color-white));
-  border: 1px solid var(--sc-drawer-close-border, var(--el-border-color));
+  border: none;
   border-radius: var(--sc-drawer-close-radius, 8px);
   cursor: pointer;
   color: var(--sc-drawer-close-color, var(--el-text-color-secondary));
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.25s ease;
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  right: 0;
+  transform: translate(25%, -25%);
   z-index: 10;
+
+  :deep(svg) {
+    transition: transform 0.28s ease;
+    transform-origin: center;
+  }
 
   &:hover {
     background: var(--sc-drawer-close-hover-bg, var(--el-color-danger-light-9));
-    border-color: var(--sc-drawer-close-hover-border, var(--el-color-danger-light-5));
     color: var(--sc-drawer-close-hover-color, var(--el-color-danger));
-    transform: scale(1.05);
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.2);
+    animation: sc-drawer-close-hover 240ms ease forwards;
+
+    :deep(svg) {
+      transform: rotate(180deg);
+    }
   }
 
   &:active {
-    transform: scale(0.95);
+    transform: translate(25%, -25%) scale(0.92);
+  }
+}
+
+@keyframes sc-drawer-close-hover {
+  0% {
+    transform: translate(25%, -25%) scale(1);
+  }
+  60% {
+    transform: translate(25%, -25%) scale(1.08) rotate(6deg);
+  }
+  100% {
+    transform: translate(25%, -25%) scale(1.04);
   }
 }
 
@@ -391,12 +415,10 @@ defineExpose({
 html.dark {
   .sc-drawer__simple-close {
     background: var(--sc-drawer-close-bg, var(--el-fill-color-dark));
-    border-color: var(--el-border-color);
     color: var(--el-text-color-secondary);
 
     &:hover {
       background: var(--el-color-danger-light-9);
-      border-color: var(--el-color-danger-light-5);
       color: var(--el-color-danger);
     }
   }

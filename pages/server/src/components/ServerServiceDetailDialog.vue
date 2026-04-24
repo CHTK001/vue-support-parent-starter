@@ -118,6 +118,14 @@
               <dt>最近结果</dt>
               <dd>{{ service.lastOperationMessage || "-" }}</dd>
             </div>
+            <div>
+              <dt>启动脚本</dt>
+              <dd>{{ service.startScript?.trim() ? "已配置" : "未配置" }}</dd>
+            </div>
+            <div>
+              <dt>最近启动人</dt>
+              <dd>{{ latestOperatorText }}</dd>
+            </div>
           </dl>
         </article>
 
@@ -315,6 +323,22 @@ const detectedAtText = computed(() => {
     return "未记录";
   }
   return new Date(numeric).toLocaleString("zh-CN", { hour12: false });
+});
+
+const latestOperatorText = computed(() => {
+  const candidates = [
+    metadata.value.latestOperator,
+    metadata.value.lastOperator,
+    metadata.value.operator,
+    metadata.value.startBy,
+    metadata.value.startedBy,
+    metadata.value.triggerUser,
+    metadata.value.triggerBy,
+  ];
+  const matched = candidates
+    .map((item) => String(item || "").trim())
+    .find(Boolean);
+  return matched || "未记录";
 });
 
 const parseArray = (value?: string | null) => {

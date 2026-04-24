@@ -130,7 +130,7 @@
           </div>
 
           <small class="server-service-panel__message">
-            {{ item.lastOperationMessage || "暂无执行记录" }}
+            {{ resolveServiceMessage(item) }}
           </small>
 
           <div v-if="showAiFailure(item)" class="server-service-panel__ai">
@@ -415,6 +415,30 @@ const detectSourceLabel = (value?: unknown) => {
   return normalized || "";
 };
 
+const resolveStarterName = (service: ServerService) => {
+  const metadata = parseMetadata(service.metadataJson);
+  const candidates = [
+    metadata.latestOperator,
+    metadata.lastOperator,
+    metadata.operator,
+    metadata.startBy,
+    metadata.startedBy,
+    metadata.triggerUser,
+    metadata.triggerBy,
+  ];
+  const matched = candidates
+    .map((item) => String(item || "").trim())
+    .find(Boolean);
+  return matched || "";
+};
+
+const resolveServiceMessage = (service: ServerService) => {
+  if (!service.startScript?.trim()) {
+    return "未配置启动脚本，当前无法直接执行启动动作";
+  }
+  return service.lastOperationMessage || "暂无执行记录";
+};
+
 const resolveMetaChips = (service: ServerService) => {
   const configCount = parseJsonArray(service.configPathsJson).length;
   const logCount = parseJsonArray(service.logPathsJson).length;
@@ -424,14 +448,17 @@ const resolveMetaChips = (service: ServerService) => {
   );
   const detected = Boolean(metadata.detected);
   const detectedSource = detectSourceLabel(metadata.detectedSource);
+  const starter = resolveStarterName(service);
   return [
     detected ? "自动检测" : "手工维护",
     executionProvider ? `SPI ${executionProvider}` : "",
     detectedSource ? `来源 ${detectedSource}` : "",
     configCount ? `配置 ${configCount} 项` : "",
     logCount ? `日志 ${logCount} 项` : "",
+    service.startScript?.trim() ? "支持启动" : "缺少启动脚本",
     service.registerScript?.trim() ? "支持注册" : "",
     service.statusScript?.trim() ? "支持状态检查" : "",
+    starter ? `启动人 ${starter}` : "启动人 未记录",
   ].filter(Boolean);
 };
 

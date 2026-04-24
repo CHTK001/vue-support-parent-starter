@@ -331,9 +331,9 @@ export const analyzeServerHostProcess = (id: number, pid: number) =>
     `${hostsBase}/${id}/processes/${pid}/ai-analyze`,
   );
 
-export const searchServerPort = (serverId: number, port: number) =>
+export const searchServerPort = (serverId: number, keyword: string) =>
   request<ServerPortSearchResult[]>("GET", "/v1/gen/server/port/search", {
-    query: { serverId, port },
+    query: { serverId, keyword },
   });
 
 export const closeServerPort = (serverId: number, port: number) =>

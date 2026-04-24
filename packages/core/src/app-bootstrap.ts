@@ -160,6 +160,13 @@ export interface StandardAppOptions {
   enableFontEncryption?: boolean | FontEncryptionOptions;
   /** 是否启用主题系统（autoRegisterThemePlugins + initThemeSystem），默认 true */
   enableTheme?: boolean;
+  /**
+   * 是否启用 TechUI。
+   * - false: 不启用
+   * - true: 使用默认配置启用
+   * - object: 使用自定义配置启用
+   */
+  enableTech?: boolean | StandardAppTechOptions;
   /** 是否注册核心指令（v-auth/v-ripple/v-menu 等），默认 true */
   enableCoreDirectives?: boolean;
 
@@ -192,6 +199,15 @@ export interface StandardAppOptions {
   homeComponent?: Component;
   /** 自定义初始化函数 */
   setup?: (app: App, config?: any) => void | Promise<void>;
+}
+
+export interface StandardAppTechOptions {
+  license?: string | null;
+  features?: {
+    echarts?: boolean;
+    advanced?: boolean;
+  };
+  debug?: boolean;
 }
 
 // ─────────────────────────────────────────────
@@ -451,10 +467,22 @@ function resolveWasmEnabled(mode: WasmMode): boolean {
   return true; // 'WASM' | true
 }
 
-export async function createStandardApp(
+function normalizeTechOptions(
+  enableTech: StandardAppOptions["enableTech"],
+): StandardAppTechOptions | null {
+  if (!enableTech) {
+    return null;
+  }
+  if (enableTech === true) {
+    return {};
+  }
+  return enableTech;
+}
+
+export async function createStandardAppWithoutTech(
   options: StandardAppOptions = {},
 ): Promise<AppBootstrap> {
-  bootDebugLog("createStandardApp:start");
+  bootDebugLog("createStandardAppWithoutTech:start");
   const {
     enableWasm = "AUTO",
     enableTippy = true,
@@ -465,6 +493,7 @@ export async function createStandardApp(
     enableFontEncryption = true,
     enableTheme = true,
     enableCoreDirectives = true,
+    enableTech: _enableTech = false,
     components = {},
     directives = {},
     plugins = [],
@@ -485,7 +514,7 @@ export async function createStandardApp(
   // 1. 尽早启动 WASM 初始化，并在 mount 前确保完成
   const wasmInitPromise = resolveWasmEnabled(enableWasm)
     ? import("@repo/codec-wasm").then(async ({ initializeWasmModule }) => {
-        bootDebugLog("createStandardApp:wasm-imported");
+        bootDebugLog("createStandardAppWithoutTech:wasm-imported");
         const result = await initializeWasmModule();
         if (!result) {
           console.warn(
@@ -608,7 +637,7 @@ export async function createStandardApp(
   const { ScVolumeControl } = await import("@repo/components/ScVolumeControl");
   const { ScDialog } = await import("@repo/components/ScDialog");
   const { ScTooltip } = await import("@repo/components/ScTooltip");
-  bootDebugLog("createStandardApp:base-imports-ready");
+  bootDebugLog("createStandardAppWithoutTech:base-imports-ready");
 
   // 3. 创建应用实例
   const rootComponent = routerEnabled
@@ -617,7 +646,7 @@ export async function createStandardApp(
     : (() => {
         if (!homeComponent) {
           throw new Error(
-            "[createStandardApp] router=false 时必须提供 homeComponent",
+            "[createStandardAppWithoutTech] router=false 时必须提供 homeComponent",
           );
         }
         return defineComponent({
@@ -640,13 +669,13 @@ export async function createStandardApp(
   const config = await getPlatformConfig(app);
   const initialConfig = getInitialConfig();
   const frontendSystemConfig = getFrontendSystemConfig(initialConfig);
-  bootDebugLog("createStandardApp:config-ready");
+  bootDebugLog("createStandardAppWithoutTech:config-ready");
   if (routerEnabled) {
     await routerReady;
-    bootDebugLog("createStandardApp:router-ready");
+    bootDebugLog("createStandardAppWithoutTech:router-ready");
   }
   await syncFrontendSystemRuntime(initialConfig);
-  bootDebugLog("createStandardApp:frontend-system-runtime-ready");
+  bootDebugLog("createStandardAppWithoutTech:frontend-system-runtime-ready");
 
   // 4.1 初始化加载动画样式
   try {
@@ -682,12 +711,12 @@ export async function createStandardApp(
       }
     }
   } catch (error) {
-    console.warn("[createStandardApp] 初始化加载动画样式失败:", error);
+      console.warn("[createStandardAppWithoutTech] 初始化加载动画样式失败:", error);
   }
 
   // 5. 创建 bootstrap
   const bootstrap = new AppBootstrap(app).registerCoreStyles();
-  bootDebugLog("createStandardApp:bootstrap-created");
+  bootDebugLog("createStandardAppWithoutTech:bootstrap-created");
 
   if (wasmInitPromise) {
     await bootstrap.registerWasm(() => wasmInitPromise);
@@ -715,7 +744,7 @@ export async function createStandardApp(
   } else if (Object.keys(directives).length > 0) {
     bootstrap.registerDirectives(directives);
   }
-  bootDebugLog("createStandardApp:directives-ready");
+  bootDebugLog("createStandardAppWithoutTech:directives-ready");
 
   // 5.2 字体加密指令
   if (enableFontEncryption !== false) {
@@ -766,7 +795,7 @@ export async function createStandardApp(
     };
     bootstrap.registerDirective("font-encryption", wrappedDirective);
   }
-  bootDebugLog("createStandardApp:font-directive-ready");
+  bootDebugLog("createStandardAppWithoutTech:font-directive-ready");
 
   // 5.3 注册核心组件
   bootstrap
@@ -822,7 +851,7 @@ export async function createStandardApp(
   if (Object.keys(components).length > 0) {
     bootstrap.registerGlobalComponents(components);
   }
-  bootDebugLog("createStandardApp:components-ready");
+  bootDebugLog("createStandardAppWithoutTech:components-ready");
 
   // 5.4 注册第三方插件
   if (enableTippy) {
@@ -839,7 +868,7 @@ export async function createStandardApp(
       });
     } catch (error) {
       console.warn(
-        "[createStandardApp] ElementPlusX 加载失败，跳过注册:",
+        "[createStandardAppWithoutTech] ElementPlusX 加载失败，跳过注册:",
         error,
       );
     }
@@ -863,19 +892,19 @@ export async function createStandardApp(
   if (activeRouter) {
     bootstrap.registerRouter(activeRouter);
   }
-  bootDebugLog("createStandardApp:core-bootstrap-registered");
+  bootDebugLog("createStandardAppWithoutTech:core-bootstrap-registered");
 
   // 5.6 全局 Socket 服务初始化
   if (socket) {
     bootstrap.use(async () => {
       try {
-        bootDebugLog("createStandardApp:socket-service:start");
+        bootDebugLog("createStandardAppWithoutTech:socket-service:start");
         const { initGlobalSocketService } =
           await import("./config/socketService");
         initGlobalSocketService(socket);
-        bootDebugLog("createStandardApp:socket-service:done");
+        bootDebugLog("createStandardAppWithoutTech:socket-service:done");
       } catch (error) {
-        console.warn("[createStandardApp] 全局 Socket 服务初始化失败:", error);
+        console.warn("[createStandardAppWithoutTech] 全局 Socket 服务初始化失败:", error);
       }
     });
   }
@@ -884,24 +913,24 @@ export async function createStandardApp(
   if (socketSetup && activeRouter) {
     bootstrap.use(() => socketSetup(activeRouter));
   }
-  bootDebugLog("createStandardApp:socket-setup-registered");
+  bootDebugLog("createStandardAppWithoutTech:socket-setup-registered");
 
   // 5.8 主题系统
   if (enableTheme) {
     bootstrap.use(async () => {
       try {
-        bootDebugLog("createStandardApp:theme:start");
+        bootDebugLog("createStandardAppWithoutTech:theme:start");
         if (!isThemeSkinFeatureVisible(frontendSystemConfig)) {
-          bootDebugLog("createStandardApp:theme:skipped");
+          bootDebugLog("createStandardAppWithoutTech:theme:skipped");
           return;
         }
         const { autoRegisterThemePlugins, initThemeSystem } =
           await import("@repo/components/hooks");
         await autoRegisterThemePlugins(app);
         await initThemeSystem();
-        bootDebugLog("createStandardApp:theme:done");
+        bootDebugLog("createStandardAppWithoutTech:theme:done");
       } catch (error) {
-        console.warn("[createStandardApp] 主题系统初始化失败:", error);
+        console.warn("[createStandardAppWithoutTech] 主题系统初始化失败:", error);
       }
     });
   }
@@ -932,13 +961,53 @@ export async function createStandardApp(
 
   // 5.10 自定义初始化
   if (setup) {
-    bootDebugLog("createStandardApp:custom-setup:start");
+    bootDebugLog("createStandardAppWithoutTech:custom-setup:start");
     await bootstrap.useAsync(async (app) => {
       await setup(app, config);
     });
-    bootDebugLog("createStandardApp:custom-setup:done");
+    bootDebugLog("createStandardAppWithoutTech:custom-setup:done");
   }
 
-  bootDebugLog("createStandardApp:ready");
+  bootDebugLog("createStandardAppWithoutTech:ready");
   return bootstrap;
+}
+
+export async function createStandardApp(
+  options: StandardAppOptions = {},
+): Promise<AppBootstrap> {
+  bootDebugLog("createStandardApp:start");
+  const { enableTech = false, setup, ...rest } = options;
+  const techOptions = normalizeTechOptions(enableTech);
+
+  if (!techOptions) {
+    return createStandardAppWithoutTech(options);
+  }
+
+  return createStandardAppWithoutTech({
+    ...rest,
+    enableTech,
+    setup: async (app, config) => {
+      bootDebugLog("createStandardApp:tech:start", techOptions);
+      try {
+        await import("@techui/scifi/dist/index.css");
+        const { default: techuiScifiInit } = await import("@techui/scifi");
+        await techuiScifiInit({
+          app,
+          license: techOptions.license ?? null,
+          features: techOptions.features ?? {},
+          debug: techOptions.debug ?? false,
+        });
+        bootDebugLog("createStandardApp:tech:done");
+      } catch (error) {
+        console.warn(
+          "[createStandardApp] TechUIInit 初始化失败，已降级继续启动:",
+          error,
+        );
+      }
+
+      if (setup) {
+        await setup(app, config);
+      }
+    },
+  });
 }

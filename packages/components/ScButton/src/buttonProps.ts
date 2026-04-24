@@ -3,8 +3,17 @@ import type { Component, ExtractPropTypes, PropType } from "vue";
 export type ButtonType = "" | "default" | "primary" | "success" | "warning" | "info" | "danger" | "text";
 export type ButtonSize = "" | "large" | "default" | "small";
 export type ButtonNativeType = "button" | "submit" | "reset";
+export type ScifiButtonTheme = "A1" | "A2" | "A3" | "A4" | "A5";
 
 export const scButtonProps = {
+  skin: {
+    type: String,
+    default: "auto",
+  },
+  techTheme: {
+    type: String as PropType<ScifiButtonTheme>,
+    default: "A2",
+  },
   size: {
     type: String as PropType<ButtonSize>,
     default: "",

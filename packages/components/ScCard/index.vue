@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from "vue";
+import { defineComponent, computed, PropType, useAttrs } from "vue";
 import { ElCard } from "element-plus";
 import DefaultLayout from "./layouts/Default.vue";
 import MediaLayout from "./layouts/Media.vue";
@@ -141,6 +141,10 @@ export default defineComponent({
       >,
       default: "default",
     },
+    skin: {
+      type: String,
+      default: "auto",
+    },
     iotTheme: {
       type: String as PropType<IotCardTheme>,
       default: undefined,
@@ -208,6 +212,52 @@ export default defineComponent({
   },
   emits: ["click"],
   setup(props, { emit }) {
+    const attrs = useAttrs();
+
+    const normalizeSkin = (value: unknown) =>
+      typeof value === "string" ? value.trim().toLowerCase() : "";
+
+    const resolvedSkin = computed(() => {
+      const propSkin = normalizeSkin(props.skin);
+      if (propSkin && propSkin !== "auto") {
+        return propSkin;
+      }
+
+      const attrSkin = normalizeSkin(attrs["data-skin"]);
+      if (attrSkin && attrSkin !== "auto") {
+        return attrSkin;
+      }
+
+      if (typeof document !== "undefined") {
+        const htmlSkin = normalizeSkin(
+          document.documentElement?.getAttribute("data-skin"),
+        );
+        if (htmlSkin && htmlSkin !== "auto") {
+          return htmlSkin;
+        }
+
+        const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+        if (bodySkin && bodySkin !== "auto") {
+          return bodySkin;
+        }
+      }
+
+      return "";
+    });
+
+    const withSkinAttrs = (payload: Record<string, unknown>) => {
+      const skin = resolvedSkin.value;
+      return {
+        ...payload,
+        class: [
+          payload.class,
+          "sc-card-skinable",
+          skin ? `skin--${skin}` : "",
+        ],
+        "data-skin": skin || undefined,
+      };
+    };
+
     const { currentComponent } = useThemeComponent("ElCard");
 
     const iotThemeConfig = computed(() => {
@@ -263,33 +313,33 @@ export default defineComponent({
       };
 
       if (props.renderAs === "el-card") {
-        return {
+        return withSkinAttrs({
           header: props.title,
           shadow: props.shadow,
           bodyStyle: props.padding ? { padding: props.padding } : {},
-        };
+        });
       }
 
       switch (props.layout) {
         case "media":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             mediaPosition: props.mediaPosition,
             mediaWidth: props.mediaWidth,
             mediaHeight: props.mediaHeight,
             mediaBgColor: props.mediaBgColor,
             theme: props.theme,
-          };
+          });
         case "header-content":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             headerHeight: props.headerHeight,
             headerBgColor: props.headerBgColor,
             headerBgImage: props.headerBgImage,
             theme: props.theme,
-          };
+          });
         case "panel-3d":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             icon: props.icon,
             showHeader: props.showHeader,
@@ -300,18 +350,18 @@ export default defineComponent({
             borderColor: props.borderColor,
             activeBorderColor: props.activeBorderColor,
             padding: props.padding,
-          };
+          });
         case "compact":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             icon: props.icon,
             subtitle: props.subtitle,
             iconBgColor: props.iconBgColor,
             active: props.active,
             theme: props.theme,
-          };
+          });
         case "stats":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             icon: props.icon,
             value: props.value,
@@ -322,15 +372,15 @@ export default defineComponent({
             active: props.active,
             theme: props.theme,
             size: props.size === "normal" ? "small" : props.size,
-          };
+          });
         case "stats-simple":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             icon: props.icon,
             value: props.value,
             label: props.label,
             theme: props.theme,
-          };
+          });
         case "tech": {
           const techThemeMap: Record<string, string> = {
             default: "default",
@@ -347,7 +397,7 @@ export default defineComponent({
             red: "red",
             custom: "cyan",
           };
-          return {
+          return withSkinAttrs({
             ...baseProps,
             icon: props.icon,
             showHeader: props.showHeader,
@@ -355,19 +405,19 @@ export default defineComponent({
             theme: techThemeMap[props.theme] || "cyan",
             padding: props.padding,
             showDataFlow: true,
-          };
+          });
         }
         case "custom":
-          return {
+          return withSkinAttrs({
             ...baseProps,
             ...props,
             theme: props.theme,
-          };
+          });
         default:
-          return {
+          return withSkinAttrs({
             ...baseProps,
             theme: props.theme,
-          };
+          });
       }
     });
 
@@ -412,5 +462,55 @@ export default defineComponent({
   --el-fill-color-blank: var(--el-fill-color-blank);
   --el-box-shadow-light: var(--el-box-shadow-light);
   --el-box-shadow: var(--el-box-shadow);
+}
+
+.sc-card-skinable {
+  position: relative;
+}
+
+.sc-card-skinable[data-skin="tech"],
+.sc-card-skinable.skin--tech,
+.sc-card-skinable[data-skin="cyber"],
+.sc-card-skinable.skin--cyber {
+  --docker-card-line: rgba(48, 226, 217, 0.28);
+  --docker-card-line-strong: rgba(67, 243, 238, 0.58);
+  --docker-card-bg: linear-gradient(
+    180deg,
+    rgba(10, 24, 40, 0.9),
+    rgba(7, 18, 30, 0.84)
+  );
+  --docker-card-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 18px 42px rgba(1, 7, 15, 0.34);
+  border: 1px solid var(--docker-card-line);
+  border-radius: 20px;
+  background: var(--docker-card-bg);
+  box-shadow: var(--docker-card-shadow);
+  color: #d9f7ff;
+}
+
+.sc-card-skinable[data-skin="tech"]::before,
+.sc-card-skinable.skin--tech::before,
+.sc-card-skinable[data-skin="cyber"]::before,
+.sc-card-skinable.skin--cyber::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(
+      120deg,
+      rgba(66, 245, 230, 0.14),
+      transparent 45%,
+      rgba(66, 245, 230, 0.12)
+    )
+    border-box;
+  mask:
+    linear-gradient(#fff 0 0) padding-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  opacity: 0.7;
 }
 </style>

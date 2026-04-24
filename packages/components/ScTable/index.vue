@@ -57,6 +57,7 @@ const props = defineProps({
   cardLayout: { type: String, default: "default" }, // 卡片布局类型，可选值：card, default
   cardTheme: { type: String, default: "default" }, // 卡片主题
   theme: { type: String, default: "" }, // 通用主题颜色
+  skin: { type: String, default: "auto" }, // 皮肤：auto 自动读取 data-skin
   filter: {
     type: Object,
     default: () => {
@@ -2302,6 +2303,7 @@ defineExpose({
           :row-size="rowSize"
           :layout="layout === 'card' ? cardLayout : undefined"
           :theme="theme || cardTheme"
+          :skin="skin"
           :loading="loading"
           :total="total"
           :current-page="currentPage"
@@ -2366,6 +2368,7 @@ defineExpose({
           :columns="userColumn"
           :table-config="configState"
           :table-layout="layout"
+          :skin="skin"
           @current-change="onCurrentChange"
           @size-change="onSizeChange"
           @load-more="loadMore"

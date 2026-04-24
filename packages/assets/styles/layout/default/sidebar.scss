@@ -283,13 +283,72 @@
     }
 
     .el-menu-item.is-active {
-      color: var(--pure-menu-active-text-color) !important;
-      transition: color 0.3s;
+      color: #fff !important;
+      background:
+        linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3)
+        ) !important;
+      border-color: rgba(var(--el-color-primary-rgb), 0.24);
+      box-shadow: 0 14px 28px rgba(var(--el-color-primary-rgb), 0.18);
+      transition: color 0.3s, background 0.3s, box-shadow 0.3s;
 
       span,
       div,
       .el-text {
-        color: var(--pure-menu-active-text-color) !important;
+        color: #fff !important;
+      }
+
+      i,
+      svg {
+        color: #fff !important;
+      }
+    }
+
+    // 折叠模式下，激活项可能被 element-plus 的 collapse 样式覆盖成白底
+    .el-menu--collapse {
+      .el-menu-item.is-active,
+      .is-active.submenu-title-noDropdown {
+        background:
+          linear-gradient(
+            135deg,
+            var(--el-color-primary),
+            var(--el-color-primary-light-3)
+          ) !important;
+        border-color: rgba(var(--el-color-primary-rgb), 0.24) !important;
+        box-shadow: 0 14px 28px rgba(var(--el-color-primary-rgb), 0.18) !important;
+        color: #fff !important;
+
+        span,
+        div,
+        .el-text,
+        i,
+        svg {
+          color: #fff !important;
+        }
+      }
+    }
+
+    // 修复：激活菜单项 hover 时被通用 hover 样式覆盖导致“白底黑字”
+    .el-menu-item.is-active:hover {
+      background:
+        linear-gradient(
+          135deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3)
+        ) !important;
+      border-color: rgba(var(--el-color-primary-rgb), 0.24);
+      box-shadow: 0 14px 28px rgba(var(--el-color-primary-rgb), 0.22);
+      transform: translateX(4px);
+      color: #fff !important;
+
+      span,
+      div,
+      .el-text,
+      i,
+      svg {
+        color: #fff !important;
       }
     }
 

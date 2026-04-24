@@ -38,6 +38,7 @@ import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
 import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
 import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
 import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
+import RiApps2Line from "@iconify-icons/ri/apps-2-line";
 
 const attrs = useAttrs();
 const {
@@ -220,7 +221,7 @@ onMounted(() => {
             useRenderIcon(
               toRaw(onlyOneChild?.meta?.icon) ||
                 (item?.meta && toRaw(item?.meta?.icon)) ||
-                'ep:menu',
+                RiApps2Line,
             )
           "
         />
@@ -284,7 +285,7 @@ onMounted(() => {
     <template #title>
       <div :style="getSubMenuIconStyle" class="sub-menu-icon">
         <component
-          :is="useRenderIcon((item.meta && toRaw(item.meta.icon)) || 'ep:menu')"
+          :is="useRenderIcon((item.meta && toRaw(item.meta.icon)) || RiApps2Line)"
         />
       </div>
       <ScText

@@ -1,17 +1,20 @@
 <template>
-  <TaskWorkbench
-    eyebrow="AI Resolution"
-    title="分辨率增强工作台"
-    description="输入源图地址或增强需求，提交最小超分辨率任务。"
+  <AiTaskStudio
+    title="Resolution Boost"
+    description="围绕超分辨率、细节修复和清晰化重建增强页。"
+    icon="✨"
     module-type="RESOLUTION"
     task-type="RESOLUTION"
-    primary-label="增强需求"
-    primary-placeholder="例如：提升旧海报的清晰度与边缘细节"
-    secondary-label="结果要求"
-    secondary-placeholder="例如：适配大屏展示、保留文字清晰度"
+    :prompt-items="promptItems"
   />
 </template>
 
 <script setup lang="ts">
-import TaskWorkbench from "../components/TaskWorkbench.vue";
+import AiTaskStudio from "../rebuilt/AiTaskStudio.vue";
+
+const promptItems = [
+  { key: "portrait", label: "人物增强", description: "增强人物照片细节，保留皮肤与发丝层次。" },
+  { key: "document", label: "文档修复", description: "提升文档图片清晰度，强调边缘和文字可读性。" },
+  { key: "poster", label: "海报放大", description: "在放大海报的同时尽量保留字体与纹理细节。" },
+];
 </script>

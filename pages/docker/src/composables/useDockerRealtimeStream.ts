@@ -78,6 +78,9 @@ export function useDockerRealtimeStream(preferredSocket?: SocketTemplate | null)
       DockerTopics.EVENTS.SYNC_RESULT,
       DockerTopics.EVENTS.OPERATION_PROGRESS,
       DockerTopics.EVENTS.OPERATION_RESULT,
+      DockerTopics.EVENTS.CONTAINER_LOG,
+      DockerTopics.EVENTS.TERMINAL_OUTPUT,
+      DockerTopics.EVENTS.TERMINAL_STATUS,
     ].forEach((eventName) => {
       unsubscribers.push(
         socket.subscribe(DockerTopics.MODULE, eventName, handleEnvelope),

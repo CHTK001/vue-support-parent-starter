@@ -6,7 +6,7 @@ import VideoIndex from "./views/ai/video/index.vue";
 import FaceIndex from "./views/ai/face/index.vue";
 import ColorizationIndex from "./views/ai/colorization/index.vue";
 import ResolutionIndex from "./views/ai/resolution/index.vue";
-import SettingsIndex from "./views/ai/settings/index.vue";
+import ManufacturerIndex from "./views/ai/manufacturer/index.vue";
 
 export default AiHomePage;
 
@@ -19,13 +19,17 @@ export {
   FaceIndex,
   ColorizationIndex,
   ResolutionIndex,
-  SettingsIndex,
+  ManufacturerIndex,
+  ManufacturerIndex as SettingsIndex,
   ChatIndex as LlmNewIndex,
   ImageIndex as VincentIndex,
   FaceIndex as ImageDetectIndex,
 };
 
 export * from "./api/ai/module";
+export * from "./api/ai/manufacturer";
+export * from "./api/ai/setting";
+export * from "./api/ai/global-setting";
 export * from "./api/ai/chat";
 export * from "./api/ai/session";
 export * from "./api/ai/task";

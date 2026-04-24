@@ -23,6 +23,7 @@
     :class="[
       'sc-dialog',
       `sc-dialog--${type}`,
+      resolvedSkin ? `skin--${resolvedSkin}` : '',
       {
         'has-float-icon': icon && iconMode === 'float',
         'sc-dialog--headerless': hideHeader || (layout === 'simple' && closeButtonType !== 'default'),
@@ -31,6 +32,7 @@
         'sc-dialog--close-external': closeButtonType === 'external',
       }
     ]"
+    :data-skin="resolvedSkin || undefined"
     @open="$emit('open')"
     @opened="$emit('opened')"
     @close="$emit('close')"
@@ -102,6 +104,7 @@
             `sc-dialog-dock-icon--${dockPosition || 'bottom'}`,
             `sc-dialog-dock-icon--${type}`,
             theme ? `sc-dialog-dock-icon--theme-${theme}` : '',
+            resolvedSkin ? `sc-dialog-dock-icon--skin-${resolvedSkin}` : '',
             { 'is-dragging': isMinimizedDragging, 'show-title': minimizeShowTitle && dockPosition === 'bottom' }
           ]"
           :style="minimizedIconStyle"
@@ -135,6 +138,7 @@
             :class="[
               `sc-dialog--${type}`,
               theme ? `sc-dialog--theme-${theme}` : '',
+              resolvedSkin ? `skin--${resolvedSkin}` : '',
               {
                 'is-dragging': isDragging,
                 'is-resizing': isResizing,
@@ -142,6 +146,7 @@
                 'has-float-icon': icon && iconMode === 'float'
               }
             ]"
+            :data-skin="resolvedSkin || undefined"
             :style="[dialogStyle, dialogRadiusStyle]"
             @mousedown.capture="handleDialogMouseDown"
           >
@@ -252,7 +257,7 @@
  * @since 2025-12-01
  * @updated 2025-12-02 简化架构，删除布局系统
  */
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, type PropType, type CSSProperties } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, useAttrs, type PropType, type CSSProperties } from "vue";
 import { ElDialog } from "element-plus";
 import { ScButton } from "../../ScButton";
 import { useThemeComponent } from "../../hooks/useThemeComponent";
@@ -365,6 +370,8 @@ const props = withDefaults(
     minimizeShowTitle?: boolean;
     /** 主题风格 */
     theme?: string;
+    /** 皮肤：auto 自动读取 data-skin */
+    skin?: string;
     /** 是否使用任务栏（开启后最小化会收缩到任务栏） */
     useTaskbar?: boolean;
     /** 分组标识（用于任务栏分组合并） */
@@ -428,6 +435,7 @@ const props = withDefaults(
     showAlignGuides: true,
     minimizeShowTitle: true,
     theme: "default",
+    skin: "auto",
     useTaskbar: false,
     group: "",
     dragOutside: false,
@@ -439,6 +447,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(["update:modelValue", "open", "opened", "close", "closed", "confirm", "cancel", "minimize", "maximize", "restore"]);
+const attrs = useAttrs();
 
 // 内部状态
 const dialogVisible = computed({
@@ -502,6 +511,37 @@ const typeColor = computed(() => {
     default:
       return "var(--el-color-primary)";
   }
+});
+
+const normalizeSkin = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const resolvedSkin = computed(() => {
+  const propSkin = normalizeSkin(props.skin);
+  if (propSkin && propSkin !== "auto") {
+    return propSkin;
+  }
+
+  const attrSkin = normalizeSkin(attrs["data-skin"]);
+  if (attrSkin && attrSkin !== "auto") {
+    return attrSkin;
+  }
+
+  if (typeof document !== "undefined") {
+    const htmlSkin = normalizeSkin(
+      document.documentElement?.getAttribute("data-skin"),
+    );
+    if (htmlSkin && htmlSkin !== "auto") {
+      return htmlSkin;
+    }
+
+    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+    if (bodySkin && bodySkin !== "auto") {
+      return bodySkin;
+    }
+  }
+
+  return "";
 });
 
 const floatIconStyle = computed<CSSProperties>(() => ({
@@ -993,13 +1033,22 @@ watch(
 }
 
 // Tech 主题样式
-.sc-dialog--theme-tech {
-  background: color-mix(in srgb, var(--el-color-primary-dark-2), transparent 5%);
-  border: 1px solid var(--el-color-primary-light-5);
-  border-radius: 2px;
+.sc-dialog--theme-tech,
+.sc-dialog[data-skin="tech"],
+.sc-dialog.skin--tech,
+.sc-dialog[data-skin="cyber"],
+.sc-dialog.skin--cyber {
+  --sc-dialog-tech-line: rgba(48, 226, 217, 0.24);
+  --sc-dialog-tech-line-strong: rgba(67, 243, 238, 0.56);
+  --sc-dialog-tech-accent: #42f5e6;
+  --sc-dialog-tech-text: #d9f7ff;
+  background: linear-gradient(180deg, rgba(10, 24, 40, 0.96), rgba(7, 18, 30, 0.92));
+  border: 1px solid var(--sc-dialog-tech-line);
+  border-radius: 14px;
   box-shadow:
-    0 0 20px var(--el-color-primary-light-5),
-    inset 0 0 20px rgba(0, 0, 0, 0.3);
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 18px 42px rgba(1, 7, 15, 0.34),
+    0 0 30px rgba(66, 245, 230, 0.1);
   backdrop-filter: blur(10px);
 
   // 网格背景
@@ -1010,9 +1059,11 @@ watch(
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: linear-gradient(var(--el-color-primary-light-8) 1px, transparent 1px), linear-gradient(90deg, var(--el-color-primary-light-8) 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.3;
+    background-image:
+      linear-gradient(rgba(66, 245, 230, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(66, 245, 230, 0.08) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity: 0.36;
     pointer-events: none;
     z-index: 0;
   }
@@ -1026,14 +1077,14 @@ watch(
     right: 0;
     bottom: 0;
     border: 2px solid transparent;
-    border-image: linear-gradient(135deg, var(--el-color-primary), transparent 50%, var(--el-color-primary)) 1;
+    border-image: linear-gradient(135deg, var(--sc-dialog-tech-accent), transparent 50%, var(--sc-dialog-tech-accent)) 1;
     pointer-events: none;
     z-index: 1;
   }
 
   .sc-dialog__header {
-    background: color-mix(in srgb, var(--el-color-primary-dark-2), transparent 20%);
-    border-bottom: 1px solid var(--el-color-primary-light-5);
+    background: linear-gradient(180deg, rgba(12, 29, 46, 0.98), rgba(9, 21, 34, 0.92));
+    border-bottom: 1px solid var(--sc-dialog-tech-line);
     position: relative;
     z-index: 2;
 
@@ -1044,23 +1095,26 @@ watch(
       left: 0;
       width: 100px;
       height: 2px;
-      background: var(--el-color-primary);
-      box-shadow: 0 0 10px var(--el-color-primary);
+      background: var(--sc-dialog-tech-accent);
+      box-shadow: 0 0 10px rgba(66, 245, 230, 0.7);
     }
   }
 
   .sc-dialog__title {
-    color: var(--el-color-white);
-    text-shadow: 0 0 10px var(--el-color-primary);
+    color: var(--sc-dialog-tech-text);
+    text-shadow: 0 0 10px rgba(66, 245, 230, 0.45);
     letter-spacing: 1px;
     text-transform: uppercase;
     font-weight: 600;
+    font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
   }
 
   .sc-dialog__body {
-    color: var(--el-text-color-primary);
+    color: var(--sc-dialog-tech-text);
+    background: linear-gradient(180deg, rgba(8, 19, 31, 0.88), rgba(6, 15, 26, 0.94));
     position: relative;
     z-index: 2;
+    font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -1068,7 +1122,7 @@ watch(
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-color-primary-light-5);
+      background: var(--sc-dialog-tech-line-strong);
       border-radius: 3px;
     }
 
@@ -1078,39 +1132,66 @@ watch(
   }
 
   .sc-dialog__footer {
-    border-top: 1px solid var(--el-color-primary-light-7);
-    background: color-mix(in srgb, var(--el-color-primary-dark-2), transparent 50%);
+    border-top: 1px solid var(--sc-dialog-tech-line);
+    background: linear-gradient(180deg, rgba(8, 19, 31, 0.9), rgba(5, 13, 22, 0.96));
     position: relative;
     z-index: 2;
+    font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
   }
 
   .sc-dialog__btn {
-    color: var(--el-color-primary);
+    color: var(--sc-dialog-tech-accent);
     transition: all 0.3s ease;
 
     &:hover {
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
-      box-shadow: 0 0 10px var(--el-color-primary-light-5);
+      background: rgba(66, 245, 230, 0.12);
+      color: #e8fcff;
+      box-shadow: 0 0 10px rgba(66, 245, 230, 0.28);
     }
   }
 
+  .sc-dialog__body .el-form-item__label {
+    color: rgba(192, 225, 242, 0.86);
+    letter-spacing: 0.04em;
+  }
+
+  .sc-dialog__body .el-input__wrapper,
+  .sc-dialog__body .el-textarea__inner,
+  .sc-dialog__body .el-select__wrapper {
+    border-color: var(--sc-dialog-tech-line);
+    color: var(--sc-dialog-tech-text);
+    background: rgba(4, 13, 21, 0.68);
+    box-shadow: 0 0 0 1px rgba(66, 245, 230, 0.08) inset;
+  }
+
+  .sc-dialog__body .el-input__inner,
+  .sc-dialog__body .el-textarea__inner {
+    color: var(--sc-dialog-tech-text);
+  }
+
+  .sc-dialog__footer .sc-button-root,
+  .sc-dialog__footer .el-button,
+  .sc-dialog__footer .sc-themed-button {
+    font-family: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
+    letter-spacing: 0.08em;
+  }
+
   .sc-dialog__close:hover {
-    background: var(--el-color-danger-light-9);
-    color: var(--el-color-danger);
-    box-shadow: 0 0 10px var(--el-color-danger-light-5);
+    background: rgba(255, 143, 108, 0.12);
+    color: #ffb7a0;
+    box-shadow: 0 0 10px rgba(255, 143, 108, 0.26);
   }
 
   .sc-dialog__minimize:hover {
-    background: var(--el-color-warning-light-9);
-    color: var(--el-color-warning);
-    box-shadow: 0 0 10px var(--el-color-warning-light-5);
+    background: rgba(255, 184, 108, 0.12);
+    color: #ffd39f;
+    box-shadow: 0 0 10px rgba(255, 184, 108, 0.24);
   }
 
   .sc-dialog__maximize:hover {
-    background: var(--el-color-success-light-9);
-    color: var(--el-color-success);
-    box-shadow: 0 0 10px var(--el-color-success-light-5);
+    background: rgba(91, 235, 164, 0.12);
+    color: #abf2cb;
+    box-shadow: 0 0 10px rgba(91, 235, 164, 0.24);
   }
 
   // 扩展手柄样式
@@ -1118,7 +1199,7 @@ watch(
     &::after {
       content: "";
       position: absolute;
-      background: var(--el-color-primary-light-5);
+      background: var(--sc-dialog-tech-line-strong);
     }
 
     &--se::after,
@@ -1130,14 +1211,14 @@ watch(
 
     &--se::after {
       right: 2px;
-      border-right: 2px solid var(--el-color-primary);
-      border-bottom: 2px solid var(--el-color-primary);
+      border-right: 2px solid var(--sc-dialog-tech-accent);
+      border-bottom: 2px solid var(--sc-dialog-tech-accent);
     }
 
     &--sw::after {
       left: 2px;
-      border-left: 2px solid var(--el-color-primary);
-      border-bottom: 2px solid var(--el-color-primary);
+      border-left: 2px solid var(--sc-dialog-tech-accent);
+      border-bottom: 2px solid var(--sc-dialog-tech-accent);
     }
   }
 }
@@ -1294,7 +1375,9 @@ watch(
 // 最小化图标主题样式
 .sc-dialog-dock-icon {
   // Tech 主题
-  &--theme-tech {
+  &--theme-tech,
+  &--skin-tech,
+  &--skin-cyber {
     background: color-mix(in srgb, var(--el-color-primary-dark-2), transparent 10%);
     border: 1px solid var(--el-color-primary-light-5);
     box-shadow:

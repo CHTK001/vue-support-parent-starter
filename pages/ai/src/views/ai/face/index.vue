@@ -1,17 +1,20 @@
 <template>
-  <TaskWorkbench
-    eyebrow="AI Face"
-    title="人脸检测工作台"
-    description="输入图片地址或内容描述，提交最小人脸检测任务。"
+  <AiTaskStudio
+    title="Face Analysis"
+    description="保留最小输入面板，统一提交到 FACE 任务接口。"
+    icon="🙂"
     module-type="FACE"
     task-type="FACE"
-    primary-label="检测目标"
-    primary-placeholder="例如：多人会议照片中的人脸位置"
-    secondary-label="补充说明"
-    secondary-placeholder="例如：是否需要年龄、性别、表情等信息"
+    :prompt-items="promptItems"
   />
 </template>
 
 <script setup lang="ts">
-import TaskWorkbench from "../components/TaskWorkbench.vue";
+import AiTaskStudio from "../rebuilt/AiTaskStudio.vue";
+
+const promptItems = [
+  { key: "detect", label: "人脸检测", description: "检测图片中的人脸位置和数量。" },
+  { key: "feature", label: "特征提取", description: "提取图片中的人脸特征信息。" },
+  { key: "compare", label: "人脸比对", description: "对两张图片中的人脸进行相似度比对。" },
+];
 </script>

@@ -16,6 +16,7 @@
         <!-- 触发按钮 -->
         <div
           class="dropdown-trigger"
+          :class="{ 'is-disabled': disabled }"
           role="button"
           tabindex="0"
           :aria-expanded="isOpen"
@@ -110,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useZIndex } from "element-plus";
 import { ScButton } from "../../ScButton";
 import { ScInput } from "../../ScInput";
@@ -219,6 +220,14 @@ const props = defineProps({
   showBatchActions: {
     type: Boolean,
     default: false
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  skin: {
+    type: String,
+    default: ""
   }
 });
 
@@ -228,7 +237,7 @@ const isOpen = ref(false);
 const dropdownRef = ref<HTMLElement>();
 const searchQuery = ref("");
 const { nextZIndex } = useZIndex();
-const fallbackZIndex = nextZIndex();
+const runtimeZIndex = ref<number>(0);
 
 // 检测是否有预览选项
 const hasPreviewOptions = computed(() => {
@@ -288,6 +297,9 @@ const getStyle = computed(() => {
 
 const popoverClass = computed(() => {
   const classes = ["sc-select-popover"];
+  if (props.skin) {
+    classes.push(`sc-select-popover--skin-${props.skin}`);
+  }
   if (props.dropdownDirection === "horizontal") {
     classes.push("popover-horizontal");
   }
@@ -297,7 +309,17 @@ const popoverClass = computed(() => {
   return classes.join(" ");
 });
 
-const resolvedZIndex = computed(() => props.zIndex ?? fallbackZIndex);
+const resolvedZIndex = computed(() => props.zIndex ?? runtimeZIndex.value);
+
+watch(
+  () => isOpen.value,
+  (open) => {
+    if (open && props.zIndex == null) {
+      runtimeZIndex.value = nextZIndex();
+    }
+  },
+  { immediate: true },
+);
 
 // 计算当前选择的数据
 const currentSelectedData = computed(() => {
@@ -329,11 +351,13 @@ const currentDisplayText = computed(() => {
 
 // 切换下拉框
 const toggleDropdown = () => {
+  if (props.disabled) return;
   isOpen.value = !isOpen.value;
 };
 
 // 选择选项
 const selectOption = (value: string | number) => {
+  if (props.disabled) return;
   emit("select", value);
   if (!props.multiple) {
     isOpen.value = false;
@@ -430,6 +454,12 @@ const handleClearSelection = () => {
 
   &:active {
     transform: translateY(0);
+  }
+
+  &.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
   }
 
   .dropdown-icon {
@@ -737,6 +767,20 @@ const handleClearSelection = () => {
   &.popover-large-mode {
     min-width: 300px !important;
   }
+}
+
+:global(.sc-select-popover.sc-select-popover--skin-tech) {
+  border: 1px solid rgba(66, 245, 230, 0.32) !important;
+  background: linear-gradient(180deg, rgba(10, 24, 40, 0.96), rgba(7, 18, 30, 0.92)) !important;
+  box-shadow:
+    0 12px 40px rgba(1, 7, 15, 0.3),
+    0 0 24px rgba(66, 245, 230, 0.16) !important;
+}
+
+:global(.sc-select-popover.sc-select-popover--skin-tech .dropdown-panel-content .panel-title) {
+  color: #e5fbff !important;
+  border-bottom-color: rgba(66, 245, 230, 0.24) !important;
+  background: linear-gradient(180deg, rgba(12, 29, 46, 0.96), rgba(9, 21, 34, 0.9)) !important;
 }
 
 // 暗黑模式适配

@@ -27,8 +27,28 @@ defineOptions({
   inheritAttrs: false,
 });
 
-// 装饰变体类型 (实际可用: A1, B1-B3, D1)
-type DecoVariant = "A1" | "B1" | "B2" | "B3" | "D1";
+// 装饰变体类型 (对应 scifiDecoA1-D5)
+type DecoVariant =
+  | "A1"
+  | "A2"
+  | "A3"
+  | "A4"
+  | "A5"
+  | "B1"
+  | "B2"
+  | "B3"
+  | "B4"
+  | "B5"
+  | "C1"
+  | "C2"
+  | "C3"
+  | "C4"
+  | "C5"
+  | "D1"
+  | "D2"
+  | "D3"
+  | "D4"
+  | "D5";
 
 const props = withDefaults(
   defineProps<{
