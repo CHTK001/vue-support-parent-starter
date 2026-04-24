@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-start gap-1">
+  <div class="sc-time-text-root flex flex-col items-start gap-1" :class="rootClass">
     <!-- 相对时间 + Tooltip 悬浮提示 -->
     <el-tooltip
       :content="modelValue || 'No date available'"
@@ -31,7 +31,15 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  skin: {
+    type: String,
+    default: "",
+  },
 });
+
+const rootClass = computed(() => ({
+  "is-tech": String(props.skin || "").toLowerCase() === "tech",
+}));
 
 const displayTimeAgo = computed<string>(() => {
   if (!props.modelValue) return "N/A";
@@ -59,5 +67,18 @@ const displayTimeAgo = computed<string>(() => {
 
 .absolute-time {
   line-height: 1.2;
+}
+
+.sc-time-text-root.is-tech .relative-time {
+  color: #9fe9ff;
+  text-shadow: 0 0 8px rgba(66, 245, 230, 0.2);
+}
+
+.sc-time-text-root.is-tech .relative-time:hover {
+  color: #42f5e6;
+}
+
+.sc-time-text-root.is-tech .absolute-time {
+  color: rgba(167, 213, 233, 0.78);
 }
 </style>

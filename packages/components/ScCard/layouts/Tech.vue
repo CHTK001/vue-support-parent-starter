@@ -245,9 +245,14 @@ export default defineComponent({
   position: relative;
   border-radius: 2px;
   background: var(--tech-bg-color);
-  backdrop-filter: blur(10px);
+  contain: layout paint style;
+  isolation: isolate;
+  transform: translateZ(0);
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 
   // 网格背景
   &__grid {
@@ -270,9 +275,9 @@ export default defineComponent({
     right: 0;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--tech-primary-color), transparent);
-    animation: scan 3s linear infinite;
+    animation: scan 3.8s linear infinite;
     z-index: 1;
-    opacity: 0.6;
+    opacity: 0.16;
   }
 
   @keyframes scan {
@@ -291,7 +296,10 @@ export default defineComponent({
     height: 20px;
     color: var(--tech-primary-color);
     z-index: 3;
-    transition: all 0.3s ease;
+    transition:
+      transform 0.22s ease,
+      color 0.22s ease,
+      opacity 0.22s ease;
 
     svg {
       width: 100%;
@@ -325,8 +333,10 @@ export default defineComponent({
     position: absolute;
     background: var(--tech-primary-color);
     z-index: 2;
-    opacity: 0.3;
-    transition: all 0.3s ease;
+    opacity: 0.18;
+    transition:
+      opacity 0.22s ease,
+      box-shadow 0.22s ease;
 
     &--top {
       top: 0;
@@ -473,7 +483,8 @@ export default defineComponent({
     background: var(--tech-primary-color);
     border-radius: 50%;
     box-shadow: 0 0 10px var(--tech-glow-color);
-    animation: dataFlow 2s linear infinite;
+    animation: none;
+    opacity: 0.42;
   }
 
   @keyframes dataFlow {
@@ -497,8 +508,8 @@ export default defineComponent({
   &.is-hoverable:hover {
     transform: translateY(-2px);
     box-shadow:
-      0 0 20px var(--tech-glow-color),
-      inset 0 0 20px rgba(0, 0, 0, 0.2);
+      0 0 12px var(--tech-glow-color),
+      inset 0 0 12px rgba(0, 0, 0, 0.16);
 
     .tech-card__corner {
       color: var(--tech-secondary-color);
@@ -511,29 +522,38 @@ export default defineComponent({
     }
 
     .tech-card__scan-line {
-      opacity: 1;
+      opacity: 0.8;
+      animation: scan 3.8s linear infinite;
+    }
+
+    .tech-card__data-dot {
+      animation: dataFlow 3.2s linear infinite;
     }
   }
 
   // 激活状态
   &.is-active {
     box-shadow:
-      0 0 30px var(--tech-glow-color),
-      inset 0 0 30px rgba(0, 0, 0, 0.3);
+      0 0 18px var(--tech-glow-color),
+      inset 0 0 18px rgba(0, 0, 0, 0.2);
 
     .tech-card__corner {
       color: var(--tech-secondary-color);
-      animation: cornerPulse 2s ease-in-out infinite;
+      animation: cornerPulse 4s ease-in-out infinite;
     }
 
     .tech-card__glow-border {
-      opacity: 1;
-      animation: borderGlow 2s ease-in-out infinite;
+      opacity: 0.82;
+      animation: borderGlow 4s ease-in-out infinite;
     }
 
     .tech-card__scan-line {
-      opacity: 1;
-      animation: scan 2s linear infinite;
+      opacity: 0.82;
+      animation: scan 3s linear infinite;
+    }
+
+    .tech-card__data-dot {
+      animation: dataFlow 2.8s linear infinite;
     }
   }
 
@@ -582,6 +602,14 @@ export default defineComponent({
 
   &--red {
     border: 1px solid rgba(255, 77, 79, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tech-card,
+  .tech-card * {
+    animation: none !important;
+    transition: none !important;
   }
 }
 </style>

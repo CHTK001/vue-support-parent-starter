@@ -2,11 +2,13 @@
   <div
     class="card-selector-container"
     :class="[
-      `layout-${layout}`,
-      `variant-${controlVariant}`,
-      `control-layout-${controlLayout}`,
-      `card-selector-container--variant-${controlVariant}`
+      'layout-' + layout,
+      'variant-' + controlVariant,
+      'control-layout-' + controlLayout,
+      'card-selector-container--variant-' + controlVariant,
+      resolvedSkin ? 'skin--' + resolvedSkin : ''
     ]"
+    :data-skin="resolvedSkin || undefined"
   >
     <!-- 头部插槽 -->
     <div v-if="$slots.header" class="sc-select__header">
@@ -18,6 +20,7 @@
       v-if="layout === 'select'"
       v-model="selectValue"
       :options="selectListOptions"
+      :disabled="disabled"
       :multiple="multiple"
       :limit="limit"
       :max-collapse-tags="maxCollapseTags"
@@ -133,76 +136,6 @@
       />
     </div>
 
-    <!-- 列表选择器布局 -->
-    <div v-else-if="layout === 'list'" class="sc-select__list">
-      <div v-if="listShowSearch" class="sc-select__list-search">
-        <ScInput
-          v-model="listSearchQuery"
-          size="small"
-          clearable
-          :placeholder="listPlaceholder"
-        >
-          <template #prefix>
-            <IconRenderer icon="ri:search-line" />
-          </template>
-        </ScInput>
-      </div>
-
-      <div class="sc-select__list-body thin-scroller overflow-y-auto ss" :style="listBodyStyle">
-        <template v-if="filteredListOptions.length">
-          <template v-if="displayMode === 'large'">
-            <LargeOptionDisplay
-              v-for="item in filteredListOptions"
-              :key="item.value"
-              :option="item"
-              :is-selected="isSelected(item.value)"
-              :is-item-disabled="isItemDisabled(item.value)"
-              @select="handleSelect"
-            >
-              <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
-                <slot
-                  name="content"
-                  :option="option"
-                  :item="selectValue"
-                  :selectedValues="modelValue"
-                  :isSelected="slotIsSelected"
-                />
-              </template>
-            </LargeOptionDisplay>
-          </template>
-          <template v-else>
-            <NormalOptionDisplay
-              v-for="item in filteredListOptions"
-              :key="item.value"
-              :option="item"
-              :is-selected="isSelected(item.value)"
-              :is-item-disabled="isItemDisabled(item.value)"
-              @select="handleSelect"
-            >
-              <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
-                <slot
-                  name="content"
-                  :option="option"
-                  :item="selectValue"
-                  :selectedValues="modelValue"
-                  :isSelected="slotIsSelected"
-                />
-              </template>
-            </NormalOptionDisplay>
-          </template>
-        </template>
-        <div v-else class="sc-select__empty sc-select__empty--list">
-          {{ listEmptyText }}
-        </div>
-      </div>
-
-      <div v-if="multiple && listShowBatchActions" class="panel-actions">
-        <ScButton size="small" text @click="selectAll">全选</ScButton>
-        <ScButton size="small" text @click="invertSelection">反选</ScButton>
-        <ScButton size="small" text @click="clearSelection">清空</ScButton>
-      </div>
-    </div>
-
     <!-- 位置选择器布局 -->
     <PositionLayout v-else-if="layout === 'position'" v-model="positionValue" :disabled="disabled" :mode="mode" @change="handleChange" />
 
@@ -227,6 +160,8 @@
       :dropdown-col="dropdownCol"
       :display-mode="displayMode"
       :z-index="zIndex"
+      :skin="resolvedSkin"
+      :disabled="disabled"
       :is-selected="isSelected"
       :is-item-disabled="isItemDisabled"
       @select="handleSelect"
@@ -279,6 +214,7 @@
       v-model="treeSelectValue"
       :options="selectListOptions"
       :multiple="multiple"
+      :disabled="disabled"
       :props="treeProps"
       :node-key="treeNodeKey"
       :icon-prop="treeIconProp"
@@ -311,16 +247,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, type PropType } from "vue";
+import { computed, onMounted, ref, useAttrs, watch, type PropType } from "vue";
 import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
 import IconLayout from "./components/IconLayout.vue";
 import { ScButton } from "../ScButton";
-import { ScInput } from "../ScInput";
 import PillLayout from "./components/PillLayout.vue";
-import LargeOptionDisplay from "./display/LargeOptionDisplay.vue";
-import NormalOptionDisplay from "./display/NormalOptionDisplay.vue";
 // Position layout component
 import IconRenderer from "./components/IconRenderer.vue";
 import PositionLayout from "./components/PositionLayout.vue";
@@ -351,6 +284,11 @@ type SelectRequest = (params: Record<string, any>) => Promise<any>;
 type TreeSelectValue = string | number | Array<string | number>;
 
 const props = defineProps({
+  // 皮肤风格：auto 自动跟随 data-skin
+  skin: {
+    type: String,
+    default: "auto"
+  },
   // v-model绑定值
   modelValue: {
     type: [String, Number, Array] as PropType<SelectValue>,
@@ -405,7 +343,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "icon", "dropdown", "list", "filter", "table", "tree", "position"].includes(value);
+      return ["card", "select", "pill", "icon", "dropdown", "filter", "table", "tree", "position"].includes(value);
     }
   },
   // 位置选择器模式：9=3x3九格，4=2x2四角（仅 layout="position" 时生效）
@@ -454,7 +392,7 @@ const props = defineProps({
   },
   zIndex: {
     type: Number,
-    default: 2000
+    default: undefined
   },
   // 图标位置
   iconPosition: {
@@ -548,26 +486,6 @@ const props = defineProps({
       return ["normal", "large"].includes(value);
     }
   },
-  listHeight: {
-    type: String,
-    default: "320px"
-  },
-  listPlaceholder: {
-    type: String,
-    default: "搜索选项"
-  },
-  listEmptyText: {
-    type: String,
-    default: "暂无可选项"
-  },
-  listShowSearch: {
-    type: Boolean,
-    default: true
-  },
-  listShowBatchActions: {
-    type: Boolean,
-    default: false
-  },
   // 过滤器模式标签宽度
   labelWidth: {
     type: String,
@@ -658,6 +576,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue", "change", "success", "failure", "selection-change", "search", "page-change", "size-change", "focus", "blur", "clear", "error"]);
+const attrs = useAttrs();
 
 const isRemoteData = ref(props.isRemote);
 // 原生select绑定值
@@ -676,36 +595,32 @@ const selectListOptions = computed(() => {
     };
   });
 });
-const listSearchQuery = ref("");
-const filteredListOptions = computed(() => {
-  const keyword = listSearchQuery.value.trim().toLowerCase();
-  if (!keyword) {
-    return selectListOptions.value;
-  }
-  return selectListOptions.value.filter(item => {
-    const fields = [
-      item.label,
-      item.describe,
-      item.description,
-      item.name,
-      item.value
-    ];
-    return fields.some(field =>
-      String(field ?? "")
-        .toLowerCase()
-        .includes(keyword)
-    );
-  });
-});
-const listBodyStyle = computed(() => ({
-  maxHeight: props.listHeight,
-  minHeight: props.listHeight
-}));
 // 计算flex样式
 const flexStyles = computed(() => {
   return {
     gap: `${props.gap}px`
   };
+});
+
+const normalizeSkin = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const resolvedSkin = computed(() => {
+  const propSkin = normalizeSkin(props.skin);
+  if (propSkin && propSkin !== "auto") return propSkin;
+
+  const attrSkin = normalizeSkin(attrs["data-skin"]);
+  if (attrSkin && attrSkin !== "auto") return attrSkin;
+
+  if (typeof document !== "undefined") {
+    const htmlSkin = normalizeSkin(document.documentElement?.getAttribute("data-skin"));
+    if (htmlSkin && htmlSkin !== "auto") return htmlSkin;
+
+    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+    if (bodySkin && bodySkin !== "auto") return bodySkin;
+  }
+
+  return "";
 });
 
 // 监听modelValue变化同步到selectValue
@@ -721,14 +636,6 @@ watch(
   () => props.options,
   newVal => {
     selectOptions.value = newVal as SelectOptionRecord[];
-  }
-);
-watch(
-  () => props.layout,
-  layout => {
-    if (layout !== "list") {
-      listSearchQuery.value = "";
-    }
   }
 );
 const fetchOptions = async () => {
@@ -778,6 +685,7 @@ const isReachedLimit = computed(() => {
 
 // 判断选项是否应该被禁用（已达到限制且未被选中）
 const isItemDisabled = (value: string | number) => {
+  if (props.disabled) return true;
   if (!props.multiple || props.limit <= 0) return false;
 
   // 如果已达到限制，且当前项未被选中，则禁用
@@ -958,7 +866,7 @@ const handleChange = (value: any) => {
 
 // 全选
 const selectAll = () => {
-  if (!props.multiple) return;
+  if (!props.multiple || props.disabled) return;
 
   let allValues = props.options.map(item => item.value);
 
@@ -974,7 +882,7 @@ const selectAll = () => {
 
 // 反选
 const invertSelection = () => {
-  if (!props.multiple || !Array.isArray(props.modelValue)) return;
+  if (!props.multiple || props.disabled || !Array.isArray(props.modelValue)) return;
 
   const currentValues = props.modelValue as (string | number)[];
   let invertedValues = props.options.map(item => item.value).filter(value => !currentValues.includes(value));
@@ -991,7 +899,7 @@ const invertSelection = () => {
 
 // 清空选择
 const clearSelection = () => {
-  if (!props.multiple) return;
+  if (!props.multiple || props.disabled) return;
 
   const emptyArray: (string | number)[] = [];
   emit("update:modelValue", emptyArray);
@@ -1012,6 +920,7 @@ const isSelected = (value: string | number) => {
 
 // 选择卡片
 const handleSelect = (value: string | number) => {
+  if (props.disabled) return;
   if (props.multiple) {
     // 多选模式
     let newValue: (string | number)[] = [];
@@ -1160,37 +1069,6 @@ const treeSelectValue = computed<TreeSelectValue>({
     justify-content: flex-start;
   }
 
-  .sc-select__list {
-    display: grid;
-    gap: 12px;
-    width: 100%;
-    min-width: 0;
-  }
-
-  .sc-select__list-search {
-    width: 100%;
-  }
-
-  .sc-select__list-body {
-    display: grid;
-    gap: 8px;
-    width: 100%;
-    min-width: 0;
-    padding: 8px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 18px;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
-    box-sizing: border-box;
-    overflow-x: hidden;
-  }
-
-  .sc-select__empty--list {
-    padding: 32px 16px;
-    border-radius: 14px;
-    background: rgba(248, 250, 252, 0.9);
-  }
-
   /* 响应式布局 */
   @media screen and (max-width: 768px) {
     .card-selector-flex,
@@ -1199,6 +1077,44 @@ const treeSelectValue = computed<TreeSelectValue>({
       justify-content: space-between;
     }
   }
+}
+
+.card-selector-container[data-skin="tech"],
+.card-selector-container.skin--tech {
+  --sc-select-tech-line: rgba(66, 245, 230, 0.3);
+  --sc-select-tech-line-strong: rgba(67, 243, 238, 0.56);
+  --sc-select-tech-text: #dff8ff;
+  --sc-select-tech-bg: linear-gradient(180deg, rgba(10, 24, 40, 0.95), rgba(7, 18, 30, 0.9));
+}
+
+.card-selector-container[data-skin="tech"] :deep(.selector-native-select .el-select__wrapper),
+.card-selector-container.skin--tech :deep(.selector-native-select .el-select__wrapper),
+.card-selector-container[data-skin="tech"] :deep(.selector-native-select .el-input__wrapper),
+.card-selector-container.skin--tech :deep(.selector-native-select .el-input__wrapper) {
+  border-color: var(--sc-select-tech-line);
+  color: var(--sc-select-tech-text);
+  background: var(--sc-select-tech-bg);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 0 16px rgba(66, 245, 230, 0.08);
+}
+
+.card-selector-container[data-skin="tech"] :deep(.card-selector-item),
+.card-selector-container.skin--tech :deep(.card-selector-item),
+.card-selector-container[data-skin="tech"] :deep(.pill-selector-item),
+.card-selector-container.skin--tech :deep(.pill-selector-item),
+.card-selector-container[data-skin="tech"] :deep(.icon-selector-item),
+.card-selector-container.skin--tech :deep(.icon-selector-item),
+.card-selector-container[data-skin="tech"] :deep(.position-cell),
+.card-selector-container.skin--tech :deep(.position-cell) {
+  border-color: var(--sc-select-tech-line) !important;
+  color: var(--sc-select-tech-text);
+  background: var(--sc-select-tech-bg);
+  box-shadow: 0 0 14px rgba(66, 245, 230, 0.08);
+}
+
+.card-selector-container[data-skin="tech"] :deep(.is-selected),
+.card-selector-container.skin--tech :deep(.is-selected) {
+  border-color: var(--sc-select-tech-line-strong) !important;
+  box-shadow: 0 0 20px rgba(66, 245, 230, 0.18);
 }
 
 .card-selector-container--variant-card {

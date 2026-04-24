@@ -389,15 +389,16 @@
 
     <el-dialog
       v-model="portSearchVisible"
-      width="760px"
+      width="1120px"
       title="端口搜索"
+      class="server-port-search-dialog"
       destroy-on-close
       :close-on-click-modal="false"
     >
-      <div class="flex gap-2 mb-3">
+      <div class="server-port-search-dialog__toolbar">
         <ScInput
           v-model="portKeyword"
-          placeholder="输入端口号（例如 80 / 443 / 3306）"
+          placeholder="输入端口号或软件名称（例如 80 / nginx / mysql）"
           clearable
           @keyup.enter="runPortSearch"
         >
@@ -408,8 +409,23 @@
         <ScButton type="primary" :loading="portSearchLoading" @click="runPortSearch">
           搜索
         </ScButton>
+        <ScButton
+          type="danger"
+          plain
+          :disabled="!portSelectedRows.length || Boolean(portActionLoadingKey)"
+          :loading="portActionLoadingKey === 'close:batch'"
+          @click="closeBatchSearchedPorts"
+        >
+          批量关闭（{{ portSelectedRows.length }}）
+        </ScButton>
       </div>
-      <el-table :data="portSearchResults" v-loading="portSearchLoading" height="360">
+      <el-table
+        :data="portSearchResults"
+        v-loading="portSearchLoading"
+        height="360"
+        @selection-change="portSelectedRows = $event"
+      >
+        <el-table-column type="selection" width="52" />
         <el-table-column prop="port" label="端口" width="90" />
         <el-table-column prop="protocol" label="协议" width="100" />
         <el-table-column prop="state" label="状态" width="120" />
@@ -832,6 +848,7 @@ const portSearchLoading = ref(false);
 const portKeyword = ref("");
 const portActionLoadingKey = ref("");
 const portSearchResults = ref<ServerPortSearchResult[]>([]);
+const portSelectedRows = ref<ServerPortSearchResult[]>([]);
 const dialogVisible = ref(false);
 const fileDrawerVisible = ref(false);
 const softDrawerVisible = ref(false);
@@ -1324,12 +1341,29 @@ const hostTagSuggestions = computed(() =>
     .sort((left, right) => left.localeCompare(right, "zh-CN")),
 );
 const visibleHostEntries = computed<ServerHostListEntry[]>(() =>
-  visibleHostItems.value.map((host) => ({
-    host,
-    snapshot: resolveHostSnapshot(host),
-    summary: getHostSoftSummary(host),
-    remoteConfig: host.remoteGatewayConfig || host.guacamoleConfig || null,
-  })),
+  visibleHostItems.value
+    .map((host) => ({
+      host,
+      snapshot: resolveHostSnapshot(host),
+      summary: getHostSoftSummary(host),
+      remoteConfig: host.remoteGatewayConfig || host.guacamoleConfig || null,
+    }))
+    .sort((left, right) => {
+      const leftStopped =
+        left.host.enabled === false ||
+        ["OFFLINE", "STOPPED", "DISABLED", "DOWN"].includes(
+          String(left.snapshot?.status || "").toUpperCase(),
+        );
+      const rightStopped =
+        right.host.enabled === false ||
+        ["OFFLINE", "STOPPED", "DISABLED", "DOWN"].includes(
+          String(right.snapshot?.status || "").toUpperCase(),
+        );
+      if (leftStopped !== rightStopped) {
+        return leftStopped ? 1 : -1;
+      }
+      return Number(left.host.serverId || 0) - Number(right.host.serverId || 0);
+    }),
 );
 const formServerCodePreview = computed(() => buildServerCodeFromHost(form));
 const selectedHost = computed(
@@ -2959,8 +2993,8 @@ const openServiceDetail = (service: ServerService) => {
 };
 
 const openHostOverview = async (host: ServerHost) => {
-  await loadHostMetricsDetail(host, true);
   hostOverviewVisible.value = true;
+  void loadHostMetricsDetail(host, true);
 };
 
 const openCreateService = (host: ServerHost) => {
@@ -4867,6 +4901,7 @@ const openPortSearchDialog = async (host?: ServerHost | null) => {
   portSearchVisible.value = true;
   portKeyword.value = "";
   portSearchResults.value = [];
+  portSelectedRows.value = [];
   portActionLoadingKey.value = "";
 };
 
@@ -4876,15 +4911,16 @@ const runPortSearch = async () => {
     message.warning("请先选择服务器");
     return;
   }
-  const port = Number(String(portKeyword.value || "").trim());
-  if (!Number.isFinite(port) || port <= 0) {
-    message.warning("请输入合法端口号");
+  const keyword = String(portKeyword.value || "").trim();
+  if (!keyword) {
+    message.warning("请输入端口号或软件名称");
     return;
   }
   try {
     portSearchLoading.value = true;
-    const result = await searchServerPort(host.serverId, port);
+    const result = await searchServerPort(host.serverId, keyword);
     portSearchResults.value = result.data || [];
+    portSelectedRows.value = [];
     if (!portSearchResults.value.length) {
       message.info("未搜索到结果");
     }
@@ -4905,6 +4941,51 @@ const closeSearchedPort = async (row: ServerPortSearchResult) => {
     message.success(`已受理关闭端口 ${port}`);
   } finally {
     portActionLoadingKey.value = "";
+  }
+};
+
+const closeBatchSearchedPorts = async () => {
+  const host = selectedHost.value;
+  if (!host?.serverId || !portSelectedRows.value.length) {
+    return;
+  }
+  const ports = Array.from(
+    new Set(
+      portSelectedRows.value
+        .map((item) => Number(item?.port || 0))
+        .filter((port) => Number.isFinite(port) && port > 0),
+    ),
+  );
+  if (!ports.length) {
+    message.warning("所选记录中没有可关闭的端口");
+    return;
+  }
+  await ElMessageBox.confirm(
+    `确认批量关闭 ${ports.length} 个端口？`,
+    "批量关闭端口",
+    { type: "warning" },
+  );
+  let successCount = 0;
+  portActionLoadingKey.value = "close:batch";
+  try {
+    for (const port of ports) {
+      try {
+        await closeServerPort(host.serverId, port);
+        successCount += 1;
+      } catch (error: unknown) {
+        const errorMessage =
+          (error as { message?: string; msg?: string } | null)?.message ||
+          (error as { message?: string; msg?: string } | null)?.msg ||
+          `关闭端口 ${port} 失败`;
+        message.error(errorMessage);
+      }
+    }
+  } finally {
+    portActionLoadingKey.value = "";
+  }
+  message.success(`批量关闭完成，成功 ${successCount} / ${ports.length}`);
+  if (successCount > 0) {
+    await runPortSearch();
   }
 };
 
@@ -5681,6 +5762,7 @@ onUnmounted(() => {
   isolation: isolate;
   display: grid;
   gap: 0;
+  grid-template-rows: minmax(0, 1fr);
   color: #0f172a;
   padding: 8px 0 2px;
   height: 100%;
@@ -5751,6 +5833,7 @@ onUnmounted(() => {
 
 .server-page__stage {
   min-height: 0;
+  height: 100%;
   border-radius: 36px;
   padding: 10px;
   background: linear-gradient(
@@ -6201,6 +6284,39 @@ onUnmounted(() => {
   align-items: center;
   line-height: 1;
 }
+
+.server-port-search-dialog__toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.server-port-search-dialog__toolbar :deep(.sc-input),
+.server-port-search-dialog__toolbar :deep(.el-input) {
+  height: 40px;
+}
+
+.server-port-search-dialog__toolbar :deep(.el-input__wrapper),
+.server-port-search-dialog__toolbar :deep(.el-input__inner) {
+  height: 40px;
+}
+
+.server-port-search-dialog__toolbar :deep(.sc-button),
+.server-port-search-dialog__toolbar :deep(.el-button) {
+  height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.server-port-search-dialog :deep(.el-dialog) {
+  max-width: min(1120px, calc(100vw - 48px));
+}
+
+.server-port-search-dialog :deep(.el-dialog__body) {
+  overflow: visible;
+}
+
 :deep(.el-button.is-circle) {
   width: 30px;
   height: 30px;

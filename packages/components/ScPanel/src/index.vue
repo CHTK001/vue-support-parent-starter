@@ -1,7 +1,19 @@
 <template>
-  <ScCard ref="panelRef" class="sc-panel" :class="panelClass" :style="panelStyle" :shadow="shadow" :body-style="{ padding: 0 }">
+  <component
+    :is="panelComponent"
+    ref="panelRef"
+    class="sc-panel"
+    :class="panelClass"
+    :style="panelStyle"
+    :shadow="shadow"
+    :body-style="{ padding: 0 }"
+    v-bind="scifiPanelProps"
+  >
     <!-- 头部 -->
-    <template v-if="title || icon || $slots.header || collapsible || maximizable || closable" #header>
+    <template
+      v-if="!useScifiPanel && (title || icon || $slots.header || collapsible || maximizable || closable)"
+      #header
+    >
       <div class="sc-panel__header" :class="{ 'sc-panel__header--draggable': draggable }" @mousedown="startDrag" @dblclick="handleDoubleClick">
         <div v-if="collapsible" class="sc-panel__collapse-btn" @click.stop="toggleCollapse">
           <IconifyIconOnline :icon="isCollapsed ? 'ep:arrow-right' : 'ep:arrow-down'" />
@@ -34,7 +46,7 @@
     <div v-if="$slots.footer && !isCollapsed" class="sc-panel__footer">
       <slot name="footer" />
     </div>
-  </ScCard>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -45,16 +57,35 @@
  * @version 1.0.0
  * @since 2025-12-05
  */
-import { ref, computed, watch, onUnmounted } from "vue";
+import { ref, computed, watch, onUnmounted, onErrorCaptured } from "vue";
 
 defineOptions({ name: "ScPanel" });
 
 export type PanelTheme = "default" | "tech" | "techui" | "glass" | "neon" | "modern" | "gradient";
+export type ScPanelTechVariant =
+  | "A1"
+  | "A2"
+  | "A3"
+  | "B1"
+  | "B2"
+  | "B3"
+  | "B4"
+  | "DV1"
+  | "DV2"
+  | "DV3"
+  | "DV4"
+  | "DV5"
+  | "DV6"
+  | "DV7"
+  | "DV8"
+  | "DV9";
 
 const props = withDefaults(
   defineProps<{
     title?: string;
     icon?: string;
+    skin?: string;
+    techTheme?: ScPanelTechVariant;
     theme?: PanelTheme;
     draggable?: boolean;
     collapsible?: boolean;
@@ -69,6 +100,8 @@ const props = withDefaults(
     borderColor?: string;
   }>(),
   {
+    skin: "auto",
+    techTheme: "A1",
     theme: "default",
     draggable: false,
     collapsible: false,
@@ -80,6 +113,56 @@ const props = withDefaults(
     shadow: "always"
   }
 );
+
+const normalizeSkin = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
+const resolvedSkin = computed(() => {
+  const skin = normalizeSkin(props.skin);
+  return skin && skin !== "auto" ? skin : "";
+});
+
+const isScifiSkin = computed(() => resolvedSkin.value === "tech");
+const hasScifiError = ref(false);
+const useScifiPanel = computed(() => isScifiSkin.value && !hasScifiError.value);
+const normalizedTechTheme = computed<ScPanelTechVariant>(() => {
+  const candidate = String(props.techTheme || "A1").toUpperCase();
+  const variants: ScPanelTechVariant[] = [
+    "A1",
+    "A2",
+    "A3",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "DV1",
+    "DV2",
+    "DV3",
+    "DV4",
+    "DV5",
+    "DV6",
+    "DV7",
+    "DV8",
+    "DV9"
+  ];
+  return variants.includes(candidate as ScPanelTechVariant)
+    ? (candidate as ScPanelTechVariant)
+    : "A1";
+});
+
+const panelComponent = computed(() => {
+  if (!useScifiPanel.value) return "ScCard";
+  return `ScifiPanel${normalizedTechTheme.value}`;
+});
+
+const scifiPanelProps = computed(() => {
+  if (!useScifiPanel.value) return {};
+  return {
+    title: props.title || undefined,
+    className: "sfp-custom",
+    backgroundOpacity: 0.08
+  };
+});
 
 const emit = defineEmits<{
   "update:collapsed": [value: boolean];
@@ -100,11 +183,21 @@ let dragStartPosX = 0;
 let dragStartPosY = 0;
 
 const panelClass = computed(() => ({
+  "sc-panel--scifi": useScifiPanel.value,
   [`sc-panel--${props.theme}`]: props.theme !== "default",
   "sc-panel--collapsed": isCollapsed.value,
   "sc-panel--maximized": isMaximized.value,
   "sc-panel--draggable": props.draggable
 }));
+
+onErrorCaptured(err => {
+  if (isScifiSkin.value) {
+    hasScifiError.value = true;
+    console.warn("[ScPanel] scifi panel render failed, fallback to ScCard:", err);
+    return false;
+  }
+  return true;
+});
 
 const panelStyle = computed(() => {
   const style: Record<string, string> = {};
@@ -183,6 +276,12 @@ watch(
   () => props.maximized,
   val => {
     isMaximized.value = val;
+  }
+);
+watch(
+  () => [props.skin, props.techTheme] as const,
+  () => {
+    hasScifiError.value = false;
   }
 );
 

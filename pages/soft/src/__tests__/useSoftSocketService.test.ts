@@ -1,22 +1,10 @@
 import { effectScope } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const useSocketService = vi.fn();
-const getGlobalSocketConfig = vi.fn();
-const getNamedSocketService = vi.fn();
-const createNamedSocketService = vi.fn();
-
-let appConfig: Record<string, any> = {};
-
-vi.mock("@repo/config", () => ({
-  getConfig: () => appConfig,
-}));
+const useManagedSocketService = vi.fn();
 
 vi.mock("@repo/core", () => ({
-  useSocketService,
-  getGlobalSocketConfig,
-  getNamedSocketService,
-  createNamedSocketService,
+  useManagedSocketService,
 }));
 
 const createSocketStub = (connected = false) => {
@@ -33,21 +21,25 @@ const createSocketStub = (connected = false) => {
 describe("useSoftSocketService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    appConfig = {};
-    useSocketService.mockReturnValue(null);
-    getGlobalSocketConfig.mockReturnValue({
-      protocol: "socketio",
-      urls: [],
-      context: "/socket.io",
-    });
-    getNamedSocketService.mockReturnValue(null);
   });
 
-  it("prefers the injected global socket service", async () => {
+  it("maps managed global source to usingGlobal state", async () => {
     const globalService = createSocketStub(true);
     const unsubscribe = vi.fn();
     globalService.subscribe.mockReturnValue(unsubscribe);
-    useSocketService.mockReturnValue(globalService);
+    useManagedSocketService.mockReturnValue({
+      state: {
+        value: {
+          source: "global",
+          connected: true,
+          error: null,
+        },
+      },
+      getService: vi.fn(() => globalService),
+      ensureConnected: vi.fn(() => globalService),
+      subscribe: vi.fn(() => unsubscribe),
+      clearSubscriptions: vi.fn(),
+    });
 
     const { useSoftSocketService } = await import("../composables/useSoftSocketService");
 
@@ -56,24 +48,32 @@ describe("useSoftSocketService", () => {
       const socket = useSoftSocketService();
       expect(socket.getService()).toBe(globalService);
       const off = socket.subscribe("SOFT", "INSTALL_PROGRESS", vi.fn());
-      expect(globalService.connect).not.toHaveBeenCalled();
-      expect(globalService.subscribe).toHaveBeenCalledTimes(1);
+      expect(socket.state.value.usingGlobal).toBe(true);
       off();
     });
     scope.stop();
 
-    expect(createNamedSocketService).not.toHaveBeenCalled();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 
-  it("creates a named socket service from local runtime config when no global service exists", async () => {
+  it("maps managed named source to non-global state", async () => {
     const namedService = createSocketStub(false);
-    createNamedSocketService.mockReturnValue(namedService);
-    appConfig = {
-      BaseUrl: "http://127.0.0.1:18170/system/api",
-      SocketPath: "/socket.io",
-      SocketProtocol: "socketio",
-    };
+    useManagedSocketService.mockReturnValue({
+      state: {
+        value: {
+          source: "created",
+          connected: false,
+          error: null,
+        },
+      },
+      getService: vi.fn(() => namedService),
+      ensureConnected: vi.fn(() => {
+        namedService.connect();
+        return namedService;
+      }),
+      subscribe: vi.fn(() => vi.fn()),
+      clearSubscriptions: vi.fn(),
+    });
 
     const { useSoftSocketService } = await import("../composables/useSoftSocketService");
 
@@ -87,20 +87,22 @@ describe("useSoftSocketService", () => {
       expect(socket.state.value.error).toBeNull();
     });
     scope.stop();
-
-    expect(createNamedSocketService).toHaveBeenCalledWith("soft", {
-      protocol: "socketio",
-      urls: ["http://127.0.0.1:18170"],
-      context: "/socket.io",
-      autoConnect: false,
-    });
   });
 
-  it("returns a controlled error when no socket url can be resolved", async () => {
-    appConfig = {
-      BaseUrl: "",
-      SocketPath: "/socket.io",
-    };
+  it("returns a controlled error from managed socket state", async () => {
+    useManagedSocketService.mockReturnValue({
+      state: {
+        value: {
+          source: "missing",
+          connected: false,
+          error: "未解析到可用的 Socket 地址",
+        },
+      },
+      getService: vi.fn(() => null),
+      ensureConnected: vi.fn(() => null),
+      subscribe: vi.fn(() => vi.fn()),
+      clearSubscriptions: vi.fn(),
+    });
 
     const { useSoftSocketService } = await import("../composables/useSoftSocketService");
 
@@ -111,7 +113,5 @@ describe("useSoftSocketService", () => {
       expect(socket.state.value.error).toBe("未解析到可用的 Socket 地址");
     });
     scope.stop();
-
-    expect(createNamedSocketService).not.toHaveBeenCalled();
   });
 });

@@ -1,10 +1,17 @@
 <template>
-  <el-tooltip :content="tooltipContent" :show-after="120" :disabled="!tooltipContent">
+  <ElTooltip
+    :content="tooltipContent || fallbackLabel"
+    :show-after="0"
+    placement="top"
+    effect="dark"
+    :teleported="false"
+  >
     <button
       type="button"
       class="icon-selector-item"
       :class="{ active: isSelected, disabled: isDisabled }"
       :disabled="isDisabled"
+      :title="tooltipContent || fallbackLabel"
       @click="handleSelect"
     >
       <span class="icon-selector-item__glyph" :class="{ 'is-text': !icon }">
@@ -15,11 +22,12 @@
         <IconRenderer icon="ri:check-line" />
       </span>
     </button>
-  </el-tooltip>
+  </ElTooltip>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { ElTooltip } from "element-plus";
 import IconRenderer from "./IconRenderer.vue";
 
 const props = defineProps({

@@ -28,7 +28,9 @@
   "license": "ISC",
   "dependencies": {
     "@pureadmin/utils": "catalog:",
+    "@techui/scifi": "catalog:",
     "@repo/components": "workspace:^",
+    "@repo/config": "workspace:^",
     "@vueuse/motion": "catalog:",
     "@vueuse/core": "catalog:",
     "click-outside-vue3": "catalog:",

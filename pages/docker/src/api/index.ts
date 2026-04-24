@@ -342,6 +342,22 @@ export const execDockerContainer = (
 ) =>
   request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/exec`, { data });
 
+export const getDockerContainerLogs = (containerId: string, params?: { serverId?: number; lines?: number }) =>
+  request<string>("GET", `${dockerBase}/containers/${containerId}/logs`, {
+    query: params,
+  });
+
+export const startDockerContainerLogStream = (
+  containerId: string,
+  params?: { serverId?: number; lines?: number },
+) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/logs/start`, {
+    query: params,
+  });
+
+export const stopDockerContainerLogStream = (containerId: string) =>
+  request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/logs/stop`);
+
 export const startDockerContainer = (containerId: string) =>
   request<DockerOperationTicket>("POST", `${dockerBase}/containers/${containerId}/start`);
 

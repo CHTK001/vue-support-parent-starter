@@ -298,6 +298,7 @@ const props = defineProps({
   userColumn: { type: Array, default: () => [] },
   config: { type: Object, default: () => ({}) },
   theme: { type: String, default: "" },
+  skin: { type: String, default: "auto" },
   rowKey: { type: String, default: "" },
   loading: { type: Boolean, default: false },
   draggable: { type: Boolean, default: false },
@@ -481,21 +482,34 @@ const tableContainerStyle = computed(() => ({
   "--sc-table-header-offset": `${tableHeaderOffset.value}px`,
 }));
 
+const normalizeSkin = (value) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
 const resolvedSkin = computed(() => {
-  const attrSkin = attrs["data-skin"];
-  if (typeof attrSkin === "string" && attrSkin.trim()) {
-    return attrSkin.trim().toLowerCase();
+  const propSkin = normalizeSkin(props.skin);
+  if (propSkin && propSkin !== "auto") {
+    return propSkin;
   }
+
+  const attrSkin = normalizeSkin(attrs["data-skin"]);
+  if (attrSkin && attrSkin !== "auto") {
+    return attrSkin;
+  }
+
   if (typeof document !== "undefined") {
-    const htmlSkin = document.documentElement?.getAttribute("data-skin");
-    if (htmlSkin) {
-      return htmlSkin.trim().toLowerCase();
+    const htmlSkin = normalizeSkin(
+      document.documentElement?.getAttribute("data-skin"),
+    );
+    if (htmlSkin && htmlSkin !== "auto") {
+      return htmlSkin;
     }
-    const bodySkin = document.body?.getAttribute("data-skin");
-    if (bodySkin) {
-      return bodySkin.trim().toLowerCase();
+
+    const bodySkin = normalizeSkin(document.body?.getAttribute("data-skin"));
+    if (bodySkin && bodySkin !== "auto") {
+      return bodySkin;
     }
   }
+
   return "";
 });
 
@@ -1224,6 +1238,10 @@ defineExpose({
       color: var(--sc-tech-text);
       background: transparent;
       box-shadow: var(--sc-tech-glow);
+      --el-table-bg-color: rgba(8, 18, 30, 0.88);
+      --el-table-tr-bg-color: rgba(255, 255, 255, 0.025);
+      --el-table-row-hover-bg-color: var(--sc-tech-hover);
+      --el-fill-color-blank: rgba(8, 18, 30, 0.88);
 
       &::before,
       .el-table__inner-wrapper::before,
@@ -1249,6 +1267,21 @@ defineExpose({
 
       .el-table__body tr:hover > td.el-table__cell {
         background: var(--sc-tech-hover) !important;
+      }
+
+      .el-table__fixed .el-table__row--striped td.el-table__cell,
+      .el-table__fixed-right .el-table__row--striped td.el-table__cell {
+        background: rgba(255, 255, 255, 0.025) !important;
+      }
+
+      .el-table__fixed .el-table__body tr:hover > td.el-table__cell,
+      .el-table__fixed-right .el-table__body tr:hover > td.el-table__cell {
+        background: var(--sc-tech-hover) !important;
+      }
+
+      .el-table__fixed::before,
+      .el-table__fixed-right::before {
+        background: var(--sc-tech-line) !important;
       }
 
       &.el-table--border .el-table__cell {
@@ -1495,6 +1528,60 @@ defineExpose({
   /* 固定列悬停背景 */
   .el-table__body tr:hover > td.el-table__cell {
     background-color: var(--stitch-lay-bg-hover) !important;
+  }
+}
+
+/* Tech 皮肤下重新覆盖固定列和斑马纹（防止被通用样式回写成浅色） */
+.table-container[data-skin="tech"],
+.table-container.skin--tech,
+.table-container[data-skin="cyber"],
+.table-container.skin--cyber {
+  :deep(.el-table),
+  :deep(.el-table__inner-wrapper),
+  :deep(.el-table__body-wrapper),
+  :deep(.el-table__body),
+  :deep(.el-table__body tbody tr),
+  :deep(.el-table__body tbody tr td.el-table__cell) {
+    color: #dff8ff !important;
+  }
+
+  :deep(.el-table__body tbody tr td.el-table__cell) {
+    background: rgba(8, 18, 30, 0.88) !important;
+  }
+
+  :deep(.el-table.el-table--striped .el-table__body tr.el-table__row--striped > td.el-table__cell) {
+    background: rgba(255, 255, 255, 0.025) !important;
+  }
+
+  :deep(.el-table.el-table--striped .el-table__body tr.el-table__row--striped.hover-row > td.el-table__cell),
+  :deep(.el-table .el-table__body tr.hover-row > td.el-table__cell),
+  :deep(.el-table .el-table__body tr.el-table__row:hover > td.el-table__cell),
+  :deep(.el-table .el-table__body tr:hover > td.el-table__cell) {
+    background: var(--sc-tech-hover, rgba(66, 245, 230, 0.09)) !important;
+  }
+
+  :deep(.el-table__fixed),
+  :deep(.el-table__fixed-right) {
+    background: rgba(8, 18, 30, 0.88) !important;
+
+    th.el-table__cell,
+    td.el-table__cell {
+      background: rgba(8, 18, 30, 0.88) !important;
+      color: #dff8ff !important;
+      border-right-color: var(--sc-tech-line, rgba(48, 226, 217, 0.28)) !important;
+      border-bottom-color: var(--sc-tech-line, rgba(48, 226, 217, 0.28)) !important;
+    }
+
+    .el-table__row--striped > td.el-table__cell {
+      background: rgba(255, 255, 255, 0.025) !important;
+    }
+
+    .el-table__body tr.hover-row > td.el-table__cell,
+    .el-table__body tr.el-table__row--striped.hover-row > td.el-table__cell,
+    .el-table__body tr.el-table__row:hover > td.el-table__cell,
+    .el-table__body tr:hover > td.el-table__cell {
+      background: var(--sc-tech-hover, rgba(66, 245, 230, 0.09)) !important;
+    }
   }
 }
 

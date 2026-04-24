@@ -1,7 +1,7 @@
 {
   "name": "@pages/spider",
   "version": "1.0.0",
-  "description": "爬虫轻控制台页面模块",
+  "description": "可视化编排爬虫模块",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,57 +12,59 @@
     "dist"
   ],
   "sideEffects": [
-    "**/*.vue"
+    "**/*.vue",
+    "**/*.scss"
   ],
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "development": "./src/index.ts",
-      "default": "./dist/index.mjs"
+      "default": "./src/index.ts"
+    },
+    "./router/*": {
+      "types": "./src/router/*.ts",
+      "default": "./src/router/*.ts"
+    },
+    "./api/*": {
+      "types": "./src/api/*.ts",
+      "default": "./src/api/*.ts"
+    },
+    "./views/*": {
+      "default": "./src/views/*"
     }
   },
   "publishConfig": {
     "exports": {
       ".": {
         "default": "./dist/index.mjs"
+      },
+      "./router/*": {
+        "default": "./dist/router/*.mjs"
+      },
+      "./api/*": {
+        "default": "./dist/api/*.mjs"
+      },
+      "./views/*": {
+        "default": "./dist/views/*"
       }
     }
   },
   "dependencies": {
-    "@layout/default": "workspace:^",
-    "@repo/utils": "workspace:^",
-    "unbuild": "catalog:",
-    "vue": "catalog:"
+    "@repo/config": "workspace:^",
+    "element-plus": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@commitlint/cli": "catalog:",
-    "@commitlint/config-conventional": "catalog:",
-    "@commitlint/types": "catalog:",
-    "@repo/config": "workspace:^",
+    "@repo/core": "workspace:^",
     "@repo/tailwind-config": "workspace:^",
     "@repo/tsconfig": "workspace:^",
     "@types/node": "catalog:",
-    "@typescript-eslint/eslint-plugin": "catalog:",
-    "@typescript-eslint/parser": "catalog:",
-    "@vitejs/plugin-vue": "catalog:",
-    "autoprefixer": "catalog:",
-    "eslint": "catalog:",
-    "eslint-plugin-vue": "catalog:",
-    "postcss": "catalog:",
-    "prettier": "catalog:",
     "sass": "catalog:",
-    "stylelint": "catalog:",
-    "stylelint-config-recommended-scss": "catalog:",
-    "stylelint-config-recommended-vue": "catalog:",
-    "stylelint-config-standard": "catalog:",
-    "stylelint-config-standard-scss": "catalog:",
-    "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "unbuild": "catalog:",
     "vite": "catalog:",
-    "vue-sfc-transformer": "^0.1.1",
     "vue-tsc": "catalog:"
   }
 }

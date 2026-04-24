@@ -1,60 +1,50 @@
-# AI单元测试报告
+# AI任务清单
 
-更新时间：2026-04-23（规划版，已由 `spring-support-ai-starter/AI_MINIMAL_REFACTOR_PLAN.md` 收敛转换）
-
-## 项目地址
-
-- 前端功能模块：`H:\\workspace\\2\\vue-support-parent-starter\\pages\\ai`
-- 前端测试入口：`H:\\workspace\\2\\vue-support-parent-starter\\test\\ai`
-- 后端功能模块：`H:\\workspace\\2\\spring-support-parent-starter\\spring-support-ai-starter`
-- 后端测试壳：`H:\\workspace\\2\\spring-support-api-parent\\test\\spring-api-support-ai-test-starter`
+更新时间：2026-04-24
 
 ## 执行规则
 
-- 先记录（测试报告） -> 后执行（实现/测试） -> 再回填结果（测试报告）。
-- 本轮重构主范围仅限 `spring-support-ai-starter` 与 `pages/ai`，不继续扩散到其它测试壳。
-- 同一时刻仅允许一个 AI 测试前端实例、一个 AI 测试后端实例运行。
-- 未预登记任务不计入本轮结论。
+- 每次开始实现前，先把任务登记到本清单。
+- 执行过程中只围绕清单内任务推进。
+- 本文档只保留任务清单，不再记录完整链路和实测过程。
 
-## 任务清单（统一格式）
-
-> 收敛说明：本轮 AI 侧任务统一归并为“数据库最小化、后端接口最小化、前端页面最小化、兼容层、联调验证”五大类；所有细项以后续回填为准，不再散落在临时计划文件中。
+## 任务清单
 
 | 任务ID | 任务 | 目标 | 状态 |
 | --- | --- | --- | --- |
-| DOC-01 | AI 报告收敛与统一管理 | 将 `AI_MINIMAL_REFACTOR_PLAN.md` 合并到前端根目录并转换为统一测试报告风格 | 已完成 |
-| AI-DB-01 | 删除现有 AI 相关表 | 清理 `sys_ai_group`、`sys_ai_group_message`、`sys_ai_module`、`sys_ai_vincent_setting`、`sys_ai_vincent_style`、`sys_ai_vincent_task`、`sys_ai_vincent_template` | 未开始 |
-| AI-DB-02 | 重建 AI 最小核心表 | 按最小实现重建 `sys_ai_module`、`sys_ai_session`、`sys_ai_message`、`sys_ai_task` | 未开始 |
-| AI-DB-03 | 重构 AI 初始化 SQL | 将 SQL 收敛为“删表 -> 建表 -> 最小种子数据”三段式初始化脚本 | 未开始 |
-| AI-BE-01 | AI starter 自动装配收敛 | 确保仅引入 `spring-support-ai-starter` 即可自动注册 controller/service/mapper/sql | 未开始 |
-| AI-BE-02 | 模型接口最小化重构 | 建立 `/v2/ai/module/*` 主路径，并保留 `/v2/project/ai/module/*` 兼容层 | 未开始 |
-| AI-BE-03 | 聊天接口最小化重构 | 建立 `/v2/ai/chat/*` 主路径，并兼容 `/v2/api/language/*` | 未开始 |
-| AI-BE-04 | 会话接口最小化重构 | 建立 `/v2/ai/session/*` 主路径，并兼容旧 group/message 路径 | 未开始 |
-| AI-BE-05 | 图像/视频/处理任务接口统一 | 统一 `/v2/ai/image|video|face|colorization|resolution` 任务接口与历史接口兼容层 | 未开始 |
-| AI-BE-06 | AI 包结构去 project 化 | 逐步将 `com.chua.starter.project.*` 迁移为 AI 领域命名，旧包保留兼容层 | 未开始 |
-| AI-FE-01 | AI 首页最小化重构 | 首页仅保留主体功能正方形卡片、插图和右上角设置按钮 | 未开始 |
-| AI-FE-02 | AI 设置页独立化 | 新建独立模型配置页，展示模型、厂家、地址、输入费用、输出费用等字段 | 未开始 |
-| AI-FE-03 | AI 功能页最小化重建 | 重建聊天、生图、视频、人脸检测、图像上色、分辨率增强六个最小功能页 | 未开始 |
-| AI-FE-04 | AI API 层重构 | 新建 `module/chat/session/task` API 文件，弱化 `project-ai-module` 命名 | 未开始 |
-| AI-FE-05 | AI 路由收敛 | 重建 `/ai/home`、`/ai/settings`、`/ai/chat`、`/ai/image`、`/ai/video`、`/ai/face`、`/ai/colorization`、`/ai/resolution` | 未开始 |
-| AI-COMP-01 | 旧页面/旧接口兼容层 | 保留旧路由与旧接口重定向或兼容适配，避免一次性打断引用 | 未开始 |
-| AI-VERIFY-01 | 模型配置页联调 | 验证模型配置页增删改查与字段回显 | 未开始 |
-| AI-VERIFY-02 | 聊天页主链路联调 | 验证模型选择、会话管理、消息发送和流式回复 | 未开始 |
-| AI-VERIFY-03 | 图像与视频主链路联调 | 验证图像生成、视频生成、任务查询与历史记录 | 未开始 |
-| AI-VERIFY-04 | 图像处理功能联调 | 验证人脸检测、图像上色、分辨率增强的表单与结果链路 | 未开始 |
-| AI-VERIFY-05 | 旧路由兼容回归 | 验证 `/ai/llm/web`、`/ai/vincent/web` 等旧入口仍可访问 | 未开始 |
-
-## 当前结论
-
-- 该文档已替代原 `spring-support-ai-starter/AI_MINIMAL_REFACTOR_PLAN.md` 的临时计划角色，后续 AI 重构与测试记录统一在此回填。
-- 当前仅完成“计划收敛与文档统一”，尚未开始执行数据库重构、接口重构、页面重构与联调验证。
-- 本轮后续实施范围已明确限制为两个核心目录：
-  - `H:\\workspace\\2\\spring-support-parent-starter\\spring-support-ai-starter`
-  - `H:\\workspace\\2\\vue-support-parent-starter\\pages\\ai`
-- 当前不能给出“AI 功能已完成”或“AI 单元测试已通过”的结论；现阶段结论仅为“重构任务已建档，待执行”。
-
-## 备注
-
-- 原始规划文档来源：`H:\\workspace\\2\\spring-support-parent-starter\\spring-support-ai-starter\\AI_MINIMAL_REFACTOR_PLAN.md`
-- 当前规划中的“输入费用 / 输出费用”字段，在后端实体与前端表单中都还未形成稳定闭环，后续实现时需一起补齐。
-- 当前 AI 模块仍存在与 `SysProject`、`AuthService` 等历史语义耦合，后续实施时需要明确“完全去耦”与“兼容旧链路”之间的边界。
+| DOC-01 | 报告收敛为任务清单 | 文档只保留任务清单，不保留完整链路和实测记录 | 已完成 |
+| HOME-01 | AI 首页入口验收 | 验证首页卡片入口、设置入口、视觉样式与路由跳转可用 | 待执行 |
+| MFG-01 | 厂家卡片列表验收 | 验证厂家卡片分页、悬浮工具栏、Logo 占位图、状态标签展示正确 | 已完成 |
+| MFG-02 | 厂家新增/编辑验收 | 验证厂商新增、编辑、启停、删除、Logo 本地上传、SPI 下拉与讯飞字段联动 | 待执行 |
+| MFG-03 | 全局配置验收 | 验证运行时模型驱动 runtime 配置写入 | 已完成 |
+| MOD-01 | 模型卡片面板验收 | 验证点击厂家卡片可打开控制面板，模型卡片分页内展示正常 | 已完成 |
+| MOD-02 | 模型新增/编辑验收 | 验证模型新增必填项、中文类型、模型ID、费用、生成上限、模板/样式开关写入成功 | 待执行 |
+| MOD-03 | 模型工具栏验收 | 验证模型卡片工具栏编辑/删除，以及模板/样式配置按钮按开关显示 | 已完成 |
+| MOD-04 | 模型 Think 能力验收 | 验证 LLM 模型支持 Think 可保存，并在模型卡片展示深度思考标签 | 已完成 |
+| MOD-05 | 模型优化能力字段 | 为模型增加“支持优化”字段，并在模型配置页可编辑、在模型卡片可识别 | 已完成 |
+| MOD-07 | 模型图片字段与展示 | 为模型增加图片字段，并在模型表单、模型卡片中展示图片 | 已完成 |
+| MOD-08 | 模型图片页面验收 | 验证模型图片可保存，并在厂家页模型卡片中正确展示 | 进行中 |
+| CHAT-01 | 创建会话 smoke | 验证 `/v2/ai/session/save` 能真实创建会话 | 已完成 |
+| CHAT-02 | 聊天发送验收 | 验证聊天页发送消息、模型切换、删除会话、图片理解上传按钮、输入区交互位置正确 | 已完成 |
+| CHAT-03 | 会话历史闭环验收 | 验证 `save` 后 `list/message/list` 能正确回显会话和历史消息 | 已完成 |
+| CHAT-04 | 深度思考显示验收 | 验证支持 Think 的模型在聊天页显示深度思考，并带 `think=true` 发起请求 | 已完成 |
+| CHAT-05 | 真实 GLM 厂商 smoke | 使用真实 `glm/zhipu` 厂商 Key 与模型做真实调用校验 | 已完成 |
+| CHAT-06 | 厂家记忆开关验收 | 验证厂家 `sysAiManufacturerMemoryEnabled` 打开后，聊天上下文是否由该开关驱动 | 已完成 |
+| CHAT-07 | 真实上下文 smoke | 验证同一会话内连续两问时，模型是否记住前一轮信息 | 已完成 |
+| CHAT-08 | 厂家记忆开关接实 | 让 `sysAiManufacturerMemoryEnabled` 真正控制聊天链路是否携带历史上下文 | 已完成 |
+| CHAT-09 | 聊天头像接入 | 聊天页用户头像从登录缓存读取，无头像时回退默认，助手头像显示默认回退 | 已完成 |
+| CHAT-10 | 图片理解真实 smoke | 使用支持图片理解的 `GLM-4.6V-Flash` 上传真实图片并校验识别结果 | 已完成 |
+| CHAT-11 | 聊天流式 SSE 重构 | 聊天页从同步 `call` 改为 `/v2/ai/chat/stream`，前端使用 `@repo/utils` 的 `http.sse + POST` 接入 | 已完成 |
+| CHAT-12 | 输入区行为重构 | 发送后立即清空输入；回车改为换行不自动发送；发送按钮在请求中切换为可中断的加载按钮 | 已完成 |
+| CHAT-13 | 回复渲染重构 | 聊天页改为 `BubbleList + Typewriter + XMarkdown`，AI 回复支持流式打字展示 | 已完成 |
+| CHAT-14 | 深度思考链路重构 | 支持 Think 的模型在输入区显示可切换深度思考图标，启用后集成 `ThoughtChain` 展示思考过程 | 已完成 |
+| CHAT-15 | 输入优化同步接口 | 新增后端同步优化接口，将输入内容发送给 AI 优化器并返回优化结果 | 进行中 |
+| CHAT-16 | 聊天页优化按钮 | 当当前模型支持优化时，在输入区显示优化按钮；点击后调用同步优化接口并回填输入框 | 已完成 |
+| CHAT-17 | 聊天模型下拉图片展示 | 聊天输入框中的模型选择支持展示模型图片，选中态与下拉项都可见 | 已完成 |
+| CHAT-18 | 聊天模型图片展示验收 | 验证聊天页模型下拉与选中态中的模型图片展示正常 | 进行中 |
+| MFG-04 | 硅基流动厂家接入 | 新增 SiliconFlow（硅基流动）厂家支持，并允许按 OpenAI 兼容方式接入模型 | 已完成 |
+| MOD-06 | 硅基流动模型接入 | 支持配置 SiliconFlow 模型，如 DeepSeek-R1-Distill-Qwen-7B / DeepSeek-R1-0528-Qwen3-8B / DeepSeek-OCR | 已完成 |
+| IMG-01 | 文生图任务页验收 | 验证图像生成页模型选择、提示词提交、历史回显、视觉样式可用 | 待执行 |
+| VIDEO-01 | 文生视频任务页验收 | 验证视频生成页模型选择、提示词提交、历史回显、视觉样式可用 | 待执行 |
+| COLOR-01 | 图像上色任务页验收 | 验证图像上色页模型选择、提示词提交、历史回显、视觉样式可用 | 待执行 |
+| RES-01 | 分辨率增强任务页验收 | 验证分辨率增强页模型选择、提示词提交、历史回显、视觉样式可用 | 待执行 |

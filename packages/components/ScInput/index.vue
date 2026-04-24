@@ -2,7 +2,7 @@
   <div
     class="sc-input"
     :class="[
-      theme ? `sc-input--theme-${theme}` : '',
+      resolvedTheme ? `sc-input--theme-${resolvedTheme}` : '',
       layout ? `layout-${layout}` : '',
       controlVariant ? `variant-${controlVariant}` : '',
       controlLayout ? `control-layout-${controlLayout}` : ''
@@ -13,8 +13,8 @@
       v-bind="$attrs"
       :model-value="modelValue"
       :type="type"
-      :prefix-icon="theme === 'tech' ? '' : prefixIcon || defaultIcon"
-      :show-prefix="theme === 'tech' ? false : showPrefix"
+      :prefix-icon="resolvedTheme === 'tech' ? '' : prefixIcon || defaultIcon"
+      :show-prefix="resolvedTheme === 'tech' ? false : showPrefix"
       :rules="rules"
       :show-validation-msg="showValidationMsg"
       :options="options"
@@ -22,7 +22,7 @@
       :data-parser="dataParser"
       :params="params"
       :loading="loading"
-      :theme="theme"
+      :theme="resolvedTheme"
       @update:model-value="handleUpdate"
       @change="handleChange"
       @input="handleInput"
@@ -216,6 +216,12 @@ interface Props {
    */
   theme?: "default" | "tech";
   /**
+   * 皮肤模式（与其他组件保持一致）
+   * - auto: 自动（跟随 theme / 默认）
+   * - tech: 科技风
+   */
+  skin?: "auto" | "tech";
+  /**
    * 控件视觉变体
    * - default: 默认输入框
    * - card: 卡片输入框（与 ScSwitch compact-card 高度体系一致）
@@ -249,6 +255,7 @@ const props = withDefaults(defineProps<Props>(), {
   fetchParams: () => ({}),
   params: () => ({}),
   theme: "default",
+  skin: "auto",
   controlVariant: "default",
   layout: "default",
   controlLayout: "default",
@@ -263,6 +270,12 @@ const emit = defineEmits([
   "clear",
   "options-loaded",
 ]);
+
+const resolvedTheme = computed<"default" | "tech">(() => {
+  if (props.skin === "tech") return "tech";
+  if (props.theme === "tech") return "tech";
+  return "default";
+});
 
 // 加载状态
 const loading = ref(false);

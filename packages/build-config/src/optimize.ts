@@ -71,6 +71,12 @@ export const exclude = [
   "@iconify-icons/devicon",
   "@iconify-icons/pixelarticons",
   "@pureadmin/theme/dist/browser-utils",
-  // TechUI 使用 WASM，不要预构建
+  // TechUI 生态使用 WASM/动态模块，不要预构建
   "@techui/scifi",
+  "@techui/themes",
+  "@techui/colors",
+  "@techui/lessmixins",
+  "@techui/locales",
+  "@techui/libs",
+  "@techui/utils",
 ];

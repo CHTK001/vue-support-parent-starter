@@ -44,7 +44,6 @@ import { useRoute, useRouter } from "vue-router";
 import {
   createLayoutAsyncComponent,
   createOverlayAsyncComponent,
-  createSidebarAsyncComponent,
 } from "./utils/asyncComponentLoader";
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { getConfig } from "@repo/config";
@@ -58,6 +57,11 @@ import {
 } from "@repo/utils";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LayContent from "./components/lay-content/index.vue";
+import NavVertical from "./components/lay-sidebar/NavVertical.vue";
+import NavHover from "./components/lay-sidebar/NavHover.vue";
+import NavDrawer from "./components/lay-sidebar/NavDrawer.vue";
+import NavDouble from "./components/lay-sidebar/NavDouble.vue";
+import CardNavigation from "./components/lay-sidebar/components/CardNavigation.vue";
 import LayTag from "./components/lay-tag/index.vue";
 import ThemeSkinProvider from "./themes/ThemeSkinProvider.vue";
 import { useThemeStoreHook } from "./stores/themeStore";
@@ -115,27 +119,12 @@ if (document.readyState === "complete") {
   });
 }
 
-// 使用带 loading/error 状态的异步组件加载器
-const NavVertical = createSidebarAsyncComponent(
-  () => import("./components/lay-sidebar/NavVertical.vue"),
-);
+// Sidebar 导航改为同步加载，避免左侧栏异步闪烁
 const NavHorizontal = createLayoutAsyncComponent(
   () => import("./components/lay-sidebar/NavHorizontal.vue"),
 );
-const NavHover = createSidebarAsyncComponent(
-  () => import("./components/lay-sidebar/NavHover.vue"),
-);
-const NavDrawer = createSidebarAsyncComponent(
-  () => import("./components/lay-sidebar/NavDrawer.vue"),
-);
 const LayXx = createLayoutAsyncComponent(
   () => import("./components/lay-xx/index.vue"),
-);
-const NavDouble = createSidebarAsyncComponent(
-  () => import("./components/lay-sidebar/NavDouble.vue"),
-);
-const CardNavigation = createSidebarAsyncComponent(
-  () => import("./components/lay-sidebar/components/CardNavigation.vue"),
 );
 const LaySetting = createOverlayAsyncComponent(
   () => import("./components/lay-setting/index.vue"),

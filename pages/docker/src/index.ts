@@ -6,6 +6,7 @@ export * from "./types";
 export * from "./composables/useDockerServerSelection";
 export * from "./composables/useDockerSocketService";
 export * from "./composables/useDockerRealtimeStream";
+export * from "./socket/dockerSocket";
 
 export { DockerManagePage };
 export { DockerManagePage as DockerHomePage };

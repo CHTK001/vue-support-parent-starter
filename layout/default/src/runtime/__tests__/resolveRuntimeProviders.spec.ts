@@ -6,9 +6,11 @@ import { resetStandaloneOverlayHostForTest } from "../ensureStandaloneOverlayHos
 
 vi.mock("@repo/core", () => ({
   SocketTemplateKey: Symbol("SocketTemplateKey"),
-  createNamedSocketService: vi.fn(() => null),
-  getGlobalSocketConfig: vi.fn(() => ({ urls: [], protocol: "ws", context: "" })),
-  getGlobalSocketService: vi.fn(() => null),
+  resolveManagedSocketService: vi.fn(() => ({
+    service: null,
+    source: "missing",
+    error: "missing",
+  })),
 }));
 
 vi.mock("@repo/utils", () => ({

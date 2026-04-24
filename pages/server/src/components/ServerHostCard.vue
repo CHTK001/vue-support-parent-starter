@@ -7,6 +7,7 @@
       {
         'is-active': active,
         'is-collapsed': collapsed,
+        'is-stopped': isStoppedHost,
       },
     ]"
     shadow="hover"
@@ -77,36 +78,6 @@
         </div>
 
         <div class="server-host-card__toolbar" @click.stop>
-          <el-tooltip v-if="softEnabled" content="软件视图" placement="top">
-            <ScButton
-              circle
-              plain
-              size="small"
-              @click="emit('open-soft', entry.host)"
-            >
-              <IconifyIconOnline icon="ri:apps-2-line" />
-            </ScButton>
-          </el-tooltip>
-          <el-tooltip content="进程管理" placement="top">
-            <ScButton
-              circle
-              plain
-              size="small"
-              @click="emit('open-processes', entry.host)"
-            >
-              <IconifyIconOnline icon="ri:stack-line" />
-            </ScButton>
-          </el-tooltip>
-          <el-tooltip content="文件管理" placement="top">
-            <ScButton
-              circle
-              plain
-              size="small"
-              @click="emit('open-files', entry.host)"
-            >
-              <IconifyIconOnline icon="ri:folder-5-line" />
-            </ScButton>
-          </el-tooltip>
           <el-tooltip v-if="canOpenRemote" content="远程控制" placement="top">
             <ScButton
               circle
@@ -184,6 +155,14 @@ const emit = defineEmits<{
 const canOpenRemote = computed(() =>
   Boolean(props.entry.remoteConfig?.enabled),
 );
+
+const isStoppedHost = computed(() => {
+  if (props.entry.host.enabled === false) {
+    return true;
+  }
+  const status = String(props.entry.snapshot?.status || "").toUpperCase();
+  return ["OFFLINE", "STOPPED", "DISABLED", "DOWN"].includes(status);
+});
 </script>
 
 <style scoped lang="scss">
@@ -390,6 +369,26 @@ const canOpenRemote = computed(() =>
 
 .server-host-card__icon.is-macos {
   background: linear-gradient(145deg, #94a3b8, #334155);
+}
+
+.server-host-card.is-stopped .server-host-card__icon,
+.server-host-card.is-stopped .server-host-card__collapsed-icon {
+  filter: grayscale(0.9);
+}
+
+.server-host-card.is-stopped .server-host-card__latency {
+  color: var(--el-text-color-secondary);
+  background: color-mix(in srgb, var(--el-fill-color) 82%, #f1f5f9);
+}
+
+.server-host-card.is-stopped .server-host-card__dot,
+.server-host-card.is-stopped .server-host-card__collapsed-dot {
+  background: #94a3b8;
+  box-shadow: 0 0 0 5px rgba(148, 163, 184, 0.16);
+}
+
+.server-host-card.is-stopped .server-host-card__metric-arcs span {
+  --color: rgba(148, 163, 184, 0.55) !important;
 }
 
 .server-host-card__metric-arcs {

@@ -258,12 +258,33 @@
             :class="item.toneClass"
             @click="openMetricDetail(item.key)"
           >
+            <div
+              class="server-basic-panel__metric-liquid-bg"
+              :style="{
+                '--metric-progress': item.progress,
+                '--metric-progress-visual': Math.max(Number(item.progress || 0), 8),
+                '--metric-liquid-color': resolveLiquidColor(item.progress),
+              }"
+              aria-hidden="true"
+            >
+              <div class="server-basic-panel__metric-liquid-bg__water">
+                <span class="server-basic-panel__metric-liquid-bg__wave is-front" />
+                <span class="server-basic-panel__metric-liquid-bg__wave is-back" />
+              </div>
+              <div class="server-basic-panel__metric-liquid-bg__gloss" />
+            </div>
             <div class="server-basic-panel__metric-top">
               <small>{{ item.label }}</small>
               <span>{{ item.subLabel }}</span>
             </div>
             <div class="server-basic-panel__metric-main">
-              <strong>{{ item.value }}</strong>
+              <strong
+                :class="{
+                  'is-io-number': item.key === 'io' || item.key === 'diskIo',
+                }"
+              >
+                {{ isSmoothPercentMetric(item.key) ? smoothPercentText(item.key) : item.value }}
+              </strong>
               <span>{{ item.total }}</span>
             </div>
           </article>
@@ -277,16 +298,37 @@
               :key="item.key"
               type="button"
               class="server-basic-panel__realtime-mini"
-              :class="item.toneClass"
+              :class="[item.toneClass, { 'is-io-mini': isCombinedIoMetric(item.key) }]"
               @click="openMetricDetail(item.key)"
             >
+              <div
+                class="server-basic-panel__metric-liquid-bg server-basic-panel__metric-liquid-bg--mini"
+                :style="{
+                  '--metric-progress': item.progress,
+                  '--metric-progress-visual': Math.max(Number(item.progress || 0), 10),
+                  '--metric-liquid-color': resolveLiquidColor(item.progress),
+                }"
+                aria-hidden="true"
+              >
+                <div class="server-basic-panel__metric-liquid-bg__water">
+                  <span class="server-basic-panel__metric-liquid-bg__wave is-front" />
+                  <span class="server-basic-panel__metric-liquid-bg__wave is-back" />
+                </div>
+                <div class="server-basic-panel__metric-liquid-bg__gloss" />
+              </div>
               <div class="server-basic-panel__realtime-mini-head">
                 <small>{{ item.label }}</small>
-                <span>{{ item.subLabel }}</span>
+                <span v-if="!isCombinedIoMetric(item.key)">{{ combinedMiniSubLabel(item) }}</span>
               </div>
               <div class="server-basic-panel__realtime-mini-main">
-                <strong>{{ item.value }}</strong>
-                <span>{{ item.total }}</span>
+                <strong
+                  :class="{
+                    'is-io-number': item.key === 'io' || item.key === 'diskIo',
+                  }"
+                >
+                  {{ combinedMiniValue(item) }}
+                </strong>
+                <span v-if="!isCombinedIoMetric(item.key)">{{ combinedMiniTotal(item) }}</span>
               </div>
             </button>
           </div>
@@ -624,10 +666,6 @@
               v-if="latestAlert"
               class="server-basic-panel__alert-hero"
               :class="severityClass(latestAlert.severity)"
-              role="button"
-              tabindex="0"
-              @click="emit('open-alert-detail', latestAlert)"
-              @keydown.enter.prevent="emit('open-alert-detail', latestAlert)"
             >
               <div class="server-basic-panel__alert-hero-main">
                 <small>最新触发</small>
@@ -728,7 +766,6 @@
                 type="button"
                 class="server-basic-panel__summary-card"
                 :disabled="!latestAlert"
-                @click="latestAlert && emit('open-alert-detail', latestAlert)"
               >
                 <small>最新级别</small>
                 <strong>{{
@@ -742,7 +779,6 @@
                 type="button"
                 class="server-basic-panel__summary-card"
                 :disabled="!latestAlert"
-                @click="latestAlert && emit('open-alert-detail', latestAlert)"
               >
                 <small>最近告警</small>
                 <strong>{{ orderedAlerts.length }}</strong>
@@ -942,7 +978,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import { emitter } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
@@ -1862,6 +1898,110 @@ const metricCards = computed(() => {
   ];
 });
 
+const resolveLiquidColor = (progress?: number | null) => {
+  const value = Number(progress ?? 0);
+  if (!Number.isFinite(value)) {
+    return "#94a3b8";
+  }
+  if (value >= 90) {
+    return "#ef4444";
+  }
+  if (value >= 75) {
+    return "#f59e0b";
+  }
+  return "#22c55e";
+};
+
+const isSmoothPercentMetric = (key: string) => ["cpu", "memory", "disk"].includes(key);
+
+const smoothPercentMap = reactive<Record<string, number>>({
+  cpu: 0,
+  memory: 0,
+  disk: 0,
+});
+
+const animateSmoothNumber = (
+  from: number,
+  to: number,
+  onUpdate: (value: number) => void,
+  durationMs = 620,
+) => {
+  const start = performance.now();
+  const delta = to - from;
+  const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+  const frame = (now: number) => {
+    const elapsed = Math.max(0, now - start);
+    const t = Math.min(elapsed / Math.max(durationMs, 1), 1);
+    onUpdate(from + delta * easeOutCubic(t));
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    }
+  };
+  requestAnimationFrame(frame);
+};
+
+watch(
+  metricCards,
+  (next) => {
+    next.forEach((item) => {
+      if (!isSmoothPercentMetric(item.key)) {
+        return;
+      }
+      const target = Number(item.progress ?? 0);
+      if (!Number.isFinite(target)) {
+        return;
+      }
+      const previous = Number(smoothPercentMap[item.key] ?? 0);
+      if (Math.abs(previous - target) < 0.1) {
+        smoothPercentMap[item.key] = target;
+        return;
+      }
+      animateSmoothNumber(previous, target, (value) => {
+        smoothPercentMap[item.key] = value;
+      });
+    });
+  },
+  { immediate: true },
+);
+
+const smoothPercentText = (key: string) => {
+  const value = Number(smoothPercentMap[key] ?? 0);
+  if (!Number.isFinite(value)) {
+    return "0%";
+  }
+  const clamped = Math.max(0, Math.min(100, value));
+  return `${Math.round(clamped)}%`;
+};
+
+const compactIoText = (value?: string) =>
+  String(value || "")
+    .replace(/^读\s*/u, "")
+    .replace(/^写\s*/u, "")
+    .trim();
+
+const combinedMiniValue = (item: {
+  key: string;
+  value: string;
+}) => (isSmoothPercentMetric(item.key) ? smoothPercentText(item.key) : item.value);
+
+const isCombinedIoMetric = (key: string) => key === "io" || key === "diskIo";
+
+const combinedMiniSubLabel = (item: {
+  key: string;
+  subLabel: string;
+}) =>
+  isCombinedIoMetric(item.key)
+    ? compactIoText(item.subLabel)
+    : item.subLabel;
+
+const combinedMiniTotal = (item: {
+  key: string;
+  total: string;
+}) =>
+  isCombinedIoMetric(item.key)
+    ? compactIoText(item.total)
+    : item.total;
+
 const metricCombinedCards = computed(() =>
   metricCards.value
     .filter((item) => item.key !== "disk")
@@ -2445,8 +2585,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   border-radius: 24px;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.99),
-    rgba(248, 250, 252, 0.95)
+    rgba(255, 255, 255, 0.92),
+    rgba(241, 245, 249, 0.86)
   );
   border: 1px solid
     color-mix(in srgb, currentColor 12%, rgba(148, 163, 184, 0.2));
@@ -2498,15 +2638,22 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 }
 
 .server-basic-panel__metric-card.is-success {
+  color: #16a34a;
   box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.12);
 }
 
 .server-basic-panel__metric-card.is-warning {
+  color: #d97706;
   box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.18);
 }
 
 .server-basic-panel__metric-card.is-danger {
+  color: #dc2626;
   box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.18);
+}
+
+.server-basic-panel__metric-card.is-idle {
+  color: #64748b;
 }
 
 .server-basic-panel__metric-top,
@@ -2529,6 +2676,102 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
 .server-basic-panel__metric-main span {
   color: var(--el-text-color-secondary);
   font-size: 12px;
+}
+
+.server-basic-panel__metric-liquid-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  border-radius: 24px;
+  background: rgba(148, 163, 184, 0.10);
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.16),
+    inset 0 18px 42px rgba(15, 23, 42, 0.04);
+  z-index: 0;
+}
+
+.server-basic-panel__metric-liquid-bg--mini {
+  border-radius: 22px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.server-basic-panel__metric-liquid-bg--mini .server-basic-panel__metric-liquid-bg__wave {
+  top: -36px;
+  height: 72px;
+}
+
+.server-basic-panel__metric-liquid-bg--mini
+  .server-basic-panel__metric-liquid-bg__wave.is-back {
+  top: -44px;
+}
+
+.server-basic-panel__metric-liquid-bg__water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  transform: translateY(calc((100 - var(--metric-progress-visual, var(--metric-progress, 0))) * 1%));
+  transition: transform 0.55s cubic-bezier(0.2, 1, 0.2, 1);
+  will-change: transform;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.10)),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--metric-liquid-color, currentColor) 30%, rgba(255, 255, 255, 0.10)),
+      color-mix(in srgb, var(--metric-liquid-color, currentColor) 88%, #0b1220)
+    );
+}
+
+.server-basic-panel__metric-liquid-bg__wave {
+  position: absolute;
+  left: -30%;
+  top: -42px;
+  width: 170%;
+  height: 86px;
+  border-radius: 44%;
+  background:
+    radial-gradient(
+      circle at 55% 70%,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.38) 42%,
+      rgba(255, 255, 255, 0) 74%
+    );
+  opacity: 0.85;
+  filter: blur(0.8px);
+  animation: metric-liquid-wave-x 2.6s ease-in-out infinite;
+}
+
+.server-basic-panel__metric-liquid-bg__wave.is-back {
+  top: -52px;
+  opacity: 0.55;
+  filter: blur(1.4px);
+  animation-duration: 3.6s;
+  animation-direction: reverse;
+}
+
+.server-basic-panel__metric-liquid-bg__gloss {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.46), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02));
+  z-index: 1;
+}
+
+@keyframes metric-liquid-wave-x {
+  0% {
+    transform: translateX(-8%);
+  }
+  50% {
+    transform: translateX(8%);
+  }
+  100% {
+    transform: translateX(-8%);
+  }
 }
 
 .server-basic-panel__metric-main strong {
@@ -2567,6 +2810,12 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.5));
 }
 
+.server-basic-panel__metric-main strong.is-io-number {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+
 .server-basic-panel__realtime-chart {
   min-width: 0;
   display: grid;
@@ -2603,8 +2852,8 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   position: relative;
   width: 100%;
   display: grid;
-  gap: 9px;
-  padding: 14px;
+  gap: 6px;
+  padding: 10px 11px;
   appearance: none;
   border-radius: 22px;
   border: 1px solid
@@ -2654,20 +2903,23 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: nowrap;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 .server-basic-panel__realtime-mini-head small,
 .server-basic-panel__realtime-mini-head span,
 .server-basic-panel__realtime-mini-main span {
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .server-basic-panel__realtime-mini-main strong {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -2675,6 +2927,18 @@ function aiDiagnosticItem(label: string, value: string, enabled: boolean) {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.server-basic-panel__realtime-mini-main strong.is-io-number {
+  font-size: 15px;
+}
+
+.server-basic-panel__realtime-mini.is-io-mini .server-basic-panel__realtime-mini-head {
+  justify-content: flex-start;
+}
+
+.server-basic-panel__realtime-mini.is-io-mini .server-basic-panel__realtime-mini-main {
+  justify-content: flex-start;
 }
 
 .server-basic-panel__login-dropdown--overlay {

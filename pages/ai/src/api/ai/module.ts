@@ -12,6 +12,8 @@ export interface AiModule {
   sysAiModuleId?: number;
   sysAiModuleName: string;
   sysAiModuleCode: string;
+  sysAiModuleModelId?: string;
+  sysAiModuleImage?: string;
   sysAiModuleType: AiModuleType;
   sysAiModuleVendor?: string;
   sysAiModuleManufacturers?: string;
@@ -20,15 +22,24 @@ export interface AiModule {
   sysAiModuleStatus?: number;
   sysAiModuleSort?: number;
   sysAiModuleVlm?: number;
+  sysAiModuleSupportThink?: number;
+  sysAiModuleSupportOptimize?: number;
   sysAiModuleLocal?: number;
   sysAiModuleInputPrice?: number;
   sysAiModuleOutputPrice?: number;
+  sysAiModuleCachePrice?: number;
+  sysAiModuleGenerateLimit?: number;
+  sysAiModuleSupportTemplate?: number;
+  sysAiModuleSupportStyle?: number;
   sysAiModuleRemark?: string;
 }
 
-export const listAiModules = async (sysAiModuleType?: string) => {
+export const listAiModules = async (
+  sysAiModuleType?: string,
+  sysAiModuleVendor?: string,
+) => {
   return http.request<ReturnResult<AiModule[]>>("get", "/v2/ai/module/list", {
-    params: { sysAiModuleType },
+    params: { sysAiModuleType, sysAiModuleVendor },
   });
 };
 

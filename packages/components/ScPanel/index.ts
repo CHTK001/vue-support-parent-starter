@@ -15,6 +15,23 @@ export type PanelTheme =
   | "neon"
   | "modern"
   | "gradient";
+export type ScPanelTechVariant =
+  | "A1"
+  | "A2"
+  | "A3"
+  | "B1"
+  | "B2"
+  | "B3"
+  | "B4"
+  | "DV1"
+  | "DV2"
+  | "DV3"
+  | "DV4"
+  | "DV5"
+  | "DV6"
+  | "DV7"
+  | "DV8"
+  | "DV9";
 
 export default ScPanel;
 export { ScPanel };

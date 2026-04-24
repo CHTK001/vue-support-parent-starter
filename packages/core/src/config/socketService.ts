@@ -9,9 +9,10 @@
  * @since 2024-12-25
  */
 
+import { getConfig } from "@repo/config";
 import type { App } from "vue";
-import { inject, provide } from "vue";
-import type { ProtocolType, SocketTemplate } from "./socketTemplate";
+import { computed, getCurrentScope, inject, onScopeDispose, provide, ref } from "vue";
+import type { ProtocolType, SocketTemplate, WsMessage } from "./socketTemplate";
 import { SocketTemplateKey, createSocketTemplateKey } from "./socketTemplate";
 
 // 导入各协议实现
@@ -68,6 +69,37 @@ export interface SocketServiceConfig {
   withCredentials?: boolean;
 }
 
+export interface ManagedSocketState {
+  source: "provider" | "global" | "named" | "created" | "missing";
+  connected: boolean;
+  error: string | null;
+}
+
+export interface ManagedSocketResolution {
+  service: SocketTemplate | null;
+  source: ManagedSocketState["source"];
+  error: string | null;
+}
+
+export interface ManagedSocketOptions {
+  /** 命名实例名称 */
+  name: string;
+  /** 可选：优先使用外部 provider 注入的 socket */
+  preferredSocket?: SocketTemplate | null;
+  /** 当既没有 provider/global/named 时，用于生成命名 socket 配置；默认直接使用 getGlobalSocketConfig() */
+  resolveConfig?: () => SocketServiceConfig | null | undefined;
+  /** 解析失败时的报错文案 */
+  missingError?: string;
+  /** 未显式指定时默认 false，避免组合式初始化时自动连线 */
+  autoConnect?: boolean;
+}
+
+export interface ModuleSocketOptions<TState = ManagedSocketState>
+  extends ManagedSocketOptions {
+  /** 可选：将统一状态映射成模块自己的兼容状态结构 */
+  mapState?: (state: ManagedSocketState) => TState;
+}
+
 /**
  * 全局 Socket 服务实例
  */
@@ -91,6 +123,32 @@ let globalSocketConfig: {
   urls?: string[];
   context?: string;
 } = {};
+
+const splitUrls = (value: unknown): string[] => {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+};
+
+const resolveOrigin = (value: unknown): string | null => {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  try {
+    if (typeof window !== "undefined" && window.location?.origin) {
+      return new URL(value, window.location.origin).origin;
+    }
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+};
 
 const getWindowGlobalSocketService = (): SocketTemplate | null => {
   if (typeof window === "undefined") {
@@ -136,10 +194,44 @@ export function getGlobalSocketConfig(): {
   urls: string[];
   context?: string;
 } {
+  const appConfig = getConfig() || {};
+  const explicitUrls = splitUrls(appConfig.SocketUrl);
+  const protocol =
+    globalSocketConfig.protocol ||
+    (typeof appConfig.SocketProtocol === "string" &&
+    appConfig.SocketProtocol.trim()
+      ? appConfig.SocketProtocol.trim().toLowerCase()
+      : "socketio");
+  const context =
+    globalSocketConfig.context ||
+    appConfig.SocketPath ||
+    "/socket.io";
+
+  if (explicitUrls.length > 0) {
+    return {
+      protocol,
+      urls: explicitUrls,
+      context,
+    };
+  }
+
+  if (globalSocketConfig.urls?.length) {
+    return {
+      protocol,
+      urls: globalSocketConfig.urls,
+      context,
+    };
+  }
+
+  const baseUrl =
+    resolveOrigin(appConfig.BaseUrl) ||
+    resolveOrigin(appConfig.Request?.baseURL) ||
+    (typeof window !== "undefined" ? window.location.origin : null);
+
   return {
-    protocol: globalSocketConfig.protocol || "socketio",
-    urls: globalSocketConfig.urls || [],
-    context: globalSocketConfig.context,
+    protocol,
+    urls: baseUrl ? [baseUrl] : [],
+    context,
   };
 }
 
@@ -366,6 +458,184 @@ export function closeAllNamedSocketServices(): void {
     console.log(`[SocketService] 关闭命名实例: ${name}`);
   });
   namedSocketServices.clear();
+}
+
+/**
+ * 解析一个“受控命名 socket”实例。
+ * 顺序固定为：preferred provider -> injected/global -> named cache -> create named。
+ */
+export function resolveManagedSocketService(
+  options: ManagedSocketOptions,
+): ManagedSocketResolution {
+  if (options.preferredSocket) {
+    return {
+      service: options.preferredSocket,
+      source: "provider",
+      error: null,
+    };
+  }
+
+  const globalService = useSocketService();
+  if (globalService) {
+    return {
+      service: globalService,
+      source: "global",
+      error: null,
+    };
+  }
+
+  const existing = getNamedSocketService(options.name);
+  if (existing) {
+    return {
+      service: existing,
+      source: "named",
+      error: null,
+    };
+  }
+
+  const config = options.resolveConfig?.() ?? getGlobalSocketConfig();
+  if (!config?.urls?.length) {
+    return {
+      service: null,
+      source: "missing",
+      error: options.missingError || "未解析到可用的 Socket 地址",
+    };
+  }
+
+  return {
+    service: createNamedSocketService(options.name, {
+      ...config,
+      autoConnect: config.autoConnect ?? options.autoConnect ?? false,
+    }),
+    source: "created",
+    error: null,
+  };
+}
+
+/**
+ * 确保“受控命名 socket”已连接。
+ */
+export function ensureManagedSocketConnected(
+  options: ManagedSocketOptions,
+): ManagedSocketResolution {
+  const resolved = resolveManagedSocketService(options);
+  if (!resolved.service) {
+    return resolved;
+  }
+
+  if (!resolved.service.isConnected) {
+    resolved.service.connect();
+  }
+
+  return resolved;
+}
+
+/**
+ * 当命名 socket 未连接时关闭并清理实例。
+ */
+export function closeNamedSocketServiceIfIdle(name: string): void {
+  const named = getNamedSocketService(name);
+  if (named && !named.isConnected) {
+    closeNamedSocketService(name);
+  }
+}
+
+/**
+ * 通用的“受控命名 socket”组合式。
+ * 模块侧只需要提供 name 与 resolveConfig，即可复用统一的创建、连接、订阅与销毁逻辑。
+ */
+export function useManagedSocketService(options: ManagedSocketOptions) {
+  const state = ref<ManagedSocketState>({
+    source: options.preferredSocket ? "provider" : "missing",
+    connected: false,
+    error: null,
+  });
+  const subscriptions: Array<() => void> = [];
+
+  const syncState = (resolved: ManagedSocketResolution): SocketTemplate | null => {
+    state.value.source = resolved.source;
+    state.value.connected = resolved.service?.isConnected ?? false;
+    state.value.error = resolved.error;
+    return resolved.service;
+  };
+
+  const getService = (): SocketTemplate | null =>
+    syncState(resolveManagedSocketService(options));
+
+  const ensureConnected = (): SocketTemplate | null => {
+    const resolved = ensureManagedSocketConnected(options);
+    const service = syncState(resolved);
+    if (!service) {
+      return null;
+    }
+    state.value.connected = service.isConnected || state.value.connected;
+    return service;
+  };
+
+  const subscribe = (
+    module: string,
+    event: string,
+    handler: (message: WsMessage) => void,
+  ) => {
+    const service = ensureConnected();
+    if (!service) {
+      return () => {};
+    }
+    const unsubscribe = service.subscribe(module, event, handler);
+    subscriptions.push(unsubscribe);
+    return () => {
+      unsubscribe();
+      const index = subscriptions.indexOf(unsubscribe);
+      if (index >= 0) {
+        subscriptions.splice(index, 1);
+      }
+    };
+  };
+
+  const clearSubscriptions = () => {
+    while (subscriptions.length) {
+      subscriptions.pop()?.();
+    }
+  };
+
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      clearSubscriptions();
+      if (!options.preferredSocket) {
+        closeNamedSocketServiceIfIdle(options.name);
+      }
+    });
+  }
+
+  return {
+    state: computed(() => state.value),
+    getService,
+    ensureConnected,
+    subscribe,
+    clearSubscriptions,
+  };
+}
+
+/**
+ * 面向模块使用的轻量封装。
+ * 在 useManagedSocketService 基础上，额外支持状态映射，方便旧模块保持自己的 state 结构。
+ */
+export function useModuleSocketService<TState = ManagedSocketState>(
+  options: ModuleSocketOptions<TState>,
+) {
+  const managed = useManagedSocketService(options);
+
+  return {
+    state: computed(() =>
+      options.mapState
+        ? options.mapState(managed.state.value)
+        : (managed.state.value as TState),
+    ),
+    getService: managed.getService,
+    ensureConnected: managed.ensureConnected,
+    subscribe: managed.subscribe,
+    clearSubscriptions: managed.clearSubscriptions,
+  };
 }
 
 /**

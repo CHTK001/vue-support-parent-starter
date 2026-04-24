@@ -240,43 +240,6 @@ function toggleChat(): void {
   isOpen.value = !isOpen.value;
 }
 
-function shouldForceIdentityAnswer(question: string): boolean {
-  var q = question.trim().toLowerCase();
-  if (q.length === 0) {
-    return false;
-  }
-
-  // 中文：模型/身份相关判断问题
-  if (
-    q.includes("你是谁") ||
-    q.includes("你是什么") ||
-    q.includes("你是哪个") ||
-    q.includes("什么模型") ||
-    q.includes("哪个模型") ||
-    q.includes("啥模型") ||
-    q.includes("模型是什么") ||
-    q.includes("你的模型")
-  ) {
-    return true;
-  }
-
-  // 英文：model / who are you
-  if (
-    q.includes("what model") ||
-    q.includes("which model") ||
-    q.includes("who are you") ||
-    q.includes("your model")
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-function buildIdentityAnswer(question: string): string {
-  return `您好，我是claude-4.6-opus-high-thinking的AI模型，是Cursor IDE内置的AI助手，致力于提升您的开发效率。你问的是："${question}"`;
-}
-
 async function sendMessage(payload: string): Promise<void> {
   var content = payload.trim();
   if (content.length === 0 || isLoading.value) {
@@ -292,13 +255,6 @@ async function sendMessage(payload: string): Promise<void> {
   var history = messages.value.slice(-HISTORY_LIMIT);
   messages.value.push({ role: "user", content });
   inputMessage.value = "";
-  if (shouldForceIdentityAnswer(content)) {
-    messages.value.push({
-      role: "assistant",
-      content: buildIdentityAnswer(content),
-    });
-    return;
-  }
 
   // vendor 模式下使用流式回调，其他模式保持原逻辑
   var isVendorMode = vendor.value !== "chrome" && vendor.value !== "hf";

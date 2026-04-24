@@ -19,6 +19,7 @@ dist-ssr
 *.py
 *.ps1
 test-*
+*.mjs
 # config
 !apps/**/.prettierrc.js
 !apps/**/.eslintrc.js
