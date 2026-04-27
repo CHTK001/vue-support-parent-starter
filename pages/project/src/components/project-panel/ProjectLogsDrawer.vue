@@ -2,7 +2,7 @@
   <ScDrawer
     v-model="visible"
     :title="`日志 · ${project?.projectName || ''}`"
-    size="980px"
+    size="1280px"
     append-to-body
     destroy-on-close
     layout="simple"
@@ -16,6 +16,47 @@
           <el-tab-pane label="升级日志" name="deploy" />
           <el-tab-pane label="操作日志" name="operation" />
         </el-tabs>
+        <div v-if="project && !isStaticProject" class="logs-toolbar__lifecycle">
+          <el-tooltip content="启动" placement="top">
+            <ScButton
+              circle
+              size="small"
+              type="success"
+              plain
+              :loading="loadingState?.start"
+              :disabled="busy || isRunning"
+              @click="$emit('start', project)"
+            >
+              <IconifyIconOnline icon="ep:video-play" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="停止" placement="top">
+            <ScButton
+              circle
+              size="small"
+              type="danger"
+              plain
+              :loading="loadingState?.stop"
+              :disabled="busy || !isRunning"
+              @click="$emit('stop', project)"
+            >
+              <IconifyIconOnline icon="ep:video-pause" />
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="重启" placement="top">
+            <ScButton
+              circle
+              size="small"
+              type="warning"
+              plain
+              :loading="loadingState?.restart"
+              :disabled="busy"
+              @click="$emit('restart', project)"
+            >
+              <IconifyIconOnline icon="ep:refresh-right" />
+            </ScButton>
+          </el-tooltip>
+        </div>
         <div class="logs-toolbar__actions">
           <ScButton
             circle
@@ -72,6 +113,7 @@ import { computed, nextTick, ref, watch } from "vue";
 import { AnsiUp } from "ansi_up";
 import { IconifyIconOnline } from "@repo/components";
 import type { RemoteProject } from "../../api/manage/remote";
+import { isStaticProjectType } from "./projectPanelShared";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -79,6 +121,7 @@ const props = defineProps<{
   content: string;
   autoScroll: boolean;
   loading?: boolean;
+  loadingState?: Partial<Record<"start" | "stop" | "restart", boolean>>;
   logType: "runtime" | "deploy" | "operation";
 }>();
 
@@ -87,6 +130,9 @@ const emit = defineEmits<{
   (e: "close"): void;
   (e: "open"): void;
   (e: "refresh"): void;
+  (e: "restart", project: RemoteProject): void;
+  (e: "start", project: RemoteProject): void;
+  (e: "stop", project: RemoteProject): void;
   (e: "update:logType", value: "runtime" | "deploy" | "operation"): void;
   (e: "update:autoScroll", value: boolean): void;
   (e: "update:modelValue", value: boolean): void;
@@ -110,6 +156,18 @@ const logsPanelRef = ref<HTMLDivElement | null>(null);
 const emptyContent = "暂无日志...";
 const ansiParser = new AnsiUp();
 ansiParser.use_classes = false;
+const isStaticProject = computed(() =>
+  isStaticProjectType(props.project?.projectType),
+);
+const isRunning = computed(
+  () => String(props.project?.runtimeStatus || "").toLowerCase() === "running",
+);
+const busy = computed(
+  () =>
+    Boolean(props.loadingState?.start) ||
+    Boolean(props.loadingState?.stop) ||
+    Boolean(props.loadingState?.restart),
+);
 
 const renderedContent = computed(() => {
   const source = String(props.content || "").trim();
@@ -172,6 +230,13 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.logs-toolbar__lifecycle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .logs-toolbar__icon-btn {

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="w-96 max-h-[80vh] rounded-lg shadow-lg border  overflow-hidden ">
     <div class="flex items-center justify-between p-4 bg-gradient-to-r">
       <div class="flex items-center gap-2">
@@ -17,39 +17,20 @@
           </div>
           <ScFormItem prop="model">
             <div class="flex gap-2">
-              <ScSelect filterable v-model="form.model" placeholder="选择 AI 模型" clearable @change="$emit('change-module', $event)" class="flex-1">
-                <ScOption v-for="item in modelList" class="" :key="item.sysAiModuleCode" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
-                  <template #default>
-                    <ScTooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                      <div class="flex items-center gap-3 p-2">
-                        <div class="w-8 h-8 rounded-full overflow-hidden">
-                          <ScImage :src="item.sysProjectIcon" fit="cover" class="w-full h-full">
-                            <template #error>
-                              <div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                                <IconifyIconOnline icon="mdi:robot" />
-                              </div>
-                            </template>
-                          </ScImage>
-                        </div>
-                        <div class="flex-1">
-                          <div class="font-medium text-gray-900 dark:text-gray-100">{{ item.sysAiModuleName }}</div>
-                          <div class="text-sm text-gray-500 dark:text-gray-400">{{ item.sysProjectName }}</div>
-                        </div>
-                      </div>
-                    </ScTooltip>
-                  </template>
-                </ScOption>
-                <template #label="{ label }">
-                  <div class="flex items-center gap-2">
-                    <ScImage class="w-5 h-5 rounded-full" :src="modelSelectLabel?.sysProjectIcon" fit="cover">
-                      <template #error>
-                        <IconifyIconOnline icon="mdi:robot" />
-                      </template>
-                    </ScImage>
-                    <span>{{ label }}</span>
-                  </div>
-                </template>
-              </ScSelect>
+              <ScSelect
+                v-model="form.model"
+                :options="modelOptions"
+                layout="list"
+                :list-borde="true"
+                :list-select-button="true"
+                list-select-icon="ri:cpu-line"
+                :list-select-show-value="true"
+                list-height="430px"
+                :list-show-search="false"
+                :list-show-batch-actions="false"
+                @change="$emit('change-module', $event)"
+                class="flex-1"
+              />
               <ScButton v-if="env.showEdit" circle class="bg-purple-500 hover:bg-purple-600" @click="$emit('open-module')" type="primary">
                 <IconifyIconOnline icon="ep:plus" />
               </ScButton>
@@ -181,6 +162,15 @@ const emit = defineEmits(["refresh", "change-module", "open-module", "click-seed
 // Computed
 const modelSelectLabel = computed(() => {
   return props.modelList.find((item) => item.sysAiModuleCode === props.form.model);
+});
+
+const modelOptions = computed(() => {
+  return (props.modelList || []).map((item) => ({
+    label: item.sysAiModuleName,
+    value: item.sysAiModuleCode,
+    icon: item.sysProjectIcon,
+    description: item.sysAiModuleRemark || "暂无说明",
+  }));
 });
 </script>
 

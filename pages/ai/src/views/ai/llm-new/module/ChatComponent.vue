@@ -265,20 +265,20 @@
           <template #action-list>
             <div class="action-buttons">
               <el-tooltip content="选择模型" placement="top">
-                <el-select
+                <ScSelect
                   v-model="props.form.model"
+                  :options="modelSelectOptions"
+                  layout="list"
+                  :list-borde="true"
+                  :list-select-button="true"
+                  list-select-icon="ri:cpu-line"
+                  :list-select-show-value="true"
+                  list-height="430px"
+                  :list-show-search="false"
+                  :list-show-batch-actions="false"
                   class="model-select-inline"
-                  size="small"
-                  placeholder="选择模型"
                   @change="handleChangeModule"
-                >
-                  <el-option
-                    v-for="item in modelList"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
+                />
               </el-tooltip>
               <ScButton circle @click="handleClearInput">
                 <svg
@@ -412,6 +412,14 @@ const rules = ref({});
 
 const currentModel = computed(() =>
   modelList.value.find(item => item.value === props.form?.model) || null,
+);
+
+const modelSelectOptions = computed(() =>
+  (modelList.value || []).map(item => ({
+    label: item.label,
+    value: item.value,
+    description: item.sysAiModuleRemark || "暂无说明",
+  })),
 );
 
 // 用户和机器人信息
@@ -1046,6 +1054,7 @@ const loadModelList = async () => {
     modelList.value = rows.map(item => ({
       label: item.sysAiModuleName || item.sysAiModuleCode,
       value: item.sysAiModuleCode,
+      sysAiModuleRemark: item.sysAiModuleRemark || "",
       vlm: Number(item.sysAiModuleVlm) === 1,
       supportThink: Number(item.sysAiModuleSupportThink) === 1,
       supportOptimize: Number(item.sysAiModuleSupportOptimize) === 1,
@@ -1923,6 +1932,142 @@ defineExpose({
 
       :deep(pre) {
         overflow: auto;
+      }
+
+      :deep(.vp-raw),
+      :deep(.x-markdown) {
+        color: #0f172a;
+        font-size: 14px;
+        line-height: 1.82;
+        letter-spacing: 0.01em;
+        font-family:
+          "PingFang SC",
+          "Microsoft YaHei",
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      :deep(.vp-raw p),
+      :deep(.x-markdown p) {
+        margin: 0 0 12px;
+      }
+
+      :deep(.vp-raw h1),
+      :deep(.vp-raw h2),
+      :deep(.vp-raw h3),
+      :deep(.vp-raw h4),
+      :deep(.x-markdown h1),
+      :deep(.x-markdown h2),
+      :deep(.x-markdown h3),
+      :deep(.x-markdown h4) {
+        margin: 16px 0 10px;
+        color: #0b1220;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      :deep(.vp-raw h1),
+      :deep(.x-markdown h1) { font-size: 22px; }
+      :deep(.vp-raw h2),
+      :deep(.x-markdown h2) { font-size: 19px; }
+      :deep(.vp-raw h3),
+      :deep(.x-markdown h3) { font-size: 17px; }
+      :deep(.vp-raw h4),
+      :deep(.x-markdown h4) { font-size: 15px; }
+
+      :deep(.vp-raw ul),
+      :deep(.vp-raw ol),
+      :deep(.x-markdown ul),
+      :deep(.x-markdown ol) {
+        margin: 8px 0 14px;
+        padding-left: 1.25em;
+      }
+
+      :deep(.vp-raw li),
+      :deep(.x-markdown li) {
+        margin: 4px 0;
+      }
+
+      :deep(.vp-raw blockquote),
+      :deep(.x-markdown blockquote) {
+        margin: 12px 0;
+        padding: 10px 12px;
+        border-left: 3px solid #94a3b8;
+        border-radius: 6px;
+        background: rgba(148, 163, 184, 0.12);
+        color: #334155;
+      }
+
+      :deep(.vp-raw code),
+      :deep(.x-markdown code) {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: rgba(15, 23, 42, 0.08);
+        color: #1d4ed8;
+        font-size: 13px;
+        font-family:
+          "JetBrains Mono",
+          "Fira Code",
+          "Consolas",
+          "Monaco",
+          monospace;
+      }
+
+      :deep(.vp-raw pre),
+      :deep(.x-markdown pre) {
+        margin: 12px 0;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(100, 116, 139, 0.25);
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+
+      :deep(.vp-raw pre code),
+      :deep(.x-markdown pre code) {
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        font-size: 12.5px;
+      }
+
+      :deep(.vp-raw table),
+      :deep(.x-markdown table) {
+        border-collapse: collapse;
+        margin: 12px 0;
+        font-size: 13px;
+      }
+
+      :deep(.vp-raw th),
+      :deep(.vp-raw td),
+      :deep(.x-markdown th),
+      :deep(.x-markdown td) {
+        border: 1px solid rgba(100, 116, 139, 0.22);
+        padding: 6px 10px;
+      }
+
+      :deep(.vp-raw th),
+      :deep(.x-markdown th) {
+        background: rgba(148, 163, 184, 0.14);
+        font-weight: 600;
+      }
+
+      :deep(.vp-raw a),
+      :deep(.x-markdown a) {
+        color: #2563eb;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      :deep(.vp-raw hr),
+      :deep(.x-markdown hr) {
+        border: none;
+        border-top: 1px solid rgba(148, 163, 184, 0.35);
+        margin: 14px 0;
       }
     }
 

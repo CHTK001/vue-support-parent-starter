@@ -902,15 +902,24 @@ const resolvePayloadDatabaseName = (
 };
 
 const buildJdbcProtocol = (source: PanelSavedSource | JdbcConnectionForm) => {
-  if ((source.protocol || "").trim().startsWith("jdbc:")) {
-    return source.protocol.trim();
-  }
   const dialect = String(source.jdbcDialectType || "MYSQL").toUpperCase();
+  const protocol = (source.protocol || "").trim();
+  if (protocol.startsWith("jdbc:")) {
+    // 避免误把示例 H2 URL 当成 MySQL 连接使用（会导致后端识别为 H2Dialect）
+    if (
+      (dialect === "MYSQL" || dialect === "MARIADB") &&
+      protocol.toLowerCase().startsWith("jdbc:h2:")
+    ) {
+      // 忽略 H2 协议，走 host/port 拼接 MySQL/MariaDB URL
+    } else {
+      return protocol;
+    }
+  }
   const host = String(source.host || "").trim();
   const port = Number(source.port || 0);
   const database = String(source.databaseName || "").trim();
   if (!host || port <= 0) {
-    return String(source.protocol || "").trim();
+    return protocol;
   }
 
   const attributes = normalizeAttributes(source.attributes);

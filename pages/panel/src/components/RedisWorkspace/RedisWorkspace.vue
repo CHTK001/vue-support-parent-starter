@@ -337,6 +337,21 @@
                     </div>
                   </div>
                   <div class="info-section">
+                    <div class="info-section__title">容量分布</div>
+                    <div class="redis-pie-grid">
+                      <div class="redis-pie-card">
+                        <div class="redis-pie-card__title">按 Key 数量占比</div>
+                        <ScEcharts v-if="hasDbStats" :option="keyPieOption" height="280px" />
+                        <ElEmpty v-else description="暂无 DB key 统计数据" :image-size="40" />
+                      </div>
+                      <div class="redis-pie-card">
+                        <div class="redis-pie-card__title">内存占比（已用/总量）</div>
+                        <ScEcharts v-if="hasMemoryStats" :option="memoryPieOption" height="280px" />
+                        <ElEmpty v-else description="暂无可用内存数据" :image-size="40" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info-section">
                     <div class="info-section__title">原始信息</div>
                     <table class="raw-info-table">
                       <tbody>
@@ -405,35 +420,35 @@
       :close-on-click-modal="false"
       class="add-dialog"
     >
-      <ElForm :model="addForm" label-width="80px" size="default">
+      <ElForm ref="addFormRef" :model="addForm" :rules="addFormRules" label-width="80px" size="default">
         <ElFormItem label="类型">
           <ElSelect v-model="addForm.type" style="width: 100%">
             <ElOption v-for="t in keyTypes" :key="t.value" :label="t.label" :value="t.value" />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="Key">
+        <ElFormItem label="Key" prop="key">
           <ElInput v-model="addForm.key" placeholder="输入 key 名称" />
         </ElFormItem>
         <ElFormItem label="TTL (s)">
           <ElInputNumber v-model="addForm.ttl" :min="-1" placeholder="-1 表示永不过期" style="width: 100%" />
         </ElFormItem>
-        <ElFormItem v-if="addForm.type === 'string'" label="Value">
+        <ElFormItem v-if="addForm.type === 'string'" label="Value" prop="value">
           <ElInput v-model="addForm.value" type="textarea" :rows="4" placeholder="字符串值" />
         </ElFormItem>
-        <ElFormItem v-else-if="addForm.type === 'hash'" label="Field">
+        <ElFormItem v-else-if="addForm.type === 'hash'" label="Field" prop="field">
           <ElInput v-model="addForm.field" placeholder="Hash field" />
         </ElFormItem>
-        <ElFormItem v-if="addForm.type === 'hash'" label="Value">
+        <ElFormItem v-if="addForm.type === 'hash'" label="Value" prop="value">
           <ElInput v-model="addForm.value" placeholder="Hash field value" />
         </ElFormItem>
-        <ElFormItem v-if="addForm.type === 'list'" label="Value">
+        <ElFormItem v-if="addForm.type === 'list'" label="Value" prop="value">
           <ElInput v-model="addForm.value" placeholder="List 元素值" />
         </ElFormItem>
-        <ElFormItem v-if="addForm.type === 'set'" label="Member">
+        <ElFormItem v-if="addForm.type === 'set'" label="Member" prop="value">
           <ElInput v-model="addForm.value" placeholder="Set 成员值" />
         </ElFormItem>
         <template v-if="addForm.type === 'zset'">
-          <ElFormItem label="Member">
+          <ElFormItem label="Member" prop="value">
             <ElInput v-model="addForm.value" placeholder="ZSet 成员" />
           </ElFormItem>
           <ElFormItem label="Score">
@@ -513,7 +528,9 @@ import {
   ElTree,
 } from "element-plus";
 import { computed, markRaw, nextTick, ref, watch } from "vue";
+import type { FormInstance, FormRules } from "element-plus";
 import ScLayout from "@repo/components/ScLayout";
+import ScEcharts from "@repo/components/ScEcharts";
 import {
   delRedisKey,
   executeRedisCommand,
@@ -853,6 +870,7 @@ const keyTypes = [
 
 const addDialogVisible = ref(false);
 const addLoading = ref(false);
+const addFormRef = ref<FormInstance>();
 const addForm = ref({
   type: "string",
   key: "",
@@ -861,15 +879,25 @@ const addForm = ref({
   score: 0,
   ttl: -1,
 });
+const addFormRules = computed<FormRules>(() => ({
+  key: [{ required: true, message: "请输入 key", trigger: "blur" }],
+  field: addForm.value.type === "hash"
+    ? [{ required: true, message: "请输入 field", trigger: "blur" }]
+    : [],
+  value: ["string", "hash", "list", "set", "zset"].includes(addForm.value.type)
+    ? [{ required: true, message: "请输入 value", trigger: "blur" }]
+    : [],
+}));
 
 const openAddDialog = () => {
   addForm.value = { type: "string", key: "", value: "", field: "", score: 0, ttl: -1 };
   addDialogVisible.value = true;
+  nextTick(() => addFormRef.value?.clearValidate());
 };
 
 const submitAdd = async () => {
-  if (!addForm.value.key) {
-    ElMessage.warning("请输入 key");
+  const valid = await addFormRef.value?.validate().catch(() => false);
+  if (!valid) {
     return;
   }
   addLoading.value = true;
@@ -1029,6 +1057,93 @@ const formatUptime = (seconds: number) => {
   const m = Math.floor((seconds % 3600) / 60);
   return `${d}d ${h}h ${m}m`;
 };
+
+const dbStatsEntries = computed(() => Object.entries(redisInfo.value?.dbKeyCounts || {})
+  .map(([db, count]) => ({ db, count: Number(count || 0) }))
+  .filter(item => item.count > 0));
+
+const hasDbStats = computed(() => dbStatsEntries.value.length > 0);
+
+const memoryStats = computed(() => {
+  const used = Number(redisInfo.value?.usedMemory || 0);
+  const maxMemory = Number(redisInfo.value?.rawInfo?.maxmemory || 0);
+  const totalSystemMemory = Number(redisInfo.value?.rawInfo?.total_system_memory || 0);
+  const total = maxMemory > 0 ? maxMemory : (totalSystemMemory > 0 ? totalSystemMemory : 0);
+  const free = Math.max(total - used, 0);
+  return { used, total, free };
+});
+
+const hasMemoryStats = computed(() => memoryStats.value.used > 0 || memoryStats.value.total > 0);
+
+const keyPieOption = computed(() => ({
+  tooltip: {
+    trigger: "item",
+    formatter: "{b}<br/>Key数: {c} ({d}%)",
+  },
+  legend: {
+    bottom: 0,
+    type: "scroll",
+  },
+  series: [
+    {
+      name: "Key数量",
+      type: "pie",
+      radius: ["42%", "68%"],
+      center: ["50%", "46%"],
+      avoidLabelOverlap: true,
+      label: {
+        formatter: "{b}\n{d}%",
+      },
+      data: dbStatsEntries.value.map(item => ({
+        name: item.db,
+        value: item.count,
+      })),
+    },
+  ],
+}));
+
+const memoryPieOption = computed(() => {
+  const { used, total, free } = memoryStats.value;
+  const displayTotal = total > 0 ? total : used;
+  const displayFree = total > 0 ? free : 0;
+  return {
+    tooltip: {
+      trigger: "item",
+      formatter: (params: any) => {
+        const bytes = Number(params?.data?.bytes || 0);
+        return `${params?.name}<br/>内存: ${formatBytes(bytes)} (${params?.percent}%)`;
+      },
+    },
+    legend: {
+      bottom: 0,
+      type: "scroll",
+    },
+    series: [
+      {
+        name: "内存",
+        type: "pie",
+        radius: ["42%", "68%"],
+        center: ["50%", "46%"],
+        avoidLabelOverlap: true,
+        label: {
+          formatter: "{b}\n{d}%",
+        },
+        data: [
+          {
+            name: "已使用",
+            value: Math.max(used, 0),
+            bytes: Math.max(used, 0),
+          },
+          {
+            name: "可用",
+            value: Math.max(displayFree, 0),
+            bytes: Math.max(displayFree, 0),
+          },
+        ],
+      },
+    ],
+  };
+});
 
 // 初始化
 loadKeys();
@@ -1604,6 +1719,26 @@ loadKeys();
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.redis-pie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 10px;
+}
+
+.redis-pie-card {
+  border: 1px solid rgba(135, 151, 163, 0.14);
+  border-radius: 12px;
+  background: rgba(249, 251, 253, 0.85);
+  padding: 10px;
+}
+
+.redis-pie-card__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f6472;
+  margin-bottom: 6px;
 }
 
 .db-stat-item {
