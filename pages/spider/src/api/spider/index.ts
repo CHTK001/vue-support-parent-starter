@@ -85,7 +85,7 @@ export interface SpiderApiResult<T> {
   data: T;
 }
 
-const SPIDER_API_BASE = "";
+const SPIDER_API_BASE = "/spider-api";
 
 async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${SPIDER_API_BASE}${input}`, {
@@ -117,6 +117,61 @@ export async function listSpiderDefinitions() {
   );
 }
 
+export async function getSpiderDefinition(spiderCode: string) {
+  const query = new URLSearchParams({ spiderCode });
+  return requestJson<import("../../types/orchestration").SpiderDefinition>(
+    `/spider/definitions/detail?${query.toString()}`,
+  );
+}
+
+export async function createSpiderDefinition(
+  payload: import("../../types/orchestration").SpiderDefinition,
+) {
+  return requestJson<import("../../types/orchestration").SpiderDefinition>(
+    "/spider/definitions/save",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function updateSpiderDefinition(
+  spiderCode: string,
+  payload: import("../../types/orchestration").SpiderDefinition,
+) {
+  return requestJson<import("../../types/orchestration").SpiderDefinition>(
+    "/spider/definitions/update",
+    {
+      method: "POST",
+      body: JSON.stringify({ ...payload, spiderCode }),
+    },
+  );
+}
+
+export async function deleteSpiderDefinition(spiderCode: string) {
+  const query = new URLSearchParams({ spiderCode });
+  return requestJson<boolean>(
+    `/spider/definitions/delete?${query.toString()}`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function updateSpiderDefinitionStatus(
+  spiderCode: string,
+  spiderStatus: number,
+) {
+  return requestJson<import("../../types/orchestration").SpiderDefinition>(
+    "/spider/definitions/status",
+    {
+      method: "POST",
+      body: JSON.stringify({ spiderCode, spiderStatus }),
+    },
+  );
+}
+
 export async function listSpiderFlows(spiderDefinitionCode: string) {
   const query = new URLSearchParams({ spiderDefinitionCode });
   return requestJson(`/spider/orchestration/flows?${query.toString()}`);
@@ -131,6 +186,31 @@ export async function listSpiderNodes(
     spiderFlowVersion: String(spiderFlowVersion),
   });
   return requestJson(`/spider/orchestration/nodes?${query.toString()}`);
+}
+
+export async function getSpiderOrchestrationSchema(
+  spiderDefinitionCode: string,
+  spiderFlowVersion: number,
+) {
+  const query = new URLSearchParams({
+    spiderDefinitionCode,
+    spiderFlowVersion: String(spiderFlowVersion),
+  });
+  return requestJson<import("../../types/orchestration").SpiderFlowSchema>(
+    `/spider/orchestration/schema?${query.toString()}`,
+  );
+}
+
+export async function saveSpiderOrchestrationSchema(
+  payload: import("../../types/orchestration").SpiderFlowSchema,
+) {
+  return requestJson<import("../../types/orchestration").SpiderFlowSchema>(
+    "/spider/orchestration/schema/save",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function previewSpiderExecution(
@@ -164,6 +244,13 @@ export async function getSpiderExecutionDetail(spiderExecutionNo: string) {
   );
 }
 
+export async function getSpiderExecutionEvents(spiderExecutionNo: string) {
+  const query = new URLSearchParams({ spiderExecutionNo });
+  return requestJson<import("../../types/orchestration").SpiderExecutionEventView[]>(
+    `/spider/executions/events?${query.toString()}`,
+  );
+}
+
 export async function submitSpiderManualTask(
   payload: import("../../types/orchestration").SpiderManualTaskSubmitRequest,
 ) {
@@ -173,6 +260,34 @@ export async function submitSpiderManualTask(
       method: "POST",
       body: JSON.stringify(payload),
     },
+  );
+}
+
+export async function listSpiderExamples() {
+  return requestJson<string[]>("/spider/examples");
+}
+
+export async function previewSpiderExample(spiderDefinitionCode: string) {
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
+    `/spider/examples/${spiderDefinitionCode}/preview`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function runSpiderExample(spiderDefinitionCode: string) {
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView>(
+    `/spider/examples/${spiderDefinitionCode}/run`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export async function getSpiderExampleLatest(spiderDefinitionCode: string) {
+  return requestJson<import("../../types/orchestration").SpiderExecutionDetailView | null>(
+    `/spider/examples/${spiderDefinitionCode}/latest`,
   );
 }
 

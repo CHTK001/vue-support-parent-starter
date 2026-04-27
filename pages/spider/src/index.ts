@@ -1,12 +1,14 @@
 import SpiderHomePage from "./index.vue";
+import SpiderConsolePage from "./SpiderConsolePage.vue";
 import SpiderRoutes from "./router/spider";
 import SpiderOverviewPage from "./views/spider/overview/index.vue";
 import SpiderManagePage from "./views/spider/manage/index.vue";
 import SpiderOrchestrationPage from "./views/spider/orchestration/index.vue";
 
-export default SpiderHomePage;
+export default SpiderConsolePage;
 
 export {
+  SpiderConsolePage,
   SpiderHomePage,
   SpiderRoutes,
   SpiderOverviewPage,

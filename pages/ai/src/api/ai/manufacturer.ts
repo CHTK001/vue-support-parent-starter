@@ -17,6 +17,8 @@ export interface AiManufacturer {
   sysAiManufacturerApiVersion?: string;
   sysAiManufacturerApiDomain?: string;
   sysAiManufacturerMemoryEnabled?: number;
+  sysAiManufacturerCompressionEnabled?: number;
+  sysAiManufacturerCompressionThreshold?: number;
   sysAiManufacturerStatus?: number;
   sysAiManufacturerSort?: number;
   sysAiManufacturerRemark?: string;

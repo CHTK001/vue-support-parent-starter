@@ -38,6 +38,7 @@
         @action="handleAction"
         @upload="(p) => handleUpload([p])"
         @upgrade="handleUpgrade"
+        @software="openContainerSoftwareDialog"
         @drop-upload="handleDropUpload"
       />
     </div>
@@ -53,6 +54,7 @@
       @upload="(p) => handleUpload([p])"
       @view-log="(p) => logDialogRef?.open(p)"
       @view-config="(p) => configDialogRef?.open(p)"
+      @software="openContainerSoftwareDialog"
     />
 
     <!-- 对话框 -->
@@ -61,6 +63,10 @@
     <ProjectUploadDialog ref="uploadDialogRef" />
     <ProjectLogDialog ref="logDialogRef" />
     <ProjectConfigDialog ref="configDialogRef" />
+    <ProjectContainerSoftwareDialog
+      v-model="containerSoftwareVisible"
+      :project="containerSoftwareProject"
+    />
 
     <!-- 密钥管理 OverlayPage -->
     <ScOverlayPage
@@ -97,6 +103,7 @@ import ProjectSecretDialog from "./ProjectSecretDialog.vue";
 import ProjectUploadDialog from "./ProjectUploadDialog.vue";
 import ProjectLogDialog from "./ProjectLogDialog.vue";
 import ProjectConfigDialog from "./ProjectConfigDialog.vue";
+import ProjectContainerSoftwareDialog from "./ProjectContainerSoftwareDialog.vue";
 
 const SecretIndex = defineAsyncComponent(() => import("../secret/index.vue"));
 
@@ -118,6 +125,8 @@ const secretDialogRef = ref();
 const uploadDialogRef = ref();
 const logDialogRef = ref();
 const configDialogRef = ref();
+const containerSoftwareVisible = ref(false);
+const containerSoftwareProject = ref<SysProject | null>(null);
 const secretOverlayVisible = ref(false);
 
 // 多选状态
@@ -200,6 +209,11 @@ const handleSetSecret = (project: SysProject) => secretDialogRef.value?.open(pro
 
 const handleUpload = (targets: SysProject[], preFile?: File) => {
   uploadDialogRef.value?.open(targets, preFile);
+};
+
+const openContainerSoftwareDialog = (project: SysProject) => {
+  containerSoftwareProject.value = project;
+  containerSoftwareVisible.value = true;
 };
 
 const handleUploadMulti = () => {

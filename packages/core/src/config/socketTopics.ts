@@ -160,6 +160,15 @@ export const DockerTopics = {
   },
 } as const;
 
+export const ProjectTopics = {
+  MODULE: "PROJECT",
+  EVENTS: {
+    CONTAINER_SOFTWARE_PROGRESS: "CONTAINER_SOFTWARE_PROGRESS",
+    CONTAINER_SOFTWARE_LOG: "CONTAINER_SOFTWARE_LOG",
+    CONTAINER_SOFTWARE_RESULT: "CONTAINER_SOFTWARE_RESULT",
+  },
+} as const;
+
 /**
  * 远程连接模块主题 (remote)
  * 用于远程服务器连接 (SSH/RDP/VNC)
@@ -259,6 +268,7 @@ export const SocketTopics = {
   service: ServiceTopics,
   monitor: MonitorTopics,
   soft: SoftTopics,
+  project: ProjectTopics,
   server: ServerTopics,
   docker: DockerTopics,
   remote: RemoteTopics,

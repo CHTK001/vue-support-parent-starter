@@ -19,18 +19,19 @@ export type SpiderNodeType =
   | "END";
 
 export interface SpiderDefinition {
+  spiderId?: number;
   spiderCode: string;
   spiderName: string;
   spiderEntryUrl: string;
   spiderSiteHost: string;
   spiderExecutorType: SpiderExecutorType;
   spiderExecutorRounds?: number;
-  spiderCollectDeepUrl: boolean;
-  spiderNotifyOnFailure: boolean;
+  spiderCollectDeepUrl: boolean | number;
+  spiderNotifyOnFailure: boolean | number;
   spiderDedupStrategy: SpiderDedupStrategy;
   spiderUrlStorageType: SpiderUrlStorageType;
   spiderUrlStorageSpi?: string;
-  spiderStatus: "ENABLED" | "DISABLED";
+  spiderStatus: "ENABLED" | "DISABLED" | 1 | 0;
 }
 
 export interface SpiderNodePort {
@@ -69,6 +70,8 @@ export interface SpiderFlowEdge {
   source: string;
   target: string;
   label?: string;
+  sourceOutput?: string;
+  targetInput?: string;
 }
 
 export interface SpiderFlowSchema {
@@ -88,6 +91,7 @@ export interface SpiderDashboardSummary {
   spiderResultCount: number;
   spiderRemainingUrlCount: number;
   spiderSitePortraits?: SpiderSitePortrait[];
+  spiderTimeTrends?: SpiderTimeTrend[];
 }
 
 export interface SpiderSitePortrait {
@@ -96,6 +100,12 @@ export interface SpiderSitePortrait {
   spiderResultCount: number;
   spiderRunningCount: number;
   spiderWarningCount: number;
+}
+
+export interface SpiderTimeTrend {
+  spiderDateLabel: string;
+  spiderParseCount: number;
+  spiderResultCount: number;
 }
 
 export interface SpiderExecutionRequest {
@@ -124,6 +134,15 @@ export interface SpiderManualTaskView {
   spiderTaskStatus: string;
   spiderDerivedStepCode?: string;
   spiderExpiredAt?: string;
+}
+
+export interface SpiderExecutionEventView {
+  spiderExecutionNo: string;
+  spiderEventType: string;
+  spiderNodeCode: string;
+  spiderNodeName: string;
+  spiderMessage?: string;
+  spiderEventTime?: string;
 }
 
 export interface SpiderExecutionDetailView {

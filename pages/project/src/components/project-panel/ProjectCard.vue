@@ -20,7 +20,10 @@
       </div>
     </div>
     <div class="project-card__top-tools" @click.stop>
-      <div class="project-card__group project-card__group--controls">
+      <div
+        v-if="!isServiceProject"
+        class="project-card__group project-card__group--controls"
+      >
         <el-tooltip
           v-if="!isRunning && !isStaticProject"
           :content="startActionTooltip"
@@ -75,90 +78,86 @@
       </div>
 
       <div class="project-card__group project-card__group--toolbar">
-        <el-tooltip
-          v-if="canDownloadMainArtifact"
-          :content="downloadActionTooltip"
-          placement="top"
+        <div
+          class="project-card__toolbar-strip"
+          :class="{ 'is-service-toolbar': isServiceProject }"
+          @click.stop="isServiceProject && $emit('service-panel', project)"
         >
-          <ScButton
-            circle
-            size="small"
-            plain
-            :disabled="isBusy"
-            @click.stop="$emit('download-main', project)"
+          <el-tooltip
+            v-if="!isServiceProject && canDownloadMainArtifact"
+            :content="downloadActionTooltip"
+            placement="top"
           >
-            <IconifyIconOnline icon="ep:download" />
-          </ScButton>
-        </el-tooltip>
-        <el-tooltip v-if="hasLogConfig" content="查看日志" placement="top">
-          <ScButton
-            circle
-            size="small"
-            plain
-            :disabled="isBusy"
-            @click.stop="$emit('logs', project)"
+            <span
+              class="project-card__tool-icon"
+              :class="{ 'is-disabled': isBusy }"
+              @click.stop="!isBusy && $emit('download-main', project)"
+            >
+              <IconifyIconOnline icon="ep:download" />
+            </span>
+          </el-tooltip>
+          <el-tooltip
+            v-if="!isServiceProject && hasLogConfig"
+            content="查看日志"
+            placement="top"
           >
-            <IconifyIconOnline icon="ep:document" />
-          </ScButton>
-        </el-tooltip>
-        <el-tooltip content="部署升级" placement="top">
-          <ScButton
-            circle
-            size="small"
-            type="primary"
-            plain
-            :loading="loadingState?.deploy || loadingState?.batchDeploy"
-            :disabled="isBusy"
-            @click.stop="$emit('deploy', project)"
-          >
-            <IconifyIconOnline icon="ep:upload" />
-          </ScButton>
-        </el-tooltip>
-        <el-tooltip content="创建备份" placement="top">
-          <ScButton
-            circle
-            size="small"
-            plain
-            :disabled="isBusy"
-            @click.stop="$emit('backup', project)"
-          >
-            <IconifyIconOnline icon="ep:box" />
-          </ScButton>
-        </el-tooltip>
-        <el-tooltip content="回滚版本" placement="top">
-          <ScButton
-            circle
-            size="small"
-            plain
-            :disabled="isBusy"
-            @click.stop="$emit('rollback', project)"
-          >
-            <IconifyIconOnline icon="ep:back" />
-          </ScButton>
-        </el-tooltip>
-        <el-tooltip content="编辑项目" placement="top">
-          <ScButton
-            circle
-            size="small"
-            plain
-            :disabled="isBusy"
-            @click.stop="$emit('edit', project)"
-          >
-            <IconifyIconOnline icon="ep:edit" />
-          </ScButton>
-        </el-tooltip>
-        <el-tooltip content="删除项目" placement="top">
-          <ScButton
-            circle
-            size="small"
-            type="danger"
-            plain
-            :disabled="isBusy"
-            @click.stop="$emit('delete', project)"
-          >
-            <IconifyIconOnline icon="ep:delete" />
-          </ScButton>
-        </el-tooltip>
+            <span
+              class="project-card__tool-icon"
+              :class="{ 'is-disabled': isBusy }"
+              @click.stop="!isBusy && $emit('logs', project)"
+            >
+              <IconifyIconOnline icon="ep:document" />
+            </span>
+          </el-tooltip>
+          <el-tooltip v-if="!isServiceProject" content="部署升级" placement="top">
+            <span
+              class="project-card__tool-icon"
+              :class="{
+                'is-disabled': isBusy,
+                'is-loading': loadingState?.deploy || loadingState?.batchDeploy,
+              }"
+              @click.stop="!isBusy && $emit('deploy', project)"
+            >
+              <IconifyIconOnline icon="ep:upload" />
+            </span>
+          </el-tooltip>
+          <el-tooltip v-if="!isServiceProject" content="创建备份" placement="top">
+            <span
+              class="project-card__tool-icon"
+              :class="{ 'is-disabled': isBusy }"
+              @click.stop="!isBusy && $emit('backup', project)"
+            >
+              <IconifyIconOnline icon="ep:box" />
+            </span>
+          </el-tooltip>
+          <el-tooltip v-if="!isServiceProject" content="回滚版本" placement="top">
+            <span
+              class="project-card__tool-icon"
+              :class="{ 'is-disabled': isBusy }"
+              @click.stop="!isBusy && $emit('rollback', project)"
+            >
+              <IconifyIconOnline icon="ep:back" />
+            </span>
+          </el-tooltip>
+          <el-tooltip content="编辑项目" placement="top">
+            <span
+              class="project-card__tool-icon"
+              :class="{ 'is-disabled': isBusy }"
+              @click.stop="!isBusy && $emit('edit', project)"
+            >
+              <IconifyIconOnline icon="ep:edit" />
+            </span>
+          </el-tooltip>
+          <el-tooltip content="删除项目" placement="top">
+            <span
+              class="project-card__tool-icon is-danger"
+              :class="{ 'is-disabled': isBusy }"
+              @click.stop="!isBusy && $emit('delete', project)"
+            >
+              <IconifyIconOnline icon="ep:delete" />
+            </span>
+          </el-tooltip>
+        </div>
       </div>
     </div>
 
@@ -168,9 +167,19 @@
           <IconifyIconOnline :icon="projectIcon" />
         </div>
         <div class="project-card__titles">
-          <p class="project-card__eyebrow">
-            {{ projectTypeLabel(project.projectType) }}
-          </p>
+          <div class="project-card__title-row">
+            <p class="project-card__eyebrow">
+              {{ projectTypeLabel(displayProjectType) }}
+            </p>
+            <span
+              v-if="isServiceProject"
+              class="project-card__service-entry"
+              title="服务面板"
+              @click.stop="$emit('service-panel', project)"
+            >
+              <IconifyIconOnline icon="ri:service-line" />
+            </span>
+          </div>
           <h3 class="project-card__name">{{ project.projectName }}</h3>
           <el-tooltip
             v-if="project.rootDirectory"
@@ -277,10 +286,6 @@
         <strong>{{ lifecycleModeLabel }}</strong>
       </div>
       <div class="project-card__summary-item">
-        <span>脚本策略</span>
-        <strong>{{ lifecycleHint }}</strong>
-      </div>
-      <div class="project-card__summary-item">
         <span>最近操作</span>
         <strong>{{ project.lastOperationMessage || "暂无执行记录" }}</strong>
       </div>
@@ -318,6 +323,7 @@ const emit = defineEmits<{
   (e: "restart", project: RemoteProject): void;
   (e: "rollback", project: RemoteProject): void;
   (e: "select-change", project: RemoteProject, selected: boolean): void;
+  (e: "service-panel", project: RemoteProject): void;
   (e: "start", project: RemoteProject): void;
   (e: "stop", project: RemoteProject): void;
 }>();
@@ -341,6 +347,22 @@ const isStaticProject = computed(() =>
 const isTomcatProject = computed(() =>
   isTomcatProjectType(props.project.projectType),
 );
+const displayProjectType = computed(() => {
+  const normalized = normalizeProjectType(props.project.projectType);
+  if (normalized !== "springboot") {
+    return normalized || props.project.projectType;
+  }
+  // 兼容历史数据：此前“容器服务”可能被按 springboot 保存，展示时回显为容器服务。
+  const hasSpringBootRuntimeConfig =
+    Boolean(String(props.project.mainArtifact || "").trim()) ||
+    Boolean(String(props.project.jvmArgs || "").trim()) ||
+    Boolean(String(props.project.springArgs || "").trim()) ||
+    Boolean(String(props.project.healthCheckUrl || "").trim()) ||
+    Boolean(String(props.project.configDirectory || "").trim()) ||
+    Boolean(String(props.project.libDirectory || "").trim());
+  return hasSpringBootRuntimeConfig ? normalized : "service";
+});
+const isServiceProject = computed(() => displayProjectType.value === "service");
 const isRunning = computed(() => runtimeStatus.value === "running");
 const hasLogConfig = computed(
   () => !isStaticProject.value && Boolean(props.project.projectId),
@@ -669,10 +691,39 @@ const projectIcon = computed(() => {
   color: #60a5fa;
 }
 
+.project-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-card__service-entry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: #1e3a8a;
+    background: rgba(37, 99, 235, 0.2);
+  }
+}
+
 .project-card__name {
   margin: 0;
   font-size: 20px;
   color: #0f172a;
+  max-width: 50px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .project-card__path {
@@ -813,12 +864,12 @@ const projectIcon = computed(() => {
 }
 
 .project-card__top-tools {
-  position: relative;
+  position: static;
   display: flex;
   justify-content: flex-start;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
+  min-height: 0;
 }
 
 .project-card__group {
@@ -834,17 +885,79 @@ const projectIcon = computed(() => {
 }
 
 .project-card__group--toolbar {
+  display: flex;
   position: absolute;
-  top: 0;
+  top: auto;
   right: 0;
+  bottom: 0;
   justify-content: flex-end;
+  align-content: flex-end;
   opacity: 0;
   transform: translateY(-8px);
   pointer-events: none;
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
-  max-width: calc(100% - 150px);
+  max-width: calc(100% - 44px);
+}
+
+.project-card__toolbar-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 300px;
+  row-gap: 8px;
+  column-gap: 8px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(248, 250, 252, 0.88);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  position: relative;
+  z-index: 6;
+}
+
+.project-card__toolbar-strip.is-service-toolbar {
+  cursor: pointer;
+}
+
+.project-card__tool-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.1);
+  cursor: pointer;
+  transition: all 0.18s ease;
+
+  &:hover {
+    color: #1e3a8a;
+    background: rgba(37, 99, 235, 0.18);
+  }
+
+  &.is-danger {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.12);
+  }
+
+  &.is-danger:hover {
+    color: #991b1b;
+    background: rgba(220, 38, 38, 0.2);
+  }
+
+  &.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &.is-loading {
+    animation: project-card-spin 0.9s linear infinite;
+  }
 }
 
 .project-card:hover .project-card__group--toolbar,
@@ -870,7 +983,7 @@ const projectIcon = computed(() => {
     opacity: 1;
     transform: none;
     pointer-events: auto;
-    justify-content: flex-start;
+    justify-content: flex-end;
     max-width: none;
   }
 }

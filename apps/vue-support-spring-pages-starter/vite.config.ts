@@ -11,6 +11,7 @@ const springPagesRoot = resolve(appRoot, "../../pages/spring");
 const syncPagesRoot = resolve(appRoot, "../../pages/sync");
 const strategyPagesRoot = resolve(appRoot, "../../pages/strategy");
 const spiderPagesRoot = resolve(appRoot, "../../pages/spider");
+const serverPagesRoot = resolve(appRoot, "../../pages/server");
 const springPageKey = process.env.VITE_SPRING_PAGE_KEY || "job-console";
 const springPageEntryMap = {
   "job-console": resolve(appRoot, "src/page-entries/job-console.ts"),
@@ -28,6 +29,7 @@ export default createViteConfig(import.meta.url, pkg)
   .alias("@pages/job", resolve(jobPagesRoot, "src/simple.ts"))
   .alias("@pages/pay", resolve(payPagesRoot, "src/simple.ts"))
   .alias("@pages/proxy", resolve(proxyPagesRoot, "src/index.ts"))
+  .alias("@pages/server", resolve(serverPagesRoot, "src/index.ts"))
   .alias("@pages/spring", resolve(springPagesRoot, "src/index.ts"))
   .alias("@pages/sync", resolve(syncPagesRoot, "src/index.ts"))
   .alias("@pages/strategy", resolve(strategyPagesRoot, "src/simple.ts"))
@@ -39,11 +41,21 @@ export default createViteConfig(import.meta.url, pkg)
   .fsAllow(syncPagesRoot)
   .fsAllow(strategyPagesRoot)
   .fsAllow(spiderPagesRoot)
+  .fsAllow(serverPagesRoot)
   .target("es2020")
   .removeConsole(false)
   .merge({
     base: "./",
     publicDir: false,
+    server: {
+      proxy: {
+        "/spider-api": {
+          target: process.env.VITE_SPIDER_PROXY_TARGET || "http://127.0.0.1:58082",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/spider-api/, ""),
+        },
+      },
+    },
     build: {
       emptyOutDir: true,
     },

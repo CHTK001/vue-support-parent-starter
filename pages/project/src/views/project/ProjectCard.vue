@@ -64,6 +64,7 @@
       @action="(type, p) => $emit('action', type, p)"
       @upload="(p) => $emit('upload', p)"
       @upgrade="(p) => $emit('upgrade', p)"
+      @software="(p) => $emit('software', p)"
     />
   </div>
 </template>
@@ -88,6 +89,7 @@ const emit = defineEmits<{
   action: [type: string, project: SysProject];
   upload: [project: SysProject];
   upgrade: [project: SysProject];
+  software: [project: SysProject];
   "drop-upload": [files: FileList, project: SysProject];
 }>();
 

@@ -139,6 +139,70 @@
     <!-- 位置选择器布局 -->
     <PositionLayout v-else-if="layout === 'position'" v-model="positionValue" :disabled="disabled" :mode="mode" @change="handleChange" />
 
+    <!-- 列表选择器布局 -->
+    <ListLayout
+      v-else-if="layout === 'list'"
+      :options="selectListOptions"
+      :height="listHeight"
+      :placeholder="listPlaceholder"
+      :empty-text="listEmptyText"
+      :show-search="listShowSearch"
+      :multiple="multiple"
+      :show-batch-actions="listShowBatchActions"
+      :borde="listBorde"
+      :select-button="listSelectButton"
+      :select-icon="listSelectIcon"
+      :select-show-value="listSelectShowValue"
+      :row-num="listItemRowNum"
+      :is-selected="isSelected"
+      :is-item-disabled="isItemDisabled"
+      @select="handleSelect"
+      @selectAll="selectAll"
+      @invertSelection="invertSelection"
+      @clearSelection="clearSelection"
+    >
+      <template v-if="$slots['list-top']" #top="{ options }">
+        <slot name="list-top" :options="options" />
+      </template>
+      <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
+        <slot name="content" :option="option" :isSelected="slotIsSelected" />
+      </template>
+      <template v-if="$slots.icon" #icon="{ option, isSelected: slotIsSelected }">
+        <slot name="icon" :option="option" :isSelected="slotIsSelected" />
+      </template>
+    </ListLayout>
+
+    <ListItemLayout
+      v-else-if="layout === 'list-item'"
+      :options="selectListOptions"
+      :height="listHeight"
+      :placeholder="listPlaceholder"
+      :empty-text="listEmptyText"
+      :show-search="listShowSearch"
+      :multiple="multiple"
+      :show-batch-actions="listShowBatchActions"
+      :borde="listBorde"
+      :select-button="listSelectButton"
+      :select-icon="listSelectIcon"
+      :select-show-value="listSelectShowValue"
+      :is-selected="isSelected"
+      :is-item-disabled="isItemDisabled"
+      @select="handleSelect"
+      @selectAll="selectAll"
+      @invertSelection="invertSelection"
+      @clearSelection="clearSelection"
+    >
+      <template v-if="$slots['list-top']" #top="{ options }">
+        <slot name="list-top" :options="options" />
+      </template>
+      <template v-if="$slots.content" #content="{ option, isSelected: slotIsSelected }">
+        <slot name="content" :option="option" :isSelected="slotIsSelected" />
+      </template>
+      <template v-if="$slots.icon" #icon="{ option, isSelected: slotIsSelected }">
+        <slot name="icon" :option="option" :isSelected="slotIsSelected" />
+      </template>
+    </ListItemLayout>
+
     <!-- 下拉选择器布局 -->
     <DropdownLayout
       v-else-if="layout === 'dropdown'"
@@ -252,6 +316,8 @@ import CardLayout from "./components/CardLayout.vue";
 import DropdownLayout, { DropdownOption } from "./components/DropdownLayout.vue";
 import FilterLayout from "./components/FilterLayout.vue";
 import IconLayout from "./components/IconLayout.vue";
+import ListItemLayout from "./components/ListItemLayout.vue";
+import ListLayout from "./components/ListLayout.vue";
 import { ScButton } from "../ScButton";
 import PillLayout from "./components/PillLayout.vue";
 // Position layout component
@@ -343,7 +409,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select", "pill", "icon", "dropdown", "filter", "table", "tree", "position"].includes(value);
+      return ["card", "select", "pill", "icon", "dropdown", "list", "list-item", "filter", "table", "tree", "position"].includes(value);
     }
   },
   // 位置选择器模式：9=3x3九格，4=2x2四角（仅 layout="position" 时生效）
@@ -365,6 +431,56 @@ const props = defineProps({
   dropdownShowSearch: {
     type: Boolean,
     default: true
+  },
+  // 列表布局最大高度
+  listHeight: {
+    type: String,
+    default: "420px"
+  },
+  // 列表布局搜索占位符
+  listPlaceholder: {
+    type: String,
+    default: "搜索选项"
+  },
+  // 列表布局空状态文案
+  listEmptyText: {
+    type: String,
+    default: "暂无可选项"
+  },
+  // 列表布局是否展示搜索框
+  listShowSearch: {
+    type: Boolean,
+    default: true
+  },
+  // 列表布局多选时是否显示批量操作
+  listShowBatchActions: {
+    type: Boolean,
+    default: false
+  },
+  // 列表布局是否显示选项边框（按需求字段名保留 borde）
+  listBorde: {
+    type: Boolean,
+    default: true
+  },
+  // 列表布局是否将外层切换为图标按钮
+  listSelectButton: {
+    type: Boolean,
+    default: false
+  },
+  // 列表布局外层图标按钮的图标
+  listSelectIcon: {
+    type: String,
+    default: "ri:list-check-2"
+  },
+  // 列表布局图标按钮模式下是否显示右侧文案值
+  listSelectShowValue: {
+    type: Boolean,
+    default: true
+  },
+  // list-item 布局每行显示数量
+  listItemRowNum: {
+    type: Number,
+    default: 6
   },
   // 多选模式下最多显示的标签数量
   maxCollapseTags: {

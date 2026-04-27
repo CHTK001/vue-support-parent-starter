@@ -32,6 +32,16 @@ export interface AiModule {
   sysAiModuleSupportTemplate?: number;
   sysAiModuleSupportStyle?: number;
   sysAiModuleRemark?: string;
+  sysAiVincentSupportAsync?: number;
+  vincentSetting?: {
+    sysAiVincentSupportedSize?: string;
+    sysAiVincentSupportedNumber?: number;
+    sysAiVincentSupportAsync?: number;
+    sysAiVincentSupportAudio?: number;
+    sysAiVincentSupportRefImage?: number;
+    sysAiVincentSupportedQuality?: string;
+    sysAiVincentSupportedFps?: string;
+  };
 }
 
 export const listAiModules = async (

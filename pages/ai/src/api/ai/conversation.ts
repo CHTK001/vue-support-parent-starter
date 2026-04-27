@@ -1,71 +1,123 @@
 import { http } from "@repo/utils";
+import {
+  deleteAiSession,
+  listAiMessages,
+  listAiSessions,
+  saveAiMessages,
+  saveAiSession,
+  updateAiSession,
+  type AiMessage,
+  type AiSession,
+} from "./session";
 
-// 会话接口类型定义
 export interface Conversation {
   sysAiGroupId: number;
   sysAiGroupName: string;
   sysProjectId: number;
-  createTime: string;
-  updateTime: string;
+  createTime?: string;
+  updateTime?: string;
+  sysAiModuleCode?: string;
 }
 
 export interface ConversationCreateRequest {
   sysAiGroupName: string;
   sysProjectId: number;
+  sysAiModuleCode?: string;
 }
 
 export interface ConversationRenameRequest {
   sysAiGroupId: number;
   sysAiGroupName: string;
   sysProjectId: number;
+  sysAiModuleCode?: string;
 }
 
-// 获取会话列表
-export const getConversationList = (sysProjectId: number) => {
-  return http.request<Conversation[]>("get", "/v2/project/ai/group/group", {
-    params: { sysProjectId },
-  });
+export interface MessageData {
+  sysAiGroupMessageId?: number;
+  sysAiGroupId: number;
+  sysAiGroupMessageRole: string;
+  sysAiGroupMessageContent: string;
+  sysAiGroupMessageType?: string;
+  createTime?: string;
+}
+
+export interface PageResult<T> {
+  records: T[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}
+
+function toConversation(session: AiSession): Conversation {
+  return {
+    sysAiGroupId: session.sysAiSessionId,
+    sysAiGroupName: session.sysAiSessionTitle || "新建会话",
+    sysProjectId: 0,
+    createTime: session.createTime,
+    updateTime: session.updateTime,
+    sysAiModuleCode: session.sysAiModuleCode,
+  };
+}
+
+function toMessage(groupId: number, message: AiMessage): MessageData {
+  return {
+    sysAiGroupMessageId: message.sysAiMessageId,
+    sysAiGroupId: groupId,
+    sysAiGroupMessageRole: message.sysAiMessageRole,
+    sysAiGroupMessageContent: message.sysAiMessageContent,
+    sysAiGroupMessageType: message.sysAiMessageType || "text",
+    createTime: message.createTime,
+  };
+}
+
+export const getConversationList = async (_sysProjectId: number) => {
+  const result = await listAiSessions("CHAT");
+  return {
+    data: (result?.data || []).map(toConversation),
+  };
 };
 
-// 创建新会话
-export const createConversation = (data: ConversationCreateRequest) => {
-  return http.request<Conversation>(
-    "post",
-    "/v2/project/ai/group/saveOrUpdate",
-    {
-      data,
-    },
+export const createConversation = async (data: ConversationCreateRequest) => {
+  const result = await saveAiSession({
+    sysAiSessionTitle: data.sysAiGroupName,
+    sysAiSessionType: "CHAT",
+    sysAiModuleCode: data.sysAiModuleCode,
+  });
+  return result?.data ? toConversation(result.data) : null;
+};
+
+export const deleteConversation = async (sysAiGroupId: number) => {
+  const result = await deleteAiSession(sysAiGroupId);
+  return !!result?.data;
+};
+
+export const renameConversation = async (data: ConversationRenameRequest) => {
+  const result = await updateAiSession({
+    sysAiSessionId: data.sysAiGroupId,
+    sysAiSessionTitle: data.sysAiGroupName,
+    sysAiSessionType: "CHAT",
+    sysAiModuleCode: data.sysAiModuleCode,
+  });
+  return result?.data ? toConversation(result.data) : null;
+};
+
+export const saveMessages = async (messages: MessageData[]): Promise<boolean> => {
+  if (!messages?.length) {
+    return true;
+  }
+  const sysAiSessionId = messages[0].sysAiGroupId;
+  const result = await saveAiMessages(
+    sysAiSessionId,
+    messages.map((item) => ({
+      role: item.sysAiGroupMessageRole,
+      type: item.sysAiGroupMessageType || "text",
+      content: item.sysAiGroupMessageContent,
+    })),
   );
+  return !!result?.data;
 };
 
-// 删除会话
-export const deleteConversation = (sysAiGroupId: number) => {
-  return http.request<boolean>("delete", "/v2/project/ai/group/delete", {
-    params: { sysAiGroupId },
-  });
-};
-
-// 重命名会话
-export const renameConversation = (data: ConversationRenameRequest) => {
-  return http.request<Conversation>(
-    "post",
-    "/v2/project/ai/group/saveOrUpdate",
-    {
-      data,
-    },
-  );
-};
-
-// 保存聊天消息（批量）
-export const saveMessages = async (
-  messages: MessageData[],
-): Promise<boolean> => {
-  return http.request("post", "/v2/project/ai/group/message/saveOrUpdate", {
-    data: messages,
-  });
-};
-
-// 保存单个聊天消息（兼容性保留）
 export const saveMessage = async (
   groupId: number,
   role: string,
@@ -82,34 +134,37 @@ export const saveMessage = async (
   ]);
 };
 
-// 消息接口类型
-export interface MessageData {
-  sysAiGroupId: number;
-  sysAiGroupMessageRole: string;
-  sysAiGroupMessageContent: string;
-  sysAiGroupMessageType?: string;
-}
-
-// 分页响应接口
-export interface PageResult<T> {
-  records: T[];
-  total: number;
-  size: number;
-  current: number;
-  pages: number;
-}
-
-// 获取会话历史消息（支持分页）
-export const getConversationMessages = (
+export const getConversationMessages = async (
   sysAiGroupId: number,
   current: number = 1,
   size: number = 20,
 ) => {
-  return http.request<PageResult<MessageData>>(
-    "get",
-    "/v2/project/ai/group/message/list",
+  const result = await listAiMessages(sysAiGroupId);
+  const records = (result?.data || []).map((item) => toMessage(sysAiGroupId, item));
+  return {
+    data: {
+      records,
+      total: records.length,
+      size,
+      current,
+      pages: 1,
+    } as PageResult<MessageData>,
+  };
+};
+
+export const deleteConversationMessagesAfter = async (
+  sysAiGroupId: number,
+  fromMessageId: number,
+) => {
+  const result = await http.request(
+    "delete",
+    "/v2/ai/session/message/delete-after",
     {
-      params: { sysAiGroupId, current, size },
+      params: {
+        sysAiSessionId: sysAiGroupId,
+        fromMessageId,
+      },
     },
   );
+  return !!result?.data;
 };

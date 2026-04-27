@@ -413,6 +413,12 @@ export function useReteEditor(
           selectedNode.value = node || null;
           options.onNodeSelect?.(node || null);
         }
+        if (
+          !isLoadingData
+          && ["nodetranslated", "nodedragged", "noderesized"].includes(context.type)
+        ) {
+          options.onDataChange?.(getData());
+        }
         return context;
       });
 

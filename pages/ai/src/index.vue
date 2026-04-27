@@ -99,14 +99,21 @@ const cards = [
 </script>
 
 <style scoped lang="scss">
+:global(html),
+:global(body),
+:global(#app) {
+  overflow: hidden;
+}
+
 .ai-home {
   width: 100%;
   min-height: 100%;
-  height: 100%;
+  height: 100vh;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
   padding: 12px;
+  overflow: hidden;
   background:
     linear-gradient(180deg, #f5f1ea 0%, #ece4d8 100%);
 }
@@ -146,6 +153,7 @@ const cards = [
   position: relative;
   z-index: 1;
   min-height: 100%;
+  overflow: hidden;
   padding: 26px;
   border: 1px solid rgba(31, 26, 23, 0.08);
   border-radius: 36px;

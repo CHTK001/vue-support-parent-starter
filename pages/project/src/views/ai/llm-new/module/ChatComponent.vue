@@ -1528,17 +1528,7 @@ defineExpose({
     }
   }
 
-  // 右侧聊天区域样式
-  .chat-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
-
-    &.expanded {
-      // 当会话面板收缩时的样式
-    }
-  }
+ 
 
   .messages-area {
     flex: 1;

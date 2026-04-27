@@ -107,7 +107,7 @@
             </section>
 
             <!-- Directory Section -->
-            <section class="project-card">
+            <section v-if="!isServiceProject" class="project-card">
               <div class="project-card__header">
                 <div class="project-card__icon project-card__icon--emerald">
                   <ElIcon :size="18"><Folder /></ElIcon>
@@ -232,7 +232,7 @@
         </ScTabPane>
 
         <!-- JVM Tab -->
-        <ScTabPane v-if="isJavaProject" name="jvm">
+        <ScTabPane v-if="isJavaProject && !isServiceProject" name="jvm">
           <template #label>
             <span class="project-tab-label">
               <span class="project-tab-icon project-tab-icon--amber">
@@ -340,7 +340,7 @@
         </ScTabPane>
 
         <!-- Spring Tab -->
-        <ScTabPane v-if="isSpringProject" name="spring">
+        <ScTabPane v-if="isSpringProject && !isServiceProject" name="spring">
           <template #label>
             <span class="project-tab-label">
               <span class="project-tab-icon project-tab-icon--green">
@@ -462,7 +462,7 @@
         </ScTabPane>
 
         <!-- Inspect Tab -->
-        <ScTabPane name="inspect">
+        <ScTabPane v-if="!isServiceProject" name="inspect">
           <template #label>
             <span class="project-tab-label">
               <span class="project-tab-icon project-tab-icon--cyan">
@@ -567,11 +567,16 @@ const visible = computed({
 
 const editorTab = ref("basic");
 const projectTypeDescription = computed(() =>
-  isTomcatProjectType(props.project.projectType)
+  normalizeProjectType(props.project.projectType) === "service"
+    ? "容器服务使用极简档案，仅维护基础信息。"
+    : isTomcatProjectType(props.project.projectType)
     ? "Tomcat 类型固定使用后台内置启停脚本，仅支持 war/ear 部署包。"
     : isSpringBootResourceSplitType(props.project.projectType)
       ? "资源分离项目支持目录规划与目录级上传，保存时继续使用内置策略。"
       : "当前项目使用系统内置启停策略，不开放脚本编辑。",
+);
+const isServiceProject = computed(
+  () => normalizeProjectType(props.project.projectType) === "service",
 );
 const isSpringProject = computed(() =>
   isSpringBootProjectType(props.project.projectType),

@@ -13,13 +13,18 @@ export default defineComponent({
   },
   render() {
     const attrs = this.$attrs;
+    const iconValue = String(this.icon || "").trim();
+    const isImageSource =
+      /^(https?:)?\/\//.test(iconValue)
+      || /^data:image\//.test(iconValue)
+      || /^blob:/.test(iconValue)
+      || /^\/(?!\/)/.test(iconValue)
+      || /^\.\.?\//.test(iconValue)
+      || /\.(svg|png|jpe?g|gif|webp|bmp|ico)(\?.*)?$/i.test(iconValue);
 
-    // 检查是否为HTTP/HTTPS URL
-    const httpReg = /^https?:\/\//;
-    if (httpReg.test(this.icon)) {
-      // 如果是HTTP URL，使用img标签渲染
+    if (isImageSource) {
       return h("img", {
-        src: this.icon,
+        src: iconValue,
         alt: "icon",
         style: {
           width: "1em",
@@ -34,11 +39,14 @@ export default defineComponent({
       });
     }
 
-    // 否则使用Iconify组件
+    const normalizedIcon = iconValue && !iconValue.includes(":")
+      ? `ri:${iconValue}`
+      : iconValue;
+
     return h(
       IconifyIcon,
       {
-        icon: `${this.icon}`,
+        icon: normalizedIcon,
         style: attrs?.style ? Object.assign(attrs.style, { outline: "none" }) : { outline: "none" },
         ...attrs
       },
