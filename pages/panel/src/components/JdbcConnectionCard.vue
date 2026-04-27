@@ -59,7 +59,7 @@
         <input
           :value="modelValue.protocol"
           type="text"
-          placeholder="jdbc:h2:mem:panel_case;MODE=MySQL"
+          placeholder="jdbc:mysql://127.0.0.1:3306/your_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false"
           @input="
             updateField('protocol', ($event.target as HTMLInputElement).value)
           "

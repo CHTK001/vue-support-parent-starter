@@ -898,7 +898,7 @@ const projectIcon = computed(() => {
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
-  max-width: calc(100% - 44px);
+  max-width: calc(100% - 36px);
 }
 
 .project-card__toolbar-strip {

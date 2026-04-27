@@ -3,11 +3,14 @@
     <section class="rpp__toolbar">
       <header class="rpp__toolbar-head">
         <div>
-          <p class="rpp__toolbar-eyebrow">Project Deploy</p>
-          <h3>项目部署工具栏</h3>
+          <p class="rpp__toolbar-eyebrow">{{ toolbarEyebrow }}</p>
+          <h3>{{ toolbarTitle }}</h3>
+          <p v-if="servicePanelMode" class="rpp__toolbar-subtitle">
+            项目ID：{{ servicePanelProjectId || "-" }} · 服务器：{{ servicePanelServerSummary }}
+          </p>
         </div>
         <div class="rpp__toolbar-actions">
-          <el-tooltip content="新增项目" placement="top">
+          <el-tooltip v-if="!servicePanelMode" content="新增项目" placement="top">
             <ScButton class="rpp__toolbar-icon-btn" type="primary" plain @click="openAddDialog">
               <IconifyIconOnline icon="ep:plus" />
             </ScButton>
@@ -22,7 +25,7 @@
               <IconifyIconOnline icon="ep:refresh" />
             </ScButton>
           </el-tooltip>
-          <el-tooltip content="全局上传设置" placement="top">
+          <el-tooltip v-if="!servicePanelMode" content="全局上传设置" placement="top">
             <ScButton
               class="rpp__toolbar-icon-btn"
               plain
@@ -31,16 +34,8 @@
               <IconifyIconOnline icon="ep:setting" />
             </ScButton>
           </el-tooltip>
-          <el-tooltip content="容器管理" placement="top">
-            <ScButton
-              class="rpp__toolbar-icon-btn"
-              plain
-              @click="openContainerSoftwareDialog"
-            >
-              <IconifyIconOnline icon="ri:apps-2-add-line" />
-            </ScButton>
-          </el-tooltip>
           <el-tooltip
+            v-if="!servicePanelMode"
             :content="
               batchSelectionMode ? '退出批量上传模式' : '进入批量上传模式'
             "
@@ -59,7 +54,7 @@
       </header>
     </section>
 
-    <section v-if="batchSelectionMode" class="rpp__batch-panel">
+    <section v-if="batchSelectionMode && !servicePanelMode" class="rpp__batch-panel">
       <div class="rpp__batch-panel-head">
         <strong>批量上传模式</strong>
         <span>点击卡片右上角“批量”勾选项目后执行升级</span>
@@ -164,12 +159,12 @@
 
     <div v-loading="listLoading" class="rpp__table-shell">
       <ProjectEmptyState
-        v-if="!projects.length && !listLoading"
-        :title="title"
+        v-if="!displayProjects.length && !listLoading"
+        :title="servicePanelMode ? '服务面板' : title"
       />
       <div v-else class="rpp__cards">
         <ProjectCard
-          v-for="row in projects"
+          v-for="row in displayProjects"
           :key="row.projectId"
           class="rpp__card-item"
           :project="row"
@@ -223,12 +218,20 @@
       :auto-scroll="autoScroll"
       :content="logsContent"
       :loading="logsLoading"
+      :loading-state="
+        logsProject?.projectId
+          ? loadingMap[String(logsProject.projectId || '')]
+          : undefined
+      "
       :log-type="logsType"
       :project="logsProject"
       @clear="clearLogs"
       @close="stopLogPolling"
       @open="startLogPolling"
       @refresh="fetchLogs"
+      @restart="doRestart"
+      @start="doStart"
+      @stop="doStop"
       @update:auto-scroll="autoScroll = $event"
       @update:log-type="handleLogsTypeChange"
     />
@@ -239,11 +242,6 @@
       :loading="backupsLoading"
       :project="rollbackProject"
       @rollback="doRollback"
-    />
-
-    <ProjectContainerSoftwareDialog
-      v-model="containerSoftwareVisible"
-      :project="containerSoftwareProject"
     />
 
     <ScDialog
@@ -345,12 +343,10 @@ import ProjectEditorDialog from "./project-panel/ProjectEditorDialog.vue";
 import ProjectEmptyState from "./project-panel/ProjectEmptyState.vue";
 import ProjectLogsDrawer from "./project-panel/ProjectLogsDrawer.vue";
 import ProjectRollbackDialog from "./project-panel/ProjectRollbackDialog.vue";
-import ProjectContainerSoftwareDialog from "../views/project/ProjectContainerSoftwareDialog.vue";
 import {
   applyProjectTypeDefaults,
   buildDefaultProject,
   hasRequiredLifecycleScripts,
-  hasStartScript,
   isSpringBootProjectType,
   isSpringBootResourceSplitType,
   isStaticProjectType,
@@ -362,7 +358,11 @@ import {
 const props = withDefaults(
   defineProps<{
     api: RemoteApi;
+    host?: string;
+    port?: number;
+    sysProjectId?: number;
     title?: string;
+    username?: string;
   }>(),
   { title: "项目管理" },
 );
@@ -651,6 +651,33 @@ const runtimeStatusOverrides = reactive<
   >
 >({});
 const RUNTIME_OVERRIDE_TTL_MS = 3 * 60 * 1000;
+const initialSearchParams = new URLSearchParams(window.location.search);
+const servicePanelMode = ref(
+  ["1", "true", "yes", "on"].includes(
+    String(initialSearchParams.get("nginxServicePanel") || "").toLowerCase(),
+  ),
+);
+const pendingServicePanelProjectId = ref(
+  String(initialSearchParams.get("projectId") || "").trim(),
+);
+const servicePanelProjectName = ref(
+  String(initialSearchParams.get("projectName") || "").trim(),
+);
+const toolbarEyebrow = computed(() =>
+  servicePanelMode.value ? "Service Panel" : "Project Deploy",
+);
+const servicePanelProjectId = computed(() => pendingServicePanelProjectId.value);
+const toolbarTitle = computed(() =>
+  servicePanelMode.value
+    ? `${servicePanelProjectName.value || "服务面板"}`
+    : "项目部署工具栏",
+);
+const servicePanelServerSummary = computed(() => {
+  const host = String(props.host || "").trim() || "-";
+  const port = Number(props.port || 0) > 0 ? Number(props.port || 0) : null;
+  const username = String(props.username || "").trim() || "-";
+  return `${username}@${host}${port ? `:${port}` : ""}`;
+});
 type ProjectOperationLog = {
   timestamp: string;
   action: string;
@@ -681,8 +708,18 @@ const batchDeploySuccessCount = computed(
 const batchDeployFailedCount = computed(
   () => batchDeployResults.value.length - batchDeploySuccessCount.value,
 );
-const containerSoftwareVisible = ref(false);
-const containerSoftwareProject = ref<{ projectId?: number; projectName?: string } | null>(null);
+const displayProjects = computed(() => {
+  if (!servicePanelMode.value) {
+    return projects.value;
+  }
+  const currentProjectId = pendingServicePanelProjectId.value;
+  if (!currentProjectId) {
+    return projects.value;
+  }
+  return projects.value.filter(
+    (item) => String(item.projectId || "") !== currentProjectId,
+  );
+});
 
 const setLoading = (id: string, key: string, value: boolean) => {
   if (!loadingMap[id]) {
@@ -745,6 +782,16 @@ const loadProjects = async () => {
     selectedProjectIds.value = selectedProjectIds.value.filter((id) =>
       idSet.has(id),
     );
+    if (servicePanelMode.value && pendingServicePanelProjectId.value) {
+      const target = rows.find(
+        (item) =>
+          String(item.projectId || "") === pendingServicePanelProjectId.value,
+      );
+      if (target) {
+        servicePanelProjectName.value =
+          target.projectName || servicePanelProjectName.value;
+      }
+    }
   } catch (err: any) {
     ElMessage.error(err.message || "加载项目列表失败");
   } finally {
@@ -806,39 +853,41 @@ const openEditDialog = (project: RemoteProject) => {
 };
 
 const resolveSysProjectId = () => {
+  const direct = Number(props.sysProjectId || 0);
+  if (Number.isInteger(direct) && direct > 0) {
+    return direct;
+  }
   const basePath = String(props.api?.basePath || "");
   const matched = basePath.match(/\/v2\/project\/(\d+)\/remote/i);
   if (!matched) {
     return null;
   }
   const id = Number(matched[1] || 0);
-  return Number.isFinite(id) && id > 0 ? id : null;
-};
-
-const openContainerSoftwareDialog = () => {
-  const sysProjectId = resolveSysProjectId();
-  if (!sysProjectId) {
-    ElMessage.warning("未解析到当前项目ID，暂时无法打开容器管理");
-    return;
-  }
-  containerSoftwareProject.value = {
-    projectId: sysProjectId,
-    projectName: props.title || "容器管理",
-  };
-  containerSoftwareVisible.value = true;
+  return Number.isInteger(id) && id > 0 ? id : null;
 };
 
 const openServicePanel = (project: RemoteProject) => {
-  const sysProjectId = resolveSysProjectId();
-  if (!sysProjectId) {
-    ElMessage.warning("未解析到当前项目ID，暂时无法打开容器管理");
-    return;
+  const serviceUrl = new URL(window.location.href);
+  serviceUrl.searchParams.delete("host");
+  serviceUrl.searchParams.delete("port");
+  serviceUrl.searchParams.delete("username");
+  serviceUrl.searchParams.set("nginxProjectStandalone", "1");
+  serviceUrl.searchParams.set("nginxTab", "project");
+  serviceUrl.searchParams.set("nginxServicePanel", "1");
+  if (project.projectId) {
+    serviceUrl.searchParams.set("projectId", project.projectId);
   }
-  containerSoftwareProject.value = {
-    projectId: sysProjectId,
-    projectName: project.projectName || "容器管理",
-  };
-  containerSoftwareVisible.value = true;
+  if (project.projectName) {
+    serviceUrl.searchParams.set("projectName", project.projectName);
+  }
+  const sysProjectId = resolveSysProjectId();
+  if (sysProjectId) {
+    serviceUrl.searchParams.set("sysProjectId", String(sysProjectId));
+  }
+  const child = window.open(serviceUrl.toString(), "_blank");
+  if (!child) {
+    ElMessage.warning("浏览器拦截了新页面，请允许弹窗后重试");
+  }
 };
 
 const saveProject = async () => {
@@ -955,12 +1004,12 @@ const runProjectActionWithOverlay = async <T>({
 };
 
 const doStart = async (project: RemoteProject) => {
-  if (!hasStartScript(project)) {
+  if (!hasRequiredLifecycleScripts(project)) {
     ElMessage.warning("缺少启动脚本，无法启动");
     return;
   }
   try {
-    const res = await runProjectActionWithOverlay({
+    await runProjectActionWithOverlay({
       action: "start",
       project,
       loadingKey: "start",
@@ -973,10 +1022,6 @@ const doStart = async (project: RemoteProject) => {
         (result.data?.runtimeStatus as RemoteProject["runtimeStatus"]) ||
         "running",
     });
-    // 后端状态可能有延迟，异步刷新避免成功提示后按钮状态抖动。
-    setTimeout(() => {
-      void loadProjects();
-    }, 1500);
   } catch (err: any) {
     // handled in overlay helper
   }
@@ -997,16 +1042,13 @@ const doStop = async (project: RemoteProject) => {
         (result.data?.runtimeStatus as RemoteProject["runtimeStatus"]) ||
         "stopped",
     });
-    setTimeout(() => {
-      void loadProjects();
-    }, 1500);
   } catch (err: any) {
     // handled in overlay helper
   }
 };
 
 const doRestart = async (project: RemoteProject) => {
-  if (!hasStartScript(project)) {
+  if (!hasRequiredLifecycleScripts(project)) {
     ElMessage.warning("缺少启动脚本，无法重启");
     return;
   }
@@ -1024,9 +1066,6 @@ const doRestart = async (project: RemoteProject) => {
         (result.data?.runtimeStatus as RemoteProject["runtimeStatus"]) ||
         "running",
     });
-    setTimeout(() => {
-      void loadProjects();
-    }, 1500);
   } catch (err: any) {
     // handled in overlay helper
   }
@@ -1803,6 +1842,12 @@ onUnmounted(() => {
   text-transform: uppercase;
   color: #2563eb;
   font-weight: 700;
+}
+
+.rpp__toolbar-subtitle {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #475569;
 }
 
 .rpp__toolbar-actions {

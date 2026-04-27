@@ -143,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { resolveRuntimeProviders, tryUseOverlayStack } from "@layout/default";
 import { message } from "@repo/utils";
 import ScTaskMessageDialog from "@repo/components/ScTaskMessageDialog";
@@ -193,6 +193,12 @@ const showCustomForm = ref(false);
 const activeOverlayId = ref("");
 const taskDialogVisible = ref(false);
 const taskDialogModel = ref<TaskDialogModel | null>(null);
+const activePollingOperation = ref<{
+  operationId: string;
+  bindingId: number;
+  action: "INSTALL" | "START" | "STOP" | "RESTART" | "STATUS" | "UNINSTALL";
+} | null>(null);
+let pollingTimer: ReturnType<typeof setInterval> | null = null;
 const customForm = reactive({
   softwareName: "",
   softwareCode: "",
@@ -269,6 +275,117 @@ const refreshTaskDialog = () => {
     ...taskDialogModel.value,
     updatedAt: Date.now(),
   };
+};
+
+const stopPollingFallback = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+  activePollingOperation.value = null;
+};
+
+const resolveBindingSettledState = (
+  binding: ProjectContainerSoftwareBinding,
+  action: "INSTALL" | "START" | "STOP" | "RESTART" | "STATUS" | "UNINSTALL",
+) => {
+  const runtime = String(binding.runtimeStatus || "").toUpperCase();
+  const install = String(binding.installStatus || "").toUpperCase();
+  if (action === "STATUS") {
+    return runtime ? { done: true, success: runtime !== "ERROR", message: `当前状态：${runtime}` } : { done: false, success: false, message: "等待状态回写" };
+  }
+  if (action === "INSTALL") {
+    if (install === "SUCCESS") return { done: true, success: true, message: "安装成功" };
+    if (install === "FAILED") return { done: true, success: false, message: "安装失败" };
+    return { done: false, success: false, message: "安装执行中" };
+  }
+  if (action === "UNINSTALL") {
+    if (install === "UNINSTALLED") return { done: true, success: true, message: "卸载成功" };
+    if (install === "FAILED") return { done: true, success: false, message: "卸载失败" };
+    return { done: false, success: false, message: "卸载执行中" };
+  }
+  if (action === "START") {
+    if (runtime === "RUNNING") return { done: true, success: true, message: "启动成功" };
+    if (runtime === "ERROR") return { done: true, success: false, message: "启动失败" };
+    return { done: false, success: false, message: "启动执行中" };
+  }
+  if (action === "STOP") {
+    if (runtime === "STOPPED") return { done: true, success: true, message: "停止成功" };
+    if (runtime === "ERROR") return { done: true, success: false, message: "停止失败" };
+    return { done: false, success: false, message: "停止执行中" };
+  }
+  if (action === "RESTART") {
+    if (runtime === "RUNNING") return { done: true, success: true, message: "重启成功" };
+    if (runtime === "ERROR") return { done: true, success: false, message: "重启失败" };
+    return { done: false, success: false, message: "重启执行中" };
+  }
+  return { done: false, success: false, message: "执行中" };
+};
+
+const startPollingFallback = (
+  bindingId: number,
+  action: "INSTALL" | "START" | "STOP" | "RESTART" | "STATUS" | "UNINSTALL",
+  operationId: string,
+) => {
+  stopPollingFallback();
+  activePollingOperation.value = { bindingId, action, operationId };
+  pollingTimer = setInterval(async () => {
+    if (!project.value?.projectId || !activePollingOperation.value) {
+      stopPollingFallback();
+      return;
+    }
+    const res = await fetchProjectContainerSoftwareBindingList(project.value.projectId);
+    if (res.code !== "00000") {
+      return;
+    }
+    bindings.value = res.data || [];
+    const current = bindings.value.find(
+      (item) => Number(item.sysProjectContainerSoftwareBindingId || 0) === bindingId,
+    );
+    if (!current) {
+      return;
+    }
+    const settled = resolveBindingSettledState(current, action);
+    runtimeTask.updateTask(operationId, {
+      requestId: operationId,
+      title: `${action} · ${current.softwareName || current.softwareCode || "未命名软件"}`,
+      description: project.value?.projectName || "项目容器软件",
+      status: settled.done ? (settled.success ? "success" : "error") : "running",
+      progress: settled.done ? 100 : 70,
+      source: "system",
+      mode: "stream",
+      message: settled.message,
+      stageLabel: action,
+    });
+    upsertOverlay(
+      {
+        operationId,
+        action,
+        sysProjectContainerSoftwareBindingId: bindingId,
+        progressPercent: settled.done ? 100 : 70,
+        message: settled.message,
+      },
+      settled.done ? 100 : 70,
+      settled.done ? (settled.success ? "success" : "error") : "info",
+      settled.message,
+    );
+    if (taskDialogModel.value && taskDialogModel.value.taskId === operationId) {
+      taskDialogModel.value = {
+        ...taskDialogModel.value,
+        status: settled.done ? (settled.success ? "SUCCESS" : "FAILED") : "RUNNING",
+        message: settled.message,
+        updatedAt: Date.now(),
+      };
+    }
+    if (settled.done) {
+      if (settled.success) {
+        runtimeMessage.success(settled.message);
+      } else {
+        runtimeMessage.error(settled.message);
+      }
+      stopPollingFallback();
+    }
+  }, 2000);
 };
 
 const upsertOverlay = (ticket: ProjectContainerSoftwareOperationTicket, progress: number, tone: "info" | "success" | "warning" | "error", messageText: string) => {
@@ -404,6 +521,11 @@ const handleOperate = async (item: ProjectContainerSoftwareBinding, action: "INS
   };
   taskDialogVisible.value = true;
   upsertOverlay(res.data, Number(res.data.progressPercent || 10), "info", res.data.message || "任务已提交");
+  startPollingFallback(
+    item.sysProjectContainerSoftwareBindingId,
+    action,
+    String(res.data.operationId),
+  );
 };
 
 watch(stream.latest, async (payload) => {
@@ -464,12 +586,26 @@ watch(stream.latest, async (payload) => {
   }
   if (normalized === "SUCCESS" || normalized === "FAILED") {
     await reloadBindings();
+    stopPollingFallback();
     if (normalized === "SUCCESS") {
       runtimeMessage.success(String(payload.message || "操作成功"));
     } else {
       runtimeMessage.error(String(payload.message || "操作失败"));
     }
   }
+});
+
+watch(
+  () => props.modelValue,
+  (opened) => {
+    if (!opened) {
+      stopPollingFallback();
+    }
+  },
+);
+
+onBeforeUnmount(() => {
+  stopPollingFallback();
 });
 
 watch(

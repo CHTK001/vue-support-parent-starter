@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="control-panel-wrapper">
     <div class="panel-header">
       <div class="header-title" v-if="settingOpen">
@@ -31,66 +31,18 @@
           <ScFormItem prop="model">
             <div class="model-selector">
               <ScSelect
-                filterable
                 v-model="form.model"
-                placeholder="选择 AI 模型"
-                clearable
+                :options="modelOptions"
+                layout="list"
+                :list-borde="true"
+                :list-select-button="true"
+                list-select-icon="ri:cpu-line"
+                :list-select-show-value="true"
+                list-height="430px"
+                :list-show-search="false"
+                :list-show-batch-actions="false"
                 @change="$emit('change-module', $event)"
-                class="modern-select"
-              >
-                <ScOption
-                  v-for="item in modelList"
-                  class="model-option"
-                  :key="item.sysAiModuleCode"
-                  :label="item.sysAiModuleName"
-                  :value="item.sysAiModuleCode"
-                >
-                  <template #default>
-                    <ScTooltip
-                      placement="right"
-                      :raw-content="true"
-                      :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`"
-                    >
-                      <div class="option-content">
-                        <div class="option-avatar">
-                          <ScImage
-                            :src="item.sysProjectIcon"
-                            fit="cover"
-                            class="avatar-image"
-                          >
-                            <template #error>
-                              <div class="avatar-fallback">
-                                <IconifyIconOnline icon="mdi:robot" />
-                              </div>
-                            </template>
-                          </ScImage>
-                        </div>
-                        <div class="option-info">
-                          <div class="option-name">
-                            {{ item.sysAiModuleName }}
-                          </div>
-                          <div class="option-project">
-                            {{ item.sysProjectName }}
-                          </div>
-                        </div>
-                      </div>
-                    </ScTooltip>
-                  </template>
-                </ScOption>
-                <template #label="{ label }">
-                  <div class="selected-label">
-                    <ScImage
-                      class="label-avatar"
-                      :src="modelSelectLabel?.sysProjectIcon"
-                      fit="cover"
-                    >
-                      <template #error>
-                        <IconifyIconOnline icon="mdi:robot" />
-                      </template>
-                    </ScImage>
-                    <span class="label-text">{{ label }}</span>
-                  </div>
-                </template>
+                class="modern-select model-select-list-sc"
               </ScSelect>
               <ScButton
                 v-if="env.showEdit"
@@ -314,6 +266,15 @@ const modelSelectLabel = computed(() => {
   return props.modelList.find(
     (item) => item.sysAiModuleCode === props.form.model,
   );
+});
+
+const modelOptions = computed(() => {
+  return (props.modelList || []).map((item) => ({
+    label: item.sysAiModuleName,
+    value: item.sysAiModuleCode,
+    icon: item.sysProjectIcon,
+    description: item.sysAiModuleRemark || "暂无说明",
+  }));
 });
 
 // Methods
