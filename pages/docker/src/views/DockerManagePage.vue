@@ -23,6 +23,9 @@
         <span class="docker-badge" :class="dockerSocketBadgeClass">
           {{ dockerSocketBadgeText }}
         </span>
+        <span v-if="projectContextBadgeText" class="docker-badge">
+          {{ projectContextBadgeText }}
+        </span>
         <label class="docker-searchbox">
           <IconifyIconOnline icon="ri:search-line" />
           <input
@@ -898,7 +901,11 @@ const loadWarnings = ref<string[]>([]);
 const queryKeyword = ref("");
 const activeSection = ref<SectionKey>("overview");
 const containerStatusFilter = ref<"all" | "running" | "stopped">("all");
-const serverContext = ref<{ serverId?: number }>({});
+const serverContext = ref<{
+  serverId?: number;
+  projectId?: string;
+  projectName?: string;
+}>({});
 const capability = ref<DockerServerCapabilityView | null>(null);
 const connection = ref<DockerServerConnectionConfig | null>(null);
 const containers = ref<DockerContainerView[]>([]);
@@ -1004,6 +1011,13 @@ const resolveSection = (value: unknown): SectionKey => {
 };
 
 const serverId = computed(() => Number(serverContext.value.serverId || 0) || 0);
+const projectId = computed(() => readQueryText(serverContext.value.projectId));
+const projectDisplayName = computed(
+  () => readQueryText(serverContext.value.projectName) || (projectId.value ? `项目 #${projectId.value}` : ""),
+);
+const projectContextBadgeText = computed(() =>
+  projectId.value ? `来源项目 ${projectDisplayName.value}` : "",
+);
 const serverDisplayName = computed(() => connection.value?.serverName || capability.value?.serverName || (serverId.value ? `服务器 #${serverId.value}` : "未指定服务器"));
 const addressText = computed(() => {
   const host = capability.value?.host || connection.value?.serverHost || "未提供";
@@ -1014,7 +1028,6 @@ const connectionTypeText = computed(
   () =>
     connection.value?.connectionType?.toUpperCase() ||
     capability.value?.runtimeType ||
-    serverContext.value.serverType ||
     "LOCAL",
 );
 const serverCaption = computed(
@@ -1022,7 +1035,9 @@ const serverCaption = computed(
 );
 const heroSubtitle = computed(() =>
   serverId.value
-    ? `当前页面仅依赖 serverId=${serverId.value}，由 docker 模块直接读取该服务器的连接配置与资源。`
+    ? projectId.value
+      ? `当前页面按 serverId=${serverId.value} 读取 Docker 资源，来源项目为 ${projectDisplayName.value}。`
+      : `当前页面仅依赖 serverId=${serverId.value}，由 docker 模块直接读取该服务器的连接配置与资源。`
     : "等待地址栏中的服务器信息完成解析。",
 );
 const runningContainerCount = computed(
@@ -1330,6 +1345,12 @@ const switchSection = (next: SectionKey) => {
     params.set("tab", next);
     if (serverId.value) {
       params.set("serverId", String(serverId.value));
+    }
+    if (projectId.value) {
+      params.set("projectId", projectId.value);
+    }
+    if (projectDisplayName.value) {
+      params.set("projectName", projectDisplayName.value);
     }
     window.history.replaceState(window.history.state, "", `#${pathPart}?${params.toString()}`);
   }
@@ -2194,6 +2215,8 @@ const loadPageData = async () => {
 
   serverContext.value = {
     serverId: Number(readQueryText(route.query.serverId) || 0) || undefined,
+    projectId: readQueryText(route.query.projectId) || undefined,
+    projectName: readQueryText(route.query.projectName) || undefined,
   };
   const currentServerId = serverId.value;
   if (!currentServerId) {
@@ -2294,7 +2317,7 @@ const handleDockerTerminalEnvelope = (payload: Record<string, unknown>) => {
 activeSection.value = resolveSection(route.query.tab);
 
 watch(
-  () => [route.query.serverId],
+  () => [route.query.serverId, route.query.projectId, route.query.projectName],
   () => {
     loadPageData();
   },

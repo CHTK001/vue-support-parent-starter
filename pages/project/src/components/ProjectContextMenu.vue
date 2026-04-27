@@ -20,6 +20,7 @@ const emit = defineEmits<{
   upload: [project: SysProject];
   "view-log": [project: SysProject];
   "view-config": [project: SysProject];
+  software: [project: SysProject];
 }>();
 
 const menuRef = ref<MenuTarget | null>(null);
@@ -73,6 +74,11 @@ const cardMenus = computed(() => [
     name: "查看配置",
     icon: "ri:file-code-line",
     handle: () => { if (targetProject.value) emit("view-config", targetProject.value); },
+  },
+  {
+    name: "容器软件",
+    icon: "ri:apps-2-add-line",
+    handle: () => { if (targetProject.value) emit("software", targetProject.value); },
   },
   {
     name: "密钥管理",

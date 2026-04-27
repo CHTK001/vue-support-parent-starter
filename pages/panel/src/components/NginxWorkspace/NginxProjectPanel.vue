@@ -10,7 +10,15 @@
           <ElButton type="primary" @click="doConnect">重试</ElButton>
         </ElEmpty>
       </div>
-      <ServerRemoteProjectPanel v-else-if="projectApi" :api="projectApi" title="应用项目" />
+      <ServerRemoteProjectPanel
+        v-else-if="projectApi"
+        :api="projectApi"
+        title="应用项目"
+        :sys-project-id="resolvedSysProjectId || undefined"
+        :host="host"
+        :port="port"
+        :username="username"
+      />
     </div>
   </div>
 </template>
@@ -38,6 +46,7 @@ const props = defineProps<{
 const connecting = ref(false)
 const connectError = ref('')
 const projectApi = ref<RemoteApi | null>(null)
+const resolvedSysProjectId = ref<number | null>(null)
 
 const parseSysProjectId = (value: unknown): number | null => {
   const text = String(value ?? '').trim()
@@ -70,6 +79,7 @@ const doConnect = async () => {
     if (!sysProjectId) {
       throw new Error('远程项目映射异常：未返回有效项目ID，请检查 /v2/project/remote/resolve 接口或代理配置')
     }
+    resolvedSysProjectId.value = sysProjectId
     projectApi.value = createProjectRemoteApi(sysProjectId)
   } catch (e: any) {
     connectError.value = '连接失败: ' + (e?.message ?? '')
@@ -82,6 +92,7 @@ onMounted(doConnect)
 
 onUnmounted(() => {
   projectApi.value = null
+  resolvedSysProjectId.value = null
 })
 </script>
 

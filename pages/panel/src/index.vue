@@ -28,9 +28,11 @@
     <div v-else-if="viewMode === 'nginx'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "Nginx" }}</strong>
@@ -69,9 +71,11 @@
     <div v-else-if="viewMode === 'redis'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "Redis" }}</strong>
@@ -96,9 +100,11 @@
     <div v-else-if="viewMode === 'mongo'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "MongoDB" }}</strong>
@@ -123,9 +129,11 @@
     <div v-else-if="viewMode === 'zookeeper'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "ZooKeeper" }}</strong>
@@ -150,9 +158,11 @@
     <div v-else-if="viewMode === 'prometheus'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "Prometheus" }}</strong>
@@ -177,9 +187,11 @@
     <div v-else-if="viewMode === 'influx'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "InfluxDB" }}</strong>
@@ -204,9 +216,11 @@
     <div v-else-if="viewMode === 'influxv3'" class="redis-mode">
       <header class="workspace-bar">
         <div class="workspace-bar__main">
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
         </div>
         <div class="workspace-bar__meta">
           <strong>{{ workspaceSource?.connectionName || "InfluxDB 3" }}</strong>
@@ -239,9 +253,11 @@
               @click="toggleAside"
             />
           </ElTooltip>
-          <ElButton plain size="small" @click="handleBackHome"
-            >返回数据源</ElButton
-          >
+          <ElTooltip content="返回数据源" placement="top">
+            <ElButton circle plain size="small" @click="handleBackHome">
+              <IconifyIconOnline icon="ep:back" />
+            </ElButton>
+          </ElTooltip>
           <ElButton plain size="small" @click="handleLoadCatalog"
             >刷新对象</ElButton
           >
@@ -413,6 +429,7 @@ import {
 } from "vue";
 import { decodeScParam, type ServerCredential } from "@repo/utils";
 import ScLayout from "@repo/components/ScLayout";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import {
   JdbcCatalogTree,
   JdbcDetailCard,

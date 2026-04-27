@@ -68,6 +68,7 @@ export interface RemoteUploadResult {
 // ─── 项目管理类型 ──────────────────────────────────────────────────────────────
 
 export type ProjectType =
+  | "service"
   | "springboot"
   | "springboot_resource_split"
   | "springboot_resource_isolation"
@@ -284,14 +285,14 @@ export function createRemoteApi(basePath: string) {
     http.request<ReturnResult<string>>(
       "get",
       p(`/projects/${projectId}/logs`),
-      { params: { lines } },
+      { params: { lines }, showLoading: false },
     );
 
   const getProjectDeployLogs = (projectId: string, lines = 200) =>
     http.request<ReturnResult<string>>(
       "get",
       p(`/projects/${projectId}/deploy-logs`),
-      { params: { lines } },
+      { params: { lines }, showLoading: false },
     );
 
   const backupProject = (projectId: string, note?: string) =>

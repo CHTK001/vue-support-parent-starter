@@ -8,25 +8,36 @@
         </div>
         <div class="rpp__toolbar-actions">
           <el-tooltip content="新增项目" placement="top">
-            <ScButton type="primary" plain @click="openAddDialog">
+            <ScButton class="rpp__toolbar-icon-btn" type="primary" plain @click="openAddDialog">
               <IconifyIconOnline icon="ep:plus" />
-              新增项目
             </ScButton>
           </el-tooltip>
           <el-tooltip content="刷新项目列表" placement="top">
             <ScButton
+              class="rpp__toolbar-icon-btn"
               plain
               :loading="listLoading"
               @click="() => void loadProjects()"
             >
               <IconifyIconOnline icon="ep:refresh" />
-              刷新
             </ScButton>
           </el-tooltip>
           <el-tooltip content="全局上传设置" placement="top">
-            <ScButton plain @click="showGlobalSettingsDialog = true">
+            <ScButton
+              class="rpp__toolbar-icon-btn"
+              plain
+              @click="showGlobalSettingsDialog = true"
+            >
               <IconifyIconOnline icon="ep:setting" />
-              设置
+            </ScButton>
+          </el-tooltip>
+          <el-tooltip content="容器管理" placement="top">
+            <ScButton
+              class="rpp__toolbar-icon-btn"
+              plain
+              @click="openContainerSoftwareDialog"
+            >
+              <IconifyIconOnline icon="ri:apps-2-add-line" />
             </ScButton>
           </el-tooltip>
           <el-tooltip
@@ -36,12 +47,12 @@
             placement="top"
           >
             <ScButton
+              class="rpp__toolbar-icon-btn"
               type="primary"
               :plain="!batchSelectionMode"
               @click="toggleBatchSelectionMode"
             >
               <IconifyIconOnline icon="ep:upload-filled" />
-              上传
             </ScButton>
           </el-tooltip>
         </div>
@@ -175,6 +186,7 @@
           @restart="doRestart"
           @rollback="openRollback"
           @select-change="onProjectSelectChange"
+          @service-panel="openServicePanel"
           @start="doStart"
           @stop="doStop"
         />
@@ -227,6 +239,11 @@
       :loading="backupsLoading"
       :project="rollbackProject"
       @rollback="doRollback"
+    />
+
+    <ProjectContainerSoftwareDialog
+      v-model="containerSoftwareVisible"
+      :project="containerSoftwareProject"
     />
 
     <ScDialog
@@ -328,6 +345,7 @@ import ProjectEditorDialog from "./project-panel/ProjectEditorDialog.vue";
 import ProjectEmptyState from "./project-panel/ProjectEmptyState.vue";
 import ProjectLogsDrawer from "./project-panel/ProjectLogsDrawer.vue";
 import ProjectRollbackDialog from "./project-panel/ProjectRollbackDialog.vue";
+import ProjectContainerSoftwareDialog from "../views/project/ProjectContainerSoftwareDialog.vue";
 import {
   applyProjectTypeDefaults,
   buildDefaultProject,
@@ -663,6 +681,8 @@ const batchDeploySuccessCount = computed(
 const batchDeployFailedCount = computed(
   () => batchDeployResults.value.length - batchDeploySuccessCount.value,
 );
+const containerSoftwareVisible = ref(false);
+const containerSoftwareProject = ref<{ projectId?: number; projectName?: string } | null>(null);
 
 const setLoading = (id: string, key: string, value: boolean) => {
   if (!loadingMap[id]) {
@@ -770,7 +790,6 @@ const showProjectDialog = ref(false);
 const editingProject = ref<RemoteProject | null>(null);
 const projectSaving = ref(false);
 const projectForm = ref<RemoteProject>(buildDefaultProject());
-
 const openAddDialog = () => {
   editingProject.value = null;
   projectForm.value = buildDefaultProject();
@@ -784,6 +803,42 @@ const openEditDialog = (project: RemoteProject) => {
     ...project,
   };
   showProjectDialog.value = true;
+};
+
+const resolveSysProjectId = () => {
+  const basePath = String(props.api?.basePath || "");
+  const matched = basePath.match(/\/v2\/project\/(\d+)\/remote/i);
+  if (!matched) {
+    return null;
+  }
+  const id = Number(matched[1] || 0);
+  return Number.isFinite(id) && id > 0 ? id : null;
+};
+
+const openContainerSoftwareDialog = () => {
+  const sysProjectId = resolveSysProjectId();
+  if (!sysProjectId) {
+    ElMessage.warning("未解析到当前项目ID，暂时无法打开容器管理");
+    return;
+  }
+  containerSoftwareProject.value = {
+    projectId: sysProjectId,
+    projectName: props.title || "容器管理",
+  };
+  containerSoftwareVisible.value = true;
+};
+
+const openServicePanel = (project: RemoteProject) => {
+  const sysProjectId = resolveSysProjectId();
+  if (!sysProjectId) {
+    ElMessage.warning("未解析到当前项目ID，暂时无法打开容器管理");
+    return;
+  }
+  containerSoftwareProject.value = {
+    projectId: sysProjectId,
+    projectName: project.projectName || "容器管理",
+  };
+  containerSoftwareVisible.value = true;
 };
 
 const saveProject = async () => {
@@ -800,19 +855,22 @@ const saveProject = async () => {
     return;
   }
   projectSaving.value = true;
+  const submitProject = {
+    ...projectForm.value,
+  };
   try {
     if (editingProject.value?.projectId) {
       await props.api.updateProject(
         editingProject.value.projectId,
-        projectForm.value,
+        submitProject,
       );
       ElMessage.success("更新成功");
       appendOperationLog(editingProject.value, "更新项目", "更新成功");
     } else {
-      const created = await props.api.createProject(projectForm.value);
+      const created = await props.api.createProject(submitProject);
       ElMessage.success("创建成功");
       appendOperationLog(
-        created.data || projectForm.value,
+        created.data || submitProject,
         "新增项目",
         "创建成功",
       );
@@ -1097,14 +1155,17 @@ const openLogs = (project: RemoteProject) => {
   showLogsDrawer.value = true;
 };
 
-const fetchLogs = async () => {
+const fetchLogs = async (options?: { showLoading?: boolean }) => {
   if (!logsProject.value?.projectId) {
     return;
   }
+  const shouldShowLoading = options?.showLoading ?? !logsContent.value;
   const currentSerial = ++logsRequestSerial;
   const projectId = logsProject.value.projectId;
   const currentType = logsType.value;
-  logsLoading.value = true;
+  if (shouldShowLoading) {
+    logsLoading.value = true;
+  }
   if (logsType.value === "operation") {
     logsContent.value = formatOperationLogs(projectId);
     logsLoading.value = false;
@@ -1124,7 +1185,7 @@ const fetchLogs = async () => {
   } catch {
     // ignore polling errors
   } finally {
-    if (currentSerial === logsRequestSerial) {
+    if (shouldShowLoading && currentSerial === logsRequestSerial) {
       logsLoading.value = false;
     }
   }
@@ -1132,8 +1193,10 @@ const fetchLogs = async () => {
 
 const startLogPolling = () => {
   stopLogPolling();
-  fetchLogs();
-  logTimer = setInterval(fetchLogs, 3000);
+  fetchLogs({ showLoading: true });
+  logTimer = setInterval(() => {
+    void fetchLogs({ showLoading: false });
+  }, 3000);
 };
 
 const stopLogPolling = () => {
@@ -1156,7 +1219,7 @@ const clearLogs = () => {
 const handleLogsTypeChange = (value: "runtime" | "deploy" | "operation") => {
   logsRequestSerial += 1;
   logsType.value = value;
-  void fetchLogs();
+  void fetchLogs({ showLoading: true });
 };
 
 const isProjectSelected = (project: RemoteProject) =>
@@ -1748,6 +1811,14 @@ onUnmounted(() => {
   gap: 10px;
 }
 
+.rpp__toolbar-icon-btn {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+
+
 .rpp__batch-panel {
   display: grid;
   gap: 10px;
@@ -1928,25 +1999,16 @@ onUnmounted(() => {
 
 .rpp__cards {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
   align-content: start;
 }
 
 .rpp__card-item {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
   min-width: 0;
-}
-
-@media (max-width: 1300px) {
-  .rpp__cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1000px) {
-  .rpp__cards {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 860px) {
@@ -1960,10 +2022,6 @@ onUnmounted(() => {
   }
 
   .rpp__settings-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .rpp__cards {
     grid-template-columns: 1fr;
   }
 }

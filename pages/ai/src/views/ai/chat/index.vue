@@ -1,7 +1,7 @@
 <template>
-  <AiChatStudio />
+  <ReferenceLlm />
 </template>
 
 <script setup lang="ts">
-import AiChatStudio from "../rebuilt/AiChatStudio.vue";
+import ReferenceLlm from "../llm-new/index.vue";
 </script>

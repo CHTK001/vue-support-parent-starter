@@ -1,36 +1,37 @@
 <template>
   <section class="manufacturer-page">
-    <div class="manufacturer-page__header">
-      <el-button
-        class="manufacturer-page__icon-btn"
-        text
-        circle
-        title="返回首页"
-        @click="router.push('/ai/home')"
-      >
-        <IconifyIconOnline icon="ri:arrow-left-line" />
-      </el-button>
-      <el-button
-        class="manufacturer-page__icon-btn"
-        type="primary"
-        plain
-        circle
-        title="全局配置"
-        @click="openGlobalConfig"
-      >
-        <IconifyIconOnline icon="ri:settings-3-line" />
-      </el-button>
-    </div>
-
     <div class="manufacturer-page__intro">
-      <div class="manufacturer-page__intro-main">
-        <h1>厂家与模型中心</h1>
-        <p>集中管理厂家连接信息、模型配置与运行时参数，推荐先创建厂家再维护模型。</p>
+      <div class="manufacturer-page__header">
+        <el-button
+          class="manufacturer-page__icon-btn"
+          text
+          circle
+          title="返回首页"
+          @click="router.push('/ai/home')"
+        >
+          <IconifyIconOnline icon="ri:arrow-left-line" />
+        </el-button>
+        <el-button
+          class="manufacturer-page__icon-btn"
+          type="primary"
+          plain
+          circle
+          title="全局配置"
+          @click="openGlobalConfig"
+        >
+          <IconifyIconOnline icon="ri:settings-3-line" />
+        </el-button>
       </div>
-      <div class="manufacturer-page__intro-meta">
-        <div class="manufacturer-page__meta-item">
-          <span>厂家数</span>
-          <strong>{{ manufacturers.length }}</strong>
+      <div class="manufacturer-page__intro-content">
+        <div class="manufacturer-page__intro-main">
+          <h1>厂家与模型中心</h1>
+          <p>集中管理厂家连接信息、模型配置与运行时参数，推荐先创建厂家再维护模型。</p>
+        </div>
+        <div class="manufacturer-page__intro-meta">
+          <div class="manufacturer-page__meta-item">
+            <span>厂家数</span>
+            <strong>{{ manufacturers.length }}</strong>
+          </div>
         </div>
       </div>
     </div>
@@ -60,6 +61,11 @@
           class="manufacturer-card"
           @click="openManufacturerPanel(item)"
         >
+          <el-badge
+            class="manufacturer-card__count-badge"
+            :value="item.moduleCount || 0"
+            type="primary"
+          />
           <div class="manufacturer-card__toolbar">
             <el-tooltip content="编辑厂商" placement="top">
               <el-button text class="toolbar-icon-btn" @click.stop="openEditDialog(item)">
@@ -67,7 +73,12 @@
               </el-button>
             </el-tooltip>
             <el-tooltip :content="item.sysAiManufacturerStatus === 1 ? '停用厂商' : '启用厂商'" placement="top">
-              <el-button text class="toolbar-icon-btn" @click.stop="toggleManufacturerStatus(item)">
+              <el-button
+                text
+                class="toolbar-icon-btn toolbar-icon-btn--status"
+                :class="item.sysAiManufacturerStatus === 1 ? 'status-enabled' : 'status-disabled'"
+                @click.stop="toggleManufacturerStatus(item)"
+              >
                 <IconifyIconOnline
                   class="toolbar-icon-btn__icon"
                   :icon="item.sysAiManufacturerStatus === 1 ? 'ri:toggle-fill' : 'ri:toggle-line'"
@@ -83,99 +94,71 @@
 
           <div class="manufacturer-card__header">
             <div class="manufacturer-card__identity">
-              <div class="manufacturer-card__media">
-                <template v-if="item.sysAiManufacturerLogo">
-                  <img
-                    :src="item.sysAiManufacturerLogo"
-                    :alt="item.sysAiManufacturerName"
-                    class="manufacturer-card__logo"
-                  />
-                </template>
-                <template v-else-if="item.sysAiManufacturerIcon">
-                  <div class="manufacturer-card__icon-wrap">
+              <div class="manufacturer-card__media-stack">
+                <div class="manufacturer-card__media">
+                  <template v-if="item.sysAiManufacturerLogo">
                     <img
-                      :src="item.sysAiManufacturerIcon"
+                      :src="item.sysAiManufacturerLogo"
                       :alt="item.sysAiManufacturerName"
-                      class="manufacturer-card__icon"
+                      class="manufacturer-card__logo"
                     />
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="manufacturer-card__placeholder">
-                    <span>{{ getManufacturerInitial(item.sysAiManufacturerName) }}</span>
-                  </div>
-                </template>
+                  </template>
+                  <template v-else-if="item.sysAiManufacturerIcon">
+                    <div class="manufacturer-card__icon-wrap">
+                      <img
+                        :src="item.sysAiManufacturerIcon"
+                        :alt="item.sysAiManufacturerName"
+                        class="manufacturer-card__icon"
+                      />
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div
+                      class="manufacturer-card__placeholder"
+                      :style="{
+                        backgroundColor: getManufacturerColor(
+                          item.sysAiManufacturerCode || item.sysAiManufacturerName
+                        ),
+                      }"
+                    >
+                      <span>{{ getManufacturerInitial(item.sysAiManufacturerName) }}</span>
+                    </div>
+                  </template>
+                </div>
+                <small class="manufacturer-card__code manufacturer-card__code--below">
+                  {{ item.sysAiManufacturerCode }}
+                </small>
               </div>
 
-              <div>
-                <small>{{ item.sysAiManufacturerCode }}</small>
+              <div class="manufacturer-card__name-block">
+                <div class="manufacturer-card__meta-row">
+                  <el-tag
+                    size="small"
+                    round
+                    :type="item.sysAiManufacturerStatus === 1 ? 'success' : 'info'"
+                    class="manufacturer-card__status-tag"
+                  >
+                    {{ item.sysAiManufacturerStatus === 1 ? "启用" : "停用" }}
+                  </el-tag>
+                </div>
                 <h3>{{ item.sysAiManufacturerName }}</h3>
               </div>
             </div>
 
-            <div class="manufacturer-card__tags">
-              <el-tag round type="primary">{{ item.moduleCount || 0 }} 个模型</el-tag>
-              <el-tag v-if="item.sysAiManufacturerFactory" round>
-                {{ item.sysAiManufacturerFactory }}
-              </el-tag>
-              <el-tag
-                v-if="item.sysAiManufacturerMemoryEnabled === 1"
-                round
-                type="warning"
-              >
-                记忆已开
-              </el-tag>
-              <el-tag
-                v-if="item.sysAiManufacturerOpenaiCompatible === 1"
-                round
-                type="success"
-              >
-                OpenAI兼容
-              </el-tag>
-            </div>
-          </div>
-
-          <div class="manufacturer-card__content">
-            <div class="manufacturer-card__line">
-              <span class="manufacturer-card__label">编码</span>
-              <span class="manufacturer-card__value manufacturer-card__value--mono">
-                {{ item.sysAiManufacturerCode || "-" }}
-              </span>
-            </div>
-            <div class="manufacturer-card__line">
-              <span class="manufacturer-card__label">状态</span>
-              <span class="manufacturer-card__tag-group">
-                <el-tag
-                  size="small"
-                  :type="item.sysAiManufacturerStatus === 1 ? 'success' : 'info'"
-                  round
-                >
-                  {{ item.sysAiManufacturerStatus === 1 ? "启用" : "停用" }}
-                </el-tag>
-              </span>
-            </div>
-            <div class="manufacturer-card__line">
-              <span class="manufacturer-card__label">能力</span>
-              <span class="manufacturer-card__tag-group">
-                <el-tag
-                  size="small"
-                  :type="item.sysAiManufacturerOpenaiCompatible === 1 ? 'success' : 'warning'"
-                  round
-                >
-                  {{
-                    item.sysAiManufacturerOpenaiCompatible === 1
-                      ? "OpenAI 兼容"
-                      : "自定义协议"
-                  }}
-                </el-tag>
-                <el-tag
-                  size="small"
-                  :type="item.sysAiManufacturerMemoryEnabled === 1 ? 'primary' : 'info'"
-                  round
-                >
-                  {{ item.sysAiManufacturerMemoryEnabled === 1 ? "记忆开启" : "记忆关闭" }}
-                </el-tag>
-              </span>
+            <div
+              v-if="item.sysAiManufacturerOpenaiCompatible === 1 || item.sysAiManufacturerMemoryEnabled === 1"
+              class="manufacturer-card__corner-icons"
+            >
+              <el-tooltip v-if="item.sysAiManufacturerOpenaiCompatible === 1" content="OpenAI 兼容" placement="top">
+                <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--success">
+                  <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:robot-2-line" />
+                </span>
+              </el-tooltip>
+              <el-tooltip v-if="item.sysAiManufacturerMemoryEnabled === 1" content="记忆开启" placement="top">
+                <span class="manufacturer-card__corner-icon manufacturer-card__corner-icon--warning">
+                  <IconifyIconOnline class="manufacturer-card__corner-icon-svg" icon="ri:brain-line" />
+                </span>
+              </el-tooltip>
             </div>
           </div>
 
@@ -202,7 +185,7 @@
     <el-drawer
       v-model="panelVisible"
       :with-header="false"
-      size="1120px"
+      size="1280px"
       destroy-on-close
     >
       <div v-if="selectedManufacturer" class="manufacturer-panel">
@@ -259,8 +242,13 @@
                   <span class="toolbar-icon-btn__icon">✎</span>
                 </el-button>
               </el-tooltip>
+              <el-tooltip content="费用配置" placement="top">
+                <el-button text class="toolbar-icon-btn" @click="openModulePriceDialog(item)">
+                  <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:money-cny-circle-line" />
+                </el-button>
+              </el-tooltip>
               <el-tooltip
-                v-if="item.sysAiModuleSupportTemplate === 1"
+                v-if="isVisualModule(item) && item.sysAiModuleSupportTemplate === 1"
                 content="模板配置"
                 placement="top"
               >
@@ -273,7 +261,7 @@
                 </el-button>
               </el-tooltip>
               <el-tooltip
-                v-if="item.sysAiModuleSupportStyle === 1"
+                v-if="isVisualModule(item) && item.sysAiModuleSupportStyle === 1"
                 content="样式配置"
                 placement="top"
               >
@@ -285,7 +273,7 @@
                   <span class="toolbar-icon-btn__icon">🎨</span>
                 </el-button>
               </el-tooltip>
-              <el-tooltip content="设为全局默认模型" placement="top">
+              <el-tooltip v-if="item.sysAiModuleType === 'LLM'" content="设为全局默认模型" placement="top">
                 <el-button text class="toolbar-icon-btn" @click="setModuleAsGlobal(item)">
                   <IconifyIconOnline class="toolbar-icon-btn__icon" icon="ri:global-line" />
                 </el-button>
@@ -312,20 +300,33 @@
                   <h3>{{ item.sysAiModuleName }}</h3>
                 </div>
               </div>
-              <el-tag size="small" round>{{ getModuleTypeLabel(item.sysAiModuleType) }}</el-tag>
+              <el-tag class="module-card__type-tag" size="small" round>
+                {{ getModuleTypeLabel(item.sysAiModuleType) }}
+              </el-tag>
             </div>
 
             <div class="module-card__identity-tags">
-              <el-tag size="small" effect="plain" round>
-                模型ID {{ item.sysAiModuleModelId || "-" }}
-              </el-tag>
-              <el-tag size="small" effect="plain" round>
-                版本 {{ item.sysAiModuleVersion || "-" }}
-              </el-tag>
+              <el-tooltip
+                :content="`模型ID ${item.sysAiModuleModelId || '-'}`"
+                placement="top"
+                :disabled="!(item.sysAiModuleModelId && String(item.sysAiModuleModelId).length > 18)"
+              >
+                <el-tag
+                  size="small"
+                  effect="plain"
+                  round
+                  class="module-card__identity-tag module-card__identity-tag--model-id"
+                >
+                  模型ID {{ item.sysAiModuleModelId || "-" }}
+                </el-tag>
+              </el-tooltip>
             </div>
+            <span v-if="item.sysAiModuleVersion" class="module-card__version-badge">
+              版本 {{ item.sysAiModuleVersion }}
+            </span>
             <div class="module-card__footer">
               <div class="module-card__meta-tags">
-                <el-tag v-if="isGlobalModule(item)" round type="danger">
+                <el-tag v-if="item.sysAiModuleType === 'LLM' && isGlobalModule(item)" round type="danger">
                   全局
                 </el-tag>
                 <el-tooltip v-if="item.sysAiModuleType === 'LLM' && item.sysAiModuleVlm === 1" content="图片理解" placement="top">
@@ -351,22 +352,37 @@
                     <IconifyIconOnline class="module-card__tag-icon" icon="ri:magic-line" />
                   </span>
                 </el-tooltip>
-                <el-tag v-if="item.sysAiModuleSupportTemplate === 1" round type="success">
-                  支持模板
-                </el-tag>
-                <el-tooltip v-if="item.sysAiModuleSupportStyle === 1" content="支持样式" placement="top">
+                <el-tooltip
+                  v-if="isVisualModule(item) && item.sysAiModuleSupportTemplate === 1"
+                  content="支持模板"
+                  placement="top"
+                >
+                  <span class="module-card__icon-only-tag module-card__icon-only-tag--success">
+                    <IconifyIconOnline class="module-card__tag-icon" icon="ri:apps-2-line" />
+                  </span>
+                </el-tooltip>
+                <el-tooltip
+                  v-if="isVisualModule(item) && item.sysAiModuleSupportStyle === 1"
+                  content="支持样式"
+                  placement="top"
+                >
                   <span class="module-card__icon-only-tag">
                     <IconifyIconOnline class="module-card__tag-icon" icon="ri:palette-line" />
                   </span>
                 </el-tooltip>
-                <el-tag v-if="item.sysAiModuleGenerateLimit" round>
+                <el-tag v-if="isVisualModule(item) && item.sysAiModuleGenerateLimit" round>
                   上限 {{ item.sysAiModuleGenerateLimit }}
                 </el-tag>
               </div>
-              <el-tag :type="item.sysAiModuleStatus === 1 ? 'success' : 'info'" round>
-                {{ item.sysAiModuleStatus === 1 ? "启用" : "停用" }}
-              </el-tag>
             </div>
+            <el-tag
+              class="module-card__status-badge"
+              :type="item.sysAiModuleStatus === 1 ? 'success' : 'info'"
+              round
+              size="small"
+            >
+              {{ item.sysAiModuleStatus === 1 ? "启用" : "停用" }}
+            </el-tag>
           </article>
         </div>
       </div>
@@ -457,7 +473,7 @@
             </el-form-item>
           </el-col>
 
-          <el-col :span="12">
+          <el-col :span="24">
             <el-form-item label="AppKey" prop="sysAiManufacturerAppKey">
               <el-input
                 v-model="manufacturerForm.sysAiManufacturerAppKey"
@@ -467,7 +483,6 @@
               />
             </el-form-item>
           </el-col>
-
           <el-col :span="12">
             <el-form-item label="兼容 OpenAI">
               <ScSwitch
@@ -502,25 +517,44 @@
           </el-col>
 
           <template v-if="showXunfeiFields">
-            <el-col :span="12">
-              <el-form-item label="讯飞 AppId">
+            <el-col :span="24">
+              <el-form-item label="讯飞 ApiSecret">
                 <el-input
-                  v-model="manufacturerForm.sysAiManufacturerAppId"
-                  placeholder="讯飞 AppId"
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="讯飞 AppSecret">
-                <el-input
-                  v-model="manufacturerForm.sysAiManufacturerAppSecret"
+                  v-model="manufacturerForm.sysAiManufacturerApiSecret"
                   type="password"
                   show-password
-                  placeholder="讯飞 AppSecret"
+                  placeholder="讯飞 ApiSecret"
                 />
               </el-form-item>
             </el-col>
           </template>
+
+          <el-col :span="24">
+            <el-collapse v-model="manufacturerAdvancedActive">
+              <el-collapse-item title="高级选项" name="advanced">
+                <el-row :gutter="16">
+                  <el-col :span="12">
+                    <el-form-item label="AppId">
+                      <el-input
+                        v-model="manufacturerForm.sysAiManufacturerAppId"
+                        placeholder="通用 AppId / ClientId / SecretId"
+                      />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="AppSecret">
+                      <el-input
+                        v-model="manufacturerForm.sysAiManufacturerAppSecret"
+                        type="password"
+                        show-password
+                        placeholder="通用 AppSecret / SecretKey"
+                      />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
+              </el-collapse-item>
+            </el-collapse>
+          </el-col>
         </el-row>
       </el-form>
 
@@ -592,7 +626,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" v-if="moduleForm.sysAiModuleType === 'LLM'">
             <el-form-item label="图片理解">
               <ScSwitch
                 v-model="moduleVlmSwitch"
@@ -605,7 +639,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" v-if="moduleForm.sysAiModuleType === 'LLM'">
             <el-form-item label="深度思考">
               <ScSwitch
                 v-model="moduleThinkSwitch"
@@ -616,7 +650,7 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" v-if="moduleForm.sysAiModuleType === 'LLM'">
             <el-form-item label="支持优化">
               <ScSwitch
                 v-model="moduleOptimizeSwitch"
@@ -625,26 +659,6 @@
                 inactive-icon="ri:prohibited-2-line"
                 :disabled="moduleForm.sysAiModuleType !== 'LLM'"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="排序">
-              <el-input v-model.number="moduleForm.sysAiModuleSort" type="number" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="输入费用">
-              <el-input v-model.number="moduleForm.sysAiModuleInputPrice" type="number" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="输出费用">
-              <el-input v-model.number="moduleForm.sysAiModuleOutputPrice" type="number" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="缓存费用">
-              <el-input v-model.number="moduleForm.sysAiModuleCachePrice" type="number" />
             </el-form-item>
           </el-col>
           <el-col :span="12" v-if="isVisualModule(moduleForm)">
@@ -686,12 +700,48 @@
               />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="排序">
+              <ScInput v-model="moduleForm.sysAiModuleSort" type="number" />
+            </el-form-item>
+          </el-col>
         </el-row>
       </el-form>
 
       <template #footer>
         <el-button @click="moduleDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitModule">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="modulePriceDialogVisible"
+      :title="modulePriceTarget ? `${modulePriceTarget.sysAiModuleName} 费用配置` : '费用配置'"
+      width="560px"
+      destroy-on-close
+    >
+      <el-form label-position="top">
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="输入费用">
+              <el-input v-model.number="modulePriceForm.sysAiModuleInputPrice" type="number" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="输出费用">
+              <el-input v-model.number="modulePriceForm.sysAiModuleOutputPrice" type="number" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="缓存费用">
+              <el-input v-model.number="modulePriceForm.sysAiModuleCachePrice" type="number" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="modulePriceDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitModulePrice">保存费用</el-button>
       </template>
     </el-dialog>
 
@@ -744,6 +794,9 @@
         <el-button @click="moduleConfigDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <VincentTemplateDialog ref="moduleTemplateDialogRef" />
+    <VincentStyleDialog ref="moduleStyleDialogRef" />
 
     <el-dialog
       v-model="globalDialogVisible"
@@ -909,11 +962,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+const VincentTemplateDialog = defineAsyncComponent(() => import("../vincent-template.vue"));
+const VincentStyleDialog = defineAsyncComponent(() => import("../vincent-style.vue"));
+import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import {
+  ElBadge,
   ElButton,
   ElCol,
+  ElCollapse,
+  ElCollapseItem,
   ElDialog,
   ElDrawer,
   ElEmpty,
@@ -932,6 +990,7 @@ import {
 import type { FormInstance, FormRules } from "element-plus";
 import { message } from "@repo/utils";
 import ScSwitch from "@repo/components/ScSwitch/index.vue";
+import ScInput from "@repo/components/ScInput/index.vue";
 import {
   listAiManufacturers,
   saveAiManufacturer,
@@ -967,8 +1026,12 @@ const allModules = ref<AiModule[]>([]);
 const manufacturerModules = ref<AiModule[]>([]);
 const moduleDialogVisible = ref(false);
 const moduleEditingId = ref<number | null>(null);
+const modulePriceDialogVisible = ref(false);
+const modulePriceTarget = ref<AiModule | null>(null);
 const moduleConfigDialogVisible = ref(false);
 const moduleConfigTarget = ref<AiModule | null>(null);
+const moduleTemplateDialogRef = ref<any>(null);
+const moduleStyleDialogRef = ref<any>(null);
 const globalDialogVisible = ref(false);
 const globalDefaultModelCode = ref("");
 const logoUploading = ref(false);
@@ -1053,8 +1116,15 @@ const moduleForm = reactive<AiModule>({
   sysAiModuleRemark: "",
 });
 
+const modulePriceForm = reactive({
+  sysAiModuleInputPrice: 0,
+  sysAiModuleOutputPrice: 0,
+  sysAiModuleCachePrice: 0,
+});
+
 const openaiCompatibleSwitch = ref(false);
 const memoryEnabledSwitch = ref(false);
+const manufacturerAdvancedActive = ref<string[]>([]);
 const manufacturerFormRef = ref<FormInstance>();
 const manufacturerRules = reactive<FormRules>({
   sysAiManufacturerName: [{ required: true, message: "请填写厂家名称", trigger: "blur" }],
@@ -1161,7 +1231,7 @@ const resetForm = () => {
     sysAiManufacturerAppKey: "",
     sysAiManufacturerAppSecret: "",
     sysAiManufacturerBaseUrl: "",
-    sysAiManufacturerOpenaiCompatible: 0,
+    sysAiManufacturerOpenaiCompatible: 1,
     sysAiManufacturerAppId: "",
     sysAiManufacturerApiSecret: "",
     sysAiManufacturerApiVersion: "",
@@ -1171,7 +1241,8 @@ const resetForm = () => {
     sysAiManufacturerStatus: 1,
     sysAiManufacturerSort: 0,
   });
-  openaiCompatibleSwitch.value = false;
+  manufacturerAdvancedActive.value = [];
+  openaiCompatibleSwitch.value = true;
   memoryEnabledSwitch.value = false;
 };
 
@@ -1222,9 +1293,13 @@ const openEditDialog = (item: AiManufacturer) => {
     ...item,
     sysAiManufacturerFactory: item.sysAiManufacturerFactory || "",
     sysAiManufacturerMemoryEnabled: item.sysAiManufacturerMemoryEnabled ?? 0,
+    sysAiManufacturerRemark: item.sysAiManufacturerRemark ?? "",
+    sysAiManufacturerAppId: item.sysAiManufacturerAppId ?? "",
+    sysAiManufacturerAppSecret: item.sysAiManufacturerAppSecret ?? "",
   });
   openaiCompatibleSwitch.value = item.sysAiManufacturerOpenaiCompatible === 1;
   memoryEnabledSwitch.value = item.sysAiManufacturerMemoryEnabled === 1;
+  manufacturerAdvancedActive.value = [];
   dialogVisible.value = true;
   manufacturerFormRef.value?.clearValidate();
 };
@@ -1350,6 +1425,11 @@ const submitManufacturer = async () => {
     openaiCompatibleSwitch.value ? 1 : 0;
   manufacturerForm.sysAiManufacturerMemoryEnabled =
     memoryEnabledSwitch.value ? 1 : 0;
+  // 允许清空备注/高级字段：将 null/undefined 显式归一为 ""
+  manufacturerForm.sysAiManufacturerRemark = manufacturerForm.sysAiManufacturerRemark ?? "";
+  manufacturerForm.sysAiManufacturerAppId = manufacturerForm.sysAiManufacturerAppId ?? "";
+  manufacturerForm.sysAiManufacturerAppSecret =
+    manufacturerForm.sysAiManufacturerAppSecret ?? "";
 
   if (editingId.value) {
     await updateAiManufacturer(manufacturerForm);
@@ -1389,6 +1469,14 @@ const openModuleDialog = (item?: AiModule) => {
   moduleDialogVisible.value = true;
 };
 
+const openModulePriceDialog = (item: AiModule) => {
+  modulePriceTarget.value = item;
+  modulePriceForm.sysAiModuleInputPrice = Number(item.sysAiModuleInputPrice || 0);
+  modulePriceForm.sysAiModuleOutputPrice = Number(item.sysAiModuleOutputPrice || 0);
+  modulePriceForm.sysAiModuleCachePrice = Number(item.sysAiModuleCachePrice || 0);
+  modulePriceDialogVisible.value = true;
+};
+
 const openModuleConfigDialog = (item: AiModule) => {
   moduleConfigTarget.value = item;
   moduleConfigDialogVisible.value = true;
@@ -1401,6 +1489,14 @@ const openModuleFeatureDialog = (item: AiModule, kind: "template" | "style") => 
     message(`请先在模型里开启${kind === "template" ? "模板" : "样式"}支持`, {
       type: "warning",
     });
+    return;
+  }
+  if (kind === "template") {
+    moduleTemplateDialogRef.value?.handleOpen?.(item, "edit");
+    return;
+  }
+  if (kind === "style") {
+    moduleStyleDialogRef.value?.handleOpen?.(item, "edit");
     return;
   }
   openModuleConfigDialog(item);
@@ -1450,15 +1546,55 @@ const submitModule = async () => {
   await Promise.all([reloadManufacturerModules(), reloadPage()]);
 };
 
+const submitModulePrice = async () => {
+  if (!modulePriceTarget.value) {
+    return;
+  }
+  const payload: AiModule = {
+    ...modulePriceTarget.value,
+    sysAiModuleInputPrice: Number(modulePriceForm.sysAiModuleInputPrice || 0),
+    sysAiModuleOutputPrice: Number(modulePriceForm.sysAiModuleOutputPrice || 0),
+    sysAiModuleCachePrice: Number(modulePriceForm.sysAiModuleCachePrice || 0),
+  };
+  await updateAiModule(payload);
+
+  // 就地更新当前列表数据，避免整页重查
+  modulePriceTarget.value.sysAiModuleInputPrice = payload.sysAiModuleInputPrice;
+  modulePriceTarget.value.sysAiModuleOutputPrice = payload.sysAiModuleOutputPrice;
+  modulePriceTarget.value.sysAiModuleCachePrice = payload.sysAiModuleCachePrice;
+
+  const allModule = allModules.value.find(
+    (it) => it.sysAiModuleId === modulePriceTarget.value?.sysAiModuleId,
+  );
+  if (allModule) {
+    allModule.sysAiModuleInputPrice = payload.sysAiModuleInputPrice;
+    allModule.sysAiModuleOutputPrice = payload.sysAiModuleOutputPrice;
+    allModule.sysAiModuleCachePrice = payload.sysAiModuleCachePrice;
+  }
+
+  message("模型费用已更新", { type: "success" });
+  modulePriceDialogVisible.value = false;
+};
+
 const toggleManufacturerStatus = async (item: AiManufacturer) => {
+  const nextStatus = item.sysAiManufacturerStatus === 1 ? 0 : 1;
   await updateAiManufacturer({
     ...item,
-    sysAiManufacturerStatus: item.sysAiManufacturerStatus === 1 ? 0 : 1,
+    sysAiManufacturerStatus: nextStatus,
   });
-  message(item.sysAiManufacturerStatus === 1 ? "厂家已停用" : "厂家已启用", {
+
+  // 就地更新，避免整页重载导致卡片闪烁
+  item.sysAiManufacturerStatus = nextStatus;
+  if (
+    selectedManufacturer.value &&
+    selectedManufacturer.value.sysAiManufacturerCode === item.sysAiManufacturerCode
+  ) {
+    selectedManufacturer.value.sysAiManufacturerStatus = nextStatus;
+  }
+
+  message(nextStatus === 1 ? "厂家已启用" : "厂家已停用", {
     type: "success",
   });
-  await reloadPage();
 };
 
 const removeManufacturer = async (item: AiManufacturer) => {
@@ -1494,10 +1630,14 @@ const removeModule = async (item: AiModule) => {
   );
   await deleteAiModule(item.sysAiModuleId);
   message("模型已删除", { type: "success" });
-  await Promise.all([reloadManufacturerModules(), reloadPage()]);
+  await reloadManufacturerModules();
 };
 
 const setModuleAsGlobal = async (item: AiModule) => {
+  if (item.sysAiModuleType !== "LLM") {
+    message("仅大语言模型支持设为全局默认模型", { type: "warning" });
+    return;
+  }
   if (!item.sysAiModuleCode) {
     message("当前模型缺少模型编码，无法设为全局", { type: "warning" });
     return;
@@ -1562,7 +1702,17 @@ const getManufacturerInitial = (name?: string) => {
   if (!value) {
     return "AI";
   }
-  return value.slice(0, 2).toUpperCase();
+  return value.slice(0, 1).toUpperCase();
+};
+
+const getManufacturerColor = (key?: string) => {
+  const value = String(key || "").trim() || "manufacturer";
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  const hue = hash % 360;
+  return `hsl(${hue} 72% 86%)`;
 };
 
 const openGlobalConfig = () => {
@@ -1762,7 +1912,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 auto 18px;
+  margin: 0;
 }
 
 .manufacturer-page__intro {
@@ -1774,6 +1924,13 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
   backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.manufacturer-page__intro-content {
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -1860,13 +2017,13 @@ onMounted(async () => {
 
 .manufacturer-page__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
 }
 
 @media (min-width: 1800px) {
   .manufacturer-page__grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
@@ -1887,10 +2044,10 @@ onMounted(async () => {
 .manufacturer-card {
   position: relative;
   display: flex;
-  min-height: 220px;
+  min-height: 236px;
   flex-direction: column;
-  gap: 14px;
-  padding: 22px;
+  gap: 8px;
+  padding: 14px 14px 12px;
   overflow: hidden;
   border: 1px solid rgba(71, 85, 105, 0.14);
   border-radius: 30px;
@@ -1940,51 +2097,150 @@ onMounted(async () => {
     }
 
     strong {
-      margin-top: 12px;
+      margin-top: 10px;
       color: #1f1a17;
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 700;
     }
 
     p {
-      margin: 10px 0 0;
+      margin: 8px 0 0;
       color: #5e544c;
-      font-size: 14px;
-      line-height: 1.7;
+      font-size: 12px;
+      line-height: 1.5;
     }
   }
 
   small {
     color: #6b7280;
+    font-size: 11px;
+    display: inline-block;
+    transform: translateY(-3px);
   }
 
   h3 {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     color: #1f1a17;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     line-height: 1.1;
+    min-width: 3em;
   }
 }
 
 .manufacturer-card__header {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+  align-items: stretch;
+  padding-top: 26px;
+  position: relative;
+}
+
+.manufacturer-card__corner-icons {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  gap: 6px;
+  z-index: 4;
+}
+
+.manufacturer-card__corner-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.manufacturer-card__corner-icon--success {
+  color: #16a34a;
+}
+
+.manufacturer-card__corner-icon--warning {
+  color: #d97706;
+}
+
+.manufacturer-card__corner-icon-svg {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .manufacturer-card__identity {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  align-items: flex-start;
+  transform: translateY(-4px);
+}
+
+.manufacturer-card__media-stack {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 90px;
+}
+
+.manufacturer-card__media-stack .manufacturer-card__media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+}
+
+.manufacturer-card__media-stack .manufacturer-card__icon-wrap,
+.manufacturer-card__media-stack .manufacturer-card__placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.manufacturer-card__code {
+  font-size: 11px;
+  line-height: 1;
+  color: #6b7280;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manufacturer-card__code--below {
+  max-width: 100%;
+  width: 100%;
+  text-align: center;
+  opacity: 0.9;
+  transform: none;
+}
+
+.manufacturer-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
+.manufacturer-card__status-tag {
+  flex-shrink: 0;
+}
+
+.manufacturer-card__name-block {
+  min-width: 0;
+  flex: 1;
+  padding-right: 104px;
 }
 
 .manufacturer-card__media,
 .manufacturer-card__icon-wrap {
   display: inline-flex;
-  width: 52px;
-  height: 52px;
+  width: 40px;
+  height: 40px;
   align-items: center;
   justify-content: center;
   border-radius: 16px;
@@ -2005,8 +2261,6 @@ onMounted(async () => {
   height: 100%;
   align-items: center;
   justify-content: center;
-  background:
-    linear-gradient(135deg, #d9dbe3 0%, #ece4da 100%);
   color: #1f1a17;
   font-size: 18px;
   font-weight: 700;
@@ -2014,21 +2268,22 @@ onMounted(async () => {
 
 .manufacturer-card__tags {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-end;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
 }
 
 .manufacturer-card__add-icon {
   display: inline-flex;
-  width: 58px;
-  height: 58px;
+  width: 46px;
+  height: 46px;
   align-items: center;
   justify-content: center;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.66);
   color: #1f1a17;
-  font-size: 34px;
+  font-size: 28px;
   line-height: 1;
 }
 
@@ -2036,42 +2291,41 @@ onMounted(async () => {
 .manufacturer-card__remark {
   margin: 0;
   color: #475569;
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: 12px;
+  line-height: 1.6;
   word-break: break-all;
 }
 
 .manufacturer-card__content {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .manufacturer-card__line {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 6px;
   align-items: start;
 }
 
 .manufacturer-card__label {
   color: #64748b;
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .manufacturer-card__value {
   color: #334155;
-  font-size: 13px;
-  line-height: 1.7;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 .manufacturer-card__tag-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
@@ -2080,44 +2334,108 @@ onMounted(async () => {
 }
 
 .manufacturer-card__remark {
-  margin-top: auto;
+  margin-top: 10px;
   display: -webkit-box;
   overflow: hidden;
   text-overflow: ellipsis;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
 }
 
 .manufacturer-card__toolbar {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 8px;
+  right: 8px;
   display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 6px;
+  padding: 4px;
+  z-index: 5;
   border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 14px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 12px 30px rgba(30, 41, 59, 0.12);
+  box-shadow: 0 8px 20px rgba(30, 41, 59, 0.12);
   opacity: 0;
   transform: translateY(-6px);
   pointer-events: none;
   transition:
     opacity 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.manufacturer-card__count-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 3;
+}
+
+.manufacturer-card__count-badge :deep(.el-badge__content) {
+  min-width: 20px;
+  height: 20px;
+  line-height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
+  font-weight: 700;
 }
 
 .manufacturer-card:hover .manufacturer-card__toolbar {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+  box-shadow: 0 10px 24px rgba(30, 41, 59, 0.16);
 }
 
 .toolbar-icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   padding: 0;
-  border-radius: 10px;
+  border-radius: 8px;
+}
+
+.toolbar-icon-btn--status.status-enabled {
+  background: rgba(34, 197, 94, 0.16);
+  color: #15803d;
+}
+
+.toolbar-icon-btn--status.status-enabled:hover {
+  background: rgba(34, 197, 94, 0.24);
+  color: #166534;
+}
+
+.toolbar-icon-btn--status.status-disabled {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+.toolbar-icon-btn--status.status-disabled:hover {
+  background: rgba(239, 68, 68, 0.22);
+  color: #991b1b;
+}
+
+.manufacturer-card__icon-only-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-color-primary);
+  line-height: 1;
+}
+
+.manufacturer-card__icon-only-tag--success {
+  color: var(--el-color-success);
+}
+
+.manufacturer-card__icon-only-tag--primary {
+  color: var(--el-color-primary);
+}
+
+.manufacturer-card__tag-icon {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .toolbar-icon-btn__icon {
@@ -2378,18 +2696,18 @@ onMounted(async () => {
 
 .manufacturer-panel__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
   align-items: stretch;
 }
 
 .module-card {
   position: relative;
   display: flex;
-  min-height: 180px;
+  min-height: 160px;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
+  gap: 10px;
+  padding: 14px;
   overflow: hidden;
   border: 1px solid rgba(100, 116, 139, 0.2);
   border-radius: 20px;
@@ -2399,6 +2717,8 @@ onMounted(async () => {
     transform 0.2s ease,
     box-shadow 0.2s ease,
     border-color 0.2s ease;
+  padding-top: 42px;
+  padding-bottom: 42px;
 
   &:hover {
     transform: translateY(-3px);
@@ -2442,27 +2762,28 @@ onMounted(async () => {
   }
 
   strong {
-    margin-top: 12px;
-    font-size: 22px;
+    margin-top: 10px;
+    font-size: 18px;
     color: #1f1a17;
   }
 
   p {
     margin: 0;
     color: #334155;
-    line-height: 1.65;
+    line-height: 1.5;
     word-break: break-all;
-    font-size: 13px;
+    font-size: 12px;
   }
 }
 
 .module-card__toolbar {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   display: flex;
   gap: 4px;
   padding: 6px;
+  z-index: 6;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
@@ -2481,42 +2802,52 @@ onMounted(async () => {
 }
 
 .module-card__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  padding-right: 84px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: start;
+  padding-right: 56px;
 
   > div:first-child {
     min-width: 0;
     flex: 1;
   }
 
+  > :deep(.el-tag) {
+    justify-self: start;
+  }
+
   small {
     color: #6b7280;
+    font-size: 11px;
   }
 
   h3 {
-    margin: 6px 0 0;
+    margin: 4px 0 0;
     color: #1f1a17;
-    font-size: 22px;
-    white-space: nowrap;
+    font-size: 14px;
+    white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
-    word-break: keep-all;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.35;
   }
 }
 
 .module-card__visual {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
+  width: 100%;
 }
 
 .module-card__cover {
-  width: 52px;
-  height: 52px;
+  width: 40px;
+  height: 40px;
   border-radius: 16px;
   flex-shrink: 0;
   overflow: hidden;
@@ -2526,7 +2857,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border: 1px solid rgba(96, 165, 250, 0.2);
   color: #1d4ed8;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
 
   img {
@@ -2538,8 +2869,51 @@ onMounted(async () => {
 }
 
 .module-card__title-block {
-  min-width: 0;
+  min-width: 128px;
   flex: 1;
+  width: 100%;
+}
+
+.module-card__type-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: auto;
+  z-index: 2;
+}
+
+.module-card__identity-tag--model-id {
+  max-width: 240px;
+  width: 100%;
+}
+
+.module-card__identity-tag--model-id :deep(.el-tag__content) {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-card__version-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(255, 255, 255, 0.9);
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.module-card__status-badge {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
 }
 
 .module-card__footer {
@@ -2553,12 +2927,12 @@ onMounted(async () => {
 .module-card__identity-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .module-card__meta-tags {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -2585,14 +2959,14 @@ onMounted(async () => {
 
 .module-card__add-icon {
   display: inline-flex;
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.66);
   color: #1f1a17;
-  font-size: 32px;
+  font-size: 26px;
 }
 
 .module-config {
@@ -2704,7 +3078,7 @@ onMounted(async () => {
   }
 
   .manufacturer-page__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .manufacturer-form__upload {
@@ -2712,7 +3086,7 @@ onMounted(async () => {
   }
 
   .manufacturer-panel__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .global-config-layout {
@@ -2774,7 +3148,7 @@ onMounted(async () => {
   }
 
   .manufacturer-page__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .manufacturer-card {
@@ -2787,6 +3161,13 @@ onMounted(async () => {
     flex-direction: column;
   }
 
+  .manufacturer-panel__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .manufacturer-page__grid,
   .manufacturer-panel__grid {
     grid-template-columns: 1fr;
   }

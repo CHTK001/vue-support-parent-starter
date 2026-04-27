@@ -1,4 +1,4 @@
-﻿import { http, type ReturnResult } from "@repo/utils";
+import { http, type ReturnResult } from "@repo/utils";
 
 export interface SysProject {
   projectId?: number;
@@ -110,7 +110,7 @@ export const fetchProjectLog = (projectId: number, lines = 200) =>
   http.request<ReturnResult<string>>(
     "get",
     `/v2/project/log/${projectId}`,
-    { params: { lines } },
+    { params: { lines }, showLoading: false },
   );
 
 /** 获取项目配置文件内容 */

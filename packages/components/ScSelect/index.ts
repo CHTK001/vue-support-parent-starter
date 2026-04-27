@@ -1,5 +1,5 @@
 import { withInstall } from "@repo/utils";
-import ScSelectVue from "./src/index.vue";
+import ScSelectVue from "./index.vue";
 
 export const ScSelectComponent = withInstall(ScSelectVue);
 export const ScSelect = ScSelectComponent;

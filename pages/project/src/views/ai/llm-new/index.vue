@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="llm-container system-container modern-bg">
     <!-- 保持原有结构，添加新的类名 -->
     <ModuleUpdateDialog
@@ -40,7 +40,7 @@
   --primary-rgb: var(--el-color-primary-rgb);
   --transition: cubic-bezier(0.4, 0, 0.2, 1);
 
-  @apply h-full relative;
+  @apply h-full relative flex flex-col min-h-0;
   background: linear-gradient(
     135deg,
     var(--el-bg-color) 0%,
@@ -63,11 +63,14 @@
   }
 
   .llm-main-container {
-    @apply h-full;
+    @apply h-full flex flex-col flex-1 min-h-0;
   }
 
   .chat-main {
-    @apply p-0 relative h-full;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    @apply p-0 relative min-h-0;
     transition: all 0.4s var(--transition);
 
     .chat-placeholder {
@@ -103,6 +106,9 @@
     }
 
     .chat-main {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
       .chat-placeholder {
         h2 {
           @apply text-gray-300;

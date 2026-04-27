@@ -20,6 +20,13 @@ const STATIC_PROJECT_ALIASES = new Set<string>([
   "static_site",
 ]);
 
+const SERVICE_PROJECT_ALIASES = new Set<string>([
+  "service",
+  "service_class",
+  "service_type",
+  "service_project",
+]);
+
 const normalizeTypeToken = (type?: string) =>
   String(type || "")
     .trim()
@@ -37,12 +44,16 @@ export const normalizeProjectType = (type?: string) => {
   if (STATIC_PROJECT_ALIASES.has(raw)) {
     return "static";
   }
+  if (SERVICE_PROJECT_ALIASES.has(raw)) {
+    return "service";
+  }
   return raw;
 };
 
 export const isSpringBootProjectType = (type?: string) => {
   const normalized = normalizeProjectType(type);
   return (
+    normalized === "service" ||
     normalized === "springboot" ||
     normalized === "springboot_resource_isolation"
   );
@@ -58,6 +69,7 @@ export const isStaticProjectType = (type?: string) =>
   normalizeProjectType(type) === "static";
 
 export const projectTypes: { label: string; value: ProjectType }[] = [
+  { label: "容器服务", value: "service" },
   { label: "Spring 单体", value: "springboot" },
   { label: "Spring 资源分离", value: "springboot_resource_isolation" },
   { label: "Tomcat", value: "tomcat" },

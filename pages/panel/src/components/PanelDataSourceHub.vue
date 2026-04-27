@@ -1447,6 +1447,7 @@ const clearDriverJar = () => {
 }
 
 .hub-empty {
+  grid-column: 1 / -1;
   display: grid;
   place-items: center;
   min-height: 320px;

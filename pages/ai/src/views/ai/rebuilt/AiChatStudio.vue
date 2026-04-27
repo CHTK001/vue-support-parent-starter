@@ -147,7 +147,12 @@
             <template #action-list>
               <div class="action-buttons">
                 <div class="composer-model">
-                  <el-select v-model="modelCode" placeholder="选择模型" size="default">
+                  <el-tooltip
+                    :content="activeModelTooltip"
+                    placement="top-start"
+                    :disabled="!modelCode"
+                  >
+                    <el-select v-model="modelCode" placeholder="选择模型" size="default">
                     <template #label="{ label, value }">
                       <div class="composer-model__label">
                         <div class="composer-model__avatar">
@@ -178,7 +183,8 @@
                         </div>
                       </div>
                     </el-option>
-                  </el-select>
+                    </el-select>
+                  </el-tooltip>
                 </div>
 
                 <input
@@ -1411,6 +1417,7 @@ onBeforeUnmount(() => {
   color: #6b7280;
   font-size: 11px;
 }
+
 
 .ai-studio__file-input {
   display: none;

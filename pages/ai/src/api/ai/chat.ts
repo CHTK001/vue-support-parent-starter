@@ -4,6 +4,7 @@ export interface AiChatRequest {
   sessionId?: number;
   modelCode: string;
   prompt: string;
+  requestScene?: "CHAT" | "OPTIMIZE";
   system?: string;
   think?: boolean;
   files?: Array<{

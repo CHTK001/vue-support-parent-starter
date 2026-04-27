@@ -150,6 +150,7 @@ export type LayoutType =
   | "pill"
   | "dropdown"
   | "list"
+  | "list-item"
   | "filter"
   | "table"
   | "tree"
@@ -231,6 +232,16 @@ export interface ScSelectProps {
   listShowSearch?: boolean;
   /** 列表布局是否显示批量操作 */
   listShowBatchActions?: boolean;
+  /** 列表布局是否显示选项边框（字段名按组件实现为 borde） */
+  listBorde?: boolean;
+  /** 列表布局是否将外层展示转为图标按钮 */
+  listSelectButton?: boolean;
+  /** 列表布局图标按钮模式下的图标 */
+  listSelectIcon?: string;
+  /** 列表布局图标按钮模式下是否显示右侧文案值 */
+  listSelectShowValue?: boolean;
+  /** list-item 布局每行显示数量 */
+  listItemRowNum?: number;
   /** 标签宽度 */
   labelWidth?: number;
   /** 输出格式 */

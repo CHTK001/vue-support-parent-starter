@@ -11,6 +11,9 @@
       </div>
       <div class="node-title">{{ label }}</div>
       <div class="node-actions">
+        <span class="action-btn action-btn--delete" @click.stop="handleDelete">
+          <IconifyIconOnline icon="ri:close-line" />
+        </span>
         <ScDropdown trigger="click" @command="handleCommand">
           <span class="action-btn">
             <IconifyIconOnline icon="ri:more-2-fill" />
@@ -223,6 +226,10 @@ function handleCommand(command: string) {
       break;
   }
 }
+
+function handleDelete() {
+  props.emit("delete", { id: props.data.id });
+}
 </script>
 
 <style scoped lang="scss">
@@ -276,6 +283,10 @@ function handleCommand(command: string) {
 }
 
 .node-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
   .action-btn {
     display: flex;
     align-items: center;
@@ -284,7 +295,7 @@ function handleCommand(command: string) {
     height: 24px;
     border-radius: 4px;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0;
     transition: all 0.2s;
 
     &:hover {
@@ -292,6 +303,15 @@ function handleCommand(command: string) {
       background: rgba(255, 255, 255, 0.2);
     }
   }
+
+  .action-btn--delete:hover {
+    background: rgba(239, 68, 68, 0.22);
+  }
+}
+
+.custom-node:hover .node-actions .action-btn,
+.custom-node.is-selected .node-actions .action-btn {
+  opacity: 0.78;
 }
 
 .node-body {

@@ -53,6 +53,12 @@
         <IconifyIconOnline icon="ri:rocket-line" />
       </ScButton>
     </el-tooltip>
+
+    <el-tooltip content="容器软件" placement="top">
+      <ScButton circle size="small" plain @click="$emit('software', project)">
+        <IconifyIconOnline icon="ri:apps-2-add-line" />
+      </ScButton>
+    </el-tooltip>
   </div>
 </template>
 
@@ -68,6 +74,7 @@ const emit = defineEmits<{
   action: [type: string, project: SysProject];
   upload: [project: SysProject];
   upgrade: [project: SysProject];
+  software: [project: SysProject];
 }>();
 
 const loading = ref<string | null>(null);
